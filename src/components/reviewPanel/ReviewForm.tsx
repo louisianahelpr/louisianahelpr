@@ -21,10 +21,10 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative } from "@/lib/nativeCamera";
 import { report } from "@/lib/errorLogger";
 import { StarRow } from "./StarRow";
-import { CATEGORY_ROWS, safeImageSrc, type CategoryKey, type ReviewFormProps } from "./types";
+import { categoryRowsFor, quickTagsFor, safeImageSrc, type CategoryKey, type ReviewFormProps } from "./types";
 import { userFacingError } from "@/lib/userFacingError";
 
-export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, canTip = false }: ReviewFormProps) => {
+export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, canTip = false, revieweeRole = "helper" }: ReviewFormProps) => {
   const [scores, setScores] = useState<Record<CategoryKey, number>>({
     rating: 0,
     punctuality: 0,
@@ -79,7 +79,12 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
     }
   };
 
-  const quickOptions = ["Great communicator", "On time", "Quality work", "Very professional", "Highly recommend", "Friendly & helpful"];
+  // Both the star rows and the tags adapt to WHO is being rated — see the
+  // long note above CATEGORY_ROWS' replacements in ./types. A poster is not
+  // rated on punctuality-of-arrival or on quality of work; they are rated on
+  // how clearly they described the job and how fast they confirmed it.
+  const categoryRows = categoryRowsFor(revieweeRole);
+  const quickOptions = quickTagsFor(revieweeRole);
 
   const toggleQuickOption = (option: string) => {
     setFeedback((prev) => {
@@ -183,6 +188,12 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
         rating: scores.rating,
       // Unrated detailed categories persist as null (not 0) so the
       // ReviewList averages skip them rather than dragging the score down.
+      // A dimension this direction never ASKED about lands here the same way:
+      // the poster form has no Quality row, so `scores.quality` is still its
+      // initial 0 and `quality` is written NULL — the column keeps meaning
+      // "quality of the work performed" and simply has no answer for someone
+      // who did not perform the work. See ./types for why that beat adding a
+      // poster-specific column.
       punctuality: scores.punctuality > 0 ? scores.punctuality : null,
       quality: scores.quality > 0 ? scores.quality : null,
       communication: scores.communication > 0 ? scores.communication : null,
@@ -277,7 +288,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
             row inside here pushed the whole track past the dialog's own width
             and clipped every child's right edge. */}
         <div className="space-y-3 min-w-0">
-          {CATEGORY_ROWS.map((row) => (
+          {categoryRows.map((row) => (
             <StarRow
               key={row.key}
               value={scores[row.key]}

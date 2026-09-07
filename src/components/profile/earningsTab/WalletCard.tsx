@@ -18,10 +18,6 @@ interface WalletCardProps {
   refreshing: boolean;
   availableTotal: number;
   pendingTotal: number;
-  /** Approved by the poster but not yet transferred to Stripe (24h hold). */
-  releasingCents: number;
-  /** When the soonest of those transfers is scheduled. */
-  releasingAt: string | null;
   canUseInstantPayout: boolean;
   onRefresh: () => void;
   onCashOut: () => void;
@@ -33,8 +29,6 @@ export function WalletCard({
   refreshing,
   availableTotal,
   pendingTotal,
-  releasingCents,
-  releasingAt,
   canUseInstantPayout,
   onRefresh,
   onCashOut,
@@ -110,22 +104,16 @@ export function WalletCard({
         </div>
       </div>
 
-      {releasingCents > 0 && (
-        <div
-          className="mt-3 rounded-ds-sm px-3 py-2 flex items-baseline justify-between gap-3"
-          style={{ background: "hsl(var(--bark) / 0.07)" }}
-        >
-          <span className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
-            Released, on its way
-            {releasingAt
-              ? ` — reaches Stripe ${new Date(releasingAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
-              : ""}
-          </span>
-          <span className="font-display italic font-bold tabular-nums text-ds-15 shrink-0" style={{ color: "hsl(var(--ink-deep))" }}>
-            {formatCents(releasingCents)}
-          </span>
-        </div>
-      )}
+      {/* THE "Released, on its way" ROW MOVED TO <EarningsSummaryCard /> on
+          2026-09-06, and it is not coming back here. This card does not mount
+          until Stripe is connected (see the note above the props), so stating
+          approved-but-not-yet-transferred money here hid it from precisely the
+          helper who has finished a job and not finished payout setup. It now
+          sits in the Earned card directly above, which always renders.
+
+          What stays here is Stripe's own two balances, and only those: a
+          figure inside a card headed "Wallet · LIVE" must be one Stripe would
+          agree with. */}
 
       {(() => {
         // Same reason as Available above: Stripe reports raw cents and this

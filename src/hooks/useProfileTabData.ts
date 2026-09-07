@@ -171,15 +171,35 @@ export function useProfileEarnings(userId: string | undefined, enabled: boolean)
         .select("job_id")
         .eq("helper_id", id);
       const rosterJobIds = [...new Set((unwrap(rosterRes) ?? []).map((r) => r.job_id))];
-      // ME-042 (lh-money-escrow, 2026-09-04): seed/demo fixtures were created
-      // with `payment_status='released'` (or `payout_pending`) directly in
-      // SQL, with no corresponding `payout_transfers` row — no real Stripe
-      // transfer ever happened for them. Left unfiltered, any test/demo
-      // account these were ever assigned to shows a "total earned" the real
-      // payout ledger can never match, exactly the reported $349.60-vs-
-      // $248.40 divergence. Seed jobs were never real income for anyone —
-      // exclude them here, at the one query every earnings surface reads.
-      const jobsQuery = supabase.from("jobs").select("*").neq("status", "cancelled").eq("is_seed", false);
+      // NO `is_seed` FILTER HERE, AND THE OMISSION IS DELIBERATE — READ THIS
+      // BEFORE ADDING ONE BACK.
+      //
+      // It was added on 2026-09-04 for ME-042: seed fixtures written straight
+      // into SQL with `payment_status='released'` and no `payout_transfers`
+      // row made "total earned" ($349.60) disagree with the payout ledger
+      // ($248.40). It was removed on 2026-09-06 because it filtered on the
+      // wrong axis and broke a real screen. External QA ran a full job loop,
+      // the poster approved and released, and the helper's Earnings & Payouts
+      // read "$0.00 · total earned · 0 jobs" and "No earnings yet" — while My
+      // Jobs → Done showed the same job at $105 with its proof photos.
+      // Reproduced against prod: helper 437de07d (profile `is_seed=false`, a
+      // real account, Stripe connected) had exactly one non-cancelled job,
+      // 8133a907 "QA main loop mow and edge", `is_seed=true`. This one clause
+      // was the whole reason every figure on that screen was zero.
+      //
+      // `is_seed` marks a FIXTURE ROW. It does not mark money that did not
+      // move, which is what ME-042 was actually about, and it is not consulted
+      // by My Jobs, by `useProfileStats`, or by the Work Record — so putting
+      // it here is what made two screens disagree about one job. The honest
+      // axis is `payment_status`, and it now lives in `isEarnedJob`
+      // (earningsTabHelpers.ts): a completed job counts as earned only when
+      // its money is `payout_pending` or `released`, so a refunded or
+      // charged-back job stops counting as income too — which the old
+      // `status === "completed"` test got wrong for every account, fixture or
+      // not. Admin aggregates keep excluding `is_seed` unconditionally
+      // (see src/config/showSeedJobs.ts); a platform-wide money figure and one
+      // person's own ledger are not the same instrument.
+      const jobsQuery = supabase.from("jobs").select("*").neq("status", "cancelled");
       const [jobsRes, tipsRes] = await Promise.all([
         (rosterJobIds.length
           ? jobsQuery.or(`helper_id.eq.${id},id.in.(${rosterJobIds.join(",")})`)

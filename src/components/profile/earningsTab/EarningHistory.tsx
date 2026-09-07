@@ -1,11 +1,14 @@
 import { Gift, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { jobStatusLabel } from "@/lib/statusLabels";
+import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { formatPrice, formatPriceExact, formatShortDate } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { stripeProcessingCostCents } from "@/lib/stripeFees";
+import { isAwaitingTransfer, isEarnedJob } from "./earningsTabHelpers";
+// Same constant the payout cron schedules on — see EarningsSummaryCard.
+import { PAYOUT_HOLD_HOURS } from "../../../../supabase/functions/_shared/escrowTiming";
 import type { Job } from "./types";
 
 interface EarningHistoryProps {
@@ -139,9 +142,21 @@ export function EarningHistory({
             // Same shared take-home definition as the tab's Total tile (group
             // budget + urgent fee split across the roster, #114), so a row can
             // never disagree with the number it rolls up into.
-            const payout = job.status === "completed"
-              ? helperTakeHomeDollars(job, feeFallbackPct)
-              : null;
+            // A payout figure only for a job whose money is actually the
+            // helper's — `isEarnedJob`, not `status === "completed"`. A
+            // completed job that was refunded to the poster or charged back
+            // stays `completed` forever, and printing its take-home here read
+            // as income the helper never received.
+            const payout = isEarnedJob(job) ? helperTakeHomeDollars(job, feeFallbackPct) : null;
+            // Approved, transfer scheduled, not sent. Without this caption the
+            // row is indistinguishable from one already paid — which is how a
+            // helper reads "$105.60" beside a job, checks their bank, and finds
+            // nothing. The date is the job's own `payout_scheduled_at`.
+            const awaitingTransfer = isAwaitingTransfer(job);
+            // Completed, but the money went back. Say so instead of leaving a
+            // blank right-hand column that looks like a rendering failure.
+            const returnedPayment =
+              job.status === "completed" && !isEarnedJob(job) ? job.payment_status : null;
             const jobTips = tips.filter((t) => t.job_id === job.id);
             // NET of the card fee — the same calc as the tab's Tips tile
             // (create-payment retains stripeProcessingCostCents(tip) as the
@@ -169,6 +184,18 @@ export function EarningHistory({
                     {payout !== null && (
                       <p className="font-display italic font-bold tabular-nums text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
                         ${formatPriceExact(payout)}
+                      </p>
+                    )}
+                    {awaitingTransfer && (
+                      <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                        {job.payout_scheduled_at
+                          ? `on its way · ${formatShortDate(job.payout_scheduled_at)}`
+                          : `on its way · ${PAYOUT_HOLD_HOURS}h after approval`}
+                      </p>
+                    )}
+                    {returnedPayment && (
+                      <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                        {paymentStatusLabel(returnedPayment)} · no payout
                       </p>
                     )}
                     {tipTotal > 0 && <p className="text-ds-11 text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${formatPriceExact(tipTotal)}</p>}

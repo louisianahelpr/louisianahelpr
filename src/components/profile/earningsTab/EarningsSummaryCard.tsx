@@ -2,6 +2,10 @@ import { TrendingUp, Gift } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { earnedRangeLabel, formatCents } from "./earningsTabHelpers";
 import { EarningsRangeToggle, type EarningsRange } from "./EarningsRangeToggle";
+// The payout hold is the cron's own constant, shared with `release-payout` and
+// `process-scheduled-payouts`. Interpolated, never restated as a literal — the
+// same rule ActiveJobSection and JobTracking follow.
+import { PAYOUT_HOLD_HOURS } from "../../../../supabase/functions/_shared/escrowTiming";
 
 /**
  * WHY THIS CARD EXISTS (owner, 2026-08-30: "357 is oddly placed. Fix it.").
@@ -49,6 +53,14 @@ interface EarningsSummaryCardProps {
   tipCount: number;
   /** Jobs in flight. Deliberately NOT range-scoped — see the note above. */
   inProgressCount: number;
+  /**
+   * Approved by the poster, transfer scheduled, not yet sent (cents).
+   * Deliberately NOT range-scoped for the same reason as `inProgressCount`:
+   * it is a statement about where money is RIGHT NOW, not about a window.
+   */
+  releasingCents: number;
+  /** `payout_scheduled_at` of the soonest of those transfers, or null. */
+  releasingAt: string | null;
 }
 
 export function EarningsSummaryCard({
@@ -60,6 +72,8 @@ export function EarningsSummaryCard({
   tipsDollars,
   tipCount,
   inProgressCount,
+  releasingCents,
+  releasingAt,
 }: EarningsSummaryCardProps) {
   return (
     <div className="rounded-2xl liquid-glass p-5">
@@ -134,6 +148,43 @@ export function EarningsSummaryCard({
               in tips · {tipCount} tip{tipCount === 1 ? "" : "s"}
             </p>
           </div>
+        </div>
+      )}
+
+      {/* ─── APPROVED, ON ITS WAY ───────────────────────────────────────
+          The bridge between this card and the wallet 8px below it, and the
+          reason it lives HERE rather than inside <WalletCard />: the wallet
+          does not mount until Stripe is connected, so a helper who finished a
+          job before completing payout setup got no acknowledgement anywhere
+          that they were owed anything. External QA hit exactly that on
+          2026-09-06 — job approved and released, every figure on this screen
+          $0.00, no line anywhere saying why.
+
+          It is its own row rather than folded into Available or Pending
+          because it is neither: this money is on the PLATFORM's balance until
+          the scheduled transfer fires, so adding it to a Stripe figure would
+          state a balance Stripe does not hold. The date is the job's real
+          `payout_scheduled_at`, never a re-derived one. */}
+      {!loading && releasingCents > 0 && (
+        <div
+          className="mt-3 rounded-ds-sm px-3 py-2 flex items-baseline justify-between gap-3"
+          style={{ background: "hsl(var(--bark) / 0.07)" }}
+        >
+          <span className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
+            {/* No date is the rarer case (a `payout_pending` row written
+                before the column, or a scheduling gap). Say the rule instead
+                of a made-up date, and take the number of hours from the same
+                constant the cron schedules on — never a retyped "24". */}
+            {releasingAt
+              ? `Approved — reaches your wallet ${new Date(releasingAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+              : `Approved — releases ${PAYOUT_HOLD_HOURS} hours after approval`}
+          </span>
+          <span
+            className="font-display italic font-bold tabular-nums text-ds-15 shrink-0"
+            style={{ color: "hsl(var(--ink-deep))" }}
+          >
+            {formatCents(releasingCents)}
+          </span>
         </div>
       )}
 

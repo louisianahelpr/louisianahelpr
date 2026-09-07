@@ -31,6 +31,8 @@ import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
 import {
   buildPayoutsCsv,
   completedWithin,
+  isAwaitingTransfer,
+  isEarnedJob,
   rangeStartMs,
 } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { useEarningsData } from "@/components/profile/earningsTab/useEarningsData";
@@ -148,7 +150,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     });
   };
 
-  const completedJobs = earningsJobs.filter((j) => j.status === "completed");
+  // EARNED, not merely "completed". `status === "completed"` was the whole
+  // test until 2026-09-06, and it counts a job whose money was refunded to the
+  // poster or charged back by the card issuer — both reachable on a completed
+  // job, both still `completed` afterwards. `isEarnedJob` adds the
+  // payment_status half: money committed (`payout_pending`) or moved
+  // (`released`). See the state table in earningsTabHelpers.ts.
+  const completedJobs = earningsJobs.filter(isEarnedJob);
   const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
   // Take-home per job comes from the one shared definition in
   // `helperEarnings.ts`, which keeps this tab's long-standing behaviour: the
@@ -172,22 +180,25 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
   // Money the poster has ALREADY approved but that Stripe has not been told
   // about yet. auto-release-payment flips the job to `payout_pending` with a
-  // 24h `payout_scheduled_at`, and only then does release-payout create the
-  // actual transfer — so for that whole day the amount sits on the PLATFORM's
-  // balance and appears in neither Stripe bucket the wallet reads. From the
-  // helper's chair a job they were paid for simply vanished: approved, and
-  // then in neither Available nor Pending. Surface it as its own line rather
-  // than leaving them to notice the absence.
-  const releasingJobs = earningsJobs.filter(
-    (j) => (j as { payment_status?: string | null }).payment_status === "payout_pending",
-  );
+  // `payout_scheduled_at` PAYOUT_HOLD_HOURS out, and only then does
+  // release-payout create the actual transfer — so for that whole window the
+  // amount sits on the PLATFORM's balance and appears in neither Stripe bucket
+  // the wallet reads. From the helper's chair a job they were paid for simply
+  // vanished: approved, and then in neither Available nor Pending.
+  //
+  // This line now renders in <EarningsSummaryCard />, NOT in <WalletCard />
+  // where it used to live. WalletCard only mounts once Stripe is connected, so
+  // the one state that most needs explaining — "I finished a job, where is my
+  // money" — was silent for exactly the helper who has not finished payout
+  // setup and has the most reason to ask.
+  const releasingJobs = earningsJobs.filter(isAwaitingTransfer);
   const releasingCents = Math.round(
     sumHelperTakeHomeDollars(releasingJobs, helperFeeFallbackPct) * 100,
   );
-  // Soonest scheduled arrival, for the "clears <date>" copy.
+  // Soonest scheduled arrival, for the "reaches your wallet <date>" copy.
   const releasingAt =
     releasingJobs
-      .map((j) => (j as { payout_scheduled_at?: string | null }).payout_scheduled_at)
+      .map((j) => j.payout_scheduled_at)
       .filter((d): d is string => !!d)
       .sort()[0] ?? null;
 
@@ -404,6 +415,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           tipsDollars={rangeTips}
           tipCount={rangeTipRows.length}
           inProgressCount={inProgressJobs.length}
+          releasingCents={releasingCents}
+          releasingAt={releasingAt}
         />
 
         {/* Wallet card (Available + Pending side-by-side).
@@ -442,8 +455,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           refreshing={refreshing}
           availableTotal={availableTotal}
           pendingTotal={pendingTotal}
-          releasingCents={releasingCents}
-          releasingAt={releasingAt}
           canUseInstantPayout={canUseInstantPayout}
           onRefresh={handleRefresh}
           onCashOut={() => setPayoutDialogOpen(true)}

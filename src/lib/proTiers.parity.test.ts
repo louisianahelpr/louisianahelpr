@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { TIER_PERKS, type SubscriptionTier } from "./subscriptionTiers";
+import { TIER_PERKS, ONE_TIME_PASS_DAYS, type SubscriptionTier } from "./subscriptionTiers";
 import {
   PRO_PRICE_MAP,
   PRO_RECURRING_AMOUNT_CENTS,
@@ -14,7 +14,9 @@ import {
 import {
   PRO_PRICE_MAP as EDGE_PRO_PRICE_MAP,
   PRO_RECURRING_AMOUNT_CENTS as EDGE_PRO_RECURRING_AMOUNT_CENTS,
+  ONE_TIME_PASS_DAYS as EDGE_ONE_TIME_PASS_DAYS,
 } from "../../supabase/functions/_shared/proTiers";
+import { computeExpiry, resolveProduct } from "../../supabase/functions/_shared/appleAppStore";
 
 // DERIVED from TIER_PERKS (every tier but free), not hand-listed. The literal
 // form said ["basic","pro","elite"] and could not fail for a tier it never had
@@ -159,5 +161,23 @@ describe("ME-039 (lh-money-escrow 2026-09-04): STRIPE_PRICE_* overrides are gate
     withDenoEnv({ STRIPE_SECRET_KEY: "sk_test_abc123" }, () => {
       expect(EDGE_PRO_PRICE_MAP.monthly.pro).toBe("price_1TAZkLKp2H4b7tEC0ACbAX2y");
     });
+  });
+});
+
+describe("a one-time pass is the same length on every store", () => {
+  // The web webhook and the Apple verifier both stamp subscription_expires_at
+  // for a "Once" purchase. Until 2026-09-07 they disagreed by a factor of 12
+  // (30 days vs 365) for the same price, and the UI copy promised 30.
+  it("the UI's ONE_TIME_PASS_DAYS is the edge constant", () => {
+    expect(ONE_TIME_PASS_DAYS).toBe(EDGE_ONE_TIME_PASS_DAYS);
+  });
+  it("the Apple path grants exactly that window", () => {
+    const meta = resolveProduct("com.helpr.pro.onetime")!;
+    const purchaseDate = Date.parse("2026-09-05T00:00:00Z");
+    const got = computeExpiry(
+      { transactionId: "t", originalTransactionId: "o", productId: "com.helpr.pro.onetime", bundleId: "b", purchaseDate },
+      meta,
+    )!;
+    expect((Date.parse(got) - purchaseDate) / 86_400_000).toBe(ONE_TIME_PASS_DAYS);
   });
 });

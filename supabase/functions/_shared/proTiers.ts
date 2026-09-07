@@ -30,6 +30,20 @@
 // key running RIGHT NOW is actually in, so the two can no longer drift apart.
 
 export type ProTierKey = "basic" | "pro" | "plus" | "elite";
+
+/**
+ * How long a "Once" (one_time) purchase entitles the buyer, on EVERY store.
+ *
+ * Two writers stamp `subscription_expires_at` for a one-time pass:
+ * stripe-webhook's checkoutSessionCompleted (web) and
+ * _shared/appleAppStore.ts computeExpiry (iOS). Until 2026-09-07 the web
+ * handler hard-coded 30 days and the Apple path hard-coded 365 — the same
+ * product, the same price, twelve times the entitlement depending on which
+ * button was tapped, and nothing comparing the two. The UI copy reads from
+ * src/lib/subscriptionTiers.ts ONE_TIME_PASS_DAYS; proTiers.parity.test.ts
+ * pins that to this.
+ */
+export const ONE_TIME_PASS_DAYS = 30;
 export type ProBillingCycle = "monthly" | "annual" | "one_time";
 
 // Read a Deno.env var safely — returns undefined outside a Deno runtime

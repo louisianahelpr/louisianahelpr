@@ -120,10 +120,13 @@ describe("entitlement maths", () => {
     expect(computeExpiry(base(), meta)).toBe("2026-10-05T00:00:00.000Z");
   });
 
-  it("gives a one-time purchase a year from the purchase date", () => {
+  it("gives a one-time purchase the same 30-day window the web pass gets", () => {
+    // Was "a year from the purchase date" — and it was, while stripe-webhook
+    // stamped 30 days for the identical product at the identical price.
     const meta = resolveProduct("com.helpr.pro.onetime")!;
-    const got = computeExpiry(base({ productId: "com.helpr.pro.onetime" }), meta)!;
-    expect(new Date(got).getUTCFullYear()).toBe(2027);
+    const tx = base({ productId: "com.helpr.pro.onetime" });
+    const got = computeExpiry(tx, meta)!;
+    expect((Date.parse(got) - tx.purchaseDate!) / 86_400_000).toBe(30);
   });
 
   it("grants nothing once Apple has revoked or refunded it", () => {

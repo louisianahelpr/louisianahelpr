@@ -122,6 +122,49 @@ floats in a lopsided column with blank bands has failed the audit.
 
 ## Working rules
 
+- **Fix the EXACT thing named. Never guess the element, the look, or the
+  scope, and never touch what sits next to it.** If the ask is ambiguous, ask —
+  do not pick an interpretation and edit. Related and separate: **dead or no-op
+  code you happen to notice is a REPORT, not a task.** The `.squircle` incident
+  was a blanket change to a shared class made because it looked unused; count
+  the call sites before touching anything shared, and say what you found instead
+  of changing it.
+
+- **Never claim something is broken from a migration file, a code read, or
+  another agent's summary. Verify against the live thing first** — `pg_policies`
+  and `pg_proc.proacl` for authz, `pg_get_functiondef` for behaviour, the
+  rendered UI for anything visual. Half a day has been lost more than once to a
+  confident "X is vulnerable" that the live database disproved in one query.
+  This is the same rule as re-measuring an outcome, pointed at the start of the
+  work instead of the end.
+
+- **Verify repo-wide, not just the files you touched.** `npm run typecheck`
+  plus `npx vitest run` across the whole repo. Scoped runs miss the
+  project-wide guards — the parity tests, the registry-drift checks, the
+  fixture-vs-schema contract — and main has been broken twice by a green
+  scoped run.
+
+- **Never hand back work you could have done.** Exhaust the API, the CLI, a
+  temporary edge function, the logs, the browser. A blocked tool is not a
+  blocked task; find the other route. Manual steps for the owner are the last
+  resort, and only for things genuinely reserved to them — credentials,
+  payments, App Store and dashboard actions.
+
+- **The phone-sized website and the native app are ONE surface.** Never diverge
+  nav or layout on `Capacitor.isNativePlatform()` — that flag is for genuine
+  native capability (haptics, camera, push), never for shape. A defect seen at
+  375 in a browser is a defect in the app.
+
+- **This app is never role-based.** Every account can both post and do jobs, and
+  every feature is shown to everyone. "Role bleed" is not a bug and role-gating
+  is never the fix. Copy that addresses only Helprs or only posters is a defect
+  for the same reason.
+
+- **The landing hero is LOCKED.** The H1 ("Louisiana's Local Job Partner.",
+  Bodoni Moda) and the subhead ("Hire a Helpr or find local work...") — font,
+  colour and copy are all off-limits without an explicit instruction naming
+  them.
+
 - **LOOK AT IT. Every visual change is verified by EYEBALL — an actual
   screenshot of the actual screen — not by a measurement, a grep, or a diff**
   (owner, 2026-09-07: "everything should also be done by eyeball visually...

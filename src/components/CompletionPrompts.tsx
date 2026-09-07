@@ -367,7 +367,11 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                     <div key={j.id} className="flex items-center justify-between gap-2 text-ds-12">
                       <span className="truncate text-muted-foreground">{j.title}</span>
                       <Link
-                        to="/jobs"
+                        // This row names ONE job (its title and its budget),
+                        // so it points at that job. It used to open a generic
+                        // list, which made the price beside it a promise the
+                        // destination could not keep.
+                        to={`/jobs/${j.id}`}
                         onClick={onDone}
                         className="shrink-0 font-semibold"
                         style={{ color: "hsl(var(--sage))" }}

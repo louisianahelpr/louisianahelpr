@@ -295,7 +295,7 @@ export const AppliedJobsTab = ({
           body="New jobs are posted across Louisiana every day."
           action={
             <>
-              <Button onClick={() => navigate("/jobs")} className="rounded-ds-md btn-press">
+              <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md btn-press">
                 <Briefcase className="w-4 h-4 mr-1.5" /> Browse Open Jobs
               </Button>
               <p

@@ -797,27 +797,6 @@ export type Database = {
         }
         Relationships: []
       }
-      helper_preferred_parishes: {
-        Row: {
-          created_at: string
-          helper_id: string
-          id: string
-          parish: string
-        }
-        Insert: {
-          created_at?: string
-          helper_id: string
-          id?: string
-          parish: string
-        }
-        Update: {
-          created_at?: string
-          helper_id?: string
-          id?: string
-          parish?: string
-        }
-        Relationships: []
-      }
       helper_shadowbans: {
         Row: {
           created_by: string

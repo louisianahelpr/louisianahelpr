@@ -696,10 +696,11 @@ function PostedJobCardInner({
                 </div>
               )}
 
-              {/* A calendar-created job nobody has paid for is invisible to
-                  every helper, while this card looks completely normal. Say so
-                  before the applicants row, which would otherwise read "0
-                  applicants" and be taken as low demand. */}
+              {/* An unfunded job is invisible to every helper while this card
+                  looks completely normal — whether the calendar sync created
+                  it or the poster's own checkout was abandoned. Say so before
+                  the applicants row, which would otherwise read "0 applicants"
+                  and be taken as low demand. */}
               {shouldShowUnfundedNotice(job) && (
                 <UnfundedJobNotice
                   job={job}

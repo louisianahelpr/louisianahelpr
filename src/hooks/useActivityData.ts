@@ -415,6 +415,8 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
       stake_status: "none",
       created_at: job.created_at,
       updated_at: job.updated_at,
+      job_latitude: null,
+      job_longitude: null,
       job,
     }));
     const existingIds = new Set(appliedApps.map((a) => a.job_id));

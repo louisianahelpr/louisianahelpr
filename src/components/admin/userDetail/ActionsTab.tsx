@@ -84,7 +84,12 @@ export function ActionsTab({
             const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
             const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
             const hasLoggedIn = !!lastLoginSummary[viewProfile.user_id];
-            const idvVerified = viewProfile.idv_status === 'verified';
+            // The OR that `identity_is_verified(idv_status,
+            // stripe_identity_verified)` computes in the database — reading only
+            // `idv_status` here would call a Stripe-verified account "Awaiting
+            // first login" while the hiring gate treats it as verified.
+            const idvVerified = viewProfile.idv_status === 'verified'
+              || viewProfile.stripe_identity_verified === true;
             const hasStripe = !!viewProfile.stripe_account_id;
             const hasOpenedEmail = opens.length > 0 || clicks.length > 0;
             const isActive = hasLoggedIn || idvVerified || hasStripe || hasOpenedEmail;

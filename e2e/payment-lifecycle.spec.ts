@@ -150,8 +150,13 @@ test.describe("payment lifecycle — authenticated post → escrow checkout", ()
     // Job Builder) with no inputs of its own — the form is one tap further.
     // This assertion predates that screen and failed on every run after it
     // shipped while the product was fine (run 34169384242).
+    // The route chunk and the auth restore both have to land before the entry
+    // screen exists, so wait for it explicitly rather than racing a 5s peek.
     const startFresh = page.getByRole("button", { name: /start fresh/i }).first();
-    if (await startFresh.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await expect(startFresh.or(page.locator("input, textarea").first())).toBeVisible({
+      timeout: 20_000,
+    });
+    if (await startFresh.isVisible().catch(() => false)) {
       await startFresh.click();
     }
     await expect(page.locator("input, textarea").first()).toBeVisible({

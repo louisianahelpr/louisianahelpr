@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Flag, CheckCircle2, Briefcase } from "lucide-react";
+import { Flag, CheckCircle2, Briefcase, Ghost } from "lucide-react";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toast } from "sonner";
 import type { Job } from "./adminJobs/types";
-import { detectFlags, getResolvedFlags, saveResolvedFlags, isStaleOnly } from "./adminJobs/adminJobsHelpers";
+import { detectFlags, getResolvedFlags, saveResolvedFlags, isStaleOnly, isGhostJob } from "./adminJobs/adminJobsHelpers";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "./AdminViewShell";
 import { JobListItem } from "./adminJobs/JobListItem";
 import { JobDetailDialog } from "./adminJobs/JobDetailDialog";
@@ -119,7 +119,7 @@ const AdminJobs = () => {
   const [overrideStatus, setOverrideStatus] = useState<"open" | "completed" | "cancelled">("open");
   const [overrideReason, setOverrideReason] = useState("");
   const [overriding, setOverriding] = useState(false);
-  const [filter, setFilter] = useState<"all" | "flagged" | "resolved">("flagged");
+  const [filter, setFilter] = useState<"all" | "flagged" | "resolved" | "ghost">("flagged");
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
   const [resolvedFlags, setResolvedFlags] = useState<Set<string>>(getResolvedFlags());
 
@@ -416,11 +416,19 @@ const AdminJobs = () => {
   const flaggedIds = [...jobFlags.keys()].filter((id) => !resolvedFlags.has(id));
   const flaggedCount = flaggedIds.length;
   const resolvedCount = [...jobFlags.keys()].filter((id) => resolvedFlags.has(id)).length;
+  // Ghosts: open to helpers, no money behind them. Computed from the job row
+  // rather than read out of `jobFlags` so the tab still lists them after an
+  // admin has resolved the flag — resolving a ghost means "I have looked at
+  // it", not "the job is funded now", and the class has to stay countable
+  // until the row actually leaves the open/unfunded state.
+  const ghostJobs = jobs.filter(isGhostJob);
   const baseJobs =
     filter === "flagged"
       ? jobs.filter((j) => jobFlags.has(j.id) && !resolvedFlags.has(j.id))
       : filter === "resolved"
       ? jobs.filter((j) => jobFlags.has(j.id) && resolvedFlags.has(j.id))
+      : filter === "ghost"
+      ? ghostJobs
       : jobs;
   // Staleness-only rows sink to the bottom. A passed date is the commonest flag
   // by far and the least actionable one — leaving it interleaved by created_at
@@ -438,6 +446,10 @@ const AdminJobs = () => {
     { id: "resolved", label: "Resolved", count: resolvedCount, icon: CheckCircle2 },
     // "all" was already a valid filter value with no control to reach it, so
     // the full job list was unreachable from this screen.
+    // Its own tab because it is its own CLASS of problem: every other filter
+    // here sorts jobs by what a person did, this one by what our checkout
+    // failed to do. Buried among moderation flags it reads as one more banner.
+    { id: "ghost", label: "Ghosts", count: ghostJobs.length, icon: Ghost },
     { id: "all", label: "All", count: jobs.length, icon: Briefcase },
   ];
 
@@ -462,7 +474,7 @@ const AdminJobs = () => {
       </AdminFilterStrip>
 
       <AdminCard
-        title={filter === "flagged" ? "Flagged Jobs" : filter === "resolved" ? "Resolved Flags" : "All Jobs"}
+        title={filter === "flagged" ? "Flagged Jobs" : filter === "resolved" ? "Resolved Flags" : filter === "ghost" ? "Ghost Jobs — open with no escrow" : "All Jobs"}
         subtitle={
           filteredJobs.length === 0
             ? undefined
@@ -485,11 +497,22 @@ const AdminJobs = () => {
           <EmptyState
             variant="inline"
             icon={Briefcase}
-            title={filter === "flagged" ? "No flagged jobs" : "No jobs found"}
+            title={
+              filter === "flagged"
+                ? "No flagged jobs"
+                : filter === "ghost"
+                  ? "No ghost jobs"
+                  : "No jobs found"
+            }
             body={
               filter === "flagged"
                 ? "Nothing has tripped a moderation flag."
-                : "Nothing matches the current filter."
+                : filter === "ghost"
+                  // A meaningful zero, not a shrug: this tab being empty is the
+                  // healthy state and says something worth knowing — every job
+                  // helpers can currently apply to has money behind it.
+                  ? "Every open job has escrow behind it. Nothing is live that couldn't be paid out."
+                  : "Nothing matches the current filter."
             }
           />
         )}

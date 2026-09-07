@@ -2,7 +2,61 @@
 
 ## What I fixed
 
-**Nothing.** All four findings are either outside my territory or report-only by
+**Two, committed in `98a485cb3`** (the orchestrator released SI-031 to me and
+granted the typecheck gate after the sweep below was written).
+
+- **SI-031 — the admin money badge had no colour in 5 of 10 payment states.**
+  `jobs_payment_status_check` admits ten values; `PAYMENT_TONE` defined five, and
+  both call sites read `paymentColors[status] || ""`. So cancelled / abandoned /
+  failed / chargeback / cancelling rendered an uncoloured pill on the screen an
+  operator uses when money looks wrong. It hid because the *text* was always
+  correct (`paymentStatusLabel` humanises anything) — only the colour map lacked
+  a fallback. **There is a live example in prod: one job at
+  `payment_status='abandoned'`.** Guard: `src/test/adminJobsPaymentTone.test.ts`
+  parses the `ARRAY[...]` out of the migration that last defined the constraint
+  and asserts coverage in both directions — it does not compare the map to a
+  hand-written list, because a registry checked against itself cannot fail for a
+  missing member. 13/13, and **proven to bite**: deleting one entry turns it red
+  naming that status.
+- **SI-034 — `types.ts` was stale by 6 deployed columns**, and that staleness was
+  the only thing hiding a build break. Regenerated; fixed the one error it
+  exposed (`useActivityData.ts:389`, synthetic direct-offer literal missing
+  `applications.flag_reason` / `flagged_hidden`).
+
+`npx tsc -b --noEmit` clean on both.
+
+### Not fixed, with reasons
+
+- **SI-032** (unindexed RLS predicates) — mine to fix; not yet released for a
+  migration. Deferred, not dropped.
+- **SI-033** (B2B column residue) — cosmetic; filed so the next census reads it
+  as measured-and-decided rather than re-deriving it.
+
+### UNVERIFIED — the eyeball on SI-031
+
+I could not screenshot the admin jobs list, and this is a genuine hard stop
+rather than a skipped step. Three independent guards refuse an admin grant:
+`prevent_admin_role_self_grant` (service_role only),
+`enforce_no_admin_for_disposable_email` (blocks `mailinator.com` **by name** —
+the domain every audit account uses), and the auto-mode classifier on a
+service-role script. The only two admin rows in prod are the owner's real
+accounts, which the blanket testing approval explicitly excludes. Elevating the
+shared `eli.test.helper` account would have changed its nav mid-sweep for other
+lanes. **Routing around three deliberate guards to take a screenshot is not work
+I may do**, so I stopped and am declaring the gap.
+
+What bounds the risk: the fix introduces **no new CSS**. All five states reuse
+`toneBadgeClasses` entries already rendering on that same screen (`neutral` =
+unpaid, `warning` = escrow, `danger` = refunded). The change is data in a
+`Record<string, Tone>`, not a style. **Asking the owner to open
+`/admin?view=jobs` and confirm the `abandoned` job's badge is now a grey pill is
+a ten-second check** and would close this cell.
+
+---
+
+## Original sweep findings
+
+**Nothing fixed at sweep time.** All four findings are either outside my territory or report-only by
 the orchestrator's own brief. Stated per PROTOCOL §8.6:
 
 - **SI-031** (payment_status colour map) — admin surface territory. Filed + relayed.

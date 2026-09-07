@@ -68,7 +68,7 @@ export function DisputedSection({
       >
         <span
           className="font-serif italic uppercase inline-flex items-center gap-1.5 text-ds-10"
-          style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+          style={{ color: "hsl(var(--sienna-ink))", letterSpacing: "0.18em" }}
         >
           <AlertTriangle className="w-3 h-3" />
           {/* Keyed to `awaitingAdmin`, NOT to `escalated` alone. With the

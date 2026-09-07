@@ -57,7 +57,7 @@ describe("isGhostJob", () => {
     expect(isGhostJob(job({ payment_status: null }))).toBe(true);
   });
 
-  it.each(["cancelled", "completed", "in_progress", "accepted"])(
+  it.each(["cancelled", "completed", "in_progress", "accepted"] as const)(
     "ignores jobs that are not open (%s) — nobody can apply to them",
     (status) => {
       // Three cancelled/unpaid rows sit on prod. They are not ghosts: an
@@ -79,7 +79,7 @@ describe("isGhostJob", () => {
     });
 
     it("does not flag a row with no created_at rather than guessing its age", () => {
-      expect(isGhostJob(job({ created_at: null }))).toBe(false);
+      expect(isGhostJob({ ...job(), created_at: null as unknown as string })).toBe(false);
     });
   });
 });

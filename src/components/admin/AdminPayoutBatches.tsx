@@ -261,7 +261,7 @@ const AdminPayoutBatches = () => {
           report(err, {
             severity: "error",
             tags: { area: "payout", op: "releaseBatch.assertTransfer" },
-            extra: { jobId },
+            context: { jobId },
           });
           failures.push(jobId);
         }

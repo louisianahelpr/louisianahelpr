@@ -189,7 +189,28 @@ serve(async (req) => {
       client_reference_id: user.id,
       metadata: { tier, billing_cycle, user_id: user.id },
       automatic_tax: { enabled: true },
+      // REQUIRED BY automatic_tax, AND THE REASON NO HELPER COULD BUY A TIER.
+      //
+      // Stripe refuses to open a Checkout Session with automatic tax enabled
+      // unless the Customer already has an address, OR the session is told to
+      // save the one collected at checkout. Without this line the call threw
+      // `customer_tax_location_invalid` and the function returned 500.
+      //
+      // Who it hit is the part that matters. The customer is resolved by
+      // EMAIL, so anyone with an existing Stripe Customer carrying no address
+      // failed — and the only thing that ever writes an address onto a Helpr
+      // customer is create-payment, i.e. funding a job AS A POSTER. Every tier
+      // card on that screen reads "For Helprs…", so memberships were broken for
+      // exactly the audience they are sold to: a helper who had never posted a
+      // job could not buy any tier, on any cycle. Proved both directions on one
+      // build 2026-09-06 — the addressless helper 500'd every attempt, the
+      // poster with an address completed a $15 Plus purchase.
+      //
+      // create-payment has carried this since it was written; only this
+      // function was missing it. `customer_update` is invalid WITHOUT an
+      // existing customer, so it is applied conditionally below.
     };
+    if (customerId) sessionParams.customer_update = { address: "auto" };
 
     if (!isOneTime) {
       sessionParams.subscription_data = subscriptionData;

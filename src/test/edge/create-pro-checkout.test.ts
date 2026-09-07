@@ -114,3 +114,54 @@ describe("verdicts are honoured", () => {
     expect(stripeMock.checkout.sessions.create).toHaveBeenCalled();
   });
 });
+
+describe("automatic_tax needs an address, and this is where every helper failed", () => {
+  // THE BUG. Stripe refuses to open a Checkout Session with automatic tax
+  // enabled unless the Customer already carries an address, OR the session is
+  // told to save the one collected at checkout. This function enabled the tax
+  // and omitted the second half, so the call threw
+  // `customer_tax_location_invalid` and the endpoint answered 500.
+  //
+  // Who it hit is the whole point. The customer is resolved by EMAIL, so it
+  // failed for anyone holding an existing Stripe Customer with no address —
+  // and the only thing that ever writes an address onto a Helpr customer is
+  // create-payment, i.e. funding a job AS A POSTER. Every tier card on that
+  // screen reads "For Helprs...", so memberships were broken for exactly the
+  // audience they are sold to: a helper who had never posted a job could not
+  // buy any tier, on any cycle. Proved both ways on one build 2026-09-06 —
+  // the addressless helper 500'd every attempt; the poster with an address
+  // completed a $15 Plus purchase.
+  it("sends customer_update when there is a customer to update", async () => {
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_existing" }] });
+    const res = await post({ tier: "plus", billing_cycle: "monthly" });
+    expect(res.status).toBe(200);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls.at(-1)!;
+    expect(params.customer).toBe("cus_existing");
+    expect(params.automatic_tax).toEqual({ enabled: true });
+    // The one line. Without it Stripe throws before a session exists.
+    expect(params.customer_update).toEqual({ address: "auto" });
+  });
+
+  it("omits customer_update when there is NO customer — Stripe rejects it there", async () => {
+    // `customer_update` is only valid alongside an existing `customer`. Sending
+    // it unconditionally would trade one 500 for another, on first-time buyers.
+    stripeMock.customers.list.mockResolvedValue({ data: [] });
+    const res = await post({ tier: "plus", billing_cycle: "monthly" });
+    expect(res.status).toBe(200);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls.at(-1)!;
+    expect(params.customer).toBeUndefined();
+    expect(params.customer_update).toBeUndefined();
+    expect(params.customer_email).toBe(USER.email);
+  });
+
+  it("does the same on the one-time cycle, not just subscriptions", async () => {
+    // isOneTime switches mode to "payment" and takes a different branch below
+    // the shared params; the tax requirement is identical either way.
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_existing" }] });
+    const res = await post({ tier: "elite", billing_cycle: "one_time" });
+    expect(res.status).toBe(200);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls.at(-1)!;
+    expect(params.mode).toBe("payment");
+    expect(params.customer_update).toEqual({ address: "auto" });
+  });
+});

@@ -35,7 +35,10 @@ const POSTED_JOB = {
   start_time: "09:00",
   location: "New Orleans, LA",
   status: "open",
-  payment_status: "paid",
+  // "escrow" — an open job that has been funded. NOT "paid": the
+  // `jobs_payment_status_check` constraint has never admitted that value, so
+  // this described a row prod could not hold. See fixturePaymentStatus.test.ts.
+  payment_status: "escrow",
   created_at: new Date(Date.now() - 60_000).toISOString(),
   updated_at: new Date().toISOString(),
   is_urgent: false,

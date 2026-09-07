@@ -28,17 +28,36 @@ import HeroSection from "@/components/landing/HeroSection";
 
 const ROOT = resolve(__dirname, "..", "..");
 
+// `*.gen.ts` are the edge harness's per-run temp files (written and deleted
+// while the suite runs); walking them is a race the full suite loses — a
+// file listed by readdir is gone by the time it is read. They are not
+// source, so skip them, and tolerate a file that vanishes between listing
+// and stat for the same reason.
 const walk = (dir: string, out: string[] = []): string[] => {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) {
+    let isDir: boolean;
+    try {
+      isDir = statSync(p).isDirectory();
+    } catch {
+      continue;
+    }
+    if (isDir) {
       if (name === "node_modules") continue;
       walk(p, out);
-    } else if (/\.(tsx?|css|html)$/.test(name)) {
+    } else if (/\.(tsx?|css|html)$/.test(name) && !/\.gen\.tsx?$/.test(name)) {
       out.push(p);
     }
   }
   return out;
+};
+
+const readOrSkip = (f: string): string | null => {
+  try {
+    return readFileSync(f, "utf8");
+  } catch {
+    return null;
+  }
 };
 
 describe("two-font type system", () => {
@@ -48,7 +67,9 @@ describe("two-font type system", () => {
     const offenders = files
       .filter((f) => !f.endsWith("twoFontTypeSystem.test.tsx"))
       .flatMap((f) => {
-        const lines = readFileSync(f, "utf8").split("\n");
+        const text = readOrSkip(f);
+        if (text === null) return [];
+        const lines = text.split("\n");
         return lines
           .map((line, i) => ({ line, i }))
           // Prose that records the retirement is fine; anything that would
@@ -63,7 +84,9 @@ describe("two-font type system", () => {
     const offenders = files
       .filter((f) => !f.endsWith("twoFontTypeSystem.test.tsx"))
       .flatMap((f) => {
-        const lines = readFileSync(f, "utf8").split("\n");
+        const text = readOrSkip(f);
+        if (text === null) return [];
+        const lines = text.split("\n");
         return lines
           .map((line, i) => ({ line, i }))
           .filter(({ line }) => /(^|[^\w-])!?font-serif(?![\w-])/.test(line))

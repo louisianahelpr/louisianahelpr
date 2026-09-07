@@ -1,5 +1,7 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 
+ 
+
 /**
  * `React.lazy`, plus a `.preload()` that starts the dynamic import WITHOUT
  * rendering the component.
@@ -33,11 +35,11 @@ import { lazy, type ComponentType, type LazyExoticComponent } from "react";
  * `chunkReload` handles a stale-deploy 404 — so a preload failure is swallowed
  * here and left for the render path to surface.
  */
-export interface PreloadableComponent<T extends ComponentType<never>> extends LazyExoticComponent<T> {
+export interface PreloadableComponent<T extends ComponentType<any>> extends LazyExoticComponent<T> {
   preload: () => void;
 }
 
-export function lazyWithPreload<T extends ComponentType<never>>(
+export function lazyWithPreload<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
 ): PreloadableComponent<T> {
   let started: Promise<{ default: T }> | null = null;

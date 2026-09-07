@@ -92,7 +92,7 @@ jobs:
       # Kept OUTSIDE the workspace on purpose: a cache directory inside it would
       # be walked by `eslint .`, knip and the production build.
       - name: Cache Deno dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/deno_cache
           key: deno-${{ runner.os }}-${{ hashFiles('supabase/functions/**/*.ts', 'supabase/functions/**/*.tsx', 'scripts/edge-typecheck.deno.json') }}

@@ -95,9 +95,10 @@ floats in a lopsided column with blank bands has failed the audit.
   closed panel is not a narrower rail, it is no rail.
 
   Two things to know before trusting this paragraph OR the code around it.
-  `index.css`'s own comment above the `#root` rule still describes the rail as
-  "pinned at the viewport's left edge" while the declaration under it pads
-  RIGHT; the comment is stale, the declaration is authoritative. And `.desktop-rail`
+  `index.css`'s comment above the `#root` rule USED to say "pinned at the
+  viewport's left edge" while the declaration pads RIGHT; it is corrected now
+  (`src/index.css:1193`), but the lesson stands: the declaration is
+  authoritative, never the prose beside it. And `.desktop-rail`
   is not present for a guest at all — measured at 1440 on `/`, `/legal` and
   `/browse`, `<html>` carries only `web-desktop side-panel-open`, so none of
   this fires until you are signed in.
@@ -417,6 +418,13 @@ this list tight; project-specific trivia belongs in code comments, not here.
   **Therefore: when asserting gloss in a test, read the computed
   `background-image` and check it is a real gradient.** Asserting the class
   name passes on a flat control, which is why this kept coming back.
+- **Never rotate a shared credential silently.** The two test accounts are
+  shared with Cowork and every lane; I rotated their passwords twice in one
+  afternoon (2026-09-06) without saying so, which broke Cowork's run and
+  produced the "suspicious 04:31 sign-ins" it then filed as a finding. If a
+  credential must change, say so in the transcript and in
+  `docs/audit/launch-2026-09/inbox/` before changing it, and never change one
+  another agent is mid-run on.
 - **Never `await` a Capacitor plugin object — assimilation makes it a silent
   no-op.** `registerPlugin()` returns a Proxy whose `get` trap manufactures a
   method for ANY property, which is how it forwards unknown calls to native.

@@ -123,4 +123,11 @@ export const SEED_GATED_SURFACES = [
   // had a gate is invisible to a check that starts from callers of the gate.
   // That is why both halves are kept. Gate added in 20260903081713.
   { surface: "daily parish digest email", object: "public.sweep_daily_job_digest" },
+  // MISSING UNTIL 2026-09-07. The apply-path trigger added in
+  // 20260907063128_applications_job_state_gate.sql consults
+  // seed_jobs_hidden_publicly() at C6 — so when the launch switch is flipped,
+  // seed jobs vanish from every feed AND stop accruing new applications.
+  // Absent from this list, the parity suite would not assert the gate stays
+  // present, and removing C6 from the trigger would fail no test at all.
+  { surface: "apply trigger", object: "public.enforce_application_job_state" },
 ] as const;

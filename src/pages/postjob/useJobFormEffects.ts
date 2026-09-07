@@ -188,6 +188,15 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
 
   // Preflight: check open-job count at mount so the user isn't surprised
   // at submit after filling the whole form.
+  //
+  // The `payment_status` filter MIRRORS enforce_open_job_limit exactly.
+  // Without it this count was STRICTER than the server: unfunded jobs
+  // ('unpaid' — checkout never started; 'abandoned' — checkout started and
+  // did not finish) are invisible in every browse surface and do not hold a
+  // slot in the trigger, but they were counted here — so a poster whose five
+  // drafts had never reached checkout got a red "You have 5 open jobs" and a
+  // disabled submit for a post the database would have accepted. A client
+  // guard that refuses what the server allows is the worse direction to drift.
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
@@ -196,6 +205,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         .select("id", { count: "exact", head: true })
         .eq("customer_id", user.id)
         .eq("status", "open")
+        .not("payment_status", "in", "(unpaid,abandoned)")
         .then(({ count }) => { setOpenJobCount(count ?? 0); });
       // Whether this poster still owes the one-time setup fee, and their own
       // subscription tier — so the shown service fee (12/11/10/8) and total match

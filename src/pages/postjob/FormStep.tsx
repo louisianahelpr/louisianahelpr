@@ -66,7 +66,7 @@ export function FormStep({ form }: FormStepProps) {
         />
       )}
 
-      {atOpenJobLimit && <OpenJobLimitNotice />}
+      {atOpenJobLimit && <OpenJobLimitNotice count={form.openJobCount ?? 5} />}
 
       {/* Draft tab, template picker, and AI builder all live on the entry
           step (EntryChoice) now — the form is for filling in details, not

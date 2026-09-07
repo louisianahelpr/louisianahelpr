@@ -122,6 +122,32 @@ floats in a lopsided column with blank bands has failed the audit.
 
 ## Working rules
 
+- **LOOK AT IT. Every visual change is verified by EYEBALL — an actual
+  screenshot of the actual screen — not by a measurement, a grep, or a diff**
+  (owner, 2026-09-07: "everything should also be done by eyeball visually...
+  I will not say it again"). Drive the app, take the screenshot, and LOOK at
+  the picture before saying anything is fixed.
+
+  A measurement only answers the question you thought to ask. On 2026-09-07 an
+  empty state rendered a bordered white card INSIDE the bordered white panel
+  that already was the card — two boundaries 1px apart, on every screen with an
+  empty state. It was obvious in a screenshot in under a second. It survived
+  three of my passes because I kept querying `borderRadius` instead of looking:
+  I "verified" a runtime detector reporting ZERO nested boxes across six routes,
+  and it reported zero only because I had defined nested as "fills its parent."
+  The owner sent a phone screenshot; I had scoped the whole fix to
+  `html.web-desktop`. Two passes were spent arguing about what RADIUS the inner
+  box should have, when the answer was that it should not have been drawn.
+
+  So the rule is BOTH, and in this order: **look first, then measure.** The
+  screenshot tells you what is wrong; the measurement tells you the number
+  moved. Neither substitutes for the other — but a number is worthless if
+  nobody has checked it is measuring the right thing.
+
+  This applies to layout, spacing, colour, type, empty states, dark mode and
+  every breakpoint that matters — 375 above all, because it is the primary
+  surface and the one the owner is usually holding. Screenshot before AND after.
+
 - **A FIX IS NOT DONE UNTIL ITS OWN NUMBER MOVES. Re-measure the outcome, every
   single time, without exception** (owner, 2026-09-07, emphatically). Closing a
   finding on a diff — "the code now does X" — is not closing it. Re-run the

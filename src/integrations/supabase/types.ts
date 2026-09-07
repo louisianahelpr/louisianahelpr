@@ -133,6 +133,8 @@ export type Database = {
           helper_id: string
           id: string
           job_id: string
+          job_latitude: number | null
+          job_longitude: number | null
           message: string | null
           offer_message: string | null
           poster_viewed_at: string | null
@@ -148,6 +150,8 @@ export type Database = {
           helper_id: string
           id?: string
           job_id: string
+          job_latitude?: number | null
+          job_longitude?: number | null
           message?: string | null
           offer_message?: string | null
           poster_viewed_at?: string | null
@@ -163,6 +167,8 @@ export type Database = {
           helper_id?: string
           id?: string
           job_id?: string
+          job_latitude?: number | null
+          job_longitude?: number | null
           message?: string | null
           offer_message?: string | null
           poster_viewed_at?: string | null

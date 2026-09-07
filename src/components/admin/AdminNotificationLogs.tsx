@@ -12,7 +12,6 @@ import { RefreshCw, Search, Mail, Smartphone, Bell, AlertCircle, Loader2, AlertT
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
-import { useQueryClient } from "@tanstack/react-query";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
 import { toneTextClasses } from "@/components/admin/tones";
@@ -147,7 +146,6 @@ function LogsPlaceholder({
 }
 
 const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProps) => {
-  const qc = useQueryClient();
   const { user } = useAuthReady();
   const adminId = user?.id;
   const [search, setSearch] = useState(initialSearch);

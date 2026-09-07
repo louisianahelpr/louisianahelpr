@@ -362,6 +362,19 @@ describe("create-pro-checkout enforces the same gate server-side", () => {
     expect(SRC).toMatch(/eligibilityErr[\s\S]{0,400}status: 503/);
   });
 
+  it("calls the RPC with the CALLER's JWT, not the bare anon client", () => {
+    // This shipped broken on 2026-09-05 and blocked every membership purchase.
+    // The module-level client is built from the anon key with no Authorization
+    // header, so the RPC authenticated as `anon` — which the migration
+    // deliberately revokes EXECUTE from. Result: 42501, the fail-closed branch,
+    // a 503, and an Upgrade button that did nothing. Fail-closed turned a
+    // permissions slip into a total outage of the paid path.
+    const call = SRC.slice(0, SRC.indexOf("subscription_purchase_eligibility"));
+    expect(call).toMatch(/global:\s*\{\s*headers:\s*\{\s*Authorization:\s*authHeader/);
+    // and the RPC must go through that client, not the anon one
+    expect(SRC).toMatch(/callerClient\s*\n?\s*\.rpc\("subscription_purchase_eligibility"/);
+  });
+
   it("refuses with the server's own wording, not an invented one", () => {
     expect(SRC).toMatch(/verdict\.reason/);
   });

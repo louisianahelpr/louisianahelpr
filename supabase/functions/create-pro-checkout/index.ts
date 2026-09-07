@@ -84,9 +84,26 @@ serve(async (req) => {
     // already have a live subscription"; this one asks our own row "is Apple
     // the authority here". Neither can see what the other sees.
     //
-    // Note the eligibility RPC runs as the CALLER (auth.uid()), so it can only
-    // ever report on the person making the request.
-    const { data: eligibility, error: eligibilityErr } = await supabaseClient
+    // The RPC must run AS THE CALLER, and that needs the caller's JWT attached
+    // to the client — `supabaseClient` above is built from the anon key with no
+    // Authorization header, so it authenticates as `anon`.
+    //
+    // This shipped broken on 2026-09-05 and blocked EVERY membership purchase.
+    // The migration deliberately revokes anon and grants EXECUTE only to
+    // `authenticated`, so calling it as anon raised 42501 insufficient_privilege,
+    // the fail-closed branch returned 503, and the storefront's Upgrade button
+    // did nothing at all. The comment here even asserted it ran as the caller,
+    // which made the bug read as impossible.
+    //
+    // A request-scoped client is the fix: same anon key, plus this request's
+    // Authorization header, so PostgREST sees the member's JWT and auth.uid()
+    // resolves to them.
+    const callerClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")) ?? "",
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: eligibility, error: eligibilityErr } = await callerClient
       .rpc("subscription_purchase_eligibility", { p_platform: "stripe" });
     if (eligibilityErr) {
       // Fail CLOSED. A purchase we cannot prove is allowed is exactly the one

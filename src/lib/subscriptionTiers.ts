@@ -94,8 +94,28 @@ import {
 // below is populated from it, and `tierNames.parity.test.ts` pins the two
 // together. Re-exported so UI code has one import for tier naming.
 import { TIER_DISPLAY_NAMES, tierDisplayName } from "../../supabase/functions/_shared/tierNames";
+// The perk BOOLEANS live on the edge side too — instant-payout and
+// create-boost-payment gate on them and cannot import this module. See the
+// TierPerks interface comment below and _shared/tierPerks.ts's header (CC-019).
+import {
+  TIER_PERK_MATRIX,
+  type TierId,
+  type TierPerkKey,
+} from "../../supabase/functions/_shared/tierPerks";
 
 export { tierDisplayName };
+export {
+  TIER_PERK_MATRIX,
+  TIER_ORDER,
+  hasPerk,
+  profileHasPerk,
+  tierRank,
+  tiersGrantingPerk,
+  tiersGrantingPerkSentence,
+  normalizeTier,
+  type TierId,
+  type TierPerkKey,
+} from "../../supabase/functions/_shared/tierPerks";
 
 /**
  * How long a "Once" (one-time) tier purchase actually entitles the buyer.
@@ -111,17 +131,23 @@ export { tierDisplayName };
  */
 export const ONE_TIME_PASS_DAYS = 30;
 
-export type SubscriptionTier = "free" | "basic" | "pro" | "plus" | "elite";
+export type SubscriptionTier = TierId;
 
-export interface TierPerks {
+/**
+ * The perk BOOLEANS are not declared here any more — they are inherited from
+ * `TIER_PERK_MATRIX` (supabase/functions/_shared/tierPerks.ts), which the rows
+ * below spread in. Before CC-019 each row typed its own `priorityPlacement:
+ * true` etc., which made this table a SECOND copy of a fact the edge functions
+ * held separately, and the five gates that got Plus wrong all read the copy
+ * that had not been updated. Perk truth now lives in exactly one table that
+ * both runtimes can reach; this file adds only what is React-side and
+ * commercial (price, copy, fee percent).
+ */
+export interface TierPerks extends Record<TierPerkKey, boolean> {
   name: string;
   price: number | null;         // monthly USD, null = free
   annualPrice: number | null;   // annual plan's monthly-equivalent (yearly ÷ 12), null = free
-  platformFeePercent: number;   // % taken from helper payout — descends as price rises (free 12% → basic 11% → pro 10% → elite 8%)
-  priorityPlacement: boolean;   // application floated higher in poster's recommended list
-  featuredBadge: boolean;       // gold/crown badge on profile and applicant cards
-  earlyAccess: boolean;         // sees new jobs before non-subscribers (basic 5m / pro 10m / elite 20m)
-  advancedAnalytics: boolean;   // earnings trends, category breakdown, best hours
+  platformFeePercent: number;   // % taken from helper payout — descends as price rises (free 12% → basic 11% → pro 10% → plus 9% → elite 8%)
   // `multiTech` and `verifiedBusiness` were removed on 2026-09-01, ahead of the
   // Business tier itself. Both were Business-only booleans describing features
   // whose backends were deleted by migration
@@ -132,7 +158,6 @@ export interface TierPerks {
   // `featureBullets` copy — so they were pure marketing description of things
   // that do not exist. Do not reintroduce a perk flag before the feature that
   // satisfies it.
-  dedicatedSupport: boolean;    // priority support response SLA
   tagline: string;
   ctaLabel: string;
   // Marketing perk bullets shown on BOTH the public /subscription page and the
@@ -150,11 +175,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     price: null,
     annualPrice: null,
     platformFeePercent: 12,
-    priorityPlacement: false,
-    featuredBadge: false,
-    earlyAccess: false,
-    advancedAnalytics: false,
-    dedicatedSupport: false,
+    ...TIER_PERK_MATRIX.free,
     tagline: "No commitment",
     ctaLabel: "Current Plan",
     // "Access to all open jobs" full stop was true but incomplete, and it was
@@ -177,14 +198,9 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     // at monthly). Matches the "2 months free" pattern used by Pro/Elite.
     annualPrice: 4.17,
     platformFeePercent: 11,
-    priorityPlacement: false,
-    featuredBadge: false,
-    // 5-min early access (see earlyAccess.ts). Boolean here just signals
-    // "gets some tier of early access"; the concrete minute count lives
-    // in earlyAccess.ts's tier switch.
-    earlyAccess: true,
-    advancedAnalytics: false,
-    dedicatedSupport: false,
+    // `earlyAccess: true` here just signals "gets some tier of early access";
+    // the concrete minute count (5) lives in earlyAccess.ts's tier switch.
+    ...TIER_PERK_MATRIX.basic,
     tagline: "Faster payouts",
     ctaLabel: "Upgrade",
     featureBullets: [
@@ -199,11 +215,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     price: 10,
     annualPrice: 8.33,
     platformFeePercent: 10,
-    priorityPlacement: true,
-    featuredBadge: false,
-    earlyAccess: true,
-    advancedAnalytics: true,
-    dedicatedSupport: false,
+    ...TIER_PERK_MATRIX.pro,
     tagline: "For serious earners",
     ctaLabel: "Upgrade",
     featureBullets: [
@@ -219,13 +231,10 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     price: 15,
     annualPrice: 12.5, // $150/yr ÷ 12
     platformFeePercent: 9,
-    // Everything Pro grants, because a tier above Pro must never grant less.
-    priorityPlacement: true,
-    earlyAccess: true, // 15 min — see earlyAccess.ts
-    advancedAnalytics: true,
-    // Elite-only, left alone on purpose (see the PLUS note in the header).
-    featuredBadge: false,
-    dedicatedSupport: false,
+    // Everything Pro grants, because a tier above Pro must never grant less —
+    // enforced by the ladder assertion in tierPerks.parity.test.ts, not by the
+    // care of whoever edits this row.
+    ...TIER_PERK_MATRIX.plus,
     tagline: "A lower cut on every job",
     ctaLabel: "Upgrade",
     // ONE bullet, and that is the honest state of this tier: the only thing
@@ -246,11 +255,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     price: 20,
     annualPrice: 16.67,
     platformFeePercent: 8,
-    priorityPlacement: true,
-    featuredBadge: true,
-    earlyAccess: true,
-    advancedAnalytics: true,
-    dedicatedSupport: true,
+    ...TIER_PERK_MATRIX.elite,
     tagline: "Maximum visibility",
     ctaLabel: "Upgrade",
     featureBullets: [

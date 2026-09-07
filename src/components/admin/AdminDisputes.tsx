@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
+import { tierRank } from "@/lib/subscriptionTiers";
 import { formatPriceExact } from "@/lib/format";
 import { CheckCircle2, AlertTriangle, History } from "lucide-react";
 import { toast } from "sonner";
@@ -151,13 +152,13 @@ const AdminDisputes = () => {
     //      platform the dispute fee + the original transaction. These
     //      MUST be at the top regardless of subscriber tier.
     //   2. Stale disputes (>48h) — about to become chargeback risk.
-    //   3. Elite/Pro/Basic subscriber priority (the existing tier sort).
+    //   3. Subscriber priority, by rank on TIER_ORDER (the existing tier sort).
     //   4. Within each tier, oldest first.
-    const tierPriority = (uid: string | null) => {
-      if (!uid) return 0;
-      const t = tMap[uid];
-      return t === "elite" ? 3 : t === "pro" ? 2 : t === "basic" ? 1 : 0;
-    };
+    // Rank comes from TIER_ORDER, so a new rung sorts in the moment it exists.
+    // The hand-written `elite ? 3 : pro ? 2 : basic ? 1 : 0` it replaces put
+    // Plus — a tier ABOVE Pro — at the bottom of the queue with free accounts
+    // (CC-019).
+    const tierPriority = (uid: string | null) => (uid ? tierRank(tMap[uid]) : 0);
     const ageHours = (j: DisputedJob): number => {
       if (!j.disputed_at) return 0;
       return (Date.now() - new Date(j.disputed_at).getTime()) / 3600_000;

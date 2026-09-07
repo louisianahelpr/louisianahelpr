@@ -1,14 +1,15 @@
 import { useState } from "react";
 import {
   MapPin,
-  Award, BadgeCheck, Camera, Crown,
+  BadgeCheck, Camera,
   Star, Share2, Edit, Eye,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import UserAvatar from "@/components/UserAvatar";
 import type { AvatarPhotoRejection } from "@/lib/avatarImage";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { tierDisplayName } from "@/lib/subscriptionTiers";
+import { tierBadgeStyle, NEUTRAL_AVATAR_RING } from "@/lib/tierBadgeStyle";
 import { hapticLight } from "@/lib/haptics";
 import { shareNative } from "@/lib/nativeShare";
 import type { Profile } from "./types";
@@ -42,6 +43,10 @@ export function IdentityHeader({
   memberSinceLabel,
   earnedBadges,
 }: IdentityHeaderProps) {
+  // ONE lookup drives the tier ring AND the tier chip below, so the two can
+  // never disagree about whether this account has a plan.
+  const tierChip = tierBadgeStyle(tier);
+
   const navigate = useNavigate();
 
   // ── IS THERE ACTUALLY A FACE HERE? ────────────────────────────────────
@@ -143,12 +148,10 @@ export function IdentityHeader({
               aria-label={showsPhoto ? "Edit profile" : "Add a profile photo"}
               className="w-[88px] h-[88px] rounded-ds-avatar squircle overflow-hidden active:scale-[0.98] transition-transform"
               style={{
-                boxShadow:
-                  tier === "elite"
-                    ? "0 0 0 2.5px hsl(var(--gold-warm))"
-                    : tier === "pro"
-                      ? "0 0 0 2.5px hsl(var(--burnt-sienna))"
-                      : "0 0 0 2px hsl(var(--bark) / 0.18)",
+                // Derived, so a Plus member gets the Pro ring instead of the
+                // free one (CC-019). Basic still wears the neutral ring — that
+                // is recorded in tierBadgeStyle, not re-decided here.
+                boxShadow: tierChip?.avatarRing ?? NEUTRAL_AVATAR_RING,
               }}
             >
               <UserAvatar
@@ -217,56 +220,21 @@ export function IdentityHeader({
                 {displayName || "Welcome back"}
               </h1>
               {/* Subscription tier badge — only shown when tier is not free.
-                  Basic = neutral bark (gold is reserved for the earned
-                  Pro/Elite prestige, per HelperBadges), Pro = sienna,
-                  Elite = gold-warm. */}
-              {tier === "basic" && (
+                  ONE derived chip. This was three copies of the same markup
+                  keyed on basic/pro/elite, so a Plus member's header showed no
+                  plan at all (CC-019). Colours, washes and marks are unchanged
+                  — they moved to tierBadgeStyle, where the gold-ink contrast
+                  fix and the Award-for-Pro decision are documented. */}
+              {tierChip && (
                 <span
                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                   style={{
-                    color: "hsl(var(--bark))",
-                    background: "hsl(var(--bark) / 0.10)",
+                    color: tierChip.headerColor,
+                    background: tierChip.headerBackground,
                     letterSpacing: "0.08em",
                   }}
                 >
-                  <Star className="w-2.5 h-2.5" /> {TIER_PERKS.basic.name}
-                </span>
-              )}
-              {tier === "pro" && (
-                <span
-                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
-                  style={{
-                    color: "hsl(var(--burnt-sienna))",
-                    background: "hsl(var(--burnt-sienna) / 0.12)",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {/* Pro was the only rung without a glyph — Basic has a Star and
-                      Elite a Crown, so a bare word read as a different kind of
-                      chip rather than the middle of one ladder. Award sits
-                      naturally between the two. */}
-                  <Award className="w-2.5 h-2.5" /> {TIER_PERKS.pro.name}
-                </span>
-              )}
-              {tier === "elite" && (
-                <span
-                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
-                  style={{
-                    // --gold-INK, not --gold-warm. index.css:204 states the
-                    // rule this used to break, in writing: "--gold-warm for
-                    // surfaces, --gold-ink for anything you read." The label
-                    // was gold-warm ON a gold-warm/0.14 wash, which measures
-                    // 2.53:1 in LIGHT at 9px bold — the mirror image of the
-                    // dark-mode failures fixed in the same audit, and the one
-                    // theme nobody re-checked. Dark already passed at 5.26:1.
-                    // The identity stays: the wash, the border and the Crown
-                    // are all still gold-warm; only the text you read moves.
-                    color: "hsl(var(--gold-ink))",
-                    background: "hsl(var(--gold-warm) / 0.14)",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  <Crown className="w-2.5 h-2.5" /> {TIER_PERKS.elite.name}
+                  <tierChip.headerIcon className="w-2.5 h-2.5" /> {tierDisplayName(tier)}
                 </span>
               )}
             </div>

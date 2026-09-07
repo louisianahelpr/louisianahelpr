@@ -17,6 +17,8 @@ import { toneTextClasses } from "@/components/admin/tones";
 import { PAYMENT_TONE } from "@/components/admin/adminJobs/types";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { TIER_CHIP_CLASSES } from "./adminAnalyticsConstants";
+import { TIER_ORDER, normalizeTier } from "@/lib/subscriptionTiers";
 
 /**
  * Zero-row state for a drill-down list.
@@ -112,7 +114,10 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
 // ─── Drill-down: Subscriptions ───
 export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
   const [tierFilter, setTierFilter] = useState<string>("all");
-  const tiers = ["all", "elite", "pro", "basic", "free"];
+  // Derived, highest first. The literal list this replaces omitted Plus, so
+  // an admin could not filter to the tier at all and its members were only
+  // reachable under "All" (CC-019).
+  const tiers = ["all", ...[...TIER_ORDER].reverse()];
   const filtered = users.filter(u => {
     if (tierFilter === "all") return true;
     if (tierFilter === "free") return !u.subscription_tier;
@@ -142,12 +147,10 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
               <p className="font-semibold text-foreground text-ds-13">{formatName(u.full_name, "—")}</p>
               <p className="text-ds-11 text-muted-foreground">{u.email} · {u.location || "No location"}</p>
             </div>
-            <Badge className={`capitalize text-ds-11 ${
-              u.subscription_tier === "elite" ? "bg-accent/20 text-[hsl(var(--accent-ink))]" :
-              u.subscription_tier === "pro" ? "bg-primary/10 text-primary" :
-              u.subscription_tier === "basic" ? "bg-secondary text-secondary-foreground" :
-              "bg-muted text-muted-foreground"
-            }`}>
+            {/* Chip class from the shared tier map — the ternary chain it
+                replaces had no Plus branch, so a Plus subscriber wore the
+                grey "no plan" chip (CC-019). */}
+            <Badge className={`capitalize text-ds-11 ${TIER_CHIP_CLASSES[normalizeTier(u.subscription_tier)]}`}>
               {tierDisplayName(u.subscription_tier)}
             </Badge>
           </div>

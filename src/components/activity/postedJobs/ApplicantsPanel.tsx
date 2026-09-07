@@ -8,7 +8,8 @@ import AppPage from "@/components/AppPage";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
 import { hapticLight } from "@/lib/haptics";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { tierDisplayName } from "@/lib/subscriptionTiers";
+import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
 import { type Job, type EnrichedApplication } from "../activityConstants";
 import { type JobAnalytics } from "./useJobAnalytics";
 import { useApplicantComparison } from "./useApplicantComparison";
@@ -259,7 +260,7 @@ export function ApplicantsPanel({
                     style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                   >
                     Ranked on ratings, work history and verified credentials.
-                    {" "}Pro and Elite members get a small placement bump — enough to
+                    {" "}Members on Pro and above get a small placement bump — enough to
                     settle a close call, never enough to outrank a stronger helper.
                   </p>
                 )}
@@ -267,13 +268,10 @@ export function ApplicantsPanel({
                 {/* Applicant cards */}
                 {sortedApplications.map(({ app, signals, neighborCount, distanceBand, promotedByTier }) => {
                   const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
-                  const isElite = helperTier === "elite";
-                  const isPro = helperTier === "pro";
-                  const haloColor = isElite
-                    ? "hsl(var(--gold-warm))"
-                    : isPro
-                      ? "hsl(var(--burnt-sienna))"
-                      : null;
+                  // Derived from the shared badge table, so Plus gets the same
+                  // halo as Pro instead of none at all (CC-019).
+                  const helperTierStyle = tierBadgeStyle(helperTier);
+                  const haloColor = helperTierStyle?.prestige ? helperTierStyle.color : null;
                   const helperName = formatName(app.profiles?.full_name, "Helpr");
                   const helperInitials = helperInitialsFrom(helperName);
                   const isTopPick = applicantSort === "recommended" && app.helper_id === topHelperIdByScore && applications.length > 1;
@@ -387,28 +385,24 @@ export function ApplicantsPanel({
                               >
                                 {helperName}
                               </a>
-                              {isElite && (
+                              {/* ONE derived pill. Two hard-coded blocks
+                                  (elite, pro) meant a Plus helper's name
+                                  carried no plan at all on the hiring surface
+                                  (CC-019). The Elite label also reads
+                                  --gold-ink now rather than --gold-warm on a
+                                  gold wash, which measured 2.53:1 — the same
+                                  contrast fix already made in IdentityHeader,
+                                  and now made once in tierBadgeStyle. */}
+                              {helperTierStyle?.prestige && (
                                 <span
                                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
                                   style={{
-                                    background: "hsl(var(--gold-warm) / 0.14)",
-                                    color: "hsl(var(--gold-warm))",
+                                    background: helperTierStyle.headerBackground,
+                                    color: helperTierStyle.headerColor,
                                     letterSpacing: "0.08em",
                                   }}
                                 >
-                                  {TIER_PERKS.elite.name}
-                                </span>
-                              )}
-                              {isPro && (
-                                <span
-                                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
-                                  style={{
-                                    background: "hsl(var(--burnt-sienna) / 0.12)",
-                                    color: "hsl(var(--burnt-sienna))",
-                                    letterSpacing: "0.08em",
-                                  }}
-                                >
-                                  {TIER_PERKS.pro.name}
+                                  {tierDisplayName(helperTier)}
                                 </span>
                               )}
                               {/* Licensed/Insured badges — the hiring surface

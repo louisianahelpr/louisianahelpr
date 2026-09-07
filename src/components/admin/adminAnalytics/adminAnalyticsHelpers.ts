@@ -3,6 +3,7 @@ import { TIER_COLORS } from "../adminAnalyticsConstants";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { SUB_PRICE, type Job, type Profile, type Tip } from "./types";
+import { TIER_ORDER, normalizeTier, type TierId } from "@/lib/subscriptionTiers";
 import { formatCategory } from "@/lib/format";
 
 // Pure metric computation for the admin analytics dashboard. Extracted VERBATIM
@@ -229,14 +230,23 @@ export const computeMetrics = (
   const cancellationRate = allJobs.length > 0 ? (cancelledJobs.length / allJobs.length) * 100 : 0;
   const totalRefunded = refundedJobs.reduce((s, j) => s + Number(j.budget || 0) + Number(j.customer_fee_amount || 0), 0);
 
-  // Subscription breakdown
-  const subBasic = helpers.filter(h => h.subscription_tier === "basic").length;
-  const subPro = helpers.filter(h => h.subscription_tier === "pro").length;
-  const subElite = helpers.filter(h => h.subscription_tier === "elite").length;
-  const subFree = helpers.filter(h => !h.subscription_tier).length;
+  // Subscription breakdown — one count PER TIER ON THE LADDER, not three
+  // named constants. `subBasic/subPro/subElite` and a three-term revenue sum
+  // meant every Plus subscriber counted as $0 of MRR and appeared in no chip
+  // (CC-019): the admin dashboard under-reported revenue by exactly the tier
+  // the owner had just launched, and would do it again for the next one.
+  // `normalizeTier` also folds a legacy/miscased value into free rather than
+  // dropping it from every bucket, so the counts always sum to helpers.length.
+  const subCount = Object.fromEntries(
+    TIER_ORDER.map(t => [t, helpers.filter(h => normalizeTier(h.subscription_tier) === t).length]),
+  ) as Record<TierId, number>;
+  const subFree = subCount.free;
   // Monthly subscription revenue estimate (matches live Stripe pricing — see
   // SubscriptionTab tier list, the single source of truth for these numbers).
-  const totalSubRevenue = (subBasic * SUB_PRICE.basic) + (subPro * SUB_PRICE.pro) + (subElite * SUB_PRICE.elite);
+  const totalSubRevenue = TIER_ORDER.reduce(
+    (sum, t) => sum + subCount[t] * (t === "free" ? 0 : SUB_PRICE[t]),
+    0,
+  );
 
   // Category breakdown
   const categoryMap: Record<string, number> = {};
@@ -312,12 +322,12 @@ export const computeMetrics = (
     : null;
 
   // Subscription pie data
-  const subPieData = [
-    { name: TIER_PERKS.elite.name, value: subElite, color: TIER_COLORS.elite },
-    { name: TIER_PERKS.pro.name, value: subPro, color: TIER_COLORS.pro },
-    { name: TIER_PERKS.basic.name, value: subBasic, color: TIER_COLORS.basic },
-    { name: TIER_PERKS.free.name, value: subFree, color: TIER_COLORS.free },
-  ].filter(d => d.value > 0);
+  // Highest tier first, derived from TIER_ORDER so a new rung appears in the
+  // pie the day it exists rather than silently vanishing.
+  const subPieData = [...TIER_ORDER]
+    .reverse()
+    .map(t => ({ name: TIER_PERKS[t].name, value: subCount[t], color: TIER_COLORS[t] }))
+    .filter(d => d.value > 0);
 
   // Top helpers (by completed jobs)
   const helperJobCount: Record<string, number> = {};
@@ -360,9 +370,7 @@ export const computeMetrics = (
     completionRate,
     cancellationRate,
     totalRefunded,
-    subBasic,
-    subPro,
-    subElite,
+    subCount,
     subFree,
     totalSubRevenue,
     categoryData,

@@ -1,6 +1,7 @@
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { haversineMiles } from "@/lib/geo";
 import { displayedPayDollars } from "@/lib/jobDisplayPay";
+import { TIER_ORDER, hasPerk, tierRank } from "../../supabase/functions/_shared/tierPerks";
 
 /**
  * Helper-side composite-score sort for the browse-jobs feed.
@@ -130,17 +131,25 @@ const MID_MILES = 25;
 export const POSTER_PLACEMENT_MAX_POINTS = 0.1;
 
 /**
- * Placement points for a poster's ACTIVE tier. Basic gets nothing — only Pro
- * and Elite carry `priorityPlacement` in TIER_PERKS. Null, free, an expired
- * tier (already resolved to null by `get_safe_profiles`) and any unrecognised
- * string including the retired 'business' all score 0: unknown must lose a
- * perk, never gain one, the same direction DEFAULT_TIER_FEE_PERCENT takes.
+ * Placement points for a poster's ACTIVE tier — the poster-side twin of
+ * `priorityPlacementPoints` in applicantScoring.ts, and derived the same way:
+ * WHO qualifies is `hasPerk(tier, "priorityPlacement")`, HOW MUCH is a ladder
+ * position (top rung full, every other entitled rung half). The literal
+ * `elite → full, pro → half` this replaces scored Plus at ZERO despite Plus
+ * carrying the perk (CC-019).
+ *
+ * Basic still gets nothing because Basic genuinely lacks the perk. Null, free,
+ * an expired tier (already resolved to null by `get_safe_profiles`) and any
+ * unrecognised string including the retired 'business' all score 0: unknown
+ * must lose a perk, never gain one, the same direction
+ * DEFAULT_TIER_FEE_PERCENT takes.
  */
 export function posterPlacementBonus(tier: string | null | undefined): number {
-  const t = (tier ?? "").toLowerCase();
-  if (t === "elite") return POSTER_PLACEMENT_MAX_POINTS;
-  if (t === "pro") return POSTER_PLACEMENT_MAX_POINTS / 2;
-  return 0;
+  if (!hasPerk(tier, "priorityPlacement")) return 0;
+  const topTier = TIER_ORDER[TIER_ORDER.length - 1];
+  return tierRank(tier) >= tierRank(topTier)
+    ? POSTER_PLACEMENT_MAX_POINTS
+    : POSTER_PLACEMENT_MAX_POINTS / 2;
 }
 
 /**

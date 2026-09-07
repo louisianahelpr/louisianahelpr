@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { hasPerk } from "@/lib/subscriptionTiers";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -777,7 +778,7 @@ const UserProfile = () => {
             <HelperWorkPhotos urls={profile.portfolio_urls ?? []} />
 
             {/* Portfolio — Pro+ only */}
-            {(profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
+            {hasPerk(profile.subscription_tier, "portfolioShowcase") && <HelperPortfolio helperId={userId!} />}
 
 
           </div>

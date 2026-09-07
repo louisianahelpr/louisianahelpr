@@ -32,6 +32,12 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
   // ("9 AM – 5 PM") fits the narrow pill in the availability row at
   // 375px instead of truncating the end time to "9:00 AM – 5:…".
   // The picker tabs below still show the full formatTime12 value.
+  //
+  // Measured 2026-09-07 at 375 (Playwright, helper availability row): the
+  // row is 235px, the switch+day label 95px, so the pill gets 126px and the
+  // span inside it 82px — while "9 AM – 5 PM" at text-ds-14 needs 89px. Every
+  // day read "9 AM – 5 …". The comment above had claimed the fit; nobody had
+  // looked. px-2.5 here and gap-2 on the row buy the 8px.
   const compact = (t: string) => formatTime12(t).replace(":00", "");
   const display =
     start && end ? `${compact(start)} – ${compact(end)}` : "Set hours";
@@ -43,7 +49,7 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
           type="button"
           disabled={disabled}
           className={cn(
-            "inline-flex items-center gap-1.5 h-11 px-3 rounded-2xl border border-input glass-field text-ds-14 font-semibold tabular-nums text-foreground transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "inline-flex items-center gap-1.5 h-11 px-2.5 rounded-2xl border border-input glass-field text-ds-14 font-semibold tabular-nums text-foreground transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             disabled && "opacity-50 pointer-events-none",
             className,
           )}

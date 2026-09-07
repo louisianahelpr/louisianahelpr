@@ -133,6 +133,8 @@ const TEST_CARD = {
   cvc: "123",
   zip: "70801",
   name: "Prod Lifecycle Test",
+  line1: "100 Audit Way",
+  city: "Baton Rouge",
 };
 
 /**
@@ -361,13 +363,21 @@ test.describe("full money loop against production", () => {
       await page.locator("#cardNumber").fill(TEST_CARD.number);
       await page.locator("#cardExpiry").fill(TEST_CARD.expiry);
       await page.locator("#cardCvc").fill(TEST_CARD.cvc);
+      /* Fill EVERY billing field Stripe renders, not just name and postcode.
+         Which ones appear depends on the account's address-collection setting,
+         and a blank required one makes Pay a no-op with an inline message the
+         test never sees. Line 1 also triggers a Google autocomplete dropdown
+         that covers the fields below it, so dismiss it before moving on. */
       for (const [id, value] of [
         ["#billingName", TEST_CARD.name],
+        ["#billingAddressLine1", TEST_CARD.line1],
+        ["#billingLocality", TEST_CARD.city],
         ["#billingPostalCode", TEST_CARD.zip],
       ] as const) {
         const field = page.locator(id);
         if ((await field.count()) && (await field.isVisible().catch(() => false))) {
           await field.fill(value).catch(() => {});
+          await page.keyboard.press("Escape").catch(() => {});
         }
       }
       const linkOptIn = page.locator("#enableStripePass");
@@ -375,6 +385,24 @@ test.describe("full money loop against production", () => {
         await linkOptIn.uncheck({ force: true }).catch(() => {});
       }
       await page.getByTestId("hosted-payment-submit-button").click();
+
+      /* If Pay does not take, say WHY. Without this the only symptom is a
+         120s navigation timeout, which names the wait rather than the cause —
+         and the cause is on the page, in an inline validation message, every
+         time. Costs nothing on the happy path: the URL has already changed by
+         the time this runs, so the branch is skipped. */
+      await page.waitForTimeout(6_000);
+      if (!/\/payment-success/.test(page.url())) {
+        const complaints = await page
+          .locator('[role="alert"], .FieldError, [class*="Error"]')
+          .allInnerTexts()
+          .catch(() => [] as string[]);
+        const unique = [...new Set(complaints.map((t) => t.replace(/\s+/g, " ").trim()).filter(Boolean))];
+        console.log(
+          `::warning title=Stripe Checkout did not submit::still on ${page.url().slice(0, 120)} — ` +
+            (unique.length ? `page says: ${unique.join(" | ")}` : "no inline error text found on the page"),
+        );
+      }
       /* Stripe returns to the PROD origin — `create-payment` builds an absolute
          success_url — so this deliberately does not assert the base URL, only
          the path. A run pointed at a preview deployment still lands here. */

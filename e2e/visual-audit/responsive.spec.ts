@@ -36,7 +36,7 @@ const VIEWPORTS: Viewport[] = [
 
 const SCREENS: Screen[] = [
   { name: "01-landing", url: "/", auth: "anon" },
-  { name: "02-guest-dashboard", url: "/jobs", auth: "anon" },
+  { name: "02-guest-dashboard", url: "/browse", auth: "anon" },
   { name: "03-authed-dashboard", url: "/dashboard", auth: "authed" },
   { name: "04-post-job", url: "/post-job", auth: "authed" },
   { name: "05-profile", url: "/profile", auth: "authed" },

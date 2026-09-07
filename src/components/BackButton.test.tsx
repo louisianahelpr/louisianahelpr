@@ -104,14 +104,14 @@ describe("BackButton", () => {
 
   describe("without a browser history index (MemoryRouter / SSR)", () => {
     it("treats the 'default' key as no in-app history", () => {
-      render(<BackButton to="/jobs" />);
+      render(<BackButton to="/browse" />);
       clickBack();
-      expect(mocks.navigate).toHaveBeenCalledWith("/jobs");
+      expect(mocks.navigate).toHaveBeenCalledWith("/browse");
     });
 
     it("treats a non-default key as in-app history", () => {
       mocks.location.current = { ...mocks.location.current, key: "xyz123" };
-      render(<BackButton to="/jobs" />);
+      render(<BackButton to="/browse" />);
       clickBack();
       expect(mocks.navigate).toHaveBeenCalledWith(-1);
     });

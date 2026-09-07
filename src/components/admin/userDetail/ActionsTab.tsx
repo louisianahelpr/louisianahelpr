@@ -131,7 +131,17 @@ export function ActionsTab({
       {/* Trust & Verification + Support actions */}
       <div className="space-y-2">
         <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Admin Tools</h4>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {/* TWO columns, not three. `Button` is `whitespace-nowrap`, so a label
+            that does not fit its cell cannot wrap — it is clipped, silently and
+            at every breakpoint. At three columns inside this ~680px dialog that
+            was already happening to "Formal Warning", "Reset Password" and
+            "Impersonate (RO)", which rendered as "Formal Warnin", "Reset
+            Passwor" and "Impersonate (R". Screenshots, not measurements, are
+            what surfaced it — every one of those buttons reports its full text
+            in the DOM, so a textContent assertion passes on a clipped control.
+            Two columns fit the longest label ("Restrict Applications") with
+            room to spare. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
             <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
           </Button>
@@ -180,7 +190,7 @@ export function ActionsTab({
             <UserMinus className={cn("w-4 h-4 mr-1.5", toneTextClasses.warning)} /> Restrict Applications
           </Button>
           {!["permanently_banned", "temp_banned"].includes(viewBanStatus) ? (
-            <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-2 sm:col-span-1" onClick={() => setBanProfile(viewProfile)}>
+            <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-1" onClick={() => setBanProfile(viewProfile)}>
               <ShieldAlert className="w-4 h-4 mr-1.5" /> Suspend / Ban
             </Button>
           ) : (
@@ -188,7 +198,7 @@ export function ActionsTab({
               <CheckCircle2 className="w-4 h-4 mr-1.5 text-primary" /> Lift Ban
             </Button>
           )}
-          <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-2 sm:col-span-1" onClick={() => setDeleteProfile(viewProfile)}>
+          <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-1" onClick={() => setDeleteProfile(viewProfile)}>
             <Trash2 className="w-4 h-4 mr-1.5" /> Delete Account
           </Button>
         </div>

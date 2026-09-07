@@ -124,13 +124,22 @@ const HELPER_PASSWORD = process.env.PLAYWRIGHT_HELPER_PASSWORD;
 const READY = Boolean(POSTER_EMAIL && POSTER_PASSWORD && HELPER_EMAIL && HELPER_PASSWORD);
 
 /**
- * The payout leg's key. OPTIONAL, and deliberately a different secret from the
- * four above: it is server automation credentials, not a test account, and the
- * loop degrades to "everything except the transfer" without it rather than
- * failing. `release-payout` accepts either this or an admin JWT — see below for
- * why the cron path is the one used here.
+ * The payout leg's credentials. OPTIONAL — without them the loop runs and says
+ * out loud that nothing proved the helper was paid.
+ *
+ * An ACCOUNT, not a secret, and that is the whole point. `release-payout` takes
+ * either a JWT carrying `has_role(admin)` or a bearer equal to CRON_SECRET /
+ * the service-role key, and the second door was the obvious one to reach for.
+ * It is the wrong one. CRON_SECRET authorises 29 edge functions — every money
+ * mutation in the system — so handing it to CI is broader custody than the
+ * service-role key this workflow already refuses to hold, and it is
+ * un-attributable besides: release-payout only stamps `initiated_by_user_id`
+ * on the admin branch (index.ts:98), so a secret-authenticated payout lands in
+ * the ledger as "someone holding the shared secret". An admin account is
+ * narrower, revocable on its own, and signs its name in `payout_transfers`.
  */
-const CRON_SECRET = process.env.PLAYWRIGHT_CRON_SECRET;
+const ADMIN_EMAIL = process.env.PLAYWRIGHT_ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.PLAYWRIGHT_ADMIN_PASSWORD;
 
 /** Shared with the sweeper. Changing it orphans every row the sweeper knows about. */
 const E2E_TITLE_MARKER = "[E2E DO NOT ACCEPT]";
@@ -640,13 +649,17 @@ test.describe("full money loop against production", () => {
          Connect account) — no time gate. So this is a real production path
          driven the way production drives it, not a test-only shortcut.
 
-         WHY THE CRON SECRET AND NOT AN ADMIN JWT. The function's other door is
-         a JWT with the admin role. Granting admin to a shared CI account would
-         put ban, dispute-decision and refund powers behind a password stored in
-         Actions — a much larger blast radius than the payout this proves.
-         CRON_SECRET already exists as a repo secret and already reaches CI
-         (edge-function-smoke.yml uses it), and it authorises exactly the
-         server-automation surface, which is what this call is.
+         WHY AN ADMIN ACCOUNT AND NOT THE CRON SECRET. The function's other
+         door is a bearer equal to CRON_SECRET or the service-role key, which
+         looks like the smaller ask because it is not a login. It is the larger
+         one. CRON_SECRET authorises 29 edge functions here — void-cancelled-
+         payments, auto-resolve-disputes, money-reconciliation, every payout
+         path — so CI holding it is wider custody than the service-role key the
+         sweep step already refuses on exactly this reasoning. It is also
+         anonymous: `initiated_by_user_id` is stamped only on the admin branch
+         (release-payout/index.ts:98), so a secret-driven payout is recorded in
+         the ledger with a null actor forever. The admin account is narrower,
+         independently revocable, and leaves its name on the row.
 
          WHY THE TRANSFER ID IS THE PROOF. `tr_…` ids are minted by Stripe and
          by nothing else — no trigger, no default and no client write can
@@ -656,24 +669,35 @@ test.describe("full money loop against production", () => {
          admin, so the poster session (which does everything else here) cannot
          see it, and reading it as the helper additionally proves the payee can
          see their own payment. */
-      if (!CRON_SECRET) {
+      if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
         announceUncovered(
           "Payout leg not covered",
-          "`PLAYWRIGHT_CRON_SECRET` is not set, so `release-payout` was not driven. Escrow funding, " +
-            "hire, completion and release ARE covered by this run, but **nothing proves money reached " +
-            "the helper's Stripe Connect account** — no transfer was sent and no `payout_transfers` " +
-            "row was written. Set `PLAYWRIGHT_CRON_SECRET` to the repo's existing `CRON_SECRET`.",
+          "`PLAYWRIGHT_ADMIN_EMAIL` / `PLAYWRIGHT_ADMIN_PASSWORD` are not set, so `release-payout` was " +
+            "not driven. Escrow funding, hire, completion and release ARE covered by this run, but " +
+            "**nothing proves money reached the helper's Stripe Connect account** — no transfer was " +
+            "sent and no `payout_transfers` row was written. Set them to a dedicated account holding " +
+            "the `admin` role. Do NOT substitute `CRON_SECRET`: it authorises every money function in " +
+            "the system and records no actor.",
         );
       } else {
+        const admin = await signIn(request, ADMIN_EMAIL, ADMIN_PASSWORD);
         const payout = await request.post(`${SUPABASE_URL}/functions/v1/release-payout`, {
-          headers: { Authorization: `Bearer ${CRON_SECRET}`, "Content-Type": "application/json" },
-          data: { job_id: job.id, initiated_by: "system" },
+          headers: {
+            apikey: ANON,
+            Authorization: `Bearer ${admin.access_token}`,
+            "Content-Type": "application/json",
+          },
+          // `initiated_by` is deliberately NOT sent: release-payout only honours
+          // it on the cron branch, and on this one it stamps 'admin' plus the
+          // acting user id itself. Sending it would be ignored and would read
+          // as though it were not.
+          data: { job_id: job.id },
         });
         const payoutBody = await payout.text();
-        // A 401 here means the secret CI holds is not the one the function
-        // checks. That is a real finding about the deployment, not a flaky
-        // test, so it fails rather than degrading — a payout path nobody can
-        // invoke is worth knowing about.
+        // A 401 here means the account CI holds no longer carries the admin
+        // role, or the function's auth changed. That is a real finding about
+        // the deployment, not a flaky test, so it fails rather than degrading —
+        // a payout path nobody can invoke is worth knowing about.
         expect(payout.ok(), `release-payout failed: ${payout.status()} ${payoutBody}`).toBe(true);
         const payoutJson = JSON.parse(payoutBody) as {
           stripe_transfer_id?: string;

@@ -50,9 +50,10 @@ permissions:
 #   PLAYWRIGHT_POSTER_SESSION      JSON supabase session — scripts/e2e/README.md
 #   PLAYWRIGHT_HELPER_SESSION      JSON supabase session — scripts/e2e/README.md
 #   PLAYWRIGHT_LIFECYCLE_JOB_ID    an ACCEPTED job between those two accounts
-# One is reused rather than created: CRON_SECRET, passed to the money loop as
-# PLAYWRIGHT_CRON_SECRET so it can drive `release-payout` — the only path that
-# actually sends the helper's transfer. Optional; the loop degrades loudly.
+#   PLAYWRIGHT_ADMIN_EMAIL         an account holding the `admin` role — drives
+#   PLAYWRIGHT_ADMIN_PASSWORD      `release-payout`, the only path that actually
+#                                  sends the helper's transfer. Optional; the
+#                                  money loop degrades loudly without it.
 # This workflow creates no accounts and mints no tokens. It names what it needs
 # and stops there.
 
@@ -291,12 +292,13 @@ jobs:
           PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
           PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
           # The payout leg. Optional by design: without it the loop still runs
-          # and announces that nothing proved money reached the helper. The
-          # secret already exists (created 2026-08-19) and edge-function-smoke
-          # already proves it is the value the functions check, so this needs no
-          # provisioning — it is passed under a PLAYWRIGHT_ name so the spec
-          # never reads a raw automation secret it was not handed on purpose.
-          PLAYWRIGHT_CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          # and announces that nothing proved money reached the helper.
+          # An ACCOUNT holding the admin role, deliberately not CRON_SECRET —
+          # that secret authorises 29 edge functions and records no actor, so
+          # giving it to CI would be wider custody than the service-role key the
+          # sweep step above already refuses. See the spec's step 6b.
+          PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+          PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
         run: npx playwright test --project=chromium e2e/prod-lifecycle.spec.ts --reporter=list --trace=on
 
       # The whole point of this job is the legs a mock cannot cover, and when
@@ -378,7 +380,7 @@ jobs:
             echo "| Authenticated journeys | \`$AUTHED\` | PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD |"
             echo "| Two-role lifecycle | \`$TWO_ROLE\` | PLAYWRIGHT_POSTER_SESSION + PLAYWRIGHT_HELPER_SESSION + PLAYWRIGHT_LIFECYCLE_JOB_ID |"
             echo "| Full money loop (prod) | \`$LIFECYCLE\` | PLAYWRIGHT_POSTER_EMAIL/_PASSWORD + PLAYWRIGHT_HELPER_EMAIL/_PASSWORD |"
-            echo "| ↳ payout (helper's transfer) | \`$LIFECYCLE\` | CRON_SECRET (already set) |"
+            echo "| ↳ payout (helper's transfer) | \`$LIFECYCLE\` | PLAYWRIGHT_ADMIN_EMAIL/_PASSWORD |"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
 

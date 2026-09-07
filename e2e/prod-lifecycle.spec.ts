@@ -3,7 +3,7 @@ import { appendFileSync } from "node:fs";
 
 // The full authenticated money loop, against PRODUCTION, on a Stripe TEST key.
 //
-// post → fund (escrow) → apply → hire → complete → release → review
+// post → fund (escrow) → apply → hire → complete → release → payout → review
 //
 // ============================================================================
 // THIS SPEC HAS NEVER EXECUTED. It is gated on secrets that do not exist yet.
@@ -34,8 +34,8 @@ import { appendFileSync } from "node:fs";
 //                unfunded job is invisible in browse and triggers no
 //                notifications, because every one of those gates requires
 //                payment_status IN ('escrow','payout_pending','released'))
-//   skipped    : fund → release → review, announced as UNCOVERED via a
-//                ::warning:: and a step-summary line, never silently
+//   skipped    : fund → release → payout → review, announced as UNCOVERED via
+//                a ::warning:: and a step-summary line, never silently
 // Review is in the skipped set because it has to be: the
 // `Users can create reviews for eligible jobs` policy requires
 // `payment_status IN ('released','payout_pending')`. That is where the
@@ -122,6 +122,15 @@ const HELPER_EMAIL = process.env.PLAYWRIGHT_HELPER_EMAIL;
 const HELPER_PASSWORD = process.env.PLAYWRIGHT_HELPER_PASSWORD;
 
 const READY = Boolean(POSTER_EMAIL && POSTER_PASSWORD && HELPER_EMAIL && HELPER_PASSWORD);
+
+/**
+ * The payout leg's key. OPTIONAL, and deliberately a different secret from the
+ * four above: it is server automation credentials, not a test account, and the
+ * loop degrades to "everything except the transfer" without it rather than
+ * failing. `release-payout` accepts either this or an admin JWT — see below for
+ * why the cron path is the one used here.
+ */
+const CRON_SECRET = process.env.PLAYWRIGHT_CRON_SECRET;
 
 /** Shared with the sweeper. Changing it orphans every row the sweeper knows about. */
 const E2E_TITLE_MARKER = "[E2E DO NOT ACCEPT]";
@@ -603,11 +612,117 @@ test.describe("full money loop against production", () => {
          demanding one here was asserting the wrong function's work, and would
          have gone red forever while the product behaved correctly.
 
-         The ledger row therefore is NOT covered by this suite, and that gap is
-         real: nothing unmocked proves money reaches the helper's Connect
-         account. Covering it needs the payout cron driven after release, which
-         is a separate piece of work. */
+         The ledger row is covered by step 6b below, which drives the payout
+         path release hands the job to. */
       expect(settled.payout_scheduled_at, "release did not schedule a payout").toBeTruthy();
+
+      /* --- 6b. PAYOUT — the money actually leaving the platform -------------
+         The leg that was uncovered until 2026-09-07, and the only one that
+         proves a helper is ever paid. Everything above it can be true of a job
+         whose money never moves.
+
+         WHY `release-payout` AND NOT `process-scheduled-payouts`.
+         The cron is the scheduled path, and it cannot be driven from a test:
+         it selects `payout_scheduled_at <= now()`, and release sets that to
+         now + 24h (create-payment/index.ts:602). Nothing a test may write can
+         pull it forward — `payout_scheduled_at` sits in
+         prevent_job_field_escalation's `locked_everyone`, so it is refused for
+         every authenticated caller including the poster who owns the job. The
+         two ways to make the cron see the job are to wait a day or to hold
+         service-role, and this suite does neither.
+
+         `release-payout` is the same money movement without the clock: it is
+         the function the admin "Release payout" button calls and the one
+         auto-release-payment's Phase 2 invokes over HTTP, and it is the only
+         function in the repo that calls `stripe.transfers.create` for a single
+         helper. Its preconditions are exactly the state release just produced
+         (status 'completed', payment_status 'payout_pending', a helper with a
+         Connect account) — no time gate. So this is a real production path
+         driven the way production drives it, not a test-only shortcut.
+
+         WHY THE CRON SECRET AND NOT AN ADMIN JWT. The function's other door is
+         a JWT with the admin role. Granting admin to a shared CI account would
+         put ban, dispute-decision and refund powers behind a password stored in
+         Actions — a much larger blast radius than the payout this proves.
+         CRON_SECRET already exists as a repo secret and already reaches CI
+         (edge-function-smoke.yml uses it), and it authorises exactly the
+         server-automation surface, which is what this call is.
+
+         WHY THE TRANSFER ID IS THE PROOF. `tr_…` ids are minted by Stripe and
+         by nothing else — no trigger, no default and no client write can
+         produce one — so a ledger row carrying one is evidence the transfer
+         happened, not evidence the app believes it did. The row is read as the
+         HELPER: `payout_transfers` is readable only by its own helper or an
+         admin, so the poster session (which does everything else here) cannot
+         see it, and reading it as the helper additionally proves the payee can
+         see their own payment. */
+      if (!CRON_SECRET) {
+        announceUncovered(
+          "Payout leg not covered",
+          "`PLAYWRIGHT_CRON_SECRET` is not set, so `release-payout` was not driven. Escrow funding, " +
+            "hire, completion and release ARE covered by this run, but **nothing proves money reached " +
+            "the helper's Stripe Connect account** — no transfer was sent and no `payout_transfers` " +
+            "row was written. Set `PLAYWRIGHT_CRON_SECRET` to the repo's existing `CRON_SECRET`.",
+        );
+      } else {
+        const payout = await request.post(`${SUPABASE_URL}/functions/v1/release-payout`, {
+          headers: { Authorization: `Bearer ${CRON_SECRET}`, "Content-Type": "application/json" },
+          data: { job_id: job.id, initiated_by: "system" },
+        });
+        const payoutBody = await payout.text();
+        // A 401 here means the secret CI holds is not the one the function
+        // checks. That is a real finding about the deployment, not a flaky
+        // test, so it fails rather than degrading — a payout path nobody can
+        // invoke is worth knowing about.
+        expect(payout.ok(), `release-payout failed: ${payout.status()} ${payoutBody}`).toBe(true);
+        const payoutJson = JSON.parse(payoutBody) as {
+          stripe_transfer_id?: string;
+          amount_cents?: number;
+        };
+        expect(payoutJson.stripe_transfer_id, "release-payout returned no Stripe transfer id").toMatch(
+          /^tr_/,
+        );
+        expect(payoutJson.amount_cents ?? 0, "release-payout transferred nothing").toBeGreaterThan(0);
+
+        // The ledger, read by the payee. Polled because the transfer and the
+        // claim settle in separate writes.
+        await expect
+          .poll(
+            async () => {
+              const r = await request.get(
+                `${SUPABASE_URL}/rest/v1/payout_transfers` +
+                  `?job_id=eq.${job.id}&select=stripe_transfer_id,status,helper_id`,
+                { headers: rest(helper) },
+              );
+              if (!r.ok()) return `read failed: ${r.status()}`;
+              const rows = (await r.json()) as Array<{
+                stripe_transfer_id: string | null;
+                status: string;
+              }>;
+              if (rows.length !== 1) return `${rows.length} ledger rows`;
+              return `${rows[0].status}:${rows[0].stripe_transfer_id ?? "no-transfer-id"}`;
+            },
+            {
+              timeout: 60_000,
+              message:
+                "no settled payout_transfers row visible to the helper after release-payout returned a transfer id",
+            },
+          )
+          .toBe(`paid:${payoutJson.stripe_transfer_id}`);
+
+        // And the job's own money state reaches its terminal value. This is the
+        // flip release-payout does AFTER the transfer, so asserting it is what
+        // distinguishes "money moved" from "money moved and the ledger says so"
+        // — the split that produces a paid helper on a job that still reads
+        // payout_pending, which is the exact state money-reconciliation:287
+        // exists to page about.
+        await expect
+          .poll(async () => (await readJob(request, poster, job.id)).payment_status, {
+            timeout: 30_000,
+            message: "payment_status never reached 'released' after the payout was sent",
+          })
+          .toBe("released");
+      }
 
       const review = await request.post(`${SUPABASE_URL}/rest/v1/reviews`, {
         headers: { ...rest(poster), Prefer: "return=representation" },

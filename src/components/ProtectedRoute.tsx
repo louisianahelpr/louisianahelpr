@@ -7,6 +7,7 @@ import { report } from "@/lib/errorLogger";
 import { track, AhaEvent } from "@/lib/analytics";
 import { rememberJobIntent } from "@/lib/jobIntent";
 import { hasPreload } from "@/lib/lazyWithPreload";
+import { isLockedOut } from "@/lib/banStatus";
 
 // Auth debug logging is dev-only by default. In dev it's still noisy —
 // a single tab hop can print ~15 lines and drown real errors. Devs who
@@ -307,10 +308,12 @@ const ProtectedRoute = ({
   // re-evaluate these guards and navigate away if needed.
   if (profile) {
     // Banned users — explain the situation, never bounce back to /login.
-    if (
-      profile.ban_status &&
-      ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)
-    ) {
+    // `isLockedOut` mirrors the server's own carve-out: a `temp_banned` row
+    // whose `auto_suspended_until` has already passed is a suspension the
+    // server considers over, waiting on a scheduled sweep to say so. Testing
+    // ban_status membership alone kept those users at /account-banned — being
+    // shown an expiry date in the past — until the sweeper next ran.
+    if (isLockedOut(profile.ban_status, profile.auto_suspended_until)) {
       if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-banned", reason: profile.ban_status });
       return <Navigate to="/account-banned" replace />;
     }

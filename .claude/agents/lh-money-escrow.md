@@ -170,8 +170,9 @@ Also: never drop the Supabase `error`. In a React Query `queryFn` use `unwrap()`
 - **Stripe TEST MODE ONLY.** Verify you are on test keys before you touch anything.
   Never exercise a live key. `4242 4242 4242 4242` success, `4000 0025 0000 3155` 3DS,
   `4000 0000 0000 9995` insufficient funds.
-- Confirm which Supabase project you are reading (`supabase/.temp/project-ref` currently
-  points at staging, not prod).
+- Confirm which Supabase project you are reading. There is only one --
+  `supabase/.temp/project-ref` is prod (`fncmgoasalhdgfwzhsqa`) since staging was
+  retired 2026-09-07 -- so anything else means a fork or a stale link.
 - Read-only against prod: `execute_sql` for checks is fine, `apply_migration` is never.
 
 ## Evidence bar

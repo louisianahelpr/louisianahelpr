@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { formatPriceExact, formatPriceFloor } from "./format";
 import {
   formatMonthYear,
   formatWorkDayMonthYear,
@@ -234,5 +236,49 @@ describe("member since is the account's age, not the work span", () => {
     expect(buildWorkRecordSummaryLines(joinedMarchWorkedAugust)[1]).toContain(
       "(August 2026 – August 2026)",
     );
+  });
+});
+
+describe("the record does not contradict the app about the same person", () => {
+  // /work-record is an EXTERNAL document — "Employment & Earnings Record",
+  // "ISSUED TO", a verification email, Share as PDF. Two defects, both fixed
+  // 2026-09-06, both of the kind that only shows up when someone hands the
+  // sheet to a third party.
+  const src = (rel: string) => readFileSync(new URL(rel, import.meta.url), "utf8");
+
+  it("resolves identity with the SAME rule the hiring gate uses", () => {
+    // It read `stripe_identity_verified` alone — Stripe CONNECT's verdict —
+    // and printed "Not verified" for anyone who had completed Stripe IDENTITY
+    // instead. Ten live prod profiles were in exactly that state on
+    // 2026-09-06: verified badge in the app, "Not verified" on the document
+    // they hand a landlord.
+    const page = src("../pages/WorkRecord.tsx");
+    expect(page).toMatch(/isIdentityVerified\(/);
+    expect(page).toMatch(/idvStatus:\s*profileRow\.idv_status/);
+    // The three places the verdict is rendered (badge, footer sentence, PDF
+    // input) must all read the one resolved value — a second `=== true` on the
+    // raw Connect flag is how they drifted apart in the first place.
+    expect(page).not.toMatch(/stripe_identity_verified === true/);
+  });
+
+  it("states earnings exactly, because a record is not a quote", () => {
+    // `formatPriceFloor` protects a figure that is money OWED, so a quote can
+    // never read above the payout that follows. Nothing on this sheet is owed:
+    // it reports transfers that already happened, and flooring printed $105.60
+    // as "$105" to a reader holding the matching bank statement.
+    expect(formatPriceExact(105.6)).toBe("105.60");
+    expect(formatPriceFloor(105.6)).toBe("105");
+    for (const file of ["./workRecordDocument.ts", "../pages/WorkRecord.tsx"] as const) {
+      const text = src(file);
+      expect(text).toMatch(/formatPriceExact\(\s*(input|data)\.totalEarnings\s*\)/);
+      expect(text).not.toMatch(/formatPriceFloor\(\s*(input|data)\.totalEarnings\s*\)/);
+    }
+  });
+
+  it("keeps the two surfaces on the same formatter", () => {
+    // The screen tile and the PDF row have drifted before (the "after platform
+    // fee" caption). Whatever the choice, it has to be the same on both.
+    const usesExact = (text: string) => /formatPriceExact\(\s*(input|data)\.totalEarnings\s*\)/.test(text);
+    expect(usesExact(src("./workRecordDocument.ts"))).toBe(usesExact(src("../pages/WorkRecord.tsx")));
   });
 });

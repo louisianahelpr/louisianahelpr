@@ -3,7 +3,22 @@ import { CATEGORY_ICONS } from "@/lib/categoryIcons";
 import { JOB_CATEGORIES, JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 
 export type Job = Database["public"]["Tables"]["jobs"]["Row"];
-export type Application = Database["public"]["Tables"]["applications"]["Row"];
+export type Application = Database["public"]["Tables"]["applications"]["Row"] & {
+  /**
+   * Server-set contact-leak flag, added by migration 20260907005738 and not yet
+   * in the generated types (regenerating mid-launch would land a large diff for
+   * one column). True when applications_scan_contact_info matched a phone
+   * number, email, off-platform payment service or intent phrase in `message`
+   * or `offer_message`.
+   *
+   * Optional because the older narrow selects in this codebase do not request
+   * it — and an optional flag read as falsy is the SAFE direction here: it
+   * shows the text, which is exactly today's behaviour, rather than hiding
+   * content on a surface that never asked for the column.
+   */
+  flagged_hidden?: boolean | null;
+  flag_reason?: string | null;
+};
 
 export type Tab = "posted" | "applied";
 

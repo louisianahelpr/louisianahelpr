@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, MapPin } from "lucide-react";
-import { lookupParishByZip } from "@/lib/parishLookup";
+import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
@@ -97,9 +97,13 @@ export function ProfileEditForm({
   // Resolve parish from ZIP for an inline confirmation under the field
   // (it's the value used for Louisiana sales tax). Mirrors the silent
   // lookup the Profile page already runs.
-  const [resolvedParish, setResolvedParish] = useState<string | null>(
-    (profile?.parish ?? null),
-  );
+  const { parish: zipParish, unknownZip, resolution } = useParishForZip(zipCode);
+  // The hook reports `incomplete` until its first answer lands, which on mount
+  // would blink the saved parish off the screen for a frame. Fall back to the
+  // stored value until the lookup has actually said something.
+  const resolvedParish = resolution.status === "incomplete"
+    ? (profile?.parish ?? null)
+    : zipParish;
 
   // "Other" skills free-text — kept as its own local buffer (not derived
   // fresh from `skills` on every render) so typing a comma doesn't
@@ -120,16 +124,6 @@ export function ProfileEditForm({
     const customList = value.split(",").map((s) => s.trim()).filter(Boolean);
     setSkills([...selectedPresets, ...customList].join(", "));
   }
-  useEffect(() => {
-    const cleaned = zipCode.replace(/\D/g, "");
-    if (cleaned.length !== 5) {
-      setResolvedParish(null);
-      return;
-    }
-    let cancelled = false;
-    lookupParishByZip(cleaned).then((p) => { if (!cancelled) setResolvedParish(p); });
-    return () => { cancelled = true; };
-  }, [zipCode]);
 
   // iOS hides the bio textarea (and the ID/portfolio controls below it)
   // behind the keyboard when focused, since they sit low in this scrollable
@@ -223,6 +217,15 @@ export function ProfileEditForm({
                 Parish · <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{resolvedParish}</span>
               </p>
             )}
+            {/* The counterpart to the confirmation above. A ZIP that resolves
+                to nothing used to render nothing, so "no parish line" meant
+                both "still typing" and "you are about to be unreachable". */}
+            {unknownZip && (
+              <p role="status" className="flex items-start gap-1 text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                <MapPin className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />
+                {UNKNOWN_ZIP_MESSAGE}
+              </p>
+            )}
           </div>
         </div>
 
@@ -261,7 +264,7 @@ export function ProfileEditForm({
             className="min-h-[112px] resize-none text-ds-13 leading-relaxed"
           />
           <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Customers read this when deciding who to hire. The more specific, the better.
+            Posters read this when deciding who to hire. The more specific, the better.
           </p>
         </div>
 

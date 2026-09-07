@@ -270,7 +270,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
                 className="font-serif italic leading-snug max-w-[260px] text-ds-13"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Post a task or complete one — your spending and earnings will show up here.
+                Post a job or complete one — your spending and earnings will show up here.
               </p>
             </div>
           ) : (
@@ -294,7 +294,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
                 Spent
               </h2>
               <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                on tasks you posted
+                on jobs you posted
               </p>
             </div>
           </div>
@@ -333,7 +333,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
               />
               <p className="font-serif italic mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {spentCount === 0 ? "no tasks yet" : `across ${spentCount} task${spentCount === 1 ? "" : "s"}`}
+                {spentCount === 0 ? "no jobs yet" : `across ${spentCount} job${spentCount === 1 ? "" : "s"}`}
               </p>
             </div>
             {/* NO "TOTAL EARNED" COLUMN.

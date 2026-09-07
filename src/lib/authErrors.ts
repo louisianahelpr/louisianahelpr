@@ -62,3 +62,70 @@ export function recognizedAuthError(raw: string | undefined | null): string | nu
 export function friendlyAuthError(raw: string | undefined | null): string {
   return recognizedAuthError(raw) ?? "Couldn't sign you in — give it another try?";
 }
+
+/**
+ * The same vocabulary, with a fallback that fits a surface where NOTHING was
+ * being signed in.
+ *
+ * `friendlyAuthError`'s fallback is "Couldn't sign you in — give it another
+ * try?", and /reset-password used it. So when GoTrue answered
+ * `PUT /auth/v1/user` with 422 `weak_password` — an error about the password
+ * the user had just typed — the screen said the sign-in had failed. It had
+ * not: opening the recovery link IS the sign-in, and it had already succeeded
+ * (`last_sign_in_at` moved). External QA read that as an unrelated toast
+ * appearing on its own, which is precisely what it looked like, and the real
+ * reason for the refusal was never shown at all.
+ *
+ * Weak-password rejections are handled by the CALLER rather than here, because
+ * the caller can say which rule is missing (`passwordProblem`) where this
+ * function only has a string. `resetPasswordError` is the last line for
+ * everything else.
+ */
+export function resetPasswordError(raw: string | undefined | null): string {
+  return recognizedAuthError(raw) ?? "Couldn't update your password — give it another try?";
+}
+
+/**
+ * Restate GoTrue's weak-password message in this app's voice, WITHOUT losing
+ * what it said.
+ *
+ * The raw string is a configuration dump — "Password should be at least 12
+ * characters. Password should contain at least one character of each:
+ * abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789,
+ * !@#$%^&*()_+-=[]{};'\:\"|<>?,./`~." — four lines of alphabet in a form
+ * field. This is only ever reached when the client's own rule list and the
+ * project policy have drifted apart (normally `passwordProblem` answers
+ * first), and the whole point of reaching it is that we do NOT know which rule
+ * is missing, so the requirement has to be reproduced faithfully rather than
+ * summarised away.
+ *
+ * Anything this does not recognise is returned verbatim. A vague sentence on
+ * the account-recovery path is a locked-out user.
+ */
+export function describeWeakPassword(raw: string | undefined | null): string {
+  const msg = raw ?? "";
+  const parts: string[] = [];
+  const length = /at least (\d+) characters/i.exec(msg);
+  if (length) parts.push(`at least ${length[1]} characters`);
+  if (/one character of each/i.test(msg)) {
+    parts.push("an uppercase letter, a lowercase letter, a number and a symbol");
+  }
+  if (parts.length === 0) return msg;
+  return `Your password needs ${parts.join(", plus ")}.`;
+}
+
+/**
+ * True when Supabase refused a password as too weak.
+ *
+ * Matched on `code`/`name` first — `AuthWeakPasswordError` (auth-js
+ * `lib/errors.ts`) is thrown with `code: "weak_password"` for any 422 the API
+ * tags that way — and on the message only as a fallback, so a future GoTrue
+ * that drops the code still lands here rather than in the generic bucket.
+ */
+export function isWeakPasswordError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const e = error as { code?: unknown; name?: unknown; message?: unknown };
+  if (e.code === "weak_password") return true;
+  if (e.name === "AuthWeakPasswordError") return true;
+  return typeof e.message === "string" && /password (?:is too weak|should )/i.test(e.message);
+}

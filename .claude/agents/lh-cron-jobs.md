@@ -133,8 +133,9 @@ set of scheduled edge functions -- and it has built `sweep_dead_crons`,
 
 ## Known traps
 
-- Verify which project you are reading. `supabase/.temp/project-ref` currently points at
-  **staging**, and a cron that runs in prod may show nothing in staging.
+- Verify which project you are reading. `supabase/.temp/project-ref` points at prod
+  (`fncmgoasalhdgfwzhsqa`); staging was retired 2026-09-07, so a cron reading empty
+  is a real finding now, not the wrong-project artifact it used to be.
 - `schedule-heartbeat.yml` exists in CI -- read what it actually asserts before trusting it.
 
 ## Evidence bar

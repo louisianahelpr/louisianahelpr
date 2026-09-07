@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { shouldShowUnfundedNotice } from "./UnfundedJobNotice";
+import { shouldShowUnfundedNotice, unfundedNoticeCause } from "./UnfundedJobNotice";
 import { type Job } from "../activityConstants";
 
 /**
@@ -31,11 +31,32 @@ describe("shouldShowUnfundedNotice", () => {
     expect(shouldShowUnfundedNotice(job())).toBe(true);
   });
 
-  it("stays off a hand-posted job that is briefly unpaid", () => {
+  it("stays off a hand-posted job that is briefly unpaid, mid-redirect", () => {
     // The normal post-a-job flow inserts the row and THEN redirects to Stripe,
     // so every hand-posted job is 'unpaid' for a moment. Flashing the warning
-    // there would accuse the working path of being broken.
-    expect(shouldShowUnfundedNotice(job({ is_auto_created: false }))).toBe(false);
+    // there would accuse the working path of being broken. In that window no
+    // Checkout Session exists yet, which is what keeps it quiet.
+    expect(shouldShowUnfundedNotice(job({ is_auto_created: false, stripe_session_id: null }))).toBe(false);
+  });
+
+  it("SHOWS on a hand-posted job whose checkout was abandoned", () => {
+    // The gap this closes: before 2026-09-06 this returned false, so an
+    // abandoned checkout left a ghost job in My Posts with no notice and no way
+    // to finish paying. `stripe_session_id` is server-owned — the jobs INSERT
+    // column lock forces it NULL — so its presence proves create-payment minted
+    // a session and the poster reached Stripe.
+    const ghost = job({ is_auto_created: false, stripe_session_id: "cs_test_abandoned" });
+    expect(shouldShowUnfundedNotice(ghost)).toBe(true);
+    expect(unfundedNoticeCause(ghost)).toBe("abandoned-checkout");
+  });
+
+  it("tells the two causes apart, so the copy can differ", () => {
+    expect(unfundedNoticeCause(job())).toBe("calendar");
+    expect(unfundedNoticeCause(job({ payment_status: "escrow" }))).toBeNull();
+  });
+
+  it("a calendar job needs no session id — the sync never opens checkout", () => {
+    expect(unfundedNoticeCause(job({ stripe_session_id: null }))).toBe("calendar");
   });
 
   it("stays off when the column is absent rather than false", () => {

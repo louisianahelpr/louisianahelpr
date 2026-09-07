@@ -62,12 +62,39 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # the function; a bad signature writes nothing and answers 400.
   [functions.email-unsubscribe]
     verify_jwt = false
-  # admin-update-email deliberately has NO verify_jwt override: it is the only
-  # endpoint that can change a user's login identity, and it is called from the
-  # admin UI via supabase.functions.invoke (which attaches the caller's JWT), so
-  # there is no unauthenticated caller to accommodate. Its in-function
-  # getClaims + has_role check is sound on its own; keeping the gateway check as
-  # well is defence-in-depth on an account-takeover-grade action.
+  # admin-update-email: the gateway JWT check is REQUIRED and now DECLARED.
+  #
+  # It is the only endpoint that can change a user's login identity, and it is
+  # called from the admin UI via supabase.functions.invoke (which attaches the
+  # caller's JWT), so there is no unauthenticated caller to accommodate. Its
+  # in-function getClaims + has_role check is sound on its own; the gateway
+  # check is defence-in-depth on an account-takeover-grade action.
+  #
+  # This block used to say it "deliberately has NO verify_jwt override" and
+  # relied on the gateway default of true. Prod disagreed: the deployed function
+  # carried verify_jwt=false, so the second layer this comment promised did not
+  # exist, and an unauthenticated request reached the handler (confirmed
+  # 2026-09-06 — the endpoint answered with its OWN 401 body rather than the
+  # gateway's UNAUTHORIZED_NO_AUTH_HEADER). Not exploitable, because the
+  # in-function gate held and fails closed. But an absent stanza cannot assert
+  # anything: "the default is true" is a claim about the deploy, not a fact in
+  # the repo, and it silently stopped being true. Declaring it explicitly is
+  # what makes the guarantee reproducible from source (EF-025).
+  [functions.admin-update-email]
+    verify_jwt = true
+  # verification-webhook: inbound callbacks from background-check vendors, which
+  # cannot present a Supabase JWT. Without this the gateway 401s every delivery
+  # before the handler runs, so the function's own signature verification can
+  # never execute — the same shape that made health-check dead from 2026-04-26
+  # and left resend-webhook's suppression list permanently empty.
+  #
+  # Safe: the handler verifies each vendor's signature itself and is stricter
+  # than the gateway would be. Latent rather than urgent today (no vendor is
+  # live and verification_checks is empty), which is precisely why it had to be
+  # fixed now — the day a vendor is switched on, this reads as implemented and
+  # silently is not (EF-001).
+  [functions.verification-webhook]
+    verify_jwt = false
   [functions.pro-customer-portal]
     verify_jwt = false
   [functions.weekly-helper-report]
@@ -103,6 +130,20 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # Cron-authenticated like its siblings (verifyCronSecret), not JWT — no user
   # is present when a recurring visit is charged. That is the point.
   [functions.charge-recurring-visits]
+    verify_jwt = false
+  # auto-tip-charge: charges a poster's saved card off-session after a job
+  # completes, invoked only by pg_cron. Same posture as its 12 cron siblings
+  # above; it was the ONE that never got a stanza.
+  #
+  # Prod already runs it with verify_jwt=false, so this changes no behaviour —
+  # it makes the gate reproducible from the repo instead of an artefact of
+  # deploy history. Worth stating plainly for the next reader, because the
+  # obvious inference is wrong: an absent stanza does NOT mean the next deploy
+  # would flip this to true and silently kill every auto-tip. cron.job builds
+  # its header from the vault `service_role_key`, which is the LEGACY key and
+  # IS a JWT, so verify_jwt=true would pass it anyway. Verified healthy in
+  # cron_run_log (hourly 200s) on 2026-09-07 (EF-026).
+  [functions.auto-tip-charge]
     verify_jwt = false
   [functions.expiring-jobs-push]
     verify_jwt = false

@@ -47,7 +47,7 @@ export function ApplyEarningsBreakdown({
   // The plain-words summary. Same facts as the receipt, one line, no columns.
   const summary = [
     `$${formatPrice(confirmApplyJob.budget)} budget`,
-    helpers > 1 ? `÷ ${helpers} helprs` : null,
+    helpers > 1 ? `÷ ${helpers} Helprs` : null,
     `− ${platformFee}% fee`,
     hasUrgent ? "+ urgent bonus" : null,
   ]

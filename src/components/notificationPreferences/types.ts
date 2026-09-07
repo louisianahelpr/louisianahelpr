@@ -7,7 +7,19 @@ export interface Prefs {
   reviews: boolean;
   promotions: boolean;
   system_alerts: boolean;
+  /** Push master switch. Gates every per-category push column WITHOUT
+      overwriting any of them — see `fan_out_push_on_notification`. */
   push_enabled: boolean;
+  /** Email master switch — the twin of `push_enabled`, added in migration
+      `20260907032218_email_master_switch_own_column.sql`.
+
+      Before that column existed the Email master was derived ("at least one
+      `email_*` is true") and toggling it blanket-wrote every `email_*` column,
+      so a master off → on cycle reset explicit opt-outs — including
+      `email_promotions` — back to true. It is a real column for the same
+      reason `push_enabled` is: the restore is a consent record and has to
+      survive a fresh device and a cleared client. */
+  email_enabled: boolean;
   email_job_applications: boolean;
   email_job_updates: boolean;
   email_messages: boolean;

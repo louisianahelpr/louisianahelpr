@@ -7,6 +7,7 @@
 // callers — Slack outages must never break a dispute or payout.
 
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const SLACK_API_URL = 'https://slack.com/api'
 const DEFAULT_CHANNEL = Deno.env.get('SLACK_OPS_CHANNEL') || '#ops-alerts'
@@ -177,6 +178,47 @@ Deno.serve(async (req) => {
     const data = await res.json()
     if (!res.ok || data?.ok === false) {
       console.error('slack-ops-alert: Slack API error', { status: res.status, data })
+
+      // THE ALARM CANNOT BE THE THING THAT FAILS SILENTLY.
+      //
+      // Every caller is a fire-and-forget `net.http_post` from SQL. It cannot
+      // read this body, cannot retry, and this function answers HTTP 200 either
+      // way — deliberately, so a Slack outage never becomes the reason a
+      // dispute or a payout errors. But that also means a revoked token, a
+      // renamed channel, or a bot that was never invited to a PRIVATE channel
+      // is indistinguishable from a delivered alert, in the one component whose
+      // entire job is to tell somebody when things are broken.
+      //
+      // `channel_not_found` is the likely one: #ops-alerts is private, so
+      // chat.postMessage refuses until the bot is invited, and nothing anywhere
+      // would have said so.
+      //
+      // Non-throwing stays. Silent does not: the failure lands in error_logs,
+      // where the admin error surface shows it. Best-effort and swallowed —
+      // failing to LOG a failed alert must not escalate into a thrown error in
+      // the caller's transaction.
+      try {
+        const supabaseAdmin = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '',
+        )
+        await supabaseAdmin.from('error_logs').insert({
+          severity: 'error',
+          message: `slack-ops-alert: Slack rejected the post (${data?.error || `http_${res.status}`})`,
+          context: 'slack-ops-alert',
+          tags: ['alerting', 'slack'],
+          stack: JSON.stringify({
+            slack_error: data?.error ?? null,
+            http_status: res.status,
+            channel,
+            alert_title: body.title,
+            alert_kind: body.kind,
+          }),
+        })
+      } catch (logErr) {
+        console.error('slack-ops-alert: could not record delivery failure', logErr)
+      }
+
       return new Response(
         JSON.stringify({ ok: false, error: data?.error || `http_${res.status}` }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

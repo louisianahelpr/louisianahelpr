@@ -22,6 +22,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend,
 } from "recharts";
 import type { Database } from "@/integrations/supabase/types";
+import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -63,7 +64,12 @@ const completionTime = (job: Job): number => {
 };
 
 export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: EarningsBreakdownChartsProps) {
-  const completed = earningsJobs.filter((j) => j.status === "completed");
+  // Same definition as the Earned card these charts sit under — `isEarnedJob`,
+  // not `status === "completed"`. Two money figures on one screen totalling
+  // different sets of jobs is the defect this screen keeps producing; a
+  // refunded or charged-back job is `completed` forever and belonged to
+  // neither.
+  const completed = earningsJobs.filter(isEarnedJob);
   const now = new Date();
   const ytdYear = now.getFullYear();
   const priorYtdYear = ytdYear - 1;

@@ -218,10 +218,31 @@ serve(async (req) => {
         "critical",
         "jobs.platform_fee_amount != helperCommissionDollars(per-helper budget, jobs.helper_fee_percent). release-payout writes both together, so they can never legitimately disagree.",
       ),
+      // REWRITTEN 2026-09-07. This check used to compare jobs.helper_fee_percent
+      // against the helper's tier ladder and call any difference a defect. That
+      // was wrong, and it was wrong in the direction that cries wolf: it fired
+      // on 12 jobs including every healthy subscriber job.
+      //
+      // Its own detail text asserted that a hit "means the helper's subscription
+      // discount was not applied to their commission." It does not. The frozen
+      // column is NOT what settles a payout. All six money paths —
+      // release-payout, process-scheduled-payouts, auto-release-payment,
+      // execute-dispute-split, charge-recurring-visits, void-cancelled-payments
+      // — resolve the fee through getHelperFeePercent (_shared/helperFees.ts),
+      // which reads the helper's LIVE subscription_tier and expiry.
+      // jobs.helper_fee_percent is stamped from a GLOBAL platform_settings value
+      // at escrow time, before any helper is attached, and is only ever consulted
+      // as a fallback when that profile read fails. So the column disagreeing
+      // with the ladder is the NORMAL, expected state of every subscriber job.
+      //
+      // What is actually worth alarming on is a settled payout whose recorded
+      // commission does not match what the live tier would have charged — that,
+      // and only that, means a discount was really not applied. Graded against
+      // payout_transfers.platform_fee_cents, so it needs money to have moved.
       tierDrift: new Check(
-        "helper_fee_percent_off_tier_ladder",
-        "warning",
-        "jobs.helper_fee_percent differs from the helper's tier rate. This was graded 'info' on the premise that the tier merely changed after payout — that premise is FALSE for every job: the column is stamped from a global setting at ESCROW time, before any helper exists, so it never encoded a tier in the first place. A hit here means the helper's subscription discount was not applied to their commission.",
+        "helper_fee_percent_not_applied_at_payout",
+        "critical",
+        "A SETTLED payout_transfer recorded a commission that differs from what the helper's LIVE subscription tier would charge — the discount was not applied to money that actually moved. Graded against the transfer ledger, never against jobs.helper_fee_percent, which is a global escrow-time stamp and is expected to differ from the ladder.",
       ),
       releasedNoTransfer: new Check(
         "released_without_payout_transfer",
@@ -468,6 +489,9 @@ serve(async (req) => {
     const payoutHelperIds = [
       ...new Set(payoutJobs.map((j) => j.helper_id).filter((v): v is string => !!v)),
     ];
+    // job_id -> the commission rate the helper's LIVE tier would charge.
+    // Graded against the payout ledger once it is read; see tierDrift.
+    const liveFeeByJob = new Map<string, { ladder: number; tier: string }>();
     if (payoutHelperIds.length) {
       // `.in(...)` is capped like every other read — a 3,000-id IN list returns
       // 1000 rows with no complaint — and a long enough list blows the URL
@@ -489,6 +513,10 @@ serve(async (req) => {
       } else {
         const profCap = scanDefect("profiles", profScan);
         if (profCap) caps.push(profCap);
+        // Resolve the LIVE rate per job, exactly as getHelperFeePercent would
+        // at payout time (tier + expiry, expiry handled the same way). The
+        // comparison itself cannot happen here: it needs the payout ledger,
+        // which is read further down, so it is deferred to liveFeeByJob.
         const tierBy = new Map(profScan.rows.map((p) => [p.user_id as string, p]));
         for (const job of payoutJobs) {
           const prof = job.helper_id ? tierBy.get(job.helper_id as string) : null;
@@ -496,16 +524,10 @@ serve(async (req) => {
           const expired = prof.subscription_expires_at
             ? new Date(prof.subscription_expires_at as string).getTime() < Date.now()
             : false;
-          const ladder = feePercentForTier(expired ? "free" : (prof.subscription_tier as string | null));
-          const pct = Number(job.helper_fee_percent);
-          if (Number.isFinite(pct) && pct !== ladder) {
-            checks.tierDrift.add({
-              job_id: job.id,
-              frozen_percent: pct,
-              current_tier_percent: ladder,
-              tier: expired ? "expired→free" : (prof.subscription_tier ?? "free"),
-            });
-          }
+          liveFeeByJob.set(job.id as string, {
+            ladder: feePercentForTier(expired ? "free" : (prof.subscription_tier as string | null)),
+            tier: expired ? "expired→free" : ((prof.subscription_tier as string | null) ?? "free"),
+          });
         }
       }
     }
@@ -593,6 +615,27 @@ serve(async (req) => {
           transfer_amount_cents: Number(t.amount_cents ?? 0),
         });
       }
+
+      // Did the helper's live tier actually reach the money? Recompute the
+      // commission from the LIVE ladder over the same per-helper budget
+      // release-payout uses, and compare it to what the settled transfer
+      // recorded. A mismatch is a discount that genuinely was not applied.
+      const live = liveFeeByJob.get(t.job_id as string);
+      if (live) {
+        const helpers = job.is_group_job ? Math.max(1, Number(job.helpers_needed ?? 1)) : 1;
+        const liveCents = Math.round(
+          helperCommissionDollars(money(job.budget) / helpers, live.ladder) * 100,
+        );
+        if (liveCents !== storedCents) {
+          checks.tierDrift.add({
+            job_id: t.job_id,
+            tier: live.tier,
+            live_tier_percent: live.ladder,
+            expected_commission_cents: liveCents,
+            transfer_commission_cents: storedCents,
+          });
+        }
+      }
     }
     } // end payout-ledger checks
 
@@ -660,6 +703,22 @@ serve(async (req) => {
     // policy".)
 
     // ── Emit ─────────────────────────────────────────────────────────────────
+    //
+    // A NON-2xx STATUS FROM THIS FUNCTION IS BY DESIGN, NOT A CRASH.
+    // When `defects > 0` the run returns HTTP 500 with a full findings body, so
+    // that a defect is loud in cron_run_log.status_code and in any uptime check
+    // watching this endpoint. A 500 here means "the reconciler ran fine and
+    // found something", and the body is the report — read `defectReasons` and
+    // `findings` before concluding anything failed.
+    //
+    // This is written down because it has already been misread once: a 500 on
+    // 2026-09-07 04:55Z was reported up the chain as "money-reconciliation
+    // crashes daily". It does not. That was the only non-200 in the log — the
+    // three runs before it returned 200 clean — and it fired because a lane had
+    // bulk-loaded seed fixtures into prod (79 jobs scanned against 4 the day
+    // before), every one of which was torn down afterwards. If you are looking
+    // at a 500 here, compare `scanned.jobs` against the previous run before
+    // believing anything about the money.
     const findings = Object.values(checks)
       .map((c) => c.finding())
       .filter((f): f is Finding => f !== null);

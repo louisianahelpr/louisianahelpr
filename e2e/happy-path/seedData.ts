@@ -128,7 +128,7 @@ const JOB_BASE = {
   has_active_dispute: false,
   is_auto_created: false,
   is_flexible_schedule: false,
-  pricing_mode: "fixed",
+  pricing_mode: "set_price",
   protection_opted_in: false,
   requires_w9: false,
   review_reminder_sent: false,
@@ -330,7 +330,10 @@ export const SEED_NOTIFICATIONS = [
   {
     id: "50000000-0000-4000-8000-000000000001",
     user_id: CUSTOMER_ID,
-    type: "application_received",
+    // `notifications_type_check` admits 18 values and neither
+    // "application_received" nor "job_completed" is among them — both were
+    // invented by the fixture and no mock ever objected.
+    type: "application",
     title: "New applicant",
     body: "Someone applied to your cleaning job.",
     read: false,
@@ -339,7 +342,7 @@ export const SEED_NOTIFICATIONS = [
   {
     id: "50000000-0000-4000-8000-000000000002",
     user_id: CUSTOMER_ID,
-    type: "job_completed",
+    type: "job_update",
     title: "Job marked complete",
     body: "Confirm the work to release payment from escrow.",
     read: true,

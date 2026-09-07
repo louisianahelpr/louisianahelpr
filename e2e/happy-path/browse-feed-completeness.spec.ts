@@ -22,7 +22,7 @@ function mk(tag: string, category: string, location: string, i: number) {
     is_group_job: false, helpers_needed: 1, estimated_hours: 2, special_requirements: null,
     photos: [], boosted_at: null, boost_expires_at: null, expires_at: null, start_time: "09:00",
     recurrence_interval: null, recurrence_end_date: null, parent_job_id: null,
-    payment_status: "unpaid", location, pricing_mode: "fixed", applicant_count: 0,
+    payment_status: "unpaid", location, pricing_mode: "set_price", applicant_count: 0,
   };
 }
 

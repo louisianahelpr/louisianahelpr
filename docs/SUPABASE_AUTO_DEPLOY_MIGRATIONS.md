@@ -51,7 +51,8 @@ state. URL appears in the PR's Supabase status check.
 - The integration is paused (auth token expired, GitHub outage).
 - Shipping a hotfix migration *before* the merge lands (rare, usually a
   bad idea — the merge should be the source of truth).
-- Applying migrations to a *different* linked project (staging, fork).
+- Applying migrations to a *different* linked project (a fork). Not staging —
+  that project was retired 2026-09-07 and there is one database.
 
 ## Updating the project guardrails
 

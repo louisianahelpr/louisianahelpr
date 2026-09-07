@@ -19,6 +19,7 @@ import {
   validateFile,
   fileToBase64,
   ageFromDob,
+  passwordProblem,
 } from "./signup/signupHelpers";
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
@@ -26,7 +27,7 @@ import { getPublicOrigin } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
 import { recognizedAuthError } from "@/lib/authErrors";
 import { completeSignupErrorCopy } from "./signup/completeSignupError";
-import { lookupParishByZip } from "@/lib/parishLookup";
+import { useParishForZip } from "@/hooks/useParishForZip";
 import { parishForCity } from "@/lib/parishes";
 
 const Signup = () => {
@@ -95,17 +96,10 @@ const Signup = () => {
   // daily digest, and Louisiana sales tax. Digits only, mirrors
   // ProfileEditForm's own zipCode input.
   const [zipCode, setZipCode] = useState("");
-  // Live parish resolution from the ZIP, mirroring ProfileEditForm's own
-  // effect exactly — resolved as the user types so the mismatch hint below
-  // can render before submit, not just at it.
-  const [resolvedZipParish, setResolvedZipParish] = useState<string | null>(null);
-  useEffect(() => {
-    const cleaned = zipCode.replace(/\D/g, "");
-    if (cleaned.length !== 5) { setResolvedZipParish(null); return; }
-    let cancelled = false;
-    lookupParishByZip(cleaned).then((p) => { if (!cancelled) setResolvedZipParish(p); });
-    return () => { cancelled = true; };
-  }, [zipCode]);
+  // Live parish resolution from the ZIP, shared with CompleteProfile and
+  // ProfileEditForm — resolved as the user types so both hints below can
+  // render before submit, not just at it.
+  const { parish: resolvedZipParish, unknownZip } = useParishForZip(zipCode);
   // Soft mismatch hint (owner-requested 2026-09-04): only fires when the
   // typed City is a RECOGNIZED city of a DIFFERENT parish than the ZIP
   // resolved to — never when the city is merely absent from the registry
@@ -256,7 +250,7 @@ const Signup = () => {
   // Validates the "Account credentials + agreements" content (UI step 1).
   const validateAccountStep = async () => {
     if (!email.trim()) { toast.error("Add your email address."); return false; }
-    // These four must match the Supabase project's password policy exactly.
+    // The password rules must match the Supabase project's policy exactly.
     // They did not: the project requires a lowercase letter, an uppercase
     // letter, a digit AND a symbol, while this validator asked for only the
     // middle two. A password like "Password1" therefore sailed past the form,
@@ -267,11 +261,15 @@ const Signup = () => {
     // `toast.error(err.message)` at the bottom of createAccountAndFinish.
     // Verified against prod 2026-09-01. Each rule now fails locally, in
     // English, before the round-trip.
-    if (password.length < 8) { toast.error("Password needs at least 8 characters."); return false; }
-    if (!/[a-z]/.test(password)) { toast.error("Add at least one lowercase letter to your password."); return false; }
-    if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter to your password."); return false; }
-    if (!/[0-9]/.test(password)) { toast.error("Add at least one number to your password."); return false; }
-    if (!/[^A-Za-z0-9]/.test(password)) { toast.error("Add at least one symbol to your password — for example ! ? # or $."); return false; }
+    //
+    // They are spelled out ONCE, in PASSWORD_RULES (signupHelpers), because
+    // fixing them here left SignupStep1's own inline gate still checking three
+    // of the five — so the step waved through passwords this function then
+    // rejected with a toast about a rule the form had never displayed. One
+    // list now feeds this check, the inline gate, the requirement chips and
+    // the inline error message; they cannot drift apart again.
+    const pwProblem = passwordProblem(password);
+    if (pwProblem) { toast.error(pwProblem); return false; }
     if (!acceptedPolicies) { toast.error("Check the box to agree to the terms and platform rules."); return false; }
     if (!ageConfirmed) { toast.error("Check the box to confirm you're 18 or older."); return false; }
     return true;
@@ -555,6 +553,7 @@ const Signup = () => {
             zipCode={zipCode}
             setZipCode={setZipCode}
             zipCityMismatch={cityZipMismatch}
+            zipUnknown={unknownZip}
             bio={bio}
             setBio={setBio}
             inputCls={inputCls}

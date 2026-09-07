@@ -84,9 +84,26 @@ serve(async (req) => {
     // already have a live subscription"; this one asks our own row "is Apple
     // the authority here". Neither can see what the other sees.
     //
-    // Note the eligibility RPC runs as the CALLER (auth.uid()), so it can only
-    // ever report on the person making the request.
-    const { data: eligibility, error: eligibilityErr } = await supabaseClient
+    // The RPC must run AS THE CALLER, and that needs the caller's JWT attached
+    // to the client — `supabaseClient` above is built from the anon key with no
+    // Authorization header, so it authenticates as `anon`.
+    //
+    // This shipped broken on 2026-09-05 and blocked EVERY membership purchase.
+    // The migration deliberately revokes anon and grants EXECUTE only to
+    // `authenticated`, so calling it as anon raised 42501 insufficient_privilege,
+    // the fail-closed branch returned 503, and the storefront's Upgrade button
+    // did nothing at all. The comment here even asserted it ran as the caller,
+    // which made the bug read as impossible.
+    //
+    // A request-scoped client is the fix: same anon key, plus this request's
+    // Authorization header, so PostgREST sees the member's JWT and auth.uid()
+    // resolves to them.
+    const callerClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")) ?? "",
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: eligibility, error: eligibilityErr } = await callerClient
       .rpc("subscription_purchase_eligibility", { p_platform: "stripe" });
     if (eligibilityErr) {
       // Fail CLOSED. A purchase we cannot prove is allowed is exactly the one
@@ -172,7 +189,28 @@ serve(async (req) => {
       client_reference_id: user.id,
       metadata: { tier, billing_cycle, user_id: user.id },
       automatic_tax: { enabled: true },
+      // REQUIRED BY automatic_tax, AND THE REASON NO HELPER COULD BUY A TIER.
+      //
+      // Stripe refuses to open a Checkout Session with automatic tax enabled
+      // unless the Customer already has an address, OR the session is told to
+      // save the one collected at checkout. Without this line the call threw
+      // `customer_tax_location_invalid` and the function returned 500.
+      //
+      // Who it hit is the part that matters. The customer is resolved by
+      // EMAIL, so anyone with an existing Stripe Customer carrying no address
+      // failed — and the only thing that ever writes an address onto a Helpr
+      // customer is create-payment, i.e. funding a job AS A POSTER. Every tier
+      // card on that screen reads "For Helprs…", so memberships were broken for
+      // exactly the audience they are sold to: a helper who had never posted a
+      // job could not buy any tier, on any cycle. Proved both directions on one
+      // build 2026-09-06 — the addressless helper 500'd every attempt, the
+      // poster with an address completed a $15 Plus purchase.
+      //
+      // create-payment has carried this since it was written; only this
+      // function was missing it. `customer_update` is invalid WITHOUT an
+      // existing customer, so it is applied conditionally below.
     };
+    if (customerId) sessionParams.customer_update = { address: "auto" };
 
     if (!isOneTime) {
       sessionParams.subscription_data = subscriptionData;

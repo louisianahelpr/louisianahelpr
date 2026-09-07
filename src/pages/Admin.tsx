@@ -372,11 +372,20 @@ const Admin = () => {
     // user-scoped per the realtime rule), the admin dashboard's whole job is
     // to reflect platform-wide activity, so it watches every write to these
     // tables. The debounce above keeps the resulting reload burst sane.
+    //
+    // There is NO `profiles` binding here, and adding one would break the other
+    // two. `profiles` was dropped from the `supabase_realtime` publication by
+    // migration 20260423164103 to stop broadcasting PII, and a binding on an
+    // unpublished table poisons its ENTIRE channel — so the `profiles` line
+    // that used to sit between these two was silently taking `jobs` and
+    // `reports` down with it, leaving this whole dashboard without the live
+    // reload it appears to have. (SF-017.) The pending-people count still
+    // refreshes via loadUnreadCounts() on view change and on the manual
+    // refresh, which is now the honest path rather than an implied live one.
     const sub = subscribeWithRecovery(
       (name) => supabase
       .channel(name)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, debouncedReload)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, debouncedReload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, debouncedReload),
       { name: "admin-realtime", onRecovered: debouncedReload },
     );

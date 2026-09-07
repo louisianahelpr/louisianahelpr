@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { JobActionRow, JobActionChip } from "@/components/activity/JobActionRow";
 import { Button } from "@/components/ui/button";
-import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
+import { AUTO_COMPLETE_HOURS, PAYOUT_HOLD_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { CheckCircle2, MessageSquare, RefreshCw, Check, CalendarX2 } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -239,10 +239,31 @@ export function ActiveJobSection({
               <li><span className="text-foreground font-medium">Approve & complete</span> the job</li>
               <li>Or <span className="text-foreground font-medium">request a revision</span></li>
             </ul>
+            {/* APPROVAL IS NOT PAYMENT, AND THIS COPY USED TO CONFLATE THEM.
+                A 2026-09-06 end-to-end review followed the money and found the
+                gap: approving sets payment_status='payout_pending' with
+                payout_scheduled_at = now + PAYOUT_HOLD_HOURS, and
+                process-scheduled-payouts fires the transfer only once that
+                passes. So the helper is paid a DAY after approval, not at it.
+
+                Both branches said otherwise. "It's on its way" described a
+                transfer that had not been scheduled yet, and
+                `auto_release_on_complete` — the flag behind it — only skips
+                the poster's review window; it does not touch the payout hold,
+                which create-payment sets unconditionally. The other branch
+                promised release "within AUTO_COMPLETE_HOURS", which is when
+                the job auto-COMPLETES; the money is another hold after that.
+
+                Nobody was cheated — the funds always arrived — but a helper
+                deciding whether to take the next job was reading a number a
+                day early, and that is the kind of quiet wrongness that reads
+                as a broken payout the first time someone checks their bank.
+                Both numbers now come from escrowTiming, which the cron and
+                escrowTiming.parity.test.ts both read. */}
             <p className="text-ds-10 text-muted-foreground/70 pt-1">
               {posterInstantRelease
-                ? "This poster releases payment instantly — it's on its way."
-                : `If the poster doesn't respond within ${AUTO_COMPLETE_HOURS} hours, payment will automatically be released to you.`}
+                ? `This poster approves instantly — then your payout is released ${PAYOUT_HOLD_HOURS} hours later.`
+                : `If the poster doesn't respond within ${AUTO_COMPLETE_HOURS} hours, the job completes automatically and your payout is released ${PAYOUT_HOLD_HOURS} hours after that.`}
             </p>
           </div>
           {/* No countdown when the poster releases instantly (owner,
@@ -251,18 +272,37 @@ export function ActiveJobSection({
             <div className="px-3 pb-2.5">
               <DeadlineCountdown
                 deadline={new Date(new Date(job.helper_completed_at).getTime() + hoursToMs(AUTO_COMPLETE_HOURS)).toISOString()}
-                expiredText={`${AUTO_COMPLETE_HOURS} hours passed — payment auto-releasing to you`}
-                consequenceText="Payment will auto-release to you when this timer expires."
+                expiredText={`${AUTO_COMPLETE_HOURS} hours passed — completing automatically, payout ${PAYOUT_HOLD_HOURS}h later`}
+                consequenceText={`The job completes automatically when this timer expires. Your payout is released ${PAYOUT_HOLD_HOURS} hours after that.`}
                 variant="warning"
               />
             </div>
           )}
         </div>
       )}
+      {/* The terminal state said "Job complete" and nothing else — the one
+          moment the helper most wants to know about money, and the only card
+          state that mentioned none. Approval had just moved the job to
+          payout_pending on a PAYOUT_HOLD_HOURS timer, and every earlier line
+          the helper had read ("Request Payout", "Release Payment", "payment
+          will be released to you") pointed at that instant. Silence there let
+          them conclude it had already landed. */}
       {job.helper_completed_at && job.poster_completed_at && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-ds-sm bg-primary/10 border border-primary/20">
-          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-          <span className="text-ds-13 font-medium text-primary">Job complete</span>
+        <div className="rounded-ds-sm bg-primary/10 border border-primary/20 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-ds-13 font-medium text-primary">Job complete</span>
+          </div>
+          {job.payment_status === "released" ? (
+            <p className="text-ds-10 text-muted-foreground/70 pt-1">
+              Payout sent. It lands in your bank on your usual payout schedule.
+            </p>
+          ) : (
+            <p className="text-ds-10 text-muted-foreground/70 pt-1">
+              Approved. Your payout releases {PAYOUT_HOLD_HOURS} hours after approval,
+              then lands in your bank on your usual payout schedule.
+            </p>
+          )}
         </div>
       )}
 

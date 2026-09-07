@@ -1,6 +1,23 @@
 import { Crown, Leaf, Sparkles, Star } from "lucide-react";
 import { ONE_TIME_PASS_DAYS, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 
+/**
+ * EVERY BLURB ON THIS PAGE IS ROLE-NEUTRAL, AND THAT IS A CORRECTNESS RULE,
+ * NOT A STYLE ONE. Each `forWhom` read "For Helprs …" while the tier's
+ * `platformFeePercent` sets BOTH numbers it can set: the commission deducted
+ * from a helper's payout AND the service fee a poster is charged at checkout
+ * (`posterFeePercentForTier` in `src/lib/posterFees.ts` is a straight alias of
+ * `tierFeePercent` — one user, one tier, one percent). There are no roles on
+ * this app: every account can post and can help. So a poster reading this page
+ * was shown the exact product that would cut their posting fee, described
+ * entirely as something for other people, and every perk listed was helper-side
+ * — a missed conversion and an inaccuracy in the same sentence.
+ *
+ * Keep new copy here neutral, and keep it SHORT: `forWhom` renders beside the
+ * tier name under `truncate` (SubscriptionTab.tsx), where it already truncated
+ * once at 97px. None of the replacements below is longer than the string it
+ * replaced.
+ */
 export type TierIconName = "leaf" | "star" | "sparkles" | "crown";
 
 interface TierDisplay {
@@ -99,7 +116,7 @@ export const tierConfig: TierDisplay[] = [
     id: "basic",
     name: TIER_PERKS.basic.name,
     iconName: "star",
-    forWhom: "For Helprs testing the marketplace.",
+    forWhom: "For testing the marketplace.",
     ...formatTierPrices("basic"),
     feePercent: TIER_PERKS.basic.platformFeePercent,
     features: [...TIER_PERKS.basic.featureBullets],
@@ -108,7 +125,7 @@ export const tierConfig: TierDisplay[] = [
     id: "pro",
     name: TIER_PERKS.pro.name,
     iconName: "sparkles",
-    forWhom: "For Helprs picking up regular work.",
+    forWhom: "For regular jobs, posted or done.",
     ...formatTierPrices("pro"),
     feePercent: TIER_PERKS.pro.platformFeePercent,
     features: [`Everything in ${TIER_PERKS.basic.name}`, ...TIER_PERKS.pro.featureBullets],
@@ -119,7 +136,7 @@ export const tierConfig: TierDisplay[] = [
     // Sparkles, same as Pro — the crown is Elite's Featured Crown Badge and
     // must not appear on a tier that doesn't grant it.
     iconName: "sparkles",
-    forWhom: "For Helprs who want a smaller cut.",
+    forWhom: "For a smaller cut on every job.",
     ...formatTierPrices("plus"),
     feePercent: TIER_PERKS.plus.platformFeePercent,
     features: [`Everything in ${TIER_PERKS.pro.name}`, ...TIER_PERKS.plus.featureBullets],
@@ -128,7 +145,7 @@ export const tierConfig: TierDisplay[] = [
     id: "elite",
     name: TIER_PERKS.elite.name,
     iconName: "crown",
-    forWhom: "For full-time Helprs.",
+    forWhom: "For full-time members.",
     ...formatTierPrices("elite"),
     feePercent: TIER_PERKS.elite.platformFeePercent,
     // "Everything in Plus" now that Plus sits directly below Elite. This said

@@ -7,6 +7,9 @@ import { queryKeys } from "@/lib/queryKeys";
 import { dedupeById } from "@/lib/utils";
 import { CARDS_PER_ROW, PAGE_SIZE } from "./jobsConstants";
 import type { JobsPage, PublicJob } from "./types";
+import { displayedPayDollars } from "@/lib/jobDisplayPay";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { getCachedUserLocation } from "@/hooks/useUserLocation";
 
 interface UseOpenJobsFeedArgs {
   search: string;
@@ -54,6 +57,10 @@ export const useOpenJobsFeed = ({
   // (No PGRST202 window either — the function signature is unchanged, so both
   // the 2- and 3-argument call forms below keep resolving throughout the
   // db-deploy lag; they simply gain the gate the moment it lands.)
+  // Read-only peek at whatever fix another surface already obtained. This is
+  // the non-prompting accessor by design — see the RPC call below.
+  const viewerLoc = getCachedUserLocation();
+
   const {
     data: pagesData,
     isLoading: jobsLoading,
@@ -63,7 +70,10 @@ export const useOpenJobsFeed = ({
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: queryKeys.jobs.open(),
+    // The position is part of the key: a fix arriving mid-session changes the
+    // ORDER the server returns, and a cached page built without one would
+    // otherwise be served forever.
+    queryKey: [...queryKeys.jobs.open(), viewerLoc?.lat ?? null, viewerLoc?.lng ?? null],
     initialPageParam: 0,
     queryFn: async ({ pageParam }): Promise<JobsPage> => {
       const offset = pageParam as number;
@@ -87,9 +97,24 @@ export const useOpenJobsFeed = ({
         // Filtering after the fetch is not an option either way: this feed
         // paginates, so dropping rows client-side would return short pages and
         // break the "was that a full page?" check below.
+        // Viewer position, for the distance term the ranking gained in
+        // 20260907052949. Read from the module cache only — NEVER prompt: a
+        // cold permission dialog on a public board nobody asked to be located
+        // on is exactly the trade that migration's design set out to avoid,
+        // and iOS spends its one system alert per install on it.
+        //
+        // A SIGNED-IN viewer needs nothing here at all: the RPC falls back to
+        // their stored `profiles.latitude/longitude` server-side. This
+        // argument is what gives a GUEST — who has no profile row — the same
+        // ranking, on the sessions where some other surface already obtained
+        // a fix.
+        //
+        // Undefined for a viewer with no fix, which the RPC reads as "no
+        // position" and ranks exactly as it does today.
         await supabase.rpc("get_ranked_open_jobs", {
           p_limit: PAGE_SIZE,
           p_offset: offset,
+          ...(viewerLoc ? { p_lat: viewerLoc.lat, p_lng: viewerLoc.lng } : {}),
         }),
       );
       const jobs = (rows ?? []) as unknown as PublicJob[];
@@ -154,6 +179,11 @@ export const useOpenJobsFeed = ({
       return true;
     });
 
+    // Guests have no membership tier, so every card on this board prices at
+    // the free rate — the same constant `Jobs.tsx` hands `JobCard`.
+    const payOf = (job: PublicJob) =>
+      displayedPayDollars(job, TIER_PERKS.free.platformFeePercent);
+
     // "Best match" keeps the server's ranking (get_ranked_open_jobs orders by
     // boost → urgent → recency for an anon caller), so there is nothing to
     // re-sort. Every other option mirrors the authed comparator exactly —
@@ -161,8 +191,12 @@ export const useOpenJobsFeed = ({
     if (sortBy === "smart") return list;
     return list.sort((a, b) => {
       switch (sortBy) {
-        case "highest_pay": return b.budget - a.budget;
-        case "lowest_pay": return a.budget - b.budget;
+        // Order by the take-home the card SHOWS, not the gross budget. This
+        // board renders every price through `JobPrice` at the free-tier rate,
+        // and a group job's budget is split across `helpers_needed` — sorting
+        // on `budget` ranked a $200 ÷ 3 = $58 job above a $79 solo one.
+        case "highest_pay": return payOf(b) - payOf(a);
+        case "lowest_pay": return payOf(a) - payOf(b);
         case "ending_soon":
           return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
         default:

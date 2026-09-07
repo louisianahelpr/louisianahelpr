@@ -196,6 +196,50 @@ function rewriteExternalImports(src: string): string {
     `$1 {$2} from "../../../supabase/functions/_shared/productTiers.ts";`,
   );
 
+  // Apple IAP validation: `_shared/appleAppStore.ts` is plain TypeScript (its
+  // Deno touch is a guarded `globalThis.Deno` read and its only other import is
+  // dynamic), so the generated file points at the REAL module. It is the TRUST
+  // BOUNDARY for Apple purchases — it decides which product maps to which tier
+  // and whether a transaction still entitles anything. Mocking it would leave
+  // the grant decision untested while appearing to test the grant.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/appleAppStore\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/appleAppStore.ts";`,
+  );
+
+  // Consumer subscription Price IDs: `_shared/proTiers.ts` is plain TypeScript
+  // (its only Deno touch is a guarded `globalThis.Deno` read), so the generated
+  // file points at the REAL module. It decides WHICH Stripe Price a membership
+  // checkout charges against — mock it and the one thing worth asserting, the
+  // price the member is actually billed, stops being tested. Without this rule
+  // create-pro-checkout could not be loaded by the harness at all, which is
+  // exactly why it had no execution test when its eligibility check shipped
+  // broken on 2026-09-05.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/proTiers\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/proTiers.ts";`,
+  );
+
+  // Legal document versions: `_shared/legalVersions.ts` is a handful of string
+  // constants with ZERO imports and no Deno touch, so the generated file points
+  // at the REAL module. These are the versions stamped onto a signup's terms
+  // acceptance — mocking them would let a test agree with itself about which
+  // policy version the member consented to, which is the one fact that record
+  // exists to prove.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/legalVersions\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/legalVersions.ts";`,
+  );
+
+  // Storage key derivation: `_shared/storageKeys.ts` is pure TypeScript with
+  // ZERO imports — it derives avatar/document object keys and validates
+  // extensions. Real module: the key layout is what keeps one member's upload
+  // from landing on another's path, so a mock would retire the assertion.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/storageKeys\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/storageKeys.ts";`,
+  );
+
   // Stripe identity verdict: `_shared/stripeIdentity.ts` is pure TypeScript
   // (its only import is a TYPE-only Stripe import, stripped on transpile), so
   // the generated file points at the REAL module. The rule deciding whether a

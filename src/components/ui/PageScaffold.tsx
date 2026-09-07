@@ -71,7 +71,13 @@ interface PageScaffoldProps {
   className?: string;
 }
 
-const PANEL_CLASS = "liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col";
+// `page-panel` is a styling HOOK, not a look: `panelSurfaceStyle` zeroes the
+// bottom radii and border INLINE so the card bleeds under the floating mobile
+// dock with no hard edge. That dock is hidden on desktop, so there the squared
+// bottom is just a square corner on a rounded card — which is exactly what the
+// owner pointed at on 2026-09-07. Only a stylesheet `!important` rule can beat
+// an inline style, and it needs a stable selector to hang on.
+const PANEL_CLASS = "page-panel liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col";
 
 export function PageScaffold({
   header,

@@ -7,6 +7,7 @@ import {
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { MenuItem, Profile } from "./types";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { isIdentityVerified } from "@/lib/awardGate";
 
 interface UseProfileLandingDerivedArgs {
   profile: Profile | null;
@@ -80,13 +81,25 @@ export function useProfileLandingDerived({
   // unverified items are still nudged via the completion meter +
   // Credentials tab.
   const earnedBadges = ([
-    // Backed by Stripe's verdict, NOT `idv_status`. `idv_status` is flipped by
-    // the upload flow and by an admin manual-approve nobody actually performs,
-    // so it asserted a human ID review that does not happen.
-    // `stripe_identity_verified` is cached from the account.updated webhook and
-    // is TRUE only when Stripe has no outstanding identity requirement — see
-    // supabase/functions/_shared/stripeIdentity.ts.
-    { ok: profile?.stripe_identity_verified === true, label: "ID verified by Stripe" },
+    // EITHER Stripe verdict, which is what the server gate
+    // (`helper_award_block_reason`, migration 20260907013734) and the public
+    // badge (`get_safe_profiles.is_id_verified` = `idv_status = 'verified'`)
+    // both read.
+    //
+    // This used to be `stripe_identity_verified` alone, on the reasoning that
+    // `idv_status` was an unreviewed upload flag. It is not one any more — it
+    // is written by `stripe-idv-webhook` from a real document + selfie session.
+    // Reading only the Connect column made THIS the odd surface out: ten live
+    // profiles carried `idv_status = 'verified'` with the Connect flag false,
+    // so a poster saw a green "ID verified by Stripe" chip on the applicant
+    // card while the same person's own profile showed no badge at all.
+    {
+      ok: isIdentityVerified({
+        connectIdentityVerified: profile?.stripe_identity_verified,
+        idvStatus: profile?.idv_status,
+      }),
+      label: "ID verified by Stripe",
+    },
     { ok: profile?.license_status === "verified", label: "Licensed" },
     { ok: profile?.insurance_status === "verified", label: "Insured" },
   ]).filter((b) => b.ok);
@@ -95,14 +108,19 @@ export function useProfileLandingDerived({
   // payout state — a second derivation here would be two answers to one
   // question, and on a failed status check it would be a guess dressed as
   // a fact.
+  // Every paid rung names the NEXT rung, not a favourite one. This used to
+  // skip Plus entirely, so a Plus member read "Free — tap to upgrade" on the
+  // row describing the $15/mo plan they were paying for.
   const subscriptionDesc =
     tier === "elite"
       ? `${TIER_PERKS.elite.name} — top visibility`
-      : tier === "pro"
-        ? `${TIER_PERKS.pro.name} — upgrade to ${TIER_PERKS.elite.name}`
-        : tier === "basic"
-          ? `${TIER_PERKS.basic.name} — upgrade to ${TIER_PERKS.pro.name}`
-          : "Free — tap to upgrade";
+      : tier === "plus"
+        ? `${TIER_PERKS.plus.name} — upgrade to ${TIER_PERKS.elite.name}`
+        : tier === "pro"
+          ? `${TIER_PERKS.pro.name} — upgrade to ${TIER_PERKS.plus.name}`
+          : tier === "basic"
+            ? `${TIER_PERKS.basic.name} — upgrade to ${TIER_PERKS.pro.name}`
+            : "Free — tap to upgrade";
 
   // Completeness gaps surfaced per-row so the user knows *what's*
   // missing without having to open each tab. Derived from existing

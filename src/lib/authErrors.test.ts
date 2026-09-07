@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 
-import { recognizedAuthError, friendlyAuthError } from "@/lib/authErrors";
+import {
+  recognizedAuthError,
+  friendlyAuthError,
+  resetPasswordError,
+  isWeakPasswordError,
+  describeWeakPassword,
+} from "@/lib/authErrors";
 
 /**
  * These are verbatim strings supabase-js hands back from `auth.signUp`,
@@ -59,6 +65,62 @@ describe("recognizedAuthError", () => {
     expect(friendlyAuthError("Load failed")).toBe(recognizedAuthError("Load failed"));
     expect(friendlyAuthError("something we have never seen")).toBe(
       "Couldn't sign you in — give it another try?",
+    );
+  });
+});
+
+/**
+ * A 422 `weak_password` on /reset-password used to be reported as "Couldn't
+ * sign you in — give it another try?", because the screen called
+ * `friendlyAuthError` and that is its fallback. Two things were wrong at once:
+ * the sign-in had already SUCCEEDED (opening the recovery link is the sign-in),
+ * and the real reason — the password the user had just typed did not meet the
+ * project's policy — was never shown at all.
+ */
+describe("a password refusal is not a sign-in failure", () => {
+  it("resetPasswordError keeps the shared vocabulary but not the login fallback", () => {
+    // Recognised messages are phrased identically on both surfaces.
+    expect(resetPasswordError("Load failed")).toBe(recognizedAuthError("Load failed"));
+    // The fallback is the half that must differ.
+    const unknown = resetPasswordError("something we have never seen");
+    expect(unknown).not.toMatch(/sign you in/i);
+    expect(unknown).toMatch(/password/i);
+  });
+
+  it("isWeakPasswordError recognises the shapes auth-js actually throws", () => {
+    // auth-js builds AuthWeakPasswordError with code `weak_password`; the name
+    // and the raw message are the fallbacks for a GoTrue that stops sending it.
+    expect(isWeakPasswordError({ code: "weak_password", message: "x" })).toBe(true);
+    expect(isWeakPasswordError({ name: "AuthWeakPasswordError", message: "x" })).toBe(true);
+    expect(isWeakPasswordError({ message: "Password should be at least 12 characters." })).toBe(true);
+    // And does not swallow unrelated auth errors.
+    expect(isWeakPasswordError({ code: "invalid_credentials", message: "Invalid login credentials" })).toBe(false);
+    expect(isWeakPasswordError(null)).toBe(false);
+    expect(isWeakPasswordError("weak_password")).toBe(false);
+  });
+
+  it("describeWeakPassword restates the requirement without dropping it", () => {
+    // The exact prod 422 body, captured 2026-09-06 from POST /auth/v1/signup.
+    const raw =
+      "Password should be at least 12 characters. Password should contain at least one character of each: " +
+      "abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789, !@#$%^&*()_+-=[]{};'\\:\"|<>?,./`~.";
+    const out = describeWeakPassword(raw);
+    // Every requirement the server stated survives the restatement...
+    expect(out).toMatch(/12 characters/);
+    expect(out).toMatch(/uppercase/);
+    expect(out).toMatch(/lowercase/);
+    expect(out).toMatch(/number/);
+    expect(out).toMatch(/symbol/);
+    // ...and the alphabet dump does not.
+    expect(out).not.toMatch(/abcdefghijklmnopqrstuvwxyz/);
+  });
+
+  it("returns an unrecognised weak-password message VERBATIM rather than vaguely", () => {
+    // This branch exists because the client's rules and the project policy have
+    // drifted. Replacing a specific reason we cannot parse with a generic one
+    // is how a person ends up locked out with nothing to act on.
+    expect(describeWeakPassword("Password is too weak: found in a breach corpus")).toBe(
+      "Password is too weak: found in a breach corpus",
     );
   });
 });

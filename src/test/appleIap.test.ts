@@ -120,10 +120,13 @@ describe("entitlement maths", () => {
     expect(computeExpiry(base(), meta)).toBe("2026-10-05T00:00:00.000Z");
   });
 
-  it("gives a one-time purchase a year from the purchase date", () => {
+  it("gives a one-time purchase the same 30-day window the web pass gets", () => {
+    // Was "a year from the purchase date" — and it was, while stripe-webhook
+    // stamped 30 days for the identical product at the identical price.
     const meta = resolveProduct("com.helpr.pro.onetime")!;
-    const got = computeExpiry(base({ productId: "com.helpr.pro.onetime" }), meta)!;
-    expect(new Date(got).getUTCFullYear()).toBe(2027);
+    const tx = base({ productId: "com.helpr.pro.onetime" });
+    const got = computeExpiry(tx, meta)!;
+    expect((Date.parse(got) - tx.purchaseDate!) / 86_400_000).toBe(30);
   });
 
   it("grants nothing once Apple has revoked or refunded it", () => {
@@ -360,6 +363,19 @@ describe("create-pro-checkout enforces the same gate server-side", () => {
 
   it("fails closed if the check itself errors", () => {
     expect(SRC).toMatch(/eligibilityErr[\s\S]{0,400}status: 503/);
+  });
+
+  it("calls the RPC with the CALLER's JWT, not the bare anon client", () => {
+    // This shipped broken on 2026-09-05 and blocked every membership purchase.
+    // The module-level client is built from the anon key with no Authorization
+    // header, so the RPC authenticated as `anon` — which the migration
+    // deliberately revokes EXECUTE from. Result: 42501, the fail-closed branch,
+    // a 503, and an Upgrade button that did nothing. Fail-closed turned a
+    // permissions slip into a total outage of the paid path.
+    const call = SRC.slice(0, SRC.indexOf("subscription_purchase_eligibility"));
+    expect(call).toMatch(/global:\s*\{\s*headers:\s*\{\s*Authorization:\s*authHeader/);
+    // and the RPC must go through that client, not the anon one
+    expect(SRC).toMatch(/callerClient\s*\n?\s*\.rpc\("subscription_purchase_eligibility"/);
   });
 
   it("refuses with the server's own wording, not an invented one", () => {

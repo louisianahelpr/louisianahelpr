@@ -46,9 +46,17 @@ interface FraudFlag {
 // to either always returned nothing, which on a fraud console reads as "no
 // fast-completion fraud right now" rather than the truth, "this detector was
 // never built". Re-add each the day a rule starts raising it.
+//
+// `high_dispute_rate` is BACK, because that day came: `rpc_open_dispute`
+// raises it (20260907045410) when `check_dispute_velocity` says the filing
+// just put the opener at or over the threshold the dispute dialog and the
+// community guidelines both warn about ("3+ disputes in 30 days flags your
+// account for review"). Before that migration the sentence was backed by
+// nothing at all. `fast_completion` still has no writer and stays out.
 const FLAG_TYPES = [
   { value: "all", label: "All Types" },
   { value: "off_platform_contact", label: "Off-Platform Contact" },
+  { value: "high_dispute_rate", label: "High Dispute Rate" },
   { value: "referral_abuse", label: "Referral Abuse" },
   { value: "application_spam", label: "Application Spam" },
   { value: "review_manipulation", label: "Review Manipulation" },

@@ -14,12 +14,14 @@ import { isIdvRequirementPaused } from "@/lib/featureFlags";
  * (a) stop the user before the tap, and (b) explain a refusal the server did
  * make. Turning it off would change nothing about who can be hired.
  *
- * This module deliberately supersedes the old `idv_status = 'verified'` check
- * in useOfferHandlers rather than stacking beside it: `idv_status` is the
- * unreviewed upload/admin flag that commit 47eef666 established means nothing
- * (6 prod profiles carry 'verified'; nobody has ever reviewed an upload). Two
- * gates asserting different things about the same word is worse than one honest
- * gate.
+ * THIS HEADER USED TO SAY `idv_status` MEANS NOTHING. It does not say that any
+ * more, and the reversal is deliberate rather than a drift. When commit
+ * 47eef666 wrote that line, `idv_status` was an unreviewed upload flag an admin
+ * flipped by hand. It is now written by `stripe-idv-webhook` from a real Stripe
+ * Identity document + selfie session, it is the only identity check a helper
+ * can complete from inside this app, and since migration 20260907013734 the
+ * server gate accepts it. A client gate that still ignores it refuses people
+ * the database would hire — see {@link isIdentityVerified} for the measurement.
  */
 export type AwardBlockReason =
   | "helper_payout_setup_incomplete"
@@ -47,6 +49,39 @@ export interface AwardGateStatus {
 }
 
 /**
+ * The identity verdict, in the exact shape `helper_award_block_reason` uses.
+ *
+ * TWO checks answer "do we know who this is", and the server accepts EITHER
+ * (migration 20260907013734):
+ *
+ *   • `stripe_identity_verified` — the Stripe CONNECT verdict, true only when
+ *     no identity requirement is outstanding on the payout account. Nothing in
+ *     this app can put that flow in front of a person on its own; it clears as
+ *     a side effect of payout onboarding.
+ *   • `idv_status = 'verified'`  — Stripe IDENTITY, the document + selfie check
+ *     `stripe-idv-start` launches. This is the one a helper can actually go and
+ *     complete, and it is the stronger of the two.
+ *
+ * Reading only the Connect flag — which is what this module did until now — is
+ * a FALSE BLOCK, not a conservative one. Measured against prod 2026-09-06: one
+ * live non-seed profile has `idv_status = 'verified'`, `stripe_identity_verified
+ * = false`, payouts enabled, and `helper_award_block_reason() = NULL`. The
+ * server would hand that person the job; the client stopped them at
+ * "Stripe Is Still Verifying You" with a CTA that had nothing left to collect.
+ *
+ * Fails CLOSED on absence: an unknown `idvStatus` contributes nothing.
+ */
+export function isIdentityVerified(source: {
+  /** `identity_verified` from `stripe-connect { action: "status" }`, or the
+      cached `profiles.stripe_identity_verified`. */
+  connectIdentityVerified?: boolean | null;
+  /** `profiles.idv_status`. */
+  idvStatus?: string | null;
+}): boolean {
+  return source.connectIdentityVerified === true || source.idvStatus === "verified";
+}
+
+/**
  * Why this helper cannot be awarded a job right now, or `null` if they can.
  *
  * Derived from ONE live Stripe read (`stripe-connect { action: "status" }`),
@@ -59,9 +94,15 @@ export interface AwardGateStatus {
  *
  * `identity_verified` is absent until the edge function redeploys. Treated as
  * "not verified", which fails CLOSED — the safe direction for a safety gate.
+ *
+ * `idvStatus` is the SECOND half of the identity verdict and must be passed in
+ * by every caller that can reach it: without it this function refuses people
+ * the server would let through. See {@link isIdentityVerified}.
  */
 export async function awardBlockReasonFromStatus(
   status: AwardGateStatus | null | undefined,
+  /** `profiles.idv_status` for the same person. Omit only when unreachable. */
+  idvStatus?: string | null,
 ): Promise<AwardBlockReason | null> {
   if (!status) return "helper_unknown";
   if (!status.connected || !status.details_submitted || status.payouts_enabled !== true) {
@@ -70,7 +111,11 @@ export async function awardBlockReasonFromStatus(
   // Operator kill switch for a Stripe Identity outage (Admin → Settings). The
   // server honours the same flag; `isIdvRequirementPaused` fails closed, so a
   // dropped read can never quietly drop the requirement.
-  if (status.identity_verified !== true && !(await isIdvRequirementPaused())) {
+  const identityOk = isIdentityVerified({
+    connectIdentityVerified: status.identity_verified,
+    idvStatus,
+  });
+  if (!identityOk && !(await isIdvRequirementPaused())) {
     return "helper_identity_unverified";
   }
   return null;
@@ -124,6 +169,63 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
   }
 }
 
+export interface ApplyBlockNotice {
+  /** Bolded lead-in. */
+  headline: string;
+  /** The rest of the sentence, in the helper's own terms. */
+  body: string;
+  /** The one tap that fixes it. */
+  ctaLabel: string;
+  /** Where that tap goes. */
+  href: string;
+}
+
+/**
+ * What the HELPER is told ON THE APPLY STEP, while they can still apply.
+ *
+ * A THIRD audience, distinct from both of the above, and the one nobody was
+ * writing for. {@link awardBlockCopy} is for `AwardGateDialog`, which STOPS a
+ * helper at the accept step — its copy is phrased as a barrier ("Set Up Payouts
+ * to Take This Job") because at that moment there is a job on the table and the
+ * tap has already failed. {@link posterAwardBlockMessage} is for the other
+ * party entirely.
+ *
+ * Here nothing has failed and nothing is being refused: applying is
+ * deliberately ungated (see the module header), and this notice must not read
+ * as though the button below it will not work. It says what the helper cannot
+ * yet be given, not what they cannot do — the distinction matters, because
+ * seven of eight live non-seed profiles are in this state and can apply all
+ * day. The failure it prevents is the silent one: applications that go out,
+ * receive nothing back, and read as posters passing them over.
+ *
+ * Deliberately no `helper_unknown` case. That verdict means we could not read
+ * the profile at all, and a notice on the apply step is the wrong place to
+ * report an internal read failure to somebody mid-application — the accept-step
+ * dialog still covers it if it persists.
+ */
+export function helperApplyBlockNotice(
+  reason: Exclude<AwardBlockReason, "helper_unknown">,
+): ApplyBlockNotice {
+  switch (reason) {
+    case "helper_payout_setup_incomplete":
+      return {
+        headline: "You can apply — but you can't be hired yet.",
+        body:
+          "Helpr pays through Stripe, and posters can't hand you a job until your payout account exists. It takes about two minutes, once.",
+        ctaLabel: "Set Up Payouts",
+        href: "/profile?tab=payment",
+      };
+    case "helper_identity_unverified":
+      return {
+        headline: "You can apply — but you can't be hired yet.",
+        body:
+          "Stripe hasn't finished confirming who you are, and posters can't hand you a job until it has. Finish what Stripe is asking for and this clears on its own.",
+        ctaLabel: "Finish Verification",
+        href: "/profile",
+      };
+  }
+}
+
 /**
  * What the POSTER is told when the gate refuses THEIR hire. Different audience,
  * different fix: there is nothing for the poster to do about someone else's
@@ -131,7 +233,7 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
  * CTA they cannot complete.
  */
 export function posterAwardBlockMessage(reason: AwardBlockReason, helperName?: string): string {
-  const who = helperName?.trim() || "This helper";
+  const who = helperName?.trim() || "This Helpr";
   switch (reason) {
     case "helper_payout_setup_incomplete":
       return `${who} hasn't finished setting up payouts yet, so they can't be hired. They'll show as ready once they do.`;

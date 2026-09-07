@@ -1034,11 +1034,24 @@ html.web-desktop {
      it only for the mobile bleed). `!important` needed: EmptyState sets the
      zeroed radii as an inline style, which only a stylesheet `!important`
      rule can beat. */
-  html.web-desktop .empty-state-dock {
+  /* The panel itself, same story as the dock below it. `panelSurfaceStyle`
+     (pageCardSurfaces.ts) sets `borderBottomLeftRadius: 0`,
+     `borderBottomRightRadius: 0` and `borderBottom: none` INLINE and
+     unconditionally — correct on mobile, where the card genuinely bleeds under
+     the floating dock, and wrong on desktop, where that dock is hidden and the
+     card just ends in two square corners. Measured on /my-jobs: `24px 24px 0 0`.
+     Nothing in this app is square; this is the last surface that was. */
+  html.web-desktop .page-panel {
     border-bottom-left-radius: 1.5rem !important;
     border-bottom-right-radius: 1.5rem !important;
     border-bottom: 1px solid hsl(var(--border)) !important;
   }
+  /* `.empty-state-dock` no longer paints anything at ANY width — the
+     `liquid-glass` class was removed from it in EmptyState.tsx, because the
+     panel it sits inside already provides the surface, the border and the
+     corners. The desktop override that used to live here was fixing the
+     symptom at one breakpoint; the box was drawn on phone too, which is where
+     the owner was looking. Nothing to override now. */
   /* Widen the inner content column on desktop. PageScaffold's centered column
      is capped at max-w-3xl (768px) on mobile; on desktop it FILLS the frame.
 

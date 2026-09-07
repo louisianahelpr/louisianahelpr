@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { scoreApplicant, type ApplicantData } from "@/lib/applicantScoring";
+import { type DistanceBand } from "./useApplicantSignals";
 import { type EnrichedApplication } from "../activityConstants";
 
 export type ApplicantSort = "recommended" | "rated" | "soonest";
@@ -12,6 +13,9 @@ type ScoredApp = {
   rankScore: number;
   signals: string[];
   neighborCount: number;
+  /** Server-chosen proximity band, or null when the applicant has no
+      precise location on file. Never a distance — see applicantScoring. */
+  distanceBand: DistanceBand | null;
   /**
    * True only when Priority Placement actually moved this applicant UP
    * relative to the quality-only order — not merely because they hold a paid
@@ -34,7 +38,7 @@ interface UseApplicantComparisonArgs {
   completedCountsMap: Map<string, number>;
   repeatHireMap: Map<string, number>;
   onTimeMap: Map<string, number>;
-  distanceMap: Map<string, number>;
+  distanceBandMap: Map<string, DistanceBand>;
 }
 
 /**
@@ -49,7 +53,7 @@ export function useApplicantComparison({
   completedCountsMap,
   repeatHireMap,
   onTimeMap,
-  distanceMap,
+  distanceBandMap,
 }: UseApplicantComparisonArgs) {
   // Sort order for the applicants comparison panel.
   // "recommended" = multi-factor score desc (default)
@@ -97,6 +101,7 @@ export function useApplicantComparison({
         : insuranceVerified ? 1 // score credit, but no "Licensed" signal
         : 0;
       const neighborCount = neighborCountMap.get(app.helper_id) ?? 0;
+      const distanceBand = distanceBandMap.get(app.helper_id) ?? null;
       const data: ApplicantData = {
         userId: app.helper_id,
         avgRating: app.avgRating ?? null,
@@ -105,7 +110,7 @@ export function useApplicantComparison({
         repeatHirePercent: repeatHireMap.get(app.helper_id) ?? null,
         onTimePercent: onTimeMap.get(app.helper_id) ?? null,
         credentialTier,
-        distanceKm: distanceMap.get(app.helper_id) ?? null,
+        distanceBandRank: distanceBand?.rank ?? null,
         responseTimeMinutes: null,
         neighborCount,           // live from get_neighbor_hire_count RPC
         // Priority Placement. `get_safe_profiles` folds subscription expiry
@@ -122,6 +127,7 @@ export function useApplicantComparison({
         rankScore: result.rankScore,
         signals: result.signals,
         neighborCount,
+        distanceBand,
         promotedByTier: false, // resolved below, once both orders exist
       };
     });
@@ -153,7 +159,7 @@ export function useApplicantComparison({
     }
 
     return { sortedApplications: sorted, scoreMap: map };
-  }, [applications, applicantSort, neighborCountMap, completedCountsMap, repeatHireMap, onTimeMap, distanceMap]);
+  }, [applications, applicantSort, neighborCountMap, completedCountsMap, repeatHireMap, onTimeMap, distanceBandMap]);
 
   // Private poster notes — stored in localStorage, never sent to the server.
   // Must be declared after sortedApplications (useMemo above) because the

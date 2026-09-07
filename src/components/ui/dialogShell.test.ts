@@ -1014,6 +1014,12 @@ describe("Popup grammar — footer", () => {
       "Keep It On",
       "Keep the Job",
       "Close",
+      // DeleteAccountDialog's post-deletion confirmation. "Cancel" would be a
+      // lie twice over: there is nothing left to cancel — the account is
+      // already gone and the session is being signed out — and offering to
+      // cancel an irreversible thing that has already happened is the cruellest
+      // possible reading. This popup reports an outcome; "Done" acknowledges it.
+      "Done",
     ]);
 
     // Not a dismiss at all: in a STEPPED dialog the secondary walks back one

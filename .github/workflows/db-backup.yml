@@ -37,13 +37,27 @@
 #                             you lose it the backups are unreadable, and if
 #                             you lose GitHub you need it elsewhere anyway.
 #
-# TO RESTORE
+# TO RESTORE — READ docs/DB_RESTORE_RUNBOOK.md FIRST. The four commands below
+# are the happy path and they are NOT sufficient on their own: they produce a
+# database that boots, serves traffic, and is wrong in four specific ways the
+# runbook enumerates. The worst is that every `public` function comes back
+# ANON-EXECUTABLE — Supabase's default privileges re-grant `anon` EXECUTE on
+# each CREATE FUNCTION, and pg_dump's `REVOKE ... FROM PUBLIC` does not undo
+# that (same trap as the ACL work in CLAUDE.md). 197 of 247 revocations are
+# lost silently unless you re-apply them. The runbook has the check query.
+#
 #   gh run download <run-id> -n db-backup-<date>
 #   gpg --decrypt --batch --passphrase "$BACKUP_PASSPHRASE" \
 #       backup.tar.gz.gpg > backup.tar.gz
 #   tar xzf backup.tar.gz
 #   psql "$TARGET_DB_URL" -f roles.sql -f schema.sql -f data.sql
 # Restore into a NEW project first and diff it before pointing anything at it.
+#
+# ALSO NOT IN THIS BACKUP (full list + verification queries in the runbook):
+# storage FILES (33 objects / 19 MB — avatars, ID documents, dispute proof
+# photos; the object ROWS restore and point at nothing), the 42 storage RLS
+# policies, the supabase_realtime publication and its 10 tables, 7 event
+# triggers, the 644-row migration ledger, and vault/edge-function secrets.
 
 name: DB backup (nightly)
 

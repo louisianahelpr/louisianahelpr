@@ -344,7 +344,7 @@ export function BrowseTasksFeed({
     const next = filters.filteredJobs.length;
     if (next > prev && !isFetchingNextPage) {
       const added = next - prev;
-      setInfiniteScrollMsg(`${added} more task${added === 1 ? "" : "s"} loaded`);
+      setInfiniteScrollMsg(`${added} more job${added === 1 ? "" : "s"} loaded`);
     }
     prevJobCountRef.current = next;
   }, [filters.filteredJobs.length, isFetchingNextPage]);
@@ -402,10 +402,10 @@ export function BrowseTasksFeed({
       ? recommendedJobs
           .filter(j => !dismissedJobIds.has(j.id))
           .slice()
-          .sort((a, b) => filters.sortBy === "smart" ? 0 : compareJobsBySortMode(a, b, filters.sortBy))
+          .sort((a, b) => filters.sortBy === "smart" ? 0 : compareJobsBySortMode(a, b, filters.sortBy, effectiveFee))
       : [];
     return { visibleJobs: visible, recommendedVisible: recommended };
-  }, [filters.filteredJobs, filters.hasFilters, filters.sortBy, recommendedJobs, dismissedJobIds, savedOnly, savedJobIds]);
+  }, [filters.filteredJobs, filters.hasFilters, filters.sortBy, recommendedJobs, dismissedJobIds, savedOnly, savedJobIds, effectiveFee]);
 
   // ONE list — recommended picks first, then everything else — EXCEPT
   // boosted jobs, which pin above everything (including recommended) while
@@ -429,7 +429,7 @@ export function BrowseTasksFeed({
     // Explicit sort: honour it across the WHOLE list. No recommended band, no
     // boost pinning — the user asked for an order and gets exactly that.
     if (filters.sortBy !== "smart") {
-      return merged.slice().sort((a, b) => compareJobsBySortMode(a, b, filters.sortBy));
+      return merged.slice().sort((a, b) => compareJobsBySortMode(a, b, filters.sortBy, effectiveFee));
     }
 
     // "Smart" (the default): recommended band first, then everything else,
@@ -438,7 +438,7 @@ export function BrowseTasksFeed({
     if (boosted.length === 0) return merged;
     const rest = merged.filter((j) => !j.isBoosted);
     return [...boosted, ...rest];
-  }, [recommendedVisible, visibleJobs, filters.sortBy]);
+  }, [recommendedVisible, visibleJobs, filters.sortBy, effectiveFee]);
 
   // The "Recommended" pill goes on the first combined-list card that is
   // actually a recommended pick — not always index 0, now that a boosted

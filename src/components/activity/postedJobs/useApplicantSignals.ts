@@ -1,8 +1,16 @@
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { type Job, type EnrichedApplication } from "../activityConstants";
 import { callUntypedRpc } from "./postedJobsHelpers";
+
+/**
+ * An applicant's proximity to a job, as a band the server chose. `rank` is
+ * 1 (nearest) to 4, for ordering; there is no distance, deliberately.
+ */
+export interface DistanceBand {
+  label: string;
+  rank: number;
+}
 
 /**
  * Batches the per-applicant trust-signal RPCs (neighbor hire counts,
@@ -16,20 +24,28 @@ export function useApplicantSignals(
   selectedJob: Job | null,
 ) {
   // Neighbor hire counts — one RPC call per applicant, keyed by helper_id.
-  // Runs only when the selected job has coordinates (many jobs have
-  // approximate coords from geocoding at post time). Falls back to 0
-  // on PGRST202 (function not yet deployed) or any other error so the
-  // panel is never blocked by the trust-graph migration.
+  //
+  // The job ID is passed, NOT the job's coordinates. That is a privacy
+  // requirement, not a tidiness one: the previous signature took the probe
+  // point AND the radius as arguments, so a caller could sweep a grid to
+  // locate a helper's past customers, or hold the point still and
+  // binary-search the radius until the count changed — recovering the EXACT
+  // distance to the nearest one. Both were reproduced before the fix
+  // (migration 20260907051731); the second recovered a true 3.219 km in 11
+  // calls. The server now reads the point from a job the caller owns and
+  // fixes the radius at one mile.
   const neighborCountQueries = useQueries({
     queries: applications.map((app) => ({
-      queryKey: ["neighbor-count", app.helper_id, selectedJob?.latitude, selectedJob?.longitude],
+      queryKey: ["neighbor-count", app.helper_id, selectedJob?.id],
       queryFn: async (): Promise<number> => {
-        if (!selectedJob?.latitude || !selectedJob?.longitude) return 0;
+        if (!selectedJob?.id) return 0;
         try {
-          const { data, error } = await supabase.rpc("get_neighbor_hire_count", {
+          const { data, error } = await callUntypedRpc<
+            { p_helper_id: string; p_job_id: string },
+            number
+          >("get_neighbor_hire_count", {
             p_helper_id: app.helper_id,
-            p_lat: selectedJob.latitude,
-            p_lng: selectedJob.longitude,
+            p_job_id: selectedJob.id,
           });
           if (error) return 0;
           return (data as number) ?? 0;
@@ -38,7 +54,11 @@ export function useApplicantSignals(
         }
       },
       staleTime: 300_000, // 5 min — neighborhood data is slow-moving
-      enabled: !!selectedJob?.latitude && !!selectedJob?.longitude,
+      // The server decides whether the job has usable coordinates, so this no
+      // longer gates on them client-side. Counts below 2 come back as 0
+      // (k-anonymity — one neighbour beside a known job location identifies a
+      // household), so the badge starts at "2 neighbors hired them".
+      enabled: !!selectedJob?.id,
     })),
   });
 
@@ -144,41 +164,49 @@ export function useApplicantSignals(
   });
   const onTimeMap: Map<string, number> = onTimeData ?? new Map();
 
-  // Batch-fetch distances (km) from the selected job to each applicant.
-  // Requires profiles.latitude/longitude (trust-graph migration) and
-  // jobs.latitude/longitude (set at post time via geocoding).
-  // Falls back to an empty Map on PGRST202 or any other error.
-  // Only enabled when a job is selected and has coordinates.
+  // Batch-fetch each applicant's proximity to the selected job as a BAND.
+  //
+  // Never a distance. Exact distances trilaterate: post three jobs at chosen
+  // points, ask for the same applicant against each, intersect three circles
+  // and you have their home. The ownership gate does not prevent that, because
+  // the attacker owns the jobs. Bands are >= 5 miles wide so the intersection
+  // stays an area, and the bucketing happens inside the SECURITY DEFINER
+  // function — bucketing here would leave the number in the API response and
+  // change nothing.
+  //
+  // Applicants who declined location are simply ABSENT from the result rather
+  // than being placed at a shared ZIP centroid, so an absent entry means
+  // "unknown", never "far away".
   const { data: distanceData } = useQuery({
-    queryKey: ["helper-distances-from-job", selectedJob?.id, helperIds],
-    queryFn: async (): Promise<Map<string, number>> => {
+    queryKey: ["helper-distance-bands", selectedJob?.id, helperIds],
+    queryFn: async (): Promise<Map<string, DistanceBand>> => {
       if (helperIds.length === 0 || !selectedJob?.id) return new Map();
       const { data, error } = await callUntypedRpc<
         { p_job_id: string; p_user_ids: string[] },
-        Array<{ user_id: string; distance_km: number }>
+        Array<{ user_id: string; band: string; band_rank: number }>
       >("get_helper_distances_from_job", {
         p_job_id: selectedJob.id,
         p_user_ids: helperIds,
       });
       if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
-      const map = new Map<string, number>();
+      const map = new Map<string, DistanceBand>();
       if (Array.isArray(data)) {
         for (const row of data) {
-          map.set(row.user_id, Number(row.distance_km));
+          map.set(row.user_id, { label: String(row.band), rank: Number(row.band_rank) });
         }
       }
       return map;
     },
-    staleTime: 5 * 60 * 1000, // 5 min — distance is stable for a given job
-    enabled: helperIds.length > 0 && !!selectedJob?.id && selectedJob.latitude != null,
+    staleTime: 5 * 60 * 1000, // 5 min — proximity is stable for a given job
+    enabled: helperIds.length > 0 && !!selectedJob?.id,
   });
-  const distanceMap: Map<string, number> = distanceData ?? new Map();
+  const distanceBandMap: Map<string, DistanceBand> = distanceData ?? new Map();
 
   return {
     neighborCountMap,
     completedCountsMap,
     repeatHireMap,
     onTimeMap,
-    distanceMap,
+    distanceBandMap,
   };
 }

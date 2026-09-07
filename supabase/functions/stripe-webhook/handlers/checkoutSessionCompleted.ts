@@ -3,6 +3,7 @@ import type { WebhookContext } from "../context.ts";
 import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { TIER_FEE_PERCENT } from "../../_shared/helperFees.ts";
+import { ONE_TIME_PASS_DAYS } from "../../_shared/proTiers.ts";
 import { sendPifGiftEmail } from "../../_shared/pifGiftEmail.ts";
 import { settleOnboardingFee } from "./settleOnboardingFee.ts";
 import { subscriptionCurrentPeriodEndISO } from "../../_shared/stripeSubscriptionPeriod.ts";
@@ -121,8 +122,9 @@ export async function handleCheckoutSessionCompleted(
     }
 
     if (isOneTimePass) {
-      // Set 30-day expiry for one-time passes
-      subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      // The pass window, shared with the Apple path so the two stores cannot
+      // sell the same pass for different lengths.
+      subscriptionEnd = new Date(Date.now() + ONE_TIME_PASS_DAYS * 24 * 60 * 60 * 1000).toISOString();
       // Recording the cycle is what keeps a pass out of the reconciler's
       // "tier with no live Stripe subscription" bucket — a pass legitimately
       // has no subscription object, and without this marker every pass buyer

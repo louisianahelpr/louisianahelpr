@@ -58,7 +58,7 @@ export const RefundJobDialog = ({
               <p className="text-ds-13 font-medium text-foreground">{detailJob.title}</p>
               <p className="text-ds-11 text-muted-foreground">
                 ${detailJob.budget != null ? formatPrice(detailJob.budget) : "—"} · {paymentStatusLabel(detailJob.payment_status)}
-                {detailJob.helper_id && " · helper assigned"}
+                {detailJob.helper_id && " · Helpr assigned"}
               </p>
             </div>
           )}
@@ -84,7 +84,7 @@ export const RefundJobDialog = ({
             {refundAmount.trim() && Number(refundAmount) > 0 && detailJob && Number(refundAmount) < Number(detailJob.budget) && (
               <p className="text-ds-11 text-muted-foreground">
                 Partial refund of ${Number(refundAmount).toFixed(2)} of ${Number(detailJob.budget).toFixed(2)} —
-                job stays open, helper not notified.
+                job stays open, Helpr not notified.
               </p>
             )}
           </div>

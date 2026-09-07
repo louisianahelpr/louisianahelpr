@@ -130,9 +130,13 @@ export type Database = {
           attachment_urls: string[] | null
           created_at: string
           decline_reason: string | null
+          flag_reason: string | null
+          flagged_hidden: boolean
           helper_id: string
           id: string
           job_id: string
+          job_latitude: number | null
+          job_longitude: number | null
           message: string | null
           offer_message: string | null
           poster_viewed_at: string | null
@@ -145,9 +149,13 @@ export type Database = {
           attachment_urls?: string[] | null
           created_at?: string
           decline_reason?: string | null
+          flag_reason?: string | null
+          flagged_hidden?: boolean
           helper_id: string
           id?: string
           job_id: string
+          job_latitude?: number | null
+          job_longitude?: number | null
           message?: string | null
           offer_message?: string | null
           poster_viewed_at?: string | null
@@ -160,9 +168,13 @@ export type Database = {
           attachment_urls?: string[] | null
           created_at?: string
           decline_reason?: string | null
+          flag_reason?: string | null
+          flagged_hidden?: boolean
           helper_id?: string
           id?: string
           job_id?: string
+          job_latitude?: number | null
+          job_longitude?: number | null
           message?: string | null
           offer_message?: string | null
           poster_viewed_at?: string | null
@@ -1631,18 +1643,24 @@ export type Database = {
         Row: {
           city: string | null
           created_at: string
+          latitude: number | null
+          longitude: number | null
           parish: string
           zip_code: string
         }
         Insert: {
           city?: string | null
           created_at?: string
+          latitude?: number | null
+          longitude?: number | null
           parish: string
           zip_code: string
         }
         Update: {
           city?: string | null
           created_at?: string
+          latitude?: number | null
+          longitude?: number | null
           parish?: string
           zip_code?: string
         }
@@ -1974,6 +1992,7 @@ export type Database = {
       notification_preferences: {
         Row: {
           created_at: string
+          email_enabled: boolean
           email_financial_alerts: boolean
           email_job_applications: boolean
           email_job_updates: boolean
@@ -2006,6 +2025,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          email_enabled?: boolean
           email_financial_alerts?: boolean
           email_job_applications?: boolean
           email_job_updates?: boolean
@@ -2038,6 +2058,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          email_enabled?: boolean
           email_financial_alerts?: boolean
           email_job_applications?: boolean
           email_job_updates?: boolean
@@ -2744,7 +2765,6 @@ export type Database = {
           is_legacy_user: boolean
           is_licensed: boolean
           is_seed: boolean
-          job_radius: string | null
           last_approval_email_at: string | null
           last_denial_email_at: string | null
           last_drip_at: string | null
@@ -2758,11 +2778,13 @@ export type Database = {
           license_status: string
           license_url: string | null
           location: string | null
+          location_captured_at: string | null
           longitude: number | null
           marketing_consent: boolean
           onboarding_fee_charged_at: string | null
           onboarding_fee_paid: boolean
           parish: string | null
+          parish_source: string | null
           phone: string | null
           portfolio_urls: string[] | null
           preferred_helper_id: string | null
@@ -2781,6 +2803,7 @@ export type Database = {
           subscription_billing_cycle: string | null
           subscription_cancel_at_period_end: boolean
           subscription_expires_at: string | null
+          subscription_source: string | null
           subscription_tier: string | null
           terms_accepted_at: string | null
           terms_version_accepted: string
@@ -2845,7 +2868,6 @@ export type Database = {
           is_legacy_user?: boolean
           is_licensed?: boolean
           is_seed?: boolean
-          job_radius?: string | null
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
@@ -2859,11 +2881,13 @@ export type Database = {
           license_status?: string
           license_url?: string | null
           location?: string | null
+          location_captured_at?: string | null
           longitude?: number | null
           marketing_consent?: boolean
           onboarding_fee_charged_at?: string | null
           onboarding_fee_paid?: boolean
           parish?: string | null
+          parish_source?: string | null
           phone?: string | null
           portfolio_urls?: string[] | null
           preferred_helper_id?: string | null
@@ -2882,6 +2906,7 @@ export type Database = {
           subscription_billing_cycle?: string | null
           subscription_cancel_at_period_end?: boolean
           subscription_expires_at?: string | null
+          subscription_source?: string | null
           subscription_tier?: string | null
           terms_accepted_at?: string | null
           terms_version_accepted?: string
@@ -2946,7 +2971,6 @@ export type Database = {
           is_legacy_user?: boolean
           is_licensed?: boolean
           is_seed?: boolean
-          job_radius?: string | null
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
@@ -2960,11 +2984,13 @@ export type Database = {
           license_status?: string
           license_url?: string | null
           location?: string | null
+          location_captured_at?: string | null
           longitude?: number | null
           marketing_consent?: boolean
           onboarding_fee_charged_at?: string | null
           onboarding_fee_paid?: boolean
           parish?: string | null
+          parish_source?: string | null
           phone?: string | null
           portfolio_urls?: string[] | null
           preferred_helper_id?: string | null
@@ -2983,6 +3009,7 @@ export type Database = {
           subscription_billing_cycle?: string | null
           subscription_cancel_at_period_end?: boolean
           subscription_expires_at?: string | null
+          subscription_source?: string | null
           subscription_tier?: string | null
           terms_accepted_at?: string | null
           terms_version_accepted?: string
@@ -4461,6 +4488,14 @@ export type Database = {
         Args: { _reason: string; _review_id: string }
         Returns: undefined
       }
+      admin_reverse_violation: {
+        Args: {
+          p_reason: string
+          p_restore_access?: boolean
+          p_violation_id: string
+        }
+        Returns: Json
+      }
       admin_support_queue: {
         Args: {
           p_head_start_minutes?: number
@@ -4599,6 +4634,7 @@ export type Database = {
         Args: { _job_id: string; _other_user_id: string }
         Returns: boolean
       }
+      contact_leak_reason: { Args: { p_text: string }; Returns: string }
       count_profiles: { Args: never; Returns: number }
       cron_dispatch_health: {
         Args: never
@@ -4685,7 +4721,8 @@ export type Database = {
       get_helper_distances_from_job: {
         Args: { p_job_id: string; p_user_ids: string[] }
         Returns: {
-          distance_km: number
+          band: string
+          band_rank: number
           user_id: string
         }[]
       }
@@ -4750,6 +4787,7 @@ export type Database = {
           parish: string
         }[]
       }
+      get_job_customer_id: { Args: { _job_id: string }; Returns: string }
       get_job_pets: {
         Args: { p_job_id: string }
         Returns: {
@@ -5053,12 +5091,7 @@ export type Database = {
         }[]
       }
       get_neighbor_hire_count: {
-        Args: {
-          p_helper_id: string
-          p_lat: number
-          p_lng: number
-          p_radius_km?: number
-        }
+        Args: { p_helper_id: string; p_job_id: string }
         Returns: number
       }
       get_open_jobs_for_map: {
@@ -5091,6 +5124,7 @@ export type Database = {
           revenue_30d: number
         }[]
       }
+      get_parish_for_city: { Args: { p_city: string }; Returns: string }
       get_parish_for_zip: { Args: { p_zip: string }; Returns: string }
       get_payout_batch_job_ids: {
         Args: { p_helper_id: string }
@@ -5232,7 +5266,14 @@ export type Database = {
         }[]
       }
       get_ranked_open_jobs: {
-        Args: { p_include_seed?: boolean; p_limit?: number; p_offset?: number }
+        Args: {
+          p_include_seed?: boolean
+          p_lat?: number
+          p_limit?: number
+          p_lng?: number
+          p_max_miles?: number
+          p_offset?: number
+        }
         Returns: {
           boost_expires_at: string
           boosted_at: string
@@ -5241,6 +5282,7 @@ export type Database = {
           created_at: string
           date_needed: string
           description: string
+          distance_band: string
           estimated_hours: number
           expires_at: string
           helpers_needed: number
@@ -5350,6 +5392,10 @@ export type Database = {
         Args: { p_job_id: string; p_lat?: number; p_lng?: number }
         Returns: string
       }
+      identity_is_verified: {
+        Args: { p_idv_status: string; p_stripe_identity_verified: boolean }
+        Returns: boolean
+      }
       idv_requirement_paused: { Args: never; Returns: boolean }
       is_caller_banned: { Args: never; Returns: boolean }
       is_category_taxable: {
@@ -5378,7 +5424,7 @@ export type Database = {
         Returns: string
       }
       job_hours_until_start: {
-        Args: { p_at: string; p_date_needed: string }
+        Args: { p_at: string; p_date_needed: string; p_start_time: string }
         Returns: number
       }
       log_cron_defect: {
@@ -5435,6 +5481,7 @@ export type Database = {
         }
         Returns: number
       }
+      my_credential_tier: { Args: never; Returns: number }
       notification_job_id_from_link: {
         Args: { p_link: string }
         Returns: string
@@ -5553,6 +5600,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      rpc_escalate_dispute: { Args: { _job_id: string }; Returns: string }
       rpc_open_dispute: {
         Args: { _evidence_urls: string[]; _job_id: string; _reason: string }
         Returns: string
@@ -5588,6 +5636,10 @@ export type Database = {
           _transfer_id?: string
         }
         Returns: string
+      }
+      subscription_purchase_eligibility: {
+        Args: { p_platform: string }
+        Returns: Json
       }
       sweep_cron_blackouts: { Args: never; Returns: Json }
       sweep_cron_http_failures: { Args: never; Returns: Json }

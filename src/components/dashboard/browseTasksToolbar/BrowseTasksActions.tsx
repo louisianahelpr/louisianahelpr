@@ -22,29 +22,6 @@ export interface BrowseTasksActionsProps {
    * <Popover> subtree. Omit it and nothing changes — the sheet still opens.
    */
   filtersButtonRef?: Ref<HTMLButtonElement>;
-  /**
-   * Phone and native: render ONLY the Filters button.
-   *
-   * The brand row has to hold the emblem, the live pill, these controls and
-   * the notification bell, and at 375 it simply cannot — measured, the cluster
-   * wanted 386px against a card edge at 334. The overflow was absorbed
-   * silently: first by the emblem, which flexed to 0x44 and disappeared, and
-   * then (once the emblem was pinned) by the bell, which was pushed off the
-   * card entirely.
-   *
-   * So the phone row is emblem + filter + bell, and Search and Saved move
-   * INTO the filter sheet (owner: "phone view and ios should just be logo
-   * filter and notification, everything else there somehow folds into
-   * filter"). Both are filters in the plain sense — one narrows by text, the
-   * other by whether you saved it — so the sheet is where they belong anyway.
-   * Nothing is removed; both are one tap further in, labelled with words
-   * instead of a bare glyph. This is the same move the List/Map toggle and
-   * Saved searches already made.
-   *
-   * Desktop web keeps all three inline: it renders them in the in-panel
-   * toolbar, which has the room the phone brand row does not.
-   */
-  compact?: boolean;
 }
 
 /**
@@ -84,7 +61,6 @@ export function BrowseTasksActions({
   savedOnly = false,
   onToggleSavedOnly,
   savedCount = 0,
-  compact = false,
 }: BrowseTasksActionsProps) {
   return (
     <>
@@ -120,7 +96,21 @@ export function BrowseTasksActions({
           )}
         </Button>
       )}
-      {!compact && (
+      {/* SEARCH IS AN ICON ON EVERY SURFACE, PHONE INCLUDED.
+          It used to be hidden behind a `compact` flag on phone and native,
+          which left the Browse brand row as emblem + filter + bell with a
+          MEASURED 158px hole in the middle of it (375px, Chrome, seeded
+          account: emblem ends x78, the first icon starts x236) and put the
+          only route to search two taps deep inside the Filters sheet — a
+          drawer nobody opens looking for a search box. My Posts and My Jobs
+          both carry a "Search jobs" icon in the same slot on the same phone
+          width, so Browse was also the odd screen out.
+          The width argument the flag rested on was measured when this cluster
+          was FIVE controls (search, saved, view, filters + the live pill).
+          Saved, View and Saved-searches have all since moved into the sheet,
+          so the row is now emblem + search + filter + bell: 156px of controls
+          against 201px of room at 320, and 158px of slack at 375 — the hole
+          this fills. */}
       <Button
         variant="ghost"
         size="icon"
@@ -131,7 +121,6 @@ export function BrowseTasksActions({
       >
         <Search className="w-5 h-5" />
       </Button>
-      )}
       <Button
         ref={filtersButtonRef}
         variant="ghost"

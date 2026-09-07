@@ -51,9 +51,16 @@ interface UseDashboardFiltersOptions {
    */
   helprTier?: string | null;
   helperAvailability: { day_of_week: number; is_available: boolean; start_time: string; end_time: string }[];
+  /**
+   * The VIEWER's platform commission percent — the same value the feed passes
+   * to `JobPrice` as `effectiveFee`. Required because the "Highest pay" /
+   * "Lowest pay" modes order by the take-home figure the card renders, and
+   * that figure depends on the viewer's tier. See `jobDisplayPay.ts`.
+   */
+  effectiveFee: number;
 }
 
-export function useDashboardFilters({ allJobs, userId, profile, helperAvailability }: UseDashboardFiltersOptions) {
+export function useDashboardFilters({ allJobs, userId, profile, helperAvailability, effectiveFee }: UseDashboardFiltersOptions) {
   // Browse state lives in the URL, not only in React state.
   //
   // It used to be plain `useState`, which made every history entry for the
@@ -137,6 +144,13 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
    * notice — the screen looked like it was working.
    */
   const nearbyUnavailable = nearbyMiles !== null && userLoc.status !== "ready";
+  // The radius DID run, but from a parish centroid derived from the signup ZIP
+  // rather than a device fix (see useUserLocation's fallback chain). Callers
+  // must not quote a small mileage off this as though it were measured — it is
+  // parish-scale. Same principle as `nearbyUnavailable`: the UI never claims
+  // more precision than it has (BD-001).
+  const nearbyApproximate =
+    nearbyMiles !== null && userLoc.status === "ready" && userLoc.approximate;
 
   // Budget is ONE filter even though it occupies two state slots: the sheet's
   // budget bands ("$50 – $150") write min AND max together, so counting them
@@ -315,7 +329,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
       // default "smart" feed; layering them ahead of an explicit sort
       // left "Highest pay" sorting only within each priority stratum,
       // which read as the control doing nothing (2026-08-28 regression).
-      if (sortBy !== "smart") return compareJobsBySortMode(a, b, sortBy);
+      if (sortBy !== "smart") return compareJobsBySortMode(a, b, sortBy, effectiveFee);
       // Boosted is the ONE true pin-to-top (owner, 2026-08-29: "that's the
       // whole point of boosted") — it's a paid placement, so it has to
       // actually place. Urgent is a badge, not a queue-jump: an urgent job
@@ -355,9 +369,9 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
           const bi = smartIndexByJobId?.get(b.id) ?? Number.MAX_SAFE_INTEGER;
           return ai - bi;
         }
-        default: return compareJobsBySortMode(a, b, sortBy);
+        default: return compareJobsBySortMode(a, b, sortBy, effectiveFee);
       }
-    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
+    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate, effectiveFee]);
 
   // The same filter state, shaped for the Browse map. The map runs its own
   // (unpaginated) fetch against a narrow PII-safe row, so it can't reuse
@@ -437,6 +451,6 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     activeFilterCount, hasFilters, clearFilters,
     filteredJobs, nearbyJobs, mapFilter,
     totalMatchingCount, totalMatchingCountLoading,
-    userLoc, nearbyMiles, nearbyUnavailable,
+    userLoc, nearbyMiles, nearbyUnavailable, nearbyApproximate,
   };
 }

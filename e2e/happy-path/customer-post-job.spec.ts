@@ -118,7 +118,11 @@ test.describe("customer post-job happy path", () => {
       start_time: "10:00",
       location: "New Orleans, LA",
       status: "open",
-      payment_status: "pending",
+      // "escrow", not "pending": jobs are funded at post time, and
+      // `jobs_payment_status_check` has never admitted "pending". Same class as
+      // the date_needed note above — a fixture describing a row prod cannot
+      // hold. Guarded by fixturePaymentStatus.test.ts.
+      payment_status: "escrow",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       is_urgent: false,

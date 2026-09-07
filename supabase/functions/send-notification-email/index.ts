@@ -206,9 +206,28 @@ Deno.serve(async (req) => {
     // as an error and this call dropped that error, which collapsed "the user
     // opted out" and "we could not read the preference" into the same silent
     // skip. They need different outcomes.
+    // TWO gates, read together: the Email master and the per-type category.
+    //
+    // `email_enabled` is the master's own column (migration 20260907032218) and
+    // is checked HERE rather than by writing `false` across every category, the
+    // way `fan_out_push_on_notification` checks `push_enabled` before it looks
+    // up the per-type column. Before that column existed the master was a UI
+    // fiction: turning it off blanket-wrote all eleven `email_*` columns and
+    // turning it back on wrote `true` over them, so a weekend of muted email
+    // re-subscribed the account to Promotions. The category columns are now
+    // never touched by the master, which is only safe because this gate exists
+    // — without it, "master off" would suppress nothing at all.
+    //
+    // `select('*')`, not a two-column projection, and deliberately so: naming
+    // `email_enabled` in the select list would make this function 500 on every
+    // call during the window where it is deployed and migration 20260907032218
+    // is not — PostgREST rejects an unknown column rather than omitting it, so
+    // the graceful fallback below would never get to run. A `*` row is ~30
+    // booleans for one account; the cost is nothing and the failure mode is
+    // "the master is absent", which is recoverable.
     const { data: prefs, error: prefsError } = await supabase
       .from('notification_preferences')
-      .select(prefColumn)
+      .select('*')
       .eq('user_id', user_id)
       .maybeSingle()
 
@@ -220,13 +239,31 @@ Deno.serve(async (req) => {
       )
     }
 
-    if (!prefs || !(prefs as any)[prefColumn]) {
-      await logSkip('skipped', 'preference_off')
+    // Deploy-lag tolerance, and only for the master. The upsert above
+    // guarantees a row exists, so `!prefs` still means "we could not resolve a
+    // preference" and still fails closed. But on a deploy where this function
+    // is live and migration 20260907032218 has not landed yet, PostgREST omits
+    // `email_enabled` from the row rather than returning it false — and reading
+    // that absence as "master off" would mute EVERY notification email in the
+    // gap. Absent means "no master yet", which is what it meant last week.
+    const masterOff = prefs != null
+      && 'email_enabled' in (prefs as Record<string, unknown>)
+      && (prefs as any).email_enabled !== true
+
+    if (!prefs || masterOff || !(prefs as any)[prefColumn]) {
+      await logSkip('skipped', masterOff ? 'preference_off_master' : 'preference_off')
       // `pref_column` / `category` travel back so the caller can name the exact
       // switch the user has to flip. "Email is off for Work Status" is a fix
-      // the user can act on; "email_disabled" is not.
+      // the user can act on; "email_disabled" is not. When it is the master
+      // that suppressed the send, name the master — pointing at the category
+      // switch would send the user to flip a control that is already on.
       return new Response(
-        JSON.stringify({ skipped: true, reason: 'email_disabled', pref_column: prefColumn, category }),
+        JSON.stringify({
+          skipped: true,
+          reason: 'email_disabled',
+          pref_column: masterOff ? 'email_enabled' : prefColumn,
+          category,
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }

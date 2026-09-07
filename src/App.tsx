@@ -365,6 +365,14 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Center"), so it is upstream of the in-app surface, not a marketing
           duplicate of it. Support must stay reachable from anywhere. */}
       <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* The name of the page is "Help Center", and the canonical path is
+          `/help`. Every link we mint points there (Footer, SupportInline,
+          Navbar), but `/help-center` is what a person types, what an outside
+          site links, and what an LLM guesses — and it fell through to the `*`
+          catch-all 404. A 404 on the support page is the worst 404 we have:
+          the visitor is already stuck. Alias it rather than rename the route,
+          so no existing link changes. */}
+      <Route path="/help-center" element={<Navigate to="/help" replace />} />
       {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
           /browse-jobs were removed along with their redirect stubs (2352466e).
           Same as above: no redirect exists, and none is warranted on current

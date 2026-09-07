@@ -32,15 +32,35 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
   // also showed a green tick and the word DONE. Three affirmative signals and
   // one quiet numeric one. Say it plainly instead.
   const overLimit = title.length > TITLE_MAX;
+  const valid = title.trim().length > 0 && !overLimit;
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor="title">Job title <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
-        <span
-          className="text-ds-11 tabular-nums"
-          style={overLimit ? { color: "hsl(var(--destructive))" } : undefined}
-        >
-          {title.length}/{TITLE_MAX}
+        {/* The valid-tick sits in the LABEL row, beside the counter, not
+            inside the field.
+            Inside the field it cost `pr-10` — 40px of a 269px input at 375 —
+            which is exactly the width the value needed: a 24-character title
+            measured 224.1px against 211px of content box and rendered as
+            "QA E2E mow and edge yar" while reading as valid. Out here the
+            field keeps its full 237px and the same title fits.
+            The tick is also better company for "24/32" than for the value it
+            was truncating: both are statements ABOUT the field, and this is
+            the row this component already uses to make them. */}
+        <span className="flex items-center gap-1.5">
+          {valid && (
+            <Check
+              className="w-4 h-4 text-primary shrink-0"
+              strokeWidth={2.5}
+              aria-hidden
+            />
+          )}
+          <span
+            className="text-ds-11 tabular-nums"
+            style={overLimit ? { color: "hsl(var(--destructive))" } : undefined}
+          >
+            {title.length}/{TITLE_MAX}
+          </span>
         </span>
       </div>
       <div className="relative">
@@ -53,19 +73,9 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
           maxLength={TITLE_MAX}
           autoCapitalize="sentences"
           enterKeyHint="next"
-          // One padding, one condition: room for the check when there is a
-          // check, and nothing to reserve when there isn't.
-          className={title.trim().length > 0 && !overLimit ? "pr-10" : ""}
           aria-invalid={overLimit || undefined}
           aria-describedby={overLimit ? "title-too-long" : undefined}
         />
-        {title.trim().length > 0 && !overLimit && (
-          <Check
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none"
-            strokeWidth={2.5}
-            aria-hidden
-          />
-        )}
       </div>
       {overLimit && (
         <p id="title-too-long" className="text-ds-11" style={{ color: "hsl(var(--destructive))" }}>

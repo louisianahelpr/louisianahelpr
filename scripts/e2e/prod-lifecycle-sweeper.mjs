@@ -176,6 +176,8 @@ for (const job of jobs) {
      calls. Cancelling also moves the row out of `status = 'open'`, which is what
      stops abandoned rows accumulating against enforce_open_job_limit: five of
      them and no future run can post at all. */
+  const abandonedCheckout =
+    !funded && job.stripe_session_id !== null && job.payment_status === "unpaid";
   const plan = funded
     ? "cancel_escrow"
     : abandonedCheckout

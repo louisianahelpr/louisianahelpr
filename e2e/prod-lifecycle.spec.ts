@@ -420,6 +420,28 @@ test.describe("full money loop against production", () => {
         .toBe("escrow");
     }
 
+    /* CLEAR THE EARLY-ACCESS EMBARGO BEFORE APPLYING.
+       `apply_to_job` refuses a free-tier helper with 403 job_in_early_access_window
+       ("This job is in its Early Access window. Pro and Elite members can apply
+       first") until `created_at <= early_access_cutoff()`. That cutoff is
+       `now() - 20 minutes` for a free account, and both test accounts are free —
+       so a job posted seconds ago is un-appliable by design, and this leg failed
+       on it the first time funding ever succeeded. Waiting 20 minutes per run is
+       not an option, so the row is aged instead.
+
+       `created_at` is not in enforce_poster_jobs_money_lock's locked_always, so
+       the poster may set it; the PATCH is asserted rather than assumed, because a
+       silently-refused write here would resurface as a confusing 403 two steps
+       later rather than as a failure here. This is a TEST-HARNESS concession to a
+       real product rule — the embargo itself is deliberate and is not being
+       worked around in the app. */
+    const aged = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+      headers: { ...rest(poster), Prefer: "return=representation" },
+      data: { created_at: new Date(Date.now() - 25 * 60_000).toISOString() },
+    });
+    expect(aged.ok(), `ageing the job past early access failed: ${aged.status()} ${await aged.text()}`).toBe(true);
+    expect(await aged.json(), "ageing the job matched zero rows — the poster could not set created_at").toHaveLength(1);
+
     // --- 3. APPLY -----------------------------------------------------------
     const applied = await request.post(`${SUPABASE_URL}/rest/v1/applications`, {
       headers: { ...rest(helper), Prefer: "return=representation" },

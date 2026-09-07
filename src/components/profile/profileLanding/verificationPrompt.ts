@@ -1,4 +1,5 @@
 import { isIdentityVerified } from "@/lib/awardGate";
+import { REVIEW_SLA, REVIEW_SLA_HOURS } from "@/lib/reviewSla";
 import type { Profile } from "./types";
 
 /**
@@ -110,7 +111,12 @@ export function verificationPromptCopy(
     case "manual_review":
       return {
         headline: "Your ID check is with our team.",
-        body: "We review these by hand and email you as soon as it's done — usually within 24 hours. There's nothing else for you to do.",
+        // REVIEW_SLA, not a hand-typed window. A manual ID check goes to the
+        // same human queue as account approval, so a literal here would put a
+        // second, different number on the same wait — which is the exact
+        // inconsistency src/lib/reviewSla.ts was created to end (/account-pending
+        // once promised "24-48 hours" and "under 2 hours" on one screen).
+        body: `We review these by hand and email you as soon as it's done — usually ${REVIEW_SLA} during ${REVIEW_SLA_HOURS}. There's nothing else for you to do.`,
         action: null,
       };
     case "in_progress":

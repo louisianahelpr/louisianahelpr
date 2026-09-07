@@ -354,7 +354,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               className="w-2.5 h-2.5 shrink-0"
               strokeWidth={2.25}
             />
-            <span className="font-serif italic truncate">{categoryLabels[job.category] || formatCategory(job.category)}</span>
+            <span className="font-sans truncate">{categoryLabels[job.category] || formatCategory(job.category)}</span>
           </span>
           {/* 2. Secondary slot — EXACTLY ONE chip, never both.
                  "Just in" outranks "Recommended" because freshness is
@@ -389,7 +389,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.55)",
                 }}
               />
-              <span className="font-serif italic uppercase tracking-[0.14em] whitespace-nowrap">Just in</span>
+              <span className="font-sans uppercase tracking-[0.14em] whitespace-nowrap">Just in</span>
             </span>
           ) : recommended ? (
             <span
@@ -578,7 +578,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   `gap-x-2` away from the end of the city name on every card,
                   whatever its length. The "when" group beside it stays
                   `shrink-0`, so it is still the city that gives. */}
-              <span className="truncate font-sans">{cityState}</span>
+              <span className="truncate font-sans min-w-[4.5rem]">{cityState}</span>
             </span>
             {distanceLabel && (
               <span
@@ -633,11 +633,18 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                       what o'clock it starts, and the time is one tap away on
                       the detail sheet. Dropping it deliberately is the only
                       way the chips behind it survive. */}
+                  {/* The clock is the thing that GIVES when the countdown is on
+                      the row. With "1 day left" present, a 375 phone had the
+                      city collapse to a single letter ("D" for Denham Springs)
+                      while "8:00 AM" sat there whole — the city is the
+                      local-marketplace signal, the hour is on the detail sheet.
+                      So on a countdown card the time only appears from 430px;
+                      without a countdown it keeps its 360px floor. */}
                   {job.date_needed && job.start_time && (
-                    <span className="shrink-0 opacity-30 hidden [@media(min-width:360px)]:inline">·</span>
+                    <span className={`shrink-0 opacity-30 hidden ${expiryText ? "[@media(min-width:430px)]:inline" : "[@media(min-width:360px)]:inline"}`}>·</span>
                   )}
                   {job.start_time && (
-                    <span className="shrink-0 hidden [@media(min-width:360px)]:flex items-center gap-1">
+                    <span className={`shrink-0 hidden ${expiryText ? "[@media(min-width:430px)]:flex" : "[@media(min-width:360px)]:flex"} items-center gap-1`}>
                       <Clock className="w-2.5 h-2.5 shrink-0" />
                       <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
                     </span>

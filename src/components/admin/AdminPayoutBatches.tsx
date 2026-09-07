@@ -515,7 +515,7 @@ const AdminPayoutBatches = () => {
           <div className="space-y-3">
             <DialogBody>
               <p>
-                Moves this helper's batch to the Hold-for-review queue. No
+                Moves this Helpr's batch to the Hold-for-review queue. No
                 Stripe transfer is fired. Logged to admin_audit_log.
               </p>
             </DialogBody>

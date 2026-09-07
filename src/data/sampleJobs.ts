@@ -44,7 +44,7 @@ export const sampleJobs: SampleJob[] = [
     icon: "🌿",
     title: "Mow a quarter-acre lawn",
     description:
-      "Standard mow plus edge along the driveway and sidewalk. Bagged or mulched, helper's choice. Mower and gas are in the shed.",
+      "Standard mow plus edge along the driveway and sidewalk. Bagged or mulched, Helpr's choice. Mower and gas are in the shed.",
     typical_price: 45,
     typical_duration_minutes: 60,
   },

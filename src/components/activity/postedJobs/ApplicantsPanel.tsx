@@ -744,7 +744,7 @@ function ApplicantVerificationChip({
       style={{ background: "hsl(var(--amber-tint) / 0.16)", color: "hsl(var(--amber-ink))" }}
       // Kept short deliberately: at 375px the chip shares its row with the
       // Hire button, and "Payout setup unfinished" clipped under it.
-      title={payoutReady ? "Stripe has not finished verifying this helper's identity" : "This helper has not set up a payout account yet"}
+      title={payoutReady ? "Stripe has not finished verifying this Helpr's identity" : "This Helpr has not set up a payout account yet"}
     >
       <ShieldAlert className="w-3 h-3" strokeWidth={2} aria-hidden="true" />
       {payoutReady ? "Stripe verifying" : "No payout account"}

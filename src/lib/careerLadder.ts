@@ -50,7 +50,7 @@ const CAREER_MILESTONES: CareerMilestone[] = [
   {
     id: "community_pillar",
     label: "Community Pillar",
-    description: "50 jobs · 4.8+ rating · 3+ repeat clients",
+    description: "50 jobs · 4.8+ rating · 3+ repeat posters",
     icon: "Users",
     color: "hsl(210 60% 45%)",
     requirement: { completedJobs: 50, avgRating: 4.8, repeatHirePercent: 20 },

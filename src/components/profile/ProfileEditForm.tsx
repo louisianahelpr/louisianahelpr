@@ -264,7 +264,7 @@ export function ProfileEditForm({
             className="min-h-[112px] resize-none text-ds-13 leading-relaxed"
           />
           <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Customers read this when deciding who to hire. The more specific, the better.
+            Posters read this when deciding who to hire. The more specific, the better.
           </p>
         </div>
 

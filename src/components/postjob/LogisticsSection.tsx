@@ -350,7 +350,7 @@ export function LogisticsSection({
               value={helpersNeeded}
               onChange={(e) => setHelpersNeeded(e.target.value)}
               className="w-24"
-              aria-label="Number of helpers needed"
+              aria-label="Number of Helprs needed"
             />
             <p className="text-ds-11 text-muted-foreground">
               Budget of ${formatPriceExact(budgetNum)} will be split: ~${formatPriceExact(budgetNum / (parseInt(helpersNeeded) || 2))}/Helpr

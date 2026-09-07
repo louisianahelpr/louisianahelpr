@@ -45,7 +45,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "messages",
     title: "Messages",
-    description: "Chat with posters and helpers to coordinate a job.",
+    description: "Chat with posters and Helprs to coordinate a job.",
     icon: <MessageSquare className="w-8 h-8" strokeWidth={1.75} />,
   },
   {

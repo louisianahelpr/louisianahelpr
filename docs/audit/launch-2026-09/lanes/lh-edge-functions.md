@@ -30,6 +30,49 @@ applied at DEPLOY time and is therefore a production behaviour change:
 | `admin-update-email` → `verify_jwt = true` | EF-025 | Real fix. Restores the defence-in-depth layer the file's own comment claimed existed. |
 | `auto-tip-charge` → `verify_jwt = false` | EF-026 | No behaviour change; codifies the gate prod already had so it is reproducible from source. |
 
+Commit `9291462e7`. Deploy run 34092089991 — success. No TypeScript changed, so no
+typecheck gate was needed.
+
+#### Verified by re-running the original reproduction, not by reading the diff
+
+The whole finding was a gap between what config claimed and what prod did, so a
+diff proves nothing here. Same unauthenticated GET, before and after — the
+discriminator is the *body shape*: the gateway answers
+`{"code":"UNAUTHORIZED_NO_AUTH_HEADER"}`, the function answers its own body.
+
+| Endpoint | Before | After | Reading |
+|---|---|---|---|
+| `verification-webhook` | `401 {"code":"UNAUTHORIZED_NO_AUTH_HEADER"}` | **`405 Method not allowed`** | Gateway now passes through; the handler answers, so its signature check can finally execute |
+| `admin-update-email` | its own `401` body | **`401 {"code":"UNAUTHORIZED_NO_AUTH_HEADER"}`** | Gateway layer now exists |
+| `auto-tip-charge` | `401 Unauthorized` | `401 Unauthorized` | Unchanged, as predicted |
+
+Deployed metadata agrees (`list_edge_functions`): `admin-update-email`
+`verify_jwt: true`, `verification-webhook` `false`, `auto-tip-charge` `false`.
+
+**Regression check on `admin-update-email` — the real risk was that
+`verify_jwt=true` locks out the admin UI.** Minted a genuine session for the
+seeded test account (`scripts/test-signin-link.mjs helper --session --json`) and
+POSTed with an **empty body**, which cannot mutate anything:
+
+```
+POST /functions/v1/admin-update-email   Authorization: Bearer <valid user JWT>   {}
+→ 403 {"error":"Forbidden"}
+```
+
+The gateway **accepted** the JWT and handed off; the handler's `getClaims` +
+`has_role` then refused a non-admin. So a legitimate signed-in caller passes the
+new gateway, which is exactly what `EditEmailDialog`'s `functions.invoke` sends,
+and the in-function gate still fails closed. Both layers active.
+
+**Scope of that check, stated honestly:** I proved the *gateway* accepts a valid
+session JWT — the gateway cannot distinguish an admin's token from any other
+user's, so this generalises. I did **not** drive an end-to-end email change,
+because that mutates a real account's login identity and the seeded accounts are
+shared with other lanes. `admin-update-email` is now simply consistent with its
+four siblings (`admin-delete-user`, `admin-user-actions`,
+`admin-resend-verification`, `admin-test-push`), all of which have run
+`verify_jwt=true` behind the same `functions.invoke` call all along.
+
 ### What I deliberately did NOT fix, having been asked to
 
 I was directed to rewrite `slack-ops-alert` onto the shared `postSlackOpsAlert`

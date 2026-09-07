@@ -233,7 +233,7 @@ export function helperApplyBlockNotice(
  * CTA they cannot complete.
  */
 export function posterAwardBlockMessage(reason: AwardBlockReason, helperName?: string): string {
-  const who = helperName?.trim() || "This helper";
+  const who = helperName?.trim() || "This Helpr";
   switch (reason) {
     case "helper_payout_setup_incomplete":
       return `${who} hasn't finished setting up payouts yet, so they can't be hired. They'll show as ready once they do.`;

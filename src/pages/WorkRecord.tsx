@@ -545,7 +545,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                 <div className="px-5 py-8 flex flex-col items-center gap-3 text-center">
                   <Briefcase className="w-8 h-8 text-muted-foreground/50" />
                   <p className="text-ds-13 text-muted-foreground font-serif italic">
-                    No completed helper jobs yet. Once you complete your first job, your work record will fill in automatically.
+                    No completed jobs yet. Once you complete your first job, your work record will fill in automatically.
                   </p>
                   <BarkPillButton onClick={() => navigate("/dashboard")} className="mt-1">
                     Browse Jobs

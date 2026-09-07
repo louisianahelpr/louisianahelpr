@@ -468,6 +468,43 @@ test.describe("full money loop against production", () => {
     const afterHire = await readJob(request, poster, job.id);
     expect(afterHire.helper_id).toBe(helper.user.id);
 
+    /* --- 4b. ARRIVAL — the gate completion actually depends on --------------
+       `enforce_helper_completion_gates` rejects a completion with 400
+       completion_requires_confirmed_arrival ("Mark arrival at the job site, or
+       ask the poster to confirm you arrived") unless arrival is on the row. The
+       spec used to jump from hire straight to helper_completed_at and failed
+       there the first time it ever got that far.
+
+       These are not filler to satisfy a trigger — they are three real legs of
+       the journey (on-my-way, arrived, poster confirms arrival) that had no
+       coverage at all, and driving them manually is how the gate was found.
+       The poster's confirmation is the branch that matters most: it is the
+       fallback the product offers when the helper's device gives no location,
+       which is exactly what a headless browser does. */
+    const onTheWay = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+      headers: { ...rest(helper), Prefer: "return=representation" },
+      data: { helper_on_the_way_at: new Date().toISOString(), status: "in_progress" },
+    });
+    expect(onTheWay.ok(), `on-my-way failed: ${onTheWay.status()} ${await onTheWay.text()}`).toBe(true);
+    expect(await onTheWay.json(), "on-my-way matched zero rows").toHaveLength(1);
+
+    const arrived = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+      headers: { ...rest(helper), Prefer: "return=representation" },
+      data: { helper_arrived_at: new Date().toISOString() },
+    });
+    expect(arrived.ok(), `arrival failed: ${arrived.status()} ${await arrived.text()}`).toBe(true);
+    expect(await arrived.json(), "arrival matched zero rows").toHaveLength(1);
+
+    const arrivalConfirmed = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+      headers: { ...rest(poster), Prefer: "return=representation" },
+      data: { poster_confirmed_arrival_at: new Date().toISOString() },
+    });
+    expect(
+      arrivalConfirmed.ok(),
+      `poster arrival confirmation failed: ${arrivalConfirmed.status()} ${await arrivalConfirmed.text()}`,
+    ).toBe(true);
+    expect(await arrivalConfirmed.json(), "arrival confirmation matched zero rows").toHaveLength(1);
+
     // --- 5. COMPLETE (both sides) -------------------------------------------
     for (const [who, session] of [["helper", helper], ["poster", poster]] as const) {
       const done = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {

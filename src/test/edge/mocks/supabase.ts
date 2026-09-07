@@ -235,7 +235,18 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
     this.filters.push({ op: "in", column: column ?? "", value });
     return this;
   }
-  or() {
+  /**
+   * `.or("a.is.null,a.neq.b")` — RECORDED, not a silent no-op.
+   *
+   * It used to drop the expression on the floor, which meant a test could not
+   * tell an `.or(...)` guard from no guard at all. That is the whole shape of
+   * the bug this mock exists to catch: `execute-dispute-split`'s markFailed
+   * guarded with `.neq("execution_status","executed")`, which is NULL-blind in
+   * SQL and matched zero rows on exactly the disputes it needed to mark. The
+   * fix is an `.or()` — and an unrecorded `.or()` is a guard no test can assert.
+   */
+  or(expression?: string) {
+    this.filters.push({ op: "or", column: "", value: expression });
     return this;
   }
   is() {

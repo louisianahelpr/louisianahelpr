@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, XCircle, AlertTriangle, Scale } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Scale, RefreshCw } from "lucide-react";
 import { slaBadge } from "./adminDisputesHelpers";
 import type { DisputedJob, DisputeRecord, FilterTab } from "./types";
-import { formatShortDate } from "@/lib/format";
+import { formatShortDate, formatPriceExact } from "@/lib/format";
+import { previewDisputeSplit } from "@/lib/disputeSplitPreview";
+import { isUnsettled, unsettledReason } from "./unsettled";
 
 interface DisputeCardProps {
   job: DisputedJob;
@@ -23,6 +25,10 @@ interface DisputeCardProps {
   setHelperShare: (share: number) => void;
   setActivePanelJobId: (id: string | null) => void;
   decide: (job: DisputedJob) => void;
+  /** Re-invoke `execute-dispute-split` for a decision whose money never moved. */
+  retrySettlement: (job: DisputedJob) => void;
+  /** job.id currently being retried, if any. */
+  retrying: string | null;
 }
 
 // Renders one card. Shared between Open and Decided so the visual
@@ -44,8 +50,17 @@ export const DisputeCard = ({
   setHelperShare,
   setActivePanelJobId,
   decide,
+  retrySettlement,
+  retrying,
 }: DisputeCardProps) => {
   const record = disputeRecords[job.id];
+  // A decision on record whose money never moved. The card MUST say so: the
+  // green DECIDED badge alone told an admin the case was closed while $180 of
+  // a poster's escrow sat unmoved with no id, no reason and no retry anywhere
+  // on the screen.
+  const unsettled = isUnsettled(record);
+  // What each side actually receives at the current slider position.
+  const preview = previewDisputeSplit(job, helperShare / 100, job.helper_id ? tiers[job.helper_id] : null);
   const isActivePanel = activePanelJobId === job.id;
   const helperName = job.helper_id ? profiles[job.helper_id] || "Unknown" : null;
   const posterName = profiles[job.customer_id] || "Unknown";
@@ -57,9 +72,16 @@ export const DisputeCard = ({
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-foreground">{job.title}</h3>
             {filter === "open" && slaBadge(job.disputed_at)}
-            {filter === "decided" && (
+            {record?.decided_at && !unsettled && (
               <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-primary/15 text-primary font-semibold uppercase tracking-wide">
-                <CheckCircle2 className="w-3 h-3" /> Decided
+                <CheckCircle2 className="w-3 h-3" /> Settled
+              </span>
+            )}
+            {/* The loudest thing on the card, because it is the only thing on
+                it that is still costing someone money. */}
+            {unsettled && (
+              <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-semibold uppercase tracking-wide">
+                <AlertTriangle className="w-3 h-3" /> Unsettled
               </span>
             )}
             {[job.customer_id, job.helper_id].some((id) => id && tiers[id] === "elite") && (
@@ -145,11 +167,31 @@ export const DisputeCard = ({
                 {" refunded"}
               </p>
             )}
-            {record.execution_status === "failed" && (
-              <p className="text-ds-11 mt-1" style={{ color: "hsl(var(--amber-ink))" }}>
-                Settlement failed — no money moved, or only part of it did.
-                {record.execution_error ? ` ${record.execution_error}` : ""}
-              </p>
+            {/* Every unsettled state, named — with the ids an admin needs to
+                reconcile by hand and the retry that used to exist nowhere. */}
+            {unsettled && (
+              <div className="mt-2 rounded-ds-sm border border-destructive/30 bg-destructive/5 p-2.5 space-y-2">
+                <p className="text-ds-11 font-medium text-destructive">
+                  {unsettledReason(record)}
+                </p>
+                <p className="text-ds-10 text-muted-foreground tabular-nums break-all">
+                  dispute {record.id}
+                  {" · job "}{job.id}
+                  {job.stripe_payment_intent_id ? ` · ${job.stripe_payment_intent_id}` : " · no PaymentIntent on file"}
+                  {record.execution_transfer_id ? ` · transfer ${record.execution_transfer_id}` : ""}
+                  {record.execution_refund_id ? ` · refund ${record.execution_refund_id}` : ""}
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => retrySettlement(job)}
+                  disabled={retrying === job.id}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-1 ${retrying === job.id ? "animate-spin" : ""}`} />
+                  {retrying === job.id ? "Settling…" : "Retry settlement"}
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -210,20 +252,39 @@ export const DisputeCard = ({
                 side arrives minus the platform commission, and the poster's minus
                 the card-processing fee Stripe keeps on a refund. The caption says
                 so rather than quoting a number the parties won't recognise. */}
-            <div className="flex justify-between text-ds-11 tabular-nums">
+            {/* GROSS ON TOP, NET UNDERNEATH — and net is the emphasised number,
+                because it is the only one either party will ever see. The panel
+                used to show gross alone, so an admin approving a "fair 50/50"
+                on a $180 job was approving $90/$90 while $79.20 and $86.60
+                actually landed. `previewDisputeSplit` reuses the same tier
+                ladder and Stripe-fee modules the executor does. */}
+            <div className="flex justify-between gap-3 text-ds-11 tabular-nums">
               <span className="text-muted-foreground">
                 Poster <span className="font-semibold text-foreground">{100 - helperShare}%</span>
-                <span className="ml-1 text-muted-foreground">(${((job.budget * (100 - helperShare)) / 100).toFixed(2)})</span>
+                <span className="ml-1">(${formatPriceExact(preview.posterGross)} gross)</span>
+                <span className="block text-ds-13 font-semibold text-foreground">
+                  ${formatPriceExact(preview.posterNet)} refunded
+                </span>
+                <span className="block text-ds-10">
+                  −${formatPriceExact(preview.posterProcessingCost)} Stripe keeps
+                </span>
               </span>
-              <span className="text-muted-foreground">
+              <span className="text-right text-muted-foreground">
                 Helpr <span className="font-semibold text-foreground">{helperShare}%</span>
-                <span className="ml-1 text-muted-foreground">(${((job.budget * helperShare) / 100).toFixed(2)})</span>
+                <span className="ml-1">(${formatPriceExact(preview.helperGross)} gross)</span>
+                <span className="block text-ds-13 font-semibold text-foreground">
+                  ${formatPriceExact(preview.helperNet)} paid
+                </span>
+                <span className="block text-ds-10">
+                  −${formatPriceExact(preview.helperCommission)} commission ({preview.helperFeePercent}%)
+                </span>
               </span>
             </div>
             <p className="text-ds-10 mt-1.5" style={{ color: "hsl(var(--amber-ink))" }}>
-              This moves real money. Recording the decision transfers the Helpr's
-              share and refunds the customer's share to their card — gross figures
-              above, before the platform commission and Stripe's processing fee.
+              This moves real money. The Helpr's figure is exact. The poster's is
+              computed from this job's line items — the refund is taken off the
+              actual charge, so a job part-paid with a Pay-It-Forward gift will
+              differ.
             </p>
           </div>
 
@@ -237,7 +298,11 @@ export const DisputeCard = ({
               onClick={() => setHelperShare(0)}
               disabled={submittingDecision}
             >
-              Resolve for Poster (0/100)
+              {/* The readout above reads POSTER · HELPR, so a parenthetical on
+                  a "Resolve for Poster" button that says (0/100) reads as
+                  "poster 0, helper 100" — the exact opposite of what the
+                  button does. Both presets were labelled backwards. */}
+              Resolve for Poster (100% poster)
             </Button>
             <Button
               size="sm"
@@ -255,7 +320,7 @@ export const DisputeCard = ({
               onClick={() => setHelperShare(100)}
               disabled={submittingDecision}
             >
-              Resolve for Helpr (100/0)
+              Resolve for Helpr (100% Helpr)
             </Button>
           </div>
 

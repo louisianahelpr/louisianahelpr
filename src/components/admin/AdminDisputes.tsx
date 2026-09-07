@@ -4,7 +4,7 @@ import { unwrapMutation } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { tierRank } from "@/lib/subscriptionTiers";
 import { formatPriceExact } from "@/lib/format";
-import { CheckCircle2, AlertTriangle, History } from "lucide-react";
+import { CheckCircle2, AlertTriangle, History, SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { functionErrorMessage } from "@/lib/supabaseResult";
@@ -13,6 +13,7 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { categoriseReason, CATEGORY_LABELS } from "./adminDisputes/adminDisputesHelpers";
 import { FilterChipGroup } from "./adminDisputes/FilterChipGroup";
 import { DisputeCard } from "./adminDisputes/DisputeCard";
+import { isUnsettled } from "./adminDisputes/unsettled";
 import type {
   DisputedJob,
   DisputeRecord,
@@ -22,6 +23,7 @@ import type {
   CategoryFilter,
 } from "./adminDisputes/types";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/button";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
@@ -55,6 +57,8 @@ const AdminDisputes = () => {
   // favour"). Poster share = 100 - helper share.
   const [helperShare, setHelperShare] = useState<number>(50);
   const [submittingDecision, setSubmittingDecision] = useState(false);
+  // job.id of a decided-but-unsettled dispute whose settlement is being retried.
+  const [retrying, setRetrying] = useState<string | null>(null);
 
   const loadDisputes = useCallback(async () => {
     setLoading(true);
@@ -63,12 +67,12 @@ const AdminDisputes = () => {
     const [openRes, decidedRes] = await Promise.all([
       supabase
         .from("jobs")
-        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by")
+        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount")
         .eq("status", "disputed")
         .order("disputed_at", { ascending: false }),
       supabase
         .from("jobs")
-        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at")
+        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount")
         .not("dispute_resolved_at", "is", null)
         .order("dispute_resolved_at", { ascending: false })
         .limit(50),
@@ -88,6 +92,55 @@ const AdminDisputes = () => {
 
     const openJobs = (openRes.data || []) as unknown as DisputedJob[];
     const decided = ((decidedRes.data || []) as unknown as DisputedJob[]);
+
+    // ── Decided but NOT settled ────────────────────────────────────────────
+    // These are the ones that used to vanish. `rpc_decide_dispute` flips the
+    // job off 'disputed' the moment the decision is recorded, so a dispute
+    // whose `execute-dispute-split` call then failed drops out of the Open
+    // query (job is no longer 'disputed') and reappears in Decided wearing a
+    // green badge — while the escrow has not moved. They belong in the WORK
+    // queue until `execution_status` says 'executed', so they are pulled back
+    // into `openJobs` here and struck out of the Decided audit list below.
+    //
+    // The `.or` admits NULL as well as 'pending': the backfill in
+    // 20260907194838 stamps every historical row, but a client running against
+    // a database where that migration has not landed yet must still find them.
+    const unsettledJobIds = new Set<string>();
+    {
+      const { data: unsettledRows, error: unsettledErr } = await (supabase.from as any)("disputes")
+        .select("job_id")
+        .eq("status", "decided")
+        .or("execution_status.is.null,execution_status.neq.executed");
+      if (unsettledErr) {
+        // 42703/PGRST205/42P01 = the execution columns or the table itself
+        // aren't deployed yet; anything else is a real failure and must not be
+        // swallowed on a surface whose whole job is finding stuck money.
+        if (!["42703", "PGRST205", "42P01"].includes(unsettledErr.code)) {
+          report(unsettledErr, { tags: { source: "AdminDisputes.loadUnsettled" } });
+          toast.error("Couldn't check for unsettled settlements — some decided disputes may be missing from this queue.");
+        }
+      } else {
+        for (const r of (unsettledRows as { job_id: string }[] | null) ?? []) {
+          unsettledJobIds.add(r.job_id);
+        }
+      }
+    }
+    const alreadyOpen = new Set(openJobs.map((j) => j.id));
+    const strandedIds = [...unsettledJobIds].filter((id) => !alreadyOpen.has(id));
+    if (strandedIds.length > 0) {
+      const { data: strandedJobs, error: strandedErr } = await supabase
+        .from("jobs")
+        .select(
+          "id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount",
+        )
+        .in("id", strandedIds);
+      if (strandedErr) {
+        report(strandedErr, { tags: { source: "AdminDisputes.loadStranded" } });
+        toast.error("Couldn't load the unsettled disputes — money may be stuck without appearing here.");
+      } else {
+        openJobs.push(...((strandedJobs || []) as unknown as DisputedJob[]));
+      }
+    }
 
     // Pull formal dispute records for every visible job in one query.
     // Falls back silently when the disputes table doesn't exist yet
@@ -179,7 +232,10 @@ const AdminDisputes = () => {
     });
 
     setDisputes(sorted);
-    setDecidedJobs(decided);
+    // One case, one place. An unsettled dispute is open work, so it is shown
+    // in Open only — the Decided tab is the audit log of settlements that
+    // actually happened.
+    setDecidedJobs(decided.filter((j) => !unsettledJobIds.has(j.id)));
     setLoading(false);
   }, []);
 
@@ -218,6 +274,107 @@ const AdminDisputes = () => {
       toast.error(userFacingError(err, "Couldn't resolve that dispute — try again"));
     } finally {
       setResolving(null);
+    }
+  };
+
+  /**
+   * Move the money for a decision that is already on record.
+   *
+   * Split out of `decide` so the SAME call can be made again later. It had to
+   * be: `execute-dispute-split` refusing left the decision committed, the
+   * escrow untouched and no way to retry short of an admin re-deciding a
+   * dispute the RPC would then reject as "already decided". Retrying is safe —
+   * the function's ledger reads and its dispute-derived Stripe idempotency keys
+   * are what prevent a double payout, not the absence of a second button.
+   */
+  const settle = async (job: DisputedJob, disputeId: string | null): Promise<void> => {
+    // ── Execute the split ──────────────────────────────────────────
+    if (!disputeId) {
+      // No row in `disputes` — a dispute filed before that table existed, or
+      // the RPC/table isn't deployed yet. There's nothing for the executor to
+      // key off, so say exactly that rather than implying money moved.
+      toast.warning(
+        "Decision recorded. This dispute has no formal record to settle against — move the escrow with Quick Release or Quick Refund.",
+      );
+    } else {
+      const { data, error } = await supabase.functions.invoke(
+        "execute-dispute-split",
+        { body: { dispute_id: disputeId } },
+      );
+      // NEVER drop the error half: a settlement that silently failed would
+      // leave the admin believing the money moved.
+      const invokeError = error ?? (data?.error ? new Error(String(data.error)) : null);
+      if (invokeError) {
+        const ctx = (invokeError as { context?: unknown }).context;
+        const response = ctx instanceof Response ? ctx : null;
+        // A 404 has two very different causes and only one of them is worth
+        // waiting out. The GATEWAY returns a bodyless 404 while the function
+        // is still deploying; the DEPLOYED function returns 404 with our own
+        // `{ error }` envelope for "dispute not found" / "job not found".
+        // Reading the body is the only way to tell them apart — without it an
+        // admin chasing genuinely missing data is told "still deploying,
+        // retry in a minute" forever.
+        let stillDeploying = false;
+        if (response?.status === 404) {
+          let hasErrorEnvelope: boolean;
+          try {
+            const parsed = await response.clone().json();
+            hasErrorEnvelope =
+              typeof parsed?.error === "string" && parsed.error.trim().length > 0;
+          } catch {
+            // Not JSON at all — the gateway's own 404.
+            hasErrorEnvelope = false;
+          }
+          stillDeploying = !hasErrorEnvelope;
+        }
+        if (stillDeploying) {
+          // The function landed on main but hasn't finished deploying. The
+          // decision IS recorded; only the settlement is late.
+          toast.warning(
+            "Decision recorded. The settlement service is still deploying — reopen this dispute in a minute to move the money.",
+          );
+        } else {
+          const message = await functionErrorMessage(
+            invokeError,
+            "Decision recorded, but the settlement failed — retry from this dispute.",
+          );
+          report(invokeError, { tags: { source: "AdminDisputes.executeSplit" } });
+          toast.error(`Decision recorded, but the money didn't move: ${message}`);
+        }
+      } else {
+        const moved = data as {
+          helper_cents?: number;
+          refund_cents?: number;
+        } | null;
+        const helperPaid = (moved?.helper_cents ?? 0) / 100;
+        const posterRefunded = (moved?.refund_cents ?? 0) / 100;
+        const parts = [
+          helperPaid > 0 ? `$${formatPriceExact(helperPaid)} to the Helpr` : null,
+          posterRefunded > 0 ? `$${formatPriceExact(posterRefunded)} back to the poster` : null,
+        ].filter(Boolean);
+        toast.success(`Dispute settled — ${parts.join(", ")}.`);
+      }
+    }
+  };
+
+  /** Retry a settlement from the UNSETTLED badge on a decided dispute. */
+  const retrySettlement = async (job: DisputedJob) => {
+    const disputeId = disputeRecords[job.id]?.id ?? null;
+    if (!disputeId) {
+      toast.error("This dispute has no formal record to settle against — move the escrow with Quick Release or Quick Refund.");
+      return;
+    }
+    // Same irreversible-money gate as the original decision.
+    const ok = await requireBiometric("Confirm retrying this settlement");
+    if (!ok) return;
+    setRetrying(job.id);
+    try {
+      await settle(job, disputeId);
+    } catch (err: unknown) {
+      toast.error(userFacingError(err, "Couldn't retry that settlement — try again"));
+    } finally {
+      setRetrying(null);
+      loadDisputes();
     }
   };
 
@@ -310,73 +467,7 @@ const AdminDisputes = () => {
         });
       }
 
-      // ── Execute the split ──────────────────────────────────────────
-      if (!disputeId) {
-        // No row in `disputes` — a dispute filed before that table existed, or
-        // the RPC/table isn't deployed yet. There's nothing for the executor to
-        // key off, so say exactly that rather than implying money moved.
-        toast.warning(
-          "Decision recorded. This dispute has no formal record to settle against — move the escrow with Quick Release or Quick Refund.",
-        );
-      } else {
-        const { data, error } = await supabase.functions.invoke(
-          "execute-dispute-split",
-          { body: { dispute_id: disputeId } },
-        );
-        // NEVER drop the error half: a settlement that silently failed would
-        // leave the admin believing the money moved.
-        const invokeError = error ?? (data?.error ? new Error(String(data.error)) : null);
-        if (invokeError) {
-          const ctx = (invokeError as { context?: unknown }).context;
-          const response = ctx instanceof Response ? ctx : null;
-          // A 404 has two very different causes and only one of them is worth
-          // waiting out. The GATEWAY returns a bodyless 404 while the function
-          // is still deploying; the DEPLOYED function returns 404 with our own
-          // `{ error }` envelope for "dispute not found" / "job not found".
-          // Reading the body is the only way to tell them apart — without it an
-          // admin chasing genuinely missing data is told "still deploying,
-          // retry in a minute" forever.
-          let stillDeploying = false;
-          if (response?.status === 404) {
-            let hasErrorEnvelope = false;
-            try {
-              const parsed = await response.clone().json();
-              hasErrorEnvelope =
-                typeof parsed?.error === "string" && parsed.error.trim().length > 0;
-            } catch {
-              // Not JSON at all — the gateway's own 404.
-              hasErrorEnvelope = false;
-            }
-            stillDeploying = !hasErrorEnvelope;
-          }
-          if (stillDeploying) {
-            // The function landed on main but hasn't finished deploying. The
-            // decision IS recorded; only the settlement is late.
-            toast.warning(
-              "Decision recorded. The settlement service is still deploying — reopen this dispute in a minute to move the money.",
-            );
-          } else {
-            const message = await functionErrorMessage(
-              invokeError,
-              "Decision recorded, but the settlement failed — retry from this dispute.",
-            );
-            report(invokeError, { tags: { source: "AdminDisputes.executeSplit" } });
-            toast.error(`Decision recorded, but the money didn't move: ${message}`);
-          }
-        } else {
-          const moved = data as {
-            helper_cents?: number;
-            refund_cents?: number;
-          } | null;
-          const helperPaid = (moved?.helper_cents ?? 0) / 100;
-          const posterRefunded = (moved?.refund_cents ?? 0) / 100;
-          const parts = [
-            helperPaid > 0 ? `$${formatPriceExact(helperPaid)} to the Helpr` : null,
-            posterRefunded > 0 ? `$${formatPriceExact(posterRefunded)} back to the poster` : null,
-          ].filter(Boolean);
-          toast.success(`Dispute settled — ${parts.join(", ")}.`);
-        }
-      }
+      await settle(job, disputeId);
 
       // Reset the panel + reload list.
       setActivePanelJobId(null);
@@ -399,6 +490,10 @@ const AdminDisputes = () => {
   if (loading) return <p className="text-muted-foreground">Loading disputes…</p>;
 
   const passesAge = (j: DisputedJob): boolean => {
+    // An unsettled settlement is never filtered out of the Open queue. It is
+    // stuck money, not a case waiting on someone — hiding it behind an age or
+    // category chip is how it stayed invisible in the first place.
+    if (isUnsettled(disputeRecords[j.id])) return true;
     if (ageFilter === "all" || !j.disputed_at) return true;
     const hours = (Date.now() - new Date(j.disputed_at).getTime()) / 3600_000;
     if (ageFilter === "0-24h") return hours < 24;
@@ -408,22 +503,33 @@ const AdminDisputes = () => {
     return true;
   };
   const passesParty = (j: DisputedJob): boolean => {
+    if (isUnsettled(disputeRecords[j.id])) return true;
     if (partyFilter === "all" || !j.disputed_by) return true;
     if (partyFilter === "poster") return j.disputed_by === j.customer_id;
     if (partyFilter === "helper") return !!j.helper_id && j.disputed_by === j.helper_id;
     return true;
   };
   const passesCategory = (j: DisputedJob): boolean => {
+    if (isUnsettled(disputeRecords[j.id])) return true;
     if (categoryFilter === "all") return true;
     const reason = disputeRecords[j.id]?.reason ?? j.dispute_reason;
     return categoriseReason(reason) === categoryFilter;
   };
 
-  const baseList = filter === "open" ? disputes : decidedJobs;
-  const filteredList = filter === "open"
-    ? baseList.filter((j) => passesAge(j) && passesParty(j) && passesCategory(j))
-    : baseList;
-  const list = filteredList;
+  // Computed for the Open queue regardless of which tab is active, because the
+  // Open TAB COUNT is rendered from it. The count used to come from raw
+  // `disputes.length`, so filtering to one row still showed "Open (8)" — a tab
+  // describing a list the admin cannot see. The Users view already gets this
+  // right (AdminUsers.tsx renders `filtered.length`); this makes Disputes match.
+  const openFiltered = disputes.filter((j) => passesAge(j) && passesParty(j) && passesCategory(j));
+  const filtersActive = ageFilter !== "all" || partyFilter !== "all" || categoryFilter !== "all";
+  // Decided is deliberately unfiltered — it is an audit log, not a work queue.
+  const list = filter === "open" ? openFiltered : decidedJobs;
+  const clearFilters = () => {
+    setAgeFilter("all");
+    setPartyFilter("all");
+    setCategoryFilter("all");
+  };
 
   return (
     <AdminViewShell>
@@ -438,7 +544,7 @@ const AdminDisputes = () => {
         >
           <span className="inline-flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5" /> Open
-            <span className="text-ds-11 tabular-nums">({disputes.length})</span>
+            <span className="text-ds-11 tabular-nums">({openFiltered.length})</span>
           </span>
         </button>
         <button
@@ -462,14 +568,10 @@ const AdminDisputes = () => {
         <AdminCard
           title="Filters"
           action={
-            (ageFilter !== "all" || partyFilter !== "all" || categoryFilter !== "all") ? (
+            filtersActive ? (
               <button
                 type="button"
-                onClick={() => {
-                  setAgeFilter("all");
-                  setPartyFilter("all");
-                  setCategoryFilter("all");
-                }}
+                onClick={clearFilters}
                 className="text-ds-11 text-primary hover:underline"
               >
                 Reset Filters
@@ -524,16 +626,36 @@ const AdminDisputes = () => {
         contentClassName="space-y-3"
       >
         {list.length === 0 ? (
-          <EmptyState
-            variant="inline"
-            icon={CheckCircle2}
-            title={filter === "open" ? "No active disputes" : "No decided disputes"}
-            body={
-              filter === "open"
-                ? "Nothing is contested right now."
-                : "Nothing has been decided in the last 50 jobs."
-            }
-          />
+          /* Filtered-empty is NOT the same state as empty, and saying "Nothing is
+             contested right now" over a queue that holds disputes the admin has
+             merely filtered out is the console asserting something false — the
+             one thing a moderation surface cannot do. Browse already separates
+             these two; this is the same pattern. The Decided tab is never
+             filtered, so it only ever has the true-empty case. */
+          filter === "open" && filtersActive && disputes.length > 0 ? (
+            <EmptyState
+              variant="inline"
+              icon={SearchX}
+              title="No disputes match your filters"
+              body={`${disputes.length} open ${disputes.length === 1 ? "dispute is" : "disputes are"} hidden by the current age, party or category filter.`}
+              action={
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              variant="inline"
+              icon={CheckCircle2}
+              title={filter === "open" ? "No active disputes" : "No decided disputes"}
+              body={
+                filter === "open"
+                  ? "Nothing is contested right now."
+                  : "Nothing has been decided in the last 50 jobs."
+              }
+            />
+          )
         ) : (
           list.map((job) => (
             <DisputeCard
@@ -554,6 +676,8 @@ const AdminDisputes = () => {
               setHelperShare={setHelperShare}
               setActivePanelJobId={setActivePanelJobId}
               decide={decide}
+              retrySettlement={retrySettlement}
+              retrying={retrying}
             />
           ))
         )}

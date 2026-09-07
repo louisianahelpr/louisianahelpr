@@ -4,7 +4,6 @@ import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/Filt
 import { SavedSearches } from "@/components/SavedSearches";
 import { hapticLight } from "@/lib/haptics";
 import type { BrowseTasksToolbarProps } from "./browseTasksToolbar/types";
-import { BrowseSearchBar } from "./browseTasksToolbar/BrowseSearchBar";
 import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
 import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
 
@@ -59,7 +58,6 @@ export function BrowseTasksToolbar({
   // (Dashboard, DashboardGuest) don't need a matching change.
   titleSrOnly: _titleSrOnly = false,
   filtersAnchorRef,
-  compactActions = false,
   savedOnly = false,
   onToggleSavedOnly,
   savedCount = 0,
@@ -168,17 +166,12 @@ export function BrowseTasksToolbar({
           // them, so they live here instead. They sit ABOVE "View" because
           // they are the two that decide WHICH results exist at all — text and
           // saved-state — before you choose how to look at them.
-          ...(compactActions
-            ? [{
-                key: "search",
-                title: "Search",
-                // `embedded` — inside the panel the field is a permanent
-                // section, so its trailing ✕ is a CLEAR (shown only when
-                // there is text), not a "close search" that has nothing to
-                // close. The panel's own close button lives in its header.
-                content: <BrowseSearchBar filters={filters} embedded />,
-              }]
-            : []),
+          // NO SEARCH SECTION. Search is an icon in the brand row on every
+          // width now (owner, 2026-09-07), so a second field in here would be
+          // the same control in two places — and the sheet copy is one of the
+          // sites an external review read as evidence that Browse had no
+          // search at all. One home each: text goes in the row's field,
+          // everything below narrows what that returns.
           // View keeps its own row (owner, 2026-08-24: tried riding the
           // Sort by line, rejected) — it decides HOW you look at results,
           // before anything about which results.

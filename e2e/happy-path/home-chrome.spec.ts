@@ -201,17 +201,27 @@ for (const variant of [
       expect(box.x + box.width, `action icon ${name} sits left of the bell`)
         .toBeLessThanOrEqual(bellBox.x + 1);
     }
-    // ...and the two that moved into the sheet are not back in the row.
-    // PHONE ONLY. Search folded into the filter sheet because the phone brand
-    // row could not fit it (emblem + filter + bell is the whole row now);
-    // desktop web renders the cluster in the in-panel toolbar, which has the
-    // width, so Search is still an icon there.
-    if (!isDesktopWeb) {
-      await expect(
-        page.getByRole("button", { name: /^Search jobs$/ }),
-        "Search belongs in the filter sheet on phone, not the brand row",
-      ).toHaveCount(0);
-    }
+    // SEARCH IS AN ICON ON EVERY WIDTH, PHONE INCLUDED (owner, 2026-09-07).
+    //
+    // This asserted the opposite until then: Search had folded into the filter
+    // sheet because the phone brand row could not fit it. That was true when
+    // the cluster was FIVE controls — but Saved, View and Saved-searches have
+    // all since moved into the sheet, and nobody re-measured. At 375 it left a
+    // 158px hole between the emblem and the first icon, which an external
+    // review read as a broken search box; at 320 the row now needs 156px
+    // against 201px of room.
+    //
+    // The deciding argument was consistency rather than width: ActivityHeader
+    // renders its "Search jobs" button unconditionally, so My Posts and My Jobs
+    // have carried this icon in this slot at this width the whole time. Browse
+    // was the odd screen out.
+    //
+    // Kept as a POSITIVE assertion, not a deletion — an absent check would let
+    // the icon quietly disappear again the next time someone re-tunes this row.
+    await expect(
+      page.getByRole("button", { name: /^Search jobs$/ }),
+      `Search rides the brand row on every width @ ${variant.tag}`,
+    ).toHaveCount(1);
     for (const name of MOVED_OUT_OF_ROW) {
       await expect(
         page.getByRole("button", { name }),

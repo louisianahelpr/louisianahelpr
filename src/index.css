@@ -1046,25 +1046,12 @@ html.web-desktop {
     border-bottom-right-radius: 1.5rem !important;
     border-bottom: 1px solid hsl(var(--border)) !important;
   }
-  html.web-desktop .empty-state-dock {
-    /* ALL FOUR corners rounded, and it keeps its border — it IS an inner box,
-       it just must not be a SQUARE one (owner, 2026-09-07, at a screenshot:
-       "the inner boxes should be round just like everything else").
-
-       This rule used to restore only the bottom pair, leaving the SQUARE top
-       corners EmptyState sets inline for the mobile dock-bleed. Measured on
-       /my-jobs before the fix: outer section `24px 24px 0 0`, dock
-       `0 0 24px 24px`, dock 1094px inside a 1096px section — two half-rounded
-       surfaces stacked, which draws as a rounded card with a square box jammed
-       inside it. On mobile the squared edges are correct, because the card
-       genuinely bleeds under the floating dock; on desktop that dock is hidden,
-       so there is nothing to bleed under and the squares are just wrong.
-
-       24px, every corner, same as every other surface in the app.
-       `!important` is required: EmptyState sets the zeroed radii inline. */
-    border-radius: 1.5rem !important;
-    border: 1px solid hsl(var(--border)) !important;
-  }
+  /* `.empty-state-dock` no longer paints anything at ANY width — the
+     `liquid-glass` class was removed from it in EmptyState.tsx, because the
+     panel it sits inside already provides the surface, the border and the
+     corners. The desktop override that used to live here was fixing the
+     symptom at one breakpoint; the box was drawn on phone too, which is where
+     the owner was looking. Nothing to override now. */
   /* Widen the inner content column on desktop. PageScaffold's centered column
      is capped at max-w-3xl (768px) on mobile; on desktop it FILLS the frame.
 

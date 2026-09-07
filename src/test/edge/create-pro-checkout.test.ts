@@ -135,7 +135,7 @@ describe("automatic_tax needs an address, and this is where every helper failed"
     stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_existing" }] });
     const res = await post({ tier: "plus", billing_cycle: "monthly" });
     expect(res.status).toBe(200);
-    const [params] = stripeMock.checkout.sessions.create.mock.calls.at(-1)!;
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[stripeMock.checkout.sessions.create.mock.calls.length - 1]!;
     expect(params.customer).toBe("cus_existing");
     expect(params.automatic_tax).toEqual({ enabled: true });
     // The one line. Without it Stripe throws before a session exists.
@@ -148,7 +148,7 @@ describe("automatic_tax needs an address, and this is where every helper failed"
     stripeMock.customers.list.mockResolvedValue({ data: [] });
     const res = await post({ tier: "plus", billing_cycle: "monthly" });
     expect(res.status).toBe(200);
-    const [params] = stripeMock.checkout.sessions.create.mock.calls.at(-1)!;
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[stripeMock.checkout.sessions.create.mock.calls.length - 1]!;
     expect(params.customer).toBeUndefined();
     expect(params.customer_update).toBeUndefined();
     expect(params.customer_email).toBe(USER.email);
@@ -160,7 +160,7 @@ describe("automatic_tax needs an address, and this is where every helper failed"
     stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_existing" }] });
     const res = await post({ tier: "elite", billing_cycle: "one_time" });
     expect(res.status).toBe(200);
-    const [params] = stripeMock.checkout.sessions.create.mock.calls.at(-1)!;
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[stripeMock.checkout.sessions.create.mock.calls.length - 1]!;
     expect(params.mode).toBe("payment");
     expect(params.customer_update).toEqual({ address: "auto" });
   });

@@ -75,7 +75,21 @@ export interface SupabaseScenario {
   /** rpc name -> error to return instead of data. Fail-closed paths need it. */
   rpcErrors?: Record<string, { message: string; code?: string }>;
   /** Every rpc() call, in order — lets a test assert an RPC was NOT made. */
-  rpcCalls?: Array<{ name: string; args: unknown }>;
+  rpcCalls?: Array<{ name: string; args: unknown; client?: number }>;
+  /**
+   * Every createClient(url, key, options) call, in order, WITH the options.
+   *
+   * The third argument used to be dropped on the floor here, and that blind
+   * spot let a real outage ship on 2026-09-05: create-pro-checkout called an
+   * `authenticated`-only RPC on a client built from the anon key with no
+   * Authorization header, so it ran as `anon`, hit 42501, failed closed, and
+   * killed every membership purchase. No source grep could see it and no edge
+   * test could either, because the mock could not tell the two clients apart.
+   *
+   * Recording the options is what makes "which identity did this call run as"
+   * an assertable property rather than a code-review hope.
+   */
+  clients?: Array<{ url: string; key: string; options?: Record<string, unknown> }>;
   /**
    * Captured writes, in order. `filters` records the `eq`/`neq`/`in` calls that
    * were chained onto the write — the filters themselves are no-ops for
@@ -125,6 +139,7 @@ export function freshScenario(): SupabaseScenario {
     rpc: {},
     rpcErrors: {},
     rpcCalls: [],
+    clients: [],
     writes: [],
     writeErrors: {},
     writeSelectRows: {},
@@ -381,8 +396,15 @@ export interface SupabaseClientMock {
   rpc: ReturnType<typeof vi.fn>;
 }
 
-/** The constructor the function code calls as `createClient(url, key)`. */
-export function createClient(_url: string, _key: string): SupabaseClientMock {
+/** The constructor the function code calls as `createClient(url, key, options)`. */
+export function createClient(
+  _url: string,
+  _key: string,
+  _options?: Record<string, unknown>,
+): SupabaseClientMock {
+  // Recorded so a test can assert WHICH client an RPC ran on — see `clients`.
+  (scenario.clients ??= []).push({ url: _url, key: _key, options: _options });
+  const clientIndex = (scenario.clients?.length ?? 1) - 1;
   return {
     from: (table: string) => new QueryBuilder(table),
     auth: {
@@ -403,7 +425,10 @@ export function createClient(_url: string, _key: string): SupabaseClientMock {
       },
     },
     rpc: vi.fn(async (name: string, args?: unknown) => {
-      scenario.rpcCalls?.push({ name, args });
+      // `client` is the index into scenario.clients — i.e. WHICH client this
+      // RPC ran on. Without it, "the RPC was called" and "the RPC was called as
+      // the right identity" are the same assertion, and they are not.
+      scenario.rpcCalls?.push({ name, args, client: clientIndex });
       const err = scenario.rpcErrors?.[name];
       if (err) return { data: null, error: err };
       // A function value is called with the arguments, so one scenario can

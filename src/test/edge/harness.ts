@@ -196,6 +196,19 @@ function rewriteExternalImports(src: string): string {
     `$1 {$2} from "../../../supabase/functions/_shared/productTiers.ts";`,
   );
 
+  // Consumer subscription Price IDs: `_shared/proTiers.ts` is plain TypeScript
+  // (its only Deno touch is a guarded `globalThis.Deno` read), so the generated
+  // file points at the REAL module. It decides WHICH Stripe Price a membership
+  // checkout charges against — mock it and the one thing worth asserting, the
+  // price the member is actually billed, stops being tested. Without this rule
+  // create-pro-checkout could not be loaded by the harness at all, which is
+  // exactly why it had no execution test when its eligibility check shipped
+  // broken on 2026-09-05.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/proTiers\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/proTiers.ts";`,
+  );
+
   // Stripe identity verdict: `_shared/stripeIdentity.ts` is pure TypeScript
   // (its only import is a TYPE-only Stripe import, stripped on transpile), so
   // the generated file points at the REAL module. The rule deciding whether a

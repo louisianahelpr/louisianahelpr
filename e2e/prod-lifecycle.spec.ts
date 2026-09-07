@@ -215,7 +215,7 @@ function rest(session: Session) {
 /** Read a job's current row as the poster. */
 async function readJob(api: APIRequestContext, session: Session, jobId: string) {
   const r = await api.get(
-    `${SUPABASE_URL}/rest/v1/jobs?id=eq.${jobId}&select=id,status,payment_status,helper_id,parish,is_seed,poster_completed_at,helper_completed_at`,
+    `${SUPABASE_URL}/rest/v1/jobs?id=eq.${jobId}&select=id,status,payment_status,helper_id,parish,is_seed,poster_completed_at,helper_completed_at,payout_scheduled_at`,
     { headers: rest(session) },
   );
   expect(r.ok(), `reading job ${jobId}: ${r.status()}`).toBe(true);
@@ -580,15 +580,21 @@ test.describe("full money loop against production", () => {
       const settled = await readJob(request, poster, job.id);
       expect(settled.poster_completed_at, "release did not stamp poster_completed_at").toBeTruthy();
 
-      // The money actually moved: a transfer row for THIS job, to the helper.
-      const transfers = await request.get(
-        `${SUPABASE_URL}/rest/v1/payout_transfers?job_id=eq.${job.id}&select=id,status,amount_cents,helper_id`,
-        { headers: rest(poster) },
-      );
-      expect(transfers.ok(), `reading payout_transfers: ${transfers.status()}`).toBe(true);
-      const transferRows = await transfers.json();
-      expect(transferRows, "release produced no payout_transfers row").not.toHaveLength(0);
-      expect(Number(transferRows[0].amount_cents), "payout was zero or negative").toBeGreaterThan(0);
+      /* What release actually produces, checked against what it actually does.
+         This used to assert a `payout_transfers` row existed and failed on it
+         ("release produced no payout_transfers row") the first time the suite
+         ever got this far. Release does not pay anybody: it captures, sets
+         payout_scheduled_at and moves payment_status to 'payout_pending'
+         (create-payment/index.ts:604-606). The transfer row is written later by
+         process-scheduled-payouts, when the payout is genuinely sent — so
+         demanding one here was asserting the wrong function's work, and would
+         have gone red forever while the product behaved correctly.
+
+         The ledger row therefore is NOT covered by this suite, and that gap is
+         real: nothing unmocked proves money reaches the helper's Connect
+         account. Covering it needs the payout cron driven after release, which
+         is a separate piece of work. */
+      expect(settled.payout_scheduled_at, "release did not schedule a payout").toBeTruthy();
 
       const review = await request.post(`${SUPABASE_URL}/rest/v1/reviews`, {
         headers: { ...rest(poster), Prefer: "return=representation" },

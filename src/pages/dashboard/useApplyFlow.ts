@@ -345,8 +345,43 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // both times. Activity resolves `?job=` to whichever bucket the job is
       // in right now (see the deep-link effect in pages/Activity.tsx), so the
       // card is on screen and pulsing whatever state it is in.
+      // THE SERVER CAN STILL WITHHOLD THE NOTE, and the sender has to be told.
+      // The contact filter runs server-side on insert; when it fires it sets
+      // `flagged_hidden` and the poster never sees the note. The helper got
+      // "Application sent!" and waited for a reply to a sentence nobody read.
+      // ApplyBody now runs the same scanner BEFORE sending, which catches the
+      // ordinary case — but the client scanner is a MIRROR of the server rules,
+      // not the same code, so it can be behind. This reads the outcome back and
+      // says so when the two disagree.
+      //
+      // Best-effort by design: the application has already landed. A failed or
+      // RLS-blocked readback must not turn a successful apply into an error, so
+      // it falls through to the ordinary confirmation.
+      let noteWithheld = false;
+      if (!vars.isInstantBook && vars.message?.trim()) {
+        try {
+          const { data: row, error: flagErr } = await supabase
+            .from("applications")
+            .select("flagged_hidden")
+            .eq("job_id", vars.jobId)
+            .eq("helper_id", vars.helperId)
+            .maybeSingle();
+          if (!flagErr && row?.flagged_hidden) noteWithheld = true;
+        } catch {
+          // Swallowed on purpose — see above. The apply succeeded; this only
+          // decides which of two success messages to show.
+        }
+      }
+
       if (vars.isInstantBook) {
         toast.success("You're booked! Check My Jobs for details.", {
+          action: { label: "View", onClick: () => navigate(`/my-jobs?job=${vars.jobId}`) },
+        });
+      } else if (noteWithheld) {
+        toast.warning("Application sent — but your note wasn't included.", {
+          description:
+            "It looked like contact or payment details, which can't be shared before a job is confirmed. The poster sees your application without it.",
+          duration: 10000,
           action: { label: "View", onClick: () => navigate(`/my-jobs?job=${vars.jobId}`) },
         });
       } else {

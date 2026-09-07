@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { scanMessage, type DetectedViolation } from "@/lib/messageScanner";
+import { ViolationDialog } from "@/components/richMessageInput/ViolationDialog";
 import { MessageSquare, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { RELIABILITY_LADDER_RUNGS } from "@/lib/reliabilityLadder";
@@ -41,10 +43,26 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
   // tapped Send four times against the jobs_award_gate refusal with no visible
   // response at all. The dialog stays open and Send re-enables for a retry.
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [violations, setViolations] = useState<DetectedViolation[] | null>(null);
   const selectedLabel =
     deadlineOptions.find((o) => o.value === hours)?.label ?? `${hours} hours`;
 
   const handleConfirm = async () => {
+    // SAME CONTRACT AS MESSAGES. The server scans this offer message the way
+    // it scans a chat message and, when it trips a rule, stores it with
+    // `flagged_hidden` set — the helpr never sees it. The poster got a success
+    // path and no hint that the sentence they wrote had been withheld. Messages
+    // has always blocked the same content BEFORE sending and named the words
+    // that caused it; this is that scanner and that dialog. The server-side
+    // scan is untouched — a direct API call, a stale client and a race all
+    // still hit it.
+    if (message.trim()) {
+      const found = scanMessage(message);
+      if (found.length > 0) {
+        setViolations(found);
+        return;
+      }
+    }
     setSubmitting(true);
     setErrorMessage(null);
     try {
@@ -71,6 +89,11 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
   };
 
   return (
+    <>
+      {/* Portalled sibling, not a child of this dialog's content: a nested
+          Radix modal inside an open one inherits `pointer-events: none` from
+          <body> and renders inert. */}
+      <ViolationDialog violations={violations} onOpenChange={(o) => { if (!o) setViolations(null); }} />
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHero title="Set a Response Deadline" />
@@ -186,5 +209,6 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 };

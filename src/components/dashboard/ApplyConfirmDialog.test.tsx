@@ -3,6 +3,7 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ApplyConfirmDialog } from "./ApplyConfirmDialog";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import { scanMessage } from "@/lib/messageScanner";
 
 // The body only imports `toast` for the over-5MB file guard, which these
 // tests never trip — a thin stub satisfies the import.
@@ -294,5 +295,53 @@ describe("ApplyConfirmDialog", () => {
       render(<ApplyConfirmDialog {...makeProps()} />);
       expect(screen.queryByText(/can't be hired yet/i)).not.toBeInTheDocument();
     });
+  });
+});
+
+/**
+ * THE CONTACT FILTER TOLD THE SENDER NOTHING.
+ *
+ * A helper's apply note goes through the same server-side contact scan as a
+ * chat message. When it fires, the application is stored with
+ * `flagged_hidden = true` and the poster never sees the note — but the helper
+ * was shown "Application sent!" and nothing else, so they waited on a reply to
+ * a sentence nobody had read. Reproduced against prod on 2026-09-07: two rows
+ * landed with flagged_hidden = true while the UI reported plain success.
+ *
+ * Messages has always blocked the same content BEFORE sending, with a dialog
+ * naming the exact words. Apply now uses that same scanner and that same
+ * dialog. The server-side scan stays where it is — this is the UI half of a
+ * defence in depth, not a replacement for it.
+ */
+describe("ApplyConfirmDialog contact filter", () => {
+  const PHONE_NOTE = "Sure, just call me at 504-555-0100 and we'll sort it out.";
+
+  it("catches the exact note prod stored as flagged_hidden", () => {
+    const found = scanMessage(PHONE_NOTE);
+    expect(found.map((v) => v.type)).toContain("phone_number");
+  });
+
+  it("blocks before sending and quotes the offending text", () => {
+    const handleApplyConfirm = vi.fn();
+    render(<ApplyConfirmDialog {...makeProps({ applyMessage: PHONE_NOTE, handleApplyConfirm })} />);
+    fireEvent.click(screen.getByRole("button", { name: /apply now/i }));
+    expect(handleApplyConfirm).not.toHaveBeenCalled();
+    expect(screen.getByText(/violates platform rules/i)).toBeInTheDocument();
+    // The dialog wraps the match in typographic quotes, so match on content.
+    expect(document.body.textContent).toContain("504-555-0100");
+  });
+
+  it("lets a clean note through untouched", () => {
+    const handleApplyConfirm = vi.fn();
+    render(
+      <ApplyConfirmDialog
+        {...makeProps({
+          applyMessage: "I have moved furniture for three years and can bring a dolly.",
+          handleApplyConfirm,
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /apply now/i }));
+    expect(handleApplyConfirm).toHaveBeenCalled();
   });
 });

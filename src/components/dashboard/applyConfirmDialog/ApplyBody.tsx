@@ -7,7 +7,9 @@ import { WifiOff, BookmarkCheck, ChevronLeft, AlertTriangle } from "lucide-react
 import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
 import { helperApplyBlockNotice } from "@/lib/awardGate";
 import { errorToast } from "@/lib/toast";
-import { hapticMedium } from "@/lib/haptics";
+import { hapticMedium, hapticError } from "@/lib/haptics";
+import { scanMessage, type DetectedViolation } from "@/lib/messageScanner";
+import { ViolationDialog } from "@/components/richMessageInput/ViolationDialog";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { safeStorage } from "@/lib/safeStorage";
 import type { ApplyConfirmDialogProps } from "./types";
@@ -99,6 +101,7 @@ export function ApplyBody({
   const jobId = confirmApplyJob?.id ?? null;
   const draftKey = pitchDraftKey(jobId);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const [pendingViolations, setPendingViolations] = useState<DetectedViolation[] | null>(null);
 
   const savedTemplate = safeStorage.getItem(TEMPLATE_KEY);
   const differsFromTemplate = !!applyMessage.trim() && applyMessage !== savedTemplate;
@@ -157,6 +160,23 @@ export function ApplyBody({
 
   const handleConfirm = () => {
     hapticMedium();
+    // SAME CONTRACT AS MESSAGES. The server scans this note exactly as it scans
+    // a chat message and, when it trips a rule, stores the application with
+    // `flagged_hidden` set — the poster never sees the note. The helpr was told
+    // "Application sent!" and nothing else, so they waited on a reply to a
+    // sentence nobody had read. Messages has always blocked the same content
+    // BEFORE sending and said which words were the problem; this is that same
+    // scanner and that same dialog, on the surface that was silently dropping
+    // it instead. The server-side scan stays exactly where it is — this is the
+    // UI half of a defence in depth, not a replacement for it.
+    if (applyMessage.trim()) {
+      const violations = scanMessage(applyMessage);
+      if (violations.length > 0) {
+        hapticError();
+        setPendingViolations(violations);
+        return;
+      }
+    }
     // Offline: don't fire a mutation that rolls back silently. Persist the
     // pitch and keep the step up with a clear retry affordance instead.
     if (!online) {
@@ -184,6 +204,7 @@ export function ApplyBody({
 
   return (
     <div className="min-w-0 flex flex-col gap-3.5">
+      <ViolationDialog violations={pendingViolations} onOpenChange={(o) => { if (!o) setPendingViolations(null); }} />
       {!confirmApplyJob && (
         <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           Are you sure you want to proceed?

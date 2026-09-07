@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { _redact, _sanitizeUrl, _isDevEnvironment } from "./errorLogger";
+import { _redact, _sanitizeUrl, _isDevEnvironment, _describeUnknownError } from "./errorLogger";
 
 describe("errorLogger._redact", () => {
   it("redacts Bearer tokens", () => {
@@ -112,5 +112,27 @@ describe("errorLogger._isDevEnvironment", () => {
     });
     expect(_isDevEnvironment(null)).toBe(false);
     expect(_isDevEnvironment("at App.tsx:42")).toBe(false);
+  });
+});
+
+describe("errorLogger._describeUnknownError", () => {
+  it("uses a Supabase-shaped plain object's own message, not [object Object]", () => {
+    // PostgrestError is a plain object, not an Error instance.
+    const e = { message: "permission denied for table jobs", code: "42501", details: null, hint: null };
+    const out = _describeUnknownError(e);
+    expect(out).toContain("permission denied for table jobs");
+    expect(out).toContain("code=42501");
+    expect(out).not.toContain("[object Object]");
+  });
+  it("keeps Error.message for real errors", () => {
+    expect(_describeUnknownError(new Error("boom"))).toBe("boom");
+  });
+  it("serialises an object with no message rather than stringifying it", () => {
+    expect(_describeUnknownError({ status: 503 })).toBe("status=503");
+    expect(_describeUnknownError({ a: 1 })).toBe('{"a":1}');
+  });
+  it("still stringifies primitives", () => {
+    expect(_describeUnknownError("plain")).toBe("plain");
+    expect(_describeUnknownError(42)).toBe("42");
   });
 });

@@ -61,9 +61,7 @@ for (const info of infos) {
   console.log(`\nageRatingDeclaration ${decl.id}`);
   // Print only the fields Apple named, plus anything non-null, so the diff is
   // readable rather than 30 lines of nulls.
-  for (const [k, val] of Object.entries(a)) {
-    if (val !== null && val !== false && val !== "NONE") console.log(`   ${k}: ${JSON.stringify(val)}`);
-  }
+  console.log("   RAW: " + JSON.stringify(a));
   const target = {};
   if ("parentalControls" in a && a.parentalControls !== false) target.parentalControls = false;
   if ("ageAssurance" in a && a.ageAssurance !== false) target.ageAssurance = false;

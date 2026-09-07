@@ -80,6 +80,13 @@ const GATED_IN_CI: Record<string, { runner: string; needs: string }> = {
     runner: "e2e-real-backend.yml",
     needs: "PLAYWRIGHT_TWO_ROLE=1 + PLAYWRIGHT_POSTER_SESSION + PLAYWRIGHT_HELPER_SESSION + PLAYWRIGHT_LIFECYCLE_JOB_ID",
   },
+  "prod-lifecycle.spec.ts": {
+    runner: "e2e-real-backend.yml",
+    needs:
+      "PLAYWRIGHT_POSTER_EMAIL + PLAYWRIGHT_POSTER_PASSWORD + PLAYWRIGHT_HELPER_EMAIL + " +
+      "PLAYWRIGHT_HELPER_PASSWORD (the two dedicated prod accounts). Writes to production " +
+      "on a Stripe test key; see the spec header for the blast-radius controls.",
+  },
 };
 
 /**
@@ -384,6 +391,33 @@ describe("CI crosses the mock boundary", () => {
         `(${crossing.map((s) => s).join(", ")}). "Exists but skipped" reads exactly like ` +
         `"passes" on the Actions tab. At least one unmocked check must execute unconditionally.`,
     ).not.toEqual([]);
+  });
+
+  it("the prod loop and its sweeper agree on the marker that identifies their rows", () => {
+    // These two files each declare E2E_TITLE_MARKER. They cannot share a module:
+    // the spec is compiled under tsconfig.e2e (which includes `e2e`, not
+    // `scripts`), and the sweeper runs top-level code that exits when its env is
+    // absent, so importing it from a spec would kill the run.
+    //
+    // A literal duplicated across two files is exactly the shape that rots. The
+    // marker is the ONLY handle the sweeper has on the rows the spec creates, so
+    // if they drift, the sweeper silently finds nothing and every stranded
+    // production job stays stranded — while reporting "OK — nothing stranded".
+    // Hence: derive both, and diff.
+    const read = (rel: string) => {
+      const src = readFileSync(join(REPO, rel), "utf8");
+      const m = /E2E_TITLE_MARKER\s*=\s*"([^"]+)"/.exec(src);
+      expect(m, `${rel} no longer declares E2E_TITLE_MARKER`).toBeTruthy();
+      return m![1];
+    };
+    const spec = read("e2e/prod-lifecycle.spec.ts");
+    const sweeper = read("scripts/e2e/prod-lifecycle-sweeper.mjs");
+    expect(spec.length, "the marker must be substantial enough to match nothing else").toBeGreaterThan(8);
+    expect(
+      sweeper,
+      `the lifecycle spec tags its rows "${spec}" but the sweeper looks for "${sweeper}" — ` +
+        `every production row the suite creates would be unreachable by teardown`,
+    ).toBe(spec);
   });
 
   it("keeps a real-backend check that needs no provisioning", () => {

@@ -28,6 +28,7 @@
     "db:diff": "npx supabase db diff --linked --schema public",
     "prepare": "husky || true",
     "check:launch": "HELPR_LAUNCH=1 bash scripts/check-launch-flags.sh",
+    "launch:go": "node scripts/launch-go.mjs",
     "deadcode": "knip",
     "deadcode:functions": "node scripts/check-dead-edge-functions.mjs",
     "strip:ios-sourcemaps": "node scripts/strip-ios-sourcemaps.mjs",

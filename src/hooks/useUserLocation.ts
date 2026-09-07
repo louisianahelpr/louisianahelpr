@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { persistUserLocation } from "@/lib/persistUserLocation";
 
 export type GeoState =
   | { status: "idle" }
@@ -44,6 +45,17 @@ export function useUserLocation(enabled: boolean): GeoState {
     const onSuccess = (lat: number, lng: number) => {
       cached = { lat, lng, ts: Date.now() };
       setState({ status: "ready", lat, lng });
+      // Persist the fix to the signed-in user's profile. This is the ONLY
+      // funnel a granted position passes through on either platform, which is
+      // why the write lives here rather than at the two call sites.
+      //
+      // Until now the fix died in the module cache above after five minutes,
+      // so `profiles.latitude/longitude` had three readers and no writer and
+      // every distance feature was inert for real accounts. Deliberately not
+      // awaited: the radius filter the user actually asked for must not wait
+      // on a round trip, and `persistUserLocation` reports its own failures
+      // rather than swallowing them.
+      void persistUserLocation(lat, lng);
     };
 
     // Native (Capacitor) reads through @capacitor/geolocation so iOS/Android

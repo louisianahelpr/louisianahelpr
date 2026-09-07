@@ -76,7 +76,12 @@ serve(async (req) => {
       toolsEquipment,
       emergencyContactName,
       emergencyContactPhone,
-      jobRadius,
+      // `jobRadius` was destructured here and written to `profiles.job_radius`
+      // below. No client has sent it since the signup step that collected it
+      // was deleted, and the column is dropped in 20260907053425. Removing the
+      // argument in the SAME change is the point: an accepted field that
+      // targets a dropped column would 500 a stale iOS build's signup, and a
+      // shipped .ipa cannot be updated from here.
       extraComments,
       marketingConsent,
       // Explicit "I am 18 or older" attestation from the signup form. DOB is
@@ -587,7 +592,6 @@ serve(async (req) => {
     if (toolsEquipment) updateData.tools_equipment = toolsEquipment;
     if (emergencyContactName) updateData.emergency_contact_name = emergencyContactName;
     if (emergencyContactPhone) updateData.emergency_contact_phone = emergencyContactPhone;
-    if (jobRadius) updateData.job_radius = jobRadius;
     if (extraComments) updateData.extra_comments = extraComments;
 
     // `.select("user_id")` + a zero-row branch, per CLAUDE.md. This UPDATE is

@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, Eye, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
+import { ArrowUp, Eye, MapPin, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
@@ -12,6 +12,7 @@ import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { type Job, type EnrichedApplication } from "../activityConstants";
 import { type JobAnalytics } from "./useJobAnalytics";
 import { useApplicantComparison } from "./useApplicantComparison";
+import { type DistanceBand } from "./useApplicantSignals";
 import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
 import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } from "./applicantsPanel/ApplicantsStates";
 import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
@@ -34,7 +35,7 @@ interface ApplicantsPanelProps {
   completedCountsMap: Map<string, number>;
   repeatHireMap: Map<string, number>;
   onTimeMap: Map<string, number>;
-  distanceMap: Map<string, number>;
+  distanceBandMap: Map<string, DistanceBand>;
   /** Reach for the selected job. Undefined until the view-count query
       resolves, or when the job has never been viewed — the readout is
       simply omitted in both cases rather than rendering a zero. */
@@ -63,7 +64,7 @@ export function ApplicantsPanel({
   completedCountsMap,
   repeatHireMap,
   onTimeMap,
-  distanceMap,
+  distanceBandMap,
   jobAnalytics,
   onBoost,
   onEdit,
@@ -111,7 +112,7 @@ export function ApplicantsPanel({
     completedCountsMap,
     repeatHireMap,
     onTimeMap,
-    distanceMap,
+    distanceBandMap,
   });
 
   /**
@@ -264,7 +265,7 @@ export function ApplicantsPanel({
                 )}
 
                 {/* Applicant cards */}
-                {sortedApplications.map(({ app, signals, neighborCount, promotedByTier }) => {
+                {sortedApplications.map(({ app, signals, neighborCount, distanceBand, promotedByTier }) => {
                   const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
                   const isElite = helperTier === "elite";
                   const isPro = helperTier === "pro";
@@ -449,6 +450,24 @@ export function ApplicantsPanel({
                                 the job address (from get_neighbor_hire_count RPC).
                                 Uses bark color so it reads as a warm local signal
                                 distinct from the neutral olivewood signals above. */}
+                            {/* Proximity, as the BAND the server chose — never
+                                a distance. Several exact distances trilaterate
+                                to a home address, and the poster owning the
+                                jobs is what makes that reachable, so the number
+                                never leaves the database (migration
+                                20260907051731). Absent when the applicant has
+                                no precise location on file, which means
+                                "unknown", NOT "far away" — so nothing is
+                                rendered rather than a misleading placeholder. */}
+                            {distanceBand && (
+                              <span
+                                className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
+                                style={{ color: "hsl(var(--olivewood))" }}
+                              >
+                                <MapPin className="w-3 h-3 shrink-0" aria-hidden="true" />
+                                {distanceBand.label}
+                              </span>
+                            )}
                             {neighborCount > 0 && (
                               <span
                                 className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"

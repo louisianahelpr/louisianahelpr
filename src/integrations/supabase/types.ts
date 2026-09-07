@@ -2744,7 +2744,6 @@ export type Database = {
           is_legacy_user: boolean
           is_licensed: boolean
           is_seed: boolean
-          job_radius: string | null
           last_approval_email_at: string | null
           last_denial_email_at: string | null
           last_drip_at: string | null
@@ -2758,6 +2757,7 @@ export type Database = {
           license_status: string
           license_url: string | null
           location: string | null
+          location_captured_at: string | null
           longitude: number | null
           marketing_consent: boolean
           onboarding_fee_charged_at: string | null
@@ -2845,7 +2845,6 @@ export type Database = {
           is_legacy_user?: boolean
           is_licensed?: boolean
           is_seed?: boolean
-          job_radius?: string | null
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
@@ -2859,6 +2858,7 @@ export type Database = {
           license_status?: string
           license_url?: string | null
           location?: string | null
+          location_captured_at?: string | null
           longitude?: number | null
           marketing_consent?: boolean
           onboarding_fee_charged_at?: string | null
@@ -2946,7 +2946,6 @@ export type Database = {
           is_legacy_user?: boolean
           is_licensed?: boolean
           is_seed?: boolean
-          job_radius?: string | null
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
@@ -2960,6 +2959,7 @@ export type Database = {
           license_status?: string
           license_url?: string | null
           location?: string | null
+          location_captured_at?: string | null
           longitude?: number | null
           marketing_consent?: boolean
           onboarding_fee_charged_at?: string | null
@@ -4685,7 +4685,8 @@ export type Database = {
       get_helper_distances_from_job: {
         Args: { p_job_id: string; p_user_ids: string[] }
         Returns: {
-          distance_km: number
+          band: string
+          band_rank: number
           user_id: string
         }[]
       }
@@ -5053,12 +5054,7 @@ export type Database = {
         }[]
       }
       get_neighbor_hire_count: {
-        Args: {
-          p_helper_id: string
-          p_lat: number
-          p_lng: number
-          p_radius_km?: number
-        }
+        Args: { p_helper_id: string; p_job_id: string }
         Returns: number
       }
       get_open_jobs_for_map: {
@@ -5232,7 +5228,14 @@ export type Database = {
         }[]
       }
       get_ranked_open_jobs: {
-        Args: { p_include_seed?: boolean; p_limit?: number; p_offset?: number }
+        Args: {
+          p_include_seed?: boolean
+          p_lat?: number
+          p_limit?: number
+          p_lng?: number
+          p_max_miles?: number
+          p_offset?: number
+        }
         Returns: {
           boost_expires_at: string
           boosted_at: string
@@ -5241,6 +5244,7 @@ export type Database = {
           created_at: string
           date_needed: string
           description: string
+          distance_band: string
           estimated_hours: number
           expires_at: string
           helpers_needed: number

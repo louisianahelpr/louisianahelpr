@@ -40,7 +40,15 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
   location: {
     icon: "📍",
     title: "Location",
-    body: "We use your location to show jobs near you and confirm Helpr arrival. Location is only checked while you're using the app.",
+    // Says "saved to your profile" because, as of 2026-09-06, it is: the
+    // granted fix is written to profiles.latitude/longitude rather than living
+    // for five minutes in memory. A rationale string that lags the behaviour
+    // is the same defect class as a control that does nothing, with worse
+    // consequences — so this sentence and NSLocationWhenInUseUsageDescription
+    // move whenever the write path does. The last clause is a promise the
+    // database keeps: get_helper_distances_from_job returns a BAND, never a
+    // distance (migration 20260907051731).
+    body: "We use your location to show jobs near you, rank them by how close they are, and confirm Helpr arrival. It's only checked while you're using the app, and your most recent location is saved to your profile so nearby jobs still work next time. Other people only ever see a rough distance range, never your exact location.",
     cta: "Share Location",
   },
   contacts: {

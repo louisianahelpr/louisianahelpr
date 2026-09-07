@@ -306,7 +306,7 @@ export const PostedJobsTab = ({
     completedCountsMap,
     repeatHireMap,
     onTimeMap,
-    distanceMap,
+    distanceBandMap,
   } = useApplicantSignals(applications, selectedJob);
 
   // Per-job analytics (view counts + conversion + bid range) for the
@@ -510,7 +510,7 @@ export const PostedJobsTab = ({
           completedCountsMap={completedCountsMap}
           repeatHireMap={repeatHireMap}
           onTimeMap={onTimeMap}
-          distanceMap={distanceMap}
+          distanceBandMap={distanceBandMap}
           jobAnalytics={jobAnalyticsMap[selectedJob.id]}
           // The two levers the "nobody has applied yet" empty state offers.
           // Same handlers the card behind the overlay uses, so the dialogs

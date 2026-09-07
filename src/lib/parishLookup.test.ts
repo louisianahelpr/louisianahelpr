@@ -12,7 +12,7 @@ vi.mock("@/lib/errorLogger", () => ({
   report: (...args: unknown[]) => reportMock(...args),
 }));
 
-import { lookupParishByZip } from "./parishLookup";
+import { lookupParishByZip, resolveParishByZip } from "./parishLookup";
 
 describe("lookupParishByZip", () => {
   beforeEach(() => {
@@ -51,6 +51,29 @@ describe("lookupParishByZip", () => {
     expect(await lookupParishByZip("99999")).toBeNull();
   });
 
+  it("reports an unresolvable ZIP so the hole is visible to somebody", async () => {
+    // The operator-facing half of the guard. Before this, a ZIP the table could
+    // not place produced a NULL parish, no error, and no record anywhere — so
+    // an unreachable account was created and nobody found out. It stays a
+    // WARNING because an out-of-state ZIP is a legitimate outcome.
+    rpcMock.mockResolvedValue({ data: null, error: null });
+    expect(await lookupParishByZip("99999")).toBeNull();
+    expect(reportMock).toHaveBeenCalledOnce();
+    const [, opts] = reportMock.mock.calls[0];
+    const { tags, severity } = opts as { tags: Record<string, string>; severity: string };
+    expect(tags.source).toBe("parishLookup.unknownZip");
+    expect(tags.zip).toBe("99999");
+    expect(severity).toBe("warning");
+  });
+
+  it("does NOT report when the ZIP resolves", async () => {
+    // The non-vacuous half: a warning on every successful lookup would bury the
+    // one that matters.
+    rpcMock.mockResolvedValue({ data: "Orleans", error: null });
+    await lookupParishByZip("70112");
+    expect(reportMock).not.toHaveBeenCalled();
+  });
+
   it("returns null and reports when RPC errors", async () => {
     rpcMock.mockResolvedValue({ data: null, error: new Error("function does not exist") });
     expect(await lookupParishByZip("70112")).toBeNull();
@@ -72,5 +95,39 @@ describe("lookupParishByZip", () => {
     rpcMock.mockResolvedValue({ data: "Jefferson", error: null });
     await lookupParishByZip("70001-9999");
     expect(rpcMock).toHaveBeenCalledWith("get_parish_for_zip", { p_zip: "70001" });
+  });
+});
+
+describe("resolveParishByZip", () => {
+  beforeEach(() => {
+    rpcMock.mockReset();
+    reportMock.mockReset();
+  });
+
+  it("tells 'not a Louisiana ZIP' apart from 'the lookup broke'", async () => {
+    // The whole reason this function exists. Both used to be `null`, so the UI
+    // could not warn about the first without also accusing people whose only
+    // problem was our own RPC failing.
+    rpcMock.mockResolvedValue({ data: null, error: null });
+    expect(await resolveParishByZip("99999")).toEqual({ status: "unknown-zip", zip: "99999" });
+
+    rpcMock.mockResolvedValue({ data: null, error: new Error("boom") });
+    expect(await resolveParishByZip("70112")).toEqual({ status: "lookup-failed", zip: "70112" });
+
+    rpcMock.mockRejectedValue(new Error("network down"));
+    expect(await resolveParishByZip("70112")).toEqual({ status: "lookup-failed", zip: "70112" });
+  });
+
+  it("reports a partial ZIP as incomplete without calling the RPC", async () => {
+    expect(await resolveParishByZip("701")).toEqual({ status: "incomplete" });
+    expect(await resolveParishByZip("")).toEqual({ status: "incomplete" });
+    expect(await resolveParishByZip(null)).toEqual({ status: "incomplete" });
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("resolves a known ZIP, normalising ZIP+4", async () => {
+    rpcMock.mockResolvedValue({ data: "Vermilion", error: null });
+    expect(await resolveParishByZip("70528-1234")).toEqual({ status: "resolved", parish: "Vermilion" });
+    expect(rpcMock).toHaveBeenCalledWith("get_parish_for_zip", { p_zip: "70528" });
   });
 });

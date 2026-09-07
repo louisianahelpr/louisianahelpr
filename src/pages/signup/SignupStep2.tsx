@@ -18,6 +18,7 @@ import {
   Check,
 } from "lucide-react";
 import { DatePickerField } from "@/components/DatePickerField";
+import { UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { formatPhone } from "./signupHelpers";
 
@@ -66,6 +67,10 @@ export interface SignupStep2Props {
   /** Soft sanity hint — set when the ZIP's parish and the typed City's
    * recognized parish disagree. Null when there's nothing to flag. */
   zipCityMismatch?: string | null;
+  /** True when the lookup succeeded and Louisiana has no such ZIP. The account
+   * can still be created; it just won't be reachable by the parish fan-out,
+   * which is precisely why the person has to be told before they finish. */
+  zipUnknown?: boolean;
   bio: string;
   setBio: (v: string) => void;
   inputCls: string;
@@ -104,6 +109,7 @@ export function SignupStep2(props: SignupStep2Props) {
     zipCode,
     setZipCode,
     zipCityMismatch,
+    zipUnknown,
     bio,
     setBio,
     inputCls,
@@ -342,6 +348,17 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="zipCode-error" message={fieldErrors.zipCode} />
           </div>
         </div>
+        {zipUnknown && (
+          <p
+            id="zipCode-unknown"
+            role="status"
+            className="flex items-start gap-1 text-ds-11"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          >
+            <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />
+            {UNKNOWN_ZIP_MESSAGE}
+          </p>
+        )}
         {zipCityMismatch && (
           <p
             className="flex items-center gap-1 text-ds-11"

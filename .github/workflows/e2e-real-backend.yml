@@ -70,7 +70,14 @@ on:
 
 concurrency:
   group: e2e-real-backend-${{ github.ref }}
-  cancel-in-progress: true
+  # NOT `true`, unlike every other workflow in this repo. Cancelling this one
+  # mid-flight can orphan a FUNDED production job: the money loop's teardown
+  # runs as an `if: always()` step, and a workflow-level cancellation kills the
+  # runner without giving that step a chance. The orphan then sits in a state
+  # that seven `is_seed`-blind crons will act on. Queueing costs a few minutes;
+  # cancelling costs a stranded escrow row that nothing can clean up but the
+  # next run's pre-sweep.
+  cancel-in-progress: false
 
 jobs:
   # ---------------------------------------------------------------------
@@ -84,6 +91,7 @@ jobs:
     outputs:
       have_user_creds: ${{ steps.check.outputs.have_user_creds }}
       have_two_role: ${{ steps.check.outputs.have_two_role }}
+      have_lifecycle: ${{ steps.check.outputs.have_lifecycle }}
     steps:
       - id: check
         env:
@@ -93,6 +101,10 @@ jobs:
           POSTER_SESSION: ${{ secrets.PLAYWRIGHT_POSTER_SESSION }}
           HELPER_SESSION: ${{ secrets.PLAYWRIGHT_HELPER_SESSION }}
           LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
         run: |
           set -euo pipefail
           if [ -n "$USER_EMAIL" ] && [ -n "$USER_PASSWORD" ]; then
@@ -104,6 +116,11 @@ jobs:
             echo "have_two_role=true" >> "$GITHUB_OUTPUT"
           else
             echo "have_two_role=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$POSTER_EMAIL" ] && [ -n "$POSTER_PASSWORD" ] && [ -n "$HELPER_EMAIL" ] && [ -n "$HELPER_PASSWORD" ]; then
+            echo "have_lifecycle=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_lifecycle=false" >> "$GITHUB_OUTPUT"
           fi
 
   # ---------------------------------------------------------------------
@@ -201,12 +218,115 @@ jobs:
         run: npx playwright test --project=chromium e2e/two-role-lifecycle.spec.ts --reporter=list
 
   # ---------------------------------------------------------------------
+  # Leg 4 — the full money loop against PRODUCTION, on a Stripe test key.
+  #
+  # Runs on every push, per the owner's decision. Production is already on a
+  # test key (verified against the Stripe API: every prod-generated charge on
+  # 5–6 Sep is livemode:false, including a Connect destination charge with a
+  # transfer), so this moves no real money.
+  #
+  # THE CONCURRENCY BLOCK IS LOad-BEARING, and it is deliberately NOT the
+  # workflow-level one. That one is keyed on `github.ref` with
+  # `cancel-in-progress: true`, which is right for cheap read-only jobs and
+  # exactly wrong here on both counts:
+  #   * two branches would run concurrently and collide on the two shared
+  #     accounts, so the group must be ref-INDEPENDENT;
+  #   * cancelling mid-loop is how a funded job gets orphaned, so
+  #     cancel-in-progress must be FALSE — later runs queue behind, they do
+  #     not kill the one holding money.
+  # ---------------------------------------------------------------------
+  prod-lifecycle:
+    name: Full money loop (production, Stripe test mode)
+    needs: preflight
+    if: needs.preflight.outputs.have_lifecycle == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+
+      # Teardown FIRST. The rows that matter are the ones a previous run failed
+      # to clean up, and they are only safely removable when nothing is racing.
+      - name: Sweep anything a previous run stranded
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+          KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+          # Mint a short-lived poster token. The password never leaves this step
+          # and is never echoed; only the token is exported, and only to the
+          # sweeper. The sweeper deliberately does NOT take a service-role key —
+          # a CI job holding service-role could delete anything in the database,
+          # which is a far larger risk than the rows it tidies.
+          TOKEN=$(curl -s -X POST "$URL/auth/v1/token?grant_type=password" \
+            -H "apikey: $KEY" -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg e "$POSTER_EMAIL" --arg p "$POSTER_PASSWORD" '{email:$e,password:$p}')" \
+            | jq -r '.access_token // empty')
+          test -n "$TOKEN" || { echo "::error::could not mint a poster token — check PLAYWRIGHT_POSTER_EMAIL / _PASSWORD"; exit 1; }
+          SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
+            node scripts/e2e/prod-lifecycle-sweeper.mjs
+
+      - name: post → fund → apply → hire → complete → release → review
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+          PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+        run: npx playwright test --project=chromium e2e/prod-lifecycle.spec.ts --reporter=list
+
+      # Runs even when the loop failed — that is the case it exists for. A run
+      # that died holding a funded job is the one the seven is_seed-blind crons
+      # would otherwise act on.
+      - name: Unwind this run's rows even on failure
+        if: always()
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+          KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+          TOKEN=$(curl -s -X POST "$URL/auth/v1/token?grant_type=password" \
+            -H "apikey: $KEY" -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg e "$POSTER_EMAIL" --arg p "$POSTER_PASSWORD" '{email:$e,password:$p}')" \
+            | jq -r '.access_token // empty')
+          test -n "$TOKEN" || { echo "::warning::could not mint a token for teardown — rows may be stranded for the next run's pre-sweep"; exit 0; }
+          SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
+            node scripts/e2e/prod-lifecycle-sweeper.mjs
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-prod-lifecycle
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ---------------------------------------------------------------------
   # The loud part. Always runs, never fails the build, and states plainly
   # which real-backend surfaces went unchecked and what is missing.
   # ---------------------------------------------------------------------
   boundary-report:
     name: Uncovered real-backend surfaces
-    needs: [preflight, anon-surface, authenticated, two-role]
+    needs: [preflight, anon-surface, authenticated, two-role, prod-lifecycle]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -216,8 +336,10 @@ jobs:
           ANON: ${{ needs.anon-surface.result }}
           AUTHED: ${{ needs.authenticated.result }}
           TWO_ROLE: ${{ needs.two-role.result }}
+          LIFECYCLE: ${{ needs.prod-lifecycle.result }}
           HAVE_CREDS: ${{ needs.preflight.outputs.have_user_creds }}
           HAVE_TWO_ROLE: ${{ needs.preflight.outputs.have_two_role }}
+          HAVE_LIFECYCLE: ${{ needs.preflight.outputs.have_lifecycle }}
         run: |
           set -euo pipefail
           {
@@ -228,10 +350,16 @@ jobs:
             echo "| Anon surface contract | \`$ANON\` | nothing |"
             echo "| Authenticated journeys | \`$AUTHED\` | PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD |"
             echo "| Two-role lifecycle | \`$TWO_ROLE\` | PLAYWRIGHT_POSTER_SESSION + PLAYWRIGHT_HELPER_SESSION + PLAYWRIGHT_LIFECYCLE_JOB_ID |"
+            echo "| Full money loop (prod) | \`$LIFECYCLE\` | PLAYWRIGHT_POSTER_EMAIL/_PASSWORD + PLAYWRIGHT_HELPER_EMAIL/_PASSWORD |"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
 
           UNCOVERED=0
+          if [ "$HAVE_LIFECYCLE" != "true" ]; then
+            echo "::warning title=Uncovered surface::The full money loop did NOT run — PLAYWRIGHT_POSTER_EMAIL/_PASSWORD and PLAYWRIGHT_HELPER_EMAIL/_PASSWORD are not set. Escrow funding, hire, complete, release and review are covered by MOCKS ONLY."
+            echo "- **Full money loop: NOT COVERED.** Escrow funding, hire, complete, payout release and review are exercised only against \`page.route()\` mocks. Set \`PLAYWRIGHT_POSTER_EMAIL\`, \`PLAYWRIGHT_POSTER_PASSWORD\`, \`PLAYWRIGHT_HELPER_EMAIL\` and \`PLAYWRIGHT_HELPER_PASSWORD\` for the two dedicated accounts. Passwords must be >= 12 characters — GoTrue's real minimum, which the client does not enforce." >> "$GITHUB_STEP_SUMMARY"
+            UNCOVERED=$((UNCOVERED+1))
+          fi
           if [ "$HAVE_CREDS" != "true" ]; then
             echo "::warning title=Uncovered surface::Authenticated journeys did NOT run — PLAYWRIGHT_TEST_USER_EMAIL / PLAYWRIGHT_TEST_USER_PASSWORD are not set. Sign-in, escrow checkout and the post-payment landing are covered by MOCKS ONLY."
             echo "- **Authenticated journeys: NOT COVERED.** Sign-in, escrow checkout and the post-payment landing are exercised only against \`page.route()\` mocks. Set \`PLAYWRIGHT_TEST_USER_EMAIL\` and \`PLAYWRIGHT_TEST_USER_PASSWORD\` (password must be >= 12 characters — GoTrue's real minimum, which the client does not enforce)." >> "$GITHUB_STEP_SUMMARY"

@@ -226,16 +226,19 @@ export const queryKeys = {
   },
   /** Per-applicant helper stats computed in PostedJobsTab bulk-fetch queries. */
   helperStats: {
-    neighborCount: (helperId: string, lat: number | undefined, lng: number | undefined) =>
-      ["neighbor-count", helperId, lat, lng] as const,
+    // Keyed by JOB, not by coordinates: the RPC no longer accepts a probe
+    // point, because a caller-supplied point and radius together were a
+    // position oracle (migration 20260907051731).
+    neighborCount: (helperId: string, jobId: string | undefined) =>
+      ["neighbor-count", helperId, jobId] as const,
     completedCounts: (helperIdsKey: string) =>
       ["helper-completed-counts", helperIdsKey] as const,
     repeatHirePercents: (helperIdsKey: string) =>
       ["helper-repeat-hire-percents", helperIdsKey] as const,
     onTimePercents: (helperIdsKey: string) =>
       ["helper-on-time-percents", helperIdsKey] as const,
-    distancesFromJob: (jobId: string | undefined, helperIdsKey: string) =>
-      ["helper-distances-from-job", jobId, helperIdsKey] as const,
+    distanceBands: (jobId: string | undefined, helperIdsKey: string) =>
+      ["helper-distance-bands", jobId, helperIdsKey] as const,
     jobViewCounts: (jobIdsKey: string) =>
       ["job-view-counts", jobIdsKey] as const,
   },

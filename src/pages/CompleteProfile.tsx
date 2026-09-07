@@ -26,7 +26,7 @@ import { safeInternalRedirect } from "@/lib/authRedirects";
 import { LATEST_TERMS_VERSION } from "@/lib/consent";
 import { report } from "@/lib/errorLogger";
 import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
-import { lookupParishByZip } from "@/lib/parishLookup";
+import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { parishForCity } from "@/lib/parishes";
 import type { ProfileCompletionUpdates } from "./completeProfile/types";
 import {
@@ -61,14 +61,7 @@ const CompleteProfile = () => {
   const [location, setLocation] = useState("");
   // Optional — mirrors the same field on Signup.tsx's email path (S-001).
   const [zipCode, setZipCode] = useState("");
-  const [resolvedZipParish, setResolvedZipParish] = useState<string | null>(null);
-  useEffect(() => {
-    const cleaned = zipCode.replace(/\D/g, "");
-    if (cleaned.length !== 5) { setResolvedZipParish(null); return; }
-    let cancelled = false;
-    lookupParishByZip(cleaned).then((p) => { if (!cancelled) setResolvedZipParish(p); });
-    return () => { cancelled = true; };
-  }, [zipCode]);
+  const { parish: resolvedZipParish, unknownZip } = useParishForZip(zipCode);
   // Soft mismatch hint — see the identical comment in Signup.tsx.
   const cityZipMismatch = (() => {
     if (!resolvedZipParish) return null;
@@ -767,6 +760,15 @@ const CompleteProfile = () => {
                 />
               </div>
             </div>
+            {/* An unrecognised ZIP used to render nothing at all here, which is
+                how someone could finish this form and be invisible to the job
+                fan-out with no one — them or us — any the wiser. */}
+            {unknownZip && (
+              <p role="status" className="flex items-start gap-1 text-ds-11 -mt-1" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />
+                {UNKNOWN_ZIP_MESSAGE}
+              </p>
+            )}
             {cityZipMismatch && (
               <p className="flex items-center gap-1 text-ds-11 -mt-1" style={{ color: "hsl(var(--burnt-sienna))" }}>
                 <AlertCircle className="w-3 h-3 shrink-0" aria-hidden />

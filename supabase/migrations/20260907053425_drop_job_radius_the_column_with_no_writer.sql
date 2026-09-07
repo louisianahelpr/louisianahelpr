@@ -1,0 +1,35 @@
+-- Drop `profiles.job_radius`. It has no writer, one reader, and no future.
+--
+-- Deliberately NOT bundled with the geolocation work, even though it was found
+-- in the same pass: radius is a per-SEARCH setting, not a per-PERSON one, and
+-- conflating the two is how this column came to exist. `saved_searches.radius_miles`
+-- (numeric, per search, honoured by notify_saved_searches_on_new_job) is the
+-- real mechanism and is untouched by this file.
+--
+-- Evidence, measured against prod (fncmgoasalhdgfwzhsqa) on 2026-09-06:
+--
+--   * TEXT, holding a number. Never constrained, never parsed, never compared.
+--   * 2 of 44 rows non-null, both `helpr-e2e-*@mailinator.com` audit accounts.
+--   * No writer. `git log -S jobRadius -- src/` shows the signup step that
+--     collected it was deleted; what survived is an argument `complete-signup`
+--     still destructures and no client sends. That argument goes with the
+--     column, in the same change — an accepted field that targets a dropped
+--     column would turn a stale iOS build's signup into a 500, and a shipped
+--     .ipa cannot be updated from here.
+--   * One reader: the admin "Preferred Job Radius" row in
+--     `src/components/admin/userDetail/OverviewTab.tsx`, which has rendered
+--     "Not provided" on every account an admin has ever opened.
+--
+-- No view, index, constraint, policy or generated column depends on it —
+-- `pg_depend` over the attnum returns zero rows — so no CASCADE is needed and
+-- none is used: a CASCADE here could quietly take something else with it.
+--
+-- Nothing to restate afterwards. `purge_user_data` does NOT reference
+-- job_radius (checked in pg_proc, not in the migration files — history is an
+-- upper bound, not the schema), so unlike latitude/longitude this drop leaves
+-- no function body pointing at a column that no longer exists. That asymmetry
+-- is the whole reason this is a three-line migration and the coordinates were
+-- not.
+
+ALTER TABLE public.profiles
+  DROP COLUMN IF EXISTS job_radius;

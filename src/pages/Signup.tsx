@@ -27,7 +27,7 @@ import { getPublicOrigin } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
 import { recognizedAuthError } from "@/lib/authErrors";
 import { completeSignupErrorCopy } from "./signup/completeSignupError";
-import { lookupParishByZip } from "@/lib/parishLookup";
+import { useParishForZip } from "@/hooks/useParishForZip";
 import { parishForCity } from "@/lib/parishes";
 
 const Signup = () => {
@@ -96,17 +96,10 @@ const Signup = () => {
   // daily digest, and Louisiana sales tax. Digits only, mirrors
   // ProfileEditForm's own zipCode input.
   const [zipCode, setZipCode] = useState("");
-  // Live parish resolution from the ZIP, mirroring ProfileEditForm's own
-  // effect exactly — resolved as the user types so the mismatch hint below
-  // can render before submit, not just at it.
-  const [resolvedZipParish, setResolvedZipParish] = useState<string | null>(null);
-  useEffect(() => {
-    const cleaned = zipCode.replace(/\D/g, "");
-    if (cleaned.length !== 5) { setResolvedZipParish(null); return; }
-    let cancelled = false;
-    lookupParishByZip(cleaned).then((p) => { if (!cancelled) setResolvedZipParish(p); });
-    return () => { cancelled = true; };
-  }, [zipCode]);
+  // Live parish resolution from the ZIP, shared with CompleteProfile and
+  // ProfileEditForm — resolved as the user types so both hints below can
+  // render before submit, not just at it.
+  const { parish: resolvedZipParish, unknownZip } = useParishForZip(zipCode);
   // Soft mismatch hint (owner-requested 2026-09-04): only fires when the
   // typed City is a RECOGNIZED city of a DIFFERENT parish than the ZIP
   // resolved to — never when the city is merely absent from the registry
@@ -560,6 +553,7 @@ const Signup = () => {
             zipCode={zipCode}
             setZipCode={setZipCode}
             zipCityMismatch={cityZipMismatch}
+            zipUnknown={unknownZip}
             bio={bio}
             setBio={setBio}
             inputCls={inputCls}

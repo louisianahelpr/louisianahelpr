@@ -403,10 +403,23 @@ test.describe("full money loop against production", () => {
             (unique.length ? `page says: ${unique.join(" | ")}` : "no inline error text found on the page"),
         );
       }
-      /* Stripe returns to the PROD origin — `create-payment` builds an absolute
-         success_url — so this deliberately does not assert the base URL, only
-         the path. A run pointed at a preview deployment still lands here. */
-      await page.waitForURL(/\/payment-success/, { timeout: 120_000 });
+      /* Wait to LEAVE Stripe — deliberately not for /payment-success.
+         This suite authenticates over REST; `page` is a plain browser context
+         with no app session in it. So when Stripe returns to the prod origin,
+         ProtectedRoute often bounces straight to
+         /login?redirect=%2Fpayment-success, and asserting the success path made
+         the run fail roughly half the time on a race between first paint and
+         the auth check — green on a retry, red on the attempt, which is worse
+         than either. Signing the browser in as well would be testing our own
+         harness; the landing screen is a UI concern and belongs in a UI spec.
+
+         What this leg is actually here to prove is that the CHARGE went
+         through, and the authority on that is the webhook moving payment_status
+         to 'escrow' — polled immediately below. Leaving checkout.stripe.com is
+         the correct, session-independent signal that the card was submitted. */
+      await page.waitForURL((url) => !url.host.endsWith("checkout.stripe.com"), {
+        timeout: 120_000,
+      });
 
       // The webhook, not the redirect, is what moves the row. Poll for it — a
       // redirect that lands before `checkout.session.completed` is delivered is

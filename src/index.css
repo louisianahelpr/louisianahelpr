@@ -45,6 +45,13 @@
  * grounding. All values from the user-supplied moodboards.
  */
 :root {
+  /* Tell the UA which palette its OWN widgets should use — scrollbars, native
+     <select> popups, date/time inputs, autofill, form controls. Nothing
+     declared this anywhere, so in dark mode every native control rendered
+     light-styled on the dark canvas (visual-dark lane, 2026-09-07). The
+     app stamps the resolved theme on <html> pre-paint (index.html), so the
+     dark twin below is keyed on the same attribute as every other token. */
+  color-scheme: light;
   /* Top safe-area inset resolved at :root, OUTSIDE any transformed ancestor.
      WebKit zeroes env(safe-area-inset-top) for `position: fixed` descendants
      of a transformed/will-change:transform element — which is exactly what
@@ -497,6 +504,7 @@
    redeclared — they look fine on dark backgrounds without changes.
    ───────────────────────────────────────────────────────────────────────── */
 [data-theme="dark"] {
+  color-scheme: dark;
   /* Core brand palette — dark equivalents */
   --page-gradient: linear-gradient(160deg, hsl(220 15% 8%) 0%, hsl(220 12% 11%) 40%, hsl(200 15% 10%) 100%);
   --parchment:    220 14% 9%;   /* page canvas — COOL near-black. Hue 220 matches

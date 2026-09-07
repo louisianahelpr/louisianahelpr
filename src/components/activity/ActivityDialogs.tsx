@@ -256,6 +256,12 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       {props.disputeJob && props.user && (
         <DisputeDialog
           jobId={props.disputeJob.id}
+          /* Which card this was opened from decides which five reasons the
+             dialog offers and whose consequence copy it prints. Derived from
+             the job, not from the tab: `/my-posts` and `/my-jobs` both mount
+             this one dialog, and a poster who also worked a job would get the
+             wrong list from a route check. */
+          side={props.disputeJob.helper_id === props.user.id ? "helper" : "poster"}
           userId={props.user.id} open={!!props.disputeJob}
           onClose={() => props.setDisputeJob(null)} onDisputed={props.onRefresh}
         />

@@ -5,11 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Check, X, Eye, EyeOff } from "lucide-react";
+import { Loader2, Check, X, Circle, Eye, EyeOff } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { friendlyAuthError } from "@/lib/authErrors";
-import { passwordStrength } from "./signup/signupHelpers";
+import { describeWeakPassword, isWeakPasswordError, resetPasswordError } from "@/lib/authErrors";
+import {
+  passwordStrength,
+  passwordProblem,
+  unmetPasswordRules,
+  PASSWORD_RULES,
+  PASSWORD_MIN_LENGTH,
+} from "./signup/signupHelpers";
 
 const ResetPassword = () => {
   // usePageMeta, not usePageTitle: this was the one funnel page shipping a
@@ -63,8 +69,20 @@ const ResetPassword = () => {
     };
   }, []);
 
-  const passwordValid = password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password);
+  // Derived from the SHARED rule list, not re-implemented. This line used to
+  // read `length >= 8 && /[A-Z]/ && /[0-9]/` — three rules, one of them the
+  // wrong number — while the Supabase project enforces five (12 characters,
+  // lower, upper, digit, symbol). So this screen graded `CoworkQA2026x` as
+  // valid, drew the green tick, let the button enable, and the server answered
+  // 422. See PASSWORD_RULES in signupHelpers for the probe that establishes
+  // the real policy; the signup form reads the same list, so the two halves of
+  // the funnel can no longer state different rules.
+  const passwordValid = unmetPasswordRules(password).length === 0;
   const confirmValid = confirm.length > 0 && confirm === password && passwordValid;
+  // Set only from a REJECTION — a server 422 or our own pre-flight — and shown
+  // inline under the field. A toast alone is not enough here: it is gone in
+  // four seconds, and the thing it is describing is still on screen.
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -103,17 +121,46 @@ const ResetPassword = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // One id for every failure this form can raise, so a second and third tap
+  // REPLACE the message instead of stacking copies of it. QA watched the same
+  // toast pile up three deep, which reads as three different things going
+  // wrong rather than one thing going wrong three times.
+  const ERROR_TOAST_ID = "reset-password-error";
+
+  const fail = (message: string) => {
+    setSubmitError(message);
+    toast.error(message, { id: ERROR_TOAST_ID });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirm) { toast.error("Passwords don't match."); return; }
-    if (password.length < 8) { toast.error("Password needs at least 8 characters."); return; }
-    if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter."); return; }
-    if (!/[0-9]/.test(password)) { toast.error("Add at least one number."); return; }
+    setSubmitError(null);
+    if (password !== confirm) { fail("Passwords don't match."); return; }
+    // One sentence naming everything still missing, from the shared rule list
+    // — not four hand-written checks that between them covered three of the
+    // five rules and used the wrong length for one of those.
+    const problem = passwordProblem(password);
+    if (problem) { fail(problem); return; }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {
-      toast.error(friendlyAuthError(error.message));
+      // The server's reason must reach the user. It did not: this called
+      // `friendlyAuthError`, whose fallback is "Couldn't sign you in — give it
+      // another try?", so a 422 `weak_password` about the password just typed
+      // was reported as a failed sign-in on a screen where the sign-in had
+      // already succeeded.
+      if (isWeakPasswordError(error)) {
+        // Normally our own rules caught it before the request and this branch
+        // is unreachable; reaching it means the client list and the project
+        // policy have drifted apart. Say what OUR rules can still explain, and
+        // otherwise hand over Supabase's own sentence verbatim rather than
+        // replacing a specific reason with a vague one — an unexplained
+        // refusal on the account-recovery path is a locked-out user.
+        fail(passwordProblem(password) ?? describeWeakPassword(error.message));
+      } else {
+        fail(resetPasswordError(error.message));
+      }
     } else {
       // updateUser leaves the recovery session live, which is effectively
       // already signed in — so route straight to /dashboard instead of
@@ -121,6 +168,7 @@ const ResetPassword = () => {
       // is announced (role="status"), and the hand-off is long enough to read
       // rather than the old 800ms flicker. The panel's own button goes to the
       // same place, so nobody has to wait out the timer.
+      setSubmitError(null);
       setDone(true);
       redirectTidRef.current = window.setTimeout(() => navigate("/dashboard", { replace: true }), 2200);
     }
@@ -215,10 +263,15 @@ const ResetPassword = () => {
                   // pre-populated invites them to skip it. The "New password"
                   // label above already names the field. (Matches Login.tsx.)
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  // Editing the field retires the last rejection. Leaving it up
+                  // would have the screen still asserting a problem with a
+                  // password the user has since replaced.
+                  onChange={(e) => { setPassword(e.target.value); setSubmitError(null); }}
                   required
-                  minLength={8}
+                  minLength={PASSWORD_MIN_LENGTH}
                   autoComplete="new-password"
+                  aria-invalid={submitError ? true : undefined}
+                  aria-describedby={submitError ? "reset-password-error" : undefined}
                   className={`${passwordValid ? "pr-20" : "pr-11"} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]`}
                 />
                 <button
@@ -264,9 +317,29 @@ const ResetPassword = () => {
                   </div>
                 );
               })()}
-              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                At least 8 characters, 1 uppercase, 1 number
-              </p>
+              {/* The rules, ALL of them, stated before submission and ticked
+                  live — the same component the signup form renders, from the
+                  same PASSWORD_RULES array. The line here used to be static
+                  copy reading "At least 8 characters, 1 uppercase, 1 number":
+                  three of the five rules the Supabase project enforces, with
+                  the wrong number on the one it did state. A password that
+                  satisfied every word of it was refused by the server, which
+                  is the definition of a rule discovered by rejection. */}
+              {(() => {
+                const Req = ({ ok, label }: { ok: boolean; label: string }) => (
+                  <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
+                    {ok ? <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden /> : <Circle className="w-3 h-3" strokeWidth={2} aria-hidden />}
+                    {label}
+                  </span>
+                );
+                return (
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 px-0.5 mt-1">
+                    {PASSWORD_RULES.map((rule) => (
+                      <Req key={rule.label} ok={rule.test(password)} label={rule.label} />
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm" className="text-ds-13 font-sans font-medium">Confirm password</Label>
@@ -277,9 +350,9 @@ const ResetPassword = () => {
                   // Same reason as the field above — the "Confirm password"
                   // label names it; bullets would only imply it's already filled.
                   value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
+                  onChange={(e) => { setConfirm(e.target.value); setSubmitError(null); }}
                   required
-                  minLength={8}
+                  minLength={PASSWORD_MIN_LENGTH}
                   autoComplete="new-password"
                   className={`${confirmValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]`}
                 />
@@ -310,6 +383,20 @@ const ResetPassword = () => {
                 )
               )}
             </div>
+            {/* The rejection, in the form, where the field it is about still
+                is. The only channel this failure had was a toast, and a toast
+                is gone in four seconds — so a user who looked away saw a
+                button that did nothing at all. `role="alert"` announces it. */}
+            {submitError && (
+              <p
+                id="reset-password-error"
+                role="alert"
+                className="inline-flex items-start gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]"
+              >
+                <X className="w-3.5 h-3.5 shrink-0 mt-px" strokeWidth={2.5} aria-hidden />
+                {submitError}
+              </p>
+            )}
             <Button
               variant="primary"
               type="submit"

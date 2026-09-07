@@ -25,11 +25,39 @@ export const DESCRIPTION_MAX = 1000;
 
 // Categories where credential-tier requirements make sense (trade work).
 // All others default to tier 0 (open) with the selector hidden.
+//
+// The test is not "could this job be done badly" — it is "does Louisiana
+// license this work, and is this where unlicensed operators actually turn up".
+// Four categories fail that test in a way that matters here:
+//
+//  - `storm_prep` (added 2026-09-06) is the one this list could least afford to
+//    omit on a Louisiana marketplace. Tarping, board-up, roof and structural
+//    repair after a hurricane sit squarely inside the state contractor
+//    licensing regime, and a generator hookup is electrical work. It is also
+//    the single best-documented magnet for unlicensed out-of-state operators in
+//    the state — the storm-chaser pattern every post-hurricane advisory warns
+//    about. A poster boarding up before landfall could not ask for a licensed,
+//    insured pro; every other trade category could.
+//  - `yard_work` (added 2026-09-06) carries tree removal, which Louisiana
+//    licenses separately (LDAF arborist / utility arborist) and which is the
+//    most dangerous thing anyone posts here — a felled limb damages a roof or a
+//    neighbour, and an uninsured operator leaves the poster holding it.
+//
+// Deliberately NOT included: cleaning, errands, delivery, pet_care and events
+// have no trade licence to require, so a "Licensed pros only" gate there would
+// filter on a credential that does not exist and simply empty the applicant
+// pool. `other` is a judgement call left open — it is the escape hatch that
+// electrical, plumbing, HVAC and roofing land in when the poster doesn't pick
+// Handyman, but it is equally where "help me carry boxes" lands, and offering a
+// licensing gate on a job we know nothing about invites a mis-set filter. Flag
+// for the owner rather than decided here.
 export const CREDENTIAL_TIER_CATEGORIES = new Set([
   "handyman",
   "painting",
   "moving",
   "assembly",
+  "storm_prep",
+  "yard_work",
 ]);
 
 // The tier options rendered in the "Who can apply?" segmented control.

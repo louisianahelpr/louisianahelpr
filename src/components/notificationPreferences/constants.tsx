@@ -6,7 +6,10 @@ import type { Prefs, Row } from "./types";
 
 export const defaultPrefs: Prefs = {
   job_applications: true, job_updates: true, messages: true, payments: true,
-  reviews: true, promotions: true, system_alerts: true, push_enabled: true,
+  reviews: true, promotions: true, system_alerts: true,
+  // Both masters default on, and both are their own DB column — neither one
+  // stands in for the eleven category columns below it.
+  push_enabled: true, email_enabled: true,
   email_job_applications: true, email_job_updates: true, email_messages: false,
   email_payments: true, email_reviews: true, email_promotions: false, email_system_alerts: true,
   new_offers: true, email_new_offers: true,

@@ -9,6 +9,7 @@ import { createNotification } from "@/lib/notifications";
 import { formatDistanceToNow } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
+import { helperDisputeCopy } from "./helperDisputeCopy";
 import type { AppliedApp, Job } from "../activityConstants";
 
 interface DisputedSectionProps {
@@ -41,23 +42,13 @@ export function DisputedSection({
 }: DisputedSectionProps) {
   const disputeStatus = job.dispute_status || "open";
   const hasResponded = !!job.dispute_helper_response;
-  // The helper keeps their voice after escalation.
-  //
-  // This used to be `disputeStatus === "open"`, so the response control simply
-  // vanished the moment the poster escalated (PostedJobActions writes
-  // dispute_status='escalated' in one tap) — and `helper_abort_job`
-  // (20260825191500) opens its dispute ESCALATED from the start, so a helper
-  // who took the sanctioned exit never saw the control at all. Nothing said
-  // why; the button was just gone.
-  //
-  // The server does not forbid it: the "Helpers can update their assigned
-  // jobs" policy (20260312010219) is USING/WITH CHECK auth.uid() = helper_id
-  // with no status clause, and `dispute_helper_response` is on
-  // enforce_helper_jobs_column_whitelist's ALLOW-list (20260828020000) in every
-  // dispute state. So the control stays; only the STATUS write is withheld
-  // (see the submit handler).
-  const canRespond = ["open", "escalated", "under_review"].includes(disputeStatus);
-  const awaitingAdmin = disputeStatus === "escalated" || disputeStatus === "under_review";
+  // WHO FILED IT decides every sentence on this panel, and until 2026-09-06
+  // every sentence assumed the poster did. See helperDisputeCopy.ts for the
+  // production case that proved otherwise and what each branch now says; the
+  // rules live there rather than inline so helperDisputeCopy.test.ts can walk
+  // the whole state space without a render.
+  const { awaitingAdmin, headline, reasonLabel, consequenceText, canRespond } =
+    helperDisputeCopy(job, app.helper_id);
   return (
     <div
       className="px-4 py-3 space-y-2.5"
@@ -92,16 +83,16 @@ export function DisputedSection({
           className="font-display italic font-bold leading-tight mt-2 text-ds-16"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
         >
-          {awaitingAdmin
-            ? "An admin is on it."
-            : "Both sides are talking it out."}
+          {headline}
         </p>
         {job.dispute_reason && (
           <p
             className="font-serif italic mt-1.5 text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
-            Reason: {job.dispute_reason}
+            {/* "Reason:" alone read as an accusation against the reader even
+                when the reader wrote it. */}
+            {reasonLabel}{job.dispute_reason}
           </p>
         )}
         {job.disputed_at && (
@@ -118,7 +109,13 @@ export function DisputedSection({
         <DeadlineCountdown
           deadline={job.dispute_deadline}
           expiredText="Deadline passed — payment auto-releasing to you"
-          consequenceText="If the poster doesn't resolve or escalate, payment auto-releases to you after the deadline."
+          /* Both branches state the SAME mechanism —
+             `auto-resolve-disputes` settles every non-escalated expired
+             dispute with `_outcome: "helper"` (index.ts:196) — but only one of
+             them can be read as "complain and wait, and you win". The
+             helper-opened branch says what the clock does without dressing it
+             up as a reward, and names the move that actually resolves it. */
+          consequenceText={consequenceText}
           variant="destructive"
         />
       )}
@@ -149,7 +146,11 @@ export function DisputedSection({
         </section>
       )}
 
-      {/* Respond form */}
+      {/* Respond form. `canRespond` is false when THIS helper opened the
+          dispute: the box writes `dispute_helper_response`, which the poster's
+          card renders under the heading "Helpr's response", so there is nothing
+          to respond to and the control read as being asked to answer your own
+          complaint. Their words are already in `dispute_reason`, shown above. */}
       {!hasResponded && canRespond && (
         <div className="space-y-2">
           {/* Say who reads it once it is out of the poster's hands, so the
@@ -261,7 +262,11 @@ export function DisputedSection({
           label="Contact Admin"
           ariaLabel="Contact an admin about this dispute"
           tone="neutral"
-          onClick={() => navigate("/support")}
+          /* Carries the job, same as the poster's chip in PostedJobActions —
+             `?topic=` / `?subject=` are the only params Support.tsx reads, and
+             a job UUID identifies the row without putting a person, a price or
+             an address in a URL. */
+          onClick={() => navigate(`/support?topic=report&subject=${encodeURIComponent(`Dispute on job ${app.job_id}`)}`)}
         />
       </JobActionRow>
     </div>

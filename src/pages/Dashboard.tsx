@@ -108,6 +108,9 @@ const Dashboard = () => {
 
   const filters = useDashboardFilters({
     allJobs, userId: user?.id, profile, helprTier, helperAvailability: helperAvailability as HelperAvailabilitySlot[],
+    // Same rate the feed cards render with (`effectiveFee` below is this
+    // value) — the pay sorts have to order by the number on the card.
+    effectiveFee: platformFee,
   });
 
   // The greeting card's "stat of the day" line was removed — it added a

@@ -63,6 +63,9 @@ const OWNERS = {
   "/rules": ["lh-trust-safety", "lh-copy-content"],
   "/support": ["lh-copy-content"],
   "/help": ["lh-copy-content"],
+  // The footer linked here and it 404'd. Same content, same owner as /help —
+  // it is an alias, added 2026-09-07 so an advertised link resolves.
+  "/help-center": ["lh-copy-content"],
   "/data-rights": ["lh-compliance-store", "lh-account-lifecycle"],
   "/gift-card": ["lh-compliance-store", "lh-subscriptions-credits"],
 

@@ -326,6 +326,9 @@ const DashboardGuest = () => {
     profile: null,
     helprTier: null,
     helperAvailability: [],
+    // A guest has no tier, so every card here renders at the free rate — the
+    // pay sorts must use the same one or the order won't match the numbers.
+    effectiveFee: TIER_PERKS.free.platformFeePercent,
   });
 
   // Bounce already-authenticated users straight to the real dashboard so

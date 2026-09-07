@@ -1,7 +1,7 @@
 import { memo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RotateCcw, RefreshCw, Clock, Check, MapPinOff } from "lucide-react";
+import { CheckCircle2, RotateCcw, RefreshCw, Clock, Check, MapPinOff, AlertTriangle } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";
@@ -236,6 +236,49 @@ function PostedJobCardInner({
               amount={formatPrice(job.budget)}
               meta={metaRow}
             />
+
+            {/* AN OPEN DISPUTE IS NOT A DETAIL BEHIND A TAP.
+                External QA, 2026-09-06: the poster's collapsed card for a
+                disputed job showed the title, the price and nothing else — same
+                card, same "$120", no badge — while a 72-hour clock ran behind
+                it toward an automatic release of that money. Everything this
+                card knows about the dispute lives in PostedJobActions, and
+                every action block on this card is gated on `isExpanded` (see
+                the note at the "Additional details" block below), so the poster
+                had to open the card to learn a dispute existed at all.
+
+                The helper's side already did this: DisputedSection is rendered
+                OUTSIDE AppliedJobCard's expand gate, which is why their card
+                reads "DISPUTE OPEN" at the top level. This is the same badge,
+                same words, same treatment — the two ends of one dispute now
+                announce it identically.
+
+                Collapsed only. Expanded, PostedJobActions renders the full
+                panel a few rows down and this would be the same sentence
+                twice. This is the exception to "NO STATUS STRIPE" below, and it
+                earns it: the filter tabs cannot carry this one, because
+                `disputed` has no chip of its own — the job buckets to "Needs
+                you", alongside every ordinary job awaiting a decision. */}
+            {!isExpanded && job.status === "disputed" && (
+              <div
+                className="px-4 py-2 flex items-center gap-1.5"
+                style={{
+                  borderTop: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                  background: "hsl(var(--burnt-sienna) / 0.08)",
+                }}
+              >
+                <AlertTriangle className="w-3 h-3 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
+                <span
+                  className="font-serif italic uppercase text-ds-10"
+                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                >
+                  {job.dispute_status === "escalated" ? "Admin reviewing" : "Dispute open"}
+                </span>
+                <span className="font-serif italic text-ds-11 ml-auto" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+                  Payment on hold
+                </span>
+              </div>
+            )}
             {/* The series, made visible — parents only (see SeriesStrip). */}
             {!job.parent_job_id && (
               <SeriesStrip

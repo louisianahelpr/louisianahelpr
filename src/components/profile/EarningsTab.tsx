@@ -6,8 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { instantPayoutFeeLabel, instantPayoutMinLabel } from "@/lib/instantPayoutFee";
 import {
   FORM_1099K_GROSS_THRESHOLD_DOLLARS,
-  FORM_1099K_TRANSACTION_THRESHOLD,
-  form1099kGrossLabel,
 } from "@/lib/moneyLimits";
 import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { stripeProcessingCostCents } from "@/lib/stripeFees";
@@ -633,13 +631,43 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
       {/* The tax note belongs to the payout view, not to whatever happens to
           be last on the page. It used to sit under the analytics dashboard,
-          restating the 1099-K threshold the banner above had already named. */}
+          restating the 1099-K threshold the banner above had already named.
+
+          IT NO LONGER STATES THE THRESHOLD, and that is the point of the
+          2026-09-06 rewrite. This sentence read "exceed $20,000 in gross
+          payments and 200 transactions" — a bare number, undated, unsourced,
+          rendered to a helper as tax guidance in the screen where they read
+          about their own money. The federal 1099-K threshold has moved
+          repeatedly in the last few years (a $600 rule scheduled, deferred by
+          the IRS twice, then repealed), so a number typed into product copy is
+          a claim with a short shelf life and a real cost when it goes stale:
+          a helper under the stated line concludes nothing is coming, and files
+          as if no form exists.
+
+          The honest version says what we actually know — Stripe issues the
+          form when the federal thresholds are met, it is federal rather than
+          Louisiana, and no action is needed — and sends anyone who needs the
+          current number to the IRS, who owns it. The threshold constants stay
+          in `moneyLimits.ts` because ThresholdBanner still needs a level to
+          fire a heads-up at; what changed is that we no longer publish ours as
+          if it were the law. The two Legal pages still state it with a dated
+          citation, which is a different kind of claim — flagged for the owner
+          rather than rewritten here. */}
       {view === "payouts" && (
 
       <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">
         <Info className="w-3 h-3 mt-0.5 shrink-0" />
         <span>
-          <strong className="text-muted-foreground">Tax reporting:</strong> The IRS requires a Form 1099-K for Helprs who exceed {form1099kGrossLabel()} in gross payments and {FORM_1099K_TRANSACTION_THRESHOLD} transactions in a calendar year — a federal filing, not a Louisiana one. Stripe issues these automatically — no action needed.
+          <strong className="text-muted-foreground">Tax reporting:</strong> If your payments pass the federal Form 1099-K reporting thresholds for the year, Stripe issues the form automatically — no action needed on your side. It&rsquo;s a federal filing, not a Louisiana one. The thresholds have changed several times recently, so check{" "}
+          <a
+            href="https://www.irs.gov/businesses/understanding-your-form-1099-k"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="link-standard"
+          >
+            the IRS&rsquo;s own 1099-K guidance
+          </a>{" "}
+          for the current numbers, and talk to a tax professional about your situation.
         </span>
       </p>
       )}

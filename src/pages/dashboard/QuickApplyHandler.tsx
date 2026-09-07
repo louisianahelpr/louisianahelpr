@@ -139,19 +139,70 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
         return;
       }
       if (!data) {
-        // Zero rows from the browse view means "not visible TO YOU RIGHT NOW",
-        // which covers three quite different situations and cannot distinguish
-        // them from the client: the job was deleted or is no longer open; its
-        // escrow hasn't funded; or Early Access still has it held back — the
-        // browse view gates on `created_at <= early_access_cutoff()`, a delay of
-        // 20/15/10/0 minutes for free/basic/pro/elite (20260901022522), while
-        // every job-match producer fires at the moment escrow funds and filters
-        // by no tier at all. A free-tier helper can therefore be alerted up to
-        // ~20 minutes before this view will hand them the row.
+        // BEFORE assuming the viewer is a stranger to this job, ask whether
+        // they are a PARTY to it. `open_jobs_browse` only ever shows OPEN,
+        // escrow-funded, early-access-released jobs, so it misses every job the
+        // viewer is actually working on or has already finished — and that is
+        // precisely who `/jobs/<id>` notification links go to. Prod carries 34
+        // of them (`job_start_reminders` / `no_show_detection` both mint
+        // `format('/jobs/%s', …)`, addressed to the assigned helper and the
+        // poster), and every signed-in visitor to /jobs/:id is redirected
+        // here — so a helper opening the reminder for a job they COMPLETED an
+        // hour ago was told "this task isn't available to open yet", the Early
+        // Access copy, about their own finished work.
         //
-        // So the copy must not assert deletion, and it should name the one cause
-        // the user can actually act on.
-        toast.error("This task isn't available to open yet — if you just got the alert, try again in a few minutes.");
+        // `public.jobs` is party-scoped by RLS ("Users can view their own jobs":
+        // customer_id OR helper_id; "Selected helpers can view their job" via
+        // `user_may_see_job_address`, which also covers a group roster member).
+        // So a row coming back here IS the authorization answer: this person is
+        // party to this job, whatever its status. A stranger gets zero rows and
+        // falls through to the message below, unchanged.
+        const { data: own, error: ownError } = await supabase
+          .from("jobs")
+          .select("id, customer_id, helper_id")
+          .eq("id", quickApplyId)
+          .maybeSingle();
+        if (cancelled) return;
+        if (ownError) {
+          // Same rule as the browse-view read above: a transport/permission
+          // failure is not "no such job" and must not be reported as one.
+          report(ownError, {
+            severity: "warning",
+            tags: { source: "QuickApplyHandler.participantLookup" },
+            context: { job_id: quickApplyId },
+          });
+          toast.error("Couldn't load this task. Check your connection and try again.");
+          return;
+        }
+        if (own) {
+          if (own.customer_id === userId) {
+            goToOwnPost(quickApplyId);
+            return;
+          }
+          // Helper side — assigned, or on the roster of a group job (the
+          // roster case has no `helper_id` match but still satisfies
+          // `user_may_see_job_address`, so treat any non-poster row as theirs).
+          // `?job=` rather than `?highlight=`: Activity resolves the right
+          // bucket from the job's LIVE state, so this keeps working as the job
+          // moves from in-progress to completed.
+          navigate(`/my-jobs?job=${encodeURIComponent(quickApplyId)}`, { replace: true });
+          return;
+        }
+
+        // Genuinely not visible to this viewer. That still covers three
+        // situations the client cannot tell apart: the job was filled, taken
+        // down or expired; its escrow hasn't funded; or Early Access still has
+        // it held back — the browse view gates on
+        // `created_at <= early_access_cutoff()`, a delay of 20/15/10/0 minutes
+        // for free/basic/pro/elite (20260901022522), while every job-match
+        // producer fires the moment escrow funds and filters by no tier at all.
+        // A free-tier helper can therefore be alerted up to ~20 minutes before
+        // this view will hand them the row.
+        //
+        // So the copy names the likely causes without asserting any one of
+        // them. It used to say only "isn't available to open YET", which reads
+        // as a promise that waiting will work — false for a job that was filled.
+        toast.error("We can't open this task right now — it may have been filled or taken down. If you just got the alert, try again in a few minutes.");
         return;
       }
       if (data.customer_id === userId) {
@@ -186,10 +237,10 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
     })();
 
     return () => { cancelled = true; };
-    // `goToOwnPost` is stable (useCallback over router `navigate`), so listing
-    // it does not widen when this effect re-fires — it only keeps
-    // exhaustive-deps honest.
-  }, [quickApplyId, userId, goToOwnPost]);
+    // `goToOwnPost` and `navigate` are both stable (a useCallback over router
+    // `navigate`, and `navigate` itself), so listing them does not widen when
+    // this effect re-fires — it only keeps exhaustive-deps honest.
+  }, [quickApplyId, userId, goToOwnPost, navigate]);
 
   return null;
 };

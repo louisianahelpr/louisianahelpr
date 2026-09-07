@@ -7,6 +7,8 @@ import { queryKeys } from "@/lib/queryKeys";
 import { dedupeById } from "@/lib/utils";
 import { CARDS_PER_ROW, PAGE_SIZE } from "./jobsConstants";
 import type { JobsPage, PublicJob } from "./types";
+import { displayedPayDollars } from "@/lib/jobDisplayPay";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 interface UseOpenJobsFeedArgs {
   search: string;
@@ -154,6 +156,11 @@ export const useOpenJobsFeed = ({
       return true;
     });
 
+    // Guests have no membership tier, so every card on this board prices at
+    // the free rate — the same constant `Jobs.tsx` hands `JobCard`.
+    const payOf = (job: PublicJob) =>
+      displayedPayDollars(job, TIER_PERKS.free.platformFeePercent);
+
     // "Best match" keeps the server's ranking (get_ranked_open_jobs orders by
     // boost → urgent → recency for an anon caller), so there is nothing to
     // re-sort. Every other option mirrors the authed comparator exactly —
@@ -161,8 +168,12 @@ export const useOpenJobsFeed = ({
     if (sortBy === "smart") return list;
     return list.sort((a, b) => {
       switch (sortBy) {
-        case "highest_pay": return b.budget - a.budget;
-        case "lowest_pay": return a.budget - b.budget;
+        // Order by the take-home the card SHOWS, not the gross budget. This
+        // board renders every price through `JobPrice` at the free-tier rate,
+        // and a group job's budget is split across `helpers_needed` — sorting
+        // on `budget` ranked a $200 ÷ 3 = $58 job above a $79 solo one.
+        case "highest_pay": return payOf(b) - payOf(a);
+        case "lowest_pay": return payOf(a) - payOf(b);
         case "ending_soon":
           return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
         default:

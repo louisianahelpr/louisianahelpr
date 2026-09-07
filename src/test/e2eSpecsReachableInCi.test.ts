@@ -227,7 +227,7 @@ describe("every Playwright spec is either run by CI or explicitly exempted", () 
   it("reports the current split, so the number is visible rather than inferred", () => {
     const run = specs.filter((s) => reach.has(s));
     const notRun = specs.filter((s) => !reach.has(s));
-    // eslint-disable-next-line no-console
+     
     console.log(
       `\nPlaywright specs: ${run.length} run in CI, ${notRun.length} not.\n` +
         `Not run:\n${notRun.map((s) => `  - ${s}: ${NOT_RUN_IN_CI[s] ?? "UNEXPLAINED"}`).join("\n")}\n`,

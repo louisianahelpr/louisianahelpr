@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { formatPhone, ageFromDob, suggestEmailCorrection, passwordStrength } from "./signupHelpers";
+import {
+  formatPhone,
+  ageFromDob,
+  suggestEmailCorrection,
+  passwordStrength,
+  PASSWORD_RULES,
+  unmetPasswordRules,
+  passwordProblem,
+} from "./signupHelpers";
 
 describe("formatPhone", () => {
   it("returns empty string for no digits", () => {
@@ -93,5 +101,83 @@ describe("passwordStrength", () => {
     const strong = passwordStrength("Abcdef123!xyz");
     expect(strong.score).toBe(4);
     expect(strong.label).toBe("Strong");
+  });
+});
+
+/**
+ * The password rules the form STATES must be the rules it ENFORCES, and both
+ * must be the ones the Supabase project enforces.
+ *
+ * They were not. `Signup.tsx`'s validator checked five (8+, lowercase,
+ * uppercase, digit, symbol); `SignupStep1`'s inline gate and the requirement
+ * chips under the field checked THREE — 8+, uppercase, digit. So "PASSWORD1"
+ * satisfied every chip on screen, passed the inline gate, and was then rejected
+ * by a toast naming a lowercase rule the form had never displayed. And the
+ * inline error message rendered only for an EMPTY field, so a weak password got
+ * a red border and a focus jump with no words at all (external QA, 2026-09-06).
+ *
+ * The trap in testing this is asserting the list against itself — iterating
+ * PASSWORD_RULES and checking each rule's own `test` proves nothing, because a
+ * missing rule cannot fail a check derived from the list. So the passwords
+ * below are written out by hand: each one satisfies every rule EXCEPT the one
+ * it is named for. A rule that disappears from the list makes its password pass
+ * and fails the assertion.
+ */
+describe("PASSWORD_RULES", () => {
+  // Each entry: a password that breaks exactly ONE rule, and that rule's label.
+  const BREAKS_ONE: Array<[string, string]> = [
+    ["Ab1!efg", "8+ characters"],   // 7 chars, everything else present
+    ["ABCDEF1!", "Lowercase"],      // no lowercase
+    ["abcdef1!", "Uppercase"],      // no uppercase
+    ["Abcdefg!", "Number"],         // no digit
+    ["Abcdefg1", "Symbol"],         // no symbol
+  ];
+
+  it.each(BREAKS_ONE)("flags %s as failing only %s", (password, label) => {
+    const unmet = unmetPasswordRules(password);
+    expect(unmet.map((r) => r.label)).toEqual([label]);
+  });
+
+  it("accepts a password that satisfies every rule", () => {
+    expect(unmetPasswordRules("Abcdefg1!")).toHaveLength(0);
+    expect(passwordProblem("Abcdefg1!")).toBeNull();
+  });
+
+  it("covers every rule the Supabase project enforces", () => {
+    // The project policy is 8+ characters plus one of each character class.
+    // Pinning the labels means dropping a rule breaks this test even if every
+    // other assertion in the file is rewritten around the shorter list.
+    expect(PASSWORD_RULES.map((r) => r.label)).toEqual([
+      "8+ characters",
+      "Lowercase",
+      "Uppercase",
+      "Number",
+      "Symbol",
+    ]);
+  });
+});
+
+describe("passwordProblem", () => {
+  it("names the single missing rule", () => {
+    expect(passwordProblem("Abcdefg1")).toBe(
+      "Your password still needs a symbol like ! ? # or $.",
+    );
+  });
+
+  it("names EVERY missing rule in one sentence, not just the first", () => {
+    // A user who is walked through five separate rejections abandons. The
+    // sentence has to be actionable in one pass.
+    expect(passwordProblem("PASSWORD1")).toBe(
+      "Your password still needs a lowercase letter and a symbol like ! ? # or $.",
+    );
+    expect(passwordProblem("password")).toBe(
+      "Your password still needs an uppercase letter, a number and a symbol like ! ? # or $.",
+    );
+  });
+
+  it("returns null — not an empty string — for a valid password", () => {
+    // The caller renders on truthiness; an empty string would paint an empty
+    // red row under a perfectly good password.
+    expect(passwordProblem("Abcdefg1!")).toBeNull();
   });
 });

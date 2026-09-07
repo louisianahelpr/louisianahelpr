@@ -15,7 +15,13 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock } from "lucide-react";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
-import { suggestEmailCorrection, passwordStrength } from "./signupHelpers";
+import {
+  suggestEmailCorrection,
+  passwordStrength,
+  PASSWORD_RULES,
+  unmetPasswordRules,
+  passwordProblem,
+} from "./signupHelpers";
 
 export interface SignupStep1Props {
   email: string;
@@ -75,7 +81,11 @@ export function SignupStep1({
   // form can gate inline (focus the first bad field) instead of firing a
   // stack of toasts on Continue.
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const passwordValid = password.length >= 8 && /[A-Z]/.test(password) && /\d/.test(password);
+  // Derived from the shared rule list, NOT re-implemented. This line used to
+  // read `password.length >= 8 && /[A-Z]/ && /\d/` — three of the five rules
+  // the parent (and the Supabase project) actually enforce — so it waved
+  // through passwords it then had to reject with a toast. See PASSWORD_RULES.
+  const passwordValid = unmetPasswordRules(password).length === 0;
   const emailSuggestion = emailValid ? suggestEmailCorrection(email) : null;
   // Shared by the field border and the message below it, so a field can never
   // show one without the other.
@@ -193,10 +203,16 @@ export function SignupStep1({
               <ArrowBigUp className="w-3.5 h-3.5" strokeWidth={2} aria-hidden /> Caps Lock is on
             </p>
           )}
-          {attempted && !password && (
-            <p id="signup-password-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
-              <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
-              Add a password
+          {/* The message must cover BOTH failure modes the red border covers.
+              It used to render only for `attempted && !password`, so an empty
+              field said "Add a password" while a weak one — the far more
+              common case — got the border, a focus jump and silence. The
+              `passwordError` condition is the same boolean that paints the
+              border, so the two can no longer disagree. */}
+          {passwordError && (
+            <p id="signup-password-error" role="alert" className="inline-flex items-start gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
+              <X className="w-3.5 h-3.5 shrink-0 mt-px" strokeWidth={2.5} aria-hidden />
+              {password ? passwordProblem(password) : "Add a password"}
             </p>
           )}
           {password.length > 0 && (() => {
@@ -224,14 +240,12 @@ export function SignupStep1({
             );
           })()}
           {(() => {
-            // Real-time checklist mirrors the validation in Signup.tsx so
-            // the user knows exactly what's missing before they tap Continue
-            // (previously they'd hit Continue and get a generic toast). Shown
-            // from the start (not just once the user types) so the password
-            // rules set expectations before the first keystroke.
-            const hasLength = password.length >= 8;
-            const hasUpper = /[A-Z]/.test(password);
-            const hasNumber = /\d/.test(password);
+            // Real-time checklist, rendered from PASSWORD_RULES rather than
+            // from a hand-copied subset. It listed three of the five rules,
+            // which meant "Lowercase" and "Symbol" — both enforced by the
+            // Supabase project — were never stated until they caused a
+            // rejection. Shown from the start (not just once the user types)
+            // so the rules set expectations before the first keystroke.
             const Req = ({ ok, label }: { ok: boolean; label: string }) => (
               <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
                 {ok ? <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden /> : <Circle className="w-3 h-3" strokeWidth={2} aria-hidden />}
@@ -240,9 +254,9 @@ export function SignupStep1({
             );
             return (
               <div className="flex flex-wrap gap-x-3 gap-y-1 px-0.5 mt-1">
-                <Req ok={hasLength} label="8+ characters" />
-                <Req ok={hasUpper} label="Uppercase" />
-                <Req ok={hasNumber} label="Number" />
+                {PASSWORD_RULES.map((rule) => (
+                  <Req key={rule.label} ok={rule.test(password)} label={rule.label} />
+                ))}
               </div>
             );
           })()}

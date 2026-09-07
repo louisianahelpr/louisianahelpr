@@ -179,18 +179,36 @@ const SignupPending = () => {
           <div className="flex items-start gap-3">
             {stepIcon(3)}
             <div>
-              {/* Was: "Start right away / You're all set — post and accept jobs
-                  the moment you're in." That skipped a mandatory step. The
-                  confirmation poll above navigates to `/complete-profile`, and
-                  `ProtectedRoute`'s profile gate holds the user there until
-                  five fields (name, photo, date of birth, phone, city) are
-                  filled — so "you're all set" was said to someone standing in
-                  front of a required form. Naming the step is also the honest
-                  thing: a user who knows a short form is coming completes it;
-                  a user promised they're finished bounces. */}
-              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Finish your profile</p>
+              {/* This step has now been wrong in BOTH directions, so the
+                  history is worth keeping.
+
+                  It first said "Start right away / You're all set — post and
+                  accept jobs the moment you're in", which was written when
+                  signup collected only email + password: the confirmation poll
+                  above navigates to `/complete-profile`, and back then a
+                  five-field form was waiting there. So it was changed to
+                  "Finish your profile — a short form: name, photo, date of
+                  birth, phone and city".
+
+                  Signup then MOVED those five fields into its own step 2
+                  (`SignupStep2`, owner decision 2026-08-29), which is completed
+                  BEFORE this screen is ever reached. `PROFILE_GATE_FIELDS`
+                  (ProtectedRoute.tsx:110) is exactly those five, so an email
+                  signup satisfies `isProfileComplete` on arrival and
+                  CompleteProfile's own guard (`CompleteProfile.tsx:535`)
+                  bounces straight to /dashboard. The user never sees a form —
+                  step 3 was describing work they had already finished, on the
+                  one screen whose entire job is to set expectations about what
+                  happens next.
+
+                  What is still true is the deferred identity check: signup
+                  collects no ID, and Stripe IDV + payout setup are gated at the
+                  first post / apply (see complete-signup/index.ts's
+                  auto-approve comment). Naming it here is the difference
+                  between "you're all set" and a promise we break later. */}
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>
               <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                A short form — name, photo, date of birth, phone and city — then you can post and accept jobs.
+                Your profile is already done — you'll land straight in the app. Posting or accepting your first job adds a quick identity check.
               </p>
             </div>
           </div>

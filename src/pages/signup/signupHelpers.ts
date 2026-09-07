@@ -139,6 +139,64 @@ export function suggestEmailCorrection(email: string): string | null {
 }
 
 /**
+ * The password rules, in ONE place, because they were in three and the three
+ * disagreed.
+ *
+ * The Supabase project's own policy requires 8+ characters plus a lowercase
+ * letter, an uppercase letter, a digit AND a symbol. Before this list existed:
+ *
+ *   • `Signup.tsx`'s `validateAccountStep` checked all five (correct), but only
+ *     as a toast fired from the parent.
+ *   • `SignupStep1`'s inline `passwordValid` checked THREE — length, uppercase,
+ *     digit. So "PASSWORD1" passed the inline gate, reached the parent, and got
+ *     a toast about a lowercase rule the form had never displayed.
+ *   • The requirement chips under the field listed the same three, so the two
+ *     rules the server actually enforces were invisible until rejection.
+ *
+ * And the inline error message was rendered only for an EMPTY password
+ * (`attempted && !password`), so a WEAK one got a red border, a focus jump, and
+ * not one word of explanation — external QA reported exactly that. Both halves
+ * are fixed by deriving the gate, the chips and the message from this array.
+ *
+ * `label` is the chip. `need` is the fragment that composes the sentence, e.g.
+ * "Your password still needs a lowercase letter and a symbol."
+ */
+export interface PasswordRule {
+  label: string;
+  need: string;
+  test: (password: string) => boolean;
+}
+
+export const PASSWORD_RULES: readonly PasswordRule[] = [
+  { label: "8+ characters", need: "8 characters or more", test: (p) => p.length >= 8 },
+  { label: "Lowercase", need: "a lowercase letter", test: (p) => /[a-z]/.test(p) },
+  { label: "Uppercase", need: "an uppercase letter", test: (p) => /[A-Z]/.test(p) },
+  { label: "Number", need: "a number", test: (p) => /\d/.test(p) },
+  { label: "Symbol", need: "a symbol like ! ? # or $", test: (p) => /[^A-Za-z0-9]/.test(p) },
+];
+
+/** Every rule the password does not yet satisfy, in display order. */
+export function unmetPasswordRules(password: string): readonly PasswordRule[] {
+  return PASSWORD_RULES.filter((r) => !r.test(password));
+}
+
+/**
+ * One sentence naming everything still missing, or null when the password
+ * passes. Lists them rather than surfacing the first failure alone, so the user
+ * fixes the password once instead of being walked through five rejections.
+ */
+export function passwordProblem(password: string): string | null {
+  const unmet = unmetPasswordRules(password);
+  if (unmet.length === 0) return null;
+  const needs = unmet.map((r) => r.need);
+  const joined =
+    needs.length === 1
+      ? needs[0]
+      : `${needs.slice(0, -1).join(", ")} and ${needs[needs.length - 1]}`;
+  return `Your password still needs ${joined}.`;
+}
+
+/**
  * Password strength score (0–4) + label for the signup strength meter.
  * Distinct from the hard requirement chips (8+/uppercase/number): this
  * rewards length and character variety to nudge toward a *better*

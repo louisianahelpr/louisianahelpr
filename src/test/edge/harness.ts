@@ -220,6 +220,26 @@ function rewriteExternalImports(src: string): string {
     `$1 {$2} from "../../../supabase/functions/_shared/proTiers.ts";`,
   );
 
+  // Legal document versions: `_shared/legalVersions.ts` is a handful of string
+  // constants with ZERO imports and no Deno touch, so the generated file points
+  // at the REAL module. These are the versions stamped onto a signup's terms
+  // acceptance — mocking them would let a test agree with itself about which
+  // policy version the member consented to, which is the one fact that record
+  // exists to prove.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/legalVersions\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/legalVersions.ts";`,
+  );
+
+  // Storage key derivation: `_shared/storageKeys.ts` is pure TypeScript with
+  // ZERO imports — it derives avatar/document object keys and validates
+  // extensions. Real module: the key layout is what keeps one member's upload
+  // from landing on another's path, so a mock would retire the assertion.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/storageKeys\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/storageKeys.ts";`,
+  );
+
   // Stripe identity verdict: `_shared/stripeIdentity.ts` is pure TypeScript
   // (its only import is a TYPE-only Stripe import, stripped on transpile), so
   // the generated file points at the REAL module. The rule deciding whether a

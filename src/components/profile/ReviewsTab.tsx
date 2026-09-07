@@ -14,9 +14,6 @@ import {
 
 interface Review {
   rating: number;
-  punctuality: number | null;
-  quality: number | null;
-  communication: number | null;
   feedback: string | null;
   created_at: string;
   reviewerName: string;
@@ -44,10 +41,8 @@ const sortOptions: { value: SortKey; label: string; icon: typeof Star }[] = [
 
 export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, onLoadMore, hasMore, loadingMore }: ReviewsTabProps) {
   const [sortBy, setSortBy] = useState<SortKey>("newest");
-  // No per-category averaging or per-review breakdown any more (owner,
-  // 2026-08-30: one overall rating only). `punctuality` / `quality` /
-  // `communication` stay on the Review type/query for now (write side still
-  // collects them), just unrendered here.
+  // One overall rating only (owner, 2026-08-30 for display, 2026-09-07 for
+  // collection). The punctuality / quality / communication columns are gone.
 
   // Sort lives in the tab (not the parent) so flipping order is instant
   // without a re-fetch. Default newest matches the source query.

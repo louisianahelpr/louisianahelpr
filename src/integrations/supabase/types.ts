@@ -3269,15 +3269,12 @@ export type Database = {
       }
       reviews: {
         Row: {
-          communication: number | null
           created_at: string
           feedback: string | null
           feedback_visible_at: string | null
           id: string
           job_id: string
           photo_urls: string[] | null
-          punctuality: number | null
-          quality: number | null
           rating: number
           response_at: string | null
           response_text: string | null
@@ -3286,15 +3283,12 @@ export type Database = {
           status: string
         }
         Insert: {
-          communication?: number | null
           created_at?: string
           feedback?: string | null
           feedback_visible_at?: string | null
           id?: string
           job_id: string
           photo_urls?: string[] | null
-          punctuality?: number | null
-          quality?: number | null
           rating: number
           response_at?: string | null
           response_text?: string | null
@@ -3303,15 +3297,12 @@ export type Database = {
           status?: string
         }
         Update: {
-          communication?: number | null
           created_at?: string
           feedback?: string | null
           feedback_visible_at?: string | null
           id?: string
           job_id?: string
           photo_urls?: string[] | null
-          punctuality?: number | null
-          quality?: number | null
           rating?: number
           response_at?: string | null
           response_text?: string | null
@@ -5224,13 +5215,10 @@ export type Database = {
       get_public_profile_reviews: {
         Args: { p_limit?: number; p_offset?: number; p_user_id: string }
         Returns: {
-          communication: number
           created_at: string
           feedback: string
           id: string
           job_category: string
-          punctuality: number
-          quality: number
           rating: number
           response_at: string
           response_text: string

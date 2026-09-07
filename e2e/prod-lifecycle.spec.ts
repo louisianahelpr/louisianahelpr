@@ -533,18 +533,26 @@ test.describe("full money loop against production", () => {
     expect(proofed.ok(), `attaching proof photos failed: ${proofed.status()} ${await proofed.text()}`).toBe(true);
     expect(await proofed.json(), "proof photos matched zero rows").toHaveLength(1);
 
-    // --- 5. COMPLETE (both sides) -------------------------------------------
-    for (const [who, session] of [["helper", helper], ["poster", poster]] as const) {
-      const done = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
-        headers: { ...rest(session), Prefer: "return=representation" },
-        data:
-          who === "helper"
-            ? { helper_completed_at: new Date().toISOString() }
-            : { poster_completed_at: new Date().toISOString(), status: "completed" },
-      });
-      expect(done.ok(), `${who} completion failed: ${done.status()} ${await done.text()}`).toBe(true);
-      expect(await done.json(), `${who} completion matched zero rows`).toHaveLength(1);
-    }
+    /* --- 5. COMPLETE (helper side) -----------------------------------------
+       Only the helper completes over REST. The poster CANNOT: `poster_completed_at`
+       is in enforce_poster_jobs_money_lock's `locked_when_funded`, so a direct
+       PATCH is refused with
+
+           403 "Posters may not modify jobs.poster_completed_at once checkout has opened"
+
+       and this spec used to try exactly that. The lock is right — the poster
+       confirming completion is the moment money moves, so it belongs to the
+       server. In the product that confirmation IS the release: `create-payment`
+       with action "release" stamps poster_completed_at for a poster caller and,
+       once both sides are done, captures and schedules the payout in the same
+       call (create-payment/index.ts:576). So the poster's completion is not
+       missing from this suite, it is step 6. */
+    const helperDone = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+      headers: { ...rest(helper), Prefer: "return=representation" },
+      data: { helper_completed_at: new Date().toISOString() },
+    });
+    expect(helperDone.ok(), `helper completion failed: ${helperDone.status()} ${await helperDone.text()}`).toBe(true);
+    expect(await helperDone.json(), "helper completion matched zero rows").toHaveLength(1);
 
     // --- 6 & 7. RELEASE and REVIEW ------------------------------------------
     // Both are downstream of funding, and the dependency is not stylistic: the
@@ -566,6 +574,11 @@ test.describe("full money loop against production", () => {
           message: "payment_status never reached a settled state after release",
         })
         .toMatch(/^(payout_pending|released)$/);
+
+      // The release call is also the poster's completion — assert it landed,
+      // since that is the half a direct PATCH is (correctly) forbidden to do.
+      const settled = await readJob(request, poster, job.id);
+      expect(settled.poster_completed_at, "release did not stamp poster_completed_at").toBeTruthy();
 
       // The money actually moved: a transfer row for THIS job, to the helper.
       const transfers = await request.get(

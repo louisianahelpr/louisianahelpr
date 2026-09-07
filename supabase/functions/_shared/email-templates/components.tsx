@@ -72,13 +72,24 @@ export const Wordmark = () => (
 /**
  * Outlook-only VML rectangle for the CTA.
  *
- * This is the ONE piece of raw markup left in the email layer, and it is here
- * because it cannot be expressed as a React element: a conditional comment is
- * an HTML comment, and the `<!--[if !mso]><!-->` / `<!--<![endif]-->` pair has
- * to WRAP the anchor rather than sit beside it. react-email's `<Button>` does
- * make padding work in Outlook (`mso-padding-alt`) but Word still squares off
- * `border-radius`, so without this the Outlook reader gets a rectangle where
- * everyone else gets Helpr's rounded button.
+ * VML cannot be a React element, so it stays raw — but it is now ONLY the
+ * Outlook block. The visible anchor is real JSX in BrandButton.
+ *
+ * It used to WRAP the anchor in `<!--[if !mso]><!-->` / `<!--<![endif]-->` and
+ * inject the whole thing through dangerouslySetInnerHTML. Any pipeline that
+ * strips comments greedily removes everything from the first `<!--` to the LAST
+ * `-->` — the anchor included — leaving the wrapper div with its style
+ * attribute and nothing inside it.
+ *
+ * That is exactly what shipped. A 2026-09-06 review found the signup
+ * verification email rendering `<div style="margin: 0 0 4px"></div>` with no
+ * button and no link anywhere in the HTML part; only the plain-text alternative
+ * carried the verify URL, and every modern mail client renders the HTML part.
+ * New signups had no way through, on the one email the whole funnel depends on.
+ *
+ * Word still squares off `border-radius`, so Outlook keeps the VML rectangle —
+ * as an ENHANCEMENT. If it is ever stripped, Outlook falls back to the same
+ * real anchor everyone else gets.
  */
 /**
  * Escape for an HTML attribute value or text node.
@@ -118,7 +129,7 @@ function escapeForHtml(value: string): string {
  * Escaping at the sink is the fix; tightening the sanitizer would only move
  * the problem to the next caller that forgets to use it.
  */
-function msoButtonHtml(href: string, label: string, widthPx: number): string {
+function msoOnlyButtonHtml(href: string, label: string, widthPx: number): string {
   const safeHref = escapeForHtml(href)
   const safeLabel = escapeForHtml(label)
   return `<!--[if mso]>
@@ -126,10 +137,7 @@ function msoButtonHtml(href: string, label: string, widthPx: number): string {
 <w:anchorlock/>
 <center style="color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:600;">${safeLabel}</center>
 </v:roundrect>
-<![endif]-->
-<!--[if !mso]><!-->
-<a class="e-cta" href="${safeHref}" style="display:inline-block;background-color:${brand.bark};color:#ffffff;font-size:15px;line-height:20px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">${safeLabel}</a>
-<!--<![endif]-->`
+<![endif]-->`
 }
 
 /** The one CTA button in the product. `label` is plain text, never markup. */
@@ -142,12 +150,30 @@ export const BrandButton = ({
   label: string
   widthPx?: number
 }) => (
-  <div
-    style={{ margin: '0 0 4px' }}
-    dangerouslySetInnerHTML={{
-      __html: msoButtonHtml(href, label, widthPx ?? Math.max(180, label.length * 10 + 60)),
-    }}
-  />
+  <div style={{ margin: '0 0 4px' }}>
+    <div
+      dangerouslySetInnerHTML={{
+        __html: msoOnlyButtonHtml(href, label, widthPx ?? Math.max(180, label.length * 10 + 60)),
+      }}
+    />
+    <a
+      className="e-cta"
+      href={href}
+      style={{
+        display: 'inline-block',
+        backgroundColor: brand.bark,
+        color: '#ffffff',
+        fontSize: '15px',
+        lineHeight: '20px',
+        borderRadius: '12px',
+        padding: '14px 28px',
+        textDecoration: 'none',
+        fontWeight: 600,
+      }}
+    >
+      {label}
+    </a>
+  </div>
 )
 
 /**

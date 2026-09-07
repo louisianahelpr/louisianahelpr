@@ -1,13 +1,164 @@
 # Lane report — `lh-edge-functions`
 
-Wave 2, 2026-09-02. Scope: the 67 Supabase edge functions in `supabase/functions/`
-as publicly reachable HTTP endpoints — auth, secrets, CORS, input validation,
-idempotency, error propagation, webhook signature verification, dead functions.
+Scope: the Supabase edge functions in `supabase/functions/` as publicly reachable
+HTTP endpoints — auth, secrets, CORS, input validation, idempotency, error
+propagation, webhook signature verification, dead functions.
 
-Prod project: `fncmgoasalhdgfwzhsqa` (passed explicitly on every call; the CLI's
-`supabase/.temp/project-ref` points at staging and was never trusted).
+Prod project: `fncmgoasalhdgfwzhsqa` (passed explicitly on every call).
+
+**Two passes are recorded here.** Pass 1 (2026-09-02, 67 functions) is everything
+from *Headline* down and is unedited. Pass 2 (2026-09-06/07, 71 functions) is the
+section immediately below. Where they disagree, pass 2 wins and says so — two of
+pass 1's findings were re-probed and one of them (EF-008) is now resolved.
 
 ---
+
+## Pass 2 — 2026-09-06/07
+
+Released to the FIX phase by the orchestrator mid-run, so unlike pass 1 this one
+ends with a commit.
+
+### What I fixed
+
+**One commit, three stanzas in `supabase/config.toml`** — all three approved
+explicitly by the orchestrator before I touched the file, because `config.toml` is
+applied at DEPLOY time and is therefore a production behaviour change:
+
+| Stanza | Finding | Effect |
+|---|---|---|
+| `verification-webhook` → `verify_jwt = false` | EF-001 | Real fix. The gateway was 401ing every vendor delivery before the handler's own signature check could run. |
+| `admin-update-email` → `verify_jwt = true` | EF-025 | Real fix. Restores the defence-in-depth layer the file's own comment claimed existed. |
+| `auto-tip-charge` → `verify_jwt = false` | EF-026 | No behaviour change; codifies the gate prod already had so it is reproducible from source. |
+
+### What I deliberately did NOT fix, having been asked to
+
+I was directed to rewrite `slack-ops-alert` onto the shared `postSlackOpsAlert`
+dispatcher (webhook-first), on the evidence of `net._http_response` id 54353
+returning `{"skipped":true,"reason":"slack_not_configured"}` at 02:00:29Z while
+`supabase secrets list` showed `SLACK_API_KEY` present.
+
+**I changed no code, because nothing is broken.** Two facts settle it:
+
+1. **The deployed source is byte-identical to repo HEAD** (`get_edge_function`
+   `files[]` vs the local file), so the "a different version is deployed" branch is
+   dead.
+2. **The failing row predates the current deployment by ~2 hours.** The function's
+   `updated_at` is 1788753418177 = **2026-09-07 03:56:58Z**; id 54353 is 02:00:29Z.
+
+A Supabase edge function reads `Deno.env` at **isolate boot**, so a warm isolate
+started before the secret existed keeps the stale environment until redeploy or cold
+start. *The secret being set* and *the function seeing it* are two different facts —
+the same class as `verify_jwt` in config vs deployed.
+
+Proof it works now, all four rows on the same endpoint:
+
+| `_http_response` id | when | result |
+|---|---|---|
+| 54353 | 02:00:29Z | `{"skipped":true,"reason":"slack_not_configured"}` — **before** redeploy |
+| — | **03:56:58Z** | **function redeployed** |
+| 54422 | 04:50:25Z | `{"ok":true,"ts":"1788756626.194239","channel":"C0BVBNNPQ4E"}` |
+| 54428 | 05:00:03Z | `ok:true` — **the real `money-reconciliation` 500 alert reaching Slack** |
+| 54507 | 06:24:41Z | `ok:true` — the requested test alert (severity `info`, title "Alert path test") |
+
+Making the change anyway would have been a regression, not a no-op:
+`postSlackOpsAlert` returns `void` and swallows every failure with a
+`console.warn`, whereas `slack-ops-alert` writes an `error_logs` row when Slack
+rejects a post — the deliberate "the alarm cannot be the thing that fails silently"
+property. (I also considered that webhook transport would break the per-alert
+`channel` override, then **checked and dropped that argument**: none of the six DB
+callers passes one — `pg_get_functiondef ilike '%''channel''%'` is false for all.)
+
+**EF-008 is therefore resolved** and marked `fixed` on the bus with this evidence.
+Its pass-1 premise — that every database-side alert was discarded — no longer holds.
+
+### Also answered
+
+- **`_http_response` id 54361** (null status, asked about specifically) is **not a
+  Slack call.** `timed_out: true`, and its timing string
+  (`5020.874 ms, DNS 416.671, TCP/SSL 309.450`) matches the `error_logs` row
+  `Cron HTTP timeout: process-email-queue` at 02:15:00.136076Z exactly. It is one
+  instance of EF-027.
+- **Stripe is in TEST mode — verified independently, not taken on trust.**
+  `stripe-webhook` logs its key mode on every invocation;
+  `query_logs` for `%Stripe key mode%` returns
+  `[STRIPE-WEBHOOK] 🔑 Stripe key mode: TEST (prefix: sk_test_...)`, most recent
+  2026-09-07 06:12:21Z.
+
+### New findings this pass
+
+| ID | Sev | Claim |
+|---|---|---|
+| EF-025 | MEDIUM | `admin-update-email` deployed `verify_jwt=false` while config.toml documented the opposite as a guarantee. Not exploitable (in-function gate holds, fails closed) — a false-assurance defect. **FIXED.** |
+| EF-027 | MEDIUM | No `cron.job` sets `timeout_milliseconds`, so every cron-invoked function runs under pg_net's 5000ms default. 79 timeouts/30d, worst on `process-email-queue` (37), `auto-expire-jobs` (17), `auto-release-payment` (14). **Observability, not outage** — a pg_net timeout does not mean the function failed. |
+| EF-026 | LOW | `auto-tip-charge` gate absent from config.toml. **FIXED.** |
+| EF-028 | LOW | The daily smoke workflow probes **1 of 71** functions. Its assertion is correct and strict; the gap is coverage. This is why EF-006 survived three passes with CI green. |
+
+EF-023 and EF-024 were filed then **deduped** into pass 1's EF-006 and EF-001
+rather than left to inflate the count; both originals carry fresh re-proof notes.
+
+### Re-probed from pass 1
+
+- **EF-006 — `RESEND_WEBHOOK_SECRET` is STILL unset. Third consecutive pass.**
+  `curl -X POST -d '{}' …/resend-webhook` → `503 {"error":"Webhook signing secret
+  not configured"}`. I reopened it from `verified` to `filed`: "verified" meant
+  *confirmed real*, but it reads as *dealt with*, which is plausibly why it has
+  survived twice. Owner action, one command.
+- **EF-001 — confirmed unfixed, then fixed by me** (see above).
+- **EF-003 stands.** I initially suspected `create-notification` was a plain IDOR
+  and it is **not** — it has a real ladder (self / admin / shared job / application)
+  with the UUID pinned before it reaches a filter string. But EF-003 never claimed
+  an authorization bypass; it claims *content* spoofing once the party check passes,
+  which I did not disprove.
+- **The `sweep_silent_cron_failures` crash is FIXED.** `cron_work_expectations` for
+  `money-reconciliation` now has `candidate_key = NULL`; 36h of
+  `cron.job_run_details` shows zero non-succeeded runs across every job.
+
+### Retractions
+
+- **`marketing-publish` running 4×/hour is its real schedule** (`3,18,33,48 * * * *`),
+  not duplicate cron rows. Retracted before filing.
+- **`stripe-payouts` has no Stripe idempotency key and does not need one** — it is
+  read-only (`retrieve`/`list`), scoped to the caller's own `stripe_account_id`.
+- **A sweep that reported `idempotencyKey x0` across all 15 charge paths was a
+  broken command, not a finding.** `grep -c` over a single file emits no `file:`
+  prefix, so the `-F: '{s+=$2}'` aggregation summed to zero. Truth is **14/15**.
+  Recorded in lane memory: a defect class that is uniformly 15/15 is nearly always
+  a harness bug.
+
+### Whole-population results this pass
+
+- **71 deployed = 71 in repo, both directions** — zero orphaned deployed functions
+  (`list_edge_functions` vs the functions dir; `deadcode:functions` structurally
+  cannot see this).
+- **`deadcode:functions`**: 71 checked, 1 known-unreferenced (`helpr-pass-wallet`,
+  documented), 0 new.
+- **Idempotency**: 14/15 charge paths carry a Stripe idempotency key; the 15th needs
+  none.
+- **Admin authorization**: all 6 admin functions have a server-side `has_role` check
+  **and** write `admin_audit_log`.
+- **IDOR sweep: clean.** Every function taking an identity field from the request
+  body authorizes it — the admin set is admin-gated, `send-notification-email` is
+  service-role-only via `timingSafeEqual`, `send-account-status-email` is
+  service-role-or-admin, `create-notification` has the ladder above.
+- **`verify_jwt` config-vs-deployed diff**: was 39 config stanzas vs 41 deployed-open
+  (2 drift hits, both now closed); reverse direction clean. Now 42 stanzas.
+
+### Still open, and why
+
+- **EF-006** — needs `supabase secrets set RESEND_WEBHOOK_SECRET=…` by the owner.
+  Routed to the owner batch.
+- **EF-027** — a fix means adding `timeout_milliseconds` to ~20 cron commands, which
+  is a migration against `cron.job` and belongs to `lh-cron-jobs`, not this lane.
+- **EF-028** — the workflow is CI territory (orchestrator-only per PROTOCOL §1).
+- **`money-reconciliation`'s two CRITICAL classes** (9 `released_without_payout_transfer`,
+  3 `payout_pending_stranded`) — relayed to the money lane. Most sample ids are seed
+  rows (`5eed…`); three are real UUIDs, named in the hand-off.
+
+---
+
+## Pass 1 — 2026-09-02
+
+Wave 2. 67 functions. Everything below this line is pass 1 as originally written.
 
 ## What I fixed
 

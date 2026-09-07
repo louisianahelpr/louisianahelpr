@@ -1512,8 +1512,15 @@ html.no-bottom-nav {
           drop-shadow(0 2px 6px rgba(46, 47, 34, 0.1));
 }
 
+/* Dark: the mark is dark metal, and brightness(1.9) left it a charcoal
+   smudge on the rgba(20,22,26) header — external QA, 2026-09-07, confirmed by
+   eye. Four candidates were rendered side by side; inverting (invert +
+   hue-rotate) turned the iron to bone and the fleur-de-lis blue, so this lifts
+   the SAME object to pewter instead: enough brightness to separate from the
+   header, contrast pulled back so the texture survives, saturation eased so
+   the gold accents stay gold rather than neon. */
 [data-theme="dark"] .helpr-emblem {
-  filter: brightness(1.9) saturate(1.2)
+  filter: brightness(3.4) contrast(0.85) saturate(0.7)
           drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
 }
 
@@ -1983,7 +1990,7 @@ button,
 }
 
 
-/* "Blueprint label" — tiny EB Garamond small-caps in Burnt Sienna for step
+/* "Blueprint label" — tiny small-caps in Burnt Sienna for step
    numbers and category eyebrows. Reads like an architect's drawing label or
    the date line in a journal rather than a web tagline. */
 .text-display-eyebrow {
@@ -1994,8 +2001,7 @@ button,
      in a single place. The type rules are kept (commented) so the label is a
      one-line restore if ever wanted. */
   display: none;
-  font-family: "EB Garamond", Georgia, Cambria, serif;
-  font-style: italic;
+  font-family: Montserrat, system-ui, sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0.14em;

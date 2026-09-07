@@ -31,7 +31,11 @@ const repoRoot = path.resolve(__dirname, '..');
 
 const TARGET = 'https://www.louisianahelpr.com';
 const TEST_EMAIL = 'eli.test.helper@louisianahelpr.com';
-const TEST_USER_ID = '6bdc1f67-ae1f-46a0-8edf-4035629a6147';
+// Resolved at runtime — the account behind TEST_EMAIL was re-created on
+// 2026-09-07 and the old literal (6bdc1f67-…) now 404s, which made this probe
+// inject `user_id=undefined` and grade "We couldn't load your account" on
+// every route. See scripts/audit-capture.mjs resolveTestUserId().
+let TEST_USER_ID = null;
 const OUT_DIR = path.join(process.env.HOME, 'lh-audit-shots', 'state-matrix-' + new Date().toISOString().slice(0, 10));
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
@@ -76,10 +80,15 @@ async function mintSession(supabaseUrl, serviceKey) {
   // Confirmed by cross-checking GoTrue admin/users against this exact bounce
   // on 2026-09-02 — see lh-state-matrix memory. audit-capture.mjs's routes
   // are all allowPending or allowUnapproved, so this gap was invisible there.
-  const userRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${TEST_USER_ID}`, {
-    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+  // Ask GoTrue who this token belongs to — never look the user up by a
+  // remembered id (see the TEST_USER_ID note above).
+  const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: { apikey: serviceKey, Authorization: `Bearer ${access_token}` },
   });
-  const realUser = userRes.ok ? await userRes.json() : { id: TEST_USER_ID };
+  if (!userRes.ok) throw new Error(`could not fetch the authenticated user (${userRes.status}) — refusing to mint a session with a fabricated user object`);
+  const realUser = await userRes.json();
+  if (!realUser?.id || !realUser.email_confirmed_at) throw new Error('minted user object is missing id / email_confirmed_at');
+  TEST_USER_ID = realUser.id;
 
   return { access_token, refresh_token, token_type: 'bearer', expires_in: 3600, expires_at, user: realUser };
 }

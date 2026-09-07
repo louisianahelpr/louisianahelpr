@@ -25,8 +25,9 @@ tour.
   across every lifecycle state. Prefer this over the owner's account.
 - **Poster (owner)**: the owner's own account (lexilombas05@gmail.com) — log in
   normally. Only when you specifically need the owner's real data.
-- **Helper**: `eli.test.helper@louisianahelpr.com` — auth user bound to profile
-  id 6bdc1f67-ae1f-46a0-8edf-4035629a6147 ("Audit Helper"). No password: mint a
+- **Helper**: `eli.test.helper@louisianahelpr.com` — look its auth id up by
+  email every time (`profiles?email=eq.…` → `user_id`); it was re-created on
+  2026-09-07 and any literal you remember (6bdc1f67-…) is stale. No password: mint a
   one-time login with `bash scripts/e2e/mint-helper-login.sh` (writes the magic
   link to /tmp/lh-helper-magiclink.txt). NOTE: the ORIGINAL seed Eli
   (user_id 11111111-1111-1111-1111-111111111104, owns the seeded jobs/messages)

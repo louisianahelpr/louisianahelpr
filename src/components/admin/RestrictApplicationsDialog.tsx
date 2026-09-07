@@ -38,6 +38,7 @@ import {
   DialogFooter,
   DialogSecondaryAction,
   DialogDestructiveAction,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -195,11 +196,11 @@ export function RestrictApplicationsDialog({
               choosing this needs to know it is not silent. The string is the
               trigger's own message. */}
           <div className="rounded-ds-sm bg-accent/10 border border-accent/20 p-3">
-            <p className="text-ds-11 text-muted-foreground">
+            <DialogBody>
               This is not silent. Each time they apply they are told
               “Your account is temporarily restricted. Please try again later.”
               It lapses on its own — no one has to lift it.
-            </p>
+            </DialogBody>
           </div>
         </div>
         <DialogFooter>

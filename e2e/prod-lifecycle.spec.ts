@@ -483,27 +483,55 @@ test.describe("full money loop against production", () => {
        which is exactly what a headless browser does. */
     const onTheWay = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
       headers: { ...rest(helper), Prefer: "return=representation" },
-      data: { helper_on_the_way_at: new Date().toISOString(), status: "in_progress" },
+      /* Backdated, not "now". Completion is additionally gated on 30 minutes
+         having passed since arrival ("Available 30 minutes after arrival to
+         ensure quality"), so a run that stamped arrival at the current instant
+         would satisfy the arrival trigger and then fail the delay one. These
+         two timestamps are the only place the suite pretends time passed. */
+      data: { helper_on_the_way_at: new Date(Date.now() - 45 * 60_000).toISOString(), status: "in_progress" },
     });
     expect(onTheWay.ok(), `on-my-way failed: ${onTheWay.status()} ${await onTheWay.text()}`).toBe(true);
     expect(await onTheWay.json(), "on-my-way matched zero rows").toHaveLength(1);
 
     const arrived = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
       headers: { ...rest(helper), Prefer: "return=representation" },
-      data: { helper_arrived_at: new Date().toISOString() },
+      data: { helper_arrived_at: new Date(Date.now() - 35 * 60_000).toISOString() },
     });
     expect(arrived.ok(), `arrival failed: ${arrived.status()} ${await arrived.text()}`).toBe(true);
     expect(await arrived.json(), "arrival matched zero rows").toHaveLength(1);
 
     const arrivalConfirmed = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
       headers: { ...rest(poster), Prefer: "return=representation" },
-      data: { poster_confirmed_arrival_at: new Date().toISOString() },
+      data: { poster_confirmed_arrival_at: new Date(Date.now() - 30 * 60_000).toISOString() },
     });
     expect(
       arrivalConfirmed.ok(),
       `poster arrival confirmation failed: ${arrivalConfirmed.status()} ${await arrivalConfirmed.text()}`,
     ).toBe(true);
     expect(await arrivalConfirmed.json(), "arrival confirmation matched zero rows").toHaveLength(1);
+
+    /* --- 4c. PROOF PHOTOS — the other completion gate ----------------------
+       `enforce_helper_completion_gates` also refuses completion with
+       23514 completion_requires_proof_photos ("Add before and after photos
+       before marking the job done"). The photos are not decoration: the app
+       tells the helper they are "the proof that releases your payment".
+
+       Set as URLs rather than uploaded through storage. This suite is a
+       REST-level walk of the money state machine, and what it is here to prove
+       is that the gate exists and that a job carrying proof can complete — the
+       upload path itself (picker, progress, the explicit Upload button in the
+       dialog) is a UI concern driven by hand and covered in the lane notes.
+       Being explicit about that boundary so nobody reads a green run as
+       evidence that photo upload works. */
+    const proofed = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+      headers: { ...rest(helper), Prefer: "return=representation" },
+      data: {
+        proof_before_urls: [`https://example.invalid/${job.id}/before.png`],
+        proof_after_urls: [`https://example.invalid/${job.id}/after.png`],
+      },
+    });
+    expect(proofed.ok(), `attaching proof photos failed: ${proofed.status()} ${await proofed.text()}`).toBe(true);
+    expect(await proofed.json(), "proof photos matched zero rows").toHaveLength(1);
 
     // --- 5. COMPLETE (both sides) -------------------------------------------
     for (const [who, session] of [["helper", helper], ["poster", poster]] as const) {

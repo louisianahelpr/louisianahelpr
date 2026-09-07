@@ -115,6 +115,20 @@ function PostedJobCardInner({
       job.status === "completed") &&
       !!job.helper_id) ||
     job.status === "open";
+  /* An unfunded job has not been posted to anyone. All four browse surfaces
+     require a funded payment_status, so no helper can return it — yet three
+     controls on this card asserted the opposite, and the poster believed them:
+     the tracker lit "Posted" as a COMPLETED step roughly 40px above the notice
+     reading "Payment not finished"; the Applicants button offered to show
+     applicants for a listing nobody could see (and its "0" reads as weak
+     demand rather than as invisibility); and Boost offered to charge for
+     promoting it.
+
+     Each is gated off rather than reworded, because there is no true version
+     of any of them until the money lands. UnfundedJobNotice is then the only
+     thing this card says about state, which is the point — one claim, and a
+     button that fixes it. */
+  const unfunded = shouldShowUnfundedNotice(job);
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
 
   /**
@@ -507,7 +521,7 @@ function PostedJobCardInner({
                   it also shows the ORDER the steps happen in. */}
 
               {/* Visible live tracking */}
-              {showsTracker && (
+              {showsTracker && !unfunded && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <JobTracking includePostingSteps jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
                 </div>
@@ -710,7 +724,7 @@ function PostedJobCardInner({
               )}
 
               {/* Applicants button + inline expanded applicant list */}
-              {job.status === "open" && (
+              {job.status === "open" && !unfunded && (
                 <PostedJobApplicants
                   job={job}
                   applicantCounts={applicantCounts}
@@ -734,6 +748,7 @@ function PostedJobCardInner({
                 helperNames={helperNames}
                 completedJobMeta={completedJobMeta}
                 onBoost={onBoost}
+                unfunded={unfunded}
                 onEdit={onEdit}
                 onCancel={onCancel}
                 onComplete={onComplete}

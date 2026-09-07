@@ -34,6 +34,9 @@ interface PostedJobActionsProps {
   helperNames: Record<string, string>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
   onBoost: (jobId: string) => void;
+  /** True when the job has never been funded, so it is invisible to every
+      helper. Boost sells reach on a listing that has none — see PostedJobCard. */
+  unfunded?: boolean;
   onEdit: (job: Job) => void;
   onCancel: (job: Job) => void;
   onComplete: (jobId: string) => void;
@@ -131,6 +134,7 @@ export function PostedJobActions({
   helperNames,
   completedJobMeta,
   onBoost,
+  unfunded = false,
   onEdit,
   onCancel,
   onComplete,
@@ -335,20 +339,29 @@ export function PostedJobActions({
                   was extracted FROM this row. Colours are carried across
                   verbatim in jobActionChipStyle — the only rendered change is
                   the 44px minimum height these were ~3px short of. */}
-              <JobActionRow columns={4}>
+              <JobActionRow columns={unfunded ? 3 : 4}>
                 <ShareJobButton
                   job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
                   layout="stack"
                   className={JOB_ACTION_CHIP_CLASS}
                   style={jobActionChipStyle("share")}
                 />
-                <JobActionChip
-                  icon={Rocket}
-                  label={isBoosted ? "Boosted" : "Boost"}
-                  tone="boost"
-                  disabled={!!isBoosted}
-                  onClick={() => onBoost(job.id)}
-                />
+                {/* Boost sells REACH. An unfunded job has none — every browse
+                    surface filters on a funded payment_status — so charging to
+                    promote it would be selling nothing. Dropped entirely rather
+                    than disabled: a greyed chip invites a tap and an
+                    explanation, and UnfundedJobNotice already gives the poster
+                    the one action that helps. The row falls to 3 columns so the
+                    remaining chips stay evenly spaced at 375. */}
+                {!unfunded && (
+                  <JobActionChip
+                    icon={Rocket}
+                    label={isBoosted ? "Boosted" : "Boost"}
+                    tone="boost"
+                    disabled={!!isBoosted}
+                    onClick={() => onBoost(job.id)}
+                  />
+                )}
                 <JobActionChip
                   icon={Pencil}
                   label="Edit"

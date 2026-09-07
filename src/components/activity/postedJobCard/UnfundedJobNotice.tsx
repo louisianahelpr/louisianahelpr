@@ -34,7 +34,16 @@ import { type Job } from "../activityConstants";
 export type UnfundedCause = "calendar" | "abandoned-checkout";
 
 export function unfundedNoticeCause(job: Job): UnfundedCause | null {
-  if (job.payment_status !== "unpaid" || job.status !== "open") return null;
+  /* 'abandoned' rides with 'unpaid' because they are the same fact to the
+     poster and to every browse surface: the money never landed, so all four
+     feeds filter the row out and no helper can see it. Which of the two a job
+     carries is internal bookkeeping about how the checkout ended, not a
+     difference this card should render — and prod holds live open rows in BOTH
+     states, so keying on 'unpaid' alone left every 'abandoned' one as exactly
+     the silent ghost this notice exists to prevent. */
+  const unfunded =
+    job.payment_status === "unpaid" || job.payment_status === "abandoned";
+  if (!unfunded || job.status !== "open") return null;
 
   // Auto-created by str-ical-sync. Nobody ever opened a checkout for it.
   if (job.is_auto_created === true) return "calendar";

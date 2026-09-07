@@ -88,4 +88,31 @@ describe("shouldShowUnfundedNotice", () => {
     expect(shouldShowUnfundedNotice(job({ payment_status: "escrow", status: "completed" }))).toBe(false);
     expect(shouldShowUnfundedNotice(job({ is_auto_created: false, status: "cancelled" }))).toBe(false);
   });
+  /* 'abandoned' is the other terminal unfunded state, and prod holds live open
+     rows in it. It reaches every browse surface exactly as 'unpaid' does — all
+     four filter on a FUNDED payment_status — so a job carrying it is the same
+     invisible ghost, and keying the notice on 'unpaid' alone left it silent. */
+  it("fires on an abandoned checkout, not just an unpaid one", () => {
+    expect(
+      shouldShowUnfundedNotice(
+        job({ payment_status: "abandoned", is_auto_created: false, stripe_session_id: "cs_test_x" }),
+      ),
+    ).toBe(true);
+    expect(
+      unfundedNoticeCause(
+        job({ payment_status: "abandoned", is_auto_created: false, stripe_session_id: "cs_test_x" }),
+      ),
+    ).toBe("abandoned-checkout");
+  });
+
+  it("still says nothing about an abandoned job that never reached Stripe", () => {
+    // No session id means no Checkout was ever minted, so there is nothing to
+    // finish paying — the same guard that keeps the notice off the healthy
+    // insert→redirect window.
+    expect(
+      shouldShowUnfundedNotice(
+        job({ payment_status: "abandoned", is_auto_created: false, stripe_session_id: null }),
+      ),
+    ).toBe(false);
+  });
 });

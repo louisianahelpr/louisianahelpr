@@ -760,7 +760,12 @@ BEGIN
   v_new := regexp_replace(
     v_new,
     E'\\n  IF to_regclass\\(''public\\.helper_preferred_parishes''\\) IS NOT NULL THEN.*?\\n  END IF;\\n',
-    E'\\n',
+    -- A REAL newline, not E'\\n'. In a regexp_replace REPLACEMENT, backslash-n
+    -- is not an escape — Postgres emits the two literal characters, which is
+    -- how the first push of this file put `\\n` on its own line inside the
+    -- rewritten function and failed db-smoke with `syntax error at or near "\\"`.
+    -- Escapes belong in the PATTERN, where E'\\n' does mean newline.
+    E'\n',
     ''
   );
   v_new := regexp_replace(v_new, E'\\n *''preferred_parishes_deleted'',[^\\n]*', '', 'g');
@@ -768,6 +773,15 @@ BEGIN
   IF position('helper_preferred_parishes' in v_new) <> 0
      OR position('v_parishes' in v_new) <> 0 THEN
     RAISE EXCEPTION 'purge_user_data rewrite left a helper_preferred_parishes reference behind';
+  END IF;
+
+  -- The live definition contains no backslash anywhere (checked against prod:
+  -- position(E'\\' in src) = 0), so one appearing here means a replacement
+  -- string emitted an escape as literal text rather than acting on it. That
+  -- is exactly what happened on the first push of this file, and the failure
+  -- surfaced 300 lines away from its cause.
+  IF position(E'\\' in v_new) <> 0 THEN
+    RAISE EXCEPTION 'purge_user_data rewrite introduced a literal backslash — a replacement string was taken as text';
   END IF;
 
   EXECUTE v_new;

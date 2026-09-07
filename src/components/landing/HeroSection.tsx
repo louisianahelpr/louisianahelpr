@@ -98,14 +98,6 @@ const HeroSection = () => {
     navigate(session?.user ? "/post-job" : "/signup");
   };
 
-  // Browse Jobs always sends the visitor to the public /jobs board — the
-  // marketing landing's "browse jobs" affordance should show the actual
-  // public jobs webpage regardless of auth state.
-  const goToJoinCommunity = (e: React.MouseEvent) => {
-    e.preventDefault();
-    navigate("/jobs");
-  };
-
   return (
     <section className="relative overflow-hidden min-h-lvh flex flex-col justify-center items-center px-5 sm:px-8 lg:px-12 pt-28 sm:pt-32 lg:pt-20 pb-3 sm:pb-4 lg:pb-6">
       {/* Editorial poster: ONE centered column. No boxes. The parchment
@@ -226,7 +218,12 @@ const HeroSection = () => {
                 "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
             }}
           >
-            <Link to="/jobs" onClick={goToJoinCommunity}>
+            {/* Points at the feed this visitor can actually use: the guest
+                board, or the authed one once they are signed in. A plain
+                <Link> with the right `to` needs no click handler — the old one
+                preventDefault'd and re-navigated to a third route whose only
+                job was to look at the session and bounce again. */}
+            <Link to={loggedIn ? "/dashboard" : "/browse"}>
               <Search className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
               Browse Jobs
               <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />

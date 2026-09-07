@@ -2,6 +2,8 @@ import { Apple, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
 import { APP_STORE_URL } from "@/lib/appStore";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { browseDestinationFor } from "@/lib/browseDestination";
 
 // Inline Facebook glyph — lucide-react v1.x removed brand icons including
 // `Facebook`. Inlining the standard "f" mark keeps the social link working
@@ -51,7 +53,12 @@ const INSTAGRAM_URL = "https://www.instagram.com/louisianahelpr";
  * here (relocated from the nav) — Google Play shows a "Coming soon"
  * state until the Android app ships.
  */
-const Footer = () => (
+const Footer = () => {
+  // The footer renders on public AND authed surfaces (App.tsx, PageHeader,
+  // AuthShell, PublicLayout), so its "Jobs" link cannot be a constant.
+  const { user } = useAuthReady();
+
+  return (
   <footer
     className="px-5 sm:px-8 lg:px-12 relative border-t border-[hsl(var(--olivewood))]/15"
     style={{
@@ -125,7 +132,10 @@ const Footer = () => (
               side is what looks unfinished. */}
           <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
             <li>
-              <Link to="/jobs" className="link-standard">
+              {/* Named, not bounced: a signed-in reader goes straight to the
+                  authed feed and a visitor to the guest one. Same label either
+                  way — one feature, one noun (see browseDestinationFor). */}
+              <Link to={browseDestinationFor(user)} className="link-standard">
                 Jobs
               </Link>
             </li>
@@ -276,6 +286,7 @@ const Footer = () => (
       </div>
     </div>
   </footer>
-);
+  );
+};
 
 export default Footer;

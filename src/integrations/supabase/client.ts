@@ -8,17 +8,19 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Warn loudly when a local dev build points at the prod Supabase project
-// (`fncmgoasalhdgfwzhsqa`) — an artifact of us not maintaining a separate
-// staging project. Flagged by Cowork audit 2026-07-08. This does NOT block
-// (removing prod access mid-flight would break the app), but it makes the
-// footgun visible in DevTools so it stops feeling normal. Ignored in
-// production builds and on the native app (where import.meta.env.PROD is
-// true and the intended target IS prod).
+// (`fncmgoasalhdgfwzhsqa`). Flagged by Cowork audit 2026-07-08. This is now
+// the permanent condition, not a temporary one: the staging project was
+// retired 2026-09-07 because a second database that drifts is worse than one
+// you are careful with, so there is nowhere else for dev to point. The warning
+// stays anyway — it does NOT block, it just keeps the footgun visible in
+// DevTools so it stops feeling normal. Ignored in production builds and on the
+// native app (where import.meta.env.PROD is true and the intended target IS
+// prod).
 if (import.meta.env.DEV && SUPABASE_URL?.includes("fncmgoasalhdgfwzhsqa")) {
   console.warn(
     "[supabase] Local dev is pointed at PRODUCTION Supabase (fncmgoasalhdgfwzhsqa). " +
-    "Every write goes to the live DB. Use a staging project or MCP execute_sql " +
-    "with a clearly-marked test account only.",
+    "There is no other database — every write goes to the live DB. Use a " +
+    "clearly-marked test account, or MCP execute_sql for read-only checks.",
   );
 }
 

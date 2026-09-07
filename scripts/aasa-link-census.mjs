@@ -69,8 +69,10 @@ if (!SUPABASE_URL || !KEY) {
   console.error("Missing VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY in .env");
   process.exit(1);
 }
-// The Supabase CLI is linked to STAGING; .env is PROD. Print which one we read
-// so a census is never mistaken for the wrong project's traffic.
+// This census reads `.env`, NOT the linked CLI project. Print which project
+// that resolved to so a census is never mistaken for another project's
+// traffic — the two were able to disagree until staging was retired, and a
+// fork or a hand-edited `.env` can still make them disagree.
 console.log("project:", SUPABASE_URL.replace(/^https:\/\/([a-z0-9]+)\..*/, "$1"));
 
 const rows = [];

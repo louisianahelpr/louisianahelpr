@@ -29,8 +29,9 @@ Do this yourself, and **stop the audit if it fails**:
 
 1. `node scripts/audit-surface.mjs` — regenerate the coverage checklist.
 2. Migration drift: `supabase migration list --linked` must match on both sides.
-   **Confirm which project is linked first** — `supabase/.temp/project-ref` currently
-   points at *staging*, not prod.
+   **Confirm which project is linked first** — `supabase/.temp/project-ref` must read
+   `fncmgoasalhdgfwzhsqa` (prod). Staging was retired 2026-09-07; there is no second
+   database, so any other ref is a fork or a stale link and the drift result is void.
 3. `gh workflow list --all` — note anything `disabled_manually`.
 4. `gh run list --branch main --limit 10` — is `main` actually green right now?
 5. `npm run check:launch`.

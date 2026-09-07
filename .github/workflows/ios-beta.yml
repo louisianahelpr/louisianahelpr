@@ -207,7 +207,8 @@ jobs:
         # neither it nor the env block above, and shipped a bundle that could
         # not boot. A guard the next workflow author has to remember to
         # copy-paste is a guard that decays; both lanes now call one definition,
-        # which also adds a staging-ref check this version did not have.
+        # which also adds a wrong-project check this version did not have: the
+        # bundle must carry the prod ref and no other project's.
         run: node scripts/verify-bundle-env.mjs dist/assets
 
       - name: Sync Fastlane metadata into Xcode

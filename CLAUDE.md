@@ -233,12 +233,26 @@ this list tight; project-specific trivia belongs in code comments, not here.
   (`supabase db push`, also manually runnable via `gh workflow run db-deploy.yml`).
   No manual pushes, no side channels. Ship a graceful fallback for PGRST202
   "function not found" on brand-new RPCs (deploy lag window).
-- **Check which project the CLI is linked to before trusting it.**
-  `supabase/.temp/project-ref` currently points at **staging**
-  (`okpxtpfvwtmbuxugqsws`), not prod (`fncmgoasalhdgfwzhsqa`). A secrets
-  listing through the CLI today nearly produced the false conclusion that
-  APNs was unconfigured, because it was reading the wrong project. Verify the
-  ref before reading config or pushing anything.
+- **THERE IS NO STAGING. There is one database: prod `fncmgoasalhdgfwzhsqa`.**
+  The staging project was retired 2026-09-07 (owner) because it was not a
+  safety net, it was a second source of truth that lied. It sat 148 migrations
+  behind prod (496 vs 644), still held NINE tables prod had deliberately
+  dropped — `time_credits` among them, whose INSERT policy let any signed-in
+  user mint their own currency — and `supabase/.temp/project-ref` pointed the
+  CLI AT IT, so `supabase db push` and `migration list --linked` from any dev
+  machine or agent silently addressed the stale project while
+  `db-drift-detect.yml` only ever diffed repo-vs-prod. Its drift was invisible
+  by construction. The `dev:staging` script compounded it by resolving to prod
+  anyway (no `.env.staging` ever existed), so "I am on staging" could be true
+  of the CLI and false of the app in the same terminal.
+
+  The ref now points at prod, and the staging dev/link/push scripts are
+  deleted from package.json. If you find yourself wanting a staging target, the answer is a test
+  that is safe to run against prod — not a second database to drift.
+
+  Still verify the ref before reading config or pushing: a secrets listing
+  through the CLI once nearly produced the false conclusion that APNs was
+  unconfigured, purely because it was reading the wrong project.
 - **NEVER apply migrations to prod via MCP `apply_migration`** (records the
   wrong timestamp and poisons `schema_migrations` — cost a full ledger repair
   once already). `execute_sql` for read-only checks/test rows is fine. If ever unavoidable,

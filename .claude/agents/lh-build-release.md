@@ -97,11 +97,23 @@ What actually ships, and whether it was built from what you think it was.
    Grep the built `dist/` output for the service-role key, Stripe secret keys, Resend
    keys, APNs material, and any admin token. **A service-role key in the bundle is a
    catastrophic blocker.** Check the built artifact, not just source.
-2. **Staging and prod are actually separated.** `supabase/.temp/project-ref` currently
-   points at **staging** (`okpxtpfvwtmbuxugqsws`), not prod (`fncmgoasalhdgfwzhsqa`).
+2. **Every build points at the ONE database.** `supabase/.temp/project-ref` points at
+   prod (`fncmgoasalhdgfwzhsqa`). The staging project was RETIRED 2026-09-07: it sat 148
+   migrations behind prod, still held tables prod had dropped, and the CLI pointed AT it,
+   so `db push` from any machine addressed the wrong database while `db-drift-detect`
+   only ever diffed repo-vs-prod. Its drift was invisible by construction.
+
+   So the check is no longer "are the two separated" — there is nothing to separate.
+   It is: **does any built artifact carry a Supabase ref that is not prod's?**
+   `scripts/verify-bundle-env.mjs` now enforces exactly that as an ALLOWLIST of one ref,
+   which is only possible because there is one database. Any other ref in a bundle is a
+   stale `.env`, a wrong CI secret, a fork, a branch DB, or a resurrected staging — none
+   of which could be enumerated in advance, which is why a blacklist of the one known-bad
+   ref was the weaker check it replaced.
+
    A CLI secrets listing once nearly produced a false "APNs is unconfigured" conclusion
-   because of this. Verify which project each build target points at, and that a
-   **prod build cannot be produced against staging credentials or vice versa.**
+   by reading the wrong project. Verify the ref rather than assuming it: that failure is
+   silent and cheap to rule out.
 3. **Stripe test vs live keys** are bound to the right environment and cannot cross.
 4. **`.env` is gitignored — and that has broken CI builds before.** A CI-built iOS app
    hung on the boot loader because `createClient` threw at module scope with no env, and

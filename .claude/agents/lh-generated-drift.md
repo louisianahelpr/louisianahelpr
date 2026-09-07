@@ -118,9 +118,13 @@ npx supabase gen types typescript --project-id fncmgoasalhdgfwzhsqa > /tmp/lh-ty
 diff <(sed -n '/Tables:/,$p' /tmp/lh-types-fresh.ts) <(sed -n '/Tables:/,$p' src/integrations/supabase/types.ts)
 ```
 
-**Confirm the project ref first.** `supabase/.temp/project-ref` points at *staging*
-(`okpxtpfvwtmbuxugqsws`), not prod (`fncmgoasalhdgfwzhsqa`). Generating from the wrong
-project produces a confident, entirely wrong answer.
+**Confirm the project ref first.** `supabase/.temp/project-ref` points at prod
+(`fncmgoasalhdgfwzhsqa`). It used to point at a staging project that sat 148
+migrations behind, and generating types from the wrong project produces a
+confident, entirely wrong answer — a type file that agrees with a database
+nobody runs. Staging was retired 2026-09-07; there is one database now. Still
+check the ref rather than assuming it, because that is cheap and the failure is
+silent.
 
 **Any diff at all is a finding.** Grade by consequence, not by line count:
 - a column that became **nullable** → HIGH (the compiler is asserting a guarantee the

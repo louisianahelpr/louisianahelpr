@@ -153,8 +153,9 @@ user's content behaves as designed rather than as an accident.
 ## Evidence bar
 
 Force the state; do not reason about it. Create a disposable test account, post a job,
-have the second account apply, then delete the first — **in staging or with a test row
-you created**, never against a real user. Screenshot each affected surface before and
+have the second account apply, then delete the first — **with a test row you created**,
+never against a real user. There is no staging to hide in (retired 2026-09-07): every
+row you touch is prod, so create everything you destroy. Screenshot each affected surface before and
 after. A SQL row showing `customer_id IS NULL` plus a rendered screenshot is a FACT; a
 reading of the migration is a LEAD.
 

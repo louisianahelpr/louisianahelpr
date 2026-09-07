@@ -170,7 +170,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProofProps) 
             {existingUrls.length > 0 && (
               <div className="space-y-1.5">
                 <p
-                  className="font-serif italic uppercase text-ds-10"
+                  className="font-sans uppercase text-ds-10"
                   style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                 >
                   Already uploaded

@@ -187,10 +187,10 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           background: "radial-gradient(70% 90% at 50% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%), hsl(var(--parchment) / 0.5)",
         }}
       >
-        <p className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+        <p className="font-sans uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
           Your referral code
         </p>
-        <p className="font-display italic font-bold tabular-nums leading-none text-ds-40" style={{ color: "hsl(var(--primary))", letterSpacing: "0.18em" }}>
+        <p className="font-sans font-bold tabular-nums leading-none text-ds-40" style={{ color: "hsl(var(--primary))", letterSpacing: "0.18em" }}>
           {referralCode}
         </p>
         <div className={canSms ? "grid grid-cols-3 gap-2" : "grid grid-cols-2 gap-2"}>
@@ -231,7 +231,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             {copied ? "Copied" : "Copy"}
           </Button>
         </div>
-        <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           {/* "Up to 5 friends ($25 max)" was wrong for exactly the users this
               program creates. `enforce_referral_cap` counts a user's
               referrer_bonus AND first_job_bonus rows against one cap of 5, so
@@ -271,11 +271,11 @@ const ReferralSection = ({ userId }: { userId: string }) => {
                   "Total earned" wraps to two lines at 320/375 while its two
                   siblings stay on one, which pushed the middle tile's figure a
                   line lower than the numbers either side of it. */}
-              <span className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+              <span className="font-sans uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                 {label}
               </span>
             </div>
-            <p className="font-display italic font-bold tabular-nums leading-none text-ds-18" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+            <p className="font-sans font-bold tabular-nums leading-none text-ds-18" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               {value}
             </p>
           </div>
@@ -288,7 +288,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             <p className="font-display italic font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
               Cash out credits
             </p>
-            <p className="font-serif italic leading-snug truncate text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans leading-snug truncate text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {hasStripeAccount ? `$${formatPriceExact(unredeemedCredits)} → Stripe payout account` : "Connect Stripe to cash out"}
             </p>
           </div>
@@ -319,10 +319,10 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             "Cash out directly to your Stripe account",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-display italic font-bold text-ds-12">
+              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-sans font-bold text-ds-12">
                 {i + 1}
               </span>
-              <p className="font-serif italic leading-snug pt-0.5 text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
+              <p className="font-sans leading-snug pt-0.5 text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
                 {step}
               </p>
             </div>

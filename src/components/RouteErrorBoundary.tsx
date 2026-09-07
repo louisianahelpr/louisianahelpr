@@ -130,7 +130,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
           <span style={{ color: "hsl(var(--bark))" }}>
             <RefreshCw className="h-6 w-6 motion-safe:animate-spin" strokeWidth={1.75} />
           </span>
-          <p className="font-serif italic text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-sans text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Updating to the latest version…
           </p>
         </div>
@@ -167,7 +167,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
             {chunkError ? "Update ready." : "This page hit a problem."}
           </h3>
           <p
-            className="font-serif italic leading-relaxed text-ds-15"
+            className="font-sans leading-relaxed text-ds-15"
             style={{
               color: "hsl(var(--olivewood) / 0.8)",
             }}

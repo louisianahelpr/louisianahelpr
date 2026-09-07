@@ -212,7 +212,7 @@ export function ApplicantsPanel({
               padding the same way the hand-rolled version sat `-mt-2` under
               PageHeader. */}
           <p
-            className="text-ds-11 font-serif italic truncate -mt-4 mb-2"
+            className="text-ds-11 font-sans truncate -mt-4 mb-2"
             style={{ color: "hsl(var(--olivewood) / 0.80)" }}
           >
             {selectedJob.title}
@@ -429,7 +429,7 @@ export function ApplicantsPanel({
                             {/* Trust signals row */}
                             {visibleSignals.length > 0 && (
                               <p
-                                className="font-serif italic mt-0.5 leading-snug text-ds-12"
+                                className="font-sans mt-0.5 leading-snug text-ds-12"
                                 style={{ color: "hsl(var(--olivewood) / 0.80)" }}
                               >
                                 {visibleSignals.join(" · ")}
@@ -590,7 +590,7 @@ export function ApplicantsPanel({
                         {app.message && (
                           app.flagged_hidden ? (
                             <p
-                              className="font-serif italic text-ds-13 leading-snug pl-14"
+                              className="font-sans text-ds-13 leading-snug pl-14"
                               style={{ color: "hsl(var(--burnt-sienna))" }}
                             >
                               This note was hidden — it looked like contact or payment details.
@@ -598,7 +598,7 @@ export function ApplicantsPanel({
                             </p>
                           ) : (
                             <p
-                              className="font-serif italic text-ds-13 leading-snug line-clamp-2 pl-14"
+                              className="font-sans text-ds-13 leading-snug line-clamp-2 pl-14"
                               style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
                             >
                               "{app.message}"

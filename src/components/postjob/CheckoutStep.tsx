@@ -402,7 +402,7 @@ export function CheckoutStep({
         >
           <Users className="w-4 h-4 text-primary shrink-0" strokeWidth={2.25} />
           <p className="text-ds-12 leading-snug text-foreground">
-            <span className="font-display font-bold tabular-nums">
+            <span className="font-sans font-bold tabular-nums">
               {helprActivity.count} Helprs
             </span>{" "}
             <span className="text-muted-foreground">

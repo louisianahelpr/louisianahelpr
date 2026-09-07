@@ -287,7 +287,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 the row lands in the admin Reports queue, and nothing
                 anywhere notifies the reported party. */}
             <p
-              className="font-serif italic leading-relaxed text-ds-13"
+              className="font-sans leading-relaxed text-ds-13"
               style={{ color: "hsl(var(--olivewood) / 0.9)" }}
             >
               Reports go straight to the Louisiana Helpr trust &amp; safety team.
@@ -443,7 +443,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 dialog visibly shrank mid-flow. Fixed with content, not with a
                 width override on the shell. */}
             <p
-              className="font-serif italic leading-relaxed text-ds-13"
+              className="font-sans leading-relaxed text-ds-13"
               style={{ color: "hsl(var(--olivewood) / 0.9)" }}
             >
               An admin reads this to decide what happens next — dates, amounts,
@@ -457,7 +457,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                   all once they started typing. */}
               <label
                 htmlFor={detailsId}
-                className="font-serif italic uppercase block text-ds-10"
+                className="font-sans uppercase block text-ds-10"
                 style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
                 What happened?
@@ -574,7 +574,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                   colouring (SLA_BREACH_HOURS) — an internal triage target, not
                   a commitment to the user — so it is not quoted here. */}
               <p
-                className="font-serif italic leading-relaxed text-ds-15"
+                className="font-sans leading-relaxed text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 Your report is in the trust &amp; safety queue. An admin reviews
@@ -587,7 +587,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
               </p>
               <div className="space-y-1">
                 <p
-                  className="font-serif italic uppercase text-ds-10"
+                  className="font-sans uppercase text-ds-10"
                   style={{
                     color: "hsl(var(--olivewood) / 0.8)",
                     letterSpacing: "0.16em",

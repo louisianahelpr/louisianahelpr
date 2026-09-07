@@ -136,7 +136,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           >
             Start Fresh
           </span>
-          <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Build your request from a blank form.
           </span>
         </span>
@@ -165,7 +165,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             >
               Pick Up Your Draft
             </span>
-            <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Continue the request you saved earlier.
             </span>
           </span>
@@ -218,7 +218,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               >
                 Repost a Recent Job
               </span>
-              <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Quickest way to ask for the same help again.
               </span>
             </span>
@@ -267,7 +267,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                           {job.title}
                         </span>
                         <span
-                          className="block font-serif italic mt-0.5 text-ds-11 tabular-nums"
+                          className="block font-sans mt-0.5 text-ds-11 tabular-nums"
                           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                         >
                           {shortRelativeDate(job.created_at)} · ${formatPrice(job.budget)}
@@ -309,7 +309,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             >
               Use a Template
             </span>
-            <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Start from a common job and tweak the details.
             </span>
           </span>
@@ -354,7 +354,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                     {sample.title}
                   </p>
                   <p
-                    className="font-serif italic mt-1 text-ds-11 tabular-nums"
+                    className="font-sans mt-1 text-ds-11 tabular-nums"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     typical ${sample.typical_price} · ~

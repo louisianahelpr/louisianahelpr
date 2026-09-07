@@ -235,7 +235,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                     />
                     <span
                       className={cn(
-                        "font-display text-ds-13 font-bold w-8",
+                        "font-sans text-ds-13 font-bold w-8",
                         off ? "text-muted-foreground" : "text-foreground",
                       )}
                     >
@@ -282,7 +282,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
           so the pills never wrap awkwardly. */}
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
         <span
-          className="shrink-0 font-serif italic uppercase text-ds-10"
+          className="shrink-0 font-sans uppercase text-ds-10"
           style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
         >
           Quick set:
@@ -332,7 +332,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                     aria-label={`Toggle ${day}`}
                   />
                   <span
-                    className="font-display italic font-bold w-10 text-ds-16"
+                    className="font-sans font-bold w-10 text-ds-15"
                     style={{
                       color: off ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--ink-deep))",
                       letterSpacing: "-0.01em",

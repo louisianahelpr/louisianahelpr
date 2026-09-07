@@ -124,23 +124,23 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                   Free boost.
                 </p>
                 <p
-                  className="font-serif italic mt-1.5 text-ds-13"
+                  className="font-sans mt-1.5 text-ds-13"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   {hasFreeProBoost && !price.free ? (
                     <>
                       Your free Pro boost this month · runs for{" "}
-                      <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
+                      <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
                     </>
                   ) : (
                     <>
-                      Runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
+                      Runs for <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
                     </>
                   )}
                 </p>
                 {hasFreeProBoost && !price.free && (
                   <p
-                    className="font-serif italic mt-1 text-ds-12"
+                    className="font-sans mt-1 text-ds-12"
                     style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                   >
                     After this one, boosts are {formatFeeUsd(price.cents)} for the rest of the month.
@@ -150,16 +150,16 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             ) : (
               <>
                 <p
-                  className="font-display italic font-bold tabular-nums leading-none text-ds-40"
+                  className="font-sans font-bold tabular-nums leading-none text-ds-40"
                   style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
                 >
                   {BOOST_PRICE}
                 </p>
                 <p
-                  className="font-serif italic mt-1.5 text-ds-13"
+                  className="font-sans mt-1.5 text-ds-13"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
-                  One-time · runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
+                  One-time · runs for <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
                 </p>
                 <Link
                   to="/profile?tab=subscription"
@@ -183,7 +183,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             ].map((perk) => (
               <li
                 key={perk}
-                className="font-serif italic flex items-start gap-2 text-ds-14"
+                className="font-sans flex items-start gap-2 text-ds-14"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 <span

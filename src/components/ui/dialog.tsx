@@ -725,7 +725,7 @@ DialogHero.displayName = "DialogHero";
  */
 const DialogBody = ({ children }: { children: React.ReactNode }) => (
   <div
-    className="font-serif italic text-ds-12 leading-relaxed space-y-2"
+    className="font-sans text-ds-12 leading-relaxed space-y-2"
     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
   >
     {children}

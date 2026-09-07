@@ -47,7 +47,7 @@ export const MessagesEmptyThread = ({
       </p>
     )}
     <p
-      className="font-serif italic text-ds-14 max-w-[280px]"
+      className="font-sans text-ds-14 max-w-[280px]"
       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
     >
       {hasConversations

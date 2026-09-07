@@ -218,7 +218,7 @@ export function FormStep({ form }: FormStepProps) {
                   numbers. Show the cents. */}
               {formReady && form.totalCharge > 0 && (
                 <span
-                  className="font-display italic font-bold tabular-nums shrink-0 text-ds-16"
+                  className="font-sans font-bold tabular-nums shrink-0 text-ds-16"
                   style={{ letterSpacing: "-0.01em" }}
                 >
                   {" "}· ${formatPriceExact(form.totalCharge)}

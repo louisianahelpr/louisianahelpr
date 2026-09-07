@@ -830,7 +830,7 @@ const UserProfile = () => {
             </p>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               <p
-                className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
+                className="font-sans text-ds-13 leading-relaxed flex items-start gap-2"
                 style={{ color: "hsl(var(--olivewood) / 0.9)" }}
               >
                 <Lock
@@ -844,7 +844,7 @@ const UserProfile = () => {
                 </span>
               </p>
               <p
-                className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
+                className="font-sans text-ds-13 leading-relaxed flex items-start gap-2"
                 style={{ color: "hsl(var(--olivewood) / 0.9)" }}
               >
                 <ShieldCheck
@@ -871,7 +871,7 @@ const UserProfile = () => {
                   there", which is exactly what a poster about to pay wants to
                   know, and it is legible on a profile with no other record. */}
               <p
-                className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
+                className="font-sans text-ds-13 leading-relaxed flex items-start gap-2"
                 style={{ color: "hsl(var(--olivewood) / 0.9)" }}
               >
                 <Banknote

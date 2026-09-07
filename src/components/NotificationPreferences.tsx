@@ -411,13 +411,13 @@ const NotificationPreferences = () => {
       >
         <div className="flex items-center gap-6">
           <div
-            className="flex items-center justify-center gap-1 w-[51px] font-serif italic uppercase text-ds-10"
+            className="flex items-center justify-center gap-1 w-[51px] font-sans uppercase text-ds-10"
             style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.12em" }}
           >
             <Smartphone className="w-3 h-3 shrink-0" /> App
           </div>
           <div
-            className="flex items-center justify-center gap-1 w-[51px] font-serif italic uppercase text-ds-10"
+            className="flex items-center justify-center gap-1 w-[51px] font-sans uppercase text-ds-10"
             style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.12em" }}
           >
             <Mail className="w-3 h-3 shrink-0" /> Email
@@ -536,7 +536,7 @@ const NotificationPreferences = () => {
             >
               Daily Match Digest
             </Label>
-            <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Batch non-urgent matches into one push per day. Urgent jobs still fire instantly.
             </p>
           </div>
@@ -554,7 +554,7 @@ const NotificationPreferences = () => {
               honest so the row reads as "app only, intentionally". */}
           <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
             <span
-              className="font-serif text-ds-14"
+              className="font-sans text-ds-14"
               style={{ color: "hsl(var(--olivewood) / 0.3)" }}
               aria-hidden
             >
@@ -609,7 +609,7 @@ const NotificationPreferences = () => {
                   user's 22:00–07:00 actually mutes 17:00–02:00 local. Reported
                   to the orchestrator rather than papered over in copy — the
                   times below deliberately carry no "local" claim. */}
-              <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Hold pushes overnight. Everything still lands in the bell icon.
               </p>
             </div>
@@ -624,7 +624,7 @@ const NotificationPreferences = () => {
             />
             <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
               <span
-                className="font-serif text-ds-14"
+                className="font-sans text-ds-14"
                 style={{ color: "hsl(var(--olivewood) / 0.3)" }}
                 aria-hidden
               >
@@ -638,7 +638,7 @@ const NotificationPreferences = () => {
           <div className="mt-2 flex items-start gap-3 pl-[2.375rem]">
             <div className="flex-1 flex items-center gap-2 flex-wrap">
               <label className="inline-flex items-center gap-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                <span className="font-serif italic">From</span>
+                <span className="font-sans">From</span>
                 <input
                   type="time"
                   value={prefs.quiet_start ?? "22:00"}
@@ -649,7 +649,7 @@ const NotificationPreferences = () => {
                 />
               </label>
               <label className="inline-flex items-center gap-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                <span className="font-serif italic">to</span>
+                <span className="font-sans">to</span>
                 <input
                   type="time"
                   value={prefs.quiet_end ?? "07:00"}
@@ -754,7 +754,7 @@ const NotificationPreferences = () => {
             >
               Send a Test
             </Label>
-            <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {pushTokenCount === 0
                 ? "No devices registered — we'll test by email and in-app instead."
                 : `Push to ${pushTokenCount} registered device${pushTokenCount === 1 ? "" : "s"}, plus email and in-app.`}
@@ -826,7 +826,7 @@ const NotificationPreferences = () => {
             them and no switch on this screen claims to. */}
         <Lock className="w-3 h-3 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
         <p
-          className="font-serif italic leading-snug text-ds-11"
+          className="font-sans leading-snug text-ds-11"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Every alert above follows these switches — including safety and

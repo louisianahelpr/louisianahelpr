@@ -540,7 +540,7 @@ const PaymentSuccess = () => {
                             </span>
                           )}
                         </p>
-                        <p className="font-serif italic text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                        <p className="font-sans text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                           {step.caption}
                         </p>
                       </div>

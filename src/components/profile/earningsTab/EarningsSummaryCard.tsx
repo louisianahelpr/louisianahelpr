@@ -124,12 +124,12 @@ export function EarningsSummaryCard({
                 is 2dp — the wallet, and PaymentTab's spend counter — so this is
                 too. */}
             <p
-              className="font-display italic font-bold tabular-nums leading-none text-ds-28"
+              className="font-sans font-bold tabular-nums leading-none text-ds-28"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
             >
               {formatCents(Math.round(earnedDollars * 100))}
             </p>
-            <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {earnedRangeLabel(range)} · {jobCount} job{jobCount === 1 ? "" : "s"}
             </p>
           </div>
@@ -139,12 +139,12 @@ export function EarningsSummaryCard({
               <span className="sr-only">Tips</span>
             </div>
             <p
-              className="font-display italic font-bold tabular-nums leading-none text-ds-28"
+              className="font-sans font-bold tabular-nums leading-none text-ds-28"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
             >
               {formatCents(Math.round(tipsDollars * 100))}
             </p>
-            <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               in tips · {tipCount} tip{tipCount === 1 ? "" : "s"}
             </p>
           </div>
@@ -170,7 +170,7 @@ export function EarningsSummaryCard({
           className="mt-3 rounded-ds-sm px-3 py-2 flex items-baseline justify-between gap-3"
           style={{ background: "hsl(var(--bark) / 0.07)" }}
         >
-          <span className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
+          <span className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
             {/* No date is the rarer case (a `payout_pending` row written
                 before the column, or a scheduling gap). Say the rule instead
                 of a made-up date, and take the number of hours from the same
@@ -180,7 +180,7 @@ export function EarningsSummaryCard({
               : `Approved — releases ${PAYOUT_HOLD_HOURS} hours after approval`}
           </span>
           <span
-            className="font-display italic font-bold tabular-nums text-ds-15 shrink-0"
+            className="font-sans font-bold tabular-nums text-ds-15 shrink-0"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             {formatCents(releasingCents)}
@@ -193,11 +193,11 @@ export function EarningsSummaryCard({
           className="mt-3 rounded-ds-sm px-3 py-2 flex items-baseline justify-between gap-3"
           style={{ background: "hsl(var(--bark) / 0.07)" }}
         >
-          <span className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
+          <span className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
             In progress right now
           </span>
           <span
-            className="font-display italic font-bold tabular-nums text-ds-15 shrink-0"
+            className="font-sans font-bold tabular-nums text-ds-15 shrink-0"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             {inProgressCount} job{inProgressCount === 1 ? "" : "s"}

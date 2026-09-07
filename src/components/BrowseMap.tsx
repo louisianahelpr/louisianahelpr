@@ -732,7 +732,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
                 {filtersActive ? "No pins match." : "Empty map for now."}
               </p>
               <p
-                className="font-serif italic text-ds-13"
+                className="font-sans text-ds-13"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {filtersActive

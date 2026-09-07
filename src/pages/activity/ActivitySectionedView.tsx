@@ -153,7 +153,7 @@ export function ActivitySectionedView<TItem>({
                     aria-hidden="true"
                   />
                   <span
-                    className="font-serif italic uppercase truncate text-ds-11"
+                    className="font-sans uppercase truncate text-ds-11"
                     style={{
                       letterSpacing: "0.18em",
                       color: "hsl(var(--ink-deep))",
@@ -187,7 +187,7 @@ export function ActivitySectionedView<TItem>({
               <div className="pt-3">
                 {count === 0 ? (
                   <p
-                    className="text-ds-12 px-3 py-4 text-center font-serif italic"
+                    className="text-ds-12 px-3 py-4 text-center font-sans"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Nothing in {sectionLabels[key].toLowerCase()} yet.

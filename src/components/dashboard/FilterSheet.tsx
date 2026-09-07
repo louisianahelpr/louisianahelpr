@@ -406,7 +406,7 @@ export function FilterSheet({
                 INPUT, so that is what people reached for to close the panel
                 (owner: "the x in search also doesn't close it"). */}
             <div className="shrink-0 flex items-center justify-between gap-3 px-5 pt-4 pb-3 border-b border-[hsl(var(--bark)/0.12)]">
-              <h2 id={titleId} className="font-serif italic text-ds-17 font-bold text-foreground">
+              <h2 id={titleId} className="font-sans text-ds-17 font-bold text-foreground">
                 Refine Your Search
               </h2>
               <button

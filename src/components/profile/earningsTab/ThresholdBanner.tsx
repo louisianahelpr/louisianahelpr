@@ -47,7 +47,7 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
           You've crossed the {form1099kGrossLabel()} mark for {ytdYear}.
         </h3>
         <p
-          className="font-serif italic mt-1 leading-snug text-ds-12"
+          className="font-sans mt-1 leading-snug text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           With {FORM_1099K_TRANSACTION_THRESHOLD}+ transactions you may receive a 1099-K from Stripe. Download a payout statement now so you're not scrambling in April.

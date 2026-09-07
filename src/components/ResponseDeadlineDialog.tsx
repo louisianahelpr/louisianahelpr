@@ -83,7 +83,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
               beside it used /0.8. */}
           <DialogBody>
             <p>
-              How long should <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{helperName}</span> have to accept or decline this job?
+              How long should <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{helperName}</span> have to accept or decline this job?
             </p>
           </DialogBody>
           <div className="space-y-2">
@@ -100,9 +100,9 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
             {/* Says the window back to you the way JobBoostDialog says
                 "runs for 24 hours" — the choice you just made, in display type,
                 rather than a grey "in time". */}
-            <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               If they don't respond within{" "}
-              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{selectedLabel}</span>
+              <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{selectedLabel}</span>
               , the job will be reopened automatically.
             </p>
           </div>

@@ -299,7 +299,7 @@ export const AppliedJobsTab = ({
                 <Briefcase className="w-4 h-4 mr-1.5" /> Browse Open Jobs
               </Button>
               <p
-                className="font-serif italic text-ds-13 mt-2"
+                className="font-sans text-ds-13 mt-2"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Browse open jobs near you and apply — they&apos;ll collect here as you go.
@@ -391,7 +391,7 @@ export const AppliedJobsTab = ({
                 you withdrawing?") made "withdraw" the third repetition in one
                 sheet, after the title and the confirm button. */}
             <legend
-              className="font-serif italic block mb-2 text-ds-12"
+              className="font-sans block mb-2 text-ds-12"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Choose a reason <span aria-hidden>*</span>

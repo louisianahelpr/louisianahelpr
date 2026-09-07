@@ -281,7 +281,7 @@ export function IdentityHeader({
             <div className="mt-2">
               {profile?.bio?.trim() ? (
                 <p
-                  className="font-serif italic text-ds-13 leading-snug line-clamp-3"
+                  className="font-sans text-ds-13 leading-snug line-clamp-3"
                   style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                 >
                   {profile.bio}
@@ -290,7 +290,7 @@ export function IdentityHeader({
                 <button
                   type="button"
                   onClick={() => onSelectTab("profile")}
-                  className="w-full text-left font-serif italic text-ds-13 leading-snug active:opacity-70 transition-opacity"
+                  className="w-full text-left font-sans text-ds-13 leading-snug active:opacity-70 transition-opacity"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >+ Add a short bio so applicants know who they're hiring.</button>
               )}

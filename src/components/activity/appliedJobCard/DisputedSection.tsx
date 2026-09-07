@@ -67,7 +67,7 @@ export function DisputedSection({
         }}
       >
         <span
-          className="font-serif italic uppercase inline-flex items-center gap-1.5 text-ds-10"
+          className="font-sans uppercase inline-flex items-center gap-1.5 text-ds-10"
           style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
         >
           <AlertTriangle className="w-3 h-3" />
@@ -87,7 +87,7 @@ export function DisputedSection({
         </p>
         {job.dispute_reason && (
           <p
-            className="font-serif italic mt-1.5 text-ds-12"
+            className="font-sans mt-1.5 text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
             {/* "Reason:" alone read as an accusation against the reader even
@@ -97,7 +97,7 @@ export function DisputedSection({
         )}
         {job.disputed_at && (
           <p
-            className="font-serif italic mt-1 text-ds-11"
+            className="font-sans mt-1 text-ds-11"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Filed {formatDistanceToNow(new Date(job.disputed_at), { addSuffix: true })}
@@ -157,7 +157,7 @@ export function DisputedSection({
               control does not read as a dead end. */}
           {awaitingAdmin && (
             <p
-              className="font-serif italic text-ds-11"
+              className="font-sans text-ds-11"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
               An admin is deciding this one. You can still add your side — it goes

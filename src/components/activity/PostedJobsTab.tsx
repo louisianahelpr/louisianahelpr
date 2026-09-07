@@ -129,10 +129,10 @@ function LocationPressHint({ onDismiss }: { onDismiss: () => void }) {
         strokeWidth={2.25}
       />
       <p
-        className="flex-1 min-w-0 font-serif italic leading-snug text-ds-11"
+        className="flex-1 min-w-0 font-sans leading-snug text-ds-11"
         style={{ color: "hsl(var(--olivewood) / 0.9)" }}
       >
-        <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+        <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
           Tap a card to open it.
         </span>{" "}
         Press and hold the location to get directions.
@@ -242,11 +242,11 @@ function ListTail({
         }}
       >
         <p
-          className="font-serif italic leading-snug text-ds-11 text-balance"
+          className="font-sans leading-snug text-ds-11 text-balance"
           style={{ color: "hsl(var(--olivewood) / 0.9)" }}
         >
           That's everything under{" "}
-          <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+          <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
             {activeLabel}
           </span>
           . You also have {elsewhere}.

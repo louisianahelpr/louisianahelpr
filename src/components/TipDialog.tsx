@@ -82,7 +82,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
                 <button
                   key={amt}
                   type="button"
-                  className="h-14 rounded-2xl font-display italic font-bold tabular-nums transition-all active:scale-[0.97] disabled:opacity-60 text-ds-18"
+                  className="h-14 rounded-2xl font-sans font-bold tabular-nums transition-all active:scale-[0.97] disabled:opacity-60 text-ds-18"
                   style={{
                     background:
                       "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
@@ -108,7 +108,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
           <div className="flex items-center gap-2">
             <div className="h-px flex-1" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
             <span
-              className="font-serif italic uppercase text-ds-10"
+              className="font-sans uppercase text-ds-10"
               style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.18em" }}
             >
               or custom

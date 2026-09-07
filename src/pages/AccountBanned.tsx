@@ -189,7 +189,7 @@ const AccountBanned = () => {
           <h1 className="text-page-title leading-tight mt-1 text-balance">
             {headline}.
           </h1>
-          <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {subline}
           </p>
         </div>
@@ -207,7 +207,7 @@ const AccountBanned = () => {
             }}
           >
             <p
-              className="text-ds-11 font-serif italic uppercase tracking-[0.18em] mb-1"
+              className="text-ds-11 font-sans uppercase tracking-[0.18em] mb-1"
               style={{ color: "hsl(var(--burnt-sienna))" }}
             >
               Reason
@@ -229,7 +229,7 @@ const AccountBanned = () => {
             <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
             <div>
               <p
-                className="text-ds-11 font-serif italic uppercase tracking-[0.18em] mb-1"
+                className="text-ds-11 font-sans uppercase tracking-[0.18em] mb-1"
                 style={{ color: "hsl(var(--burnt-sienna))" }}
               >
                 Suspended until

@@ -8,7 +8,7 @@ import HelprMark from "@/components/HelprMark";
  * Hero — Louisiana Helpr 2026 brand system.
  *
  * Single centered editorial composition: eyebrow + Bodoni Moda H1 +
- * EB Garamond italic subhead + two action buttons, all stacked in one flow
+ * Montserrat subhead + two action buttons, all stacked in one flow
  * column that is centered in the section and fits every viewport (no
  * absolutely-positioned art to overflow at half-screen). The category rail
  * anchors the bottom of the hero.

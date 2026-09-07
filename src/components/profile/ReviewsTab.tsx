@@ -79,13 +79,13 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
         <div className="rounded-2xl liquid-glass px-5 py-4 flex items-center gap-4">
           <div className="shrink-0 text-center">
             <p
-              className="font-display italic font-bold tabular-nums leading-none text-ds-32"
+              className="font-sans font-bold tabular-nums leading-none text-ds-32"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
             >
               {avgRating.toFixed(1)}
             </p>
             <p
-              className="font-serif italic mt-1 text-ds-11"
+              className="font-sans mt-1 text-ds-11"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               out of 5
@@ -105,11 +105,11 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
               ))}
             </div>
             <p
-              className="font-serif italic text-ds-14"
+              className="font-sans text-ds-14"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Based on{" "}
-              <span className="font-display not-italic font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+              <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                 {reviewCount}
               </span>{" "}
               completed job{reviewCount !== 1 ? "s" : ""}
@@ -197,10 +197,10 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                 <p className="font-display italic font-bold leading-tight mb-2 text-ds-16" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   Posters leave one overall rating.
                 </p>
-                <ul className="space-y-1.5 font-serif italic text-ds-11 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <ul className="space-y-1.5 font-sans text-ds-11 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Overall</span> · a 1–5 star summary of the whole job</li>
                 </ul>
-                <p className="font-serif italic text-ds-11 mt-3 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-sans text-ds-11 mt-3 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Posters can leave written feedback too. Everything shows up here within minutes.
                 </p>
               </PopoverContent>
@@ -271,11 +271,11 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                       />
                     ))}
                   </div>
-                  <span className="font-display italic font-bold tabular-nums text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
+                  <span className="font-sans font-bold tabular-nums text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
                     {review.rating}/5
                   </span>
                 </div>
-                <span className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <span className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   {formatTimestamp(review.created_at)}
                 </span>
               </div>
@@ -286,11 +286,11 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   a small shared star-row renderer other reviewers of this
                   file may reach for; remove separately if it stays unused. */}
               {review.feedback && (
-                <p className="font-serif italic leading-relaxed text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+                <p className="font-sans leading-relaxed text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
                   &ldquo;{review.feedback}&rdquo;
                 </p>
               )}
-              <div className="flex items-center gap-2 font-serif italic pt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <div className="flex items-center gap-2 font-sans pt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <span>By <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{review.reviewerName}</span></span>
                 <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                 <span>{review.jobTitle}</span>

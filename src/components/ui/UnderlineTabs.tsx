@@ -4,7 +4,7 @@ import { hapticLight } from "@/lib/haptics";
  * UnderlineTabs — the app's ONE list-filter control.
  *
  * My Posts / My Jobs express "which slice of this list am I looking at" as a
- * row of display-italic labels with a rule under the live one and a small
+ * row of sans labels with a rule under the live one and a small
  * count beside it. Messages needed the same control, and copying the markup
  * across is exactly how two screens end up a size and a weight apart, so the
  * markup lives here and both screens render it.
@@ -12,7 +12,7 @@ import { hapticLight } from "@/lib/haptics";
  * UNDERLINE, not filled pills (owner: "make smaller", "could looked better in
  * this space"). Bordered pills in a tinted track put four rectangles of chrome
  * above the cards to express one choice; the same choice reads at a glance as
- * the screen's own display italic, and it costs a third of the height. It also
+ * the screen's own type, and it costs a third of the height. It also
  * stops the filter competing with the content for weight — the cards are the
  * content, this is a caption on them.
  *
@@ -93,9 +93,9 @@ export function UnderlineTabs({
             }}
           >
             <span
-              className="font-display italic text-ds-13 leading-none whitespace-nowrap"
+              className="font-sans text-ds-12 leading-none whitespace-nowrap"
               style={{
-                fontWeight: isActive ? 700 : 500,
+                fontWeight: isActive ? 700 : 600,
                 borderBottom: isActive
                   ? "1.5px solid hsl(var(--ink-deep))"
                   : "1.5px solid transparent",

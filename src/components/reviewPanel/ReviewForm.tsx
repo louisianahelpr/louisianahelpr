@@ -319,7 +319,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             rows={3}
-            className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14 leading-relaxed"
+            className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed"
           />
 
           {/* Photo attachments — up to 3 photos */}
@@ -364,14 +364,14 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
                   }}
                 >
                   <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} />
-                  <span className="font-serif italic text-ds-9" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <span className="font-sans text-ds-9" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     {photoFiles.length === 0 ? "Add Photo" : "Add More"}
                   </span>
                 </button>
               )}
             </div>
             {photoFiles.length > 0 && (
-              <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {photoFiles.length}/{MAX_PHOTOS} photo{photoFiles.length !== 1 ? "s" : ""} attached
               </p>
             )}

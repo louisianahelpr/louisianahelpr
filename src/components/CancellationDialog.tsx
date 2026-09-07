@@ -463,7 +463,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                 </p>
               </div>
               <p
-                className="font-serif italic text-ds-12"
+                className="font-sans text-ds-12"
                 style={{ color: "hsl(var(--success-ink))" }}
               >
                 {helperName || "Your Helpr"} is notified the moment you confirm, and their share of the ${formatPrice(cancellationFee)} cancellation fee is transferred to them automatically within the hour.
@@ -474,7 +474,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
           <div className="space-y-1.5">
             <label
               htmlFor="cancel-reason"
-              className="font-serif italic uppercase block text-ds-10"
+              className="font-sans uppercase block text-ds-10"
               style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               Reason — optional
@@ -484,7 +484,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={2}
-              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14"
+              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14"
             />
           </div>
         </div>

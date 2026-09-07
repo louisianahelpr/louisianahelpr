@@ -75,7 +75,7 @@ export function JobCardShell({
               className="w-2.5 h-2.5 shrink-0"
               strokeWidth={2.25}
             />
-            <span className="font-serif italic">{categoryLabels[category] || formatCategory(category)}</span>
+            <span className="font-sans">{categoryLabels[category] || formatCategory(category)}</span>
           </span>
         </div>
       ) : null}

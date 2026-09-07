@@ -225,7 +225,7 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                   </span>
                   {sub && (
                     <span
-                      className="font-serif italic text-ds-10 truncate max-w-full"
+                      className="font-sans text-ds-10 truncate max-w-full"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {sub}
@@ -295,7 +295,7 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                   {value}
                 </p>
                 {sub && (
-                  <p className="font-serif italic text-ds-11 truncate text-center mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <p className="font-sans text-ds-11 truncate text-center mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     {sub}
                   </p>
                 )}

@@ -147,7 +147,7 @@ export function RecipientPicker({
 
   return (
     <div>
-      <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+      <p className="font-sans text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         Who's this for?
       </p>
 
@@ -222,12 +222,12 @@ export function RecipientPicker({
           {looksLikeEmail ? (
             <>
               {trimmed && !emailValid && (
-                <p className="font-serif italic text-ds-11 mt-1.5" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                <p className="font-sans text-ds-11 mt-1.5" style={{ color: "hsl(var(--burnt-sienna))" }}>
                   Enter a valid email address.
                 </p>
               )}
               {isSelfGiftEmail && (
-                <p className="font-serif italic text-ds-11 mt-1.5" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                <p className="font-sans text-ds-11 mt-1.5" style={{ color: "hsl(var(--burnt-sienna))" }}>
                   You can't send a gift to yourself.
                 </p>
               )}
@@ -235,12 +235,12 @@ export function RecipientPicker({
           ) : (
             <>
               {trimmed.length > 0 && trimmed.length < MIN_QUERY_LEN && (
-                <p className="font-serif italic text-ds-11 mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-sans text-ds-11 mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Keep typing — at least {MIN_QUERY_LEN} characters, or type a full email address.
                 </p>
               )}
               {searchFailed && (
-                <p className="font-serif italic text-ds-11 mt-1.5" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                <p className="font-sans text-ds-11 mt-1.5" style={{ color: "hsl(var(--burnt-sienna))" }}>
                   Couldn't search right now. Try again, or type their email address instead.
                 </p>
               )}
@@ -250,11 +250,11 @@ export function RecipientPicker({
                   style={{ border: "0.5px solid hsl(var(--bark) / 0.18)" }}
                 >
                   {searching ? (
-                    <div className="py-3 px-3 font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                    <div className="py-3 px-3 font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                       Searching…
                     </div>
                   ) : results.length === 0 ? (
-                    <div className="py-3 px-3 font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                    <div className="py-3 px-3 font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                       No one found. Try a different spelling, or type their email address instead.
                     </div>
                   ) : (

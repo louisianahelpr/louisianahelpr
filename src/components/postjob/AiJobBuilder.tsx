@@ -111,7 +111,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
           >
             Try the AI Job Builder
           </span>
-          <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Describe your job and let AI fill the form.
           </span>
         </span>

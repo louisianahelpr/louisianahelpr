@@ -376,7 +376,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                     >
                       Employment &amp; Earnings Record
                     </h2>
-                    <p className="font-serif italic text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                    <p className="font-sans text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       Generated {today}
                     </p>
                   </div>
@@ -449,7 +449,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
               <div style={{ borderBottom: "1px solid var(--doc-hairline)" }}>
                 <div className="doc-band px-5 py-2">
                   <p
-                    className="doc-band-ink font-serif italic uppercase text-ds-9"
+                    className="doc-band-ink font-sans uppercase text-ds-9"
                     style={{ letterSpacing: "0.18em" }}
                   >
                     Work Summary
@@ -544,7 +544,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
               {data.completedJobs.length === 0 && (
                 <div className="px-5 py-8 flex flex-col items-center gap-3 text-center">
                   <Briefcase className="w-8 h-8 text-muted-foreground/50" />
-                  <p className="text-ds-13 text-muted-foreground font-serif italic">
+                  <p className="text-ds-13 text-muted-foreground font-sans">
                     No completed jobs yet. Once you complete your first job, your work record will fill in automatically.
                   </p>
                   <BarkPillButton onClick={() => navigate("/dashboard")} className="mt-1">
@@ -568,7 +568,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                     or lender actually needs: when it was generated, what it is
                     generated from, what Helpr is, and where to verify it. */}
                 <p
-                  className="font-serif italic text-ds-11 leading-relaxed mx-auto"
+                  className="font-sans text-ds-11 leading-relaxed mx-auto"
                   style={{ color: "hsl(var(--olivewood) / 0.8)", textWrap: "balance" }}
                 >
                   {/* "verified" is true of an account Stripe actually checked
@@ -700,7 +700,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
             {!canPrintDocument && data.completedJobs.length > 0 && (
               <p
                 data-print-hide
-                className="font-serif italic text-ds-12 text-center leading-relaxed px-2"
+                className="font-sans text-ds-12 text-center leading-relaxed px-2"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Printing isn&rsquo;t available inside the app, so Share Record sends this

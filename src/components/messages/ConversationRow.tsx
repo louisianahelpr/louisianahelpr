@@ -429,7 +429,7 @@ const ConversationRowBase = ({
                   index.css for why that declaration is the difference between
                   an ellipsis and a word sliced in half. */}
               <p
-                className="flex-1 min-w-0 basis-[9rem] text-ds-11 truncate senior-clamp-2 font-serif italic"
+                className="flex-1 min-w-0 basis-[9rem] text-ds-11 truncate senior-clamp-2 font-sans"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {c.jobTitle}
@@ -467,7 +467,7 @@ const ConversationRowBase = ({
                     />
                   )}
                   <span
-                    className="text-ds-10 font-serif italic"
+                    className="text-ds-10 font-sans"
                     style={{
                       color: lastActiveLabel.isLive
                         ? "hsl(var(--live))"

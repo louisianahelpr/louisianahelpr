@@ -237,7 +237,7 @@ const StatCard = ({ label, value }: StatCardProps) => (
     }}
   >
     <p
-      className="text-ds-28 font-display italic font-bold tabular-nums leading-none"
+      className="text-ds-28 font-sans font-bold tabular-nums leading-none"
       style={{ color: "hsl(var(--ink-deep))" }}
     >
       {value}
@@ -483,7 +483,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
               Here's how it added up.
             </h2>
             <p
-              className="mt-1 font-serif italic text-ds-13"
+              className="mt-1 font-sans text-ds-13"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Louisiana Helpr Community
@@ -517,7 +517,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                 <p className="text-ds-15 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                   No activity yet in {YEAR}
                 </p>
-                <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Post a job or help a neighbor to start building your story.
                 </p>
               </div>
@@ -532,7 +532,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                     an undercount pass for the full picture. */}
                 {stats?.incomplete && (
                   <p
-                    className="text-center text-ds-11 font-serif italic"
+                    className="text-center text-ds-11 font-sans"
                     style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}
                   >
                     Some of your {YEAR} didn't load, so these numbers may be low.{" "}
@@ -577,7 +577,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                   A plain caption says the same thing without pretending to
                   be a second control. */}
               <p
-                className="text-center text-ds-11 font-serif italic"
+                className="text-center text-ds-11 font-sans"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Share it with the community

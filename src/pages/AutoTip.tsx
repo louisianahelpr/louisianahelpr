@@ -198,7 +198,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
    *  percentages and dollars one under the other — "15" meant a percent in the
    *  tile row and dollars in the maximum field, with nothing on either control
    *  saying which. Every amount input now carries its own marker. */
-  const captionClass = "font-serif italic text-ds-12";
+  const captionClass = "font-sans text-ds-12";
   const captionStyle = { color: "hsl(var(--olivewood) / 0.8)" } as const;
 
   return (
@@ -214,7 +214,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
             Automatic Tip
           </h2>
           <p
-            className="font-serif italic text-ds-13 leading-relaxed"
+            className="font-sans text-ds-13 leading-relaxed"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
             Tip automatically once a job is finished, without having to remember.
@@ -344,7 +344,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
                 )}
               </div>
               {!valueValid && (
-                <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                <p className="font-sans text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
                   {isPercent ? "Pick between 1% and 50%." : `Pick between $${LIMITS.fixed.min} and $${LIMITS.fixed.max}.`}
                 </p>
               )}
@@ -388,7 +388,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
               {/* The cap is the whole reason percentage mode is safe to offer:
                   15% of a $600 job is $90, which is not what most people
                   picture when they set "15%". */}
-              <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 A percentage of a large job adds up. A maximum keeps it predictable.
               </p>
             </div>
@@ -443,7 +443,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
           >
             <p
               id="instant-release-desc"
-              className="min-w-0 font-serif italic text-ds-12 leading-snug"
+              className="min-w-0 font-sans text-ds-12 leading-snug"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
               Release payment as soon as the Helpr marks the job done with photo

@@ -450,7 +450,7 @@ const JobDetailDialog = ({
             {job.description && (
               <div className="relative min-w-0 mt-1">
                 {/* THE HOUSE BODY VOICE, not this dialog's own (2026-08-31).
-                    This was `font-serif text-ds-15` at `ink-deep / 0.88`,
+                    This was `font-sans text-ds-15` at `ink-deep / 0.88`,
                     hand-set here — upright serif, one of the SEVEN different
                     body sizes the popup audit found across 24 dialogs, and two
                     steps larger and darker than the prose every confirm in the
@@ -612,7 +612,7 @@ const JobDetailDialog = ({
               className="w-3.5 h-3.5 shrink-0"
               strokeWidth={2.25}
             />
-            <span className="font-serif italic truncate">
+            <span className="font-sans truncate">
               {categoryLabels[job.category] || formatCategory(job.category)}
             </span>
           </span>

@@ -95,7 +95,7 @@ function SwipeableConversationRowBase({
         >
           <Archive className="w-5 h-5" style={{ color: "hsl(var(--danger-ink))" }} strokeWidth={2.4} />
           <span
-            className="text-ds-10 font-serif italic uppercase tracking-[0.18em]"
+            className="text-ds-10 font-sans uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--danger-ink))" }}
           >
             Archive
@@ -123,7 +123,7 @@ function SwipeableConversationRowBase({
             <Pin className="w-5 h-5" style={{ color: "hsl(var(--danger-ink))" }} strokeWidth={2.4} />
           )}
           <span
-            className="text-ds-10 font-serif italic uppercase tracking-[0.18em]"
+            className="text-ds-10 font-sans uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--danger-ink))" }}
           >
             {isPinned ? "Unpin" : "Pin"}

@@ -205,7 +205,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
               No jobs scheduled this week
             </h3>
             <p
-              className="font-serif italic mt-1 text-ds-12"
+              className="font-sans mt-1 text-ds-12"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Go browse — accepted jobs will land on this strip.
@@ -276,7 +276,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
                 >
                   <div className="flex items-baseline justify-between gap-1">
                     <span
-                      className="font-serif italic uppercase text-ds-10"
+                      className="font-sans uppercase text-ds-10"
                       style={{
                         color: isToday
                           ? "hsl(var(--burnt-sienna))"
@@ -287,7 +287,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
                       {isToday ? "Today" : weekday}
                     </span>
                     <span
-                      className="font-display italic font-bold tabular-nums leading-none text-ds-17"
+                      className="font-sans font-bold tabular-nums leading-none text-ds-17"
                       style={{
                         color: "hsl(var(--ink-deep))",
                         letterSpacing: "-0.01em",
@@ -299,7 +299,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
 
                   {isEmpty ? (
                     <p
-                      className="mt-2 font-serif italic text-ds-11"
+                      className="mt-2 font-sans text-ds-11"
                       style={{
                         color: "hsl(var(--olivewood) / 0.8)",
                       }}
@@ -326,13 +326,13 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
                               className="leading-tight text-ds-11"
                             >
                               <span
-                                className="block truncate font-serif italic"
+                                className="block truncate font-sans"
                                 style={{ color: "hsl(var(--ink-deep))" }}
                               >
                                 {j.title}
                               </span>
                               <span
-                                className="block truncate font-serif italic"
+                                className="block truncate font-sans"
                                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                               >
                                 {time ?? "Anytime"}
@@ -342,7 +342,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
                         })}
                         {dayJobs.length > 2 && (
                           <li
-                            className="font-serif italic text-ds-10"
+                            className="font-sans text-ds-10"
                             style={{
                               color: "hsl(var(--burnt-sienna))",
                             }}
@@ -398,7 +398,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
                         {j.title}
                       </h4>
                       <div
-                        className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-serif italic text-ds-12"
+                        className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-sans text-ds-12"
                         style={{
                           color: "hsl(var(--olivewood) / 0.8)",
                         }}

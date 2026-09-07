@@ -180,7 +180,7 @@ function LeverRow({
           {label}
         </span>
         <span
-          className="block text-ds-11 font-serif italic leading-snug"
+          className="block text-ds-11 font-sans leading-snug"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         >
           {detail}

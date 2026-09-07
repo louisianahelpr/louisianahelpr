@@ -107,7 +107,7 @@ export function ProUpgradeSheet({
             {perks.map((perk) => (
               <li
                 key={perk}
-                className="font-serif italic flex items-start gap-2 text-ds-14"
+                className="font-sans flex items-start gap-2 text-ds-14"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 <Check

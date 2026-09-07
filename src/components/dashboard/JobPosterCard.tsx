@@ -140,14 +140,14 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
                 <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                   {job.posterAvgRating?.toFixed(1)}
                 </span>
-                <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <span className="font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   ({job.posterReviewCount})
                 </span>
               </span>
             )}
           </div>
           {(job.posterCompletedJobs ?? 0) > 0 && (
-            <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {job.posterCompletedJobs} {job.posterCompletedJobs === 1 ? "job" : "jobs"}
             </p>
           )}

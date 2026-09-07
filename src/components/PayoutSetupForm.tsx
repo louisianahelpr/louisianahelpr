@@ -309,7 +309,7 @@ export function PayoutSetupForm() {
           >
             We couldn't check your payout status
           </p>
-          <p className="font-serif italic mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-sans mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Your account may be fine — we just couldn't reach Stripe. Try again in a moment.
           </p>
           <Button
@@ -354,7 +354,7 @@ export function PayoutSetupForm() {
             >
               Connect to start earning
             </p>
-            <p className="font-serif italic mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Set up your payout account through Stripe so completed jobs pay out straight to your bank.
             </p>
           </div>
@@ -371,7 +371,7 @@ export function PayoutSetupForm() {
             >
               One more step
             </p>
-            <p className="font-serif italic mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Stripe needs a few more details before payouts can run. Pick up where you left off below.
             </p>
           </div>
@@ -466,7 +466,7 @@ export function PayoutSetupForm() {
           >
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-              <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Payouts run automatically to your default method when jobs are completed.
               </p>
             </div>

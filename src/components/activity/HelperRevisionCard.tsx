@@ -156,7 +156,7 @@ export function HelperRevisionCard({
       {/* Header */}
       <div>
         <span
-          className="font-serif italic uppercase inline-flex items-center gap-1.5 text-ds-10"
+          className="font-sans uppercase inline-flex items-center gap-1.5 text-ds-10"
           style={{ color: "hsl(var(--amber-ink))", letterSpacing: "0.18em" }}
         >
           <AlertTriangle className="w-3 h-3" />
@@ -172,7 +172,7 @@ export function HelperRevisionCard({
 
       {/* Description */}
       <p
-        className="font-serif italic leading-relaxed text-ds-13"
+        className="font-sans leading-relaxed text-ds-13"
         style={{ color: "hsl(var(--olivewood) / 0.85)" }}
       >
         "{revision.description}"

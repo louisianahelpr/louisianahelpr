@@ -337,7 +337,7 @@ const OnboardingTour = ({ profileComplete = false, userId, onActiveChange }: Onb
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description asChild>
                   <p
-                    className="font-serif italic text-ds-15 leading-relaxed"
+                    className="font-sans text-ds-15 leading-relaxed"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     {currentStep.description}

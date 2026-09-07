@@ -60,7 +60,7 @@ const DashboardStatusBanners = ({
             <p className="font-display italic font-bold leading-tight text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
               Verification in progress — browse and apply now.
             </p>
-            <p className="font-serif italic mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Review usually finishes in {REVIEW_SLA}. You'll just need it cleared before you can accept a job. Tap to track status.
             </p>
           </button>

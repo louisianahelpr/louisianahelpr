@@ -285,7 +285,7 @@ const UserAvatar = React.forwardRef<
           // measurements. The palette is pinned there and the ink is pinned
           // here, together, because either one moving alone breaks the pair:
           // this ink on the OLD dark gradient measured 1.04:1.
-          "bg-transparent bg-gradient-to-br text-[#23231a] font-display italic font-bold",
+          "bg-transparent bg-gradient-to-br text-[#23231a] font-sans font-bold",
           "ring-[1.5px] ring-[hsl(var(--olivewood)/0.12)] ring-offset-0",
           "drop-shadow-[0_1px_3px_hsl(var(--olivewood)/0.12)]",
           gradient,

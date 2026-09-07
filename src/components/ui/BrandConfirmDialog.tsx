@@ -1,5 +1,5 @@
 // Shared confirmation dialog with Helpr's editorial brand styling
-// (italic Bodoni serif title, italic Garamond description, optional
+// (italic Bodoni serif title, Montserrat description, optional
 // sienna warning callout, on-brand primary button). Lifts the shell
 // that DeleteAccountDialog and the Profile logout dialog had grown in
 // parallel so future confirmation dialogs get on-brand styling for
@@ -157,7 +157,7 @@ export function BrandConfirmDialog({
             Falsy/empty descriptions render nothing. */}
         {description ? (
           <DialogDescription
-            className="font-serif italic text-ds-12 leading-relaxed"
+            className="font-sans text-ds-12 leading-relaxed"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {description}

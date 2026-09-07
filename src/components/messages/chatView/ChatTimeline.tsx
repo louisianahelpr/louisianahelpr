@@ -153,7 +153,7 @@ export function ChatTimeline({
               Couldn't load this conversation.
             </p>
             <p
-              className="font-serif italic text-ds-13 max-w-[260px]"
+              className="font-sans text-ds-13 max-w-[260px]"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Tap Retry. If it sticks, our end is having a hiccup —
@@ -189,7 +189,7 @@ export function ChatTimeline({
               {composerLocked ? "No messages yet." : "Say hello."}
             </p>
             <p
-              className="font-serif italic text-ds-13 max-w-[260px]"
+              className="font-sans text-ds-13 max-w-[260px]"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               {composerLocked
@@ -219,7 +219,7 @@ export function ChatTimeline({
                 style={{ background: "hsl(var(--olivewood) / 0.15)" }}
               />
               <span
-                className="font-serif italic uppercase tracking-wider whitespace-nowrap text-ds-10"
+                className="font-sans uppercase tracking-wider whitespace-nowrap text-ds-10"
                 style={{
                   letterSpacing: "0.16em",
                   color: "hsl(var(--olivewood) / 0.8)",

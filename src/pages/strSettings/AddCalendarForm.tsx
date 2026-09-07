@@ -120,7 +120,7 @@ export function AddCalendarForm({
               // `background`, because the shorthand would reset the very
               // `background-image` the class provides.
               className={cn(
-                "rounded-ds-md px-3 py-1 font-serif italic font-semibold transition-all text-ds-12",
+                "rounded-ds-md px-3 py-1 font-sans font-semibold transition-all text-ds-12",
                 form.platform === p && "btn-grad-primary",
               )}
               style={{

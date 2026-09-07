@@ -118,7 +118,7 @@ export const AttachSourceSheet = ({
           })}
         </div>
         <p
-          className="mt-3 font-serif italic text-ds-12 leading-relaxed text-center"
+          className="mt-3 font-sans text-ds-12 leading-relaxed text-center"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Up to {Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB ·

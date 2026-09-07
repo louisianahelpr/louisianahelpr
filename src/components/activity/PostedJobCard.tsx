@@ -283,12 +283,12 @@ function PostedJobCardInner({
               >
                 <AlertTriangle className="w-3 h-3 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
                 <span
-                  className="font-serif italic uppercase text-ds-10"
+                  className="font-sans uppercase text-ds-10"
                   style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                 >
                   {job.dispute_status === "escalated" ? "Admin reviewing" : "Dispute open"}
                 </span>
-                <span className="font-serif italic text-ds-11 ml-auto" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+                <span className="font-sans text-ds-11 ml-auto" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
                   Payment on hold
                 </span>
               </div>
@@ -580,10 +580,10 @@ function PostedJobCardInner({
                       strokeWidth={2.25}
                     />
                     <p
-                      className="font-serif italic leading-snug text-ds-12"
+                      className="font-sans leading-snug text-ds-12"
                       style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                     >
-                      <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                      <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                         No live map for this job.
                       </span>{" "}
                       We couldn't pin this job's address on a map, so {helperName}'s

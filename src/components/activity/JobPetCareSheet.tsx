@@ -93,7 +93,7 @@ export function JobPetCareSheet({ jobId }: { jobId: string }) {
       }}
     >
       <p
-        className="font-serif italic uppercase inline-flex items-center gap-1.5 text-ds-10"
+        className="font-sans uppercase inline-flex items-center gap-1.5 text-ds-10"
         style={{ color: "hsl(var(--petcare-ink))", letterSpacing: "0.18em" }}
       >
         <PawPrint className="w-3 h-3" />
@@ -135,7 +135,7 @@ export function JobPetCareSheet({ jobId }: { jobId: string }) {
                 {p.name}
                 {meta && (
                   <span
-                    className="font-serif italic font-normal ml-2 text-ds-11"
+                    className="font-sans font-normal ml-2 text-ds-11"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     {meta}

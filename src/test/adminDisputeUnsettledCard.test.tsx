@@ -160,23 +160,24 @@ describe("the split panel an admin decides in", () => {
     // $180 budget, 12% commission, $5 service fee. A 50/50 pays the Helpr
     // $79.20, not $90 — and refunds the poster $89.67, not $90.
     const { text } = openPanel(50);
-    expect(text()).toContain("$79.20 paid");
-    expect(text()).toContain("$89.67 refunded");
-    // Gross is still shown, so the two are visibly different numbers.
-    // `formatPriceExact` drops a zero cent part by design, so a round $90 is
-    // "$90" — the same rule every other money surface here follows.
+    // The two columns read: percent, net, verb, gross, deduction.
+    expect(text()).toMatch(/Poster 50%\$89\.67refunded\$90 gross−\$2\.84 Stripe keeps/);
+    expect(text()).toMatch(/Helpr 50%\$79\.20paid\$90 gross−\$10\.80 commission \(12%\)/);
+    // Gross is still shown beside net, so the two are visibly different
+    // numbers. `formatPriceExact` drops a zero cent part by design, so a round
+    // $90 is "$90" — the rule every other money surface here follows.
     expect(text().match(/\$90 gross/g)).toHaveLength(2);
   });
 
   it("itemises what is being withheld from each side", () => {
     const { text } = openPanel(50);
     expect(text()).toContain("−$10.80 commission (12%)");
-    expect(text()).toMatch(/−\$\d+\.\d\d Stripe keeps/);
+    expect(text()).toMatch(/−\$[\d.]+ Stripe keeps/);
   });
 
   it("moves the net figures with the slider", () => {
     const { text } = openPanel(100);
-    expect(text()).toContain("$158.40 paid");
-    expect(text()).toContain("$0 refunded");
+    expect(text()).toMatch(/Helpr 100%\$158\.40paid/);
+    expect(text()).toMatch(/Poster 0%\$0refunded/);
   });
 });

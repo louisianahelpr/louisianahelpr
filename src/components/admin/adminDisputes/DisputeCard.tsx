@@ -135,7 +135,11 @@ export const DisputeCard = ({
         {record?.decided_at && (
           <div className="p-3 rounded-ds-sm bg-primary/5 border border-primary/20">
             <p className="text-ds-13 text-foreground font-medium flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Decided
+              {/* A green tick on a case whose escrow never moved is the console
+                  asserting a success that did not happen. */}
+              {unsettled
+                ? <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                : <CheckCircle2 className="w-3.5 h-3.5 text-primary" />} Decided
               <span className="ml-1 text-ds-10 text-muted-foreground">
                 · {new Date(record.decided_at).toLocaleString()}
               </span>
@@ -167,35 +171,36 @@ export const DisputeCard = ({
                 {" refunded"}
               </p>
             )}
-            {/* Every unsettled state, named — with the ids an admin needs to
-                reconcile by hand and the retry that used to exist nowhere. */}
-            {unsettled && (
-              <div className="mt-2 rounded-ds-sm border border-destructive/30 bg-destructive/5 p-2.5 space-y-2">
-                <p className="text-ds-11 font-medium text-destructive">
-                  {unsettledReason(record)}
-                </p>
-                <p className="text-ds-10 text-muted-foreground tabular-nums break-all">
-                  dispute {record.id}
-                  {" · job "}{job.id}
-                  {job.stripe_payment_intent_id ? ` · ${job.stripe_payment_intent_id}` : " · no PaymentIntent on file"}
-                  {record.execution_transfer_id ? ` · transfer ${record.execution_transfer_id}` : ""}
-                  {record.execution_refund_id ? ` · refund ${record.execution_refund_id}` : ""}
-                </p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                  onClick={() => retrySettlement(job)}
-                  disabled={retrying === job.id}
-                >
-                  <RefreshCw className={`w-4 h-4 mr-1 ${retrying === job.id ? "animate-spin" : ""}`} />
-                  {retrying === job.id ? "Settling…" : "Retry settlement"}
-                </Button>
-              </div>
-            )}
           </div>
         )}
       </div>
+
+          {/* Every unsettled state, named — with the ids an admin needs to
+              reconcile by hand and the retry that used to exist nowhere. */}
+          {unsettled && (
+            <div className="mt-2 rounded-ds-sm border border-destructive/30 bg-destructive/5 p-2.5 space-y-2">
+              <p className="text-ds-11 font-medium text-destructive">
+                {unsettledReason(record)}
+              </p>
+              <p className="text-ds-10 text-muted-foreground tabular-nums break-all">
+                dispute {record.id}
+                {" · job "}{job.id}
+                {job.stripe_payment_intent_id ? ` · ${job.stripe_payment_intent_id}` : " · no PaymentIntent on file"}
+                {record.execution_transfer_id ? ` · transfer ${record.execution_transfer_id}` : ""}
+                {record.execution_refund_id ? ` · refund ${record.execution_refund_id}` : ""}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => retrySettlement(job)}
+                disabled={retrying === job.id}
+              >
+                <RefreshCw className={`w-4 h-4 mr-1 ${retrying === job.id ? "animate-spin" : ""}`} />
+                {retrying === job.id ? "Settling…" : "Retry settlement"}
+              </Button>
+            </div>
+          )}
 
       {/* Three actions, one shape.
           `flex-wrap` gave the primary its content width and the two secondaries
@@ -258,27 +263,48 @@ export const DisputeCard = ({
                 on a $180 job was approving $90/$90 while $79.20 and $86.60
                 actually landed. `previewDisputeSplit` reuses the same tier
                 ladder and Stripe-fee modules the executor does. */}
-            <div className="flex justify-between gap-3 text-ds-11 tabular-nums">
-              <span className="text-muted-foreground">
-                Poster <span className="font-semibold text-foreground">{100 - helperShare}%</span>
-                <span className="ml-1">(${formatPriceExact(preview.posterGross)} gross)</span>
-                <span className="block text-ds-13 font-semibold text-foreground">
-                  ${formatPriceExact(preview.posterNet)} refunded
-                </span>
-                <span className="block text-ds-10">
-                  −${formatPriceExact(preview.posterProcessingCost)} Stripe keeps
-                </span>
-              </span>
-              <span className="text-right text-muted-foreground">
-                Helpr <span className="font-semibold text-foreground">{helperShare}%</span>
-                <span className="ml-1">(${formatPriceExact(preview.helperGross)} gross)</span>
-                <span className="block text-ds-13 font-semibold text-foreground">
-                  ${formatPriceExact(preview.helperNet)} paid
-                </span>
-                <span className="block text-ds-10">
-                  −${formatPriceExact(preview.helperCommission)} commission ({preview.helperFeePercent}%)
-                </span>
-              </span>
+            {/* TWO ALIGNED COLUMNS, not a justify-between row. Right-aligning
+                one side made the four lines zig-zag against each other at 375
+                — the poster's net landed beside the Helpr's commission and the
+                pair read as one jumbled paragraph instead of two comparable
+                offers. Same left edge, same line order, one row per fact. */}
+            <div className="grid grid-cols-2 gap-3 text-ds-11 tabular-nums">
+              {[
+                {
+                  side: "Poster",
+                  percent: 100 - helperShare,
+                  gross: preview.posterGross,
+                  net: preview.posterNet,
+                  netVerb: "refunded",
+                  deduction: preview.posterProcessingCost,
+                  deductionLabel: "Stripe keeps",
+                },
+                {
+                  side: "Helpr",
+                  percent: helperShare,
+                  gross: preview.helperGross,
+                  net: preview.helperNet,
+                  netVerb: "paid",
+                  deduction: preview.helperCommission,
+                  deductionLabel: `commission (${preview.helperFeePercent}%)`,
+                },
+              ].map((c) => (
+                <div key={c.side} className="min-w-0">
+                  <p className="text-muted-foreground">
+                    {c.side} <span className="font-semibold text-foreground">{c.percent}%</span>
+                  </p>
+                  <p className="text-ds-13 font-semibold text-foreground">
+                    ${formatPriceExact(c.net)}
+                  </p>
+                  <p className="text-ds-10 text-muted-foreground">{c.netVerb}</p>
+                  <p className="text-ds-10 text-muted-foreground mt-1">
+                    ${formatPriceExact(c.gross)} gross
+                  </p>
+                  <p className="text-ds-10 text-muted-foreground">
+                    −${formatPriceExact(c.deduction)} {c.deductionLabel}
+                  </p>
+                </div>
+              ))}
             </div>
             <p className="text-ds-10 mt-1.5" style={{ color: "hsl(var(--amber-ink))" }}>
               This moves real money. The Helpr's figure is exact. The poster's is

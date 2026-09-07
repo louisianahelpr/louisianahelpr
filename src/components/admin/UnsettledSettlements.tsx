@@ -24,6 +24,17 @@ import { toneBadgeClasses } from "@/components/admin/tones";
  * the dispute card, next to the decision it is executing — this is the alarm,
  * not the switch.
  */
+/**
+ * "PENDING" reads as "in progress", which is the one thing this state is not —
+ * it means the settlement was never attempted, or was refused before it could
+ * claim. Name each state for what an admin has to do about it.
+ */
+const EXECUTION_LABELS: Record<string, string> = {
+  pending: "not attempted",
+  executing: "died mid-run",
+  failed: "failed",
+};
+
 interface UnsettledRow {
   id: string;
   job_id: string;
@@ -104,11 +115,11 @@ export const UnsettledSettlements = () => {
                 {r.jobs?.title ?? "Untitled job"}
               </p>
               <span className="shrink-0 inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-semibold uppercase tracking-wide">
-                <AlertTriangle className="w-3 h-3" /> {r.execution_status ?? "pending"}
+                <AlertTriangle className="w-3 h-3" /> {EXECUTION_LABELS[r.execution_status ?? "pending"] ?? r.execution_status}
               </span>
             </div>
             <p className="text-ds-11 text-muted-foreground tabular-nums">
-              ${formatPriceExact(Number(r.jobs?.budget ?? 0))} · escrow {r.jobs?.payment_status ?? "unknown"}
+              ${formatPriceExact(Number(r.jobs?.budget ?? 0))} · payment {r.jobs?.payment_status ?? "unknown"}
               {r.decided_at ? ` · decided ${formatShortDate(r.decided_at)}` : ""}
             </p>
             {r.execution_error && (

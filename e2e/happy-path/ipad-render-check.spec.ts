@@ -12,6 +12,8 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks } from "./fixtures";
 //
 // This captures the sizes Apple actually reviews on, so the decision to keep or
 // drop iPad support is made from screenshots rather than assumption.
+const ROUTES = ["/dashboard", "/post-job", "/messages", "/profile", "/profile?tab=subscription", "/activity"];
+
 const SIZES = [
   { name: "ipad-11-portrait", width: 834, height: 1194 },
   { name: "ipad-11-landscape", width: 1194, height: 834 },
@@ -45,3 +47,46 @@ for (const size of SIZES) {
     expect(overflow.scrollWidth, `${size.name} scrolls horizontally`).toBeLessThanOrEqual(overflow.clientWidth + 1);
   });
 }
+
+
+// Every route Apple could land on, at the iPad size they review with. The
+// rejection said "the content didn't load"; this asserts the opposite for the
+// whole reachable surface rather than one screen, and catches the phone-app-on-
+// tablet failures: horizontal overflow, and a content column so narrow the page
+// is mostly dead space.
+test("iPad 11-inch — every main route renders with no overflow", async ({ helperPage: page }) => {
+  test.setTimeout(180_000);
+  await installSupabaseMocks(page, { user: FAKE_HELPER, seed: true });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("helpr_onboarding", JSON.stringify({ seen: true, completed: true }));
+    } catch { /* no-storage guard */ }
+  });
+  await page.setViewportSize({ width: 834, height: 1194 });
+
+  const bad: string[] = [];
+  for (const route of ROUTES) {
+    await page.goto(route);
+    await page.waitForTimeout(2200);
+    const m = await page.evaluate(() => {
+      const de = document.documentElement;
+      const widest = Array.from(document.querySelectorAll("*"))
+        .map((el) => (el as HTMLElement).getBoundingClientRect().width)
+        .reduce((a, b) => Math.max(a, b), 0);
+      return {
+        text: (document.body.textContent ?? "").trim().length,
+        scrollWidth: de.scrollWidth,
+        clientWidth: de.clientWidth,
+        widest: Math.round(widest),
+      };
+    });
+    const overflow = m.scrollWidth > m.clientWidth + 1;
+    const tooWide = m.widest > m.clientWidth + 1;
+    const empty = m.text < 60;
+    console.log(`  ${route.padEnd(28)} chars=${String(m.text).padStart(5)} scrollW=${m.scrollWidth} widest=${m.widest} ${overflow ? "OVERFLOW " : ""}${tooWide ? "WIDE-EL " : ""}${empty ? "EMPTY" : ""}`);
+    if (overflow) bad.push(`${route}: horizontal overflow (${m.scrollWidth} > ${m.clientWidth})`);
+    if (tooWide) bad.push(`${route}: element wider than viewport (${m.widest})`);
+    if (empty) bad.push(`${route}: rendered almost no text (${m.text} chars)`);
+  }
+  expect(bad, `iPad problems:\n  ${bad.join("\n  ")}`).toEqual([]);
+});

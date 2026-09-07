@@ -85,7 +85,6 @@ const NOINDEX = {
 const WEIGHTS = {
   "/": { changefreq: "weekly", priority: "1.0" },
   "/browse": { changefreq: "daily", priority: "0.8" },
-  "/jobs": { changefreq: "daily", priority: "0.8" },
   "/help": { changefreq: "monthly", priority: "0.6" },
   "/support": { changefreq: "monthly", priority: "0.5" },
   "/legal": { changefreq: "monthly", priority: "0.4" },

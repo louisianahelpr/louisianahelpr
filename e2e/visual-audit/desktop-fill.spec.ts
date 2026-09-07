@@ -40,7 +40,7 @@ const ROUTES: Route[] = [
   { path: "/subscription", auth: "anon" },
   { path: "/help", auth: "anon" },
   { path: "/legal", auth: "anon" },
-  { path: "/jobs", auth: "anon" },
+  { path: "/browse", auth: "anon" },
   // /data-rights is not listed: since 2026-08-18 it is a redirect into
   // /profile?tab=legal, so as an anon route it only ever measured the login
   // page. /profile in the authed block below carries the same content

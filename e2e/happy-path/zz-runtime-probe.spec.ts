@@ -589,8 +589,8 @@ async function driveChunk404(
       try { sessionStorage.setItem("helpr_chunk_reload_at", String(Date.now())); } catch { /* private mode */ }
     });
   }
-  await page.route("**/assets/Jobs-*.js", (route) => route.abort("failed"));
-  await page.goto("/jobs", { waitUntil: "domcontentloaded" });
+  await page.route("**/assets/DashboardGuest-*.js", (route) => route.abort("failed"));
+  await page.goto("/browse", { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(3000);
   const body = (await page.locator("body").innerText()).replace(/\s+/g, " ").trim();
   const preloadErrors = await page
@@ -669,9 +669,9 @@ test("an offline lazy-route navigation shows chunk/offline copy", async ({
   await page.waitForTimeout(1000);
   await context.setOffline(true);
   await page.evaluate(() => window.dispatchEvent(new Event("offline")));
-  await page.route("**/assets/Jobs-*.js", (route) => route.abort("internetdisconnected"));
+  await page.route("**/assets/DashboardGuest-*.js", (route) => route.abort("internetdisconnected"));
   await page.evaluate(() => {
-    window.history.pushState({}, "", "/jobs");
+    window.history.pushState({}, "", "/browse");
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
   await page.waitForTimeout(4000);
@@ -787,7 +787,7 @@ const AASA_URL = "https://www.louisianahelpr.com/.well-known/apple-app-site-asso
  * like a regression.
  */
 const REQUIRED_CLAIMS = [
-  "/jobs", "/jobs/*", "/j/*", "/user/*", "/u/*",
+  "/jobs/*", "/j/*", "/user/*", "/u/*",
   "/messages", "/messages/*", "/m/*",
   "/legal", "/legal/*", "/post-job", "/post-job/*",
 ];
@@ -984,7 +984,7 @@ test("3b · deepLinkRoute normalizer mapping + host allowlist", async ({ page })
 
   const cases: [string, string | null][] = [
     // canonical pass-through
-    ["https://www.louisianahelpr.com/jobs", "/jobs"],
+    ["https://www.louisianahelpr.com/browse", "/browse"],
     ["https://www.louisianahelpr.com/jobs/abc123", "/jobs/abc123"],
     ["https://louisianahelpr.com/user/u-1", "/user/u-1"],
     ["https://louisianahelpr.com/messages", "/messages"],
@@ -1003,7 +1003,7 @@ test("3b · deepLinkRoute normalizer mapping + host allowlist", async ({ page })
     ["https://louisianahelpr.com/post-job/draft/7", "/post-job"],
     ["https://louisianahelpr.com/post-job/draft/7?resume=1", "/post-job?resume=1"],
     // trailing slash
-    ["https://louisianahelpr.com/jobs/", "/jobs"],
+    ["https://louisianahelpr.com/browse/", "/browse"],
     // ignored
     ["https://louisianahelpr.com/", null],
     ["https://louisianahelpr.com", null],

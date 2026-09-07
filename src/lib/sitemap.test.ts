@@ -32,7 +32,7 @@ const redirectPaths = [
 describe("sitemap.xml", () => {
   it("lists at least the core public pages", () => {
     expect(locs.length).toBeGreaterThan(0);
-    for (const path of ["/", "/jobs", "/help", "/legal"]) {
+    for (const path of ["/", "/browse", "/help", "/legal"]) {
       expect(sitemapPaths).toContain(path);
     }
   });

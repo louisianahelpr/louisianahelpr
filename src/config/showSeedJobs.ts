@@ -85,7 +85,14 @@ export const SEED_VISIBILITY_AUTHORITY = "public.seed_jobs_hidden_publicly";
  * list drift away from the flag for good.
  */
 export const SEED_GATED_SURFACES = [
-  { surface: "/jobs", object: "public.get_ranked_open_jobs" },
+  // Was labelled "/jobs" until 2026-09-07, when that page was deleted. The
+  // ROW STAYS: this list is what the parity test grades the migration against,
+  // so dropping an entry makes the suite pass vacuously for that object (see
+  // the note below about the landing teaser). And the object is still
+  // reachable — get_ranked_open_jobs is granted to anon, so it can be called
+  // directly whether or not a screen renders it. It simply has no client
+  // caller any more (src/pages/jobs/useOpenJobsFeed.ts went with the page).
+  { surface: "anon ranked-jobs RPC (no client caller)", object: "public.get_ranked_open_jobs" },
   { surface: "dashboard browse list", object: "public.open_jobs_browse" },
   { surface: "map", object: "public.get_open_jobs_for_map" },
   // MISSING UNTIL 2026-09-02, and the omission was the whole bug. The parity

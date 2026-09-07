@@ -178,7 +178,6 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   },
   { name: "my-posts", url: "/my-posts" },
   { name: "my-jobs", url: "/my-jobs" },
-  { name: "jobs", url: "/jobs" },
   { name: "messages", url: "/messages" },
   { name: "post-job", url: "/post-job" },
   { name: "payment-success", url: "/payment-success" },

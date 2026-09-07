@@ -100,7 +100,6 @@ const Messages = lazyWithPreload(() => import("./pages/Messages"));
 
 const Legal = lazyWithPreload(() => import("./pages/Legal"));
 const NotFound = lazyWithPreload(() => import("./pages/NotFound"));
-const Jobs = lazyWithPreload(() => import("./pages/Jobs"));
 const JobDetail = lazyWithPreload(() => import("./pages/JobDetail"));
 const DashboardGuest = lazyWithPreload(() => import("./pages/DashboardGuest"));
 
@@ -255,19 +254,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           already sent. Same reasoning as /data-rights above. */}
       <Route path="/warnings" element={<Navigate to="/profile?tab=warnings" replace />} />
 
-      {/* Public, indexable jobs landing — Jobs.tsx reads anon job data
-          (get_ranked_open_jobs, granted to anon) and renders guest
-          "Sign up to apply" cards, so it must be reachable WITHOUT auth.
-          It was previously behind ProtectedRoute, which redirected the
-          exact guests it targets to /login. /browse remains the in-app
-          (AppShell) guest experience; this is its marketing-page sibling.
-
-          NOT wrapped in <MarketingRedirect>: Jobs.tsx already bounces
-          authenticated visitors itself, and does it better — it forwards a
-          ?job= deep link on to /dashboard?quickApply=<id>, which this wrapper
-          would flatten to a bare /dashboard. Same for /jobs/:id and /browse
-          (DashboardGuest holds its render on getSession before bouncing). */}
-      <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<PageTransition><Jobs /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Public, deep-linkable job preview. Shared links (ShareJobButton →
           /jobs/{id}?ref=share) land here: guests get a read-only preview,
           signed-in users are redirected into the dashboard apply flow. */}

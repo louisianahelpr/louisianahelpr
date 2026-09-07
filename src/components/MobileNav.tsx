@@ -357,7 +357,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       location.pathname === effectivePath ||
       (path === "/my-posts" && location.pathname === "/activity" && !new URLSearchParams(location.search).get("tab")) ||
       (path === "/my-jobs" && location.pathname === "/activity" && new URLSearchParams(location.search).get("tab") === "applied") ||
-      (isGuest && path === "/dashboard" && (location.pathname === "/browse" || location.pathname === "/jobs"));
+      (isGuest && path === "/dashboard" && location.pathname === "/browse");
 
     const inStack = !isGuest && isInStack(path);
     // Guests never carry a badge (nothing to count). Each badged tab pulls

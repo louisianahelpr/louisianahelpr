@@ -603,7 +603,9 @@ test.describe("full money loop against production", () => {
           reviewer_id: poster.user.id,
           reviewee_id: helper.user.id,
           rating: 5,
-          comment: `${E2E_TITLE_MARKER} automated review`,
+          // `feedback`, not `comment` — the column is called feedback in prod
+          // (checked against information_schema, not guessed from the client).
+          feedback: `${E2E_TITLE_MARKER} automated review`,
         },
       });
       expect(review.ok(), `review insert failed: ${review.status()} ${await review.text()}`).toBe(true);

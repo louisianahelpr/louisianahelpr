@@ -183,14 +183,29 @@ for (const job of jobs) {
      appearing in the list; without this they made the PRE-sweep fail, and a
      failed pre-sweep skips the entire money loop. One stale row was therefore
      enough to stop the suite running at all. */
-  const alreadyUnwound = job.status === "cancelled";
+  /* Terminal in either direction: cancelled (already unwound) or SETTLED. A
+     settled job — payout_pending or released — is the residue this suite's
+     README already calls permanent: the money has moved, cancel_escrow rightly
+     refuses it with 409 ("already been released, refunded, or was never held"),
+     and payout_transfers_job_id_fkey is ON DELETE RESTRICT so nobody can delete
+     it either. It is not stranded; it is finished, and a successful run is
+     exactly what produces one.
+
+     strandedJobs() excludes released/refunded/cancelled by payment_status but
+     NOT payout_pending, so a completed run left a row the next pre-sweep tried
+     to cancel and died on — and a failed PRE-sweep skips the whole money loop.
+     So one SUCCESSFUL run would block every run after it. */
+  const settled = ["payout_pending", "released", "refunded"].includes(job.payment_status);
+  const alreadyUnwound = job.status === "cancelled" || settled;
   const abandonedCheckout =
     !alreadyUnwound &&
     !funded &&
     job.stripe_session_id !== null &&
     job.payment_status === "unpaid";
   const plan = alreadyUnwound
-    ? "already cancelled — nothing to do"
+    ? settled
+      ? "settled — nothing to unwind (a completed run leaves this)"
+      : "already cancelled — nothing to do"
     : funded
     ? "cancel_escrow"
     : abandonedCheckout

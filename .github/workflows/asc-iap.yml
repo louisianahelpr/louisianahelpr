@@ -16,9 +16,13 @@ on:
       mode:
         description: "probe (read-only), create (writes products), screenshots (uploads the review image)"
         type: choice
-        options: [probe, create, screenshots, inspect, fix-availability]
+        options: [probe, create, screenshots, inspect, fix-availability, fix-review-issues]
         default: probe
         required: true
+      apply:
+        description: "fix-review-issues only: actually write (unchecked = dry run)"
+        type: boolean
+        default: false
 
 jobs:
   asc:
@@ -35,4 +39,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT || secrets.ASC_KEY_BASE64 }}
           ASC_BUNDLE_ID: com.Helpr
+          # fix-review-issues is a DRY RUN unless this is set to 1 — it edits a
+          # live App Store listing, so seeing the diff first is the default.
+          ASC_APPLY: ${{ inputs.apply && '1' || '0' }}
         run: node scripts/asc/${{ inputs.mode }}.mjs

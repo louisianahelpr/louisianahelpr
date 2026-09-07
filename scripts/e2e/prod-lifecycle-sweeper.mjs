@@ -176,9 +176,22 @@ for (const job of jobs) {
      calls. Cancelling also moves the row out of `status = 'open'`, which is what
      stops abandoned rows accumulating against enforce_open_job_limit: five of
      them and no future run can post at all. */
+  /* Already cancelled means already unwound — there is nothing left to do, and
+     poster_cancel_job correctly refuses it with P0001 not_cancellable ("This job
+     is already finished, cancelled, or under dispute"). `strandedJobs()` filters
+     on payment_status, which stays 'unpaid' after a cancellation, so these keep
+     appearing in the list; without this they made the PRE-sweep fail, and a
+     failed pre-sweep skips the entire money loop. One stale row was therefore
+     enough to stop the suite running at all. */
+  const alreadyUnwound = job.status === "cancelled";
   const abandonedCheckout =
-    !funded && job.stripe_session_id !== null && job.payment_status === "unpaid";
-  const plan = funded
+    !alreadyUnwound &&
+    !funded &&
+    job.stripe_session_id !== null &&
+    job.payment_status === "unpaid";
+  const plan = alreadyUnwound
+    ? "already cancelled — nothing to do"
+    : funded
     ? "cancel_escrow"
     : abandonedCheckout
       ? "poster_cancel_job (reached checkout, never paid)"
@@ -188,7 +201,10 @@ for (const job of jobs) {
   console.log(`  ${job.id}  status=${job.status} payment=${job.payment_status} → ${plan}`);
   if (DRY) continue;
 
-  if (abandonedCheckout) {
+  if (alreadyUnwound) {
+    // Nothing to do, and saying so is better than a silent skip: the row IS
+    // still listed, and a reader should see why it was passed over.
+  } else if (abandonedCheckout) {
     const r = await cancelJob(job.id);
     if (!r.ok) failures.push(`cancel ${job.id}: HTTP ${r.status} ${r.body}`);
   } else if (funded) {

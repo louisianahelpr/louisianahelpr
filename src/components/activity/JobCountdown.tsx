@@ -1,13 +1,21 @@
 import { useState, useEffect } from "react";
 import { Timer } from "lucide-react";
+import { jobStartDateTime } from "@/lib/dateUtils";
 
 /**
  * JobCountdown — a live "job starts in" pill that ticks every minute.
  *
- * Shared by PostedJobCard and AppliedJobCard (both surface the same
- * countdown for an accepted/offered job). Parses the date parts
- * manually so the target instant stays in the viewer's local timezone
- * regardless of how `date_needed` is stored.
+ * Shared by PostedJobCard and AppliedJobCard (both surface the same countdown
+ * for an accepted/offered job).
+ *
+ * The target instant comes from `jobStartDateTime`, which resolves the job's
+ * wall clock in the JOB's zone. This component used to assemble it by hand —
+ * `new Date(y, m - 1, d)` then `setHours` — with a comment saying the point was
+ * that "the target instant stays in the viewer's local timezone". That was the
+ * bug written down as the intent: a 2026-09-06 review viewing a 6:30 PM Central
+ * job from Pacific watched it count down two hours late. A countdown to a fixed
+ * appointment is a countdown to one instant, and where the reader is standing
+ * is not part of it.
  */
 export const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; startTime?: string | null; label: string }) => {
   const [now, setNow] = useState(new Date());
@@ -16,15 +24,16 @@ export const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: str
     return () => clearInterval(interval);
   }, []);
 
-  // Parse date parts manually to avoid timezone shifts
-  const [year, month, day] = dateNeeded.split("-").map(Number);
-  const jobDate = new Date(year, month - 1, day);
-  if (startTime) {
-    const [h, m] = startTime.split(":").map(Number);
-    jobDate.setHours(h, m, 0, 0);
-  } else {
-    jobDate.setHours(23, 59, 59, 0);
-  }
+  // A job with no start_time counts down to the END of its day, not the start:
+  // "flexible, sometime today" has not run out until the day has. That is one
+  // second before the NEXT day's midnight in the job's zone.
+  const jobDate = startTime
+    ? jobStartDateTime(dateNeeded, startTime)
+    : (() => {
+        const midnight = jobStartDateTime(dateNeeded, null);
+        return midnight ? new Date(midnight.getTime() + 86_400_000 - 1_000) : null;
+      })();
+  if (!jobDate) return null;
 
   const diffMs = jobDate.getTime() - now.getTime();
   if (diffMs <= 0) {

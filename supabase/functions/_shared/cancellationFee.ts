@@ -35,7 +35,13 @@ export function cancellationFeePercent(
  * relative to one — and it has to be the SAME one everywhere or the fee tier
  * moves depending on which machine computed it.
  */
-const JOB_TIMEZONE = "America/Chicago";
+/**
+ * The zone every job's wall clock is in. Exported because the CLIENT needs the
+ * same answer: `date_needed` + `start_time` carry no zone, so any surface that
+ * turns them into an instant — or prints one back — has to name a zone, and
+ * naming a second literal is how two halves of the app come to disagree.
+ */
+export const JOB_TIMEZONE = "America/Chicago";
 
 /**
  * Epoch ms for midnight on `dateNeeded` **in JOB_TIMEZONE**, regardless of the

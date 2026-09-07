@@ -1,4 +1,6 @@
-import { jobLocalMidnightMs } from "../../supabase/functions/_shared/cancellationFee";
+import { jobLocalMidnightMs, JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
+
+export { JOB_TIMEZONE };
 
 /**
  * A bare `YYYY-MM-DD`, which is the only shape `jobs.date_needed` (a Postgres

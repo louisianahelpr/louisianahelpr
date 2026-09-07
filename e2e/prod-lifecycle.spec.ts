@@ -72,17 +72,31 @@ import { appendFileSync } from "node:fs";
 //     returns false in prod (the owner is keeping fixtures visible), which
 //     makes `is_seed` a launch switch rather than an isolation mechanism.
 //
-//  3. THE MONEY SWEEPS SKIP IT — the job is still marked `is_seed = true`,
-//     which is what `auto-release-payment`, `payment-confirm-reminder`,
-//     `money-reconciliation`, `process-scheduled-payouts` and
-//     `subscription-reconciliation` filter on by default. Seven other functions
-//     that touch `jobs` ignore `is_seed` entirely (`auto-expire-jobs`,
-//     `auto-resolve-disputes`, `review-nag-cron`, `expiring-jobs-push`,
-//     `instant-job-match`, `void-cancelled-payments`,
-//     `charge-recurring-visits`); they act on jobs by STATE, so the exposure is
-//     a run that dies mid-loop and leaves a job parked in one of those states.
-//     That is what `scripts/e2e/prod-lifecycle-sweeper.mjs` exists for, and why
-//     it runs BEFORE this spec rather than after.
+//  3. THE MONEY SWEEPS DO **NOT** SKIP IT — this control does not exist, and
+//     the spec no longer pretends otherwise. It used to assert `is_seed = true`
+//     immediately after the poster INSERT, which is unsatisfiable: `is_seed` is
+//     locked against posters in TWO independent places, on purpose.
+//       * `enforce_jobs_insert_column_lock` sets `NEW.is_seed := false` on every
+//         poster INSERT, commented "a poster must not be able to hide a job from
+//         the admin money figures by marking it seed data";
+//       * `enforce_poster_jobs_money_lock` lists `is_seed` in `locked_always`, so
+//         a follow-up UPDATE by the poster raises 42501 as well.
+//     Both are correct and neither should change to suit a test. The consequence
+//     is that the five sweeps which filter on `is_seed`
+//     (`auto-release-payment`, `payment-confirm-reminder`, `money-reconciliation`,
+//     `process-scheduled-payouts`, `subscription-reconciliation`) WILL see this
+//     job, on top of the seven that ignore the flag anyway. What actually bounds
+//     that is controls 1, 2 and 4 plus the sweeper, which runs before AND after
+//     every run — the residual exposure is a run that dies mid-loop, which is
+//     exactly what the sweeper exists for. `announceUncovered` reports it so the
+//     gap is visible in the run rather than assumed away.
+//     Closing it properly needs a `SECURITY DEFINER` RPC scoped to these two test
+//     user ids — the same shape the sweeper's own README already contemplates for
+//     a purge. That is a migration touching authz and is deliberately NOT done
+//     here. Handing CI a service-role key is the other option and is REJECTED for
+//     the reason this workflow already states in the sweep step: "a CI job holding
+//     service-role could delete anything in the database, which is a far larger
+//     risk than the rows it tidies."
 //
 //  4. THE TITLE SAYS SO. Every row carries E2E_TITLE_MARKER, which is both the
 //     human signal and the only handle the sweeper has.
@@ -223,11 +237,13 @@ test.describe("full money loop against production", () => {
 
     // --- 1. POST ------------------------------------------------------------
     // Created over REST rather than through the post-job form, deliberately.
-    // The form derives `parish` from the ZIP and cannot set `is_seed`, and
-    // those two fields ARE the blast-radius controls — a UI-posted job would
-    // notify real helpers. The form's own coverage lives in the mocked
-    // happy-path suite (customer-post-job.spec.ts); what is unmocked here is
-    // everything downstream of the row existing.
+    // The form derives `parish` from the ZIP, and a null parish IS the
+    // blast-radius control that works — a UI-posted job would notify real
+    // helpers. `is_seed` is sent for intent only; the column lock will force
+    // it false and control 3 above explains why that is correct. The form's
+    // own coverage lives in the mocked happy-path suite
+    // (customer-post-job.spec.ts); what is unmocked here is everything
+    // downstream of the row existing.
     const runId = `${Date.now()}-${process.env.GITHUB_RUN_ID ?? "local"}`;
     const created = await request.post(`${SUPABASE_URL}/rest/v1/jobs`, {
       headers: { ...rest(poster), Prefer: "return=representation" },
@@ -259,7 +275,23 @@ test.describe("full money loop against production", () => {
     // trigger is live for this row, and the run must stop before funding it —
     // funding is what arms the notification.
     expect(job.parish, "parish must be null or the helper fan-out fires").toBeNull();
-    expect(job.is_seed, "is_seed must be true or the money sweeps will pick this up").toBe(true);
+    // NOT `toBe(true)`. That assertion could never pass — see control 3 above —
+    // and it failed here, 1.4s in, on every run this workflow has ever done,
+    // which is why nothing downstream of it has any coverage at all. Asserting
+    // the real value keeps the lock honest: if someone ever weakens
+    // enforce_jobs_insert_column_lock so a poster CAN set is_seed, this goes red
+    // and the reason is written directly above.
+    expect(
+      job.is_seed,
+      "a poster INSERT must not be able to set is_seed — the column lock is the control here",
+    ).toBe(false);
+    announceUncovered(
+      "Money sweeps are NOT excluded from the test job",
+      "`is_seed` is locked against posters in two places by design, so this run's job is visible to the " +
+        "five sweeps that filter on it. Bounded by the null parish, the browse embargo, the title marker " +
+        "and the sweeper that runs before and after. Closing it needs a SECURITY DEFINER RPC scoped to the " +
+        "two test accounts; a service-role key in CI is explicitly not the answer.",
+    );
 
     // --- 2. FUND (real Stripe Checkout) -------------------------------------
     const escrow = await request.post(`${SUPABASE_URL}/functions/v1/create-payment`, {
@@ -407,7 +439,7 @@ test.describe("full money loop against production", () => {
     // or a later PATCH could have changed them mid-loop.
     const final = await readJob(request, poster, job.id);
     expect(final.parish, "parish became non-null during the run").toBeNull();
-    expect(final.is_seed, "is_seed was cleared during the run").toBe(true);
+    expect(final.is_seed, "nothing in the loop should have been able to set is_seed").toBe(false);
 
     // And the thing that matters most: this job never became publicly visible.
     const anonBrowse = await request.get(

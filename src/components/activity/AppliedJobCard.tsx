@@ -205,7 +205,7 @@ function AppliedJobCardInner({
           category={job.category}
         >
           <JobCardTitleBar
-            title={job.title || "a task"}
+            title={job.title || "a job"}
             category={job.category}
             // FLOORED, matching JobPrice (owner, 2026-08-19: the headline
             // take-home floors — a payout figure may never read above the
@@ -425,7 +425,7 @@ function AppliedJobCardInner({
                   ariaLabel="Withdraw application"
                   tone="danger"
                   disabled={withdrawingAppId === app.id}
-                  onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "a task", jobId: job.id ?? null })}
+                  onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "a job", jobId: job.id ?? null })}
                 />
               </JobActionRow>
             </div>

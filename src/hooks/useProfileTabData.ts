@@ -142,7 +142,7 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
         // same review. Admin surfaces keep "Deleted user" — an admin should see
         // the truth.
         reviewerName: (r.reviewer_id ? nameMap.get(r.reviewer_id) : null) || "a neighbor",
-        jobTitle: jobMap.get(r.job_id) || "a task",
+        jobTitle: jobMap.get(r.job_id) || "a job",
       }));
     },
   });

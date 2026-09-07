@@ -341,7 +341,7 @@ export function useDashboardData() {
         rawJobsRes = unwrap(await withTimeout(filteredQuery
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
-          .range(offset, offset + PAGE_SIZE), JOBS_QUERY_TIMEOUT_MS, "Loading tasks timed out")) as any[];
+          .range(offset, offset + PAGE_SIZE), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out")) as any[];
       } catch (viewErr) {
         report(viewErr, {
           // "error" — a thrown open_jobs_browse query bricks the entire
@@ -384,7 +384,7 @@ export function useDashboardData() {
           .from("profiles")
           .select("user_id, subscription_tier, subscription_expires_at")
           .in("user_id", posterIds),
-      ]), JOBS_QUERY_TIMEOUT_MS, "Loading tasks timed out");
+      ]), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out");
 
       const nameMap = new Map(
         profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
@@ -485,7 +485,7 @@ export function useDashboardData() {
     // so don't make the user wait through 2 silent auto-retries (~36s). Other
     // transient errors keep the default retry behavior.
     retry: (failureCount, error) =>
-      error instanceof Error && error.message === "Loading tasks timed out"
+      error instanceof Error && error.message === "Loading jobs timed out"
         ? false
         : failureCount < 2,
     // SWR — same 2-minute fresh window as ctx above. Pages loaded on the last

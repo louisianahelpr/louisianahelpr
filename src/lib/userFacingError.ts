@@ -74,7 +74,7 @@ const INTERNAL_PATTERNS: RegExp[] = [
   // are stripe-webhook's Slack ops alerts, which never reach a browser).
   //
   // The deliberate edge-function copy this filter exists to PRESERVE
-  // ("This task isn't accepting applications anymore.") is read out of the
+  // ("This job isn't accepting applications anymore.") is read out of the
   // response body by the callers, not carried on these wrappers — so
   // suppressing them costs none of it. See completeSignupError.ts for the
   // signup path, which reads that body instead of settling for a fallback.

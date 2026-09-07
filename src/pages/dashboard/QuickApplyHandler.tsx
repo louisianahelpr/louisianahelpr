@@ -93,7 +93,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
         // an owner tapping their own Share link hits most often.
         goToOwnPost(quickApplyId);
       } else if (feedJob.status && feedJob.status !== "open") {
-        toast.error("This task isn't accepting applications anymore.");
+        toast.error("This job isn't accepting applications anymore.");
       } else {
         promptToApply(feedJob.title, feedJob.budget ?? null, !!(feedJob as { instant_book?: boolean }).instant_book);
       }
@@ -135,7 +135,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
           tags: { source: "QuickApplyHandler.openJobsBrowseLookup" },
           context: { job_id: quickApplyId },
         });
-        toast.error("Couldn't load this task. Check your connection and try again.");
+        toast.error("Couldn't load this job. Check your connection and try again.");
         return;
       }
       if (!data) {
@@ -171,7 +171,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
             tags: { source: "QuickApplyHandler.participantLookup" },
             context: { job_id: quickApplyId },
           });
-          toast.error("Couldn't load this task. Check your connection and try again.");
+          toast.error("Couldn't load this job. Check your connection and try again.");
           return;
         }
         if (own) {
@@ -202,7 +202,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
         // So the copy names the likely causes without asserting any one of
         // them. It used to say only "isn't available to open YET", which reads
         // as a promise that waiting will work — false for a job that was filled.
-        toast.error("We can't open this task right now — it may have been filled or taken down. If you just got the alert, try again in a few minutes.");
+        toast.error("We can't open this job right now — it may have been filled or taken down. If you just got the alert, try again in a few minutes.");
         return;
       }
       if (data.customer_id === userId) {
@@ -226,7 +226,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
         return;
       }
       if (data.status && data.status !== "open") {
-        toast.error("This task isn't accepting applications anymore.");
+        toast.error("This job isn't accepting applications anymore.");
         return;
       }
       // `open_jobs_browse` does not project `instant_book` (nor did the feed

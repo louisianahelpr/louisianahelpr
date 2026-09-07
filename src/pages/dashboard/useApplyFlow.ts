@@ -32,8 +32,8 @@ import { userFacingError } from "@/lib/userFacingError";
 const APPLY_RPC_MESSAGES: Record<string, string> = {
   "Already applied to this job": "You've already applied to this job.",
   "Cannot apply to your own job": "You can't apply to your own post.",
-  "Job is no longer accepting applications": "This task isn't accepting applications anymore.",
-  "Job not found": "This task is no longer available.",
+  "Job is no longer accepting applications": "This job isn't accepting applications anymore.",
+  "Job not found": "This job is no longer available.",
   // enforce_application_credential_tier (20260824251000). The trigger's HINT
   // separates "licensed" from "licensed + insured", but PostgREST puts HINT in
   // `hint` and supabase-js surfaces `message`, so the hint never arrives — one

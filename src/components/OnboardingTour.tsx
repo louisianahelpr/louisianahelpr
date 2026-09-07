@@ -33,7 +33,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "my-posts",
     title: "My Posts",
-    description: "Track and manage the tasks you've posted.",
+    description: "Track and manage the jobs you've posted.",
     icon: <Send className="w-8 h-8" strokeWidth={1.75} />,
   },
   {
@@ -56,8 +56,8 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     id: "post-job",
-    title: "Post a Task",
-    description: "Ready to get help? Post your first task now.",
+    title: "Post a Job",
+    description: "Ready to get help? Post your first job now.",
     icon: <Plus className="w-8 h-8" strokeWidth={1.75} />,
   },
 ];

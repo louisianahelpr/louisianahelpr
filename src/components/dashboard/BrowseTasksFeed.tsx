@@ -344,7 +344,7 @@ export function BrowseTasksFeed({
     const next = filters.filteredJobs.length;
     if (next > prev && !isFetchingNextPage) {
       const added = next - prev;
-      setInfiniteScrollMsg(`${added} more task${added === 1 ? "" : "s"} loaded`);
+      setInfiniteScrollMsg(`${added} more job${added === 1 ? "" : "s"} loaded`);
     }
     prevJobCountRef.current = next;
   }, [filters.filteredJobs.length, isFetchingNextPage]);

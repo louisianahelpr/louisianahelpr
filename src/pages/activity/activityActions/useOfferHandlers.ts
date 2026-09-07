@@ -264,7 +264,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         if (jobErr || !jobRows || jobRows.length === 0) {
           rollbackActivity(snapshot);
           hapticError();
-          throw new Error("This task is no longer open — it may already be assigned.");
+          throw new Error("This job is no longer open — it may already be assigned.");
         }
         // .select("id"): the job row is already flipped to `accepted` by this
         // point. If this second write silently matches nothing the applicant
@@ -306,7 +306,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         }
         throw new Error(
           msg.includes("job_not_open")
-            ? "This task is no longer open — it may already be assigned."
+            ? "This job is no longer open — it may already be assigned."
             : msg.includes("application_not_found")
               ? "This application no longer exists — the applicant may have withdrawn."
               : msg.includes("application_not_pending")
@@ -407,8 +407,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       const guard =
         /offer_expired/.test(msg) ? "This offer expired — the job is open to everyone again."
         : /offer_not_pending|not_your_offer/.test(msg) ? "This offer isn't yours to respond to any more."
-        : /job_not_open/.test(msg) ? "This task is no longer open."
-        : /job_not_found/.test(msg) ? "This task is no longer available."
+        : /job_not_open/.test(msg) ? "This job is no longer open."
+        : /job_not_found/.test(msg) ? "This job is no longer available."
         : null;
       if (guard) {
         toast.error(guard);
@@ -629,7 +629,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
             //
             // Refresh so the card re-renders from the truth instead of
             // repeating the failure.
-            toast.error("This task isn't yours to respond to any more — someone else may have been booked.");
+            toast.error("This job isn't yours to respond to any more — someone else may have been booked.");
             await refresh();
             return;
           }

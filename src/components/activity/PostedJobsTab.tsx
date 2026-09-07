@@ -394,10 +394,10 @@ export const PostedJobsTab = ({
         icon={Wrench}
         illustration={<EmptyStateIllustration variant="posts" />}
         title="No posts yet in this view"
-        body="Post your first task and we'll match you with ID-verified Louisiana Helprs nearby."
+        body="Post your first job and we'll match you with ID-verified Louisiana Helprs nearby."
         action={
           <Button onClick={() => navigate("/post-job")} className="rounded-ds-md btn-press">
-            <Wrench className="w-4 h-4 mr-1.5" /> Post a Task
+            <Wrench className="w-4 h-4 mr-1.5" /> Post a Job
           </Button>
         }
       />

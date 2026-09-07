@@ -324,15 +324,25 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                 off && "opacity-85",
               )}
             >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-3 min-w-0">
+              {/* Row budget at 375: the card's inner width is 235px, the
+                  switch+label cluster takes 95, and the hours pill gets what
+                  is left. With gap-3 on both flex rows that left 82px for
+                  text that measures 89px, so the DEFAULT "9 AM – 5 PM"
+                  rendered "9 AM – 5 …" on every row — a comment in
+                  TimeRangeField said the compact format fixed exactly this,
+                  and it did not. gap-2 on both rows buys 8px; `flex-wrap`
+                  is the safety net so a wide range ("10:30 AM – 5:30 PM")
+                  drops to its own line instead of ever being cut off. Label
+                  column is w-9: the widest three-letter day measures 34px. */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   <Switch
                     checked={slot.is_available}
                     onCheckedChange={(checked) => updateSlot(i, "is_available", checked)}
                     aria-label={`Toggle ${day}`}
                   />
                   <span
-                    className="font-sans font-bold w-10 text-ds-15"
+                    className="font-sans font-bold w-9 text-ds-15"
                     style={{
                       color: off ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--ink-deep))",
                       letterSpacing: "-0.01em",
@@ -350,6 +360,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                       updateSlot(i, "start_time", start);
                       updateSlot(i, "end_time", end);
                     }}
+                    className="ml-auto px-2.5 gap-1"
                   />
                 ) : (
                   /* "Day off" pill — explicit chip rather than fading

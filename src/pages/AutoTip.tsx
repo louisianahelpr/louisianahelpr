@@ -148,7 +148,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
     setSaving(false);
     if (error) {
       report(error, { tags: { source: "AutoTip.save" } });
-      toast.error("Couldn't save these settings.", { description: error.message });
+      toast.error("Couldn't save these settings — try again?");
       return;
     }
     if (!updated || updated.length === 0) {

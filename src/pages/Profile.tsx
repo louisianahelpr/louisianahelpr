@@ -414,7 +414,7 @@ const ProfilePage = () => {
     const ext = file.name.split(".").pop();
     const path = `${user.id}/id-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("id-documents").upload(path, file, { upsert: true });
-    if (upErr) { toast.error("Couldn't upload your ID — " + upErr.message); setIdUploading(false); return; }
+    if (upErr) { toast.error("Couldn't upload your ID — try again?"); setIdUploading(false); return; }
     // .select("user_id"): the file is in storage already — this is the write
     // that puts it in the verification queue. A zero-row update returns
     // error === null, and the card would show "pending" for an ID no reviewer

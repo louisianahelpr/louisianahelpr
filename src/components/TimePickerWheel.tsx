@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 const PERIOD_OPTIONS: SegmentedOption<"AM" | "PM">[] = [
   { value: "AM", label: "AM" },
@@ -12,6 +14,9 @@ interface TimePickerWheelProps {
   onChange: (value: string) => void;
   disabled?: boolean;
   className?: string;
+  /** Accessible name for the desktop `<input type="time">` (the phone wheels
+   *  label their own Hour / Minute / AM-PM controls). */
+  ariaLabel?: string;
 }
 
 const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => (i === 0 ? 12 : i));
@@ -75,6 +80,16 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
     }, 120);
   };
 
+  // Tap-to-select. The wheel only commits on a scroll event, so the value
+  // resting in the band at mount (12 / 00 for an empty field) could not be
+  // chosen without scrolling away and back. A tap on any row selects it.
+  const pick = (v: string) => {
+    if (disabled) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    lastEmitted.current = v;
+    onChange(v);
+  };
+
   return (
     <div
       data-allow-scroll="true"
@@ -129,6 +144,7 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
               style={{ height: ITEM_HEIGHT }}
               role="option"
               aria-selected={isActive}
+              onClick={() => pick(String(opt))}
             >
               {opt}
             </div>
@@ -140,9 +156,42 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
   );
 }
 
-export function TimePickerWheel({ value, onChange, disabled, className }: TimePickerWheelProps) {
-  const parsed = parse24(value) || { hour12: 9, minute: "00", period: "AM" as const };
+export function TimePickerWheel({ value, onChange, disabled, className, ariaLabel = "Time" }: TimePickerWheelProps) {
+  // With no value the wheels rest at their first rows — 12 and 00 — so the
+  // fallback for the fields a first touch does NOT set must be what is
+  // visibly in the band, or tapping "PM" on an empty field would commit an
+  // hour the poster never saw.
+  const parsed = parse24(value) || { hour12: 12, minute: "00", period: "AM" as const };
   const hasValue = !!value;
+  const isWebDesktop = useIsWebDesktop();
+
+  // Desktop website: a native time field, not the phone wheels. Stretched
+  // across a 1030px form column each wheel became a 500px-wide box showing
+  // one giant digit, and a mouse has no natural way to spin one. The native
+  // control is the desktop convention, reads empty ("--:-- --") until a time
+  // is chosen, and is capped to a sensible width. Phones and the native app
+  // (never web-desktop, even on iPad) keep the wheels untouched.
+  if (isWebDesktop) {
+    return (
+      <Input
+        type="time"
+        step={300}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        // `color-scheme` follows the theme so Chromium draws the clock glyph (and
+        // its popup) light-on-dark in dark mode instead of a black glyph on a
+        // dark field. The field is a flex row with the clock pinned to its end.
+        className={cn(
+          "max-w-[10.5rem] tabular-nums [color-scheme:light] dark:[color-scheme:dark]",
+          "[&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer",
+          "[&::-webkit-datetime-edit]:flex-none",
+          className,
+        )}
+      />
+    );
+  }
 
   const update = (field: "hour" | "minute" | "period", val: string) => {
     const h = field === "hour" ? Number(val) : parsed.hour12;

@@ -118,17 +118,10 @@ export function ActionsTab({
         </div>
       </div>
 
-      {/* Internal Admin Notes */}
-      <AdminUserNotes userId={viewProfile.user_id} />
-
-      {/* Verification audit trail (helper_verifications table) —
-          shows every change to approval_status, idv_status,
-          legacy_manual_review, etc., with actor + timestamp.
-          Surface BEFORE Admin Tools so reviewers can see the
-          decision history before taking another action. */}
-      <UserVerificationHistory userId={viewProfile.user_id} />
-
-      {/* Trust & Verification + Support actions */}
+      {/* Trust & Verification + Support actions. Rendered directly below
+          Account Actions (and above the note composer / verification
+          history) so the primary admin controls are visible on first
+          paint instead of requiring a scroll past notes and history. */}
       <div className="space-y-2">
         <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Admin Tools</h4>
         {/* TWO columns, not three. `Button` is `whitespace-nowrap`, so a label
@@ -203,6 +196,14 @@ export function ActionsTab({
           </Button>
         </div>
       </div>
+
+      {/* Internal Admin Notes */}
+      <AdminUserNotes userId={viewProfile.user_id} />
+
+      {/* Verification audit trail (helper_verifications table) —
+          shows every change to approval_status, idv_status,
+          legacy_manual_review, etc., with actor + timestamp. */}
+      <UserVerificationHistory userId={viewProfile.user_id} />
 
       {/* Audit log — who-did-what-when for this user. Merges
           admin_audit_log, user_violations, and admin-toned

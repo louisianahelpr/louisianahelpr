@@ -100,6 +100,23 @@ describe("AdminUserDetailDialog", () => {
     expect(screen.getByText("Admin Tools")).toBeInTheDocument();
   });
 
+  it("renders Admin Tools above the note composer and verification history", () => {
+    // Admin Tools (Suspend/Ban, Delete, Manually Verify, etc.) must be
+    // visible on first paint — previously it sat below the note composer
+    // and verification history, off-screen until scrolled.
+    render(<AdminUserDetailDialog {...makeProps(pendingProfile)} />);
+    const positions = [
+      screen.getByText("Account Actions"),
+      screen.getByText("Admin Tools"),
+      screen.getByTestId("admin-user-notes"),
+      screen.getByTestId("user-verification-history"),
+    ];
+    for (let i = 0; i < positions.length - 1; i++) {
+      const relation = positions[i].compareDocumentPosition(positions[i + 1]);
+      expect(relation & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
   it("wires the Approve / Deny actions to their props", () => {
     const props = makeProps(pendingProfile);
     render(<AdminUserDetailDialog {...props} />);

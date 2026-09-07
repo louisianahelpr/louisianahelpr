@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { WifiOff, BookmarkCheck, ChevronLeft } from "lucide-react";
+import { Link } from "react-router-dom";
+import { WifiOff, BookmarkCheck, ChevronLeft, AlertTriangle } from "lucide-react";
+import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
+import { helperApplyBlockNotice } from "@/lib/awardGate";
 import { errorToast } from "@/lib/toast";
 import { hapticMedium } from "@/lib/haptics";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
@@ -84,6 +87,14 @@ export function ApplyBody({
   onBack,
 }: Props) {
   const { online } = useOnlineStatus();
+  // `helper_unknown` is excluded deliberately — see helperApplyBlockNotice.
+  // It means the profile could not be read at all, which is not something to
+  // report to somebody mid-application.
+  const awardBlockReason = useAwardBlockReason();
+  const applyBlockNotice =
+    awardBlockReason && awardBlockReason !== "helper_unknown"
+      ? helperApplyBlockNotice(awardBlockReason)
+      : null;
   const isInstantBook = !!(confirmApplyJob as any)?.instant_book;
   const jobId = confirmApplyJob?.id ?? null;
   const draftKey = pitchDraftKey(jobId);
@@ -251,6 +262,42 @@ export function ApplyBody({
           HelperWorkPhotos — so re-attaching the same file on every application
           was pure repeated work. Existing applications keep their stored
           `attachment_urls`; ApplicantsPanel still renders them. */}
+
+      {/* THE HELPER'S OWN COPY OF THE AWARD GATE.
+          Applying stays ungated on purpose (see useAwardBlockReason), so this
+          explains rather than blocks — and it sits ABOVE the submit row, where
+          the helper is already looking, rather than arriving as a refusal
+          after the tap. Without it, seven of eight live non-seed profiles
+          apply into a state where no poster can hire them and nothing ever
+          says why; the silence reads as posters passing them over.
+          Suppressed while offline so the two advisories never stack — the
+          offline one is about THIS tap and takes precedence. */}
+      {applyBlockNotice && online && (
+        <div
+          className="flex items-start gap-2.5 rounded-ds-md border px-3 py-2.5"
+          style={{
+            borderColor: "hsl(var(--burnt-sienna) / 0.3)",
+            background: "hsl(var(--burnt-sienna) / 0.06)",
+          }}
+          role="status"
+        >
+          <AlertTriangle
+            className="w-4 h-4 shrink-0 mt-0.5"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          />
+          <p className="flex-1 min-w-0 font-sans text-ds-11 text-foreground leading-snug">
+            <span className="font-semibold">{applyBlockNotice.headline}</span>{" "}
+            {applyBlockNotice.body}{" "}
+            <Link
+              to={applyBlockNotice.href}
+              className="font-semibold underline underline-offset-2 whitespace-nowrap"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+            >
+              {applyBlockNotice.ctaLabel}
+            </Link>
+          </p>
+        </div>
+      )}
 
       {!online && (
         <p

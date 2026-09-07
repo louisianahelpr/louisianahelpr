@@ -169,6 +169,63 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
   }
 }
 
+export interface ApplyBlockNotice {
+  /** Bolded lead-in. */
+  headline: string;
+  /** The rest of the sentence, in the helper's own terms. */
+  body: string;
+  /** The one tap that fixes it. */
+  ctaLabel: string;
+  /** Where that tap goes. */
+  href: string;
+}
+
+/**
+ * What the HELPER is told ON THE APPLY STEP, while they can still apply.
+ *
+ * A THIRD audience, distinct from both of the above, and the one nobody was
+ * writing for. {@link awardBlockCopy} is for `AwardGateDialog`, which STOPS a
+ * helper at the accept step — its copy is phrased as a barrier ("Set Up Payouts
+ * to Take This Job") because at that moment there is a job on the table and the
+ * tap has already failed. {@link posterAwardBlockMessage} is for the other
+ * party entirely.
+ *
+ * Here nothing has failed and nothing is being refused: applying is
+ * deliberately ungated (see the module header), and this notice must not read
+ * as though the button below it will not work. It says what the helper cannot
+ * yet be given, not what they cannot do — the distinction matters, because
+ * seven of eight live non-seed profiles are in this state and can apply all
+ * day. The failure it prevents is the silent one: applications that go out,
+ * receive nothing back, and read as posters passing them over.
+ *
+ * Deliberately no `helper_unknown` case. That verdict means we could not read
+ * the profile at all, and a notice on the apply step is the wrong place to
+ * report an internal read failure to somebody mid-application — the accept-step
+ * dialog still covers it if it persists.
+ */
+export function helperApplyBlockNotice(
+  reason: Exclude<AwardBlockReason, "helper_unknown">,
+): ApplyBlockNotice {
+  switch (reason) {
+    case "helper_payout_setup_incomplete":
+      return {
+        headline: "You can apply — but you can't be hired yet.",
+        body:
+          "Helpr pays through Stripe, and posters can't hand you a job until your payout account exists. It takes about two minutes, once.",
+        ctaLabel: "Set Up Payouts",
+        href: "/profile?tab=payment",
+      };
+    case "helper_identity_unverified":
+      return {
+        headline: "You can apply — but you can't be hired yet.",
+        body:
+          "Stripe hasn't finished confirming who you are, and posters can't hand you a job until it has. Finish what Stripe is asking for and this clears on its own.",
+        ctaLabel: "Finish Verification",
+        href: "/profile",
+      };
+  }
+}
+
 /**
  * What the POSTER is told when the gate refuses THEIR hire. Different audience,
  * different fix: there is nothing for the poster to do about someone else's

@@ -376,8 +376,18 @@ test.describe("full money loop against production", () => {
 
          Each of these was found by driving the real hosted page — see the shots
          under docs/audit/launch-2026-09/lanes/e2e/. */
-      await page.getByRole("radio").first().click({ force: true });
-      await page.locator("#cardNumber").waitFor({ state: "visible", timeout: 30_000 });
+      // The accordion only exists when Stripe offers MORE than one method; with
+      // a single method the card fields are already open and there is no
+      // radio at all — run 34169858494 sat on `getByRole("radio")` for the
+      // whole 5-minute budget on exactly that page. Wait for whichever
+      // appears first, click the radio only if it did.
+      const cardNumber = page.locator("#cardNumber");
+      const methodRadio = page.getByRole("radio").first();
+      await expect(cardNumber.or(methodRadio)).toBeVisible({ timeout: 60_000 });
+      if (!(await cardNumber.isVisible().catch(() => false))) {
+        await methodRadio.click({ force: true });
+      }
+      await cardNumber.waitFor({ state: "visible", timeout: 30_000 });
       await page.locator("#cardNumber").fill(TEST_CARD.number);
       await page.locator("#cardExpiry").fill(TEST_CARD.expiry);
       await page.locator("#cardCvc").fill(TEST_CARD.cvc);

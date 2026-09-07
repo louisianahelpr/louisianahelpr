@@ -1,0 +1,260 @@
+name: E2E real backend
+
+permissions:
+  contents: read
+
+# The other side of the mock boundary.
+#
+# WHY THIS WORKFLOW EXISTS
+# ------------------------
+# Every Playwright spec the rest of CI runs talks to a mock. 28 of 36 specs
+# install `page.route()` stubs, and `e2e-happy-path.yml` invokes
+# `--project=happy-path`, whose entire testDir is mocked. A mock accepts any
+# request and returns whatever the fixture says, so an entire class of defect is
+# structurally invisible to it — and every launch blocker an external QA pass
+# found in September 2026 sat on the far side of that boundary:
+#
+#   * guest browse returned HTTP 401 for months; a mock returns 200
+#   * `rpc_withdraw_dispute` was dead for every caller; mocks run no triggers
+#   * the password minimum is 12, not the 8 the client enforces; mocks run no GoTrue
+#   * six fixtures used `payment_status: "paid"`, a value the CHECK constraint
+#     has never admitted; a mock accepts any string
+#
+# The real-backend specs already existed — `e2e/auth.spec.ts`,
+# `e2e/payment-lifecycle.spec.ts`, `e2e/two-role-lifecycle.spec.ts` — and had
+# never run in CI, because the env vars they gate on were set by no workflow.
+# They self-skip, so their absence looked like a pass.
+#
+# HOW THE THREE LEGS DIFFER, AND WHY
+# ----------------------------------
+#  1. anon-surface — needs NOTHING and is STRICTLY READ-ONLY. Asks the real
+#     PostgREST what a signed-out visitor gets: guest surfaces respond and
+#     browse is non-empty, no money/PII relation returns rows, signed-out pages
+#     load. Runs on every push.
+#  2. authenticated — needs a real account. Runs on a schedule and on demand,
+#     NOT on every push: it drives the deployed production site over the
+#     network, so a red run during a Vercel deploy would mean nothing, and a
+#     check that is red for reasons unrelated to the diff trains people to
+#     ignore red.
+#  3. two-role — needs two seeded sessions plus a job in a specific lifecycle
+#     state that must be minted per run. Manual only.
+#
+# EVERY SKIPPED LEG IS ANNOUNCED. The `boundary-report` job always runs and
+# writes a ::warning:: plus a step summary naming what did not execute and what
+# is missing. A skipped lifecycle test that vanishes silently is how this gap
+# stayed open; a skipped one that says so is a known gap.
+#
+# SECRETS THE OWNER MUST CREATE — see boundary-report for the live list.
+#   PLAYWRIGHT_TEST_USER_EMAIL     a real account on the target site
+#   PLAYWRIGHT_TEST_USER_PASSWORD  its password (>= 12 chars; GoTrue's real minimum)
+#   PLAYWRIGHT_POSTER_SESSION      JSON supabase session — scripts/e2e/README.md
+#   PLAYWRIGHT_HELPER_SESSION      JSON supabase session — scripts/e2e/README.md
+#   PLAYWRIGHT_LIFECYCLE_JOB_ID    an ACCEPTED job between those two accounts
+# This workflow creates no accounts and mints no tokens. It names what it needs
+# and stops there.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 07:20 UTC daily — after the nightly db-drift check, before working hours.
+    - cron: "20 7 * * *"
+  workflow_dispatch:
+    inputs:
+      run_two_role:
+        description: "Run the two-role lifecycle spec (needs seeded sessions + job id)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: e2e-real-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------
+  # Which legs can run at all. `secrets` is not available in a job-level
+  # `if:`, so their presence is turned into an output here.
+  # ---------------------------------------------------------------------
+  preflight:
+    name: What can run
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      have_user_creds: ${{ steps.check.outputs.have_user_creds }}
+      have_two_role: ${{ steps.check.outputs.have_two_role }}
+    steps:
+      - id: check
+        env:
+          # Only emptiness is ever observed; no value is echoed.
+          USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
+          USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD }}
+          POSTER_SESSION: ${{ secrets.PLAYWRIGHT_POSTER_SESSION }}
+          HELPER_SESSION: ${{ secrets.PLAYWRIGHT_HELPER_SESSION }}
+          LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "$USER_EMAIL" ] && [ -n "$USER_PASSWORD" ]; then
+            echo "have_user_creds=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_user_creds=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$POSTER_SESSION" ] && [ -n "$HELPER_SESSION" ] && [ -n "$LIFECYCLE_JOB_ID" ]; then
+            echo "have_two_role=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_two_role=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ---------------------------------------------------------------------
+  # Leg 1 — no credentials, runs everywhere. This is the one that would have
+  # caught the guest-browse 401.
+  # ---------------------------------------------------------------------
+  anon-surface:
+    name: Anon surface contract (real prod, read-only, no credentials)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Ask production what a signed-out visitor gets (GET only)
+        env:
+          # Repository VARIABLES (not secrets) so a fork can retarget without
+          # touching code. Unset falls back to PRODUCTION plus the publishable
+          # key that already ships in the bundle — deliberately, so this leg can
+          # never be silenced by an unset secret.
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          SITE_URL: ${{ vars.E2E_BASE_URL }}
+        run: node scripts/e2e/anon-surface-contract.mjs
+
+  # ---------------------------------------------------------------------
+  # Leg 2 — a real account against the deployed site.
+  # ---------------------------------------------------------------------
+  authenticated:
+    name: Authenticated journeys (real account)
+    needs: preflight
+    # Deliberately NOT on push. See the header: this leg goes over the network
+    # to a deployed site, and a deploy in flight would red it for nothing.
+    if: >-
+      needs.preflight.outputs.have_user_creds == 'true' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - name: auth + payment lifecycle
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+          PLAYWRIGHT_TEST_USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
+          PLAYWRIGHT_TEST_USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD }}
+        # Kept on ONE line on purpose: src/test/e2eSpecsReachableInCi.test.ts
+        # reads workflow files line by line to work out which specs CI runs,
+        # and a `\` continuation would hide the spec names from it — the guard
+        # would then report these two as unreachable, which is the exact wrong
+        # answer in the exact place it matters.
+        run: npx playwright test --project=chromium e2e/auth.spec.ts e2e/payment-lifecycle.spec.ts --reporter=list
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-real-backend
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ---------------------------------------------------------------------
+  # Leg 3 — two seeded sessions and a job in a specific lifecycle state.
+  # ---------------------------------------------------------------------
+  two-role:
+    name: Two-role lifecycle (seeded sessions)
+    needs: preflight
+    if: >-
+      needs.preflight.outputs.have_two_role == 'true' &&
+      github.event_name == 'workflow_dispatch' &&
+      inputs.run_two_role
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - name: day-of confirm across two roles
+        env:
+          PLAYWRIGHT_TWO_ROLE: "1"
+          PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+          PLAYWRIGHT_POSTER_SESSION: ${{ secrets.PLAYWRIGHT_POSTER_SESSION }}
+          PLAYWRIGHT_HELPER_SESSION: ${{ secrets.PLAYWRIGHT_HELPER_SESSION }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
+        run: npx playwright test --project=chromium e2e/two-role-lifecycle.spec.ts --reporter=list
+
+  # ---------------------------------------------------------------------
+  # The loud part. Always runs, never fails the build, and states plainly
+  # which real-backend surfaces went unchecked and what is missing.
+  # ---------------------------------------------------------------------
+  boundary-report:
+    name: Uncovered real-backend surfaces
+    needs: [preflight, anon-surface, authenticated, two-role]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Say what did not run
+        env:
+          ANON: ${{ needs.anon-surface.result }}
+          AUTHED: ${{ needs.authenticated.result }}
+          TWO_ROLE: ${{ needs.two-role.result }}
+          HAVE_CREDS: ${{ needs.preflight.outputs.have_user_creds }}
+          HAVE_TWO_ROLE: ${{ needs.preflight.outputs.have_two_role }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Real-backend E2E coverage"
+            echo ""
+            echo "| Leg | Result | Needs |"
+            echo "| --- | --- | --- |"
+            echo "| Anon surface contract | \`$ANON\` | nothing |"
+            echo "| Authenticated journeys | \`$AUTHED\` | PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD |"
+            echo "| Two-role lifecycle | \`$TWO_ROLE\` | PLAYWRIGHT_POSTER_SESSION + PLAYWRIGHT_HELPER_SESSION + PLAYWRIGHT_LIFECYCLE_JOB_ID |"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          UNCOVERED=0
+          if [ "$HAVE_CREDS" != "true" ]; then
+            echo "::warning title=Uncovered surface::Authenticated journeys did NOT run — PLAYWRIGHT_TEST_USER_EMAIL / PLAYWRIGHT_TEST_USER_PASSWORD are not set. Sign-in, escrow checkout and the post-payment landing are covered by MOCKS ONLY."
+            echo "- **Authenticated journeys: NOT COVERED.** Sign-in, escrow checkout and the post-payment landing are exercised only against \`page.route()\` mocks. Set \`PLAYWRIGHT_TEST_USER_EMAIL\` and \`PLAYWRIGHT_TEST_USER_PASSWORD\` (password must be >= 12 characters — GoTrue's real minimum, which the client does not enforce)." >> "$GITHUB_STEP_SUMMARY"
+            UNCOVERED=$((UNCOVERED+1))
+          fi
+          if [ "$HAVE_TWO_ROLE" != "true" ]; then
+            echo "::warning title=Uncovered surface::Two-role lifecycle did NOT run — seeded sessions are not set. Accept, day-of confirm, complete and release are covered by MOCKS ONLY."
+            echo "- **Two-role lifecycle: NOT COVERED.** Accept → day-of confirm → complete → release crosses two accounts and is exercised only against mocks. Mint sessions with \`scripts/e2e/mint-helper-login.sh\` (see \`scripts/e2e/README.md\`) and set the three \`PLAYWRIGHT_*\` secrets." >> "$GITHUB_STEP_SUMMARY"
+            UNCOVERED=$((UNCOVERED+1))
+          fi
+
+          if [ "$UNCOVERED" -eq 0 ]; then
+            echo "All real-backend legs are configured." >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo ""
+              echo "**$UNCOVERED real-backend surface(s) uncovered.** A green tick on this run does not mean these journeys work — it means nothing asked."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # The anon leg is the one that needs no provisioning, so it is the one
+          # that is allowed to fail the build.
+          if [ "$ANON" != "success" ]; then
+            echo "::error title=Anon surface contract failed::The signed-out marketplace does not answer the anon role correctly."
+            exit 1
+          fi

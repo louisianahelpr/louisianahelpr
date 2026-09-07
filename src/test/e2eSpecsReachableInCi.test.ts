@@ -47,25 +47,73 @@ const WORKFLOWS = join(REPO, ".github/workflows");
  * one. Removing a spec's coverage without adding a line reds this test.
  */
 const NOT_RUN_IN_CI: Record<string, string> = {
-  "two-role-lifecycle.spec.ts":
-    "Needs two seeded real accounts plus an ACCEPTED job scheduled inside the " +
-    "day-of window (PLAYWRIGHT_TWO_ROLE, PLAYWRIGHT_POSTER_SESSION, " +
-    "PLAYWRIGHT_HELPER_SESSION, PLAYWRIGHT_LIFECYCLE_JOB_ID). The state cannot " +
-    "be minted in CI without writing to the production database. Operator-run; " +
-    "see scripts/e2e/README.md.",
-  "payment-lifecycle.spec.ts":
-    "Its authenticated half needs PLAYWRIGHT_TEST_USER_* against the deployed " +
-    "site. Its public half needs no credentials and COULD run in CI, but it " +
-    "asserts against production over the network on every push, which makes it " +
-    "flaky by construction (a red run during a Vercel deploy means nothing). " +
-    "Wiring it needs a decision about whether CI may depend on prod being up.",
-  "auth.spec.ts": "Needs PLAYWRIGHT_TEST_USER_* credentials for a real account on the deployed site.",
   "post-and-apply.spec.ts": "Needs real credentials and writes a job to the live database.",
   "smoke.spec.ts": "Points at the deployed site; superseded in CI by the mocked happy-path suite.",
   "a11y.spec.ts": "Deployed-site axe run; a11y-axe.yml covers the same routes against the local preview build.",
   "visual-audit/desktop-fill.spec.ts": "Deployed-site visual audit; ui-sweep.yml covers the same ground locally.",
   "visual-audit/responsive.spec.ts": "Deployed-site visual audit; ui-sweep.yml covers the same ground locally.",
 };
+
+/**
+ * Specs a workflow DOES name but which self-skip unless an operator has
+ * provisioned something — a credential, a seeded session, a job in a specific
+ * lifecycle state.
+ *
+ * This category exists because "run by CI" and "actually executed" are not the
+ * same claim, and conflating them is the failure this whole file is about. A
+ * spec whose `test.skip(!haveCreds, …)` fires produces a green tick and zero
+ * coverage; naming it in a workflow does not change that, it only moves where
+ * the silence happens. `e2e-real-backend.yml` therefore annotates every skipped
+ * leg with a ::warning:: and a step summary, and each entry here names the
+ * secret whose absence causes it.
+ */
+const GATED_IN_CI: Record<string, { runner: string; needs: string }> = {
+  "auth.spec.ts": {
+    runner: "e2e-real-backend.yml",
+    needs: "PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD",
+  },
+  "payment-lifecycle.spec.ts": {
+    runner: "e2e-real-backend.yml",
+    needs: "PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD (its public half needs nothing)",
+  },
+  "two-role-lifecycle.spec.ts": {
+    runner: "e2e-real-backend.yml",
+    needs: "PLAYWRIGHT_TWO_ROLE=1 + PLAYWRIGHT_POSTER_SESSION + PLAYWRIGHT_HELPER_SESSION + PLAYWRIGHT_LIFECYCLE_JOB_ID",
+  },
+};
+
+/**
+ * Does a spec answer Supabase from a mock?
+ *
+ * Read from the spec's own source rather than declared, so a spec that switches
+ * sides changes this test's answer on the same commit. `installSupabaseMocks`
+ * is the suite's shared stub installer; a bare `page.route` on the Supabase
+ * origin is the hand-rolled form.
+ */
+function mocksSupabase(spec: string): boolean {
+  const src = readFileSync(join(E2E, spec), "utf8");
+  return /installSupabaseMocks|mockTable\(|mockRpc\(/.test(src) || /page\.route\(\s*["'`]\*\*\/rest\/v1/.test(src);
+}
+
+/**
+ * Does a spec actually reach a real backend?
+ *
+ * "Not mocked" is not the same as "unmocked coverage". `happy-path/` runs
+ * against `npm run build && vite preview` with a placeholder Supabase key: a
+ * spec there that installs no stubs (popupFooterFit.spec.ts scans source and
+ * measures layout) touches no backend at all, real or fake. Counting it as
+ * boundary-crossing coverage would let the real answer go to zero while this
+ * test stayed green — the precise dishonesty it exists to prevent.
+ */
+function crossesMockBoundary(spec: string): boolean {
+  return !spec.startsWith("happy-path/") && !mocksSupabase(spec);
+}
+
+/** Does a spec self-skip on an environment variable the workflows may not set? */
+function selfSkipsOnEnv(spec: string): boolean {
+  const src = readFileSync(join(E2E, spec), "utf8");
+  return /test\.skip\(\s*!/.test(src) && /process\.env\.PLAYWRIGHT_/.test(src);
+}
 
 /** Every *.spec.ts under e2e/, as paths relative to e2e/. */
 function allSpecs(dir = E2E, prefix = ""): string[] {
@@ -216,12 +264,30 @@ describe("every Playwright spec is either run by CI or explicitly exempted", () 
           `hides next to a fake one.`,
       );
     }
+    if (runners && selfSkipsOnEnv(spec) && !GATED_IN_CI[spec]) {
+      throw new Error(
+        `${spec} is named by ${runners.join(", ")} but self-skips unless a PLAYWRIGHT_* env var is set, ` +
+          `and it is not listed in GATED_IN_CI.\n\n` +
+          `"A workflow names it" and "it executed" are different claims. Add it to GATED_IN_CI with the ` +
+          `secret it waits on, so the skip is announced instead of read as coverage.`,
+      );
+    }
     expect(runners ?? exempt).toBeTruthy();
   });
 
   it("every exemption names a spec that still exists", () => {
     const stale = Object.keys(NOT_RUN_IN_CI).filter((f) => !existsSync(join(E2E, f)));
     expect(stale, `NOT_RUN_IN_CI names spec files that no longer exist: ${stale.join(", ")}`).toEqual([]);
+  });
+
+  it("every GATED_IN_CI entry names a real spec and a workflow that really names it", () => {
+    for (const [spec, { runner }] of Object.entries(GATED_IN_CI)) {
+      expect(existsSync(join(E2E, spec)), `GATED_IN_CI names a missing spec: ${spec}`).toBe(true);
+      expect(
+        reach.get(spec) ?? [],
+        `GATED_IN_CI says ${runner} runs ${spec}, but no workflow command reaches it`,
+      ).toContain(runner);
+    }
   });
 
   it("reports the current split, so the number is visible rather than inferred", () => {
@@ -233,5 +299,119 @@ describe("every Playwright spec is either run by CI or explicitly exempted", () 
         `Not run:\n${notRun.map((s) => `  - ${s}: ${NOT_RUN_IN_CI[s] ?? "UNEXPLAINED"}`).join("\n")}\n`,
     );
     expect(run.length + notRun.length).toBe(specs.length);
+  });
+});
+
+/**
+ * The mock boundary.
+ *
+ * Everything above proves a spec is REACHED by a CI command. This proves
+ * something stronger and more easily lost: that CI's coverage does not lie
+ * entirely on one side of the mock.
+ *
+ * Measured 2026-09-06, before `e2e-real-backend.yml` existed: of the specs any
+ * workflow reached, every one that runs unconditionally answered Supabase from
+ * a `page.route()` stub, except `mobile-viewports.spec.ts` — which hits the
+ * deployed site but asserts only layout, so a 401 feed and a populated feed
+ * look identical to it. The three specs that talk to a real backend
+ * authenticated existed, were skipped for want of env vars no workflow set, and
+ * had never executed. Green CI meant "the mocks agree with themselves".
+ */
+describe("CI crosses the mock boundary", () => {
+  const reach = reachableSpecs();
+  const reached = specs.filter((s) => reach.has(s));
+
+  it("knows which specs are mocked, and it is most of them", () => {
+    // Guards the classifier. If `mocksSupabase` stopped matching, every spec
+    // would read as unmocked and the assertion below would pass for the worst
+    // possible reason.
+    const mocked = reached.filter(mocksSupabase);
+    expect(reached.length).toBeGreaterThan(10);
+    expect(mocked.length).toBeGreaterThan(reached.length / 2);
+    expect(mocked).toContain("happy-path/customer-post-job.spec.ts");
+    expect(mocksSupabase("auth.spec.ts")).toBe(false);
+    // popupFooterFit installs no stubs but reaches no backend either — it runs
+    // against the local preview. The boundary classifier must exclude it, or
+    // "unmocked coverage" counts a layout measurement.
+    expect(mocksSupabase("happy-path/popupFooterFit.spec.ts")).toBe(false);
+    expect(crossesMockBoundary("happy-path/popupFooterFit.spec.ts")).toBe(false);
+    expect(crossesMockBoundary("auth.spec.ts")).toBe(true);
+  });
+
+  const crossing = reached.filter(crossesMockBoundary);
+  const unconditional = crossing.filter((s) => !GATED_IN_CI[s]);
+
+  it("reports the boundary split, separating what exists from what executes", () => {
+     
+    console.log(
+      `\nMock boundary: ${reached.length} specs reached by CI — ` +
+        `${reached.length - crossing.length} never touch a real backend, ${crossing.length} do ` +
+        `(${unconditional.length} unconditionally, ${crossing.length - unconditional.length} gated on a secret).\n` +
+        crossing
+          .map((s) => `  - ${s}${GATED_IN_CI[s] ? ` [GATED, does not execute: ${GATED_IN_CI[s].needs}]` : " [runs]"}`)
+          .join("\n") +
+        "\n",
+    );
+    expect(crossing.length + (reached.length - crossing.length)).toBe(reached.length);
+  });
+
+  it("has real-backend specs at all", () => {
+    // Distinct from the next assertion on purpose. This one fails when the
+    // specs are DELETED; the next fails when they all exist but none of them
+    // can run. Collapsing the two would let "we removed them" and "they are
+    // all skipped" produce the same message, and they need different fixes.
+    expect(
+      crossing,
+      "No spec CI runs reaches a real backend at all. That is the state in which guest " +
+        "browse returned 401 for months, a dead RPC stayed dead, and six fixtures described " +
+        "rows the database would reject — every one of them with a green tick.",
+    ).not.toEqual([]);
+  });
+
+  it("has real-backend coverage that no missing secret can silence", () => {
+    // The honest version of "does CI cross the boundary". Every spec in
+    // GATED_IN_CI can sit skipped forever — nobody has to set a secret, and a
+    // skipped spec and a passing one look identical on the Actions tab. So the
+    // claim that matters is about what executes UNCONDITIONALLY.
+    //
+    // This deliberately does NOT require the authenticated lifecycle suite:
+    // its backend target is an open question, and a guard that reds until an
+    // unrelated decision is made is a guard people delete. It requires only
+    // that SOMETHING crosses the boundary without provisioning.
+    expect(
+      unconditional,
+      `Every real-backend spec CI runs is gated on a secret that may never be set ` +
+        `(${crossing.map((s) => s).join(", ")}). "Exists but skipped" reads exactly like ` +
+        `"passes" on the Actions tab. At least one unmocked check must execute unconditionally.`,
+    ).not.toEqual([]);
+  });
+
+  it("keeps a real-backend check that needs no provisioning", () => {
+    // The gated specs above can be uncovered indefinitely — nobody has to set a
+    // secret. So one real-backend check must exist that CANNOT be silenced by an
+    // absent credential, and it must run on push to main rather than only on a
+    // schedule someone can quietly disable.
+    const workflow = join(WORKFLOWS, "e2e-real-backend.yml");
+    expect(existsSync(workflow), "e2e-real-backend.yml is gone — the unmocked leg went with it").toBe(true);
+
+    const src = readFileSync(workflow, "utf8");
+    expect(src, "the anon contract script is no longer invoked").toContain(
+      "scripts/e2e/anon-surface-contract.mjs",
+    );
+    expect(
+      existsSync(join(REPO, "scripts/e2e/anon-surface-contract.mjs")),
+      "the workflow names a script that does not exist",
+    ).toBe(true);
+
+    // Triggers, not just existence. A guard that only runs on `schedule` or
+    // `pull_request` is dormant in a repo that commits directly to main — the
+    // exact way migration-guard, migration-lint and db-smoke sat inert here.
+    const triggers = src.slice(src.indexOf("\non:"), src.indexOf("\njobs:"));
+    expect(triggers, "e2e-real-backend.yml must fire on push to main").toMatch(/push:\s*\n\s*branches:\s*\[main\]/);
+
+    // And the anon leg specifically must not be conditioned on a secret.
+    const anonJob = src.slice(src.indexOf("  anon-surface:"), src.indexOf("  authenticated:"));
+    expect(anonJob).not.toMatch(/\bif:/);
+    expect(anonJob).not.toMatch(/secrets\./);
   });
 });

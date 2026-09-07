@@ -90,6 +90,10 @@ function readConfirmedSet(): Set<PermissionKind> {
     if (!raw) return new Set();
     return new Set(JSON.parse(raw) as PermissionKind[]);
   } catch {
+    // Silent by design: an unreadable record means "nothing confirmed yet",
+    // so the user is shown the rationale dialog again. That is the
+    // conservative direction — it can only ever ask more, never skip the
+    // explanation before an OS permission prompt.
     return new Set();
   }
 }
@@ -140,6 +144,11 @@ export function usePermissionRationale() {
           await runNativeCall();
           return true;
         } catch {
+          // Silent by design: `runNativeCall` is the caller's own OS
+          // permission request, and the overwhelmingly common rejection is
+          // the user declining. `false` is the honest answer and the caller
+          // owns what to show; anything worth reporting belongs there, where
+          // the specific permission is known.
           return false;
         }
       }
@@ -157,6 +166,9 @@ export function usePermissionRationale() {
               await runNativeCall();
               resolve(true);
             } catch {
+              // Silent by design — same as the fast path above: a declined OS
+              // prompt is the normal outcome, and the caller decides what to
+              // do with `false`.
               resolve(false);
             }
           },

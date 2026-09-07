@@ -53,6 +53,11 @@ function readAttemptState(): LoginAttemptState {
         parsed.lockedUntil && parsed.lockedUntil > now ? parsed.lockedUntil : null,
     };
   } catch {
+    // Silent by design: an unreadable or corrupt attempt record resets the
+    // client-side rate-limit hint to "no attempts yet". That is only a UI
+    // affordance — the real throttle is server-side — so failing open here
+    // costs a local hint, not a protection. Reporting would fire for every
+    // private-mode user on every load.
     return { attempts: [], lockedUntil: null };
   }
 }
@@ -60,7 +65,11 @@ function readAttemptState(): LoginAttemptState {
 function writeAttemptState(state: LoginAttemptState): void {
   try {
     safeStorage.setItem(LOGIN_ATTEMPTS_KEY, JSON.stringify(state));
-  } catch { /* ignore quota */ }
+  } catch {
+    // Silent by design, and unreachable in practice — safeStorage already
+    // swallows the quota/private-mode throw. Same reasoning as the read
+    // above: this record only drives a local hint, never the real throttle.
+  }
 }
 
 function clearAttemptState(): void {
@@ -116,7 +125,13 @@ const Login = () => {
       const hit = sessionStorage.getItem("helpr_signed_out_reason") === "inactivity";
       if (hit) sessionStorage.removeItem("helpr_signed_out_reason");
       return hit;
-    } catch { return false; }
+    } catch {
+      // Silent by design: this only decides whether to show a one-shot
+      // "you were signed out for inactivity" note. sessionStorage throws in
+      // private mode; not showing an explanatory line is the correct
+      // degradation, and there is nothing for anyone to act on.
+      return false;
+    }
   });
   // One-shot note from Signup's already-registered branch. That branch
   // deliberately refuses to confess whether the address exists (enumeration
@@ -128,7 +143,12 @@ const Login = () => {
       const hit = sessionStorage.getItem("helpr_signup_redirect") === "1";
       if (hit) sessionStorage.removeItem("helpr_signup_redirect");
       return hit;
-    } catch { return false; }
+    } catch {
+      // Silent by design: same one-shot-note case as above — this only picks
+      // whether to render the neutral line explaining the redirect from
+      // Signup. Losing it degrades copy, nothing else.
+      return false;
+    }
   });
   // A safe ?redirect= target set by ProtectedRoute when it bounced a
   // logged-out user off a gated route. We use it ONLY to explain the bounce

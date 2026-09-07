@@ -165,7 +165,11 @@ export function setAppLockEnabled(enabled: boolean): void {
       clearBackgroundedAt();
     }
   } catch {
-    /* best-effort */
+    // Silent by design, and in practice unreachable: every access here goes
+    // through safeStorage, which already swallows the private-mode/quota
+    // throw internally. This outer catch is belt-and-braces. Failing to
+    // PERSIST the preference is also the safe direction — an unreadable lock
+    // state locks.
   }
 }
 
@@ -185,6 +189,9 @@ export function getAppLockGraceMs(): number {
     if (!Number.isFinite(parsed) || !ALLOWED_GRACE_MS.has(parsed)) return APP_LOCK_GRACE_MS;
     return parsed;
   } catch {
+    // Silent by design: an unreadable grace period falls back to the shortest
+    // sanctioned default, the most conservative answer available — it can
+    // only make the lock prompt sooner, never later.
     return APP_LOCK_GRACE_MS;
   }
 }
@@ -194,7 +201,9 @@ export function setAppLockGraceMs(ms: number): void {
   try {
     safeStorage.setItem(APP_LOCK_GRACE_KEY, String(ms));
   } catch {
-    /* best-effort */
+    // Silent by design: a failed write leaves the previous grace period in
+    // place, and getAppLockGraceMs() falls back to the shortest default if
+    // that is unreadable too. Both outcomes lock sooner, never later.
   }
 }
 
@@ -216,7 +225,9 @@ export function clearBackgroundedAt(): void {
   try {
     safeStorage.removeItem(APP_LOCK_BACKGROUNDED_AT_KEY);
   } catch {
-    /* best-effort */
+    // Silent by design: a failed clear leaves a STALE backgrounded-at behind,
+    // and readBackgroundedAt() treats an old timestamp as "you have been away
+    // a long time" — which locks. Failing to forget fails closed.
   }
 }
 
@@ -234,6 +245,9 @@ export function readBackgroundedAt(): number | null {
     if (!Number.isFinite(parsed)) return null;
     return parsed;
   } catch {
+    // Silent by design: see the doc comment above — callers read null as
+    // "lock", so an unreadable timestamp fails closed. Reporting a storage
+    // read safeStorage has already handled would be pure noise.
     return null;
   }
 }

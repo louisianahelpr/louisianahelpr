@@ -117,6 +117,10 @@ export async function readPushPermission(): Promise<
       if (status.receive === "denied") return "denied";
       return "prompt";
     } catch {
+      // Silent by design: "unsupported" is a real, expected answer — the push
+      // plugin is absent on web and on a native build without the capability.
+      // Callers treat it as "do not nudge", which is the quiet direction: the
+      // worst outcome is not asking someone to enable notifications.
       return "unsupported";
     }
   }

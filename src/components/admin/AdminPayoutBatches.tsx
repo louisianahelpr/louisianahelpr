@@ -250,7 +250,21 @@ const AdminPayoutBatches = () => {
           body: { job_id: jobId },
         });
         if (error) { failures.push(jobId); continue; }
-        try { assertTransferHappened(data); } catch { failures.push(jobId); }
+        try {
+          assertTransferHappened(data);
+        } catch (err) {
+          // NOT silent: release-payout answered without a transfer. The admin
+          // sees this job in the failure count, but a count is not a diagnosis
+          // — and a payout that reports success while moving no money is the
+          // single worst failure this screen can have. Record it with the job
+          // id so it can be reconciled against Stripe afterwards.
+          report(err, {
+            severity: "error",
+            tags: { area: "payout", op: "releaseBatch.assertTransfer" },
+            extra: { jobId },
+          });
+          failures.push(jobId);
+        }
       }
 
       const paid = jobIds.length - failures.length;

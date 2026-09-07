@@ -72,7 +72,12 @@ export function initShakeToReport(onShake: () => void) {
       try {
         const res = await DM.requestPermission!();
         if (res === "granted") attach();
-      } catch { /* user denied — silent */ }
+      } catch {
+        // Silent by design: this is iOS's motion-permission prompt and the
+        // throw IS the user declining. Shake-to-report is a convenience
+        // affordance, so a decline simply means it stays off — there is no
+        // degraded state to explain and nothing for anyone to fix.
+      }
     };
     window.addEventListener("touchend", onFirstTap);
   } else {

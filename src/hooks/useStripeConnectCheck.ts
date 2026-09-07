@@ -104,6 +104,13 @@ export function useStripeConnectCheck() {
       );
       return { ok: reason === null, reason };
     } catch {
+      // Silent HERE by design, but never silent to the user: `indeterminate`
+      // is the whole point — it says "we could not ask", which both callers in
+      // useOfferHandlers stop on with a "couldn't check your verification
+      // status" toast rather than reading it as "not verified" and trapping an
+      // already-verified helper. The gate fails CLOSED and explains itself, so
+      // there is nothing left for monitoring to add on a transient network
+      // blip against Stripe.
       return { ok: false, reason: null, indeterminate: true };
     } finally {
       setChecking(false);

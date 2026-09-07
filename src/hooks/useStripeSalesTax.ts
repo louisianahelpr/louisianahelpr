@@ -68,6 +68,10 @@ export function useStripeSalesTax(
           setJurisdiction(data.jurisdiction ?? null);
         }
       } catch {
+        // Silent by design: null is "unknown tax, NOT zero" — see the branch
+        // above. The quote renders "+ tax" and Stripe's payment sheet shows
+        // the authoritative figure, so a failed estimate never misstates a
+        // price; it just declines to preview one.
         if (!cancelled) {
           setSalesTax(null);
           setJurisdiction(null);

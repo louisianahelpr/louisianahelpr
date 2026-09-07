@@ -99,7 +99,7 @@ export function CategoryPicker({
               }
             >
               <span
-                className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${colors?.dot ?? ""}`}
+                className={`relative w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${colors?.dot ?? ""}`}
                 style={
                   !colors?.dot
                     ? { background: "hsl(var(--olivewood) / 0.12)" }
@@ -112,6 +112,35 @@ export function CategoryPicker({
                   className="w-3.5 h-3.5 text-white/90"
                   strokeWidth={2.25}
                 />
+                {/* The selected-state check rides the ICON as a badge instead
+                    of sitting at the end of the row.
+                    Inline it was a real flex item, so selecting a chip took
+                    24px (icon + its gap) off the label: at 375 the label had
+                    76.5px unselected and 52.5px selected, and "Yard Work"
+                    (64.3px) rendered in full until you picked it and then
+                    became "Yard …" — the one chip you had just chosen was
+                    also the only one you could no longer read. There is no
+                    room to buy here: the chips are 130.5px in a two-column
+                    grid, and the longest label ("Storm Prep", 70.2px) needs
+                    every pixel of the 76.5px the unselected state already
+                    has. So the check stops taking width, and both states
+                    lay out identically. */}
+                {active && (
+                  <span
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                    style={{
+                      background: "hsl(var(--bark))",
+                      boxShadow: "0 0 0 1.5px hsl(var(--card))",
+                    }}
+                    aria-hidden
+                  >
+                    <Check
+                      className="w-2.5 h-2.5"
+                      style={{ color: "hsl(var(--parchment))" }}
+                      strokeWidth={3.5}
+                    />
+                  </span>
+                )}
               </span>
               <span
                 className="font-sans font-semibold leading-tight truncate text-ds-12"
@@ -121,13 +150,6 @@ export function CategoryPicker({
               >
                 {c.label}
               </span>
-              {active && (
-                <Check
-                  className="w-3.5 h-3.5 ml-auto shrink-0"
-                  style={{ color: "hsl(var(--bark))" }}
-                  strokeWidth={3}
-                />
-              )}
             </button>
           );
         })}

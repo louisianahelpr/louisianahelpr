@@ -487,6 +487,18 @@ this list tight; project-specific trivia belongs in code comments, not here.
   `audit-bus.mjs` `msg`/`inbox` file channel is retired; `file`/`status`/
   `dupe`/`list`/`rollup` remain the findings ledger. **Findings go in the bus,
   conversation goes over `SendMessage`.**
+- **YOU pick the model for every agent — never ask which one.** Standing
+  authorization, given repeatedly and then shouted (2026-09-06): "ADJUST THE
+  MODELS AS NEEDED FOR THE BEST USAGE OF EACH MODEL." Asking "would Fable be
+  better?" or "should I use Opus for this?" is a question the owner has
+  already answered and reads as being pranked. Pass `model:` explicitly on
+  every spawn (the definition default is silent and has been haiku). Rule of
+  thumb: money/authz/data-model fixes and anything that must reason about a
+  chain of guards → `opus`; exhaustive visual driving, design judgement, and
+  "look at everything and tell me what's wrong" sweeps → `fable`; mechanical
+  disjoint edits with a clear spec → `sonnet`; never `haiku` for anything
+  whose answer will be believed. Re-verification of untrusted prior work goes
+  to a DIFFERENT model than the one that produced it.
 - **Commit directly to `main`** — no branch/PR ceremony needed. Locally, just
   run `npm run typecheck` (plus `npx vitest run` when touching tested code);
   lint/build/full-suite already run in CI (`husky pre-commit` +

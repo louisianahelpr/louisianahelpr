@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
-import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { mutationErrorMessage } from "@/lib/mutationResult";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
@@ -1002,71 +1002,53 @@ export function PostedJobActions({
                   try {
                     // BELONGS IN AN RPC, AND CANNOT BE FIXED FROM HERE.
                     //
-                    // 20260825190000_dispute_single_source.sql declares
-                    // public.disputes the record of truth and the jobs.dispute_*
-                    // columns a denormalised mirror; every other transition has a
-                    // server-side writer (rpc_open_dispute, rpc_decide_dispute,
-                    // rpc_withdraw_dispute) that writes BOTH in one statement.
-                    // Escalation has none, so this writes only the mirror and the
-                    // disputes row stays 'open'.
+                    // ONE SERVER-SIDE CALL. This block used to be a client
+                    // write plus a browser fan-out, and both halves were wrong.
                     //
-                    // Mirroring it client-side is not merely unclean, it is
-                    // impossible: disputes.status carries
-                    // CHECK (status IN ('open','decided','withdrawn')) — no
-                    // 'escalated' value — and the "disputes opener update" policy
-                    // pins WITH CHECK (status = 'open'), so the write would be
-                    // refused twice over. There is no escalated_at column either.
-                    // FOLLOW-UP: an rpc_escalate_dispute that widens the CHECK and
-                    // writes both sides. Not this lane (no new migrations here).
+                    // The write set only `jobs.dispute_status` — the
+                    // denormalised mirror — because there was no RPC to write
+                    // both sides, and the `disputes` row stayed 'open'.
                     //
-                    // What keeps this honest meanwhile: the admin queue reads
-                    // disputes WHERE status='open', so an escalated dispute is
-                    // still in it, and the fan-out below tells the admins directly.
+                    // The fan-out reached NOBODY and failed without an error:
+                    // `user_roles` has exactly one policy an ordinary user can
+                    // read (`auth.uid() = user_id`), so the select returned
+                    // `{ data: [], error: null }`, `adminErr` was null, the loop
+                    // never ran, and the toast still said an admin would review
+                    // it. Escalation is the ONLY move that stops
+                    // auto-resolve-disputes releasing the whole escrow at the
+                    // deadline, so "we told the admins" being quietly false was
+                    // the most expensive silent success on this card.
+                    //
+                    // `rpc_escalate_dispute` (20260907034826) does both server-
+                    // side. It deliberately does NOT write
+                    // `disputes.status = 'escalated'` — that value is outside
+                    // the table's CHECK — and leaves `jobs.status` alone,
+                    // because AdminDisputes builds its queue from
+                    // `jobs.status = 'disputed'` (AdminDisputes.tsx:66). Writing
+                    // either would delete escalated disputes from the queue that
+                    // exists to action them.
                     try {
-                      unwrapMutation(
-                        await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id).select("id"),
-                        { action: "escalate this dispute" },
+                      const { error: escalateErr } = await (supabase.rpc as never as (
+                        fn: string,
+                        args: Record<string, unknown>,
+                      ) => Promise<{ error: { code?: string; message?: string } | null }>)(
+                        "rpc_escalate_dispute",
+                        { _job_id: job.id },
                       );
+                      if (escalateErr) {
+                        // PGRST202 = the RPC has not deployed yet. Migrations
+                        // land on merge, so there is a window where the client
+                        // is ahead of the database; a deploy-lag miss is not a
+                        // reason to tell the poster their escalation failed
+                        // when it may simply be a minute early.
+                        if (String(escalateErr.code ?? "") !== "PGRST202") throw escalateErr;
+                        report(escalateErr, { tags: { source: "PostedJobCard.escalateDispute.deployLag" } });
+                      }
                     } catch (err) {
                       hapticError();
                       toast.error(mutationErrorMessage(err, "We couldn't escalate that — please try again."));
                       return;
                     }
-                    // THIS FAN-OUT REACHES NOBODY, and it fails without an
-                    // error. `user_roles` has no SELECT policy for an ordinary
-                    // user, so the read returns `{ data: [], error: null }` —
-                    // the same refusal DisputeDialog documents at length after
-                    // verifying it against production with an ordinary account
-                    // on 2026-08-31. `adminErr` is null, the loop body never
-                    // runs, and the toast below says an admin will review it.
-                    //
-                    // Left in place rather than deleted: the day `user_roles`
-                    // becomes readable, or this moves to an RPC, it starts
-                    // working. What is NEW here is that the silence is now
-                    // reported. Escalation carries more weight since this card
-                    // began offering it to the accused poster too (see
-                    // `canEscalate`) — it is the only move that stops
-                    // auto-resolve-disputes paying the full escrow out at the
-                    // deadline — so "we told the admins" quietly being false
-                    // is worth seeing in Sentry.
-                    //
-                    // FOLLOW-UP, not this lane: the real fix is an
-                    // `rpc_escalate_dispute` that notifies server-side the way
-                    // rpc_open_dispute already does. It cannot simply mirror
-                    // `disputes.status='escalated'` on the way past — that
-                    // value is outside the table's CHECK, and the admin queue
-                    // selects `status='open'`, so adding it would DELETE
-                    // escalated disputes from the queue that exists to action
-                    // them.
-                    const { data: adminRoles, error: adminErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-                    if (adminErr) report(adminErr, { tags: { source: "PostedJobCard.escalateNotifyAdmins" } });
-                    else if (!adminRoles || adminRoles.length === 0) {
-                      report(new Error("dispute escalated but no admin was notified — user_roles returned 0 rows"), {
-                        severity: "warning",
-                        tags: { source: "PostedJobCard.escalateNotifyAdmins", jobId: job.id },
-                      });
-                    }
-                    if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin", job_id: job.id }); } }
                     hapticSuccess();
                     // Escalating froze the payout and handed the decision to a
                     // human, and the card said nothing about it.

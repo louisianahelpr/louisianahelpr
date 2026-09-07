@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { BOOST_DISCOUNT_PCT, BOOST_DURATION_HOURS, boostPriceForTier, formatFeeUsd } from "@/lib/productPrices";
+import { hasPerk } from "@/lib/subscriptionTiers";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
@@ -37,9 +38,13 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
   // is the one thing a payment dialog may never do.
   const subTier = (profile?.subscription_tier ?? "free") as string;
   const subExp = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
-  const subActive = subExp ? subExp > new Date() : false;
+  // A null expiry on a paid tier means "no scheduled end" and counts as
+  // ACTIVE — the house convention, owned by _shared/tierPerks.ts. This said
+  // `: false`, so a comped member was quoted the full boost price the server
+  // would not have charged them.
+  const subActive = subExp ? subExp > new Date() : true;
   const price = boostPriceForTier(subTier, subActive);
-  // Pro's ONE FREE BOOST per calendar month is spent server-side against
+  // The ONE FREE BOOST per calendar month (Pro and up) is spent server-side against
   // profiles.boost_credit_used_month (create-boost-payment). The tier rule
   // above knows nothing about it, so a Pro poster with an unused credit was
   // quoted the discounted price and then charged $0 — the same
@@ -47,8 +52,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
   // other direction, and their monthly perk was spent without being named.
   const thisMonth = new Date().toISOString().slice(0, 7);
   const hasFreeProBoost =
-    subActive &&
-    (subTier === "pro") &&
+    hasPerk(subTier, "monthlyFreeBoost", subActive) &&
     profile?.boost_credit_used_month !== thisMonth;
   const isSubscriber = price.free || hasFreeProBoost;
   const BOOST_PRICE = isSubscriber ? "" : formatFeeUsd(price.cents);

@@ -55,6 +55,7 @@ export type TierPerkKey =
   | "monthlyFreeBoost"     // one Job Boost per calendar month, then the discount
   | "portfolioShowcase"    // photo portfolio rendered on the public profile
   | "referralUpgradeBonus" // upgrading to this tier pays the referrer the extra bonus
+  | "helprPass"           // the Helpr Pass wallet card
   | "tierBadge";           // renders a subscriber badge / trust row anywhere a tier is shown
 
 /**
@@ -80,6 +81,7 @@ export const TIER_PERK_MATRIX: Record<TierId, Record<TierPerkKey, boolean>> = {
     monthlyFreeBoost: false,
     portfolioShowcase: false,
     referralUpgradeBonus: false,
+    helprPass: false,
     tierBadge: false,
   },
   basic: {
@@ -94,6 +96,7 @@ export const TIER_PERK_MATRIX: Record<TierId, Record<TierPerkKey, boolean>> = {
     monthlyFreeBoost: false,
     portfolioShowcase: false,
     referralUpgradeBonus: false,
+    helprPass: false,
     tierBadge: true,
   },
   pro: {
@@ -108,6 +111,7 @@ export const TIER_PERK_MATRIX: Record<TierId, Record<TierPerkKey, boolean>> = {
     monthlyFreeBoost: true,
     portfolioShowcase: true,
     referralUpgradeBonus: true,
+    helprPass: false,
     tierBadge: true,
   },
   plus: {
@@ -127,6 +131,7 @@ export const TIER_PERK_MATRIX: Record<TierId, Record<TierPerkKey, boolean>> = {
     monthlyFreeBoost: true,
     portfolioShowcase: true,
     referralUpgradeBonus: true,
+    helprPass: false,
     tierBadge: true,
   },
   elite: {
@@ -143,6 +148,7 @@ export const TIER_PERK_MATRIX: Record<TierId, Record<TierPerkKey, boolean>> = {
     monthlyFreeBoost: true,  // moot — freeBoosts is checked first and is unlimited
     portfolioShowcase: true,
     referralUpgradeBonus: true,
+    helprPass: true,
     tierBadge: true,
   },
 };

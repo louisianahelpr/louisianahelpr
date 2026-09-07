@@ -122,6 +122,38 @@ floats in a lopsided column with blank bands has failed the audit.
 
 ## Working rules
 
+- **A FIX IS NOT DONE UNTIL ITS OWN NUMBER MOVES. Re-measure the outcome, every
+  single time, without exception** (owner, 2026-09-07, emphatically). Closing a
+  finding on a diff — "the code now does X" — is not closing it. Re-run the
+  finding's own repro and record the NEW number beside the old one. If the
+  number did not move, the fix did not work, however correct the diff reads.
+
+  This is not a process nicety. Three launch blockers on 2026-09-06 were fixes
+  that shipped, read correctly in review, and did nothing:
+
+  * **S-001** — parish dead for 72% of accounts. Filed HIGH, launch blocker,
+    independently verified against prod. Fixed by adding ZIP to signup
+    (`eaa553f48`). The fix was right and achieved nothing: `anon` had no EXECUTE
+    on `get_parish_for_zip`, so every pre-auth lookup returned 42501 and
+    `lookupParishByZip` logged a warning and returned null. Re-running the
+    finding's own repro — `count(*) WHERE parish IS NULL` — would have shown the
+    number unmoved. Nobody ran it. An external reviewer re-found it five days
+    later.
+  * **FABLE R4** — helper-distance trilateration. "Fixed" with an ownership gate
+    `j.customer_id = auth.uid()`. That does not close the attack, because the
+    attacker OWNS the jobs: post three at chosen coordinates, query one
+    applicant against each, trilaterate from 0.1 km precision.
+  * **`rpc_withdraw_dispute`** — dead for every caller since `20260901032007`
+    pinned `decided_at`, which the RPC writes. That migration's OWN comment
+    records that PGlite proved a related case; it stopped one column short.
+    Months of 100% failure, zero Sentry events, because the client toasted
+    "please try again" and never reported.
+
+  Each is correct in the file it edits. The defect lives in the gap between the
+  fix and the runtime — an ACL, a trigger, an attacker who owns the input. **A
+  reader sees intent; only execution sees outcome.** So: measure the outcome.
+
+
 Each of these is a real, non-obvious gotcha that has cost real time — keep
 this list tight; project-specific trivia belongs in code comments, not here.
 

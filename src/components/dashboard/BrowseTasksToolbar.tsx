@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronRight, SearchCheck } from "lucide-react";
 import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/FilterSheet";
 import { SavedSearches } from "@/components/SavedSearches";
+import { signupUrlFor } from "@/lib/jobIntent";
 import { hapticLight } from "@/lib/haptics";
 import type { BrowseTasksToolbarProps } from "./browseTasksToolbar/types";
 import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
@@ -220,6 +221,11 @@ export function BrowseTasksToolbar({
             hasAvailability: helperAvailability.length > 0,
             boostedOnly: filters.boostedOnly, setBoostedOnly: filters.setBoostedOnly,
             urgentOnly: filters.urgentOnly, setUrgentOnly: filters.setUrgentOnly,
+            // Signed-out: the three account-only controls become labelled
+            // signup rows rather than vanishing. `signupUrlFor` keeps the
+            // return path, so a visitor who taps "Only Saved Jobs" lands back
+            // on the feed once they have an account.
+            signupHref: user ? undefined : signupUrlFor("/browse"),
             userLocStatus: filters.userLoc?.status,
             userLocMessage: filters.userLoc?.status === "error" ? filters.userLoc.message : undefined,
             // Saved Searches OPENS a dialog — it is an action, not a filter,

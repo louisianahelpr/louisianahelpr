@@ -127,14 +127,18 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           {/* `canTip`: only the POSTER may tip, and only this mount is the
               poster. The helper-side mount below leaves it off — see
               ReviewFormProps.canTip. */}
-          <ReviewForm canTip open={!!props.reviewJob} onClose={() => { props.setReviewJob(null); props.setReviewTarget(null); props.onRefresh(); }} jobId={props.reviewJob.id} revieweeId={props.reviewTarget.id} revieweeName={props.reviewTarget.name} />
+          <ReviewForm canTip revieweeRole="helper" open={!!props.reviewJob} onClose={() => { props.setReviewJob(null); props.setReviewTarget(null); props.onRefresh(); }} jobId={props.reviewJob.id} revieweeId={props.reviewTarget.id} revieweeName={props.reviewTarget.name} />
         </Suspense>
       )}
 
       {/* Helper reviewing poster */}
       {props.helperReviewJob && (
         <Suspense fallback={null}>
-          <ReviewForm open={!!props.helperReviewJob} onClose={() => { props.setHelperReviewJob(null); props.onRefresh(); }} jobId={props.helperReviewJob.jobId} revieweeId={props.helperReviewJob.posterId} revieweeName={props.helperReviewJob.posterName} />
+          {/* The poster direction swaps the star rows and the quick tags for
+              ones a poster can actually be rated on. Without it this mount
+              asked a helper to score the person who HIRED them on "showed up on
+              time" and "quality of work" — see ./reviewPanel/types.ts. */}
+          <ReviewForm revieweeRole="poster" open={!!props.helperReviewJob} onClose={() => { props.setHelperReviewJob(null); props.onRefresh(); }} jobId={props.helperReviewJob.jobId} revieweeId={props.helperReviewJob.posterId} revieweeName={props.helperReviewJob.posterName} />
         </Suspense>
       )}
 

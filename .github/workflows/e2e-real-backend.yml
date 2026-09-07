@@ -287,7 +287,7 @@ jobs:
           PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
           PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
           PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
-        run: npx playwright test --project=chromium e2e/prod-lifecycle.spec.ts --reporter=list --trace=on --screenshot=only-on-failure
+        run: npx playwright test --project=chromium e2e/prod-lifecycle.spec.ts --reporter=list --trace=on
 
       # The whole point of this job is the legs a mock cannot cover, and when
       # one of them breaks the log says "waitForURL timed out" — which names the

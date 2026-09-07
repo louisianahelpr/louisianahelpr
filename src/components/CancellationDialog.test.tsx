@@ -32,6 +32,7 @@ function makeProps(overrides: Record<string, unknown> = {}) {
     jobStartTime: null,
     jobBudget: 100,
     hasHelper: true,
+    wasFunded: true,
     helperName: "Marie",
     open: true,
     onClose: vi.fn(),

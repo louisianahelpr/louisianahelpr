@@ -287,7 +287,24 @@ jobs:
           PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
           PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
           PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
-        run: npx playwright test --project=chromium e2e/prod-lifecycle.spec.ts --reporter=list
+        run: npx playwright test --project=chromium e2e/prod-lifecycle.spec.ts --reporter=list --trace=on --screenshot=only-on-failure
+
+      # The whole point of this job is the legs a mock cannot cover, and when
+      # one of them breaks the log says "waitForURL timed out" — which names the
+      # wait, not the cause. Twice now the cause was something only visible ON
+      # the page (a collapsed payment accordion; a Pay button that silently
+      # refuses). Keep the trace so the next failure is diagnosed from what the
+      # browser saw instead of from a guess.
+      - name: Keep the trace and screenshots when the loop fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-lifecycle-trace
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
 
       # Runs even when the loop failed — that is the case it exists for. A run
       # that died holding a funded job is the one the seven is_seed-blind crons

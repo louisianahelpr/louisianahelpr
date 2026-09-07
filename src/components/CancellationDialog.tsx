@@ -46,6 +46,11 @@ type CancellationDialogProps = {
   /* No `userId`: the cancelling identity is auth.uid() inside
      poster_cancel_job now, so the client no longer asserts who it is. */
   hasHelper: boolean;
+  /** Whether money was ever actually taken for this job. An abandoned or
+   *  never-started checkout leaves payment_status 'unpaid'/'abandoned' with
+   *  nothing held, and promising a refund there is a false statement about
+   *  the poster's money — see the confirmation toast below. */
+  wasFunded: boolean;
   helperId?: string | null;
   helperName?: string;
   open: boolean;
@@ -53,7 +58,7 @@ type CancellationDialogProps = {
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, hasHelper, helperId: _helperId, helperName, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, hasHelper, wasFunded, helperId: _helperId, helperName, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Is this a recurring PARENT? Fetched on open so the dialog can say the
   // one thing the card no longer says (owner: card = less hectic; the
   // cancel-scope warning belongs at the moment of cancelling).
@@ -231,9 +236,18 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
       // They agree (same ladder, same Chicago-midnight clock), but the row is
       // the authority now that the client no longer writes it.
       toast.success(
-        appliedFee > 0
-          ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.`
-          : "Job cancelled — the full amount returns to your card.",
+        !wasFunded
+          ? // Nothing was ever charged, so there is nothing to return. This
+            // branch exists because the unfunded case used to fall through to
+            // the refund sentence below and tell a poster whose checkout never
+            // completed that "the full amount returns to your card" — a
+            // promise of money movement that will never appear on a statement,
+            // on the one screen where they are already unsure what happened to
+            // their payment.
+            "Job cancelled. Your checkout was never completed, so you were never charged — there's nothing to refund."
+          : appliedFee > 0
+            ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.`
+            : "Job cancelled — the full amount returns to your card.",
         { action: { label: "Dismiss", onClick: () => { /* toast closes itself */ } } },
       );
       onCancelled();

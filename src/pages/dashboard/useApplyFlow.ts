@@ -12,41 +12,15 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { requireOnline } from "@/lib/requireOnline";
 import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateLimit";
+// The refusal→copy map moved to its own module on 2026-09-07: the
+// daily-application-limit entry can no longer be an exact string (the cap is
+// an admin setting now and the trigger interpolates it), and a lookup with a
+// prefix rule in it needs a unit test. See applyErrorCopy.ts.
+import { resolveApplyErrorCopy } from "./applyErrorCopy";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { ApplyVars, ApplySnapshot, DashboardContextSlice } from "./dashboardTypes";
 import { userFacingError } from "@/lib/userFacingError";
 
-/* Keyed by the exact string a Postgres RAISE puts in `error.message`.
-   The first four come from the `apply_to_job` RPC. The last two come from
-   BEFORE INSERT TRIGGERS on `applications`, which fire on the insert the RPC
-   performs and are therefore invisible from the RPC's own body — the reason
-   they were missing here. Anything NOT in this map falls through to the
-   generic errorToast at the bottom of onError, which offers a RETRY; every
-   entry here is a deterministic refusal where retrying re-fails identically,
-   so they must be matched by name and toasted without one.
-
-   `credential_tier_required` is a stable machine token (like `rate_limit_*`).
-   The application-limit entry matches the trigger's human prose, so it is
-   brittle by construction: if `enforce_application_limit`'s message is ever
-   reworded, this silently stops matching and the retry loop comes back. */
-const APPLY_RPC_MESSAGES: Record<string, string> = {
-  "Already applied to this job": "You've already applied to this job.",
-  "Cannot apply to your own job": "You can't apply to your own post.",
-  "Job is no longer accepting applications": "This job isn't accepting applications anymore.",
-  "Job not found": "This job is no longer available.",
-  // enforce_application_credential_tier (20260824251000). The trigger's HINT
-  // separates "licensed" from "licensed + insured", but PostgREST puts HINT in
-  // `hint` and supabase-js surfaces `message`, so the hint never arrives — one
-  // line has to cover both tiers.
-  credential_tier_required:
-    "You don't have the credentials this job requires. Add your license or insurance in your profile to apply.",
-  // enforce_application_limit. Deliberately the SAME copy as the RPC's
-  // `rate_limit_day` above and deliberately WITHOUT the count: the trigger caps
-  // at 15/24h while apply_to_job's own daily check is 200, so naming a number
-  // here would pick a side in a conflict the client cannot see.
-  "You have reached the daily application limit (15). Please try again tomorrow.":
-    "You've hit today's application limit — check back tomorrow.",
-};
 
 type UseApplyFlowArgs = {
   user: SupaUser | null;
@@ -142,9 +116,12 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   // the snapshots so the job re-appears and the user can retry.
   const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
     mutationFn: async ({ jobId, helperId, message, files, isInstantBook }) => {
-      // Server-side rate limit check (10/min, 50/hr, 200/day) BEFORE any
+      // Server-side rate limit check BEFORE any
       // attachment uploads — don't waste storage bandwidth on a blocked
-      // attempt. The helper falls back to "allowed" if the RPC isn't
+      // attempt. The windows are no longer 10/min, 50/hr, 200/day: every rung
+      // is an admin setting on `platform_settings` and every one defaults to
+      // unlimited (owner decision 2026-09-07), so this returns allowed unless
+      // an operator has deliberately configured a cap. The helper falls back to "allowed" if the RPC isn't
       // deployed yet (PGRST202), so this doesn't break apply on prod
       // between merge and the manual supabase db push.
       const gate = await checkApplicationRate({ applicantId: helperId });
@@ -308,13 +285,13 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         // Use the warm, window-specific message from applyRateLimit.
         // No retry — by definition the user has to wait the window out.
         toast.error(userFacingError(err, "Couldn't send your application — try again?"));
-      } else if (APPLY_RPC_MESSAGES[(err as { message?: string } | null)?.message ?? ""]) {
+      } else if (resolveApplyErrorCopy((err as { message?: string } | null)?.message)) {
         // The apply_to_job RPC RAISEs a specific human reason (empty bid price,
         // already applied, own job, job closed, not found). Surface THAT reason
         // instead of burying it under the generic "something went wrong" toast —
         // these are actionable states the helper can fix, not transient blips,
         // so no Retry button (re-running the same invalid submit just re-fails).
-        toast.error(APPLY_RPC_MESSAGES[(err as { message?: string }).message!]);
+        toast.error(resolveApplyErrorCopy((err as { message?: string }).message)!);
       } else {
         errorToast("Couldn't send your application through", {
           description: "Tap retry to try again.",

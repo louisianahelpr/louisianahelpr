@@ -14,20 +14,97 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/**
+ * The configured signup cap, or null when signups are uncapped.
+ *
+ * Read with the service role: `platform_settings` is admin-only under RLS and
+ * this function runs with `verify_jwt = false`, so there is no user context to
+ * read it as. Deliberately NOT cached across invocations — an operator turning
+ * this on is doing so during an abuse wave, and a stale "off" for the lifetime
+ * of a warm isolate is exactly the wrong moment to be minutes behind.
+ *
+ * FAILS OPEN, ON PURPOSE. Unreadable settings return null, i.e. no cap. The
+ * shipped default is no cap, so a failed read landing on "unlimited" is the
+ * same state the platform is in when everything works — whereas failing closed
+ * would turn a settings-table blip into "nobody can finish signing up", which
+ * is an outage for the single most valuable action in the product. The failure
+ * is logged loudly rather than swallowed.
+ */
+async function signupRateLimitPerHour(): Promise<number | null> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) {
+    console.error("[complete-signup] no service credentials — signup cap treated as off");
+    return null;
+  }
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/platform_settings?select=signup_rate_limit_per_hour&limit=1`,
+      {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        signal: AbortSignal.timeout(2000),
+      },
+    );
+    if (!res.ok) {
+      console.error(
+        `[complete-signup] platform_settings read ${res.status} — signup cap treated as off`,
+      );
+      return null;
+    }
+    const rows = await res.json() as { signup_rate_limit_per_hour?: number | null }[];
+    const raw = rows?.[0]?.signup_rate_limit_per_hour;
+    // NULL, 0, a negative and a non-number all mean the same thing: no cap.
+    // Mirrors application_cap()'s normalisation in the database so the two
+    // halves of this change cannot disagree about what "off" is.
+    if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return null;
+    return Math.floor(raw);
+  } catch (err) {
+    console.error(
+      `[complete-signup] platform_settings unreachable (${
+        err instanceof Error ? err.message : String(err)
+      }) — signup cap treated as off`,
+    );
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Throttle: 5 completions per IP per 5 min. Each call uploads avatar/ID/
-  // license/insurance/portfolio files to storage and writes a profile row, so
-  // a script abusing this can fill storage quota fast.
-  const rl = await checkRateLimit(req, {
-    windowMs: 5 * 60_000,
-    maxRequests: 5,
-    keyPrefix: "complete-signup",
-  });
-  if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
+  // Throttle: ADMIN-ADJUSTABLE, AND OFF BY DEFAULT (owner decision 2026-09-07,
+  // "there should not be a sign-up cap").
+  //
+  // This was a fixed 5 completions per subject/address per 5 minutes, and it is
+  // the ONLY signup-shaped throttle this repo controls. Enumerated, because the
+  // other two candidates are not ours to change and it matters that nobody goes
+  // looking for a lever that is not here:
+  //   · GoTrue's own sign-up / email / token rate limits are Supabase platform
+  //     configuration, not database state — invisible to this function and
+  //     unchanged.
+  //   · `rate_limit_hit` / `edge_rate_limit_log` is the shared MECHANISM under
+  //     `checkRateLimit`; seventeen other functions ride it and their budgets
+  //     are deliberately untouched.
+  //
+  // The cap now comes from `platform_settings.signup_rate_limit_per_hour`
+  // (NULL/0/negative = unlimited, which is the shipped default). When it is
+  // off the limiter is not called at all — no `edge_rate_limit_log` row, no
+  // round trip — so an operator turning it on starts from a clean window
+  // rather than from whatever the previous hour happened to accumulate.
+  //
+  // Each call uploads avatar/ID/license/insurance/portfolio files to storage
+  // and writes a profile row, so a script abusing this can fill storage quota
+  // fast — which is why the mechanism stays wired rather than being deleted.
+  const signupCap = await signupRateLimitPerHour();
+  if (signupCap !== null) {
+    const rl = await checkRateLimit(req, {
+      windowMs: 60 * 60_000,
+      maxRequests: signupCap,
+      keyPrefix: "complete-signup",
+    });
+    if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
+  }
 
   try {
     const supabase = createClient(

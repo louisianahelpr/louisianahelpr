@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
-import { Flag, Percent, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
+import { Flag, Gauge, Percent, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
 import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import type { Database } from "@/integrations/supabase/types";
@@ -18,6 +18,14 @@ import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
 import { resetMinSupportedBuildCache } from "@/lib/minSupportedBuild";
+import {
+  ABUSE_LIMITS,
+  allCapsOff,
+  capInputValue,
+  describeCap,
+  parseCapInput,
+  type AbuseLimitKey,
+} from "./abuseLimits";
 
 // The fee-ladder rungs an admin is shown, DERIVED from the tier config rather
 // than restated. `TIER_PERKS` is the same table `tierFeePercent()` resolves a
@@ -75,6 +83,14 @@ const AdminSettings = () => {
   const [savingMinBuild, setSavingMinBuild] = useState(false);
   const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
   const [savingFlag, setSavingFlag] = useState<string | null>(null);
+  // Abuse limits. Held as the raw strings the admin typed so that "blank" is a
+  // representable state — a numeric state would have to invent a stand-in for
+  // "no limit", and 0 is already spoken for as a synonym of it.
+  const [capInputs, setCapInputs] = useState<Record<AbuseLimitKey, string>>(
+    () => Object.fromEntries(ABUSE_LIMITS.map((l) => [l.key, ""])) as Record<AbuseLimitKey, string>,
+  );
+  const [savedCaps, setSavedCaps] = useState<Partial<Record<AbuseLimitKey, number | null>>>({});
+  const [savingCaps, setSavingCaps] = useState(false);
 
   // Admin management
   const [admins, setAdmins] = useState<{ user_id: string; role_id: string; name: string; email: string }[]>([]);
@@ -118,6 +134,19 @@ const AdminSettings = () => {
         ? (flags as Record<string, boolean>)
         : ({} as Record<string, boolean>);
       setFeatureFlags({ ...flagsObj });
+      // Columns added by 20260907230038 and absent until it deploys — read
+      // defensively, exactly like min_supported_build above.
+      const caps = data as Record<string, unknown>;
+      const nextInputs = {} as Record<AbuseLimitKey, string>;
+      const nextSaved: Partial<Record<AbuseLimitKey, number | null>> = {};
+      for (const limit of ABUSE_LIMITS) {
+        const v = caps[limit.key];
+        const n = typeof v === "number" ? v : null;
+        nextInputs[limit.key] = capInputValue(n);
+        nextSaved[limit.key] = n;
+      }
+      setCapInputs(nextInputs);
+      setSavedCaps(nextSaved);
     }
     setLoading(false);
   };
@@ -203,6 +232,61 @@ const AdminSettings = () => {
       feature_flag: id,
       value,
     });
+  };
+
+  // What the field currently in the box WOULD do, shown live beside it. An
+  // unparseable value reads as its own sentence rather than silently previewing
+  // "no limit", which would be indistinguishable from a deliberately blank box.
+  const capPreview = (key: AbuseLimitKey): string => {
+    const parsed = parseCapInput(capInputs[key] ?? "");
+    if (!parsed.ok) return parsed.error;
+    return describeCap(key, parsed.value);
+  };
+
+  const handleSaveCaps = async () => {
+    if (!settingsId) return;
+    const patch: Record<string, number | null> = {};
+    for (const limit of ABUSE_LIMITS) {
+      const parsed = parseCapInput(capInputs[limit.key] ?? "");
+      if (!parsed.ok) {
+        toast.error(`${limit.label}: ${parsed.error}`);
+        return;
+      }
+      patch[limit.key] = parsed.value;
+    }
+    setSavingCaps(true);
+    try {
+      unwrapMutation(
+        await (supabase.from as any)("platform_settings")
+          .update(patch)
+          .eq("id", settingsId)
+          .select("id"),
+        { action: "update the abuse limits" },
+      );
+    } catch (err: any) {
+      setSavingCaps(false);
+      if (err?.code === "42703") {
+        toast.error("These settings aren't live yet — the latest database update is still deploying. Try again in a few minutes.");
+      } else {
+        toast.error(mutationErrorMessage(err, err?.message));
+      }
+      return;
+    }
+    setSavingCaps(false);
+    const nextSaved = patch as Partial<Record<AbuseLimitKey, number | null>>;
+    setSavedCaps(nextSaved);
+    setCapInputs(
+      Object.fromEntries(
+        ABUSE_LIMITS.map((l) => [l.key, capInputValue(patch[l.key])]),
+      ) as Record<AbuseLimitKey, string>,
+    );
+    // Read the resulting BEHAVIOUR back, not "saved" — same reasoning as the
+    // min-build control: a limit that is now off has removed a protection, and
+    // that is the sentence the operator needs to see.
+    toast.success(
+      ABUSE_LIMITS.map((l) => describeCap(l.key, patch[l.key])).join(" "),
+    );
+    await logAdminAction("update_settings", "platform_settings", settingsId, patch);
   };
 
   const handleSaveWebhook = async () => {
@@ -475,6 +559,52 @@ const AdminSettings = () => {
         </div>
         <Button onClick={handleSaveWebhook} disabled={savingWebhook}>
           {savingWebhook ? "Saving…" : "Save Webhook URL"}
+        </Button>
+      </AdminCard>
+
+      {/* Abuse limits — application caps + the signup throttle */}
+      <AdminCard
+        title={<span className="flex items-center gap-2"><Gauge className="w-4 h-4 text-primary" /> Abuse Limits</span>}
+        subtitle="Blank or 0 means NO LIMIT. All four ship off — turn one on only while you are working an abuse wave, and turn it back off after."
+        contentClassName="space-y-4"
+      >
+        {allCapsOff(savedCaps) && (
+          <div className="rounded-ds-md border border-border bg-muted/40 p-3">
+            <p className="text-ds-11 text-muted-foreground leading-relaxed">
+              All four limits are off, which is the intended default — a Helpr
+              can send any number of applications and signups are unthrottled.
+              That also means <span className="font-semibold text-foreground">there is no automated abuse protection on either
+              path</span>; a script can apply to every open job or hammer signup
+              until you set a number here.
+            </p>
+          </div>
+        )}
+        <div className="space-y-3">
+          {ABUSE_LIMITS.map((limit) => (
+            <div key={limit.key} className="space-y-1.5">
+              <Label htmlFor={limit.key}>{limit.label}</Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  id={limit.key}
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  placeholder="No limit"
+                  className="max-w-[9rem]"
+                  value={capInputs[limit.key] ?? ""}
+                  onChange={(e) =>
+                    setCapInputs((prev) => ({ ...prev, [limit.key]: e.target.value }))
+                  }
+                />
+                <span className="text-ds-11 text-muted-foreground">{capPreview(limit.key)}</span>
+              </div>
+              <p className="text-ds-11 text-muted-foreground leading-tight">{limit.description}</p>
+              <p className="text-ds-10 text-muted-foreground font-mono">{limit.key}</p>
+            </div>
+          ))}
+        </div>
+        <Button onClick={handleSaveCaps} disabled={savingCaps || !settingsId}>
+          {savingCaps ? "Saving…" : "Save Abuse Limits"}
         </Button>
       </AdminCard>
 

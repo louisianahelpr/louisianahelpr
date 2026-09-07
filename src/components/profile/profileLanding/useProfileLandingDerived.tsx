@@ -108,14 +108,19 @@ export function useProfileLandingDerived({
   // payout state — a second derivation here would be two answers to one
   // question, and on a failed status check it would be a guess dressed as
   // a fact.
+  // Every paid rung names the NEXT rung, not a favourite one. This used to
+  // skip Plus entirely, so a Plus member read "Free — tap to upgrade" on the
+  // row describing the $15/mo plan they were paying for.
   const subscriptionDesc =
     tier === "elite"
       ? `${TIER_PERKS.elite.name} — top visibility`
-      : tier === "pro"
-        ? `${TIER_PERKS.pro.name} — upgrade to ${TIER_PERKS.elite.name}`
-        : tier === "basic"
-          ? `${TIER_PERKS.basic.name} — upgrade to ${TIER_PERKS.pro.name}`
-          : "Free — tap to upgrade";
+      : tier === "plus"
+        ? `${TIER_PERKS.plus.name} — upgrade to ${TIER_PERKS.elite.name}`
+        : tier === "pro"
+          ? `${TIER_PERKS.pro.name} — upgrade to ${TIER_PERKS.plus.name}`
+          : tier === "basic"
+            ? `${TIER_PERKS.basic.name} — upgrade to ${TIER_PERKS.pro.name}`
+            : "Free — tap to upgrade";
 
   // Completeness gaps surfaced per-row so the user knows *what's*
   // missing without having to open each tab. Derived from existing

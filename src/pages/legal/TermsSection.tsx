@@ -171,7 +171,7 @@ export const TermsContent = () => (
     <PolicySection
       icon={Crown}
       title="Membership tiers"
-      subtitle="Free, Basic, Pro, and Elite plans"
+      subtitle={`Free, ${TIER_PERKS.basic.name}, ${TIER_PERKS.pro.name}, ${TIER_PERKS.plus.name}, and ${TIER_PERKS.elite.name} plans`}
       anchorId="subscription-tiers"
     >
       <PolicyRowItem
@@ -182,6 +182,7 @@ export const TermsContent = () => (
             <p><strong className="text-foreground">Free:</strong> standard access at a {TIER_PERKS.free.platformFeePercent}% platform fee.</p>
             <p><strong className="text-foreground">{TIER_PERKS.basic.name}:</strong> {legalFmtMo(TIER_PERKS.basic.price)} — reduced {TIER_PERKS.basic.platformFeePercent}% platform fee with instant payouts and {BOOST_DISCOUNT_PCT}% off job boosts.</p>
             <p><strong className="text-foreground">{TIER_PERKS.pro.name}:</strong> {legalFmtMo(TIER_PERKS.pro.price)} — reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.plus.name}:</strong> {legalFmtMo(TIER_PERKS.plus.price)} — reduced {TIER_PERKS.plus.platformFeePercent}% platform fee.</p>
             <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)} — lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
             <p>Annual plans save about {ANNUAL_MONTHS_SAVED} month{ANNUAL_MONTHS_SAVED === 1 ? "" : "s"}. Stripe handles billing automatically.</p>
           </>

@@ -20,7 +20,7 @@ import { categoryColors } from "@/components/activity/activityConstants";
 import { JobCardShell } from "@/components/activity/JobCardShell";
 import { todayLocalISO, formatJobDate } from "@/lib/dateUtils";
 import { getCity } from "@/lib/locationUtils";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -141,7 +141,17 @@ const ScheduleCard = ({
   // Payouts, Work Record). The whole job row is passed so `payment_status`
   // comes with it: these are LIVE jobs, so the escrow-time stamp must not be
   // trusted over the viewer's tier.
-  const amount = formatPrice(isPosted ? job.budget : helperTakeHomeDollars(job, viewerFeePercent));
+  // The two branches use DIFFERENT formatters, and that asymmetry is the point.
+  // A gross budget is a number the poster typed, so it rounds (`formatPrice`).
+  // A take-home is money OWED TO THE VIEWER, and a payout figure may never read
+  // above the payout — so it floors, exactly as JobPrice, CompactJobCard,
+  // AppliedJobCard and WorkRecord already do (owner, 2026-08-19). Both branches
+  // shared `formatPrice` here, so an $83.60 take-home rendered "$84" on this
+  // row while My Jobs rendered "$83" for the same job: the one number a helper
+  // checks, answered two ways, with this screen quoting the higher of the two.
+  const amount = isPosted
+    ? formatPrice(job.budget)
+    : formatPriceFloor(helperTakeHomeDollars(job, viewerFeePercent));
   const amountTitle = isPosted
     ? "Your budget for this job"
     : "Your take-home after the platform fee";

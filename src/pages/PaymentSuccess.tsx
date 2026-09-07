@@ -30,7 +30,9 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { report } from "@/lib/errorLogger";
 import { safeStorage } from "@/lib/safeStorage";
-import { formatPrice } from "@/lib/format";
+// formatPriceExact, not formatPrice: the sentences below state a sum of money
+// that is ACTUALLY SITTING IN ESCROW. See the note at the render site.
+import { formatPriceExact } from "@/lib/format";
 import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { shareNative } from "@/lib/nativeShare";
@@ -414,12 +416,21 @@ const PaymentSuccess = () => {
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             aria-live="polite"
           >
+            {/* `formatPriceExact`, NOT `formatPrice`. These two sentences assert
+                a specific sum of money that is really in escrow — "$X is held
+                securely", "$X was paid and has already been released". A
+                rounded assertion about a real balance is just a false one:
+                `formatPrice` rounds to the nearest dollar, so a $136.40 escrow
+                read "$136 is held securely" (understating what the poster paid)
+                and a $136.60 escrow read "$137" (claiming 40c that is not
+                there). This is a receipt, which is exactly what
+                `formatPriceExact` is for. */}
             {isHeld ? (
               alreadyReleased ? (
                 escrowAmount != null ? (
                   <>
                     <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                      ${formatPrice(escrowAmount)}
+                      ${formatPriceExact(escrowAmount)}
                     </span>{" "}
                     was paid and has already been released to your helper.
                   </>
@@ -429,7 +440,7 @@ const PaymentSuccess = () => {
               ) : escrowAmount != null ? (
                 <>
                   <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                    ${formatPrice(escrowAmount)}
+                    ${formatPriceExact(escrowAmount)}
                   </span>{" "}
                   is held securely — released when you confirm the work is done.
                 </>

@@ -123,4 +123,10 @@ export const SEED_GATED_SURFACES = [
   // had a gate is invisible to a check that starts from callers of the gate.
   // That is why both halves are kept. Gate added in 20260903081713.
   { surface: "daily parish digest email", object: "public.sweep_daily_job_digest" },
+  // MISSING UNTIL 2026-09-07. The apply write-path trigger (AR-013/014/015,
+  // 20260907063128) re-checks every conjunct the feed applies, including
+  // seed_jobs_hidden_publicly(), so a helper cannot apply to a seed job that
+  // is hidden from browse. Like notify_helpers_on_job_post above, it was gated
+  // before it was registered — the call is the gate, this line is the audit.
+  { surface: "apply write-path gate (seed fixture enforcement)", object: "public.enforce_application_job_state" },
 ] as const;

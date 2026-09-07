@@ -20,6 +20,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useDashboardFilters } from "./useDashboardFilters";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 // The viewer's position, and whether we have one at all, is what selects
 // between the three branches — so it is the thing each test varies.
@@ -92,6 +93,12 @@ function setup(allJobs: EnrichedJob[] = ALL) {
         profile: null,
         helprTier: null,
         helperAvailability: [],
+        // The guest fee, from the same source DashboardGuest passes at runtime
+        // rather than a literal — `effectiveFee` became required when the pay
+        // sorts started ordering by the DISPLAYED take-home instead of the
+        // poster's gross budget. This spec is about radius, not pay, so the
+        // value only has to be the one a guest really sees.
+        effectiveFee: TIER_PERKS.free.platformFeePercent,
       }),
     {
       wrapper: ({ children }) => (

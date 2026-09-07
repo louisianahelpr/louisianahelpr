@@ -17,7 +17,11 @@ export function OverviewTab({ viewProfile, profileViolations }: OverviewTabProps
     { label: "Availability", value: p.availability },
     { label: "Transportation", value: p.transportation },
     { label: "Tools / Equipment", value: p.tools_equipment },
-    { label: "Preferred Job Radius", value: p.job_radius },
+    // "Preferred Job Radius" sat here, reading `profiles.job_radius`. The
+    // signup step that collected it was deleted long ago, so it rendered
+    // "Not provided" on every account an admin ever opened. Column dropped in
+    // 20260907053425; radius is a per-SEARCH setting
+    // (`saved_searches.radius_miles`), never a per-person one.
     { label: "How They Heard About Us", value: p.hear_about_us },
     { label: "Emergency Contact", value: p.emergency_contact_name ? `${p.emergency_contact_name}${p.emergency_contact_phone ? ` — ${p.emergency_contact_phone}` : ""}` : null },
     { label: "Extra Comments", value: p.extra_comments },

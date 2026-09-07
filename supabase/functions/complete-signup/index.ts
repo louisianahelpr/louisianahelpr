@@ -76,7 +76,12 @@ serve(async (req) => {
       toolsEquipment,
       emergencyContactName,
       emergencyContactPhone,
-      jobRadius,
+      // `jobRadius` was destructured here and written to `profiles.job_radius`
+      // below. No client has sent it since the signup step that collected it
+      // was deleted, and the column is dropped in 20260907053425. Removing the
+      // argument in the SAME change is the point: an accepted field that
+      // targets a dropped column would 500 a stale iOS build's signup, and a
+      // shipped .ipa cannot be updated from here.
       extraComments,
       marketingConsent,
       // Explicit "I am 18 or older" attestation from the signup form. DOB is
@@ -488,13 +493,49 @@ serve(async (req) => {
     if (phone) updateData.phone = phone;
     if (bio) updateData.bio = bio;
     if (location) updateData.location = location;
-    // Optional. `zipCode` unlocks parish (helper-notification matching) and
-    // Louisiana sales tax; `parish` is resolved client-side via
-    // lookupParishByZip() BEFORE this call so a lookup failure there degrades
-    // to "no parish yet", not a blocked signup — same contract as every other
-    // deferred field on this path.
+    // `zipCode` unlocks parish (helper-notification matching) and Louisiana
+    // sales tax. It is REQUIRED at both entry points as of 2026-09-05, but stays
+    // conditional here: an already-shipped iOS build cannot be updated from this
+    // repo, so an older client that omits it must still complete rather than
+    // 400.
     if (typeof zipCode === "string" && zipCode.trim()) updateData.zip_code = zipCode.trim();
-    if (typeof parish === "string" && parish.trim()) updateData.parish = parish.trim();
+    // Parish, resolved SERVER-side from the ZIP whenever the client did not
+    // send one.
+    //
+    // Why this is not "belt and braces": the client-side resolver was
+    // structurally incapable of succeeding on this path. `lookupParishByZip()`
+    // calls the `get_parish_for_zip` RPC, and that function's ACL is
+    // `{postgres=X, service_role=X, authenticated=X}` — `anon` has no EXECUTE.
+    // The whole signup form runs BEFORE the account exists, so every call from
+    // it came back `42501 permission denied for function get_parish_for_zip`,
+    // `report()` logged it as a warning nobody reads, `resolvedZipParish`
+    // stayed null, and this function then skipped the column because the
+    // client "didn't send one". Result, verified against prod 2026-09-06: a UI
+    // signup wrote `zip_code = '70802'` and `parish = NULL` on the same row.
+    // The companion migration grants `anon` EXECUTE so the form's live
+    // City/ZIP mismatch hint works too, but the durable fix is here: this
+    // function holds the service-role key, so its lookup cannot be denied and
+    // does not depend on the client having succeeded.
+    //
+    // Still non-blocking, same contract as every other deferred field: a
+    // failed lookup degrades to "no parish yet", never to a rejected signup.
+    let resolvedParish: string | null =
+      typeof parish === "string" && parish.trim() ? parish.trim() : null;
+    if (!resolvedParish && typeof zipCode === "string") {
+      const zipDigits = zipCode.replace(/\D/g, "").slice(0, 5);
+      if (zipDigits.length === 5) {
+        const { data: parishFromZip, error: parishErr } = await supabase.rpc(
+          "get_parish_for_zip",
+          { p_zip: zipDigits },
+        );
+        if (parishErr) {
+          console.error("complete-signup: parish lookup failed", parishErr.message);
+        } else if (typeof parishFromZip === "string" && parishFromZip.trim()) {
+          resolvedParish = parishFromZip.trim();
+        }
+      }
+    }
+    if (resolvedParish) updateData.parish = resolvedParish;
     if (skills) updateData.skills = skills;
     if (dateOfBirth) updateData.date_of_birth = dateOfBirth;
     if (avatarUrl) updateData.avatar_url = avatarUrl;
@@ -551,7 +592,6 @@ serve(async (req) => {
     if (toolsEquipment) updateData.tools_equipment = toolsEquipment;
     if (emergencyContactName) updateData.emergency_contact_name = emergencyContactName;
     if (emergencyContactPhone) updateData.emergency_contact_phone = emergencyContactPhone;
-    if (jobRadius) updateData.job_radius = jobRadius;
     if (extraComments) updateData.extra_comments = extraComments;
 
     // `.select("user_id")` + a zero-row branch, per CLAUDE.md. This UPDATE is

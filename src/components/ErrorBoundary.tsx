@@ -121,7 +121,12 @@ class ErrorBoundary extends React.Component<Props, State> {
             >
               {chunkError
                 ? "A newer version of the app was just released. Reload to pick it up."
-                : this.state.error?.message || "Something caught us off guard — the button below should fix it."}
+                : /* A render error's message is never copy — it is "Can't find
+                     variable: x" or "undefined is not an object", and one was
+                     shown to a person on /profile?tab=home_history on
+                     2026-09-07. The raw error still reaches componentDidCatch
+                     and Sentry; the person gets the sentence. */
+                  "Something caught us off guard — the button below should fix it."}
             </p>
           </div>
           <Button

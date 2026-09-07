@@ -243,6 +243,105 @@ describe("auto-resolve-disputes", () => {
     });
   });
 
+  // ── 1b. The filer cannot win by silence ──────────────────────────────────
+  //
+  // `rpc_open_dispute` authorises EITHER party (verified against prod:
+  // `IF _uid <> _customer AND _uid <> _helper THEN RAISE`), and filing freezes
+  // the job. This sweep settled every non-escalated expired dispute with
+  // `_outcome: "helper"` and wrote `status: "completed"` regardless of who
+  // opened it — so a helper could dispute an `in_progress` job, say nothing
+  // for 72 hours, and be handed the full escrow on a job the poster never
+  // approved. The poster's only defence was to escalate.
+  describe("a helper-filed dispute is never auto-paid to the helper", () => {
+    /** Same expired dispute, but the HELPER is the one who filed it. */
+    const seedHelperFiled = (s: SupabaseScenario) =>
+      seedExpiredDispute(s, { disputed_by: "helper-1" });
+
+    it("escalates to an admin instead of releasing the escrow", async () => {
+      seedHelperFiled(scenario);
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+
+      expect(res.status).toBe(200);
+      // The money did NOT move, and the run says so both ways.
+      expect(body.resolved).toBe(0);
+      expect(body.ids).toEqual([]);
+      expect(body.escalated_helper_filed).toBe(1);
+      expect(body.escalated_helper_filed_ids).toEqual([JOB_ID]);
+
+      // Exactly one write to `jobs`, and it is the escalation — not a payout.
+      const jobWrites = writesTo("jobs");
+      expect(jobWrites).toHaveLength(1);
+      expect(jobWrites[0].payload).toEqual({ dispute_status: "escalated" });
+      // Asserting the ABSENCE of the payout keys is the point of the test: a
+      // payload merely "containing" dispute_status would still pass if the
+      // release fields came back.
+      expect(jobWrites[0].payload).not.toHaveProperty("payment_status");
+      expect(jobWrites[0].payload).not.toHaveProperty("status");
+      expect(jobWrites[0].payload).not.toHaveProperty("payout_scheduled_at");
+
+      // Same chargeback-race guard the release path uses, plus the row-count
+      // check — a null error on a zero-row update must not read as "escalated".
+      expect(jobWrites[0].filters).toEqual(
+        expect.arrayContaining([{ op: "eq", column: "payment_status", value: "escrow" }]),
+      );
+      expect(jobWrites[0].selectCols).toBe("id");
+
+      // The record is NOT settled: settle_dispute_record writes payout_split
+      // and is terminal, so closing it here would stamp "Helpr 100%" on a
+      // dispute no human has decided.
+      expect(rpcCalls("settle_dispute_record")).toHaveLength(0);
+    });
+
+    it("tells the admins, since nothing else will", async () => {
+      seedHelperFiled(scenario);
+      const h = await load();
+      await h.fetch(cronReq());
+
+      const notified = writesTo("notifications", "insert");
+      const rows = notified.flatMap((w) =>
+        Array.isArray(w.payload) ? w.payload : [w.payload],
+      ) as Record<string, unknown>[];
+      const admins = rows.filter((r) => r.title === ESCALATED);
+      expect(admins.map((r) => r.user_id).sort()).toEqual([ADMIN_A, ADMIN_B]);
+      // The message has to say the escrow was withheld — an admin reading
+      // "dispute overdue" would reasonably assume it had already settled.
+      expect(String(admins[0].message)).toContain("NOT auto-released");
+      // Addressed to admins only, so it must not sit in a party-facing
+      // severity bucket (N-011).
+      expect(admins[0].type).toBe("admin_alert");
+    });
+
+    it("still auto-releases a POSTER-filed dispute — the default is unchanged", async () => {
+      // The counterparty's silence is what loses them the dispute. A poster who
+      // raised a complaint and then went quiet for 72 hours still forfeits.
+      seedExpiredDispute(scenario, { disputed_by: "poster-1" });
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+
+      expect(body.resolved).toBe(1);
+      expect(body.escalated_helper_filed).toBe(0);
+      expect(writesTo("jobs")[0].payload).toMatchObject({
+        status: "completed",
+        payment_status: "payout_pending",
+        dispute_status: "auto_resolved",
+      });
+      expect(rpcCalls("settle_dispute_record")).toHaveLength(1);
+    });
+
+    it("does not escalate a job with no helper on it", async () => {
+      // `disputed_by === helper_id` must not match null === null on an
+      // ownerless job (account deletion nulls helper_id), which would divert
+      // an ordinary poster-filed dispute to an admin forever.
+      seedExpiredDispute(scenario, { disputed_by: null, helper_id: null });
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      expect((await json(res)).escalated_helper_filed).toBe(0);
+    });
+  });
+
   // ── 2. Reminder dedupe ───────────────────────────────────────────────────
   describe("escalated-dispute reminders", () => {
     function seedEscalated(s: SupabaseScenario, alreadySent: Record<string, unknown>[] = []) {

@@ -39,7 +39,7 @@
 //   APPLE_IAP_BUNDLE_ID    the app bundle id
 //   APPLE_IAP_ENVIRONMENT  "production" | "sandbox" (optional; we probe both)
 
-import type { ProTierKey, ProBillingCycle } from "./proTiers.ts";
+import { ONE_TIME_PASS_DAYS, type ProTierKey, type ProBillingCycle } from "./proTiers.ts";
 
 /**
  * Read a Deno env var without naming the `Deno` global at module scope.
@@ -229,7 +229,10 @@ export function resolveProduct(productId: string): ProductMeta | null {
 /**
  * The `subscription_expires_at` a transaction grants.
  *   auto-renewable → Apple's expiresDate (renewals push it forward by webhook)
- *   one-time perk   → one year from purchase, matching the web one-time pass
+ *   one-time pass   → ONE_TIME_PASS_DAYS from purchase — the SAME window the
+ *                     web pass gets from stripe-webhook. This said "one year"
+ *                     and granted 365 days until 2026-09-07; the web pass and
+ *                     the UI copy both say 30.
  * Returns null when the purchase has been revoked or refunded.
  */
 export function computeExpiry(tx: AppleTransaction, meta: ProductMeta): string | null {
@@ -238,7 +241,7 @@ export function computeExpiry(tx: AppleTransaction, meta: ProductMeta): string |
     return tx.expiresDate ? new Date(tx.expiresDate).toISOString() : null;
   }
   const base = tx.purchaseDate ?? Date.now();
-  return new Date(base + 365 * 24 * 60 * 60 * 1000).toISOString();
+  return new Date(base + ONE_TIME_PASS_DAYS * 24 * 60 * 60 * 1000).toISOString();
 }
 
 /**

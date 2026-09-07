@@ -76,6 +76,17 @@
 // below advertises it, so it reads the number rather than restating it — no
 // cycle: productPrices imports only lib/format, which imports nothing.
 import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
+// The early-access minute counts are DERIVED, never retyped. Every bullet
+// below used to state its own literal ("10-min early access"), which made the
+// storefront's promise a second, independent copy of a number Postgres
+// enforces — and `earlyAccess.parity.test.ts` only ever pinned the SQL to
+// `earlyAccess.ts`, not to these strings. Reading them through the module the
+// parity test already grades puts the copy inside that guard. No cycle:
+// earlyAccess.ts imports nothing.
+import {
+  MAX_EARLY_ACCESS_DELAY_MINUTES,
+  earlyAccessHeadStartMinutes,
+} from "@/lib/earlyAccess";
 // The display NAMES live in `_shared/tierNames.ts` so the edge functions that
 // print a tier at a user (expire-subscriptions' "your pass ended" notice, the
 // Helpr Pass wallet TIER field) read the SAME strings as the app — a Deno
@@ -146,7 +157,18 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     dedicatedSupport: false,
     tagline: "No commitment",
     ctaLabel: "Current Plan",
-    featureBullets: ["Access to all open jobs", "Basic applicant visibility"],
+    // "Access to all open jobs" full stop was true but incomplete, and it was
+    // the ONLY thing the app ever told a Helpr about the early-access gate:
+    // free members wait MAX_EARLY_ACCESS_DELAY_MINUTES before a new job is
+    // visible to them at all (`public.early_access_cutoff()`), and nothing on
+    // any surface said so. It also left every paid tier's "N-min early access"
+    // bullet measured against a baseline the reader had never been given —
+    // early compared to WHAT. Naming the wait here is the disclosure and the
+    // upsell in one line.
+    featureBullets: [
+      `All open jobs, ${MAX_EARLY_ACCESS_DELAY_MINUTES} min after posting`,
+      "Basic applicant visibility",
+    ],
   },
   basic: {
     name: TIER_DISPLAY_NAMES.basic,
@@ -168,7 +190,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     featureBullets: [
       "Helpr Badge",
       "Instant Payouts",
-      "5-min early access",
+      `${earlyAccessHeadStartMinutes("basic")}-min early access`,
       `${BOOST_DISCOUNT_PCT}% off Job Boosts`,
     ],
   },
@@ -187,7 +209,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     featureBullets: [
       "Priority Placement",
       "Portfolio Showcase",
-      "10-min early access",
+      `${earlyAccessHeadStartMinutes("pro")}-min early access`,
       "1 free Job Boost every month",
       "Advanced Analytics",
     ],
@@ -212,7 +234,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     // which both storefronts render prominently and separately (which is why
     // fees are deliberately absent from every tier's bullets). Do not pad this
     // list with a perk that isn't built.
-    featureBullets: ["15-min early access"],
+    featureBullets: [`${earlyAccessHeadStartMinutes("plus")}-min early access`],
   },
   elite: {
     name: TIER_DISPLAY_NAMES.elite,
@@ -233,7 +255,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     ctaLabel: "Upgrade",
     featureBullets: [
       "Featured Crown Badge",
-      "20-min early access",
+      `${earlyAccessHeadStartMinutes("elite")}-min early access`,
       "Free unlimited Job Boosts",
       // Fits ONE line on the in-app Membership card, which is the tightest
       // surface: its bullets get 160.6px at 402pt (the price column takes the

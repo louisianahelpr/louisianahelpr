@@ -80,24 +80,41 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
     // Brand-aligned: liquid-glass surface (was dashed border + bg-muted/30),
     // Sparkles icon in a sienna-tinted circle, font-display italic title.
     // Reads as a premium value-add instead of a developer-debug widget.
-    <div className="rounded-2xl liquid-glass overflow-hidden flex flex-col justify-center" style={{ minHeight: "104px" }}>
+    //
+    // The header row is a CLONE of the Repost / Use-a-Template rows in
+    // EntryChoice, class for class, because all three are the same control on
+    // the same stack and were built from two different components. This one
+    // used a 36px icon, `gap-3`, `px-4 py-3` and a `text-ds-15` title against
+    // the siblings' 44px / `gap-4` / `p-4` / `text-ds-17`, which put its title
+    // at x=97 while theirs sat at x=109 — three cards in one column, visibly
+    // out of line at 375. Any change to this row belongs in BOTH files.
+    // (The old markup also put `<div>`/`<p>` inside a `<button>`, which is
+    // invalid content for a button; the sibling's all-`<span>` shape isn't.)
+    <div className="rounded-2xl liquid-glass overflow-hidden p-4 min-h-[104px] flex flex-col justify-center">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-3 w-full text-left px-4 py-3 active:scale-[0.99] transition-transform"
+        className="w-full flex items-center gap-4 text-left min-h-[72px] active:scale-[0.99] transition-transform"
         aria-expanded={open}
       >
-        <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}>
-          <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} />
-        </div>
-        <div className="flex-1 min-w-0 break-words">
-          <p className="font-display italic font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+        <span
+          className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
+          style={{ background: "hsl(var(--burnt-sienna) / 0.14)" }}
+          aria-hidden
+        >
+          <Sparkles className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span
+            className="block font-display italic font-bold text-ds-17"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+          >
             Try the AI Job Builder
-          </p>
-          <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          </span>
+          <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Describe your job and let AI fill the form.
-          </p>
-        </div>
+          </span>
+        </span>
         {/* Same rotating ChevronDown the sibling expander rows on this
             step use (Repost / Use a template in EntryChoice) — this row was
             the only one signalling "expandable" with a text button. */}
@@ -108,7 +125,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
         />
       </button>
       {open && (
-        <div className="space-y-2 px-4 pb-4">
+        <div className="space-y-2 mt-3">
           <div className="h-px bg-border/50" />
           <Textarea
             aria-label="Describe your job"

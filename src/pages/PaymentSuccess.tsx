@@ -30,17 +30,36 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { report } from "@/lib/errorLogger";
 import { safeStorage } from "@/lib/safeStorage";
-import { formatPrice } from "@/lib/format";
+// formatPriceExact, not formatPrice: the sentences below state a sum of money
+// that is ACTUALLY SITTING IN ESCROW. See the note at the render site.
+import { formatPriceExact } from "@/lib/format";
 import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { shareNative } from "@/lib/nativeShare";
+// The visibility delay is DERIVED, never retyped — `public.early_access_cutoff()`
+// is the enforcement point and `earlyAccess.ts` is the client mirror the parity
+// test already pins it to. See the "Posted" caption below.
+import { MAX_EARLY_ACCESS_DELAY_MINUTES } from "@/lib/earlyAccess";
 
 // Visual lifecycle preview — replaces the dense paragraph that used to
 // sit in this same slot. Keeps the same content (4 stages from job-state
 // machine: open → accepted → in_progress → completed) but presents it
 // as scannable steps so customers know what to expect next.
 const LIFECYCLE_STEPS = [
-  { icon: Megaphone, label: "Posted", caption: "Your job is live for nearby Helprs." },
+  // "Your job is live for nearby Helprs." was not true for most of the people
+  // it was about. `public.early_access_cutoff()` holds a brand-new job back
+  // from anyone without the early-access perk for
+  // MAX_EARLY_ACCESS_DELAY_MINUTES — Elite sees it at once, Free waits the
+  // full window — so the poster was told their job had reached an audience
+  // that, for the largest tier by far, could not see it yet. That reads as a
+  // dead feed rather than as a delay, and it is the reason a poster gets no
+  // applicants for twenty minutes and assumes nobody wants the job. Saying so
+  // costs one clause and turns a silent wait into an expected one.
+  {
+    icon: Megaphone,
+    label: "Posted",
+    caption: `Live now — nearby Helprs see it within ${MAX_EARLY_ACCESS_DELAY_MINUTES} min.`,
+  },
   { icon: Handshake, label: "Accepted", caption: "You review applicants and pick one." },
   { icon: Hammer, label: "In progress", caption: "Helpr arrives and gets to work." },
   { icon: Wallet, label: "Released", caption: "Both confirm — payment goes out." },
@@ -414,12 +433,21 @@ const PaymentSuccess = () => {
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             aria-live="polite"
           >
+            {/* `formatPriceExact`, NOT `formatPrice`. These two sentences assert
+                a specific sum of money that is really in escrow — "$X is held
+                securely", "$X was paid and has already been released". A
+                rounded assertion about a real balance is just a false one:
+                `formatPrice` rounds to the nearest dollar, so a $136.40 escrow
+                read "$136 is held securely" (understating what the poster paid)
+                and a $136.60 escrow read "$137" (claiming 40c that is not
+                there). This is a receipt, which is exactly what
+                `formatPriceExact` is for. */}
             {isHeld ? (
               alreadyReleased ? (
                 escrowAmount != null ? (
                   <>
                     <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                      ${formatPrice(escrowAmount)}
+                      ${formatPriceExact(escrowAmount)}
                     </span>{" "}
                     was paid and has already been released to your helper.
                   </>
@@ -429,7 +457,7 @@ const PaymentSuccess = () => {
               ) : escrowAmount != null ? (
                 <>
                   <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                    ${formatPrice(escrowAmount)}
+                    ${formatPriceExact(escrowAmount)}
                   </span>{" "}
                   is held securely — released when you confirm the work is done.
                 </>

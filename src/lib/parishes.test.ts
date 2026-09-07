@@ -26,6 +26,19 @@ const SEED_SQL = "supabase/migrations/20260418042714_4ba9bea1-f204-429a-bda3-b6e
  * that were wrong. Later migrations win, as they do in Postgres.
  */
 const FIX_SQL = "supabase/migrations/20260904211910_correct_zip_parish_seed.sql";
+/**
+ * The 2026-09-06 completion pass. The table was a SAMPLE — 252 of Louisiana's
+ * 720 ZIP codes, 35% — and that was invisible from the inside because all 64
+ * parishes were present, so every coverage check that counted parishes passed.
+ * The other 468 ZIPs resolved to a NULL parish, and a NULL parish is a member
+ * no job fan-out reaches — it matches on `p.parish = NEW.parish` and consults
+ * no coordinate, so a device fix does not rescue them even when there is one.
+ *
+ * Read here for the same reason FIX_SQL is: later migrations win, as they do in
+ * Postgres, and a registry derived from the earlier files alone would now claim
+ * Orleans has 17 ZIPs when the database says 56.
+ */
+const FULL_SQL = "supabase/migrations/20260907051306_complete_louisiana_zip_parish_table.sql";
 
 interface SeedRow { zip: string; parish: string; city: string }
 
@@ -58,6 +71,19 @@ const readSeed = (): SeedRow[] => {
     const row = byZip.get(m[1]);
     if (row) { row.parish = m[2]; row.city = m[3]; }
   }
+  // The completion pass is `ON CONFLICT (zip_code) DO UPDATE`, so unlike the
+  // original seed it both adds and overwrites — set, don't skip.
+  //
+  // Its tuples are FIVE columns, not three: `('70001','Jefferson','Metairie',
+  // 29.982705,-90.169068)`. Hence the trailing comma in the pattern rather than
+  // a closing paren — matching on `')` here would silently match NOTHING, the
+  // derived set would fall back to the 252-row sample, and every comparison
+  // below would fail with a confusing diff rather than an obvious one. (The
+  // "reads a non-trivial seed" test exists precisely to catch that.)
+  const full = readFileSync(FULL_SQL, "utf8");
+  for (const m of full.matchAll(/\('(\d{5})','([^']+)','([^']+)',/g)) {
+    byZip.set(m[1], { zip: m[1], parish: m[2], city: m[3] });
+  }
   return [...byZip.values()];
 };
 
@@ -67,8 +93,23 @@ describe("PARISHES registry", () => {
   it("reads a non-trivial seed (guards the regex silently matching nothing)", () => {
     // Without this, every set-comparison below would pass vacuously if the
     // migration were reformatted and the regex stopped matching.
-    expect(seed.length).toBe(252); // 260 in the file, 8 lost to the primary key
-    expect(new Set(seed.map((r) => r.parish)).size).toBeGreaterThan(60);
+    expect(seed.length).toBe(720); // every Louisiana ZIP code
+    expect(new Set(seed.map((r) => r.parish)).size).toBe(64);
+  });
+
+  it("covers Louisiana, not a sample of it", () => {
+    // The defect this file is the memorial to: the table held 252 rows and
+    // looked complete because all 64 parishes were represented. Counting
+    // parishes cannot see a missing ZIP, so count ZIPs — and assert the shape
+    // of the ZIP space itself, which a truncated re-seed would break.
+    const zips = seed.map((r) => r.zip).sort();
+    expect(new Set(zips).size).toBe(720);
+    // Louisiana's ZIP prefixes run 700xx–714xx, plus 71749 (Junction City,
+    // which straddles the Arkansas line and is filed under Union).
+    for (const zip of zips) expect(Number(zip)).toBeGreaterThanOrEqual(70001);
+    for (const zip of zips) expect(Number(zip)).toBeLessThanOrEqual(71749);
+    // Every parish must hold at least one ZIP, or someone there is unreachable.
+    for (const parish of PARISHES) expect(parish.zipCount, parish.name).toBeGreaterThan(0);
   });
 
   it("covers exactly the parish names the seed writes", () => {
@@ -137,9 +178,20 @@ describe("parish lookups", () => {
 
 describe("parishForCity (signup ZIP/city sanity hint)", () => {
   it("resolves a listed city to its parish, case-insensitively", () => {
-    expect(parishForCity("New Orleans")?.name).toBe("Orleans");
-    expect(parishForCity("new orleans")?.name).toBe("Orleans");
-    expect(parishForCity("  Baton Rouge  ")?.name).toBe("East Baton Rouge");
+    expect(parishForCity("Baton Rouge")?.name).toBe("East Baton Rouge");
+    expect(parishForCity("baton rouge")?.name).toBe("East Baton Rouge");
+    expect(parishForCity("  Shreveport  ")?.name).toBe("Caddo");
+  });
+
+  it("refuses to guess New Orleans, which is a Jefferson Parish city too", () => {
+    // This used to assert Orleans, and that was safe only while the registry
+    // was a 252-ZIP sample. Complete, it shows five ZIPs whose USPS city is
+    // "New Orleans" but which sit in JEFFERSON — 70121 (Harahan), 70123
+    // (Elmwood) and three PO-box ZIPs. Resolving the name to Orleans would
+    // hand every one of those residents a mismatch warning telling them their
+    // own correct address is wrong. Silence is the right answer here, and it
+    // is the ambiguity rule working on real data rather than a regression.
+    expect(parishForCity("New Orleans")).toBeNull();
   });
 
   it("returns null for a city not in the registry — NOT evidence of a mismatch", () => {
@@ -189,9 +241,12 @@ describe("parishForCity (signup ZIP/city sanity hint)", () => {
     // the Sabine one — is among the eight the primary key discarded.
     //
     // So the assertion is now over whatever duplicates exist rather than over a
-    // named town: if one appears, `parishForCity` must refuse to guess. Today
-    // there are none, and that is recorded rather than asserted, because a
-    // future duplicate would be legitimate data, not a regression.
+    // named town: if one appears, `parishForCity` must refuse to guess.
+    //
+    // Completing the table to all 720 ZIPs (20260907051306) produced exactly
+    // one: "New Orleans", which is the USPS city for five Jefferson Parish ZIPs
+    // as well as for all 56 Orleans ones. Legitimate data, not a regression —
+    // see the dedicated test above.
     const countsByCity = new Map<string, number>();
     for (const parish of PARISHES) {
       for (const city of parish.cities) {

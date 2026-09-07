@@ -38,7 +38,7 @@ const UPGRADE_TIER: SubscriptionTier = "pro";
 const WHAT_YOU_GET = [
   "Earnings and platform fees month by month, with what your plan saved you",
   "Which job types pay you best — and how your rates compare to what's being posted",
-  "Your application win rate, and how your speed stacks up against the helper who won",
+  "Your application win rate, and how your speed stacks up against the Helpr who won",
   "When jobs get posted in your parish, hour by hour",
 ];
 

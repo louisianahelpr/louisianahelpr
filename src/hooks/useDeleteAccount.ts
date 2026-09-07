@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
+import { clearPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 
 /**
@@ -55,6 +56,8 @@ export interface UseDeleteAccount {
     setDeleteConfirmText: (value: string) => void;
     deletingAccount: boolean;
     onDelete: () => void;
+    accountDeleted: boolean;
+    onAcknowledgeDeleted: () => void;
   };
 }
 
@@ -64,6 +67,43 @@ export function useDeleteAccount(): UseDeleteAccount {
   const [step, setStep] = useState<1 | 2>(1);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  // True once the server has confirmed the account is gone. Drives the
+  // dialog's final panel — the confirmation the flow never had.
+  const [deleted, setDeleted] = useState(false);
+
+  // `finish` can be reached twice from one tap. "Done" is a
+  // `DialogSecondaryAction` inside a `role="alertdialog"`, so dialog.tsx wraps
+  // it in `DialogPrimitive.Close` (see MaybeClose) — the click fires our
+  // handler AND `onOpenChange(false)`, and both routes lead here.
+  const finishing = useRef(false);
+
+  /**
+   * Sign out and leave. Runs ONLY after the account is confirmed gone, and
+   * cannot report failure — see `handleDelete` for why that matters.
+   */
+  const finish = async () => {
+    if (finishing.current) return;
+    finishing.current = true;
+    try {
+      await signOutWithPushCleanup();
+    } catch (err) {
+      // The account no longer exists, so a failed sign-out is a local cleanup
+      // problem, not a deletion problem, and it must never be shown to the
+      // user as one. Logged rather than swallowed.
+      console.error("[deleteAccount] sign-out after deletion failed", err);
+      // But it cannot just be logged, either. The token that `signOut()` failed
+      // to remove is exactly what `MarketingRedirect` reads on `/`, so leaving
+      // it behind sends the user to `/dashboard` as a signed-in user of an
+      // account that no longer exists — measured 2026-09-06 with the sign-out
+      // forced to reject: URL `/dashboard`, greeting rendered, token still in
+      // localStorage. Pulling the key is the floor under a failed sign-out.
+      clearPersistedAuthToken();
+    }
+    setOpen(false);
+    setDeleted(false);
+    setDeleting(false);
+    navigate("/", { replace: true });
+  };
 
   const handleDelete = async () => {
     if (confirmText !== UI_CONFIRM_PHRASE) return;
@@ -73,8 +113,6 @@ export function useDeleteAccount(): UseDeleteAccount {
         body: { confirmation: SERVER_CONFIRM_PHRASE },
       });
       if (error) throw error;
-      await signOutWithPushCleanup();
-      navigate("/");
     } catch (err: unknown) {
       // `functionErrorMessage` recovers the edge function's real reason from
       // the response body — the SDK's own `.message` is just "non-2xx". That
@@ -82,23 +120,74 @@ export function useDeleteAccount(): UseDeleteAccount {
       // sentence telling the user what to do next (settle escrow, finish the
       // job, retry after a partial purge).
       toast.error(await functionErrorMessage(err, "Couldn't delete your account — try again?"));
-    } finally {
       setDeleting(false);
+      return;
     }
+
+    // ── PAST THIS LINE THE ACCOUNT IS GONE ─────────────────────────────────
+    // Nothing below may report a failure, and nothing below may be inside the
+    // `try` above. It used to be: `invoke` / `signOutWithPushCleanup()` /
+    // `navigate("/")` sat in ONE try block under one catch, so any failure in
+    // the sign-out — which happens AFTER the purge and after
+    // `auth.admin.deleteUser` — surfaced as "Couldn't delete your account —
+    // try again?" and skipped the navigate, leaving the person on their own
+    // profile page, still holding a session token, being told the most
+    // irreversible action in the app had not happened. It had.
+    //
+    // Reproduced 2026-09-06 against the real /profile screen with the delete
+    // stubbed 200 and `supabase.auth.signOut` forced to reject: dialog closed,
+    // URL still /profile, avatar and name still rendered, auth token still in
+    // localStorage, and the only feedback was that toast. `auth.signOut()` can
+    // genuinely reject — auth-js throws `NavigatorLockAcquireTimeoutError` out
+    // of `_acquireLock` when another tab holds the storage lock — so this was
+    // reachable, not theoretical. External QA reported exactly that screen.
+    setDeleting(false);
+    setDeleted(true);
   };
 
+  // The dialog must stay mounted and open for as long as the flow owns the
+  // screen — INCLUDING after the button that started it has already closed it.
+  //
+  // "Delete Forever" is a `DialogDestructiveAction`, and inside a
+  // `role="alertdialog"` dialog.tsx wraps those in `DialogPrimitive.Close`
+  // (`MaybeClose`) so every confirm button dismisses its own dialog. That is
+  // the house convention and it is correct for the 43 confirms written against
+  // it — but it means the popup is gone the instant the tap lands, while the
+  // request it fired is still in the air. The old flow never noticed because
+  // it navigated away on success; a flow that has something left to SAY does.
+  // Deriving `open` here rather than trying to suppress that Close keeps this
+  // independent of Radix's event ordering: React batches the click's state
+  // updates, so the very next render already sees `deleting`.
+  const shouldBeOpen = open || deleting || deleted;
+
   return {
-    requestDelete: () => { setStep(1); setConfirmText(""); setOpen(true); },
-    isOpen: open,
+    requestDelete: () => {
+      finishing.current = false;
+      setStep(1);
+      setConfirmText("");
+      setDeleted(false);
+      setOpen(true);
+    },
+    isOpen: shouldBeOpen,
     dialogProps: {
-      open,
-      onOpenChange: setOpen,
+      open: shouldBeOpen,
+      // While the confirmation is up, dismissing it is the same act as
+      // pressing Done: the account is gone either way, so the one thing that
+      // must not happen is being returned to a signed-in app.
+      onOpenChange: (next: boolean) => {
+        // A delete already sent cannot be called back, so a dismiss while it is
+        // in flight is ignored rather than obeyed.
+        if (!next && deleted) { void finish(); return; }
+        setOpen(next);
+      },
       deleteStep: step,
       setDeleteStep: setStep,
       deleteConfirmText: confirmText,
       setDeleteConfirmText: setConfirmText,
       deletingAccount: deleting,
       onDelete: () => { void handleDelete(); },
+      accountDeleted: deleted,
+      onAcknowledgeDeleted: () => { void finish(); },
     },
   };
 }

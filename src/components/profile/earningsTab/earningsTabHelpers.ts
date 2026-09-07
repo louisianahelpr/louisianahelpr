@@ -128,3 +128,86 @@ export const earnedRangeLabel = (range: "lifetime" | "week" | "month" | "year"):
     : range === "month"
     ? "earned this month"
     : "earned this year";
+
+// ─── WHAT COUNTS AS THE HELPER'S MONEY ──────────────────────────────────────
+//
+// Reported 2026-09-06 by external QA: a helper finished a job, watched the
+// poster approve it, opened Earnings & Payouts and read "$0.00 · total earned
+// · 0 jobs" — while My Jobs → Done showed the same job at $105 with its proof
+// photos. The money was not lost; it was invisible.
+//
+// `jobs.status` alone cannot answer "is this mine?". A job is `completed` the
+// moment the work is signed off, and stays `completed` through a refund and
+// through a chargeback. `jobs.payment_status` is the half that says where the
+// money went, and these three buckets are the whole vocabulary this screen
+// needs. The CHECK constraint on the column (migration 20260824210000) admits
+// ten values; `earningsPaymentState.test.ts` reads that migration and fails if
+// any of them is left unclassified here, so a new state cannot quietly join
+// the "earned" side by default.
+//
+//   escrow            funded by the poster, work not signed off.
+//                     NOT the helper's money yet — it can still be refunded.
+//   payout_pending    the poster approved. `auto-release-payment` set
+//                     `payout_scheduled_at = now + PAYOUT_HOLD_HOURS` and the
+//                     transfer has not fired. OWED, and for that whole window
+//                     it sits on the PLATFORM balance — in neither Stripe
+//                     bucket the wallet reads, which is exactly why it read
+//                     $0.00 in both.
+//   released          `release-payout` / `process-scheduled-payouts` created
+//                     the Stripe transfer. In the helper's Stripe balance now.
+//
+// Everything else — unpaid, refunded, cancelled, abandoned, failed,
+// chargeback, cancelling — is money that never arrived or went back. None of
+// it is earnings, and `refunded`/`chargeback` are reachable on a `completed`
+// job (a dispute resolved for the poster, or a card dispute after the fact),
+// so the old `status === "completed"` test counted them.
+
+/** Transfer fired: the money is in the helper's Stripe balance. */
+export const PAID_OUT_PAYMENT_STATUSES = ["released"] as const;
+
+/** Approved and scheduled, but still on the platform's balance. */
+export const AWAITING_TRANSFER_PAYMENT_STATUSES = ["payout_pending"] as const;
+
+/** Money the helper has earned: committed to them, whether or not it moved. */
+export const EARNED_PAYMENT_STATUSES: readonly string[] = [
+  ...AWAITING_TRANSFER_PAYMENT_STATUSES,
+  ...PAID_OUT_PAYMENT_STATUSES,
+];
+
+/** Money that never arrived, or went back to the poster. Never earnings. */
+export const UNEARNED_PAYMENT_STATUSES: readonly string[] = [
+  "unpaid",
+  "escrow",
+  "refunded",
+  "cancelled",
+  "abandoned",
+  "failed",
+  "chargeback",
+  "cancelling",
+];
+
+type MoneyJob = { status: string; payment_status?: string | null };
+
+/**
+ * Did this job earn the helper money?
+ *
+ * A NULL `payment_status` on a completed job is treated as earned. Prod holds
+ * zero such rows today (every `completed` row is `payout_pending` or
+ * `released`), so this branch is purely defensive about legacy history — and
+ * the failure it guards against is removing money from a helper's own screen,
+ * which is worse than the one it would prevent.
+ */
+export const isEarnedJob = (job: MoneyJob): boolean =>
+  job.status === "completed" &&
+  (job.payment_status == null || EARNED_PAYMENT_STATUSES.includes(job.payment_status));
+
+/**
+ * Earned, approved, and still waiting on the transfer — the state that has no
+ * home in either Stripe balance and so must be stated by us or by nobody.
+ */
+export const isAwaitingTransfer = (job: MoneyJob): boolean =>
+  job.status === "completed" &&
+  !!job.payment_status &&
+  AWAITING_TRANSFER_PAYMENT_STATUSES.includes(
+    job.payment_status as (typeof AWAITING_TRANSFER_PAYMENT_STATUSES)[number],
+  );

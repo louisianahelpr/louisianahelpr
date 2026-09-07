@@ -53,6 +53,12 @@ const joinList = (parts: string[]): string =>
 const emailSkipCopy = (ch: TestChannel): string => {
   switch (ch.reason) {
     case "email_disabled": {
+      // The master is a column of its own now, so the server can name it as
+      // the thing that suppressed the send. It has no row in `rows` and so no
+      // entry in EMAIL_PREF_LABEL — without this case it would fall through to
+      // "email is turned off for this category", which points at a category
+      // switch that is not the one the user has to flip.
+      if (ch.pref_column === "email_enabled") return "the Email master switch is off";
       const label = ch.pref_column ? EMAIL_PREF_LABEL[ch.pref_column] : undefined;
       return label
         ? `the Email switch for ${label} is off`
@@ -84,6 +90,15 @@ const NotificationPreferences = () => {
   // permission yet); button is disabled with explanatory copy.
   const [pushTokenCount, setPushTokenCount] = useState<number>(0);
   const [sendingTest, setSendingTest] = useState(false);
+  // Deploy-lag guard. `email_enabled` arrives with migration
+  // 20260907032218, which lands via db-deploy.yml while this bundle lands via
+  // Vercel — two pipelines, one merge, a window where the column may not exist
+  // yet. Writing a key Postgres has never heard of fails the whole upsert
+  // (PGRST204), so EVERY toggle on this screen would break for the length of
+  // that window. When the loaded row has no `email_enabled` we keep the old
+  // derived master and strip the key from writes, and the screen behaves
+  // exactly as it did before this change until the column shows up.
+  const [emailMasterColumn, setEmailMasterColumn] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,6 +136,7 @@ const NotificationPreferences = () => {
         // on an older deploy, and the upsert below selectively writes
         // only the keys we care about).
         const row = data as Record<string, unknown>;
+        setEmailMasterColumn("email_enabled" in row);
         setPrefs({
           ...defaultPrefs,
           ...(data as Partial<Prefs>),
@@ -132,6 +148,15 @@ const NotificationPreferences = () => {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Both writers below send the WHOLE prefs object, so both have to drop
+  // `email_enabled` while the column is still deploying (see
+  // `emailMasterColumn`). One place, so the two paths cannot diverge.
+  const writable = (p: Prefs): Record<string, unknown> => {
+    const payload: Record<string, unknown> = { ...p };
+    if (!emailMasterColumn) delete payload.email_enabled;
+    return payload;
+  };
 
   const toggle = async (key: keyof Prefs) => {
     if (!userId) return;
@@ -152,7 +177,7 @@ const NotificationPreferences = () => {
 
     const { error } = await supabase
       .from("notification_preferences")
-      .upsert({ user_id: userId, ...updated } as any, { onConflict: "user_id" });
+      .upsert({ user_id: userId, ...writable(updated) } as any, { onConflict: "user_id" });
 
     setSavingKey(null);
     if (error) {
@@ -176,7 +201,7 @@ const NotificationPreferences = () => {
     setSavingKey(key);
     const { error } = await supabase
       .from("notification_preferences")
-      .upsert({ user_id: userId, ...updated } as any, { onConflict: "user_id" });
+      .upsert({ user_id: userId, ...writable(updated) } as any, { onConflict: "user_id" });
     setSavingKey(null);
     if (error) {
       setPrefs(prefs);
@@ -196,24 +221,39 @@ const NotificationPreferences = () => {
     }
   };
 
-  // Email master switch. There's no dedicated `email_enabled` column
-  // (only `push_enabled` exists server-side), so this reuses the
-  // existing per-category `email_*` plumbing: "on" means at least one
-  // email category is enabled, and toggling flips every email category
-  // exposed in the row list together in one round-trip. This mirrors
-  // how `push_enabled` gates the App column without needing a schema
-  // change.
+  // ── Email master switch — one column, exactly like the Push master ──
+  //
+  // `email_enabled` is a real column (migration 20260907032218) and toggling
+  // it writes THAT COLUMN AND NOTHING ELSE. The eleven `email_*` category
+  // columns keep whatever the user set, so turning the master off and on again
+  // restores their choices instead of resetting them.
+  //
+  // It used to be derived — "on" meant `emailRowKeys.some(...)`, and toggling
+  // blanket-wrote the same value to all eleven columns. Measured 2026-09-06 on
+  // an account with `email_messages`, `email_transit_updates` and
+  // `email_promotions` deliberately off: a master off → on cycle left all
+  // eleven `true`. Muting email for a weekend silently re-subscribed the
+  // account to marketing mail, which is the one category where re-consenting
+  // someone by accident carries legal weight (CAN-SPAM / GDPR). Push never had
+  // the bug precisely because its master was its own column; this is the same
+  // shape, not a second mechanism.
+  //
+  // The `emailMasterColumn` fallback keeps the old derived reading during the
+  // migration/bundle deploy window — see the state declaration above.
   const emailRowKeys = rows.map((r) => r.emailKey);
-  const emailMasterEnabled = emailRowKeys.some((k) => prefs[k]);
+  const emailMasterEnabled = emailMasterColumn
+    ? prefs.email_enabled
+    : emailRowKeys.some((k) => prefs[k]);
   const toggleEmailMaster = () => {
+    if (emailMasterColumn) {
+      void toggle("email_enabled");
+      return;
+    }
+    // Pre-migration only: the destructive blanket write, kept so the control
+    // still does something during the deploy window rather than silently
+    // no-op'ing. It stops being reachable the moment the column lands.
     const newVal = !emailMasterEnabled;
     const patch: Partial<Prefs> = {};
-    // Every email column that has a row — which is now every email column the
-    // pref map routes through, so the master genuinely means "all email off".
-    // It previously missed `email_payments` and `email_system_alerts`
-    // entirely: they had no row here, and unlike `email_job_applications` and
-    // `email_job_updates` they were not hand-patched on afterwards either — so
-    // turning the master off left payment and platform-alert email sending.
     emailRowKeys.forEach((k) => {
       (patch as Record<string, boolean>)[k] = newVal;
     });
@@ -440,10 +480,11 @@ const NotificationPreferences = () => {
             </Label>
           </div>
         </div>
-        {/* Master switches for BOTH columns — App (push_enabled, backed
-            by its own DB column) and Email (derived from the per-category
-            email_* fields — see toggleEmailMaster). Aligned with the App /
-            Email column headers directly below. */}
+        {/* Master switches for BOTH columns, and each one is now backed by its
+            own DB column — `push_enabled` and `email_enabled`. The Email
+            master used to be derived from the per-category `email_*` fields,
+            which is what made it destructive; see toggleEmailMaster. Aligned
+            with the App / Email column headers directly below. */}
         <div className="flex items-center gap-3 min-[360px]:gap-6 shrink-0 ml-1.5 min-[360px]:ml-2">
           <SwitchSlot
             checked={prefs.push_enabled}
@@ -457,13 +498,10 @@ const NotificationPreferences = () => {
             onCheckedChange={toggleEmailMaster}
             disabled={!loaded}
             ariaLabel="Email notifications master toggle"
-            savingId="email_master"
-            // There's no dedicated email_enabled column — "on" here means
-            // "at least one email category is on" (see emailMasterEnabled
-            // above), so it reads as on from a partial state too. Toggling
-            // it always sets every category to the same value; it does not
-            // remember or restore a prior partial mix.
-            title="Turns all email categories on or off together"
+            // `toggle()` names its spinner after the column it writes, so the
+            // id has to follow which path toggleEmailMaster took.
+            savingId={emailMasterColumn ? "email_enabled" : "email_master"}
+            title="Mutes every email below. Your per-category choices are kept."
           />
         </div>
       </div>
@@ -557,8 +595,24 @@ const NotificationPreferences = () => {
               >
                 Quiet Hours
               </Label>
+              {/* Was "Mute non-critical pushes overnight. Security alerts still
+                  fire." — the second sentence is the same false promise as the
+                  old footer. `send-push-notification` returns on
+                  `isInQuietHours(...)` before it loads a single token
+                  (index.ts, the quiet-hours gate), with no exemption for
+                  `warning`, `system_alert` or `admin_alert`: EVERY push is held
+                  inside the window. The in-app bell row is still written by the
+                  trigger that fired the function, so the notification is
+                  waiting when the app opens — which is the true version of the
+                  reassurance and what this now says.
+
+                  Separately, and NOT fixed here: that gate evaluates the window
+                  in UTC because no per-user timezone is stored, so a Louisiana
+                  user's 22:00–07:00 actually mutes 17:00–02:00 local. Reported
+                  to the orchestrator rather than papered over in copy — the
+                  times below deliberately carry no "local" claim. */}
               <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Mute non-critical pushes overnight. Security alerts still fire.
+                Hold pushes overnight. Everything still lands in the bell icon.
               </p>
             </div>
           </div>
@@ -624,7 +678,7 @@ const NotificationPreferences = () => {
         <div
           key={item.key}
           className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${
-            prefs.push_enabled || prefs[item.emailKey] ? "" : "opacity-85"
+            prefs.push_enabled || (emailMasterEnabled && prefs[item.emailKey]) ? "" : "opacity-85"
           } ${saving ? "opacity-80 cursor-wait" : ""}`}
           style={{
             borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
@@ -655,10 +709,16 @@ const NotificationPreferences = () => {
               ariaLabel={`${item.label} push`}
               savingId={item.key}
             />
+            {/* Reads and disables exactly the way the App column does: the
+                switch shows category AND master, and the master being off
+                greys the row rather than rewriting it. That symmetry is the
+                whole point — the stored category value is untouched while the
+                master is off, so flipping the master back on brings the user's
+                own choices back rather than a row of `true`s. */}
             <SwitchSlot
-              checked={prefs[item.emailKey]}
+              checked={prefs[item.emailKey] && emailMasterEnabled}
               onCheckedChange={() => toggle(item.emailKey)}
-              disabled={!loaded}
+              disabled={!loaded || !emailMasterEnabled}
               ariaLabel={`${item.label} email`}
               savingId={item.emailKey}
             />
@@ -735,12 +795,45 @@ const NotificationPreferences = () => {
           borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)",
         }}
       >
+        {/* ── This used to read "Critical security alerts — logins, disputes —
+            can't be turned off." Every clause of it was false, verified
+            against prod 2026-09-06:
+
+            * There is NO sign-in or security notification type. The
+              `notifications_type_check` constraint permits 18 values and 17 of
+              them appear in prod; none is a login alert. The app cannot send
+              the thing the sentence promised.
+            * Disputes reach the two parties as type `warning`, which
+              `notification_type_pref_map` routes to `system_alerts` — an
+              ordinary user-controllable column, switched by the System Alerts
+              row twelve pixels above this line.
+            * Nothing was exempt from the master either: turning the Email
+              master off wrote `email_system_alerts = false` along with
+              everything else.
+
+            The claim is not made true here because it cannot be made true from
+            this file. `warning` is a mixed bag — "Job disputed" and "Account
+            temporarily suspended" share it with "Last chance to review" and
+            "Job expired" (prod counts, 2026-09-06) — so exempting the type
+            would make review-nag mail un-silenceable, which is a worse consent
+            problem than the one being fixed. A genuinely un-silenceable
+            dispute alert needs its own notification type, and the producers
+            that would emit it belong to the disputes lane. Filed with them.
+
+            So this says what the screen actually does, and nothing more. The
+            auth clause is accurate and worth keeping: password resets and
+            sign-in mail come from Supabase Auth (`resetPasswordForEmail`,
+            `src/pages/ForgotPassword.tsx:61`), never through
+            `notification_preferences`, so no switch on this screen can stop
+            them and no switch on this screen claims to. */}
         <Lock className="w-3 h-3 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
         <p
           className="font-serif italic leading-snug text-ds-11"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          Critical security alerts — logins, disputes — can't be turned off.
+          Every alert above follows these switches — including safety and
+          dispute alerts, which arrive under System Alerts. Password and
+          sign-in emails come from our login system and aren't controlled here.
         </p>
       </div>
     </div>

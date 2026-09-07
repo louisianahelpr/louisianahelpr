@@ -156,3 +156,143 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
     });
   });
 });
+
+/**
+ * THE THIRD INSTANCE OF THE SAME BUG — found 2026-09-06, this time on
+ * `public.disputes` rather than `public.jobs`.
+ *
+ * `rpc_withdraw_dispute` closes a dispute with
+ *
+ *     UPDATE public.disputes SET status = 'withdrawn', decided_at = now()
+ *
+ * and `enforce_dispute_opener_column_whitelist` pinned `decided_at` to its old
+ * value for every non-admin caller. The RPC is SECURITY DEFINER, but
+ * `auth.uid()` inside it is still the CALLER — the exact property the file
+ * header above says buys you nothing — so the trigger raised
+ * `only the evidence on a dispute may be changed` (42501) before it ever
+ * reached the `status` carve-out written two lines below for this very RPC.
+ * The poster's "Resolve & Pay" chip, which closes a dispute and releases
+ * escrow, therefore failed 100% of the time from 20260901032007 until
+ * 20260907034644. Reproduced in PGlite with all three bodies copied verbatim
+ * from production; fixed and re-proven the same way.
+ *
+ * What makes it worth its own block: the migration that introduced the pin
+ * ALMOST caught it. Its comment records that the PGlite suite proved a blanket
+ * pin on `status` would break the withdrawal — so the carve-out was written for
+ * `status` and stopped there, while the same UPDATE statement writes a second
+ * column nobody drove. Reading either file alone shows nothing wrong.
+ *
+ * So this does not check `decided_at`. It derives the column list FROM THE
+ * RPC's own UPDATE and requires the guard to have a carve-out for each one,
+ * which is what makes it catch the next column added to that statement rather
+ * than the last one that broke.
+ */
+describe("dispute opener whitelist ↔ rpc_withdraw_dispute", () => {
+  const guard = liveDefinition("enforce_dispute_opener_column_whitelist");
+  const rpc = liveDefinition("rpc_withdraw_dispute");
+
+  /**
+   * Columns `rpc_withdraw_dispute`'s `UPDATE public.disputes SET …` writes.
+   *
+   * SLICE THE FUNCTION BODY OUT FIRST. `liveDefinition` returns a whole
+   * migration FILE, and 20260825190000 — the newest one defining this RPC —
+   * also defines `rpc_open_dispute`, whose existing-dispute branch carries its
+   * own `UPDATE public.disputes SET evidence_urls = …`. Searching the file
+   * found that one instead, and `evidence_urls` is the single column the guard
+   * has always allowed, so the check below passed on the BROKEN trigger. Caught
+   * by running these assertions against the pre-fix definition; a test that
+   * cannot fail on the bug it was written for is worse than no test.
+   */
+  function disputeColumnsWritten(src: string): string[] {
+    const start = src.search(/CREATE OR REPLACE FUNCTION public\.rpc_withdraw_dispute\b/i);
+    expect(
+      start,
+      "no `CREATE OR REPLACE FUNCTION public.rpc_withdraw_dispute` in the migration that " +
+        "defines it — re-read the file before trusting this test.",
+    ).toBeGreaterThan(-1);
+    // plpgsql bodies here are `$function$ … $function$`; take the first pair
+    // after the header so a later function in the same file cannot bleed in.
+    const rest = src.slice(start);
+    const bodyMatch = rest.match(/\$function\$([\s\S]*?)\$function\$/);
+    expect(bodyMatch, "could not delimit rpc_withdraw_dispute's body").toBeTruthy();
+    const body = bodyMatch![1];
+
+    const m = body.match(/UPDATE\s+public\.disputes\s+SET\s+([\s\S]*?)\s+WHERE/i);
+    expect(
+      m,
+      "rpc_withdraw_dispute no longer contains an `UPDATE public.disputes SET … WHERE`. " +
+        "It was restructured — re-read it before trusting this test, do not delete the check.",
+    ).toBeTruthy();
+    const cols = [...m![1].matchAll(/(\w+)\s*=/g)].map((x) => x[1]);
+
+    // The parse must see the status flip. If it does not, it has locked onto
+    // some other statement and every assertion below is meaningless — which is
+    // precisely how this helper first went green against the broken trigger.
+    expect(
+      cols,
+      `parsed ${JSON.stringify(cols)} out of rpc_withdraw_dispute's UPDATE, which does ` +
+        `not include the open -> withdrawn flip. The parse is wrong, not the guard.`,
+    ).toContain("status");
+    return cols;
+  }
+
+  it("permits every column the withdrawal writes", () => {
+    for (const col of disputeColumnsWritten(rpc)) {
+      // A column is PINNED when the guard compares NEW.<col> to OLD.<col> with
+      // nothing qualifying it. A bare comparison is a hard refusal; one carrying
+      // an `AND NOT <carve-out>` is conditional and therefore survivable.
+      const bare = new RegExp(`NEW\\.${col}\\s+IS DISTINCT FROM\\s+OLD\\.${col}\\s*(?:\\r?\\n|$)`, "i");
+      const carved = new RegExp(`NEW\\.${col}\\s+IS DISTINCT FROM\\s+OLD\\.${col}\\s+AND NOT`, "i");
+      const pinnedOutright = bare.test(guard) && !carved.test(guard);
+      expect(
+        pinnedOutright,
+        `enforce_dispute_opener_column_whitelist pins disputes.${col} unconditionally, ` +
+          `but rpc_withdraw_dispute writes it in the same statement that flips the ` +
+          `status. Every call raises 42501 "only the evidence on a dispute may be ` +
+          `changed" and the poster's Resolve & Pay chip is a dead button — the ` +
+          `2026-09-06 bug, exactly.`,
+      ).toBe(false);
+    }
+  });
+
+  it("carves out the withdrawal narrowly — opener only, first stamp only", () => {
+    // The fix must not be "stop pinning decided_at". The carve-out is what
+    // keeps a party from stamping a settlement timestamp in any other context,
+    // and from re-stamping a row that already carries one.
+    expect(
+      guard,
+      "the decided_at carve-out no longer requires the caller to be the opener — " +
+        "the counterparty can now stamp a settlement timestamp.",
+    ).toMatch(/_uid\s*=\s*OLD\.opener_id/);
+    expect(
+      guard,
+      "the decided_at carve-out no longer requires the old value to be NULL — an " +
+        "already-decided dispute can be re-stamped.",
+    ).toMatch(/OLD\.decided_at IS NULL/);
+    expect(
+      guard,
+      "the carve-out is no longer tied to the open -> withdrawn transition.",
+    ).toMatch(/NEW\.status\s*=\s*'withdrawn'/);
+  });
+
+  it("still refuses the settlement columns outright", () => {
+    // The forgeries the trigger was written for. Each must remain a BARE pin —
+    // if one of these ever grows an `AND NOT`, that is a carve-out on the
+    // denial-of-service path and needs justifying, not passing quietly.
+    for (const col of ["decided_by", "decision_text", "payout_split", "opener_id", "reason"]) {
+      const bare = new RegExp(`NEW\\.${col}\\s+IS DISTINCT FROM\\s+OLD\\.${col}\\s*(?:\\r?\\n|$)`, "i");
+      expect(
+        bare.test(guard),
+        `disputes.${col} is no longer pinned outright. A party could forge it, which ` +
+          `is what enforce_dispute_opener_column_whitelist exists to stop.`,
+      ).toBe(true);
+    }
+    expect(guard, "the execution ledger guard is gone").toContain("execution_status");
+  });
+
+  it("the RPC still refuses a non-opener, which is the other half of the gate", () => {
+    // If this ever relaxes, the trigger's opener-scoped carve-out becomes the
+    // only thing standing between the counterparty and a settlement stamp.
+    expect(rpc).toMatch(/_opener\s+IS DISTINCT FROM\s+_uid/i);
+  });
+});

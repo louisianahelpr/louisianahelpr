@@ -361,7 +361,20 @@ describe("F-TRUST-01 — clean legitimate job messages produce zero violations",
  */
 describe("scan_message_content() word-boundary guard (server-side, structural)", () => {
   const MIGRATIONS_DIR = resolve(__dirname, "../../supabase/migrations");
-  const FUNCTION_MARKER = "CREATE OR REPLACE FUNCTION public.scan_message_content()";
+  // The patterns moved on 2026-09-06. scan_message_content() now DELEGATES to
+  // contact_leak_reason(), because the same rule had to guard `applications`
+  // too (a review found phone numbers and emails crossing between strangers
+  // through the application note and the offer message, which no trigger
+  // scanned). So the word-boundary guard this suite protects lives in the
+  // extracted function now.
+  //
+  // Both markers are searched, newest migration first, so this keeps working
+  // whichever function currently owns the patterns — the guard is about the
+  // REGEXES, not about which function houses them.
+  const FUNCTION_MARKERS = [
+    "CREATE OR REPLACE FUNCTION public.contact_leak_reason(",
+    "CREATE OR REPLACE FUNCTION public.scan_message_content()",
+  ];
 
   function latestScanMessageContentBody(): string {
     const files = readdirSync(MIGRATIONS_DIR)
@@ -369,12 +382,19 @@ describe("scan_message_content() word-boundary guard (server-side, structural)",
       .sort(); // filenames are timestamp-prefixed — lexical sort is chronological
     for (let i = files.length - 1; i >= 0; i--) {
       const sql = readFileSync(resolve(MIGRATIONS_DIR, files[i]), "utf8");
-      const start = sql.indexOf(FUNCTION_MARKER);
-      if (start === -1) continue;
-      const end = sql.indexOf("$function$;", sql.indexOf("$function$", start) + 1);
-      return sql.slice(start, end === -1 ? undefined : end);
+      for (const marker of FUNCTION_MARKERS) {
+        const start = sql.indexOf(marker);
+        if (start === -1) continue;
+        const end = sql.indexOf("$function$;", sql.indexOf("$function$", start) + 1);
+        const body = sql.slice(start, end === -1 ? undefined : end);
+        // A delegating body carries no patterns — keep looking for the one that
+        // actually holds them, or this passes vacuously on a two-line wrapper.
+        if (body.includes("venmo")) return body;
+      }
     }
-    throw new Error(`No migration defines ${FUNCTION_MARKER} — the guard itself has drifted`);
+    throw new Error(
+      `No migration defines a body containing the scanner patterns (looked for ${FUNCTION_MARKERS.join(" or ")}) — the guard itself has drifted`,
+    );
   }
 
   const body = latestScanMessageContentBody();

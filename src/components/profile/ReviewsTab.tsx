@@ -176,7 +176,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
           icon={Star}
           illustration={<EmptyStateIllustration variant="reviews" />}
           title="No reviews yet"
-          body="Complete a job and your customer's words will show up here."
+          body="Complete a job and the poster's words will show up here."
           action={
             /* How-reviews-work disclosure — opens a small popover with
                the 4 rating dimensions so new helprs know what's being
@@ -200,7 +200,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
               >
                 <p className="text-display-eyebrow mb-2">After every job</p>
                 <p className="font-display italic font-bold leading-tight mb-2 text-ds-16" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
-                  Customers leave one overall rating.
+                  Posters leave one overall rating.
                 </p>
                 <ul className="space-y-1.5 font-serif italic text-ds-11 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Overall</span> · a 1–5 star summary of the whole job</li>

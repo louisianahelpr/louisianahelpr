@@ -44,7 +44,20 @@ const jobs = Array.from({ length: JOB_COUNT }, (_, i) => ({
   is_group_job: false,
   helpers_needed: 1,
   urgent_fee: 0,
-  payment_status: "paid",
+  // "released" — the transfer fired. NOT "paid", which this fixture carried
+  // until 2026-09-07 and which the database has never accepted: the
+  // `jobs_payment_status_check` constraint admits exactly unpaid, escrow,
+  // payout_pending, released, refunded, cancelled, abandoned, failed,
+  // chargeback and cancelling. A row shaped like the old one could not be
+  // inserted into prod.
+  //
+  // It went unnoticed because the code under test ignored the column — the
+  // earnings screen counted any job with `status === "completed"`, so the
+  // fixture's impossible value never had to mean anything. Both halves were
+  // wrong in the same direction and agreed. The moment `payment_status`
+  // started deciding what counts as earned, the fixture stopped describing a
+  // job that could exist and the count went to zero.
+  payment_status: "released",
 }));
 
 const transfers = Array.from({ length: 8 }, (_, i) => ({

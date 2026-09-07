@@ -105,9 +105,10 @@ supabase secrets set \
   META_IG_USER_ID=<ig user id>
 ```
 
-**Check which project you are linked to first.** `supabase/.temp/project-ref`
-has pointed at *staging* before, and secrets set against the wrong project look
-exactly like secrets that were never set.
+**Check which project you are linked to first.** It must read
+`fncmgoasalhdgfwzhsqa` (prod). `supabase/.temp/project-ref` pointed at a staging
+project until that project was retired 2026-09-07, and secrets set against the
+wrong project look exactly like secrets that were never set.
 
 ---
 

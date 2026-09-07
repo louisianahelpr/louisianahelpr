@@ -6,6 +6,7 @@
 // by src/lib/proTiers.parity.test.ts.
 
 export {
+  ONE_TIME_PASS_DAYS as EDGE_ONE_TIME_PASS_DAYS,
   PRO_PRICE_MAP,
   PRO_RECURRING_AMOUNT_CENTS,
   type ProTierKey,

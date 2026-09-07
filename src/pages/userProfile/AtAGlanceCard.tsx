@@ -326,7 +326,7 @@ export const AtAGlanceCard = ({
       key: "repeat",
       icon: Repeat,
       value: `${Math.round(repeatHirePercent)}%`,
-      label: "Clients who rebooked",
+      label: "Posters who rebooked",
     });
   }
 

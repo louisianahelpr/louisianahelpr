@@ -43,7 +43,18 @@ function publishedTables(): Set<string> {
   return published;
 }
 
-/** Every `table: "x"` that appears alongside a postgres_changes binding. */
+/**
+ * Every table named INSIDE an actual `postgres_changes` binding.
+ *
+ * Precision matters here. This used to collect every `table: "x"` in any file
+ * that mentioned `postgres_changes` anywhere, which swept up unrelated config
+ * — `Admin.tsx:148-154` is a list of plain count-query specs, each with a
+ * `table:` key and no subscription in sight. Those phantom hits were then
+ * "resolved" by adding `profiles` and `referrals` to an allowlist, which in
+ * turn suppressed the REAL offenders sharing those names. So: match only the
+ * binding's own options object, by scanning forward from each
+ * `"postgres_changes"` argument to the end of that `.on(...)` call.
+ */
 function boundTables(): Map<string, string[]> {
   const bindings = new Map<string, string[]>();
   const walk = (dir: string) => {
@@ -55,10 +66,26 @@ function boundTables(): Map<string, string[]> {
       } else if (/\.(ts|tsx)$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) {
         const text = readFileSync(p, "utf8");
         if (!text.includes("postgres_changes")) continue;
-        for (const m of text.matchAll(/table:\s*["']([a-z_]+)["']/g)) {
-          const list = bindings.get(m[1]) ?? [];
-          list.push(p.slice(repoRoot.length + 1));
-          bindings.set(m[1], list);
+        for (const hit of text.matchAll(/["']postgres_changes["']/g)) {
+          // The binding's options object is the next argument. Walk to the end
+          // of the enclosing `.on(...)` call so a `table:` further down the
+          // file cannot be attributed to this binding.
+          let depth = 0;
+          let end = hit.index! + hit[0].length;
+          for (let i = end; i < text.length; i++) {
+            const c = text[i];
+            if (c === "(" || c === "{" || c === "[") depth++;
+            else if (c === ")" || c === "}" || c === "]") {
+              if (depth === 0) { end = i; break; }
+              depth--;
+            }
+          }
+          const binding = text.slice(hit.index!, end);
+          for (const m of binding.matchAll(/table:\s*["']([a-z_]+)["']/g)) {
+            const list = bindings.get(m[1]) ?? [];
+            list.push(p.slice(repoRoot.length + 1));
+            bindings.set(m[1], list);
+          }
         }
       }
     }
@@ -68,19 +95,27 @@ function boundTables(): Map<string, string[]> {
 }
 
 /**
- * KNOWN pre-existing offenders, discovered the day this test landed. Each is
- * a channel that has NEVER delivered (its table is unpublished), i.e. the
- * same defect this test exists to prevent — but they live in files owned by
- * other workstreams, so they are documented here instead of silently fixed:
- *  - profiles: DROPPED from the publication by migration 20260423164103, yet
- *    useCurrentUser.ts and Admin.tsx still bind to it — those channels are
- *    dead (and any binding sharing their channel dies with them).
- *  - notification_logs, referrals: never published; AdminNotificationLogs /
- *    Admin.tsx bindings have never delivered.
- * Fix = publish the table (guarded migration) or delete the binding, then
- * remove the entry here. Do NOT add new entries to ship a new binding.
+ * EMPTY, AND IT MUST STAY EMPTY.
+ *
+ * This used to grandfather `profiles`, `notification_logs` and `referrals`.
+ * That is why the guard read green for months while the bindings it exists to
+ * catch stayed dead: an allowlist that names the actual offenders suppresses
+ * the only signal anyone would have acted on. Both real bindings were deleted
+ * on 2026-09-06 (SF-017) — `useCurrentUser`'s `profile-self-*` channel and
+ * `AdminNotificationLogs`' log tail — so there is nothing left to grandfather.
+ *
+ * (`referrals`, and a second `profiles` hit in `Admin.tsx`, were never real:
+ * `boundTables()` scans every `table: "x"` in any file that mentions
+ * `postgres_changes` ANYWHERE, and `Admin.tsx:148-154` is a plain count-query
+ * spec, not a binding. They were allowlisted for a defect they did not have.)
+ *
+ * Do NOT add an entry here to ship a new binding. If a binding needs a table
+ * the publication does not carry, publish the table in a guarded migration —
+ * and weigh what that broadcast exposes first. `profiles` was DROPPED from the
+ * publication deliberately (20260423164103) to stop broadcasting PII; adding
+ * it back to satisfy this test would reopen that hole.
  */
-const KNOWN_UNPUBLISHED_BINDINGS = new Set(["profiles", "notification_logs", "referrals"]);
+const KNOWN_UNPUBLISHED_BINDINGS = new Set<string>([]);
 
 describe("realtime publication coverage", () => {
   it("every postgres_changes binding targets a published table", () => {

@@ -93,7 +93,7 @@ function manyJobs(customerId: string) {
     boost_expires_at: null,
     expires_at: new Date(now + 7 * 86_400_000).toISOString(),
     recurrence_interval: null,
-    pricing_mode: "fixed",
+    pricing_mode: "set_price",
   }));
 }
 

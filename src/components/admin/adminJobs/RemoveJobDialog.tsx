@@ -40,7 +40,7 @@ export const RemoveJobDialog = ({
         <div className="space-y-3">
           <DialogBody>
             <p>
-              This will cancel the job and notify the poster{detailJob?.helper_id ? " and assigned helper" : ""}. Please provide a reason:
+              This will cancel the job and notify the poster{detailJob?.helper_id ? " and assigned Helpr" : ""}. Please provide a reason:
             </p>
           </DialogBody>
           <Textarea

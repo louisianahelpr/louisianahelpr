@@ -23,7 +23,7 @@
  * which follows the file-share idiom `calendarExport.ts` already established:
  * write a real file, share the `file://` URI, and pass NO sibling text/url item.
  */
-import { formatPriceFloor } from "./format";
+import { formatPriceExact } from "./format";
 // The letterhead, palette and page geometry are SHARED with every other Helpr
 // document (see pdfDocument.ts). They used to be locals in this file; /home-history
 // needed the same masthead, and a second copy is how two records end up with
@@ -45,9 +45,20 @@ export interface WorkRecordDocumentInput {
   /** `profiles.created_at`, ISO. */
   memberSince: string;
   /**
-   * `profiles.stripe_identity_verified` — Stripe Connect's own verdict, cached
-   * by the account.updated webhook. NOT `idv_status` (an upload/admin state
-   * nobody reviews). Nothing else may back this line on a formal record.
+   * The identity verdict, ALREADY RESOLVED by the caller through
+   * `isIdentityVerified` (src/lib/awardGate.ts) — the same rule the hiring gate
+   * applies, which accepts EITHER Stripe Connect's cached verdict
+   * (`profiles.stripe_identity_verified`) or a completed Stripe Identity
+   * session (`profiles.idv_status = 'verified'`).
+   *
+   * This field used to be documented as Connect's verdict alone, explicitly
+   * "NOT `idv_status`". That was right when `idv_status` was an unreviewed
+   * upload flag and is wrong now: it is written by `stripe-idv-webhook` from a
+   * real document + selfie check, migration 20260907013734 made the server gate
+   * accept it, and ten live prod profiles hold it WITHOUT the Connect flag — so
+   * the old rule printed "Not verified" on the record of ten people the app
+   * shows a verified badge to. A formal document may not contradict the
+   * product about the same person.
    */
   identityVerified: boolean;
   jobsCompleted: number;
@@ -293,10 +304,10 @@ export function buildWorkRecordSummaryLines(input: WorkRecordDocumentInput): str
  * The Total Earnings tile used to carry a small "after platform fee"
  * sub-label. The owner had it removed from the PDF on 2026-08-31 and from the
  * SCREEN on the same day, so the two surfaces match again and this list is
- * once more label-for-label identical to `WorkRecord.tsx`. The figure never
- * changed — still take-home, still floored, still what was actually
- * transferred, which is the only defensible number on an employment record.
- * Only the caption is gone. Do not reinstate it on one surface alone.
+ * once more label-for-label identical to `WorkRecord.tsx`. The figure is
+ * take-home — what was actually transferred, the only defensible number on an
+ * employment record. Only the caption is gone. Do not reinstate it on one
+ * surface alone.
  */
 function workRecordStats(
   input: WorkRecordDocumentInput,
@@ -305,9 +316,14 @@ function workRecordStats(
     { label: "Jobs Completed", value: String(input.jobsCompleted) },
     {
       label: "Total Earnings",
-      // Floored, exactly as the on-screen tile is: this is the one number that
-      // must never read a cent above what was actually transferred.
-      value: `$${formatPriceFloor(input.totalEarnings)}`,
+      // EXACT, exactly as the on-screen tile is (both changed 2026-09-06).
+      // `formatPriceFloor` is for money OWED — it exists so a quote can never
+      // read above the payout that follows. Nothing here is owed: this is a
+      // record of transfers that already happened, read by a landlord or a
+      // lender against bank statements, and flooring it printed $105.60 as
+      // "$105". A record states the number; it does not round it in anyone's
+      // favour. Whole amounts still print without cents.
+      value: `$${formatPriceExact(input.totalEarnings)}`,
     },
     { label: "Active Period", value: activePeriod(input) },
     {

@@ -275,12 +275,19 @@ Deno.serve(async (_req) => {
     // drip step. Filtering to `email_promotions = false` server-side would
     // shrink the set, but it would not make an unbounded read complete — it
     // would only move the cliff further out, so the read is paged instead.
-    const promoScan = await scanAll<{ user_id: string; email_promotions: boolean | null }>(
+    //
+    // `email_enabled` is the Email MASTER (migration 20260907032218). Since
+    // that column exists the master no longer writes `false` across the
+    // category columns, so a person with the master OFF and Promotions still
+    // ON is exactly the state "I muted all email" produces — and reading
+    // `email_promotions` alone would mail them. Both gates, read together,
+    // the way send-notification-email reads them.
+    const promoScan = await scanAll<{ user_id: string; email_promotions: boolean | null; email_enabled?: boolean | null }>(
       'notification_preferences',
       (countOpt) =>
         supabase
           .from('notification_preferences')
-          .select('user_id, email_promotions', countOpt)
+          .select('user_id, email_promotions, email_enabled', countOpt)
           .order('id', { ascending: true }),
     )
     if (promoScan.error) {
@@ -304,7 +311,9 @@ Deno.serve(async (_req) => {
       )
     }
     const promoOptedOut = new Set(
-      promoScan.rows.filter((p) => p.email_promotions === false).map((p) => p.user_id),
+      promoScan.rows
+        .filter((p) => p.email_promotions === false || p.email_enabled === false)
+        .map((p) => p.user_id),
     )
 
     const now = new Date()

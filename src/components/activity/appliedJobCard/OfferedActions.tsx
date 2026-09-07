@@ -124,9 +124,19 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           >
             <MessageSquare className="w-3 h-3" /> Message from poster
           </p>
-          <p className="font-serif italic leading-relaxed text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
-            “{app.offer_message}”
-          </p>
+          {/* Same server flag as the applicant note. This is the OTHER
+              direction of the same leak — the poster's message reached the
+              helper verbatim in the 2026-09-06 review. */}
+          {app.flagged_hidden ? (
+            <p className="font-serif italic leading-relaxed text-ds-14" style={{ color: "hsl(var(--burnt-sienna))" }}>
+              This message was hidden — it looked like contact or payment details.
+              Keep the conversation on Helpr so your payment stays protected.
+            </p>
+          ) : (
+            <p className="font-serif italic leading-relaxed text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
+              “{app.offer_message}”
+            </p>
+          )}
         </div>
       )}
       {/* NO "Job starts in" countdown here. This card is the one decision the

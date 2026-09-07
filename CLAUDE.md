@@ -95,9 +95,10 @@ floats in a lopsided column with blank bands has failed the audit.
   closed panel is not a narrower rail, it is no rail.
 
   Two things to know before trusting this paragraph OR the code around it.
-  `index.css`'s own comment above the `#root` rule still describes the rail as
-  "pinned at the viewport's left edge" while the declaration under it pads
-  RIGHT; the comment is stale, the declaration is authoritative. And `.desktop-rail`
+  `index.css`'s comment above the `#root` rule USED to say "pinned at the
+  viewport's left edge" while the declaration pads RIGHT; it is corrected now
+  (`src/index.css:1193`), but the lesson stands: the declaration is
+  authoritative, never the prose beside it. And `.desktop-rail`
   is not present for a guest at all — measured at 1440 on `/`, `/legal` and
   `/browse`, `<html>` carries only `web-desktop side-panel-open`, so none of
   this fires until you are signed in.
@@ -121,6 +122,107 @@ floats in a lopsided column with blank bands has failed the audit.
   centered in the available area with no rail-width dead band. Screenshot both.
 
 ## Working rules
+
+- **Fix the EXACT thing named. Never guess the element, the look, or the
+  scope, and never touch what sits next to it.** If the ask is ambiguous, ask —
+  do not pick an interpretation and edit. Related and separate: **dead or no-op
+  code you happen to notice is a REPORT, not a task.** The `.squircle` incident
+  was a blanket change to a shared class made because it looked unused; count
+  the call sites before touching anything shared, and say what you found instead
+  of changing it.
+
+- **Never claim something is broken from a migration file, a code read, or
+  another agent's summary. Verify against the live thing first** — `pg_policies`
+  and `pg_proc.proacl` for authz, `pg_get_functiondef` for behaviour, the
+  rendered UI for anything visual. Half a day has been lost more than once to a
+  confident "X is vulnerable" that the live database disproved in one query.
+  This is the same rule as re-measuring an outcome, pointed at the start of the
+  work instead of the end.
+
+- **Verify repo-wide, not just the files you touched.** `npm run typecheck`
+  plus `npx vitest run` across the whole repo. Scoped runs miss the
+  project-wide guards — the parity tests, the registry-drift checks, the
+  fixture-vs-schema contract — and main has been broken twice by a green
+  scoped run.
+
+- **Never hand back work you could have done.** Exhaust the API, the CLI, a
+  temporary edge function, the logs, the browser. A blocked tool is not a
+  blocked task; find the other route. Manual steps for the owner are the last
+  resort, and only for things genuinely reserved to them — credentials,
+  payments, App Store and dashboard actions.
+
+- **The phone-sized website and the native app are ONE surface.** Never diverge
+  nav or layout on `Capacitor.isNativePlatform()` — that flag is for genuine
+  native capability (haptics, camera, push), never for shape. A defect seen at
+  375 in a browser is a defect in the app.
+
+- **This app is never role-based.** Every account can both post and do jobs, and
+  every feature is shown to everyone. "Role bleed" is not a bug and role-gating
+  is never the fix. Copy that addresses only Helprs or only posters is a defect
+  for the same reason.
+
+- **The landing hero is LOCKED.** The H1 ("Louisiana's Local Job Partner.",
+  Bodoni Moda) and the subhead ("Hire a Helpr or find local work...") — font,
+  colour and copy are all off-limits without an explicit instruction naming
+  them.
+
+- **LOOK AT IT. Every visual change is verified by EYEBALL — an actual
+  screenshot of the actual screen — not by a measurement, a grep, or a diff**
+  (owner, 2026-09-07: "everything should also be done by eyeball visually...
+  I will not say it again"). Drive the app, take the screenshot, and LOOK at
+  the picture before saying anything is fixed.
+
+  A measurement only answers the question you thought to ask. On 2026-09-07 an
+  empty state rendered a bordered white card INSIDE the bordered white panel
+  that already was the card — two boundaries 1px apart, on every screen with an
+  empty state. It was obvious in a screenshot in under a second. It survived
+  three of my passes because I kept querying `borderRadius` instead of looking:
+  I "verified" a runtime detector reporting ZERO nested boxes across six routes,
+  and it reported zero only because I had defined nested as "fills its parent."
+  The owner sent a phone screenshot; I had scoped the whole fix to
+  `html.web-desktop`. Two passes were spent arguing about what RADIUS the inner
+  box should have, when the answer was that it should not have been drawn.
+
+  So the rule is BOTH, and in this order: **look first, then measure.** The
+  screenshot tells you what is wrong; the measurement tells you the number
+  moved. Neither substitutes for the other — but a number is worthless if
+  nobody has checked it is measuring the right thing.
+
+  This applies to layout, spacing, colour, type, empty states, dark mode and
+  every breakpoint that matters — 375 above all, because it is the primary
+  surface and the one the owner is usually holding. Screenshot before AND after.
+
+- **A FIX IS NOT DONE UNTIL ITS OWN NUMBER MOVES. Re-measure the outcome, every
+  single time, without exception** (owner, 2026-09-07, emphatically). Closing a
+  finding on a diff — "the code now does X" — is not closing it. Re-run the
+  finding's own repro and record the NEW number beside the old one. If the
+  number did not move, the fix did not work, however correct the diff reads.
+
+  This is not a process nicety. Three launch blockers on 2026-09-06 were fixes
+  that shipped, read correctly in review, and did nothing:
+
+  * **S-001** — parish dead for 72% of accounts. Filed HIGH, launch blocker,
+    independently verified against prod. Fixed by adding ZIP to signup
+    (`eaa553f48`). The fix was right and achieved nothing: `anon` had no EXECUTE
+    on `get_parish_for_zip`, so every pre-auth lookup returned 42501 and
+    `lookupParishByZip` logged a warning and returned null. Re-running the
+    finding's own repro — `count(*) WHERE parish IS NULL` — would have shown the
+    number unmoved. Nobody ran it. An external reviewer re-found it five days
+    later.
+  * **FABLE R4** — helper-distance trilateration. "Fixed" with an ownership gate
+    `j.customer_id = auth.uid()`. That does not close the attack, because the
+    attacker OWNS the jobs: post three at chosen coordinates, query one
+    applicant against each, trilaterate from 0.1 km precision.
+  * **`rpc_withdraw_dispute`** — dead for every caller since `20260901032007`
+    pinned `decided_at`, which the RPC writes. That migration's OWN comment
+    records that PGlite proved a related case; it stopped one column short.
+    Months of 100% failure, zero Sentry events, because the client toasted
+    "please try again" and never reported.
+
+  Each is correct in the file it edits. The defect lives in the gap between the
+  fix and the runtime — an ACL, a trigger, an attacker who owns the input. **A
+  reader sees intent; only execution sees outcome.** So: measure the outcome.
+
 
 Each of these is a real, non-obvious gotcha that has cost real time — keep
 this list tight; project-specific trivia belongs in code comments, not here.
@@ -233,12 +335,26 @@ this list tight; project-specific trivia belongs in code comments, not here.
   (`supabase db push`, also manually runnable via `gh workflow run db-deploy.yml`).
   No manual pushes, no side channels. Ship a graceful fallback for PGRST202
   "function not found" on brand-new RPCs (deploy lag window).
-- **Check which project the CLI is linked to before trusting it.**
-  `supabase/.temp/project-ref` currently points at **staging**
-  (`okpxtpfvwtmbuxugqsws`), not prod (`fncmgoasalhdgfwzhsqa`). A secrets
-  listing through the CLI today nearly produced the false conclusion that
-  APNs was unconfigured, because it was reading the wrong project. Verify the
-  ref before reading config or pushing anything.
+- **THERE IS NO STAGING. There is one database: prod `fncmgoasalhdgfwzhsqa`.**
+  The staging project was retired 2026-09-07 (owner) because it was not a
+  safety net, it was a second source of truth that lied. It sat 148 migrations
+  behind prod (496 vs 644), still held NINE tables prod had deliberately
+  dropped — `time_credits` among them, whose INSERT policy let any signed-in
+  user mint their own currency — and `supabase/.temp/project-ref` pointed the
+  CLI AT IT, so `supabase db push` and `migration list --linked` from any dev
+  machine or agent silently addressed the stale project while
+  `db-drift-detect.yml` only ever diffed repo-vs-prod. Its drift was invisible
+  by construction. The `dev:staging` script compounded it by resolving to prod
+  anyway (no `.env.staging` ever existed), so "I am on staging" could be true
+  of the CLI and false of the app in the same terminal.
+
+  The ref now points at prod, and the staging dev/link/push scripts are
+  deleted from package.json. If you find yourself wanting a staging target, the answer is a test
+  that is safe to run against prod — not a second database to drift.
+
+  Still verify the ref before reading config or pushing: a secrets listing
+  through the CLI once nearly produced the false conclusion that APNs was
+  unconfigured, purely because it was reading the wrong project.
 - **NEVER apply migrations to prod via MCP `apply_migration`** (records the
   wrong timestamp and poisons `schema_migrations` — cost a full ledger repair
   once already). `execute_sql` for read-only checks/test rows is fine. If ever unavoidable,
@@ -302,6 +418,13 @@ this list tight; project-specific trivia belongs in code comments, not here.
   **Therefore: when asserting gloss in a test, read the computed
   `background-image` and check it is a real gradient.** Asserting the class
   name passes on a flat control, which is why this kept coming back.
+- **Never rotate a shared credential silently.** The two test accounts are
+  shared with Cowork and every lane; I rotated their passwords twice in one
+  afternoon (2026-09-06) without saying so, which broke Cowork's run and
+  produced the "suspicious 04:31 sign-ins" it then filed as a finding. If a
+  credential must change, say so in the transcript and in
+  `docs/audit/launch-2026-09/inbox/` before changing it, and never change one
+  another agent is mid-run on.
 - **Never `await` a Capacitor plugin object — assimilation makes it a silent
   no-op.** `registerPlugin()` returns a Proxy whose `get` trap manufactures a
   method for ANY property, which is how it forwards unknown calls to native.
@@ -372,6 +495,18 @@ this list tight; project-specific trivia belongs in code comments, not here.
   `audit-bus.mjs` `msg`/`inbox` file channel is retired; `file`/`status`/
   `dupe`/`list`/`rollup` remain the findings ledger. **Findings go in the bus,
   conversation goes over `SendMessage`.**
+- **YOU pick the model for every agent — never ask which one.** Standing
+  authorization, given repeatedly and then shouted (2026-09-06): "ADJUST THE
+  MODELS AS NEEDED FOR THE BEST USAGE OF EACH MODEL." Asking "would Fable be
+  better?" or "should I use Opus for this?" is a question the owner has
+  already answered and reads as being pranked. Pass `model:` explicitly on
+  every spawn (the definition default is silent and has been haiku). Rule of
+  thumb: money/authz/data-model fixes and anything that must reason about a
+  chain of guards → `opus`; exhaustive visual driving, design judgement, and
+  "look at everything and tell me what's wrong" sweeps → `fable`; mechanical
+  disjoint edits with a clear spec → `sonnet`; never `haiku` for anything
+  whose answer will be believed. Re-verification of untrusted prior work goes
+  to a DIFFERENT model than the one that produced it.
 - **Commit directly to `main`** — no branch/PR ceremony needed. Locally, just
   run `npm run typecheck` (plus `npx vitest run` when touching tested code);
   lint/build/full-suite already run in CI (`husky pre-commit` +

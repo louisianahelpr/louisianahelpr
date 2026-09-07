@@ -18,6 +18,7 @@ import {
   Check,
 } from "lucide-react";
 import { DatePickerField } from "@/components/DatePickerField";
+import { UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { formatPhone } from "./signupHelpers";
 
@@ -66,6 +67,10 @@ export interface SignupStep2Props {
   /** Soft sanity hint — set when the ZIP's parish and the typed City's
    * recognized parish disagree. Null when there's nothing to flag. */
   zipCityMismatch?: string | null;
+  /** True when the lookup succeeded and Louisiana has no such ZIP. The account
+   * can still be created; it just won't be reachable by the parish fan-out,
+   * which is precisely why the person has to be told before they finish. */
+  zipUnknown?: boolean;
   bio: string;
   setBio: (v: string) => void;
   inputCls: string;
@@ -104,6 +109,7 @@ export function SignupStep2(props: SignupStep2Props) {
     zipCode,
     setZipCode,
     zipCityMismatch,
+    zipUnknown,
     bio,
     setBio,
     inputCls,
@@ -217,10 +223,18 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="lastName-error" message={fieldErrors.lastName} />
           </div>
         </div>
-        {/* Date of birth pairs half-width with Phone: it keeps one left
-            edge with every field below, and a short date never needs a
-            full-width control. */}
-        <div className="grid grid-cols-2 gap-3 items-start">
+        {/* Date of birth pairs half-width with Phone — but only from `sm` up.
+            This used to be an unconditional `grid-cols-2`, on the reasoning
+            that "a short date never needs a full-width control". Measured at
+            375, that is false in both states: the trigger's text box is 83px
+            wide there, the placeholder "Select a date" wants 96.6px, and a
+            real value — "September 6, 1990" — wants 138.4px. So the field
+            truncated to "Select a ..." before entry and to a fragment of the
+            month AFTER it, meaning a user could not read back the date of
+            birth they had just chosen on a required field that gates an 18+
+            check. Nothing about the pairing survives on a phone; from `sm` the
+            card is wide enough and it pairs as designed. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
           <div className="space-y-2">
             <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
             {/* Single native date field — on iOS this opens the system wheel
@@ -334,6 +348,17 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="zipCode-error" message={fieldErrors.zipCode} />
           </div>
         </div>
+        {zipUnknown && (
+          <p
+            id="zipCode-unknown"
+            role="status"
+            className="flex items-start gap-1 text-ds-11"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          >
+            <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />
+            {UNKNOWN_ZIP_MESSAGE}
+          </p>
+        )}
         {zipCityMismatch && (
           <p
             className="flex items-center gap-1 text-ds-11"
@@ -359,7 +384,14 @@ export function SignupStep2(props: SignupStep2Props) {
           {fieldErrors.bio
             ? <FieldError id="bio-error" message={fieldErrors.bio} />
             : <p id="bio-help" className="text-ds-11 text-muted-foreground">
-                You can always add this later from your profile.
+                {/* "This" — not the sentence's old bare form, "You can always
+                    add this later from your profile." That line sits at the
+                    BOTTOM of the step, under the last field, with six required
+                    fields stacked above it, and external QA read it as a
+                    promise about the whole form — then hit "Add a profile
+                    photo" on submit. It only ever meant the bio. Naming the
+                    field removes the reading it cannot support. */}
+                The bio is optional — you can add it later from your profile.
               </p>
           }
         </div>

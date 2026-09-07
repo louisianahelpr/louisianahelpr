@@ -152,7 +152,7 @@ export function ApplicationsPanel({
         </div>
       ) : (
         <NotEnoughYet
-          what="how your speed compares to the helper who won"
+          what="how your speed compares to the Helpr who won"
           have={sample}
           need={floors.head_to_head}
           unit="jobs someone else won"

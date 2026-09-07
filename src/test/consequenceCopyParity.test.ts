@@ -686,47 +686,143 @@ describe("money the UI names is the money the backend moves", () => {
 // ===========================================================================
 
 describe("consequences the app states must be delivered by something", () => {
-  it("FINDING — the dispute-velocity threshold is enforced by nothing", () => {
+  it("the dispute-velocity threshold the app quotes is the one the backend enforces", () => {
     // COPY: "3+ disputes in 30 days flags your account for review."
-    //   src/components/DisputeDialog.tsx:291
-    //   src/pages/legal/CommunitySection.tsx:232  (independently retyped)
+    //   src/components/DisputeDialog.tsx  (BOTH the helper and poster lists)
+    //   src/pages/legal/CommunitySection.tsx  (independently retyped)
     //
-    // BACKEND CHECKED: public.check_dispute_velocity(uuid), defined in
-    // 20260325045032, returns `count(*) < 3 ... interval '30 days'`. So the
-    // NUMBERS are right. But 20260505225000 revoked EXECUTE on it, and its own
-    // header records why: "check_dispute_velocity: 0 callsites in repo". Nothing
-    // in src/, nothing in supabase/functions/, and no trigger calls it. The
-    // function is dead code, so no account is flagged by anything, ever.
+    // WAS A FINDING, now delivered. The history is worth keeping because the
+    // shape recurs: `public.check_dispute_velocity(uuid)` (20260325045032)
+    // computed exactly the right predicate, and 20260505225000 then revoked
+    // EXECUTE from PUBLIC/anon/authenticated on the entirely correct
+    // observation that it had zero callsites. It kept having zero callsites.
+    // So the NUMBERS were right, the function was reachable by nobody, and no
+    // account was ever flagged — a deterrent that read as enforced in review
+    // precisely because the function existed and looked correct.
     //
-    // STATUS: the statement is currently FALSE. Reported, not changed.
+    // 20260907045410 wires it, deliberately WITHOUT granting it to
+    // `authenticated`: that function takes an arbitrary user id, so a grant
+    // would hand every account a probe for anyone else's dispute history.
+    // `rpc_open_dispute` is SECURITY DEFINER owned by postgres, already holds
+    // EXECUTE, and raises a `high_dispute_rate` fraud_flag — which is a real
+    // queue (AdminFraudDashboard's unresolved list + the admin health count).
     //
-    // The assertion is written so it fails the DAY someone wires it up — at
-    // which point the copy needs re-checking against the real threshold rather
-    // than assumed correct.
+    // This test now pins the three joints that can drift apart:
+    //   (1) the copy's numbers ↔ the SQL's numbers,
+    //   (2) the function ↔ an actual caller,
+    //   (3) the flag ↔ an admin surface that can filter to it.
+
+    // ── (1) Derive the numbers from the SQL, never retype them here. ───────
+    // The LAST migration that defines the function wins — an earlier one may
+    // have been superseded by a CREATE OR REPLACE further down the list.
+    const migrationsDir = resolve(ROOT, "supabase/migrations");
+    // `CREATE OR REPLACE FUNCTION`, not a bare `FUNCTION` mention: a migration
+    // that merely COMMENTs on or REVOKEs from the function names it too, and
+    // matching those picked the wrong (bodyless) file as "the definition" —
+    // which then failed to yield a threshold at all. The grep has to select
+    // the statement that carries the numbers.
+    const defining = execFileSync(
+      "bash",
+      [
+        "-c",
+        "grep -rl 'CREATE OR REPLACE FUNCTION public.check_dispute_velocity' supabase/migrations 2>/dev/null | sort || true",
+      ],
+      { cwd: ROOT, encoding: "utf8" },
+    )
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+    expect(defining.length, "no migration defines check_dispute_velocity any more").toBeGreaterThan(0);
+
+    const latestDef = readFileSync(resolve(ROOT, defining[defining.length - 1]), "utf8");
+    // Slice the function body so a sibling statement in the same file cannot
+    // satisfy these regexes — the failure mode that once let a broken
+    // definition pass a parity check. (20260325045032 defines nine other
+    // objects around this one.)
+    const bodyStart = latestDef.indexOf("CREATE OR REPLACE FUNCTION public.check_dispute_velocity");
+    const body = latestDef.slice(bodyStart, bodyStart + 800);
+
+    const threshold = Number(body.match(/count\(\*\)\s*<\s*(\d+)/)![1]);
+    const windowDays = Number(body.match(/interval\s*'(\d+)\s*days?'/)![1]);
+    expect(Number.isFinite(threshold) && threshold > 0).toBe(true);
+    expect(Number.isFinite(windowDays) && windowDays > 0).toBe(true);
+
+    const sentence = new RegExp(`${threshold}\\+ disputes in ${windowDays} days`);
+    for (const surface of [
+      "src/components/DisputeDialog.tsx",
+      "src/pages/legal/CommunitySection.tsx",
+    ]) {
+      expect(
+        repoFile(surface),
+        `${surface} no longer states "${threshold}+ disputes in ${windowDays} days". ` +
+          `check_dispute_velocity enforces count(*) < ${threshold} over ${windowDays} days, ` +
+          `so either the copy drifted from the SQL or the SQL drifted from the copy — ` +
+          `fix whichever is wrong, do not relax this test.`,
+      ).toMatch(sentence);
+    }
+    // Both lists inside the dispute dialog, not just the first one: the helper
+    // and the poster get separate consequence blocks and only one of them used
+    // to carry the deterrent.
+    expect(
+      repoFile("src/components/DisputeDialog.tsx").match(new RegExp(sentence.source, "g"))!.length,
+      "the dispute-velocity sentence is missing from one side of DisputeDialog — the helper " +
+        "and the poster each get their own consequence list, and the deterrent belongs on both",
+    ).toBe(2);
+
+    // ── (2) The function must still have a caller. ─────────────────────────
     const callers = execFileSync(
       "bash",
-      ["-c", "grep -rl 'check_dispute_velocity' src supabase/functions 2>/dev/null || true"],
+      [
+        "-c",
+        "grep -rl 'check_dispute_velocity' src supabase/functions supabase/migrations 2>/dev/null || true",
+      ],
       { cwd: ROOT, encoding: "utf8" },
     )
       .trim()
       .split("\n")
       .filter(Boolean)
-      // The generated types file lists every RPC signature; naming one there is
-      // not calling it. And this test file itself contains the string.
-      .filter((f) => !f.includes("integrations/supabase/types.ts") && !/\.test\./.test(f));
+      // Naming an RPC in the generated types file is not calling it, this test
+      // file contains the string, and the migrations that DEFINE or REVOKE it
+      // are not callers either.
+      .filter((f) => !f.includes("integrations/supabase/types.ts") && !/\.test\./.test(f))
+      .filter((f) => !defining.includes(f))
+      .filter((f) => !f.includes("20260505225000"));
 
     expect(
-      callers,
-      "check_dispute_velocity now HAS callers (" + callers.join(", ") + "). Two surfaces " +
-        "tell users '3+ disputes in 30 days flags your account' — re-derive both from the " +
-        "real threshold now that one exists, and drop this finding.",
-    ).toEqual([]);
+      callers.length,
+      `check_dispute_velocity has NO callers again. The app tells users on two screens that ` +
+        `"${threshold}+ disputes in ${windowDays} days flags your account for review". If the ` +
+        `wiring in 20260907045410 was removed, the sentence is a lie again — either restore a ` +
+        `caller or delete the copy from both surfaces.`,
+    ).toBeGreaterThan(0);
 
-    // And the copy that makes the promise is still there, unchanged.
+    // The caller has to actually raise the flag, not merely mention the name.
+    const wiring = readFileSync(
+      resolve(migrationsDir, "20260907045410_dispute_velocity_raises_fraud_flag.sql"),
+      "utf8",
+    );
+    expect(wiring, "the velocity wiring no longer calls check_dispute_velocity").toMatch(
+      /NOT public\.check_dispute_velocity\(_uid\)/,
+    );
+    expect(wiring, "the velocity wiring no longer writes a fraud_flags row").toMatch(
+      /INSERT INTO public\.fraud_flags[\s\S]{0,400}high_dispute_rate/,
+    );
+    // Granting it to `authenticated` is the repair that must never happen: the
+    // function takes an arbitrary user id, so the grant is an account-history
+    // probe for every signed-in user.
     expect(
-      repoFile("src/components/DisputeDialog.tsx"),
-      "the dispute-velocity sentence moved — re-locate this finding",
-    ).toMatch(/3\+ disputes in 30 days/);
+      /GRANT[\s\S]{0,120}check_dispute_velocity[\s\S]{0,120}authenticated/.test(wiring),
+      "check_dispute_velocity was granted to authenticated — it takes an ARBITRARY user id, " +
+        "so this lets any account probe any other account's dispute history. Call it from a " +
+        "SECURITY DEFINER RPC that reads auth.uid() instead.",
+    ).toBe(false);
+
+    // ── (3) The flag must land somewhere an admin can find it. ────────────
+    expect(
+      repoFile("src/components/admin/AdminFraudDashboard.tsx"),
+      "rpc_open_dispute raises high_dispute_rate but the fraud console has no filter for it — " +
+        "add it back to FLAG_TYPES, per that file's own rule that only written types belong there.",
+    ).toMatch(/value: "high_dispute_rate"/);
   });
 
   it("no report-review SLA is promised, because nothing delivers one", () => {

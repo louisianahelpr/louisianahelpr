@@ -54,6 +54,11 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 vi.mock("@/lib/authSignOut", () => ({ signOutWithPushCleanup: () => signOut() }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => currentUser }));
+const navigate = vi.fn();
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return { ...actual, useNavigate: () => navigate };
+});
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 import AccountBanned from "@/pages/AccountBanned";
@@ -68,7 +73,8 @@ beforeAll(() => {
 
 beforeEach(() => {
   invoke.mockReset().mockResolvedValue({ data: { success: true }, error: null });
-  signOut.mockClear();
+  signOut.mockClear().mockResolvedValue(undefined);
+  navigate.mockClear();
   currentUser.profile = { ban_status: "temp_banned", auto_suspended_until: null };
 });
 
@@ -143,7 +149,60 @@ describe("/account-banned — in-app account deletion", () => {
         body: { confirmation: "DELETE MY ACCOUNT" },
       }),
     );
+    // NOT signed out yet, and NOT navigated away. The account is gone and the
+    // person has been told nothing; that is the whole defect this pins.
+    // Deletion used to end here — sign out, `navigate("/")`, and drop the user
+    // on the marketing landing page with no message, which is what a session
+    // expiring looks like. Measured on the real screen 2026-09-06: zero toasts
+    // fired, and the toast channel could not have carried it anyway
+    // (`applyToastPolicy` suppresses every actionless `toast.success`).
+    expect(await screen.findByText(/Your account is deleted\./i)).toBeTruthy();
+    expect(signOut).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+
+    // The sign-out and the redirect hang off the acknowledgement, so they
+    // cannot happen before the confirmation has been on screen.
+    fireEvent.click(screen.getByRole("button", { name: /^done$/i }));
     await waitFor(() => expect(signOut).toHaveBeenCalled());
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/", { replace: true }));
+  });
+
+  it("never reports a deletion failure after the account is already gone", async () => {
+    // THE bug external QA hit. `invoke`, `signOutWithPushCleanup()` and
+    // `navigate("/")` sat in ONE try block under one catch, so a sign-out that
+    // failed AFTER the purge and after `auth.admin.deleteUser` surfaced as
+    // "Couldn't delete your account — try again?" and skipped the navigate,
+    // leaving the person on their own profile, still holding a session token,
+    // told the most irreversible action in the app had not happened. It had.
+    //
+    // `auth.signOut()` really can reject: auth-js throws
+    // NavigatorLockAcquireTimeoutError out of `_acquireLock` when another tab
+    // holds the storage lock.
+    signOut.mockRejectedValue(new Error("NavigatorLockAcquireTimeoutError"));
+    const { toast } = await import("sonner");
+    (toast.error as ReturnType<typeof vi.fn>).mockClear();
+
+    renderScreen();
+    fireEvent.click(await screen.findByRole("button", { name: /delete account/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /^continue$/i }));
+    fireEvent.change(await screen.findByLabelText(/type delete to confirm/i), {
+      target: { value: "DELETE" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /delete forever/i }));
+
+    await waitFor(() => expect(invoke).toHaveBeenCalled());
+    // Confirmed, not blamed.
+    expect(await screen.findByText(/Your account is deleted\./i)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /^done$/i }));
+    await waitFor(() => expect(signOut).toHaveBeenCalled());
+
+    // The failed sign-out is a local cleanup problem. It must never be shown
+    // as a failed deletion, and it must never strand the user in the app.
+    for (const call of (toast.error as ReturnType<typeof vi.fn>).mock.calls) {
+      expect(String(call[0])).not.toMatch(/couldn't delete/i);
+    }
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/", { replace: true }));
   });
 
   it("does not sign the user out when the server refuses", async () => {

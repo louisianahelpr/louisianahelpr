@@ -30,6 +30,13 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
           step 1, next to the fields it is judging — not above the total. The
           component and its usePostingQuality hook had no other callers, so both
           were deleted with it. */}
+      {/* Roster size reaches CheckoutStep so its "what your Helpr receives"
+          line can say "between them" on a group job — the budget is charged
+          ONCE and split across the roster (release-payout's perHelperBudget),
+          so a per-person reading of that figure would overstate it N×.
+          (This note sits above the element rather than beside the two props it
+          explains: a JSX comment block inside an attribute list is a parse
+          error — see CLAUDE.md's parsecheck note.) */}
       <CheckoutStep
         title={form.title}
         description={form.description}
@@ -53,6 +60,8 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         isUrgent={form.isUrgent}
         urgentFeeNum={form.urgentFeeNum}
         budgetNum={form.budgetNum}
+        isGroupJob={form.isGroupJob}
+        helpersNeeded={Number(form.helpersNeeded) || 1}
         helprActivity={form.helprActivity}
         customerFee={form.customerFee}
         customerFeeAmount={form.customerFeeAmount}

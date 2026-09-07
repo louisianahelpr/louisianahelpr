@@ -328,7 +328,7 @@ export const BASE_JOB: Record<string, unknown> = {
   poster_completed_at: null,
   poster_confirmed_arrival_at: null,
   poster_confirmed_working_at: null,
-  pricing_mode: "fixed",
+  pricing_mode: "set_price",
   proof_after_urls: null,
   proof_before_urls: null,
   protection_opted_in: false,

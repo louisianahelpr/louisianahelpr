@@ -193,22 +193,30 @@ if (cssFiles.length) {
   }
 }
 
-// ── 5. The Supabase project refs ───────────────────────────────────────────
-// CLAUDE.md states which ref is prod and which is staging, and that the linked
-// CLI points at staging. That last claim has been true all day and is exactly
-// the kind that silently stops being true.
+// ── 5. The Supabase project ref ────────────────────────────────────────────
+// CLAUDE.md's claim used to be "the linked CLI points at staging, beware".
+// Staging was retired 2026-09-07 and the claim is now the stronger one: there
+// is ONE database, and the linked ref is it. So the check inverts with it —
+// assert the linked ref IS prod, rather than that a warning about a wrong ref
+// is still accurate.
+//
+// The inversion matters. The old test only fired when CLAUDE.md *claimed*
+// staging, so the moment that sentence was rewritten the check became inert
+// while still counting itself as passing. This version has no such escape: it
+// runs whenever CLAUDE.md names the prod ref at all, which it always does.
 const PROD = "fncmgoasalhdgfwzhsqa";
-const STAGING = "okpxtpfvwtmbuxugqsws";
-if (text.includes(PROD) || text.includes(STAGING)) {
+const RETIRED_STAGING = "okpxtpfvwtmbuxugqsws";
+if (text.includes(PROD)) {
   checked++;
   const linkedPath = "supabase/.temp/project-ref";
   if (existsSync(linkedPath)) {
     const linked = readFileSync(linkedPath, "utf8").trim();
-    const claimsStaging = /points at \*\*staging\*\*|currently points at \*staging\*/i.test(text);
-    if (claimsStaging && linked !== STAGING) {
+    if (linked !== PROD) {
       problems.push(
-        `says the linked CLI points at STAGING, but supabase/.temp/project-ref is "${linked}"` +
-          (linked === PROD ? " — that is PROD, and the warning is now inverted" : ""),
+        `says there is one database, prod (${PROD}), but supabase/.temp/project-ref is "${linked}"` +
+          (linked === RETIRED_STAGING
+            ? " — that is the RETIRED staging project; `supabase db push` from this checkout would address a project that no longer exists"
+            : " — every `supabase db push` and `migration list --linked` from this checkout addresses that project instead"),
       );
     }
   }

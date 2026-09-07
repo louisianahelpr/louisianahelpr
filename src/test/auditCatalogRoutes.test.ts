@@ -116,6 +116,7 @@ const ALLOWED_UNRESOLVED: Record<string, string> = {
 const UNSWEPT_ROUTES: Record<string, string> = {
   "*": "The NotFound catch-all; the `not-found` catalog row is what renders it.",
   "/warnings": "Navigate to /profile?tab=warnings — the catalog sweeps the profile tab.",
+  "/help-center": "Navigate to /help — an alias for the URL people type; the catalog sweeps /help.",
   "/j/:id": "ShortLinkRedirect — resolves an id and navigates; paints nothing.",
   "/u/:id": "ShortLinkRedirect — resolves an id and navigates; paints nothing.",
   "/m/:id": "ShortLinkRedirect — resolves an id and navigates; paints nothing.",

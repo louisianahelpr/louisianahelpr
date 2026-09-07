@@ -24,6 +24,23 @@ export const corsHeadersFull: Record<string, string> = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/**
+ * Mirrors _shared/cors.ts exactly: `{ error: message }` at the given status.
+ *
+ * It was simply absent here, which meant any function using it could not be
+ * loaded by the harness at all — the emitted module threw
+ * "errorResponse is not a function" before a single assertion ran.
+ * verify-apple-iap is one such function, and that is part of why it shipped
+ * with only source-grep coverage.
+ */
+export function errorResponse(
+  message: string,
+  status: number,
+  headers: Record<string, string>,
+): Response {
+  return jsonResponse({ error: message }, status, headers);
+}
+
 export function jsonResponse(
   body: unknown,
   status: number,

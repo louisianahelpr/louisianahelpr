@@ -12,6 +12,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Upload, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+// Reasons, the description floor and the stored-string format live in their
+// own module so disputeFiling.test.ts can read them without importing the
+// Supabase client and the haptics bridge to compare two strings.
+import {
+  type DisputeSide,
+  disputeReasonsFor,
+  composeDisputeReason,
+  DISPUTE_DETAILS_MIN,
+} from "@/components/disputeReasons";
+import { queryKeys } from "@/lib/queryKeys";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
@@ -19,16 +30,10 @@ import { unwrapMutation } from "@/lib/mutationResult";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import type { Database } from "@/integrations/supabase/types";
 
-const DISPUTE_REASONS = [
-  { value: "work_not_done", label: "Work was not done" },
-  { value: "poor_quality", label: "Poor quality work" },
-  { value: "no_show", label: "Helpr didn't show up" },
-  { value: "incomplete", label: "Work was left incomplete" },
-  { value: "other", label: "Other" },
-];
-
 interface DisputeDialogProps {
   jobId: string;
+  /** Whose card this was opened from — drives the reasons AND the consequence copy. */
+  side: DisputeSide;
   // `jobTitle` used to be here, read by exactly one thing: the Slack ops alert
   // this component fired from the browser, which 401'd on every call. The
   // server builds that message from `jobs.title` itself now
@@ -39,11 +44,14 @@ interface DisputeDialogProps {
   onDisputed: () => void;
 }
 
-export const DisputeDialog = ({ jobId, userId, open, onClose, onDisputed }: DisputeDialogProps) => {
+export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }: DisputeDialogProps) => {
   const [reason, setReason] = useState("");
   const [details, setDetails] = useState("");
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const queryClient = useQueryClient();
+  const reasons = disputeReasonsFor(side);
+  const detailsOk = details.trim().length >= DISPUTE_DETAILS_MIN;
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   const disputedStatus: Database["public"]["Enums"]["job_status"] = "disputed";
@@ -77,6 +85,14 @@ export const DisputeDialog = ({ jobId, userId, open, onClose, onDisputed }: Disp
     if (!reason) {
       hapticError();
       toast.error("Please select a reason.");
+      return;
+    }
+    // The Submit button is already disabled without this, so reaching here
+    // means the state changed under the click. Kept because the consequence of
+    // filing short is not cosmetic — see DISPUTE_DETAILS_MIN.
+    if (!detailsOk) {
+      hapticError();
+      toast.error("Tell us what happened — an admin decides this from your words.");
       return;
     }
     hapticHeavy();
@@ -120,7 +136,7 @@ export const DisputeDialog = ({ jobId, userId, open, onClose, onDisputed }: Disp
         return;
       }
 
-      const reasonText = `${DISPUTE_REASONS.find((r) => r.value === reason)?.label}: ${details}`.trim();
+      const reasonText = composeDisputeReason(side, reason, details);
 
       // Prefer the formal rpc_open_dispute path (writes a dedicated
       // disputes row + mirrors onto the legacy jobs.dispute_* columns
@@ -224,6 +240,33 @@ export const DisputeDialog = ({ jobId, userId, open, onClose, onDisputed }: Disp
       // this bug and the identical one in the cancel survey (20260831153813).
 
       hapticSuccess();
+      // FILING CHANGED NOTHING ON SCREEN UNTIL A RELOAD (external QA,
+      // 2026-09-06): the dialog closed, the card stayed in Done and still
+      // offered "Open a Dispute", while the job was already `disputed`
+      // server-side.
+      //
+      // `onDisputed` is Activity's `refresh`, and refresh() refetches the
+      // VISIBLE tab's two queries only — the other tab's cached copy of the
+      // same job, and every other cached surface that renders it, keep the
+      // pre-dispute row until they are remounted. Worse, it is not awaited, so
+      // the dialog unmounts before the round-trip lands and nothing is left to
+      // report a failed refetch.
+      //
+      // Invalidate the whole `["activity"]` prefix instead — both tabs, cores
+      // and details, active AND inactive — and AWAIT it before closing, so the
+      // card the user is looking at when the dialog goes away is the card that
+      // reflects the write. `onDisputed()` is still called: it is the caller's
+      // own hook and may do more than refetch.
+      //
+      // Its own try/catch: the dispute IS filed by this point, and letting a
+      // refetch failure fall into the handler below would toast "Couldn't file
+      // the dispute" over a dispute that exists — the worst possible lie on
+      // this screen. A stale card is recoverable; that message is not.
+      try {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
+      } catch (refreshErr) {
+        report(refreshErr, { tags: { source: "DisputeDialog.invalidateAfterFile" }, context: { jobId } });
+      }
       onDisputed();
       onClose();
     } catch (err: unknown) {
@@ -250,7 +293,7 @@ export const DisputeDialog = ({ jobId, userId, open, onClose, onDisputed }: Disp
                 <SelectValue placeholder="Pick the closest fit…" />
               </SelectTrigger>
               <SelectContent>
-                {DISPUTE_REASONS.map((r) => (
+                {reasons.map((r) => (
                   <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -268,8 +311,22 @@ export const DisputeDialog = ({ jobId, userId, open, onClose, onDisputed }: Disp
               placeholder="The more specific you are, the faster admin can help…"
               rows={3}
               maxLength={1000}
+              aria-required="true"
+              aria-describedby="dispute-details-requirement"
               className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14 leading-relaxed"
             />
+            {/* Says WHY it is required rather than just that it is. The
+                requirement is not a form rule, it is the whole basis of the
+                decision — and it is the only field an admin actually reads. */}
+            <p
+              id="dispute-details-requirement"
+              className="font-serif italic text-ds-11"
+              style={{ color: detailsOk ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--burnt-sienna))" }}
+            >
+              {detailsOk
+                ? "An admin reads this to decide."
+                : "Required — an admin decides this from your words, so a reason on its own isn't enough."}
+            </p>
           </div>
 
           <div className="space-y-1.5">
@@ -313,15 +370,45 @@ export const DisputeDialog = ({ jobId, userId, open, onClose, onDisputed }: Disp
               boxShadow: "var(--elev-inset-gloss)",
             }}
           >
+            {/* CONSEQUENCE COPY IS PER-SIDE, because the consequence is.
+                What the helper used to be shown here was the poster's list,
+                whose second line reads "If unresolved in 72 hours, payment
+                auto-releases to the Helpr" — i.e. "if nothing happens, you get
+                paid", handed to the person who just complained. It is not even
+                inaccurate: `auto-resolve-disputes` settles every non-escalated
+                expired dispute with `_outcome: "helper"` (index.ts:196) and
+                flips the job to payout_pending. So the sentence had to be
+                re-aimed, not softened — and the deterrent moved next to it,
+                because that combination is the whole reason the deterrent
+                exists.
+
+                No hour literal in the helper set, deliberately: the helper's
+                own card renders the job's ACTUAL `dispute_deadline` via
+                DeadlineCountdown, and a second hardcoded "72 hours" here is the
+                pair that escrowTiming.copyParity.test.ts exists to stop
+                drifting apart. */}
             <ul
               className="font-serif italic space-y-0.5 list-disc pl-4 leading-snug text-ds-12"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
-              <li>Payment is held for <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>72 hours only</strong> while admin reviews.</li>
-              <li>If unresolved in 72 hours, payment auto-releases to the Helpr.</li>
-              <li>Evidence (photos, messages) makes your case stronger.</li>
-              <li>False or frivolous disputes can lead to warnings or suspension.</li>
-              <li>3+ disputes in 30 days flags your account for review.</li>
+              {side === "helper" ? (
+                <>
+                  <li>Nothing moves while this is open — the payment is <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>frozen for both of you</strong>.</li>
+                  <li>Filing does not speed your payout up. If nobody resolves or escalates it, the hold simply lapses at the deadline and the payment releases on its normal schedule.</li>
+                  <li>If the poster escalates, an admin decides the outcome and nothing releases until they do.</li>
+                  <li>Evidence (photos, messages) makes your case stronger.</li>
+                  <li>False or frivolous disputes can lead to warnings or suspension.</li>
+                  <li>3+ disputes in 30 days flags your account for review.</li>
+                </>
+              ) : (
+                <>
+                  <li>Payment is held for <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>72 hours only</strong> while admin reviews.</li>
+                  <li>If unresolved in 72 hours, payment auto-releases to the Helpr.</li>
+                  <li>Evidence (photos, messages) makes your case stronger.</li>
+                  <li>False or frivolous disputes can lead to warnings or suspension.</li>
+                  <li>3+ disputes in 30 days flags your account for review.</li>
+                </>
+              )}
             </ul>
           </div>
         </div>
@@ -331,9 +418,14 @@ export const DisputeDialog = ({ jobId, userId, open, onClose, onDisputed }: Disp
               screen and it freezes the counterparty's escrow, so it belongs to
               the same family as "Confirm No-Show". Shared `destructive`
               variant, not a hand-copied burnt-sienna style block. */}
+          {/* `!detailsOk` in the disable set, matching the RESPONSE box on the
+              other side of this same dispute (DisputedSection's Submit is
+              `disabled={!disputeResponse.trim() || …}`). Until 2026-09-06 the
+              two halves disagreed: the reply required words, the FILING — the
+              half that freezes the money — did not. */}
           <DialogDestructiveAction
             onClick={handleSubmit}
-            disabled={submitting || !reason}
+            disabled={submitting || !reason || !detailsOk}
           >
             {submitting ? "Submitting…" : "Submit Dispute"}
           </DialogDestructiveAction>

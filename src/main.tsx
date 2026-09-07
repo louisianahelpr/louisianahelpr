@@ -208,6 +208,30 @@ void hydrateStorage();
             import("./lib/queryPersister"),
           ]);
         supabase.auth.onAuthStateChange((event) => {
+          // A TOAST IS SESSION STATE, AND NOTHING WAS CLEARING IT.
+          //
+          // External QA, 2026-09-06: an error toast survived a route change, a
+          // log-out AND a log-in. It is the same category of leak the cache
+          // wipe below exists for — a message addressed to the person who was
+          // signed in a moment ago, still on screen for whoever is signed in
+          // now. Nothing else can remove it either: `errorToast({ critical:
+          // true })` sets `duration: Infinity` (src/lib/toast.ts) precisely so
+          // the message waits for the user, and the router never unmounts the
+          // Toaster (it lives above the router in App.tsx), so a route change
+          // cannot clear one.
+          //
+          // Both directions, not just SIGNED_OUT: signing IN is when the leaked
+          // toast is actually read, and a sign-in on a device that never signed
+          // out (a restored session, an account switch) skips SIGNED_OUT
+          // entirely. TOKEN_REFRESHED is deliberately NOT included — it fires
+          // on a timer, and wiping toasts on it would snatch a message out from
+          // under someone mid-read.
+          if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+            void import("sonner").then((m) => m.toast.dismiss()).catch(() => {
+              // The toaster chunk may never have loaded on this session; there
+              // is nothing on screen to dismiss in that case.
+            });
+          }
           if (event !== "SIGNED_OUT") return;
           queryClient.clear();
           void removePersistedClient();

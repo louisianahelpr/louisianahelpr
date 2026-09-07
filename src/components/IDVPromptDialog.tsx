@@ -53,6 +53,27 @@ interface IDVPromptDialogProps {
    * caller — the fee-first gate is the safe default.
    */
   context?: "job_post";
+  /**
+   * True when `profiles.onboarding_fee_paid` is known to be false, so the fee
+   * is named BEFORE the member taps Start rather than arriving as a 402 from
+   * `stripe-idv-start` once they have already committed.
+   *
+   * That 402 is still handled below and still has to be: this prop is a cached
+   * column and the server's refusal is the authority. But a price the member
+   * only discovers by being refused is a bad-faith moment in a flow whose whole
+   * job is establishing trust.
+   *
+   * Do NOT set this alongside `context: "job_post"` — that path deliberately
+   * skips the fee gate because the fee rides on the job payment being collected
+   * in the same flow (20260829090211).
+   */
+  feeDue?: boolean;
+  /**
+   * The fee as the platform actually charges it (e.g. "$2"), from
+   * `platform_settings.onboarding_fee_cents`. `null`/omitted when unknown —
+   * the copy reads correctly without a number and must never invent one.
+   */
+  feeLabel?: string | null;
 }
 
 export function IDVPromptDialog({
@@ -63,6 +84,8 @@ export function IDVPromptDialog({
   status,
   failureReason,
   context,
+  feeDue: feeDueUpFront = false,
+  feeLabel = null,
 }: IDVPromptDialogProps) {
   const [loading, setLoading] = useState(false);
 
@@ -83,11 +106,27 @@ export function IDVPromptDialog({
   const isAdminReview = status === "failed" || status === "manual_review";
   const isPending = status === "processing";
 
-  // Set when the server refuses because the one-time account setup fee is
+  // Set when the SERVER refuses because the one-time account setup fee is
   // outstanding. That is the ONE refusal the user can act on, so it swaps the
   // button for a pay-now button rather than leaving them reading a toast about
   // a fee with no way to settle it.
-  const [feeDue, setFeeDue] = useState<string | null>(null);
+  const [feeRefusal, setFeeRefusal] = useState<string | null>(null);
+
+  // The fee is owed, by either account: the server said so (authoritative), or
+  // the caller read `onboarding_fee_paid` and told us in advance so the price
+  // is on screen before the member commits. Same UI either way — one step,
+  // named, with the button that completes it.
+  // Set when `pay-onboarding-fee` answers `alreadyPaid` — the fee was settled
+  // by another path (a job post, a payout) since the caller read the column.
+  // Without this, clearing `feeRefusal` alone left `feeDueUpFront` asserting a
+  // debt Stripe had just told us does not exist, and the dialog kept offering
+  // to charge for it.
+  const [feeSettled, setFeeSettled] = useState(false);
+
+  const feeOwed = !feeSettled && (feeRefusal !== null || feeDueUpFront);
+  const feeMessage =
+    feeRefusal ??
+    `Your one-time${feeLabel ? ` ${feeLabel}` : ""} account setup fee covers this check — charged once per account, never again. You'll settle it with Stripe and come right back to verify.`;
 
   const handlePayFee = async () => {
     setLoading(true);
@@ -98,8 +137,9 @@ export function IDVPromptDialog({
       if (error) throw new Error(await functionErrorMessage(error, "Couldn't open checkout"));
       if (data?.alreadyPaid) {
         // Settled by another path (a job post, a payout) since we last looked.
-        setFeeDue(null);
-        toast.success("Your setup fee is already paid — try verification again.");
+        setFeeRefusal(null);
+        setFeeSettled(true);
+        toast.success("Your setup fee is already paid — you can verify now.");
         return;
       }
       if (!data?.url) throw new Error("Couldn't open checkout — try again in a moment.");
@@ -127,7 +167,7 @@ export function IDVPromptDialog({
         const msg = await functionErrorMessage(error, "Couldn't start verification");
         if (body?.needsOnboardingFee === true) {
           // Not a failure to report and forget — it's a step with a next step.
-          setFeeDue(msg);
+          setFeeRefusal(msg);
           return;
         }
         throw new Error(msg);
@@ -279,7 +319,7 @@ export function IDVPromptDialog({
         )}
 
         {/* Setup fee outstanding — the refusal that has an answer. */}
-        {feeDue && (
+        {feeOwed && (
           <div
             className="flex items-start gap-3 p-3 rounded-ds-md border mt-2"
             style={{
@@ -290,7 +330,7 @@ export function IDVPromptDialog({
             <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" style={{ color: "hsl(var(--amber-ink))" }} />
             <div className="text-ds-13 text-foreground">
               <p className="font-medium">One thing first</p>
-              <p className="text-ds-11 text-muted-foreground mt-1">{feeDue}</p>
+              <p className="text-ds-11 text-muted-foreground mt-1">{feeMessage}</p>
             </div>
           </div>
         )}
@@ -308,7 +348,7 @@ export function IDVPromptDialog({
           <DialogSecondaryAction onClick={() => onOpenChange(false)} disabled={loading}>
             {isPending || isAdminReview ? "OK" : "Not Now"}
           </DialogSecondaryAction>
-          {!isPending && !isAdminReview && feeDue && (
+          {!isPending && !isAdminReview && feeOwed && (
             <DialogPrimaryAction
               onClick={handlePayFee}
               disabled={loading}
@@ -317,7 +357,7 @@ export function IDVPromptDialog({
               Pay Setup Fee
             </DialogPrimaryAction>
           )}
-          {!isPending && !isAdminReview && !feeDue && (
+          {!isPending && !isAdminReview && !feeOwed && (
             <DialogPrimaryAction
               onClick={handleStart}
               disabled={loading}

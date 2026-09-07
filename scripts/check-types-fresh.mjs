@@ -143,25 +143,33 @@ function functionNames(source) {
 }
 
 const PROD_REF = "fncmgoasalhdgfwzhsqa";
-const STAGING_REF = "okpxtpfvwtmbuxugqsws";
+// Retired 2026-09-07. Kept only to name it in the error below: a shell that
+// still exports this ref is the likeliest way to reach the failure path, and
+// "that project no longer exists" is a far better diagnosis than a bare
+// mismatch.
+const RETIRED_STAGING_REF = "okpxtpfvwtmbuxugqsws";
 
 function generateFresh() {
   const ref = process.env.SUPABASE_PROJECT_REF || process.env.SUPABASE_PROJECT_ID;
   if (!ref) {
     console.error("✖ No project ref. Set SUPABASE_PROJECT_REF, or pass --fresh <file>.");
-    console.error("  NOTE: supabase/.temp/project-ref points at STAGING — never rely on the linked ref here.");
+    console.error(`  There is one database: prod (${PROD_REF}).`);
     process.exit(1);
   }
   // Assert the ref rather than trusting it. A guard pointed at the wrong
   // database is confidently wrong in BOTH directions — it green-lights real
-  // drift and invents drift that does not exist. This is the trap CLAUDE.md and
-  // PROTOCOL §4 both name: `supabase/.temp/project-ref` points at staging, and a
-  // secrets listing through the linked CLI once nearly produced a false "APNs is
-  // unconfigured" conclusion for exactly this reason.
+  // drift and invents drift that does not exist. Retiring staging removed the
+  // most likely wrong target but not the class: a fork, a branch database or a
+  // stale exported env var all still reach here, and a secrets listing through
+  // a mis-pointed CLI once nearly produced a false "APNs is unconfigured"
+  // conclusion for exactly this reason.
   if (ref !== PROD_REF) {
     console.error(`✖ Refusing to run against project ref "${ref}".`);
-    console.error(`  Expected PROD (${PROD_REF}).`);
-    if (ref === STAGING_REF) console.error("  That is the STAGING ref — types.ts mirrors PROD.");
+    console.error(`  Expected PROD (${PROD_REF}) — types.ts mirrors PROD, and there is no other database.`);
+    if (ref === RETIRED_STAGING_REF) {
+      console.error("  That is the RETIRED staging project (removed 2026-09-07).");
+      console.error("  Unset SUPABASE_PROJECT_REF / SUPABASE_PROJECT_ID in this shell.");
+    }
     console.error("  A freshness check against the wrong database is worse than none:");
     console.error("  it reports green on real drift and red on none.");
     process.exit(1);

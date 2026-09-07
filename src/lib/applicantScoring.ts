@@ -21,7 +21,17 @@ export interface ApplicantData {
   repeatHirePercent: number | null; // 0-100
   onTimePercent: number | null;     // 0-100
   credentialTier: number;           // 0-3 from helper_credentials
-  distanceKm: number | null;
+  /**
+   * Proximity BAND rank: 1 = under 5 mi, 2 = 5-15, 3 = 15-30, 4 = 30+.
+   * null when the applicant has no precise location on file (they declined
+   * the permission), which is not the same as "far away" and scores nothing
+   * either way.
+   *
+   * A rank, not a distance, all the way from the database: several exact
+   * distances trilaterate to a home address, so no client-visible surface
+   * carries one. See migration 20260907051731.
+   */
+  distanceBandRank: number | null;
   responseTimeMinutes: number | null;
   neighborCount: number;            // how many nearby addresses hired them (trust graph)
   /**
@@ -117,9 +127,10 @@ export function scoreApplicant(a: ApplicantData): ApplicantScore {
   if (a.credentialTier >= 2) signals.push("Licensed");
   if (a.credentialTier >= 3) signals.push("Insured");
 
-  // Distance (closer = better, up to 5 pts)
-  if (a.distanceKm != null) {
-    score += Math.max(0, 5 - a.distanceKm * 0.5);
+  // Proximity (closer = better, up to 5 pts). Stepped, because the input is
+  // a band — there is no distance to decay smoothly over, by design.
+  if (a.distanceBandRank != null) {
+    score += [5, 3, 1, 0][a.distanceBandRank - 1] ?? 0;
   }
 
   // Neighbor trust (up to 5 pts)

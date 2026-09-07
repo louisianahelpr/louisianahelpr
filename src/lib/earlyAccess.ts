@@ -55,12 +55,43 @@ export function resolveEarlyAccessTier(
   return expired ? null : (subscriptionTier ?? null);
 }
 
+/**
+ * The base wait, in minutes, that a brand-new job sits invisible to a member
+ * with NO early-access perk. Every tier's head start is measured against it,
+ * so this is the one place the number 20 is written down on the client.
+ *
+ * COPY MUST DERIVE FROM THIS, NEVER RETYPE IT. Four tier bullets in
+ * `subscriptionTiers.ts` said "5-min / 10-min / 15-min / 20-min early access"
+ * as string literals, so the storefront's promise and the SQL gate were two
+ * independent numbers that happened to agree — a shape this codebase has been
+ * burned by repeatedly (the Elite $15/$20 price, the `plus` fee ladder). The
+ * SQL side is already pinned to this module by `earlyAccess.parity.test.ts`;
+ * routing the COPY through the same module extends that guard to the words.
+ */
+export const MAX_EARLY_ACCESS_DELAY_MINUTES = 20;
+
 export function earlyAccessDelayMs(tier: string | null | undefined): number {
-  const earlyMinutes =
+  return earlyAccessWaitMinutes(tier) * 60 * 1000;
+}
+
+/**
+ * How many minutes a member on `tier` waits before a new job becomes visible
+ * to them. `MAX_EARLY_ACCESS_DELAY_MINUTES` for free/unknown, 0 for Elite.
+ */
+export function earlyAccessWaitMinutes(tier: string | null | undefined): number {
+  return MAX_EARLY_ACCESS_DELAY_MINUTES - earlyAccessHeadStartMinutes(tier);
+}
+
+/**
+ * How many minutes SOONER than a free member this tier sees a new job — the
+ * figure the membership storefront advertises ("10-min early access").
+ */
+export function earlyAccessHeadStartMinutes(tier: string | null | undefined): number {
+  return (
     tier === "elite" ? 20
     : tier === "plus" ? 15
     : tier === "pro" ? 10
     : tier === "basic" ? 5
-    : 0;
-  return (20 - earlyMinutes) * 60 * 1000;
+    : 0
+  );
 }

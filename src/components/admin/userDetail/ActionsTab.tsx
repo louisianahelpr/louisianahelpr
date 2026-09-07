@@ -1,7 +1,8 @@
 import {
   CheckCircle2, XCircle, Clock, ShieldAlert, ShieldCheck, KeyRound,
-  MessageSquareWarning, History, Trash2, Eye,
+  MessageSquareWarning, History, Trash2, Eye, UserMinus,
 } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
@@ -13,6 +14,7 @@ import { useImpersonation } from "@/hooks/useImpersonation";
 import { cn, formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toneTextClasses } from "@/components/admin/tones";
+import { RestrictApplicationsDialog } from "../RestrictApplicationsDialog";
 
 type EmailEvent = { event_type: string; email_type: string; created_at: string };
 
@@ -49,6 +51,7 @@ export function ActionsTab({
 }: ActionsTabProps) {
   const navigate = useNavigate();
   const { start: startImpersonation } = useImpersonation();
+  const [restrictProfile, setRestrictProfile] = useState<Profile | null>(null);
   const showApprovedActivityChip = viewProfile.approval_status === "approved"
     && !["permanently_banned", "temp_banned"].includes(viewBanStatus);
 
@@ -161,6 +164,21 @@ export function ActionsTab({
           >
             <Eye className={cn("w-4 h-4 mr-1.5", toneTextClasses.warning)} /> Impersonate (RO)
           </Button>
+          {/* Applications restriction — the operating half of
+              `helper_shadowbans`, whose table, RLS, is_helper_shadowbanned()
+              and block_shadowbanned_applications() trigger have all been live
+              with zero rows because nothing could ever create one. State is
+              local rather than threaded up through AdminUsers.tsx: this writes
+              no column the user list renders, so it needs no refetch, and
+              keeping it here avoids a third file in the prop chain. */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 justify-start"
+            onClick={() => setRestrictProfile(viewProfile)}
+          >
+            <UserMinus className={cn("w-4 h-4 mr-1.5", toneTextClasses.warning)} /> Restrict Applications
+          </Button>
           {!["permanently_banned", "temp_banned"].includes(viewBanStatus) ? (
             <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-2 sm:col-span-1" onClick={() => setBanProfile(viewProfile)}>
               <ShieldAlert className="w-4 h-4 mr-1.5" /> Suspend / Ban
@@ -180,6 +198,11 @@ export function ActionsTab({
           admin_audit_log, user_violations, and admin-toned
           notifications into a single chronological feed. */}
       <UserAuditLog userId={viewProfile.user_id} />
+
+      <RestrictApplicationsDialog
+        profile={restrictProfile}
+        onClose={() => setRestrictProfile(null)}
+      />
     </TabsContent>
   );
 }

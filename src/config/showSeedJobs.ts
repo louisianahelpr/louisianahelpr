@@ -130,4 +130,12 @@ export const SEED_GATED_SURFACES = [
   // had a gate is invisible to a check that starts from callers of the gate.
   // That is why both halves are kept. Gate added in 20260903081713.
   { surface: "daily parish digest email", object: "public.sweep_daily_job_digest" },
+  // ADDED 2026-09-07 with 20260907063128. Not a feed — the WRITE side of the
+  // same switch. Every surface above HIDES fixture jobs once the flag flips;
+  // this BEFORE INSERT trigger on `applications` REFUSES an apply to one, so
+  // the gate governs discovery and the write path together (AR-013: six feed
+  // filters were hidden in the feed and never refused at apply). It calls
+  // `seed_jobs_hidden_publicly()` directly, which is why the caller-half of
+  // the parity discovery found it the moment it landed.
+  { surface: "apply-path refusal (write side)", object: "public.enforce_application_job_state" },
 ] as const;

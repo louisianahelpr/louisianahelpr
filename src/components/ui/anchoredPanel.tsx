@@ -252,7 +252,14 @@ export function useScreenPanelBand(
  * the screen. Left on, `shift` would slide a full-viewport-width panel
  * sideways to "fit" it and reintroduce the side margins.
  */
-export function screenPanelContentProps(band: ScreenPanelBand) {
+export function screenPanelContentProps(band: ScreenPanelBand): {
+  side: "bottom";
+  align: "center";
+  sideOffset: number;
+  alignOffset: number;
+  avoidCollisions: boolean;
+  style: React.CSSProperties;
+} {
   return {
     side: "bottom" as const,
     align: "center" as const,
@@ -263,7 +270,7 @@ export function screenPanelContentProps(band: ScreenPanelBand) {
       width: band.width || undefined,
       maxHeight: band.maxHeight || undefined,
       ...screenPanelSurfaceStyle,
-    } satisfies React.CSSProperties,
+    },
   };
 }
 

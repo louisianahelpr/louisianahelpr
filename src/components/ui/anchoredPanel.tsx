@@ -26,7 +26,9 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
  *                             sits in. No side margins, no caret, no floating
  *                             rounded card — `useScreenPanelBand` measures the
  *                             band and `screenPanelContentProps` feeds it to
- *                             Radix.
+ *                             Radix. (Desktop website only: edge to edge of
+ *                             the content panel beside the rail instead of
+ *                             the whole screen — see `DESKTOP_PANEL_SELECTOR`.)
  *   3. Opaque surface.        `screenPanelSurfaceStyle`, not `.glass-modal`:
  *                             a solid `--background` with a hairline bottom
  *                             edge and a soft downward shadow. A full-bleed
@@ -74,6 +76,11 @@ const PANEL_HEADER_SELECTOR =
  */
 const MAX_HEADER_HEIGHT = 200;
 
+/** On the desktop website, the content column a panel is cut to — the page
+ *  panel beside the rail, or the shell frame when the trigger sits outside a
+ *  page panel (a full-width top bar's bell). */
+const DESKTOP_PANEL_SELECTOR = ".page-panel, .app-shell-frame";
+
 /** Breathing room under the trigger when no header bar could be identified. */
 const TRIGGER_FALLBACK_GAP = 8;
 
@@ -84,12 +91,15 @@ const PANEL_BOTTOM_GAP = 12;
 const PANEL_MIN_HEIGHT = 160;
 
 export interface ScreenPanelBand {
-  /** Always 0 — the band starts at the left edge of the screen. */
+  /** Viewport x of the band's left edge: 0 on a phone (the band starts at
+   *  the screen edge); on the desktop website, the left edge of the content
+   *  panel the trigger sits in. */
   left: number;
   /** Viewport y of the panel's top edge (the header's bottom). */
   top: number;
-  /** `documentElement.clientWidth` — the scrollbar is excluded on purpose, so
-   *  a full-bleed panel can never itself create horizontal overflow. */
+  /** `documentElement.clientWidth` on a phone (the scrollbar is excluded on
+   *  purpose, so a full-bleed panel can never itself create horizontal
+   *  overflow); on the desktop website, the content panel's width. */
   width: number;
   /** Height budget: everything from `top` down to the dock, less a gap. */
   maxHeight: number;
@@ -103,7 +113,8 @@ function measureScreenPanelBand(
 ): ScreenPanelBand {
   if (typeof document === "undefined") return EMPTY_BAND;
   const doc = document.documentElement;
-  const width = doc.clientWidth;
+  let left = 0;
+  let width = doc.clientWidth;
   const viewportHeight = doc.clientHeight;
 
   let top = 0;
@@ -117,6 +128,21 @@ function measureScreenPanelBand(
       if (rect.bottom < triggerRect.bottom) continue;
       top = rect.bottom;
       break;
+    }
+    // DESKTOP WEBSITE ONLY: the band spans the content panel the trigger
+    // sits in, not the screen. Beside the 248px rail a viewport-wide band ran
+    // under the rail with a phone-width column of controls floating in the
+    // middle of a 1440px strip (external QA, 2026-09). Cut to the panel, it
+    // is the width of the column it belongs to. On a phone (no `web-desktop`
+    // on <html>, and never in the native app) nothing here runs — the band
+    // stays the full-bleed screen band the owner picked on device.
+    if (doc.classList.contains("web-desktop")) {
+      const panel = trigger.closest<HTMLElement>(DESKTOP_PANEL_SELECTOR);
+      const rect = panel?.getBoundingClientRect();
+      if (rect && rect.width > 0 && rect.width < width - 1) {
+        left = Math.max(0, Math.round(rect.left));
+        width = Math.min(Math.round(rect.width), doc.clientWidth - left);
+      }
     }
   }
 
@@ -141,7 +167,7 @@ function measureScreenPanelBand(
     viewportHeight - top - bottomInset - PANEL_BOTTOM_GAP,
   );
 
-  return { left: 0, top: Math.round(top), width, maxHeight: Math.round(maxHeight) };
+  return { left, top: Math.round(top), width, maxHeight: Math.round(maxHeight) };
 }
 
 /**

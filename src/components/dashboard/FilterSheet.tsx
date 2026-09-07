@@ -3,7 +3,6 @@ import {
   useId,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -393,16 +392,14 @@ export function FilterSheet({
               at anything, and the owner asked for it anchored to the screen
               rather than to the sliders icon. */}
           <div
-            // `mx-auto max-w-lg` is a CONTENT measure, not a side margin — the
-            // band's SURFACE still reaches both screen edges. Without it every
-            // chip row and switch stretched to the full window on desktop.
-            // Below 512px (every phone) it changes nothing.
-            className="relative flex min-h-0 w-full max-w-lg flex-1 mx-auto flex-col overflow-hidden"
-            style={{
-              // The scrolling chip rows fade against the panel's OWN surface,
-              // not the page's — see `--filter-surface` in JobFilters.tsx.
-              "--filter-surface": "var(--background)",
-            } as CSSProperties}
+            // `mx-auto max-w-*` is a CONTENT measure, not a side margin — the
+            // band's SURFACE still reaches both edges of the header it hangs
+            // under. Below 512px (every phone) it changes nothing. On the
+            // desktop website (`lg` = the `web-desktop` gate, 900px) the band
+            // is the feed column's width and the content opens up to match,
+            // so Sort's five chips and Category's twelve sit in wrapping rows
+            // instead of a phone column in the middle of the band.
+            className="relative flex min-h-0 w-full max-w-lg lg:max-w-3xl flex-1 mx-auto flex-col overflow-hidden"
           >
             {/* Panel header — a title and an unmistakable way out. There was
                 neither before: the only ✕ on screen belonged to the search

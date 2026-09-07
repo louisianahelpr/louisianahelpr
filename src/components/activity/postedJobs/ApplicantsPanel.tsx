@@ -566,14 +566,31 @@ export function ApplicantsPanel({
                           />
                         </div>
 
-                        {/* Row 2: applicant message — compact quote style */}
+                        {/* Row 2: applicant message — compact quote style.
+                            `flagged_hidden` is set server-side by
+                            applications_scan_contact_info when the note carries
+                            a phone number, email, off-platform payment service
+                            or an intent phrase. Setting the flag without
+                            honouring it here would leave the leak on screen and
+                            only LOOK fixed — the note reached this exact
+                            component verbatim in the 2026-09-06 review. */}
                         {app.message && (
-                          <p
-                            className="font-serif italic text-ds-13 leading-snug line-clamp-2 pl-14"
-                            style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
-                          >
-                            "{app.message}"
-                          </p>
+                          app.flagged_hidden ? (
+                            <p
+                              className="font-serif italic text-ds-13 leading-snug pl-14"
+                              style={{ color: "hsl(var(--burnt-sienna))" }}
+                            >
+                              This note was hidden — it looked like contact or payment details.
+                              Keep the conversation on Helpr so your payment stays protected.
+                            </p>
+                          ) : (
+                            <p
+                              className="font-serif italic text-ds-13 leading-snug line-clamp-2 pl-14"
+                              style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
+                            >
+                              "{app.message}"
+                            </p>
+                          )
                         )}
 
                         {/* Row 3: attachments */}

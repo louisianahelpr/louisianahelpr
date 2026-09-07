@@ -243,16 +243,36 @@ export function ApplyBody({
             Use saved pitch
           </button>
         )}
-        {differsFromTemplate && (
-          <label htmlFor="save-default-pitch" className="flex items-center gap-2 cursor-pointer min-h-[44px] -my-1">
-            <Checkbox
-              id="save-default-pitch"
-              checked={saveAsTemplate}
-              onCheckedChange={(checked) => setSaveAsTemplate(checked === true)}
-            />
-            <span className="font-sans text-ds-12 text-muted-foreground">Save as my default pitch</span>
-          </label>
-        )}
+        {/* ALWAYS RENDERED, never conditional on the field's contents. It used
+            to mount only once `differsFromTemplate` went true, i.e. on the
+            first keystroke — so the row appeared out of nowhere mid-typing and
+            shoved the submit button 25px down at 375 (50px at 1440), under a
+            thumb that was already on its way there. An option that materialises
+            under a moving target is worse than one that was simply always
+            there. It is disabled, not hidden, while there is nothing to save;
+            the height is identical in both states, so nothing moves. */}
+        <label
+          htmlFor="save-default-pitch"
+          className={`flex items-center gap-2 min-h-[44px] -my-1 ${
+            differsFromTemplate ? "cursor-pointer" : "cursor-default"
+          }`}
+        >
+          <Checkbox
+            id="save-default-pitch"
+            checked={saveAsTemplate}
+            disabled={!differsFromTemplate}
+            onCheckedChange={(checked) => setSaveAsTemplate(checked === true)}
+          />
+          {/* Colour, not opacity, carries the disabled state — dimming the
+              whole row with opacity-* drops the label under WCAG AA. */}
+          <span
+            className={`font-sans text-ds-12 ${
+              differsFromTemplate ? "text-muted-foreground" : "text-muted-foreground/70"
+            }`}
+          >
+            Save as my default pitch
+          </span>
+        </label>
 
       </div>
 

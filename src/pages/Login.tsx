@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Clock } from "lucide-react";
-import { postAuthDestination } from "@/lib/jobIntent";
+import { postAuthDestination, rememberSignupRedirect } from "@/lib/jobIntent";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
   setLastAuthMethod,
 } from "@/lib/lastAuthMethod";
 import { safeStorage } from "@/lib/safeStorage";
+import { safeInternalRedirect } from "@/lib/authRedirects";
 
 const LOGIN_TIMEOUT_MS = 15000;
 
@@ -150,19 +151,31 @@ const Login = () => {
       return false;
     }
   });
-  // A safe ?redirect= target set by ProtectedRoute when it bounced a
-  // logged-out user off a gated route. We use it ONLY to explain the bounce
-  // in the header copy. Sign-in always lands on the home dashboard — the
-  // app's main tabs (My Posts, etc.) should never be the post-login landing;
-  // the user explicitly wants "log in → home". Deep content links surface
-  // their own in-app routing once the user is home.
+  // The default landing. "Log in → home" is still the rule for an ordinary
+  // sign-in: a user who opens /login of their own accord lands on the
+  // dashboard, and the app's main tabs are never a post-login destination the
+  // user did not ask for.
   const postLoginDest = "/dashboard";
-  // ProtectedRoute writes ?redirect= when it bounces a logged-out visitor off
-  // a gated route. The comment above has always said it is read "ONLY to
-  // explain the bounce in the header copy" — but nothing read it, so a guest
-  // following a deep link was dumped here with no idea why. It explains the
-  // bounce now; sign-in still lands on the dashboard, unchanged.
-  const bouncedFromGatedRoute = Boolean(searchParams.get("redirect"));
+  // ?redirect= is the ONE case that is not an ordinary sign-in. ProtectedRoute
+  // writes it when it bounces a logged-out visitor off a route they had
+  // already navigated to, so the param IS the user asking to go somewhere —
+  // returning them there is not overriding the landing rule, it is completing
+  // the interruption. It used to be read only to phrase the notice, so
+  // /login?redirect=%2Fmy-posts signed you in and dropped you on the dashboard
+  // with the page you had asked for silently discarded.
+  //
+  // It rides the SAME storage + validation Signup already uses
+  // (`rememberSignupRedirect` → `safeInternalRedirect`, applied on write and
+  // again on read): same-origin leading-slash paths only, never an auth
+  // screen, and the read is destructive so a stale target cannot hijack a
+  // later unrelated sign-in. Going through storage rather than straight to
+  // `navigate` is also what carries it across the MFA challenge, which
+  // unmounts nothing but resolves in a second handler.
+  const pendingRedirect = searchParams.get("redirect");
+  useEffect(() => {
+    rememberSignupRedirect(pendingRedirect);
+  }, [pendingRedirect]);
+  const bouncedFromGatedRoute = Boolean(safeInternalRedirect(pendingRedirect));
   // The job a bounced guest was trying to reach, if any — /jobs/<uuid> is the
   // only gated route whose destination is a single object worth carrying.
   const signupHref = (() => {
@@ -178,7 +191,7 @@ const Login = () => {
       : arrivedFromSignup
         ? "If that email already has an account, log in below. Forgot your password? Reset it and you'll be back in."
         : bouncedFromGatedRoute
-          ? "That page needs an account. Log in and we'll take you to your dashboard."
+          ? "That page needs an account. Log in and we'll take you straight back to it."
           : null;
   const queryClient = useQueryClient();
   usePageMeta({
@@ -331,9 +344,11 @@ const Login = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
     setLoading(false);
     hapticSuccess();
-    // postAuthDestination keeps this on the home dashboard per the note above;
-    // it only appends ?quickApply=<id> when the visitor got here from a job
-    // card they tapped while logged out. See lib/jobIntent.
+    // postAuthDestination spends whichever intent is pending: the ?redirect=
+    // path a bounced visitor was trying to reach, else ?quickApply=<id> for a
+    // job card tapped while logged out, else the home dashboard. See
+    // lib/jobIntent. Shared with the MFA path below, which is why the target
+    // lives in storage rather than in this closure.
     navigate(postAuthDestination(postLoginDest), { replace: true });
   };
 

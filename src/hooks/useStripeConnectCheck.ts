@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   awardBlockReasonFromStatus,
   type AwardBlockReason,
@@ -43,6 +44,11 @@ export type AwardEligibility = {
 
 export function useStripeConnectCheck() {
   const [checking, setChecking] = useState(false);
+  // The second half of the identity verdict. Read from the already-cached
+  // current profile rather than added as a hook argument, so the eligibility
+  // gate stops disagreeing with the server without every caller having to
+  // learn about a column. See `isIdentityVerified` in @/lib/awardGate.
+  const { profile } = useCurrentUser();
 
   const checkHelperStripeConnect = useCallback(async (): Promise<StripeConnectCheckResult> => {
     setChecking(true);
@@ -79,9 +85,11 @@ export function useStripeConnectCheck() {
    * enforces (migration 20260827191647) — so the answer shown here and the
    * answer the database will give are the same fact, refreshed together.
    *
-   * This SUPERSEDES the old `idv_status = 'verified'` check rather than adding
-   * to it. `idv_status` is the unreviewed upload/admin flag; asserting identity
-   * from it was the thing commit 47eef666 set out to stop.
+   * Identity is EITHER verdict — Stripe Connect's, or the Stripe Identity
+   * document + selfie check the app actually puts in front of people
+   * (`profiles.idv_status`). This comment used to say the opposite, and the
+   * gate matched it: it read the Connect flag alone and so refused live
+   * accounts the server trigger would have let through. See `isIdentityVerified`.
    */
   const checkHelperAwardEligibility = useCallback(async (): Promise<AwardEligibility> => {
     setChecking(true);
@@ -90,14 +98,17 @@ export function useStripeConnectCheck() {
         body: { action: "status" },
       });
       if (error) throw error;
-      const reason = await awardBlockReasonFromStatus(data as ConnectStatus | null);
+      const reason = await awardBlockReasonFromStatus(
+        data as ConnectStatus | null,
+        profile?.idv_status,
+      );
       return { ok: reason === null, reason };
     } catch {
       return { ok: false, reason: null, indeterminate: true };
     } finally {
       setChecking(false);
     }
-  }, []);
+  }, [profile?.idv_status]);
 
   return { checkHelperStripeConnect, checkHelperAwardEligibility, checking };
 }

@@ -1566,7 +1566,27 @@ export function JobTracking({
                     // Constrained to the column, a long label wraps within its
                     // own step and the edge mask feathers whole steps as
                     // intended.
-                    className="w-full text-ds-9 min-[360px]:text-ds-10 font-sans font-semibold text-center leading-tight"
+                    //
+                    // `min-h-[2.5em]` RESERVES BOTH LINES ON EVERY STEP.
+                    // "On the Way" is the one label that does not fit a 60px
+                    // column on one line, so it — and only it — wrapped to two.
+                    // Measured at 500px: that column stood 61px tall against 47
+                    // for the other seven, and because the row is `items-start`
+                    // the extra 14px hung below its neighbours, so a row of
+                    // eight identical steps visibly sagged under one of them.
+                    // Reserving two lines' height makes every column the same
+                    // height whichever label happens to wrap, at the same cost
+                    // the tallest one was already imposing on the row.
+                    //
+                    // 2.9em, NOT 2.5em: the line box here is 1.45× the font
+                    // size, not the 1.25 `leading-tight` implies — `text-ds-9`
+                    // and `text-ds-10` each ship `lineHeight: "1.45"` in
+                    // tailwind.config.ts and win, and `html.senior-mode` keeps
+                    // 1.45 too. 2.5em undershot the real two-line box by 4px
+                    // and left the row still visibly uneven; 2 × 1.45 lands it
+                    // exactly, and being em-relative it holds at ds-9, ds-10
+                    // and senior-mode alike.
+                    className="w-full min-h-[2.9em] text-ds-9 min-[360px]:text-ds-10 font-sans font-semibold text-center leading-tight"
                     style={{
                       color: isCurrent
                         ? "hsl(var(--bark))"

@@ -7,6 +7,7 @@ import {
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { MenuItem, Profile } from "./types";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { isIdentityVerified } from "@/lib/awardGate";
 
 interface UseProfileLandingDerivedArgs {
   profile: Profile | null;
@@ -80,13 +81,25 @@ export function useProfileLandingDerived({
   // unverified items are still nudged via the completion meter +
   // Credentials tab.
   const earnedBadges = ([
-    // Backed by Stripe's verdict, NOT `idv_status`. `idv_status` is flipped by
-    // the upload flow and by an admin manual-approve nobody actually performs,
-    // so it asserted a human ID review that does not happen.
-    // `stripe_identity_verified` is cached from the account.updated webhook and
-    // is TRUE only when Stripe has no outstanding identity requirement — see
-    // supabase/functions/_shared/stripeIdentity.ts.
-    { ok: profile?.stripe_identity_verified === true, label: "ID verified by Stripe" },
+    // EITHER Stripe verdict, which is what the server gate
+    // (`helper_award_block_reason`, migration 20260907013734) and the public
+    // badge (`get_safe_profiles.is_id_verified` = `idv_status = 'verified'`)
+    // both read.
+    //
+    // This used to be `stripe_identity_verified` alone, on the reasoning that
+    // `idv_status` was an unreviewed upload flag. It is not one any more — it
+    // is written by `stripe-idv-webhook` from a real document + selfie session.
+    // Reading only the Connect column made THIS the odd surface out: ten live
+    // profiles carried `idv_status = 'verified'` with the Connect flag false,
+    // so a poster saw a green "ID verified by Stripe" chip on the applicant
+    // card while the same person's own profile showed no badge at all.
+    {
+      ok: isIdentityVerified({
+        connectIdentityVerified: profile?.stripe_identity_verified,
+        idvStatus: profile?.idv_status,
+      }),
+      label: "ID verified by Stripe",
+    },
     { ok: profile?.license_status === "verified", label: "Licensed" },
     { ok: profile?.insurance_status === "verified", label: "Insured" },
   ]).filter((b) => b.ok);

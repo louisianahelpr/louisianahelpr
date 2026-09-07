@@ -42,6 +42,7 @@ import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./profile/ProfileTabPanels";
 import { TAB_TITLES, resolveTab, type Profile, type Tab } from "./profile/types";
 import { hasInAppHistory } from "@/lib/inAppHistory";
+import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
 /**
@@ -547,8 +548,13 @@ const ProfilePage = () => {
     profile?.subscription_tier ?? null,
     profile?.subscription_expires_at ?? null,
   );
+  // `isEarnedJob`, not `status === "completed"` — the same definition
+  // EarningsTab uses for the figure it prints. A completed job whose payment
+  // was refunded to the poster or charged back stays `completed` forever, and
+  // counting it here made this total disagree with the Earnings tab's about
+  // the same helper. See src/components/profile/earningsTab/earningsTabHelpers.ts.
   const totalEarnings = sumHelperTakeHomeDollars(
-    earningsJobs.filter((j) => j.status === "completed"),
+    earningsJobs.filter(isEarnedJob),
     helperFeeFallbackPct,
   );
 

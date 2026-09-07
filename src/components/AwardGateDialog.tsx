@@ -16,16 +16,18 @@ import { hapticError } from "@/lib/haptics";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { getPublicReturnUrl } from "@/lib/authRedirects";
 import { track, AhaEvent } from "@/lib/analytics";
-import { awardBlockCopy, type AwardBlockReason } from "@/lib/awardGate";
+import { awardBlockCopy, isIdentityVerified, type AwardBlockReason } from "@/lib/awardGate";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 /**
  * The blocked state for a helper who cannot yet be awarded a job.
  *
- * This screen carries a lot of weight. On today's live data NO account passes
- * the identity check — the column defaults false with no backfill — so for now
- * this dialog is what every helper sees the first time they try to take work.
- * The bar is deliberate (owner's call; the app is pre-launch), which makes it
- * all the more important that this is not a dead end.
+ * This screen carries a lot of weight: it is what a helper sees the first time
+ * they try to take work and cannot. This header used to say NO account passed
+ * the identity check; measured against prod 2026-09-06 that is no longer true —
+ * `helper_award_block_reason` now accepts the Stripe Identity verdict as well
+ * as the Connect one, and ZERO profiles are blocked on identity. Twenty are
+ * blocked on payout setup, so that arm is the live one.
  *
  * So: it names WHICH of the two requirements is missing, says WHAT Stripe is
  * waiting on, and its primary button goes straight into the right Stripe flow —
@@ -49,6 +51,23 @@ export function AwardGateDialog({
   const [loading, setLoading] = useState(false);
   const copy = awardBlockCopy(reason);
   const Icon = reason === "helper_identity_unverified" ? ShieldCheck : BadgeDollarSign;
+  const { profile } = useCurrentUser();
+
+  // The identity row used to be hard-coded `met={false}`, so a helper blocked
+  // ONLY on payout setup was told, in the same session, that their identity was
+  // "Needed" while the poster's applicant card showed them a green "ID verified
+  // by Stripe" badge for the same account. Two screens, one fact, opposite
+  // answers — QA caught exactly this on 2026-09-06.
+  //
+  // The server's refusal wins where it has spoken: `helper_identity_unverified`
+  // means not verified no matter what a cached column says. Otherwise the row
+  // reports the same EITHER-verdict the gate and the badge now read.
+  const identityMet =
+    reason !== "helper_identity_unverified" &&
+    isIdentityVerified({
+      connectIdentityVerified: profile?.stripe_identity_verified,
+      idvStatus: profile?.idv_status,
+    });
 
   const handleFix = async () => {
     setLoading(true);
@@ -99,7 +118,7 @@ export function AwardGateDialog({
           />
           <RequirementRow
             label="Identity verified by Stripe"
-            met={false}
+            met={identityMet}
           />
         </div>
 

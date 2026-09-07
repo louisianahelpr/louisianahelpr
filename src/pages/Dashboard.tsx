@@ -142,6 +142,23 @@ const Dashboard = () => {
   }, [searchParams, setSearchParams, navigate]);
 
   const [reportJobId, setReportJobId] = useState<string | null>(null);
+  /**
+   * ONE overlay at a time on first login.
+   *
+   * The onboarding tour and the birthday greeting are both Radix modals at
+   * `z-50` mounted as unconditional siblings below. They opened independently,
+   * so a member whose first login fell on their birthday got both at once —
+   * the tour card (337×191) painted straight over the greeting (187×250),
+   * which was on screen but completely covered and unreachable until the tour
+   * was skipped. Neither knew the other existed; nothing was stacking them
+   * wrong, they were simply racing.
+   *
+   * The tour reports whether it still owns the screen and the greeting waits
+   * on that, so the order is now fixed: tour, then birthday. Starts `true`
+   * (defer) because the tour's own answer is asynchronous — see
+   * `onActiveChange` on OnboardingTour.
+   */
+  const [tourActive, setTourActive] = useState(true);
   // Detail-dialog open/close lifecycle (which job, feed-scroll restore, and
   // ?job=<id> URL mirroring) lives in useDetailJob.
   const { detailJob, openDetailJob, closeDetailJob } = useDetailJob({
@@ -373,12 +390,12 @@ const Dashboard = () => {
                 savedOnly={savedOnly}
                 onToggleSavedOnly={toggleSavedOnly}
                 savedCount={savedJobIds.size}
-                // Phone + native: emblem, filter, bell. Search and Saved fold
-                // into the filter sheet, which is the only way this row fits —
-                // measured, the five-icon cluster wanted 386px against a card
-                // edge at 334, and the overflow was silently eating first the
-                // emblem and then the bell.
-                compact
+                // Phone + native: emblem, search, filter, bell. Search is no
+                // longer folded into the sheet — the row this cluster has to
+                // fit is nothing like the five-control row that argument was
+                // measured against, and the fold left 158px of dead band in
+                // the middle of the brand row with search unreachable except
+                // through the Filters drawer. See BrowseTasksActions.
               />
             }
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
@@ -562,9 +579,13 @@ const Dashboard = () => {
                     view={view}
                     setView={setView}
                     hideViewToggle={isWebDesktop}
-                    // The sheet grows Search + "Only saved jobs" sections on
-                    // exactly the surfaces whose header row lost those icons.
-                    compactActions={!isWebDesktop}
+                    // NO `compactActions`. That flag grew a second Search
+                    // field inside the filter sheet for exactly the surfaces
+                    // whose header row had lost the search icon — and the
+                    // header row has it back on every width now, so passing it
+                    // would put two search fields on one screen. "Only saved
+                    // jobs" is unaffected: it comes from
+                    // buildJobFilterSections, not from this flag.
                     savedOnly={savedOnly}
                     onToggleSavedOnly={toggleSavedOnly}
                     savedCount={savedJobIds.size}
@@ -730,11 +751,19 @@ const Dashboard = () => {
           slot; it lives with the other overlays now. Still mounted on every
           Dashboard render — it self-hides unless today is the user's birthday. */}
       <Suspense fallback={null}>
-        <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
+        <BirthdayPopup
+          dateOfBirth={profile?.date_of_birth}
+          firstName={firstName}
+          deferred={tourActive}
+        />
       </Suspense>
 
       <Suspense fallback={null}>
-        <OnboardingTour profileComplete={isProfileComplete(profile)} />
+        <OnboardingTour
+          profileComplete={isProfileComplete(profile)}
+          userId={user?.id}
+          onActiveChange={setTourActive}
+        />
       </Suspense>
       <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApplyRequest} />
 

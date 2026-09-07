@@ -218,10 +218,18 @@ export function SignupStep1({
           {password.length > 0 && (() => {
             // Strength meter — a quality nudge that sits above the hard
             // requirement chips. Burnt-sienna for weak/fair, bark for good,
-            // green (primary) for strong.
+            // green (--success-ink) for strong.
+            //
+            // Strong WAS `--primary`, and `--primary` is defined as
+            // `var(--bark)` — so "Good" and "Strong" painted the identical
+            // rgb(95,101,67) in light and the identical rgb(149,160,106) in
+            // dark. A four-segment meter whose top two states are byte-for-byte
+            // the same colour cannot tell you that you improved the password,
+            // which is the entire job of the top segment. The comment above
+            // always said "green"; the token simply was not one.
             const { score, label } = passwordStrength(password);
             const barColor =
-              score >= 4 ? "hsl(var(--primary))" : score === 3 ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))";
+              score >= 4 ? "hsl(var(--success-ink))" : score === 3 ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))";
             return (
               <div className="flex items-center gap-2">
                 <div className="flex gap-1 flex-1">

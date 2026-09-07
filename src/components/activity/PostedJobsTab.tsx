@@ -219,10 +219,23 @@ function ListTail({
        means there is no unclaimed pixel at any height: on a short list it is a
        calm end-of-list region, and on a list that fills the panel the free
        space is zero, so it collapses back to its content height and scrolls
-       past like any other block. */
-    <div className="mt-auto flex-1 flex flex-col pt-6 min-h-0">
+       past like any other block.
+
+       BUT THE CLAIM IS NOW CAPPED. Unbounded, "claim the leftover" turns into
+       "inflate one sentence and one button to whatever is left": measured at
+       500×900 with two short posts, the bordered box stood 363px tall around
+       ~106px of content, and the thinner the bucket the worse it got — a
+       single post gives it the better part of 500px. A bordered slab that size
+       does not read as a calm region, it reads as the dead band it was meant
+       to cure, only now outlined. `max-h-[9rem]` is the content's own ceiling
+       (a three-line paragraph at 320px + the 44px button + the py-3 padding is
+       121px), and `justify-end` on the wrapper hands the surplus BACK to the
+       panel's own surface, where an unfilled panel is quiet, rather than
+       painting a border around it. On a list that fills the panel nothing
+       changes: there is no surplus to cap. */
+    <div className="mt-auto flex-1 flex flex-col justify-end pt-6 min-h-0">
       <div
-        className="rounded-ds-md px-3 py-3 text-center flex-1 flex flex-col items-center justify-center"
+        className="rounded-ds-md px-3 py-3 text-center flex-1 max-h-[9rem] flex flex-col items-center justify-center"
         style={{
           background: "hsl(var(--olivewood) / 0.05)",
           border: "0.5px solid hsl(var(--olivewood) / 0.16)",

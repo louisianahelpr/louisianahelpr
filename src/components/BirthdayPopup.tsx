@@ -11,14 +11,30 @@ import { parseLocalDate } from "@/lib/dateUtils";
 interface BirthdayPopupProps {
   dateOfBirth: string | null | undefined;
   firstName: string;
+  /**
+   * Hold this card closed while something with a prior claim on the screen is
+   * still up — in practice the onboarding tour, its only sibling overlay on
+   * Dashboard.
+   *
+   * Both dialogs are Radix modals at `z-50` and were mounted as unconditional
+   * siblings that opened independently. On a first login that landed on the
+   * member's birthday the tour card (337×191) covered this one (187×250)
+   * entirely: the greeting was on screen, focus-trapped underneath, and
+   * unreachable until the tour was skipped. Ordering them — tour first, then
+   * the greeting — is what this prop is.
+   *
+   * It does NOT change the once-per-day rule: nothing is written to storage
+   * while deferred, so the greeting still appears the moment the tour clears.
+   */
+  deferred?: boolean;
 }
 
-const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
+const BirthdayPopup = ({ dateOfBirth, firstName, deferred = false }: BirthdayPopupProps) => {
   const reducedMotion = useReducedMotion();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (!dateOfBirth) return;
+    if (!dateOfBirth || deferred) return;
 
     const today = new Date();
     const dob = parseLocalDate(dateOfBirth);
@@ -36,7 +52,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
       }
       setShow(true);
     }
-  }, [dateOfBirth]);
+  }, [dateOfBirth, deferred]);
 
   const dismiss = () => {
     setShow(false);

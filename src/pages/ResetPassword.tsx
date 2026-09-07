@@ -233,14 +233,17 @@ const ResetPassword = () => {
                   <Check className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
                 )}
               </div>
-              {/* Strength meter — same scoring as the signup form so the
-                  bar reads consistently across both screens. Burnt-sienna
-                  for weak/fair, bark for good, primary green for strong. */}
+              {/* Strength meter — same scoring AND the same three colours as
+                  the signup form so the bar reads consistently across both
+                  screens. Burnt-sienna for weak/fair, bark for good,
+                  --success-ink green for strong. Strong was `--primary`, which
+                  is `var(--bark)`, so it was indistinguishable from Good —
+                  see the note in SignupStep1.tsx. */}
               {password.length > 0 && (() => {
                 const { score, label } = passwordStrength(password);
                 const barColor =
                   score >= 4
-                    ? "hsl(var(--primary))"
+                    ? "hsl(var(--success-ink))"
                     : score === 3
                       ? "hsl(var(--bark))"
                       : "hsl(var(--burnt-sienna))";

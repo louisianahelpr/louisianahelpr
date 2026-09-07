@@ -62,7 +62,20 @@ const TOUR_STEPS: TourStep[] = [
   },
 ];
 
-const STORAGE_KEY = "helpr_onboarding";
+/**
+ * PER-ACCOUNT, not per-device. This was a bare `helpr_onboarding` shared by
+ * every account that ever signed in on the install, so the SECOND account on a
+ * browser — or on one phone after an account switch, where safeStorage mirrors
+ * the key into Capacitor Preferences and it survives a reinstall — was told
+ * the tour had already been dismissed and never saw onboarding at all. It
+ * follows `helpr_payouts_enabled_<uuid>` (useStripeConnectStatus.ts), the
+ * convention already in the codebase for exactly this.
+ *
+ * `helpr_` prefix, so safeStorage's TRACKED_PREFIXES still mirrors it durably.
+ */
+const LEGACY_STORAGE_KEY = "helpr_onboarding";
+const storageKey = (userId: string | null | undefined) =>
+  userId ? `${LEGACY_STORAGE_KEY}_${userId}` : LEGACY_STORAGE_KEY;
 
 type OnboardingState = {
   completed: boolean;
@@ -70,9 +83,27 @@ type OnboardingState = {
   completedSteps: string[];
 };
 
-const getState = (): OnboardingState => {
+/**
+ * MIGRATION — one-time claim, not a shared read.
+ *
+ * Existing installs carry an un-namespaced `helpr_onboarding`. Reading it as a
+ * fallback forever would reproduce the exact bug, so the FIRST account to
+ * arrive after this ships adopts it (copied to its own key, legacy deleted)
+ * and every account after that starts clean. Net effect: the one person
+ * already using the device is not re-shown the tour, and a second account
+ * finally gets the onboarding it has always been denied.
+ */
+const getState = (userId?: string | null): OnboardingState => {
   try {
-    const raw = safeStorage.getItem(STORAGE_KEY);
+    let raw = safeStorage.getItem(storageKey(userId));
+    if (!raw && userId) {
+      const legacy = safeStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacy) {
+        safeStorage.setItem(storageKey(userId), legacy);
+        safeStorage.removeItem(LEGACY_STORAGE_KEY);
+        raw = legacy;
+      }
+    }
     if (raw) {
       const parsed = JSON.parse(raw);
       // Defensively default fields that may be absent in older stored formats
@@ -91,18 +122,42 @@ const getState = (): OnboardingState => {
   return { completed: false, currentStep: 0, completedSteps: [] };
 };
 
-const saveState = (state: OnboardingState) => {
-  safeStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+const saveState = (userId: string | null | undefined, state: OnboardingState) => {
+  safeStorage.setItem(storageKey(userId), JSON.stringify(state));
 };
 
 interface OnboardingTourProps {
   profileComplete?: boolean;
+  /** Signed-in account id — namespaces this tour's stored state. */
+  userId?: string | null;
+  /**
+   * Reports whether this tour still owns the screen: `true` from mount until
+   * it is known to be finished, `false` once it is.
+   *
+   * Dashboard mounts this tour and BirthdayPopup as unconditional siblings,
+   * both of them Radix dialogs at `z-50`, and neither knew the other existed
+   * — so on a first login that fell on the member's birthday the two opened
+   * together and the smaller birthday card (187×250) sat completely underneath
+   * the tour card (337×191), unreachable until the tour was skipped. This is
+   * how the two are sequenced instead of raced: the tour goes first, and the
+   * birthday greeting waits for this to go `false`.
+   *
+   * It starts `true` deliberately. `getState()` reads localStorage
+   * synchronously but the durable Preferences mirror may not have copied back
+   * yet, and even once it has there is a 1500ms beat before the card appears —
+   * so "not visible yet" is not "not coming", and reporting `false` during
+   * either window would let the birthday card open into the gap.
+   */
+  onActiveChange?: (active: boolean) => void;
 }
 
-const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
+const OnboardingTour = ({ profileComplete = false, userId, onActiveChange }: OnboardingTourProps) => {
   const location = useLocation();
-  const [state, setState] = useState<OnboardingState>(getState);
+  const [state, setState] = useState<OnboardingState>(() => getState(userId));
   const [visible, setVisible] = useState(false);
+  // "This tour will show, or is showing." Distinct from `visible`, which is
+  // false during the pre-hydration and 1500ms-delay windows. See onActiveChange.
+  const [pending, setPending] = useState(true);
 
   // Skip the "Complete your profile" step for anyone who already finished
   // signup with a full profile — nudging them to do something already done
@@ -130,7 +185,12 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
   // shows exactly once per account, ever, and only while it hasn't been
   // completed.
   useEffect(() => {
-    if (location.pathname !== "/dashboard") return;
+    if (location.pathname !== "/dashboard") {
+      // Off the one route this tour renders on, it is never going to open —
+      // release whoever is waiting behind it rather than stranding them.
+      setPending(false);
+      return;
+    }
     // `getState()` reads localStorage synchronously, but on native the
     // durable Preferences mirror hasn't necessarily copied back into
     // localStorage yet at this point — main.tsx renders the app before
@@ -140,32 +200,46 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
     // hydration so this decision uses the durable value.
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    ensureHydrated().then(() => {
-      if (cancelled) return;
-      const hydrated = getState();
-      setState(hydrated);
-      if (hydrated.completed) return;
-      timer = setTimeout(() => setVisible(true), 1500);
-    });
+    ensureHydrated()
+      .then(() => {
+        if (cancelled) return;
+        const hydrated = getState(userId);
+        setState(hydrated);
+        if (hydrated.completed) {
+          setPending(false);
+          return;
+        }
+        timer = setTimeout(() => setVisible(true), 1500);
+      })
+      // A storage read that never resolves must not permanently suppress the
+      // dialog queued behind this one.
+      .catch(() => {
+        if (!cancelled) setPending(false);
+      });
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [location.pathname]);
+  }, [location.pathname, userId]);
+
+  useEffect(() => {
+    onActiveChange?.(pending);
+  }, [pending, onActiveChange]);
 
   const updateState = useCallback((updates: Partial<OnboardingState>) => {
     setState(prev => {
       const next = { ...prev, ...updates };
-      saveState(next);
+      saveState(userId, next);
       return next;
     });
-  }, []);
+  }, [userId]);
 
   // Skip and Escape/outside-click all mean the same thing: done for good.
   // See handleDialogOpenChange below.
   const handleSkip = () => {
     updateState({ completed: true });
     setVisible(false);
+    setPending(false);
   };
 
   // Radix Dialog onOpenChange — fires on Escape, backdrop click, and any
@@ -198,6 +272,7 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
   const finishTour = () => {
     updateState({ completed: true });
     setVisible(false);
+    setPending(false);
   };
 
   if (state.completed) return null;

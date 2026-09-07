@@ -28,6 +28,14 @@ import { recurringVisitDates, WEEKDAY_LABELS } from "@/lib/recurringSchedule";
 import { hasTaxableLine } from "@/lib/salesTax";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
 import { formatJobDate } from "@/lib/dateUtils";
+// What the Helpr actually receives is DERIVED from the same two modules the
+// helper's own surfaces read — `helperTakeHomeDollars` is the one definition of
+// "what did a Helpr take home from this job", and `tierFeePercent` is the one
+// tier→percent resolver — so the figure this screen shows a poster is the same
+// figure the Helpr sees in their feed, by construction rather than by
+// coincidence. See the render site for why the FREE rate is the one used here.
+import { helperTakeHomeDollars } from "@/lib/helperEarnings";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
 
 const isSafeBlobPreviewUrl = (value: string): boolean => {
   if (!value) return false;
@@ -65,6 +73,10 @@ interface CheckoutStepProps {
   isUrgent: boolean;
   urgentFeeNum: number;
   budgetNum: number;
+  /** True when the budget is shared by a roster rather than paid to one Helpr. */
+  isGroupJob?: boolean;
+  /** Roster size on a group job. Anything under 2 resolves to a single Helpr. */
+  helpersNeeded?: number;
   /** Parish-scoped helpr-activity signal, or null when not meaningful. */
   helprActivity: HelprActivity | null;
   customerFee: number | null;
@@ -129,6 +141,8 @@ export function CheckoutStep({
   isUrgent,
   urgentFeeNum,
   budgetNum,
+  isGroupJob,
+  helpersNeeded,
   helprActivity,
   customerFee,
   customerFeeAmount,
@@ -443,6 +457,71 @@ export function CheckoutStep({
             <span className="text-muted-foreground">Job budget</span>
             <span className="font-medium text-foreground">${formatPriceExact(budgetNum)}</span>
           </div>
+          {/* ── What the Helpr actually receives ────────────────────────────
+              THE LINE THIS SCREEN WAS MISSING. Every number on this card was
+              honest about the poster's side — budget, service fee, tax, total,
+              all exact — and the poster was never told the one figure that
+              decides whether their budget attracts anybody: a Helpr is paid the
+              budget MINUS their own membership commission, so a $120 budget is
+              a $105.60 job to the person reading the feed. That is not a
+              detail; it is literally the number Browse prints on the card
+              (`JobPrice.tsx` shows net take-home, never the gross budget), so
+              poster and Helpr were looking at two different jobs.
+
+              STATED AS WHAT THE HELPR GETS, NOT AS WHAT THE PLATFORM TAKES.
+              The arithmetic of the two commissions side by side is deliberately
+              not spelled out here (owner, 2026-08-30, on removing the same
+              breakdown from `JobPrice.tsx`) — and it needn't be: a poster
+              deciding a budget needs the Helpr's number, not ours.
+
+              THE FREE RATE IS THE RIGHT ONE TO QUOTE, and it is a floor rather
+              than an estimate. No Helpr is assigned when escrow is funded, so
+              the commission is genuinely unknown at this moment — every payout
+              path re-resolves it from the assigned Helpr's LIVE tier
+              (`getHelperFeePercent`). Free is the top of that ladder (12%), so
+              `helperTakeHomeDollars` at the free rate is the LEAST any Helpr
+              can receive; a member on any paid tier receives strictly more,
+              which is what the trailing clause says. Quoting the middle of the
+              ladder would produce a figure that is too high roughly half the
+              time, and a promised payout that reads above the real one is the
+              one thing `JobPrice.tsx` states must never happen.
+
+              GROUP JOBS: the budget is charged once and split across the
+              roster (`release-payout`'s `perHelperBudget`), so the sentence
+              names the roster and says "between them" rather than implying
+              each Helpr receives the whole figure.
+
+              SHOWN ON THE GIFT PATH TOO, deliberately. A gift changes how the
+              escrow was FUNDED and waives the poster's service fee; it does not
+              touch what the Helpr is paid — `release-payout` resolves the
+              commission from the assigned Helpr's live tier and applies it to
+              `perHelperBudget` on every path, gift or card. Suppressing this
+              line there would hide the same fact from the same reader for a
+              reason that isn't true of it. */}
+          {budgetNum > 0 && (() => {
+            // The free rate resolved through the SAME resolver the payout uses,
+            // not a literal 12 — this file must never become another place the
+            // ladder is written down. `tierFeePercent(null)` would resolve here
+            // too; "free" is spelled out because the reason is the tier, not the
+            // absence of one.
+            const floorFeePercent = tierFeePercent("free");
+            const roster = isGroupJob && (helpersNeeded ?? 0) > 1 ? (helpersNeeded as number) : 1;
+            // Urgent bonus deliberately omitted: it has its own line below,
+            // already labelled "(goes to Helpr)", and folding it in here would
+            // double-count it in the poster's reading of the same card.
+            const helperReceives = helperTakeHomeDollars(
+              { budget: budgetNum, helper_fee_percent: floorFeePercent },
+              floorFeePercent,
+            );
+            return (
+              <p className="text-ds-11 text-muted-foreground leading-snug -mt-1">
+                {roster > 1
+                  ? `Your ${roster} Helprs receive $${formatPriceExact(helperReceives)} of this between them`
+                  : `Your Helpr receives $${formatPriceExact(helperReceives)} of this`}
+                {" — more if they're on a paid membership."}
+              </p>
+            );
+          })()}
           {/* Service fee — waived outright on a gift-funded post. create-payment
               returns from the PIF branch before the tier/fee pricing runs, so
               there is no percentage to state; printing "12%  $0.00" would

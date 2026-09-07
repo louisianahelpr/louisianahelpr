@@ -4,6 +4,8 @@ import { useProfileLandingDerived } from "./profileLanding/useProfileLandingDeri
 import { IdentityHeader } from "./profileLanding/IdentityHeader";
 import { SettingsSection } from "./profileLanding/SettingsSection";
 import { PayoutStatusRow } from "./profileLanding/PayoutStatusRow";
+import { VerificationStatusRow } from "./profileLanding/VerificationStatusRow";
+import { verificationPromptFor } from "./profileLanding/verificationPrompt";
 
 export function ProfileLanding({
   profile,
@@ -48,10 +50,19 @@ export function ProfileLanding({
         earnedBadges={earnedBadges}
       />
 
-      {/* Payout slot — its own card, separate from the settings list below.
-          It disappears entirely (prompt.kind === "none") once payouts are
-          enabled, so this box just goes away rather than leaving a gap. */}
-      {payoutPrompt.kind !== "none" && (
+      {/* ── Getting-started slot ─────────────────────────────────────
+          The two things that stand between a member and working, in the
+          order the server checks them: can we pay you, and do we know who
+          you are. Both live in ONE card so they read as a checklist rather
+          than two competing alarms, and the card disappears completely once
+          neither has anything to say.
+
+          The verification row is new (2026-09-06). Before it, identity was
+          surfaced NOWHERE on this screen — the only ID prompt in the whole
+          product was mounted inside PostJob — while `jobs` INSERT and
+          `helper_award_block_reason()` both refused unverified members. See
+          `verificationPrompt.ts`. */}
+      {(payoutPrompt.kind !== "none" || verificationPromptFor(profile).kind !== "none") && (
         <div
           className="liquid-glass"
           style={{
@@ -61,12 +72,13 @@ export function ProfileLanding({
               "0 12px 28px -10px hsl(var(--olivewood) / 0.14)",
           }}
         >
-          <div className="p-2">
+          <div className="p-2 space-y-2">
             <PayoutStatusRow
               prompt={payoutPrompt}
               onSetUp={() => onSelectTab("payment")}
               onRetry={refetchStatus}
             />
+            <VerificationStatusRow profile={profile} />
           </div>
         </div>
       )}

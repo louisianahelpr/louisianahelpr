@@ -3,6 +3,7 @@ import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { Link } from "react-router-dom";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { TrustRow } from "@/components/TrustRow";
+import UserAvatar from "@/components/UserAvatar";
 import type { EnrichedJob } from "./types";
 
 interface JobPosterCardProps {
@@ -40,12 +41,22 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
   const posterInitials = (job.posterName || "User")
     .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
-  const hasReviews = (job.posterReviewCount ?? 0) >= 3;
   const hasTier =
     job.posterSubscriptionTier === "elite" ||
     job.posterSubscriptionTier === "pro" ||
     job.posterSubscriptionTier === "basic";
-  const showTrustRow = hasTier || hasReviews || repeatJobs >= 2;
+  /* THE RATING IS PRINTED ONCE, BESIDE THE NAME.
+     It used to be printed twice in this one tile: "★ 4.8 (5)" inline next to
+     the poster's name, and "4.8★ (5)" again in the TrustRow directly below it
+     — same number, two different formats, ~20px apart. The inline one wins
+     because it is the one attached to the person it describes; TrustRow's copy
+     was `hasReviews` (>=3 reviews) being passed straight through as
+     `avgRating`/`reviewCount`, which is the same fact a second time rather
+     than a second signal.
+     `hasReviews` went with it: reviews alone no longer justify opening the
+     trust row, or a poster with reviews and nothing else would get an empty
+     bordered band under their name. */
+  const showTrustRow = hasTier || repeatJobs >= 2;
 
   return (
     <Link
@@ -71,27 +82,42 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
       }}
     >
       <div className="flex items-center gap-2.5">
-        <div
-          className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-sans font-semibold text-ds-12 tracking-[0.06em] uppercase overflow-hidden"
+        {/* THE SHARED `<UserAvatar>`, not a hand-rolled circle.
+
+            This was a bare `<div>` whose monogram rendered only when
+            `posterAvatarUrl` was falsy — so an avatar row that points at a
+            file which loads perfectly and contains NOTHING (prod has these:
+            f53663b1…/avatar.png is a 79-byte 16×16 solid block, HTTP 200)
+            painted a flat coloured disc with no initials, while the very same
+            member's profile page showed "RA". Two avatar treatments for one
+            person, and the blank one on the tile where a helpr is deciding
+            whether to trust them.
+
+            `<UserAvatar>` already owns that verdict — it samples the decoded
+            bitmap (`isBlankAvatarBitmap`) and falls through to the monogram —
+            which is exactly why the profile page was right and this was not.
+            The fork simply predated it.
+
+            `pixelSize={40}` matches the rendered box so a multi-MB original
+            is not fetched into a 40px circle. The bark hairline and inset
+            highlight move onto the root so they frame photo and monogram
+            identically, and `ring-0` suppresses the fallback's own olivewood
+            hairline so there is one ring rather than two — same composition
+            ProfileHeaderCard uses. */}
+        <UserAvatar
+          userId={job.customer_id}
+          src={job.posterAvatarUrl}
+          name={job.posterName}
+          initials={posterInitials}
+          pixelSize={40}
+          alt=""
+          className="shrink-0 w-10 h-10"
+          fallbackClassName="text-ds-12 ring-0"
           style={{
-            backgroundColor: "hsl(var(--bark) / 0.12)",
             border: "1px solid hsl(var(--bark) / 0.22)",
-            color: "hsl(var(--bark))",
             boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)",
           }}
-        >
-          {job.posterAvatarUrl ? (
-            <img
-              loading="lazy"
-              decoding="async"
-              src={job.posterAvatarUrl}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            posterInitials
-          )}
-        </div>
+        />
         <div className="min-w-0 flex-1">
           <p
             className="text-ds-10 font-sans font-semibold uppercase"
@@ -177,13 +203,11 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
             </span>
           )}
           {/* Poster-data trust signals via the reusable TrustRow component.
-              "Trusted" maps to avgRating+reviewCount (shown when ≥3 reviews).
-              "Worked together N×" maps to repeatHirePercent (≥2 jobs → 100%). */}
-          <TrustRow
-            avgRating={hasReviews ? (job.posterAvgRating ?? undefined) : undefined}
-            reviewCount={hasReviews ? (job.posterReviewCount ?? undefined) : undefined}
-            repeatHirePercent={repeatJobs >= 2 ? 100 : undefined}
-          />
+              "Worked together N×" maps to repeatHirePercent (≥2 jobs → 100%).
+              NO avgRating/reviewCount here — TrustRow renders those as a
+              rating chip, which is the number already printed beside the name
+              two rows up. See `showTrustRow`. */}
+          <TrustRow repeatHirePercent={repeatJobs >= 2 ? 100 : undefined} />
         </div>
       )}
     </Link>

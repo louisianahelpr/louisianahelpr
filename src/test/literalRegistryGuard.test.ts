@@ -281,7 +281,12 @@ function scan(): Offender[] {
     for (const abs of walk(join(ROOT, root))) {
       const file = relative(ROOT, abs).split(sep).join("/");
       if (SOURCES_OF_TRUTH.includes(file)) continue;
-      found.push(...offendersIn(file, readFileSync(abs, "utf8")));
+      // Generated test-harness files (e.g. *.gen.ts) are created and deleted by
+      // parallel vitest workers; a file listed by readdirSync may be gone by the
+      // time we read it — skip rather than crash.
+      let source: string;
+      try { source = readFileSync(abs, "utf8"); } catch { continue; }
+      found.push(...offendersIn(file, source));
     }
   }
   return found;

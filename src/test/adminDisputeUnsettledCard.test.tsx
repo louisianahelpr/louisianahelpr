@@ -161,12 +161,14 @@ describe("the split panel an admin decides in", () => {
     // $79.20, not $90 — and refunds the poster $89.67, not $90.
     const { text } = openPanel(50);
     // The two columns read: percent, net, verb, gross, deduction.
-    expect(text()).toMatch(/Poster 50%\$89\.67refunded\$90\.00 gross−\$2\.84 Stripe keeps/);
+    // Poster gross = captured × posterShare = ($180 + $5) × 50% = $92.50.
+    // Helpr gross  = budget × helperShare   = $180 × 50%        = $90.00.
+    expect(text()).toMatch(/Poster 50%\$89\.67refunded\$92\.50 gross−\$2\.83 Stripe keeps/);
     expect(text()).toMatch(/Helpr 50%\$79\.20paid\$90\.00 gross−\$10\.80 commission \(12%\)/);
-    // Gross is still shown beside net, so the two are visibly different
-    // numbers. `formatPriceExact` drops a zero cent part by design, so a round
-    // $90 is "$90" — the rule every other money surface here follows.
-    expect(text().match(/\$90\.00 gross/g)).toHaveLength(2);
+    // Both gross figures appear so the admin sees the real bases. The two bases
+    // are different (captured vs budget), so distinct values appear.
+    expect(text()).toContain("$92.50 gross"); // poster
+    expect(text()).toContain("$90.00 gross"); // helpr
   });
 
   it("itemises what is being withheld from each side", () => {

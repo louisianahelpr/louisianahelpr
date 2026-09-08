@@ -125,8 +125,9 @@ const Footer = () => {
               something you meet once you have an account — "they will see once
               they sign up" — so advertising the pricing page to a signed-out
               visitor sells an upgrade before they have the thing being
-              upgraded. /subscription is still routable and still linked from
-              inside the app. */}
+              upgraded. Membership lives inside the app at
+              /profile?tab=subscription (the standalone /subscription route
+              was removed in 49f4f2f30). */}
           {/* Single column, matching Legal and Follow. Uneven column LENGTHS
               are normal in a footer — three different list treatments side by
               side is what looks unfinished. */}

@@ -131,6 +131,24 @@ describe("errorLogger._describeUnknownError", () => {
     expect(_describeUnknownError({ status: 503 })).toBe("status=503");
     expect(_describeUnknownError({ a: 1 })).toBe('{"a":1}');
   });
+  it("never emits [object Object]: an empty or getter-only object is named by its shape", () => {
+    expect(_describeUnknownError({})).toBe("object{}");
+    // Properties on the prototype (DOMException-style) are not enumerable
+    // and not JSON-serialisable, but they are the whole story — the shape
+    // that still produced six "[object Object]" rows from
+    // PaymentSuccess on 2026-09-08 after the message/code branch shipped.
+    class AbortLike {
+      get name() { return "AbortError"; }
+      get message() { return "The user aborted a request."; }
+    }
+    expect(_describeUnknownError(new AbortLike())).toBe("The user aborted a request.");
+    class Bare {
+      get name() { return "Bare"; }
+    }
+    const out = _describeUnknownError(new Bare());
+    expect(out).toBe("Bare{name=Bare}");
+    expect(out).not.toContain("[object Object]");
+  });
   it("still stringifies primitives", () => {
     expect(_describeUnknownError("plain")).toBe("plain");
     expect(_describeUnknownError(42)).toBe("42");

@@ -205,6 +205,21 @@ function describeUnknownError(err: unknown): string {
     } catch {
       /* circular — fall through */
     }
+    // Still nothing: every own property was empty or non-serialisable.
+    // "[object Object]" tells the reader NOTHING — six of them landed from
+    // PaymentSuccess.confirmPayment on 2026-09-08 AFTER the message/code
+    // branch above shipped, so the object had none of those. Name its
+    // shape instead, so the next row at least says what kind of thing it
+    // was and which keys it carried (enumerable AND inherited getters —
+    // a DOMException keeps `name`/`message` on the prototype).
+    const proto = Object.getPrototypeOf(o) as { constructor?: { name?: string } } | null;
+    const ctor = proto?.constructor?.name;
+    const keys = new Set<string>(Object.keys(o));
+    for (const k of ["name", "message", "code", "status", "reason"] as const) {
+      const v = (o as Record<string, unknown>)[k];
+      if (v !== undefined && v !== null && v !== "") keys.add(`${k}=${String(v)}`);
+    }
+    return `${ctor && ctor !== "Object" ? ctor : "object"}{${[...keys].join(",")}}`;
   }
   return String(err);
 }

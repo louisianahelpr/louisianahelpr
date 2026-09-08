@@ -236,3 +236,44 @@ a role-copy defect by the house rule; IDV gate only fires at Continue to
 Payment after the whole form; Applicants panel is a 3-hop ~7 s waterfall.
 Not reached: keyboard-open cells, tip/gift-card checkout submits, real
 Release Payment, post-job photo/video upload, offline.
+
+## Three money/trust leads CLOSED with numbers
+
+**Decided-but-unsettled dispute could be paid (`317e4c83a`, db-deploy 34181429326).**
+There were THREE doors, not two: `get_payout_batches`, release-payout's guard,
+and `get_payout_batch_job_ids` — the one Bulk Approve actually turns into
+per-job release calls; fixing the display alone would have paid the job
+anyway. Both SQL functions gain a `NOT EXISTS` on decided-unexecuted disputes;
+`_shared/unsettledDispute.ts` is a fail-closed check in release-payout (a
+read error blocks; only "no disputes table" is tolerated). Measured at one
+instant on prod with old and new predicates side by side: 11 jobs/$410.40 →
+10/$252.00, the excluded row being the $158.40 (88%) of a job decided 50/50.
+Live: release-payout on `bb2c3732` as the test admin → **409**. PGlite 12/12
+×3. process-scheduled-payouts and auto-release-payment need no change —
+their selection filters already exclude this state (checked, not assumed).
+
+**Helper-opened dispute had no exit (`806df5b68`, db-deploy 34181716251).**
+`rpc_withdraw_dispute`'s UPDATE tripped `enforce_helper_jobs_column_whitelist`
+on `dispute_resolved_at` (42501, live-reproduced as Hallie) — the fourth
+instance of the shape `jobsGuardRpcParity.test.ts` exists for. Fix is a
+transaction-local GUC bypass set inside the RPC after the opener check (the
+`app.arrival_rpc` precedent), NOT a wider whitelist (that would let any helper
+stamp their own job resolved with a PATCH). Status is now restored by
+derivation (`poster_completed_at`/`payout_scheduled_at`/`payout_pending` →
+`completed`, else `in_progress`) — verified against every non-terminal prod
+job — instead of the unconditional `in_progress` that would have stranded a
+post-approval payout. Helper card gains Withdraw + confirm. PGlite 45/45 ×3
+incl. baseline repro; live on `67e8ccfe`: disputed → **completed**,
+payout_pending preserved, `dispute_resolved_at` stamped 02:59:17Z.
+
+**Admin self-ban (`6efc163dd`, `70f04f028`) + failed email (`0b74ed9d0`).**
+The server half was already live from another lane
+(`trg_reject_self_issued_ban`, proven: self-insert → 22023); tonight's
+self-bans in `admin_audit_log` are all `[LIVE AUDIT TEST]`/`[FIXTURE]` rows
+from before it landed. Still missing: the client control, and the WARNING
+tier, which writes no `user_bans` row (only `profiles.ban_status`) and so was
+never covered — now refused in BanDialog. The `preference_row_ensure_failed`
+email was NOT a grant/RLS problem (service_role has INSERT, verified) but
+PostgREST's PGRST002 schema-cache reload window after a migration, with no
+retry on our side — **"A schema-cache reload cost a live user their email,
+permanently"** — now retried.

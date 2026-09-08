@@ -595,7 +595,17 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
                 }}
               >
-                {drivingLabel ? `${drivingLabel} · ${distanceLabel}` : distanceLabel}
+                {/* The drive-time half is hidden below 430px. Measured at 375
+                    with a radius on: this pill is ~80px wide with "32 min · ",
+                    and together with the date and either the clock or the
+                    countdown it left the city group 8px — "Denham Springs"
+                    rendered as a pin icon and nothing, "Gonzales" as "(".
+                    The miles alone are ~40px, and the miles are the number the
+                    radius filter is about; the minutes are on the sheet. */}
+                {drivingLabel && (
+                  <span className="hidden [@media(min-width:430px)]:inline">{drivingLabel} · </span>
+                )}
+                {distanceLabel}
               </span>
             )}
             <span className="shrink-0 opacity-30">·</span>
@@ -640,11 +650,15 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                       local-marketplace signal, the hour is on the detail sheet.
                       So on a countdown card the time only appears from 430px;
                       without a countdown it keeps its 360px floor. */}
+                  {/* The distance pill competes for the same width as the
+                      countdown, so it moves the clock to the same 430px floor:
+                      with a radius active at 375, city + pill + date + clock is
+                      already ~15px over the row, and the city is what gave. */}
                   {job.date_needed && job.start_time && (
-                    <span className={`shrink-0 opacity-30 hidden ${expiryText ? "[@media(min-width:430px)]:inline" : "[@media(min-width:360px)]:inline"}`}>·</span>
+                    <span className={`shrink-0 opacity-30 hidden ${expiryText || distanceLabel ? "[@media(min-width:430px)]:inline" : "[@media(min-width:360px)]:inline"}`}>·</span>
                   )}
                   {job.start_time && (
-                    <span className={`shrink-0 hidden ${expiryText ? "[@media(min-width:430px)]:flex" : "[@media(min-width:360px)]:flex"} items-center gap-1`}>
+                    <span className={`shrink-0 hidden ${expiryText || distanceLabel ? "[@media(min-width:430px)]:flex" : "[@media(min-width:360px)]:flex"} items-center gap-1`}>
                       <Clock className="w-2.5 h-2.5 shrink-0" />
                       <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
                     </span>
@@ -711,11 +725,19 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 on a handful of cards rather than all of them, and the reason
                 for the separate row went with it. whitespace-nowrap still
                 keeps "1 day left" from breaking across two lines. */}
+            {/* With a distance pill ALSO on the row, city + pill + date +
+                countdown is ~37px over a 375 row even with the clock gone and
+                the pill down to miles, and the city's 4.5rem floor then clips
+                mid-word ("Denha"). The countdown is the one that yields there:
+                an expiring card is already wearing its URGENT badge on the
+                rail above, so the hours are the redundant half. Cards with no
+                pill are untouched — the countdown stays inline at every width,
+                which is where the owner asked for it. */}
             {expiryText && (
               <>
-                <span className="shrink-0 opacity-30">·</span>
+                <span className={`shrink-0 opacity-30 ${distanceLabel ? "hidden [@media(min-width:430px)]:inline" : ""}`}>·</span>
                 <span
-                  className={`flex shrink-0 items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
+                  className={`shrink-0 items-center gap-1 ${distanceLabel ? "hidden [@media(min-width:430px)]:flex" : "flex"} ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
                 >
                   <Timer className="w-2.5 h-2.5 shrink-0" />
                   <span className="font-sans whitespace-nowrap">{expiryText}</span>

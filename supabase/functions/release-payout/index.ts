@@ -37,6 +37,7 @@ import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 // process-scheduled-payouts — see _shared/releaseFlip.ts for TC-008, the
 // stranded payout that made a retry non-optional.
 import { flipJobToReleased } from "../_shared/releaseFlip.ts";
+import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -217,6 +218,39 @@ serve(async (req) => {
         error: "job has an active dispute marker; payout blocked",
         dispute_status: job.dispute_status,
         disputed_at: job.disputed_at,
+      },
+      409,
+    );
+  }
+
+  // The guard above is NOT enough on its own. `rpc_decide_dispute` sets
+  // dispute_status='resolved' at DECISION time — before execute-dispute-split
+  // moves a cent — so a decided-but-unexecuted split walks straight through
+  // the allow-list above and would be paid in FULL, on a job whose recorded
+  // decision may award the helper a fraction. A later "Retry settlement" would
+  // then refund and transfer on top of that: double-settle. The only column
+  // that knows is disputes.execution_status.
+  const settlement = await checkUnsettledDispute(supabaseAdmin, job.id);
+  if (settlement.blocked) {
+    if (settlement.readError) {
+      console.error(
+        `[release-payout] dispute settlement check failed for job ${job.id}: ${settlement.readError}`,
+      );
+      return jsonResponse(
+        { error: "dispute settlement check failed — payout refused, retry" },
+        500,
+      );
+    }
+    console.warn(
+      `[release-payout] job ${job.id} blocked: dispute ${settlement.dispute?.id} is decided but execution_status=${settlement.dispute?.execution_status}`,
+    );
+    return jsonResponse(
+      {
+        error:
+          "this job's dispute decision has not been settled yet — run the dispute split, not a full payout",
+        dispute_id: settlement.dispute?.id,
+        execution_status: settlement.dispute?.execution_status,
+        payout_split: settlement.dispute?.payout_split,
       },
       409,
     );

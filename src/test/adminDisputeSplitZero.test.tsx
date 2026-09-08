@@ -48,6 +48,9 @@ const renderAt = (helperShare: number) => {
       decide={vi.fn()}
       retrySettlement={vi.fn()}
       retrying={null}
+      submittingDecision={false}
+      openDecisionPanel={vi.fn()}
+      setConfirm={vi.fn()}
     />,
   );
   return () => container.textContent ?? "";

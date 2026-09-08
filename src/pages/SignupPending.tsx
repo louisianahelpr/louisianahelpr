@@ -159,6 +159,11 @@ const SignupPending = () => {
       // resend panel.
       backTo="/"
       title="Check Your Email"
+      // Login, Signup, Forgot and Reset all pass this; this screen was the
+      // one auth sibling still wrapped in the marketing Navbar + Footer on
+      // web, so someone mid-signup was shown a "Get Started" button above a
+      // card telling them their account already exists.
+      noWebChrome
     >
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
         {/* Name the ADDRESS. It's the one fact this screen exists to

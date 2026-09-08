@@ -66,6 +66,11 @@ const FLAG_TYPES = [
   { value: "multi_reporter_flag", label: "Multi-Reporter Pile-On" },
   { value: "rapid_cancellation_pattern", label: "Rapid Cancellation" },
   { value: "duplicate_content_posting", label: "Duplicate Content" },
+  // Written by enforce_retained_ban() (20260908004351) on EVERY refused
+  // signup — email, phone or Stripe Identity match. This is the only surface
+  // that carries the detail: the person is told nothing but "this account
+  // can't be created", deliberately, so the refusal is not a lookup oracle.
+  { value: "ban_evasion_attempt", label: "Ban Evasion Attempt" },
 ];
 
 const AdminFraudDashboard = () => {
@@ -155,6 +160,7 @@ const AdminFraudDashboard = () => {
     multi_reporter_flag: "danger",
     rapid_cancellation_pattern: "danger",
     duplicate_content_posting: "warning",
+    ban_evasion_attempt: "danger",
   };
 
   return (
@@ -224,7 +230,23 @@ const AdminFraudDashboard = () => {
                   </Badge>
                 </div>
                 {flag.details && (
-                  <p className="text-ds-11 text-muted-foreground line-clamp-2">{flag.details}</p>
+                  // `ban_evasion_attempt` is the one flag type whose details is
+                  // a structured record rather than a sentence — matched signal,
+                  // original ban date and reason, attempted email, retained-ban
+                  // id — and it is the ONLY place any of that is visible, since
+                  // the person refused is deliberately told none of it. Clamping
+                  // it to two lines would hide the half an operator acts on, so
+                  // this type renders in full. Every other type stays clamped;
+                  // their details are one sentence and the list stays scannable.
+                  <p
+                    className={
+                      flag.flag_type === "ban_evasion_attempt"
+                        ? "text-ds-11 text-muted-foreground whitespace-pre-line"
+                        : "text-ds-11 text-muted-foreground line-clamp-2"
+                    }
+                  >
+                    {flag.details}
+                  </p>
                 )}
                 <p className="text-ds-11 text-muted-foreground">
                   {formatDistanceToNow(new Date(flag.created_at), { addSuffix: true })}

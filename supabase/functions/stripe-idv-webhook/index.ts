@@ -336,18 +336,12 @@ serve(async (req) => {
             // reads `idv_status = 'verified'`, so writing anything else here
             // would hand a banned person the one capability the ban exists to
             // remove.
-            const { error: flagErr } = await supabase.from("fraud_flags").insert({
-              user_id: userId,
-              flag_type: "retained_ban_identity_match",
-              details:
-                `Stripe Identity verified against a document fingerprint retained from a prior ban ` +
-                `(matched on ${banCheck.matched_on}). IDV refused; account left unverified and the ` +
-                `prior judgment re-applied. Session ${session.id}.`,
-            });
-            if (flagErr) {
-              console.error("[stripe-idv-webhook] failed to write fraud flag:", flagErr);
-            }
-
+            // The `ban_evasion_attempt` fraud flag — matched signal, original
+            // ban date and reason, attempted email — was already filed by
+            // `enforce_retained_ban` itself. It is written there rather than
+            // here so that all three enforcement paths produce an admin record;
+            // this function writing its own was why the email match in
+            // `handle_new_user` silently produced none.
             const { error: refuseErr } = await supabase
               .from("profiles")
               .update({

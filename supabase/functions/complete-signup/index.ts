@@ -2,6 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { LEGAL_TERMS_VERSION, LEGAL_PRIVACY_VERSION } from "../_shared/legalVersions.ts";
+// The one support address the app actually shows users (admin@louisianahelpr.com
+// unless SUPPORT_INBOX_EMAIL overrides it) — same constant ReportDialog and
+// ForceUpdateGate print. A hand-typed support@… in a refusal message is an
+// address nobody reads.
+import { SUPPORT_EMAIL } from "../_shared/resend.ts";
 import {
   avatarObjectKey,
   resolveAvatarContentType,
@@ -303,9 +308,14 @@ serve(async (req) => {
     // fail open at all.
     if (phone) {
       try {
+        // The email goes in too, so the fraud flag this raises can name the
+        // address the person is attempting — the operator's whole starting
+        // point. It costs nothing on the match itself: `handle_new_user` has
+        // already checked this address at `auth.users` INSERT.
+        const { data: authForBan } = await supabase.auth.admin.getUserById(userId);
         const { data: banCheck, error: banErr } = await supabase.rpc("enforce_retained_ban", {
           p_user_id: userId,
-          p_email: null,
+          p_email: authForBan?.user?.email ?? null,
           p_phone: phone,
           p_identity_sha256: null,
         });
@@ -315,11 +325,21 @@ serve(async (req) => {
           console.warn(
             `[complete-signup] refused: retained ban matched on ${banCheck.matched_on} for ${userId}`,
           );
+          // PLAIN AND NON-PROBING, on purpose (owner decision 2026-09-07).
+          //
+          // The message this replaced said "This phone number belongs to an
+          // account that was removed" — which is a free lookup service: feed
+          // it numbers, learn which ones belong to banned accounts. Naming the
+          // matched signal, or the date, turns a refusal into an oracle.
+          //
+          // Everything withheld here is in the `ban_evasion_attempt` fraud
+          // flag `enforce_retained_ban` just filed — matched signal, original
+          // ban date and reason, attempted email — where an operator sees it
+          // and the person being refused does not.
           return new Response(
             JSON.stringify({
               error:
-                "This phone number belongs to an account that was removed from Louisiana Helpr. " +
-                "If you believe this is a mistake, contact support@louisianahelpr.com and we'll review it.",
+                `This account can't be created. Contact support at ${SUPPORT_EMAIL}.`,
               code: "retained_ban",
             }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },

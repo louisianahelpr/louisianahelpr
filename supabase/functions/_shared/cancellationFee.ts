@@ -139,18 +139,52 @@ export interface CancellationFeeJob {
   start_time: string | null;
   cancelled_at: string | null;
   helper_id: string | null;
+  /**
+   * The Helpr's own acceptance. REQUIRED (nullable, not optional) for the same
+   * reason `start_time` is: an omitted value would silently reinstate the
+   * "chosen == committed" reading this module was fixed to stop making, and
+   * the resulting overcharge looks identical to a correct fee.
+   */
+  helper_confirmed_at: string | null;
+}
+
+/**
+ * Is a Helpr actually COMMITTED to this job, as opposed to merely chosen?
+ *
+ * ADDED 2026-09-08 (owner decision). `helper_id` alone answers "did the poster
+ * pick somebody", not "did that somebody agree". `accept_application` sets
+ * helper_id and status='accepted' as the POSTER's act; the Helpr's half of the
+ * handshake is `helper_confirmed_at`, and its absence is precisely what
+ * `expire_unanswered_offers` penalises the HELPER for. Billing the poster a
+ * "compensate the Helpr for their committed time" fee — or striking their
+ * reliability record — for walking away from that same silence charged for a
+ * loss nobody suffered.
+ *
+ * Mirrors `v_committed` in poster_cancel_job (migration
+ * 20260908155425_no_strike_for_cancelling_an_unaccepted_offer). Deliberately
+ * does NOT consider job `status`: this predicate is evaluated by the RPC while
+ * the job is still live and again by void-cancelled-payments after it reads
+ * 'cancelled', and both must reach the same verdict. `helper_confirmed_at` is
+ * durable across that transition; `status` is not.
+ */
+export function helperIsCommitted(
+  job: Pick<CancellationFeeJob, "helper_id" | "helper_confirmed_at">,
+): boolean {
+  return !!job.helper_id && !!job.helper_confirmed_at;
 }
 
 /**
  * Authoritative cancellation fee in DOLLARS, derived entirely from trusted job
  * fields. Never reads `jobs.cancellation_fee`. Returns 0 when no helper was
- * assigned, the budget is missing/non-positive, or the schedule yields 0%.
+ * COMMITTED (see helperIsCommitted — merely offered is not enough), the budget
+ * is missing/non-positive, or the schedule yields 0%.
  */
 export function computeCancellationFee(job: CancellationFeeJob): number {
   const budget = job.budget ?? 0;
-  if (!(budget > 0) || !job.helper_id || !job.date_needed) return 0;
+  const committed = helperIsCommitted(job);
+  if (!(budget > 0) || !committed || !job.date_needed) return 0;
   const hours = hoursUntilJob(job.date_needed, job.cancelled_at, job.start_time);
-  const percent = cancellationFeePercent(!!job.helper_id, hours);
+  const percent = cancellationFeePercent(committed, hours);
   // round(budget * percent) / 100 mirrors the client's cent-accurate math.
   return Math.round(budget * percent) / 100;
 }

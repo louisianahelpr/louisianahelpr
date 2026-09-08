@@ -619,7 +619,17 @@ const JobDetailDialog = ({
               className="w-3.5 h-3.5 shrink-0"
               strokeWidth={2.25}
             />
-            <span className="font-sans truncate">
+            {/* Below 400px the rail is ~173px after the icon lane's reserve,
+                and "Moving" + URGENT is 200 — so the category shrank to "M…"
+                on every urgent/boosted/recommended sheet at 375 (measured
+                2026-09-07 as Hallie on Perry's truck job). A one-letter label
+                is worse than none: the glyph is unique per category and the
+                title above says what the work is, so on a crowded rail the
+                word steps aside and the icon carries it. Uncrowded rails and
+                wider phones keep the word. */}
+            <span
+              className={`font-sans truncate ${isRecommended || job.is_urgent || job.isBoosted ? "max-[399px]:sr-only" : ""}`}
+            >
               {categoryLabels[job.category] || formatCategory(job.category)}
             </span>
           </span>

@@ -73,7 +73,17 @@ on:
         default: false
 
 concurrency:
-  group: e2e-real-backend-${{ github.ref }}
+  # A push-triggered run shares one group per ref, so pushes queue behind each
+  # other. A schedule or manual dispatch gets its OWN group (salted with the
+  # run id) and therefore never shares a queue with anything.
+  #
+  # Why: with `cancel-in-progress: false` GitHub still keeps only ONE *pending*
+  # run per group — a newer queued run cancels the older pending one. So a
+  # `workflow_dispatch` of the money loop, queued behind an in-flight run, was
+  # silently cancelled the moment anyone pushed to main. The dispatch never
+  # ran, reported nothing, and looked like a flake. Deliberately re-verifying a
+  # money fix is exactly when that happens, because a fix comes with a push.
+  group: e2e-real-backend-${{ github.ref }}${{ github.event_name != 'push' && format('-{0}', github.run_id) || '' }}
   # NOT `true`, unlike every other workflow in this repo. Cancelling this one
   # mid-flight can orphan a FUNDED production job: the money loop's teardown
   # runs as an `if: always()` step, and a workflow-level cancellation kills the

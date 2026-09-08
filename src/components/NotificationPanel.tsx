@@ -661,6 +661,17 @@ const NotificationPanel = () => {
                                 actions.push({ label: "Repost", href: "/post-job" });
                               } else if (
                                 n.type === "warning" &&
+                                n.message.toLowerCase().includes("cancelled by the poster")
+                              ) {
+                                // The Helpr's copy of a poster cancellation
+                                // (poster_cancel_job + notify_on_job_update both
+                                // emit it). The recipient does not own the job,
+                                // so "Repost" is a poster-only action offered to
+                                // the wrong person — send them to the job instead.
+                                const to = destinationOf(n);
+                                if (to) actions.push({ label: "View", href: to });
+                              } else if (
+                                n.type === "warning" &&
                                 (n.title.toLowerCase().includes("cancelled") ||
                                   n.message.toLowerCase().includes("auto-cancel"))
                               ) {

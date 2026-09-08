@@ -45,6 +45,27 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.process-scheduled-payouts]
     verify_jwt = false
+  # release-payout was the ONE payout function still behind the JWT gateway,
+  # and the consequence was that its documented CRON_SECRET door did not exist.
+  # Proven against prod 2026-09-07: a POST with a non-JWT bearer never reaches
+  # the function at all — the gateway answers
+  # {"code":"UNAUTHORIZED_INVALID_JWT_FORMAT"} — while the identical request to
+  # process-scheduled-payouts reaches its handler and gets that function's own
+  # plain "Unauthorized". So the `Bearer <CRON_SECRET>` branch in
+  # release-payout:79 has never been reachable by anything, and the only reason
+  # the product works is that auto-release-payment:552 calls it with the
+  # SERVICE ROLE key, which happens to be a JWT and so slips past the gateway.
+  #
+  # This is not a loosening. verify_jwt = true admits ANY valid JWT, including
+  # every signed-in user's — it never restricted this endpoint to operators.
+  # The real gate is and remains the function's own check: cron secret, service
+  # role, or a JWT carrying has_role(admin). What the gateway was doing was
+  # rejecting the one credential shape the function documents as its primary
+  # door, which is why every sibling here (auto-release-payment,
+  # process-scheduled-payouts, void-cancelled-payments, auto-resolve-disputes,
+  # money-reconciliation) is already false.
+  [functions.release-payout]
+    verify_jwt = false
   [functions.stripe-webhook]
     verify_jwt = false
   # Apple posts these unauthenticated — it cannot present a Supabase JWT.

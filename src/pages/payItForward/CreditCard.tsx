@@ -59,7 +59,7 @@ export function CreditCard({
             ${formatPrice(Number(credit.amount))}
           </p>
           <p
-            className="font-serif italic mt-0.5 text-ds-12"
+            className="font-sans mt-0.5 text-ds-12"
             style={{ color: "hsl(var(--gift-green-soft))" }}
           >
             {subline}
@@ -84,7 +84,7 @@ export function CreditCard({
 
       {credit.message && (
         <p
-          className="font-serif italic text-ds-13 leading-relaxed mb-3"
+          className="font-sans text-ds-13 leading-relaxed mb-3"
           style={{ color: "hsl(var(--ink-deep) / 0.75)" }}
         >
           "{credit.message}"

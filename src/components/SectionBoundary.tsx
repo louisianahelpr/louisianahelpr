@@ -116,7 +116,7 @@ class SectionErrorBoundary extends React.Component<
                 : `Couldn't load ${this.props.label}.`}
             </p>
             <p
-              className="font-serif italic mt-0.5 text-ds-12"
+              className="font-sans mt-0.5 text-ds-12"
               style={{
                 color: "hsl(var(--olivewood) / 0.8)",
               }}

@@ -62,6 +62,9 @@ interface ReferralData {
   /** Datasets that hit the 1000-row page cap, so the totals below them are a
    *  floor rather than a figure. Empty in the normal case. */
   truncated: string[];
+  /** Distinct code owners whose profile still exists — see the note at the
+   *  computation for why this is not `codes.length`. */
+  usersWithCodes: number;
 }
 
 const AdminReferrals = () => {
@@ -73,7 +76,7 @@ const AdminReferrals = () => {
   // tabs. CLAUDE.md: "Never drop the Supabase `error`".
   const { data, isInitialLoading, isError, refetch } = useInstantQuery<ReferralData>({
     key: ["admin-referrals"],
-    fallback: { codes: [], referrals: [], credits: [], truncated: [] },
+    fallback: { codes: [], referrals: [], credits: [], truncated: [], usersWithCodes: 0 },
     fetcher: async () => {
       // PostgREST enforces db-max-rows = 1000 on this project (measured:
       // notifications, 1619 rows -> `content-range: 0-999/1619`). An unbounded
@@ -130,8 +133,18 @@ const AdminReferrals = () => {
       const nameFor = (id: string | null | undefined) =>
         !id ? DEPARTED : nameMap[id] || id.slice(0, 8);
 
+      // Codes outlive their owners (deletion nulls or orphans the owner
+      // link but keeps the row), so `codes.length` is NOT "users with codes".
+      // Measured in prod 2026-09-07: 41 codes, 35 of them owned by accounts
+      // with no profile, on a platform with 8 profiles — the summary said
+      // "Users with codes 41". Count only owners who still exist.
+      const usersWithCodes = new Set(
+        allCodes.map(c => c.user_id).filter((id): id is string => !!id && !!nameMap[id]),
+      ).size;
+
       return {
         truncated,
+        usersWithCodes,
         codes: allCodes.slice(0, PAGE).map(c => ({ ...c, userName: nameFor(c.user_id) })),
         referrals: allReferrals.slice(0, PAGE).map(r => ({
           ...r,
@@ -292,7 +305,7 @@ const AdminReferrals = () => {
             <div className="grid grid-cols-2 gap-4 text-ds-13">
               <div>
                 <p className="text-muted-foreground">Users with codes</p>
-                <p className="font-semibold text-foreground">{codes.length}</p>
+                <p className="font-semibold text-foreground">{data.usersWithCodes}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Successful referrals</p>

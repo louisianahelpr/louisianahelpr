@@ -190,8 +190,13 @@ export function LogisticsSection({
       complete={logisticsComplete}
     >
       <div className="space-y-3">
+        {/* "Location" heads the whole address block; each of the four inputs
+            below carries its OWN visible label. They used to be labelled by
+            aria-label alone — four unmarked boxes (street / city / state / ZIP)
+            with no placeholder either, so a sighted poster had to guess which
+            box was which (external QA, 2026-09). */}
         <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="streetAddress">Location <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+          <Label id="location-label">Location <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
           {/* "Use my current location" — Capacitor/web Geolocation +
               MapKit reverse-geocode in one tap. Falls back to a tasteful
               error toast if location is denied or no street can be
@@ -211,6 +216,7 @@ export function LogisticsSection({
             }}
           />
         </div>
+        <Label htmlFor="streetAddress" className="text-ds-11 text-muted-foreground">Street address</Label>
         {mapKitReady ? (
           <AddressAutocomplete
             id="streetAddress"
@@ -227,28 +233,43 @@ export function LogisticsSection({
         ) : (
           <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} required maxLength={200} autoComplete="street-address" autoCapitalize="words" aria-label="Street address" />
         )}
-        <div className="grid grid-cols-3 gap-2.5">
+        {/* Weighted, not thirds. Three equal columns gave City the same 81px
+            the two-letter State got, and "Baton Rouge" — the city most posts
+            are in — rendered as "Baton R" at 375 (measured 2026-09-07). City
+            takes the room; State is a fixed two letters (3rem); ZIP is five digits
+            (4.5rem). Measured after the first cut: 3.5/5.25rem still left City
+            at 109px against 117px of text. */}
+        <div className="grid grid-cols-[minmax(0,1fr)_3rem_4.5rem] gap-2.5">
           {/* City is the only address part shown publicly on job cards.
               CityAutocomplete suggests canonical Louisiana city names so
               card display + filtering stay consistent; free-typed
               values are still accepted and title-cased. */}
-          <CityAutocomplete
-            id="city"
-            value={city}
-            onChange={setCity}
-            className="px-3 text-ds-14"
-          />
+          <div className="space-y-1.5 min-w-0">
+            <Label htmlFor="city" className="text-ds-11 text-muted-foreground">City</Label>
+            <CityAutocomplete
+              id="city"
+              value={city}
+              onChange={setCity}
+              className="px-3 text-ds-14"
+            />
+          </div>
           {/* State is locked to LA — Helpr only operates in Louisiana,
               so this is a fixed field rather than a free input. */}
-          <Input
-            id="state"
-            value={addrState || "LA"}
-            readOnly
-            tabIndex={-1}
-            aria-label="State (Louisiana)"
-            className="px-3 text-ds-14 bg-muted/50 text-muted-foreground cursor-default"
-          />
-          <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} required maxLength={10} inputMode="numeric" autoComplete="postal-code" aria-label="Zip code" aria-invalid={streetAddress.trim().length > 0 && !zipCode.trim()} className="px-3 text-ds-14" />
+          <div className="space-y-1.5 min-w-0">
+            <Label htmlFor="state" className="text-ds-11 text-muted-foreground">State</Label>
+            <Input
+              id="state"
+              value={addrState || "LA"}
+              readOnly
+              tabIndex={-1}
+              aria-label="State (Louisiana)"
+              className="px-3 text-ds-14 bg-muted/50 text-muted-foreground cursor-default"
+            />
+          </div>
+          <div className="space-y-1.5 min-w-0">
+            <Label htmlFor="zipCode" className="text-ds-11 text-muted-foreground">ZIP</Label>
+            <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} required maxLength={10} inputMode="numeric" autoComplete="postal-code" aria-label="ZIP code" aria-invalid={streetAddress.trim().length > 0 && !zipCode.trim()} className="px-3 text-ds-14" />
+          </div>
         </div>
         {/* Address-gate hint — the submit button stays disabled until Zip is
             filled, but the Zip sits to the side of the read-only State field,
@@ -381,7 +402,7 @@ export function LogisticsSection({
         aria-describedby={scheduleInPast ? "start-time-error" : undefined}
       >
         <Label id="start-time-label">Start time <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
-        <TimePickerWheel value={startTime} onChange={setStartTime} />
+        <TimePickerWheel value={startTime} onChange={setStartTime} ariaLabel="Start time" />
         {/* Live, not submit-only: this clears the moment the poster moves the
             date or the time, so fixing it visibly changes the screen. */}
         <FieldError id="start-time-error">

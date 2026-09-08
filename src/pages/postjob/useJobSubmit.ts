@@ -1,5 +1,4 @@
 import { useRef } from "react";
-import { isIdvRequirementPaused } from "@/lib/featureFlags";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -308,10 +307,10 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         return null;
       }
       const profStatus = (prof as { idv_status?: string })?.idv_status;
-      // See useOfferHandlers: the same operator pause, and the same
-      // fail-closed read, so posting and accepting cannot disagree about
-      // whether identity verification is currently required.
-      if (profStatus !== "verified" && !(await isIdvRequirementPaused())) {
+      // Identity verification is unconditionally required (owner, 2026-09-07),
+      // matching the jobs INSERT policy exactly — there is no operator pause
+      // any more, so posting and accepting cannot disagree about it.
+      if (profStatus !== "verified") {
         setIdvStatus(profStatus);
         setIdvFailureReason((prof as { idv_failure_reason?: string })?.idv_failure_reason);
         setIdvDialogOpen(true);
@@ -322,12 +321,13 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     }
 
     // Check open job limit (server enforces too, but show friendly message).
-    // `.neq("payment_status", "abandoned")` mirrors enforce_open_job_limit: a
-    // job void-cancelled-payments wrote off after a declined checkout is
-    // invisible to helpers and can never be funded, so it must not hold a
-    // slot. Drift here would show a friendly "you're at 5" toast for a post
-    // the server would happily accept.
-    const { count: openCount, error: openCountErr } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", user.id).eq("status", "open").neq("payment_status", "abandoned");
+    // The payment_status filter mirrors enforce_open_job_limit exactly: a job
+    // whose checkout never started ('unpaid') or did not complete
+    // ('abandoned') is invisible in every browse surface and holds no slot in
+    // the trigger. Drift here would show a friendly "you're at 5" toast for a
+    // post the server would happily accept. This used to exclude only
+    // 'abandoned'.
+    const { count: openCount, error: openCountErr } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", user.id).eq("status", "open").not("payment_status", "in", "(unpaid,abandoned)");
     if (openCountErr) {
       report(openCountErr, { tags: { source: "usePostJobForm.openJobLimit" } });
       toast.error("Couldn't check your open job count — please try again.");

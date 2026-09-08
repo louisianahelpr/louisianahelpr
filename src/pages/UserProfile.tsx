@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { hasPerk } from "@/lib/subscriptionTiers";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -777,7 +778,7 @@ const UserProfile = () => {
             <HelperWorkPhotos urls={profile.portfolio_urls ?? []} />
 
             {/* Portfolio — Pro+ only */}
-            {(profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
+            {hasPerk(profile.subscription_tier, "portfolioShowcase") && <HelperPortfolio helperId={userId!} />}
 
 
           </div>
@@ -829,7 +830,7 @@ const UserProfile = () => {
             </p>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               <p
-                className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
+                className="font-sans text-ds-13 leading-relaxed flex items-start gap-2"
                 style={{ color: "hsl(var(--olivewood) / 0.9)" }}
               >
                 <Lock
@@ -843,7 +844,7 @@ const UserProfile = () => {
                 </span>
               </p>
               <p
-                className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
+                className="font-sans text-ds-13 leading-relaxed flex items-start gap-2"
                 style={{ color: "hsl(var(--olivewood) / 0.9)" }}
               >
                 <ShieldCheck
@@ -870,7 +871,7 @@ const UserProfile = () => {
                   there", which is exactly what a poster about to pay wants to
                   know, and it is legible on a profile with no other record. */}
               <p
-                className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
+                className="font-sans text-ds-13 leading-relaxed flex items-start gap-2"
                 style={{ color: "hsl(var(--olivewood) / 0.9)" }}
               >
                 <Banknote

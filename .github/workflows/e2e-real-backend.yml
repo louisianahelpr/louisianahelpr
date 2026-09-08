@@ -50,6 +50,10 @@ permissions:
 #   PLAYWRIGHT_POSTER_SESSION      JSON supabase session — scripts/e2e/README.md
 #   PLAYWRIGHT_HELPER_SESSION      JSON supabase session — scripts/e2e/README.md
 #   PLAYWRIGHT_LIFECYCLE_JOB_ID    an ACCEPTED job between those two accounts
+#   PLAYWRIGHT_ADMIN_EMAIL         an account holding the `admin` role — drives
+#   PLAYWRIGHT_ADMIN_PASSWORD      `release-payout`, the only path that actually
+#                                  sends the helper's transfer. Optional; the
+#                                  money loop degrades loudly without it.
 # This workflow creates no accounts and mints no tokens. It names what it needs
 # and stops there.
 
@@ -69,7 +73,17 @@ on:
         default: false
 
 concurrency:
-  group: e2e-real-backend-${{ github.ref }}
+  # A push-triggered run shares one group per ref, so pushes queue behind each
+  # other. A schedule or manual dispatch gets its OWN group (salted with the
+  # run id) and therefore never shares a queue with anything.
+  #
+  # Why: with `cancel-in-progress: false` GitHub still keeps only ONE *pending*
+  # run per group — a newer queued run cancels the older pending one. So a
+  # `workflow_dispatch` of the money loop, queued behind an in-flight run, was
+  # silently cancelled the moment anyone pushed to main. The dispatch never
+  # ran, reported nothing, and looked like a flake. Deliberately re-verifying a
+  # money fix is exactly when that happens, because a fix comes with a push.
+  group: e2e-real-backend-${{ github.ref }}${{ github.event_name != 'push' && format('-{0}', github.run_id) || '' }}
   # NOT `true`, unlike every other workflow in this repo. Cancelling this one
   # mid-flight can orphan a FUNDED production job: the money loop's teardown
   # runs as an `if: always()` step, and a workflow-level cancellation kills the
@@ -220,7 +234,8 @@ jobs:
   # ---------------------------------------------------------------------
   # Leg 4 — the full money loop against PRODUCTION, on a Stripe test key.
   #
-  # Runs on every push, per the owner's decision. Production is already on a
+  # Nightly and on demand (owner, 2026-09-07 — it used to run on every push;
+  # see the job's own `if:` for what changed). Production is already on a
   # test key (verified against the Stripe API: every prod-generated charge on
   # 5–6 Sep is livemode:false, including a Connect destination charge with a
   # transfer), so this moves no real money.
@@ -238,7 +253,25 @@ jobs:
   prod-lifecycle:
     name: Full money loop (production, Stripe test mode)
     needs: preflight
-    if: needs.preflight.outputs.have_lifecycle == 'true'
+    # NIGHTLY AND ON DEMAND, not on push — the same gate `authenticated` above
+    # already carries, for a second reason on top of its one.
+    #
+    # This loop consumes a real application against a real daily cap, and it
+    # cannot post more than the poster's open-job limit allows. On 2026-09-07 it
+    # ran often enough to exhaust the helper's 15-a-day allowance and then failed
+    # every subsequent run with "You have reached the daily application limit" —
+    # a red build reporting a product rule working correctly. That is the precise
+    # failure mode this workflow's header warns about: "a check that is red for
+    # reasons unrelated to the diff trains people to ignore red."
+    #
+    # Dropping the workflow's `push:` trigger would have done this too, and would
+    # also have taken `anon-surface` off every push — the free, read-only,
+    # credential-less leg that is deliberately allowed to fail the build and is
+    # the one that would have caught the guest-browse 401. That leg is the reason
+    # the trigger stays; this gate is how the money loop comes off it.
+    if: >-
+      needs.preflight.outputs.have_lifecycle == 'true' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     concurrency:
@@ -287,7 +320,32 @@ jobs:
           PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
           PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
           PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
-        run: npx playwright test --project=chromium e2e/prod-lifecycle.spec.ts --reporter=list
+          # The payout leg. Optional by design: without it the loop still runs
+          # and announces that nothing proved money reached the helper.
+          # An ACCOUNT holding the admin role, deliberately not CRON_SECRET —
+          # that secret authorises 29 edge functions and records no actor, so
+          # giving it to CI would be wider custody than the service-role key the
+          # sweep step above already refuses. See the spec's step 6b.
+          PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+          PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: npx playwright test --project=chromium e2e/prod-lifecycle.spec.ts --reporter=list --trace=on
+
+      # The whole point of this job is the legs a mock cannot cover, and when
+      # one of them breaks the log says "waitForURL timed out" — which names the
+      # wait, not the cause. Twice now the cause was something only visible ON
+      # the page (a collapsed payment accordion; a Pay button that silently
+      # refuses). Keep the trace so the next failure is diagnosed from what the
+      # browser saw instead of from a guess.
+      - name: Keep the trace and screenshots when the loop fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-lifecycle-trace
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
 
       # Runs even when the loop failed — that is the case it exists for. A run
       # that died holding a funded job is the one the seven is_seed-blind crons
@@ -351,6 +409,7 @@ jobs:
             echo "| Authenticated journeys | \`$AUTHED\` | PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD |"
             echo "| Two-role lifecycle | \`$TWO_ROLE\` | PLAYWRIGHT_POSTER_SESSION + PLAYWRIGHT_HELPER_SESSION + PLAYWRIGHT_LIFECYCLE_JOB_ID |"
             echo "| Full money loop (prod) | \`$LIFECYCLE\` | PLAYWRIGHT_POSTER_EMAIL/_PASSWORD + PLAYWRIGHT_HELPER_EMAIL/_PASSWORD |"
+            echo "| ↳ payout (helper's transfer) | \`$LIFECYCLE\` | PLAYWRIGHT_ADMIN_EMAIL/_PASSWORD |"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
 

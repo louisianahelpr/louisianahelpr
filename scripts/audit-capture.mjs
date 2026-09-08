@@ -85,7 +85,7 @@ const AUTHED_ROUTES = [
   // /work-record, /auto-tip, /str-settings and /wrapped are no longer routes.
   // They are Profile tabs now and are covered by PROFILE_ROUTES below, derived
   // from the Tab union itself so they cannot be missed.
-  '/my-posts?filter=done', '/messages', '/post-job', '/jobs', '/settings',
+  '/my-posts?filter=done', '/messages', '/post-job', '/settings',
   '/settings/profile', '/availability', '/schedule', '/earnings',
   '/saved-helpers', '/data-rights', '/gift-card', '/payment-success', '/help', '/support',
   '/legal', '/privacy', '/terms', '/rules',

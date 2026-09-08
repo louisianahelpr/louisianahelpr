@@ -113,7 +113,7 @@ export function GiftCardPreview({
               this span used to sit in a shrinkable row beside the sender
               name and broke mid-token. */}
           <span
-            className={`font-display font-bold tabular-nums leading-none whitespace-nowrap shrink-0 ${
+            className={`font-sans font-bold tabular-nums leading-none whitespace-nowrap shrink-0 ${
               compact ? "text-ds-20" : "text-ds-28"
             }`}
             style={{
@@ -131,7 +131,7 @@ export function GiftCardPreview({
           <div className="min-w-0">
             {trimmedNote ? (
               <p
-                className={`font-serif italic leading-snug line-clamp-2 ${compact ? "text-ds-10" : "text-ds-11"}`}
+                className={`font-sans leading-snug line-clamp-2 ${compact ? "text-ds-10" : "text-ds-11"}`}
                 style={{ color: design.ink, opacity: 0.92 }}
               >
                 “{trimmedNote}”

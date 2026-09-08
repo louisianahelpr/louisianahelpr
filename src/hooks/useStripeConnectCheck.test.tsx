@@ -26,13 +26,6 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ profile: currentProfile }),
 }));
 
-// The operator kill switch, forced OFF for every test in this file. Without
-// this, a paused IDV requirement would clear the identity arm for free and
-// every "verified" assertion below would pass for the wrong reason.
-vi.mock("@/lib/featureFlags", () => ({
-  isIdvRequirementPaused: async () => false,
-}));
-
 /** Payout-ready in every respect, so only the identity arm is under test. */
 const PAYOUT_READY = { connected: true, details_submitted: true, payouts_enabled: true };
 

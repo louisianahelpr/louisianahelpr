@@ -243,7 +243,7 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
       {loading ? (
         <p className="text-ds-11 text-muted-foreground">Loading timeline…</p>
       ) : entries.length === 0 ? (
-        <p className="text-ds-11 text-muted-foreground italic">
+        <p className="text-ds-11 text-muted-foreground">
           No admin actions, warnings, or notifications recorded for this user yet.
         </p>
       ) : (
@@ -274,7 +274,7 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
                     </p>
                   )}
                   {e.actor && (
-                    <p className="text-ds-10 text-muted-foreground italic">
+                    <p className="text-ds-10 text-muted-foreground">
                       by {e.actor}
                     </p>
                   )}

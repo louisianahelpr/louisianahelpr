@@ -128,7 +128,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                   <h2 className="font-display italic font-bold leading-tight text-headline-hero" style={{ color: palette.title, letterSpacing: "-0.02em" }}>
                     {title}
                   </h2>
-                  <p className="font-serif italic max-w-sm mx-auto text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <p className="font-sans max-w-sm mx-auto text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     {body}
                   </p>
                   {showProgress && (
@@ -197,12 +197,12 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                         {v.violation_type.replace(/_/g, " ")}
                       </span>
                     </div>
-                    <span className="font-serif italic whitespace-nowrap shrink-0 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                    <span className="font-sans whitespace-nowrap shrink-0 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       {v.created_at ? formatTimestamp(v.created_at) : "—"}
                     </span>
                   </div>
                   {v.description && (
-                    <p className="font-serif italic leading-relaxed text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
+                    <p className="font-sans leading-relaxed text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
                       {v.description}
                     </p>
                   )}

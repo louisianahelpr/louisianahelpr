@@ -79,9 +79,6 @@ type PublicProfileStatsRow = {
 type PublicProfileReviewRow = {
   id: string;
   rating: number;
-  punctuality: number | null;
-  quality: number | null;
-  communication: number | null;
   feedback: string | null;
   created_at: string;
   reviewer_name: string | null;
@@ -120,9 +117,6 @@ function enrichReviewRows(
     return {
       id: r.id,
       rating: r.rating,
-      punctuality: r.punctuality ?? null,
-      quality: r.quality ?? null,
-      communication: r.communication ?? null,
       feedback: r.feedback,
       created_at: r.created_at,
       reviewerName: nameMap.get(r.reviewer_id) || "a neighbor",
@@ -247,7 +241,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
-        supabase.from("reviews").select("id, rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
+        supabase.from("reviews").select("id, rating, feedback, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
         // Verification-ladder inputs (#112): grab the trust signals while
@@ -694,9 +688,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         reviews = publicReviewRows.map((r) => ({
           id: r.id,
           rating: r.rating,
-          punctuality: r.punctuality ?? null,
-          quality: r.quality ?? null,
-          communication: r.communication ?? null,
           feedback: r.feedback,
           created_at: r.created_at,
           reviewerName: r.reviewer_name ? formatName(r.reviewer_name) : "a neighbor",
@@ -984,9 +975,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
           ...rows.map((r) => ({
             id: r.id,
             rating: r.rating,
-            punctuality: r.punctuality ?? null,
-            quality: r.quality ?? null,
-            communication: r.communication ?? null,
             feedback: r.feedback,
             created_at: r.created_at,
             reviewerName: r.reviewer_name ? formatName(r.reviewer_name) : "a neighbor",
@@ -1008,7 +996,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
 
       const { data: moreRows, error } = await supabase
         .from("reviews")
-        .select("id, rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, response_text, response_at")
+        .select("id, rating, feedback, created_at, reviewer_id, job_id, response_text, response_at")
         .eq("reviewee_id", userId)
         .lte("feedback_visible_at", new Date().toISOString())
         .order("created_at", { ascending: false })

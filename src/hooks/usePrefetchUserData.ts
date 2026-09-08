@@ -41,7 +41,6 @@ export function usePrefetchUserData(userId: string | undefined) {
       // Route chunks — first paint of the destination is now ~instant.
       prefetchRoute("/my-posts");
       prefetchRoute("/my-jobs");
-      prefetchRoute("/jobs");
       prefetchRoute("/profile");
     });
   }, [userId, queryClient]);

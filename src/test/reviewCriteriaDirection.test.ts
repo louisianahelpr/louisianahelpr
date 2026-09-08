@@ -9,25 +9,27 @@
  *   Quality of work  — "Met expectations"
  *
  * Neither is a fact about a poster. The poster is not the one who shows up, and
- * there is no work of theirs to judge. The asymmetry ran backwards on top of
- * that: rating a helper gave one overall star plus tags, while rating a poster
- * — the direction with less to say — got the MORE detailed form.
+ * there is no work of theirs to judge. The one-tap tags had the same shape of
+ * error: "On time", "Quality work" and "Very professional" were all offered to
+ * a helper describing their client.
  *
- * The tags had the same shape of error: "On time", "Quality work" and "Very
- * professional" were all offered to a helper describing their client.
+ * The star half of that problem is now gone by construction — owner,
+ * 2026-09-07: "One reputation, and we only do overall — no punctuality etc."
+ * There is one overall star in both directions and the three sub-criteria
+ * columns are dropped, so there is no longer a per-dimension question that
+ * could point the wrong way, and no `punctuality` column for two different
+ * questions to share.
  *
- * These assertions are written against the WORLD (the vocabulary of a helper's
- * job: showing up, doing work) rather than against the arrays under test, so
- * they cannot pass vacuously by being kept in sync with whatever the arrays
- * happen to say.
+ * What survives, and what this file guards, is the TAGS: still direction-aware,
+ * still free to drift back into describing the wrong person. The assertions are
+ * written against the WORLD (the vocabulary of a helper's job: showing up,
+ * doing work) rather than against the arrays under test, so they cannot pass
+ * vacuously by being kept in sync with whatever the arrays happen to say.
  */
 import { describe, expect, it } from "vitest";
 import {
-  HELPER_CATEGORY_ROWS,
   HELPER_QUICK_TAGS,
-  POSTER_CATEGORY_ROWS,
   POSTER_QUICK_TAGS,
-  categoryRowsFor,
   quickTagsFor,
 } from "@/components/reviewPanel/types";
 
@@ -43,70 +45,54 @@ const HELPER_ONLY_LANGUAGE = [
   /\barriv/i,
 ];
 
-const textOf = (rows: { label: string; sublabel: string }[]) =>
-  rows.map((r) => `${r.label} ${r.sublabel}`).join(" | ");
-
-describe("review criteria adapt to who is being rated", () => {
-  it("never asks a helper to rate their client on doing the work", () => {
-    const asked = `${textOf(POSTER_CATEGORY_ROWS)} | ${POSTER_QUICK_TAGS.join(" | ")}`;
+describe("review tags adapt to who is being rated", () => {
+  it("never offers a helper a tag about their client doing the work", () => {
+    const asked = POSTER_QUICK_TAGS.join(" | ");
     for (const pattern of HELPER_ONLY_LANGUAGE) {
       expect(asked).not.toMatch(pattern);
     }
   });
 
-  it("still asks a poster to rate their helper on exactly those things", () => {
-    // The mirror of the assertion above — without it, "fixing" the poster form
+  it("still offers a poster exactly those tags about their helper", () => {
+    // The mirror of the assertion above — without it, "fixing" the poster set
     // by emptying both would pass.
-    const asked = `${textOf(HELPER_CATEGORY_ROWS)} | ${HELPER_QUICK_TAGS.join(" | ")}`;
+    const asked = HELPER_QUICK_TAGS.join(" | ");
     expect(asked).toMatch(/\bon\s+time\b/i);
     expect(asked).toMatch(/quality/i);
   });
 
-  it("keeps Overall required and every other dimension optional, both ways", () => {
-    for (const rows of [HELPER_CATEGORY_ROWS, POSTER_CATEGORY_ROWS]) {
-      expect(rows.filter((r) => r.required).map((r) => r.key)).toEqual(["rating"]);
-      expect(rows[0].key).toBe("rating");
-    }
-  });
-
-  it("writes only columns whose NAME still describes what was asked", () => {
-    // Storage is unchanged and there is no migration: the poster form simply
-    // does not ask `quality`, which persists as NULL — the value the column
-    // already holds for any dimension a reviewer skipped. Overloading it to
-    // mean "was the job as described" would poison every future average, since
-    // `reviews` is keyed by reviewee and one account is both poster and helper.
-    expect(POSTER_CATEGORY_ROWS.map((r) => r.key)).not.toContain("quality");
-    // `punctuality` survives on the poster side because a poster's promptness
-    // is real and consequential — their approval is what releases the escrowed
-    // payout — so the column keeps meaning "were they prompt".
-    expect(POSTER_CATEGORY_ROWS.map((r) => r.key)).toContain("punctuality");
-    // Whatever each side asks, it can only ever land in a column that exists.
-    const columns = new Set(["rating", "punctuality", "quality", "communication"]);
-    for (const rows of [HELPER_CATEGORY_ROWS, POSTER_CATEGORY_ROWS]) {
-      for (const row of rows) expect(columns.has(row.key)).toBe(true);
-    }
-  });
-
-  it("asks a poster no more questions than it asks a helper", () => {
-    // The original asymmetry: the less-informative direction had the longer
-    // form. It must never be the longer one again.
-    expect(POSTER_CATEGORY_ROWS.length).toBeLessThanOrEqual(HELPER_CATEGORY_ROWS.length);
-  });
-
-  it("has no duplicate dimension within a direction", () => {
-    for (const rows of [HELPER_CATEGORY_ROWS, POSTER_CATEGORY_ROWS]) {
-      expect(new Set(rows.map((r) => r.key)).size).toBe(rows.length);
+  it("has no duplicate tag within a direction", () => {
+    for (const tags of [HELPER_QUICK_TAGS, POSTER_QUICK_TAGS]) {
+      expect(new Set(tags).size).toBe(tags.length);
     }
   });
 
   it("defaults an unspecified direction to the helper set", () => {
     // `revieweeRole` defaults to "helper" in ReviewFormProps, so a caller that
     // has not been adapted keeps the behaviour it has always had rather than
-    // silently switching question sets.
-    expect(categoryRowsFor("helper")).toBe(HELPER_CATEGORY_ROWS);
-    expect(categoryRowsFor("poster")).toBe(POSTER_CATEGORY_ROWS);
+    // silently switching tag sets.
     expect(quickTagsFor("helper")).toBe(HELPER_QUICK_TAGS);
     expect(quickTagsFor("poster")).toBe(POSTER_QUICK_TAGS);
+  });
+});
+
+describe("the review form asks exactly one star question", () => {
+  it("renders a single StarRow and writes only `rating`", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const src = readFileSync(
+      join(process.cwd(), "src/components/reviewPanel/ReviewForm.tsx"),
+      "utf8",
+    );
+    // One overall star, not a list of dimensions. Counting the ACTUAL mounts
+    // rather than asserting the absence of a name means re-introducing a
+    // second scored dimension fails here, whatever it gets called.
+    expect((src.match(/<StarRow\b/g) ?? []).length).toBe(1);
+    expect(src).not.toMatch(/\.map\(\(row\)\s*=>\s*\(?\s*<StarRow/);
+    // And nothing writes a per-dimension column into `reviews` any more.
+    for (const column of ["punctuality", "quality", "communication"]) {
+      expect(src).not.toMatch(new RegExp(`^\\s*${column}\\s*:`, "m"));
+    }
   });
 });
 
@@ -118,10 +104,10 @@ describe("both ReviewForm mounts declare their direction", () => {
       join(process.cwd(), "src/components/activity/ActivityDialogs.tsx"),
       "utf8",
     );
-    // Both mounts, and each one named — a form whose questions depend on
-    // direction must never be mounted without stating it. Derived by counting
-    // the ACTUAL mounts rather than asserting a hardcoded two, so adding a
-    // third mount fails here instead of sliding through.
+    // Both mounts, and each one named — a form whose tags depend on direction
+    // must never be mounted without stating it. Derived by counting the ACTUAL
+    // mounts rather than asserting a hardcoded two, so adding a third mount
+    // fails here instead of sliding through.
     const mounts = src.match(/<ReviewForm\b/g) ?? [];
     expect(mounts.length).toBeGreaterThanOrEqual(2);
     expect((src.match(/revieweeRole="(?:helper|poster)"/g) ?? []).length).toBe(mounts.length);

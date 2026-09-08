@@ -221,7 +221,7 @@ export const PrivacyContent = () => (
           >
             We never sell your data.
           </p>
-          <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Other users only see your first name, photo, and ratings. ID documents stay encrypted and are accessed only during verification.
           </p>
         </div>

@@ -55,8 +55,8 @@
  *                            || '{"seed_jobs_hidden_publicly": true}'::jsonb;
  *
  * To put fixtures back, write `false` (or delete the key). The flag is named
- * for the EXCEPTION — `…_hidden_…`, not `show_…` — for the same reason
- * `idv_requirement_paused` is: every way of failing to read it (key absent,
+ * for the EXCEPTION — `…_hidden_…`, not `show_…` — because every way of
+ * failing to read it (key absent,
  * blob reset, no settings row, a replay onto a fresh database) has to land on
  * TODAY'S behaviour, which is fixtures visible. A `show_…` flag defaulting to
  * false would empty the public marketplace the moment the key went missing,
@@ -85,7 +85,14 @@ export const SEED_VISIBILITY_AUTHORITY = "public.seed_jobs_hidden_publicly";
  * list drift away from the flag for good.
  */
 export const SEED_GATED_SURFACES = [
-  { surface: "/jobs", object: "public.get_ranked_open_jobs" },
+  // Was labelled "/jobs" until 2026-09-07, when that page was deleted. The
+  // ROW STAYS: this list is what the parity test grades the migration against,
+  // so dropping an entry makes the suite pass vacuously for that object (see
+  // the note below about the landing teaser). And the object is still
+  // reachable — get_ranked_open_jobs is granted to anon, so it can be called
+  // directly whether or not a screen renders it. It simply has no client
+  // caller any more (src/pages/jobs/useOpenJobsFeed.ts went with the page).
+  { surface: "anon ranked-jobs RPC (no client caller)", object: "public.get_ranked_open_jobs" },
   { surface: "dashboard browse list", object: "public.open_jobs_browse" },
   { surface: "map", object: "public.get_open_jobs_for_map" },
   // MISSING UNTIL 2026-09-02, and the omission was the whole bug. The parity
@@ -123,10 +130,12 @@ export const SEED_GATED_SURFACES = [
   // had a gate is invisible to a check that starts from callers of the gate.
   // That is why both halves are kept. Gate added in 20260903081713.
   { surface: "daily parish digest email", object: "public.sweep_daily_job_digest" },
-  // MISSING UNTIL 2026-09-07. The apply write-path trigger (AR-013/014/015,
-  // 20260907063128) re-checks every conjunct the feed applies, including
-  // seed_jobs_hidden_publicly(), so a helper cannot apply to a seed job that
-  // is hidden from browse. Like notify_helpers_on_job_post above, it was gated
-  // before it was registered — the call is the gate, this line is the audit.
-  { surface: "apply write-path gate (seed fixture enforcement)", object: "public.enforce_application_job_state" },
+  // ADDED 2026-09-07 with 20260907063128. Not a feed — the WRITE side of the
+  // same switch. Every surface above HIDES fixture jobs once the flag flips;
+  // this BEFORE INSERT trigger on `applications` REFUSES an apply to one, so
+  // the gate governs discovery and the write path together (AR-013: six feed
+  // filters were hidden in the feed and never refused at apply). It calls
+  // `seed_jobs_hidden_publicly()` directly, which is why the caller-half of
+  // the parity discovery found it the moment it landed.
+  { surface: "apply-path refusal (write side)", object: "public.enforce_application_job_state" },
 ] as const;

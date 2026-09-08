@@ -285,7 +285,7 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
         />
         <div className="space-y-3.5">
           <div className="space-y-1.5">
-            <Label className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+            <Label className="font-sans uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               Reason
             </Label>
             <Select value={reason} onValueChange={setReason}>
@@ -301,7 +301,7 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
           </div>
 
           <div className="space-y-1.5">
-            <Label className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+            <Label className="font-sans uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               What happened?
             </Label>
             <Textarea
@@ -313,14 +313,14 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
               maxLength={1000}
               aria-required="true"
               aria-describedby="dispute-details-requirement"
-              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14 leading-relaxed"
+              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed"
             />
             {/* Says WHY it is required rather than just that it is. The
                 requirement is not a form rule, it is the whole basis of the
                 decision — and it is the only field an admin actually reads. */}
             <p
               id="dispute-details-requirement"
-              className="font-serif italic text-ds-11"
+              className="font-sans text-ds-11"
               style={{ color: detailsOk ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--burnt-sienna))" }}
             >
               {detailsOk
@@ -330,7 +330,7 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
           </div>
 
           <div className="space-y-1.5">
-            <Label className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+            <Label className="font-sans uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               Photo evidence — up to 5
             </Label>
             <div className="flex flex-wrap gap-1.5">
@@ -388,7 +388,7 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
                 pair that escrowTiming.copyParity.test.ts exists to stop
                 drifting apart. */}
             <ul
-              className="font-serif italic space-y-0.5 list-disc pl-4 leading-snug text-ds-12"
+              className="font-sans space-y-0.5 list-disc pl-4 leading-snug text-ds-12"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
               {side === "helper" ? (

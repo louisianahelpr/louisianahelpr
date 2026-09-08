@@ -254,7 +254,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                   new result count instead of the list silently shrinking. */}
               <p
                 aria-live="polite"
-                className="ml-auto shrink-0 font-serif italic text-ds-12"
+                className="ml-auto shrink-0 font-sans text-ds-12"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {countLabel}

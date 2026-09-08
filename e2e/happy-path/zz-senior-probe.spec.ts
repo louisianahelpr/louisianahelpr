@@ -34,7 +34,6 @@ const WIDTHS = [320, 375] as const;
 
 const ROUTES = [
   { name: "dashboard", url: "/dashboard" },
-  { name: "jobs", url: "/jobs" },
   { name: "browse", url: "/browse" },
   { name: "messages", url: "/messages" },
   { name: "my-jobs", url: "/my-jobs" },

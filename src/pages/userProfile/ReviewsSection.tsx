@@ -264,7 +264,7 @@ export const ReviewsSection = ({
                     Response from {profileFullName}
                   </p>
                   <p
-                    className="text-ds-13 font-serif italic leading-relaxed"
+                    className="text-ds-13 font-sans leading-relaxed"
                     style={{ color: "hsl(var(--olivewood)/0.80)" }}
                   >
                     {r.response_text}

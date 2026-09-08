@@ -8,7 +8,7 @@ import HelprMark from "@/components/HelprMark";
  * Hero — Louisiana Helpr 2026 brand system.
  *
  * Single centered editorial composition: eyebrow + Bodoni Moda H1 +
- * EB Garamond italic subhead + two action buttons, all stacked in one flow
+ * Montserrat subhead + two action buttons, all stacked in one flow
  * column that is centered in the section and fits every viewport (no
  * absolutely-positioned art to overflow at half-screen). The category rail
  * anchors the bottom of the hero.
@@ -96,14 +96,6 @@ const HeroSection = () => {
       data: { session },
     } = await supabase.auth.getSession();
     navigate(session?.user ? "/post-job" : "/signup");
-  };
-
-  // Browse Jobs always sends the visitor to the public /jobs board — the
-  // marketing landing's "browse jobs" affordance should show the actual
-  // public jobs webpage regardless of auth state.
-  const goToJoinCommunity = (e: React.MouseEvent) => {
-    e.preventDefault();
-    navigate("/jobs");
   };
 
   return (
@@ -226,7 +218,12 @@ const HeroSection = () => {
                 "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
             }}
           >
-            <Link to="/jobs" onClick={goToJoinCommunity}>
+            {/* Points at the feed this visitor can actually use: the guest
+                board, or the authed one once they are signed in. A plain
+                <Link> with the right `to` needs no click handler — the old one
+                preventDefault'd and re-navigated to a third route whose only
+                job was to look at the session and bounce again. */}
+            <Link to={loggedIn ? "/dashboard" : "/browse"}>
               <Search className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
               Browse Jobs
               <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />

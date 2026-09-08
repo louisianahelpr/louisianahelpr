@@ -656,7 +656,12 @@ export async function seedAuthedSession(context: BrowserContext, user: FakeUser,
   // Dismiss the first-run welcome modal for smoke tests — the modal
   // intercepts pointer events and breaks click-based test flows.
   await context.addInitScript(() => {
-    try { window.localStorage.setItem('helpr_welcomed', '1'); } catch { /* SSR guard */ }
+    try {
+      window.localStorage.setItem('helpr_welcomed', '1');
+    } catch {
+      /* localStorage can be blocked on about:blank / file: — the modal
+         then shows and the test that needs it dismissed fails visibly. */
+    }
   });
   // …and the first-run OnboardingTour, for the same reason.
   //
@@ -687,7 +692,10 @@ export async function seedAuthedSession(context: BrowserContext, user: FakeUser,
         JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }),
       );
       window.localStorage.setItem("helpr.onboarding_tour_dismissed_at", new Date().toISOString());
-    } catch { /* SSR guard */ }
+    } catch {
+      /* localStorage can be blocked on about:blank / file: — the tour then
+         opens and the test that needs it dismissed fails visibly. */
+    }
   });
   // Some browsers gate localStorage on origin — touch the origin once so
   // the addInitScript above lands on the right localStorage partition.

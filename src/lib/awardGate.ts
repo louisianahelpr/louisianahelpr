@@ -1,4 +1,3 @@
-import { isIdvRequirementPaused } from "@/lib/featureFlags";
 
 /**
  * The acceptance gate, client side.
@@ -99,6 +98,8 @@ export function isIdentityVerified(source: {
  * by every caller that can reach it: without it this function refuses people
  * the server would let through. See {@link isIdentityVerified}.
  */
+// Still async purely so every existing `await` call site keeps working; it no
+// longer awaits anything itself.
 export async function awardBlockReasonFromStatus(
   status: AwardGateStatus | null | undefined,
   /** `profiles.idv_status` for the same person. Omit only when unreachable. */
@@ -108,14 +109,15 @@ export async function awardBlockReasonFromStatus(
   if (!status.connected || !status.details_submitted || status.payouts_enabled !== true) {
     return "helper_payout_setup_incomplete";
   }
-  // Operator kill switch for a Stripe Identity outage (Admin → Settings). The
-  // server honours the same flag; `isIdvRequirementPaused` fails closed, so a
-  // dropped read can never quietly drop the requirement.
+  // Identity verification is unconditionally required (owner, 2026-09-07).
+  // The operator pause flag that used to be able to clear this arm was deleted
+  // in migration 20260908001056 — server and client alike, there is no longer
+  // any path that hires an unverified helper.
   const identityOk = isIdentityVerified({
     connectIdentityVerified: status.identity_verified,
     idvStatus,
   });
-  if (!identityOk && !(await isIdvRequirementPaused())) {
+  if (!identityOk) {
     return "helper_identity_unverified";
   }
   return null;

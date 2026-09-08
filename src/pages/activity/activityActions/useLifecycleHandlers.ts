@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { safeStorage } from "@/lib/safeStorage";
-import { fetchProfile } from "@/hooks/useProfile";
 import { fireSuccessMoment } from "@/lib/successMoment";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -424,28 +423,16 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
 
   const openReviewForPosted = async (job: Job) => {
     if (!job.helper_id) return;
-    // Use shared fetchProfile so the read goes through the same code
-    // path React Query callers use. Direct supabase.from inline reads
-    // fragment caching across the app — see src/hooks/useProfile.ts.
-    //
-    // It THROWS on a Supabase error (useProfile.ts: `if (error) throw error`),
-    // and this was the one call site not wrapped: the rejection escaped an
-    // async click handler with nobody to catch it, so tapping Review did
-    // nothing, said nothing, and logged nothing anyone would see. Every other
-    // handler in this file reports and toasts; so does this one now.
-    let helperProfile: Awaited<ReturnType<typeof fetchProfile>>;
-    try {
-      helperProfile = await fetchProfile(job.helper_id);
-    } catch (err) {
-      report(err, {
-        tags: { area: "activity", op: "openReviewForPosted.fetchProfile" },
-        context: { jobId: job.id, helperId: job.helper_id },
-      });
-      hapticError();
-      toast.error("We couldn't open the review just now — please try again.");
-      return;
-    }
-    setReviewTarget({ id: job.helper_id, name: formatName(helperProfile?.full_name, "Helpr") });
+    // The helper's NAME comes from `helperNames`, which useActivityData
+    // already loaded through the safe-profiles RPC for every assigned helper
+    // on this tab. This used to call fetchProfile(job.helper_id) — a direct
+    // `profiles` read — and RLS returns ZERO rows for another user's profile
+    // (reproduced live 2026-09-07 as the poster: `profiles?user_id=eq.<helper>`
+    // → `[]`), so every poster's review opened as "Rate Helpr." while the Tip
+    // dialog beside it said "Send a tip to Hallie H." The fallback stays for a
+    // helper the map genuinely does not know.
+    const name = helperNames[job.helper_id] || formatName(null, "Helpr");
+    setReviewTarget({ id: job.helper_id, name });
     setReviewJob(job);
   };
 

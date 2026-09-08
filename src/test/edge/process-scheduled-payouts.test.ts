@@ -372,6 +372,77 @@ describe("process-scheduled-payouts edge function", () => {
     });
   });
 
+  // TC-008. "Already transferred, skip" is right about the transfer and was
+  // wrong about the job: when a prior run's post-transfer flip died, every
+  // subsequent run reached that skip, logged itself healthy, and left the job
+  // reading 'payout_pending' with the helper already paid. Only hand-written
+  // SQL could fix it.
+  describe("already-transferred heal", () => {
+    it("completes the missing status flip on a single-helper job instead of skipping forever", async () => {
+      seedPayableJob(scenario);
+      scenario.reads.payout_transfers = {
+        rows: [{ stripe_transfer_id: "tr_prior", status: "paid" }],
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      const body = await json(res);
+      const first = (body.results as Array<Record<string, unknown>>)[0];
+      expect(first.status).toBe("already_transferred");
+      expect(first.healed).toBe(true);
+      // The load-bearing pair: no second transfer, AND the job is finished.
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+      expect((jobWrite?.payload as Record<string, unknown>).payment_status).toBe("released");
+      // The fee columns are NOT rewritten — this path never resolved the tier,
+      // and a guess would overwrite what the paid transfer was built from.
+      expect(jobWrite?.payload).not.toHaveProperty("helper_fee_percent");
+      expect(jobWrite?.payload).not.toHaveProperty("platform_fee_amount");
+    });
+
+    it("does NOT heal a group job — the flip there owes the whole roster", async () => {
+      seedPayableJob(scenario, { job: { is_group_job: true, helpers_needed: 3 } });
+      scenario.reads.payout_transfers = {
+        rows: [{ stripe_transfer_id: "tr_prior", status: "paid" }],
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      const body = await json(res);
+      expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("already_transferred");
+      expect(scenario.writes.some((w) => w.table === "jobs" && w.op === "update")).toBe(false);
+    });
+  });
+
+  describe("the post-transfer flip is retried on a transient DB fault", () => {
+    it("retries a 57014 statement timeout rather than stranding the payout", async () => {
+      seedPayableJob(scenario);
+      scenario.writeErrors.jobs = {
+        message: "canceling statement due to statement timeout",
+        code: "57014",
+      };
+      const fn = await load();
+      await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      const jobWrites = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect(jobWrites.length).toBe(4);
+    }, 20000);
+
+    it("does NOT retry a zero-row match — a refunded or charged-back job must alarm at once", async () => {
+      seedPayableJob(scenario);
+      scenario.writeSelectRows["jobs:update"] = [];
+      const fn = await load();
+      await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      const jobWrites = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect(jobWrites.length).toBe(1);
+    });
+  });
+
   describe("group-job urgent split (#114)", () => {
     it("splits the urgent fee across the roster like the budget", async () => {
       // The poster is charged the urgent fee ONCE, bundled into escrow, so a

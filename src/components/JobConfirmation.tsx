@@ -334,7 +334,7 @@ export function JobConfirmation({
           <button
             type="button"
             onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }}
-            className="w-full text-center text-ds-11 font-serif italic underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
+            className="w-full text-center text-ds-11 font-sans underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
           >
             Can't make it? See what happens
           </button>
@@ -390,14 +390,14 @@ export function JobConfirmation({
           </h3>
         </div>
         <p
-          className="font-serif italic leading-snug text-ds-12"
+          className="font-sans leading-snug text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         >
           Tap to let the other party know it's a go.
           {hoursUntilJob > 0 && ` Scheduled in ${urgencyText}.`}
         </p>
         <p
-          className="font-serif italic text-ds-11"
+          className="font-sans text-ds-11"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {jobDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
@@ -430,7 +430,7 @@ export function JobConfirmation({
         </div>
 
         {myConfirmed && (
-          <p className="font-serif italic inline-flex items-center gap-1 text-ds-10" style={{ color: "hsl(var(--bark) / 0.85)" }}>
+          <p className="font-sans inline-flex items-center gap-1 text-ds-10" style={{ color: "hsl(var(--bark) / 0.85)" }}>
             <ShieldCheck className="w-3 h-3" />
             Confirmed {new Date(myConfirmed).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
           </p>

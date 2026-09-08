@@ -24,17 +24,28 @@ fi
 fail=0
 note() { printf '  ✗ %s\n' "$1"; fail=1; }
 
-# --- SHOW_SEED_JOBS_PUBLICLY must be false at launch -------------------------
-# Fixture rows are flagged `is_seed` in the database; this switch is what hides
-# them from guest-facing surfaces. Admin aggregates already exclude them
-# unconditionally, so this is purely about the public marketplace.
-seed_file="src/config/showSeedJobs.ts"
-if [[ -f "$seed_file" ]]; then
-  if grep -qE '^export const SHOW_SEED_JOBS_PUBLICLY *= *true' "$seed_file"; then
-    note "$seed_file: SHOW_SEED_JOBS_PUBLICLY is true — the public jobs feed would show fixture listings. Set it to false."
-  fi
+# --- Fixture jobs must be hidden at launch -----------------------------------
+# The switch lives in the DATABASE: `platform_settings.feature_flags ->>
+# 'seed_jobs_hidden_publicly'`, read by every guest surface through the
+# `public.seed_jobs_hidden_publicly()` function. This block used to grep
+# `src/config/showSeedJobs.ts` for `SHOW_SEED_JOBS_PUBLICLY = true`, a constant
+# retired when the switch moved into the database — so it reported "all launch
+# flags are in their launch position" no matter what the flag said, and
+# docs/LAUNCH_CHECKLIST.md still presented it as the automated half. A guard
+# that greps for a name nothing defines can only ever pass. Ask the database.
+env_file=".env"
+url=$(grep -E '^VITE_SUPABASE_URL=' "$env_file" 2>/dev/null | cut -d= -f2- | tr -d '"')
+key=$(grep -E '^VITE_SUPABASE_PUBLISHABLE_KEY=' "$env_file" 2>/dev/null | cut -d= -f2- | tr -d '"')
+if [[ -z "$url" || -z "$key" ]]; then
+  note ".env is missing VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY — cannot read the seed switch."
 else
-  note "$seed_file is missing — the seed-visibility switch moved or was deleted; update this guard."
+  hidden=$(curl -s -X POST "$url/rest/v1/rpc/seed_jobs_hidden_publicly" \
+    -H "apikey: $key" -H "Authorization: Bearer $key" -H "Content-Type: application/json" -d '{}')
+  case "$hidden" in
+    true) ;;
+    false) note "seed_jobs_hidden_publicly() is FALSE on ${url#https://} — the public marketplace still shows fixture jobs. Run: npm run launch:go -- --on" ;;
+    *) note "seed_jobs_hidden_publicly() could not be read (got: ${hidden:0:120}) — refusing to call the flag clean." ;;
+  esac
 fi
 
 if [[ "$fail" == "1" ]]; then

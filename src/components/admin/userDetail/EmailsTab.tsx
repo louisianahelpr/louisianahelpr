@@ -110,7 +110,7 @@ export function EmailsTab({
               </span>
             </div>
           ) : (
-            <p className="text-ds-11 text-muted-foreground italic">No opens or clicks tracked yet</p>
+            <p className="text-ds-11 text-muted-foreground">No opens or clicks tracked yet</p>
           )}
         </div>
       )}
@@ -137,7 +137,7 @@ export function EmailsTab({
               </span>
             </div>
           ) : (
-            <p className="text-ds-11 text-muted-foreground italic">No opens or clicks tracked yet</p>
+            <p className="text-ds-11 text-muted-foreground">No opens or clicks tracked yet</p>
           )}
         </div>
       )}
@@ -169,7 +169,7 @@ export function EmailsTab({
               </span>
             </div>
           ) : (
-            <p className="text-ds-11 text-muted-foreground italic">No opens or clicks tracked yet</p>
+            <p className="text-ds-11 text-muted-foreground">No opens or clicks tracked yet</p>
           )}
         </div>
       )}
@@ -185,7 +185,7 @@ export function EmailsTab({
           )}
         </h4>
         {emailSendStats.length === 0 ? (
-          <p className="text-ds-11 text-muted-foreground italic">No emails on record</p>
+          <p className="text-ds-11 text-muted-foreground">No emails on record</p>
         ) : (
           <div className="rounded-ds-md border border-border bg-secondary/30 divide-y divide-border overflow-hidden">
             {emailSendStats.map((s) => (

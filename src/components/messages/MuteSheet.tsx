@@ -72,7 +72,7 @@ export function MuteSheet({
           >
             <Clock className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             <span
-              className="font-serif italic text-ds-12"
+              className="font-sans text-ds-12"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
               {isForever ? "Muted until you turn it back on" : remaining ?? "Muted"}

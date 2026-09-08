@@ -258,10 +258,17 @@ export function BudgetSection({
               <TrendingUp className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" strokeWidth={2} />
               <p className="text-ds-11 text-muted-foreground">
                 {priceStats.parishMatch ? "Jobs like this near you pay " : "Jobs like this pay "}
+                {/* A range whose ends are equal is not a range. Prod rendered
+                    "$25–$25" because every sample was the same fixture price;
+                    the fixtures are gone now, but a genuinely uniform category
+                    would read just as oddly. Show the one figure it is. */}
                 <span className="font-semibold text-primary tabular-nums">
-                  ${priceStats.min}–${priceStats.max}
+                  {priceStats.min === priceStats.max
+                    ? `$${priceStats.min}`
+                    : `$${priceStats.min}–$${priceStats.max}`}
                 </span>
-                {priceStats.median !== null && (
+                {/* …and don't restate that same number as "(most around $25)". */}
+                {priceStats.median !== null && priceStats.min !== priceStats.max && (
                   <>
                     {" "}
                     (most around{" "}

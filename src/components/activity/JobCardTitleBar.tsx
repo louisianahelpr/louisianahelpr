@@ -74,7 +74,7 @@ export function JobCardTitleBar({ title, category, amount, amountTitle, meta }: 
         }}
       >
         <span
-          className="font-display leading-none tabular-nums text-ds-17"
+          className="font-sans leading-none tabular-nums text-ds-17"
           style={{
             fontWeight: 800,
             color: "hsl(var(--bark))",

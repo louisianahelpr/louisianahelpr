@@ -39,7 +39,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
       // mounting this anywhere real.
       const { data, error } = await supabase
         .from("reviews")
-        .select("id, rating, punctuality, quality, communication, feedback, created_at, reviewer_id, photo_urls")
+        .select("id, rating, feedback, created_at, reviewer_id, photo_urls")
         .eq("reviewee_id", userId)
         .eq("status", "published")
         .lte("feedback_visible_at", new Date().toISOString())

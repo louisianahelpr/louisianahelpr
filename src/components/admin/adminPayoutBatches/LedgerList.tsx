@@ -42,8 +42,15 @@ export const LedgerList = ({ ledger }: LedgerListProps) => {
                     <Badge variant="outline" className="text-ds-10 capitalize">{t.initiated_by}</Badge>
                   )}
                 </div>
+                {/* Title and id on separate lines. Inside one `truncate` line
+                    the job title ate the whole width at 375 and the transfer
+                    id — the string an admin reconciles against Stripe — was
+                    not rendered at all (measured 2026-09-07: span right edge
+                    at 479px in a 375px viewport, under the ellipsis). */}
                 <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">
                   {jobTitle}
+                </p>
+                <p className="text-ds-11 text-muted-foreground">
                   {t.stripe_transfer_id && (
                     /* No `opacity-60`. Stacked on the parent's already-muted
                        colour it measured 2.66:1 against the card (axe,
@@ -51,7 +58,7 @@ export const LedgerList = ({ ledger }: LedgerListProps) => {
                        in the admin console, on the one string an admin
                        reconciles against Stripe. `text-muted-foreground` alone
                        clears 4.5:1; the mono face is what marks it as an id. */
-                    <span className="ml-2 font-mono" title="Stripe transfer ID">
+                    <span className="font-mono" title="Stripe transfer ID">
                       {t.stripe_transfer_id.slice(-8)}
                     </span>
                   )}

@@ -77,10 +77,17 @@ test.describe("authenticated flows", () => {
 
     await page.goto(`${BASE_URL}/profile`, { waitUntil: "networkidle" });
 
-    // Profile page should at minimum show the user's email somewhere.
-    // If RLS is broken, the profile fetch returns no rows and the page
-    // renders an empty/error state.
-    await expect(page.locator("body")).toContainText(TEST_EMAIL!.split("@")[0], {
+    // If RLS is broken the profile fetch returns no rows and the page
+    // renders "We couldn't load your account". A loaded profile renders its
+    // Edit control and the Log Out action — neither exists in the error
+    // state. This used to assert the EMAIL's local part appears on screen,
+    // which the profile page has not shown for months (it shows the display
+    // name), so the spec failed on a page that had rendered perfectly
+    // (run 34169384242).
+    await expect(page.locator("body")).not.toContainText(/couldn.t load your account/i, {
+      timeout: 10_000,
+    });
+    await expect(page.getByRole("button", { name: /^log out$/i }).first()).toBeVisible({
       timeout: 10_000,
     });
   });

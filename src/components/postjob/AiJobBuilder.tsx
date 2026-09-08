@@ -11,6 +11,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Loader2, ChevronDown } from "lucide-react";
@@ -65,12 +66,30 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
           jobContext: { location: locationContext },
         },
       });
-      if (error) throw error;
+      // A non-2xx makes the SDK throw "Edge Function returned a non-2xx
+      // status code" while the reason sits in the body — same trap TipDialog
+      // documents. Read the body first, then translate it: the function
+      // forwards the upstream model's failure verbatim, and a poster was
+      // shown `AI service error (503): [{ "error": { "code": 503, "message":
+      // "This model is currently experiencing high demand…` in a toast.
+      // Measured 2026-09-07: 1 in 4 calls came back that way.
+      if (error) {
+        const hasBody = (error as { context?: unknown }).context instanceof Response;
+        throw new Error(hasBody ? await functionErrorMessage(error, "") : (error as Error).message);
+      }
       if (data?.error) throw new Error(data.error);
       onGenerated(data as AiGeneratedJob);
       setOpen(false);
     } catch (err) {
-      toast.error((err as Error).message || "Couldn't generate — try again?");
+      const raw = (err as Error).message || "";
+      const busy = /503|high demand|overloaded|429|rate limit/i.test(raw);
+      toast.error(
+        busy
+          ? "The AI builder is busy right now — give it a few seconds and try again."
+          : /AI service error|non-2xx|Unknown error|Failed to generate/i.test(raw) || !raw
+            ? "Couldn't generate a posting just now. Try again, or start from a blank form."
+            : raw,
+      );
     } finally {
       setLoading(false);
     }
@@ -111,7 +130,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
           >
             Try the AI Job Builder
           </span>
-          <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Describe your job and let AI fill the form.
           </span>
         </span>

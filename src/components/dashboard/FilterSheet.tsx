@@ -3,12 +3,11 @@ import {
   useId,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode,
   type RefObject,
 } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowUpRight, Bookmark, Clock, Rocket, X, Zap, type LucideIcon } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowUpRight, Bookmark, ChevronRight, Clock, Rocket, SearchCheck, X, Zap, type LucideIcon } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -393,23 +392,21 @@ export function FilterSheet({
               at anything, and the owner asked for it anchored to the screen
               rather than to the sliders icon. */}
           <div
-            // `mx-auto max-w-lg` is a CONTENT measure, not a side margin — the
-            // band's SURFACE still reaches both screen edges. Without it every
-            // chip row and switch stretched to the full window on desktop.
-            // Below 512px (every phone) it changes nothing.
-            className="relative flex min-h-0 w-full max-w-lg flex-1 mx-auto flex-col overflow-hidden"
-            style={{
-              // The scrolling chip rows fade against the panel's OWN surface,
-              // not the page's — see `--filter-surface` in JobFilters.tsx.
-              "--filter-surface": "var(--background)",
-            } as CSSProperties}
+            // `mx-auto max-w-*` is a CONTENT measure, not a side margin — the
+            // band's SURFACE still reaches both edges of the header it hangs
+            // under. Below 512px (every phone) it changes nothing. On the
+            // desktop website (`lg` = the `web-desktop` gate, 900px) the band
+            // is the feed column's width and the content opens up to match,
+            // so Sort's five chips and Category's twelve sit in wrapping rows
+            // instead of a phone column in the middle of the band.
+            className="relative flex min-h-0 w-full max-w-lg lg:max-w-3xl flex-1 mx-auto flex-col overflow-hidden"
           >
             {/* Panel header — a title and an unmistakable way out. There was
                 neither before: the only ✕ on screen belonged to the search
                 INPUT, so that is what people reached for to close the panel
                 (owner: "the x in search also doesn't close it"). */}
             <div className="shrink-0 flex items-center justify-between gap-3 px-5 pt-4 pb-3 border-b border-[hsl(var(--bark)/0.12)]">
-              <h2 id={titleId} className="font-serif italic text-ds-17 font-bold text-foreground">
+              <h2 id={titleId} className="font-sans text-ds-17 font-bold text-foreground">
                 Refine Your Search
               </h2>
               <button
@@ -500,12 +497,19 @@ interface JobFilterSectionsArgs {
   onToggleSavedOnly?: () => void;
   savedCount?: number;
   /**
-   * Hide the "Nearby radius" section. The guest browse feed comes from
-   * `get_ranked_open_jobs`, whose rows carry no latitude/longitude (the server
-   * masks each address down to "City, ST"), and a signed-out visitor has no
-   * saved profile location or parish to fall back on — so every radius chip
-   * would be a control that provably cannot change the results. Hidden rather
-   * than shipped as a no-op.
+   * Hide the "Nearby radius" section.
+   *
+   * CORRECTED 2026-09-07 — this doc used to justify hiding the section from
+   * guests on the grounds that "the guest browse feed comes from
+   * get_ranked_open_jobs, whose rows carry no latitude/longitude". Both halves
+   * were false and the conclusion drawn from them would disable a filter that
+   * works. Verified against prod: the guest feed reads the `open_jobs_browse`
+   * VIEW (DashboardGuest.tsx), that view exposes latitude/longitude, and
+   * DashboardGuest projects them explicitly — masked to 2dp (~1.1km) by
+   * 20260903031231, which is what made the radius a real filter there in the
+   * first place (BD-001). The radius is a client-side haversine over those
+   * coordinates fed by browser geolocation, and useUserLocation needs no
+   * account, so a signed-out visitor CAN use it. Default it on.
    */
   showNearby?: boolean;
   /**
@@ -516,6 +520,15 @@ interface JobFilterSectionsArgs {
    * at the bottom. Omit on surfaces with no saved-search feature (guest).
    */
   savedSearchesButton?: ReactNode;
+  /**
+   * Set on a signed-out surface: where the three account-only controls send a
+   * visitor, e.g. "/signup?redirect=/browse". When set, "Only Saved Jobs",
+   * "Jobs During My Hours" and "Saved Searches" render as labelled rows that
+   * route there instead of being omitted. Hiding them made the guest sheet
+   * quietly smaller than the real one and gave a visitor no way to discover
+   * that saving a job or matching their hours exists at all.
+   */
+  signupHref?: string;
 }
 
 /**
@@ -524,6 +537,40 @@ interface JobFilterSectionsArgs {
  * they read as one settings group instead of one stray gold pill under its
  * own heading plus one switch buried in the When section.
  */
+/**
+ * The signed-out counterpart to ToggleRow: same height, same icon lane, same
+ * label + hint stack — but it goes to signup instead of flipping a switch.
+ * Deliberately NOT a disabled Switch, which would look like a control that is
+ * broken rather than one that needs an account.
+ */
+function SignupRow({
+  icon: Icon,
+  iconClassName,
+  label,
+  hint,
+  href,
+}: {
+  icon: LucideIcon;
+  iconClassName?: string;
+  label: string;
+  hint: string;
+  href: string;
+}) {
+  return (
+    <Link
+      to={href}
+      className="w-full flex items-center gap-2 min-h-11 py-2 px-3 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
+    >
+      <Icon className={`w-3.5 h-3.5 shrink-0 ${iconClassName ?? "text-primary"}`} strokeWidth={2.25} aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="block text-ds-12 font-semibold text-foreground">{label}</span>
+        <span className="block text-ds-11 text-muted-foreground leading-snug">{hint}</span>
+      </span>
+      <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
+    </Link>
+  );
+}
+
 function ToggleRow({
   icon: Icon,
   iconClassName,
@@ -650,11 +697,17 @@ function AvailabilityRow({
  * Builds the standard stacked job-filter sections for the FilterSheet, reusing
  * the exact content blocks from JobFilters.
  *
- * ONE builder serves both the signed-in browse toolbar and the signed-out
- * /jobs board, so the two filter sets can't silently drift apart. A guest
- * passes showNearby / showAvailability = false — those are the only two
- * sections that need account data (see the prop docs above); every other
- * filter runs off fields the public feed already returns.
+ * ONE builder serves both the signed-in browse toolbar (/dashboard) and the
+ * signed-out guest feed (/browse), so the two filter sets can't silently
+ * drift apart. (It used to say "the signed-out /jobs board"; that page was
+ * deleted 2026-09-07 and /browse is the only signed-out feed now.)
+ *
+ * Almost everything here works signed-out, including the radius — see the
+ * showNearby doc above. What genuinely needs an account is narrower than it
+ * looks: saved jobs, saved searches, and the availability match. Those three
+ * are NOT hidden from a guest; passing `signupHref` renders each as a row
+ * that says what it does and routes to signup, because a control a visitor
+ * cannot see is a feature they never learn exists.
  *
  * Section order:
  *
@@ -696,7 +749,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     savedOnly = false, onToggleSavedOnly, savedCount = 0,
     showAvailability = true,
     showNearby = true,
-    savedSearchesButton,
+    savedSearchesButton, signupHref,
   } = args;
 
   const sections: FilterSheetSection[] = [
@@ -790,7 +843,23 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
             onChange={setUrgentOnly}
             ariaLabel="Show urgent jobs only"
           />
-          {showAvailability && setMatchAvailability && (
+          {signupHref && (
+            <SignupRow
+              icon={Bookmark}
+              label="Only Saved Jobs"
+              hint="Sign up to save jobs and filter to just those"
+              href={signupHref}
+            />
+          )}
+          {signupHref && (
+            <SignupRow
+              icon={Clock}
+              label="Jobs During My Hours"
+              hint="Sign up to save your weekly hours and match on them"
+              href={signupHref}
+            />
+          )}
+          {!signupHref && showAvailability && setMatchAvailability && (
             <AvailabilityRow
               matchAvailability={matchAvailability}
               setMatchAvailability={setMatchAvailability}
@@ -798,6 +867,14 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
             />
           )}
           {savedSearchesButton}
+          {signupHref && (
+            <SignupRow
+              icon={SearchCheck}
+              label="Saved Searches"
+              hint="Sign up to save this search and get told about new matches"
+              href={signupHref}
+            />
+          )}
         </div>
       ),
     },

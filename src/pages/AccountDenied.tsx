@@ -95,7 +95,7 @@ const AccountDenied = () => {
           <h1 className="text-page-title leading-tight mt-1 text-balance">
             We couldn't approve your account.
           </h1>
-          <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Unfortunately, your account was not approved at this time.
           </p>
         </div>
@@ -109,7 +109,7 @@ const AccountDenied = () => {
             }}
           >
             <p
-              className="text-ds-11 font-serif italic uppercase tracking-[0.18em] mb-1"
+              className="text-ds-11 font-sans uppercase tracking-[0.18em] mb-1"
               style={{ color: "hsl(var(--burnt-sienna))" }}
             >
               Reason

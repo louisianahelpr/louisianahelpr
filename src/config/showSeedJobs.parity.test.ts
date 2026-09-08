@@ -446,8 +446,20 @@ describe("fixture-job visibility — one switch, every surface", () => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
         const path = resolve(dir, entry.name);
         if (entry.isDirectory()) walk(path);
-        else if (/\.tsx?$/.test(entry.name) && !entry.name.endsWith("parity.test.ts")) {
-          if (stripComments(readFileSync(path, "utf8")).includes("SHOW_SEED_JOBS_PUBLICLY")) {
+        else if (
+          /\.tsx?$/.test(entry.name) &&
+          !entry.name.endsWith("parity.test.ts") &&
+          // Same race as the walker above: the edge harness's `.gen.ts` temp
+          // files vanish between readdir and read under the full suite.
+          !/\.gen\.tsx?$/.test(entry.name)
+        ) {
+          let content: string;
+          try {
+            content = readFileSync(path, "utf8");
+          } catch {
+            continue;
+          }
+          if (stripComments(content).includes("SHOW_SEED_JOBS_PUBLICLY")) {
             offenders.push(path);
           }
         }

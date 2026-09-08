@@ -10,6 +10,24 @@ export interface DisputedJob {
   customer_id: string;
   helper_id: string | null;
   stripe_payment_intent_id: string | null;
+  /**
+   * Everything below is what the split panel needs to quote a NET figure
+   * rather than a gross one. The admin decides on a percentage; the parties
+   * receive dollars, and the two are not the same number — the Helpr's share
+   * arrives minus the platform commission, the poster's minus the processing
+   * fee Stripe keeps on a refund. Deciding on a number neither side will ever
+   * see is how a "fair" 50/50 becomes a complaint.
+   */
+  urgent_fee?: number | null;
+  helper_fee_percent?: number | null;
+  platform_fee_amount?: number | null;
+  is_group_job?: boolean | null;
+  helpers_needed?: number | null;
+  payment_status?: string | null;
+  /** Poster-paid service fee — part of what Stripe actually captured. */
+  customer_fee_amount?: number | null;
+  /** Sales tax added on top of the charge, refundable pro rata. */
+  sales_tax_amount?: number | null;
 }
 
 /** Row in the formal `public.disputes` table — null when the dispute

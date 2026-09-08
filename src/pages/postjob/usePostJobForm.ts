@@ -97,10 +97,12 @@ export function usePostJobForm() {
   const [zipCode, setZipCode] = useState("");
   const [parish, setParish] = useState<string | null>(null);
   const [dateNeeded, setDateNeeded] = useState("");
-  // Default to 9:00 AM — a sane working-hours start. Midnight (the old
-  // empty-string default rendering as 12:00 AM) was almost never the
-  // intended task time. The poster can still change it on the wheel.
-  const [startTime, setStartTime] = useState("09:00");
+  // NO default. A pre-filled time (09:00 for a while, and before that a
+  // blank that the wheel rendered as 12:00 AM) let the Logistics card flip to
+  // DONE with a start the poster never chose — external QA caught a yard job
+  // "complete" at midnight. Empty until picked; `logisticsComplete` and the
+  // submit guard both already require it.
+  const [startTime, setStartTime] = useState("");
   const [estimatedHours, setEstimatedHours] = useState("");
   const [budget, setBudget] = useState("");
   const [specialRequirements, setSpecialRequirements] = useState("");

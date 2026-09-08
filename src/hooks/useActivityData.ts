@@ -409,6 +409,10 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
       // value here, not a placeholder.
       flag_reason: null,
       flagged_hidden: false,
+      // 20260907061408 snapshots the job's 2dp point onto a real application at
+      // apply time so the proximity RPCs read a fixed point instead of a
+      // poster-movable one. A direct offer never went through apply, so there
+      // is no snapshot — and nothing reads these off a synthetic row.
       job_latitude: null,
       job_longitude: null,
       attachment_urls: null,

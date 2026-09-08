@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
     jobId = body?.jobId
     if (!jobId) throw new Error('missing jobId')
   } catch {
+    // JSON.parse fallback: an unparseable or empty body IS the 400 below.
     return new Response(JSON.stringify({ error: 'Missing jobId' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

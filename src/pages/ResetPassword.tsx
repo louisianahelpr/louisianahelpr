@@ -236,7 +236,7 @@ const ResetPassword = () => {
           </div>
         ) : !ready ? (
           <div className="text-center space-y-4">
-            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {linkError === "expired"
                 ? "This password-reset link has expired. Reset links are single-use and time-limited — request a fresh one below."
                 : linkError === "used"

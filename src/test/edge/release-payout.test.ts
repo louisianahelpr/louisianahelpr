@@ -315,10 +315,50 @@ describe("release-payout edge function", () => {
   });
 
   describe("duplicate-transfer guard", () => {
-    it("returns 409 when a pending transfer already exists for the job", async () => {
+    // TC-008. This block used to assert a flat 409 on an existing transfer,
+    // and that 409 was how a real payout got stranded: transfer
+    // tr_3UDDZQKp2H4b7tEC13IlnQEy ($22.00) went out, the follow-up jobs flip
+    // died on a transient `57014 statement timeout`, and every retry after
+    // that — the admin Release-payout button, auto-release-payment Phase 2 —
+    // hit this branch and returned 409 without ever completing the flip. The
+    // job read 'payout_pending' with the helper already paid, and no code path
+    // could heal it. Refusing the second TRANSFER is right; refusing to finish
+    // the job is what left the split state permanent.
+    it("does not re-transfer when a paid transfer exists — it completes the missing status flip and returns 200", async () => {
       seedPayableJob(scenario);
       scenario.reads.payout_transfers = {
-        rows: [{ id: "led-1", stripe_transfer_id: "tr_old", status: "pending" }],
+        rows: [{ id: "led-1", stripe_transfer_id: "tr_old", status: "paid" }],
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      const out = await json(res);
+      expect(res.status).toBe(200);
+      expect(out.already_paid).toBe(true);
+      expect(out.stripe_transfer_id).toBe("tr_old");
+      // The load-bearing pair: no second transfer, AND the job is finished.
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+      expect((jobWrite?.payload as Record<string, unknown>).payment_status).toBe("released");
+    });
+
+    it("still returns 409 when another run is mid-transfer (claim held, no transfer id yet)", async () => {
+      seedPayableJob(scenario);
+      // A `pending` claim with NO transfer id, created seconds ago: nothing is
+      // known to have moved, so healing would be a guess. Stand down.
+      scenario.reads.payout_transfers = {
+        rows: [
+          {
+            id: "led-1",
+            stripe_transfer_id: null,
+            status: "pending",
+            created_at: new Date().toISOString(),
+          },
+        ],
       };
       const fn = await load();
       const res = await fn.fetch(
@@ -328,9 +368,66 @@ describe("release-payout edge function", () => {
         }),
       );
       expect(res.status).toBe(409);
-      expect((await json(res)).error).toMatch(/transfer already exists/i);
-      // Crucially, no Stripe transfer was attempted.
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.some((w) => w.table === "jobs" && w.op === "update")).toBe(false);
+    });
+  });
+
+  describe("the post-transfer flip is retried on a transient DB fault", () => {
+    it("retries a 57014 statement timeout rather than stranding the payout", async () => {
+      seedPayableJob(scenario);
+      scenario.writeErrors.jobs = {
+        message: "canceling statement due to statement timeout",
+        code: "57014",
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      // The mock fails every attempt, so this still ends in the loud 500 —
+      // what is asserted here is that it TRIED again instead of giving up on
+      // the first timeout, which is the whole of TC-008's root cause.
+      expect(res.status).toBe(500);
+      expect((await json(res)).zero_row_match).toBe(false);
+      const jobWrites = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect(jobWrites.length).toBe(4);
+    }, 20000);
+
+    it("does NOT retry a zero-row match — a refunded or charged-back job must alarm at once", async () => {
+      seedPayableJob(scenario);
+      scenario.writeSelectRows["jobs:update"] = [];
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(500);
+      expect((await json(res)).zero_row_match).toBe(true);
+      const jobWrites = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect(jobWrites.length).toBe(1);
+    });
+
+    it("does NOT retry a non-transient error", async () => {
+      seedPayableJob(scenario);
+      scenario.writeErrors.jobs = {
+        message: "new row violates check constraint",
+        code: "23514",
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(500);
+      const jobWrites = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect(jobWrites.length).toBe(1);
     });
   });
 

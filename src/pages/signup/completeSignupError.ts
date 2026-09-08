@@ -57,6 +57,10 @@ async function bodyMessage(err: unknown): Promise<string | null> {
     const message = (body as { error?: unknown } | null)?.error;
     return typeof message === "string" && message.trim() ? message.trim() : null;
   } catch {
+    // Silent by design: this is a best-effort attempt to read a nicer message
+    // out of an error body that may not be JSON at all. `null` sends the
+    // caller to its generic copy — we are already on a failure path, and
+    // failing to prettify it is not a second failure worth reporting.
     return null;
   }
 }

@@ -86,6 +86,10 @@ const AdminSubscriptions = () => {
       // breakpoints) — just under the 4.5:1 AA floor at 10px regular.
       // yellow-800 keeps the gold read and clears AA.
       case "elite": return "bg-yellow-500/10 text-yellow-800 dark:text-yellow-400";
+      // Plus sits between Pro and Elite and had NO case, so it fell to the
+      // grey "no subscription" chip — a paying member rendered here exactly
+      // like a free one (CC-019).
+      case "plus": return "bg-[hsl(var(--burnt-sienna))]/10 text-[hsl(var(--burnt-sienna))]";
       case "pro": return "bg-primary/10 text-primary";
       case "basic": return "bg-secondary text-secondary-foreground";
       default: return "bg-muted text-muted-foreground";

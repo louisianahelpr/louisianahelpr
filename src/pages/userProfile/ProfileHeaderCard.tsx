@@ -270,7 +270,7 @@ export const ProfileHeaderCard = ({
               // May 2026" at 320); both were seen in Chrome. A separator that
               // cannot wrap cannot dangle.
               <div
-                className="font-serif italic text-ds-13 mb-1.5 flex flex-col sm:flex-row sm:items-center sm:gap-1.5"
+                className="font-sans text-ds-13 mb-1.5 flex flex-col sm:flex-row sm:items-center sm:gap-1.5"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {location && (
@@ -414,7 +414,7 @@ export const ProfileHeaderCard = ({
                 even though it "fills". */}
             {profile.bio && (
               <p
-                className="font-serif italic mt-2.5 leading-relaxed text-ds-15 max-w-[62ch]"
+                className="font-sans mt-2.5 leading-relaxed text-ds-15 max-w-[62ch]"
                 style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
               >
                 {profile.bio}
@@ -448,13 +448,13 @@ export const ProfileHeaderCard = ({
               // separate children, so `gap-1.5` + wrapping spread them across
               // the full card width ("You've worked / together   12   times").
               <p
-                className="font-serif italic text-ds-13 mt-3 flex items-start gap-1.5"
+                className="font-sans text-ds-13 mt-3 flex items-start gap-1.5"
                 style={{ color: "hsl(var(--olivewood) / 0.9)" }}
               >
                 <Users className="w-3.5 h-3.5 shrink-0 mt-[3px]" aria-hidden />
                 <span>
                   You&rsquo;ve worked together{" "}
-                  <span className="font-display font-bold tabular-nums not-italic">
+                  <span className="font-sans font-bold tabular-nums">
                     {mutualJobsCount}
                   </span>{" "}
                   {mutualJobsCount === 1 ? "time" : "times"}

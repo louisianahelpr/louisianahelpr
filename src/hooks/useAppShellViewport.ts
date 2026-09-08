@@ -16,7 +16,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/privacy",
   "/rules",
 
-  "/jobs", // public marketing /jobs (uses Navbar + long page)
   "/support",
 
   // Auth + onboarding flow — any AuthShell-based page that may exceed

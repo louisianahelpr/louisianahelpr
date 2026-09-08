@@ -300,7 +300,7 @@ export const DisputeTimelineDialog = ({
                 )}
               </p>
               {reason && (
-                <p className="font-serif italic mt-1.5 leading-snug text-ds-14" style={{ color: "hsl(var(--ink-deep) / 0.88)" }}>
+                <p className="font-sans mt-1.5 leading-snug text-ds-14" style={{ color: "hsl(var(--ink-deep) / 0.88)" }}>
                   "{reason}"
                 </p>
               )}
@@ -318,7 +318,7 @@ export const DisputeTimelineDialog = ({
                 </span>
               </p>
               {evidenceUrls.length === 0 ? (
-                <p className="font-serif italic mt-1.5 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-sans mt-1.5 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   No evidence uploaded yet.
                 </p>
               ) : (
@@ -348,7 +348,7 @@ export const DisputeTimelineDialog = ({
                   </span>
                 </p>
                 {decisionText && (
-                  <p className="font-serif italic mt-1.5 leading-snug text-ds-14" style={{ color: "hsl(var(--ink-deep) / 0.88)" }}>
+                  <p className="font-sans mt-1.5 leading-snug text-ds-14" style={{ color: "hsl(var(--ink-deep) / 0.88)" }}>
                     "{decisionText}"
                   </p>
                 )}
@@ -388,7 +388,7 @@ export const DisputeTimelineDialog = ({
                 where the filer sees an uploader. */}
             {blockedFromEvidence && (
               <p
-                className="font-serif italic text-ds-12 pt-1"
+                className="font-sans text-ds-12 pt-1"
                 style={{ color: "hsl(var(--olivewood) / 0.85)" }}
               >
                 Only the person who filed can add evidence here. Your side of it

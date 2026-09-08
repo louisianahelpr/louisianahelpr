@@ -82,7 +82,7 @@ export function TwoFactorCard() {
             <Skeleton className="h-3.5 w-40 max-w-full mt-1 rounded-full" />
           ) : (
             <p
-              className="text-ds-11 font-serif italic mt-0.5"
+              className="text-ds-11 font-sans mt-0.5"
               style={{
                 color: isError
                   ? "hsl(var(--destructive))"
@@ -261,7 +261,7 @@ function EnrollDialog({
           <Skeleton className="h-44 rounded-ds-md" />
         ) : error || !data ? (
           <p
-            className="font-serif italic text-ds-11 py-4 text-center"
+            className="font-sans text-ds-11 py-4 text-center"
             style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             Couldn't start setup. Please close and try again.
@@ -276,7 +276,7 @@ function EnrollDialog({
                 instruction that used to be implied by the picture. */}
             <div className="flex flex-col items-center gap-2">
               <p
-                className="font-serif italic text-ds-12 text-center"
+                className="font-sans text-ds-12 text-center"
                 style={{ color: "hsl(var(--olivewood) / 0.85)" }}
               >
                 In your authenticator app, choose “enter a setup key” and paste this:
@@ -305,7 +305,7 @@ function EnrollDialog({
             <div className="space-y-1.5">
               <Label
                 htmlFor="mfa-code-input"
-                className="font-serif italic uppercase text-ds-10"
+                className="font-sans uppercase text-ds-10"
                 style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
                 6-digit code
@@ -391,7 +391,7 @@ function DisableDialog({
         <div className="space-y-1.5">
           <Label
             htmlFor="mfa-disable-input"
-            className="font-serif italic uppercase text-ds-10"
+            className="font-sans uppercase text-ds-10"
             style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             6-digit code

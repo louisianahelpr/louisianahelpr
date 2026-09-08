@@ -1,3 +1,4 @@
+import { hasPerk } from "../../supabase/functions/_shared/tierPerks";
 // Client mirror of the fixed one-time Stripe product prices defined on the edge
 // in supabase/functions/_shared/productPrices.ts. Kept in sync by
 // productPrices.parity.test.ts so a UI price can never silently diverge from the
@@ -22,7 +23,8 @@ export const formatFeeUsd = (cents: number): string => `$${formatPriceExact(cent
 // The server's rule, in full:
 //   • active Elite            → free (the boost flags are flipped directly, no
 //                               Checkout session at all)
-//   • active Basic/Pro        → BOOST_DISCOUNT_PCT off BOOST_FEE_CENTS
+//   • any active tier with     → BOOST_DISCOUNT_PCT off BOOST_FEE_CENTS
+//     the boostDiscount perk
 //   • Free / any lapsed or    → BOOST_FEE_CENTS
 //     unrecognised tier
 //
@@ -37,11 +39,11 @@ export const BOOST_DISCOUNT_PCT = 20;
 /** Absolute floor on a boost charge, mirroring the edge fee-floor guard. */
 export const BOOST_MIN_UNIT_AMOUNT_CENTS = 100;
 
-/** Tiers that pay a discounted boost. Elite is free; everyone else pays full. */
-const BOOST_DISCOUNT_TIERS = ["basic", "pro"] as const;
-
-/** Tier whose boosts are included in the plan. */
-const BOOST_FREE_TIER = "elite";
+// Which tiers get the discount and which get boosts outright are two perks on
+// the shared matrix, not two lists here. `BOOST_DISCOUNT_TIERS` was
+// `["basic","pro"]` and omitted Plus (CC-019), so a $15/mo poster — sold
+// "everything in Pro" — was quoted and charged the full boost price on both
+// the client quote and the edge charge.
 
 export type BoostPrice =
   | { free: true }
@@ -56,9 +58,8 @@ export function boostPriceForTier(
   tier: string | null | undefined,
   subscriptionActive: boolean,
 ): BoostPrice {
-  const effective = subscriptionActive ? (tier ?? "free") : "free";
-  if (effective === BOOST_FREE_TIER) return { free: true };
-  if (!(BOOST_DISCOUNT_TIERS as readonly string[]).includes(effective)) {
+  if (hasPerk(tier, "freeBoosts", subscriptionActive)) return { free: true };
+  if (!hasPerk(tier, "boostDiscount", subscriptionActive)) {
     return { free: false, cents: BOOST_FEE_CENTS, discounted: false };
   }
   const raw = Math.round((BOOST_FEE_CENTS * (100 - BOOST_DISCOUNT_PCT)) / 100);

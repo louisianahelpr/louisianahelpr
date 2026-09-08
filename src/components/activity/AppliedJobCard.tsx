@@ -397,7 +397,13 @@ function AppliedJobCardInner({
               Edit takes the ordinary `edit` tone the posted card's Edit chip
               already uses. The "Seen" trust chip is unchanged — it is
               information, not an action. */}
-          {!isMinimalCard && isPending && (
+          {/* While the inline editor (PendingApplicationSection) is open it
+              owns Save/Cancel, so the outer Edit/Withdraw pair is hidden —
+              two Cancel-shaped controls a few rows apart, one of which
+              withdraws the whole application, is a trap. The Seen chip is
+              information and stays; when there is none the band is dropped
+              entirely rather than drawing an empty bordered strip. */}
+          {!isMinimalCard && isPending && (editingMessageAppId !== app.id || viewedApp.poster_viewed_at) && (
             <div
               className="px-4 py-2.5 space-y-1.5"
               style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
@@ -418,6 +424,7 @@ function AppliedJobCardInner({
                   <Eye className="w-3 h-3" aria-hidden="true" /> Seen {formatShortDate(viewedApp.poster_viewed_at)}
                 </span>
               )}
+              {editingMessageAppId !== app.id && (
               <JobActionRow columns={2}>
                 <JobActionChip
                   icon={Pencil}
@@ -439,6 +446,7 @@ function AppliedJobCardInner({
                   onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "a job", jobId: job.id ?? null })}
                 />
               </JobActionRow>
+              )}
             </div>
           )}
 

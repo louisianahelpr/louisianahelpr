@@ -124,3 +124,52 @@ suite failed ENOENT in a clean worktree while the file passed alone.
 Clean-worktree gate at `bbfa816fa`: typecheck 0, vitest 329/329 files,
 3733 tests. Lint clean at `3168dec6f` (one pre-existing warning in
 `scripts/state-review.mjs:408`, unused disable directive — report only).
+
+## Seed-derivation CLOSED — `is_seed` now follows the posting account (`bf9ba7330`)
+
+The Post-a-Job hint read "$25–$25 · based on 15 completed jobs" because
+`enforce_jobs_insert_column_lock` hard-set `NEW.is_seed := false`, so a fixture
+account's jobs could never be fixture jobs and the nightly money loop's rows
+became market data. The lock now derives the flag from `profiles.is_seed`
+(still discards the client's value — proven live both directions with a
+rolled-back probe). `get_category_price_stats` excludes seed in both queries.
+
+| measured on prod | before | after |
+|---|---|---|
+| `get_category_price_stats('cleaning')` | 16 jobs, p25=p50=p75=$25 | no row → static fallback |
+| jobs `is_seed` | 9 | 73 |
+| `[E2E DO NOT ACCEPT]` jobs unflagged | 57 | 0 |
+
+Helper-side lock deliberately untouched: a seed helper on a real poster's job
+is a real job. PGlite 14/14 incl. the baseline defect reproduced. Also fixed
+the "$25–$25" rendering when min==max (`BudgetSection.tsx`) and the E2E
+assertion that had become unsatisfiable.
+
+**OWNER CALL — the 9 stranded `payout_pending` E2E jobs** ($25 × 9, Stripe
+test mode, ids c647cec2 62880ba5 a80011e6 448a6898 b2ef542a f9801cc6 69af9cb0
+0e723972 1f105d38): they are now `is_seed=true`, so `auto-release-payment`
+skips them — which is exactly what the seed exclusion exists for (one such job
+once produced 83 HTTP 500s and saturated the money alarm). My recommendation:
+**leave them**. If you want them cleared, the sanctioned route is one manual
+`auto-release-payment?include_seed=1` invocation; no code change.
+
+## New verified-live leads from the sweeps, now in fix lanes
+
+- **Decided-but-unsettled dispute reachable by money** (sweep-admin, job
+  `bb2c3732`, dispute `c7a12050` 50/50, `execution_status='pending'`):
+  `rpc_decide_dispute` writes `status='completed'` + `dispute_status='resolved'`
+  at decision time, so `get_payout_batches()` offered "Bulk Approve $571.20 for
+  12 jobs" containing $158.40 (88%) of a job the decision gives 50% of, and
+  release-payout's guard would not block it → double-settle on "Retry
+  settlement". Dialog was cancelled, nothing moved. → `money-review-2` (Opus).
+- **A helper-opened dispute cannot be withdrawn by anyone but admin**
+  (sweep-helper, job `67e8ccfe`): no Withdraw control on the helper side, and
+  the RPC itself 403s (42501 "Helpers may not modify jobs.dispute_resolved_at",
+  the SECURITY DEFINER UPDATE trips the helper column lock); it also resets
+  `status='in_progress'` unconditionally, which would strand a post-approval
+  payout. Dispute left open as the repro. → `dispute-withdraw` (Opus).
+- **Admin self-ban** locked the seeded admin out of the console tonight
+  (`user_bans.banned_by = user_id`); and an "Arrival confirmed" EMAIL to the
+  E2E helper FAILED `preference_row_ensure_failed`. → `admin-self-ban` (Opus).
+- Report-only: `/admin` renders two `<main>` landmarks (App shell +
+  `Admin.tsx:523`) — file is under sweep-admin's uncommitted edits.

@@ -362,3 +362,47 @@ drawn first.
 
 Shots: `~/.lh-audit/poster-leads-2/shots/`. Typecheck 0, scoped vitest
 141 files green.
+
+## Helper-side surveys, re-run after the reset (CLOSED — `b7a80daa5`, `6772b9505`)
+
+**A. Poster cancels after hire, seen from the helper.** Activity Cancelled
+card, notification, its View destination, job detail, Earnings all say
+something true (shots A18–A24, light + dark). One fix: the helper's
+cancel notification offered a **"Repost"** pill — a poster-only action on
+a job they never owned — now "View", landing on the Cancelled bucket.
+Messages thread was NOT forceable: no thread exists until an offer is
+accepted and the helper fixture has no Stripe payout account.
+
+**B. Every helper-side dialog/sheet** (edit/withdraw application, job
+detail, report, profile, delete, log out, messages empty + menu, edit
+profile, filters): all PASS at 375 in both themes, zero overflow. One fix:
+Edit Profile's ZIP field clipped its fifth digit (scrollWidth 83 in an
+80px box) — padding restored.
+
+**Owner calls from this pass:**
+- **Duplicate cancel notification** — `poster_cancel_job` inserts one and
+  `notify_on_job_update` (trigger) inserts a second, same timestamp,
+  confirmed live. Needs a migration.
+- **A strike for cancelling a PENDING offer** — the offer was never
+  accepted, the dialog says "After a Helpr is selected", and a
+  `user_violations` row + `ban_status` escalation were still written.
+  Ladder or copy is wrong; money/trust, untouched. (Test rows restored.)
+- Helper's Cancelled card is minimal ("Job was cancelled") — name the
+  canceller / any fee?
+- Outer Edit/Withdraw stay visible while the inline application editor
+  is open.
+- Both sweep accounts carry an `avatar_url` that 400s → Edit Profile
+  shows the "couldn't load your photo" state. Null the two URLs.
+- Accept-then-cancel needs a helper fixture with a Stripe payout account.
+
+Shots: `~/.lh-audit/sweep-helper-2/shots/` (51).
+
+## CI after the reset
+
+Main was red on three consecutive pushes for three different reasons,
+all mine to catch: two repo-wide registries the withdraw lane never ran
+(`72e98ba58`), the admin card spec my scoped run skipped (`5b5b88a19`),
+and then a THIRD walker losing the `.gen.ts` race. That race is now
+fixed at the source (`5c8fadfbb`): the edge harness writes its temp
+modules to a git-ignored `.lh-edge-gen/` at the repo root, outside every
+scanner, with its specifiers absolutised. Full suite 330/330, typecheck 0.

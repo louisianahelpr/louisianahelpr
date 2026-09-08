@@ -2,7 +2,7 @@ import {
   CheckCircle2, XCircle, Clock, ShieldAlert, ShieldCheck, KeyRound,
   MessageSquareWarning, History, Trash2, Eye, UserMinus,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
@@ -11,6 +11,7 @@ import UserVerificationHistory from "../UserVerificationHistory";
 import { UserAuditLog } from "./UserAuditLog";
 import type { Profile } from "../adminUserHelpers";
 import { useImpersonation } from "@/hooks/useImpersonation";
+import { supabase } from "@/integrations/supabase/client";
 import { cn, formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toneTextClasses } from "@/components/admin/tones";
@@ -51,6 +52,19 @@ export function ActionsTab({
 }: ActionsTabProps) {
   const navigate = useNavigate();
   const { start: startImpersonation } = useImpersonation();
+  // An admin banning their OWN account locks itself out of this console, and
+  // there is no self-serve undo — the only way back is another admin, or SQL.
+  // The server refuses it outright (trg_reject_self_issued_ban on user_bans),
+  // so this is the second half of that guard: don't offer an action the
+  // database will reject, and say why instead of surfacing a raw 22023.
+  // Read straight from the auth client rather than useCurrentUser(): that hook
+  // needs a QueryClientProvider, which this dialog's tests do not mount, and
+  // the answer here is one id. Same pattern as AdminUserNotes below.
+  const [currentAdminId, setCurrentAdminId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentAdminId(data.user?.id ?? null));
+  }, []);
+  const isSelf = !!currentAdminId && currentAdminId === viewProfile.user_id;
   const [restrictProfile, setRestrictProfile] = useState<Profile | null>(null);
   const showApprovedActivityChip = viewProfile.approval_status === "approved"
     && !["permanently_banned", "temp_banned"].includes(viewBanStatus);
@@ -183,7 +197,14 @@ export function ActionsTab({
             <UserMinus className={cn("w-4 h-4 mr-1.5", toneTextClasses.warning)} /> Restrict Applications
           </Button>
           {!["permanently_banned", "temp_banned"].includes(viewBanStatus) ? (
-            <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-1" onClick={() => setBanProfile(viewProfile)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-1"
+              disabled={isSelf}
+              title={isSelf ? "You can't suspend or ban your own account — ask another admin." : undefined}
+              onClick={() => setBanProfile(viewProfile)}
+            >
               <ShieldAlert className="w-4 h-4 mr-1.5" /> Suspend / Ban
             </Button>
           ) : (

@@ -15,7 +15,14 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 // handler; a render-focused test never exercises it, so a thin stub is
 // enough to satisfy the import.
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { from: vi.fn() },
+  // `auth.getUser` is read by ActionsTab to decide whether the profile on
+  // screen is the acting admin's own (self-ban guard). A different id than
+  // `pendingProfile.user_id` keeps every existing assertion on the enabled
+  // control path.
+  supabase: {
+    from: vi.fn(),
+    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "admin-self" } } }) },
+  },
 }));
 
 vi.mock("sonner", () => ({

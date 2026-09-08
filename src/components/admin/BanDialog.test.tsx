@@ -116,6 +116,22 @@ describe("BanDialog", () => {
     expect(logAdminActionMock).toHaveBeenCalled();
   });
 
+  it("refuses a self-targeted action — no write, explicit toast", async () => {
+    // The server refuses a self-issued user_bans row
+    // (trg_reject_self_issued_ban), but the WARNING tier writes no ban row at
+    // all — only profiles.ban_status — so without this guard an admin could
+    // put their own account one strike from a ban with nothing to stop it.
+    getUserMock.mockResolvedValue({ data: { user: { id: sampleProfile.user_id } } });
+    const onSuccess = vi.fn();
+    render(<BanDialog profile={sampleProfile} onClose={vi.fn()} onSuccess={onSuccess} />);
+    fireEvent.click(screen.getByRole("button", { name: /Issue Warning/ }));
+
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/your own account/i)));
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
   it("switches CTA copy when temp-ban tier is selected", () => {
     render(<BanDialog profile={sampleProfile} onClose={vi.fn()} />);
     const tempBtn = screen.getByText(/Temp Ban/);

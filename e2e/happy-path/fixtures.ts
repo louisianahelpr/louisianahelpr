@@ -139,6 +139,10 @@ function buildFakeProfile(user: FakeUser) {
     referral_code: "SMOKE",
     is_verified: true,
     role: user.role,
+    // Keep in sync with LATEST_TERMS_VERSION in src/lib/consent.ts.
+    // Without this the TermsReconsentDialog fires on every authed load and
+    // blocks all tests with a non-dismissible backdrop.
+    terms_version_accepted: "Jun 2026",
     created_at: nowIso,
     updated_at: nowIso,
   };

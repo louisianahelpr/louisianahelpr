@@ -284,6 +284,42 @@ describe("create-payment edge function", () => {
         });
       }
 
+      it("tolerates a concurrent re-mint that already expired the prior session", async () => {
+        // `checkout.sessions.expire` is NOT idempotent, and nothing dedupes it
+        // (the CREATE below is covered by its idempotency key, this is not).
+        // Measured live 2026-09-07: two concurrent "Finish paying" taps, and the
+        // loser got a 500 carrying Stripe's raw "Only Checkout Sessions with a
+        // status in [open] can be expired" — the same dead end, one race
+        // narrower. The loser must re-read and carry on.
+        seedRemintable("abandoned", "cs_dead");
+        stripeMock.checkout.sessions.retrieve
+          .mockResolvedValueOnce({ id: "cs_dead", status: "open", payment_status: "unpaid", payment_intent: null })
+          .mockResolvedValueOnce({ id: "cs_dead", status: "expired", payment_status: "unpaid", payment_intent: null });
+        stripeMock.checkout.sessions.expire.mockRejectedValue(
+          new Error("Only Checkout Sessions with a status in [\"open\"] can be expired."),
+        );
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_fresh");
+      });
+
+      it("refuses if the prior session completed between the two reads", async () => {
+        seedRemintable("abandoned", "cs_dead");
+        stripeMock.checkout.sessions.retrieve
+          .mockResolvedValueOnce({ id: "cs_dead", status: "open", payment_status: "unpaid", payment_intent: null })
+          .mockResolvedValueOnce({ id: "cs_dead", status: "complete", payment_status: "paid", payment_intent: { id: "pi_1", status: "succeeded" } });
+        stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("cannot expire"));
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+        );
+        expect((await json(res)).error).toMatch(/still being processed/i);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      });
+
       it("refuses to re-mint when Stripe says the prior session was actually paid", async () => {
         // The webhook has not landed yet (or a stale payment_failed stamped the
         // job), so our copy of payment_status lies in the one direction that

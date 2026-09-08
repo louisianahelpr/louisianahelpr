@@ -187,7 +187,30 @@ serve(async (req) => {
         if (prior.status === "open") {
           // Expire rather than leave it: an abandoned-but-open session stays
           // payable, and the poster may still have that tab.
-          await stripe.checkout.sessions.expire(previousSessionId);
+          //
+          // `expire` is NOT idempotent — a second call raises "Only Checkout
+          // Sessions with a status in [open] can be expired". The Checkout
+          // Session CREATE below is deduped by its idempotency key, so a
+          // double-tap survives that, but nothing dedupes this call: measured
+          // 2026-09-07 with two concurrent "Finish paying" taps, the winner
+          // got 200 + a session and the loser got a 500 carrying Stripe's raw
+          // error — reintroducing the exact dead end this fix removes, one race
+          // narrower. Re-read instead of trusting the error text: if the
+          // session has left `open`, someone else retired it and that is the
+          // outcome we wanted.
+          try {
+            await stripe.checkout.sessions.expire(previousSessionId);
+          } catch (expireErr) {
+            const recheck = await stripe.checkout.sessions.retrieve(previousSessionId);
+            if (recheck.status === "open") throw expireErr;
+            if (recheck.status === "complete" || recheck.payment_status === "paid") {
+              // It was paid out from under us between the two reads. Never mint
+              // a second checkout on top of a real charge.
+              console.error(`[create-payment] prior session ${previousSessionId} completed mid-re-mint for job ${jobId}`);
+              throw new Error("A payment for this job is still being processed. Give it a moment and refresh before trying again.");
+            }
+            console.log(`[create-payment] prior session ${previousSessionId} was already retired by a concurrent re-mint (status=${recheck.status})`);
+          }
         }
       }
 

@@ -464,3 +464,48 @@ all four visuals → yes; seed flag → **Not yet** (untouched).
 - **Three visuals (−$0.00 at split extremes, richer helper Cancelled card,
   outer Edit/Withdraw hidden while editing)** — lane `sweep-visuals-3`
   (fable), see the entry below once landed.
+
+## 2026-09-08 — the smoke suite was red for 150 runs and nobody could see it
+
+`9694c4750`. "E2E happy-path smoke" last passed on `92bc539ee` (2026-09-06
+21:33). Every run since — ~150 of them — died on the job's time budget after
+dozens of 30-second failures, which GitHub reports as **cancelled**, and
+cancelled is not red: no failure badge, no email, nothing in the checks
+summary that reads as broken. In a clean worktree the suite could not finish
+at all; it is **108 passed / 0 failed** now.
+
+Seven causes. Three were real app regressions, four were the suite asserting
+things the app had (correctly) stopped doing:
+
+1. **NotificationPanel crashed** on `n.message.toLowerCase()` — the fixture
+   served a `body` column notifications has never had (also `reviews.comment`
+   → `feedback`, `profiles.is_verified` removed). `fixtureSchemaContract`
+   now grades every fixture row for unknown columns and for missing
+   NOT-NULL-no-default columns; `schemaTables()` had been dropping the first
+   column of every table.
+2. **Terms re-consent dialog** over every authed screen (un-broken by
+   `80a3f01b4`): fixtures pin `terms_version_accepted`.
+3. Runtime probe's realtime-binding floor 25 → 20 (`bf0cd91c8` removed three
+   unfiltered bindings; the probe was asserting the old defect).
+4. `home-chrome` asserted the List/Map toggle you reversed in `c7bce404e`.
+5. `device-pass` at 320 flagged the deliberate `min-w-max` tab scroller.
+6. `earnings-length`: `mockTable` ignored `.eq("customer_id")`, so the
+   helper's own twelve jobs came back as poster spend ("across 12 jobs");
+   `mockTable` gains `honorFilters`.
+7. **`apply-single-sheet` — real, from `e319103eb`.** The "you can't be hired
+   yet" explainer pushed the apply step past the 68dvh floor for the state
+   most real helpers are in, and a centred box absorbs growth symmetrically:
+   the top edge walked **73px up** (129.9 → 56.8 at 375×812) on Continue.
+   The sheet now reads its own top edge before stepping forward and holds it
+   for the rest of the open — grows downward only. That put Apply Now 40px
+   below the fold, so the action row is `position: sticky`: on screen while
+   the form overflows, in flow with no reserved space when it doesn't.
+   Eyeballed at 375, both themes, top/mid/end of scroll.
+
+Gate in `~/.lh-gate` (detached at origin/main): typecheck clean, vitest 331
+files / 3777 passed, happy-path 108/108. **Ready for a TestFlight build once
+CI on `9694c4750` is green.**
+
+Lesson for the CLAUDE.md pile: a workflow that self-cancels on its time
+budget is invisible. Filter `gh run list` on `conclusion == "cancelled"` as
+hard as on `failure`.

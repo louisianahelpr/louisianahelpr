@@ -89,11 +89,11 @@ describe("statusBadge", () => {
     // job status the state machine emits" was a claim about the list, not
     // about the database.
     const required = Constants.public.Enums.job_status;
-    // `required` is a plain string[]; statusBadge is now keyed by the DB enum,
-    // so index through the enum type. The map being exhaustive is a COMPILE
-    // error now — this loop stays as a readable statement of intent and as a
-    // guard for anything the type cannot see.
-    for (const status of required as Array<keyof typeof statusBadge>) {
+    // `required` is the readonly enum tuple; statusBadge is keyed by the DB
+    // enum, so indexing lines up without a cast. The map being exhaustive is a
+    // COMPILE error now — this loop stays as a readable statement of intent
+    // and as a guard for anything the type cannot see.
+    for (const status of required) {
       expect(statusBadge[status], `${status} missing from statusBadge`).toBeDefined();
     }
   });

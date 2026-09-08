@@ -379,11 +379,19 @@ const NotificationPreferences = () => {
           )}
         </>
       ) : (
+        /* Same silhouette as the real control — track AND thumb, at the
+           off position — so the column reads as "switches, not ready yet"
+           rather than a row of flat grey lozenges. The knobless pill this
+           replaced looked like a broken control on a slow connection: on a
+           throttled load the whole column sat as uniform grey blobs for
+           seconds, and nothing about a blob says "switch". */
         <div
-          className="h-[31px] w-[51px] rounded-full animate-pulse"
-          style={{ background: "hsl(var(--olivewood) / 0.14)" }}
+          className="h-[31px] w-[51px] rounded-full animate-pulse border-2 border-transparent flex items-center"
+          style={{ background: "hsl(var(--ink-deep) / 0.18)" }}
           aria-hidden
-        />
+        >
+          <div className="h-[27px] w-[27px] rounded-full bg-white/70" />
+        </div>
       )}
     </div>
   );

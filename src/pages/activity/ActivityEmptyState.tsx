@@ -39,6 +39,8 @@ export interface ActivityEmptyStateProps {
   /** Switches the active status filter — lets the "your items are over
    *  there" line actually take the reader there. */
   onSelectStatusFilter?: (key: string) => void;
+  /** Clears the search query — the only useful action on a search miss. */
+  onClearSearch?: () => void;
 }
 
 export function ActivityEmptyState({
@@ -53,6 +55,7 @@ export function ActivityEmptyState({
   onRetry,
   onNavigate,
   onSelectStatusFilter,
+  onClearSearch,
 }: ActivityEmptyStateProps) {
   // A failed fetch leaves both lists empty — show a recoverable
   // ErrorState rather than a misleading "nothing posted yet".
@@ -149,7 +152,17 @@ export function ActivityEmptyState({
              ("deliberately NO automatic fallback… a default that silently
              moves is harder to reason about than one that holds still"). The
              pointer does the same job by asking instead of assuming. */
-          jumpTo && onSelectStatusFilter ? (
+          /* A SEARCH MISS IS NOT A BUCKET MISS. With a query active the body
+             says "no jobs match your search", but the jump button below read
+             the PRE-search bucket counts and offered "Show Waiting (2)" —
+             tapping it switched bucket with the query still applied, landed
+             on another zero, and offered the next bucket: a treadmill that
+             never reaches the two jobs it promised (measured 2026-09-07 on
+             /my-posts?q=zzz-nomatch). The one action that ends a search miss
+             is clearing the search. */
+          hasSearch && onClearSearch ? (
+            <BarkPillButton onClick={onClearSearch}>Clear search</BarkPillButton>
+          ) : jumpTo && onSelectStatusFilter ? (
             <BarkPillButton onClick={() => onSelectStatusFilter(jumpTo.key)}>
               Show {jumpTo.label} ({statusCounts?.[jumpTo.key] ?? 0})
             </BarkPillButton>

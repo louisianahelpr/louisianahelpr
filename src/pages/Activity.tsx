@@ -555,6 +555,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onRetry={refresh}
               onNavigate={navigate}
               onSelectStatusFilter={setStatusFilter}
+              onClearSearch={() => { setSearchQuery(""); setSearchOpen(false); }}
             />
           ) : (
             /* `min-h-full flex flex-col` so a SHORT list can fill the panel.

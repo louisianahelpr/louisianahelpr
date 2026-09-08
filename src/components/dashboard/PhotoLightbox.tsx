@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight, Grid3x3 } from "lucide-react";
+import { useOverlayFocus } from "@/hooks/useOverlayFocus";
 
 interface PhotoLightboxProps {
   /** All photos for the job. */
@@ -134,6 +135,8 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
   // the dialog and was never a candidate. Un-hide ourselves and hold it: the
   // job sheet underneath stays hidden, which is the correct end state.
   const rootRef = useRef<HTMLDivElement>(null);
+  // Focus INTO the viewer on open and keep Tab inside it — see the hook.
+  useOverlayFocus(rootRef, open);
   useEffect(() => {
     const el = rootRef.current;
     if (!open || !el) return;

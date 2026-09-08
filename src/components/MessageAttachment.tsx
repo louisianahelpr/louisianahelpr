@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FileText, ExternalLink, Loader2, X, Play, Pause } from "lucide-react";
+import { useOverlayFocus } from "@/hooks/useOverlayFocus";
 import {
   getMessageAttachmentSignedUrl,
   getMessageAttachmentFilename,
@@ -180,6 +181,8 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
   const thumbRef = useRef<HTMLButtonElement>(null);
   const wasOpenRef = useRef(false);
   const lightboxRef = useRef<HTMLDivElement>(null);
+  // Focus INTO the viewer on open and keep Tab inside it — see the hook.
+  useOverlayFocus(lightboxRef, lightboxOpen);
 
   // Keep the viewer visible to assistive tech. Same trap as
   // PhotoLightbox.tsx (dashboard/PhotoLightbox.tsx): an open Radix modal
@@ -240,12 +243,34 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
       return;
     }
     let cancelled = false;
-    void getMessageAttachmentSignedUrl(path).then((url) => {
+    // RETRY BEFORE GIVING UP. Measured 2026-09-07 sending a PNG from the
+    // poster's chat: the upload POST returned 200 with the object Key, the
+    // message row was inserted, and this component's very first sign request
+    // for that path came back 404 NoSuchKey — a batch sign for the same path
+    // a few hundred ms later returned a URL. Storage's read-after-write is
+    // not instantaneous, and a single failed sign used to be terminal: the
+    // sender saw "Couldn't Load Photo" on their own message until they
+    // reloaded the chat, though the photo was fine. Three retries with a
+    // growing pause cover the observed lag; a genuinely missing object still
+    // falls through to the placeholder.
+    const delays = [600, 1500, 3000];
+    const attempt = async () => {
+      for (let i = 0; i <= delays.length; i++) {
+        const url = await getMessageAttachmentSignedUrl(path);
+        if (cancelled) return;
+        if (url) {
+          setThumbUrl(url);
+          setLoading(false);
+          return;
+        }
+        if (i < delays.length) await new Promise((r) => setTimeout(r, delays[i]));
+      }
       if (!cancelled) {
-        setThumbUrl(url);
+        setThumbUrl(null);
         setLoading(false);
       }
-    });
+    };
+    void attempt();
     return () => { cancelled = true; };
   }, [path, mime]);
 

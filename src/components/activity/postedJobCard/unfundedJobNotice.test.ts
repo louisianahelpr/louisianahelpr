@@ -105,6 +105,23 @@ describe("shouldShowUnfundedNotice", () => {
     ).toBe("abandoned-checkout");
   });
 
+  /* 'failed' is what a DECLINED card leaves behind (stripe-webhook's
+     payment_intent.payment_failed handler), and it is just as invisible to
+     every feed. Seen live 2026-09-07: a declined-then-abandoned checkout sat in
+     My Posts as a plain "Posted" card. */
+  it("fires on a declined card too — payment_status 'failed' with a session", () => {
+    expect(
+      shouldShowUnfundedNotice(
+        job({ payment_status: "failed", is_auto_created: false, stripe_session_id: "cs_test_declined" }),
+      ),
+    ).toBe(true);
+    expect(
+      unfundedNoticeCause(
+        job({ payment_status: "failed", is_auto_created: false, stripe_session_id: "cs_test_declined" }),
+      ),
+    ).toBe("abandoned-checkout");
+  });
+
   it("still says nothing about an abandoned job that never reached Stripe", () => {
     // No session id means no Checkout was ever minted, so there is nothing to
     // finish paying — the same guard that keeps the notice off the healthy

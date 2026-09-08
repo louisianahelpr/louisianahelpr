@@ -227,6 +227,7 @@ describe("fixture-job visibility — one switch, every surface", () => {
     ["public.helper_cancel_booking", "single-job mutation; status is a precondition"],
     ["public.report_helper_no_show", "single-job mutation; status is a precondition"],
     ["public.rpc_open_dispute", "single-job mutation; status is a precondition"],
+    ["public.rpc_withdraw_dispute", "single-job mutation; caller withdraws their own dispute, status is a precondition"],
     ["public.settle_dispute_record", "single-job mutation; status is a precondition"],
     ["public.can_message_in_job", "authorisation check on one job"],
     // Counts the POSTER'S OWN open jobs to enforce a cap. Their own fixtures

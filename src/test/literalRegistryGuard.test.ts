@@ -227,7 +227,8 @@ function walk(dir: string, out: string[] = []): string[] {
     if (entry === "node_modules" || entry === "dist") continue;
     const p = join(dir, entry);
     if (statSync(p).isDirectory()) walk(p, out);
-    else if (/\.(ts|tsx)$/.test(entry)) out.push(p);
+    // .gen.ts files are transient build artifacts, not hand-written source
+    else if (/\.(ts|tsx)$/.test(entry) && !entry.endsWith(".gen.ts")) out.push(p);
   }
   return out;
 }

@@ -271,10 +271,14 @@ export const DisputeCard = ({
             {/* Every position on this slider now settles for real: recording the
                 decision hands it to `execute-dispute-split`, which transfers the
                 Helpr's share and refunds the poster's off the original charge.
-                The figures below are the GROSS shares of the budget — the Helpr's
-                side arrives minus the platform commission, and the poster's minus
-                the card-processing fee Stripe keeps on a refund. The caption says
-                so rather than quoting a number the parties won't recognise. */}
+                Each column's "gross" is that leg's OWN basis, because the
+                executor's two legs draw on different money: the Helpr's share of
+                the budget (plus the net urgent fee) arrives minus the platform
+                commission, and the poster's share of the whole CAPTURE — budget,
+                service fee, urgent fee and tax, all of which they paid — arrives
+                minus the card-processing fee Stripe keeps on a refund. Quoting
+                both against the budget is what printed a net ABOVE its own gross
+                ($31.90 refunded under "$30.00 gross") until 2026-09-07. */}
             {/* GROSS ON TOP, NET UNDERNEATH — and net is the emphasised number,
                 because it is the only one either party will ever see. The panel
                 used to show gross alone, so an admin approving a "fair 50/50"

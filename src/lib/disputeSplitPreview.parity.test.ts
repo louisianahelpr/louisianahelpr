@@ -97,3 +97,68 @@ describe("previewDisputeSplit — the two legs never over-draw the escrow", () =
     });
   }
 });
+
+describe("previewDisputeSplit — each column reconciles: gross − deduction = net", () => {
+  // The regression this guards. `posterGross` was `budget × posterShare` while
+  // `posterNet` was a share of the CAPTURE, so on the $60 + $6-fee seed dispute
+  // the admin card printed a net ABOVE its own gross:
+  //   "$31.90 refunded / $30.00 gross / −$1.11 Stripe keeps".
+  // The bases must be each leg's own, and the deduction must be the remainder.
+  const seed = (over: Record<string, unknown> = {}) =>
+    job({ budget: 60, customer_fee_amount: 6, urgent_fee: 0, sales_tax_amount: 0, ...over });
+
+  // $66.00 captured = 6600c. Stripe keeps round(6600 × 2.9%) + 30 = 221c.
+  // Refundable = 6379c.
+  it("50/50 on the $60 + $6 job: poster $33.00 gross → $31.90 refunded", () => {
+    const p = previewDisputeSplit(seed(), 0.5, "free");
+    expect(p.posterGross).toBeCloseTo(33.0, 10);
+    expect(p.posterNet).toBeCloseTo(31.9, 10); // round(6379 × 0.5) = 3190c
+    expect(p.posterProcessingCost).toBeCloseTo(1.1, 10);
+    // The Helpr's half of the $60 budget, less the 12% free-tier commission.
+    expect(p.helperGross).toBeCloseTo(30.0, 10);
+    expect(p.helperCommission).toBeCloseTo(3.6, 10);
+    expect(p.helperNet).toBeCloseTo(26.4, 10);
+  });
+
+  it("0/100 — the poster takes the whole award and the Helpr's column is empty", () => {
+    const p = previewDisputeSplit(seed(), 0, "free");
+    expect(p.posterGross).toBeCloseTo(66.0, 10);
+    expect(p.posterNet).toBeCloseTo(63.79, 10);
+    expect(p.posterProcessingCost).toBeCloseTo(2.21, 10);
+    expect(p.helperGross).toBe(0);
+    expect(p.helperNet).toBe(0);
+    expect(p.helperCommission).toBe(0);
+  });
+
+  it("100/0 — the Helpr takes the whole award and nothing is refunded", () => {
+    const p = previewDisputeSplit(seed(), 1, "free");
+    expect(p.posterGross).toBe(0);
+    expect(p.posterNet).toBe(0);
+    expect(p.posterProcessingCost).toBe(0);
+    expect(p.helperGross).toBeCloseTo(60.0, 10);
+    expect(p.helperCommission).toBeCloseTo(7.2, 10);
+    expect(p.helperNet).toBeCloseTo(52.8, 10);
+  });
+
+  for (const share of [0, 0.05, 0.25, 0.5, 0.75, 1]) {
+    it(`both columns reconcile at a ${share * 100}% share, urgent fee included`, () => {
+      // The urgent fee is on BOTH bases: net of Stripe's marginal cost on the
+      // Helpr's leg, at face value on the poster's (they paid the gross).
+      const p = previewDisputeSplit(seed({ urgent_fee: 10, sales_tax_amount: 3 }), share, "free");
+      expect(p.posterGross - p.posterProcessingCost).toBeCloseTo(p.posterNet, 10);
+      expect(p.helperGross - p.helperCommission).toBeCloseTo(p.helperNet, 10);
+      // And a net never exceeds its own gross — the shape of the original bug.
+      expect(p.posterNet).toBeLessThanOrEqual(p.posterGross);
+      expect(p.helperNet).toBeLessThanOrEqual(p.helperGross);
+    });
+  }
+
+  it("the Helpr's gross includes the urgent-fee share its net is paid from", () => {
+    // `helperGross` was `budget × share` alone while `helperNet` added the net
+    // urgent fee — the same net-above-gross break as the poster column, just
+    // latent until a job carried an urgent fee.
+    const p = previewDisputeSplit(seed({ urgent_fee: 10 }), 1, "free");
+    expect(p.helperGross).toBeCloseTo(60 + netUrgentFeeDollars(10), 10);
+    expect(p.helperGross).toBeGreaterThan(60);
+  });
+});

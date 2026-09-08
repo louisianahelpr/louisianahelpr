@@ -406,3 +406,10 @@ and then a THIRD walker losing the `.gen.ts` race. That race is now
 fixed at the source (`5c8fadfbb`): the edge harness writes its temp
 modules to a git-ignored `.lh-edge-gen/` at the repo root, outside every
 scanner, with its specifiers absolutised. Full suite 330/330, typecheck 0.
+
+**Addendum:** the Test workflow had TWO more red steps hiding behind the
+three above — each earlier failure stopped the job before they ran. knip's
+unlisted-dependency rule (`@typescript-eslint/parser`, bare `playwright` in
+three scripts → `b599e20bf`) and the dead-edge-function guard (stale
+`helpr-pass-wallet` entry once its test landed → `be03a1b40`). **Test is
+green on main at `be03a1b40`** — first green since `617577fcf`.

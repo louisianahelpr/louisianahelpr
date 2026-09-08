@@ -233,7 +233,11 @@ export function LogisticsSection({
         ) : (
           <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} required maxLength={200} autoComplete="street-address" autoCapitalize="words" aria-label="Street address" />
         )}
-        <div className="grid grid-cols-3 gap-2.5">
+        {/* Weighted, not thirds. Three equal columns gave City the same 81px
+            the two-letter State got, and "Baton Rouge" — the city most posts
+            are in — rendered as "Baton R" at 375 (measured 2026-09-07). City
+            takes the room; State is a fixed two letters; ZIP is five digits. */}
+        <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_5.25rem] gap-2.5">
           {/* City is the only address part shown publicly on job cards.
               CityAutocomplete suggests canonical Louisiana city names so
               card display + filtering stay consistent; free-typed

@@ -67,3 +67,13 @@ decided. Write them here rather than stopping.
 - Never `git stash pop` in the shared tree.
 - Shots go to the lane's own dir, never the shared scratchpad.
 - The lead owns `npm run typecheck` / `vitest`; lanes use `node scripts/parsecheck.mjs`.
+
+## Ban evasion — closed 01:10 (ban-evasion, Opus)
+- Reach = email + phone + verified Stripe Identity (no IP/device — parity test refuses them). User sees only "This account can't be created. Contact support at admin@louisianahelpr.com." (403, `retained_ban`); admins get the full record via `enforce_retained_ban` itself, one flag per attempt burst. Fraud console headline no longer "Unknown" for refused signups.
+- BUG FOUND AND FIXED (lead, verified live): a pardon never released the fingerprint — `retained_bans` was built for deletion and inherited "never release"; a lifted user was re-banned at the next enforcement point. Now a trigger releases on `banned → active` from all three writers (sweep, admin dismissal, direct UPDATE); deletion-retained rows untouched; stranded rows released by the migration. PGlite 69/69; live 1→0 rows, re-check `banned:false`.
+- Self-issued bans refused server-side (22023 with hint); 0 legitimate ones existed.
+- Commits ededec184, 1b52588b2; db-deploy green; prod restored (0 retained, 0 flags, 0 banned, 0 fixtures).
+- Process: this lane's live ban test used the shared admin account and stalled four lanes for ~9 min — lifted by the lead; fixture users only from here (lane memory saved).
+
+### FOR THE OWNER — identity fingerprint backfill (one command)
+Already-verified accounts carry no identity fingerprint (it is captured at verification time). Three qualify — lexilombas05@gmail.com and the two 0902 e2e accounts — and `profiles.idv_session_id` is stored, so `scripts/backfill-identity-fingerprints.mjs` can compute them (hash in-DB via `identity_fingerprint`, salt never leaves Postgres; dry-run by default, `--apply` writes). Not run: it needs `STRIPE_SECRET_KEY` locally (edge secret only) and one of the three rows is your own account. Run: `STRIPE_SECRET_KEY=… node scripts/backfill-identity-fingerprints.mjs` (dry run), then `--apply`.

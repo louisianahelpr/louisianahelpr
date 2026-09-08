@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { deriveAppliedJobCardState } from "./appliedJobCardHelpers";
+import { deriveAppliedJobCardState, describeCancellation } from "./appliedJobCardHelpers";
 import type { AppliedApp, Job } from "../activityConstants";
 
 /**
@@ -87,5 +87,27 @@ describe("deriveAppliedJobCardState — direct offers", () => {
     const s = derive(app({ status: "accepted" }), j);
     expect(s.isOffered).toBe(false);
     expect(s.isConfirmed).toBe(true);
+  });
+});
+
+describe("describeCancellation — the card names who cancelled", () => {
+  const base = { customer_id: "poster-1", cancelled_by: null as string | null, cancellation_reason: null as string | null };
+
+  it("poster", () => {
+    expect(describeCancellation({ ...base, cancelled_by: "poster-1" }, HELPER)).toBe("Cancelled by the poster");
+  });
+  it("the viewer themselves — by id, never by role", () => {
+    expect(describeCancellation({ ...base, cancelled_by: HELPER }, HELPER)).toBe("You cancelled this job");
+    // Same account posting AND working: a poster who is also the viewer reads "You".
+    expect(describeCancellation({ ...base, customer_id: HELPER, cancelled_by: HELPER }, HELPER)).toBe("You cancelled this job");
+  });
+  it("automatic sweep (cancelled_by NULL)", () => {
+    expect(describeCancellation(base, HELPER)).toBe("Cancelled automatically");
+    expect(
+      describeCancellation({ ...base, cancellation_reason: "Job listing expired — scheduled time passed with no helper assigned" }, HELPER),
+    ).toBe("Cancelled automatically — the scheduled time passed before anyone was hired");
+  });
+  it("neither party (support)", () => {
+    expect(describeCancellation({ ...base, cancelled_by: "admin-9" }, HELPER)).toBe("Cancelled by Helpr support");
   });
 });

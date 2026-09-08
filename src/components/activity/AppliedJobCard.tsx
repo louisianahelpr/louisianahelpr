@@ -18,7 +18,7 @@ import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { formatPrice, formatPriceFloor, formatShortDate, formatRecurrenceInterval } from "@/lib/format";
 import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "./useHighlightPulse";
-import { deriveAppliedJobCardState } from "./appliedJobCard/appliedJobCardHelpers";
+import { deriveAppliedJobCardState, describeCancellation } from "./appliedJobCard/appliedJobCardHelpers";
 import { CancellationFeePill } from "./appliedJobCard/CancellationFeePill";
 import { PendingApplicationSection } from "./appliedJobCard/PendingApplicationSection";
 import { OfferedActions } from "./appliedJobCard/OfferedActions";
@@ -339,8 +339,19 @@ function AppliedJobCardInner({
 
             {isMinimalCard && (
               <div className="space-y-2">
-                <p className="text-ds-11 text-muted-foreground">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
-                {isCancelled && <CancellationFeePill job={job} fallbackFeePercent={viewerFeePercent} />}
+                {/* WHO cancelled, not just that it happened. "Job was cancelled"
+                    read identically whether the poster pulled it, this viewer
+                    withdrew it, the listing expired, or support stepped in —
+                    and the fee pill beneath only makes sense once you know it
+                    was the poster. `jobs.cancelled_by` is already on the row
+                    (`get_jobs_for_my_applications` returns SETOF jobs). */}
+                <p className="text-ds-11 text-muted-foreground">
+                  {isCancelled ? describeCancellation(job, userId) : "Not selected"}
+                </p>
+                {/* The fee is the assigned helper's: only the payee sees it. */}
+                {isCancelled && job.helper_id === userId && (
+                  <CancellationFeePill job={job} fallbackFeePercent={viewerFeePercent} />
+                )}
                 {/* No "Browse Open Jobs" button (owner: "remove"). A full-size
                     control on every not-selected card repeated the Home tab one
                     tap away — an archived rejection doesn't need a CTA. */}

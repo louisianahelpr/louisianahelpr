@@ -135,6 +135,19 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/payoutClaim.ts";`,
   );
 
+  // Post-transfer release flip: `_shared/releaseFlip.ts` has ZERO imports (it
+  // takes the Supabase client as a parameter), so the generated file points at
+  // the REAL module — same reasoning as payoutClaim above, and for the same
+  // reason it must not be mocked: it is the write that decides whether a job
+  // whose helper has ALREADY been paid says so, and its retry policy (transient
+  // codes only; a zero-row match alarms immediately) is exactly what TC-008
+  // turned on. A mock would put the guard outside the tests that exist to
+  // check it.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/releaseFlip\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/releaseFlip.ts";`,
+  );
+
   // Captured-escrow resolver: `_shared/capturedEscrow.ts` has ZERO imports (it
   // is structurally typed over the PaymentIntent), so the generated file points
   // at the REAL module — same reasoning as payoutClaim above. It is the single

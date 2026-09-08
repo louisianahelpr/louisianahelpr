@@ -33,90 +33,10 @@ import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
 import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
-
-/**
- * Job payment states this function may legitimately walk forward to 'released'.
- *
- * 'payout_pending' is the normal one. 'released' stays in the set so a resumed
- * run (the transfer already settled, the flip already happened, and the whole
- * function is being retried) is a clean no-op rather than a false alarm. Every
- * other state — 'chargeback', 'refunded', 'escrow' — means something else owns
- * this job's money now, and the flip must NOT happen.
- */
-const RELEASABLE_PAYMENT_STATES = ["payout_pending", "released"] as const;
-
-/**
- * Flip a paid-out job to 'released', retrying a TRANSIENT database failure.
- *
- * This write runs AFTER the Stripe transfer. A failure here is not "the request
- * failed" — it is money out of the platform's balance against a job that still
- * reads payable, which is the split state TC-008 recorded live:
- * transfer tr_3UDDZQKp2H4b7tEC13IlnQEy ($22.00) settled and stamped `paid` in
- * `payout_transfers`, while `jobs` stayed at 'payout_pending' because this
- * UPDATE came back `57014 canceling statement due to statement timeout`. There
- * was nothing wrong with the statement — measured against prod it completes in
- * ~22ms — the project was simply saturated at that moment (postgres_logs shows
- * a 57014 every ~15s across that whole window). One unlucky 8s wait on the
- * `authenticator` role's statement_timeout was enough to strand a real payout.
- *
- * So the transient class gets retried rather than alarmed on. 57014 (statement
- * timeout), 55P03 (lock not available), 40001 (serialization) and 40P01
- * (deadlock) are all "try again in a moment"; anything else is a real refusal
- * and must surface immediately, unretried, so a chargeback or refund that moved
- * the row out from under us is never hammered.
- *
- * Idempotent by construction: 'released' is itself in RELEASABLE_PAYMENT_STATES,
- * so a retry that lands after a partially-applied first attempt still matches
- * its one row.
- */
-const TRANSIENT_PG_CODES = new Set(["57014", "55P03", "40001", "40P01"]);
-const FLIP_RETRY_DELAYS_MS = [400, 1500, 4000];
-
-async function flipJobToReleased(
-  supabaseAdmin: { from: (t: string) => any },
-  jobId: string,
-  platformFeeDollars: number | null,
-  helperFeePercent: number | null,
-): Promise<{ ok: true } | { ok: false; zeroRow: boolean; message: string; attempts: number }> {
-  let lastMessage = "zero rows matched";
-  let lastZeroRow = true;
-  for (let attempt = 0; attempt <= FLIP_RETRY_DELAYS_MS.length; attempt++) {
-    if (attempt > 0) {
-      await new Promise((r) => setTimeout(r, FLIP_RETRY_DELAYS_MS[attempt - 1]));
-    }
-    const { data, error } = await supabaseAdmin
-      .from("jobs")
-      .update({
-        payment_status: "released",
-        // Persist the tier-resolved commission so job-level revenue analytics
-        // match what actually moved (the escrow-time value was a placeholder
-        // computed before any helper — and thus any tier — was known).
-        //
-        // Either may be null on the HEALING path, where the transfer was sent
-        // by an earlier run and this one never recomputed the tier. Writing a
-        // guess there would overwrite the numbers the paid transfer was
-        // actually built from, so those columns are simply left as they are.
-        ...(platformFeeDollars !== null ? { platform_fee_amount: platformFeeDollars } : {}),
-        ...(helperFeePercent !== null ? { helper_fee_percent: helperFeePercent } : {}),
-      })
-      .eq("id", jobId)
-      .in("payment_status", [...RELEASABLE_PAYMENT_STATES])
-      .select("id");
-    if (!error && data && data.length > 0) return { ok: true };
-    // A null `error` with an empty array is the zero-row match, NOT a success.
-    lastZeroRow = !error;
-    lastMessage = error?.message ?? "zero rows matched";
-    // A zero-row match means the row is legitimately no longer releasable
-    // (refunded, charged back). Retrying cannot help and would only delay the
-    // alert. Only a transient DB fault is worth another go.
-    if (lastZeroRow) break;
-    if (!TRANSIENT_PG_CODES.has(String((error as { code?: string }).code ?? ""))) break;
-    console.warn(
-      `[release-payout] jobs flip to released hit transient ${(error as { code?: string }).code} for job ${jobId} (attempt ${attempt + 1}); retrying`,
-    );
-  }
-  return { ok: false, zeroRow: lastZeroRow, message: lastMessage, attempts: FLIP_RETRY_DELAYS_MS.length + 1 };
-}
+// The post-transfer flip and its transient-only retry are SHARED with
+// process-scheduled-payouts — see _shared/releaseFlip.ts for TC-008, the
+// stranded payout that made a retry non-optional.
+import { flipJobToReleased } from "../_shared/releaseFlip.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -368,7 +288,7 @@ serve(async (req) => {
     // tier, and a guess would overwrite the numbers the paid transfer was
     // actually built from. `platform_fee_amount` comes from the ledger row
     // when it has one, because that IS the record of what moved.
-    const healed = await flipJobToReleased(supabaseAdmin, job.id, null, null);
+    const healed = await flipJobToReleased(supabaseAdmin, job.id);
     if (healed.ok) {
       console.log(
         `[release-payout] job ${job.id} already had transfer ${existing.stripe_transfer_id}; completed the missing status flip`,
@@ -967,12 +887,13 @@ serve(async (req) => {
   // event it is. The precondition also means a job an operator has since
   // refunded, or that a chargeback webhook has flipped, is never overwritten
   // with 'released'.
-  const flip = await flipJobToReleased(
-    supabaseAdmin,
-    job.id,
-    platformFeeDollars,
-    helperFeePercent,
-  );
+  const flip = await flipJobToReleased(supabaseAdmin, job.id, {
+    // Persist the tier-resolved commission so job-level revenue analytics match
+    // what actually moved (the escrow-time value was a placeholder computed
+    // before any helper — and thus any tier — was known).
+    platform_fee_amount: platformFeeDollars,
+    helper_fee_percent: helperFeePercent,
+  });
   if (!flip.ok) {
     const zeroRow = flip.zeroRow;
     console.error(

@@ -236,8 +236,10 @@ export function LogisticsSection({
         {/* Weighted, not thirds. Three equal columns gave City the same 81px
             the two-letter State got, and "Baton Rouge" — the city most posts
             are in — rendered as "Baton R" at 375 (measured 2026-09-07). City
-            takes the room; State is a fixed two letters; ZIP is five digits. */}
-        <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_5.25rem] gap-2.5">
+            takes the room; State is a fixed two letters (3rem); ZIP is five digits
+            (4.5rem). Measured after the first cut: 3.5/5.25rem still left City
+            at 109px against 117px of text. */}
+        <div className="grid grid-cols-[minmax(0,1fr)_3rem_4.5rem] gap-2.5">
           {/* City is the only address part shown publicly on job cards.
               CityAutocomplete suggests canonical Louisiana city names so
               card display + filtering stay consistent; free-typed

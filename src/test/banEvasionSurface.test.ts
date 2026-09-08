@@ -141,6 +141,52 @@ describe("ban evasion: quiet to the user, complete to the admin", () => {
     );
   });
 
+  it("a pardon releases the fingerprints, and a deletion never does", () => {
+    const live = liveDefinition("retain_ban_on_ban");
+
+    // The bug this pins: retention was one-way, inherited from the deletion
+    // case where one-way is correct. An admin lifting a ban left the
+    // fingerprints on file and the pardoned user was re-banned on their next
+    // signup, quoting the original reason, with no admin action to explain it.
+    expect(
+      live,
+      "retain_ban_on_ban no longer releases retained_bans when an account leaves a " +
+        "banned status — a pardoned user will be silently re-banned on next signup",
+    ).toMatch(/DELETE FROM public\.retained_bans/);
+
+    expect(
+      live,
+      "the release stopped exempting retained_via = 'deletion'. Those accounts are " +
+        "gone and have no unban path; releasing them undoes 20260903014600 entirely.",
+    ).toMatch(/retained_via[\s\S]{0,40}<>\s*'deletion'/);
+
+    // Guarded, like its twin: a release that throws must not roll back the pardon.
+    expect(
+      live,
+      "the release is no longer guarded — a failure would roll back the unban itself",
+    ).toMatch(/RAISE NOTICE 'retain_ban_on_ban: release failed/);
+  });
+
+  it("a ban names the admin who issued it", () => {
+    const live = liveDefinition("reject_self_issued_ban");
+    expect(live, "the self-ban guard stopped comparing banned_by to user_id").toMatch(
+      /NEW\.banned_by = NEW\.user_id/,
+    );
+    // The one carve-out: the retained re-application has no admin to name,
+    // because the issuing account no longer exists.
+    expect(live, "the retained-ban carve-out is gone; re-application would now fail").toMatch(
+      /app\.retained_ban_reapply/,
+    );
+    // ...and it must be transaction-local, or it becomes a way to write any
+    // self-issued ban.
+    const enforce = liveDefinition("enforce_retained_ban");
+    expect(
+      enforce,
+      "app.retained_ban_reapply is no longer set with is_local => true, so the " +
+        "exemption can leak to later writes in the same session",
+    ).toMatch(/set_config\('app\.retained_ban_reapply', 'on', true\)/);
+  });
+
   it("reach is email + phone + identity, and nothing wider", () => {
     const live = liveDefinition("enforce_retained_ban");
     for (const key of ["email_sha256", "phone_sha256", "identity_sha256"]) {

@@ -109,3 +109,18 @@ Owner calls: `formatPrice` floors gross budgets to whole dollars while CurrencyI
 ## Two more launch-grade defects found by the sweeps, lanes in flight
 - **Mark-as-read dead since 2026-08-30 (HIGH, sweep-poster, verified live).** The client wrote `{read, read_at}` on messages but the column-scoped `GRANT UPDATE (read)` (R11) was never widened when `read_at` was added, so every call was 42501 — the unread badge always came back. Client now writes `read` only (d7639cdc4); CLOSED `5bf791616` + `50e531eb5` (db-deploy 34179135124, 34179344891): a BEFORE UPDATE trigger stamps `read_at` when `read` flips false→true — column privileges check the SET list, not what a trigger assigns, so the client never names the column and a receiver cannot backdate their own receipt. Live: `{read}` → read_at stamped; `{read, read_at}` still 42501. The lane caught its own first version reverting a service_role backfill (true→true update) and fixed it in the second migration. **Why it ran nine days unnoticed:** the ONE row error_logs holds for it (2026-09-02) reads `[object Object]` — the report() bug fixed today. Six more `[object Object]` rows came from PaymentSuccess tonight even though the live bundle carries the fix; the fall-through now names the object's constructor and keys (`4173983a3`).
 - **Two RPCs re-run their masking ~100× per row (sweep-helper, measured live).** `(r.rec).*` expands per output column; `get_jobs_for_my_applications` = 1,135 ms for a helper with 26 applications vs 21 ms with the record in FROM. Under load the "Applied" bucket of My Jobs 500s (57014) — the same timeout class that stranded TC-008. CLOSED `e0e2542c1` (migration 20260908020801, db-deploy 34179154822): exactly the two functions matched; jobs has 108 columns and 887/8.8 = 100.8× — the ratio IS the column count. Prod after: **887 ms → 8.8 ms**, 18,688 → 391 buffers, zero-row symmetric difference between old and new forms on live data (masked branch covered), grants byte-identical. `get_my_pending_direct_offers` had zero live rows so it was A/B'd on a synthetic 26 (974 → 10 ms). Lesson: the planner inlines the single-row lateral into the target list, so it vanishes from EXPLAIN — nothing to blame, the time hides in the Nested Loop.
+
+## The Test workflow was red on every push since the silent-catch rule landed
+
+`d8cc1c7e6` made `local/no-silent-catch` an error and built its 68-file ledger
+from `src/`; `npm run lint` is `eslint .`, which also covers `api/`, `e2e/` and
+`docs/`. Seven catches there had no justification, so **every `Test` run since
+01:59Z failed at the ESLint step** — the vitest and db-deploy workflows stayed
+green, which is what everyone was looking at. Fixed in `3168dec6f` (each catch
+now states its reason inside the block). Also `bbfa816fa`: the seed-flag parity
+test's second walker lacked the `.gen.ts` guard its sibling had, so the full
+suite failed ENOENT in a clean worktree while the file passed alone.
+
+Clean-worktree gate at `bbfa816fa`: typecheck 0, vitest 329/329 files,
+3733 tests. Lint clean at `3168dec6f` (one pre-existing warning in
+`scripts/state-review.mjs:408`, unused disable directive — report only).

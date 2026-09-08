@@ -302,9 +302,15 @@ for `_shared/unsettledDispute.ts`, which had CI red on TS6307).
   dispute card printed `$31.90 refunded` under `$30.00 gross` because the
   two columns used different bases. Each column now reconciles
   (gross − deduction = net) at every slider position; 10 new parity cases.
-  **Not eyeballed on the rendered card** — the lane died about to
-  intercept the network response for the $60 + $6 case; the number is
-  proven, the pixels are not.
+  **Eyeballed after the reset** (split-eyeball lane, real `DisputeCard`
+  mounted through a throwaway Vite entry, deleted after): at 375 and 1440,
+  light and dark, the card reads `$33.00 gross / $31.90 refunded /
+  −$1.10 Stripe keeps` and `$30.00 / $26.40 / −$3.60 commission (12%)`
+  at 50/50, and reconciles by eye at 0/100 and 100/0; net is the
+  emphasised line; zero overflow. Shots in
+  `~/.lh-audit/split-eyeball/shots/`. One nit for you: the zero side
+  prints `−$0.00 Stripe keeps` — a minus on nothing. Left as is because
+  four aligned rows per column may be deliberate.
 - **Test-admin grant REVOKED** (03:05Z-ish, after admin-self-ban's tests
   went 17/17). Verified live: `user_roles` holds `admin` for exactly the
   two owner accounts and nothing else.

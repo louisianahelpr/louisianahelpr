@@ -115,3 +115,30 @@ export function deriveAppliedJobCardState(
     hasActionSection,
   };
 }
+
+/**
+ * Who cancelled a job, as the viewer should read it. The card said only
+ * "Job was cancelled" — the same three words whether the poster pulled the
+ * job, the viewer withdrew it themselves, the listing expired, or support
+ * stepped in. `jobs.cancelled_by` records the actor (NULL for a sweep), so
+ * the card can say which.
+ *
+ * Never role-based: the viewer is compared by id, so an account that both
+ * posts and works reads "You cancelled" only when it was actually them.
+ */
+export function describeCancellation(
+  job: Pick<Job, "cancelled_by" | "customer_id" | "cancellation_reason">,
+  viewerId: string | null | undefined,
+): string {
+  const by = job.cancelled_by;
+  if (by == null) {
+    // Sweeps write a fixed reason; "expired" is the only automatic path that
+    // reaches an applicant's card. Keep the generic line for anything else.
+    return /expired/i.test(job.cancellation_reason ?? "")
+      ? "Cancelled automatically — the scheduled time passed before anyone was hired"
+      : "Cancelled automatically";
+  }
+  if (viewerId && by === viewerId) return "You cancelled this job";
+  if (job.customer_id && by === job.customer_id) return "Cancelled by the poster";
+  return "Cancelled by Helpr support";
+}

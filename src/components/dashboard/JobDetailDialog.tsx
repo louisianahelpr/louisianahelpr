@@ -379,12 +379,19 @@ const JobDetailDialog = ({
           // The only fix that gets all three is a per-job reservation measured
           // at runtime from the settled apply content, rather than any single
           // CSS number. That is a real change, not a tweak to this line.
-"min-h-[min(68dvh,600px)]",
+          //
+          // GUESTS GET NO FLOOR. The reservation exists for the apply step, and
+          // a guest never reaches one — "Sign up to apply" navigates away. For
+          // them the floor was pure dead space: measured on /browse?job=<id>
+          // at 375x812 the content ended at y=681 inside a box ending at 682
+          // only because the box was 552px tall for ~430px of content; a card
+          // that is 40% blank under its one CTA.
+          !guest && "min-h-[min(68dvh,600px)]",
           "content-start",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg",
           "sm:pb-7",
           "lg:max-w-3xl",
-        ].join(" ")}
+        ].filter(Boolean).join(" ")}
 
         onTouchStart={(e) => {
           if (!_allJobs || !_onSelect) return;

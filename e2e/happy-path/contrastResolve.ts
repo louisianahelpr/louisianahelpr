@@ -264,6 +264,8 @@ function measureInPage(input: {
       g.drawImage(img, 0, 0);
       return { data: g.getImageData(0, 0, c.width, c.height), scale: c.width / Math.max(1, cssWidth) };
     } catch {
+      // A tainted (cross-origin) canvas throws on getImageData; null makes
+      // the caller fall back to the screenshot path instead of the image.
       return null;
     }
   }

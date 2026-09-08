@@ -62,7 +62,8 @@ export async function toggleDashboardMap(page: Page): Promise<boolean> {
         return true;
       }
     } catch {
-      /* try next */
+      /* This candidate selector is absent or unclickable on this route —
+         fall through to the next one; returning false below is the trace. */
     }
   }
   return false;

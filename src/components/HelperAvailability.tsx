@@ -278,9 +278,13 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
   return (
     <div className="space-y-4">
       {/* Bulk shortcuts — three one-tap presets so users don't have to
-          set every day individually. Horizontal scroll on narrow phones
-          so the pills never wrap awkwardly. */}
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
+          set every day individually. They WRAP. This row used to be a
+          hidden-scrollbar horizontal scroller, which at 375 clipped the
+          second pill to "Weekends o" and hid the third entirely, with nothing
+          on screen saying the row moves — a chopped word reads as a rendering
+          fault, not an affordance. Three short pills on two lines costs one
+          extra row of height and hides nothing. */}
+      <div className="flex flex-wrap items-center gap-1.5">
         <span
           className="shrink-0 font-sans uppercase text-ds-10"
           style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}

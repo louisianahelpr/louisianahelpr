@@ -44,6 +44,12 @@ const Switch = React.forwardRef<
         "after:top-1/2 after:h-11 after:-translate-y-1/2",
         // Checked → olivewood tint; unchecked → muted neutral.
         "data-[state=checked]:bg-[hsl(var(--olivewood))]",
+        // Dark mode swaps --olivewood to a warm near-white, so the ON track
+        // turned cream under a white thumb: the two read as one pale lozenge
+        // and ON was hard to tell from OFF at a glance (Availability day rows,
+        // 2026-09-07). --bark in dark is the mid olive the FAB wears — a white
+        // thumb on it has the same figure/ground relationship light mode has.
+        "dark:data-[state=checked]:bg-[hsl(var(--bark))]",
         "data-[state=unchecked]:bg-[hsl(var(--ink-deep)/0.18)]",
         // Inner shadow gives the sunken-track feel iOS uses.
         "shadow-inner",

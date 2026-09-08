@@ -15,6 +15,7 @@ import {
 import AxeBuilder from "@axe-core/playwright";
 import { SEED_TABLES, SEED_JOBS } from "./seedData";
 import { assertFreshBundle } from "./assertFreshBundle";
+import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
 
 // Happy-path smoke fixtures. These tests run against `npm run build && npx
 // vite preview` (the Vite preview server, no live backend) and stub every
@@ -137,7 +138,9 @@ function buildFakeProfile(user: FakeUser) {
     subscription_tier: "free",
     subscription_expires_at: null,
     referral_code: "SMOKE",
-    is_verified: true,
+    // A real account has its terms version pinned at signup; without this the
+    // re-consent gate (which fires on any stale version) covers every screen.
+    terms_version_accepted: LATEST_TERMS_VERSION,
     role: user.role,
     created_at: nowIso,
     updated_at: nowIso,
@@ -610,13 +613,21 @@ function handleRest(
 export function mockTable(
   table: string,
   body: unknown,
-  options: { method?: string; status?: number } = {},
+  options: { method?: string; status?: number; honorFilters?: boolean } = {},
 ): MockRule {
   const wantMethod = options.method ?? "GET";
   return {
     match: (url, method) =>
       method === wantMethod && url.pathname === `/rest/v1/${table}`,
-    handle: () => ({ status: options.status ?? 200, body }),
+    // `honorFilters` runs the same `?col=eq.x` / `order` / `limit` handling
+    // the seed tables get. Default is the historical "return the body
+    // verbatim" — but a screen that issues TWO differently-scoped queries
+    // against one table (the Earnings tab reads jobs as helper AND as poster)
+    // gets the whole body for both and reports fictional money.
+    handle: (url) => ({
+      status: options.status ?? 200,
+      body: options.honorFilters && Array.isArray(body) ? applyPostgrestQuery(body, url) : body,
+    }),
   };
 }
 

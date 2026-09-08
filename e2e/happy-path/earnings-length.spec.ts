@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { test, expect, FAKE_HELPER, installSupabaseMocks, mockTable, mockRpc } from "./fixtures";
 
 // THE EARNINGS TAB HAS A LENGTH BUDGET, AND IT IS MEASURED.
@@ -92,19 +93,12 @@ const MEASURE_SCROLLER = () => {
   return best || document.documentElement.scrollHeight;
 };
 
-test("each earnings view stays within its length budget", async ({ helperPage: page }) => {
-  await installSupabaseMocks(page, {
-    user: { ...FAKE_HELPER },
-    rules: [
-      mockTable("jobs", jobs),
-      mockTable("payout_transfers", transfers),
-      mockRpc("get_user_credential_tier", 2),
-    ],
-  });
-  // A CONNECTED wallet with a real payout history — the state the tab is long
-  // in. The shared edge-function stub answers every function with
-  // `{success:true}`, which reads as "not connected" and hides the wallet, the
-  // payout history and the whole Payouts view.
+
+// A CONNECTED wallet with a real payout history — the state the tab is long
+// in. The shared edge-function stub answers every function with
+// `{success:true}`, which reads as "not connected" and hides the wallet, the
+// payout history and the whole Payouts view.
+async function mockConnectedWallet(page: Page): Promise<void> {
   await page.route("**/functions/v1/stripe-payouts", (r) =>
     r.fulfill({
       status: 200,
@@ -125,6 +119,22 @@ test("each earnings view stays within its length budget", async ({ helperPage: p
       }),
     }),
   );
+}
+
+test("each earnings view stays within its length budget", async ({ helperPage: page }) => {
+  await installSupabaseMocks(page, {
+    user: { ...FAKE_HELPER },
+    rules: [
+      mockTable("jobs", jobs),
+      mockTable("payout_transfers", transfers),
+      mockRpc("get_user_credential_tier", 2),
+    ],
+  });
+  // A CONNECTED wallet with a real payout history — the state the tab is long
+  // in. The shared edge-function stub answers every function with
+  // `{success:true}`, which reads as "not connected" and hides the wallet, the
+  // payout history and the whole Payouts view.
+  await mockConnectedWallet(page);
   await page.addInitScript(() => {
     try {
       localStorage.setItem("helpr_onboarding", JSON.stringify({ seen: true, completed: true }));
@@ -159,11 +169,19 @@ test("lifetime take-home is stated in exactly one place", async ({ helperPage: p
   await installSupabaseMocks(page, {
     user: { ...FAKE_HELPER },
     rules: [
-      mockTable("jobs", jobs),
+      // Filters honoured: the PaymentTab poster-spend query is
+      // `.eq("customer_id", me)`, and a verbatim body handed it all twelve
+      // helper-side jobs, so "Total spent … across 12 jobs" claimed the count
+      // a second time. None of these jobs were posted by the helper.
+      mockTable("jobs", jobs, { honorFilters: true }),
       mockTable("payout_transfers", transfers),
       mockRpc("get_user_credential_tier", 2),
     ],
   });
+  // Same connected wallet as the budget test: with the shared `{success:true}`
+  // stub the tab reads as NOT connected and renders the payout-setup block
+  // (PaymentTab) inline on EVERY view, not just Payouts.
+  await mockConnectedWallet(page);
   await page.addInitScript(() => {
     try {
       localStorage.setItem("helpr_onboarding", JSON.stringify({ seen: true, completed: true }));

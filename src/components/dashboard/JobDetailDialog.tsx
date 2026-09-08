@@ -69,7 +69,41 @@ const JobDetailDialog = ({
   // Back to the detail step whenever the sheet closes or swaps to another job
   // — otherwise reopening the sheet, or swiping to the next job, would land
   // straight on the apply form for a job the helpr has not read yet.
-  useEffect(() => { setStep("detail"); }, [jobId]);
+  useEffect(() => { setStep("detail"); setPinnedTop(null); }, [jobId]);
+
+  /* THE TOP EDGE IS PINNED THE MOMENT YOU STEP FORWARD.
+     The sheet opens centred (owner, twice) with a 68dvh floor so a short job
+     does not resize between steps. That floor was sized to the apply step as
+     it stood on 2026-09-03; e319103eb then added the "you can't be hired yet"
+     explainer to the apply step, which for the majority of real helpers
+     (7 of 8 non-seed profiles, measured 2026-09-06) pushes the apply content
+     past the floor. Centring absorbs the growth symmetrically, so the top
+     edge walked 73px up at 375x812 (129.9 -> 56.8) — the exact jump
+     apply-single-sheet.spec.ts exists to catch.
+
+     Rather than guess a taller floor for every job, the sheet reads its own
+     top edge right before the step changes and holds it there for the rest
+     of this open: the box may grow DOWNWARD into whatever the viewport has
+     left, and scrolls internally past that, but the edge the reader's eye is
+     resting on does not move. Reset on close / job swap so the next open is
+     centred again. */
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [pinnedTop, setPinnedTop] = useState<number | null>(null);
+  const goToApply = () => {
+    const top = contentRef.current?.getBoundingClientRect().top;
+    if (typeof top === "number" && Number.isFinite(top)) setPinnedTop(Math.round(top * 10) / 10);
+    setStep("apply");
+  };
+  const pinnedStyle =
+    pinnedTop == null
+      ? undefined
+      : {
+          top: pinnedTop,
+          translate: "-50% 0",
+          // Never taller than the space below the pinned edge; the base
+          // shell's overflow-y-auto scrolls the rest.
+          maxHeight: `calc(100dvh - ${pinnedTop}px - 1rem)`,
+        };
 
   const {
     descExpanded, setDescExpanded,
@@ -190,6 +224,8 @@ const JobDetailDialog = ({
   return (
     <Dialog open={!!job} onOpenChange={() => onClose()}>
       <DialogContent
+        ref={contentRef}
+        style={pinnedStyle}
         topRightSlot={cornerActions}
         // ONE SHELL AT EVERY WIDTH — TOP-ANCHORED, CONTENT-SIZED.
         //
@@ -888,7 +924,7 @@ const JobDetailDialog = ({
               // the request was actually accepted, or we would show an apply
               // form for a job the flow just refused.
               if (!applyStep) { onClose(); return; }
-              if (accepted !== false) setStep("apply");
+              if (accepted !== false) goToApply();
             }}
             navigate={navigate}
             viewerUserId={viewerUserId}

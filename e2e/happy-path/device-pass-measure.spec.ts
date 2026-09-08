@@ -314,7 +314,23 @@ async function assertFits(page: Page, label: string) {
       // Flagging them would be a finding about Leaflet, not about our layout.
       if (typeof el.className === "string" && el.className.includes("leaflet-")) return;
       const r = el.getBoundingClientRect();
-      if (r.width > vw + 1) wide.push(`${el.tagName}.${el.className}`.slice(0, 120));
+      if (r.width <= vw + 1) return;
+      // A row that lives in a horizontal SCROLLER is wider than the viewport
+      // on purpose — UnderlineTabs' five status labels at 320 — and the user
+      // can reach all of it. Exempt an element whose nearest overflow-x
+      // auto/scroll ancestor itself fits. `hidden` is deliberately NOT
+      // exempt: content clipped by a hidden ancestor is unreachable, which is
+      // the defect this sweep exists to catch.
+      let p = el.parentElement;
+      while (p && p !== document.body) {
+        const ox = getComputedStyle(p).overflowX;
+        if (ox === "auto" || ox === "scroll") {
+          if (p.getBoundingClientRect().width <= vw + 1) return;
+          break;
+        }
+        p = p.parentElement;
+      }
+      wide.push(`${el.tagName}.${el.className}`.slice(0, 120));
     });
     return { scrollWidth: de.scrollWidth, clientWidth: vw, wide: wide.slice(0, 5) };
   });

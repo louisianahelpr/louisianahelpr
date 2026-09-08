@@ -248,8 +248,12 @@ test("1a · static: every postgres_changes binding is nonced and user-filtered",
 
   // Sanity: the parser actually found the sites we know exist.
   expect(sites.length, "expected to find the known .channel() call sites").toBeGreaterThanOrEqual(12);
+  // Floor, not a count: it only proves the parser is reading real code. 25
+  // was the total when the three UNFILTERED bindings (notification_logs
+  // INSERT, profiles '*') still existed; bf0cd91c8 removed them, which is what
+  // (c) below asks for, and the floor kept the suite red for a good change.
   expect(allBindings.length, "expected to find the known postgres_changes bindings")
-    .toBeGreaterThanOrEqual(25);
+    .toBeGreaterThanOrEqual(20);
 
   // (b) unique name via channelNonce(). Scoped to channels that carry a
   //     postgres_changes binding — that is what the CLAUDE.md rule covers.

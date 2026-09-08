@@ -51,6 +51,7 @@ import { walkSource, readSource } from "./helpers/walkSource";
 import {
   extractConstraints,
   schemaTables,
+  schemaRequired,
   distinctiveColumns,
   objectLiterals,
   checkRow,
@@ -233,6 +234,37 @@ describe("every seeded row could be inserted", () => {
     expect(mapping.map((m) => m[1])).toContain("notifications");
     expect(base, "JOB_BASE must resolve — pricing_mode lives only there").toContain("pricing_mode");
     expect(rowsGraded).toBeGreaterThan(10);
+  });
+
+  // Column existence and NOT NULL, from the generated Insert types. CHECK
+  // constraints only grade a value that is present — a misspelled column is
+  // absent from every constraint and passes by omission.
+  const columns = schemaTables();
+  const required = schemaRequired();
+  const shapeViolations: string[] = [];
+  for (const [, table, constName] of mapping) {
+    const cols = columns.get(table);
+    const arrayText = constValue(src, constName);
+    if (!cols || arrayText === null) continue;
+    rowsOf(arrayText).forEach((row, i) => {
+      const text = table === "jobs" ? `${row}\n${base}` : row;
+      const clean = text.replace(/^\s*\/\/[^\n]*$/gm, "");
+      const keys = new Set([...clean.matchAll(/(?:^\s*|[{,]\s*)([a-z0-9_]+):/gm)].map((k) => k[1]));
+      for (const k of keys) {
+        if (!cols.has(k)) shapeViolations.push(`${SEED_FILE} ${constName}[${i}]: ${table}.${k} is not a column`);
+      }
+      // `...JOB_BASE` and other spreads hide keys from a textual read; only
+      // grade required-column presence when the row is fully literal.
+      if (!/\.\.\./.test(text)) {
+        for (const r of required.get(table) ?? []) {
+          if (!keys.has(r)) shapeViolations.push(`${SEED_FILE} ${constName}[${i}]: ${table}.${r} is NOT NULL with no default and is missing`);
+        }
+      }
+    });
+  }
+
+  it("uses only real columns and supplies every NOT NULL column", () => {
+    expect(shapeViolations, "seeded rows the database would reject on shape").toEqual([]);
   });
 
   it("finds no seeded row a CHECK constraint would refuse", () => {

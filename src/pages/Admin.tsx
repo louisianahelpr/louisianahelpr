@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -355,9 +355,25 @@ const Admin = () => {
     ? `prior ${customDays}d`
     : RANGE_PRESETS[dateRange].prevLabel;
 
+  // `view` as a ref, read inside the effect below WITHOUT being a dependency.
+  // That effect owns the admin realtime subscription; adding `view` to its deps
+  // would tear down and re-open the channel on every sidebar click, which is
+  // both wasteful and a good way to trip the reused-channel-name rule.
+  const viewRef = useRef(view);
+  viewRef.current = view;
+
   useEffect(() => {
     if (loading) return;
-    loadStats(activeWindowDays);
+    // Only the HOME dashboard renders these stats, and computing them costs 20
+    // PostgREST queries. This effect fired them on every admin page load
+    // regardless of which view was open, so opening People or Disputes paid for
+    // a dashboard the admin could not see — measured on /admin?view=people:
+    // 49 REST calls, 20 of them for the hidden home screen, plus 4 that were
+    // byte-identical duplicates of `loadUnreadCounts`' own queries.
+    //
+    // The badge counts below are NOT gated: they drive the sidebar, which is on
+    // screen in every view.
+    if (viewRef.current === "home") loadStats(activeWindowDays);
     loadUnreadCounts();
     // Debounce realtime-triggered reloads — admin tables (jobs, profiles,
     // reports) can receive bursts of writes (e.g. a batch import or a job
@@ -366,7 +382,13 @@ const Admin = () => {
     let debounce: ReturnType<typeof setTimeout> | null = null;
     const debouncedReload = () => {
       if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(() => { loadStats(activeWindowDays); loadUnreadCounts(); }, 500);
+      debounce = setTimeout(() => {
+        // Same gate as the initial load: a write burst must not recompute a
+        // dashboard nobody is looking at. Navigating to home re-runs loadStats
+        // via the `view === "home"` effect below, so nothing goes stale.
+        if (viewRef.current === "home") loadStats(activeWindowDays);
+        loadUnreadCounts();
+      }, 500);
     };
     // Deliberately unfiltered: unlike user-facing channels (which MUST be
     // user-scoped per the realtime rule), the admin dashboard's whole job is

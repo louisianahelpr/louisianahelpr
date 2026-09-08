@@ -146,14 +146,28 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 200,
           });
-        case "onboarding_fee_unpaid":
+        case "onboarding_fee_unpaid": {
           // The one refusal with a way out, so it says so explicitly and the
-          // client turns `needsOnboardingFee` into a pay-now button.
+          // client turns `needsOnboardingFee` into a pay-now button. The amount
+          // is read from platform_settings like every other path that quotes
+          // it (pay-onboarding-fee, the Terms page) — this string carried a
+          // hard-coded "$2" that would have gone stale the day the setting
+          // changed. Read failure just drops the number; the refusal stands.
+          const { data: feeRow } = await supabaseAdmin
+            .from("platform_settings")
+            .select("onboarding_fee_cents")
+            .limit(1)
+            .maybeSingle();
+          const feeCents = Number(feeRow?.onboarding_fee_cents);
+          const feeText = Number.isFinite(feeCents) && feeCents > 0
+            ? ` — it's the same $${(feeCents / 100).toFixed(feeCents % 100 === 0 ? 0 : 2)} you'd otherwise pay on your first job post or first payout, never both`
+            : " — it's the same fee you'd otherwise pay on your first job post or first payout, never both";
           return fail(
             402,
-            "Your one-time account setup fee covers this check. Settle it and verification opens up — it's the same $2 you'd otherwise pay on your first job post or first payout, never both.",
+            `Your one-time account setup fee covers this check. Settle it and verification opens up${feeText}.`,
             { needsOnboardingFee: true },
           );
+        }
         case "attempt_limit_reached":
         case "in_manual_review":
           // Not a dead end and not a "get in touch": the account is already in

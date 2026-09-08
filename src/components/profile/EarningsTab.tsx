@@ -684,7 +684,12 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
         icon={Zap}
-        title="Cash out instantly."
+        // Title Case, no full stop — the only popup title in the app that
+        // was sentence-cased with a period, sitting one tap away from
+        // "Cash Out Instantly" (InstantPayoutDialog). Named for what the
+        // sheet does (unlock), not the feature it gates, so the two are
+        // distinguishable when read aloud.
+        title="Unlock Instant Cash Out"
         body="Skip the 1–2 business day wait. Subscribed Helprs can route earnings to a debit card in about 30 minutes."
         perks={[
           "Instant payouts to debit card (~30 min)",

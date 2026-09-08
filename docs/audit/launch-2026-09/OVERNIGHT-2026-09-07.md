@@ -20,6 +20,42 @@ thing. Orchestrate the right model per lane."
 - Resend webhook secret: not rotated, owner's call.
 - Admin credit-mint: not built.
 
+## Not done, why
+
+### AdminUsers.loadProfiles — narrow `select("*")` and add a page size (lh-perf-deps)
+Scoped follow-up, deliberately NOT done in the perf pass. `src/components/admin/AdminUsers.tsx:156`
+does `supabase.from("profiles").select("*")` with no column list and no limit.
+
+Measured cost today: **8 rows / 23 KB**. It is a linear-growth risk at ~2.9 KB per
+profile row, not a current bottleneck — nothing is on fire.
+
+Both halves of the obvious fix are unsafe as a drive-by:
+
+- **Narrowing the select** without narrowing the type ships a lie. `Profile` is
+  `Database["public"]["Tables"]["profiles"]["Row"]` (`adminUserHelpers.tsx:12`), so
+  TypeScript would keep asserting every column is present while the runtime object
+  no longer has them. `AdminUserDetailDialog` would render `undefined` with no error
+  and no type failure.
+- **A page size** is worse. `getTabCounts(profiles, isUnseen)` derives all six tab
+  counts from the full in-memory array (`AdminUsers.tsx:252`), so paginating makes
+  every tab count silently wrong — a fix that reads correctly in review and is untrue
+  on screen.
+
+Doing it properly = thread a narrowed row type through ~8 files and move the tab
+counts server-side (a count RPC or a view). That is its own pass with its own
+verification, not a perf drive-by.
+
+### /admin?view=people API fan-out — premise withdrawn (lh-perf-deps)
+Not a latency fix and was not attempted. A throttled request/response timeline shows
+the page is JS-gated, not API-gated: content @ 4867 ms, last JS response @ 3975 ms
+(zero JS after content), and the 49-call fan-out is not even ISSUED until 4817 ms —
+after content is on screen. Collapsing it into one RPC cannot move content time.
+Unthrottled it looks the opposite (queries leave at 638 ms), which is how the premise
+arose; always trace throttled.
+
+The wasted-work half of it WAS fixed (`08f2c02eb`): `loadStats` ran its 20 queries on
+every admin view, not just home.
+
 ## Questions to hold for morning
 Anything that would change product behaviour in a way the owner has not already
 decided. Write them here rather than stopping.

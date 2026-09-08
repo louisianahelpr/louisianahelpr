@@ -104,6 +104,8 @@ browse-guest.png
 # The harness writes a rewritten copy of an edge function here, imports it,
 # then deletes it — this catches any left behind by an interrupted run.
 src/test/edge/*.gen.ts
+# Same harness, current location — see GEN_DIR in src/test/edge/harness.ts.
+.lh-edge-gen/
 
 # Remember plugin working directory — per-machine session buffer, daily
 # notes, and tempfiles (e.g. .remember/tmp/last-ndc.ts). Previously only

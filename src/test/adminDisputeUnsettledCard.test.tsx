@@ -158,17 +158,17 @@ describe("the split panel an admin decides in", () => {
 
   it("shows what each side NETS, not just the gross percentage", () => {
     // $180 budget, 12% commission, $5 service fee. A 50/50 pays the Helpr
-    // $79.20, not $90 — and refunds the poster $89.67, not $90.
+    // $79.20, not $90 — and refunds the poster $89.67. The poster's gross is
+    // half of the $185 CAPTURE ($92.50), not half the budget, so that
+    // gross − "Stripe keeps" = refunded holds in the column (c20afc416).
     const { text } = openPanel(50);
     // The two columns read: percent, net, verb, gross, deduction.
-    // Poster gross = captured × posterShare = ($180 + $5) × 50% = $92.50.
-    // Helpr gross  = budget × helperShare   = $180 × 50%        = $90.00.
     expect(text()).toMatch(/Poster 50%\$89\.67refunded\$92\.50 gross−\$2\.83 Stripe keeps/);
     expect(text()).toMatch(/Helpr 50%\$79\.20paid\$90\.00 gross−\$10\.80 commission \(12%\)/);
-    // Both gross figures appear so the admin sees the real bases. The two bases
-    // are different (captured vs budget), so distinct values appear.
-    expect(text()).toContain("$92.50 gross"); // poster
-    expect(text()).toContain("$90.00 gross"); // helpr
+    // Gross is still shown beside net, so the two are visibly different
+    // numbers — one per column, each on its own basis.
+    expect(text().match(/\$90\.00 gross/g)).toHaveLength(1);
+    expect(text().match(/\$92\.50 gross/g)).toHaveLength(1);
   });
 
   it("itemises what is being withheld from each side", () => {

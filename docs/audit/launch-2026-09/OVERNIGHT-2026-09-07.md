@@ -338,3 +338,71 @@ drawn first.
 `capacitor.config.ts`, `deno.lock`, `fastlane/README.md`,
 `fastlane/ios_app_metadata.yml`, `ios/App/App.xcodeproj/project.pbxproj`,
 `ios/App/App/Info.plist`. Left alone.
+
+## Poster leads, re-run after the reset (CLOSED — `0c90334dc`, `51c25da6d`, `a3970e3aa`)
+
+- **My Posts fifth tab** was on screen for no one: five labels measure
+  ~382–407px in a ~333px column, the scroller's 4px inset hid "Cancelled"
+  entirely, and `/my-posts?filter=cancelled` selected a tab 50px
+  off-screen. Scroller now bleeds to the card edge so the fifth label
+  peeks, and the selected tab scrolls itself into view. After: Cancelled
+  at x 262–334 when selected. **Owner call:** at rest the peek is a sliver
+  of "C" — two rows vs a fade mask is yours.
+- **Toast vs dock: not reproducible.** Sonner is top-anchored on phone;
+  a fired toast sits at y 8–78, the dock at 748–812. No change.
+- **Support subject** pre-filled `Dispute on job <uuid>`, clipped
+  mid-token. Both producers now use `supportSubject.ts` →
+  `Dispute on "Assemble a crib…" (job #3f2a9c1e)`, short id kept so
+  support can find the row.
+- **Attach sheet** — no role bleed; the footer said "photos and PDFs
+  only" directly under Location and Voice note. Now "Photos and PDFs up
+  to 5MB."
+- Reported, untouched: the attach popover is translucent enough to read
+  the thread through it; quick-reply chips clip at its edge with no fade.
+
+Shots: `~/.lh-audit/poster-leads-2/shots/`. Typecheck 0, scoped vitest
+141 files green.
+
+## Helper-side surveys, re-run after the reset (CLOSED — `b7a80daa5`, `6772b9505`)
+
+**A. Poster cancels after hire, seen from the helper.** Activity Cancelled
+card, notification, its View destination, job detail, Earnings all say
+something true (shots A18–A24, light + dark). One fix: the helper's
+cancel notification offered a **"Repost"** pill — a poster-only action on
+a job they never owned — now "View", landing on the Cancelled bucket.
+Messages thread was NOT forceable: no thread exists until an offer is
+accepted and the helper fixture has no Stripe payout account.
+
+**B. Every helper-side dialog/sheet** (edit/withdraw application, job
+detail, report, profile, delete, log out, messages empty + menu, edit
+profile, filters): all PASS at 375 in both themes, zero overflow. One fix:
+Edit Profile's ZIP field clipped its fifth digit (scrollWidth 83 in an
+80px box) — padding restored.
+
+**Owner calls from this pass:**
+- **Duplicate cancel notification** — `poster_cancel_job` inserts one and
+  `notify_on_job_update` (trigger) inserts a second, same timestamp,
+  confirmed live. Needs a migration.
+- **A strike for cancelling a PENDING offer** — the offer was never
+  accepted, the dialog says "After a Helpr is selected", and a
+  `user_violations` row + `ban_status` escalation were still written.
+  Ladder or copy is wrong; money/trust, untouched. (Test rows restored.)
+- Helper's Cancelled card is minimal ("Job was cancelled") — name the
+  canceller / any fee?
+- Outer Edit/Withdraw stay visible while the inline application editor
+  is open.
+- Both sweep accounts carry an `avatar_url` that 400s → Edit Profile
+  shows the "couldn't load your photo" state. Null the two URLs.
+- Accept-then-cancel needs a helper fixture with a Stripe payout account.
+
+Shots: `~/.lh-audit/sweep-helper-2/shots/` (51).
+
+## CI after the reset
+
+Main was red on three consecutive pushes for three different reasons,
+all mine to catch: two repo-wide registries the withdraw lane never ran
+(`72e98ba58`), the admin card spec my scoped run skipped (`5b5b88a19`),
+and then a THIRD walker losing the `.gen.ts` race. That race is now
+fixed at the source (`5c8fadfbb`): the edge harness writes its temp
+modules to a git-ignored `.lh-edge-gen/` at the repo root, outside every
+scanner, with its specifiers absolutised. Full suite 330/330, typecheck 0.

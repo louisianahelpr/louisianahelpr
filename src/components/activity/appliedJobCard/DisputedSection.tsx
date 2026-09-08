@@ -13,6 +13,7 @@ import { formatDistanceToNow } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { helperDisputeCopy } from "./helperDisputeCopy";
+import { disputeSupportSubject } from "@/lib/supportSubject";
 import type { AppliedApp, Job } from "../activityConstants";
 
 interface DisputedSectionProps {
@@ -350,10 +351,11 @@ export function DisputedSection({
           ariaLabel="Contact an admin about this dispute"
           tone="neutral"
           /* Carries the job, same as the poster's chip in PostedJobActions —
-             `?topic=` / `?subject=` are the only params Support.tsx reads, and
-             a job UUID identifies the row without putting a person, a price or
-             an address in a URL. */
-          onClick={() => navigate(`/support?topic=report&subject=${encodeURIComponent(`Dispute on job ${app.job_id}`)}`)}
+             `?topic=` / `?subject=` are the only params Support.tsx reads. The
+             title is what both people call the job and is already public; the
+             short id on the end lets support find the row. (Was the bare UUID,
+             which the person could not recognise and 375 clipped mid-token.) */
+          onClick={() => navigate(`/support?topic=report&subject=${encodeURIComponent(disputeSupportSubject({ id: app.job_id, title: job.title }))}`)}
         />
       </JobActionRow>
     </div>

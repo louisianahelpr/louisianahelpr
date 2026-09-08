@@ -74,30 +74,33 @@ import { join } from "node:path";
 //     returns false in prod (the owner is keeping fixtures visible), which
 //     makes `is_seed` a launch switch rather than an isolation mechanism.
 //
-//  3. THE MONEY SWEEPS DO **NOT** SKIP IT — this control does not exist, and
-//     the spec no longer pretends otherwise. It used to assert `is_seed = true`
-//     immediately after the poster INSERT, which is unsatisfiable: `is_seed` is
-//     locked against posters in TWO independent places, on purpose.
-//       * `enforce_jobs_insert_column_lock` sets `NEW.is_seed := false` on every
-//         poster INSERT, commented "a poster must not be able to hide a job from
-//         the admin money figures by marking it seed data";
-//       * `enforce_poster_jobs_money_lock` lists `is_seed` in `locked_always`, so
-//         a follow-up UPDATE by the poster raises 42501 as well.
-//     Both are correct and neither should change to suit a test. The consequence
-//     is that the five sweeps which filter on `is_seed`
-//     (`auto-release-payment`, `payment-confirm-reminder`, `money-reconciliation`,
-//     `process-scheduled-payouts`, `subscription-reconciliation`) WILL see this
-//     job, on top of the seven that ignore the flag anyway. What actually bounds
-//     that is controls 1, 2 and 4 plus the sweeper, which runs before AND after
-//     every run — the residual exposure is a run that dies mid-loop, which is
-//     exactly what the sweeper exists for. `announceUncovered` reports it so the
-//     gap is visible in the run rather than assumed away.
-//     Closing it properly needs a `SECURITY DEFINER` RPC scoped to these two test
-//     user ids — the same shape the sweeper's own README already contemplates for
-//     a purge. That is a migration touching authz and is deliberately NOT done
-//     here. Handing CI a service-role key is the other option and is REJECTED for
-//     the reason this workflow already states in the sweep step: "a CI job holding
-//     service-role could delete anything in the database, which is a far larger
+//  3. THE MONEY SWEEPS DO SKIP IT — as of `is_seed_derived_from_the_account`
+//     (20260908015405). This control used NOT to exist, and the note here used
+//     to explain at length why it could not: `enforce_jobs_insert_column_lock`
+//     hard-set `NEW.is_seed := false` on every poster INSERT, so this run's job
+//     was always visible to the five sweeps that filter on the flag.
+//     That was a design gap, and it surfaced somewhere worse than a sweep: the
+//     Post-a-Job budget hint on prod read "Jobs like this pay $25–$25 · Based on
+//     15 completed jobs", and all 15 were rows this very suite created.
+//     The lock now DERIVES the flag from the posting account
+//     (`profiles.is_seed`, itself locked by `prevent_self_escalation`) instead of
+//     answering false. It still ignores whatever the client sends — the control
+//     that matters is unchanged — it is simply truthful now. Both test accounts
+//     are `@mailinator.com`, so they are seed accounts, so this job is a seed
+//     job, so `auto-release-payment`, `payment-confirm-reminder`,
+//     `money-reconciliation`, `process-scheduled-payouts` and
+//     `subscription-reconciliation` all skip it. That is the DESIGNED behaviour,
+//     not a leak.
+//     Two consequences worth stating plainly. The seven sweeps that ignore the
+//     flag still see the job, so controls 1, 2 and 4 plus the sweeper are still
+//     what bound this run. And because `auto-release-payment` now skips it, this
+//     suite MUST keep calling release-payout directly — which it does; that is
+//     its proof path and it does not depend on `is_seed`. `announceUncovered`
+//     below reports the residual honestly rather than claiming full isolation.
+//     The alternative once contemplated here — a `SECURITY DEFINER` RPC scoped
+//     to these two user ids — is no longer needed. Handing CI a service-role key
+//     remains REJECTED for the reason the workflow's sweep step states: "a CI job
+//     holding service-role could delete anything in the database, which is a far larger
 //     risk than the rows it tidies."
 //
 //  4. THE TITLE SAYS SO. Every row carries E2E_TITLE_MARKER, which is both the
@@ -464,22 +467,42 @@ test.describe("full money loop against production", () => {
     // trigger is live for this row, and the run must stop before funding it —
     // funding is what arms the notification.
     expect(job.parish, "parish must be null or the helper fan-out fires").toBeNull();
-    // NOT `toBe(true)`. That assertion could never pass — see control 3 above —
-    // and it failed here, 1.4s in, on every run this workflow has ever done,
-    // which is why nothing downstream of it has any coverage at all. Asserting
-    // the real value keeps the lock honest: if someone ever weakens
-    // enforce_jobs_insert_column_lock so a poster CAN set is_seed, this goes red
-    // and the reason is written directly above.
+    // NOT a hardcoded literal, in either direction. `is_seed` was sent above
+    // "for intent" and the column lock discards it — that has never changed and
+    // is the control being asserted. What changed (20260908015405) is the
+    // ANSWER: the lock now derives the flag from the posting account rather
+    // than hardcoding false. So the value that lands must equal this poster's
+    // own `profiles.is_seed`, whatever that is — which is what makes this
+    // assertion still fail if someone ever lets the client win.
+    const posterProfile = await request.get(
+      `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${poster.user.id}&select=is_seed`,
+      { headers: rest(poster) },
+    );
+    expect(
+      posterProfile.ok(),
+      `poster profile read failed: ${posterProfile.status()} ${await posterProfile.text()}`,
+    ).toBe(true);
+    const [posterRow] = await posterProfile.json();
+    expect(posterRow, "poster has no profiles row").toBeTruthy();
     expect(
       job.is_seed,
-      "a poster INSERT must not be able to set is_seed — the column lock is the control here",
-    ).toBe(false);
+      "jobs.is_seed must come from the posting ACCOUNT, never from the client payload — " +
+        "the column lock ignored the is_seed:true sent above and derived this from profiles.is_seed",
+    ).toBe(posterRow.is_seed);
+    // Both CI accounts are @mailinator.com, so this should be a seed account.
+    // Asserted separately from the equality above so a red run says WHICH half
+    // broke: the derivation, or the fixture accounts losing their flag.
+    expect(
+      posterRow.is_seed,
+      "the CI poster is a @mailinator.com fixture account and must be flagged is_seed",
+    ).toBe(true);
     announceUncovered(
-      "Money sweeps are NOT excluded from the test job",
-      "`is_seed` is locked against posters in two places by design, so this run's job is visible to the " +
-        "five sweeps that filter on it. Bounded by the null parish, the browse embargo, the title marker " +
-        "and the sweeper that runs before and after. Closing it needs a SECURITY DEFINER RPC scoped to the " +
-        "two test accounts; a service-role key in CI is explicitly not the answer.",
+      "Seven money sweeps still see the test job",
+      "The five sweeps that filter on `is_seed` now skip this run's job, because the flag is derived " +
+        "from the @mailinator.com poster account. The other seven ignore the flag and still see it. " +
+        "Bounded by the null parish, the browse embargo, the title marker and the sweeper that runs " +
+        "before and after. Note the flip side: auto-release-payment now skips this job too, so the " +
+        "direct release-payout call below is load-bearing, not a shortcut.",
     );
 
     // --- 2. FUND (real Stripe Checkout) -------------------------------------

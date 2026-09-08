@@ -1012,6 +1012,9 @@ describe("Popup grammar — footer", () => {
       "Skip",
       "No Thanks",
       "Keep It On",
+      // BrandConfirmDialog dismiss for the helper's dispute withdrawal confirm.
+      // Communicates that the dispute stays open — not a generic "Cancel".
+      "Keep It Open",
       "Keep the Job",
       "Close",
       // DeleteAccountDialog's post-deletion confirmation. "Cancel" would be a

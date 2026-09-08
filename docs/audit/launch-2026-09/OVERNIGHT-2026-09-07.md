@@ -85,3 +85,12 @@ Report-only (owner calls): filter band header is sans-bold while every other she
 
 ## Stale prod config (S-006, no code change)
 `platform_settings.feature_flags` still carries `boosts_enabled`, `referrals_enabled`, `subscriptions_enabled`, `ai_helpr_assistant` = false, last touched 2026-05-02. Nothing in src/ or supabase/functions reads any of them (only `idv_requirement_paused` and `seed_jobs_hidden_publicly` are live). Subscriptions ARE sellable. Left in place — deleting keys from the live row is an owner call; one `update platform_settings set feature_flags = feature_flags - 'boosts_enabled' - …` clears it.
+
+## TC-008 — split payout state, CLOSED 01:40 (money-tc008, Opus)
+- What happened: the nightly money loop's `release-payout` sent Stripe transfer `tr_3UDDZQKp2H4b7tEC13IlnQEy` ($22.00) and then its post-transfer `jobs.update(... released)` failed. Real error (function_logs): **57014 "canceling statement due to statement timeout"** — the project was saturated 01:10–01:19Z (a 57014 every ~15 s in postgres_logs) and PostgREST's `authenticator` role carries an 8 s statement/lock timeout. The UPDATE itself is 22 ms.
+- Why it stayed broken: the duplicate-transfer check returned 409 forever, so the admin Release button and auto-release Phase 2 could never heal it. Split state was reachable only by hand SQL.
+- Reconciled live: job `0021b7d3…` `payout_pending → released` by the function's own guarded UPDATE (1 row); amounts agree three ways ($25 budget, 12% = $3.00 / $22.00; ledger row; Stripe).
+- Fix `506045e97`: post-transfer flip retries on transient codes only (57014/55P03/40001/40P01, 400/1500/4000 ms) and fails loudly first-try on zero-row or any other code; a settled transfer now HEALS the flip and returns 200 `already_paid:true` (Stripe never reached, no second transfer). 38/38 edge tests incl. the new retry/no-retry cases. Deployed bundle fingerprinted (run 34176869465).
+- Proven: money loop re-run 34176932229 ALL GREEN — transfer `tr_3UDDteKp2H4b7tEC0bXrRKfK` sent AND job flipped in one invocation.
+- Also fixed there: `e2e-real-backend.yml` queued dispatches were silently evicted by any push to main (one pending run per concurrency group); schedule/dispatch runs now salt the group with `run_id`. Survived a push while queued on its first outing.
+- Follow-up in flight: `process-scheduled-payouts/index.ts:843` has the identical unretried flip — being ported now.

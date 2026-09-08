@@ -256,7 +256,14 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               key={opt.key}
               onClick={() => setBillingInterval(opt.key)}
               className="relative h-11 rounded-ds-md text-ds-13 font-semibold transition-colors duration-200 inline-flex items-center justify-center gap-1.5"
-              style={{ color: active ? "hsl(var(--parchment))" : "hsl(var(--olivewood))" }}
+              style={{
+                color: active ? "hsl(var(--parchment))" : "hsl(var(--olivewood))",
+                // The btn-grad-primary pill is an absolute child; the button's own
+                // background-color is transparent, leaving axe to see only plain
+                // transparent → dark canvas. Override so walk and pixel methods both
+                // compute contrast against a dark background.
+                ...(active ? { backgroundColor: "hsl(var(--bark))" } : {}),
+              }}
             >
               {active && (
                 <motion.span

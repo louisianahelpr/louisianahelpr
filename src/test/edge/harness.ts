@@ -148,6 +148,21 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/releaseFlip.ts";`,
   );
 
+  // Unsettled-dispute gate: `_shared/unsettledDispute.ts` has ZERO imports (it
+  // takes the Supabase client as a parameter), so the generated file points at
+  // the REAL module — same reasoning as releaseFlip above. It is the ONLY thing
+  // that can tell a decided dispute whose split has executed from one whose has
+  // not: `rpc_decide_dispute` sets jobs.status='completed' and
+  // dispute_status='resolved' at DECISION time, so both markers release-payout
+  // otherwise reads already say "closed, pay it" while the escrow is untouched.
+  // Mocking it would put the guard against a full payout on a half-awarded job
+  // outside the tests that exist to check it — and its FAIL-CLOSED behaviour on
+  // an unreadable answer is precisely the part a mock would paper over.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/unsettledDispute\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/unsettledDispute.ts";`,
+  );
+
   // Captured-escrow resolver: `_shared/capturedEscrow.ts` has ZERO imports (it
   // is structurally typed over the PaymentIntent), so the generated file points
   // at the REAL module — same reasoning as payoutClaim above. It is the single

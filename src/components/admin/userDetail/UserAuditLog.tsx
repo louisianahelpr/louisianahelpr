@@ -263,7 +263,7 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
                     <time
                       className="text-ds-10 text-muted-foreground tabular-nums shrink-0"
                       dateTime={e.ts}
-                      title={new Date(e.ts).toLocaleString()}
+                      title={new Date(e.ts).toLocaleString("en-US")}
                     >
                       {formatDistanceToNow(new Date(e.ts), { addSuffix: true })}
                     </time>

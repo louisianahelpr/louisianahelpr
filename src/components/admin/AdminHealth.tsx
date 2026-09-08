@@ -493,7 +493,7 @@ const AdminHealth = () => {
           <p className="text-ds-11 text-muted-foreground">
             Last token registered{" "}
             <span className="text-foreground font-medium">
-              {new Date(pushStats.latestAt).toLocaleString()}
+              {new Date(pushStats.latestAt).toLocaleString("en-US")}
             </span>
           </p>
         )}

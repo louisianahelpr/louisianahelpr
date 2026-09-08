@@ -1477,7 +1477,7 @@ export function JobTracking({
                           },
                           onMouseEnter: () => setOpenStepTooltip(s.key),
                           onMouseLeave: () => setOpenStepTooltip((k) => (k === s.key ? null : k)),
-                          "aria-label": `${s.label} — ${new Date(ts as string).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
+                          "aria-label": `${s.label} — ${new Date(ts as string).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
                         }
                       : {})}
                     // `relative` is for the 44px hit overlay below; it does not
@@ -1549,7 +1549,7 @@ export function JobTracking({
                         boxShadow: "0 4px 14px -4px hsl(var(--ink-deep) / 0.4)",
                       }}
                     >
-                      {new Date(ts as string).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                      {new Date(ts as string).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                     </div>
                   )}
                   <span

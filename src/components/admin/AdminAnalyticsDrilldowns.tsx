@@ -243,7 +243,7 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
               <span>Budget: ${formatPrice(j.budget)}</span>
               <span>Fee: ${formatPrice(j.platform_fee_amount || 0)}</span>
               <span>Payout: ${formatPriceExact(j.budget - (j.platform_fee_amount || 0))}</span>
-              {j.payout_scheduled_at && <span>Scheduled: {new Date(j.payout_scheduled_at).toLocaleString()}</span>}
+              {j.payout_scheduled_at && <span>Scheduled: {new Date(j.payout_scheduled_at).toLocaleString("en-US")}</span>}
             </div>
           </div>
         ))}

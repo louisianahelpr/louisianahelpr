@@ -118,7 +118,7 @@ export const DisputeCard = ({
             <AlertTriangle className="w-3.5 h-3.5" /> Filed
             {record && (
               <span className="ml-1 text-ds-10 text-muted-foreground">
-                · {new Date(record.created_at).toLocaleString()}
+                · {new Date(record.created_at).toLocaleString("en-US")}
               </span>
             )}
           </p>
@@ -151,7 +151,7 @@ export const DisputeCard = ({
                 ? <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
                 : <CheckCircle2 className="w-3.5 h-3.5 text-primary" />} Decided
               <span className="ml-1 text-ds-10 text-muted-foreground">
-                · {new Date(record.decided_at).toLocaleString()}
+                · {new Date(record.decided_at).toLocaleString("en-US")}
               </span>
             </p>
             {record.decision_text && (

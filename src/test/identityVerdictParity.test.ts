@@ -100,11 +100,13 @@ describe("the hiring gate still bites", () => {
       .toBeLessThan(def.indexOf("helper_identity_unverified"));
   });
 
-  it("keeps the operator kill switch, and keeps it failing closed", () => {
-    expect(def).toContain("idv_requirement_paused");
-    // COALESCE(..., false) is what makes a missing row or key leave the
-    // requirement IN FORCE. Without it the switch fails open.
-    expect(def).toMatch(/COALESCE\s*\(\s*\(\s*s\.feature_flags/);
+  it("has no operator kill switch left", () => {
+    // Owner decision 2026-09-07: identity verification is always required, and
+    // the `idv_requirement_paused` flag that could lift it was deleted in
+    // migration 20260908001056. This asserts the LATEST definition carries no
+    // escape hatch — a re-introduced pause would fail here.
+    expect(def).not.toContain("idv_requirement_paused");
+    expect(def).not.toContain("feature_flags");
   });
 
   it("requires the literal 'verified', not merely a non-null idv_status", () => {

@@ -55,8 +55,8 @@
  *                            || '{"seed_jobs_hidden_publicly": true}'::jsonb;
  *
  * To put fixtures back, write `false` (or delete the key). The flag is named
- * for the EXCEPTION — `…_hidden_…`, not `show_…` — for the same reason
- * `idv_requirement_paused` is: every way of failing to read it (key absent,
+ * for the EXCEPTION — `…_hidden_…`, not `show_…` — because every way of
+ * failing to read it (key absent,
  * blob reset, no settings row, a replay onto a fresh database) has to land on
  * TODAY'S behaviour, which is fixtures visible. A `show_…` flag defaulting to
  * false would empty the public marketplace the moment the key went missing,

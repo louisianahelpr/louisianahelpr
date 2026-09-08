@@ -8,13 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
-import { Flag, Gauge, Percent, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
+import { Gauge, Percent, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
 import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
-import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
 import { resetMinSupportedBuildCache } from "@/lib/minSupportedBuild";
@@ -38,36 +37,6 @@ const FEE_LADDER: { id: SubscriptionTier; name: string; percent: number }[] = (
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-// Operator kill-switches. Keeping this as a constants list (vs rendering
-// every key found in the JSONB blob) means the UI surface is deterministic —
-// a stray key written by some other tool can't show up here as a mystery
-// toggle. A flag belongs here ONLY once something reads it; see
-// src/lib/featureFlags.ts.
-//
-// This list was five toggles until 2026-08-25, and none of the five were read
-// by anything: subscriptions/referrals/AI/boosts/IDV all wrote to
-// `feature_flags` and no screen or edge function ever looked. Four were
-// deleted rather than wired, because they gate features the app owns end to
-// end and which already fail gracefully on their own — a switch whose only
-// effect is to hide a working feature is a way to cause an outage, not
-// prevent one.
-//
-// The survivor is the one guarding an EXTERNAL dependency. If Stripe Identity
-// goes down, every Helpr is blocked from posting and accepting at the same
-// moment, and a native app cannot be hot-fixed inside App Review — so the
-// ability to lift that gate for an afternoon is worth a switch. It is phrased
-// as "paused" rather than "required" so that absent/unreadable means ENFORCED;
-// the reasoning is in featureFlags.ts.
-const KNOWN_FEATURE_FLAGS: { id: string; label: string; description: string; danger?: boolean }[] = [
-  {
-    id: "idv_requirement_paused",
-    label: "Pause identity verification",
-    description:
-      "Emergency use only. While ON, Helprs can post and accept jobs WITHOUT passing Stripe Identity. Turn this on only during a Stripe Identity outage, and turn it off the moment it clears.",
-    danger: true,
-  },
-];
-
 const AdminSettings = () => {
   // Read-only now — displayed as the payout functions' fail-safe fallback, not
   // as an editable rate. See the Fee Model card below for why.
@@ -77,12 +46,8 @@ const AdminSettings = () => {
   const [savingWebhook, setSavingWebhook] = useState(false);
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  // Min-build setter + flag toggles. featureFlags is a free-form map
-  // but we only surface KNOWN_FEATURE_FLAGS entries above.
   const [minBuild, setMinBuild] = useState<string>("0");
   const [savingMinBuild, setSavingMinBuild] = useState(false);
-  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
-  const [savingFlag, setSavingFlag] = useState<string | null>(null);
   // Abuse limits. Held as the raw strings the admin typed so that "blank" is a
   // representable state — a numeric state would have to invent a stand-in for
   // "no limit", and 0 is already spoken for as a synonym of it.
@@ -118,7 +83,7 @@ const AdminSettings = () => {
       console.error("[AdminSettings] loadSettings:", error);
       toast.error("Couldn't load platform settings — refresh to retry.");
     } else if (data) {
-      const row = data as typeof data & { min_supported_build?: number | null; feature_flags?: Record<string, boolean> | null };
+      const row = data as typeof data & { min_supported_build?: number | null };
       setCustomerFee(String(data.customer_fee_percent ?? 10));
       setHelperFee(String(data.helper_fee_percent ?? 10));
       setSocialWebhookUrl(String(data.social_webhook_url ?? ""));
@@ -126,14 +91,6 @@ const AdminSettings = () => {
       // Defensive defaults — columns are nullable + migration may not
       // be deployed yet, so always normalise to safe values.
       setMinBuild(String(row.min_supported_build ?? 0));
-      // `feature_flags` is a Postgres jsonb column typed as `Json` in the
-      // generated types (which includes primitives). We know rows only ever
-      // hold {[flag]: boolean} shape — narrow before spreading.
-      const flags = row.feature_flags;
-      const flagsObj = flags && typeof flags === "object" && !Array.isArray(flags)
-        ? (flags as Record<string, boolean>)
-        : ({} as Record<string, boolean>);
-      setFeatureFlags({ ...flagsObj });
       // Columns added by 20260907230038 and absent until it deploys — read
       // defensively, exactly like min_supported_build above.
       const caps = data as Record<string, unknown>;
@@ -199,38 +156,6 @@ const AdminSettings = () => {
     );
     await logAdminAction("update_settings", "platform_settings", settingsId, {
       min_supported_build: n,
-    });
-  };
-
-  const toggleFlag = async (id: string, value: boolean) => {
-    if (!settingsId) return;
-    setSavingFlag(id);
-    const nextFlags = { ...featureFlags, [id]: value };
-    // Optimistic — flip immediately so the UI feels responsive.
-    setFeatureFlags(nextFlags);
-    try {
-      unwrapMutation(
-        await (supabase.from as any)("platform_settings")
-          .update({ feature_flags: nextFlags })
-          .eq("id", settingsId)
-          .select("id"),
-        { action: "update this feature flag" },
-      );
-    } catch (err: any) {
-      setSavingFlag(null);
-      // Roll back optimistic change on failure.
-      setFeatureFlags(featureFlags);
-      if (err?.code === "42703") {
-        toast.error("This setting isn't live yet — the latest database update is still deploying. Try again in a few minutes.");
-      } else {
-        toast.error(mutationErrorMessage(err, err?.message));
-      }
-      return;
-    }
-    setSavingFlag(null);
-    await logAdminAction("update_settings", "platform_settings", settingsId, {
-      feature_flag: id,
-      value,
     });
   };
 
@@ -606,63 +531,6 @@ const AdminSettings = () => {
         <Button onClick={handleSaveCaps} disabled={savingCaps || !settingsId}>
           {savingCaps ? "Saving…" : "Save Abuse Limits"}
         </Button>
-      </AdminCard>
-
-      {/* Feature Flags */}
-      <AdminCard
-        title={<span className="flex items-center gap-2"><Flag className="w-4 h-4 text-primary" /> Feature Flags</span>}
-        subtitle="Emergency controls. Off is the normal state — leave them off unless you are working an incident."
-      >
-        {/* Live-state banner, shown only while the requirement is actually
-            paused. The card carried a permanent "these are not wired up"
-            warning between 2026-08-25 and this change, which was true then:
-            five toggles wrote to feature_flags and nothing read any of them.
-            Four were deleted and the fifth is now read on every post and every
-            accept, so a standing warning would be the new lie. It fires on
-            state instead — silent when safe, loud when a gate is down. */}
-        {!!featureFlags["idv_requirement_paused"] && (
-          <div className="rounded-ds-md border-2 border-destructive/40 bg-destructive/10 p-4 mb-3">
-            <div className="flex items-start gap-3">
-              <Flag className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-              <div className="flex-1 space-y-1">
-                <p className="text-ds-13 font-bold text-foreground">
-                  ⚠️ Identity verification is currently PAUSED
-                </p>
-                <p className="text-ds-11 text-muted-foreground leading-relaxed">
-                  Helprs can post and accept jobs without passing Stripe
-                  Identity right now. This is an outage measure — turn it back
-                  off as soon as Stripe Identity recovers.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="space-y-2.5">
-          {KNOWN_FEATURE_FLAGS.map((flag) => {
-            const value = !!featureFlags[flag.id];
-            return (
-              <div key={flag.id} className="flex items-start justify-between gap-3 rounded-ds-sm border border-border bg-card p-3">
-                <div className="min-w-0">
-                  <p className="text-ds-13 font-semibold text-foreground">{flag.label}</p>
-                  <p className="text-ds-11 text-muted-foreground leading-tight">{flag.description}</p>
-                  {/* No opacity here. --stormy-sky was set to 36% specifically to
-                      clear AA for small muted text (see the token comment in
-                      index.css); opacity-70 composited it against the card to
-                      #859095 = 3.27:1 at 10px, quietly undoing that tuning. The
-                      id stays de-emphasised by size + font-mono instead, which
-                      costs no contrast. */}
-                  <p className="text-ds-10 text-muted-foreground mt-0.5 font-mono">{flag.id}</p>
-                </div>
-                <Switch
-                  checked={value}
-                  onCheckedChange={(next) => toggleFlag(flag.id, next)}
-                  disabled={savingFlag === flag.id}
-                  aria-label={`${flag.label} feature flag`}
-                />
-              </div>
-            );
-          })}
-        </div>
       </AdminCard>
 
       {/* Min Supported Build */}

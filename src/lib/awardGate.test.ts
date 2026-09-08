@@ -15,29 +15,19 @@
 // The server's rule since migration 20260907013734 is EITHER verdict. These
 // tests pin the client to that rule, and pin the fail-closed direction so the
 // fix cannot be read as "identity is now optional".
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   isIdentityVerified,
   awardBlockReasonFromStatus,
   awardBlockFromError,
   type AwardGateStatus,
 } from "./awardGate";
-import { isIdvRequirementPaused } from "@/lib/featureFlags";
-
-vi.mock("@/lib/featureFlags", () => ({
-  isIdvRequirementPaused: vi.fn(async () => false),
-}));
-
 /** Payout-ready in every respect, so only the identity arm is under test. */
 const PAYOUT_READY: AwardGateStatus = {
   connected: true,
   details_submitted: true,
   payouts_enabled: true,
 };
-
-beforeEach(() => {
-  vi.mocked(isIdvRequirementPaused).mockResolvedValue(false);
-});
 
 describe("isIdentityVerified accepts either verdict, like the server", () => {
   it("accepts the Stripe Connect verdict alone", () => {
@@ -91,9 +81,12 @@ describe("awardBlockReasonFromStatus tracks helper_award_block_reason()", () => 
     await expect(awardBlockReasonFromStatus(null, "verified")).resolves.toBe("helper_unknown");
   });
 
-  it("honours the operator pause flag, and only via the flag", async () => {
-    vi.mocked(isIdvRequirementPaused).mockResolvedValue(true);
-    await expect(awardBlockReasonFromStatus(PAYOUT_READY, "pending")).resolves.toBeNull();
+  it("has no escape hatch: an unverified helper is refused, always", async () => {
+    // The `idv_requirement_paused` operator switch used to clear this arm.
+    // Owner deleted it 2026-09-07; there is deliberately nothing to mock here.
+    await expect(awardBlockReasonFromStatus(PAYOUT_READY, "pending")).resolves.toBe(
+      "helper_identity_unverified",
+    );
   });
 
   it("omitting idv_status keeps the old, stricter answer", async () => {

@@ -118,6 +118,9 @@ export function DatePickerField({
       <PopoverContent
         className="w-auto p-0 rounded-2xl"
         align="start"
+        // Radix Popover content is role="dialog"; without a name a screen
+        // reader announces an anonymous dialog on open.
+        aria-label="Choose a date"
         sideOffset={8}
         // Radix focuses the first focusable child on open. Inside the wheel
         // that is the topmost month row, and focusing it scrolls the column

@@ -62,9 +62,15 @@ const AdminDisputes = () => {
 
   const loadDisputes = useCallback(async () => {
     setLoading(true);
-    // Load both buckets in parallel — the queue stays responsive when
-    // an admin switches tabs.
-    const [openRes, decidedRes] = await Promise.all([
+    // Load all three independent reads in ONE round trip.
+    //
+    // The unsettled-disputes probe used to run AFTER this pair, even though
+    // it depends on nothing either query returns — it filters `disputes` by
+    // status alone. That made the queue's opening cost three serial
+    // PostgREST round trips before any row could be assembled; on a real
+    // admin session that is ~500 ms of pure latency for no reason. It is a
+    // sibling here, not a successor.
+    const [openRes, decidedRes, unsettledRes] = await Promise.all([
       supabase
         .from("jobs")
         .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount")
@@ -76,6 +82,12 @@ const AdminDisputes = () => {
         .not("dispute_resolved_at", "is", null)
         .order("dispute_resolved_at", { ascending: false })
         .limit(50),
+      // Decided disputes whose settlement has NOT executed. `.or` admits NULL
+      // as well as 'pending' — see the comment on `unsettledJobIds` below.
+      (supabase.from as any)("disputes")
+        .select("job_id")
+        .eq("status", "decided")
+        .or("execution_status.is.null,execution_status.neq.executed"),
     ]);
 
     if (openRes.error) {
@@ -107,10 +119,11 @@ const AdminDisputes = () => {
     // a database where that migration has not landed yet must still find them.
     const unsettledJobIds = new Set<string>();
     {
-      const { data: unsettledRows, error: unsettledErr } = await (supabase.from as any)("disputes")
-        .select("job_id")
-        .eq("status", "decided")
-        .or("execution_status.is.null,execution_status.neq.executed");
+      const { data: unsettledRows, error: unsettledErr } = unsettledRes as {
+        data: { job_id: string }[] | null;
+         
+        error: any;
+      };
       if (unsettledErr) {
         // 42703/PGRST205/42P01 = the execution columns or the table itself
         // aren't deployed yet; anything else is a real failure and must not be
@@ -146,7 +159,31 @@ const AdminDisputes = () => {
     // Falls back silently when the disputes table doesn't exist yet
     // (PGRST205 / 42P01) — the legacy jobs.dispute_* columns drive the
     // view in that case.
+    //
+    // This read and the profiles read below are ISSUED TOGETHER — they both
+    // depend only on the job lists already in hand and on nothing the other
+    // returns, so running them back to back cost a whole extra round trip.
     const allJobIds = [...openJobs.map((j) => j.id), ...decided.map((j) => j.id)];
+    // Profile names and subscription tiers, for the priority sort below.
+    const userIds = [
+      ...new Set(
+        [...openJobs, ...decided].flatMap((j) => [j.customer_id, j.helper_id, j.disputed_by].filter(Boolean) as string[]),
+      ),
+    ];
+    //
+    // `Promise.resolve(...)` is LOAD-BEARING, not decoration. A PostgREST
+    // builder is lazy: it only issues the HTTP request when something calls
+    // its `.then()`. Holding the bare builder in a variable and awaiting it
+    // later would send it later too — the request would still be serial with
+    // the records read below and this change would do nothing. Assimilating
+    // the thenable here calls `.then()` now, so the request is in flight
+    // while the records query runs.
+    const profilesPromise = userIds.length > 0
+      ? Promise.resolve(
+          supabase.from("profiles").select("user_id, full_name, subscription_tier").in("user_id", userIds),
+        )
+      : null;
+
     const recordsMap: Record<string, DisputeRecord> = {};
     if (allJobIds.length > 0) {
       const BASE_COLUMNS =
@@ -180,15 +217,9 @@ const AdminDisputes = () => {
     }
     setDisputeRecords(recordsMap);
 
-    // Load profile names and subscription tiers for priority sorting
-    const userIds = [
-      ...new Set(
-        [...openJobs, ...decided].flatMap((j) => [j.customer_id, j.helper_id, j.disputed_by].filter(Boolean) as string[]),
-      ),
-    ];
     const tMap: Record<string, string | null> = {};
-    if (userIds.length > 0) {
-      const { data: profs, error: profsErr } = await supabase.from("profiles").select("user_id, full_name, subscription_tier").in("user_id", userIds);
+    if (profilesPromise) {
+      const { data: profs, error: profsErr } = await profilesPromise;
       if (profsErr) report(profsErr, { tags: { source: "AdminDisputes.loadProfiles" } });
       const map: Record<string, string> = {};
       profs?.forEach((p) => {

@@ -260,7 +260,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
                 You earned {formatUsdCents(totalCents)}
               </h3>
               <p
-                className="font-serif italic truncate text-ds-12"
+                className="font-sans truncate text-ds-12"
                 style={{
                   color: "hsl(var(--olivewood) / 0.8)",
                 }}

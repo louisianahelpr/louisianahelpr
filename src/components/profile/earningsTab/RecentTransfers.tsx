@@ -36,7 +36,7 @@ export function RecentTransfers({ payoutLedger }: RecentTransfersProps) {
                     </h3>
                     <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${tone}`}>{payoutStatusLabel(t.status)}</span>
                   </div>
-                  <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     {date}
                     {/* The middot is real text, not a margin. `ml-2` gave the
                         ID visual air but nothing separated the two tokens in
@@ -55,11 +55,11 @@ export function RecentTransfers({ payoutLedger }: RecentTransfersProps) {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-display italic font-bold tabular-nums text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
+                  <p className="font-sans font-bold tabular-nums text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
                     ${amount}
                   </p>
                   {t.platform_fee_cents > 0 && (
-                    <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                    <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       fee ${fee}
                     </p>
                   )}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 2500;
 // How long we will wait for a session RESTORE that we know is in flight (a
@@ -101,7 +102,13 @@ const getSessionWithTimeout = async (): Promise<{ session: Session | null; timed
     if (result === TIMED_OUT) return { session: null, timedOut: true };
     if (!result) return { session: null, timedOut: false };
     return { session: result.data.session ?? null, timedOut: false };
-  } catch {
+  } catch (err) {
+    // Not silent: `getSession()` throwing is abnormal (a corrupt or
+    // unreadable stored session), and it is indistinguishable from a clean
+    // signed-out boot to everything downstream — the user simply lands on
+    // /login with nothing recorded. Report it, then fall through to the
+    // signed-out answer, which is the only safe one available here.
+    report(err, { severity: "warning", tags: { area: "auth", op: "bootstrapGetSession" } });
     return { session: null, timedOut: false };
   }
 };

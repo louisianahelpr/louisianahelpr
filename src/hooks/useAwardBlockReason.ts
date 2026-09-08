@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { isIdvRequirementPaused } from "@/lib/featureFlags";
 import { isIdentityVerified, type AwardBlockReason } from "@/lib/awardGate";
 
 /**
@@ -33,36 +31,15 @@ import { isIdentityVerified, type AwardBlockReason } from "@/lib/awardGate";
  * `profiles` row (`select("*")`) and keeps it live over realtime, so this adds
  * no round-trip on the apply path. The predicate below mirrors
  * `helper_award_block_reason` branch for branch — including the seed carve-out
- * and the operator pause flag — so the helper is never shown a block the
- * server would not raise, and never shown silence where it would.
+ * — so the helper is never shown a block the server would not raise, and never
+ * shown silence where it would.
  *
- * FAILS CLOSED-ISH, ON PURPOSE, IN THE HARMLESS DIRECTION. While the pause
- * flag is still resolving we report no identity block rather than a block that
- * might not exist: the cost of a missing explanation is a helper who learns
- * this one screen later, and the cost of a false one is telling somebody they
- * cannot be hired when they can. `isIdvRequirementPaused` is TTL-cached and
- * de-duplicates in flight, so this settles on the first apply and stays warm.
+ * There is no operator pause any more (owner, 2026-09-07; migration
+ * 20260908001056 deleted the flag and every reader of it), so the identity arm
+ * is a pure function of the profile already in hand and settles synchronously.
  */
 export function useAwardBlockReason(): AwardBlockReason | null {
   const { profile } = useCurrentUser();
-  const [idvPaused, setIdvPaused] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    void isIdvRequirementPaused()
-      .then((paused) => {
-        if (alive) setIdvPaused(paused);
-      })
-      // The helper honours the operator kill switch; a failed read of it is
-      // not something to surface here. Treat it as "unresolved" and stay
-      // quiet on the identity branch rather than inventing an answer.
-      .catch(() => {
-        if (alive) setIdvPaused(null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   // No profile loaded is not "blocked" — it is "we do not know yet". Saying
   // nothing is the only honest render; `helper_unknown` is a real server
@@ -82,7 +59,7 @@ export function useAwardBlockReason(): AwardBlockReason | null {
     connectIdentityVerified: profile.stripe_identity_verified,
     idvStatus: profile.idv_status,
   });
-  if (!identityOk && idvPaused === false) return "helper_identity_unverified";
+  if (!identityOk) return "helper_identity_unverified";
 
   return null;
 }

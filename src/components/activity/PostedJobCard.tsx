@@ -115,6 +115,20 @@ function PostedJobCardInner({
       job.status === "completed") &&
       !!job.helper_id) ||
     job.status === "open";
+  /* An unfunded job has not been posted to anyone. All four browse surfaces
+     require a funded payment_status, so no helper can return it — yet three
+     controls on this card asserted the opposite, and the poster believed them:
+     the tracker lit "Posted" as a COMPLETED step roughly 40px above the notice
+     reading "Payment not finished"; the Applicants button offered to show
+     applicants for a listing nobody could see (and its "0" reads as weak
+     demand rather than as invisibility); and Boost offered to charge for
+     promoting it.
+
+     Each is gated off rather than reworded, because there is no true version
+     of any of them until the money lands. UnfundedJobNotice is then the only
+     thing this card says about state, which is the point — one claim, and a
+     button that fixes it. */
+  const unfunded = shouldShowUnfundedNotice(job);
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
 
   /**
@@ -269,12 +283,12 @@ function PostedJobCardInner({
               >
                 <AlertTriangle className="w-3 h-3 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
                 <span
-                  className="font-serif italic uppercase text-ds-10"
+                  className="font-sans uppercase text-ds-10"
                   style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                 >
                   {job.dispute_status === "escalated" ? "Admin reviewing" : "Dispute open"}
                 </span>
-                <span className="font-serif italic text-ds-11 ml-auto" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+                <span className="font-sans text-ds-11 ml-auto" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
                   Payment on hold
                 </span>
               </div>
@@ -338,13 +352,17 @@ function PostedJobCardInner({
                 copy lives here, and it renders nothing at all when collapsed. */}
             {isExpanded && (hasDescription || hasRequirements) && (
               <div className="space-y-1.5">
+                {/* `break-words` on both: a description is free text, and one
+                    unbroken token (a URL, a gate-code string, a pasted address
+                    with no spaces) ran straight out of the card and was cut at
+                    its edge — measured at 375, 2026-09-07. Wrap it, never clip. */}
                 {hasDescription && (
-                  <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
+                  <p className="text-ds-11 text-muted-foreground leading-relaxed break-words">{job.description}</p>
                 )}
                 {hasRequirements && (
                   <div className="rounded-ds-sm bg-secondary/30 p-2">
                     <p className="text-ds-10 text-muted-foreground mb-0.5">Special Requirements</p>
-                    <p className="text-ds-11 text-foreground">{job.special_requirements}</p>
+                    <p className="text-ds-11 text-foreground break-words">{job.special_requirements}</p>
                   </div>
                 )}
               </div>
@@ -507,7 +525,7 @@ function PostedJobCardInner({
                   it also shows the ORDER the steps happen in. */}
 
               {/* Visible live tracking */}
-              {showsTracker && (
+              {showsTracker && !unfunded && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <JobTracking includePostingSteps jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
                 </div>
@@ -566,10 +584,10 @@ function PostedJobCardInner({
                       strokeWidth={2.25}
                     />
                     <p
-                      className="font-serif italic leading-snug text-ds-12"
+                      className="font-sans leading-snug text-ds-12"
                       style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                     >
-                      <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                      <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                         No live map for this job.
                       </span>{" "}
                       We couldn't pin this job's address on a map, so {helperName}'s
@@ -710,7 +728,7 @@ function PostedJobCardInner({
               )}
 
               {/* Applicants button + inline expanded applicant list */}
-              {job.status === "open" && (
+              {job.status === "open" && !unfunded && (
                 <PostedJobApplicants
                   job={job}
                   applicantCounts={applicantCounts}
@@ -734,6 +752,7 @@ function PostedJobCardInner({
                 helperNames={helperNames}
                 completedJobMeta={completedJobMeta}
                 onBoost={onBoost}
+                unfunded={unfunded}
                 onEdit={onEdit}
                 onCancel={onCancel}
                 onComplete={onComplete}

@@ -66,7 +66,7 @@ export function FormStep({ form }: FormStepProps) {
         />
       )}
 
-      {atOpenJobLimit && <OpenJobLimitNotice />}
+      {atOpenJobLimit && <OpenJobLimitNotice count={form.openJobCount ?? 5} />}
 
       {/* Draft tab, template picker, and AI builder all live on the entry
           step (EntryChoice) now — the form is for filling in details, not
@@ -218,7 +218,7 @@ export function FormStep({ form }: FormStepProps) {
                   numbers. Show the cents. */}
               {formReady && form.totalCharge > 0 && (
                 <span
-                  className="font-display italic font-bold tabular-nums shrink-0 text-ds-16"
+                  className="font-sans font-bold tabular-nums shrink-0 text-ds-16"
                   style={{ letterSpacing: "-0.01em" }}
                 >
                   {" "}· ${formatPriceExact(form.totalCharge)}

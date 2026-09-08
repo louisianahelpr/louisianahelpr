@@ -60,13 +60,14 @@ export default {
       },
       fontFamily: {
         // Brand system (Louisiana Helpr, 2026):
-        //   - Display: Bodoni Moda (architectural authority — large hero headlines)
-        //   - Serif:   EB Garamond (timeless trustworthy — body text)
-        //   - Sans:    Montserrat (modern professional — UI + buttons)
+        //   - Display: Bodoni Moda (architectural authority — headings ONLY)
+        //   - Sans:    Montserrat (everything else: body, labels, counts, nav,
+        //              captions, placeholders, toasts). EB Garamond was removed
+        //              2026-09-07 (owner: three typefaces → two); there is no
+        //              `serif` token on purpose — do not add one back.
         //   - Script:  Beth Ellen (personal authentic — micro-accents / signatures)
         sans: ["Montserrat", "system-ui", "-apple-system", "sans-serif"],
         display: ["\"Bodoni Moda\"", "Georgia", "serif"],
-        serif: ["\"EB Garamond\"", "Georgia", "Cambria", "serif"],
         script: ["\"Beth Ellen\"", "cursive"],
       },
       colors: {

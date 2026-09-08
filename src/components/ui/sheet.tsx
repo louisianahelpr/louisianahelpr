@@ -255,7 +255,16 @@ const SheetHero = ({
   // (whose title is arbitrary user text) the title painted under the X. The
   // reserve is not a suggestion; a caller must not be able to merge it away.
   <SheetHeader className="space-y-0 text-left pr-0">
-    <div className="pr-12">
+    {/* `min-h-11 flex items-center`: the row is as TALL as the X, not just as
+        wide. The X is a 44px box at top 1rem, so it reaches 60px into the
+        card; a one-line title is 24px, so whatever came next started at
+        ~40px and ran under the X's lower half. Measured 2026-09-07 on the
+        completion sheet at 375: X box 306→350, first option card 330→403 —
+        a 20px overlap with the glyph sitting on the card's top border. Same
+        idea as DialogContent's `pt-11` reserve, expressed as the title row's
+        own height so the title also centres on the X instead of sitting 7px
+        above its centre line. */}
+    <div className="pr-12 min-h-11 flex items-center">
       <SheetTitle
         // NO `pt-2`. DialogHero had that exact class
         // removed on 2026-08-29 ("the container's own padding already clears

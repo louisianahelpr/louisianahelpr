@@ -4,7 +4,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { BOOST_FEE_CENTS, BOOST_DURATION_HOURS, BOOST_DISCOUNT_PCT, BOOST_MIN_UNIT_AMOUNT_CENTS } from "../_shared/productPrices.ts";
-import { TIER_DISPLAY_NAMES } from "../_shared/tierNames.ts";
+import { TIER_DISPLAY_NAMES, tierDisplayName } from "../_shared/tierNames.ts";
+import { hasPerk } from "../_shared/tierPerks.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -91,11 +92,17 @@ serve(async (req) => {
       );
     }
     const subTier = (posterProfile?.subscription_tier ?? "free") as string;
+    // A NULL expiry on a paid tier means "no scheduled end" and counts as
+    // ACTIVE. This read `: false`, i.e. the opposite — so a comped/lifetime
+    // Elite row with no expiry lost its included boost and was sent to Stripe
+    // to pay for it. The convention is documented once, in _shared/tierPerks.ts,
+    // and every other gate (instant-payout, EarningsTab, the fee resolvers)
+    // already used it; this endpoint was the outlier.
     const subExp = posterProfile?.subscription_expires_at
       ? new Date(posterProfile.subscription_expires_at)
       : null;
-    const subActive = subExp ? subExp > new Date() : false;
-    if (subActive && subTier === "elite") {
+    const subActive = subExp ? subExp > new Date() : true;
+    if (hasPerk(subTier, "freeBoosts", subActive)) {
       const boostExpires = new Date(Date.now() + BOOST_DURATION_HOURS * 60 * 60 * 1000);
       // `.select("id")` + a zero-row branch, per CLAUDE.md. This response is the
       // ONLY thing that tells an Elite member their perk was applied, and an
@@ -131,12 +138,14 @@ serve(async (req) => {
       );
     }
 
-    // Pro perk: ONE FREE BOOST per calendar month (owner, 2026-08-24),
+    // Pro-and-up perk: ONE FREE BOOST per calendar month (owner, 2026-08-24),
     // tracked by profiles.boost_credit_used_month (YYYY-MM). After it's
-    // spent, Pro falls through to its 20% discount below. The month check
+    // spent, the tier falls through to its 20% discount below. The month check
     // and the stamp are one conditional UPDATE so two same-moment boosts
     // can't both ride the credit.
-    if (subActive && (subTier === "pro")) {
+    // Plus inherits this from Pro (CC-019: the literal `subTier === "pro"`
+    // silently withheld the monthly boost from the tier ABOVE Pro).
+    if (hasPerk(subTier, "monthlyFreeBoost", subActive)) {
       const thisMonth = new Date().toISOString().slice(0, 7);
       const { data: credited, error: creditErr } = await supabaseAdmin
         .from("profiles")
@@ -197,21 +206,26 @@ serve(async (req) => {
           JSON.stringify({
             free: true,
             boost_expires_at: boostExpires.toISOString(),
-            message: `Job boosted — your free ${TIER_DISPLAY_NAMES[subTier] ?? TIER_DISPLAY_NAMES.pro} boost this month`,
+            message: `Job boosted — your free ${tierDisplayName(subTier)} boost this month`,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
         );
       }
     }
 
-    // Basic / Pro perk: 20% off boosts. Same Stripe Checkout flow as the
+    // Subscriber perk: 20% off boosts. Same Stripe Checkout flow as the
     // full-price case below, but the unit_amount is discounted and the
     // product description names the subscriber discount so the receipt is
-    // legible. Elite is already returned above (free), and Free falls through
-    // to the full BOOST_FEE_CENTS price. There is no "Plus" or "Business" tier
-    // — TIER_DISPLAY_NAMES / PRO_PRICE_MAP define exactly free/basic/pro/elite,
-    // and this comment used to name two rungs that do not exist.
-    const isBoostDiscountTier = subActive && (subTier === "basic" || subTier === "pro");
+    // legible. A tier with `freeBoosts` is already returned above, and Free
+    // falls through to the full BOOST_FEE_CENTS price.
+    //
+    // CC-019: this was `subTier === "basic" || subTier === "pro"`, and the
+    // comment above it asserted "There is no Plus tier" — which had been false
+    // since 2026-09-05. A Plus poster was charged full price for a boost their
+    // plan discounts, on both this endpoint and the client quote in
+    // src/lib/productPrices.ts, which held its own copy of the same list.
+    // Both now ask TIER_PERK_MATRIX.
+    const isBoostDiscountTier = hasPerk(subTier, "boostDiscount", subActive);
     // MIN_UNIT_AMOUNT_CENTS: an absolute floor covering Stripe's per-charge
     // cost (~30¢ fixed + 2.9% variable) plus a thin platform margin, so a
     // future BOOST_FEE_CENTS drop can't silently invert unit economics on
@@ -237,7 +251,7 @@ serve(async (req) => {
     const productName = isBoostDiscountTier
       ? (flooredBelowDiscount
           ? "Job Boost — 24-hour featured placement"
-          : `Job Boost — 24-hour featured placement (${BOOST_DISCOUNT_PCT}% off with ${subTier === "basic" ? TIER_DISPLAY_NAMES.basic : TIER_DISPLAY_NAMES.pro})`)
+          : `Job Boost — 24-hour featured placement (${BOOST_DISCOUNT_PCT}% off with ${tierDisplayName(subTier)})`)
       : "Job Boost — 24-hour featured placement";
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {

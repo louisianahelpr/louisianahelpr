@@ -46,6 +46,11 @@ type CancellationDialogProps = {
   /* No `userId`: the cancelling identity is auth.uid() inside
      poster_cancel_job now, so the client no longer asserts who it is. */
   hasHelper: boolean;
+  /** Whether money was ever actually taken for this job. An abandoned or
+   *  never-started checkout leaves payment_status 'unpaid'/'abandoned' with
+   *  nothing held, and promising a refund there is a false statement about
+   *  the poster's money — see the confirmation toast below. */
+  wasFunded: boolean;
   helperId?: string | null;
   helperName?: string;
   open: boolean;
@@ -53,7 +58,7 @@ type CancellationDialogProps = {
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, hasHelper, helperId: _helperId, helperName, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, hasHelper, wasFunded, helperId: _helperId, helperName, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Is this a recurring PARENT? Fetched on open so the dialog can say the
   // one thing the card no longer says (owner: card = less hectic; the
   // cancel-scope warning belongs at the moment of cancelling).
@@ -231,9 +236,18 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
       // They agree (same ladder, same Chicago-midnight clock), but the row is
       // the authority now that the client no longer writes it.
       toast.success(
-        appliedFee > 0
-          ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.`
-          : "Job cancelled — the full amount returns to your card.",
+        !wasFunded
+          ? // Nothing was ever charged, so there is nothing to return. This
+            // branch exists because the unfunded case used to fall through to
+            // the refund sentence below and tell a poster whose checkout never
+            // completed that "the full amount returns to your card" — a
+            // promise of money movement that will never appear on a statement,
+            // on the one screen where they are already unsure what happened to
+            // their payment.
+            "Job cancelled. Your checkout was never completed, so you were never charged — there's nothing to refund."
+          : appliedFee > 0
+            ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.`
+            : "Job cancelled — the full amount returns to your card.",
         { action: { label: "Dismiss", onClick: () => { /* toast closes itself */ } } },
       );
       onCancelled();
@@ -363,7 +377,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
               </div>
             </div>
             {!hasHelper && (
-              <p className="text-ds-11 text-muted-foreground italic">✓ These consequences don&apos;t apply to you — no Helpr has been selected.</p>
+              <p className="text-ds-11 text-muted-foreground">✓ These consequences don&apos;t apply to you — no Helpr has been selected.</p>
             )}
           </div>
 
@@ -449,7 +463,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                 </p>
               </div>
               <p
-                className="font-serif italic text-ds-12"
+                className="font-sans text-ds-12"
                 style={{ color: "hsl(var(--success-ink))" }}
               >
                 {helperName || "Your Helpr"} is notified the moment you confirm, and their share of the ${formatPrice(cancellationFee)} cancellation fee is transferred to them automatically within the hour.
@@ -460,7 +474,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
           <div className="space-y-1.5">
             <label
               htmlFor="cancel-reason"
-              className="font-serif italic uppercase block text-ds-10"
+              className="font-sans uppercase block text-ds-10"
               style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               Reason — optional
@@ -470,7 +484,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={2}
-              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14"
+              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14"
             />
           </div>
         </div>

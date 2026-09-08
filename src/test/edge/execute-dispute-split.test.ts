@@ -468,8 +468,16 @@ describe("execute-dispute-split edge function", () => {
       expect(body.is_group_job).toBe(true);
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
-      // Nothing may be claimed either — a rejected split is not "attempted".
-      expect(writesTo("disputes")).toHaveLength(0);
+      // A rejected split is not "attempted" — nothing may be CLAIMED. But it
+      // must still be RECORDED: a pre-claim refusal that wrote nothing left the
+      // dispute's execution_status NULL, indistinguishable from a dispute
+      // nobody has decided, so a decided-but-unsettled case was invisible to
+      // every query. Refusals now park the dispute in the re-claimable
+      // 'failed' state with the reason.
+      const writes = writesTo("disputes");
+      expect(writes).toHaveLength(1);
+      expect(writes[0]).toMatchObject({ execution_status: "failed" });
+      expect(String(writes[0].execution_error)).toMatch(/group jobs/i);
     });
 
     it("rejects a terminal job on a FIRST attempt — that escrow was settled elsewhere", async () => {
@@ -485,6 +493,49 @@ describe("execute-dispute-split edge function", () => {
       expect(body.is_resume).toBe(false);
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    });
+
+    it("treats the RPC's 'pending' stamp as a first attempt, NOT a resume", async () => {
+      // `rpc_decide_dispute` now stamps execution_status='pending' the moment a
+      // decision is recorded, so "decided but unsettled" is a state the database
+      // can be queried for. That stamp is NOT evidence a prior run moved money.
+      // If it were counted as a resume it would widen the payment-state gate to
+      // released/refunded on a FIRST attempt — letting this function settle a
+      // split against an escrow some other path had already paid out.
+      seedExecutable(scenario, {
+        job: { payment_status: "released" },
+        dispute: { execution_status: "pending" },
+      });
+      const fn = await load();
+      const res = await invoke(fn);
+      const body = await json(res);
+
+      expect(res.status).toBe(409);
+      expect(body.is_resume).toBe(false);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      // And the refusal is recorded, so the case stays findable.
+      expect(writesTo("disputes")[0]).toMatchObject({ execution_status: "failed" });
+    });
+
+    it("records the c7a12050 refusal — an escrow with no PaymentIntent", async () => {
+      // The prod case: an escrow set with no PaymentIntent, so the split is
+      // correctly refused. What was wrong is what happened NEXT — the refusal
+      // returned to the browser and wrote nothing, leaving a decided dispute
+      // with $180 unmoved and execution_status NULL, which no query could find.
+      seedExecutable(scenario, { job: { stripe_payment_intent_id: null, stripe_session_id: null } });
+      const fn = await load();
+      const res = await invoke(fn);
+      const body = await json(res);
+
+      expect(res.status).toBe(409);
+      expect(body.error).toMatch(/payment intent/i);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      const writes = writesTo("disputes");
+      expect(writes).toHaveLength(1);
+      expect(writes[0]).toMatchObject({ execution_status: "failed" });
+      expect(String(writes[0].execution_error)).toMatch(/payment intent/i);
     });
 
     it("ALLOWS a terminal job when a prior attempt of this split claimed it", async () => {
@@ -893,9 +944,13 @@ describe("execute-dispute-split edge function", () => {
 
       const failure = writeRecords("disputes").pop()!;
       expect(failure.payload).toMatchObject({ execution_status: "failed" });
+      // The guard is an `.or`, NOT `.neq("execution_status","executed")`.
+      // PostgREST renders neq as SQL `<>`, and `NULL <> 'executed'` is NULL —
+      // so the neq form matched ZERO ROWS on every dispute whose execution had
+      // never been attempted, which is precisely the set this write exists for.
       expect(failure.filters).toEqual(
         expect.arrayContaining([
-          { op: "neq", column: "execution_status", value: "executed" },
+          { op: "or", column: "", value: "execution_status.is.null,execution_status.neq.executed" },
         ]),
       );
     });

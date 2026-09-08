@@ -407,7 +407,7 @@ export function ActiveJobSection({
                 {label === "Mark Complete" ? "I'm Done — Request Payout" : label}
               </Button>
               {tooEarly && (
-                <p className="font-serif italic text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-sans text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Available 30 minutes after arrival to ensure quality.
                 </p>
               )}
@@ -463,7 +463,7 @@ export function ActiveJobSection({
                 )}
               </JobActionRow>
               {aborted && (
-                <p className="font-serif italic text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-sans text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   {aborted === "disputed"
                     ? "You’ve told the poster you can’t finish. Our team is reviewing what you’re owed — the payment is held safely until then."
                     : "You’ve told the poster you can’t finish. The job is open to other Helprs again."}
@@ -490,7 +490,7 @@ export function ActiveJobSection({
         >
           <div className="space-y-2.5">
             {/* The money outcome, stated plainly, before the tap. */}
-            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood))" }}>
+            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood))" }}>
               {abortWorkStarted
                 ? "You’ve already started, so we won’t decide who’s owed what on our own. The poster’s payment is held safely and our team reviews it — you may still be paid for the part you did."
                 : "You never started, so the poster is charged nothing. The job reopens for other Helprs right away and their payment stays protected."}

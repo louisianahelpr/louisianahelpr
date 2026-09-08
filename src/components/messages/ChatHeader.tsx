@@ -232,7 +232,7 @@ export function ChatHeader({
           {/* Subtitle — the job this thread is about, sharing the avatar's
               right-hand column so it reads as one identity block. */}
           <span id={subtitleId} className="flex items-center gap-1.5 w-full min-w-0">
-            <span className="text-ds-11 truncate min-w-0 leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <span className="text-ds-11 truncate min-w-0 leading-tight font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {activeConvo.jobTitle}
             </span>
           </span>

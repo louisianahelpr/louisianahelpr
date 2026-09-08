@@ -110,7 +110,7 @@ export function JobPrice({
   if (variant === "chip") {
     const amountNode = (
       <span
-        className={`font-display leading-none tabular-nums ${size === "lg" ? "text-ds-22" : "text-ds-17"}`}
+        className={`font-sans leading-none tabular-nums ${size === "lg" ? "text-ds-22" : "text-ds-17"}`}
         style={{
           fontWeight: 800,
           color: "hsl(var(--bark))",
@@ -192,7 +192,7 @@ export function JobPrice({
           you earn"), so it earns the size and weight to read as the
           headline of the whole card. */}
       <p
-        className="font-display font-bold italic tabular-nums leading-none text-ds-32"
+        className="font-sans font-bold tabular-nums leading-none text-ds-32"
         style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
       >
         ${earnings}
@@ -202,7 +202,7 @@ export function JobPrice({
           it doesn't carry the same disclosure concern. */}
       {showBudget && (
         <p
-          className="font-serif italic tabular-nums text-ds-12 mt-1"
+          className="font-sans tabular-nums text-ds-12 mt-1"
           style={{ color: "hsl(var(--muted-foreground))" }}
         >
           Budget

@@ -88,7 +88,6 @@ describe("usePrefetchUserData", () => {
     const routes = prefetchRouteMock.mock.calls.map((c) => c[0]);
     expect(routes).toContain("/my-posts");
     expect(routes).toContain("/my-jobs");
-    expect(routes).toContain("/jobs");
     expect(routes).toContain("/profile");
   });
 

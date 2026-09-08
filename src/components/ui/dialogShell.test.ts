@@ -384,7 +384,7 @@ describe("Popup grammar — body voice", () => {
   it("DialogBody is byte-identical to the confirm family's description", () => {
     const dlg = read("src/components/ui/dialog.tsx");
     const brand = read("src/components/ui/BrandConfirmDialog.tsx");
-    const TYPE = "font-serif italic text-ds-12 leading-relaxed";
+    const TYPE = "font-sans text-ds-12 leading-relaxed";
     const COLOR = 'hsl(var(--olivewood) / 0.8)';
     expect(dlg, "DialogBody's type token").toContain(TYPE);
     expect(dlg, "DialogBody's colour").toContain(COLOR);

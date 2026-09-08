@@ -48,7 +48,7 @@ export function RecentWorkSection({
           Emphasis now rides weight + colour while the family stays put, which
           is the pattern the rest of this form already uses (see the "Next: …"
           line in ProfileEditForm). */}
-      <p className="font-serif italic leading-snug -mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+      <p className="font-sans leading-snug -mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         Show off recent jobs — applicants see these when deciding to apply.
         {" "}<span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Photos save automatically.</span>
       </p>

@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Clock } from "lucide-react";
-import { postAuthDestination } from "@/lib/jobIntent";
+import { postAuthDestination, rememberSignupRedirect } from "@/lib/jobIntent";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
   setLastAuthMethod,
 } from "@/lib/lastAuthMethod";
 import { safeStorage } from "@/lib/safeStorage";
+import { safeInternalRedirect } from "@/lib/authRedirects";
 
 const LOGIN_TIMEOUT_MS = 15000;
 
@@ -53,6 +54,11 @@ function readAttemptState(): LoginAttemptState {
         parsed.lockedUntil && parsed.lockedUntil > now ? parsed.lockedUntil : null,
     };
   } catch {
+    // Silent by design: an unreadable or corrupt attempt record resets the
+    // client-side rate-limit hint to "no attempts yet". That is only a UI
+    // affordance — the real throttle is server-side — so failing open here
+    // costs a local hint, not a protection. Reporting would fire for every
+    // private-mode user on every load.
     return { attempts: [], lockedUntil: null };
   }
 }
@@ -60,7 +66,11 @@ function readAttemptState(): LoginAttemptState {
 function writeAttemptState(state: LoginAttemptState): void {
   try {
     safeStorage.setItem(LOGIN_ATTEMPTS_KEY, JSON.stringify(state));
-  } catch { /* ignore quota */ }
+  } catch {
+    // Silent by design, and unreachable in practice — safeStorage already
+    // swallows the quota/private-mode throw. Same reasoning as the read
+    // above: this record only drives a local hint, never the real throttle.
+  }
 }
 
 function clearAttemptState(): void {
@@ -116,7 +126,13 @@ const Login = () => {
       const hit = sessionStorage.getItem("helpr_signed_out_reason") === "inactivity";
       if (hit) sessionStorage.removeItem("helpr_signed_out_reason");
       return hit;
-    } catch { return false; }
+    } catch {
+      // Silent by design: this only decides whether to show a one-shot
+      // "you were signed out for inactivity" note. sessionStorage throws in
+      // private mode; not showing an explanatory line is the correct
+      // degradation, and there is nothing for anyone to act on.
+      return false;
+    }
   });
   // One-shot note from Signup's already-registered branch. That branch
   // deliberately refuses to confess whether the address exists (enumeration
@@ -128,21 +144,38 @@ const Login = () => {
       const hit = sessionStorage.getItem("helpr_signup_redirect") === "1";
       if (hit) sessionStorage.removeItem("helpr_signup_redirect");
       return hit;
-    } catch { return false; }
+    } catch {
+      // Silent by design: same one-shot-note case as above — this only picks
+      // whether to render the neutral line explaining the redirect from
+      // Signup. Losing it degrades copy, nothing else.
+      return false;
+    }
   });
-  // A safe ?redirect= target set by ProtectedRoute when it bounced a
-  // logged-out user off a gated route. We use it ONLY to explain the bounce
-  // in the header copy. Sign-in always lands on the home dashboard — the
-  // app's main tabs (My Posts, etc.) should never be the post-login landing;
-  // the user explicitly wants "log in → home". Deep content links surface
-  // their own in-app routing once the user is home.
+  // The default landing. "Log in → home" is still the rule for an ordinary
+  // sign-in: a user who opens /login of their own accord lands on the
+  // dashboard, and the app's main tabs are never a post-login destination the
+  // user did not ask for.
   const postLoginDest = "/dashboard";
-  // ProtectedRoute writes ?redirect= when it bounces a logged-out visitor off
-  // a gated route. The comment above has always said it is read "ONLY to
-  // explain the bounce in the header copy" — but nothing read it, so a guest
-  // following a deep link was dumped here with no idea why. It explains the
-  // bounce now; sign-in still lands on the dashboard, unchanged.
-  const bouncedFromGatedRoute = Boolean(searchParams.get("redirect"));
+  // ?redirect= is the ONE case that is not an ordinary sign-in. ProtectedRoute
+  // writes it when it bounces a logged-out visitor off a route they had
+  // already navigated to, so the param IS the user asking to go somewhere —
+  // returning them there is not overriding the landing rule, it is completing
+  // the interruption. It used to be read only to phrase the notice, so
+  // /login?redirect=%2Fmy-posts signed you in and dropped you on the dashboard
+  // with the page you had asked for silently discarded.
+  //
+  // It rides the SAME storage + validation Signup already uses
+  // (`rememberSignupRedirect` → `safeInternalRedirect`, applied on write and
+  // again on read): same-origin leading-slash paths only, never an auth
+  // screen, and the read is destructive so a stale target cannot hijack a
+  // later unrelated sign-in. Going through storage rather than straight to
+  // `navigate` is also what carries it across the MFA challenge, which
+  // unmounts nothing but resolves in a second handler.
+  const pendingRedirect = searchParams.get("redirect");
+  useEffect(() => {
+    rememberSignupRedirect(pendingRedirect);
+  }, [pendingRedirect]);
+  const bouncedFromGatedRoute = Boolean(safeInternalRedirect(pendingRedirect));
   // The job a bounced guest was trying to reach, if any — /jobs/<uuid> is the
   // only gated route whose destination is a single object worth carrying.
   const signupHref = (() => {
@@ -158,7 +191,7 @@ const Login = () => {
       : arrivedFromSignup
         ? "If that email already has an account, log in below. Forgot your password? Reset it and you'll be back in."
         : bouncedFromGatedRoute
-          ? "That page needs an account. Log in and we'll take you to your dashboard."
+          ? "That page needs an account. Log in and we'll take you straight back to it."
           : null;
   const queryClient = useQueryClient();
   usePageMeta({
@@ -311,9 +344,11 @@ const Login = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
     setLoading(false);
     hapticSuccess();
-    // postAuthDestination keeps this on the home dashboard per the note above;
-    // it only appends ?quickApply=<id> when the visitor got here from a job
-    // card they tapped while logged out. See lib/jobIntent.
+    // postAuthDestination spends whichever intent is pending: the ?redirect=
+    // path a bounced visitor was trying to reach, else ?quickApply=<id> for a
+    // job card tapped while logged out, else the home dashboard. See
+    // lib/jobIntent. Shared with the MFA path below, which is why the target
+    // lives in storage rather than in this closure.
     navigate(postAuthDestination(postLoginDest), { replace: true });
   };
 
@@ -387,7 +422,7 @@ const Login = () => {
                 Two-step verification
               </h2>
               <p
-                className="font-serif italic text-ds-14"
+                className="font-sans text-ds-14"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Enter the 6-digit code from your authenticator app to finish signing in.
@@ -583,7 +618,7 @@ const Login = () => {
         <div className="hidden lg:flex flex-col items-center gap-3" aria-hidden>
           <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
           <span
-            className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
+            className="text-ds-11 tracking-[0.2em] uppercase font-sans"
             style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
           >
             or
@@ -617,7 +652,7 @@ const Login = () => {
         <div className="flex items-center gap-3 lg:hidden">
           <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
           <span
-            className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
+            className="text-ds-11 tracking-[0.2em] uppercase font-sans"
             style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
           >
             or

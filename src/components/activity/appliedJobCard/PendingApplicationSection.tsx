@@ -118,7 +118,7 @@ export function PendingApplicationSection({
              the end of the paragraph it edits. */
           <div className="flex items-start justify-between gap-2">
             <p className="font-sans text-ds-14 leading-relaxed text-foreground min-w-0">
-              {app.message || <span className="text-muted-foreground italic">No message yet — add one</span>}
+              {app.message || <span className="text-muted-foreground">No message yet — add one</span>}
             </p>
             <button
               type="button"

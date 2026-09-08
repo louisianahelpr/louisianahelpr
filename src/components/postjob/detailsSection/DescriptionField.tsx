@@ -69,7 +69,7 @@ export function DescriptionField({
         if (unmet.length === 0) return null;
         return (
           <p
-            className="text-ds-11 font-serif italic leading-snug"
+            className="text-ds-11 font-sans leading-snug"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Tip: {unmet.join(" · ")}

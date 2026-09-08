@@ -4,9 +4,9 @@ import type { CSSProperties, ReactNode } from "react";
 
 interface PageHeaderProps {
   title: string;
-  /** Italic Garamond uppercase small-caps eyebrow line above the title. */
+  /** Montserrat uppercase small-caps eyebrow line above the title. */
   eyebrow?: string;
-  /** Italic Garamond meta line below the title — accepts strings or
+  /** Montserrat meta line below the title — accepts strings or
       JSX (e.g., counts with Sienna-tinted dividers). Use this for the
       editorial brand pattern. */
   meta?: ReactNode;

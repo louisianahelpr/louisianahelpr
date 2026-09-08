@@ -55,7 +55,7 @@ export function PayoutHistory({
             No payouts in {exportYear}.
           </p>
           <p
-            className="font-serif italic text-ds-12"
+            className="font-sans text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Payouts land {STANDARD_PAYOUT_WINDOW} of a completed job.
@@ -68,14 +68,14 @@ export function PayoutHistory({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-display italic font-bold tabular-nums text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
+                    <span className="font-sans font-bold tabular-nums text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
                       {formatCents(p.amount, p.currency)}
                     </span>
                     <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${payoutStatusColors[p.status] || "bg-secondary text-secondary-foreground"}`}>
                       {payoutStatusLabel(p.status)}
                     </span>
                   </div>
-                  <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     Arrives {formatDate(p.arrival_date)} · {p.method === "instant" ? "Instant" : "Standard"}
                   </p>
                 </div>

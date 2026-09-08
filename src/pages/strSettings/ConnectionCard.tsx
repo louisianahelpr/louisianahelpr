@@ -43,7 +43,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
         <div className="flex items-center gap-2 min-w-0">
           {/* Platform badge */}
           <span
-            className="shrink-0 rounded-full px-2 py-0.5 font-serif italic font-semibold uppercase text-ds-10"
+            className="shrink-0 rounded-full px-2 py-0.5 font-sans font-semibold uppercase text-ds-10"
             style={{
               letterSpacing: "0.1em",
               background: "hsl(var(--bark) / 0.1)",

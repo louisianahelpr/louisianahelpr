@@ -105,7 +105,6 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
           const actorName = r.changed_by
             ? (actors.get(r.changed_by) ?? "Unknown admin")
             : "system";
-          const isSystem = !r.changed_by;
           return (
             <div key={r.id} className="rounded-ds-sm border border-border/50 bg-card/40 p-2 text-ds-11">
               <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -123,7 +122,7 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
               </div>
               <div className="text-ds-10 text-muted-foreground mt-0.5 flex items-center gap-1">
                 <User className="w-2.5 h-2.5" />
-                <span className={isSystem ? "italic" : ""}>{actorName}</span>
+                <span>{actorName}</span>
               </div>
             </div>
           );

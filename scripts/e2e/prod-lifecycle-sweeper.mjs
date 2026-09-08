@@ -107,6 +107,27 @@ async function reopenJob(jobId) {
   return r.ok;
 }
 
+/**
+ * Cancel through the same RPC the poster's own Cancel button uses.
+ *
+ * This is the unwind for a job that reached checkout and was never paid for:
+ * `cancel_escrow` refuses it (nothing was ever held) and the DELETE policy
+ * refuses it too (it requires `stripe_session_id IS NULL`). Cancelling is not a
+ * workaround for that — it is what the product itself does, verified by driving
+ * the card's Cancel control on exactly this state and watching the row go
+ * open -> cancelled. It also takes the row out of `status = 'open'`, which is
+ * what stops these accumulating against `enforce_open_job_limit` and bricking
+ * every future run once five have piled up.
+ */
+async function cancelJob(jobId) {
+  const r = await fetch(`${BASE}/rest/v1/rpc/poster_cancel_job`, {
+    method: "POST",
+    headers: H,
+    body: JSON.stringify({ p_job_id: jobId, p_reason: "E2E teardown" }),
+  });
+  return { ok: r.ok, status: r.status, body: await r.text() };
+}
+
 async function deleteJob(jobId) {
   const r = await fetch(`${BASE}/rest/v1/jobs?id=eq.${jobId}`, {
     method: "DELETE",
@@ -130,12 +151,78 @@ console.log(`Stranded jobs matching "${E2E_TITLE_MARKER}": ${jobs.length}${DRY ?
 
 const failures = [];
 for (const job of jobs) {
-  const funded = job.payment_status !== "unpaid" || job.stripe_session_id !== null;
-  const plan = funded ? "cancel_escrow" : job.status === "open" ? "delete" : "reopen + delete";
+  /* A Checkout Session id proves a session was MINTED, not that it was paid —
+     it is set by create-payment before the poster ever sees the card form. This
+     line used to fold it into `funded`, so a job the poster abandoned at
+     checkout was sent to cancel_escrow, which correctly answered 409 ("never
+     held in escrow"), and the sweeper then reported it as a stranded funded job
+     and failed the whole workflow. It is the same discriminator
+     UnfundedJobNotice uses, read the opposite way round: session + unpaid means
+     abandoned, which is the one thing it is NOT.
+
+     `payment_status` alone is the funded test. */
+  const funded = job.payment_status !== "unpaid";
+  /* An unpaid job that DID reach checkout is the awkward case, and it needs a
+     third route rather than either of the two above. `cancel_escrow` refuses it
+     because nothing was ever held, and the poster's DELETE policy refuses it
+     too — that policy requires `payment_status = 'unpaid' AND stripe_session_id
+     IS NULL`, or 'abandoned', and a poster cannot set payment_status (it sits in
+     enforce_poster_jobs_money_lock's locked_always).
+
+     What DOES work is cancelling, which is not a workaround: it is what the
+     product does. Driven on exactly this state on 2026-09-07 — the card's own
+     Cancel control took the row open -> cancelled and toasted a confirmation.
+     So these are unwound with poster_cancel_job, the same RPC that button
+     calls. Cancelling also moves the row out of `status = 'open'`, which is what
+     stops abandoned rows accumulating against enforce_open_job_limit: five of
+     them and no future run can post at all. */
+  /* Already cancelled means already unwound — there is nothing left to do, and
+     poster_cancel_job correctly refuses it with P0001 not_cancellable ("This job
+     is already finished, cancelled, or under dispute"). `strandedJobs()` filters
+     on payment_status, which stays 'unpaid' after a cancellation, so these keep
+     appearing in the list; without this they made the PRE-sweep fail, and a
+     failed pre-sweep skips the entire money loop. One stale row was therefore
+     enough to stop the suite running at all. */
+  /* Terminal in either direction: cancelled (already unwound) or SETTLED. A
+     settled job — payout_pending or released — is the residue this suite's
+     README already calls permanent: the money has moved, cancel_escrow rightly
+     refuses it with 409 ("already been released, refunded, or was never held"),
+     and payout_transfers_job_id_fkey is ON DELETE RESTRICT so nobody can delete
+     it either. It is not stranded; it is finished, and a successful run is
+     exactly what produces one.
+
+     strandedJobs() excludes released/refunded/cancelled by payment_status but
+     NOT payout_pending, so a completed run left a row the next pre-sweep tried
+     to cancel and died on — and a failed PRE-sweep skips the whole money loop.
+     So one SUCCESSFUL run would block every run after it. */
+  const settled = ["payout_pending", "released", "refunded"].includes(job.payment_status);
+  const alreadyUnwound = job.status === "cancelled" || settled;
+  const abandonedCheckout =
+    !alreadyUnwound &&
+    !funded &&
+    job.stripe_session_id !== null &&
+    job.payment_status === "unpaid";
+  const plan = alreadyUnwound
+    ? settled
+      ? "settled — nothing to unwind (a completed run leaves this)"
+      : "already cancelled — nothing to do"
+    : funded
+    ? "cancel_escrow"
+    : abandonedCheckout
+      ? "poster_cancel_job (reached checkout, never paid)"
+      : job.status === "open"
+        ? "delete"
+        : "reopen + delete";
   console.log(`  ${job.id}  status=${job.status} payment=${job.payment_status} → ${plan}`);
   if (DRY) continue;
 
-  if (funded) {
+  if (alreadyUnwound) {
+    // Nothing to do, and saying so is better than a silent skip: the row IS
+    // still listed, and a reader should see why it was passed over.
+  } else if (abandonedCheckout) {
+    const r = await cancelJob(job.id);
+    if (!r.ok) failures.push(`cancel ${job.id}: HTTP ${r.status} ${r.body}`);
+  } else if (funded) {
     const r = await cancelEscrow(job.id);
     if (!r.ok) failures.push(`cancel_escrow ${job.id}: HTTP ${r.status} ${r.body}`);
   } else {

@@ -493,6 +493,10 @@ export default {
       if (!meta) return respond(SHELL_HTML);
       return respond(applyMeta(SHELL_HTML, meta));
     } catch {
+      // Silence is the contract here: an OG-meta lookup that fails must
+      // degrade to the plain shell, never to a broken share page. The
+      // shell has the default tags, so the reader loses nothing but a
+      // job-specific preview.
       return respond(SHELL_HTML);
     }
   },

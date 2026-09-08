@@ -26,6 +26,12 @@ export interface StripeMock {
     sessions: {
       create: ReturnType<typeof vi.fn>;
       retrieve: ReturnType<typeof vi.fn>;
+      /**
+       * `checkout.sessions.expire` — create-payment calls it before minting a
+       * replacement session for an unfunded job, so that an abandoned-but-still-
+       * open checkout can never be paid alongside its successor.
+       */
+      expire: ReturnType<typeof vi.fn>;
       listLineItems: ReturnType<typeof vi.fn>;
     };
   };
@@ -115,6 +121,7 @@ export const stripeMock: StripeMock = {
     sessions: {
       create: vi.fn(),
       retrieve: vi.fn(),
+      expire: vi.fn().mockResolvedValue({ status: "expired" }),
       listLineItems: vi.fn(),
     },
   },
@@ -205,6 +212,10 @@ export function resetStripeMock() {
   // on a resume, and a reset mock returning undefined would make every resume
   // fail closed with "could not verify prior transfers".
   stripeMock.transfers.list.mockResolvedValue({ data: [] });
+  // create-payment awaits `checkout.sessions.expire` on the re-mint path before
+  // it creates the replacement session; a reset mock resolves to undefined,
+  // which is harmless, but a real Session shape keeps the double honest.
+  stripeMock.checkout.sessions.expire.mockResolvedValue({ status: "expired" });
 }
 
 /**

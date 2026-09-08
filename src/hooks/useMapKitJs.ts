@@ -192,7 +192,50 @@ function reportServerTokenFailure(reason: string) {
  * MapKit calls `authorizationCallback` again on refresh, so this runs more than
  * once per session and the server path gets picked up without a reload.
  */
+/**
+ * A token fetch already in flight, so the network round-trip can be started
+ * BEFORE MapKit asks for it.
+ *
+ * MapKit only invokes `authorizationCallback` once its own script has
+ * downloaded, parsed and `init()` has run — so resolving the token in there
+ * put an edge-function round-trip strictly AFTER Apple's CDN round-trip, for
+ * two requests that have nothing to do with each other. Measured on prod
+ * (/dashboard, Chromium 393x852, warm wired): mapkit.js requested 3550ms,
+ * responded 3782ms; `functions/v1/mapkit-token` requested 3803ms, responded
+ * 4055ms; MapKit's own `ma/bootstrap` at 4058ms — before a single tile. The
+ * token wait was 252ms of pure serial dead time on a wired connection, and it
+ * is a Supabase edge function, so a cold start makes it seconds.
+ *
+ * `primeToken()` is called at script-insertion time; `resolveToken()` consumes
+ * whatever is in flight. Only the FIRST resolution is shared: MapKit calls the
+ * callback again on every token refresh (~hourly) and a refresh must mint a
+ * fresh token, never replay the primed one — so the slot is cleared as soon as
+ * it is read.
+ */
+let primedToken: Promise<string | undefined> | null = null;
+
+function primeToken(): void {
+  if (primedToken) return;
+  // Swallow here only to keep an unhandled rejection off the console — the
+  // consumer below re-enters `resolveToken`'s normal path, which does its own
+  // reporting and falls back to the build-time token.
+  primedToken = resolveTokenUncached().catch(() => undefined);
+}
+
 async function resolveToken(): Promise<string | undefined> {
+  const primed = primedToken;
+  if (primed) {
+    primedToken = null;
+    const t = await primed;
+    if (t) return t;
+    // The primed attempt came up empty (network failure, or no token from
+    // either source). Fall through and try again for real rather than
+    // reporting a transient failure as a permanent one.
+  }
+  return resolveTokenUncached();
+}
+
+async function resolveTokenUncached(): Promise<string | undefined> {
   const served = await fetchServerToken();
   if (served) {
     setTokenSource("server");
@@ -309,6 +352,7 @@ function loadScript(): Promise<MapKitStatus> {
     // dropped out before resolving), reuse it.
     const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
     if (existing) {
+      primeToken();
       if (window.mapkit) {
         initMapKit();
       } else {
@@ -317,6 +361,10 @@ function loadScript(): Promise<MapKitStatus> {
       }
       return;
     }
+
+    // Start the token round-trip NOW, in parallel with Apple's CDN fetch,
+    // instead of waiting for MapKit to ask for it. See `primedToken`.
+    primeToken();
 
     const script = document.createElement("script");
     script.id = SCRIPT_ID;

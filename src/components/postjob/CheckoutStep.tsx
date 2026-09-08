@@ -402,7 +402,7 @@ export function CheckoutStep({
         >
           <Users className="w-4 h-4 text-primary shrink-0" strokeWidth={2.25} />
           <p className="text-ds-12 leading-snug text-foreground">
-            <span className="font-display font-bold tabular-nums">
+            <span className="font-sans font-bold tabular-nums">
               {helprActivity.count} Helprs
             </span>{" "}
             <span className="text-muted-foreground">
@@ -548,7 +548,7 @@ export function CheckoutStep({
           )}
           {onboardingFeeAmount > 0 && (
             <div className="flex justify-between text-ds-13">
-              <span className="text-muted-foreground">One-time account setup <span className="text-ds-12 italic">(first job only)</span></span>
+              <span className="text-muted-foreground">One-time account setup <span className="text-ds-12">(first job only)</span></span>
               <span className="font-medium text-foreground">${formatPriceExact(onboardingFeeAmount)}</span>
             </div>
           )}

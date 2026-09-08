@@ -32,7 +32,7 @@ export function ReviewsTab({ profileReviews, profileReviewsLeft }: ReviewsTabPro
           <Star className="w-4 h-4" /> Reviews Received ({profileReviews.length})
         </h4>
         {profileReviews.length === 0 ? (
-          <p className="text-ds-11 text-muted-foreground italic">No reviews received yet.</p>
+          <p className="text-ds-11 text-muted-foreground">No reviews received yet.</p>
         ) : (
           <div className="space-y-2">
             {profileReviews.map((r, i) => (
@@ -63,7 +63,7 @@ export function ReviewsTab({ profileReviews, profileReviewsLeft }: ReviewsTabPro
           <Star className="w-4 h-4" /> Reviews Left ({profileReviewsLeft.length})
         </h4>
         {profileReviewsLeft.length === 0 ? (
-          <p className="text-ds-11 text-muted-foreground italic">Hasn't left any reviews yet.</p>
+          <p className="text-ds-11 text-muted-foreground">Hasn't left any reviews yet.</p>
         ) : (
           <div className="space-y-2">
             {profileReviewsLeft.map((r, i) => (

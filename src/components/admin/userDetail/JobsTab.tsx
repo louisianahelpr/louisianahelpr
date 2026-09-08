@@ -103,7 +103,7 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
 
       {/* List */}
       {sorted.length === 0 ? (
-        <p className="text-ds-11 text-muted-foreground italic">No jobs found.</p>
+        <p className="text-ds-11 text-muted-foreground">No jobs found.</p>
       ) : (
         <div className="space-y-2">
           {sorted.map((j: any) => {

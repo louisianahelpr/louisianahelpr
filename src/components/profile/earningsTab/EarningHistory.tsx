@@ -128,7 +128,7 @@ export function EarningHistory({
               No earnings yet.
             </p>
             <p
-              className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
+              className="font-sans text-ds-13 leading-relaxed max-w-sm mx-auto"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Apply to a job and your earnings will land here.
@@ -176,31 +176,31 @@ export function EarningHistory({
                       </h3>
                       <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${jobStatusColorClasses(job.status)}`}>{jobStatusLabel(job.status)}</span>
                     </div>
-                    <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                    <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       {job.location} <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span> {formatShortDate(job.date_needed)}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
                     {payout !== null && (
-                      <p className="font-display italic font-bold tabular-nums text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
+                      <p className="font-sans font-bold tabular-nums text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
                         ${formatPriceExact(payout)}
                       </p>
                     )}
                     {awaitingTransfer && (
-                      <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                      <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                         {job.payout_scheduled_at
                           ? `on its way · ${formatShortDate(job.payout_scheduled_at)}`
                           : `on its way · ${PAYOUT_HOLD_HOURS}h after approval`}
                       </p>
                     )}
                     {returnedPayment && (
-                      <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                      <p className="font-sans text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
                         {paymentStatusLabel(returnedPayment)} · no payout
                       </p>
                     )}
                     {tipTotal > 0 && <p className="text-ds-11 text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${formatPriceExact(tipTotal)}</p>}
                     {job.status === "in_progress" && (
-                      <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                      <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                           ${formatPrice(job.budget)} budget
                       </p>
                     )}

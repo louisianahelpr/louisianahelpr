@@ -116,7 +116,7 @@ export function OfferToSavedHelpr({
             Offer It to a Saved Helpr
           </span>
           <span
-            className="block font-serif italic mt-0.5 text-ds-11"
+            className="block font-sans mt-0.5 text-ds-11"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             They get first refusal for a window you set before it opens to everyone.
@@ -136,7 +136,7 @@ export function OfferToSavedHelpr({
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
           {!helpers ? (
             <p
-              className="font-serif italic text-ds-12 py-2"
+              className="font-sans text-ds-12 py-2"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Loading your saved Helprs…

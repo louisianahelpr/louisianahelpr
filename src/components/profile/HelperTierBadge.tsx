@@ -201,7 +201,7 @@ function HelperTierBadge(props: HelperTierBadgeProps) {
           )}
           {progress && progress.nextTier === null && (
             <p
-              className="text-ds-11 italic"
+              className="text-ds-11"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
               You&apos;re at the top of the ladder. Stay on it.

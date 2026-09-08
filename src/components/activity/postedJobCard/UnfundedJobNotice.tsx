@@ -34,7 +34,28 @@ import { type Job } from "../activityConstants";
 export type UnfundedCause = "calendar" | "abandoned-checkout";
 
 export function unfundedNoticeCause(job: Job): UnfundedCause | null {
-  if (job.payment_status !== "unpaid" || job.status !== "open") return null;
+  /* 'abandoned' rides with 'unpaid' because they are the same fact to the
+     poster and to every browse surface: the money never landed, so all four
+     feeds filter the row out and no helper can see it. Which of the two a job
+     carries is internal bookkeeping about how the checkout ended, not a
+     difference this card should render — and prod holds live open rows in BOTH
+     states, so keying on 'unpaid' alone left every 'abandoned' one as exactly
+     the silent ghost this notice exists to prevent. */
+  /* 'failed' is the THIRD one, and the one a declined card produces: the
+     stripe-webhook payment_intent.payment_failed handler stamps it on a job
+     that is still unpaid, so a poster whose 4000-0000-0000-0002 (or real
+     maxed-out card) was refused, who then backed out of Checkout, holds an
+     open job in 'failed' — filtered out of every feed exactly like the other
+     two. Measured 2026-09-07: that job rendered in My Posts › Waiting as a
+     healthy "Posted" card with Applicants / Share / Boost and no word about
+     the payment, while no Helpr could ever see it. The notice is the same:
+     a Checkout was minted (stripe_session_id proves it), it did not land,
+     finish paying. */
+  const unfunded =
+    job.payment_status === "unpaid" ||
+    job.payment_status === "abandoned" ||
+    job.payment_status === "failed";
+  if (!unfunded || job.status !== "open") return null;
 
   // Auto-created by str-ical-sync. Nobody ever opened a checkout for it.
   if (job.is_auto_created === true) return "calendar";

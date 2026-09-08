@@ -5,9 +5,6 @@
 export type ProfileReview = {
   id: string;
   rating: number;
-  punctuality: number | null;
-  quality: number | null;
-  communication: number | null;
   feedback: string | null;
   created_at: string;
   reviewerName: string;

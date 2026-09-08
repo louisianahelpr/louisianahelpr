@@ -130,7 +130,7 @@ export function SavedHelperCard({
               introducing nothing. A container that reserves space for content
               that isn't there is the exact defect class being removed here. */}
           {hasHistory && (
-            <div className="flex items-center gap-x-2 gap-y-0.5 mt-1 font-serif italic flex-wrap text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <div className="flex items-center gap-x-2 gap-y-0.5 mt-1 font-sans flex-wrap text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {h.completed_jobs_together > 0 && (
                 <span className="flex items-center gap-1 text-primary">
                   <Star className="w-3 h-3 fill-primary" />
@@ -148,7 +148,7 @@ export function SavedHelperCard({
             </div>
           )}
           {h.skills && (
-            <p className="font-serif italic mt-1.5 line-clamp-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-1.5 line-clamp-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {h.skills}
             </p>
           )}
@@ -193,7 +193,7 @@ export function SavedHelperCard({
               rows={2}
               maxLength={500}
               aria-label="Private note about this Helpr"
-              className="w-full rounded-ds-sm border border-border/40 bg-card px-2 py-1.5 text-ds-13 font-serif italic resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full rounded-ds-sm border border-border/40 bg-card px-2 py-1.5 text-ds-13 font-sans resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
             <div className="flex items-center justify-end gap-2">
               <Button
@@ -230,7 +230,7 @@ export function SavedHelperCard({
             }}
           >
             <StickyNote className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />
-            <p className="font-serif italic text-ds-13 leading-snug flex-1 min-w-0" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
+            <p className="font-sans text-ds-13 leading-snug flex-1 min-w-0" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
               {h.private_note}
             </p>
           </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Children, isValidElement, useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { RouteSuspenseFallback } from "@/components/RouteSuspenseFallback";
@@ -6,6 +6,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { report } from "@/lib/errorLogger";
 import { track, AhaEvent } from "@/lib/analytics";
 import { rememberJobIntent } from "@/lib/jobIntent";
+import { hasPreload } from "@/lib/lazyWithPreload";
+import { isLockedOut } from "@/lib/banStatus";
 
 // Auth debug logging is dev-only by default. In dev it's still noisy —
 // a single tab hop can print ~15 lines and drown real errors. Devs who
@@ -211,6 +213,28 @@ const ProtectedRoute = ({
     if (m?.[1]) rememberJobIntent(m[1]);
   }, [isLoading, user, location.pathname]);
 
+  /**
+   * START THE PAGE'S JS CHUNK NOW, NOT AFTER AUTH ANSWERS.
+   *
+   * The `isLoading && !user` early-return below means `children` is never
+   * rendered during the cold-start beat — and React only begins a `lazy()`
+   * import when the element renders. So the route chunk fetch sat strictly
+   * BEHIND the session/profile round-trip, despite depending on none of it.
+   * Measured on prod at /my-posts: the app bundle was done at ~1.2s and
+   * `Activity-*.js` was not requested until 2046ms, the millisecond the
+   * `profiles` response landed. See `lazyWithPreload` for the full trace.
+   *
+   * `preload()` only warms the module cache: nothing mounts, no query runs,
+   * so a visitor about to be bounced to /login pays one chunk fetch and
+   * gains nothing they could not already request by hand. Runs on first
+   * render regardless of auth state, which is the entire point.
+   */
+  useEffect(() => {
+    Children.forEach(children, (child) => {
+      if (isValidElement(child) && hasPreload(child.type)) child.type.preload();
+    });
+  }, [children]);
+
   if (isLoading && !user) {
     // Cold-start moment only: no session known yet. Use the calm, static
     // brand-mark + skeleton fallback (same one the per-route Suspense
@@ -284,10 +308,12 @@ const ProtectedRoute = ({
   // re-evaluate these guards and navigate away if needed.
   if (profile) {
     // Banned users — explain the situation, never bounce back to /login.
-    if (
-      profile.ban_status &&
-      ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)
-    ) {
+    // `isLockedOut` mirrors the server's own carve-out: a `temp_banned` row
+    // whose `auto_suspended_until` has already passed is a suspension the
+    // server considers over, waiting on a scheduled sweep to say so. Testing
+    // ban_status membership alone kept those users at /account-banned — being
+    // shown an expiry date in the past — until the sweeper next ran.
+    if (isLockedOut(profile.ban_status, profile.auto_suspended_until)) {
       if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-banned", reason: profile.ban_status });
       return <Navigate to="/account-banned" replace />;
     }

@@ -169,6 +169,31 @@ serve(async (req) => {
     return json({ error: "dispute_id must be a uuid" }, 400);
   }
 
+  /**
+   * Refuse this settlement AND leave a trace the database can be searched on.
+   *
+   * Every check between here and the execution claim used to `return json(...)`
+   * straight to the browser: the admin saw a red toast, the tab was closed, and
+   * `execution_status` stayed NULL — so a decided-but-unsettled dispute was
+   * invisible to every query. The only record of a refusal was the toast the
+   * admin had already dismissed. `markFailed` parks the dispute in the
+   * re-claimable 'failed' state with the reason, which is exactly what the
+   * admin queue's UNSETTLED badge and the Exception Queue now read.
+   *
+   * 'failed' is re-claimable by design (see CLAIMABLE_EXECUTION_STATES), so
+   * recording a transient refusal here never blocks the retry it is telling
+   * the admin to make.
+   */
+  const refuse = async (body: Record<string, unknown>, status: number): Promise<Response> => {
+    await markFailed(
+      supabaseAdmin,
+      disputeId,
+      typeof body.error === "string" ? body.error : `refused with status ${status}`,
+    );
+    return json(body, status);
+  };
+
+
   // ── 1. The dispute must be decided, with a real recorded split ───────────
   const { data: dispute, error: disputeErr } = await supabaseAdmin
     .from("disputes")
@@ -183,7 +208,7 @@ serve(async (req) => {
   }
   if (!dispute) return json({ error: "dispute not found" }, 404);
   if (dispute.status !== "decided") {
-    return json(
+    return await refuse(
       { error: `dispute status is ${dispute.status}, expected decided`, dispute_status: dispute.status },
       409,
     );
@@ -201,7 +226,7 @@ serve(async (req) => {
 
   const shares = parseSplit(dispute.payout_split);
   if (!shares) {
-    return json({ error: "dispute has no usable payout_split recorded" }, 409);
+    return await refuse({ error: "dispute has no usable payout_split recorded" }, 409);
   }
   const { helperShare, posterShare } = shares;
 
@@ -215,16 +240,16 @@ serve(async (req) => {
     .maybeSingle();
   if (jobErr) {
     console.error(`[execute-dispute-split] job read failed for ${dispute.job_id}:`, jobErr);
-    return json({ error: "job lookup failed — retry" }, 500);
+    return await refuse({ error: "job lookup failed — retry" }, 500);
   }
-  if (!job) return json({ error: "job not found for this dispute" }, 404);
+  if (!job) return await refuse({ error: "job not found for this dispute" }, 404);
 
   // Group jobs: refuse, loudly. One escrow funds N helpers, so a partial split
   // needs N transfers and a per-helper share. Executing the single-helper path
   // here would pay the lead their slice, flip the job terminal, and permanently
   // strand every other roster member's money on the platform balance.
   if (job.is_group_job) {
-    return json(
+    return await refuse(
       {
         error:
           // NOT "the full release": as of 2026-09-01 `admin_release_dispute`
@@ -244,13 +269,19 @@ serve(async (req) => {
   // A prior attempt of THIS split claimed the dispute (the 'executed' case
   // already returned above, so any non-null value here is an unfinished run).
   // That, and only that, widens the payment-state gate — see RESUME_PAYMENT_STATES.
-  const isResume = dispute.execution_status != null;
+  // 'pending' is what `rpc_decide_dispute` stamps the moment the decision is
+  // recorded — it means "decided, never attempted", NOT "a prior run moved
+  // something". Counting it as a resume would widen the payment-state gate to
+  // RESUME_PAYMENT_STATES on a FIRST attempt, letting this function settle a
+  // split against a job some other path had already released or refunded.
+  const isResume =
+    dispute.execution_status != null && dispute.execution_status !== "pending";
   const allowedPaymentStates: readonly string[] = isResume
     ? [...EXECUTABLE_PAYMENT_STATES, ...RESUME_PAYMENT_STATES]
     : EXECUTABLE_PAYMENT_STATES;
 
   if (!allowedPaymentStates.includes(job.payment_status)) {
-    return json(
+    return await refuse(
       {
         error: `job payment_status is ${job.payment_status}, expected ${allowedPaymentStates.join(" or ")}`,
         payment_status: job.payment_status,
@@ -260,10 +291,10 @@ serve(async (req) => {
     );
   }
   if (helperShare > 0 && !job.helper_id) {
-    return json({ error: "split awards the helper a share but the job has no helper_id" }, 409);
+    return await refuse({ error: "split awards the helper a share but the job has no helper_id" }, 409);
   }
   if (posterShare > 0 && !job.customer_id) {
-    return json({ error: "split awards the poster a share but the job has no customer_id" }, 409);
+    return await refuse({ error: "split awards the poster a share but the job has no customer_id" }, 409);
   }
 
   // ── How was this escrow funded? ──────────────────────────────────────────
@@ -285,7 +316,7 @@ serve(async (req) => {
     .maybeSingle();
   if (pifErr) {
     console.error(`[execute-dispute-split] pif_credits read failed for job ${job.id}:`, pifErr);
-    return json({ error: "funding-source check failed — retry" }, 500);
+    return await refuse({ error: "funding-source check failed — retry" }, 500);
   }
 
   // How many cents of this escrow the gift actually paid for. Computed by
@@ -300,7 +331,7 @@ serve(async (req) => {
       // Reserved, not redeemed: the gift was earmarked for this job but the
       // shortfall was never paid, so this job cannot be in escrow off the
       // back of it. Something is inconsistent — refuse rather than guess.
-      return json(
+      return await refuse(
         {
           error:
             "this job's Pay-It-Forward gift is still only reserved, so the escrow's funding cannot be reconciled — nothing was moved. Cancel the job instead; that returns the gift.",
@@ -325,14 +356,14 @@ serve(async (req) => {
       console.error(
         `[execute-dispute-split] gift valuation failed for job ${job.id}: ${why}`,
       );
-      return json(
+      return await refuse(
         { error: "could not value this job's Pay-It-Forward gift — nothing was moved, retry" },
         503,
       );
     }
     giftAppliedCents = Number(preview?.applied_cents ?? 0);
     if (!Number.isFinite(giftAppliedCents) || giftAppliedCents < 0) {
-      return json({ error: "this job's Pay-It-Forward gift has no usable applied amount — refused" }, 409);
+      return await refuse({ error: "this job's Pay-It-Forward gift has no usable applied amount — refused" }, 409);
     }
   }
 
@@ -368,7 +399,7 @@ serve(async (req) => {
     }
   }
   if (!paymentIntentId && giftAppliedCents === 0) {
-    return json({ error: "no payment intent on file — cannot verify or split the escrow" }, 409);
+    return await refuse({ error: "no payment intent on file — cannot verify or split the escrow" }, 409);
   }
 
   // A wholly gift-funded job legitimately has no PaymentIntent: `redeem_pif_credit`
@@ -386,10 +417,10 @@ serve(async (req) => {
       });
     } catch (e) {
       console.error(`[execute-dispute-split] paymentIntents.retrieve failed for ${paymentIntentId}:`, e);
-      return json({ error: "could not verify the escrow charge — retry" }, 502);
+      return await refuse({ error: "could not verify the escrow charge — retry" }, 502);
     }
     if (pi.status !== "succeeded") {
-      return json(
+      return await refuse(
         { error: `escrow charge not captured (PaymentIntent status: ${pi.status}) — split refused`, pi_status: pi.status },
         409,
       );
@@ -404,7 +435,7 @@ serve(async (req) => {
           "execute-dispute-split could not compute a split: the PaymentIntent's captured amount was missing or non-positive. Nothing moved; the dispute is left unexecuted for manual review.",
         fields: { job_id: job.id, dispute_id: disputeId, payment_intent: paymentIntentId, captured_cents: String(received) },
       });
-      return json({ error: "escrow captured amount is missing or non-positive — split refused" }, 409);
+      return await refuse({ error: "escrow captured amount is missing or non-positive — split refused" }, 409);
     }
     capturedCents = received as number;
     escrowChargeId = typeof pi.latest_charge === "string"
@@ -478,7 +509,7 @@ serve(async (req) => {
     // platform_settings row we could not read at all. Kept as a config-sanity
     // assertion — the percent itself is no longer the fee fallback.
     console.error(`[execute-dispute-split] platform_settings read failed for job ${job.id}:`, feeSettingsErr);
-    return json({ error: "fee configuration unavailable — retry" }, 500);
+    return await refuse({ error: "fee configuration unavailable — retry" }, 500);
   }
   // Fee fallback (profile-read failure only): frozen per-job rate, then the
   // FREE-tier rate. Identical chain to release-payout and
@@ -543,7 +574,7 @@ serve(async (req) => {
         non_refundable_cents: nonRefundableCents,
       },
     });
-    return json({ error: "this split computes to $0 for both sides — nothing to execute" }, 422);
+    return await refuse({ error: "this split computes to $0 for both sides — nothing to execute" }, 422);
   }
 
   // HARD CAP, the same one release-payout carries: never move more than the
@@ -576,7 +607,7 @@ serve(async (req) => {
         escrow_value_cents: escrowValueCents,
       },
     });
-    return json(
+    return await refuse(
       {
         error: "split exceeds the captured escrow — refused",
         helper_cents: helperCents,
@@ -605,7 +636,7 @@ serve(async (req) => {
     .eq("job_id", job.id);
   if (transferReadErr) {
     console.error(`[execute-dispute-split] payout_transfers read failed for job ${job.id}:`, transferReadErr);
-    return json({ error: "duplicate-transfer check failed — retry" }, 500);
+    return await refuse({ error: "duplicate-transfer check failed — retry" }, 500);
   }
   // 'reversed' counts as settled: money DID move once and was clawed back, so
   // re-paying is an operator decision, not an automatic retry. Only 'failed'
@@ -657,7 +688,7 @@ serve(async (req) => {
       // Fail CLOSED: an unverifiable transfer history is exactly the case
       // this check exists for, so never fall through to "nothing was paid".
       console.error(`[execute-dispute-split] transfers.list failed for job ${job.id}:`, e);
-      return json({ error: "could not verify prior transfers — retry" }, 502);
+      return await refuse({ error: "could not verify prior transfers — retry" }, 502);
     }
     // The dispute row's own record is the second source. Only trusted when
     // Stripe confirms the object exists, so a stale or hand-edited value can
@@ -671,7 +702,7 @@ serve(async (req) => {
           `[execute-dispute-split] could not verify stamped transfer ${dispute.execution_transfer_id}:`,
           e,
         );
-        return json({ error: "could not verify prior transfers — retry" }, 502);
+        return await refuse({ error: "could not verify prior transfers — retry" }, 502);
       }
     }
     if (recovered) {
@@ -721,7 +752,7 @@ serve(async (req) => {
     .eq("source", "dispute_split");
   if (refundReadErr) {
     console.error(`[execute-dispute-split] payment_refunds read failed for job ${job.id}:`, refundReadErr);
-    return json({ error: "duplicate-refund check failed — retry" }, 500);
+    return await refuse({ error: "duplicate-refund check failed — retry" }, 500);
   }
   let settledRefund = (refundRows ?? [])[0];
 
@@ -776,7 +807,7 @@ serve(async (req) => {
       // Fail CLOSED: an unverifiable refund history is exactly the case this
       // check exists for, so never fall through to "no prior refund".
       console.error(`[execute-dispute-split] refunds.list failed for ${paymentIntentId}:`, e);
-      return json({ error: "could not verify prior refunds — retry" }, 502);
+      return await refuse({ error: "could not verify prior refunds — retry" }, 502);
     }
   }
 
@@ -803,7 +834,7 @@ serve(async (req) => {
         transfer_status: String(settledTransfer.status),
       },
     });
-    return json(
+    return await refuse(
       {
         error:
           "a payout for this job has already settled, so a split awarding the Helpr nothing cannot be executed — reconcile this one by hand",
@@ -856,7 +887,7 @@ serve(async (req) => {
         escrow_value_cents: escrowValueCents,
       },
     });
-    return json(
+    return await refuse(
       {
         error: "the already-settled payout plus this refund exceeds the captured escrow — refused",
         settled_transfer_cents: movedHelperCents,
@@ -878,10 +909,10 @@ serve(async (req) => {
     .select("id");
   if (claimErr) {
     console.error(`[execute-dispute-split] execution claim failed for dispute ${disputeId}:`, claimErr);
-    return json({ error: "could not claim this split for execution — retry" }, 500);
+    return await refuse({ error: "could not claim this split for execution — retry" }, 500);
   }
   if (!claimed || claimed.length === 0) {
-    return json(
+    return await refuse(
       { error: "this split is no longer executable — it may have already settled" },
       409,
     );
@@ -1409,7 +1440,13 @@ async function markFailed(
       .from("disputes")
       .update(patch)
       .eq("id", disputeId)
-      .neq("execution_status", "executed");
+      // NOT `.neq("execution_status", "executed")`. PostgREST renders that as
+      // SQL `<>`, and `NULL <> 'executed'` is NULL, not true — so a dispute
+      // whose execution_status is still NULL (every dispute decided before the
+      // RPC learned to stamp 'pending') matched ZERO ROWS and the failure was
+      // never recorded. That is precisely the pre-claim path this function now
+      // routes every refusal through, so the guard has to admit NULL.
+      .or("execution_status.is.null,execution_status.neq.executed");
     if (error) {
       // Not fatal — the caller is already returning the real error — but a
       // dispute left in 'executing' with no reason recorded is a run nobody can

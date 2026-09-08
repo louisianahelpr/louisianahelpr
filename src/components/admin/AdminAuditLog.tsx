@@ -138,6 +138,40 @@ const AdminAuditLog = () => {
       const reason = get("reason");
       if (reason) return `reason: ${reason}`;
     }
+    // Trigger-audited rows (user_bans, payout_transfers, platform_settings,
+    // user_roles …) carry `{op, old, new}` snapshots and no free-text field,
+    // so the fallback below printed "op: UPDATE" and nothing else — the log
+    // recorded a $22.00 transfer going pending → paid with its Stripe id and
+    // showed an admin none of it (prod, 2026-09-07). Say what changed.
+    if (typeof get("op") === "string" && (get("new") || get("old"))) {
+      const asRow = (v: Json | undefined) =>
+        v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, Json | undefined>) : null;
+      const before = asRow(get("old"));
+      const after = asRow(get("new"));
+      const row = after ?? before;
+      const parts: string[] = [];
+      if (row) {
+        // Subject first: whoever or whatever the row is about.
+        const who = row.user_id ?? row.helper_id ?? row.customer_id;
+        if (typeof who === "string") parts.push(`user ${who.slice(0, 8)}`);
+        if (typeof row.key === "string") parts.push(String(row.key));
+        if (typeof row.role === "string") parts.push(`role ${row.role}`);
+        if (typeof row.amount_cents === "number") parts.push(`$${(row.amount_cents / 100).toFixed(2)}`);
+        if (typeof row.reason === "string" && row.reason.length < 80) parts.push(row.reason);
+      }
+      if (before && after) {
+        const SKIP = new Set(["updated_at", "paid_at", "metadata"]);
+        const changed = Object.keys(after)
+          .filter((k) => !SKIP.has(k) && JSON.stringify(before[k]) !== JSON.stringify(after[k]))
+          .slice(0, 3)
+          .map((k) => {
+            const fmt = (v: Json | undefined) => (v == null ? "—" : typeof v === "object" ? "…" : String(v).slice(0, 24));
+            return `${k}: ${fmt(before[k])} → ${fmt(after[k])}`;
+          });
+        if (changed.length) parts.push(changed.join(", "));
+      }
+      if (parts.length) return parts.join(" · ");
+    }
     // Fallback: surface the first short string field for unknown actions.
     for (const [k, v] of Object.entries(d)) {
       if (typeof v === "string" && v.length < 80 && k !== "id") return `${k}: ${v}`;

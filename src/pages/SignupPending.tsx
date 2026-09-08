@@ -38,10 +38,22 @@ const SignupPending = () => {
   const routerEmail: string = (location.state as { email?: string } | null)?.email ?? "";
   const [prefillEmail] = useState<string>(() => {
     if (routerEmail) {
-      try { sessionStorage.setItem(PENDING_EMAIL_KEY, routerEmail); } catch { /* private mode */ }
+      try {
+        sessionStorage.setItem(PENDING_EMAIL_KEY, routerEmail);
+      } catch {
+        // Silent by design: this is a refresh convenience (see above). Failing
+        // to remember the address only means the field is empty after a
+        // reload; the router state still carried it on this render.
+      }
       return routerEmail;
     }
-    try { return sessionStorage.getItem(PENDING_EMAIL_KEY) ?? ""; } catch { return ""; }
+    try {
+      return sessionStorage.getItem(PENDING_EMAIL_KEY) ?? "";
+    } catch {
+      // Silent by design: an unreadable record just means we cannot prefill
+      // the address, which is a blank field, not a broken screen.
+      return "";
+    }
   });
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
@@ -61,7 +73,13 @@ const SignupPending = () => {
       if (cancelled || error) return;
       const sessionUser = data.session?.user;
       if (sessionUser?.email_confirmed_at) {
-        try { sessionStorage.removeItem(PENDING_EMAIL_KEY); } catch { /* private mode */ }
+        try {
+          sessionStorage.removeItem(PENDING_EMAIL_KEY);
+        } catch {
+          // Silent by design: a failed clear leaves the pending address in
+          // sessionStorage, which dies with the tab anyway. The navigation
+          // below is what actually matters and happens regardless.
+        }
         navigate("/complete-profile", { replace: true });
       }
     };
@@ -141,6 +159,11 @@ const SignupPending = () => {
       // resend panel.
       backTo="/"
       title="Check Your Email"
+      // Login, Signup, Forgot and Reset all pass this; this screen was the
+      // one auth sibling still wrapped in the marketing Navbar + Footer on
+      // web, so someone mid-signup was shown a "Get Started" button above a
+      // card telling them their account already exists.
+      noWebChrome
     >
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
         {/* Name the ADDRESS. It's the one fact this screen exists to

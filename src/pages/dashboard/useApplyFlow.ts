@@ -12,41 +12,15 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { requireOnline } from "@/lib/requireOnline";
 import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateLimit";
+// The refusal→copy map moved to its own module on 2026-09-07: the
+// daily-application-limit entry can no longer be an exact string (the cap is
+// an admin setting now and the trigger interpolates it), and a lookup with a
+// prefix rule in it needs a unit test. See applyErrorCopy.ts.
+import { resolveApplyErrorCopy } from "./applyErrorCopy";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { ApplyVars, ApplySnapshot, DashboardContextSlice } from "./dashboardTypes";
 import { userFacingError } from "@/lib/userFacingError";
 
-/* Keyed by the exact string a Postgres RAISE puts in `error.message`.
-   The first four come from the `apply_to_job` RPC. The last two come from
-   BEFORE INSERT TRIGGERS on `applications`, which fire on the insert the RPC
-   performs and are therefore invisible from the RPC's own body — the reason
-   they were missing here. Anything NOT in this map falls through to the
-   generic errorToast at the bottom of onError, which offers a RETRY; every
-   entry here is a deterministic refusal where retrying re-fails identically,
-   so they must be matched by name and toasted without one.
-
-   `credential_tier_required` is a stable machine token (like `rate_limit_*`).
-   The application-limit entry matches the trigger's human prose, so it is
-   brittle by construction: if `enforce_application_limit`'s message is ever
-   reworded, this silently stops matching and the retry loop comes back. */
-const APPLY_RPC_MESSAGES: Record<string, string> = {
-  "Already applied to this job": "You've already applied to this job.",
-  "Cannot apply to your own job": "You can't apply to your own post.",
-  "Job is no longer accepting applications": "This job isn't accepting applications anymore.",
-  "Job not found": "This job is no longer available.",
-  // enforce_application_credential_tier (20260824251000). The trigger's HINT
-  // separates "licensed" from "licensed + insured", but PostgREST puts HINT in
-  // `hint` and supabase-js surfaces `message`, so the hint never arrives — one
-  // line has to cover both tiers.
-  credential_tier_required:
-    "You don't have the credentials this job requires. Add your license or insurance in your profile to apply.",
-  // enforce_application_limit. Deliberately the SAME copy as the RPC's
-  // `rate_limit_day` above and deliberately WITHOUT the count: the trigger caps
-  // at 15/24h while apply_to_job's own daily check is 200, so naming a number
-  // here would pick a side in a conflict the client cannot see.
-  "You have reached the daily application limit (15). Please try again tomorrow.":
-    "You've hit today's application limit — check back tomorrow.",
-};
 
 type UseApplyFlowArgs = {
   user: SupaUser | null;
@@ -142,9 +116,12 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   // the snapshots so the job re-appears and the user can retry.
   const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
     mutationFn: async ({ jobId, helperId, message, files, isInstantBook }) => {
-      // Server-side rate limit check (10/min, 50/hr, 200/day) BEFORE any
+      // Server-side rate limit check BEFORE any
       // attachment uploads — don't waste storage bandwidth on a blocked
-      // attempt. The helper falls back to "allowed" if the RPC isn't
+      // attempt. The windows are no longer 10/min, 50/hr, 200/day: every rung
+      // is an admin setting on `platform_settings` and every one defaults to
+      // unlimited (owner decision 2026-09-07), so this returns allowed unless
+      // an operator has deliberately configured a cap. The helper falls back to "allowed" if the RPC isn't
       // deployed yet (PGRST202), so this doesn't break apply on prod
       // between merge and the manual supabase db push.
       const gate = await checkApplicationRate({ applicantId: helperId });
@@ -308,13 +285,13 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         // Use the warm, window-specific message from applyRateLimit.
         // No retry — by definition the user has to wait the window out.
         toast.error(userFacingError(err, "Couldn't send your application — try again?"));
-      } else if (APPLY_RPC_MESSAGES[(err as { message?: string } | null)?.message ?? ""]) {
+      } else if (resolveApplyErrorCopy((err as { message?: string } | null)?.message)) {
         // The apply_to_job RPC RAISEs a specific human reason (empty bid price,
         // already applied, own job, job closed, not found). Surface THAT reason
         // instead of burying it under the generic "something went wrong" toast —
         // these are actionable states the helper can fix, not transient blips,
         // so no Retry button (re-running the same invalid submit just re-fails).
-        toast.error(APPLY_RPC_MESSAGES[(err as { message?: string }).message!]);
+        toast.error(resolveApplyErrorCopy((err as { message?: string }).message)!);
       } else {
         errorToast("Couldn't send your application through", {
           description: "Tap retry to try again.",
@@ -345,8 +322,43 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // both times. Activity resolves `?job=` to whichever bucket the job is
       // in right now (see the deep-link effect in pages/Activity.tsx), so the
       // card is on screen and pulsing whatever state it is in.
+      // THE SERVER CAN STILL WITHHOLD THE NOTE, and the sender has to be told.
+      // The contact filter runs server-side on insert; when it fires it sets
+      // `flagged_hidden` and the poster never sees the note. The helper got
+      // "Application sent!" and waited for a reply to a sentence nobody read.
+      // ApplyBody now runs the same scanner BEFORE sending, which catches the
+      // ordinary case — but the client scanner is a MIRROR of the server rules,
+      // not the same code, so it can be behind. This reads the outcome back and
+      // says so when the two disagree.
+      //
+      // Best-effort by design: the application has already landed. A failed or
+      // RLS-blocked readback must not turn a successful apply into an error, so
+      // it falls through to the ordinary confirmation.
+      let noteWithheld = false;
+      if (!vars.isInstantBook && vars.message?.trim()) {
+        try {
+          const { data: row, error: flagErr } = await supabase
+            .from("applications")
+            .select("flagged_hidden")
+            .eq("job_id", vars.jobId)
+            .eq("helper_id", vars.helperId)
+            .maybeSingle();
+          if (!flagErr && row?.flagged_hidden) noteWithheld = true;
+        } catch {
+          // Swallowed on purpose — see above. The apply succeeded; this only
+          // decides which of two success messages to show.
+        }
+      }
+
       if (vars.isInstantBook) {
         toast.success("You're booked! Check My Jobs for details.", {
+          action: { label: "View", onClick: () => navigate(`/my-jobs?job=${vars.jobId}`) },
+        });
+      } else if (noteWithheld) {
+        toast.warning("Application sent — but your note wasn't included.", {
+          description:
+            "It looked like contact or payment details, which can't be shared before a job is confirmed. The poster sees your application without it.",
+          duration: 10000,
           action: { label: "View", onClick: () => navigate(`/my-jobs?job=${vars.jobId}`) },
         });
       } else {

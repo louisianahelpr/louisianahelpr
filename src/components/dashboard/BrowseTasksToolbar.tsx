@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronRight, SearchCheck } from "lucide-react";
 import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/FilterSheet";
 import { SavedSearches } from "@/components/SavedSearches";
+import { signupUrlFor } from "@/lib/jobIntent";
 import { hapticLight } from "@/lib/haptics";
 import type { BrowseTasksToolbarProps } from "./browseTasksToolbar/types";
 import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
@@ -80,7 +81,11 @@ export function BrowseTasksToolbar({
   // signal this row gives a screen-reader user about whether they are looking
   // at a subset. Announcing "Filtered Results" over an unnarrowed feed told
   // them a filter had run when none had (BD-001).
-  const narrowedCount = filters.activeFilterCount - (filters.nearbyUnavailable ? 1 : 0);
+  // No subtraction here any more: activeFilterCount now excludes an
+  // unapplied radius at the source (useDashboardFilters), so taking it off
+  // again would put this count one BELOW the number of filters that really
+  // are narrowing the feed.
+  const narrowedCount = filters.activeFilterCount;
   // `nearbyApproximate` is folded into the NARROWED branch rather than sitting
   // beside it. Choosing a radius is itself an active filter, so whenever the
   // radius runs `narrowedCount` is already > 0 — a sibling ternary for the
@@ -216,6 +221,11 @@ export function BrowseTasksToolbar({
             hasAvailability: helperAvailability.length > 0,
             boostedOnly: filters.boostedOnly, setBoostedOnly: filters.setBoostedOnly,
             urgentOnly: filters.urgentOnly, setUrgentOnly: filters.setUrgentOnly,
+            // Signed-out: the three account-only controls become labelled
+            // signup rows rather than vanishing. `signupUrlFor` keeps the
+            // return path, so a visitor who taps "Only Saved Jobs" lands back
+            // on the feed once they have an account.
+            signupHref: user ? undefined : signupUrlFor("/browse"),
             userLocStatus: filters.userLoc?.status,
             userLocMessage: filters.userLoc?.status === "error" ? filters.userLoc.message : undefined,
             // Saved Searches OPENS a dialog — it is an action, not a filter,

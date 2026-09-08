@@ -228,7 +228,13 @@ const PaymentSuccess = () => {
     void hapticLight();
     // Clear the cached id so the next visit to this page doesn't
     // re-surface the wrong job.
-    try { safeStorage.removeItem("helpr_last_posted_job_id"); } catch { /* ignore */ }
+    try {
+      safeStorage.removeItem("helpr_last_posted_job_id");
+    } catch {
+      // Silent by design: this only clears a convenience pointer to the job
+      // just posted. A stale value is read defensively everywhere it is used,
+      // and safeStorage already swallows the private-mode throw.
+    }
     if (resolvedJobId) {
       navigate(`/post-job?rebook=${resolvedJobId}`);
     } else {
@@ -238,7 +244,13 @@ const PaymentSuccess = () => {
 
   const handleViewApplicants = () => {
     void hapticLight();
-    try { safeStorage.removeItem("helpr_last_posted_job_id"); } catch { /* ignore */ }
+    try {
+      safeStorage.removeItem("helpr_last_posted_job_id");
+    } catch {
+      // Silent by design: this only clears a convenience pointer to the job
+      // just posted. A stale value is read defensively everywhere it is used,
+      // and safeStorage already swallows the private-mode throw.
+    }
     if (resolvedJobId) {
       navigate(`/my-posts?job=${resolvedJobId}`);
     } else {
@@ -528,7 +540,7 @@ const PaymentSuccess = () => {
                             </span>
                           )}
                         </p>
-                        <p className="font-serif italic text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                        <p className="font-sans text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                           {step.caption}
                         </p>
                       </div>
@@ -611,7 +623,12 @@ const PaymentSuccess = () => {
           <Button
             variant="ghost"
             onClick={() => {
-              try { safeStorage.removeItem("helpr_last_posted_job_id"); } catch { /* ignore */ }
+              try {
+                safeStorage.removeItem("helpr_last_posted_job_id");
+              } catch {
+                // Silent by design — same convenience pointer as above; a
+                // stale value is handled by every reader.
+              }
               navigate("/dashboard");
             }}
             className="w-full rounded-ds-md"

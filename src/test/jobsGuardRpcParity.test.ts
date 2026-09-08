@@ -103,6 +103,64 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
       }
     });
 
+    /**
+     * THE FOURTH INSTANCE, found 2026-09-07 — the same statement's other table.
+     *
+     * The block at the foot of this file pins `rpc_withdraw_dispute`'s
+     * `UPDATE public.disputes`. It writes `UPDATE public.jobs` too:
+     *
+     *     SET status = …, dispute_status = 'resolved', dispute_resolved_at = now()
+     *
+     * and `dispute_resolved_at` was not on the helper allow-list. So the RPC
+     * worked for a poster (the guard exits early for them) and refused the
+     * OPENER-HELPER with `42501 Helpers may not modify jobs.dispute_resolved_at`
+     * — reproduced against production job 67e8ccfe-fa63-45ca-87c3-b231cb46bc73
+     * inside a rolled-back subtransaction. The poster's card meanwhile told the
+     * poster "Your Helpr opened this, so only they can withdraw it", which was
+     * true of the design and false of the running system.
+     *
+     * The fix is a flag, not a list entry, and this asserts BOTH halves —
+     * because "fixing" it by adding the column to `allowed` would let any
+     * helper stamp their own job resolved with a plain PATCH, skipping the
+     * opener check that is the entire point of the RPC.
+     */
+    it("keeps the dispute-resolved stamp out of the list and behind its RPC flag", () => {
+      expect(
+        allowed,
+        "jobs.dispute_resolved_at is on the helper allow-list. A helper can now stamp " +
+          "their own job resolved with a direct PATCH, without passing " +
+          "rpc_withdraw_dispute's opener check.",
+      ).not.toContain("dispute_resolved_at");
+      expect(
+        guard,
+        "enforce_helper_jobs_column_whitelist no longer reads app.dispute_withdraw_rpc. " +
+          "rpc_withdraw_dispute sets that flag specifically to stamp " +
+          "jobs.dispute_resolved_at; without it, a helper who opened a dispute can " +
+          "never withdraw it and their only exit is an admin.",
+      ).toContain("app.dispute_withdraw_rpc");
+    });
+
+    it("the withdrawal RPC still SETS that flag, and still restores a real status", () => {
+      const rpc = liveDefinition("rpc_withdraw_dispute");
+      expect(
+        rpc,
+        "rpc_withdraw_dispute stopped setting app.dispute_withdraw_rpc — the exemption " +
+          "above silently stops applying and the helper's Withdraw button dies again, " +
+          "with the guard still looking correct.",
+      ).toContain("app.dispute_withdraw_rpc");
+      // And it must not go back to a hardcoded status. `status = 'in_progress'`
+      // on a job the poster had already approved moved it out of
+      // process-scheduled-payouts' filter (`status = 'completed'`) and stranded
+      // the escrow with nothing scheduled to release it.
+      expect(
+        /SET\s+status\s*=\s*'in_progress'/i.test(rpc),
+        "rpc_withdraw_dispute writes a hardcoded status again. A dispute filed AFTER " +
+          "poster approval must be withdrawn back to 'completed'/payout_pending, or the " +
+          "payout batch can never see the job.",
+      ).toBe(false);
+      expect(rpc).toMatch(/poster_completed_at|payout_scheduled_at/);
+    });
+
     it("keeps the arrival stamp out of the list and behind its RPC flag", () => {
       // helper_arrival_verified_at is deliberately NOT allowed: only
       // mark_helper_arrival may set it, gated on app.arrival_rpc, because the

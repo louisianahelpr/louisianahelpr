@@ -41,7 +41,7 @@ export function PhotoUpload({
             </span>
           )}
         </div>
-        <p className="text-ds-11 font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+        <p className="text-ds-11 font-sans leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           Posts with a photo get noticeably more applicants.
         </p>
       </div>

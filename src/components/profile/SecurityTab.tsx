@@ -329,7 +329,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           <div className="space-y-1.5">
             <Label
               htmlFor="new-email-input"
-              className="font-serif italic uppercase text-ds-10"
+              className="font-sans uppercase text-ds-10"
               style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               New email address
@@ -348,11 +348,11 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               className="border-[hsl(var(--border)/0.6)] focus-visible:border-primary/40"
             />
             {emailError && (
-              <p className="text-ds-11 font-serif italic" role="alert" style={{ color: "hsl(var(--burnt-sienna))" }}>
+              <p className="text-ds-11 font-sans" role="alert" style={{ color: "hsl(var(--burnt-sienna))" }}>
                 {emailError}
               </p>
             )}
-            <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               We'll send a confirmation link to verify changes.
             </p>
           </div>
@@ -451,7 +451,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                 button set the row height, the one-line title floated in the
                 middle of it, and the prose landed below with a dead strip
                 above AND below: three cards, three silhouettes. */}
-            <p className="text-ds-11 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Reset via secure email link.
             </p>
           </div>
@@ -511,7 +511,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                 Require Face ID to open
               </h2>
-              <p className="text-ds-11 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Ask for Face ID or Touch ID when you open Helpr.
               </p>
             </div>
@@ -546,7 +546,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           {appLockOn && (
             <div className="pl-11 space-y-1.5">
               <p
-                className="text-ds-11 font-serif italic"
+                className="text-ds-11 font-sans"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Lock again
@@ -574,7 +574,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                 onChange={handleGraceChange}
               />
               <p
-                className="text-ds-11 font-serif italic"
+                className="text-ds-11 font-sans"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {graceMs === 0
@@ -595,7 +595,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               Active sessions
             </h2>
-            <p className="text-ds-11 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Recent sign-ins, grouped by device.
             </p>
           </div>
@@ -608,7 +608,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             ))}
           </div>
         ) : sessionGroups.length === 0 ? (
-          <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {sessionsFetchFailed
               ? "Couldn't load session history — try again?"
               : "No recent sessions on record yet."}
@@ -673,7 +673,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                       )}
                     </p>
                     <p
-                      className="text-ds-11 font-serif italic mt-0.5"
+                      className="text-ds-11 font-sans mt-0.5"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Last seen {when}

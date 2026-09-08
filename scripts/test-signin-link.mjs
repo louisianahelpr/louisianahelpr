@@ -64,13 +64,28 @@ const repoRoot = path.resolve(__dirname, "..");
 const ACCOUNTS = {
   poster: {
     email: "helpr-audit-web-0824@mailinator.com",
-    userId: "e977a30f-7065-4e75-8498-dba435ac2044",
+    userId: "96c9899e-87a2-49e2-bbdd-268717d52aee",
     label: "Account A — Audit Weblane (poster: 7 posted jobs, every state)",
   },
   helper: {
     email: "eli.test.helper@louisianahelpr.com",
-    userId: "6bdc1f67-ae1f-46a0-8edf-4035629a6147",
+    userId: "f6cc3ebb-9478-473c-8eb8-62b406f0734f",
     label: "Account B — Audit Helper (works Account A's jobs)",
+  },
+  // The `poster` account above owns ZERO rows in prod `jobs` as of 2026-09-07
+  // — its "7 posted jobs" are long gone, so it renders the My Posts EMPTY
+  // state and is useless for measuring a populated list. This pair is the
+  // 0902 E2E seed set, and the poster half is the only account in prod with
+  // enough posted jobs (6) to reproduce a loaded My Posts.
+  "poster-e2e": {
+    email: "helpr-e2e-poster-0902@mailinator.com",
+    userId: "71c56dfb-b326-4010-b960-b18dd3966e7f",
+    label: "E2E poster 0902 (6 posted jobs — the populated My Posts fixture)",
+  },
+  "helper-e2e": {
+    email: "helpr-e2e-helper-0902@mailinator.com",
+    userId: "437de07d-1bd7-46c8-a451-6b46aa3bcad5",
+    label: "E2E helper 0902 (counterparty to poster-e2e)",
   },
 };
 

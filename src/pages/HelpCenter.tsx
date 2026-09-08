@@ -181,7 +181,7 @@ const TopicSection = ({
                 so folding its copy in here keeps the value and drops the dupe. */}
             {topicDesc(section.topic) && (
               <span
-                className="font-serif italic normal-case tracking-normal text-ds-11"
+                className="font-sans normal-case tracking-normal text-ds-11"
                 style={{ color: "hsl(var(--olivewood) / 0.75)" }}
               >
                 {topicDesc(section.topic)}

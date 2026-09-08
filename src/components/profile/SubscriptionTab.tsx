@@ -322,10 +322,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         >
           <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.25} />
           <p
-            className="font-serif italic leading-snug text-ds-12"
+            className="font-sans leading-snug text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
-            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+            <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
               Lock in {new Date().getFullYear()} pricing, save 17%.
             </span>{" "}
             Annual rates are guaranteed for the full year, no matter what we change later.
@@ -349,10 +349,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         >
           <Clock className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
           <p
-            className="font-serif italic leading-snug text-ds-12"
+            className="font-sans leading-snug text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
-            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+            <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
               One-time, {ONE_TIME_PASS_DAYS} days.
             </span>{" "}
             A one-time pass unlocks the tier's perks for {ONE_TIME_PASS_DAYS} days, then lapses — no auto-renewal.
@@ -374,10 +374,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         >
           <RefreshCw className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} strokeWidth={2.25} />
           <p
-            className="font-serif italic leading-snug text-ds-12"
+            className="font-sans leading-snug text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
-            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+            <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
               Billed monthly.
             </span>{" "}
             Cancel or change your tier anytime — no long-term commitment.
@@ -556,7 +556,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                         Subscribe/Change — so the eye finds each card's status
                         in one place instead of two. Owner's call. */}
                     <span
-                      className="font-serif italic truncate text-ds-11"
+                      className="font-sans truncate text-ds-11"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {tier.forWhom}
@@ -571,7 +571,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     if (!inclusive) return null;
                     return (
                       <p
-                        className="font-serif italic mt-1 leading-none text-ds-10"
+                        className="font-sans mt-1 leading-none text-ds-10"
                         style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.04em" }}
                       >
                         + {inclusive}
@@ -689,7 +689,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                              sm:min-w-[132px] sm:py-1 sm:flex-col sm:flex-nowrap sm:items-end sm:justify-between sm:gap-0"
                 >
                   <p
-                    className="font-display italic font-bold tabular-nums leading-none text-ds-16"
+                    className="font-sans font-bold tabular-nums leading-none text-ds-16"
                     style={{ color: accent, letterSpacing: "-0.02em" }}
                   >
                     {getPrice(tier)}
@@ -751,11 +751,11 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       button and renews". */}
                   {showActiveTreatment && !isFree && expiresAt && (
                     <p
-                      className="font-serif italic leading-none text-ds-12 whitespace-nowrap"
+                      className="font-sans leading-none text-ds-12 whitespace-nowrap"
                       style={{ color: "hsl(var(--olivewood) / 0.75)" }}
                     >
                       {renewLabel}{" "}
-                      <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                      <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                         {expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
                     </p>
@@ -826,10 +826,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           card list above is `flex-1 … justify-between`, so anything tall added
           here takes height from the cards. */}
       <p
-        className="mt-3 text-center font-serif italic leading-snug text-ds-11"
+        className="mt-3 text-center font-sans leading-snug text-ds-11"
         style={{ color: "hsl(var(--olivewood) / 0.85)" }}
       >
-        <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+        <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
           One fee, either way.
         </span>{" "}
         Your tier sets the cut on what you earn and the service fee you pay to post.

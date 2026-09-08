@@ -8,6 +8,7 @@ import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
 import { OfferToSavedHelpr } from "./OfferToSavedHelpr";
+import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 import { formatPrice, formatShortDate } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 
@@ -97,6 +98,9 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   };
 
   const hasRecent = recentPosted && recentPosted.length > 0;
+  // Same predicate FormStep uses; `null` means the preflight count has not
+  // landed yet, which must read as "not at the limit", never as a refusal.
+  const atOpenJobLimit = form.openJobCount !== null && form.openJobCount >= 5;
 
   return (
     // Top-level cards render as a stacked column on phones and flip to a
@@ -115,6 +119,15 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     // `items-start` the expanded one grows and the others stay the size of
     // their content.
     <div className="flex flex-col gap-3 animate-ds-page-in">
+      {/* AT THE DOOR, not at the end of the wizard. The cap used to be told to
+          the poster only on the form step and again at submit, so someone
+          already at five picked an intent, filled three steps of details and
+          THEN heard no. Same count, same rule, same wording — just before any
+          work is done rather than after all of it. The form-step notice and
+          the submit check both stay: this one can only be as fresh as the
+          count fetched at mount. */}
+      {atOpenJobLimit && <OpenJobLimitNotice count={form.openJobCount ?? 5} />}
+
       {/* 1 — START FRESH (primary action, always first) */}
       <button
         type="button"
@@ -136,7 +149,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           >
             Start Fresh
           </span>
-          <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Build your request from a blank form.
           </span>
         </span>
@@ -165,7 +178,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             >
               Pick Up Your Draft
             </span>
-            <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Continue the request you saved earlier.
             </span>
           </span>
@@ -218,7 +231,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               >
                 Repost a Recent Job
               </span>
-              <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Quickest way to ask for the same help again.
               </span>
             </span>
@@ -267,7 +280,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                           {job.title}
                         </span>
                         <span
-                          className="block font-serif italic mt-0.5 text-ds-11 tabular-nums"
+                          className="block font-sans mt-0.5 text-ds-11 tabular-nums"
                           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                         >
                           {shortRelativeDate(job.created_at)} · ${formatPrice(job.budget)}
@@ -309,7 +322,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             >
               Use a Template
             </span>
-            <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Start from a common job and tweak the details.
             </span>
           </span>
@@ -354,7 +367,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                     {sample.title}
                   </p>
                   <p
-                    className="font-serif italic mt-1 text-ds-11 tabular-nums"
+                    className="font-sans mt-1 text-ds-11 tabular-nums"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     typical ${sample.typical_price} · ~

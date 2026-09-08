@@ -40,6 +40,11 @@ export function _sanitizeUrl(url: string | null | undefined): string | null {
 }
 
 // Exported for unit tests.
+/** Test seam for describeUnknownError. */
+export function _describeUnknownError(err: unknown): string {
+  return describeUnknownError(err);
+}
+
 export function _isDevEnvironment(stack: string | null | undefined): boolean {
   return isDevEnvironment(stack);
 }
@@ -171,9 +176,57 @@ function readUserIdFromLocalStorage(): string | null {
 }
 
 // ── Public API ───────────────────────────────────────────────────────
+/**
+ * A message for anything that can be thrown or returned as an error.
+ *
+ * `String(err)` on a plain object is "[object Object]" — and Supabase's
+ * PostgrestError / AuthError / StorageError are plain objects with a
+ * `message`, not Error instances. Every `report(error)` of a Supabase error
+ * therefore reached Sentry and error_logs as "[object Object]" with no
+ * stack (PaymentSuccess.confirmPayment, 2026-09-07, three of them in an
+ * afternoon and nothing to read). Prefer the object's own message, and
+ * carry its code/details/hint so the row says what the database said.
+ */
+function describeUnknownError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    const parts: string[] = [];
+    if (typeof o.message === "string" && o.message) parts.push(o.message);
+    for (const k of ["code", "details", "hint", "status"] as const) {
+      const v = o[k];
+      if (typeof v === "string" && v) parts.push(`${k}=${v}`);
+      else if (typeof v === "number") parts.push(`${k}=${v}`);
+    }
+    if (parts.length) return parts.join(" · ");
+    try {
+      const json = JSON.stringify(err);
+      if (json && json !== "{}") return json;
+    } catch {
+      /* circular — fall through */
+    }
+    // Still nothing: every own property was empty or non-serialisable.
+    // "[object Object]" tells the reader NOTHING — six of them landed from
+    // PaymentSuccess.confirmPayment on 2026-09-08 AFTER the message/code
+    // branch above shipped, so the object had none of those. Name its
+    // shape instead, so the next row at least says what kind of thing it
+    // was and which keys it carried (enumerable AND inherited getters —
+    // a DOMException keeps `name`/`message` on the prototype).
+    const proto = Object.getPrototypeOf(o) as { constructor?: { name?: string } } | null;
+    const ctor = proto?.constructor?.name;
+    const keys = new Set<string>(Object.keys(o));
+    for (const k of ["name", "message", "code", "status", "reason"] as const) {
+      const v = (o as Record<string, unknown>)[k];
+      if (v !== undefined && v !== null && v !== "") keys.add(`${k}=${String(v)}`);
+    }
+    return `${ctor && ctor !== "Object" ? ctor : "object"}{${[...keys].join(",")}}`;
+  }
+  return String(err);
+}
+
 export function report(err: unknown, opts: ReportOptions = {}) {
   const isError = err instanceof Error;
-  const rawMessage = isError ? err.message : String(err);
+  const rawMessage = describeUnknownError(err);
   const rawStack = isError ? err.stack : null;
 
   if (isDevEnvironment(rawStack)) return;

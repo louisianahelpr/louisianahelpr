@@ -66,7 +66,7 @@ export function WalletCard({
                 it from the icon + the "ready to pay out" line below. */}
             <span className="sr-only">Available</span>
           </div>
-          <p className="font-display italic font-bold tabular-nums leading-none text-ds-28" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+          <p className="font-sans font-bold tabular-nums leading-none text-ds-28" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
             {formatCents(Math.max(0, availableTotal))}
           </p>
           {/* A NEGATIVE Stripe balance is a real state, and it used to render
@@ -79,12 +79,12 @@ export function WalletCard({
               Show nothing available, and SAY what the shortfall is — clamping
               it away silently would leave the next payment mysteriously light. */}
           {availableTotal < 0 ? (
-            <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--burnt-sienna))" }}>
+            <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--burnt-sienna))" }}>
               {formatCents(Math.abs(availableTotal))} owed from your last instant
               payout&apos;s fee — it comes out of your next payment
             </p>
           ) : (
-            <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               ready to pay out
             </p>
           )}
@@ -95,10 +95,10 @@ export function WalletCard({
             {/* See the "Available" note above — sr-only for the same reason. */}
             <span className="sr-only">Pending</span>
           </div>
-          <p className="font-display italic font-bold tabular-nums leading-none text-ds-28" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+          <p className="font-sans font-bold tabular-nums leading-none text-ds-28" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
             {formatCents(Math.max(0, pendingTotal))}
           </p>
-          <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             clearing soon
           </p>
         </div>

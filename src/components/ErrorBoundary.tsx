@@ -116,7 +116,7 @@ class ErrorBoundary extends React.Component<Props, State> {
               {chunkError ? "Update ready." : "Something went sideways."}
             </h3>
             <p
-              className="font-serif italic leading-relaxed max-w-sm mx-auto text-ds-14"
+              className="font-sans leading-relaxed max-w-sm mx-auto text-ds-14"
               style={{ color: "hsl(var(--olivewood) / 0.80)" }}
             >
               {chunkError

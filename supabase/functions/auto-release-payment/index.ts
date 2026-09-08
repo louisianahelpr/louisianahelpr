@@ -542,13 +542,16 @@ serve(async (req) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              // Always use the service role key here: release-payout has
-              // verify_jwt=true, so Supabase validates the Authorization header
-              // at the gateway before the function runs. Forwarding the incoming
-              // authHeader works when the caller used the service role key, but
-              // fails silently (401 before function code runs) when the caller
-              // used CRON_SECRET — which is not a valid Supabase JWT. Using the
-              // service role key directly guarantees the request is accepted.
+              // Always use the service role key here rather than forwarding the
+              // incoming authHeader. This comment used to explain that as a
+              // workaround for release-payout's verify_jwt=true, which made the
+              // gateway 401 a CRON_SECRET bearer before the function ran; that
+              // is no longer true (config.toml sets verify_jwt=false for it, for
+              // the reasons written there). The choice stands on its own anyway:
+              // this caller may itself have been invoked with CRON_SECRET, and
+              // release-payout is the only function here that also honours an
+              // admin JWT — forwarding whatever arrived would make which
+              // credential reaches the transfer depend on who invoked us.
               "Authorization": `Bearer ${serviceRoleKey}`,
             },
             body: JSON.stringify({ job_id: job.id, initiated_by: "auto" }),

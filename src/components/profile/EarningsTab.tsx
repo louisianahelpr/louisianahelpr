@@ -9,7 +9,7 @@ import {
 } from "@/lib/moneyLimits";
 import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { stripeProcessingCostCents } from "@/lib/stripeFees";
-import { tierFeePercent } from "@/lib/subscriptionTiers";
+import { tierFeePercent, profileHasPerk } from "@/lib/subscriptionTiers";
 import { toast } from "sonner";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
@@ -87,8 +87,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // convention tierFeePercent uses, so the gate and the fee rate can never
   // disagree about whether a membership is live.
   const subTier = (profile?.subscription_tier ?? "free") as string;
-  const subExp = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
-  const subActive = subExp ? subExp > new Date() : true;
   // Fee % to apply when a job row's helper_fee_percent is null (legacy row
   // pre-dating the column). Derive it from the helper's own subscription
   // tier — same ladder /analytics and /work-record use — so a Free helper's
@@ -96,7 +94,17 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // tab disagree with every other earnings surface. A populated per-job
   // column still wins (it's the fee actually charged on that payout).
   const helperFeeFallbackPct = tierFeePercent(subTier, profile?.subscription_expires_at ?? null);
-  const canUseInstantPayout = subActive && (subTier === "basic" || subTier === "pro" || subTier === "elite");
+  // CC-019: this was a hand-typed `basic || pro || elite` list, and the
+  // instant-payout edge function held a second copy of it. Plus was missing
+  // from both, so a paying Plus member saw no button and, if they reached the
+  // endpoint anyway, a 403 telling them to downgrade. Both sides now call the
+  // same `profileHasPerk`, which also owns the expiry convention (null expiry
+  // on a paid tier = active).
+  const canUseInstantPayout = profileHasPerk(
+    profile?.subscription_tier,
+    profile?.subscription_expires_at,
+    "instantPayout",
+  );
   // Pagination for the earnings-history list. Power helpers with 100+
   // completed jobs were rendering them all; this caps the initial render
   // at PAGE and grows by PAGE on each Load-more tap.
@@ -676,7 +684,12 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
         icon={Zap}
-        title="Cash out instantly."
+        // Title Case, no full stop — the only popup title in the app that
+        // was sentence-cased with a period, sitting one tap away from
+        // "Cash Out Instantly" (InstantPayoutDialog). Named for what the
+        // sheet does (unlock), not the feature it gates, so the two are
+        // distinguishable when read aloud.
+        title="Unlock Instant Cash Out"
         body="Skip the 1–2 business day wait. Subscribed Helprs can route earnings to a debit card in about 30 minutes."
         perks={[
           "Instant payouts to debit card (~30 min)",

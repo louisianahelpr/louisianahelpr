@@ -1,4 +1,5 @@
 import { useLocation, useNavigate, Link } from "react-router-dom";
+import { HelprMark } from "@/components/HelprMark";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft } from "lucide-react";
@@ -63,27 +64,15 @@ const NotFound = () => {
     <PublicLayout>
       <div className="flex items-center justify-center px-5 py-16 sm:py-24 lg:py-28">
         <div className="text-center space-y-7 max-w-md">
-          <Link to="/" className="inline-flex items-baseline gap-1">
-            <span
-              className="font-display italic font-bold leading-none text-ds-32"
-              style={{
-                color: "hsl(var(--olivewood))",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              Helpr
-            </span>
-            <span
-              className="font-display italic font-bold leading-none text-ds-20"
-              style={{
-                color: "hsl(var(--burnt-sienna))",
-                letterSpacing: "0.22em",
-                marginLeft: "0.12em",
-              }}
-            >
-              · LA
-            </span>
-          </Link>
+          {/* The shared wordmark, not a hand-rolled one. This used to spell
+              "Helpr · LA" in italic Bodoni, which made the 404 the only screen
+              in the app whose brand mark was set in the display face — the
+              landing hero, the footer and every header set it in Montserrat
+              through HelprMark. Emblem hidden: the Navbar directly above
+              already carries the wrought-iron H. */}
+          <div className="flex justify-center">
+            <HelprMark to="/" size="lg" hideEmblem />
+          </div>
 
           <div className="space-y-3">
             <span className="text-display-eyebrow">Page not found</span>
@@ -97,7 +86,7 @@ const NotFound = () => {
             >
               404
             </h1>
-            <p className="font-serif italic text-ds-17" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans text-ds-17" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               This page doesn't exist or has been moved.
             </p>
           </div>

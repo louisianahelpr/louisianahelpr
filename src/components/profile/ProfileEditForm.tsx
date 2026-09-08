@@ -263,7 +263,7 @@ export function ProfileEditForm({
             autoCapitalize="sentences"
             className="min-h-[112px] resize-none text-ds-13 leading-relaxed"
           />
-          <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Posters read this when deciding who to hire. The more specific, the better.
           </p>
         </div>
@@ -320,7 +320,7 @@ export function ProfileEditForm({
                   ) : (
                     <CategoryIcon category={value} aria-hidden className="w-3 h-3 shrink-0" strokeWidth={2.25} />
                   )}
-                  <span className="font-serif italic whitespace-nowrap">{label}</span>
+                  <span className="font-sans whitespace-nowrap">{label}</span>
                 </button>
               );
             })}
@@ -339,7 +339,7 @@ export function ProfileEditForm({
               className="h-10"
             />
           </div>
-          <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Tap what applies, or type your own. These show as tags on your public profile and decide which jobs get matched to you.
           </p>
         </div>
@@ -380,7 +380,7 @@ export function ProfileEditForm({
             through ("…save from the" / "bar below"). Emphasis is weight +
             colour now; the family runs unbroken. */}
         <p
-          className="text-center font-serif italic px-6 leading-snug text-ds-12"
+          className="text-center font-sans px-6 leading-snug text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Photos &amp; ID save automatically. Your other edits save from the{" "}

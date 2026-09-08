@@ -27,6 +27,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { userFacingError } from "@/lib/userFacingError";
+import { UnsettledSettlements } from "./UnsettledSettlements";
 
 // Maps DB exception_type values to human-readable labels
 const EXCEPTION_TYPE_LABELS: Record<string, string> = {
@@ -227,6 +228,13 @@ const ExceptionQueueInner = () => {
 
   return (
     <AdminViewShell>
+      {/* The Exception Queue covered verification and nothing else, so a
+          dispute whose decision was recorded but whose escrow never moved
+          landed in no queue at all — not this one, and not the dispute queue,
+          which had already stopped showing it. Stuck money is the most
+          expensive exception this console can hold, so it goes first. */}
+      <UnsettledSettlements />
+
       {/* The lead sentence and its count chip sat on the bare page background
           above an untitled list. They describe the queue, so they become its
           card's subtitle and header action. */}

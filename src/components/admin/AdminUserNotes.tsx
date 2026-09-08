@@ -289,7 +289,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                         {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                       </span>
                       {edited && (
-                        <span className="ml-1 italic" title={`Edited ${format(new Date(n.updated_at), "PPpp")}`}>
+                        <span className="ml-1" title={`Edited ${format(new Date(n.updated_at), "PPpp")}`}>
                           (edited)
                         </span>
                       )}

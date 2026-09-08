@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { render as rtlRender, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render as rtlRender, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { AdminUserDetailDialog } from "./AdminUserDetailDialog";
 import type { Database } from "@/integrations/supabase/types";
@@ -14,14 +14,18 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 // The dialog only touches supabase from one inline "Move to Pending"
 // handler; a render-focused test never exercises it, so a thin stub is
 // enough to satisfy the import.
+// Hoisted so individual tests can change who the acting admin is — the
+// self-ban guard in ActionsTab turns on when this id matches the profile
+// on screen.
+const { getUserMock } = vi.hoisted(() => ({ getUserMock: vi.fn() }));
+
 vi.mock("@/integrations/supabase/client", () => ({
   // `auth.getUser` is read by ActionsTab to decide whether the profile on
-  // screen is the acting admin's own (self-ban guard). A different id than
-  // `pendingProfile.user_id` keeps every existing assertion on the enabled
-  // control path.
+  // screen is the acting admin's own (self-ban guard); beforeEach sets the
+  // default answer.
   supabase: {
     from: vi.fn(),
-    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "admin-self" } } }) },
+    auth: { getUser: () => getUserMock() },
   },
 }));
 
@@ -86,6 +90,13 @@ function makeProps(viewProfile: Profile | null) {
 }
 
 describe("AdminUserDetailDialog", () => {
+  beforeEach(() => {
+    // Default: the acting admin is someone OTHER than the profile on screen,
+    // which is the enabled-control path every other test asserts against.
+    getUserMock.mockReset();
+    getUserMock.mockResolvedValue({ data: { user: { id: "acting-admin" } } });
+  });
+
   it("renders nothing when viewProfile is null", () => {
     render(<AdminUserDetailDialog {...makeProps(null)} />);
     expect(screen.queryByText("User Profile")).not.toBeInTheDocument();
@@ -148,6 +159,23 @@ describe("AdminUserDetailDialog", () => {
     expect(props.viewHistoryFor).toHaveBeenCalledWith(pendingProfile);
     expect(props.setBanProfile).toHaveBeenCalledWith(pendingProfile);
     expect(props.setDeleteProfile).toHaveBeenCalledWith(pendingProfile);
+  });
+
+  it("disables Suspend / Ban on the acting admin's OWN row", async () => {
+    // A self-issued ban locks the admin out of this console with no
+    // self-serve undo, and the database refuses the row outright
+    // (trg_reject_self_issued_ban, ERRCODE 22023). Offering the control
+    // anyway means the only feedback is a raw Postgres string.
+    getUserMock.mockResolvedValue({ data: { user: { id: pendingProfile.user_id } } });
+    const props = makeProps(pendingProfile);
+    render(<AdminUserDetailDialog {...props} />);
+    const banBtn = await screen.findByRole("button", { name: /Suspend \/ Ban/ });
+    await waitFor(() => expect(banBtn).toBeDisabled());
+    fireEvent.click(banBtn);
+    expect(props.setBanProfile).not.toHaveBeenCalled();
+    // Every other destructive control stays available — this guard is about
+    // the ban path, not a blanket lockout of the admin's own row.
+    expect(screen.getByRole("button", { name: /Delete Account/ })).toBeEnabled();
   });
 
   it("wires the edit-email pencil to setEditEmailProfile", () => {

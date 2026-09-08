@@ -352,13 +352,17 @@ function PostedJobCardInner({
                 copy lives here, and it renders nothing at all when collapsed. */}
             {isExpanded && (hasDescription || hasRequirements) && (
               <div className="space-y-1.5">
+                {/* `break-words` on both: a description is free text, and one
+                    unbroken token (a URL, a gate-code string, a pasted address
+                    with no spaces) ran straight out of the card and was cut at
+                    its edge — measured at 375, 2026-09-07. Wrap it, never clip. */}
                 {hasDescription && (
-                  <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
+                  <p className="text-ds-11 text-muted-foreground leading-relaxed break-words">{job.description}</p>
                 )}
                 {hasRequirements && (
                   <div className="rounded-ds-sm bg-secondary/30 p-2">
                     <p className="text-ds-10 text-muted-foreground mb-0.5">Special Requirements</p>
-                    <p className="text-ds-11 text-foreground">{job.special_requirements}</p>
+                    <p className="text-ds-11 text-foreground break-words">{job.special_requirements}</p>
                   </div>
                 )}
               </div>

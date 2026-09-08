@@ -1,5 +1,7 @@
-import { test, expect, type APIRequestContext } from "@playwright/test";
-import { appendFileSync } from "node:fs";
+import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
+import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // The full authenticated money loop, against PRODUCTION, on a Stripe TEST key.
 //
@@ -156,6 +158,34 @@ const TEST_CARD = {
 };
 
 /**
+ * A REAL image, 68 bytes of valid PNG (1×1, opaque). Written to a temp file so
+ * the browser's file picker receives an actual file with actual bytes — the
+ * point of the storage leg is that something a browser encoded travels through
+ * `supabase.storage.upload()` and lands as an object, so a stub string or a
+ * zero-length file would prove nothing.
+ */
+const PROOF_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+/**
+ * supabase-js persists the web session under `sb-<project-ref>-auth-token`.
+ * Derived from SUPABASE_URL rather than hard-coded so retargeting the suite
+ * with PLAYWRIGHT_SUPABASE_URL does not silently seed a key the app never
+ * reads — which would present as "the app just isn't signed in" with nothing
+ * naming the cause.
+ */
+const AUTH_STORAGE_KEY = `sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`;
+
+/**
+ * Every object this run put in `proof-photos`, so teardown can remove them.
+ * Module scope because the deletion happens in afterEach, after the test body
+ * has thrown or returned.
+ */
+const uploadedProofPaths: string[] = [];
+
+/**
  * THE LIVE-KEY TRIPWIRE.
  *
  * Production's `STRIPE_SECRET_KEY` is a test key today, and the owner intends to
@@ -242,6 +272,103 @@ async function readJob(api: APIRequestContext, session: Session, jobId: string) 
   return rows[0];
 }
 
+/**
+ * Drive ONE proof photo through the app's own uploader, as the helper, in a
+ * real browser — the picker, the dialog, the Upload button, and the
+ * `supabase.storage.from("proof-photos").upload()` call behind it.
+ *
+ * WHY THIS IS NOT A REST PATCH. It used to be: the spec wrote two
+ * `https://example.invalid/…` strings into `proof_before_urls` and said so in a
+ * comment, because everything else here is a REST walk of the money state
+ * machine. That left the single most failure-prone step in the completion
+ * gate — an upload into a bucket whose RLS has broken at least twice — with no
+ * unmocked coverage at all, while the run went green. The 2026-08-26 incident
+ * is the shape of what that hides: every file failed to upload, the dialog
+ * closed reporting success, and the job carried no proof. The URLs the gate
+ * checks are only worth something if an object is behind them.
+ *
+ * @returns the object path inside the bucket, e.g. `<jobId>/before-….png`.
+ */
+async function uploadProofThroughTheApp(
+  page: Page,
+  helper: Session,
+  jobId: string,
+  runId: string,
+  type: "before" | "after",
+  fileDir: string,
+): Promise<string> {
+  const label = type === "before" ? "Before" : "After";
+  const file = join(fileDir, `${type}.png`);
+  writeFileSync(file, PROOF_PNG);
+
+  // Seed the session on a page that is already on the origin (localStorage is
+  // origin-scoped, so this cannot be done before the first navigation), then
+  // deep-link. `?job=` is the app's own highlight link — the same one every
+  // notification uses — so the card is brought into view by product code
+  // rather than by scrolling a list the test would have to guess the shape of.
+  await page.goto("/");
+  await page.evaluate(
+    ([key, value]) => localStorage.setItem(key, value),
+    [AUTH_STORAGE_KEY, JSON.stringify(helper)] as const,
+  );
+  await page.goto(`/my-jobs?job=${jobId}`);
+
+  // Scoped by the run id, which is unique per run and is part of the job
+  // title. A previous run that died mid-loop can leave a SECOND in-progress
+  // job on this same account carrying the same marker, and an unscoped
+  // "Before Photos" button would then be a coin flip between them.
+  const card = page.locator("div.liquid-glass").filter({ hasText: runId }).first();
+  await expect(
+    card,
+    `the helper's /my-jobs never rendered the card for run ${runId} — the job is ${jobId}`,
+  ).toBeVisible({ timeout: 60_000 });
+
+  await card.getByRole("button", { name: new RegExp(`^${label} Photos$`) }).click();
+
+  // The dialog is portaled to <body>, so it is NOT inside `card`.
+  const dialog = page.getByRole("dialog").filter({ hasText: `${label} photos` });
+  await expect(dialog).toBeVisible();
+  // The input is `hidden` behind its label, which is exactly what setInputFiles
+  // is for — it sets the files directly and fires `change`, the same event the
+  // OS picker produces.
+  await dialog.locator('input[type="file"]').setInputFiles(file);
+
+  // Captured rather than derived: the path is minted inside the component
+  // (`${jobId}/${type}-${Date.now()}-${random}.${ext}`) and there is no other
+  // way to learn it exactly. It also proves the upload was a real POST to the
+  // real storage API, and that it went into THIS job's folder — the check that
+  // catches a mis-clicked card.
+  const uploadResponse = page.waitForResponse(
+    (r) =>
+      r.request().method() === "POST" &&
+      r.url().includes("/storage/v1/object/proof-photos/"),
+    { timeout: 60_000 },
+  );
+  await dialog.getByRole("button", { name: "Upload" }).click();
+  const response = await uploadResponse;
+  expect(
+    response.status(),
+    `storage rejected the ${type} photo: ${response.status()} ${await response.text()}`,
+  ).toBe(200);
+  const { Key } = (await response.json()) as { Key: string };
+  expect(Key, "storage returned no object key").toBeTruthy();
+  const path = Key.replace(/^proof-photos\//, "");
+  expect(path, "the photo was uploaded outside this job's folder").toMatch(
+    new RegExp(`^${jobId}/${type}-`),
+  );
+  uploadedProofPaths.push(path);
+
+  // The dialog only closes on the success path — `upload()` returns early and
+  // keeps it open when nothing landed or the jobs UPDATE matched zero rows. So
+  // this assertion is the app's own verdict, not a cosmetic wait.
+  await expect(
+    dialog,
+    `the ${type}-photo dialog stayed open, so the app did not consider the upload saved`,
+  ).toBeHidden({ timeout: 30_000 });
+
+  return path;
+}
+
 test.describe("full money loop against production", () => {
   test.skip(
     !READY,
@@ -249,6 +376,42 @@ test.describe("full money loop against production", () => {
       "PLAYWRIGHT_HELPER_PASSWORD. Until then the escrow, hire, complete, release and review " +
       "legs have NO unmocked coverage — see e2e-real-backend.yml's boundary report.",
   );
+
+  /* Storage teardown. The job row itself is unremovable once it is funded —
+     that residue is documented at the top of this file and is the price of
+     testing against prod — but the OBJECTS are removable by the helper who
+     uploaded them (`Users can delete their own proof photos`, via
+     `is_party_to_job_folder`), and one settled job per night carrying two
+     orphan images is growth nothing would ever come back for.
+
+     Runs on failure too, which is the case that matters: a run that dies after
+     the upload but before completion is exactly the run that leaves them.
+     The signed URLs left on the row will 400 afterwards; that is deliberate and
+     preferable to unbounded bucket growth, and the row is already a tombstone.
+     Deliberately non-fatal — a teardown that fails the suite turns a tidy-up
+     problem into a false report about the money loop. */
+  test.afterEach(async ({ request }) => {
+    if (!READY || uploadedProofPaths.length === 0) return;
+    const paths = uploadedProofPaths.splice(0, uploadedProofPaths.length);
+    try {
+      const helper = await signIn(request, HELPER_EMAIL!, HELPER_PASSWORD!);
+      const removed = await request.delete(`${SUPABASE_URL}/storage/v1/object/proof-photos`, {
+        headers: rest(helper),
+        data: { prefixes: paths },
+      });
+      if (!removed.ok()) {
+        announceUncovered(
+          "Proof photos not cleaned up",
+          `storage remove returned ${removed.status()} — ${paths.length} object(s) left in \`proof-photos\`: ${paths.join(", ")}`,
+        );
+      }
+    } catch (err) {
+      announceUncovered(
+        "Proof photos not cleaned up",
+        `teardown threw (${String(err)}) — ${paths.length} object(s) left in \`proof-photos\`: ${paths.join(", ")}`,
+      );
+    }
+  });
 
   // One test, not seven. The legs are not independent: each needs the state the
   // previous one produced, and splitting them into separate tests would either
@@ -557,22 +720,69 @@ test.describe("full money loop against production", () => {
        before marking the job done"). The photos are not decoration: the app
        tells the helper they are "the proof that releases your payment".
 
-       Set as URLs rather than uploaded through storage. This suite is a
-       REST-level walk of the money state machine, and what it is here to prove
-       is that the gate exists and that a job carrying proof can complete — the
-       upload path itself (picker, progress, the explicit Upload button in the
-       dialog) is a UI concern driven by hand and covered in the lane notes.
-       Being explicit about that boundary so nobody reads a green run as
-       evidence that photo upload works. */
-    const proofed = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
-      headers: { ...rest(helper), Prefer: "return=representation" },
-      data: {
-        proof_before_urls: [`https://example.invalid/${job.id}/before.png`],
-        proof_after_urls: [`https://example.invalid/${job.id}/after.png`],
-      },
+       UPLOADED, not asserted as strings. This step used to PATCH two
+       `https://example.invalid/…` URLs straight onto the row, and said in this
+       comment that the upload itself was "a UI concern driven by hand". That
+       was the last mock left inside the unmocked loop: the gate went green on
+       two strings, so a `proof-photos` bucket that refused every write — which
+       is what happened on 2026-08-26, and again when its RLS was fixed on
+       2026-08-31 — could not have failed this run. Both photos now travel
+       through the helper's own browser: the picker, the dialog, the Upload
+       button, `supabase.storage.upload()` and the jobs UPDATE that follows it.
+       Before AND after, because `hasRequiredProof` demands both and there is no
+       reason to prove one path and stub the other. */
+    const proofDir = mkdtempSync(join(tmpdir(), "lh-proof-"));
+    const beforePath = await uploadProofThroughTheApp(page, helper, job.id, runId, "before", proofDir);
+    const afterPath = await uploadProofThroughTheApp(page, helper, job.id, runId, "after", proofDir);
+
+    /* THE OBJECT EXISTS — asked of storage, not of the app that just claimed
+       it. Listed as the HELPER (the `Users can read proof photos for their
+       jobs` policy admits them via `is_party_to_job_folder`), which
+       additionally proves the uploader can see back what they uploaded. A
+       service-role read would be a stronger oracle and is deliberately not
+       available to CI here; the helper's own token is the next best thing and
+       is not the client under test — that is the app running in the browser. */
+    const listed = await request.post(`${SUPABASE_URL}/storage/v1/object/list/proof-photos`, {
+      headers: rest(helper),
+      data: { prefix: `${job.id}/`, limit: 100 },
     });
-    expect(proofed.ok(), `attaching proof photos failed: ${proofed.status()} ${await proofed.text()}`).toBe(true);
-    expect(await proofed.json(), "proof photos matched zero rows").toHaveLength(1);
+    expect(listed.ok(), `listing proof-photos failed: ${listed.status()} ${await listed.text()}`).toBe(true);
+    const objectNames = ((await listed.json()) as Array<{ name: string }>).map((o) => `${job.id}/${o.name}`);
+    expect(objectNames, "the before photo is not in the bucket").toContain(beforePath);
+    expect(objectNames, "the after photo is not in the bucket").toContain(afterPath);
+
+    /* AND THE ROW POINTS AT THOSE OBJECTS. Two separate failures live here and
+       only this assertion separates them: an upload that lands but is never
+       attached (the zero-row UPDATE the component's `.select("id")` guards),
+       and a row carrying a URL for an object that is not there. */
+    const withProof = await request.get(
+      `${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=proof_before_urls,proof_after_urls`,
+      { headers: rest(helper) },
+    );
+    expect(withProof.ok(), `reading proof urls failed: ${withProof.status()}`).toBe(true);
+    const [proofRow] = (await withProof.json()) as Array<{
+      proof_before_urls: string[] | null;
+      proof_after_urls: string[] | null;
+    }>;
+    expect(proofRow.proof_before_urls ?? [], "no before-photo url on the job").toHaveLength(1);
+    expect(proofRow.proof_after_urls ?? [], "no after-photo url on the job").toHaveLength(1);
+    const beforeUrl = (proofRow.proof_before_urls ?? [])[0];
+    const afterUrl = (proofRow.proof_after_urls ?? [])[0];
+    expect(beforeUrl, "the before url does not address the uploaded object").toContain(beforePath);
+    expect(afterUrl, "the after url does not address the uploaded object").toContain(afterPath);
+
+    /* The link the poster and the dispute timeline actually render. A signed
+       URL is fetched WITHOUT credentials on purpose — that is how an <img> tag
+       fetches it — and the byte length is compared to what was uploaded, so a
+       0-byte object or an error page rendered as an image cannot pass. */
+    for (const [name, url] of [["before", beforeUrl], ["after", afterUrl]] as const) {
+      const fetched = await request.get(url);
+      expect(fetched.ok(), `the ${name} photo's signed url returned ${fetched.status()}`).toBe(true);
+      expect(
+        (await fetched.body()).length,
+        `the ${name} photo came back a different size than was uploaded`,
+      ).toBe(PROOF_PNG.length);
+    }
 
     /* --- 5. COMPLETE (helper side) -----------------------------------------
        Only the helper completes over REST. The poster CANNOT: `poster_completed_at`

@@ -64,12 +64,12 @@ export function PermissionRationaleDialog() {
             guidance is to say why first. Rendered here rather than by
             restoring subtitles globally, so the wider rule stands. */}
         {/* Same body treatment BrandConfirmDialog gives every other confirm's
-            description — `font-serif italic text-ds-12 leading-relaxed` at
+            description — `font-sans text-ds-12 leading-relaxed` at
             olivewood/0.8. This was ds-14 at full-strength olivewood with a
             `-mt-1` nudge, i.e. a third size and a different rhythm from the
             confirm that opens next to it. */}
         <p
-          className="font-serif italic text-ds-12 leading-relaxed"
+          className="font-sans text-ds-12 leading-relaxed"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {copy.body}

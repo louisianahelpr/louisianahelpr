@@ -1,3 +1,9 @@
+// The set of tiers that get Priority Placement is asked of the shared perk
+// matrix, never listed here. Imported straight from `_shared` (which depends on
+// nothing) rather than through `@/lib/subscriptionTiers`, to keep this module
+// free of the storefront's copy/price imports.
+import { TIER_ORDER, hasPerk, tierRank } from "../../supabase/functions/_shared/tierPerks";
+
 export interface ApplicantScore {
   userId: string;
   /**
@@ -46,7 +52,7 @@ export interface ApplicantData {
 /**
  * PRIORITY PLACEMENT — a BOUNDED boost, never an override.
  *
- * TIER_PERKS advertises "Priority Placement" on Pro and Elite ("application
+ * TIER_PERK_MATRIX grants "Priority Placement" to Pro and up ("application
  * floated higher in the poster's list"), and until now the app charged for it
  * and delivered nothing: useApplicantsState sorted the enriched applicants by
  * tier, and useApplicantComparison immediately re-sorted the same array by
@@ -81,17 +87,27 @@ export interface ApplicantData {
 export const PRIORITY_PLACEMENT_MAX_POINTS = 2;
 
 /**
- * Placement points for an ACTIVE tier. Basic does not include Priority
- * Placement (TIER_PERKS.basic.priorityPlacement === false), so it scores 0 —
- * as do free, null, an expired tier already resolved to null upstream, and any
- * unrecognised string including the retired 'business'. Unknown → no perk is
- * the same direction DEFAULT_TIER_FEE_PERCENT takes.
+ * Placement points for an ACTIVE tier.
+ *
+ * WHO gets points is asked of `hasPerk(tier, "priorityPlacement")`, never of a
+ * tier list. It was `elite → full, pro → half, everything else → 0`, which
+ * silently scored Plus at ZERO even though TIER_PERKS.plus.priorityPlacement
+ * is true and the storefront sells Plus as "everything in Pro" (CC-019). Basic
+ * still scores 0 because Basic genuinely does not include the perk — that now
+ * follows from the matrix rather than from this function remembering it, as do
+ * free, null, an expired tier already resolved to null upstream, and any
+ * unrecognised string including the retired 'business'.
+ *
+ * HOW MANY points is a ladder position: the top tier gets the full boost and
+ * every other entitled tier gets half, so a new rung between Pro and Elite
+ * cannot accidentally outrank Elite.
  */
 export function priorityPlacementPoints(tier: string | null | undefined): number {
-  const t = (tier ?? "").toLowerCase();
-  if (t === "elite") return PRIORITY_PLACEMENT_MAX_POINTS;
-  if (t === "pro") return PRIORITY_PLACEMENT_MAX_POINTS / 2;
-  return 0;
+  if (!hasPerk(tier, "priorityPlacement")) return 0;
+  const topTier = TIER_ORDER[TIER_ORDER.length - 1];
+  return tierRank(tier) >= tierRank(topTier)
+    ? PRIORITY_PLACEMENT_MAX_POINTS
+    : PRIORITY_PLACEMENT_MAX_POINTS / 2;
 }
 
 export function scoreApplicant(a: ApplicantData): ApplicantScore {

@@ -9,6 +9,8 @@ import {
   INSTANT_PAYOUT_MIN_CENTS,
 } from "../_shared/instantPayoutFee.ts";
 import { formatPayoutCents } from "../_shared/money.ts";
+import { profileHasPerk, tiersGrantingPerkSentence } from "../_shared/tierPerks.ts";
+import { tierDisplayName } from "../_shared/tierNames.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -92,22 +94,32 @@ serve(async (req) => {
     // free account could take the paid feature — and pay us the 3% fee for a
     // service they were never entitled to buy, which is the worse half.
     //
-    // The tier ladder and the expiry convention are mirrored EXACTLY from
-    // EarningsTab.tsx:84-94 so the button and the endpoint cannot disagree:
-    // a null expiry means "active" (lifetime/comped), a past expiry means
-    // lapsed. The minimum-cashout floor below already carries the same
+    // The tier ladder and the expiry convention are no longer MIRRORED from
+    // EarningsTab.tsx — they are the same function. Both call
+    // `profileHasPerk(tier, expires_at, "instantPayout")` out of
+    // _shared/tierPerks.ts, which owns the convention: a null expiry means
+    // "active" (lifetime/comped), a past expiry means lapsed. The button and
+    // the endpoint cannot disagree because there is nothing left to keep in
+    // step. The minimum-cashout floor below already carries the same
     // "a client that skips the UI gate" reasoning — this closes the gap it
     // left open.
-    const tier = profile?.subscription_tier ?? "free";
-    const expiresAt = profile?.subscription_expires_at
-      ? new Date(profile.subscription_expires_at)
-      : null;
-    const subActive = expiresAt ? expiresAt > new Date() : true;
-    const entitled = subActive && (tier === "basic" || tier === "pro" || tier === "elite");
+    //
+    // CC-019: the gate below used to be `tier === "basic" || tier === "pro" ||
+    // tier === "elite"`, and the copy beneath it hand-listed the same three
+    // names. When Plus was restored (2026-09-05) a $15/mo member was 403'd
+    // from a perk their plan includes and told to "Upgrade to Basic, Pro or
+    // Elite" — i.e. to buy a cheaper plan. Both halves now derive from
+    // TIER_PERK_MATRIX, so the gate and the sentence explaining it can never
+    // name different sets again.
+    const entitled = profileHasPerk(
+      profile?.subscription_tier,
+      profile?.subscription_expires_at,
+      "instantPayout",
+    );
     if (!entitled) {
       return new Response(
         JSON.stringify({
-          error: "Instant payout is a membership feature. Upgrade to Basic, Pro or Elite to cash out instantly — your funds still pay out free on the standard schedule.",
+          error: `Instant payout is a membership feature. Upgrade to ${tiersGrantingPerkSentence("instantPayout", tierDisplayName)} to cash out instantly — your funds still pay out free on the standard schedule.`,
           code: "membership_required",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },

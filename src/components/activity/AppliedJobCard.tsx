@@ -103,7 +103,7 @@ function AppliedJobCardInner({
             <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
               {app.status === "rejected" ? "Not selected" : "Job no longer available"}
             </p>
-            <p className="text-ds-11 text-muted-foreground italic">
+            <p className="text-ds-11 text-muted-foreground">
               This job has closed, so its details aren’t available any more.
             </p>
           </div>
@@ -339,7 +339,7 @@ function AppliedJobCardInner({
 
             {isMinimalCard && (
               <div className="space-y-2">
-                <p className="text-ds-11 text-muted-foreground italic">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
+                <p className="text-ds-11 text-muted-foreground">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
                 {isCancelled && <CancellationFeePill job={job} fallbackFeePercent={viewerFeePercent} />}
                 {/* No "Browse Open Jobs" button (owner: "remove"). A full-size
                     control on every not-selected card repeated the Home tab one

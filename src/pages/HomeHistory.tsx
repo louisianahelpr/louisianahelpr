@@ -520,7 +520,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
                         {/* Description excerpt */}
                         {job.description?.trim() && (
                           <p
-                            className="font-serif italic text-ds-12 leading-snug line-clamp-2"
+                            className="font-sans text-ds-12 leading-snug line-clamp-2"
                             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                           >
                             {job.description}

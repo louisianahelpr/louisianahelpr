@@ -99,11 +99,13 @@ export function EmptyState({
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
         borderBottom: "none",
-        boxShadow:
-          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45), " +
-          "-1px 0 2px hsl(var(--olivewood) / 0.05), " +
-          "1px 0 2px hsl(var(--olivewood) / 0.05), " +
-          "0 -1px 3px hsl(var(--olivewood) / 0.05)",
+        // NO boxShadow. Removing `liquid-glass` took away the fill and the
+        // border, but the inset white highlight plus the three olivewood edge
+        // shadows that used to sit here still drew a faint second rectangle
+        // ~12px inside the panel, with square top corners, on every empty
+        // state at 375 — state-matrix crop-081, 2026-09-07. It was the same
+        // inner box the owner rejected three times, drawn a fourth way. The
+        // dock paints NOTHING: the panel is the surface.
         paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 2rem)",
       }
     : {};
@@ -226,7 +228,7 @@ export function EmptyState({
             </p>
           )}
           <p
-            className="font-serif italic text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words"
+            className="font-sans text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {body}

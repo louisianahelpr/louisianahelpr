@@ -3,6 +3,7 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
+import noSilentCatch from "./scripts/eslint-rules/no-silent-catch.js";
 
 
 /* ── Type-scale guards ──────────────────────────────────────────────────
@@ -51,6 +52,96 @@ const NATIVE_ORIGIN_RULES = [
   { selector: `VariableDeclarator > ${LOCATION_MEMBER}`, message: LOCATION_LEAK_MESSAGE },
   { selector: `TemplateLiteral > ${LOCATION_MEMBER}`, message: LOCATION_LEAK_MESSAGE },
   { selector: `Property > ${LOCATION_MEMBER}`, message: LOCATION_LEAK_MESSAGE },
+];
+
+/* ── Silent-catch ledger ────────────────────────────────────────────────
+   `local/no-silent-catch` requires every catch to leave a trace — report()
+   from @/lib/errorLogger, a rethrow, or a toast — or to carry a comment
+   INSIDE the catch saying why silence is correct there. See
+   scripts/eslint-rules/no-silent-catch.js for why, and why a comment counts.
+
+   The rule is ON everywhere. These 68 files are what is left of the pile that
+   existed when the rule landed (2026-09-07), which was 89: every catch on an auth, money or safety
+   path was resolved first, which is the half that could actually hurt someone.
+   What is left is storage fallbacks, feature probes and UI conveniences.
+
+   THIS LIST ONLY SHRINKS. It is a countdown, not a category — do not add a
+   file to ship a new silent catch. The realtimePublication allowlist is the
+   cautionary tale: it named the exact offenders it was meant to catch, so the
+   guard read green for months while the bindings stayed dead (SF-017).
+
+   To work it down: `node scripts/check-silent-catch.mjs <file>` prints the
+   lines, and that runner checks this rule ALONE, so it does not queue behind
+   the whole-repo lint gate.                                                  */
+const SILENT_CATCH_LEGACY = [
+  "src/components/admin/adminHealth/useConfigChecks.ts",
+  "src/components/admin/adminHealth/useHealthData.ts",
+  "src/components/admin/adminJobs/adminJobsHelpers.ts",
+  "src/components/admin/AdminSidebar.tsx",
+  "src/components/admin/AdminUsers.tsx",
+  "src/components/admin/adminusers/AdminUserRow.tsx",
+  "src/components/admin/dashboard/TaxReserveCard.tsx",
+  "src/components/admin/EditEmailDialog.tsx",
+  "src/components/analytics/AnalyticsCharts.tsx",
+  "src/components/BrowseMap.tsx",
+  "src/components/dashboard/jobDetailDialog/JobLocationPreview.tsx",
+  "src/components/dashboard/jobDetailDialog/useJobDetailData.ts",
+  "src/components/GroupJobHelpers.tsx",
+  "src/components/messages/ChatView.tsx",
+  "src/components/messages/MessageBubble.tsx",
+  "src/components/mobileNav/mobileNavHelpers.ts",
+  "src/components/NotificationPanel.tsx",
+  "src/components/PageHeader.tsx",
+  "src/components/postjob/AddressAutocomplete.tsx",
+  "src/components/postjob/AppleMapPreview.tsx",
+  "src/components/postjob/CheckoutStep.tsx",
+  "src/components/postjob/CurrentLocationPill.tsx",
+  "src/components/profile/EarningsTab.tsx",
+  "src/components/profile/MonthlyGoalCard.tsx",
+  "src/components/profile/PublicReviewWall.tsx",
+  "src/components/profile/TwoFactorCard.tsx",
+  "src/components/reviewPanel/types.ts",
+  "src/hooks/useActivityBadgeCounts.ts",
+  "src/hooks/useCategoryPriceStats.ts",
+  "src/hooks/useCurrentUser.ts",
+  "src/hooks/useDarkMode.ts",
+  "src/hooks/useDraftJob.ts",
+  "src/hooks/useHelprActivity.ts",
+  "src/hooks/useMapKitJs.ts",
+  "src/hooks/usePersistedBrowseView.ts",
+  "src/hooks/useUserLocation.ts",
+  "src/hooks/useVoiceDictation.ts",
+  "src/integrations/supabase/client.ts",
+  "src/integrations/supabase/keychainStorageAdapter.ts",
+  "src/lib/analytics.ts",
+  "src/lib/applicationAttachments.ts",
+  "src/lib/applicationWithdrawAnalytics.ts",
+  "src/lib/cppRouting.ts",
+  "src/lib/deepLinkRoute.ts",
+  "src/lib/errorLogger.ts",
+  "src/lib/geocode.ts",
+  "src/lib/haptics.ts",
+  "src/lib/lastRoute.ts",
+  "src/lib/messageAttachments.ts",
+  "src/lib/nativeInit.ts",
+  "src/lib/nativeLaunchRoute.ts",
+  "src/lib/nps.ts",
+  "src/lib/portfolioStorage.ts",
+  "src/lib/posthog.ts",
+  "src/lib/ppoAttribution.ts",
+  "src/lib/safeStorage.ts",
+  "src/lib/searchHistory.ts",
+  "src/lib/sentry.ts",
+  "src/lib/simpleMode.ts",
+  "src/lib/threadMutes.ts",
+  "src/pages/AccountPending.tsx",
+  "src/pages/activity/ActivitySectionedView.tsx",
+  "src/pages/activity/useBulkDismiss.ts",
+  "src/pages/CompleteProfile.tsx",
+  "src/pages/Dashboard.tsx",
+  "src/pages/dashboard/useDashboardSideQueries.ts",
+  "src/pages/postjob/useJobSubmit.ts",
+  "src/pages/postjob/usePostJobForm.ts",
 ];
 
 const DS_TYPE_CLASS_RULE = {
@@ -192,6 +283,7 @@ export default tseslint.config(
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      local: { rules: { "no-silent-catch": noSilentCatch } },
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
@@ -263,7 +355,23 @@ export default tseslint.config(
       // (3.5rem…7.25rem) genuinely has no rung.
       "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, DS_TYPE_INLINE_RULE, OPACITY_STATE_RULE, ...NATIVE_ORIGIN_RULES],
 
+      // A catch that swallows a failure and leaves no trace is how a broken
+      // feature becomes one that never fires and never says why. See the
+      // ledger comment above SILENT_CATCH_LEGACY.
+      "local/no-silent-catch": "error",
     },
+  },
+  {
+    // The silent-catch pile that predates the rule. Every OTHER guard still
+    // applies here — being on this ledger is not a reason to stop enforcing
+    // anything else. Tests are excluded wholesale further down: a spec that
+    // swallows on purpose is asserting the swallow, not committing one.
+    files: SILENT_CATCH_LEGACY,
+    rules: { "local/no-silent-catch": "off" },
+  },
+  {
+    files: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "src/test/**", "**/__mocks__/**"],
+    rules: { "local/no-silent-catch": "off" },
   },
   {
     files: DS_TYPE_INLINE_LEGACY,

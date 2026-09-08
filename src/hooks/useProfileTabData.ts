@@ -23,9 +23,6 @@ type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
 export type ProfileReview = {
   rating: number;
-  punctuality: number | null;
-  quality: number | null;
-  communication: number | null;
   feedback: string | null;
   created_at: string;
   reviewerName: string;
@@ -94,7 +91,7 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
       const data = unwrap(
         await supabase
           .from("reviews")
-          .select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
+          .select("rating, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
           .eq("reviewee_id", id)
           .lte("feedback_visible_at", new Date().toISOString())
           .neq("jobs.status", "cancelled")
@@ -130,9 +127,6 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
       const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
       return data.map((r: any) => ({
         rating: r.rating,
-        punctuality: r.punctuality ?? null,
-        quality: r.quality ?? null,
-        communication: r.communication ?? null,
         feedback: r.feedback,
         created_at: r.created_at,
         // "a neighbor", not "User": every other consumer surface for this exact

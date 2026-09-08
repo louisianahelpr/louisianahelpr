@@ -176,7 +176,7 @@ export const TaxReserveCard = ({
         </div>
       </div>
 
-      <p className="text-ds-10 text-muted-foreground leading-snug italic">
+      <p className="text-ds-10 text-muted-foreground leading-snug">
         Confirm the exact rate with your CPA.
       </p>
     </div>

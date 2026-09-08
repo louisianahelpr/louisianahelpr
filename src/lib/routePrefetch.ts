@@ -23,7 +23,6 @@ const prefetchers: Record<string, () => Promise<unknown>> = {
   "/availability": () => import("@/pages/Profile"),
   "/saved-helpers": () => import("@/pages/Profile"),
 
-  "/jobs": () => import("@/pages/Jobs"),
   
   "/login": () => import("@/pages/Login"),
   "/signup": () => import("@/pages/Signup"),

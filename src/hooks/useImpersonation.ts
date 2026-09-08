@@ -33,6 +33,9 @@ const readState = (): ImpersonationState | null => {
     }
     return null;
   } catch {
+    // Silent by design: an unreadable or malformed impersonation record means
+    // "not impersonating", which is the safe answer — it can only ever drop
+    // the admin back into their OWN session, never into someone else's.
     return null;
   }
 };
@@ -46,7 +49,9 @@ const writeState = (state: ImpersonationState | null) => {
     // cross-tab, so we ship a custom one in addition.
     window.dispatchEvent(new CustomEvent("helpr:impersonation-change"));
   } catch {
-    /* noop */
+    // Silent by design: a failed write leaves the previous record, and
+    // readState() treats anything unreadable as "not impersonating". Both
+    // directions fail back to the admin's own session.
   }
 };
 

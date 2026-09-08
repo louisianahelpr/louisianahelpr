@@ -12,6 +12,8 @@ import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
+import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
+import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 // Lazy-load the map so the map chunk (and Apple's MapKit JS script) only
 // loads when guests actually toggle to map view. List view stays cheap.
@@ -433,6 +435,10 @@ const DashboardGuest = () => {
   // add-only: it restores the dialog after returning from /subscription, but
   // never clears the param (close handles that), so it can't race the writers
   // above. Retries until the guest feed has loaded.
+  // Anchors the desktop-web filter popover to the Filters button, exactly as
+  // Dashboard does — the sheet is rendered by BrowseTasksToolbar, a different
+  // component, so the two are joined by this ref.
+  const filtersButtonRef = useRef<HTMLButtonElement>(null);
   const restoredJobParam = useRef(false);
   useEffect(() => {
     if (restoredJobParam.current) return;
@@ -483,21 +489,24 @@ const DashboardGuest = () => {
           emblemTo="/"
           // No `status` — the live-job pill is a signed-in thing.
           //
-          // No `actions` and no `searchBar` either, and that is the one place
-          // this surface deliberately diverges from Home. A signed-out visitor
-          // is not running a refined search; they are being shown that the
-          // marketplace is alive. What this row has to carry is the emblem
-          // plus the "Log in" / "Get started" pair — the screen's whole
-          // purpose — and those come first. Adding search + filter icons put
-          // four controls in one 375px row and spent the top of the page on
-          // tools for a job nobody is here to do yet. Home keeps them; a
-          // visitor who signs up gets them the moment they land on /dashboard.
+          // Search + filters DO belong here (owner, 2026-09-07: "/browse can
+          // have the filters"). This row carried only the auth pair until
+          // then, on the reasoning that a signed-out visitor "is not running a
+          // refined search". The cost of that was not a missing nicety: the
+          // filter sheet, the sort control and the List/Map toggle were all
+          // already mounted on this page and fully wired, and this was the
+          // only control that could open any of them — so every one of them
+          // was unreachable code on the widest step of the funnel, and the
+          // browse map could never be displayed at all.
           //
-          // `searchBar` goes with them rather than being left as a dead
-          // branch: the search icon was the only way to set `filters.searchOpen`
-          // on this surface, so the slot could never fire again. `filters`
-          // itself stays — the feed and its empty states are built on it.
-          trailing={<GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />}
+          // "Is there work near ME" is the first question a visitor has, and
+          // it is answerable signed-out: the feed projects the view's masked
+          // coordinates and the radius is a client-side haversine, so nothing
+          // here needs an account. Only saves, availability and saved searches
+          // do, and those route to /signup from inside the sheet.
+          actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
+          searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
+                    trailing={<GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />}
         />
       }
       titleCardClassName={TITLE_BAR_PADDING}
@@ -521,6 +530,9 @@ const DashboardGuest = () => {
                 until a filter is set some other way. `user={null}` keeps
                 SavedSearches hidden for guests. */}
             <BrowseTasksToolbar
+              // Same anchor the Filters button carries, so the desktop-web
+              // popover opens against it instead of floating.
+              filtersAnchorRef={filtersButtonRef}
               titleSrOnly
               // `null` keeps SavedSearches out of the icon cluster — it is a
               // signed-in feature.

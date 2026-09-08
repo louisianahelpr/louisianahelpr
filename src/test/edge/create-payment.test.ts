@@ -197,7 +197,161 @@ describe("create-payment edge function", () => {
           body: { action: "escrow", jobId: "job-1" },
         }),
       );
-      expect((await json(res)).error).toMatch(/already been initiated/i);
+      expect((await json(res)).error).toMatch(/already been processed/i);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Re-minting an unfunded checkout.
+     *
+     * `UnfundedJobNotice`'s "Finish paying" button covers exactly three
+     * payment_status values — 'unpaid', 'abandoned' and 'failed' — and two of
+     * them KEEP `stripe_session_id` (void-cancelled-payments' abandoned sweep
+     * and stripe-webhook's payment_intent.payment_failed both leave it set).
+     * The old guard refused any job with a session id whose status was not
+     * 'unpaid', so the notice's only CTA 500'd forever with a message naming a
+     * "cancel the existing payment" control that does not exist. Reproduced
+     * live 2026-09-07 against prod job b732b37d ('abandoned').
+     */
+    describe("re-minting a checkout for an unfunded job", () => {
+      function seedRemintable(paymentStatus: string, sessionId: string | null) {
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [
+            {
+              id: "job-1",
+              customer_id: POSTER.id,
+              budget: 100,
+              category: "cleaning",
+              title: "Clean my house",
+              payment_status: paymentStatus,
+              stripe_session_id: sessionId,
+            },
+          ],
+        };
+        scenario.reads.platform_settings = {
+          rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 200 }],
+        };
+        scenario.reads.profiles = {
+          rows: [{ onboarding_fee_paid: true, subscription_tier: "pro" }],
+        };
+        stripeMock.checkout.sessions.create.mockResolvedValue({
+          id: "cs_fresh",
+          url: "https://checkout.stripe.test/cs_fresh",
+        });
+      }
+
+      for (const status of ["unpaid", "abandoned", "failed"]) {
+        it(`mints a fresh session for a '${status}' job that still holds a dead one`, async () => {
+          seedRemintable(status, "cs_dead");
+          // The old session is open-but-unpaid: the abandoned/declined shape.
+          stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+            id: "cs_dead",
+            status: "open",
+            payment_status: "unpaid",
+            payment_intent: null,
+          });
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(200);
+          expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_fresh");
+
+          // The dead session is retired, so only ONE payable session exists.
+          expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_dead");
+
+          // The idempotency key is scoped to the session being REPLACED —
+          // `escrow-job-1` alone would replay the expired session's response
+          // for 24h and hand the poster a url that leads nowhere.
+          const opts = stripeMock.checkout.sessions.create.mock.calls[0][1];
+          expect(opts.idempotencyKey).toBe("escrow-job-1-after-cs_dead");
+
+          // payment_status returns to the money-in-flight state: the
+          // checkout.session.expired handler, void-cancelled-payments' sweep
+          // and payment_intent.payment_failed all key on 'unpaid', so leaving
+          // it 'abandoned'/'failed' would strand a live checkout.
+          const stamp = scenario.writes.find(
+            (w) => w.table === "jobs" && (w.payload as Record<string, unknown>)?.stripe_session_id === "cs_fresh",
+          );
+          expect(stamp).toBeTruthy();
+          expect((stamp!.payload as Record<string, unknown>).payment_status).toBe("unpaid");
+          // Guarded on the session id we read, so a concurrent re-mint cannot
+          // be clobbered.
+          expect(stamp!.filters).toContainEqual(
+            expect.objectContaining({ column: "stripe_session_id", value: "cs_dead" }),
+          );
+        });
+      }
+
+      it("tolerates a concurrent re-mint that already expired the prior session", async () => {
+        // `checkout.sessions.expire` is NOT idempotent, and nothing dedupes it
+        // (the CREATE below is covered by its idempotency key, this is not).
+        // Measured live 2026-09-07: two concurrent "Finish paying" taps, and the
+        // loser got a 500 carrying Stripe's raw "Only Checkout Sessions with a
+        // status in [open] can be expired" — the same dead end, one race
+        // narrower. The loser must re-read and carry on.
+        seedRemintable("abandoned", "cs_dead");
+        stripeMock.checkout.sessions.retrieve
+          .mockResolvedValueOnce({ id: "cs_dead", status: "open", payment_status: "unpaid", payment_intent: null })
+          .mockResolvedValueOnce({ id: "cs_dead", status: "expired", payment_status: "unpaid", payment_intent: null });
+        stripeMock.checkout.sessions.expire.mockRejectedValue(
+          new Error("Only Checkout Sessions with a status in [\"open\"] can be expired."),
+        );
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_fresh");
+      });
+
+      it("refuses if the prior session completed between the two reads", async () => {
+        seedRemintable("abandoned", "cs_dead");
+        stripeMock.checkout.sessions.retrieve
+          .mockResolvedValueOnce({ id: "cs_dead", status: "open", payment_status: "unpaid", payment_intent: null })
+          .mockResolvedValueOnce({ id: "cs_dead", status: "complete", payment_status: "paid", payment_intent: { id: "pi_1", status: "succeeded" } });
+        stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("cannot expire"));
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+        );
+        expect((await json(res)).error).toMatch(/still being processed/i);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      });
+
+      it("refuses to re-mint when Stripe says the prior session was actually paid", async () => {
+        // The webhook has not landed yet (or a stale payment_failed stamped the
+        // job), so our copy of payment_status lies in the one direction that
+        // would let a poster pay twice. Stripe is the last word.
+        seedRemintable("failed", "cs_paid");
+        stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+          id: "cs_paid",
+          status: "complete",
+          payment_status: "paid",
+          payment_intent: { id: "pi_1", status: "succeeded" },
+        });
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+        );
+        expect((await json(res)).error).toMatch(/still being processed/i);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+        expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+      });
+
+      it("keeps the plain idempotency key for a job that never had a session", async () => {
+        seedRemintable("unpaid", null);
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        expect(stripeMock.checkout.sessions.retrieve).not.toHaveBeenCalled();
+        expect(stripeMock.checkout.sessions.create.mock.calls[0][1].idempotencyKey).toBe(
+          "escrow-job-1",
+        );
+      });
     });
 
     it("creates a manual-capture-free checkout session and returns its url", async () => {

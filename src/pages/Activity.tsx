@@ -473,7 +473,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       // Desktop: the app bar already identifies the app, so the page name is
       // sr-only here and the row is just its count + controls. Phone and
       // native keep the visible title; they have no bar.
-      titleSrOnly={isWebDesktop}
+      // …except when the list is EMPTY. Then there are no tabs and no count
+      // either (below), so an sr-only title left the row a 1094px bordered
+      // bar holding nothing but a magnifier — and the app bar names the app,
+      // not the page, so nothing on screen said "My Posts" (external QA,
+      // 2026-09-07). The name comes back exactly when it is the only thing
+      // the row has to say.
+      titleSrOnly={isWebDesktop && !isTrulyEmpty}
       // Desktop has room for the tabs beside the screen name; phone puts them
       // on their own line under it. Same tabs either way.
       inlineFilters={isWebDesktop}
@@ -549,6 +555,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onRetry={refresh}
               onNavigate={navigate}
               onSelectStatusFilter={setStatusFilter}
+              onClearSearch={() => { setSearchQuery(""); setSearchOpen(false); }}
             />
           ) : (
             /* `min-h-full flex flex-col` so a SHORT list can fill the panel.

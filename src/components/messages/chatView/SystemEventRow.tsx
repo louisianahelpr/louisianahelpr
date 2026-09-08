@@ -114,7 +114,7 @@ export function SystemEventRow({
         }}
       >
         <p
-          className="font-serif italic text-ds-10 leading-snug inline-flex items-center gap-1"
+          className="font-sans text-ds-10 leading-snug inline-flex items-center gap-1"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         >
           <Icon

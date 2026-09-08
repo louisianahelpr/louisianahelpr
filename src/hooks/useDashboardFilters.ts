@@ -152,6 +152,15 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   const nearbyApproximate =
     nearbyMiles !== null && userLoc.status === "ready" && userLoc.approximate;
 
+  /**
+   * True when a predicate that ONLY exists client-side is actually removing
+   * jobs — an applied radius (approximate or not), or the availability match.
+   * Neither has a server-side equivalent in useDashboardJobsCount, so while
+   * either is on, that count describes a different set from the rendered one.
+   */
+  const clientOnlyNarrowing =
+    (nearbyMiles !== null && !nearbyUnavailable) || matchAvailability;
+
   // Budget is ONE filter even though it occupies two state slots: the sheet's
   // budget bands ("$50 – $150") write min AND max together, so counting them
   // separately made a single tapped chip report "2 filters active" in the
@@ -161,7 +170,15 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   // (which didn't) disagreed, and the "Filtered · N active" eyebrow could
   // read "Filtered · 0 active" while a search query was the only thing
   // filtering the feed.
-  const activeFilterCount = [selectedCategory, minBudget || maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : "", urgentOnly ? "on" : "", searchQuery ? "on" : ""].filter(Boolean).length;
+  // `nearbyUnavailable ? "" : locationFilter` — a radius with no coordinates
+  // behind it is NOT an active filter, because it is provably changing
+  // nothing. Counting it lit the Filters badge and printed "Filtered · N
+  // active" over a feed in which every job had been kept — the same lie
+  // `nearbyUnavailable` above exists to prevent, just told by a different
+  // control. The chip stays visibly selected inside the sheet, beside the
+  // message saying why it is not applied; that is the one place the user can
+  // still see what they picked.
+  const activeFilterCount = [selectedCategory, minBudget || maxBudget, nearbyUnavailable ? "" : locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : "", urgentOnly ? "on" : "", searchQuery ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
   const clearFilters = () => {
@@ -450,7 +467,18 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     urgentOnly, setUrgentOnly,
     activeFilterCount, hasFilters, clearFilters,
     filteredJobs, nearbyJobs, mapFilter,
-    totalMatchingCount, totalMatchingCountLoading,
+    // NULL whenever a filter the server count cannot express is actually
+    // narrowing the feed, which falls the header back to the rendered count.
+    // useDashboardJobsCount reproduces only the predicates that translate
+    // cleanly to SQL and skips the haversine radius and matchAvailability, so
+    // with a 5-mile radius applied it answered 3 over a list of 1 and did not
+    // move when a card left. Its own comment calls that an acceptable
+    // over-count; "3 jobs match your filters" above one card is not an
+    // over-count, it is a false statement about the set on screen. An
+    // undercount while infinite-scroll is still loading is the lesser lie —
+    // it is never more than the reader can already see.
+    totalMatchingCount: clientOnlyNarrowing ? null : totalMatchingCount,
+    totalMatchingCountLoading,
     userLoc, nearbyMiles, nearbyUnavailable, nearbyApproximate,
   };
 }

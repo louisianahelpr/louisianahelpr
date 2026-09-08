@@ -113,13 +113,18 @@ export function AdminUserDetailDialog({
             />
 
             <Tabs defaultValue="actions" className="w-full flex flex-col flex-1 min-h-0">
-              <TabsList className="grid grid-cols-6 w-full flex-shrink-0">
-                <TabsTrigger value="actions" className="text-ds-10 sm:text-ds-13 px-1">Actions</TabsTrigger>
-                <TabsTrigger value="overview" className="text-ds-10 sm:text-ds-13 px-1">Overview</TabsTrigger>
-                <TabsTrigger value="jobs" className="text-ds-10 sm:text-ds-13 px-1">Jobs</TabsTrigger>
-                <TabsTrigger value="reviews" className="text-ds-10 sm:text-ds-13 px-1">Reviews</TabsTrigger>
-                <TabsTrigger value="documents" className="text-ds-10 sm:text-ds-13 px-1">Docs</TabsTrigger>
-                <TabsTrigger value="emails" className="text-ds-10 sm:text-ds-13 px-1">Emails</TabsTrigger>
+              {/* Scroll strip below `sm`, six equal cells from `sm` up. Six
+                  fixed cells at 375 are 50px each, and "Overview" / "Reviews"
+                  at text-ds-10 are wider than that — the selected pill sat
+                  visibly narrower than its own label and the labels ran into
+                  each other (eyeballed 2026-09-07). */}
+              <TabsList className="flex w-full justify-start overflow-x-auto no-scrollbar [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)] sm:[mask-image:none] sm:grid sm:grid-cols-6 flex-shrink-0">
+                <TabsTrigger value="actions" className="shrink-0 text-ds-11 sm:text-ds-13 px-2.5 sm:px-1">Actions</TabsTrigger>
+                <TabsTrigger value="overview" className="shrink-0 text-ds-11 sm:text-ds-13 px-2.5 sm:px-1">Overview</TabsTrigger>
+                <TabsTrigger value="jobs" className="shrink-0 text-ds-11 sm:text-ds-13 px-2.5 sm:px-1">Jobs</TabsTrigger>
+                <TabsTrigger value="reviews" className="shrink-0 text-ds-11 sm:text-ds-13 px-2.5 sm:px-1">Reviews</TabsTrigger>
+                <TabsTrigger value="documents" className="shrink-0 text-ds-11 sm:text-ds-13 px-2.5 sm:px-1">Docs</TabsTrigger>
+                <TabsTrigger value="emails" className="shrink-0 text-ds-11 sm:text-ds-13 px-2.5 sm:px-1">Emails</TabsTrigger>
               </TabsList>
 
               <OverviewTab viewProfile={viewProfile} profileViolations={profileViolations} />

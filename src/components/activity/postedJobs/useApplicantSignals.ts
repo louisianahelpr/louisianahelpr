@@ -83,7 +83,7 @@ export function useApplicantSignals(
   // "Recommended" sort can rank more experienced helpers higher.
   // Falls back to {} on PGRST202 (migration not yet deployed on prod)
   // or any other error so the panel is never blocked.
-  const { data: completedCountsData } = useQuery({
+  const { data: completedCountsData, isPending: completedPending } = useQuery({
     queryKey: ["helper-completed-counts", helperIds],
     queryFn: async (): Promise<Map<string, number>> => {
       if (helperIds.length === 0) return new Map();
@@ -112,7 +112,7 @@ export function useApplicantSignals(
   // Minimum 3 unique customers required before a result is emitted so the
   // stat isn't skewed by very sparse histories.
   // Falls back to an empty Map on PGRST202 or any other error.
-  const { data: repeatHireData } = useQuery({
+  const { data: repeatHireData, isPending: repeatHirePending } = useQuery({
     queryKey: ["helper-repeat-hire-percents", helperIds],
     queryFn: async (): Promise<Map<string, number>> => {
       if (helperIds.length === 0) return new Map();
@@ -140,7 +140,7 @@ export function useApplicantSignals(
   // Measures how often a helper arrived within 10 min of the scheduled start.
   // Minimum 5 timed jobs required before a result is emitted.
   // Falls back to an empty Map on PGRST202 or any other error.
-  const { data: onTimeData } = useQuery({
+  const { data: onTimeData, isPending: onTimePending } = useQuery({
     queryKey: ["helper-on-time-percents", helperIds],
     queryFn: async (): Promise<Map<string, number>> => {
       if (helperIds.length === 0) return new Map();
@@ -177,7 +177,7 @@ export function useApplicantSignals(
   // Applicants who declined location are simply ABSENT from the result rather
   // than being placed at a shared ZIP centroid, so an absent entry means
   // "unknown", never "far away".
-  const { data: distanceData } = useQuery({
+  const { data: distanceData, isPending: distancePending } = useQuery({
     queryKey: ["helper-distance-bands", selectedJob?.id, helperIds],
     queryFn: async (): Promise<Map<string, DistanceBand>> => {
       if (helperIds.length === 0 || !selectedJob?.id) return new Map();
@@ -202,11 +202,28 @@ export function useApplicantSignals(
   });
   const distanceBandMap: Map<string, DistanceBand> = distanceData ?? new Map();
 
+  // TRUE WHILE ANY RANKING INPUT IS STILL IN FLIGHT. The comparison panel
+  // scores and sorts from these maps synchronously, so before this went out
+  // the list rendered the instant the applications arrived — with every map
+  // empty — and re-sorted as each RPC landed. Measured 2026-09-07 on a
+  // two-applicant job: the first paint put the "Helpr Recommended" badge on
+  // an unverified helper with no payout account, above an ID-verified helper
+  // with 13 completed jobs; ~1s later the two swapped places and the badge
+  // moved. A hiring recommendation that changes its mind in front of the
+  // reader is worse than a skeleton. Disabled queries (no applicants yet)
+  // report pending forever in React Query v5, hence the `enabled` guards.
+  const hasApps = applications.length > 0;
+  const signalsPending =
+    (hasApps && (completedPending || repeatHirePending || onTimePending)) ||
+    (helperIds.length > 0 && !!selectedJob?.id && distancePending) ||
+    (!!selectedJob?.id && neighborCountQueries.some((q) => q.isPending));
+
   return {
     neighborCountMap,
     completedCountsMap,
     repeatHireMap,
     onTimeMap,
     distanceBandMap,
+    signalsPending,
   };
 }

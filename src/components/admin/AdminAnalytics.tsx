@@ -9,6 +9,8 @@ import { MetricCard, StatusRow, MRRRow, CohortRetentionCard, FunnelCard } from "
 import { UsersDrillDown, SubscriptionsDrillDown, CategoriesDrillDown, PayoutsDrillDown, JobsDrillDown } from "./AdminAnalyticsDrilldowns";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
 import { SUB_PRICE, type Profile, type Job, type Tip, type DrillDown } from "./adminAnalytics/types";
+import { TIER_ORDER } from "@/lib/subscriptionTiers";
+import { TIER_CHIP_CLASSES } from "./adminAnalyticsConstants";
 import { computeMetrics } from "./adminAnalytics/adminAnalyticsHelpers";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
@@ -172,9 +174,7 @@ const AdminAnalytics = () => {
     completionRate,
     cancellationRate,
     totalRefunded,
-    subBasic,
-    subPro,
-    subElite,
+    subCount,
     subFree,
     totalSubRevenue,
     categoryData,
@@ -400,12 +400,12 @@ const AdminAnalytics = () => {
                 NOTHING and those two chips have been rendering unstyled. Same
                 family as the `data-[state=checked]:btn-grad-primary` trap in
                 CLAUDE.md: the class list reads correct and produces no CSS. */}
-            {[
-              { label: TIER_PERKS.elite.name, count: subElite, color: "bg-accent/20 text-[hsl(var(--accent-ink))]" },
-              { label: TIER_PERKS.pro.name, count: subPro, color: "bg-primary/10 text-primary" },
-              { label: TIER_PERKS.basic.name, count: subBasic, color: "bg-secondary text-secondary-foreground" },
-              { label: TIER_PERKS.free.name, count: subFree, color: "bg-muted text-muted-foreground" },
-            ].map(t => (
+            {[...TIER_ORDER].reverse().map(t => ({
+              label: TIER_PERKS[t].name,
+              count: subCount[t],
+              color: TIER_CHIP_CLASSES[t],
+            }))
+              .map(t => (
               <div key={t.label} className="text-center">
                 <p className="text-ds-17 font-bold text-foreground">{t.count}</p>
                 <Badge className={`text-ds-10 ${t.color}`}>{t.label}</Badge>
@@ -575,9 +575,11 @@ const AdminAnalytics = () => {
           <p className="text-ds-28 font-bold text-foreground tabular-nums leading-none">${totalSubRevenue.toFixed(2)}</p>
           <p className="text-ds-11 text-muted-foreground mt-1">Projected annual: ${(totalSubRevenue * 12).toFixed(2)}</p>
           <div className="mt-4 space-y-1.5">
-            <MRRRow tier={TIER_PERKS.elite.name} count={subElite} amount={subElite * SUB_PRICE.elite} />
-            <MRRRow tier={TIER_PERKS.pro.name} count={subPro} amount={subPro * SUB_PRICE.pro} />
-            <MRRRow tier={TIER_PERKS.basic.name} count={subBasic} amount={subBasic * SUB_PRICE.basic} />
+            {/* Every PAID rung, highest first — derived, so a new tier can
+                never be silently absent from MRR (CC-019: Plus was). */}
+            {[...TIER_ORDER].reverse().filter(t => t !== "free").map(t => (
+              <MRRRow key={t} tier={TIER_PERKS[t].name} count={subCount[t]} amount={subCount[t] * SUB_PRICE[t]} />
+            ))}
           </div>
         </AdminCard>
       </div>

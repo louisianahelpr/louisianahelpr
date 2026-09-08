@@ -119,7 +119,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           }}
         >
           <p
-            className="font-serif italic uppercase mb-1 inline-flex items-center gap-1 text-ds-10"
+            className="font-sans uppercase mb-1 inline-flex items-center gap-1 text-ds-10"
             style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             <MessageSquare className="w-3 h-3" /> Message from poster
@@ -128,12 +128,12 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
               direction of the same leak — the poster's message reached the
               helper verbatim in the 2026-09-06 review. */}
           {app.flagged_hidden ? (
-            <p className="font-serif italic leading-relaxed text-ds-14" style={{ color: "hsl(var(--burnt-sienna))" }}>
+            <p className="font-sans leading-relaxed text-ds-14" style={{ color: "hsl(var(--burnt-sienna))" }}>
               This message was hidden — it looked like contact or payment details.
               Keep the conversation on Helpr so your payment stays protected.
             </p>
           ) : (
-            <p className="font-serif italic leading-relaxed text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
+            <p className="font-sans leading-relaxed text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
               “{app.offer_message}”
             </p>
           )}

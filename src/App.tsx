@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 // Static, not lazy: it renders a <Navigate> and nothing else, so a code-split
 // chunk (and a Suspense frame) would cost more than the component.
+import { lazyWithPreload } from "@/lib/lazyWithPreload";
 import ActivityLegacyRedirect from "./pages/ActivityLegacyRedirect";
 // Same rationale: a <Navigate> wrapper, statically imported.
 import ShortLinkRedirect from "./pages/ShortLinkRedirect";
@@ -76,39 +77,38 @@ const TermsReconsentDialog = lazy(() =>
 );
 
 // Lazy load all pages including landing
-const Index = lazy(() => import("./pages/Index"));
+const Index = lazyWithPreload(() => import("./pages/Index"));
 
 // Lazy load all other pages
-const Login = lazy(() => import("./pages/Login"));
-const Signup = lazy(() => import("./pages/Signup"));
-const SignupPending = lazy(() => import("./pages/SignupPending"));
-const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
-const AccountPending = lazy(() => import("./pages/AccountPending"));
-const AccountDenied = lazy(() => import("./pages/AccountDenied"));
-const AccountBanned = lazy(() => import("./pages/AccountBanned"));
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Profile = lazy(() => import("./pages/Profile"));
-const PostJob = lazy(() => import("./pages/PostJob"));
-const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
-const UserProfile = lazy(() => import("./pages/UserProfile"));
-const Admin = lazy(() => import("./pages/Admin"));
-const Activity = lazy(() => import("./pages/Activity"));
-const Messages = lazy(() => import("./pages/Messages"));
+const Login = lazyWithPreload(() => import("./pages/Login"));
+const Signup = lazyWithPreload(() => import("./pages/Signup"));
+const SignupPending = lazyWithPreload(() => import("./pages/SignupPending"));
+const CompleteProfile = lazyWithPreload(() => import("./pages/CompleteProfile"));
+const AccountPending = lazyWithPreload(() => import("./pages/AccountPending"));
+const AccountDenied = lazyWithPreload(() => import("./pages/AccountDenied"));
+const AccountBanned = lazyWithPreload(() => import("./pages/AccountBanned"));
+const ForgotPassword = lazyWithPreload(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazyWithPreload(() => import("./pages/ResetPassword"));
+const Dashboard = lazyWithPreload(() => import("./pages/Dashboard"));
+const Profile = lazyWithPreload(() => import("./pages/Profile"));
+const PostJob = lazyWithPreload(() => import("./pages/PostJob"));
+const PaymentSuccess = lazyWithPreload(() => import("./pages/PaymentSuccess"));
+const UserProfile = lazyWithPreload(() => import("./pages/UserProfile"));
+const Admin = lazyWithPreload(() => import("./pages/Admin"));
+const Activity = lazyWithPreload(() => import("./pages/Activity"));
+const Messages = lazyWithPreload(() => import("./pages/Messages"));
 
-const Legal = lazy(() => import("./pages/Legal"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const Jobs = lazy(() => import("./pages/Jobs"));
-const JobDetail = lazy(() => import("./pages/JobDetail"));
-const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
+const Legal = lazyWithPreload(() => import("./pages/Legal"));
+const NotFound = lazyWithPreload(() => import("./pages/NotFound"));
+const JobDetail = lazyWithPreload(() => import("./pages/JobDetail"));
+const DashboardGuest = lazyWithPreload(() => import("./pages/DashboardGuest"));
 
 // The seven pages that used to be lazy-imported here are now Profile tabs and
 // are lazy-imported by ProfileTabPanels instead: PetProfiles, WorkRecord,
 // HomeHistory, HelprWrapped, StrSettings, HelperAnalytics, AutoTip.
-const GiftCard = lazy(() => import("./pages/GiftCard"));
-const HelpCenter = lazy(() => import("./pages/HelpCenter"));
-const Support = lazy(() => import("./pages/Support"));
+const GiftCard = lazyWithPreload(() => import("./pages/GiftCard"));
+const HelpCenter = lazyWithPreload(() => import("./pages/HelpCenter"));
+const Support = lazyWithPreload(() => import("./pages/Support"));
 
 // Lazy load less-critical global components
 
@@ -254,19 +254,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           already sent. Same reasoning as /data-rights above. */}
       <Route path="/warnings" element={<Navigate to="/profile?tab=warnings" replace />} />
 
-      {/* Public, indexable jobs landing — Jobs.tsx reads anon job data
-          (get_ranked_open_jobs, granted to anon) and renders guest
-          "Sign up to apply" cards, so it must be reachable WITHOUT auth.
-          It was previously behind ProtectedRoute, which redirected the
-          exact guests it targets to /login. /browse remains the in-app
-          (AppShell) guest experience; this is its marketing-page sibling.
-
-          NOT wrapped in <MarketingRedirect>: Jobs.tsx already bounces
-          authenticated visitors itself, and does it better — it forwards a
-          ?job= deep link on to /dashboard?quickApply=<id>, which this wrapper
-          would flatten to a bare /dashboard. Same for /jobs/:id and /browse
-          (DashboardGuest holds its render on getSession before bouncing). */}
-      <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<PageTransition><Jobs /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Public, deep-linkable job preview. Shared links (ShareJobButton →
           /jobs/{id}?ref=share) land here: guests get a read-only preview,
           signed-in users are redirected into the dashboard apply flow. */}

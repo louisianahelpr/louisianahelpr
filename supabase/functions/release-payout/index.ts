@@ -33,17 +33,11 @@ import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
 import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
-
-/**
- * Job payment states this function may legitimately walk forward to 'released'.
- *
- * 'payout_pending' is the normal one. 'released' stays in the set so a resumed
- * run (the transfer already settled, the flip already happened, and the whole
- * function is being retried) is a clean no-op rather than a false alarm. Every
- * other state — 'chargeback', 'refunded', 'escrow' — means something else owns
- * this job's money now, and the flip must NOT happen.
- */
-const RELEASABLE_PAYMENT_STATES = ["payout_pending", "released"] as const;
+// The post-transfer flip and its transient-only retry are SHARED with
+// process-scheduled-payouts — see _shared/releaseFlip.ts for TC-008, the
+// stranded payout that made a retry non-optional.
+import { flipJobToReleased } from "../_shared/releaseFlip.ts";
+import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -229,6 +223,39 @@ serve(async (req) => {
     );
   }
 
+  // The guard above is NOT enough on its own. `rpc_decide_dispute` sets
+  // dispute_status='resolved' at DECISION time — before execute-dispute-split
+  // moves a cent — so a decided-but-unexecuted split walks straight through
+  // the allow-list above and would be paid in FULL, on a job whose recorded
+  // decision may award the helper a fraction. A later "Retry settlement" would
+  // then refund and transfer on top of that: double-settle. The only column
+  // that knows is disputes.execution_status.
+  const settlement = await checkUnsettledDispute(supabaseAdmin, job.id);
+  if (settlement.blocked) {
+    if (settlement.readError) {
+      console.error(
+        `[release-payout] dispute settlement check failed for job ${job.id}: ${settlement.readError}`,
+      );
+      return jsonResponse(
+        { error: "dispute settlement check failed — payout refused, retry" },
+        500,
+      );
+    }
+    console.warn(
+      `[release-payout] job ${job.id} blocked: dispute ${settlement.dispute?.id} is decided but execution_status=${settlement.dispute?.execution_status}`,
+    );
+    return jsonResponse(
+      {
+        error:
+          "this job's dispute decision has not been settled yet — run the dispute split, not a full payout",
+        dispute_id: settlement.dispute?.id,
+        execution_status: settlement.dispute?.execution_status,
+        payout_split: settlement.dispute?.payout_split,
+      },
+      409,
+    );
+  }
+
   // Helper must have an active Connect account with payouts enabled.
   // Also pull onboarding_fee_paid — if false and they haven't paid via a
   // prior post, deduct the one-time $2 fee from this payout below.
@@ -273,12 +300,67 @@ serve(async (req) => {
   const ledgerRows = (ledgerRowsRaw ?? []) as LedgerRow[];
   const { settled: existing } = classifyLedger(ledgerRows);
   if (existing) {
+    // ── The retry that HEALS a split state, instead of re-reporting it ──────
+    //
+    // A settled row carrying a real transfer id means the money is already
+    // out. Until now this returned 409 and stopped — correct about not sending
+    // twice, and wrong about everything else, because the only reason anything
+    // retries a paid-out job is that the previous run died between the
+    // transfer and the jobs flip. TC-008 was exactly that: transfer
+    // tr_3UDDZQKp2H4b7tEC13IlnQEy ($22.00) went out, the flip came back
+    // `57014 canceling statement due to statement timeout`, and every retry
+    // after it — the admin "Release payout" button and auto-release-payment
+    // Phase 2 — hit this 409. The job read 'payout_pending' with the helper
+    // already paid, and NO code path could fix it; it took hand-written SQL.
+    //
+    // So finish the job instead. No transfer is sent (we never reach Stripe),
+    // and the flip is guarded on RELEASABLE_PAYMENT_STATES — which includes
+    // 'released' — so calling this on an already-healed job matches its one
+    // row and is a clean no-op.
+    //
+    // The fee columns are NOT rewritten here: this path never recomputed the
+    // tier, and a guess would overwrite the numbers the paid transfer was
+    // actually built from. `platform_fee_amount` comes from the ledger row
+    // when it has one, because that IS the record of what moved.
+    const healed = await flipJobToReleased(supabaseAdmin, job.id);
+    if (healed.ok) {
+      console.log(
+        `[release-payout] job ${job.id} already had transfer ${existing.stripe_transfer_id}; completed the missing status flip`,
+      );
+      return jsonResponse({
+        success: true,
+        job_id: job.id,
+        stripe_transfer_id: existing.stripe_transfer_id,
+        initiated_by: initiatedBy,
+        already_paid: true,
+      });
+    }
+    // Could not heal. This is the genuinely stuck case, and it must be loud:
+    // the money is out and no automated path will fix it.
+    console.error(
+      `CRITICAL: job ${job.id} has transfer ${existing.stripe_transfer_id} but the status flip still ${healed.zeroRow ? "matched ZERO rows" : "failed"}: ${healed.message}`,
+    );
+    await postSlackOpsAlert({
+      kind: "payout_failed",
+      severity: "critical",
+      title: "Paid job could not be flipped to released on retry",
+      message:
+        "A payout retry found an existing transfer but could not complete the missing jobs.payment_status flip. The helper has been paid and the job does not say so. Reconcile manually.",
+      fields: {
+        "Job ID": job.id,
+        "Transfer ID": existing.stripe_transfer_id ?? "(none)",
+        "DB error": healed.message.slice(0, 200),
+      },
+      link: "https://www.louisianahelpr.com/admin?tab=payouts",
+    });
     return jsonResponse(
       {
-        error: "transfer already exists for this job",
+        fn: "release-payout",
+        error: "transfer already exists but the job status update failed — manual reconciliation needed",
         existing_transfer_id: existing.stripe_transfer_id,
+        zero_row_match: healed.zeroRow,
       },
-      409,
+      500,
     );
   }
 
@@ -696,11 +778,19 @@ serve(async (req) => {
   }
   if (claim.kind === "blocked") {
     await rollBackOnboardingFeeClaim();
+    // A settled row with a real transfer id was already handled far above, by
+    // the duplicate-transfer check, which HEALS the job rather than 409-ing
+    // (see there for TC-008). Reaching here means one of the two states that
+    // check could not see: another run took the claim between that read and
+    // this insert, or a run is mid-transfer right now. Either way nothing is
+    // known to have moved for THIS invocation, so healing would be a guess.
+    // Stand down and let the caller retry.
     return jsonResponse(
       { error: claim.reason, existing_transfer_id: claim.transferId },
       409,
     );
   }
+
   const failedTransferCount = claim.failedCount;
 
   let transfer: Stripe.Transfer;
@@ -831,24 +921,18 @@ serve(async (req) => {
   // event it is. The precondition also means a job an operator has since
   // refunded, or that a chargeback webhook has flipped, is never overwritten
   // with 'released'.
-  const { data: releasedJob, error: releasedErr } = await supabaseAdmin
-    .from("jobs")
-    .update({
-      payment_status: "released",
-      // Persist the tier-resolved commission so job-level revenue analytics
-      // match what actually moved (the escrow-time value was a placeholder
-      // computed before any helper — and thus any tier — was known).
-      platform_fee_amount: platformFeeDollars,
-      helper_fee_percent: helperFeePercent,
-    })
-    .eq("id", job.id)
-    .in("payment_status", [...RELEASABLE_PAYMENT_STATES])
-    .select("id");
-  if (releasedErr || !releasedJob || releasedJob.length === 0) {
-    const zeroRow = !releasedErr;
+  const flip = await flipJobToReleased(supabaseAdmin, job.id, {
+    // Persist the tier-resolved commission so job-level revenue analytics match
+    // what actually moved (the escrow-time value was a placeholder computed
+    // before any helper — and thus any tier — was known).
+    platform_fee_amount: platformFeeDollars,
+    helper_fee_percent: helperFeePercent,
+  });
+  if (!flip.ok) {
+    const zeroRow = flip.zeroRow;
     console.error(
-      `CRITICAL: transfer ${transfer.id} sent for job ${job.id} but jobs.update to released ${zeroRow ? "matched ZERO rows (payment_status changed under us)" : "failed"}:`,
-      releasedErr,
+      `CRITICAL: transfer ${transfer.id} sent for job ${job.id} but jobs.update to released ${zeroRow ? "matched ZERO rows (payment_status changed under us)" : `failed after ${flip.attempts} attempts`}:`,
+      flip.message,
     );
     await postSlackOpsAlert({
       kind: "payout_failed",
@@ -861,7 +945,7 @@ serve(async (req) => {
         "Job ID": job.id,
         "Transfer ID": transfer.id,
         "Amount": `$${(payoutCents / 100).toFixed(2)}`,
-        "DB error": releasedErr?.message?.slice(0, 200) ?? "zero rows matched",
+        "DB error": flip.message.slice(0, 200),
       },
       link: "https://www.louisianahelpr.com/admin?tab=payouts",
     });

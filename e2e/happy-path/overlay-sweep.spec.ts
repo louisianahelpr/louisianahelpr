@@ -76,7 +76,6 @@ const ROUTES = [
   "/my-jobs",
   "/messages",
   "/post-job",
-  "/jobs",
   "/browse",
   "/profile",
   "/profile?tab=profile",

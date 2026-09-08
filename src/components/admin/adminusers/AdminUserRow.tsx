@@ -56,8 +56,13 @@ const AdminUserRowBase = ({
   lastLoginSummary,
   onOpen,
 }: AdminUserRowProps) => {
-  const chip = (key: string, content: React.ReactNode, tone = "bg-secondary/40 text-muted-foreground") => (
-    <span key={key} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-ds-11 font-medium ${tone}`}>
+  const chip = (
+    key: string,
+    content: React.ReactNode,
+    tone = "bg-secondary/40 text-muted-foreground",
+    title?: string,
+  ) => (
+    <span key={key} title={title} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-ds-11 font-medium ${tone}`}>
       {content}
     </span>
   );
@@ -205,28 +210,42 @@ const AdminUserRowBase = ({
                   </>
                 )}
 
-                {/* Jobs completed */}
+                {/* Jobs completed. "N job" was ambiguous beside the money chip
+                    next to it, which counts a DIFFERENT set of jobs — this one
+                    is completions only, that one is anything with money in
+                    flight. Naming each basis is what stops the pair reading as
+                    one fact ("1 job · $479") that neither number supports. */}
                 {jobsDone > 0 && chip(
                   "jobs",
                   <>
                     <Briefcase className="w-3 h-3" />
-                    {jobsDone} job{jobsDone !== 1 ? "s" : ""}
-                  </>
+                    {jobsDone} completed
+                  </>,
+                  undefined,
+                  "Jobs with status 'completed', as helper or poster.",
                 )}
 
-                {/* Lifetime value (earned for helpers, spent for customers).
+                {/* Money that has MOVED through this account — spent as poster,
+                    earned as helper. This is NOT lifetime value: loadPaySummary
+                    takes payment_status IN (escrow, payout_pending, released),
+                    which includes escrow still held on jobs that are open or
+                    in_progress. It rendered as a bare "$479" with no noun, next
+                    to a completions chip, so the row asserted a settled lifetime
+                    figure it had never computed. "moved" is the word that is
+                    true of every row this query returns.
                     No DollarSign icon: every OTHER chip in this row pairs its
-                    icon with a value that names its own unit ("12 jobs",
-                    "3 open"), so the glyph is decoration there. Here the
-                    value is a bare number and the icon was doing the "$"'s
-                    job — rendering "$ 450", a gap through the middle of the
-                    figure. A currency symbol is typography; it goes in the
-                    text node with the digits. */}
+                    icon with a value that names its own unit, so the glyph is
+                    decoration there. Here the icon was doing the "$"'s job —
+                    rendering "$ 450", a gap through the middle of the figure. A
+                    currency symbol is typography; it goes in the text node with
+                    the digits. */}
                 {ltv > 0 && chip(
                   "ltv",
                   <span className="tabular-nums">
-                    ${ltv >= 1000 ? `${(ltv / 1000).toFixed(1)}k` : Math.round(ltv)}
-                  </span>
+                    ${ltv >= 1000 ? `${(ltv / 1000).toFixed(1)}k` : Math.round(ltv)} moved
+                  </span>,
+                  undefined,
+                  "Budget plus fees on every job with money in escrow, pending payout, or released — includes escrow still held on jobs nobody has finished.",
                 )}
 
                 {/* Parish — moderation/location signal */}

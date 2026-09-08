@@ -54,6 +54,8 @@ export async function assertFreshBundle(baseURL: string): Promise<void> {
   try {
     servedHtml = await (await fetch(baseURL)).text();
   } catch {
+    // A server that is not up yet is not a stale bundle; undefined lets
+    // staleBundleMessage() say "could not fetch" instead of guessing.
     servedHtml = undefined;
   }
 

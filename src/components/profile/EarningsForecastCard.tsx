@@ -197,7 +197,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
           </div>
         </div>
         <p
-          className="font-serif italic text-ds-12"
+          className="font-sans text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Pick up a job before Sunday and we'll project your earnings here.
@@ -233,7 +233,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
               eyebrow"). "By Sunday" below already states what this card is;
               this line is a quiet caption, not a label. */}
           <p
-            className="font-serif italic flex items-center gap-1.5 text-ds-11"
+            className="font-sans flex items-center gap-1.5 text-ds-11"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             This week's projection
@@ -274,7 +274,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
       </div>
 
       <p
-        className="font-display italic font-bold tabular-nums leading-none text-ds-28"
+        className="font-sans font-bold tabular-nums leading-none text-ds-28"
         style={{
           color: "hsl(var(--ink-deep))",
           letterSpacing: "-0.02em",
@@ -285,7 +285,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
       </p>
 
       <p
-        className="font-serif italic mt-1.5 text-ds-12"
+        className="font-sans mt-1.5 text-ds-12"
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         {inProgressCount === 0
@@ -300,13 +300,13 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
         <div className="mt-3 space-y-1">
           <div className="flex items-center justify-between text-ds-10">
             <span
-              className="font-serif italic"
+              className="font-sans"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Earned so far · {formatUsd(earnedSoFar)}
             </span>
             <span
-              className="font-serif italic tabular-nums"
+              className="font-sans tabular-nums"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               {pct}%

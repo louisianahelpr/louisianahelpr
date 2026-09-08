@@ -36,7 +36,7 @@ export const StarRow = ({
           {label}
           {optional && (
             <span
-              className="font-serif italic text-ds-10"
+              className="font-sans text-ds-10"
               style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.04em" }}
             >
               Optional
@@ -44,7 +44,7 @@ export const StarRow = ({
           )}
         </p>
         <p
-          className="font-serif italic mt-0.5 text-ds-12"
+          className="font-sans mt-0.5 text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {sublabel}

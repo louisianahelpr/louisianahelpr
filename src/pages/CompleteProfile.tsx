@@ -571,7 +571,7 @@ const CompleteProfile = () => {
             >
               Almost there.
             </h1>
-            <p className="mt-3 font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="mt-3 font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               We need a few details before you can use Helpr. This keeps the community safe.
             </p>
           </div>

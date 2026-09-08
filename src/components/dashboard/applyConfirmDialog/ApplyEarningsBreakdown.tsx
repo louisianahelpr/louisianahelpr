@@ -77,7 +77,7 @@ export function ApplyEarningsBreakdown({
         You earn
       </p>
       <p
-        className="font-display italic font-bold tabular-nums leading-none text-ds-32"
+        className="font-sans font-bold tabular-nums leading-none text-ds-32"
         style={{ color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
       >
         ${formatPriceFloor(payout)}
@@ -105,16 +105,16 @@ export function ApplyEarningsBreakdown({
         >
           <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             <span className="font-sans">Budget{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
-            <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${formatPrice(perHelper)}</span>
+            <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${formatPrice(perHelper)}</span>
           </div>
           <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             <span className="font-sans">− {platformFee}% platform fee</span>
-            <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(commission)}</span>
+            <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(commission)}</span>
           </div>
           {hasUrgent && (
             <div className="flex justify-between">
               <span className="font-sans" style={{ color: "hsl(var(--burnt-sienna))" }}>+ urgent bonus{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
-              <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>+${formatPrice(netUrgent)}</span>
+              <span className="font-sans tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>+${formatPrice(netUrgent)}</span>
             </div>
           )}
           <div
@@ -123,7 +123,7 @@ export function ApplyEarningsBreakdown({
           >
             <span className="font-sans font-semibold text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>Take-home</span>
             <span
-              className="font-display italic font-bold tabular-nums text-ds-14"
+              className="font-sans font-bold tabular-nums text-ds-14"
               style={{ color: "hsl(var(--bark))" }}
             >
               ${formatPriceFloor(payout)}

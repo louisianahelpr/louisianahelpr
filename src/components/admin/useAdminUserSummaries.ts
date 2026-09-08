@@ -102,7 +102,16 @@ export function useAdminUserSummaries() {
 
   const loadPaySummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
-    // Pull only completed/escrowed jobs for pay totals
+    // `payment_status IN (escrow, payout_pending, released)` is money that has
+    // MOVED — it includes escrow still held on jobs that are `open` or
+    // `in_progress` and may yet be cancelled or refunded. That is a legitimate
+    // thing for an operator to see, but it is NOT lifetime value, and pairing it
+    // with a jobs chip counting only `status = 'completed'` put two different
+    // denominators side by side in one row: the e2e helper (437de07d) has ONE
+    // completed job and FIVE money-bearing ones, so the row read "1 job · $479"
+    // — a figure four fifths of which is in-flight escrow on jobs nobody has
+    // finished. The chip is now labelled for what this query actually returns
+    // (see AdminUserRow), so the number and its noun agree.
     const { data, error } = await supabase
       .from("jobs")
       .select("helper_id, customer_id, budget, helper_fee_percent, customer_fee_amount, sales_tax_amount, status, payment_status")

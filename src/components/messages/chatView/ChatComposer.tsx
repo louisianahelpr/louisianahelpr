@@ -119,7 +119,7 @@ export function ChatComposer({
           }}
         >
           <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} aria-hidden="true" />
-          <p className="font-serif italic text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+          <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
             Your application's in. The poster will reach out here if they're interested — you'll be able to reply as soon as they do.
           </p>
         </div>
@@ -164,7 +164,7 @@ export function ChatComposer({
             <p className="text-ds-10 font-sans font-semibold" style={{ color: "hsl(var(--bark))" }}>
               Replying to {replyTo.sender_id === userId ? "yourself" : (activeConvo?.otherUserName ?? "them")}
             </p>
-            <p className="text-ds-11 truncate font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            <p className="text-ds-11 truncate font-sans" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
               {replyTo.content?.trim() || "Attachment"}
             </p>
           </div>

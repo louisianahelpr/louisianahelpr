@@ -190,7 +190,7 @@ export function BrowseSearchBar({
         >
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/30">
             <span
-              className="font-serif italic tracking-[0.14em] uppercase text-ds-9"
+              className="font-sans tracking-[0.14em] uppercase text-ds-9"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Recent

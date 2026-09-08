@@ -20,7 +20,7 @@ export function VideoScope({
         Video{" "}
         <span className="font-normal text-muted-foreground">(optional, 30s max)</span>
       </Label>
-      <p className="text-ds-11 font-serif italic leading-snug mb-2" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+      <p className="text-ds-11 font-sans leading-snug mb-2" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
         A short clip gets you more accurate quotes and fewer surprises.
       </p>
       {scopeVideoUrl ? (
@@ -44,7 +44,7 @@ export function VideoScope({
           style={{ border: "1.5px dashed hsl(var(--bark) / 0.3)", background: "hsl(var(--bark) / 0.03)" }}
         >
           <Video className="w-6 h-6 mx-auto mb-1" style={{ color: "hsl(var(--bark) / 0.5)" }} />
-          <span className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <span className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Upload a video (30s max)
           </span>
           <input type="file" accept="video/*" className="hidden" onChange={onVideoSelect} />

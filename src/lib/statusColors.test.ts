@@ -5,6 +5,7 @@ import {
   jobStatusColor,
   jobStatusColorClasses,
 } from "./statusColors";
+import { Constants } from "@/integrations/supabase/types";
 
 // Contract: every `job_status` enum value MUST have both a bg and a text
 // color in the canonical map. If a new enum value lands, this file is the
@@ -12,17 +13,11 @@ import {
 
 describe("JOB_STATUS_COLORS", () => {
   it("covers every value in the job_status Postgres enum", () => {
-    // Mirror of the enum literal in src/integrations/supabase/types.ts —
-    // if it grows, add the new value here AND to JOB_STATUS_COLORS.
-    const required = [
-      "open",
-      "accepted",
-      "in_progress",
-      "completed",
-      "cancelled",
-      "revision_requested",
-      "disputed",
-    ] as const;
+    // DERIVED from the generated enum, not mirrored by hand. The mirror
+    // was already stale — seven of the eight values — so "covers every
+    // value in the job_status enum" was true of the list and false of the
+    // enum. See the same fix in statusLabels.test.ts.
+    const required = Constants.public.Enums.job_status;
     for (const value of required) {
       const entry = JOB_STATUS_COLORS[value];
       expect(entry, `${value} missing from JOB_STATUS_COLORS`).toBeTruthy();

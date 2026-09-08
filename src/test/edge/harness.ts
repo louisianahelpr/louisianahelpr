@@ -135,6 +135,34 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/payoutClaim.ts";`,
   );
 
+  // Post-transfer release flip: `_shared/releaseFlip.ts` has ZERO imports (it
+  // takes the Supabase client as a parameter), so the generated file points at
+  // the REAL module — same reasoning as payoutClaim above, and for the same
+  // reason it must not be mocked: it is the write that decides whether a job
+  // whose helper has ALREADY been paid says so, and its retry policy (transient
+  // codes only; a zero-row match alarms immediately) is exactly what TC-008
+  // turned on. A mock would put the guard outside the tests that exist to
+  // check it.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/releaseFlip\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/releaseFlip.ts";`,
+  );
+
+  // Unsettled-dispute gate: `_shared/unsettledDispute.ts` has ZERO imports (it
+  // takes the Supabase client as a parameter), so the generated file points at
+  // the REAL module — same reasoning as releaseFlip above. It is the ONLY thing
+  // that can tell a decided dispute whose split has executed from one whose has
+  // not: `rpc_decide_dispute` sets jobs.status='completed' and
+  // dispute_status='resolved' at DECISION time, so both markers release-payout
+  // otherwise reads already say "closed, pay it" while the escrow is untouched.
+  // Mocking it would put the guard against a full payout on a half-awarded job
+  // outside the tests that exist to check it — and its FAIL-CLOSED behaviour on
+  // an unreadable answer is precisely the part a mock would paper over.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/unsettledDispute\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/unsettledDispute.ts";`,
+  );
+
   // Captured-escrow resolver: `_shared/capturedEscrow.ts` has ZERO imports (it
   // is structurally typed over the PaymentIntent), so the generated file points
   // at the REAL module — same reasoning as payoutClaim above. It is the single
@@ -170,6 +198,17 @@ function rewriteExternalImports(src: string): string {
   out = out.replace(
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/tierNames\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/tierNames.ts";`,
+  );
+
+  // Tier PERKS: `_shared/tierPerks.ts` has ZERO imports and is a plain truth
+  // table plus its resolvers, so the generated file points at the REAL module.
+  // Pointing a MOCK at it would defeat the purpose — the entitlement gates in
+  // instant-payout, create-boost-payment and helpr-pass-wallet are exactly
+  // what these tests exist to hold, and they are only meaningful against the
+  // same matrix the app renders from (CC-019).
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/tierPerks\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/tierPerks.ts";`,
   );
 
   // Stripe->profile linkage projection: `_shared/subscriptionLinkage.ts` has

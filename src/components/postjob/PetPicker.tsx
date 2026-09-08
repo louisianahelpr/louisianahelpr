@@ -78,11 +78,11 @@ export function PetPicker({
       </div>
 
       {!pets ? (
-        <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Loading your pets…
         </p>
       ) : pets.length === 0 ? (
-        <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           You haven&rsquo;t added a pet yet. Adding one lets you send their feeding
           schedule, vet and any medications straight to the Helpr — once, instead
           of typing it out on every post.
@@ -132,7 +132,7 @@ export function PetPicker({
                       {p.name}
                     </span>
                     <span
-                      className="block font-serif italic text-ds-11 truncate"
+                      className="block font-sans text-ds-11 truncate"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {[p.breed, p.species].filter(Boolean).join(" · ")}
@@ -150,7 +150,7 @@ export function PetPicker({
               );
             })}
           </div>
-          <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             The Helpr you pick sees their feeding schedule, medications, vet and
             emergency contact once the job is theirs — nobody else does.
           </p>

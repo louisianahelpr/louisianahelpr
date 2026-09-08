@@ -191,9 +191,30 @@ Deno.serve(async (req) => {
     // here would make this the fourth place that defines them. The DB column
     // defaults stay the single source of truth. `user_id` is UNIQUE
     // (migration 20260312023604), which is what makes onConflict work.
-    const { error: ensureError } = await supabase
-      .from('notification_preferences')
-      .upsert({ user_id }, { onConflict: 'user_id', ignoreDuplicates: true })
+    //
+    // Retried, because the one failure this call has ever produced in prod is
+    // transient by construction. On 2026-09-08 an "Arrival confirmed" email to
+    // a live fixture user logged
+    //   preference_row_ensure_failed: Could not query the database for the
+    //   schema cache. Retrying.
+    // — PostgREST's PGRST002, raised in the seconds-long window where it is
+    // reloading its schema cache after a migration deploy (20260907032218 had
+    // landed the day before). The row was fine, the grants were fine, the
+    // service role has INSERT; PostgREST simply could not answer yet. Its own
+    // message says "Retrying" — about ITSELF, not about us — and we did not,
+    // so a recoverable blip became a permanently lost notification with a
+    // `failed` log row and no email. Anything else still fails on the first
+    // error: a real grant or constraint problem must not be retried into a
+    // three-times-slower 500.
+    let ensureError: { code?: string; message: string } | null = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert({ user_id }, { onConflict: 'user_id', ignoreDuplicates: true })
+      ensureError = error
+      if (!error || error.code !== 'PGRST002') break
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)))
+    }
     if (ensureError) {
       await logSkip('failed', `preference_row_ensure_failed: ${ensureError.message}`)
       return new Response(
@@ -225,11 +246,21 @@ Deno.serve(async (req) => {
     // the graceful fallback below would never get to run. A `*` row is ~30
     // booleans for one account; the cost is nothing and the failure mode is
     // "the master is absent", which is recoverable.
-    const { data: prefs, error: prefsError } = await supabase
-      .from('notification_preferences')
-      .select('*')
-      .eq('user_id', user_id)
-      .maybeSingle()
+    // Same PGRST002 retry as the ensure above: this read happens milliseconds
+    // later, so it sits inside the identical schema-cache reload window.
+    let prefs: Record<string, unknown> | null = null
+    let prefsError: { code?: string; message: string } | null = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user_id)
+        .maybeSingle()
+      prefs = data
+      prefsError = error
+      if (!error || error.code !== 'PGRST002') break
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)))
+    }
 
     if (prefsError) {
       await logSkip('failed', `preference_read_failed: ${prefsError.message}`)

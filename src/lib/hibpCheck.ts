@@ -36,6 +36,11 @@ export async function checkPasswordPwned(password: string): Promise<number | nul
     }
     return 0;
   } catch {
+    // Silent by design: this is a best-effort call to a THIRD-PARTY service
+    // (api.pwnedpasswords.com) over the network, so failure is routine and
+    // not ours to fix. `null` is the documented "could not check" answer and
+    // every caller already distinguishes it from 0 ("checked, not breached").
+    // Reporting would fill monitoring with someone else's downtime.
     return null;
   }
 }

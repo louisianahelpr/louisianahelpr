@@ -115,7 +115,7 @@ xcrun simctl status_bar "$DEVICE_ID" override \
 # which is exactly the shape `normalizeDeepLinkUrl` (src/lib/deepLinkRoute.ts)
 # expects from the native-return bounce, so it routes without a Universal Link
 # and without the app being in any particular prior state.
-DEFAULT_ROUTES="/dashboard /my-posts /my-jobs /messages /post-job /profile /profile?tab=earnings /browse /jobs /support"
+DEFAULT_ROUTES="/dashboard /my-posts /my-jobs /messages /post-job /profile /profile?tab=earnings /browse /support"
 ROUTES="${ROUTES:-$DEFAULT_ROUTES}"
 
 shoot() { # shoot <name>

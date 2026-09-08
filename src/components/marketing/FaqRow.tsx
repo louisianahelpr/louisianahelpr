@@ -49,7 +49,7 @@ const FaqRow = ({
       {open && (
         <div className="pb-5 sm:pb-6 pr-8">
           <p
-            className="font-serif italic text-ds-14 sm:text-ds-15 leading-relaxed"
+            className="font-sans text-ds-14 sm:text-ds-15 leading-relaxed"
             style={{ color: "hsl(var(--olivewood) / 0.9)" }}
           >
             {a}

@@ -29,6 +29,63 @@ export const saveResolvedFlags = (set: Set<string>) => {
  */
 export const STALE_DATE_FLAG = "Date needed is in the past";
 
+/**
+ * A job that is OPEN in the marketplace with no money behind it.
+ *
+ * `useJobSubmit`'s `cleanupOrphanJob` names the failure exactly: a job whose
+ * payment setup failed and whose cleanup DELETE then matched zero rows leaves
+ * "an orphan in the marketplace with NO escrow behind it — browsable,
+ * applicable-to, and impossible to pay out". That cleanup is best-effort by
+ * design (it must not throw over the error that triggered it), so when it does
+ * not land, nothing else notices. Helpers apply to the job, spend a pitch on
+ * it, and the job can never be awarded.
+ *
+ * Until now the class was invisible: the admin Jobs queue flagged spam
+ * keywords, odd budgets and past dates — every signal about a HUMAN — and had
+ * nothing at all for "the platform's own checkout dropped this on the floor".
+ * An operator could only find one by reading raw rows.
+ */
+export const GHOST_JOB_FLAG = "Open with no escrow behind it";
+
+/**
+ * Payment states that mean money is genuinely committed to the job.
+ *
+ * Derived from `jobs_payment_status_check`, whose full admitted set is
+ * unpaid · escrow · payout_pending · released · refunded · cancelled ·
+ * abandoned · failed · chargeback · cancelling. Only these three mean funds
+ * exist; every other value on an OPEN job means the listing is live and the
+ * money is not. Listed as the FUNDED set rather than as a blocklist on
+ * purpose: a new payment state added later defaults to "not funded", which is
+ * the safe direction for a detector whose whole job is to notice absence.
+ */
+const FUNDED_PAYMENT_STATUSES = new Set(["escrow", "payout_pending", "released"]);
+
+/**
+ * Grace period before an unfunded open job counts as a ghost.
+ *
+ * A job row is inserted BEFORE Stripe Checkout completes — that ordering is
+ * the design, not a bug — so for a few minutes after posting, `open` +
+ * `unpaid` is simply a checkout in flight and flagging it would make the queue
+ * cry wolf on every healthy post. Thirty minutes is far longer than any real
+ * checkout and far shorter than the hourly sweeps, so a genuinely stranded row
+ * is named while an in-progress one is left alone.
+ */
+export const GHOST_GRACE_MINUTES = 30;
+
+/**
+ * True when this job is live to helpers but has no funds behind it, and has
+ * been that way long enough that a checkout cannot still be running.
+ */
+export function isGhostJob(job: Pick<Job, "status" | "payment_status" | "created_at">): boolean {
+  if (job.status !== "open") return false;
+  // A null payment_status is unfunded, not unknown — the column is only ever
+  // written by the payment path.
+  if (FUNDED_PAYMENT_STATUSES.has(job.payment_status ?? "")) return false;
+  if (!job.created_at) return false;
+  const ageMs = Date.now() - new Date(job.created_at).getTime();
+  return Number.isFinite(ageMs) && ageMs > GHOST_GRACE_MINUTES * 60_000;
+}
+
 /** Moderation flags only — the staleness signal removed. */
 export const moderationFlags = (flags: string[] | undefined): string[] =>
   (flags ?? []).filter((f) => f !== STALE_DATE_FLAG);
@@ -84,6 +141,12 @@ export function detectFlags(job: Job): string[] {
   if (isPastDue(job.date_needed)) {
     flags.push(STALE_DATE_FLAG);
   }
+
+  // Platform-integrity, not moderation: this one is about OUR checkout, not
+  // about the poster. It stays in the moderation set (so the row surfaces in
+  // the default Flagged queue rather than needing to be gone looking for) and
+  // the Ghosts tab gives the class its own view.
+  if (isGhostJob(job)) flags.push(GHOST_JOB_FLAG);
 
   return flags;
 }

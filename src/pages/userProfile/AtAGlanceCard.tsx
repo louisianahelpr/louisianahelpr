@@ -81,7 +81,7 @@ const MetricCell = ({ cell }: { cell: Cell }) => {
           }}
         />
         <span
-          className="font-display italic font-bold tabular-nums text-ds-18 leading-none truncate"
+          className="font-sans font-bold tabular-nums text-ds-18 leading-none truncate"
           style={{ color: cell.selected ? "hsl(var(--parchment))" : tone }}
         >
           {cell.value}
@@ -463,7 +463,7 @@ export const AtAGlanceCard = ({
               {isOwnProfile ? "You're new here" : "New to Helpr"}
             </p>
             <p
-              className="font-serif italic text-ds-13 leading-relaxed mt-0.5 max-w-[60ch]"
+              className="font-sans text-ds-13 leading-relaxed mt-0.5 max-w-[60ch]"
               style={{ color: "hsl(var(--olivewood) / 0.9)" }}
             >
               {/* Two different promises, because the two readers see two
@@ -499,7 +499,7 @@ export const AtAGlanceCard = ({
           measures 5.08 light / 5.71 dark. */}
       {cells.some((c) => c.onClick) && (
         <p
-          className="mt-2 font-serif italic text-ds-11"
+          className="mt-2 font-sans text-ds-11"
           style={{ color: "hsl(var(--olivewood) / 0.7)" }}
         >
           Tap a highlighted figure to see what's behind it.
@@ -507,7 +507,7 @@ export const AtAGlanceCard = ({
       )}
       {withheldSentence && (
         <p
-          className="mt-2 font-serif italic text-ds-11 max-w-[60ch]"
+          className="mt-2 font-sans text-ds-11 max-w-[60ch]"
           style={{ color: "hsl(var(--olivewood) / 0.65)" }}
         >
           Not enough history yet for {withheldSentence} — Helpr publishes a

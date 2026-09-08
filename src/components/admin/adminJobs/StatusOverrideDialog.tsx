@@ -75,7 +75,7 @@ export const StatusOverrideDialog = ({
                 );
               })}
             </div>
-            <p className="text-ds-10 text-muted-foreground italic">
+            <p className="text-ds-10 text-muted-foreground">
               Refunds aren't issued automatically — use the Refund Poster
               button if money also needs to move.
             </p>

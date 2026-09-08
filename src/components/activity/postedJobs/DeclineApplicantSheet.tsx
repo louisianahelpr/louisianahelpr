@@ -66,7 +66,7 @@ export function DeclineApplicantSheet({
               {/* Quick-tap reason chips */}
               <div role="group" aria-label="Decline reason">
                 <p
-                  className="font-serif italic mb-2 text-ds-12"
+                  className="font-sans mb-2 text-ds-12"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Choose a reason (optional)
@@ -124,7 +124,7 @@ export function DeclineApplicantSheet({
               <div className="space-y-1">
                 <label
                   htmlFor="decline-note"
-                  className="font-serif italic uppercase block text-ds-10"
+                  className="font-sans uppercase block text-ds-10"
                   style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                 >
                   Add a note (optional)
@@ -135,7 +135,7 @@ export function DeclineApplicantSheet({
                   onChange={(e) => setDeclineNote(e.target.value.slice(0, DECLINE_NOTE_MAX))}
                   maxLength={DECLINE_NOTE_MAX}
                   rows={2}
-                  className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14 leading-relaxed resize-none"
+                  className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed resize-none"
                 />
                 <p
                   className="text-ds-11 text-right tabular-nums"

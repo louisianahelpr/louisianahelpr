@@ -105,7 +105,7 @@ const DashboardInProgressBadge = ({ job, onView }: DashboardInProgressBadgeProps
           />
         </span>
         <span
-          className="font-serif italic uppercase tracking-[0.1em] text-ds-9"
+          className="font-sans uppercase tracking-[0.1em] text-ds-9"
           style={{ color: "hsl(var(--live-pill-ink))" }}
         >
           {label}

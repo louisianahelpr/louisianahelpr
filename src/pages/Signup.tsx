@@ -398,7 +398,13 @@ const Signup = () => {
         // same generic message they'd see on ForgotPassword — set here,
         // read-and-cleared by Login. Without it the user pressed "Create
         // account" and silently arrived on a different screen.
-        try { sessionStorage.setItem("helpr_signup_redirect", "1"); } catch { /* private mode */ }
+        try {
+          sessionStorage.setItem("helpr_signup_redirect", "1");
+        } catch {
+          // Silent by design: this only hands Login the one-shot neutral note
+          // explaining the redirect. Losing it costs a line of copy — and must
+          // never cost the redirect itself, which is the enumeration defence.
+        }
         navigate("/login");
         return;
       }

@@ -95,7 +95,7 @@ const JobDetail = () => {
   usePageMeta({
     title: `${headingText} — Helpr`,
     description: jobDescription,
-    canonical: id ? `https://www.louisianahelpr.com/jobs/${id}` : "https://www.louisianahelpr.com/jobs",
+    canonical: id ? `https://www.louisianahelpr.com/jobs/${id}` : "https://www.louisianahelpr.com/browse",
     ogTitle: headingText,
     ogDescription: jobDescription,
   });
@@ -142,7 +142,7 @@ const JobDetail = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate("/jobs")}
+                  onClick={() => navigate("/dashboard")}
                   className="squircle"
                 >
                   Browse Open Jobs
@@ -159,7 +159,7 @@ const JobDetail = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate("/jobs")}
+                  onClick={() => navigate("/dashboard")}
                   className="squircle"
                 >
                   Browse Open Jobs
@@ -183,7 +183,7 @@ const JobDetail = () => {
                 guest
                 job={job}
                 effectiveFee={TIER_PERKS.free.platformFeePercent}
-                onClose={() => navigate("/jobs")}
+                onClose={() => navigate("/dashboard")}
                 onApply={requireSignup}
                 onReport={requireSignup}
               />

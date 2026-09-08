@@ -379,12 +379,19 @@ const JobDetailDialog = ({
           // The only fix that gets all three is a per-job reservation measured
           // at runtime from the settled apply content, rather than any single
           // CSS number. That is a real change, not a tweak to this line.
-"min-h-[min(68dvh,600px)]",
+          //
+          // GUESTS GET NO FLOOR. The reservation exists for the apply step, and
+          // a guest never reaches one — "Sign up to apply" navigates away. For
+          // them the floor was pure dead space: measured on /browse?job=<id>
+          // at 375x812 the content ended at y=681 inside a box ending at 682
+          // only because the box was 552px tall for ~430px of content; a card
+          // that is 40% blank under its one CTA.
+          !guest && "min-h-[min(68dvh,600px)]",
           "content-start",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg",
           "sm:pb-7",
           "lg:max-w-3xl",
-        ].join(" ")}
+        ].filter(Boolean).join(" ")}
 
         onTouchStart={(e) => {
           if (!_allJobs || !_onSelect) return;
@@ -450,7 +457,7 @@ const JobDetailDialog = ({
             {job.description && (
               <div className="relative min-w-0 mt-1">
                 {/* THE HOUSE BODY VOICE, not this dialog's own (2026-08-31).
-                    This was `font-serif text-ds-15` at `ink-deep / 0.88`,
+                    This was `font-sans text-ds-15` at `ink-deep / 0.88`,
                     hand-set here — upright serif, one of the SEVEN different
                     body sizes the popup audit found across 24 dialogs, and two
                     steps larger and darker than the prose every confirm in the
@@ -612,7 +619,17 @@ const JobDetailDialog = ({
               className="w-3.5 h-3.5 shrink-0"
               strokeWidth={2.25}
             />
-            <span className="font-serif italic truncate">
+            {/* Below 400px the rail is ~173px after the icon lane's reserve,
+                and "Moving" + URGENT is 200 — so the category shrank to "M…"
+                on every urgent/boosted/recommended sheet at 375 (measured
+                2026-09-07 as Hallie on Perry's truck job). A one-letter label
+                is worse than none: the glyph is unique per category and the
+                title above says what the work is, so on a crowded rail the
+                word steps aside and the icon carries it. Uncrowded rails and
+                wider phones keep the word. */}
+            <span
+              className={`font-sans truncate ${isRecommended || job.is_urgent || job.isBoosted ? "max-[399px]:sr-only" : ""}`}
+            >
               {categoryLabels[job.category] || formatCategory(job.category)}
             </span>
           </span>

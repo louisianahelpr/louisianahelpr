@@ -48,6 +48,9 @@ function jobIdFromLink(link: string): string | null {
   try {
     url = new URL(link, "https://app.invalid");
   } catch {
+    // Silent by design: an unparseable link simply carries no job id, and
+    // every caller treats null as "fall back to plain navigation" (see the
+    // doc comment above). Notification links come from our own senders.
     return null;
   }
   const param = url.searchParams.get("quickApply") || url.searchParams.get("job");

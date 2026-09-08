@@ -17,7 +17,8 @@ interface ProUpgradeSheetProps {
   /** Lucide icon for the hero chip — pass the feature's own icon (Zap for
       instant payout, Rocket for boost, Send for direct offer, etc.). */
   icon: LucideIcon;
-  /** Italic display headline — the value prop ("Cash out instantly."). */
+  /** Italic display headline — Title Case, no full stop, like every other
+      popup title ("Unlock Instant Cash Out"). */
   title: string;
   /** One-sentence serif body explaining what they unlock. */
   body: string;
@@ -107,7 +108,7 @@ export function ProUpgradeSheet({
             {perks.map((perk) => (
               <li
                 key={perk}
-                className="font-serif italic flex items-start gap-2 text-ds-14"
+                className="font-sans flex items-start gap-2 text-ds-14"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 <Check

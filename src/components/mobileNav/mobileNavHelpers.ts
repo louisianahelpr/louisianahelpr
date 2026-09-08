@@ -47,7 +47,7 @@ export const rightItems = [
   { path: "/profile", icon: UserRound, label: "Profile" },
 ];
 
-export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/account-pending", "/saved-helpers",
+export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs/", "/browse", "/account-pending", "/saved-helpers",
   // Standalone settings sub-pages keep the bottom tab bar so they share the
   // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
   // "/benefits" left this list 2026-08-31 with the page itself — the route is
@@ -88,7 +88,7 @@ export const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-pass
 // Map each tab root to sub-routes that belong to its stack.
 // Tapping the tab while inside one of these returns the user to the tab root.
 export const tabStacks: Record<string, string[]> = {
-  "/dashboard": ["/jobs"],
+  "/dashboard": ["/jobs/"],
   // NOTE: /post-job is deliberately NOT in this stack. Posting is reached from
   // the floating "+" FAB, not from the Posts tab, so lighting Posts up while
   // the user is mid-post claimed they were somewhere they hadn't navigated to —

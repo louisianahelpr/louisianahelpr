@@ -65,7 +65,11 @@ export const safeInternalRedirect = (raw: string | null | undefined): string | n
   try {
     value = decodeURIComponent(raw);
   } catch {
-    return null; // malformed encoding
+    // Silent by design: a redirect target that will not even decode is
+    // rejected, and the caller falls back to its default destination. This is
+    // the reject branch of a SECURITY check — refusing is the whole point, and
+    // hostile input is not an error worth paging anyone about.
+    return null;
   }
   // Tab / newline / NUL and other C0 controls are STRIPPED by the URL parser
   // before a browser resolves a location, so `"/\t/evil.com"` becomes

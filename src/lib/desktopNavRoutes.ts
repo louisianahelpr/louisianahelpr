@@ -48,9 +48,12 @@ const AUTH_PREFIXES = [
   // turns them back on.
   "/data-rights",
   // ── The dual-surface pages ────────────────────────────────────────────
-  // /help, /legal, /support and /subscription are reachable BOTH logged out
-  // (marketing Footer destinations) and from inside the app (Profile → Legal
-  // & Policies / Help Center / Membership).
+  // /help, /legal and /support are reachable BOTH logged out (marketing
+  // Footer destinations) and from inside the app (Profile → Legal & Policies /
+  // Help Center). "/subscription" below is a dead entry: that route was
+  // removed in 49f4f2f30 and Membership lives at /profile?tab=subscription,
+  // already covered by "/profile" above. It is left in place because this is
+  // a comment-only correction; the entry matches nothing.
   //
   // They used to be deliberately EXCLUDED here, because PublicLayout gave
   // everyone the marketing Navbar and the rail would have stacked a second

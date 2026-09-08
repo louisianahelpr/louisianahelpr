@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { friendlyAuthError } from "@/lib/authErrors";
 import { setLastAuthMethod } from "@/lib/lastAuthMethod";
 import { getPublicOrigin } from "@/lib/authRedirects";
+import { report } from "@/lib/errorLogger";
 
 export type SocialProvider = "apple" | "google";
 
@@ -59,6 +60,11 @@ export function isSocialLoginPluginAvailable(): boolean {
   try {
     return Capacitor.isPluginAvailable("SocialLogin");
   } catch {
+    // Silent by design: this is a capability PROBE, and `false` is a valid
+    // answer to "is the native plugin here?" — see the comment above, which
+    // exists so an unlinked pod falls back to web OAuth instead of throwing
+    // "plugin not implemented" at the user. A probe that cannot answer is not
+    // a failure worth reporting.
     return false;
   }
 }
@@ -143,7 +149,14 @@ export async function signInWithProvider(
       setLastAuthMethod(provider);
       return { kind: "success" };
     } catch (err) {
+      // A user backing out of the OS sheet is not a failure — it is the most
+      // common outcome here, and reporting it would bury the real ones.
       if (isCancelError(err)) return { kind: "cancelled" };
+      // Anything else IS worth monitoring: native social sign-in breaking
+      // (an expired provider config, an unlinked pod, a bad client id) locks
+      // people out of an entire login method, and the only other signal is a
+      // toast the user sees and we never do.
+      report(err, { severity: "error", tags: { area: "auth", op: "nativeSocialSignIn", provider } });
       return { kind: "error", message: friendlyProviderError(provider, err) };
     }
   }
@@ -193,6 +206,10 @@ export async function signInWithProvider(
     }
     return { kind: "redirecting" };
   } catch (err) {
+    // Same reasoning as the native branch above: a broken web OAuth redirect
+    // takes out a whole sign-in method, and the user-facing toast is the only
+    // other place it would ever show up.
+    report(err, { severity: "error", tags: { area: "auth", op: "webSocialSignIn", provider } });
     return { kind: "error", message: friendlyProviderError(provider, err) };
   }
 }

@@ -13,8 +13,13 @@
 import { describe, it, expect } from "vitest";
 import { TIER_PERKS, tierDisplayName, type SubscriptionTier } from "./subscriptionTiers";
 import { TIER_DISPLAY_NAMES } from "../../supabase/functions/_shared/tierNames";
+import { TIER_ORDER } from "../../supabase/functions/_shared/tierPerks";
 
-const ALL_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
+// DERIVED. This was a literal ["free","basic","pro","elite"] — a test whose
+// own input omitted the tier it was supposed to be guarding, so it passed
+// happily while Plus had no verified name (CC-019, the same
+// registries-checked-against-themselves shape as the gates).
+const ALL_TIERS: SubscriptionTier[] = [...TIER_ORDER];
 
 describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
   it("gives every tier the same name on both sides", () => {
@@ -49,7 +54,7 @@ describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
   });
 
   it("no 'Helpr ' prefix can creep back onto a consumer tier", () => {
-    for (const tier of ["basic", "pro", "elite"] as const) {
+    for (const tier of TIER_ORDER.filter((t) => t !== "free")) {
       expect(TIER_PERKS[tier].name.startsWith("Helpr ")).toBe(false);
     }
   });

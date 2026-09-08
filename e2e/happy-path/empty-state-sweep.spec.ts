@@ -344,10 +344,13 @@ async function auditEmptyScreen(
       );
     }
 
-    if (f.length) {
-      result.status = "findings";
-      // Screenshot only the screens that failed something: 160 PNGs nobody
-      // opens is how the previous sweep buried its own findings.
+    // SWEEP_SHOTS=1 screenshots EVERY screen, not just the failures. The
+    // assertions above can only see what they were written to see — the
+    // 2026-09-07 nested-bordered-box-in-every-empty-state defect passed every
+    // one of them and was obvious in a screenshot in under a second. A
+    // LOOK-AT-IT pass needs the pixels of the clean screens too.
+    if (f.length) result.status = "findings";
+    if (f.length || process.env.SWEEP_SHOTS) {
       const slug = `${String(meta.index).padStart(3, "0")}-${meta.name}-${variant.tag}`.replace(
         /[^a-z0-9-]+/gi,
         "-",

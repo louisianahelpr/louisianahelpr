@@ -45,6 +45,13 @@
  * grounding. All values from the user-supplied moodboards.
  */
 :root {
+  /* Tell the UA which palette its OWN widgets should use — scrollbars, native
+     <select> popups, date/time inputs, autofill, form controls. Nothing
+     declared this anywhere, so in dark mode every native control rendered
+     light-styled on the dark canvas (visual-dark lane, 2026-09-07). The
+     app stamps the resolved theme on <html> pre-paint (index.html), so the
+     dark twin below is keyed on the same attribute as every other token. */
+  color-scheme: light;
   /* Top safe-area inset resolved at :root, OUTSIDE any transformed ancestor.
      WebKit zeroes env(safe-area-inset-top) for `position: fixed` descendants
      of a transformed/will-change:transform element — which is exactly what
@@ -129,6 +136,16 @@
          now the things that disagree. Regenerate them from these tokens
          (K6) rather than editing this file back toward the document.
      ─────────────────────────────────────────────────────────────────────── */
+  /* THE page canvas gradient, as a token. It used to be a literal repeated in
+     three rules (.bg-premium-page, .page-warmth, html.web-desktop.app-shell
+     body) with a dark override for each — and the body override was
+     `[data-theme="dark"] html.web-desktop.app-shell body`, which can never
+     match because data-theme is stamped ON html, not above it. So in dark
+     mode `body` computed background-color rgb(20,22,26) AND the light
+     gradient on top of it: a light band beside the desktop rail, and a white
+     flash on every navigation. Measured by external QA 2026-09-07. One token,
+     one dark override, and no rule can drift. */
+  --page-gradient: linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
   --parchment:    220 14% 95%;  /* page canvas — cool near-white. Refined cool-neutral
                                     grey (hue 220, low sat) — the Linear/Stripe/Vercel
                                     premium register, never tacky cream. Held a touch
@@ -487,7 +504,9 @@
    redeclared — they look fine on dark backgrounds without changes.
    ───────────────────────────────────────────────────────────────────────── */
 [data-theme="dark"] {
+  color-scheme: dark;
   /* Core brand palette — dark equivalents */
+  --page-gradient: linear-gradient(160deg, hsl(220 15% 8%) 0%, hsl(220 12% 11%) 40%, hsl(200 15% 10%) 100%);
   --parchment:    220 14% 9%;   /* page canvas — COOL near-black. Hue 220 matches
                                    light mode's canvas family (A1): the theme toggle
                                    should change brightness, not brand temperature.
@@ -729,18 +748,15 @@
      html[data-platform="ios"][data-theme="dark"] { --parchment: 20 15% 9%; }
 */
 
-/* Dark mode page gradients */
+/* Dark mode page gradients. The gradient itself is `--page-gradient`, which
+   the dark token block already swaps; only the colour under it differs here.
+   The body selector is `html[data-theme="dark"]…` — the previous
+   `[data-theme="dark"] html…` form matched nothing (see --page-gradient). */
 [data-theme="dark"] .bg-premium-page,
-[data-theme="dark"] html.web-desktop.app-shell body,
+html[data-theme="dark"].web-desktop.app-shell body,
 [data-theme="dark"] .page-warmth {
   background-color: hsl(var(--parchment));
-  background-image:
-    linear-gradient(
-      160deg,
-      hsl(220 15% 8%) 0%,
-      hsl(220 12% 11%) 40%,
-      hsl(200 15% 10%) 100%
-    );
+  background-image: var(--page-gradient);
 }
 
 /* Dark mode glass utilities */
@@ -1014,7 +1030,7 @@ html.web-desktop {
      must move with it. */
   html.web-desktop.app-shell body {
     background-color: hsl(var(--background));
-    background-image: linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
+    background-image: var(--page-gradient);
     background-attachment: fixed;
   }
   html.web-desktop.app-shell #root {
@@ -1504,8 +1520,15 @@ html.no-bottom-nav {
           drop-shadow(0 2px 6px rgba(46, 47, 34, 0.1));
 }
 
+/* Dark: the mark is dark metal, and brightness(1.9) left it a charcoal
+   smudge on the rgba(20,22,26) header — external QA, 2026-09-07, confirmed by
+   eye. Four candidates were rendered side by side; inverting (invert +
+   hue-rotate) turned the iron to bone and the fleur-de-lis blue, so this lifts
+   the SAME object to pewter instead: enough brightness to separate from the
+   header, contrast pulled back so the texture survives, saturation eased so
+   the gold accents stay gold rather than neon. */
 [data-theme="dark"] .helpr-emblem {
-  filter: brightness(1.9) saturate(1.2)
+  filter: brightness(3.4) contrast(0.85) saturate(0.7)
           drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
 }
 
@@ -1975,7 +1998,7 @@ button,
 }
 
 
-/* "Blueprint label" — tiny EB Garamond small-caps in Burnt Sienna for step
+/* "Blueprint label" — tiny small-caps in Burnt Sienna for step
    numbers and category eyebrows. Reads like an architect's drawing label or
    the date line in a journal rather than a web tagline. */
 .text-display-eyebrow {
@@ -1986,8 +2009,7 @@ button,
      in a single place. The type rules are kept (commented) so the label is a
      one-line restore if ever wanted. */
   display: none;
-  font-family: "EB Garamond", Georgia, Cambria, serif;
-  font-style: italic;
+  font-family: Montserrat, system-ui, sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0.14em;
@@ -2601,8 +2623,7 @@ button,
      so every surface (marketing, auth, signed-in) reads as the same paper.
      Previously this layered darker `--secondary` radial washes, which made
      auth/onboarding screens read heavier than the dashboard. */
-  background-image:
-    linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
+  background-image: var(--page-gradient);
   background-attachment: fixed;
 }
 
@@ -2612,8 +2633,7 @@ button,
    page so they share the same canvas. */
 .bg-premium-page {
   background-color: hsl(var(--background));
-  background-image:
-    linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
+  background-image: var(--page-gradient);
   background-attachment: fixed;
 }
 

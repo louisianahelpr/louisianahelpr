@@ -403,7 +403,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   {/* Recipient + category */}
                   <div className="flex items-center justify-between gap-2 text-ds-13">
                     <span className="truncate text-foreground">
-                      {row.recipient_email || <span className="text-muted-foreground italic">No recipient</span>}
+                      {row.recipient_email || <span className="text-muted-foreground">No recipient</span>}
                     </span>
                     <span className="text-ds-11 text-muted-foreground flex-shrink-0">
                       {CATEGORY_LABEL[row.category] ?? row.category}

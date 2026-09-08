@@ -70,7 +70,14 @@ export function trackKey(key: string) {
 ].forEach(trackKey);
 
 function safeGet(key: string): string | null {
-  try { return localStorage.getItem(key); } catch { return null; }
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    // Silent by design: Safari private mode and storage-blocked profiles throw
+    // on plain access. "Absent" and "unreadable" are the same answer to every
+    // caller, and reporting would fire on every read for those users.
+    return null;
+  }
 }
 
 function safeSet(key: string, value: string) {

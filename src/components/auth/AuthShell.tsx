@@ -329,7 +329,7 @@ const AuthShell = ({
                   same alpha the "or" divider below uses, for the same reason.
                   Now 4.97:1 light / 6.16:1 dark. */}
               <p
-                className="mt-2 text-ds-11 tracking-[0.18em] uppercase font-serif italic"
+                className="mt-2 text-ds-11 tracking-[0.18em] uppercase font-sans"
                 style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
               >
                 {eyebrow}

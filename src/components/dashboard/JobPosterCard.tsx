@@ -1,5 +1,6 @@
-import { Star, ChevronRight, Crown, Sparkles } from "lucide-react";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { Star, ChevronRight } from "lucide-react";
+import { hasPerk, tierDisplayName } from "@/lib/subscriptionTiers";
+import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
 import { Link } from "react-router-dom";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { TrustRow } from "@/components/TrustRow";
@@ -41,10 +42,11 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
   const posterInitials = (job.posterName || "User")
     .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
-  const hasTier =
-    job.posterSubscriptionTier === "elite" ||
-    job.posterSubscriptionTier === "pro" ||
-    job.posterSubscriptionTier === "basic";
+  // Any paying tier opens the trust row. This was a literal
+  // elite/pro/basic list and it dropped Plus (CC-019), so a $15/mo poster's
+  // tile rendered as if they were on the free plan.
+  const posterTierBadge = tierBadgeStyle(job.posterSubscriptionTier);
+  const hasTier = hasPerk(job.posterSubscriptionTier, "tierBadge");
   /* THE RATING IS PRINTED ONCE, BESIDE THE NAME.
      It used to be printed twice in this one tile: "★ 4.8 (5)" inline next to
      the poster's name, and "4.8★ (5)" again in the TrustRow directly below it
@@ -138,14 +140,14 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
                 <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                   {job.posterAvgRating?.toFixed(1)}
                 </span>
-                <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <span className="font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   ({job.posterReviewCount})
                 </span>
               </span>
             )}
           </div>
           {(job.posterCompletedJobs ?? 0) > 0 && (
-            <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {job.posterCompletedJobs} {job.posterCompletedJobs === 1 ? "job" : "jobs"}
             </p>
           )}
@@ -175,31 +177,18 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
             borderTop: "0.5px solid hsl(var(--bark) / 0.12)",
           }}
         >
-          {job.posterSubscriptionTier === "elite" && (
+          {/* ONE derived badge, not a per-tier chain. The three hand-written
+              blocks this replaces covered elite/pro/basic only, so a Plus
+              poster opened the trust row and then rendered nothing in it
+              (CC-019). Treatment comes from tierBadgeStyle, which every tier
+              badge in the app now reads. */}
+          {posterTierBadge && (
             <span
               className="inline-flex items-center gap-1 text-ds-10 font-sans font-semibold uppercase"
-              style={{ color: "hsl(var(--gold-warm))", letterSpacing: "0.06em" }}
+              style={{ color: posterTierBadge.color, letterSpacing: "0.06em" }}
             >
-              <Crown className="w-3.5 h-3.5" strokeWidth={2.25} />
-              {TIER_PERKS.elite.name} Poster
-            </span>
-          )}
-          {job.posterSubscriptionTier === "pro" && (
-            <span
-              className="inline-flex items-center gap-1 text-ds-10 font-sans font-semibold uppercase"
-              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.06em" }}
-            >
-              <Sparkles className="w-3.5 h-3.5" strokeWidth={2.25} />
-              {TIER_PERKS.pro.name} Poster
-            </span>
-          )}
-          {job.posterSubscriptionTier === "basic" && (
-            <span
-              className="inline-flex items-center gap-1 text-ds-10 font-sans font-semibold uppercase"
-              style={{ color: "hsl(var(--bark))", letterSpacing: "0.06em" }}
-            >
-              <Star className="w-3.5 h-3.5" strokeWidth={2.25} />
-              {TIER_PERKS.basic.name} Poster
+              <posterTierBadge.icon className="w-3.5 h-3.5" strokeWidth={2.25} />
+              {tierDisplayName(job.posterSubscriptionTier)} Poster
             </span>
           )}
           {/* Poster-data trust signals via the reusable TrustRow component.

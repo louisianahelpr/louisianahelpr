@@ -451,7 +451,7 @@ export function SignupStep1({
       <div className="hidden lg:flex flex-col items-center gap-3" aria-hidden>
         <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         <span
-          className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
+          className="text-ds-11 tracking-[0.2em] uppercase font-sans"
           style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
         >
           or
@@ -469,7 +469,7 @@ export function SignupStep1({
       <div className="flex items-center gap-3 lg:hidden">
         <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         <span
-          className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
+          className="text-ds-11 tracking-[0.2em] uppercase font-sans"
           style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
         >
           or

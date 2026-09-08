@@ -59,7 +59,9 @@ const CUTOFF_BODY = (() => {
 
 /** Every surface that must sit behind the shared cutoff, and its object name. */
 const GATED_SURFACES: Array<[string, string]> = [
-  ["/jobs", "public.get_ranked_open_jobs"],
+  // Label only — the /jobs page was deleted 2026-09-07; the anon-callable
+  // RPC remains and must stay behind the cutoff. See showSeedJobs.ts.
+  ["anon ranked-jobs RPC", "public.get_ranked_open_jobs"],
   ["dashboard list", "public.open_jobs_browse"],
   ["map", "public.get_open_jobs_for_map"],
 ];

@@ -14,6 +14,11 @@ const appCommit = (() => {
   try {
     return execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).trim();
   } catch {
+    // Silence is correct: this is a probe, not a failure. Vercel's build
+    // clone is not guaranteed to be a usable git checkout, so `git` being
+    // absent or the directory not being a repo is the EXPECTED path there —
+    // VERCEL_GIT_COMMIT_SHA is the answer in that case, and "dev" is the
+    // answer for a tarball checkout. Reporting would fire on every CI build.
     return process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "dev";
   }
 })();
@@ -36,6 +41,9 @@ const appCommitFull = (() => {
   try {
     return execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
   } catch {
+    // Same probe as `appCommit` above — see the comment there. VERCEL_GIT_COMMIT_SHA
+    // was already preferred over git when it is present, so reaching here means
+    // neither source exists and "dev" is the honest answer.
     return "dev";
   }
 })();
@@ -493,61 +501,132 @@ export default defineConfig(({ mode }) => ({
       // post-job price stats) with "Failed to resolve module specifier".
       external: ["@capacitor-community/in-app-review"],
       output: {
-        // Bundle all lucide icons into a single chunk so we don't ship 40+
-        // tiny per-icon files (HTTP overhead > byte savings).
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return;
-          // CRITICAL: Keep React, React DOM, scheduler and the JSX runtime
-          // together in ONE chunk. Splitting react-dom away from react (or
-          // letting Radix end up in a separate chunk that loads first)
-          // causes "Cannot read properties of null (reading 'useRef')"
-          // because React's internal dispatcher isn't initialized yet when
-          // a hook in another chunk runs.
-          if (
-            id.includes("/node_modules/react/") ||
-            id.includes("/node_modules/react-dom/") ||
-            id.includes("/node_modules/scheduler/")
-          ) {
-            return "react-vendor";
-          }
-          if (id.includes("lucide-react")) return "lucide";
-          // NOTE: Do NOT manually chunk recharts/d3 OR framer-motion. The
-          // same Rolldown behaviour that hoisted clsx into "charts" also
-          // hoisted react/jsx-runtime (a CJS interop virtual module) into
-          // the "motion" named chunk, which caused the entry to statically
-          // import 45 kB gzip of framer-motion on every page even though
-          // every importer (PageTransition, ScrollToTop, MobileNav,
-          // DesktopSidebarNav) is already React.lazy'd. Letting
-          // framer-motion ride with those lazy-loaded consumers keeps it
-          // off the critical path entirely — same fix as recharts.
-          if (id.includes("@stripe") || id.includes("stripe-js")) return "stripe";
-          if (id.includes("@supabase")) return "supabase";
-          // react-day-picker is only imported by <Calendar> which is always
-          // React.lazy'd — keep it off the critical path by not pinning it to
-          // the eagerly-loaded "dates" chunk.
-          if (id.includes("date-fns")) return "dates";
-          if (id.includes("@tanstack")) return "tanstack";
-          if (id.includes("react-hook-form") || id.includes("zod") || id.includes("@hookform")) return "forms";
-          // Split Sentry and PostHog out of the main bundle. They're only
-          // imported from src/lib/sentry.ts and src/lib/posthog.ts, which are
-          // dynamically imported AFTER first paint via requestIdleCallback in
-          // main.tsx. Splitting them shaves ~70KB off the LCP-blocking main
-          // chunk on the landing page.
-          //
-          // Session Replay (@sentry-internal/replay, replay-canvas) and the
-          // Feedback widget are dynamic-imported separately from sentry.ts —
-          // give them their own chunk so they don't fetch alongside the core
-          // SDK on the deferred Sentry chunk. Without this rule the rule
-          // below would catch them and lump them back into "sentry",
-          // re-bloating the chunk that runs on first idle tick.
-          if (
-            id.includes("@sentry-internal/replay") ||
-            id.includes("@sentry-internal/feedback")
-          ) {
-            return "sentry-replay";
-          }
-          if (id.includes("@sentry") || id.includes("sentry-internal")) return "sentry";
-          if (id.includes("posthog-js")) return "posthog";
+        // ── Chunk graph shape ────────────────────────────────────────────
+        // Expressed as rolldown's `codeSplitting` rather than `manualChunks`
+        // because the two are MUTUALLY EXCLUSIVE — rolldown logs
+        // "`manualChunks` option is ignored because the `codeSplitting`
+        // option is specified" and drops it — and only `codeSplitting`
+        // carries the `minSize` floor this build needs.
+        //
+        // WHY THE FLOOR. `manualChunks` only ever named vendor chunks; every
+        // first-party module shared by two or more route chunks was left to
+        // rolldown's automatic common-chunk extraction, which emits ONE FILE
+        // PER SHARE GROUP with no size floor at all. Measured on the 2026-09-07
+        // build: 400 JS files in dist/assets, and a cold authed load of
+        // /my-posts fetched 214 of them. The bytes were never the problem
+        // (105 KB over the wire for that route) — the problem is that the
+        // browser walks that graph one round-trip per level, so on Slow-4G the
+        // last JS request did not even START until 4.26 s.
+        //
+        // `minSize` merges any chunk below the threshold back into its
+        // importers. Duplicating a few KB into two route chunks is strictly
+        // cheaper than a 150 ms round trip to fetch it once.
+        //
+        // Do NOT "fix" this with modulepreload instead — that was measured on
+        // 2026-09-03 and is worse: injecting the 77 static-closure files as
+        // <link rel="modulepreload"> moved FCP 0.70s → 3.22s and LCP
+        // 1.14s → 5.29s, because 77 highest-priority preloads saturate the
+        // pipe and starve first paint. Fewer files, not earlier files.
+        codeSplitting: {
+          // Chunks smaller than this are merged into their importers rather
+          // than emitted as their own request. The named groups below are all
+          // far larger than this, so the floor only ever collapses the
+          // automatic first-party common chunks.
+          minSize: 30_000,
+          groups: [
+            {
+              // Vendor buckets. Highest priority so a node_modules module can
+              // never be captured by the first-party groups below.
+              priority: 100,
+              // Bundle all lucide icons into a single chunk so we don't ship 40+
+              // tiny per-icon files (HTTP overhead > byte savings).
+              name(id) {
+                if (!id.includes("node_modules")) return;
+                // CRITICAL: Keep React, React DOM, scheduler and the JSX runtime
+                // together in ONE chunk. Splitting react-dom away from react (or
+                // letting Radix end up in a separate chunk that loads first)
+                // causes "Cannot read properties of null (reading 'useRef')"
+                // because React's internal dispatcher isn't initialized yet when
+                // a hook in another chunk runs.
+                if (
+                  id.includes("/node_modules/react/") ||
+                  id.includes("/node_modules/react-dom/") ||
+                  id.includes("/node_modules/scheduler/")
+                ) {
+                  return "react-vendor";
+                }
+                if (id.includes("lucide-react")) return "lucide";
+                // NOTE: Do NOT manually chunk recharts/d3 OR framer-motion. The
+                // same Rolldown behaviour that hoisted clsx into "charts" also
+                // hoisted react/jsx-runtime (a CJS interop virtual module) into
+                // the "motion" named chunk, which caused the entry to statically
+                // import 45 kB gzip of framer-motion on every page even though
+                // every importer (PageTransition, ScrollToTop, MobileNav,
+                // DesktopSidebarNav) is already React.lazy'd. Letting
+                // framer-motion ride with those lazy-loaded consumers keeps it
+                // off the critical path entirely — same fix as recharts.
+                if (id.includes("@stripe") || id.includes("stripe-js")) return "stripe";
+                if (id.includes("@supabase")) return "supabase";
+                // react-day-picker is only imported by <Calendar> which is always
+                // React.lazy'd — keep it off the critical path by not pinning it to
+                // the eagerly-loaded "dates" chunk.
+                if (id.includes("date-fns")) return "dates";
+                if (id.includes("@tanstack")) return "tanstack";
+                if (id.includes("react-hook-form") || id.includes("zod") || id.includes("@hookform")) return "forms";
+                // Split Sentry and PostHog out of the main bundle. They're only
+                // imported from src/lib/sentry.ts and src/lib/posthog.ts, which are
+                // dynamically imported AFTER first paint via requestIdleCallback in
+                // main.tsx. Splitting them shaves ~70KB off the LCP-blocking main
+                // chunk on the landing page.
+                //
+                // Session Replay (@sentry-internal/replay, replay-canvas) and the
+                // Feedback widget are dynamic-imported separately from sentry.ts —
+                // give them their own chunk so they don't fetch alongside the core
+                // SDK on the deferred Sentry chunk. Without this rule the rule
+                // below would catch them and lump them back into "sentry",
+                // re-bloating the chunk that runs on first idle tick.
+                if (
+                  id.includes("@sentry-internal/replay") ||
+                  id.includes("@sentry-internal/feedback")
+                ) {
+                  return "sentry-replay";
+                }
+                if (id.includes("@sentry") || id.includes("sentry-internal")) return "sentry";
+                if (id.includes("posthog-js")) return "posthog";
+              },
+            },
+            // ── First-party shared code ───────────────────────────────────
+            // Without this group, every src/ module imported by two or more
+            // chunks became its OWN chunk. Measured on /my-posts: an
+            // 18-level-deep serial waterfall, with waves of ONE file
+            // (queryKeys, clsx, useIsWebDesktop, supabaseResult) each costing
+            // a full round trip. `minShareCount: 2` captures exactly those
+            // shared modules — a module used by a single chunk still rides
+            // inside it and is not pulled forward.
+            //
+            // MEASURED TRADE (Slow-4G 1.6Mbps/150ms + 4x CPU, 390x844, median
+            // of 3, against the built bundle served by `vite preview`):
+            //   /my-posts   content 4543 -> 4169 ms, JS reqs 214 -> 113,
+            //               transfer 105 -> 79 KB, LCP 1244 -> 1376 ms
+            //   /dashboard  content 5025 -> 4615 ms, JS reqs 217 -> 116,
+            //               transfer 112 -> 86 KB, LCP 1300 -> 1312 ms
+            // The LCP cost is the skeleton painting ~130 ms later because the
+            // first wave now carries one 339 KB chunk; the real content lands
+            // ~400 ms sooner, which is the number the user feels.
+            //
+            // DO NOT also add a `src/components/ui` group — measured, and it
+            // is worse: it sweeps admin/dialog-only primitives into a second
+            // 287 KB eager chunk and pushes LCP to 1592 ms for only 40 more
+            // requests saved. Nor `entriesAware: true` on this group: it
+            // splits per reachable-entry set and restores the original
+            // 17-wave waterfall (215 requests), i.e. it undoes the fix.
+            {
+              name: "app-shared",
+              test: /[\\/]src[\\/](lib|hooks|utils|contexts|integrations|config|constants)[\\/]/,
+              minShareCount: 2,
+              priority: 10,
+            },
+          ],
         },
       },
     },

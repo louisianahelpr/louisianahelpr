@@ -167,7 +167,7 @@ function ReviewQuote({
       {review.feedback && (
         <p
           className={[
-            "font-serif italic leading-relaxed text-[hsl(var(--ink-deep)/0.88)]",
+            "font-sans leading-relaxed text-[hsl(var(--ink-deep)/0.88)]",
             condensed ? "text-ds-11" : "text-ds-13",
           ].join(" ")}
         >
@@ -371,7 +371,7 @@ export function PublicReviewWall({
           aria-hidden="true"
         />
         <p
-          className="font-serif italic text-ds-13"
+          className="font-sans text-ds-13"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         >
           No reviews yet — they're new on Helpr.

@@ -659,15 +659,46 @@ test.describe("full money loop against production", () => {
     const [application] = await applied.json();
     expect(application.id).toBeTruthy();
 
-    // --- 4. HIRE ------------------------------------------------------------
-    const hired = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
-      headers: { ...rest(poster), Prefer: "return=representation" },
-      data: { helper_id: helper.user.id, status: "accepted" },
+    /* --- 4. HIRE -----------------------------------------------------------
+       THROUGH `accept_application`, the RPC the product's own accept button
+       calls (useOfferHandlers.ts:229). This used to be a direct PATCH of
+       `jobs.helper_id` + `status`, which produces two of the three writes a
+       real hire makes and silently skips the third: the APPLICATION stays
+       `pending`. Nothing downstream in this REST walk reads it, so the loop
+       went green on a job that the product does not consider hired — and the
+       helper's own card proved it, rendering the pending-application branch
+       instead of the in-progress one, because `isActive` is
+       `app.status === "accepted" && job.status === "in_progress"`
+       (appliedJobCardHelpers.ts:48). The proof-photo uploader lives inside
+       that branch, so the first attempt to drive it found no button.
+
+       The RPC locks the job row, authorises the caller as the poster, refuses
+       a job that is not still open and an application that is not still
+       pending, and then makes all three writes together. A test that hires by
+       hand is a test that cannot see a hire path breaking. */
+    const hired = await request.post(`${SUPABASE_URL}/rest/v1/rpc/accept_application`, {
+      headers: rest(poster),
+      data: {
+        p_application_id: application.id,
+        // The offer's response deadline. 48h is what the product's dialog
+        // defaults to; nothing in this loop waits on it.
+        p_deadline: new Date(Date.now() + 48 * 3600_000).toISOString(),
+      },
     });
-    expect(hired.ok(), `hire failed: ${hired.status()} ${await hired.text()}`).toBe(true);
-    // A PATCH matching zero rows returns 200 with []. The house rule is to
-    // assert the row, not the absence of an error.
-    expect(await hired.json(), "hire matched zero rows — RLS refused it silently").toHaveLength(1);
+    expect(hired.ok(), `accept_application failed: ${hired.status()} ${await hired.text()}`).toBe(true);
+
+    // The RPC returns void, so the writes are asserted by reading them back —
+    // both of them, because a hire that moves the job but not the application
+    // is exactly the half-hire this step used to produce.
+    const acceptedApp = await request.get(
+      `${SUPABASE_URL}/rest/v1/applications?id=eq.${application.id}&select=status`,
+      { headers: rest(helper) },
+    );
+    expect(acceptedApp.ok(), `reading the application back failed: ${acceptedApp.status()}`).toBe(true);
+    expect(
+      ((await acceptedApp.json()) as Array<{ status: string }>)[0]?.status,
+      "the application is not 'accepted' — the helper's card will render the pending branch",
+    ).toBe("accepted");
 
     const afterHire = await readJob(request, poster, job.id);
     expect(afterHire.helper_id).toBe(helper.user.id);

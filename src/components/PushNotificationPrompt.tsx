@@ -114,7 +114,13 @@ export const PushNotificationPrompt = () => {
           style={{ color: "hsl(var(--bark) / 0.85)" }}
         />
         <p
-          className="flex-1 min-w-0 truncate font-sans font-medium text-ds-12"
+          // WRAP, don't truncate. At 375 the label gets 147px and needs 160
+          // (measured 2026-09-07): the global 44px control floor inflates
+          // Enable and the X past the h-6/w-10 this "single-line" banner was
+          // designed around, and the label paid for it as "Notify me about
+          // new j…". The row is already 44px tall, so a second line costs
+          // nothing.
+          className="flex-1 min-w-0 font-sans font-medium text-ds-12 leading-tight"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         >
           Notify me about new jobs.

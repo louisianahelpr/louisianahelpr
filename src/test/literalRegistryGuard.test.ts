@@ -281,7 +281,15 @@ function scan(): Offender[] {
     for (const abs of walk(join(ROOT, root))) {
       const file = relative(ROOT, abs).split(sep).join("/");
       if (SOURCES_OF_TRUTH.includes(file)) continue;
-      found.push(...offendersIn(file, readFileSync(abs, "utf8")));
+      let src: string;
+      try {
+        src = readFileSync(abs, "utf8");
+      } catch {
+        // vitest transform-cache `.gen.ts` files appear in the directory listing
+        // but can be deleted before we read them — skip transiently missing files.
+        continue;
+      }
+      found.push(...offendersIn(file, src));
     }
   }
   return found;

@@ -121,7 +121,6 @@ const AdminDisputes = () => {
     {
       const { data: unsettledRows, error: unsettledErr } = unsettledRes as {
         data: { job_id: string }[] | null;
-         
         error: any;
       };
       if (unsettledErr) {

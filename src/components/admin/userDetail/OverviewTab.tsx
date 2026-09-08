@@ -32,7 +32,7 @@ export function OverviewTab({ viewProfile, profileViolations }: OverviewTabProps
       {/* Bio */}
       <div className="space-y-2">
         <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Bio</h4>
-        <p className={`text-ds-13 leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
+        <p className={`text-ds-13 leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground"}`}>
           {viewProfile.bio || "Not provided"}
         </p>
       </div>
@@ -43,15 +43,15 @@ export function OverviewTab({ viewProfile, profileViolations }: OverviewTabProps
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 rounded-ds-md bg-secondary/30 border border-border p-4">
           <div>
             <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
-            <p className={`text-ds-13 font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
+            <p className={`text-ds-13 font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground"}`}>{viewProfile.phone || "Not provided"}</p>
           </div>
           <div>
             <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Location</p>
-            <p className={`text-ds-13 font-medium ${viewProfile.location ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.location || "Not provided"}</p>
+            <p className={`text-ds-13 font-medium ${viewProfile.location ? "text-foreground" : "text-muted-foreground"}`}>{viewProfile.location || "Not provided"}</p>
           </div>
           <div>
             <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
-            <p className={`text-ds-13 font-medium ${viewProfile.date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
+            <p className={`text-ds-13 font-medium ${viewProfile.date_of_birth ? "text-foreground" : "text-muted-foreground"}`}>
               {viewProfile.date_of_birth
                 ? new Date(viewProfile.date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
                 : "Not provided"}
@@ -78,7 +78,7 @@ export function OverviewTab({ viewProfile, profileViolations }: OverviewTabProps
             ))}
           </div>
         ) : (
-          <p className="text-ds-11 text-muted-foreground italic">Not provided</p>
+          <p className="text-ds-11 text-muted-foreground">Not provided</p>
         )}
       </div>
 
@@ -89,7 +89,7 @@ export function OverviewTab({ viewProfile, profileViolations }: OverviewTabProps
           {signupFields.map((f, i) => (
             <div key={i}>
               <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
-              <p className={`text-ds-13 font-medium ${f.value ? "text-foreground" : "text-muted-foreground italic"}`}>{f.value || "Not provided"}</p>
+              <p className={`text-ds-13 font-medium ${f.value ? "text-foreground" : "text-muted-foreground"}`}>{f.value || "Not provided"}</p>
             </div>
           ))}
         </div>

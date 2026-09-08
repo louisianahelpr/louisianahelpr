@@ -13,6 +13,7 @@ import {
   statusBadge,
 } from "./activityConstants";
 import { categoryHues, categoryHue } from "@/lib/categoryHues";
+import { Constants } from "@/integrations/supabase/types";
 
 describe("category lookup tables — cross-table consistency", () => {
   it("every key in categoryIcons exists in categoryLabels", () => {
@@ -82,17 +83,12 @@ describe("categories array (derived from categoryLabels)", () => {
 
 describe("statusBadge", () => {
   it("includes every job status the state machine emits", () => {
-    // From the BEFORE UPDATE OF status state-machine trigger (migrations
-    // 20260504*), the canonical job statuses are:
-    const required = [
-      "open",
-      "accepted",
-      "in_progress",
-      "revision_requested",
-      "completed",
-      "cancelled",
-      "disputed",
-    ];
+    // DERIVED from the generated enum. It used to be a hand-written list
+    // of seven attributed to the 20260504 state-machine trigger, and it had
+    // silently fallen one behind the enum (`pending_approval`) — so "every
+    // job status the state machine emits" was a claim about the list, not
+    // about the database.
+    const required = Constants.public.Enums.job_status;
     // `required` is a plain string[]; statusBadge is now keyed by the DB enum,
     // so index through the enum type. The map being exhaustive is a COMPILE
     // error now — this loop stays as a readable statement of intent and as a

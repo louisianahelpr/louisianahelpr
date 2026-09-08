@@ -123,7 +123,7 @@ export const DisputeCard = ({
             )}
           </p>
           {(record?.reason ?? job.dispute_reason) && (
-            <p className="text-ds-11 text-muted-foreground mt-1 italic">
+            <p className="text-ds-11 text-muted-foreground mt-1">
               "{record?.reason ?? job.dispute_reason}"
             </p>
           )}
@@ -155,7 +155,7 @@ export const DisputeCard = ({
               </span>
             </p>
             {record.decision_text && (
-              <p className="text-ds-11 text-muted-foreground mt-1 italic">"{record.decision_text}"</p>
+              <p className="text-ds-11 text-muted-foreground mt-1">"{record.decision_text}"</p>
             )}
             {record.payout_split && (
               <p className="text-ds-11 text-muted-foreground mt-1">

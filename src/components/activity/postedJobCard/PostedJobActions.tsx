@@ -938,7 +938,7 @@ export function PostedJobActions({
                   ? "Admin is reviewing this dispute. You'll be notified of the outcome, and nothing is charged or released until then."
                   : "Payment is on hold pending resolution."}
               </p>
-              {job.dispute_reason && <p className="text-ds-11 text-muted-foreground mt-1 italic">"{job.dispute_reason}"</p>}
+              {job.dispute_reason && <p className="text-ds-11 text-muted-foreground mt-1">"{job.dispute_reason}"</p>}
               {job.dispute_helper_response && (
                 <div className="mt-2 p-2 rounded bg-muted/50">
                   <p className="text-ds-10 text-muted-foreground font-medium">Helpr's response:</p>

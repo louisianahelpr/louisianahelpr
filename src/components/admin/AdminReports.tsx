@@ -451,7 +451,7 @@ const AdminReports = () => {
                           {report.reporter_name}
                         </button>
                       ) : (
-                        <span className="italic">{report.reporter_name}</span>
+                        <span>{report.reporter_name}</span>
                       )}
                       {" · "}{formatShortDate(report.created_at)}
                     </p>

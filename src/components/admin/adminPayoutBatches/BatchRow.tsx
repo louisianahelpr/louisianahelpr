@@ -84,7 +84,7 @@ export const BatchRow = ({
           Oldest job: {formatDistanceToNow(new Date(batch.oldest_completed_at), { addSuffix: true })}
         </p>
         {isHeld && hold.reason && (
-          <p className={cn("text-ds-11 italic mt-1", toneTextClasses.warning)}>
+          <p className={cn("text-ds-11 mt-1", toneTextClasses.warning)}>
             Hold reason: {hold.reason}
           </p>
         )}

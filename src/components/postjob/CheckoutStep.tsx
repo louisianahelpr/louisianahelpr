@@ -548,7 +548,7 @@ export function CheckoutStep({
           )}
           {onboardingFeeAmount > 0 && (
             <div className="flex justify-between text-ds-13">
-              <span className="text-muted-foreground">One-time account setup <span className="text-ds-12 italic">(first job only)</span></span>
+              <span className="text-muted-foreground">One-time account setup <span className="text-ds-12">(first job only)</span></span>
               <span className="font-medium text-foreground">${formatPriceExact(onboardingFeeAmount)}</span>
             </div>
           )}

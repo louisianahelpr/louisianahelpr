@@ -510,7 +510,7 @@ const ConversationRowBase = ({
               >
                 {sentByMe && (
                   <span
-                    className="italic mr-1"
+                    className="mr-1"
                     style={{ color: "hsl(var(--olivewood) / 0.8)", fontWeight: 400 }}
                   >
                     You:

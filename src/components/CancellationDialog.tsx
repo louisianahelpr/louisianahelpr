@@ -377,7 +377,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
               </div>
             </div>
             {!hasHelper && (
-              <p className="text-ds-11 text-muted-foreground italic">✓ These consequences don&apos;t apply to you — no Helpr has been selected.</p>
+              <p className="text-ds-11 text-muted-foreground">✓ These consequences don&apos;t apply to you — no Helpr has been selected.</p>
             )}
           </div>
 

@@ -170,7 +170,7 @@ export function PetDetail({
           !pet.vet_name && !pet.vet_phone &&
           !pet.emergency_contact &&
           !pet.microchip_id && (
-            <p className="text-ds-12 text-muted-foreground italic">
+            <p className="text-ds-12 text-muted-foreground">
               No care details yet. Tap Edit to add feeding, medical notes,
               and a vet — the more your Helpr knows, the better.
             </p>

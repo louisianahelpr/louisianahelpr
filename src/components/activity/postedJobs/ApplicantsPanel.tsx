@@ -652,7 +652,7 @@ export function ApplicantsPanel({
                             <button
                               type="button"
                               onClick={() => { setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id]); }}
-                              className="text-left w-full text-ds-12 italic flex items-start gap-1.5"
+                              className="text-left w-full text-ds-12 flex items-start gap-1.5"
                               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                             >
                               <Pencil className="w-3 h-3 mt-0.5 shrink-0" />

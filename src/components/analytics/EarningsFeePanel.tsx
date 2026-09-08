@@ -75,7 +75,7 @@ export function EarningsFeePanel({ jobs, feeFallbackPercent, windowLabel }: Earn
 
       {showSaving && (
         <div
-          className="rounded-xl px-3 py-2.5 text-ds-12 leading-snug"
+          className="rounded-ds-md px-3 py-2.5 text-ds-12 leading-snug"
           style={{
             background: "hsl(var(--bark) / 0.06)",
             border: "0.5px solid hsl(var(--bark) / 0.18)",

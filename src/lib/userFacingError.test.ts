@@ -31,6 +31,18 @@ describe("userFacingError", () => {
     ["jwt expired", "auth internals"],
     ["TypeError: Cannot read properties of null (reading 'toLowerCase')", "JS error"],
     ["Failed to fetch", "transport"],
+    // The engine the app SHIPS in. Every one of these passed through verbatim
+    // until 2026-09-07 because the list above only knew Chromium's phrasing —
+    // proven by executing the module, not by reading it.
+    ["Load failed", "WebKit transport"],
+    ["Network request failed", "older Safari / RN transport"],
+    ["The network connection was lost.", "NSURLError prose"],
+    ["The request timed out.", "NSURLError prose"],
+    ["The Internet connection appears to be offline.", "NSURLError prose"],
+    ["Can't find variable: subscribeToOwnProfile", "WebKit ReferenceError .message (no class prefix)"],
+    ["undefined is not an object (evaluating 'a.b')", "WebKit TypeError .message"],
+    ["Cannot read properties of undefined (reading 'x')", "V8 TypeError .message"],
+    ["fetchJobs is not a function", "TypeError .message"],
   ])("suppresses %s (%s) in favour of the human copy", (raw) => {
     expect(userFacingError(new Error(raw), FALLBACK)).toBe(FALLBACK);
   });
@@ -39,7 +51,7 @@ describe("userFacingError", () => {
   // return deliberate copy, and replacing it would be a downgrade.
   it.each([
     "Too many requests — try again in a minute.",
-    "This task isn't accepting applications anymore.",
+    "This job isn't accepting applications anymore.",
     "You can't apply to your own post.",
     "That code didn't match. Check your app and try again.",
   ])("passes our own written copy through: %s", (raw) => {
@@ -104,8 +116,8 @@ describe("userFacingError", () => {
   );
 
   it("still shows deliberate edge-function copy, which is what the filter is FOR", () => {
-    expect(userFacingError(new Error("This task isn't accepting applications anymore."), FALLBACK))
-      .toBe("This task isn't accepting applications anymore.");
+    expect(userFacingError(new Error("This job isn't accepting applications anymore."), FALLBACK))
+      .toBe("This job isn't accepting applications anymore.");
     expect(userFacingError(new Error("Too many requests — try again in a minute."), FALLBACK))
       .toBe("Too many requests — try again in a minute.");
   });

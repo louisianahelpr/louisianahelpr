@@ -110,6 +110,10 @@ export async function requireBiometric(
       const { BiometricAuth } = await import("@aparajita/capacitor-biometric-auth");
       bridge = { BiometricAuth, info: await BiometricAuth.checkBiometry() };
     } catch {
+      // Silent by design — see the comment above this block: both failure
+      // modes mean "we could not evaluate the device at all", and the
+      // caller's policy (`unsecurable`) is the only information left to act
+      // on. Neither should be reachable on a real build.
       bridge = null;
     }
     if (!bridge) return unsecurable;
@@ -183,6 +187,9 @@ export async function getBiometryLabel(): Promise<string | null> {
         return null;
     }
   } catch {
+    // Silent by design: this only resolves a human LABEL for the biometry
+    // type ("Face ID", "your fingerprint"). `null` makes the caller fall back
+    // to generic copy, so a failure costs a word, never a capability.
     return null;
   }
 }

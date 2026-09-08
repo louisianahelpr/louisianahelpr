@@ -31,6 +31,14 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   dispute_window_closed:
     "The dispute window for this job has closed. Contact support and we'll take a look.",
   job_not_completed: "You can open a dispute once the work has been marked complete.",
+  // rpc_open_dispute, migration 20260907032552. QA filed a dispute with the
+  // description box empty on 2026-09-06 and it was accepted: the stored reason
+  // was the literal "Other:" and an escrow froze for 72 hours on it. The RPC
+  // rejects that now, so the dialog needs a sentence for it — a caller that
+  // somehow gets past the client gate should be told what is missing, not
+  // handed raw Postgres prose.
+  dispute_needs_description:
+    "Tell us what happened first — a dispute holds someone's payment, and an admin decides it from your description.",
 };
 
 /**

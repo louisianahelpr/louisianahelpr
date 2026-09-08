@@ -10,7 +10,7 @@ import {
 } from "../../supabase/functions/_shared/helperFees";
 
 describe("helper-fee tier ladder parity (UI ↔ edge)", () => {
-  const tiers: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
+  const tiers: SubscriptionTier[] = ["free", "basic", "pro", "plus", "elite"];
 
   it("edge TIER_FEE_PERCENT matches UI TIER_PERKS.platformFeePercent for every tier", () => {
     for (const tier of tiers) {
@@ -31,8 +31,8 @@ describe("helper-fee tier ladder parity (UI ↔ edge)", () => {
     expect(Object.keys(TIER_PERKS).sort()).toEqual([...tiers].sort());
   });
 
-  it("encodes the agreed 12 / 11 / 10 / 8 ladder", () => {
-    expect(TIER_FEE_PERCENT).toEqual({ free: 12, basic: 11, pro: 10, elite: 8 });
+  it("encodes the agreed 12 / 11 / 10 / 9 / 8 ladder", () => {
+    expect(TIER_FEE_PERCENT).toEqual({ free: 12, basic: 11, pro: 10, plus: 9, elite: 8 });
   });
 
   it("normalizes case and falls back to the free rate for unknown tiers", () => {
@@ -44,7 +44,13 @@ describe("helper-fee tier ladder parity (UI ↔ edge)", () => {
 });
 
 describe("tierFeePercent (client dashboard resolver) mirrors the edge payout resolver", () => {
-  const tiers: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
+  // DERIVED, not hand-listed. This literal said ["free","basic","pro","elite"]
+  // and was missed when Plus was restored on 2026-09-05 — the describe above
+  // caught the omission in ITS copy, this one would have silently stopped
+  // comparing the two resolvers for the new tier and still gone green. A list
+  // that is both the input and the definition of "every tier" cannot fail for
+  // a member it never had, so take the members from TIER_PERKS itself.
+  const tiers = Object.keys(TIER_PERKS) as SubscriptionTier[];
 
   it("resolves the same percent as edge feePercentForTier for every active tier", () => {
     for (const tier of tiers) {
@@ -53,7 +59,7 @@ describe("tierFeePercent (client dashboard resolver) mirrors the edge payout res
     }
   });
 
-  it("encodes the agreed 12 / 11 / 10 / 8 ladder", () => {
+  it("encodes the agreed 12 / 11 / 10 / 9 / 8 ladder", () => {
     expect(tierFeePercent("free")).toBe(12);
     expect(tierFeePercent("basic")).toBe(11);
     expect(tierFeePercent("pro")).toBe(10);

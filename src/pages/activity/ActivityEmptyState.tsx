@@ -39,6 +39,8 @@ export interface ActivityEmptyStateProps {
   /** Switches the active status filter — lets the "your items are over
    *  there" line actually take the reader there. */
   onSelectStatusFilter?: (key: string) => void;
+  /** Clears the search query — the only useful action on a search miss. */
+  onClearSearch?: () => void;
 }
 
 export function ActivityEmptyState({
@@ -53,6 +55,7 @@ export function ActivityEmptyState({
   onRetry,
   onNavigate,
   onSelectStatusFilter,
+  onClearSearch,
 }: ActivityEmptyStateProps) {
   // A failed fetch leaves both lists empty — show a recoverable
   // ErrorState rather than a misleading "nothing posted yet".
@@ -89,11 +92,21 @@ export function ActivityEmptyState({
     .filter((f) => f.key !== statusFilter && f.key !== "all" && (statusCounts?.[f.key] ?? 0) > 0)
     .map((f) => `${statusCounts?.[f.key]} in ${f.label}`);
   /* THE BUCKET TO OFFER. `elsewhere` is already every other filter holding
-     items; the fullest one is the single best place to send someone whose
-     current view is empty. */
+     items. "Needs you" wins whenever it holds anything — it is the bucket
+     whose whole point is that something is waiting on this person — and only
+     then does the fullest one decide. It used to be fullest-only, and a
+     poster whose helper had just marked the work done, standing on an empty
+     Scheduled view, read "you have 2 in Needs You and 3 in Waiting" above a
+     single button that said "Show Waiting (3)": the sentence named the
+     approval that was waiting on them and the control walked past it
+     (measured 2026-09-07 on /my-posts as Audit Weblane). */
   const jumpTo = (statusLabels ?? [])
     .filter((f) => f.key !== statusFilter && f.key !== "all" && (statusCounts?.[f.key] ?? 0) > 0)
-    .sort((a, b) => (statusCounts?.[b.key] ?? 0) - (statusCounts?.[a.key] ?? 0))[0];
+    .sort((a, b) =>
+      a.key === "needs_you" ? -1
+        : b.key === "needs_you" ? 1
+          : (statusCounts?.[b.key] ?? 0) - (statusCounts?.[a.key] ?? 0),
+    )[0];
   const filteredElsewhere =
     elsewhere.length === 0
       ? null
@@ -149,7 +162,17 @@ export function ActivityEmptyState({
              ("deliberately NO automatic fallback… a default that silently
              moves is harder to reason about than one that holds still"). The
              pointer does the same job by asking instead of assuming. */
-          jumpTo && onSelectStatusFilter ? (
+          /* A SEARCH MISS IS NOT A BUCKET MISS. With a query active the body
+             says "no jobs match your search", but the jump button below read
+             the PRE-search bucket counts and offered "Show Waiting (2)" —
+             tapping it switched bucket with the query still applied, landed
+             on another zero, and offered the next bucket: a treadmill that
+             never reaches the two jobs it promised (measured 2026-09-07 on
+             /my-posts?q=zzz-nomatch). The one action that ends a search miss
+             is clearing the search. */
+          hasSearch && onClearSearch ? (
+            <BarkPillButton onClick={onClearSearch}>Clear search</BarkPillButton>
+          ) : jumpTo && onSelectStatusFilter ? (
             <BarkPillButton onClick={() => onSelectStatusFilter(jumpTo.key)}>
               Show {jumpTo.label} ({statusCounts?.[jumpTo.key] ?? 0})
             </BarkPillButton>

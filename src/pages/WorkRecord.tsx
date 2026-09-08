@@ -24,7 +24,8 @@ import { shareNative, shareFileNative } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
-import { formatPriceFloor } from "@/lib/format";
+import { formatPriceExact } from "@/lib/format";
+import { isIdentityVerified } from "@/lib/awardGate";
 import HelprMark from "@/components/HelprMark";
 import type { Database } from "@/integrations/supabase/types";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -46,8 +47,25 @@ interface WorkRecordData {
     full_name: string | null;
     approval_status: string;
     stripe_identity_verified: boolean | null;
+    idv_status: string | null;
     created_at: string;
   };
+  /**
+   * The identity verdict this document states, resolved by the SAME helper the
+   * hiring gate uses (`isIdentityVerified`) rather than by reading the Connect
+   * flag alone.
+   *
+   * Reading `stripe_identity_verified` on its own made this sheet contradict
+   * the app about the same person: measured against prod 2026-09-06, TEN live
+   * profiles have `idv_status = 'verified'` with `stripe_identity_verified =
+   * false`. Those people completed Stripe Identity (document + selfie, written
+   * by `stripe-idv-webhook`), the badge in the app says so, migration
+   * 20260907013734 lets the database hire them — and this document, the one
+   * they hand to a landlord or a lender, printed "Not verified" about them.
+   * A formal record that disagrees with the product is worse than one that
+   * says nothing.
+   */
+  identityVerified: boolean;
   completedJobs: Job[];
   totalEarnings: number;
   avgRating: number | null;
@@ -114,13 +132,14 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
       // /wrapped and /profile resolve it.
       const profileRes = await supabase
         .from("profiles")
-        .select("full_name, approval_status, stripe_identity_verified, created_at, subscription_tier, subscription_expires_at")
+        .select("full_name, approval_status, stripe_identity_verified, idv_status, created_at, subscription_tier, subscription_expires_at")
         .eq("user_id", userId)
         .single();
       const profileRow = unwrap(profileRes) as {
         full_name: string | null;
         approval_status: string;
         stripe_identity_verified: boolean | null;
+        idv_status: string | null;
         created_at: string;
         subscription_tier: string | null;
         subscription_expires_at: string | null;
@@ -129,8 +148,15 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
         full_name: profileRow.full_name,
         approval_status: profileRow.approval_status,
         stripe_identity_verified: profileRow.stripe_identity_verified,
+        idv_status: profileRow.idv_status,
         created_at: profileRow.created_at,
       };
+      // ONE verdict for the whole document — the badge, the PDF and the footer
+      // sentence all read this, so they cannot disagree with each other either.
+      const identityVerified = isIdentityVerified({
+        connectIdentityVerified: profileRow.stripe_identity_verified,
+        idvStatus: profileRow.idv_status,
+      });
       const feeFallbackPercent = tierFeePercent(
         profileRow.subscription_tier,
         profileRow.subscription_expires_at,
@@ -188,6 +214,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
 
       return {
         profile,
+        identityVerified,
         completedJobs,
         totalEarnings,
         avgRating,
@@ -227,8 +254,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
     return {
       fullName: d.profile.full_name,
       memberSince: d.profile.created_at,
-      // Stripe Connect's own verdict only (see the footer comment below).
-      identityVerified: d.profile.stripe_identity_verified === true,
+      identityVerified: d.identityVerified,
       jobsCompleted: d.completedJobs.length,
       totalEarnings: d.totalEarnings,
       avgRating: d.avgRating,
@@ -350,7 +376,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                     >
                       Employment &amp; Earnings Record
                     </h2>
-                    <p className="font-serif italic text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                    <p className="font-sans text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       Generated {today}
                     </p>
                   </div>
@@ -393,7 +419,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                       ID verified by Stripe
                     </p>
                     <p className="text-ds-13 font-semibold inline-flex items-center gap-1">
-                      {data.profile.stripe_identity_verified === true ? (
+                      {data.identityVerified ? (
                         <>
                           <CheckCircle className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
                           <span style={{ color: "hsl(var(--bark))" }}>Verified</span>
@@ -423,7 +449,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
               <div style={{ borderBottom: "1px solid var(--doc-hairline)" }}>
                 <div className="doc-band px-5 py-2">
                   <p
-                    className="doc-band-ink font-serif italic uppercase text-ds-9"
+                    className="doc-band-ink font-sans uppercase text-ds-9"
                     style={{ letterSpacing: "0.18em" }}
                   >
                     Work Summary
@@ -437,10 +463,25 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                       label="Jobs Completed"
                       value={String(data.completedJobs.length)}
                     />
-                    {/* Total earnings. Floored: on a document a helpr shows a
-                        prospective client as a record of what they were paid,
-                        this is the one number that must never read a cent
-                        above the transfers.
+                    {/* Total earnings. EXACT, not floored — reversed
+                        2026-09-06, and the reasoning matters because the old
+                        comment's instinct was sound and its conclusion was not.
+
+                        `formatPriceFloor` exists so a figure that is money OWED
+                        can never read above what will actually land: quoting a
+                        helper "$84" on an $83.60 take-home promises 40c they
+                        will not receive. Nothing here is owed. Every dollar in
+                        this sum has already been transferred, and this sheet is
+                        an income RECORD — the reader is a landlord or a lender
+                        comparing it against bank statements. Flooring a record
+                        does not protect anyone; it just states a number that is
+                        not the number, and it understated $105.60 as "$105".
+
+                        Same rule the rest of the app follows: money owed to the
+                        viewer floors, money charged or stated as a record is
+                        exact. `formatPriceExact` prints whole amounts clean
+                        ("$1,240", not "$1,240.00"), so this only shows cents
+                        when there are cents to show.
 
                         The figure is take-home and stays take-home. It carried
                         an "after platform fee" sub-label, removed from the PDF
@@ -449,7 +490,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                     <StatBlock
                       icon={<DollarSign className="w-4 h-4" />}
                       label="Total Earnings"
-                      value={`$${formatPriceFloor(data.totalEarnings)}`}
+                      value={`$${formatPriceExact(data.totalEarnings)}`}
                     />
                     {/* Active Period — the months WORKED (`date_needed`), not
                         the months the jobs were posted in. `workDays` holds
@@ -503,8 +544,8 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
               {data.completedJobs.length === 0 && (
                 <div className="px-5 py-8 flex flex-col items-center gap-3 text-center">
                   <Briefcase className="w-8 h-8 text-muted-foreground/50" />
-                  <p className="text-ds-13 text-muted-foreground font-serif italic">
-                    No completed helper jobs yet. Once you complete your first job, your work record will fill in automatically.
+                  <p className="text-ds-13 text-muted-foreground font-sans">
+                    No completed jobs yet. Once you complete your first job, your work record will fill in automatically.
                   </p>
                   <BarkPillButton onClick={() => navigate("/dashboard")} className="mt-1">
                     Browse Jobs
@@ -527,18 +568,25 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                     or lender actually needs: when it was generated, what it is
                     generated from, what Helpr is, and where to verify it. */}
                 <p
-                  className="font-serif italic text-ds-11 leading-relaxed mx-auto"
+                  className="font-sans text-ds-11 leading-relaxed mx-auto"
                   style={{ color: "hsl(var(--olivewood) / 0.8)", textWrap: "balance" }}
                 >
-                  {/* "verified" is only true of an account whose identity
-                      STRIPE actually checked (profiles.stripe_identity_verified,
-                      cached from the account.updated webhook). It is NOT
-                      `idv_status` — that is an upload/admin state nobody
-                      reviews, so it could never support this claim. This sheet
-                      gets handed to landlords and lenders, so on an unverified
-                      account it states what it can support — the job history —
-                      and nothing more. */}
-                  {data.profile.stripe_identity_verified === true ? (
+                  {/* "verified" is true of an account Stripe actually checked
+                      — and there are TWO such checks, which is the correction
+                      here. This used to read `stripe_identity_verified` alone
+                      (Stripe CONNECT's verdict, a side effect of payout
+                      onboarding) and dismiss `idv_status` as "an upload/admin
+                      state nobody reviews". That was accurate when it was
+                      written and is not any more: `idv_status` is written by
+                      `stripe-idv-webhook` from a real Stripe Identity document
+                      + selfie session, it is the only identity check a helper
+                      can start from inside this app, and since migration
+                      20260907013734 the hiring gate accepts either one.
+                      `isIdentityVerified` is that same rule, so this sentence
+                      and the badge the app shows the same person cannot
+                      disagree. On an account with neither, the sheet still
+                      states only what it can support — the job history. */}
+                  {data.identityVerified ? (
                     <>
                       This record was generated from Helpr&rsquo;s job history on {today}. This
                       member&rsquo;s identity was verified by Stripe.
@@ -652,7 +700,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
             {!canPrintDocument && data.completedJobs.length > 0 && (
               <p
                 data-print-hide
-                className="font-serif italic text-ds-12 text-center leading-relaxed px-2"
+                className="font-sans text-ds-12 text-center leading-relaxed px-2"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Printing isn&rsquo;t available inside the app, so Share Record sends this

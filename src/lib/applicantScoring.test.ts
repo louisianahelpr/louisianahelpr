@@ -29,7 +29,7 @@ const BLANK: ApplicantData = {
   repeatHirePercent: null,
   onTimePercent: null,
   credentialTier: 0,
-  distanceKm: null,
+  distanceBandRank: null,
   responseTimeMinutes: null,
   neighborCount: 0,
 };

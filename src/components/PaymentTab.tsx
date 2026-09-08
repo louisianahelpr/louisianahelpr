@@ -219,10 +219,10 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
                     Last payout · ${dollars} on {niceDate(paidAt)}
                   </p>
                   <p
-                    className="font-serif italic mt-1 leading-snug text-ds-12"
+                    className="font-sans mt-1 leading-snug text-ds-12"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
-                    Next expected: <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>~{niceDate(nextExpected)}</span>
+                    Next expected: <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>~{niceDate(nextExpected)}</span>
                     {" "}· Stripe rolls weekly, give or take a business day.
                   </p>
                 </div>
@@ -267,10 +267,10 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
                 No activity yet
               </p>
               <p
-                className="font-serif italic leading-snug max-w-[260px] text-ds-13"
+                className="font-sans leading-snug max-w-[260px] text-ds-13"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Post a task or complete one — your spending and earnings will show up here.
+                Post a job or complete one — your spending and earnings will show up here.
               </p>
             </div>
           ) : (
@@ -293,8 +293,8 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
               >
                 Spent
               </h2>
-              <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                on tasks you posted
+              <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                on jobs you posted
               </p>
             </div>
           </div>
@@ -323,17 +323,17 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
                   elsewhere (see EarningsTab.tsx). The dollar figure below is
                   large and self-evidently the headline; a plain caption
                   underneath still names the figure without shouting it. */}
-              <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Total spent
               </p>
               <AnimatedCounter
                 value={totalSpent}
                 prefix="$"
-                className="font-display italic font-bold tabular-nums leading-none mt-1 block text-ds-26"
+                className="font-sans font-bold tabular-nums leading-none mt-1 block text-ds-26"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
               />
-              <p className="font-serif italic mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {spentCount === 0 ? "no tasks yet" : `across ${spentCount} task${spentCount === 1 ? "" : "s"}`}
+              <p className="font-sans mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                {spentCount === 0 ? "no jobs yet" : `across ${spentCount} job${spentCount === 1 ? "" : "s"}`}
               </p>
             </div>
             {/* NO "TOTAL EARNED" COLUMN.
@@ -367,7 +367,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
 
           <div className="mt-4 rounded-ds-md flex items-start gap-2.5 px-3 py-2.5" style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}>
             <CreditCard className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-            <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Payment methods are managed securely through Stripe at checkout.
             </p>
           </div>

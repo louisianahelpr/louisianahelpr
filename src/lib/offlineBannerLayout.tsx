@@ -36,12 +36,23 @@ import {
  */
 interface OfflineBannerLayout {
   /**
-   * Reserved space (px) the shells should leave at the top while the banner
-   * is visible. 0 when hidden. Already net of `env(safe-area-inset-top)`.
+   * Reserved space (px) the shells should leave at the top while any banner
+   * is visible. 0 when none. Already net of `env(safe-area-inset-top)`.
+   * The SUM of every contribution below — two banners stacked reserve both.
    */
   offset: number;
   /** Banner calls this to publish/clear its reserved height. */
   setOffset: (px: number) => void;
+  /**
+   * Per-banner contributions, keyed by banner. Added 2026-09-07 because a
+   * second sticky banner (StrikeBanner) reserved nothing and sat OVER every
+   * fixed-shell page header — the exact overlay bug this file was written to
+   * end, reintroduced one banner later. `setContribution("strike", px)` lets
+   * it reserve space without clobbering the offline banner's own value, and
+   * `contributions.offline` is how it knows where to sit below it.
+   */
+  contributions: Record<string, number>;
+  setContribution: (key: string, px: number) => void;
 }
 
 const OfflineBannerLayoutContext = createContext<OfflineBannerLayout | null>(
@@ -53,7 +64,16 @@ export const OfflineBannerLayoutProvider = ({
 }: {
   children: ReactNode;
 }) => {
-  const [offset, setOffset] = useState(0);
+  const [contributions, setContributions] = useState<Record<string, number>>({});
+  const setContribution = useCallback((key: string, px: number) => {
+    setContributions((prev) => {
+      if ((prev[key] ?? 0) === px) return prev;
+      return { ...prev, [key]: px };
+    });
+  }, []);
+  // The offline banner's legacy setter is contribution "offline".
+  const setOffset = useCallback((px: number) => setContribution("offline", px), [setContribution]);
+  const offset = Object.values(contributions).reduce((a, b) => a + b, 0);
 
   // Mirror the offset to the DOM so a single global CSS rule can reserve
   // space for the banner on document-scroll pages (which live in normal
@@ -72,8 +92,8 @@ export const OfflineBannerLayoutProvider = ({
   }, [offset]);
 
   const value = useMemo<OfflineBannerLayout>(
-    () => ({ offset, setOffset }),
-    [offset],
+    () => ({ offset, setOffset, contributions, setContribution }),
+    [offset, setOffset, contributions, setContribution],
   );
 
   return (
@@ -99,4 +119,19 @@ export function useSetOfflineBannerOffset(): (px: number) => void {
   const ctx = useContext(OfflineBannerLayoutContext);
   const setter = ctx?.setOffset;
   return useCallback((px: number) => (setter ? setter(px) : undefined), [setter]);
+}
+
+/**
+ * Publish a reserved height under a named key (any banner other than the
+ * offline one). No-op without a provider.
+ */
+export function useSetBannerContribution(key: string): (px: number) => void {
+  const ctx = useContext(OfflineBannerLayoutContext);
+  const setter = ctx?.setContribution;
+  return useCallback((px: number) => (setter ? setter(key, px) : undefined), [setter, key]);
+}
+
+/** Read one banner's contribution (px). 0 without a provider or when hidden. */
+export function useBannerContribution(key: string): number {
+  return useContext(OfflineBannerLayoutContext)?.contributions[key] ?? 0;
 }

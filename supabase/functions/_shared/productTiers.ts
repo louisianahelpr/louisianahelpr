@@ -25,6 +25,13 @@ export const PRODUCT_TO_TIER: Record<string, string> = {
   "prod_U8rThLQr2jThoM": "pro",
   "prod_U8rT0f4UtNPrrs": "elite",
 
+  // LIVE Plus products, created 2026-09-05 when the tier was restored. Three
+  // products rather than one, matching how Basic/Pro/Elite are modelled here:
+  // one product per cadence, one Price each.
+  "prod_VCr6Q0bEUI7Dwv": "plus",  // live: Helpr Plus - Monthly  ($15)
+  "prod_VCr6jPn91jIUiZ": "plus",  // live: Helpr Plus - Annual   ($150)
+  "prod_VCr6TTUOmsK83O": "plus",  // live: Helpr Plus - One Month Pass ($15)
+
   // TEST-MODE products. The app currently runs on a TEST Stripe key, so the
   // Prices the checkout charges belong to TEST products — and those product
   // ids were absent from this map, which means a completed test-mode
@@ -43,5 +50,9 @@ export const PRODUCT_TO_TIER: Record<string, string> = {
   // (acct_1RQbAfKp2H4b7tEC, livemode:false): lookup keys helpr_pro_*_test
   // ($10 / $100 / $10) and helpr_basic_*_test ($5 / $50 / $5).
   "prod_UqSRPJAe0f92Xf": "pro",   // test: monthly + annual + one-time
+  // The test-mode Plus product from the 2026-08-27 attempt. It was left in
+  // place when the tier was removed ("removing the code makes them inert"),
+  // so it is still there and still correct.
+  "prod_V9ZB6TeGqdPHFI": "plus",  // test: monthly + annual + one-time
   "prod_UqSyR1FW6IT0a7": "basic", // test: monthly + annual + one-time
 };

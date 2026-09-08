@@ -98,7 +98,7 @@ export function ForceUpdateGate({ children }: { children: React.ReactNode }) {
             Update Helpr to continue
           </h1>
           <p
-            className="mt-2 max-w-[32ch] font-serif text-ds-13 italic"
+            className="mt-2 max-w-[32ch] font-sans text-ds-13"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
             This version of Louisiana Helpr is no longer supported. Install the

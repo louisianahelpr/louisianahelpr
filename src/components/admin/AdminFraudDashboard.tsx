@@ -46,9 +46,17 @@ interface FraudFlag {
 // to either always returned nothing, which on a fraud console reads as "no
 // fast-completion fraud right now" rather than the truth, "this detector was
 // never built". Re-add each the day a rule starts raising it.
+//
+// `high_dispute_rate` is BACK, because that day came: `rpc_open_dispute`
+// raises it (20260907045410) when `check_dispute_velocity` says the filing
+// just put the opener at or over the threshold the dispute dialog and the
+// community guidelines both warn about ("3+ disputes in 30 days flags your
+// account for review"). Before that migration the sentence was backed by
+// nothing at all. `fast_completion` still has no writer and stays out.
 const FLAG_TYPES = [
   { value: "all", label: "All Types" },
   { value: "off_platform_contact", label: "Off-Platform Contact" },
+  { value: "high_dispute_rate", label: "High Dispute Rate" },
   { value: "referral_abuse", label: "Referral Abuse" },
   { value: "application_spam", label: "Application Spam" },
   { value: "review_manipulation", label: "Review Manipulation" },
@@ -58,6 +66,11 @@ const FLAG_TYPES = [
   { value: "multi_reporter_flag", label: "Multi-Reporter Pile-On" },
   { value: "rapid_cancellation_pattern", label: "Rapid Cancellation" },
   { value: "duplicate_content_posting", label: "Duplicate Content" },
+  // Written by enforce_retained_ban() (20260908004351) on EVERY refused
+  // signup — email, phone or Stripe Identity match. This is the only surface
+  // that carries the detail: the person is told nothing but "this account
+  // can't be created", deliberately, so the refusal is not a lookup oracle.
+  { value: "ban_evasion_attempt", label: "Ban Evasion Attempt" },
 ];
 
 const AdminFraudDashboard = () => {
@@ -90,12 +103,25 @@ const AdminFraudDashboard = () => {
       // — a missing display name must not blank the whole surface.
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, email")
         .in("user_id", userIds);
       if (profilesError) report(profilesError, { severity: "warning", tags: { source: "AdminFraudDashboard.hydrateNames" } });
 
       const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
-      return data.map((f: any) => ({ ...f, user_name: formatName(nameMap.get(f.user_id), "Unknown") }));
+      // Email is the fallback headline, and `ban_evasion_attempt` is why it had
+      // to exist. A refused signup is refused BEFORE the profile write, so
+      // `full_name` is empty by construction for that flag type — not
+      // occasionally, always — and every one of those rows headlined "Unknown".
+      // The email is what an operator actually acts on, it is already inside
+      // `details`, and this is an admin-only surface.
+      const emailMap = new Map(profiles?.map(p => [p.user_id, p.email]) || []);
+      return data.map((f: any) => {
+        const named = formatName(nameMap.get(f.user_id), "");
+        return {
+          ...f,
+          user_name: named || emailMap.get(f.user_id) || "Unknown",
+        };
+      });
     },
   });
 
@@ -147,6 +173,7 @@ const AdminFraudDashboard = () => {
     multi_reporter_flag: "danger",
     rapid_cancellation_pattern: "danger",
     duplicate_content_posting: "warning",
+    ban_evasion_attempt: "danger",
   };
 
   return (
@@ -216,7 +243,23 @@ const AdminFraudDashboard = () => {
                   </Badge>
                 </div>
                 {flag.details && (
-                  <p className="text-ds-11 text-muted-foreground line-clamp-2">{flag.details}</p>
+                  // `ban_evasion_attempt` is the one flag type whose details is
+                  // a structured record rather than a sentence — matched signal,
+                  // original ban date and reason, attempted email, retained-ban
+                  // id — and it is the ONLY place any of that is visible, since
+                  // the person refused is deliberately told none of it. Clamping
+                  // it to two lines would hide the half an operator acts on, so
+                  // this type renders in full. Every other type stays clamped;
+                  // their details are one sentence and the list stays scannable.
+                  <p
+                    className={
+                      flag.flag_type === "ban_evasion_attempt"
+                        ? "text-ds-11 text-muted-foreground whitespace-pre-line"
+                        : "text-ds-11 text-muted-foreground line-clamp-2"
+                    }
+                  >
+                    {flag.details}
+                  </p>
                 )}
                 <p className="text-ds-11 text-muted-foreground">
                   {formatDistanceToNow(new Date(flag.created_at), { addSuffix: true })}

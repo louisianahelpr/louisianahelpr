@@ -5,6 +5,7 @@ import { PRODUCT_TO_TIER } from "../_shared/productTiers.ts";
 import { tierDisplayName } from "../_shared/tierNames.ts";
 import { subscriptionCurrentPeriodEndISO } from "../_shared/stripeSubscriptionPeriod.ts";
 import { CLEARED_SUBSCRIPTION_LINKAGE, subscriptionLinkage } from "../_shared/subscriptionLinkage.ts";
+import { hasPerk } from "../_shared/tierPerks.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -122,12 +123,16 @@ serve(async (req) => {
             );
           }
 
-          // Referral upgrade bonus — if this user was referred AND
-          // they just upgraded to a paid tier (pro/elite), award the
-          // referrer an extra $10 credit on top of the standard $5.
-          // Idempotent: skip if a "subscription_bonus" credit already
-          // exists for this referral.
-          if (tier === "pro" || tier === "elite") {
+          // Referral upgrade bonus — if this user was referred AND they just
+          // upgraded to a qualifying tier, award the referrer an extra $10
+          // credit on top of the standard $5. Idempotent: skip if a
+          // "subscription_bonus" credit already exists for this referral.
+          //
+          // CC-019: the literal `tier === "pro" || tier === "elite"` silently
+          // excluded Plus, so a referrer whose referee bought the $15/mo plan
+          // was paid nothing while a $10/mo Pro upgrade paid $10. Real money,
+          // and invisible — nothing errors when a bonus is simply not minted.
+          if (hasPerk(tier, "referralUpgradeBonus")) {
             const { data: referral } = await supabaseAdmin
               .from("referrals")
               .select("id, referrer_id, referral_code_id")

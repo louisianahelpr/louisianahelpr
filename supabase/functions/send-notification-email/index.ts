@@ -191,9 +191,30 @@ Deno.serve(async (req) => {
     // here would make this the fourth place that defines them. The DB column
     // defaults stay the single source of truth. `user_id` is UNIQUE
     // (migration 20260312023604), which is what makes onConflict work.
-    const { error: ensureError } = await supabase
-      .from('notification_preferences')
-      .upsert({ user_id }, { onConflict: 'user_id', ignoreDuplicates: true })
+    //
+    // Retried, because the one failure this call has ever produced in prod is
+    // transient by construction. On 2026-09-08 an "Arrival confirmed" email to
+    // a live fixture user logged
+    //   preference_row_ensure_failed: Could not query the database for the
+    //   schema cache. Retrying.
+    // — PostgREST's PGRST002, raised in the seconds-long window where it is
+    // reloading its schema cache after a migration deploy (20260907032218 had
+    // landed the day before). The row was fine, the grants were fine, the
+    // service role has INSERT; PostgREST simply could not answer yet. Its own
+    // message says "Retrying" — about ITSELF, not about us — and we did not,
+    // so a recoverable blip became a permanently lost notification with a
+    // `failed` log row and no email. Anything else still fails on the first
+    // error: a real grant or constraint problem must not be retried into a
+    // three-times-slower 500.
+    let ensureError: { code?: string; message: string } | null = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert({ user_id }, { onConflict: 'user_id', ignoreDuplicates: true })
+      ensureError = error
+      if (!error || error.code !== 'PGRST002') break
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)))
+    }
     if (ensureError) {
       await logSkip('failed', `preference_row_ensure_failed: ${ensureError.message}`)
       return new Response(
@@ -206,11 +227,40 @@ Deno.serve(async (req) => {
     // as an error and this call dropped that error, which collapsed "the user
     // opted out" and "we could not read the preference" into the same silent
     // skip. They need different outcomes.
-    const { data: prefs, error: prefsError } = await supabase
-      .from('notification_preferences')
-      .select(prefColumn)
-      .eq('user_id', user_id)
-      .maybeSingle()
+    // TWO gates, read together: the Email master and the per-type category.
+    //
+    // `email_enabled` is the master's own column (migration 20260907032218) and
+    // is checked HERE rather than by writing `false` across every category, the
+    // way `fan_out_push_on_notification` checks `push_enabled` before it looks
+    // up the per-type column. Before that column existed the master was a UI
+    // fiction: turning it off blanket-wrote all eleven `email_*` columns and
+    // turning it back on wrote `true` over them, so a weekend of muted email
+    // re-subscribed the account to Promotions. The category columns are now
+    // never touched by the master, which is only safe because this gate exists
+    // — without it, "master off" would suppress nothing at all.
+    //
+    // `select('*')`, not a two-column projection, and deliberately so: naming
+    // `email_enabled` in the select list would make this function 500 on every
+    // call during the window where it is deployed and migration 20260907032218
+    // is not — PostgREST rejects an unknown column rather than omitting it, so
+    // the graceful fallback below would never get to run. A `*` row is ~30
+    // booleans for one account; the cost is nothing and the failure mode is
+    // "the master is absent", which is recoverable.
+    // Same PGRST002 retry as the ensure above: this read happens milliseconds
+    // later, so it sits inside the identical schema-cache reload window.
+    let prefs: Record<string, unknown> | null = null
+    let prefsError: { code?: string; message: string } | null = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user_id)
+        .maybeSingle()
+      prefs = data
+      prefsError = error
+      if (!error || error.code !== 'PGRST002') break
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)))
+    }
 
     if (prefsError) {
       await logSkip('failed', `preference_read_failed: ${prefsError.message}`)
@@ -220,13 +270,31 @@ Deno.serve(async (req) => {
       )
     }
 
-    if (!prefs || !(prefs as any)[prefColumn]) {
-      await logSkip('skipped', 'preference_off')
+    // Deploy-lag tolerance, and only for the master. The upsert above
+    // guarantees a row exists, so `!prefs` still means "we could not resolve a
+    // preference" and still fails closed. But on a deploy where this function
+    // is live and migration 20260907032218 has not landed yet, PostgREST omits
+    // `email_enabled` from the row rather than returning it false — and reading
+    // that absence as "master off" would mute EVERY notification email in the
+    // gap. Absent means "no master yet", which is what it meant last week.
+    const masterOff = prefs != null
+      && 'email_enabled' in (prefs as Record<string, unknown>)
+      && (prefs as any).email_enabled !== true
+
+    if (!prefs || masterOff || !(prefs as any)[prefColumn]) {
+      await logSkip('skipped', masterOff ? 'preference_off_master' : 'preference_off')
       // `pref_column` / `category` travel back so the caller can name the exact
       // switch the user has to flip. "Email is off for Work Status" is a fix
-      // the user can act on; "email_disabled" is not.
+      // the user can act on; "email_disabled" is not. When it is the master
+      // that suppressed the send, name the master — pointing at the category
+      // switch would send the user to flip a control that is already on.
       return new Response(
-        JSON.stringify({ skipped: true, reason: 'email_disabled', pref_column: prefColumn, category }),
+        JSON.stringify({
+          skipped: true,
+          reason: 'email_disabled',
+          pref_column: masterOff ? 'email_enabled' : prefColumn,
+          category,
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
@@ -248,10 +316,18 @@ Deno.serve(async (req) => {
     // never "we could not check". Dropping the error collapsed those two into
     // the same falsy value, so a failed read sent mail to a bounced or
     // complained address — the case most likely to cost us sender reputation.
+    //
+    // Compared lowercased because that is the only form the table ever holds:
+    // `resend-webhook` lowercases every address before it upserts, and both
+    // columns are plain `text`, not `citext`. Matching `profiles.email` raw
+    // meant a mixed-case address never equalled its own suppression row, so
+    // the guard read "not suppressed" and mailed a bounced or complained
+    // recipient anyway. `engagement-automations` already lowercases both sides
+    // at all four of its call sites; this was the one reader that did neither.
     const { data: suppressed, error: suppressedError } = await supabase
       .from('suppressed_emails')
       .select('id')
-      .eq('email', profile.email)
+      .eq('email', profile.email.toLowerCase())
       .maybeSingle()
 
     if (suppressedError) {

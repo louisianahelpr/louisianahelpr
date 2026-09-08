@@ -31,16 +31,71 @@ export interface ReviewFormProps {
    * omission.
    */
   canTip?: boolean;
+  /**
+   * WHICH SIDE OF THE JOB THE PERSON BEING REVIEWED WAS ON.
+   *
+   * The star rating is one overall number in both directions; this now steers
+   * only the one-tap tags, which still have to describe the right person.
+   *
+   * Not derivable from `canTip` even though the two happen to agree today:
+   * that flag is about who may send money, and reading direction off it would
+   * silently re-point the whole question set the day tipping rules change.
+   * Defaults to "helper" — the direction the tags were written for — so an
+   * unadapted caller keeps the behaviour it has always had.
+   */
+  revieweeRole?: RevieweeRole;
 }
 
-export type CategoryKey = "rating" | "punctuality" | "quality" | "communication";
+export type RevieweeRole = "helper" | "poster";
 
-export const CATEGORY_ROWS: { key: CategoryKey; label: string; sublabel: string; required: boolean }[] = [
-  { key: "rating", label: "Overall", sublabel: "Your overall experience", required: true },
-  { key: "punctuality", label: "Punctuality", sublabel: "Showed up on time", required: false },
-  { key: "quality", label: "Quality of work", sublabel: "Met expectations", required: false },
-  { key: "communication", label: "Communication", sublabel: "Clear and responsive", required: false },
+/**
+ * ONE REPUTATION, ONE NUMBER.
+ *
+ * This form used to collect four stars — Overall plus Punctuality, Quality of
+ * work and Communication — and for a while it collected a DIFFERENT three in
+ * each direction, with the poster-facing "Promptness" question writing itself
+ * into the same `punctuality` column that meant "showed up on time" when a
+ * poster rated a helper. One column, two questions, one average.
+ *
+ * The sub-criteria had already stopped being rendered anywhere on 2026-08-30
+ * (ReviewsTab, RatingBreakdown), so for a week the form was collecting three
+ * write-only numbers that no screen read and that a future average could only
+ * misinterpret. Owner, 2026-09-07: "One reputation, and we only do overall —
+ * no punctuality etc."
+ *
+ * So the inputs are gone and the columns are dropped (migration
+ * `*_reviews_overall_only`). What is left is one star rating, the optional
+ * tags below, and free text — the same form in both directions.
+ */
+
+/**
+ * The one-tap tags under the star. These stay direction-aware even though the
+ * rating no longer is: "On time", "Quality work" and "Very professional"
+ * describe somebody who came and did a job, and every one of them was once
+ * offered to a helper describing the person who HIRED them. A tag is prose the
+ * reviewer chose, not a score — it does not average into anything, so it costs
+ * nothing to keep honest about who it is describing.
+ */
+export const HELPER_QUICK_TAGS = [
+  "Great communicator",
+  "On time",
+  "Quality work",
+  "Very professional",
+  "Highly recommend",
+  "Friendly & helpful",
 ];
+
+export const POSTER_QUICK_TAGS = [
+  "Clear instructions",
+  "Job as described",
+  "Approved quickly",
+  "Respectful",
+  "Easy to work with",
+  "Would work with again",
+];
+
+export const quickTagsFor = (role: RevieweeRole): string[] =>
+  role === "poster" ? POSTER_QUICK_TAGS : HELPER_QUICK_TAGS;
 
 // Display reviews for a user
 export interface ReviewListProps {
@@ -50,9 +105,6 @@ export interface ReviewListProps {
 export type Review = {
   id: string;
   rating: number;
-  punctuality: number | null;
-  quality: number | null;
-  communication: number | null;
   feedback: string | null;
   created_at: string;
   reviewer_id: string;

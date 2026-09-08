@@ -209,7 +209,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
               variant="inline"
               icon={PawPrint}
               title="No pets yet"
-              body="Add your pets' profiles so helpers know their needs."
+              body="Add your pets' profiles so Helprs know their needs."
               action={
                 <Button variant="primary" onClick={openAddMobile}>
                   <Plus className="w-4 h-4 mr-1" /> Add a Pet

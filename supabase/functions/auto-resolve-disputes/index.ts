@@ -9,12 +9,18 @@ const corsHeaders = {
 };
 
 /**
- * Notification titles this cron sends to admins. Both are REMINDERS about a
- * condition that persists between ticks, so both are deduped through
+ * Notification titles this cron sends to admins. All three are REMINDERS about
+ * a condition that persists between ticks, so all three are deduped through
  * `recentlyRemindedKeys` below — see the comment there for why.
+ *
+ * Adding a title here is only half the job: it MUST also go into the
+ * `.in("title", …)` filter that builds `recentlyRemindedKeys`, or it is never
+ * deduped and this cron re-sends it every tick — the exact duplicate flood
+ * that comment describes.
  */
 const ESCALATED_TITLE = "Escalated dispute overdue";
 const STUCK_SPLIT_TITLE = "Dispute split did not settle";
+const UNSETTLEABLE_TITLE = "Dispute stuck — escrow cannot auto-settle";
 
 /** One reminder per admin per job per day, not one per cron tick. */
 const REMINDER_WINDOW_HOURS = 24;
@@ -100,7 +106,7 @@ Deno.serve(async (req) => {
     // Find disputed jobs past their 72-hour deadline
     const { data: expiredDisputes, error: fetchErr } = await supabase
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, dispute_reason, disputed_at, dispute_deadline, dispute_status, payment_status, stripe_payment_intent_id, stripe_session_id")
+      .select("id, title, helper_id, customer_id, budget, dispute_reason, disputed_at, dispute_deadline, dispute_status, payment_status, stripe_payment_intent_id, stripe_session_id, disputed_by")
       .eq("status", "disputed")
       .not("dispute_deadline", "is", null)
       .lte("dispute_deadline", new Date().toISOString());
@@ -108,6 +114,10 @@ Deno.serve(async (req) => {
     if (fetchErr) throw fetchErr;
 
     const resolved: string[] = [];
+    // Helper-filed disputes this run pushed to an admin instead of paying out.
+    // Reported so the count is visible per run rather than only in the log —
+    // a sudden rise is someone probing the timeout for free money.
+    const escalatedHelperFiled: string[] = [];
     const defects = defectTracker();
 
     // ── Which admin reminders already went out in the last day? ─────────────
@@ -258,6 +268,74 @@ Deno.serve(async (req) => {
           `/admin?view=disputes&job=${job.id}`,
           `escalation reminder job ${job.id}`,
         );
+        continue;
+      }
+
+      // ── The filer cannot win by silence ─────────────────────────────────
+      //
+      // Everything below this point settles the dispute with `_outcome:
+      // "helper"` and flips the job to `payout_pending`. That is the right
+      // default for a POSTER-filed dispute nobody answered: the poster raised
+      // the complaint, went quiet for 72 hours, and the work is presumed done.
+      // The counterparty's silence is what loses them the dispute.
+      //
+      // It is the WRONG default when the HELPER filed. `rpc_open_dispute`
+      // authorises either party (`IF _uid <> _customer AND _uid <> _helper
+      // THEN RAISE`), and filing freezes the job — so a helper could open a
+      // dispute on an `in_progress` job, say nothing for 72 hours, and have
+      // this sweep write `status: "completed"` and hand them the full escrow.
+      // The poster never approved the work and never released anything; the
+      // timeout did it for them. Their only defence was to escalate.
+      //
+      // Nothing auto-refunds the poster here either — that is the same
+      // unevidenced money movement pointed the other way, and it would let a
+      // poster win by staying silent after the helper filed. An unattended
+      // dispute that the FILER never substantiated has no honest automatic
+      // winner, so the money stays in escrow and a human decides.
+      //
+      // `escalated` is the existing device for exactly this, not a new state:
+      // this cron already skips escalated disputes and nags admins daily, the
+      // admin queue still lists the job (AdminDisputes filters `jobs.status =
+      // 'disputed'`, which escalation preserves), and `helper_abort_job`
+      // (20260825190000) already opens ESCALATED disputes on purpose so a
+      // helper who walked off a started job cannot be paid in full by a
+      // timeout. This closes the gap that migration left open for the ordinary
+      // filing path.
+      //
+      // Written on `jobs.dispute_status`, never `disputes.status` — the
+      // latter's CHECK admits only open/decided/withdrawn, so mirroring it
+      // there would throw and abort the sweep.
+      if (job.disputed_by && job.helper_id && job.disputed_by === job.helper_id) {
+        // Guarded on payment_status="escrow" for the same chargeback race the
+        // release path below guards, and `.select("id")` because a null error
+        // on a zero-row update would read as "escalated" while the deadline
+        // stayed live and the next tick paid the helper anyway.
+        const { data: escalatedRows, error: escalateErr } = await supabase
+          .from("jobs")
+          .update({ dispute_status: "escalated" })
+          .eq("id", job.id)
+          .eq("payment_status", "escrow")
+          .select("id");
+        if (escalateErr) {
+          console.error(`[auto-resolve-disputes] failed to escalate helper-filed dispute on job ${job.id}:`, escalateErr);
+          defects.record(`escalate helper-filed ${job.id}: ${escalateErr.message}`);
+          continue;
+        }
+        if (!escalatedRows || escalatedRows.length === 0) {
+          console.log(`[auto-resolve-disputes] job ${job.id} payment_status changed since read; not escalating.`);
+          continue;
+        }
+        const { ok: helperFiledAdminsOk, ids: helperFiledAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.helperFiled");
+        if (!helperFiledAdminsOk) defects.record(`admin lookup failed for helper-filed escalation job ${job.id}`);
+        await remindAdmins(
+          helperFiledAdminIds,
+          ESCALATED_TITLE,
+          `"${job.title}" was disputed by the Helpr, who did not substantiate it within 72 hours. ` +
+            `The escrow was NOT auto-released — it needs an admin decision.`,
+          `/admin?view=disputes&job=${job.id}`,
+          `helper-filed escalation job ${job.id}`,
+        );
+        escalatedHelperFiled.push(job.id);
         continue;
       }
 
@@ -546,6 +624,8 @@ Deno.serve(async (req) => {
       {
         resolved: resolved.length,
         ids: resolved,
+        escalated_helper_filed: escalatedHelperFiled.length,
+        escalated_helper_filed_ids: escalatedHelperFiled,
         dispute_records_swept: sweptRecords.length,
         swept_dispute_ids: sweptRecords,
         stuck_splits: stuckSplits,

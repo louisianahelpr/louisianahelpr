@@ -1,7 +1,7 @@
 import { memo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RotateCcw, RefreshCw, Clock, Check, MapPinOff } from "lucide-react";
+import { CheckCircle2, RotateCcw, RefreshCw, Clock, Check, MapPinOff, AlertTriangle } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";
@@ -18,6 +18,8 @@ import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "./JobActionRow";
 import { useHighlightPulse } from "./useHighlightPulse";
+import { UnfundedJobNotice, shouldShowUnfundedNotice } from "./postedJobCard/UnfundedJobNotice";
+import { useFundExistingJob } from "@/hooks/useFundExistingJob";
 
 /**
  * PostedJobCard — one card in the poster's "my posts" feed: the job
@@ -79,6 +81,7 @@ function PostedJobCardInner({
   // showed. Both are gone — every card expands, and every card hides its body
   // until it does — so "archived completed" is no longer a special layout.
   // The "Tipped & Reviewed" strip below reads completedJobMeta directly.
+  const { fundJob, fundingJobId } = useFundExistingJob();
   const isExpanded = expandedJobIds.has(job.id);
 
   // A description that merely restates the title is not a description.
@@ -112,6 +115,20 @@ function PostedJobCardInner({
       job.status === "completed") &&
       !!job.helper_id) ||
     job.status === "open";
+  /* An unfunded job has not been posted to anyone. All four browse surfaces
+     require a funded payment_status, so no helper can return it — yet three
+     controls on this card asserted the opposite, and the poster believed them:
+     the tracker lit "Posted" as a COMPLETED step roughly 40px above the notice
+     reading "Payment not finished"; the Applicants button offered to show
+     applicants for a listing nobody could see (and its "0" reads as weak
+     demand rather than as invisibility); and Boost offered to charge for
+     promoting it.
+
+     Each is gated off rather than reworded, because there is no true version
+     of any of them until the money lands. UnfundedJobNotice is then the only
+     thing this card says about state, which is the point — one claim, and a
+     button that fixes it. */
+  const unfunded = shouldShowUnfundedNotice(job);
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
 
   /**
@@ -233,6 +250,49 @@ function PostedJobCardInner({
               amount={formatPrice(job.budget)}
               meta={metaRow}
             />
+
+            {/* AN OPEN DISPUTE IS NOT A DETAIL BEHIND A TAP.
+                External QA, 2026-09-06: the poster's collapsed card for a
+                disputed job showed the title, the price and nothing else — same
+                card, same "$120", no badge — while a 72-hour clock ran behind
+                it toward an automatic release of that money. Everything this
+                card knows about the dispute lives in PostedJobActions, and
+                every action block on this card is gated on `isExpanded` (see
+                the note at the "Additional details" block below), so the poster
+                had to open the card to learn a dispute existed at all.
+
+                The helper's side already did this: DisputedSection is rendered
+                OUTSIDE AppliedJobCard's expand gate, which is why their card
+                reads "DISPUTE OPEN" at the top level. This is the same badge,
+                same words, same treatment — the two ends of one dispute now
+                announce it identically.
+
+                Collapsed only. Expanded, PostedJobActions renders the full
+                panel a few rows down and this would be the same sentence
+                twice. This is the exception to "NO STATUS STRIPE" below, and it
+                earns it: the filter tabs cannot carry this one, because
+                `disputed` has no chip of its own — the job buckets to "Needs
+                you", alongside every ordinary job awaiting a decision. */}
+            {!isExpanded && job.status === "disputed" && (
+              <div
+                className="px-4 py-2 flex items-center gap-1.5"
+                style={{
+                  borderTop: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                  background: "hsl(var(--burnt-sienna) / 0.08)",
+                }}
+              >
+                <AlertTriangle className="w-3 h-3 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
+                <span
+                  className="font-sans uppercase text-ds-10"
+                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                >
+                  {job.dispute_status === "escalated" ? "Admin reviewing" : "Dispute open"}
+                </span>
+                <span className="font-sans text-ds-11 ml-auto" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+                  Payment on hold
+                </span>
+              </div>
+            )}
             {/* The series, made visible — parents only (see SeriesStrip). */}
             {!job.parent_job_id && (
               <SeriesStrip
@@ -292,13 +352,17 @@ function PostedJobCardInner({
                 copy lives here, and it renders nothing at all when collapsed. */}
             {isExpanded && (hasDescription || hasRequirements) && (
               <div className="space-y-1.5">
+                {/* `break-words` on both: a description is free text, and one
+                    unbroken token (a URL, a gate-code string, a pasted address
+                    with no spaces) ran straight out of the card and was cut at
+                    its edge — measured at 375, 2026-09-07. Wrap it, never clip. */}
                 {hasDescription && (
-                  <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
+                  <p className="text-ds-11 text-muted-foreground leading-relaxed break-words">{job.description}</p>
                 )}
                 {hasRequirements && (
                   <div className="rounded-ds-sm bg-secondary/30 p-2">
                     <p className="text-ds-10 text-muted-foreground mb-0.5">Special Requirements</p>
-                    <p className="text-ds-11 text-foreground">{job.special_requirements}</p>
+                    <p className="text-ds-11 text-foreground break-words">{job.special_requirements}</p>
                   </div>
                 )}
               </div>
@@ -461,7 +525,7 @@ function PostedJobCardInner({
                   it also shows the ORDER the steps happen in. */}
 
               {/* Visible live tracking */}
-              {showsTracker && (
+              {showsTracker && !unfunded && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <JobTracking includePostingSteps jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
                 </div>
@@ -520,10 +584,10 @@ function PostedJobCardInner({
                       strokeWidth={2.25}
                     />
                     <p
-                      className="font-serif italic leading-snug text-ds-12"
+                      className="font-sans leading-snug text-ds-12"
                       style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                     >
-                      <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                      <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                         No live map for this job.
                       </span>{" "}
                       We couldn't pin this job's address on a map, so {helperName}'s
@@ -650,8 +714,21 @@ function PostedJobCardInner({
                 </div>
               )}
 
+              {/* An unfunded job is invisible to every helper while this card
+                  looks completely normal — whether the calendar sync created
+                  it or the poster's own checkout was abandoned. Say so before
+                  the applicants row, which would otherwise read "0 applicants"
+                  and be taken as low demand. */}
+              {shouldShowUnfundedNotice(job) && (
+                <UnfundedJobNotice
+                  job={job}
+                  onFund={fundJob}
+                  funding={fundingJobId === job.id}
+                />
+              )}
+
               {/* Applicants button + inline expanded applicant list */}
-              {job.status === "open" && (
+              {job.status === "open" && !unfunded && (
                 <PostedJobApplicants
                   job={job}
                   applicantCounts={applicantCounts}
@@ -675,6 +752,7 @@ function PostedJobCardInner({
                 helperNames={helperNames}
                 completedJobMeta={completedJobMeta}
                 onBoost={onBoost}
+                unfunded={unfunded}
                 onEdit={onEdit}
                 onCancel={onCancel}
                 onComplete={onComplete}

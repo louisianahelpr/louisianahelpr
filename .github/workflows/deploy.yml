@@ -349,9 +349,10 @@ jobs:
         # Fail the BUILD rather than ship a binary that dies at launch.
         #
         # Second layer, and it catches what the vite.config.ts guard cannot:
-        # env vars that are SET but point at the wrong project. A release built
-        # against staging installs, boots, and looks entirely correct while
-        # reading and writing the wrong database.
+        # env vars that are SET but point at the wrong project. There is one
+        # database, so any other project ref in the bundle means a stale secret;
+        # that release would install, boot, and look entirely correct while
+        # reading and writing a database nobody is watching.
         #
         # Shared with ios-beta.yml — one definition, so the two lanes cannot
         # drift apart again the way they did over the env block above.

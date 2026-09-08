@@ -9,12 +9,26 @@ export async function handlePaymentIntentPaymentFailed(
   const failedEmail = pi.receipt_email || (pi as any).last_payment_error?.charge?.billing_details?.email;
   logStep("Payment intent failed", { id: pi.id, email: failedEmail });
 
-  // Find the job linked to this PI and notify the poster
-  const { data: failedJob, error: failedJobErr } = await supabase
-    .from("jobs")
-    .select("id, customer_id, title, payment_status")
-    .eq("stripe_payment_intent_id", pi.id)
-    .maybeSingle();
+  // ME-040 (lh-money-escrow, 2026-09-04): `jobs.stripe_payment_intent_id` is
+  // only written on the SUCCESS path (checkout.session.completed) — a card
+  // declined at Checkout produces a real PaymentIntent that this column
+  // never records, so looking the job up by that column silently matched no
+  // row: no error (`.maybeSingle()` on zero rows is a normal `null`), no
+  // notification, no `payment_status='failed'`. The poster saw nothing, and
+  // re-opening `/payment-success` printed "hasn't been confirmed on our side
+  // yet… don't pay again" — actively wrong advice to someone who should be
+  // retrying with a different card. `create-payment` sets `job_id` in
+  // `payment_intent_data.metadata` on every Checkout Session it creates, so
+  // it survives onto the resulting PaymentIntent unconditionally — read the
+  // job from there instead of a column only the success path populates.
+  const jobId = pi.metadata?.job_id;
+  const { data: failedJob, error: failedJobErr } = jobId
+    ? await supabase
+        .from("jobs")
+        .select("id, customer_id, title, payment_status")
+        .eq("id", jobId)
+        .maybeSingle()
+    : { data: null, error: null };
 
   if (failedJobErr) {
     // Throw so the outer handler rolls back the idempotency row and returns 500,

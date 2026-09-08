@@ -82,11 +82,28 @@ export function MaterialsPanel({ category, className }: MaterialsPanelProps) {
             style={{ color: "hsl(var(--primary))" }}
             strokeWidth={2.25}
           />
+          {/* "You Might Need:" ended in a colon and rendered COLLAPSED, so the
+              default state of this panel was a heading that promised a list and
+              showed nothing under it — read as broken content on the one screen
+              a poster reaches straight after paying. The chevron is the only
+              thing that said otherwise, and a chevron is not a sentence.
+
+              The colon goes and the count arrives: the header now states what
+              is inside, so collapsed reads as collapsed rather than as empty.
+              The count is real (`items.length`) and the component already
+              returns null when there is nothing to list, so it can never read
+              "0 items". */}
           <span
             className="font-display font-semibold text-ds-13"
             style={{ color: "hsl(var(--foreground))" }}
           >
-            You Might Need:
+            You Might Need
+          </span>
+          <span
+            className="font-sans text-ds-11"
+            style={{ color: "hsl(var(--muted-foreground))" }}
+          >
+            {items.length} item{items.length === 1 ? "" : "s"}
           </span>
         </span>
         {open ? (

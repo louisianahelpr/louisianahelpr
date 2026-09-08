@@ -60,12 +60,69 @@ serve(async (req) => {
     // pro or elite" while `basic` has been a valid, live-priced tier for some
     // time — a caller debugging a Basic checkout was told their correct input
     // was invalid.
-    const ALLOWED_TIERS = ["basic", "pro", "elite"] as const;
+    const ALLOWED_TIERS = ["basic", "pro", "plus", "elite"] as const;
     if (!ALLOWED_TIERS.includes(tier)) {
       throw new Error(`Invalid tier. Use: ${ALLOWED_TIERS.join(", ")}`);
     }
     const priceId = cycle[tier as (typeof ALLOWED_TIERS)[number]];
     if (!priceId) throw new Error(`No Stripe price configured for tier "${tier}" on the ${billing_cycle} cycle.`);
+
+    // ── Cross-platform guard: no second subscription through Stripe ────────
+    // The owner's rule for holding both an Apple and a Stripe membership is to
+    // PREVENT IT AT PURCHASE TIME (2026-09-05), and this is the server half of
+    // it. The iOS client asks the same RPC before opening the purchase sheet,
+    // but a client check is a courtesy, not a guard — this one runs where the
+    // Checkout Session is actually created and cannot be skipped.
+    //
+    // Deliberately BEFORE the Stripe customer lookup below: it is one query
+    // against our own database versus up to 100 customer records plus a
+    // subscription list per record, and there is no reason to pay for that on
+    // behalf of someone who is not allowed to buy.
+    //
+    // This complements rather than replaces the existing active-Stripe-
+    // subscription check further down. That one asks Stripe "does this email
+    // already have a live subscription"; this one asks our own row "is Apple
+    // the authority here". Neither can see what the other sees.
+    //
+    // The RPC must run AS THE CALLER, and that needs the caller's JWT attached
+    // to the client — `supabaseClient` above is built from the anon key with no
+    // Authorization header, so it authenticates as `anon`.
+    //
+    // This shipped broken on 2026-09-05 and blocked EVERY membership purchase.
+    // The migration deliberately revokes anon and grants EXECUTE only to
+    // `authenticated`, so calling it as anon raised 42501 insufficient_privilege,
+    // the fail-closed branch returned 503, and the storefront's Upgrade button
+    // did nothing at all. The comment here even asserted it ran as the caller,
+    // which made the bug read as impossible.
+    //
+    // A request-scoped client is the fix: same anon key, plus this request's
+    // Authorization header, so PostgREST sees the member's JWT and auth.uid()
+    // resolves to them.
+    const callerClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")) ?? "",
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: eligibility, error: eligibilityErr } = await callerClient
+      .rpc("subscription_purchase_eligibility", { p_platform: "stripe" });
+    if (eligibilityErr) {
+      // Fail CLOSED. A purchase we cannot prove is allowed is exactly the one
+      // that produces a double charge, and the recovery for a wrongly-blocked
+      // checkout is a retry, while the recovery for a wrongly-allowed one is a
+      // refund and a support ticket.
+      console.error("[create-pro-checkout] eligibility check failed:", eligibilityErr);
+      return new Response(
+        JSON.stringify({ error: "We couldn't confirm your membership status. Please try again in a moment." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+      );
+    }
+    const verdict = eligibility as { allowed?: boolean; reason?: string } | null;
+    if (verdict && verdict.allowed === false) {
+      return new Response(
+        JSON.stringify({ error: verdict.reason ?? "You already have an active membership." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+      );
+    }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -132,7 +189,28 @@ serve(async (req) => {
       client_reference_id: user.id,
       metadata: { tier, billing_cycle, user_id: user.id },
       automatic_tax: { enabled: true },
+      // REQUIRED BY automatic_tax, AND THE REASON NO HELPER COULD BUY A TIER.
+      //
+      // Stripe refuses to open a Checkout Session with automatic tax enabled
+      // unless the Customer already has an address, OR the session is told to
+      // save the one collected at checkout. Without this line the call threw
+      // `customer_tax_location_invalid` and the function returned 500.
+      //
+      // Who it hit is the part that matters. The customer is resolved by
+      // EMAIL, so anyone with an existing Stripe Customer carrying no address
+      // failed — and the only thing that ever writes an address onto a Helpr
+      // customer is create-payment, i.e. funding a job AS A POSTER. Every tier
+      // card on that screen reads "For Helprs…", so memberships were broken for
+      // exactly the audience they are sold to: a helper who had never posted a
+      // job could not buy any tier, on any cycle. Proved both directions on one
+      // build 2026-09-06 — the addressless helper 500'd every attempt, the
+      // poster with an address completed a $15 Plus purchase.
+      //
+      // create-payment has carried this since it was written; only this
+      // function was missing it. `customer_update` is invalid WITHOUT an
+      // existing customer, so it is applied conditionally below.
     };
+    if (customerId) sessionParams.customer_update = { address: "auto" };
 
     if (!isOneTime) {
       sessionParams.subscription_data = subscriptionData;

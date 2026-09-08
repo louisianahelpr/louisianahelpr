@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { TIER_PERKS } from "./subscriptionTiers";
 import { posterFeePercentForTier } from "./posterFees";
 import {
@@ -123,5 +125,32 @@ describe("Form 1099-K threshold — one number for the whole product", () => {
 
   it("is not the repealed $600 step-down", () => {
     expect(FORM_1099K_GROSS_THRESHOLD_DOLLARS).not.toBe(600);
+  });
+
+  it("the Earnings tab does not state a threshold as tax guidance", () => {
+    // Softened 2026-09-06. Earnings -> Payouts told helpers the IRS "requires a
+    // Form 1099-K for Helprs who exceed $20,000 in gross payments and 200
+    // transactions" — a bare, undated number presented as tax advice on the
+    // screen where they read about their own money. That threshold has moved
+    // repeatedly (a $600 rule scheduled, deferred twice, then repealed), and a
+    // helper below a stale line concludes no form is coming.
+    //
+    // The threshold CONSTANT stays: ThresholdBanner needs a level to fire a
+    // heads-up at, and the banner hedges ("you may receive"). What must not
+    // come back is the product asserting the number as the rule. Read from
+    // source rather than rendered, so this cannot pass by the tab failing to
+    // mount.
+    const tab = readFileSync(
+      resolve(process.cwd(), "src/components/profile/EarningsTab.tsx"),
+      "utf8",
+    );
+    // Strip comments — the reasoning above is repeated in the file and would
+    // otherwise match every pattern this test forbids.
+    const rendered = tab.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    expect(rendered).not.toMatch(/form1099kGrossLabel\(\)/);
+    expect(rendered).not.toMatch(/FORM_1099K_TRANSACTION_THRESHOLD/);
+    expect(rendered).not.toMatch(/\$20,000/);
+    // …and it still points somewhere authoritative instead of going silent.
+    expect(rendered).toMatch(/irs\.gov/);
   });
 });

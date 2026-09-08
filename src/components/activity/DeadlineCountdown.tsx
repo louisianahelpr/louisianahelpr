@@ -47,10 +47,10 @@ const DeadlineCountdown = ({ deadline, expiredText, consequenceText, variant = "
   const isWarningCalm = !isExpired && !isUrgent && variant !== "destructive";
 
   const colorClasses = isExpired
-    ? "bg-destructive/10 border-destructive/30 text-destructive"
+    ? "bg-destructive/10 border-destructive/30 text-[hsl(var(--destructive-ink))]"
     : isUrgent
     ? variant === "destructive"
-      ? "bg-destructive/10 border-destructive/30 text-destructive"
+      ? "bg-destructive/10 border-destructive/30 text-[hsl(var(--destructive-ink))]"
       : ""
     : variant === "destructive"
     ? "bg-destructive/5 border-destructive/20 text-muted-foreground"

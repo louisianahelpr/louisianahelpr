@@ -51,7 +51,6 @@ const OWNERS = {
   // ── public / marketing ───────────────────────────────────────────────────
   "/": ["lh-seo-web", "lh-copy-content"],
   "/browse": ["lh-browse-discovery"],
-  "/jobs": ["lh-browse-discovery"],
   "/jobs/:id": ["lh-browse-discovery", "lh-seo-web", "lh-trust-safety"],
   "/j/:id": ["lh-browse-discovery"],
   "/u/:id": ["lh-trust-safety"],
@@ -63,6 +62,9 @@ const OWNERS = {
   "/rules": ["lh-trust-safety", "lh-copy-content"],
   "/support": ["lh-copy-content"],
   "/help": ["lh-copy-content"],
+  // The footer linked here and it 404'd. Same content, same owner as /help —
+  // it is an alias, added 2026-09-07 so an advertised link resolves.
+  "/help-center": ["lh-copy-content"],
   "/data-rights": ["lh-compliance-store", "lh-account-lifecycle"],
   "/gift-card": ["lh-compliance-store", "lh-subscriptions-credits"],
 

@@ -12,21 +12,15 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { requireOnline } from "@/lib/requireOnline";
 import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateLimit";
+// The refusal→copy map moved to its own module on 2026-09-07: the
+// daily-application-limit entry can no longer be an exact string (the cap is
+// an admin setting now and the trigger interpolates it), and a lookup with a
+// prefix rule in it needs a unit test. See applyErrorCopy.ts.
+import { resolveApplyErrorCopy } from "./applyErrorCopy";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { ApplyVars, ApplySnapshot, DashboardContextSlice } from "./dashboardTypes";
 import { userFacingError } from "@/lib/userFacingError";
 
-// The apply_to_job RPC RAISEs these exact strings for the states a helper can
-// actually hit (see 20260612450000_apply_to_job_rate_limit.sql). Map each to a
-// warm, human toast so the real reason surfaces instead of the generic
-// "Couldn't send your application through" fallback. Keys MUST match the RPC's
-// RAISE text verbatim — a drift here silently falls back to the generic toast.
-const APPLY_RPC_MESSAGES: Record<string, string> = {
-  "Already applied to this job": "You've already applied to this job.",
-  "Cannot apply to your own job": "You can't apply to your own post.",
-  "Job is no longer accepting applications": "This task isn't accepting applications anymore.",
-  "Job not found": "This task is no longer available.",
-};
 
 type UseApplyFlowArgs = {
   user: SupaUser | null;
@@ -70,8 +64,14 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         // The list is exactly what the confirm dialog renders (see the comment
         // above); the apply mutation itself only needs the id, so the
         // best-effort miss below is unchanged in behaviour.
+        // `instant_book` dropped by 20260904034410 (dead-feature cut) — naming
+        // it here 400'd the whole select ("column jobs.instant_book does not
+        // exist"), silently losing title/budget/earnings-breakdown for any
+        // deep-linked (?quickApply=) job not already in the loaded feed. Every
+        // reader of confirmApplyJob.instant_book elsewhere in the client now
+        // just sees `undefined` (falsy) — correct, since the feature is gone.
         .select(
-          "id, title, budget, category, date_needed, pricing_mode, instant_book, is_urgent, customer_id, status",
+          "id, title, budget, category, date_needed, pricing_mode, is_urgent, customer_id, status",
         )
         .eq("id", confirmApplyJobId)
         .maybeSingle();
@@ -116,9 +116,12 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   // the snapshots so the job re-appears and the user can retry.
   const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
     mutationFn: async ({ jobId, helperId, message, files, isInstantBook }) => {
-      // Server-side rate limit check (10/min, 50/hr, 200/day) BEFORE any
+      // Server-side rate limit check BEFORE any
       // attachment uploads — don't waste storage bandwidth on a blocked
-      // attempt. The helper falls back to "allowed" if the RPC isn't
+      // attempt. The windows are no longer 10/min, 50/hr, 200/day: every rung
+      // is an admin setting on `platform_settings` and every one defaults to
+      // unlimited (owner decision 2026-09-07), so this returns allowed unless
+      // an operator has deliberately configured a cap. The helper falls back to "allowed" if the RPC isn't
       // deployed yet (PGRST202), so this doesn't break apply on prod
       // between merge and the manual supabase db push.
       const gate = await checkApplicationRate({ applicantId: helperId });
@@ -282,13 +285,13 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         // Use the warm, window-specific message from applyRateLimit.
         // No retry — by definition the user has to wait the window out.
         toast.error(userFacingError(err, "Couldn't send your application — try again?"));
-      } else if (APPLY_RPC_MESSAGES[(err as { message?: string } | null)?.message ?? ""]) {
+      } else if (resolveApplyErrorCopy((err as { message?: string } | null)?.message)) {
         // The apply_to_job RPC RAISEs a specific human reason (empty bid price,
         // already applied, own job, job closed, not found). Surface THAT reason
         // instead of burying it under the generic "something went wrong" toast —
         // these are actionable states the helper can fix, not transient blips,
         // so no Retry button (re-running the same invalid submit just re-fails).
-        toast.error(APPLY_RPC_MESSAGES[(err as { message?: string }).message!]);
+        toast.error(resolveApplyErrorCopy((err as { message?: string }).message)!);
       } else {
         errorToast("Couldn't send your application through", {
           description: "Tap retry to try again.",
@@ -319,8 +322,43 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // both times. Activity resolves `?job=` to whichever bucket the job is
       // in right now (see the deep-link effect in pages/Activity.tsx), so the
       // card is on screen and pulsing whatever state it is in.
+      // THE SERVER CAN STILL WITHHOLD THE NOTE, and the sender has to be told.
+      // The contact filter runs server-side on insert; when it fires it sets
+      // `flagged_hidden` and the poster never sees the note. The helper got
+      // "Application sent!" and waited for a reply to a sentence nobody read.
+      // ApplyBody now runs the same scanner BEFORE sending, which catches the
+      // ordinary case — but the client scanner is a MIRROR of the server rules,
+      // not the same code, so it can be behind. This reads the outcome back and
+      // says so when the two disagree.
+      //
+      // Best-effort by design: the application has already landed. A failed or
+      // RLS-blocked readback must not turn a successful apply into an error, so
+      // it falls through to the ordinary confirmation.
+      let noteWithheld = false;
+      if (!vars.isInstantBook && vars.message?.trim()) {
+        try {
+          const { data: row, error: flagErr } = await supabase
+            .from("applications")
+            .select("flagged_hidden")
+            .eq("job_id", vars.jobId)
+            .eq("helper_id", vars.helperId)
+            .maybeSingle();
+          if (!flagErr && row?.flagged_hidden) noteWithheld = true;
+        } catch {
+          // Swallowed on purpose — see above. The apply succeeded; this only
+          // decides which of two success messages to show.
+        }
+      }
+
       if (vars.isInstantBook) {
         toast.success("You're booked! Check My Jobs for details.", {
+          action: { label: "View", onClick: () => navigate(`/my-jobs?job=${vars.jobId}`) },
+        });
+      } else if (noteWithheld) {
+        toast.warning("Application sent — but your note wasn't included.", {
+          description:
+            "It looked like contact or payment details, which can't be shared before a job is confirmed. The poster sees your application without it.",
+          duration: 10000,
           action: { label: "View", onClick: () => navigate(`/my-jobs?job=${vars.jobId}`) },
         });
       } else {
@@ -370,10 +408,11 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     const jobId = confirmApplyJobId;
     const files = applyFiles;
     const message = applyMessage;
-    // Read the instant_book flag from the job in the feed. Cast through
-    // `any` because EnrichedJob predates this column; the DB default is
-    // false so a missing key is treated the same way.
-    const isInstantBook = !!confirmApplyJob?.instant_book;
+    // Instant Book was dropped (20260904034410, dead-feature cut) — always
+    // false now. Kept as a variable (not deleted outright) because the
+    // mutation below still branches on it in a few places pending a fuller
+    // cleanup of that plumbing.
+    const isInstantBook = false;
     // Close the dialog + reset its state synchronously so the next paint
     // already has the optimistic feed. The mutation continues in the
     // background; React Query's onError rolls things back on failure.

@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   DollarSign, ChevronRight, Clock,
   Crown, XCircle, Scale,
-  Building2, Wallet, HeartPulse, Siren, Download, Loader2,
+  Building2, Wallet, HeartPulse, Siren, Download, Loader2, Trash2,
 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { report } from "@/lib/errorLogger";
 import { hapticError } from "@/lib/haptics";
 import { saveOrShareFile } from "@/lib/fileExport";
@@ -22,6 +23,12 @@ import {
   TAB_ICONS,
   TAB_ORIGIN_LABELS,
 } from "@/pages/legal/legalSections";
+
+// The same lazy import Profile and AccountBanned use: the dialog chunk and its
+// confirm-flow deps are fetched only if the user actually opens it.
+const DeleteAccountDialog = lazy(() =>
+  import("@/components/profile/DeleteAccountDialog").then((m) => ({ default: m.DeleteAccountDialog })),
+);
 
 // THIS TAB STATES NO POLICY OF ITS OWN. It is a directory plus one control:
 // links to the three policy documents, the GDPR/CCPA data export, and deep
@@ -181,6 +188,104 @@ function DataExportCard() {
         For any other privacy question,{" "}
         <Link to="/support" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>contact support</Link>.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Account deletion, on the ONE profile route an incomplete profile can open.
+ *
+ * WHY THIS IS HERE AND NOT ONLY ON THE PROFILE LANDING.
+ *
+ * Apple requires in-app account deletion (Guideline 5.1.1(v)) and App Review
+ * may exercise it. Until this card, the only two entry points were the Profile
+ * LANDING tab (`profileLanding/SettingsSection.tsx`) and `/account-banned` —
+ * and there is a third account state that can reach neither.
+ *
+ * `ProtectedRoute`'s "Big 7" completeness gate (full_name, avatar_url,
+ * date_of_birth, phone, location) sits OUTSIDE its `!allowUnapproved` block, so
+ * `allowUnapproved` does not exempt a route from it. `/profile` is
+ * `allowUnapproved` and is still bounced to `/complete-profile` when any of
+ * those five is blank. The only escape is `isProfileGateAllowed()`, which
+ * permits exactly one profile address — `/profile` with `?tab=legal`, i.e. this
+ * screen. So an account with an incomplete profile had to supply MORE personal
+ * data (a photo, a date of birth, a phone number) before it was allowed to
+ * erase itself, which is the inverse of both 5.1.1(v) and GDPR Art. 17.
+ *
+ * Measured against prod on 2026-09-03, not inferred: 10 of 40 profiles were in
+ * that state. It is structural for Sign in with Apple — private relay supplies
+ * no name and no photo, so `avatar_url` is null by default.
+ *
+ * The Privacy Policy already promises this in writing ("Permanently delete your
+ * account and personal data yourself", `PrivacySection.tsx`), and `/data-rights`
+ * redirects here — so this is the screen where that promise has to be keepable,
+ * for the same reason the export control sits outside the tab band.
+ *
+ * Same hook and same dialog as the other two entry points, never a second copy
+ * of the handler — see `useDeleteAccount` for the drift incident that rule
+ * exists for.
+ */
+function DeleteAccountCard() {
+  const deleteAccount = useDeleteAccount();
+
+  return (
+    <div className="space-y-2">
+      {/* Card anatomy copied from DataExportCard above — same liquid-glass
+          squircle, same 10x10 icon badge, same display title + muted body — so
+          the two data rights read as siblings rather than as two people's work.
+          The badge is burnt-sienna rather than primary because this one is
+          destructive; that is the brand's destructive tone and the only
+          difference between the two cards. */}
+      <section className="rounded-2xl liquid-glass squircle p-4">
+        <div className="flex items-start gap-3">
+          <div
+            className="w-10 h-10 rounded-ds-md flex items-center justify-center shrink-0"
+            style={{ background: "hsl(var(--burnt-sienna) / 0.12)", color: "hsl(var(--burnt-sienna))" }}
+          >
+            <Trash2 className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2
+              id="legal-account-deletion"
+              className="font-display font-bold text-foreground leading-tight text-ds-15"
+            >
+              Delete your account
+            </h2>
+            <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
+              Permanently erase your profile, photos and personal data. The dialog lists exactly what is removed and the payment records the law requires us to keep.
+            </p>
+          </div>
+        </div>
+        <div
+          className="mt-4 pt-3"
+          style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
+        >
+          {/* Treatment copied verbatim from the landing tab's Delete Account
+              button (`profileLanding/SettingsSection.tsx`) — transparent fill,
+              burnt-sienna hairline and label. The app's one destructive
+              affordance must not have two looks. */}
+          <button
+            type="button"
+            onClick={deleteAccount.requestDelete}
+            className="w-full rounded-ds-lg py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
+            style={{
+              background: "transparent",
+              border: "1px solid hsl(var(--burnt-sienna) / 0.32)",
+              color: "hsl(var(--burnt-sienna))",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+            }}
+          >
+            <Trash2 className="w-4 h-4" /> Delete Account
+          </button>
+        </div>
+      </section>
+
+      {deleteAccount.isOpen && (
+        <Suspense fallback={null}>
+          <DeleteAccountDialog {...deleteAccount.dialogProps} />
+        </Suspense>
+      )}
     </div>
   );
 }
@@ -499,6 +604,16 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
         style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.14)" }}
       >
         <DataExportCard />
+      </section>
+
+      {/* Deletion sits directly under the export and inside the same
+          outside-the-band data-rights area, because it is the same kind of
+          thing: GDPR Art. 17 erasure beside Art. 20 portability. It is LAST
+          because it is the irreversible one — the recoverable right should be
+          the one the eye lands on first. No hairline rule of its own; the two
+          cards are one group under the rule above. */}
+      <section aria-labelledby="legal-account-deletion" className="pt-2">
+        <DeleteAccountCard />
       </section>
     </div>
   );

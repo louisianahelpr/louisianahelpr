@@ -43,3 +43,30 @@ export const hasPersistedAuthToken = (): boolean => {
   }
   return false;
 };
+
+/**
+ * Remove the persisted Supabase session by hand.
+ *
+ * ONLY for the case where `supabase.auth.signOut()` has already failed and
+ * leaving the token in place would be worse than any inconsistency this
+ * causes: after an account is DELETED, a surviving token is what bounces the
+ * person straight back into `/dashboard` on a profile that no longer exists.
+ * Normal sign-out goes through `signOutWithPushCleanup()`; this is the floor
+ * under it, not an alternative to it.
+ *
+ * Same shape-scan as the probe above rather than a hardcoded project ref, and
+ * the same tolerance for a storage that throws.
+ */
+export const clearPersistedAuthToken = (): void => {
+  try {
+    if (typeof localStorage === "undefined") return;
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) keys.push(key);
+    }
+    keys.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    /* unreadable store — nothing to remove, and nothing we can do about it */
+  }
+};

@@ -237,7 +237,7 @@ export function CompletionChoiceSheet({
             {(proofBeforeUrls.length > 0 || proofAfterUrls.length > 0) && (
               <div className="space-y-1.5 mb-3">
                 <p
-                  className="font-serif italic leading-snug text-ds-12"
+                  className="font-sans leading-snug text-ds-12"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   {helperName}'s proof photos — the work you're about to pay for.
@@ -278,7 +278,7 @@ export function CompletionChoiceSheet({
                       All Done — Looks Great!
                     </p>
                     <p
-                      className="font-serif italic mt-0.5 text-ds-12"
+                      className="font-sans mt-0.5 text-ds-12"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Release Payment to {helperName}
@@ -313,7 +313,7 @@ export function CompletionChoiceSheet({
                       I Need Something Fixed First
                     </p>
                     <p
-                      className="font-serif italic mt-0.5 text-ds-12"
+                      className="font-sans mt-0.5 text-ds-12"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Request a Revision — Payment Stays Held
@@ -348,7 +348,7 @@ export function CompletionChoiceSheet({
               </div>
             </div>
             <p
-              className="font-serif italic leading-relaxed text-ds-13 mb-4"
+              className="font-sans leading-relaxed text-ds-13 mb-4"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
               {helperName} will be notified and can respond before the job closes.
@@ -362,7 +362,7 @@ export function CompletionChoiceSheet({
                 placeholder="Please describe what needs to be redone or fixed…"
                 rows={4}
                 maxLength={1000}
-                className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14 leading-relaxed"
+                className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed"
                 autoFocus
               />
 
@@ -426,7 +426,7 @@ export function CompletionChoiceSheet({
               >
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--amber-ink))" }} />
                 <p
-                  className="font-serif italic leading-snug text-ds-12"
+                  className="font-sans leading-snug text-ds-12"
                   style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                 >
                   Payment stays held until you mark it complete. If {helperName} doesn't fix it, you can open a dispute.

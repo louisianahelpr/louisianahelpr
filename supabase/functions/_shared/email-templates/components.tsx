@@ -72,24 +72,72 @@ export const Wordmark = () => (
 /**
  * Outlook-only VML rectangle for the CTA.
  *
- * This is the ONE piece of raw markup left in the email layer, and it is here
- * because it cannot be expressed as a React element: a conditional comment is
- * an HTML comment, and the `<!--[if !mso]><!-->` / `<!--<![endif]-->` pair has
- * to WRAP the anchor rather than sit beside it. react-email's `<Button>` does
- * make padding work in Outlook (`mso-padding-alt`) but Word still squares off
- * `border-radius`, so without this the Outlook reader gets a rectangle where
- * everyone else gets Helpr's rounded button.
+ * VML cannot be a React element, so it stays raw — but it is now ONLY the
+ * Outlook block. The visible anchor is real JSX in BrandButton.
+ *
+ * It used to WRAP the anchor in `<!--[if !mso]><!-->` / `<!--<![endif]-->` and
+ * inject the whole thing through dangerouslySetInnerHTML. Any pipeline that
+ * strips comments greedily removes everything from the first `<!--` to the LAST
+ * `-->` — the anchor included — leaving the wrapper div with its style
+ * attribute and nothing inside it.
+ *
+ * That is exactly what shipped. A 2026-09-06 review found the signup
+ * verification email rendering `<div style="margin: 0 0 4px"></div>` with no
+ * button and no link anywhere in the HTML part; only the plain-text alternative
+ * carried the verify URL, and every modern mail client renders the HTML part.
+ * New signups had no way through, on the one email the whole funnel depends on.
+ *
+ * Word still squares off `border-radius`, so Outlook keeps the VML rectangle —
+ * as an ENHANCEMENT. If it is ever stripped, Outlook falls back to the same
+ * real anchor everyone else gets.
  */
-function msoButtonHtml(href: string, label: string, widthPx: number): string {
+/**
+ * Escape for an HTML attribute value or text node.
+ *
+ * Deliberately NOT `htmlEscape` from `_shared/safe-strings.ts`: that one also
+ * turns `/` into `&#x2F;`, and every href here is a URL. Word's VML parser is
+ * the least forgiving reader in the set, so the entity-encoded path separators
+ * are a risk with no upside — the four characters below are the whole attack
+ * surface for both an attribute and a text node.
+ *
+ * `&` MUST be replaced first or the later replacements get double-encoded.
+ */
+function escapeForHtml(value: string): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/**
+ * `href` and `label` are escaped, and the reason is not hypothetical.
+ *
+ * `sanitizeSameOriginLink` (`_shared/safe-strings.ts`) is what guards the one
+ * caller whose href is attacker-reachable — `notification.tsx`, fed by
+ * `create-notification`, which any signed-in user may call against a job
+ * counterparty. That sanitizer rejects a leading `//`, `://`, backslashes and
+ * ALL whitespace, but it permits `"`, `<` and `>`. HTML accepts `/` as an
+ * attribute separator, so a payload needs no spaces to escape the attribute:
+ *
+ *   /job/1"><a/href=//evil.example>Verify</a><span/class="
+ *
+ * passes that sanitizer unchanged and used to emit a second, attacker-owned
+ * anchor into a genuine transactional email. Not browser XSS — mail clients
+ * strip script and event handlers — but a phishing link wearing this domain.
+ * Escaping at the sink is the fix; tightening the sanitizer would only move
+ * the problem to the next caller that forgets to use it.
+ */
+function msoOnlyButtonHtml(href: string, label: string, widthPx: number): string {
+  const safeHref = escapeForHtml(href)
+  const safeLabel = escapeForHtml(label)
   return `<!--[if mso]>
-<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${href}" style="height:48px;v-text-anchor:middle;width:${widthPx}px;" arcsize="26%" strokecolor="${brand.bark}" fillcolor="${brand.bark}">
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${safeHref}" style="height:48px;v-text-anchor:middle;width:${widthPx}px;" arcsize="26%" strokecolor="${brand.bark}" fillcolor="${brand.bark}">
 <w:anchorlock/>
-<center style="color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:600;">${label}</center>
+<center style="color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:600;">${safeLabel}</center>
 </v:roundrect>
-<![endif]-->
-<!--[if !mso]><!-->
-<a class="e-cta" href="${href}" style="display:inline-block;background-color:${brand.bark};color:#ffffff;font-size:15px;line-height:20px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">${label}</a>
-<!--<![endif]-->`
+<![endif]-->`
 }
 
 /** The one CTA button in the product. `label` is plain text, never markup. */
@@ -102,12 +150,30 @@ export const BrandButton = ({
   label: string
   widthPx?: number
 }) => (
-  <div
-    style={{ margin: '0 0 4px' }}
-    dangerouslySetInnerHTML={{
-      __html: msoButtonHtml(href, label, widthPx ?? Math.max(180, label.length * 10 + 60)),
-    }}
-  />
+  <div style={{ margin: '0 0 4px' }}>
+    <div
+      dangerouslySetInnerHTML={{
+        __html: msoOnlyButtonHtml(href, label, widthPx ?? Math.max(180, label.length * 10 + 60)),
+      }}
+    />
+    <a
+      className="e-cta"
+      href={href}
+      style={{
+        display: 'inline-block',
+        backgroundColor: brand.bark,
+        color: '#ffffff',
+        fontSize: '15px',
+        lineHeight: '20px',
+        borderRadius: '12px',
+        padding: '14px 28px',
+        textDecoration: 'none',
+        fontWeight: 600,
+      }}
+    >
+      {label}
+    </a>
+  </div>
 )
 
 /**

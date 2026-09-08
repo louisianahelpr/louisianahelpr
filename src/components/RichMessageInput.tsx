@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Plus, X, FileText, Loader2, Mic, MicOff, Square } from "lucide-react";
 import { toast } from "sonner";
-import { scanMessage } from "@/lib/messageScanner";
+import { scanMessage, type DetectedViolation } from "@/lib/messageScanner";
 import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
 import { hapticLight, hapticMedium, hapticError } from "@/lib/haptics";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
@@ -39,7 +39,11 @@ export const RichMessageInput = ({
   const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [pendingViolation, setPendingViolation] = useState<string | null>(null);
+  // The FULL scan result, not just the first label. ViolationDialog names the
+  // exact text that tripped each rule, which it cannot do from a label alone —
+  // and "which words are the problem" is the only question the blocked sender
+  // actually has.
+  const [pendingViolations, setPendingViolations] = useState<DetectedViolation[] | null>(null);
   // The attach picker sheet — bottom-sheet with three tabs (Camera /
   // Library / Files) so the user picks the source explicitly instead
   // of hoping the OS file picker happens to default to the right one.
@@ -301,7 +305,7 @@ export const RichMessageInput = ({
       const violations = scanMessage(text);
       if (violations.length > 0) {
         hapticError();
-        setPendingViolation(violations[0].label);
+        setPendingViolations(violations);
         return;
       }
     }
@@ -550,8 +554,8 @@ export const RichMessageInput = ({
       />
 
       <ViolationDialog
-        pendingViolation={pendingViolation}
-        onOpenChange={(open) => !open && setPendingViolation(null)}
+        violations={pendingViolations}
+        onOpenChange={(open) => !open && setPendingViolations(null)}
       />
     </div>
   );

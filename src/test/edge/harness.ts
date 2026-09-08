@@ -135,6 +135,47 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/payoutClaim.ts";`,
   );
 
+  // Post-transfer release flip: `_shared/releaseFlip.ts` has ZERO imports (it
+  // takes the Supabase client as a parameter), so the generated file points at
+  // the REAL module — same reasoning as payoutClaim above, and for the same
+  // reason it must not be mocked: it is the write that decides whether a job
+  // whose helper has ALREADY been paid says so, and its retry policy (transient
+  // codes only; a zero-row match alarms immediately) is exactly what TC-008
+  // turned on. A mock would put the guard outside the tests that exist to
+  // check it.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/releaseFlip\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/releaseFlip.ts";`,
+  );
+
+  // Unsettled-dispute gate: `_shared/unsettledDispute.ts` has ZERO imports (it
+  // takes the Supabase client as a parameter), so the generated file points at
+  // the REAL module — same reasoning as releaseFlip above. It is the ONLY thing
+  // that can tell a decided dispute whose split has executed from one whose has
+  // not: `rpc_decide_dispute` sets jobs.status='completed' and
+  // dispute_status='resolved' at DECISION time, so both markers release-payout
+  // otherwise reads already say "closed, pay it" while the escrow is untouched.
+  // Mocking it would put the guard against a full payout on a half-awarded job
+  // outside the tests that exist to check it — and its FAIL-CLOSED behaviour on
+  // an unreadable answer is precisely the part a mock would paper over.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/unsettledDispute\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/unsettledDispute.ts";`,
+  );
+
+  // Captured-escrow resolver: `_shared/capturedEscrow.ts` has ZERO imports (it
+  // is structurally typed over the PaymentIntent), so the generated file points
+  // at the REAL module — same reasoning as payoutClaim above. It is the single
+  // place that decides how many cents Stripe actually took, which is the ceiling
+  // both payout paths cap their transfer against. Mocking it would mean the
+  // guard against paying out more than was ever collected is the one thing not
+  // under test, and its whole point is that a MISSING amount must not read as
+  // zero captured and silently refuse every payout on the platform.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/capturedEscrow\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/capturedEscrow.ts";`,
+  );
+
   // Subscription period resolver: `_shared/stripeSubscriptionPeriod.ts` has
   // ZERO imports (it is structurally typed over the Stripe payload), so the
   // generated file points at the REAL module rather than a mock — same
@@ -159,6 +200,17 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/tierNames.ts";`,
   );
 
+  // Tier PERKS: `_shared/tierPerks.ts` has ZERO imports and is a plain truth
+  // table plus its resolvers, so the generated file points at the REAL module.
+  // Pointing a MOCK at it would defeat the purpose — the entitlement gates in
+  // instant-payout, create-boost-payment and helpr-pass-wallet are exactly
+  // what these tests exist to hold, and they are only meaningful against the
+  // same matrix the app renders from (CC-019).
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/tierPerks\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/tierPerks.ts";`,
+  );
+
   // Stripe->profile linkage projection: `_shared/subscriptionLinkage.ts` has
   // ZERO imports and is a pure function of the Stripe payload, so — same
   // reasoning as stripeSubscriptionPeriod above — the generated file points at
@@ -181,6 +233,50 @@ function rewriteExternalImports(src: string): string {
   out = out.replace(
     /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/productTiers\.ts["'];?/g,
     `$1 {$2} from "../../../supabase/functions/_shared/productTiers.ts";`,
+  );
+
+  // Apple IAP validation: `_shared/appleAppStore.ts` is plain TypeScript (its
+  // Deno touch is a guarded `globalThis.Deno` read and its only other import is
+  // dynamic), so the generated file points at the REAL module. It is the TRUST
+  // BOUNDARY for Apple purchases — it decides which product maps to which tier
+  // and whether a transaction still entitles anything. Mocking it would leave
+  // the grant decision untested while appearing to test the grant.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/appleAppStore\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/appleAppStore.ts";`,
+  );
+
+  // Consumer subscription Price IDs: `_shared/proTiers.ts` is plain TypeScript
+  // (its only Deno touch is a guarded `globalThis.Deno` read), so the generated
+  // file points at the REAL module. It decides WHICH Stripe Price a membership
+  // checkout charges against — mock it and the one thing worth asserting, the
+  // price the member is actually billed, stops being tested. Without this rule
+  // create-pro-checkout could not be loaded by the harness at all, which is
+  // exactly why it had no execution test when its eligibility check shipped
+  // broken on 2026-09-05.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/proTiers\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/proTiers.ts";`,
+  );
+
+  // Legal document versions: `_shared/legalVersions.ts` is a handful of string
+  // constants with ZERO imports and no Deno touch, so the generated file points
+  // at the REAL module. These are the versions stamped onto a signup's terms
+  // acceptance — mocking them would let a test agree with itself about which
+  // policy version the member consented to, which is the one fact that record
+  // exists to prove.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/legalVersions\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/legalVersions.ts";`,
+  );
+
+  // Storage key derivation: `_shared/storageKeys.ts` is pure TypeScript with
+  // ZERO imports — it derives avatar/document object keys and validates
+  // extensions. Real module: the key layout is what keeps one member's upload
+  // from landing on another's path, so a mock would retire the assertion.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/storageKeys\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/storageKeys.ts";`,
   );
 
   // Stripe identity verdict: `_shared/stripeIdentity.ts` is pure TypeScript

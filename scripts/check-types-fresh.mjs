@@ -46,6 +46,38 @@ import { join } from "node:path";
 const COMMITTED = "src/integrations/supabase/types.ts";
 
 /**
+ * The `public:` schema block, and ONLY it.
+ *
+ * WHY (filed by lh-generated-drift 2026-09-03, after this guard's first red run)
+ * A generated `Database` type holds one block per schema. The committed file was
+ * produced by an older CLI invocation that also emitted `graphql_public`, whose
+ * `Functions:` block declares `graphql()`. `npm run db:types` passes
+ * `--schema public` and therefore never emits that block — so comparing the two
+ * whole files reported `graphql()` as "gone from prod — callers are already
+ * failing" on EVERY run, against a function no code has ever called.
+ *
+ * That is this repo's signature failure in its other direction: not a green
+ * that should be red, but a permanent red nobody can act on. A gate that names
+ * the same phantom every time is a gate people learn to scroll past, and the
+ * real drift it was built to surface scrolls past with it.
+ *
+ * Both extractors below are scoped through here so the comparison is
+ * schema-for-schema. Absence is a hard failure rather than a fallback to the
+ * whole file: a types file with no `public` schema is not something to guess at.
+ */
+function publicSchema(source, label) {
+  const start = source.search(/^ {2}public: \{$/m);
+  if (start === -1) {
+    console.error(`✖ No \`public:\` schema block found in the ${label} types.`);
+    console.error("  That is a broken check, not a passing one. Refusing to report success.");
+    process.exit(1);
+  }
+  const rest = source.slice(start);
+  const end = rest.search(/^ {2}\}$/m);
+  return end === -1 ? rest : rest.slice(0, end);
+}
+
+/**
  * Extract `table.column -> nullable?` from a generated types file.
  *
  * Only the `Row:` block of each table matters: `Insert`/`Update` legitimately
@@ -111,25 +143,33 @@ function functionNames(source) {
 }
 
 const PROD_REF = "fncmgoasalhdgfwzhsqa";
-const STAGING_REF = "okpxtpfvwtmbuxugqsws";
+// Retired 2026-09-07. Kept only to name it in the error below: a shell that
+// still exports this ref is the likeliest way to reach the failure path, and
+// "that project no longer exists" is a far better diagnosis than a bare
+// mismatch.
+const RETIRED_STAGING_REF = "okpxtpfvwtmbuxugqsws";
 
 function generateFresh() {
   const ref = process.env.SUPABASE_PROJECT_REF || process.env.SUPABASE_PROJECT_ID;
   if (!ref) {
     console.error("✖ No project ref. Set SUPABASE_PROJECT_REF, or pass --fresh <file>.");
-    console.error("  NOTE: supabase/.temp/project-ref points at STAGING — never rely on the linked ref here.");
+    console.error(`  There is one database: prod (${PROD_REF}).`);
     process.exit(1);
   }
   // Assert the ref rather than trusting it. A guard pointed at the wrong
   // database is confidently wrong in BOTH directions — it green-lights real
-  // drift and invents drift that does not exist. This is the trap CLAUDE.md and
-  // PROTOCOL §4 both name: `supabase/.temp/project-ref` points at staging, and a
-  // secrets listing through the linked CLI once nearly produced a false "APNs is
-  // unconfigured" conclusion for exactly this reason.
+  // drift and invents drift that does not exist. Retiring staging removed the
+  // most likely wrong target but not the class: a fork, a branch database or a
+  // stale exported env var all still reach here, and a secrets listing through
+  // a mis-pointed CLI once nearly produced a false "APNs is unconfigured"
+  // conclusion for exactly this reason.
   if (ref !== PROD_REF) {
     console.error(`✖ Refusing to run against project ref "${ref}".`);
-    console.error(`  Expected PROD (${PROD_REF}).`);
-    if (ref === STAGING_REF) console.error("  That is the STAGING ref — types.ts mirrors PROD.");
+    console.error(`  Expected PROD (${PROD_REF}) — types.ts mirrors PROD, and there is no other database.`);
+    if (ref === RETIRED_STAGING_REF) {
+      console.error("  That is the RETIRED staging project (removed 2026-09-07).");
+      console.error("  Unset SUPABASE_PROJECT_REF / SUPABASE_PROJECT_ID in this shell.");
+    }
     console.error("  A freshness check against the wrong database is worse than none:");
     console.error("  it reports green on real drift and red on none.");
     process.exit(1);
@@ -166,10 +206,14 @@ if (freshFlag !== -1) {
 }
 
 const committedText = readFileSync(COMMITTED, "utf8");
-const committed = nullabilityMap(committedText);
-const fresh = nullabilityMap(freshText);
-const committedFns = functionNames(committedText);
-const freshFns = functionNames(freshText);
+// Scoped to `public` on BOTH sides — see publicSchema() for why comparing the
+// whole files reported a phantom `graphql()` removal on every run.
+const committedPublic = publicSchema(committedText, "committed");
+const freshPublic = publicSchema(freshText, "freshly generated");
+const committed = nullabilityMap(committedPublic);
+const fresh = nullabilityMap(freshPublic);
+const committedFns = functionNames(committedPublic);
+const freshFns = functionNames(freshPublic);
 
 if (fresh.size === 0) {
   // A generation that parsed to nothing would pass vacuously — the exact bug

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { TIER_PERKS, type SubscriptionTier } from "./subscriptionTiers";
+import { TIER_PERKS, ONE_TIME_PASS_DAYS, type SubscriptionTier } from "./subscriptionTiers";
 import {
   PRO_PRICE_MAP,
   PRO_RECURRING_AMOUNT_CENTS,
@@ -14,9 +14,17 @@ import {
 import {
   PRO_PRICE_MAP as EDGE_PRO_PRICE_MAP,
   PRO_RECURRING_AMOUNT_CENTS as EDGE_PRO_RECURRING_AMOUNT_CENTS,
+  ONE_TIME_PASS_DAYS as EDGE_ONE_TIME_PASS_DAYS,
 } from "../../supabase/functions/_shared/proTiers";
+import { computeExpiry, resolveProduct } from "../../supabase/functions/_shared/appleAppStore";
 
-const PAID_TIERS: ProTierKey[] = ["basic", "pro", "elite"];
+// DERIVED from TIER_PERKS (every tier but free), not hand-listed. The literal
+// form said ["basic","pro","elite"] and could not fail for a tier it never had
+// — so when Plus was restored on 2026-09-05 this file would have gone on
+// green while never once checking Plus's Price ids for a placeholder, which is
+// the exact bug that got Plus pulled the first time.
+const PAID_TIERS: ProTierKey[] = (Object.keys(TIER_PERKS) as SubscriptionTier[])
+  .filter((t) => t !== "free") as ProTierKey[];
 const CYCLES: ProBillingCycle[] = ["monthly", "annual", "one_time"];
 
 describe("consumer subscription checkout price config (F-MONEY-01 drift guard)", () => {
@@ -25,9 +33,9 @@ describe("consumer subscription checkout price config (F-MONEY-01 drift guard)",
     expect(PRO_RECURRING_AMOUNT_CENTS).toEqual(EDGE_PRO_RECURRING_AMOUNT_CENTS);
   });
 
-  it("maps exactly the four paid consumer tiers for every billing cycle", () => {
+  it("maps exactly the paid consumer tiers for every billing cycle", () => {
     for (const cycle of CYCLES) {
-      expect(Object.keys(PRO_PRICE_MAP[cycle]).sort()).toEqual(["basic", "elite", "pro"]);
+      expect(Object.keys(PRO_PRICE_MAP[cycle]).sort()).toEqual([...PAID_TIERS].sort());
     }
   });
 
@@ -73,11 +81,11 @@ describe("consumer subscription checkout price config (F-MONEY-01 drift guard)",
     // and its LIVE fallback is a TODO placeholder until Basic ships to live —
     // covered by the next test.
     expect(PRO_PRICE_MAP.monthly.pro).toBe("price_1TAZkLKp2H4b7tEC0ACbAX2y");
-    expect(PRO_PRICE_MAP.monthly.elite).toBe("price_1TAZkSKp2H4b7tEClf0VNiEa");
+    expect(PRO_PRICE_MAP.monthly.elite).toBe("price_1UCRNVKp2H4b7tECg66qPod9");
     expect(PRO_PRICE_MAP.annual.pro).toBe("price_1TAZkbKp2H4b7tECZ7Qr6CZS");
-    expect(PRO_PRICE_MAP.annual.elite).toBe("price_1TAZkcKp2H4b7tECagD42xRa");
+    expect(PRO_PRICE_MAP.annual.elite).toBe("price_1UCRNsKp2H4b7tECkZLTQjRB");
     expect(PRO_PRICE_MAP.one_time.pro).toBe("price_1TAZkeKp2H4b7tECnfZ7vF0C");
-    expect(PRO_PRICE_MAP.one_time.elite).toBe("price_1TAZkeKp2H4b7tECmn27C8JM");
+    expect(PRO_PRICE_MAP.one_time.elite).toBe("price_1UCRNzKp2H4b7tEC3MUHI7Lu");
   });
 
   it("sells no tier that lacks a live Stripe Price", () => {
@@ -107,5 +115,69 @@ describe("consumer subscription checkout price config (F-MONEY-01 drift guard)",
       expect(id, `${cycle} basic price id`).toMatch(/^price_[A-Za-z0-9]{16,}$/);
       expect(id, `${cycle} basic must not be a placeholder`).not.toContain("TODO");
     }
+  });
+});
+
+describe("ME-039 (lh-money-escrow 2026-09-04): STRIPE_PRICE_* overrides are gated on STRIPE_SECRET_KEY's own mode", () => {
+  // resolvePrice() used to apply an env override unconditionally whenever the
+  // six STRIPE_PRICE_* vars were set, with nothing coupling their removal to
+  // flipping STRIPE_SECRET_KEY back to live — a go-live that swapped the key
+  // but left the overrides set would silently post TEST price ids to a LIVE
+  // key. Simulates the Deno runtime by stubbing `globalThis.Deno.env.get`,
+  // since resolvePrice() reads it fresh on every property access rather than
+  // snapshotting at import time (see `readEnv` in the edge source).
+  const ORIGINAL_DENO = (globalThis as { Deno?: unknown }).Deno;
+
+  const withDenoEnv = (vars: Record<string, string>, run: () => void) => {
+    (globalThis as { Deno?: unknown }).Deno = {
+      env: { get: (k: string) => vars[k] },
+    };
+    try {
+      run();
+    } finally {
+      (globalThis as { Deno?: unknown }).Deno = ORIGINAL_DENO;
+    }
+  };
+
+  it("ignores the override when STRIPE_SECRET_KEY is a live key", () => {
+    withDenoEnv(
+      { STRIPE_SECRET_KEY: "sk_live_abc123", STRIPE_PRICE_PRO_MONTHLY: "price_TEST_OVERRIDE" },
+      () => {
+        expect(EDGE_PRO_PRICE_MAP.monthly.pro).toBe("price_1TAZkLKp2H4b7tEC0ACbAX2y");
+      },
+    );
+  });
+
+  it("honors the override when STRIPE_SECRET_KEY is a test key", () => {
+    withDenoEnv(
+      { STRIPE_SECRET_KEY: "sk_test_abc123", STRIPE_PRICE_PRO_MONTHLY: "price_TEST_OVERRIDE" },
+      () => {
+        expect(EDGE_PRO_PRICE_MAP.monthly.pro).toBe("price_TEST_OVERRIDE");
+      },
+    );
+  });
+
+  it("falls back to the live id when no override is set, in either mode", () => {
+    withDenoEnv({ STRIPE_SECRET_KEY: "sk_test_abc123" }, () => {
+      expect(EDGE_PRO_PRICE_MAP.monthly.pro).toBe("price_1TAZkLKp2H4b7tEC0ACbAX2y");
+    });
+  });
+});
+
+describe("a one-time pass is the same length on every store", () => {
+  // The web webhook and the Apple verifier both stamp subscription_expires_at
+  // for a "Once" purchase. Until 2026-09-07 they disagreed by a factor of 12
+  // (30 days vs 365) for the same price, and the UI copy promised 30.
+  it("the UI's ONE_TIME_PASS_DAYS is the edge constant", () => {
+    expect(ONE_TIME_PASS_DAYS).toBe(EDGE_ONE_TIME_PASS_DAYS);
+  });
+  it("the Apple path grants exactly that window", () => {
+    const meta = resolveProduct("com.helpr.pro.onetime")!;
+    const purchaseDate = Date.parse("2026-09-05T00:00:00Z");
+    const got = computeExpiry(
+      { transactionId: "t", originalTransactionId: "o", productId: "com.helpr.pro.onetime", bundleId: "b", purchaseDate },
+      meta,
+    )!;
+    expect((Date.parse(got) - purchaseDate) / 86_400_000).toBe(ONE_TIME_PASS_DAYS);
   });
 });

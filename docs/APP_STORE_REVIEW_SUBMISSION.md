@@ -17,17 +17,16 @@ Location pre-prompt — we now explain why we ask for location before iOS shows 
 ## Reviewer Notes (App Information → Notes)
 
 ```
-Louisiana Helpr is a service marketplace for southern Louisiana. To exercise the full feature set, the reviewer needs an account that has both customer and helpr roles enabled.
+Louisiana Helpr is a service marketplace for southern Louisiana. Every account can both POST jobs (as a customer) and APPLY to jobs (as a helper) — there is no separate role or account switch. The demo account below can exercise both sides.
 
 Demo account credentials are set in App Store Connect → App Information → Sign-In Information.
 
-This demo account is pre-loaded with sample jobs in both states (open jobs to apply for, accepted jobs to deliver). Stripe is in test mode for this account; no real charges.
+The demo account's identity/verification is pre-approved so it can post and apply immediately. It does not have any jobs already posted or applied to — to see the full flow, post a job (bottom nav → Post) and separately apply to one of the open jobs already visible in Browse. Stripe is in test mode for this account; no real charges.
 
 Notes for the reviewer:
 - Location and push notification permissions are required for the core flow.
 - Sign in with Apple and Google both work natively. The demo email/password also works.
-- After signing in, the home screen shows nearby open jobs.
-- To test the helpr side: bottom-right menu → Switch to Helpr.
+- After signing in, the home screen shows nearby open jobs — no separate mode or role switch is needed to apply to one.
 ```
 
 ## Age Rating

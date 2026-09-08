@@ -307,7 +307,18 @@ describe("stripe-webhook edge function", () => {
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
         id: "evt_fail",
         type: "payment_intent.payment_failed",
-        data: { object: { id: "pi_failed", receipt_email: "poster@test.com" } },
+        data: {
+          object: {
+            id: "pi_failed",
+            receipt_email: "poster@test.com",
+            // ME-040: a declined Checkout never writes
+            // jobs.stripe_payment_intent_id (only the success path does), so
+            // the handler resolves the job via `pi.metadata.job_id` — the
+            // one field create-payment sets unconditionally on every
+            // Checkout Session's payment_intent_data.
+            metadata: { job_id: "job-1" },
+          },
+        },
       });
       scenario.reads.jobs = {
         rows: [{ id: "job-1", customer_id: "poster-1", title: "Job" }],
@@ -321,6 +332,30 @@ describe("stripe-webhook edge function", () => {
       );
       const notif = scenario.writes.find((w) => w.table === "notifications");
       expect((notif?.payload as Record<string, unknown>).type).toBe("warning");
+    });
+
+    it("ME-040: does nothing (no crash, no write) for a PI with no job_id metadata, rather than falling back to a column the decline path never wrote", async () => {
+      // Before the fix this branch looked up `jobs.stripe_payment_intent_id`,
+      // a column ONLY the success path writes — a declined-at-Checkout PI
+      // always misses it, so the handler silently found nothing, notified no
+      // one, and never marked the job failed, with no error to surface the
+      // gap. The fix resolves via `pi.metadata.job_id` instead, which
+      // create-payment sets unconditionally. This case (metadata genuinely
+      // absent — e.g. a PI created outside create-payment) should still be a
+      // clean no-op, not a crash from reading `.job_id` off `undefined`.
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_fail_no_meta",
+        type: "payment_intent.payment_failed",
+        data: { object: { id: "pi_failed_no_meta", receipt_email: "poster@test.com" } },
+      });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job" }],
+      };
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(res.status).toBe(200);
+      expect(scenario.writes.find((w) => w.table === "jobs" && w.op === "update")).toBeUndefined();
+      expect(scenario.writes.find((w) => w.table === "notifications")).toBeUndefined();
     });
   });
 

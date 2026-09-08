@@ -440,7 +440,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             >
               {kind === "license" ? "I Am Licensed" : "I Am Insured"}
             </Label>
-            <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {!on
                 ? kind === "license"
                   ? "Toggle on if you hold a professional license — attach it to verify."
@@ -515,7 +515,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-ds-13 font-medium text-foreground truncate">{draft.file.name}</p>
-                  <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     {formatBytes(draft.file.size)} · on this device only — not sent yet
                   </p>
                 </div>
@@ -584,7 +584,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             {/* Only the REASON, never a second copy of the status word — the
                 eyebrow above already named the state. */}
             {state === "rejected" && reason && (
-              <p className="inline-flex items-start gap-1.5 text-ds-11 text-destructive/90">
+              <p className="inline-flex items-start gap-1.5 text-ds-11 text-[hsl(var(--destructive-ink))]/90">
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>{reason}</span>
               </p>
@@ -658,7 +658,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
               We couldn't verify your {reverifyKind === "both" ? "license or insurance" : reverifyKind}.
             </h3>
             <p
-              className="font-serif italic mt-1 leading-snug text-ds-12"
+              className="font-sans mt-1 leading-snug text-ds-12"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Attach a clearer copy and send it — we review within one business day. Until then, your verified badge isn't visible to posters.
@@ -692,7 +692,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               Professional Credentials
             </h2>
-            <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Proof of license and insurance earns verified badges on your profile.
             </p>
           </div>
@@ -736,7 +736,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             >
               Business Name
             </Label>
-            <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {anyVerified
                 ? "Shown beside your verified badge, so posters see who's licensed — not just that someone is."
                 : "If your license or COI is issued to a company, add the name exactly as it appears on the document."}
@@ -757,7 +757,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
 
           <p
             id="business-name-help"
-            className="font-serif italic leading-snug text-ds-11"
+            className="font-sans leading-snug text-ds-11"
             style={{ color: nameTooLong ? "hsl(var(--destructive))" : "hsl(var(--olivewood) / 0.8)" }}
           >
             {nameTooLong
@@ -843,7 +843,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                   : `Your ${KIND_NOUN[draftKinds[0]]} is attached.`}
               </h3>
               <p
-                className="font-serif italic mt-1 leading-snug text-ds-12"
+                className="font-sans mt-1 leading-snug text-ds-12"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Check {draftKinds.length > 1 ? "both" : "it"} above, then send when you're ready. Nothing goes to our reviewers until you do.
@@ -871,7 +871,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
         style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}
       >
         <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-        <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Documents are reviewed by Helpr admins before badges go live. We never share them publicly.
         </p>
       </div>

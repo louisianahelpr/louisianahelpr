@@ -129,6 +129,18 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
       setBanning(false);
       return;
     }
+    // Self-action guard. `trg_reject_self_issued_ban` already refuses a
+    // user_bans row whose banned_by equals its user_id, which covers the
+    // temporary and permanent tiers — but the WARNING tier writes no ban row
+    // at all, only `profiles.ban_status = 'final_warning'`, so nothing on the
+    // server stops an admin from putting their own account one strike from a
+    // ban. Refuse all three here, and say why, rather than letting the DB's
+    // raw 22023 reach a toast (or, for a warning, nothing stop it at all).
+    if (profile.user_id === user.id) {
+      setBanning(false);
+      toast.error("You can't take an account action against your own account. Ask another admin.");
+      return;
+    }
 
     try {
       if (banType === "warning") {
@@ -394,7 +406,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
 
           {banType === "permanent" && (
             <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
-              <p className="text-ds-11 text-destructive flex items-start gap-1.5">
+              <p className="text-ds-11 text-[hsl(var(--destructive-ink))] flex items-start gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>This action is severe. The user will lose access permanently.</span>
               </p>

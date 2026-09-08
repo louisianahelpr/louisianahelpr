@@ -20,7 +20,7 @@ import { categoryColors } from "@/components/activity/activityConstants";
 import { JobCardShell } from "@/components/activity/JobCardShell";
 import { todayLocalISO, formatJobDate } from "@/lib/dateUtils";
 import { getCity } from "@/lib/locationUtils";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -141,7 +141,17 @@ const ScheduleCard = ({
   // Payouts, Work Record). The whole job row is passed so `payment_status`
   // comes with it: these are LIVE jobs, so the escrow-time stamp must not be
   // trusted over the viewer's tier.
-  const amount = formatPrice(isPosted ? job.budget : helperTakeHomeDollars(job, viewerFeePercent));
+  // The two branches use DIFFERENT formatters, and that asymmetry is the point.
+  // A gross budget is a number the poster typed, so it rounds (`formatPrice`).
+  // A take-home is money OWED TO THE VIEWER, and a payout figure may never read
+  // above the payout — so it floors, exactly as JobPrice, CompactJobCard,
+  // AppliedJobCard and WorkRecord already do (owner, 2026-08-19). Both branches
+  // shared `formatPrice` here, so an $83.60 take-home rendered "$84" on this
+  // row while My Jobs rendered "$83" for the same job: the one number a helper
+  // checks, answered two ways, with this screen quoting the higher of the two.
+  const amount = isPosted
+    ? formatPrice(job.budget)
+    : formatPriceFloor(helperTakeHomeDollars(job, viewerFeePercent));
   const amountTitle = isPosted
     ? "Your budget for this job"
     : "Your take-home after the platform fee";
@@ -191,7 +201,7 @@ const ScheduleCard = ({
             }}
           >
             <span
-              className="font-display leading-none tabular-nums text-ds-17"
+              className="font-sans leading-none tabular-nums text-ds-17"
               style={{ fontWeight: 800, color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
             >
               <span style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}>$</span>
@@ -482,7 +492,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
             </div>
             <div className="grid grid-cols-7 gap-0.5 mb-0.5">
               {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                <div key={d} className="text-center font-serif italic uppercase py-0.5 text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+                <div key={d} className="text-center font-sans uppercase py-0.5 text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                   {d}
                 </div>
               ))}
@@ -587,7 +597,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                 return (jobsByDate.get(ds) ?? []).some((j) => j.status === "in_progress" || j.status === "accepted");
               });
               return (
-                <div className="mt-3 pt-3 flex items-center gap-4 flex-wrap font-serif italic text-ds-11" style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)", color: "hsl(var(--olivewood) / 0.8)" }}>
+                <div className="mt-3 pt-3 flex items-center gap-4 flex-wrap font-sans text-ds-11" style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)", color: "hsl(var(--olivewood) / 0.8)" }}>
                   <span className="inline-flex items-center gap-1.5">
                     <span className="w-3 h-3 rounded ring-2 ring-primary/70 ring-inset bg-primary/8" aria-hidden />
                     Today
@@ -637,7 +647,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                   >
                     <CalendarDays className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
                   </div>
-                  <p className="font-serif italic max-w-[260px] text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <p className="font-sans max-w-[260px] text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     Nothing scheduled for this day.
                   </p>
                 </div>
@@ -716,7 +726,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     <p className="font-display italic font-bold text-ds-16" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                       Calendar's clear.
                     </p>
-                    <p className="font-serif italic max-w-[260px] text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                    <p className="font-sans max-w-[260px] text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       No upcoming jobs yet — book one and it'll show up here.
                     </p>
                   </div>

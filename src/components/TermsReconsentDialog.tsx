@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHero, DialogFooter, DialogPrimaryAction } from "@/components/ui/dialog";
+import { Dialog, DialogBody, DialogContent, DialogHero, DialogFooter, DialogPrimaryAction } from "@/components/ui/dialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LATEST_TERMS_VERSION } from "@/lib/consent";
 import { report } from "@/lib/errorLogger";
@@ -38,7 +38,12 @@ export function TermsReconsentDialog() {
     !!userId &&
     !!user?.email_confirmed_at &&
     profile?.approval_status === "approved" &&
-    !profile?.ban_status;
+    // `ban_status` is NEVER empty: the column defaults to 'active' (verified in
+    // prod 2026-09-07 — every row reads 'active'), so the previous
+    // `!profile?.ban_status` was false for every user and this dialog could
+    // not open for anyone, however stale their accepted version. Name the
+    // states that actually mean "banned" instead.
+    !["temp_banned", "permanently_banned", "banned"].includes(profile?.ban_status ?? "");
 
   // Fetch the accepted version off the user's own profile row. Kept
   // separate from useCurrentUser's SharedProfile shape so the shared slice
@@ -158,6 +163,27 @@ export function TermsReconsentDialog() {
         <DialogHero
           title="Please Take a Moment to Re-Agree"
         />
+        {/* The dialog has to SAY what is being agreed to. The 2026-07-25
+            subtitle sweep stripped this text along with 41 decorative
+            subtitles, leaving a consent gate whose entire content was a title
+            and an "I Agree" button — no mention of Terms, Privacy, or where to
+            read them. Same voice as every other popup body (DialogBody), same
+            new-tab links as the signup consent line in CompleteProfile.tsx:
+            this modal cannot be dismissed, so an in-app <Link> would navigate
+            the page BEHIND the scrim and leave the user reading a blur. */}
+        <DialogBody>
+          <p>
+            We&rsquo;ve made a material update to our{" "}
+            <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
+              Terms
+            </a>{" "}
+            and{" "}
+            <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
+              Privacy Policy
+            </a>
+            . Tap I Agree to continue using Helpr.
+          </p>
+        </DialogBody>
         <DialogFooter>
           <DialogPrimaryAction
             disabled={submitting}

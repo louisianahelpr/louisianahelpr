@@ -181,7 +181,7 @@ const TopicSection = ({
                 so folding its copy in here keeps the value and drops the dupe. */}
             {topicDesc(section.topic) && (
               <span
-                className="font-serif italic normal-case tracking-normal text-ds-11"
+                className="font-sans normal-case tracking-normal text-ds-11"
                 style={{ color: "hsl(var(--olivewood) / 0.75)" }}
               >
                 {topicDesc(section.topic)}
@@ -225,7 +225,7 @@ const HelpCenter = () => {
   usePageMeta({
     title: "Help Center — Helpr",
     description:
-      "Answers, guides, and support for posters and Helprs — posting tasks, payments, safety, and account settings.",
+      "Answers, guides, and support for posters and Helprs — posting jobs, payments, safety, and account settings.",
     canonical: "https://www.louisianahelpr.com/help",
     ogTitle: "Louisiana Helpr Help Center",
     ogDescription:

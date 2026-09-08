@@ -2,9 +2,14 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { WifiOff, BookmarkCheck, ChevronLeft } from "lucide-react";
+import { Link } from "react-router-dom";
+import { WifiOff, BookmarkCheck, ChevronLeft, AlertTriangle } from "lucide-react";
+import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
+import { helperApplyBlockNotice } from "@/lib/awardGate";
 import { errorToast } from "@/lib/toast";
-import { hapticMedium } from "@/lib/haptics";
+import { hapticMedium, hapticError } from "@/lib/haptics";
+import { scanMessage, type DetectedViolation } from "@/lib/messageScanner";
+import { ViolationDialog } from "@/components/richMessageInput/ViolationDialog";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { safeStorage } from "@/lib/safeStorage";
 import type { ApplyConfirmDialogProps } from "./types";
@@ -84,10 +89,19 @@ export function ApplyBody({
   onBack,
 }: Props) {
   const { online } = useOnlineStatus();
+  // `helper_unknown` is excluded deliberately — see helperApplyBlockNotice.
+  // It means the profile could not be read at all, which is not something to
+  // report to somebody mid-application.
+  const awardBlockReason = useAwardBlockReason();
+  const applyBlockNotice =
+    awardBlockReason && awardBlockReason !== "helper_unknown"
+      ? helperApplyBlockNotice(awardBlockReason)
+      : null;
   const isInstantBook = !!(confirmApplyJob as any)?.instant_book;
   const jobId = confirmApplyJob?.id ?? null;
   const draftKey = pitchDraftKey(jobId);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const [pendingViolations, setPendingViolations] = useState<DetectedViolation[] | null>(null);
 
   const savedTemplate = safeStorage.getItem(TEMPLATE_KEY);
   const differsFromTemplate = !!applyMessage.trim() && applyMessage !== savedTemplate;
@@ -146,6 +160,23 @@ export function ApplyBody({
 
   const handleConfirm = () => {
     hapticMedium();
+    // SAME CONTRACT AS MESSAGES. The server scans this note exactly as it scans
+    // a chat message and, when it trips a rule, stores the application with
+    // `flagged_hidden` set — the poster never sees the note. The helpr was told
+    // "Application sent!" and nothing else, so they waited on a reply to a
+    // sentence nobody had read. Messages has always blocked the same content
+    // BEFORE sending and said which words were the problem; this is that same
+    // scanner and that same dialog, on the surface that was silently dropping
+    // it instead. The server-side scan stays exactly where it is — this is the
+    // UI half of a defence in depth, not a replacement for it.
+    if (applyMessage.trim()) {
+      const violations = scanMessage(applyMessage);
+      if (violations.length > 0) {
+        hapticError();
+        setPendingViolations(violations);
+        return;
+      }
+    }
     // Offline: don't fire a mutation that rolls back silently. Persist the
     // pitch and keep the step up with a clear retry affordance instead.
     if (!online) {
@@ -173,6 +204,7 @@ export function ApplyBody({
 
   return (
     <div className="min-w-0 flex flex-col gap-3.5">
+      <ViolationDialog violations={pendingViolations} onOpenChange={(o) => { if (!o) setPendingViolations(null); }} />
       {!confirmApplyJob && (
         <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           Are you sure you want to proceed?
@@ -232,16 +264,36 @@ export function ApplyBody({
             Use saved pitch
           </button>
         )}
-        {differsFromTemplate && (
-          <label htmlFor="save-default-pitch" className="flex items-center gap-2 cursor-pointer min-h-[44px] -my-1">
-            <Checkbox
-              id="save-default-pitch"
-              checked={saveAsTemplate}
-              onCheckedChange={(checked) => setSaveAsTemplate(checked === true)}
-            />
-            <span className="font-sans text-ds-12 text-muted-foreground">Save as my default pitch</span>
-          </label>
-        )}
+        {/* ALWAYS RENDERED, never conditional on the field's contents. It used
+            to mount only once `differsFromTemplate` went true, i.e. on the
+            first keystroke — so the row appeared out of nowhere mid-typing and
+            shoved the submit button 25px down at 375 (50px at 1440), under a
+            thumb that was already on its way there. An option that materialises
+            under a moving target is worse than one that was simply always
+            there. It is disabled, not hidden, while there is nothing to save;
+            the height is identical in both states, so nothing moves. */}
+        <label
+          htmlFor="save-default-pitch"
+          className={`flex items-center gap-2 min-h-[44px] -my-1 ${
+            differsFromTemplate ? "cursor-pointer" : "cursor-default"
+          }`}
+        >
+          <Checkbox
+            id="save-default-pitch"
+            checked={saveAsTemplate}
+            disabled={!differsFromTemplate}
+            onCheckedChange={(checked) => setSaveAsTemplate(checked === true)}
+          />
+          {/* Colour, not opacity, carries the disabled state — dimming the
+              whole row with opacity-* drops the label under WCAG AA. */}
+          <span
+            className={`font-sans text-ds-12 ${
+              differsFromTemplate ? "text-muted-foreground" : "text-muted-foreground/70"
+            }`}
+          >
+            Save as my default pitch
+          </span>
+        </label>
 
       </div>
 
@@ -251,6 +303,42 @@ export function ApplyBody({
           HelperWorkPhotos — so re-attaching the same file on every application
           was pure repeated work. Existing applications keep their stored
           `attachment_urls`; ApplicantsPanel still renders them. */}
+
+      {/* THE HELPER'S OWN COPY OF THE AWARD GATE.
+          Applying stays ungated on purpose (see useAwardBlockReason), so this
+          explains rather than blocks — and it sits ABOVE the submit row, where
+          the helper is already looking, rather than arriving as a refusal
+          after the tap. Without it, seven of eight live non-seed profiles
+          apply into a state where no poster can hire them and nothing ever
+          says why; the silence reads as posters passing them over.
+          Suppressed while offline so the two advisories never stack — the
+          offline one is about THIS tap and takes precedence. */}
+      {applyBlockNotice && online && (
+        <div
+          className="flex items-start gap-2.5 rounded-ds-md border px-3 py-2.5"
+          style={{
+            borderColor: "hsl(var(--burnt-sienna) / 0.3)",
+            background: "hsl(var(--burnt-sienna) / 0.06)",
+          }}
+          role="status"
+        >
+          <AlertTriangle
+            className="w-4 h-4 shrink-0 mt-0.5"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          />
+          <p className="flex-1 min-w-0 font-sans text-ds-11 text-foreground leading-snug">
+            <span className="font-semibold">{applyBlockNotice.headline}</span>{" "}
+            {applyBlockNotice.body}{" "}
+            <Link
+              to={applyBlockNotice.href}
+              className="font-semibold underline underline-offset-2 whitespace-nowrap"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+            >
+              {applyBlockNotice.ctaLabel}
+            </Link>
+          </p>
+        </div>
+      )}
 
       {!online && (
         <p

@@ -1,4 +1,5 @@
 import type { Database } from "@/integrations/supabase/types";
+import { formatCategory } from "./format";
 
 /**
  * THE canonical job-category table: value → label → display order.
@@ -43,5 +44,5 @@ export const JOB_CATEGORIES: ReadonlyArray<{ value: JobCategory; label: string }
 
 /** Label for a category value, falling back to the raw value. */
 export function jobCategoryLabel(value: string): string {
-  return JOB_CATEGORY_LABELS[value as JobCategory] ?? value;
+  return JOB_CATEGORY_LABELS[value as JobCategory] ?? formatCategory(value);
 }

@@ -187,7 +187,7 @@ export function BudgetSection({
           but a handful of seeded rows ever did anyway. */}
       {(
         <div className="space-y-3">
-          <Label htmlFor="budget">Budget <span className="text-destructive">*</span></Label>
+          <Label htmlFor="budget">Budget <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
           {/* CurrencyInput stores the value as a number, but the parent form
               still keeps `budget` as a string (it's threaded through draft
               persistence and validation that expect a string). Convert at
@@ -258,10 +258,17 @@ export function BudgetSection({
               <TrendingUp className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" strokeWidth={2} />
               <p className="text-ds-11 text-muted-foreground">
                 {priceStats.parishMatch ? "Jobs like this near you pay " : "Jobs like this pay "}
+                {/* A range whose ends are equal is not a range. Prod rendered
+                    "$25–$25" because every sample was the same fixture price;
+                    the fixtures are gone now, but a genuinely uniform category
+                    would read just as oddly. Show the one figure it is. */}
                 <span className="font-semibold text-primary tabular-nums">
-                  ${priceStats.min}–${priceStats.max}
+                  {priceStats.min === priceStats.max
+                    ? `$${priceStats.min}`
+                    : `$${priceStats.min}–$${priceStats.max}`}
                 </span>
-                {priceStats.median !== null && (
+                {/* …and don't restate that same number as "(most around $25)". */}
+                {priceStats.median !== null && priceStats.min !== priceStats.max && (
                   <>
                     {" "}
                     (most around{" "}

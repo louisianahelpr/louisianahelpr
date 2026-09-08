@@ -25,8 +25,20 @@ export const loadHolds = (): Record<string, { reason: string; addedAt: string; a
   try {
     const raw = safeStorage.getItem(HOLD_KEY);
     return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
+  } catch {
+    // Silent by design: holds are a PERSONAL triage marker in this admin's own
+    // browser (see the comment above — a real cross-admin hold needs a server
+    // column). An unreadable record means "no holds", which shows every batch
+    // rather than hiding one, so the failure cannot conceal work.
+    return {};
+  }
 };
 export const saveHolds = (h: Record<string, { reason: string; addedAt: string; addedBy?: string }>) => {
-  try { safeStorage.setItem(HOLD_KEY, JSON.stringify(h)); } catch { /* noop */ }
+  try {
+    safeStorage.setItem(HOLD_KEY, JSON.stringify(h));
+  } catch {
+    // Silent by design: same personal-marker reasoning as loadHolds. A lost
+    // write means a hold is not remembered, which surfaces the batch again —
+    // the safe direction for money.
+  }
 };

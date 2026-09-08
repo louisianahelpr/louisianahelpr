@@ -343,7 +343,7 @@ export function SavedSearches({
         <div className="space-y-2.5">
           <Label
             htmlFor="search-name"
-            className="font-serif italic uppercase text-ds-10"
+            className="font-sans uppercase text-ds-10"
             style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.16em" }}
           >
             Save current filters
@@ -368,7 +368,7 @@ export function SavedSearches({
             </Button>
           </div>
           <p
-            className="text-ds-11 font-serif italic"
+            className="text-ds-11 font-sans"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Active filters:{" "}
@@ -431,7 +431,7 @@ export function SavedSearches({
                 We couldn't load your saved searches.
               </p>
               <p
-                className="font-serif italic text-ds-12 leading-snug max-w-[280px]"
+                className="font-sans text-ds-12 leading-snug max-w-[280px]"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Tap retry — your saved searches are safe, this is just a fetch hiccup.
@@ -469,7 +469,7 @@ export function SavedSearches({
                 No saved searches yet.
               </p>
               <p
-                className="font-serif italic text-ds-12 leading-snug max-w-[280px]"
+                className="font-sans text-ds-12 leading-snug max-w-[280px]"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Set a filter combo above and save it — we'll ping you when fresh jobs match.
@@ -496,7 +496,7 @@ export function SavedSearches({
                     {s.name}
                   </p>
                   <p
-                    className="text-ds-11 font-serif italic truncate mt-0.5"
+                    className="text-ds-11 font-sans truncate mt-0.5"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     {[

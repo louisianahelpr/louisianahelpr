@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Post-build assertion: the bundle we are about to ship actually carries the
- * PRODUCTION Supabase config, and does not carry the STAGING one.
+ * PRODUCTION Supabase config, and carries no OTHER project's.
  *
  * WHY THIS EXISTS
  * ---------------
@@ -27,12 +27,18 @@
  * is in every web bundle and in every network call the app makes — so naming
  * it here leaks nothing.
  *
- * WHY THE STAGING CHECK
- * ---------------------
- * `supabase/.temp/project-ref` points at staging, and a CLI reading the wrong
- * project has already produced one false conclusion in this repo. A release
- * binary built against staging credentials would install, boot, and look
- * completely correct while talking to the wrong database.
+ * WHY THE WRONG-PROJECT CHECK
+ * ---------------------------
+ * There is one database (CLAUDE.md: "THERE IS NO STAGING"), so ANY project ref
+ * in the bundle other than prod means the build read the wrong `.env` or the
+ * wrong CI secret. That binary would install, boot, and look completely
+ * correct while reading and writing a database nobody is watching.
+ *
+ * Retiring staging made this check MORE load-bearing, not less. It used to be
+ * a blacklist of one known-bad ref; a blacklist only catches the mistake
+ * someone already made. It is now an allowlist of exactly one ref, so it also
+ * catches a fork, a branch database, a personal scratch project, or a
+ * resurrected staging — none of which were enumerable in advance.
  *
  * Usage:  node scripts/verify-bundle-env.mjs [assetsDir]   (default dist/assets)
  */
@@ -41,7 +47,19 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const PROD_PROJECT_REF = 'fncmgoasalhdgfwzhsqa';
-export const STAGING_PROJECT_REF = 'okpxtpfvwtmbuxugqsws';
+
+/**
+ * Retired 2026-09-07. Kept ONLY so the failure message can name it: a bundle
+ * carrying this ref means a stale `.env` or a stale CI secret survived the
+ * retirement, and that diagnosis is worth far more than "unexpected ref".
+ */
+export const RETIRED_STAGING_PROJECT_REF = 'okpxtpfvwtmbuxugqsws';
+
+// A Supabase project ref is exactly 20 lowercase alphanumerics. Verified
+// 2026-09-06: the only 20-char `*.supabase.co` string anywhere in src/,
+// public/ or node_modules/ is prod's, so this cannot fire on a dependency's
+// own doc text the way a looser `supabase.co` match would.
+const PROJECT_REF_URL = /\b([a-z0-9]{20})\.supabase\.co/g;
 
 /**
  * @param {string} assetsDir directory of built JS assets
@@ -57,15 +75,19 @@ export function checkBundleEnv(assetsDir, label = assetsDir) {
   if (!jsFiles.length) return [`${label}: no JavaScript assets were emitted.`];
 
   let prodHits = 0;
-  let stagingHits = 0;
-  const stagingFiles = [];
+  /** @type {Map<string, string[]>} ref -> files it appears in */
+  const foreignRefs = new Map();
 
   for (const file of jsFiles) {
     const source = readFileSync(join(assetsDir, file), 'utf8');
     if (source.includes(PROD_PROJECT_REF)) prodHits += 1;
-    if (source.includes(STAGING_PROJECT_REF)) {
-      stagingHits += 1;
-      stagingFiles.push(file);
+
+    PROJECT_REF_URL.lastIndex = 0;
+    for (const [, ref] of source.matchAll(PROJECT_REF_URL)) {
+      if (ref === PROD_PROJECT_REF) continue;
+      const files = foreignRefs.get(ref) ?? [];
+      if (!files.includes(file)) files.push(file);
+      foreignRefs.set(ref, files);
     }
   }
 
@@ -81,13 +103,18 @@ export function checkBundleEnv(assetsDir, label = assetsDir) {
     );
   }
 
-  if (stagingHits > 0) {
+  for (const [ref, files] of foreignRefs) {
+    const retired =
+      ref === RETIRED_STAGING_PROJECT_REF
+        ? '\n  That is the RETIRED staging project (removed 2026-09-07). A stale `.env`\n' +
+          '  or a stale CI secret outlived it.'
+        : '';
     failures.push(
-      `${label}: carries the STAGING project ref (${STAGING_PROJECT_REF}) in ` +
-        `${stagingFiles.join(', ')}.\n` +
-        '  A release binary built against staging installs and boots looking entirely\n' +
-        '  correct while reading and writing the wrong database.\n' +
-        '  Fix: point VITE_SUPABASE_URL at production before building a release.',
+      `${label}: carries a NON-PRODUCTION Supabase project ref (${ref}) in ` +
+        `${files.join(', ')}.${retired}\n` +
+        '  There is one database. A release built against any other project installs and\n' +
+        '  boots looking entirely correct while reading and writing the wrong data.\n' +
+        `  Fix: point VITE_SUPABASE_URL at production (${PROD_PROJECT_REF}) before building a release.`,
     );
   }
 
@@ -107,5 +134,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     process.exit(1);
   }
 
-  console.log(`✓ ${assetsDir} carries the production Supabase config (and not staging).`);
+  console.log(
+    `✓ ${assetsDir} carries the production Supabase config (${PROD_PROJECT_REF}) and no other project's.`,
+  );
 }

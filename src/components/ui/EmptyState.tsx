@@ -99,11 +99,13 @@ export function EmptyState({
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
         borderBottom: "none",
-        boxShadow:
-          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45), " +
-          "-1px 0 2px hsl(var(--olivewood) / 0.05), " +
-          "1px 0 2px hsl(var(--olivewood) / 0.05), " +
-          "0 -1px 3px hsl(var(--olivewood) / 0.05)",
+        // NO boxShadow. Removing `liquid-glass` took away the fill and the
+        // border, but the inset white highlight plus the three olivewood edge
+        // shadows that used to sit here still drew a faint second rectangle
+        // ~12px inside the panel, with square top corners, on every empty
+        // state at 375 — state-matrix crop-081, 2026-09-07. It was the same
+        // inner box the owner rejected three times, drawn a fourth way. The
+        // dock paints NOTHING: the panel is the surface.
         paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 2rem)",
       }
     : {};
@@ -155,7 +157,19 @@ export function EmptyState({
       // still bleeds under the dock with no hard edge there.
       className={
         isDock
-          ? "empty-state-dock flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10 rounded-none"
+          // NO `liquid-glass` HERE. The dock variant sits INSIDE a panel that
+          // already is the card — PageScaffold puts `liquid-glass` on the
+          // section — so painting a second surface here drew a box inside a
+          // box. Measured at 375 before this change: panel 335px with a 1px
+          // border, dock 333px with its own 1px border and its own white fill,
+          // 1px apart. Two boundaries for one region.
+          //
+          // Owner, 2026-09-07, at a phone screenshot: "just delete the inner
+          // box, only one is needed." Earlier passes argued about what RADIUS
+          // the inner box should have; the answer was that it should not be
+          // drawn. The dock now contributes LAYOUT only — it still fills the
+          // panel and centres the content, it just paints nothing.
+          ? "empty-state-dock flex-1 min-w-0 max-w-full flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10"
           : "flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-14 rounded-2xl"
       }
       style={cardStyle}
@@ -214,7 +228,7 @@ export function EmptyState({
             </p>
           )}
           <p
-            className="font-serif italic text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words"
+            className="font-sans text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {body}

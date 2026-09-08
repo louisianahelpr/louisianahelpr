@@ -5,6 +5,7 @@ import {
   jobStatusLabel,
   applicationStatusLabel,
 } from "./statusLabels";
+import { Constants } from "@/integrations/supabase/types";
 
 // These tests are the contract that #46 codifies: every job_status the
 // Postgres enum emits must have a canonical sentence-case label, and the
@@ -14,17 +15,15 @@ import {
 
 describe("JOB_STATUS_LABELS", () => {
   it("covers every value in the job_status Postgres enum", () => {
-    // Mirrors the enum literal in src/integrations/supabase/types.ts.
-    // If the enum gains a value, add it here AND to JOB_STATUS_LABELS.
-    const required = [
-      "open",
-      "accepted",
-      "in_progress",
-      "completed",
-      "cancelled",
-      "revision_requested",
-      "disputed",
-    ] as const;
+    // DERIVED, not mirrored. This was a hand-written list of seven values
+    // with a comment telling the next person to keep it in step with the
+    // enum — and it had already fallen out of step: `pending_approval`
+    // landed in the enum and never landed here, so the test that claims to
+    // cover "every value" covered seven of eight and would have passed with
+    // the eighth missing from the label table. A registry that is both the
+    // input and the definition of correctness cannot fail for a missing
+    // member. `Constants` is generated from the live database.
+    const required = Constants.public.Enums.job_status;
     for (const value of required) {
       expect(JOB_STATUS_LABELS[value], `${value} missing from JOB_STATUS_LABELS`).toBeTruthy();
     }

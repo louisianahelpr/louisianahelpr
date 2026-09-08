@@ -17,6 +17,14 @@ import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierC
 import { renewalLabel } from "@/lib/subscriptionRenewalLabel";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
+import {
+  isIapAvailable,
+  purchaseTier,
+  restorePurchases,
+  IapBlockedError,
+  type IapTier,
+  type IapCadence,
+} from "@/lib/iap";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -134,15 +142,58 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     setLoadingCheckout(tier);
     try {
       const billing_cycle = billingInterval === "one_time" ? "one_time" : billingInterval;
+
+      // App Store guideline 3.1.1: a digital subscription bought inside the iOS
+      // app must go through Apple. Sending an iOS member to Stripe checkout is
+      // the rejection this whole path exists to avoid.
+      //
+      // The condition is isIapAvailable(), NOT isNativePlatform: it also
+      // requires the purchase plugin to actually be present in the WebView.
+      // Until `cordova-plugin-purchase` is installed and synced, a native build
+      // falls through to the Stripe branch exactly as it does today, rather
+      // than throwing at a member who tapped Upgrade.
+      if (isIapAvailable()) {
+        await purchaseTier(tier as IapTier, billing_cycle as IapCadence);
+        // The grant lands through the StoreKit approval handler, which calls
+        // verify-apple-iap. Re-read the profile so the card reflects it.
+        await refreshSubscription();
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
         body: { tier, billing_cycle, native: isNativePlatform },
       });
       if (error) throw error;
       if (data?.url) await openExternalUrl(data.url, () => void refreshSubscription());
     } catch (err: unknown) {
+      // A refusal from the pre-purchase gate already carries copy written for a
+      // member ("You already have a membership billed through our website…").
+      // Passing it through functionErrorMessage would replace that with a
+      // generic checkout error and lose the one thing they need to know.
+      if (err instanceof IapBlockedError) {
+        toast.error(err.message);
+        return;
+      }
       toast.error(await functionErrorMessage(err, "Couldn't start checkout — try again?"));
     } finally {
       setLoadingCheckout(null);
+    }
+  };
+
+  // Apple REQUIRES a Restore Purchases control in any app selling
+  // subscriptions; an app without one is rejected at review. Shown only where
+  // it can do anything, so the web storefront is unchanged.
+  const [restoring, setRestoring] = useState(false);
+  const handleRestorePurchases = async () => {
+    setRestoring(true);
+    try {
+      await restorePurchases();
+      await refreshSubscription();
+      toast.success("Purchases restored. If you had a membership, it's back on your account.");
+    } catch {
+      toast.error("Couldn't restore purchases — try again?");
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -271,10 +322,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         >
           <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.25} />
           <p
-            className="font-serif italic leading-snug text-ds-12"
+            className="font-sans leading-snug text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
-            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+            <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
               Lock in {new Date().getFullYear()} pricing, save 17%.
             </span>{" "}
             Annual rates are guaranteed for the full year, no matter what we change later.
@@ -298,10 +349,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         >
           <Clock className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
           <p
-            className="font-serif italic leading-snug text-ds-12"
+            className="font-sans leading-snug text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
-            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+            <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
               One-time, {ONE_TIME_PASS_DAYS} days.
             </span>{" "}
             A one-time pass unlocks the tier's perks for {ONE_TIME_PASS_DAYS} days, then lapses — no auto-renewal.
@@ -323,10 +374,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         >
           <RefreshCw className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} strokeWidth={2.25} />
           <p
-            className="font-serif italic leading-snug text-ds-12"
+            className="font-sans leading-snug text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
-            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+            <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
               Billed monthly.
             </span>{" "}
             Cancel or change your tier anytime — no long-term commitment.
@@ -449,26 +500,41 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 </span>
               )}
 
-              {/* items-stretch, not items-start: the price/CTA column needs
-                  the row's FULL height so its items can spread evenly across
-                  it (see justify-between below) — icon and feature-list opt
-                  back OUT with `self-start` since they should stay pinned to
-                  the top regardless. */}
-              <div className="flex items-stretch gap-3">
+              {/* A GRID, not a three-item flex row, because the card needs two
+                  different arrangements and duplicating the CTA to get them
+                  would ship two Subscribe buttons per tier.
+
+                  PHONE (default) — three stacked rows:
+                      [icon] [name + tagline]
+                      [feature list, full card width]
+                      [price ......................... CTA]
+                  TABLET+ (sm:) — the original three-column row, unchanged:
+                      [icon] [name + tagline]  [price]
+                             [feature list ]   [ CTA ]
+
+                  The flex version gave the feature list a measured 97px at
+                  375 while the price/CTA column held a fixed 132px it did not
+                  need, so every perk wrapped to 2-3 lines ("12% platform /
+                  fee", "Instant / Payouts") and the tagline truncated at 97px
+                  against a 141px natural width ("For Helprs testing the …").
+                  Nothing about the price or the button requires sitting
+                  beside the perks on a phone, so on a phone they don't. */}
+              <div
+                className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2
+                           sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-stretch sm:gap-y-0"
+              >
                 {/* Icon — smaller (w-8) to free vertical space */}
                 <span
-                  className="shrink-0 self-start w-8 h-8 rounded-ds-md flex items-center justify-center"
+                  className="row-start-1 col-start-1 self-start w-8 h-8 rounded-ds-md flex items-center justify-center"
                   style={{ background: accentSoft, color: accent }}
                 >
                   <TierIcon name={tier.iconName} className="w-4 h-4" />
                 </span>
 
-                {/* Name + forWhom row, then a checkmark feature list
-                    showing every perk for the tier. Inline-wrap so even
-                    Elite's 5 features fit in 2 short lines on a 320pt
-                    viewport — the user explicitly asked to see all
-                    features without scrolling. */}
-                <div className="min-w-0 flex-1 self-start">
+                {/* Name + forWhom. The feature list used to live inside this
+                    block; it is now its own grid item so it can span the full
+                    card width on a phone. */}
+                <div className="row-start-1 col-start-2 min-w-0 self-start">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     {/* h2, not h3: the only heading above the tier cards is
                         the page h1 ("Membership", via ProfileTabHeader →
@@ -490,7 +556,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                         Subscribe/Change — so the eye finds each card's status
                         in one place instead of two. Owner's call. */}
                     <span
-                      className="font-serif italic truncate text-ds-11"
+                      className="font-sans truncate text-ds-11"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {tier.forWhom}
@@ -505,76 +571,93 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     if (!inclusive) return null;
                     return (
                       <p
-                        className="font-serif italic mt-1 leading-none text-ds-10"
+                        className="font-sans mt-1 leading-none text-ds-10"
                         style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.04em" }}
                       >
                         + {inclusive}
                       </p>
                     );
                   })()}
-                  {/* Actual perks, one per line. Was `flex flex-wrap`, which
-                      ran bullets left-to-right and let unrelated perks share
-                      a visual line, breaking mid-phrase at odd points and
-                      reading as a run-on rather than a list. A vertical
-                      stack costs a bit more height but each perk is a
-                      complete, scannable line (owner, 2026-08-30). */}
-                  <ul className="mt-1 space-y-0.5">
-                    {/* Fee % moved here from the price column — first item
-                        in the list, same bullet style as every other perk
-                        (owner, 2026-08-30: "move the fee to the left with
-                        the other features make it the first thing in the
-                        list"). */}
-                    <li
-                      className="flex items-start gap-1 font-sans text-ds-11"
-                      style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-                    >
-                      <CheckCircle
-                        className="w-2.5 h-2.5 shrink-0 mt-[3px]"
-                        style={{ color: accent }}
-                        strokeWidth={2.5}
-                      />
-                      <span>{tier.feePercent}% platform fee</span>
-                    </li>
-                    {tier.features
-                      .filter((f) => !/^Everything in/i.test(f))
-                      // The bullets in subscriptionTiers.ts are written for a
-                      // RECURRING plan, and the Once tab renders the same list
-                      // under a one-time price — so Pro advertised "1 free Job
-                      // Boost every month" on a pass that only ever sees one
-                      // month. On the one-time cycle a per-month perk is
-                      // restated for the single period it actually covers,
-                      // rather than promising a cadence the pass cannot reach.
-                      .map((f) =>
-                        billingInterval === "one_time"
-                          ? f.replace(/\s*every month$/i, ` for your ${ONE_TIME_PASS_DAYS} days`)
-                          : f,
-                      )
-                      .map((feature) => (
-                        <li
-                          key={feature}
-                          // `items-start` + a shrink-0 icon nudged to the
-                          // first line's optical center, matching the public
-                          // /subscription card. This was `inline-flex
-                          // items-center` around a BARE text node, so a bullet
-                          // that wrapped laid the check out inline with the
-                          // flowed text: Elite's Reliability Shield rendered as
-                          // "Reliability Shield — first" / "✓ strike every 6
-                          // months" / "forgiven". Shortening copy only hides
-                          // that; the next wrap (any tier, any larger Dynamic
-                          // Type size) brings it back.
-                          className="flex items-start gap-1 font-sans text-ds-11"
-                          style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-                        >
-                          <CheckCircle
-                            className="w-2.5 h-2.5 shrink-0 mt-[3px]"
-                            style={{ color: accent }}
-                            strokeWidth={2.5}
-                          />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                  </ul>
                 </div>
+
+                {/* Actual perks, one per line. Was `flex flex-wrap`, which
+                    ran bullets left-to-right and let unrelated perks share
+                    a visual line, breaking mid-phrase at odd points and
+                    reading as a run-on rather than a list. A vertical
+                    stack costs a bit more height but each perk is a
+                    complete, scannable line (owner, 2026-08-30).
+
+                    Spans the whole card on a phone (col-start-1 col-span-2),
+                    tucks back under the name from sm: up. */}
+                <ul className="row-start-2 col-start-1 col-span-2 space-y-0.5 sm:col-start-2 sm:col-span-1 sm:mt-1">
+                  {/* Fee % moved here from the price column — first item
+                      in the list, same bullet style as every other perk
+                      (owner, 2026-08-30: "move the fee to the left with
+                      the other features make it the first thing in the
+                      list").
+
+                      "% platform fee" full stop named only half of what this
+                      number does. `platformFeePercent` is ALSO the service fee
+                      a poster is charged at checkout — `posterFeePercentForTier`
+                      is a straight alias of `tierFeePercent`, one user, one
+                      tier, one percent — so on a marketplace where every
+                      account can post and can help, a poster read the fee that
+                      applies to them as belonging to someone else. Naming both
+                      activities on the same bullet is the accuracy fix and the
+                      conversion fix at once, and it fits the measured bullet
+                      budget: "12% fee, posting or helping" is 27 characters
+                      against the 28 that "1 free Job Boost every month"
+                      already occupies on the tightest card. */}
+                  <li
+                    className="flex items-start gap-1 font-sans text-ds-11"
+                    style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                  >
+                    <CheckCircle
+                      className="w-2.5 h-2.5 shrink-0 mt-[3px]"
+                      style={{ color: accent }}
+                      strokeWidth={2.5}
+                    />
+                    <span>{tier.feePercent}% fee, posting or helping</span>
+                  </li>
+                  {tier.features
+                    .filter((f) => !/^Everything in/i.test(f))
+                    // The bullets in subscriptionTiers.ts are written for a
+                    // RECURRING plan, and the Once tab renders the same list
+                    // under a one-time price — so Pro advertised "1 free Job
+                    // Boost every month" on a pass that only ever sees one
+                    // month. On the one-time cycle a per-month perk is
+                    // restated for the single period it actually covers,
+                    // rather than promising a cadence the pass cannot reach.
+                    .map((f) =>
+                      billingInterval === "one_time"
+                        ? f.replace(/\s*every month$/i, ` for your ${ONE_TIME_PASS_DAYS} days`)
+                        : f,
+                    )
+                    .map((feature) => (
+                      <li
+                        key={feature}
+                        // `items-start` + a shrink-0 icon nudged to the
+                        // first line's optical center, matching the public
+                        // /subscription card. This was `inline-flex
+                        // items-center` around a BARE text node, so a bullet
+                        // that wrapped laid the check out inline with the
+                        // flowed text: Elite's Reliability Shield rendered as
+                        // "Reliability Shield — first" / "✓ strike every 6
+                        // months" / "forgiven". Shortening copy only hides
+                        // that; the next wrap (any tier, any larger Dynamic
+                        // Type size) brings it back.
+                        className="flex items-start gap-1 font-sans text-ds-11"
+                        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                      >
+                        <CheckCircle
+                          className="w-2.5 h-2.5 shrink-0 mt-[3px]"
+                          style={{ color: accent }}
+                          strokeWidth={2.5}
+                        />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                </ul>
 
                 {/* Price + CTA on the right edge */}
                 {/* min-w so the buttons below have real width to fill —
@@ -594,10 +677,19 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     cards — that capping is deliberately NOT what's wanted;
                     every card fills its own box on its own terms. py-1
                     keeps top/bottom padding off the stretched row's bare
-                    edges so the first/last item isn't flush to it. */}
-                <div className="shrink-0 min-w-[132px] py-1 flex flex-col items-end justify-between">
+                    edges so the first/last item isn't flush to it.
+
+                    On a PHONE the same items lay out horizontally on their own
+                    full-width row under the perks — price on the left, CTA on
+                    the right — so the 132px reservation (and the wrapping it
+                    forced on every perk) simply doesn't exist there. */}
+                <div
+                  className="row-start-3 col-start-1 col-span-2 flex flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1
+                             sm:row-start-1 sm:col-start-3 sm:col-span-1 sm:row-span-2 sm:self-stretch
+                             sm:min-w-[132px] sm:py-1 sm:flex-col sm:flex-nowrap sm:items-end sm:justify-between sm:gap-0"
+                >
                   <p
-                    className="font-display italic font-bold tabular-nums leading-none text-ds-16"
+                    className="font-sans font-bold tabular-nums leading-none text-ds-16"
                     style={{ color: accent, letterSpacing: "-0.02em" }}
                   >
                     {getPrice(tier)}
@@ -659,11 +751,11 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       button and renews". */}
                   {showActiveTreatment && !isFree && expiresAt && (
                     <p
-                      className="font-serif italic leading-none text-ds-12 whitespace-nowrap"
+                      className="font-sans leading-none text-ds-12 whitespace-nowrap"
                       style={{ color: "hsl(var(--olivewood) / 0.75)" }}
                     >
                       {renewLabel}{" "}
-                      <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                      <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                         {expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
                     </p>
@@ -721,6 +813,46 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           );
         })}
       </div>
+
+      {/* ONE FEE, EITHER WAY — the sentence this page was missing entirely.
+          Every tagline and every perk bullet on the cards above was written
+          for a Helpr, but the tier's percentage sets the poster's checkout
+          service fee too (see the fee bullet's note). A poster who opened
+          Membership was therefore never told that the thing on sale would cut
+          what they pay to post. The per-card bullet states the fact; this
+          states the rule once, in the place a reader looks for the catch.
+
+          Deliberately a single line rather than a fourth explainer box: the
+          card list above is `flex-1 … justify-between`, so anything tall added
+          here takes height from the cards. */}
+      <p
+        className="mt-3 text-center font-sans leading-snug text-ds-11"
+        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+      >
+        <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+          One fee, either way.
+        </span>{" "}
+        Your tier sets the cut on what you earn and the service fee you pay to post.
+      </p>
+
+      {/* RESTORE PURCHASES. Apple requires this control in any app selling
+          subscriptions — a build without one is rejected at review, and it is
+          the only way back for someone who reinstalled or changed device.
+          Rendered only where it can do anything (native iOS with the purchase
+          plugin present), so the web storefront is untouched. */}
+      {isIapAvailable() && (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={handleRestorePurchases}
+            disabled={restoring}
+            className="text-ds-12 underline underline-offset-2 disabled:opacity-60 rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            {restoring ? "Restoring…" : "Restore purchases"}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

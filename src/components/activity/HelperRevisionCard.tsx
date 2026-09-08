@@ -12,7 +12,7 @@
  * the legacy jobs.revision_note column instead.
  */
 import { useEffect, useState } from "react";
-import { AlertTriangle, ChevronDown, MessageSquare, Wrench } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, MessageSquare, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
@@ -49,11 +49,20 @@ export function HelperRevisionCard({
 
   useEffect(() => {
     // Try to load from the formal table; fall back to the legacy note.
+    // `pending` OR `accepted`, not pending alone. This read used to filter to
+    // pending only, so the moment the helper tapped "I'll Fix It" the accepted
+    // row stopped matching, the next render fell through to the legacy
+    // `jobs.revision_note` (which the poster's request also writes) and the
+    // card came back as a brand-new pending request: same amber box, same
+    // live "I'll Fix It" button, and every further tap sent the poster another
+    // "Helpr acknowledged the revision" notification without touching a row.
+    // Measured 2026-09-07 on the [SWEEP] patio job: job_revisions.status was
+    // `accepted` while the screen still offered to accept it.
     supabase
       .from("job_revisions")
       .select("id, description, photos, status")
       .eq("job_id", jobId)
-      .eq("status", "pending")
+      .in("status", ["pending", "accepted"])
       .order("created_at", { ascending: false })
       .limit(1)
       .then(({ data, error }) => {
@@ -130,6 +139,11 @@ export function HelperRevisionCard({
       }
 
       hapticSuccess();
+      // Flip the card's own copy of the row: the parent's refetch is what
+      // eventually re-reads it, and under load that has taken 10s+, during
+      // which the button read "I'll Fix It" again as if nothing had happened.
+      setRevision((r) => (r ? { ...r, status: "accepted" } : r));
+      toast.success("Got it — the poster knows you'll fix it. Tap Mark Fixed when it's done.");
       onAccepted();
     } catch (err: unknown) {
       hapticError();
@@ -143,6 +157,10 @@ export function HelperRevisionCard({
   };
 
   if (!revision) return null;
+  // Acknowledged already — the row says so (or this tap just did). The
+  // control becomes a receipt, not a button: the only next step is Mark
+  // Fixed, which ActiveJobSection renders directly under this card.
+  const acknowledged = revision.status === "accepted";
 
   return (
     <div
@@ -156,7 +174,7 @@ export function HelperRevisionCard({
       {/* Header */}
       <div>
         <span
-          className="font-serif italic uppercase inline-flex items-center gap-1.5 text-ds-10"
+          className="font-sans uppercase inline-flex items-center gap-1.5 text-ds-10"
           style={{ color: "hsl(var(--amber-ink))", letterSpacing: "0.18em" }}
         >
           <AlertTriangle className="w-3 h-3" />
@@ -172,7 +190,7 @@ export function HelperRevisionCard({
 
       {/* Description */}
       <p
-        className="font-serif italic leading-relaxed text-ds-13"
+        className="font-sans leading-relaxed text-ds-13"
         style={{ color: "hsl(var(--olivewood) / 0.85)" }}
       >
         "{revision.description}"
@@ -222,7 +240,8 @@ export function HelperRevisionCard({
           size="sm"
           className="flex-1 rounded-ds-md"
           onClick={handleAccept}
-          disabled={accepting}
+          disabled={accepting || acknowledged}
+          aria-disabled={acknowledged || undefined}
           style={{
             background: "hsl(var(--amber-solid))",
             backgroundImage: "none",
@@ -231,8 +250,8 @@ export function HelperRevisionCard({
             boxShadow: "0 1px 2px hsl(var(--amber-solid) / 0.18), 0 4px 12px -4px hsl(var(--amber-solid) / 0.28)",
           }}
         >
-          <Wrench className="w-3.5 h-3.5 mr-1" />
-          {accepting ? "Acknowledged…" : "I'll Fix It"}
+          {acknowledged ? <Check className="w-3.5 h-3.5 mr-1" /> : <Wrench className="w-3.5 h-3.5 mr-1" />}
+          {acknowledged ? "On it" : accepting ? "Acknowledged…" : "I'll Fix It"}
         </Button>
         <Button
           size="sm"

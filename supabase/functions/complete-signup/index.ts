@@ -2,6 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { LEGAL_TERMS_VERSION, LEGAL_PRIVACY_VERSION } from "../_shared/legalVersions.ts";
+// The one support address the app actually shows users (admin@louisianahelpr.com
+// unless SUPPORT_INBOX_EMAIL overrides it) — same constant ReportDialog and
+// ForceUpdateGate print. A hand-typed support@… in a refusal message is an
+// address nobody reads.
+import { SUPPORT_EMAIL } from "../_shared/resend.ts";
 import {
   avatarObjectKey,
   resolveAvatarContentType,
@@ -14,20 +19,97 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/**
+ * The configured signup cap, or null when signups are uncapped.
+ *
+ * Read with the service role: `platform_settings` is admin-only under RLS and
+ * this function runs with `verify_jwt = false`, so there is no user context to
+ * read it as. Deliberately NOT cached across invocations — an operator turning
+ * this on is doing so during an abuse wave, and a stale "off" for the lifetime
+ * of a warm isolate is exactly the wrong moment to be minutes behind.
+ *
+ * FAILS OPEN, ON PURPOSE. Unreadable settings return null, i.e. no cap. The
+ * shipped default is no cap, so a failed read landing on "unlimited" is the
+ * same state the platform is in when everything works — whereas failing closed
+ * would turn a settings-table blip into "nobody can finish signing up", which
+ * is an outage for the single most valuable action in the product. The failure
+ * is logged loudly rather than swallowed.
+ */
+async function signupRateLimitPerHour(): Promise<number | null> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) {
+    console.error("[complete-signup] no service credentials — signup cap treated as off");
+    return null;
+  }
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/platform_settings?select=signup_rate_limit_per_hour&limit=1`,
+      {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        signal: AbortSignal.timeout(2000),
+      },
+    );
+    if (!res.ok) {
+      console.error(
+        `[complete-signup] platform_settings read ${res.status} — signup cap treated as off`,
+      );
+      return null;
+    }
+    const rows = await res.json() as { signup_rate_limit_per_hour?: number | null }[];
+    const raw = rows?.[0]?.signup_rate_limit_per_hour;
+    // NULL, 0, a negative and a non-number all mean the same thing: no cap.
+    // Mirrors application_cap()'s normalisation in the database so the two
+    // halves of this change cannot disagree about what "off" is.
+    if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return null;
+    return Math.floor(raw);
+  } catch (err) {
+    console.error(
+      `[complete-signup] platform_settings unreachable (${
+        err instanceof Error ? err.message : String(err)
+      }) — signup cap treated as off`,
+    );
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Throttle: 5 completions per IP per 5 min. Each call uploads avatar/ID/
-  // license/insurance/portfolio files to storage and writes a profile row, so
-  // a script abusing this can fill storage quota fast.
-  const rl = await checkRateLimit(req, {
-    windowMs: 5 * 60_000,
-    maxRequests: 5,
-    keyPrefix: "complete-signup",
-  });
-  if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
+  // Throttle: ADMIN-ADJUSTABLE, AND OFF BY DEFAULT (owner decision 2026-09-07,
+  // "there should not be a sign-up cap").
+  //
+  // This was a fixed 5 completions per subject/address per 5 minutes, and it is
+  // the ONLY signup-shaped throttle this repo controls. Enumerated, because the
+  // other two candidates are not ours to change and it matters that nobody goes
+  // looking for a lever that is not here:
+  //   · GoTrue's own sign-up / email / token rate limits are Supabase platform
+  //     configuration, not database state — invisible to this function and
+  //     unchanged.
+  //   · `rate_limit_hit` / `edge_rate_limit_log` is the shared MECHANISM under
+  //     `checkRateLimit`; seventeen other functions ride it and their budgets
+  //     are deliberately untouched.
+  //
+  // The cap now comes from `platform_settings.signup_rate_limit_per_hour`
+  // (NULL/0/negative = unlimited, which is the shipped default). When it is
+  // off the limiter is not called at all — no `edge_rate_limit_log` row, no
+  // round trip — so an operator turning it on starts from a clean window
+  // rather than from whatever the previous hour happened to accumulate.
+  //
+  // Each call uploads avatar/ID/license/insurance/portfolio files to storage
+  // and writes a profile row, so a script abusing this can fill storage quota
+  // fast — which is why the mechanism stays wired rather than being deleted.
+  const signupCap = await signupRateLimitPerHour();
+  if (signupCap !== null) {
+    const rl = await checkRateLimit(req, {
+      windowMs: 60 * 60_000,
+      maxRequests: signupCap,
+      keyPrefix: "complete-signup",
+    });
+    if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
+  }
 
   try {
     const supabase = createClient(
@@ -56,6 +138,17 @@ serve(async (req) => {
       phone,
       bio,
       location,
+      // S-001 (lh-suggester, launch audit): signup collected City but never
+      // ZIP, and notify_helpers_on_job_post matches helpers on
+      // profiles.parish — which is ONLY ever derived from ZIP (see
+      // lookupParishByZip / get_parish_for_zip). With no ZIP collected here,
+      // parish stayed NULL for the large majority of accounts and the
+      // supply-side "a job near you was posted" notification was structurally
+      // dead for them, silently. Both are optional (never block signup on a
+      // lookup failure) and both are resolved client-side before this call —
+      // see Signup.tsx — so a Postgres-unreachable client still completes.
+      zipCode,
+      parish,
       skills,
       dateOfBirth,
       availability,
@@ -65,7 +158,12 @@ serve(async (req) => {
       toolsEquipment,
       emergencyContactName,
       emergencyContactPhone,
-      jobRadius,
+      // `jobRadius` was destructured here and written to `profiles.job_radius`
+      // below. No client has sent it since the signup step that collected it
+      // was deleted, and the column is dropped in 20260907053425. Removing the
+      // argument in the SAME change is the point: an accepted field that
+      // targets a dropped column would 500 a stale iOS build's signup, and a
+      // shipped .ipa cannot be updated from here.
       extraComments,
       marketingConsent,
       // Explicit "I am 18 or older" attestation from the signup form. DOB is
@@ -186,6 +284,70 @@ serve(async (req) => {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ── Retained-ban check on the PHONE ───────────────────────────────────
+    //
+    // `handle_new_user()` already checked the email at `auth.users` INSERT.
+    // It could not check the phone, because email/password signup leaves
+    // `auth.users.phone` NULL — this function is the first moment the number
+    // is known, and it is the last moment before the profile becomes real.
+    //
+    // Ordering matters: this runs BEFORE any storage upload or profile write,
+    // so a banned person returning under a new address does not get to fill
+    // the ID/licence/insurance buckets on the way to being refused.
+    //
+    // `enforce_retained_ban` re-applies the original judgment to this account
+    // (so signing in lands them on /account-banned with the real reason and
+    // the Contact Support appeal route) and tells us it did, so we can also
+    // stop the completion here with a message that is not a generic 500.
+    //
+    // FAILS OPEN, deliberately and narrowly: an unreachable RPC must not turn
+    // into "nobody can finish signing up". The check runs again on every
+    // subsequent completion attempt, and the identity layer below it does not
+    // fail open at all.
+    if (phone) {
+      try {
+        // The email goes in too, so the fraud flag this raises can name the
+        // address the person is attempting — the operator's whole starting
+        // point. It costs nothing on the match itself: `handle_new_user` has
+        // already checked this address at `auth.users` INSERT.
+        const { data: authForBan } = await supabase.auth.admin.getUserById(userId);
+        const { data: banCheck, error: banErr } = await supabase.rpc("enforce_retained_ban", {
+          p_user_id: userId,
+          p_email: authForBan?.user?.email ?? null,
+          p_phone: phone,
+          p_identity_sha256: null,
+        });
+        if (banErr) {
+          console.error("[complete-signup] retained-ban phone check failed:", banErr.message);
+        } else if (banCheck?.banned) {
+          console.warn(
+            `[complete-signup] refused: retained ban matched on ${banCheck.matched_on} for ${userId}`,
+          );
+          // PLAIN AND NON-PROBING, on purpose (owner decision 2026-09-07).
+          //
+          // The message this replaced said "This phone number belongs to an
+          // account that was removed" — which is a free lookup service: feed
+          // it numbers, learn which ones belong to banned accounts. Naming the
+          // matched signal, or the date, turns a refusal into an oracle.
+          //
+          // Everything withheld here is in the `ban_evasion_attempt` fraud
+          // flag `enforce_retained_ban` just filed — matched signal, original
+          // ban date and reason, attempted email — where an operator sees it
+          // and the person being refused does not.
+          return new Response(
+            JSON.stringify({
+              error:
+                `This account can't be created. Contact support at ${SUPPORT_EMAIL}.`,
+              code: "retained_ban",
+            }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      } catch (e) {
+        console.error("[complete-signup] retained-ban phone check threw:", e);
+      }
     }
 
     // Enforce file size limits (5 MB max per file)
@@ -477,6 +639,49 @@ serve(async (req) => {
     if (phone) updateData.phone = phone;
     if (bio) updateData.bio = bio;
     if (location) updateData.location = location;
+    // `zipCode` unlocks parish (helper-notification matching) and Louisiana
+    // sales tax. It is REQUIRED at both entry points as of 2026-09-05, but stays
+    // conditional here: an already-shipped iOS build cannot be updated from this
+    // repo, so an older client that omits it must still complete rather than
+    // 400.
+    if (typeof zipCode === "string" && zipCode.trim()) updateData.zip_code = zipCode.trim();
+    // Parish, resolved SERVER-side from the ZIP whenever the client did not
+    // send one.
+    //
+    // Why this is not "belt and braces": the client-side resolver was
+    // structurally incapable of succeeding on this path. `lookupParishByZip()`
+    // calls the `get_parish_for_zip` RPC, and that function's ACL is
+    // `{postgres=X, service_role=X, authenticated=X}` — `anon` has no EXECUTE.
+    // The whole signup form runs BEFORE the account exists, so every call from
+    // it came back `42501 permission denied for function get_parish_for_zip`,
+    // `report()` logged it as a warning nobody reads, `resolvedZipParish`
+    // stayed null, and this function then skipped the column because the
+    // client "didn't send one". Result, verified against prod 2026-09-06: a UI
+    // signup wrote `zip_code = '70802'` and `parish = NULL` on the same row.
+    // The companion migration grants `anon` EXECUTE so the form's live
+    // City/ZIP mismatch hint works too, but the durable fix is here: this
+    // function holds the service-role key, so its lookup cannot be denied and
+    // does not depend on the client having succeeded.
+    //
+    // Still non-blocking, same contract as every other deferred field: a
+    // failed lookup degrades to "no parish yet", never to a rejected signup.
+    let resolvedParish: string | null =
+      typeof parish === "string" && parish.trim() ? parish.trim() : null;
+    if (!resolvedParish && typeof zipCode === "string") {
+      const zipDigits = zipCode.replace(/\D/g, "").slice(0, 5);
+      if (zipDigits.length === 5) {
+        const { data: parishFromZip, error: parishErr } = await supabase.rpc(
+          "get_parish_for_zip",
+          { p_zip: zipDigits },
+        );
+        if (parishErr) {
+          console.error("complete-signup: parish lookup failed", parishErr.message);
+        } else if (typeof parishFromZip === "string" && parishFromZip.trim()) {
+          resolvedParish = parishFromZip.trim();
+        }
+      }
+    }
+    if (resolvedParish) updateData.parish = resolvedParish;
     if (skills) updateData.skills = skills;
     if (dateOfBirth) updateData.date_of_birth = dateOfBirth;
     if (avatarUrl) updateData.avatar_url = avatarUrl;
@@ -533,7 +738,6 @@ serve(async (req) => {
     if (toolsEquipment) updateData.tools_equipment = toolsEquipment;
     if (emergencyContactName) updateData.emergency_contact_name = emergencyContactName;
     if (emergencyContactPhone) updateData.emergency_contact_phone = emergencyContactPhone;
-    if (jobRadius) updateData.job_radius = jobRadius;
     if (extraComments) updateData.extra_comments = extraComments;
 
     // `.select("user_id")` + a zero-row branch, per CLAUDE.md. This UPDATE is

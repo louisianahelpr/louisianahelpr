@@ -35,5 +35,10 @@ Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /user/
 Disallow: /jobs/
+# Internal engineering utility (client-side-only Apple JWT signer, sends
+# nothing over the network) — already carries <meta name="robots" noindex">
+# but was still crawlable/reachable with no entry here at all, which reads
+# as phishing-shaped on the production brand domain to anyone who finds it.
+Disallow: /tools/
 
 Sitemap: https://www.louisianahelpr.com/sitemap.xml

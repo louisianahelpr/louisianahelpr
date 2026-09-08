@@ -170,7 +170,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProofProps) 
             {existingUrls.length > 0 && (
               <div className="space-y-1.5">
                 <p
-                  className="font-serif italic uppercase text-ds-10"
+                  className="font-sans uppercase text-ds-10"
                   style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                 >
                   Already uploaded
@@ -323,7 +323,7 @@ export const PhotoProofGroup = ({
               11px line to 2.61:1 on the card surface (axe, serious). It was
               invisible to the sweep because it only renders inside a completed
               card's expanded section. */}
-          <p className="text-ds-11 text-muted-foreground italic text-center">No photos were uploaded for this job</p>
+          <p className="text-ds-11 text-muted-foreground text-center">No photos were uploaded for this job</p>
         </div>
       </div>
     );
@@ -371,7 +371,7 @@ export const PhotoProofGroup = ({
                 )}
               </div>
             ) : (
-              <div className="text-ds-10 text-muted-foreground/60 italic">No photos</div>
+              <div className="text-ds-10 text-muted-foreground/60">No photos</div>
             )}
             {showBeforeUpload && (
               <PhotoProof jobId={jobId} type="before" existingUrls={beforeUrls} onUploaded={onUploaded} />
@@ -395,7 +395,7 @@ export const PhotoProofGroup = ({
                 )}
               </div>
             ) : (
-              <div className="text-ds-10 text-muted-foreground/60 italic">No photos</div>
+              <div className="text-ds-10 text-muted-foreground/60">No photos</div>
             )}
             {showAfterUpload && (
               <PhotoProof jobId={jobId} type="after" existingUrls={afterUrls} onUploaded={onUploaded} />
@@ -408,7 +408,7 @@ export const PhotoProofGroup = ({
             "After-photos required for jobs $50+" — a rule none of the gates
             actually applied. */}
         {requireAfter && !hasRequiredProof({ budget }, beforeUrls, afterUrls) && (
-          <p className="text-ds-11 text-destructive flex items-center gap-1 mt-2">
+          <p className="text-ds-11 text-[hsl(var(--destructive-ink))] flex items-center gap-1 mt-2">
             <Camera className="w-3 h-3" /> {requiredProof({ budget }).reason}
           </p>
         )}

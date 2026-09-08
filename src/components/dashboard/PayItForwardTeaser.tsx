@@ -33,7 +33,7 @@ const PayItForwardTeaser = ({ pifCount }: PayItForwardTeaserProps) => {
         {pifCount} Helpr gift card{pifCount > 1 ? "s" : ""} waiting for you
       </p>
       <p
-        className="font-serif italic text-ds-12 mt-0.5"
+        className="font-sans text-ds-12 mt-0.5"
         style={{ color: "hsl(var(--gift-green-soft))" }}
       >
         Ready to spend on your next job ·{" "}

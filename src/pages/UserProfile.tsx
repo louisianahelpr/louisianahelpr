@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { hasPerk } from "@/lib/subscriptionTiers";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,7 +21,6 @@ import { computeBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
 import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
-import { SkillEndorsements } from "@/components/profile/SkillEndorsements";
 import { ProfileHeaderCard } from "./userProfile/ProfileHeaderCard";
 import BackgroundCheckCard from "@/components/profile/BackgroundCheckCard";
 import { AtAGlanceCard } from "./userProfile/AtAGlanceCard";
@@ -477,8 +477,7 @@ const UserProfile = () => {
                       Without it the action rendered on every profile, including
                       pure posters with 0 completed and 0 worked jobs — offering
                       a job to someone with no signal they take work is a dead
-                      end for the poster and noise for the recipient. Same shape
-                      as `canEndorse={mutualJobsCount > 0}` below. */}
+                      end for the poster and noise for the recipient. */}
                   {workedJobs.length > 0 && (
                     <DropdownMenuItem onClick={() => navigate(`/post-job?offerTo=${userId}`)}>
                       <Briefcase className="w-4 h-4 mr-2" /> Offer a Job Directly
@@ -681,25 +680,14 @@ const UserProfile = () => {
                 The posted-jobs LIST it reveals below is the useful half and
                 still opens on the same tap. */}
 
-            {/* Skill endorsements — pills showing the helper's endorsed
-                skills. Past clients (mutual job count > 0) see a + button
-                to endorse.
-
-                Rendered for EVERYONE, owner included (owner, 2026-08-27:
-                "show them — make Preview truly public"). This page IS the
-                preview of what a stranger sees, so hiding a whole public
-                section from the person previewing it defeated its purpose.
-
-                `canEndorse` keeps its `!isOwnProfile` guard on purpose —
-                that is the one thing a visitor gets that the owner must
-                not: the + button. Self-endorsement isn't a truthful
-                preview, it's an abusable affordance. Section public,
-                control not. */}
-            <SkillEndorsements
-              profileUserId={userId!}
-              viewerUserId={currentUserId}
-              canEndorse={!isOwnProfile && mutualJobsCount > 0}
-            />
+            {/* Skill endorsements section removed 2026-09-04 — cut, not
+                hidden. `helper_skills` had exactly one reference in the
+                whole repo (the read this component did) and no INSERT
+                anywhere in src/ or supabase/functions/: there was no way
+                for a helper to ever add a skill, so the section this
+                mounted was structurally guaranteed to render empty forever.
+                Both `helper_skills` and `skill_endorsements` are dropped
+                (migration 20260904034410). */}
 
             {/* Recent reviews — public trust-signal wall (#86). Shown to
                 everyone, owner included (owner, 2026-08-27), so the
@@ -790,7 +778,7 @@ const UserProfile = () => {
             <HelperWorkPhotos urls={profile.portfolio_urls ?? []} />
 
             {/* Portfolio — Pro+ only */}
-            {(profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
+            {hasPerk(profile.subscription_tier, "portfolioShowcase") && <HelperPortfolio helperId={userId!} />}
 
 
           </div>
@@ -842,7 +830,7 @@ const UserProfile = () => {
             </p>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               <p
-                className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
+                className="font-sans text-ds-13 leading-relaxed flex items-start gap-2"
                 style={{ color: "hsl(var(--olivewood) / 0.9)" }}
               >
                 <Lock
@@ -856,7 +844,7 @@ const UserProfile = () => {
                 </span>
               </p>
               <p
-                className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
+                className="font-sans text-ds-13 leading-relaxed flex items-start gap-2"
                 style={{ color: "hsl(var(--olivewood) / 0.9)" }}
               >
                 <ShieldCheck
@@ -883,7 +871,7 @@ const UserProfile = () => {
                   there", which is exactly what a poster about to pay wants to
                   know, and it is legible on a profile with no other record. */}
               <p
-                className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
+                className="font-sans text-ds-13 leading-relaxed flex items-start gap-2"
                 style={{ color: "hsl(var(--olivewood) / 0.9)" }}
               >
                 <Banknote

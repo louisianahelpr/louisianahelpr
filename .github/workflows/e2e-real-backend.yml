@@ -1,0 +1,447 @@
+name: E2E real backend
+
+permissions:
+  contents: read
+
+# The other side of the mock boundary.
+#
+# WHY THIS WORKFLOW EXISTS
+# ------------------------
+# Every Playwright spec the rest of CI runs talks to a mock. 28 of 36 specs
+# install `page.route()` stubs, and `e2e-happy-path.yml` invokes
+# `--project=happy-path`, whose entire testDir is mocked. A mock accepts any
+# request and returns whatever the fixture says, so an entire class of defect is
+# structurally invisible to it — and every launch blocker an external QA pass
+# found in September 2026 sat on the far side of that boundary:
+#
+#   * guest browse returned HTTP 401 for months; a mock returns 200
+#   * `rpc_withdraw_dispute` was dead for every caller; mocks run no triggers
+#   * the password minimum is 12, not the 8 the client enforces; mocks run no GoTrue
+#   * six fixtures used `payment_status: "paid"`, a value the CHECK constraint
+#     has never admitted; a mock accepts any string
+#
+# The real-backend specs already existed — `e2e/auth.spec.ts`,
+# `e2e/payment-lifecycle.spec.ts`, `e2e/two-role-lifecycle.spec.ts` — and had
+# never run in CI, because the env vars they gate on were set by no workflow.
+# They self-skip, so their absence looked like a pass.
+#
+# HOW THE THREE LEGS DIFFER, AND WHY
+# ----------------------------------
+#  1. anon-surface — needs NOTHING and is STRICTLY READ-ONLY. Asks the real
+#     PostgREST what a signed-out visitor gets: guest surfaces respond and
+#     browse is non-empty, no money/PII relation returns rows, signed-out pages
+#     load. Runs on every push.
+#  2. authenticated — needs a real account. Runs on a schedule and on demand,
+#     NOT on every push: it drives the deployed production site over the
+#     network, so a red run during a Vercel deploy would mean nothing, and a
+#     check that is red for reasons unrelated to the diff trains people to
+#     ignore red.
+#  3. two-role — needs two seeded sessions plus a job in a specific lifecycle
+#     state that must be minted per run. Manual only.
+#
+# EVERY SKIPPED LEG IS ANNOUNCED. The `boundary-report` job always runs and
+# writes a ::warning:: plus a step summary naming what did not execute and what
+# is missing. A skipped lifecycle test that vanishes silently is how this gap
+# stayed open; a skipped one that says so is a known gap.
+#
+# SECRETS THE OWNER MUST CREATE — see boundary-report for the live list.
+#   PLAYWRIGHT_TEST_USER_EMAIL     a real account on the target site
+#   PLAYWRIGHT_TEST_USER_PASSWORD  its password (>= 12 chars; GoTrue's real minimum)
+#   PLAYWRIGHT_POSTER_SESSION      JSON supabase session — scripts/e2e/README.md
+#   PLAYWRIGHT_HELPER_SESSION      JSON supabase session — scripts/e2e/README.md
+#   PLAYWRIGHT_LIFECYCLE_JOB_ID    an ACCEPTED job between those two accounts
+#   PLAYWRIGHT_ADMIN_EMAIL         an account holding the `admin` role — drives
+#   PLAYWRIGHT_ADMIN_PASSWORD      `release-payout`, the only path that actually
+#                                  sends the helper's transfer. Optional; the
+#                                  money loop degrades loudly without it.
+# This workflow creates no accounts and mints no tokens. It names what it needs
+# and stops there.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 07:20 UTC daily — after the nightly db-drift check, before working hours.
+    - cron: "20 7 * * *"
+  workflow_dispatch:
+    inputs:
+      run_two_role:
+        description: "Run the two-role lifecycle spec (needs seeded sessions + job id)"
+        type: boolean
+        default: false
+
+concurrency:
+  # A push-triggered run shares one group per ref, so pushes queue behind each
+  # other. A schedule or manual dispatch gets its OWN group (salted with the
+  # run id) and therefore never shares a queue with anything.
+  #
+  # Why: with `cancel-in-progress: false` GitHub still keeps only ONE *pending*
+  # run per group — a newer queued run cancels the older pending one. So a
+  # `workflow_dispatch` of the money loop, queued behind an in-flight run, was
+  # silently cancelled the moment anyone pushed to main. The dispatch never
+  # ran, reported nothing, and looked like a flake. Deliberately re-verifying a
+  # money fix is exactly when that happens, because a fix comes with a push.
+  group: e2e-real-backend-${{ github.ref }}${{ github.event_name != 'push' && format('-{0}', github.run_id) || '' }}
+  # NOT `true`, unlike every other workflow in this repo. Cancelling this one
+  # mid-flight can orphan a FUNDED production job: the money loop's teardown
+  # runs as an `if: always()` step, and a workflow-level cancellation kills the
+  # runner without giving that step a chance. The orphan then sits in a state
+  # that seven `is_seed`-blind crons will act on. Queueing costs a few minutes;
+  # cancelling costs a stranded escrow row that nothing can clean up but the
+  # next run's pre-sweep.
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------------
+  # Which legs can run at all. `secrets` is not available in a job-level
+  # `if:`, so their presence is turned into an output here.
+  # ---------------------------------------------------------------------
+  preflight:
+    name: What can run
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      have_user_creds: ${{ steps.check.outputs.have_user_creds }}
+      have_two_role: ${{ steps.check.outputs.have_two_role }}
+      have_lifecycle: ${{ steps.check.outputs.have_lifecycle }}
+    steps:
+      - id: check
+        env:
+          # Only emptiness is ever observed; no value is echoed.
+          USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
+          USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD }}
+          POSTER_SESSION: ${{ secrets.PLAYWRIGHT_POSTER_SESSION }}
+          HELPER_SESSION: ${{ secrets.PLAYWRIGHT_HELPER_SESSION }}
+          LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -n "$USER_EMAIL" ] && [ -n "$USER_PASSWORD" ]; then
+            echo "have_user_creds=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_user_creds=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$POSTER_SESSION" ] && [ -n "$HELPER_SESSION" ] && [ -n "$LIFECYCLE_JOB_ID" ]; then
+            echo "have_two_role=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_two_role=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$POSTER_EMAIL" ] && [ -n "$POSTER_PASSWORD" ] && [ -n "$HELPER_EMAIL" ] && [ -n "$HELPER_PASSWORD" ]; then
+            echo "have_lifecycle=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_lifecycle=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ---------------------------------------------------------------------
+  # Leg 1 — no credentials, runs everywhere. This is the one that would have
+  # caught the guest-browse 401.
+  # ---------------------------------------------------------------------
+  anon-surface:
+    name: Anon surface contract (real prod, read-only, no credentials)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Ask production what a signed-out visitor gets (GET only)
+        env:
+          # Repository VARIABLES (not secrets) so a fork can retarget without
+          # touching code. Unset falls back to PRODUCTION plus the publishable
+          # key that already ships in the bundle — deliberately, so this leg can
+          # never be silenced by an unset secret.
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          SITE_URL: ${{ vars.E2E_BASE_URL }}
+        run: node scripts/e2e/anon-surface-contract.mjs
+
+  # ---------------------------------------------------------------------
+  # Leg 2 — a real account against the deployed site.
+  # ---------------------------------------------------------------------
+  authenticated:
+    name: Authenticated journeys (real account)
+    needs: preflight
+    # Deliberately NOT on push. See the header: this leg goes over the network
+    # to a deployed site, and a deploy in flight would red it for nothing.
+    if: >-
+      needs.preflight.outputs.have_user_creds == 'true' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - name: auth + payment lifecycle
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+          PLAYWRIGHT_TEST_USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
+          PLAYWRIGHT_TEST_USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD }}
+        # Kept on ONE line on purpose: src/test/e2eSpecsReachableInCi.test.ts
+        # reads workflow files line by line to work out which specs CI runs,
+        # and a `\` continuation would hide the spec names from it — the guard
+        # would then report these two as unreachable, which is the exact wrong
+        # answer in the exact place it matters.
+        run: npx playwright test --project=chromium e2e/auth.spec.ts e2e/payment-lifecycle.spec.ts --reporter=list
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-real-backend
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ---------------------------------------------------------------------
+  # Leg 3 — two seeded sessions and a job in a specific lifecycle state.
+  # ---------------------------------------------------------------------
+  two-role:
+    name: Two-role lifecycle (seeded sessions)
+    needs: preflight
+    if: >-
+      needs.preflight.outputs.have_two_role == 'true' &&
+      github.event_name == 'workflow_dispatch' &&
+      inputs.run_two_role
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - name: day-of confirm across two roles
+        env:
+          PLAYWRIGHT_TWO_ROLE: "1"
+          PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+          PLAYWRIGHT_POSTER_SESSION: ${{ secrets.PLAYWRIGHT_POSTER_SESSION }}
+          PLAYWRIGHT_HELPER_SESSION: ${{ secrets.PLAYWRIGHT_HELPER_SESSION }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
+        run: npx playwright test --project=chromium e2e/two-role-lifecycle.spec.ts --reporter=list
+
+  # ---------------------------------------------------------------------
+  # Leg 4 — the full money loop against PRODUCTION, on a Stripe test key.
+  #
+  # Nightly and on demand (owner, 2026-09-07 — it used to run on every push;
+  # see the job's own `if:` for what changed). Production is already on a
+  # test key (verified against the Stripe API: every prod-generated charge on
+  # 5–6 Sep is livemode:false, including a Connect destination charge with a
+  # transfer), so this moves no real money.
+  #
+  # THE CONCURRENCY BLOCK IS LOad-BEARING, and it is deliberately NOT the
+  # workflow-level one. That one is keyed on `github.ref` with
+  # `cancel-in-progress: true`, which is right for cheap read-only jobs and
+  # exactly wrong here on both counts:
+  #   * two branches would run concurrently and collide on the two shared
+  #     accounts, so the group must be ref-INDEPENDENT;
+  #   * cancelling mid-loop is how a funded job gets orphaned, so
+  #     cancel-in-progress must be FALSE — later runs queue behind, they do
+  #     not kill the one holding money.
+  # ---------------------------------------------------------------------
+  prod-lifecycle:
+    name: Full money loop (production, Stripe test mode)
+    needs: preflight
+    # NIGHTLY AND ON DEMAND, not on push — the same gate `authenticated` above
+    # already carries, for a second reason on top of its one.
+    #
+    # This loop consumes a real application against a real daily cap, and it
+    # cannot post more than the poster's open-job limit allows. On 2026-09-07 it
+    # ran often enough to exhaust the helper's 15-a-day allowance and then failed
+    # every subsequent run with "You have reached the daily application limit" —
+    # a red build reporting a product rule working correctly. That is the precise
+    # failure mode this workflow's header warns about: "a check that is red for
+    # reasons unrelated to the diff trains people to ignore red."
+    #
+    # Dropping the workflow's `push:` trigger would have done this too, and would
+    # also have taken `anon-surface` off every push — the free, read-only,
+    # credential-less leg that is deliberately allowed to fail the build and is
+    # the one that would have caught the guest-browse 401. That leg is the reason
+    # the trigger stays; this gate is how the money loop comes off it.
+    if: >-
+      needs.preflight.outputs.have_lifecycle == 'true' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+
+      # Teardown FIRST. The rows that matter are the ones a previous run failed
+      # to clean up, and they are only safely removable when nothing is racing.
+      - name: Sweep anything a previous run stranded
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+          KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+          # Mint a short-lived poster token. The password never leaves this step
+          # and is never echoed; only the token is exported, and only to the
+          # sweeper. The sweeper deliberately does NOT take a service-role key —
+          # a CI job holding service-role could delete anything in the database,
+          # which is a far larger risk than the rows it tidies.
+          TOKEN=$(curl -s -X POST "$URL/auth/v1/token?grant_type=password" \
+            -H "apikey: $KEY" -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg e "$POSTER_EMAIL" --arg p "$POSTER_PASSWORD" '{email:$e,password:$p}')" \
+            | jq -r '.access_token // empty')
+          test -n "$TOKEN" || { echo "::error::could not mint a poster token — check PLAYWRIGHT_POSTER_EMAIL / _PASSWORD"; exit 1; }
+          SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
+            node scripts/e2e/prod-lifecycle-sweeper.mjs
+
+      - name: post → fund → apply → hire → complete → release → review
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+          PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          # The payout leg. Optional by design: without it the loop still runs
+          # and announces that nothing proved money reached the helper.
+          # An ACCOUNT holding the admin role, deliberately not CRON_SECRET —
+          # that secret authorises 29 edge functions and records no actor, so
+          # giving it to CI would be wider custody than the service-role key the
+          # sweep step above already refuses. See the spec's step 6b.
+          PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+          PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: npx playwright test --project=chromium e2e/prod-lifecycle.spec.ts --reporter=list --trace=on
+
+      # The whole point of this job is the legs a mock cannot cover, and when
+      # one of them breaks the log says "waitForURL timed out" — which names the
+      # wait, not the cause. Twice now the cause was something only visible ON
+      # the page (a collapsed payment accordion; a Pay button that silently
+      # refuses). Keep the trace so the next failure is diagnosed from what the
+      # browser saw instead of from a guess.
+      - name: Keep the trace and screenshots when the loop fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-lifecycle-trace
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
+
+      # Runs even when the loop failed — that is the case it exists for. A run
+      # that died holding a funded job is the one the seven is_seed-blind crons
+      # would otherwise act on.
+      - name: Unwind this run's rows even on failure
+        if: always()
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+          KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+          TOKEN=$(curl -s -X POST "$URL/auth/v1/token?grant_type=password" \
+            -H "apikey: $KEY" -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg e "$POSTER_EMAIL" --arg p "$POSTER_PASSWORD" '{email:$e,password:$p}')" \
+            | jq -r '.access_token // empty')
+          test -n "$TOKEN" || { echo "::warning::could not mint a token for teardown — rows may be stranded for the next run's pre-sweep"; exit 0; }
+          SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
+            node scripts/e2e/prod-lifecycle-sweeper.mjs
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-prod-lifecycle
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ---------------------------------------------------------------------
+  # The loud part. Always runs, never fails the build, and states plainly
+  # which real-backend surfaces went unchecked and what is missing.
+  # ---------------------------------------------------------------------
+  boundary-report:
+    name: Uncovered real-backend surfaces
+    needs: [preflight, anon-surface, authenticated, two-role, prod-lifecycle]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Say what did not run
+        env:
+          ANON: ${{ needs.anon-surface.result }}
+          AUTHED: ${{ needs.authenticated.result }}
+          TWO_ROLE: ${{ needs.two-role.result }}
+          LIFECYCLE: ${{ needs.prod-lifecycle.result }}
+          HAVE_CREDS: ${{ needs.preflight.outputs.have_user_creds }}
+          HAVE_TWO_ROLE: ${{ needs.preflight.outputs.have_two_role }}
+          HAVE_LIFECYCLE: ${{ needs.preflight.outputs.have_lifecycle }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Real-backend E2E coverage"
+            echo ""
+            echo "| Leg | Result | Needs |"
+            echo "| --- | --- | --- |"
+            echo "| Anon surface contract | \`$ANON\` | nothing |"
+            echo "| Authenticated journeys | \`$AUTHED\` | PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD |"
+            echo "| Two-role lifecycle | \`$TWO_ROLE\` | PLAYWRIGHT_POSTER_SESSION + PLAYWRIGHT_HELPER_SESSION + PLAYWRIGHT_LIFECYCLE_JOB_ID |"
+            echo "| Full money loop (prod) | \`$LIFECYCLE\` | PLAYWRIGHT_POSTER_EMAIL/_PASSWORD + PLAYWRIGHT_HELPER_EMAIL/_PASSWORD |"
+            echo "| ↳ payout (helper's transfer) | \`$LIFECYCLE\` | PLAYWRIGHT_ADMIN_EMAIL/_PASSWORD |"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          UNCOVERED=0
+          if [ "$HAVE_LIFECYCLE" != "true" ]; then
+            echo "::warning title=Uncovered surface::The full money loop did NOT run — PLAYWRIGHT_POSTER_EMAIL/_PASSWORD and PLAYWRIGHT_HELPER_EMAIL/_PASSWORD are not set. Escrow funding, hire, complete, release and review are covered by MOCKS ONLY."
+            echo "- **Full money loop: NOT COVERED.** Escrow funding, hire, complete, payout release and review are exercised only against \`page.route()\` mocks. Set \`PLAYWRIGHT_POSTER_EMAIL\`, \`PLAYWRIGHT_POSTER_PASSWORD\`, \`PLAYWRIGHT_HELPER_EMAIL\` and \`PLAYWRIGHT_HELPER_PASSWORD\` for the two dedicated accounts. Passwords must be >= 12 characters — GoTrue's real minimum, which the client does not enforce." >> "$GITHUB_STEP_SUMMARY"
+            UNCOVERED=$((UNCOVERED+1))
+          fi
+          if [ "$HAVE_CREDS" != "true" ]; then
+            echo "::warning title=Uncovered surface::Authenticated journeys did NOT run — PLAYWRIGHT_TEST_USER_EMAIL / PLAYWRIGHT_TEST_USER_PASSWORD are not set. Sign-in, escrow checkout and the post-payment landing are covered by MOCKS ONLY."
+            echo "- **Authenticated journeys: NOT COVERED.** Sign-in, escrow checkout and the post-payment landing are exercised only against \`page.route()\` mocks. Set \`PLAYWRIGHT_TEST_USER_EMAIL\` and \`PLAYWRIGHT_TEST_USER_PASSWORD\` (password must be >= 12 characters — GoTrue's real minimum, which the client does not enforce)." >> "$GITHUB_STEP_SUMMARY"
+            UNCOVERED=$((UNCOVERED+1))
+          fi
+          if [ "$HAVE_TWO_ROLE" != "true" ]; then
+            echo "::warning title=Uncovered surface::Two-role lifecycle did NOT run — seeded sessions are not set. Accept, day-of confirm, complete and release are covered by MOCKS ONLY."
+            echo "- **Two-role lifecycle: NOT COVERED.** Accept → day-of confirm → complete → release crosses two accounts and is exercised only against mocks. Mint sessions with \`scripts/e2e/mint-helper-login.sh\` (see \`scripts/e2e/README.md\`) and set the three \`PLAYWRIGHT_*\` secrets." >> "$GITHUB_STEP_SUMMARY"
+            UNCOVERED=$((UNCOVERED+1))
+          fi
+
+          if [ "$UNCOVERED" -eq 0 ]; then
+            echo "All real-backend legs are configured." >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo ""
+              echo "**$UNCOVERED real-backend surface(s) uncovered.** A green tick on this run does not mean these journeys work — it means nothing asked."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # The anon leg is the one that needs no provisioning, so it is the one
+          # that is allowed to fail the build.
+          if [ "$ANON" != "success" ]; then
+            echo "::error title=Anon surface contract failed::The signed-out marketplace does not answer the anon role correctly."
+            exit 1
+          fi

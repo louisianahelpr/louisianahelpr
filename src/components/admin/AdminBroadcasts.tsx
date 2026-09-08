@@ -162,12 +162,21 @@ const AdminBroadcasts = () => {
 
   const remove = async (id: string) => {
     setDeleting(true);
-    const { error } = await supabase.from("broadcast_messages").delete().eq("id", id);
-    setDeleting(false);
-    if (error) {
-      report(error, { tags: { source: "AdminBroadcasts.remove" } });
-      toast.error("Couldn't remove that broadcast — try again.");
+    try {
+      unwrapMutation(
+        await supabase
+          .from("broadcast_messages")
+          .delete()
+          .eq("id", id)
+          .select("id"),
+        { action: "remove this broadcast" },
+      );
+    } catch (err) {
+      report(err as Error, { tags: { source: "AdminBroadcasts.remove" } });
+      toast.error(`Couldn't remove that broadcast: ${mutationErrorMessage(err)}`);
       return;
+    } finally {
+      setDeleting(false);
     }
     qc.setQueryData<Broadcast[]>(BROADCASTS_KEY, (prev) =>
       (prev ?? []).filter((b) => b.id !== id),

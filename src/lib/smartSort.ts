@@ -1,5 +1,7 @@
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { haversineMiles } from "@/lib/geo";
+import { displayedPayDollars } from "@/lib/jobDisplayPay";
+import { TIER_ORDER, hasPerk, tierRank } from "../../supabase/functions/_shared/tierPerks";
 
 /**
  * Helper-side composite-score sort for the browse-jobs feed.
@@ -45,11 +47,27 @@ export interface HelperLocation {
  * NOT handled here — callers that support it should keep their own
  * pre-computed rank map (see `smartIndexByJobId` in useDashboardFilters);
  * for the recommended band, "smart" order is the recommendation score itself.
+ *
+ * `effectiveFee` is the VIEWER's commission percent, and it is required rather
+ * than optional on purpose: the pay modes order by the take-home figure the
+ * card actually renders (`displayedPayDollars`), not by `jobs.budget`. Those
+ * two agree on a solo job — net is a fixed percentage of budget — and disagree
+ * on a group job, where the budget is split across `helpers_needed`. Sorting on
+ * the gross put a $200 ÷ 3 = $58 group job above a $79 solo job while both
+ * cards showed their (correct) net. An optional parameter would have let a new
+ * call site silently reintroduce that.
  */
-export function compareJobsBySortMode(a: EnrichedJob, b: EnrichedJob, sortBy: string): number {
+export function compareJobsBySortMode(
+  a: EnrichedJob,
+  b: EnrichedJob,
+  sortBy: string,
+  effectiveFee: number,
+): number {
   switch (sortBy) {
-    case "highest_pay": return b.budget - a.budget;
-    case "lowest_pay": return a.budget - b.budget;
+    case "highest_pay":
+      return displayedPayDollars(b, effectiveFee) - displayedPayDollars(a, effectiveFee);
+    case "lowest_pay":
+      return displayedPayDollars(a, effectiveFee) - displayedPayDollars(b, effectiveFee);
     case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
     default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   }
@@ -113,17 +131,25 @@ const MID_MILES = 25;
 export const POSTER_PLACEMENT_MAX_POINTS = 0.1;
 
 /**
- * Placement points for a poster's ACTIVE tier. Basic gets nothing — only Pro
- * and Elite carry `priorityPlacement` in TIER_PERKS. Null, free, an expired
- * tier (already resolved to null by `get_safe_profiles`) and any unrecognised
- * string including the retired 'business' all score 0: unknown must lose a
- * perk, never gain one, the same direction DEFAULT_TIER_FEE_PERCENT takes.
+ * Placement points for a poster's ACTIVE tier — the poster-side twin of
+ * `priorityPlacementPoints` in applicantScoring.ts, and derived the same way:
+ * WHO qualifies is `hasPerk(tier, "priorityPlacement")`, HOW MUCH is a ladder
+ * position (top rung full, every other entitled rung half). The literal
+ * `elite → full, pro → half` this replaces scored Plus at ZERO despite Plus
+ * carrying the perk (CC-019).
+ *
+ * Basic still gets nothing because Basic genuinely lacks the perk. Null, free,
+ * an expired tier (already resolved to null by `get_safe_profiles`) and any
+ * unrecognised string including the retired 'business' all score 0: unknown
+ * must lose a perk, never gain one, the same direction
+ * DEFAULT_TIER_FEE_PERCENT takes.
  */
 export function posterPlacementBonus(tier: string | null | undefined): number {
-  const t = (tier ?? "").toLowerCase();
-  if (t === "elite") return POSTER_PLACEMENT_MAX_POINTS;
-  if (t === "pro") return POSTER_PLACEMENT_MAX_POINTS / 2;
-  return 0;
+  if (!hasPerk(tier, "priorityPlacement")) return 0;
+  const topTier = TIER_ORDER[TIER_ORDER.length - 1];
+  return tierRank(tier) >= tierRank(topTier)
+    ? POSTER_PLACEMENT_MAX_POINTS
+    : POSTER_PLACEMENT_MAX_POINTS / 2;
 }
 
 /**

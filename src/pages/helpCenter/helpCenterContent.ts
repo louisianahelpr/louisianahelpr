@@ -1,4 +1,5 @@
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
+import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 // The escrow clock is owned by the cron that actually moves the money, not by
 // this file. Same import the legal pages, PaymentSuccess and the activity cards
 // use; `escrowTiming.copyParity.test.ts` fails if this answer ever goes back to
@@ -12,6 +13,43 @@ import {
 // never retype.
 import { LATE_CANCEL_PERCENT, VERY_LATE_CANCEL_PERCENT } from "@/lib/moneyLimits";
 import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
+// Which categories actually render the "Who can apply?" credential control.
+// Derived from the form's own set, in the picker's canonical order, so adding a
+// category there updates this answer instead of leaving it quietly wrong — this
+// sentence was hand-typed as "handyman, painting, moving, and assembly" and went
+// stale the moment Storm Prep and Yard Work were added (2026-09-06).
+import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/detailsSectionConstants";
+import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
+
+// The early-access ladder, DERIVED — every tier that gets a head start, in
+// ascending order, with the minute count from `earlyAccess.ts`.
+//
+// The membership FAQ used to hand-type "20-minute early job access (Pro gets
+// 10, Basic 5)". That sentence had no Plus in it: the tier ships, is sold on
+// this very page's fee answer, and gets 15 minutes — so the one place a reader
+// goes to compare plans silently pretended a plan did not exist. It is the same
+// class of drift `earlyAccess.ts` was extracted to end ("COPY MUST DERIVE FROM
+// THIS, NEVER RETYPE IT"), and deriving from TIER_PERKS' own keys means a tier
+// added later cannot go missing from this sentence either.
+const EARLY_ACCESS_TIERS = (Object.keys(TIER_PERKS) as SubscriptionTier[])
+  .filter((tier) => earlyAccessHeadStartMinutes(tier) > 0)
+  .sort((a, b) => earlyAccessHeadStartMinutes(a) - earlyAccessHeadStartMinutes(b));
+
+/** e.g. "Basic 5 minutes, Pro 10, Plus 15, Elite 20". */
+const EARLY_ACCESS_LADDER = EARLY_ACCESS_TIERS
+  .map((tier, i) =>
+    `${TIER_PERKS[tier].name} ${earlyAccessHeadStartMinutes(tier)}${i === 0 ? " minutes" : ""}`)
+  .join(", ");
+
+/** "handyman, painting, moving, assembly, storm prep, and yard work" — built. */
+const CREDENTIAL_CATEGORY_PHRASE = (() => {
+  const names = JOB_CATEGORY_VALUES
+    .filter((value) => CREDENTIAL_TIER_CATEGORIES.has(value))
+    .map((value) => JOB_CATEGORY_LABELS[value].toLowerCase());
+  if (names.length <= 1) return names[0] ?? "";
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+})();
 
 // The bottom rung of the fee ladder a reader can actually reach.
 // Mirrors `FEE_FLOOR` in legal/TermsSection.
@@ -211,7 +249,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "What fees does Helpr charge?",
-        a: `Free-account Helprs keep ${100 - TIER_PERKS.free.platformFeePercent}% (${TIER_PERKS.free.platformFeePercent}% platform fee). ${TIER_PERKS.basic.name} keeps ${100 - TIER_PERKS.basic.platformFeePercent}%, ${TIER_PERKS.pro.name} keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, and ${TIER_PERKS.elite.name} ${100 - TIER_PERKS.elite.platformFeePercent}% (${TIER_PERKS.elite.platformFeePercent}% fee) — the platform fee drops as your plan tier rises. Posters pay a plan-based service fee at checkout too (${TIER_PERKS.free.platformFeePercent}% Free, ${TIER_PERKS.basic.platformFeePercent}% ${TIER_PERKS.basic.name}, ${TIER_PERKS.pro.platformFeePercent}% ${TIER_PERKS.pro.name}, ${TIER_PERKS.elite.platformFeePercent}% ${TIER_PERKS.elite.name}), with a small minimum so tiny jobs still cover card processing.`,
+        a: `Free-account Helprs keep ${100 - TIER_PERKS.free.platformFeePercent}% (${TIER_PERKS.free.platformFeePercent}% platform fee). ${TIER_PERKS.basic.name} keeps ${100 - TIER_PERKS.basic.platformFeePercent}%, ${TIER_PERKS.pro.name} keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, ${TIER_PERKS.plus.name} ${100 - TIER_PERKS.plus.platformFeePercent}%, and ${TIER_PERKS.elite.name} ${100 - TIER_PERKS.elite.platformFeePercent}% (${TIER_PERKS.elite.platformFeePercent}% fee) — the platform fee drops as your plan tier rises. Posters pay a plan-based service fee at checkout too (${TIER_PERKS.free.platformFeePercent}% Free, ${TIER_PERKS.basic.platformFeePercent}% ${TIER_PERKS.basic.name}, ${TIER_PERKS.pro.platformFeePercent}% ${TIER_PERKS.pro.name}, ${TIER_PERKS.plus.platformFeePercent}% ${TIER_PERKS.plus.name}, ${TIER_PERKS.elite.platformFeePercent}% ${TIER_PERKS.elite.name}), with a small minimum so tiny jobs still cover card processing.`,
       },
       {
         q: "What if there's a dispute?",
@@ -253,14 +291,17 @@ export const FAQ_SECTIONS: FaqSection[] = [
         //       three: Open / Licensed / Licensed + Insured. Tier 1 exists in
         //       get_user_credential_tier but is unreachable from the form, and
         //       the constant's own comment explains why it was dropped.
-        //   (2) The selector renders for FOUR categories only —
-        //       CREDENTIAL_TIER_CATEGORIES (:28-33) is handyman, painting,
-        //       moving, assembly. Every other category has no picker and stays
-        //       tier 0, so "when you post a job you choose" was untrue for most
-        //       posts. Also corrected: identity verification is required to post
-        //       or accept (useJobSubmit.ts gates on it), not the optional
-        //       "can verify" the old sentence implied.
-        a: "Identity verification through Stripe is required before anyone can post a job or accept one, and Helprs can additionally upload trade licenses and insurance — verified badges show on their profile. On trade jobs (handyman, painting, moving, and assembly) you also choose who may apply: open to anyone, licensed pros only, or licensed and insured. Only Helprs who meet what you set can apply — it's enforced by the database, not just hidden in the app. Other categories are open to any verified Helpr.",
+        //   (2) The selector renders for a SUBSET of categories; every other
+        //       one has no picker and stays tier 0, so "when you post a job you
+        //       choose" was untrue for most posts. The list is no longer typed
+        //       here at all — `CREDENTIAL_CATEGORY_PHRASE` derives it from
+        //       CREDENTIAL_TIER_CATEGORIES, because the hand-typed version
+        //       ("handyman, painting, moving, and assembly") went stale the
+        //       moment Storm Prep and Yard Work were added. Also corrected:
+        //       identity verification is required to post or accept
+        //       (useJobSubmit.ts gates on it), not the optional "can verify"
+        //       the old sentence implied.
+        a: `Identity verification through Stripe is required before anyone can post a job or accept one, and Helprs can additionally upload trade licenses and insurance — verified badges show on their profile. On trade jobs (${CREDENTIAL_CATEGORY_PHRASE}) you also choose who may apply: open to anyone, licensed pros only, or licensed and insured. Only Helprs who meet what you set can apply — it's enforced by the database, not just hidden in the app. Other categories are open to any verified Helpr.`,
       },
       {
         q: "What is the cancellation rate?",
@@ -347,7 +388,14 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: `What's the difference between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name}?`,
-        a: `${TIER_PERKS.elite.name} adds the featured crown badge (visible to all posters), 20-minute early job access before other helpers see it (${TIER_PERKS.pro.name} gets 10, ${TIER_PERKS.basic.name} 5), and dedicated priority support — on top of everything ${TIER_PERKS.pro.name} offers.`,
+        a: `${TIER_PERKS.elite.name} adds the featured crown badge (visible to all posters), the longest head start on new jobs, and dedicated priority support — on top of everything ${TIER_PERKS.pro.name} offers, and at a lower platform fee (${TIER_PERKS.elite.platformFeePercent}% against ${TIER_PERKS.pro.platformFeePercent}%). Head start on a new job, measured against a free account: ${EARLY_ACCESS_LADDER}.`,
+      },
+      {
+        // Plus was absent from this section entirely while the fees answer
+        // above already listed it — a reader comparing plans on this page could
+        // not learn that the tier exists, let alone what it does.
+        q: `Where does ${TIER_PERKS.plus.name} fit in?`,
+        a: `${TIER_PERKS.plus.name} sits between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name} at $${TIER_PERKS.plus.price}/month. It keeps everything ${TIER_PERKS.pro.name} gives you, drops your platform fee to ${TIER_PERKS.plus.platformFeePercent}%, and moves your head start on new jobs to ${earlyAccessHeadStartMinutes("plus")} minutes. The featured crown badge and dedicated support stay ${TIER_PERKS.elite.name}-only.`,
       },
     ],
   },

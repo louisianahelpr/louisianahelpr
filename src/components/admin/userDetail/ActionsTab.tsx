@@ -1,7 +1,8 @@
 import {
   CheckCircle2, XCircle, Clock, ShieldAlert, ShieldCheck, KeyRound,
-  MessageSquareWarning, History, Trash2, Eye,
+  MessageSquareWarning, History, Trash2, Eye, UserMinus,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
@@ -10,9 +11,11 @@ import UserVerificationHistory from "../UserVerificationHistory";
 import { UserAuditLog } from "./UserAuditLog";
 import type { Profile } from "../adminUserHelpers";
 import { useImpersonation } from "@/hooks/useImpersonation";
+import { supabase } from "@/integrations/supabase/client";
 import { cn, formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toneTextClasses } from "@/components/admin/tones";
+import { RestrictApplicationsDialog } from "../RestrictApplicationsDialog";
 
 type EmailEvent = { event_type: string; email_type: string; created_at: string };
 
@@ -49,6 +52,20 @@ export function ActionsTab({
 }: ActionsTabProps) {
   const navigate = useNavigate();
   const { start: startImpersonation } = useImpersonation();
+  // An admin banning their OWN account locks itself out of this console, and
+  // there is no self-serve undo — the only way back is another admin, or SQL.
+  // The server refuses it outright (trg_reject_self_issued_ban on user_bans),
+  // so this is the second half of that guard: don't offer an action the
+  // database will reject, and say why instead of surfacing a raw 22023.
+  // Read straight from the auth client rather than useCurrentUser(): that hook
+  // needs a QueryClientProvider, which this dialog's tests do not mount, and
+  // the answer here is one id. Same pattern as AdminUserNotes below.
+  const [currentAdminId, setCurrentAdminId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentAdminId(data.user?.id ?? null));
+  }, []);
+  const isSelf = !!currentAdminId && currentAdminId === viewProfile.user_id;
+  const [restrictProfile, setRestrictProfile] = useState<Profile | null>(null);
   const showApprovedActivityChip = viewProfile.approval_status === "approved"
     && !["permanently_banned", "temp_banned"].includes(viewBanStatus);
 
@@ -84,7 +101,12 @@ export function ActionsTab({
             const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
             const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
             const hasLoggedIn = !!lastLoginSummary[viewProfile.user_id];
-            const idvVerified = viewProfile.idv_status === 'verified';
+            // The OR that `identity_is_verified(idv_status,
+            // stripe_identity_verified)` computes in the database — reading only
+            // `idv_status` here would call a Stripe-verified account "Awaiting
+            // first login" while the hiring gate treats it as verified.
+            const idvVerified = viewProfile.idv_status === 'verified'
+              || viewProfile.stripe_identity_verified === true;
             const hasStripe = !!viewProfile.stripe_account_id;
             const hasOpenedEmail = opens.length > 0 || clicks.length > 0;
             const isActive = hasLoggedIn || idvVerified || hasStripe || hasOpenedEmail;
@@ -110,20 +132,23 @@ export function ActionsTab({
         </div>
       </div>
 
-      {/* Internal Admin Notes */}
-      <AdminUserNotes userId={viewProfile.user_id} />
-
-      {/* Verification audit trail (helper_verifications table) —
-          shows every change to approval_status, idv_status,
-          legacy_manual_review, etc., with actor + timestamp.
-          Surface BEFORE Admin Tools so reviewers can see the
-          decision history before taking another action. */}
-      <UserVerificationHistory userId={viewProfile.user_id} />
-
-      {/* Trust & Verification + Support actions */}
+      {/* Trust & Verification + Support actions. Rendered directly below
+          Account Actions (and above the note composer / verification
+          history) so the primary admin controls are visible on first
+          paint instead of requiring a scroll past notes and history. */}
       <div className="space-y-2">
         <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Admin Tools</h4>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {/* TWO columns, not three. `Button` is `whitespace-nowrap`, so a label
+            that does not fit its cell cannot wrap — it is clipped, silently and
+            at every breakpoint. At three columns inside this ~680px dialog that
+            was already happening to "Formal Warning", "Reset Password" and
+            "Impersonate (RO)", which rendered as "Formal Warnin", "Reset
+            Passwor" and "Impersonate (R". Screenshots, not measurements, are
+            what surfaced it — every one of those buttons reports its full text
+            in the DOM, so a textContent assertion passes on a clipped control.
+            Two columns fit the longest label ("Restrict Applications") with
+            room to spare. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
             <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
           </Button>
@@ -156,8 +181,30 @@ export function ActionsTab({
           >
             <Eye className={cn("w-4 h-4 mr-1.5", toneTextClasses.warning)} /> Impersonate (RO)
           </Button>
+          {/* Applications restriction — the operating half of
+              `helper_shadowbans`, whose table, RLS, is_helper_shadowbanned()
+              and block_shadowbanned_applications() trigger have all been live
+              with zero rows because nothing could ever create one. State is
+              local rather than threaded up through AdminUsers.tsx: this writes
+              no column the user list renders, so it needs no refetch, and
+              keeping it here avoids a third file in the prop chain. */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 justify-start"
+            onClick={() => setRestrictProfile(viewProfile)}
+          >
+            <UserMinus className={cn("w-4 h-4 mr-1.5", toneTextClasses.warning)} /> Restrict Applications
+          </Button>
           {!["permanently_banned", "temp_banned"].includes(viewBanStatus) ? (
-            <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-2 sm:col-span-1" onClick={() => setBanProfile(viewProfile)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-1"
+              disabled={isSelf}
+              title={isSelf ? "You can't suspend or ban your own account — ask another admin." : undefined}
+              onClick={() => setBanProfile(viewProfile)}
+            >
               <ShieldAlert className="w-4 h-4 mr-1.5" /> Suspend / Ban
             </Button>
           ) : (
@@ -165,16 +212,29 @@ export function ActionsTab({
               <CheckCircle2 className="w-4 h-4 mr-1.5 text-primary" /> Lift Ban
             </Button>
           )}
-          <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-2 sm:col-span-1" onClick={() => setDeleteProfile(viewProfile)}>
+          <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-1" onClick={() => setDeleteProfile(viewProfile)}>
             <Trash2 className="w-4 h-4 mr-1.5" /> Delete Account
           </Button>
         </div>
       </div>
 
+      {/* Internal Admin Notes */}
+      <AdminUserNotes userId={viewProfile.user_id} />
+
+      {/* Verification audit trail (helper_verifications table) —
+          shows every change to approval_status, idv_status,
+          legacy_manual_review, etc., with actor + timestamp. */}
+      <UserVerificationHistory userId={viewProfile.user_id} />
+
       {/* Audit log — who-did-what-when for this user. Merges
           admin_audit_log, user_violations, and admin-toned
           notifications into a single chronological feed. */}
       <UserAuditLog userId={viewProfile.user_id} />
+
+      <RestrictApplicationsDialog
+        profile={restrictProfile}
+        onClose={() => setRestrictProfile(null)}
+      />
     </TabsContent>
   );
 }

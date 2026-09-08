@@ -67,7 +67,7 @@ const PullToRefreshWrapper = forwardRef<HTMLDivElement, PullToRefreshWrapperProp
               language with the rest of the app (was Sans uppercase). */}
           {!refreshing && pullDistance > 30 && (
             <span
-              className="font-serif italic uppercase transition-colors text-ds-10"
+              className="font-sans uppercase transition-colors text-ds-10"
               style={{
                 letterSpacing: "0.18em",
                 color: canTrigger ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna) / 0.78)",

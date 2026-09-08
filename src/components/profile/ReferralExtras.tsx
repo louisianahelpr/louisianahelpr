@@ -80,7 +80,7 @@ export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasPro
           </div>
           <div className="text-right shrink-0">
             <p
-              className="font-display italic font-bold tabular-nums leading-none text-ds-16"
+              className="font-sans font-bold tabular-nums leading-none text-ds-16"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               {/* formatPriceExact, not formatPrice: formatPrice ROUNDS to whole
@@ -90,7 +90,7 @@ export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasPro
               ${formatPriceExact(totalEarned)}
             </p>
             <p
-              className="font-serif italic text-ds-10"
+              className="font-sans text-ds-10"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               earned
@@ -151,7 +151,7 @@ export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasPro
                   }}
                 />
                 <p
-                  className="font-display italic font-bold tabular-nums leading-none text-ds-14"
+                  className="font-sans font-bold tabular-nums leading-none text-ds-14"
                   style={{ color: "hsl(var(--ink-deep))" }}
                 >
                   {m.goal}
@@ -180,10 +180,10 @@ export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasPro
           <div className="mt-3 pt-3" style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.12)" }}>
             <div className="flex items-baseline justify-between gap-2 mb-1.5">
               <p
-                className="font-serif italic text-ds-12"
+                className="font-sans text-ds-12"
                 style={{ color: "hsl(var(--olivewood) / 0.85)" }}
               >
-                <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                   {Math.max(0, nextRung.goal - referralCount)}
                 </span>{" "}
                 more to reach {nextRung.label}.

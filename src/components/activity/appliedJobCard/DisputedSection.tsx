@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { JobActionRow, JobActionChip } from "@/components/activity/JobActionRow";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, MessageSquare, Send } from "lucide-react";
+import { AlertTriangle, MessageSquare, Send, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { formatDistanceToNow } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
+import { helperDisputeCopy } from "./helperDisputeCopy";
 import type { AppliedApp, Job } from "../activityConstants";
 
 interface DisputedSectionProps {
@@ -41,23 +45,58 @@ export function DisputedSection({
 }: DisputedSectionProps) {
   const disputeStatus = job.dispute_status || "open";
   const hasResponded = !!job.dispute_helper_response;
-  // The helper keeps their voice after escalation.
+  // WHO FILED IT decides every sentence on this panel, and until 2026-09-06
+  // every sentence assumed the poster did. See helperDisputeCopy.ts for the
+  // production case that proved otherwise and what each branch now says; the
+  // rules live there rather than inline so helperDisputeCopy.test.ts can walk
+  // the whole state space without a render.
+  const { awaitingAdmin, headline, reasonLabel, consequenceText, canRespond, canWithdraw } =
+    helperDisputeCopy(job, app.helper_id);
+  const [withdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+
+  // The helper's only non-admin exit from a dispute they raised. Mirrors the
+  // poster's Resolve & Pay handler (PostedJobActions) minus the money: a
+  // withdrawal moves nothing, it un-freezes the job and hands it back to the
+  // status it held before the dispute — `completed`/payout_pending if the
+  // poster had already approved, `in_progress` if not.
   //
-  // This used to be `disputeStatus === "open"`, so the response control simply
-  // vanished the moment the poster escalated (PostedJobActions writes
-  // dispute_status='escalated' in one tap) — and `helper_abort_job`
-  // (20260825191500) opens its dispute ESCALATED from the start, so a helper
-  // who took the sanctioned exit never saw the control at all. Nothing said
-  // why; the button was just gone.
-  //
-  // The server does not forbid it: the "Helpers can update their assigned
-  // jobs" policy (20260312010219) is USING/WITH CHECK auth.uid() = helper_id
-  // with no status clause, and `dispute_helper_response` is on
-  // enforce_helper_jobs_column_whitelist's ALLOW-list (20260828020000) in every
-  // dispute state. So the control stays; only the STATUS write is withheld
-  // (see the submit handler).
-  const canRespond = ["open", "escalated", "under_review"].includes(disputeStatus);
-  const awaitingAdmin = disputeStatus === "escalated" || disputeStatus === "under_review";
+  // REPORTED, not just toasted, for exactly the reason the poster's twin is:
+  // this RPC was a 100%-failing call for the opener-helper until 20260908024937
+  // (42501 "Helpers may not modify jobs.dispute_resolved_at" — the helper
+  // column whitelist did not list the stamp the RPC's own UPDATE writes), and
+  // a money control that is dead for months with zero Sentry events is what
+  // this line exists to prevent.
+  const withdrawDispute = async () => {
+    setWithdrawing(true);
+    try {
+      const { error } = await supabase.rpc("rpc_withdraw_dispute" as never, { _job_id: app.job_id } as never);
+      if (error) {
+        report(error, { tags: { source: "DisputedSection.withdrawDispute" }, context: { job_id: app.job_id } });
+        hapticError();
+        toast.error("We couldn't withdraw that dispute — please try again.");
+        return;
+      }
+      if (job.customer_id) {
+        await createNotification({
+          user_id: job.customer_id,
+          title: "Dispute withdrawn",
+          message: `The Helpr withdrew the dispute on "${job.title}". The payment is off hold and back on its normal schedule.`,
+          type: "info",
+          // `?job=` — the job returns to whichever bucket its restored status
+          // computes; a fixed `?filter=` would be wrong for one of the two.
+          link: `/my-posts?job=${job.id}`,
+        });
+      }
+      hapticSuccess();
+      toast.success("Dispute withdrawn — the payment is off hold.");
+      setWithdrawConfirmOpen(false);
+      onRefresh();
+    } finally {
+      setWithdrawing(false);
+    }
+  };
+
   return (
     <div
       className="px-4 py-3 space-y-2.5"
@@ -76,7 +115,7 @@ export function DisputedSection({
         }}
       >
         <span
-          className="font-serif italic uppercase inline-flex items-center gap-1.5 text-ds-10"
+          className="font-sans uppercase inline-flex items-center gap-1.5 text-ds-10"
           style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
         >
           <AlertTriangle className="w-3 h-3" />
@@ -92,21 +131,21 @@ export function DisputedSection({
           className="font-display italic font-bold leading-tight mt-2 text-ds-16"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
         >
-          {awaitingAdmin
-            ? "An admin is on it."
-            : "Both sides are talking it out."}
+          {headline}
         </p>
         {job.dispute_reason && (
           <p
-            className="font-serif italic mt-1.5 text-ds-12"
+            className="font-sans mt-1.5 text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
-            Reason: {job.dispute_reason}
+            {/* "Reason:" alone read as an accusation against the reader even
+                when the reader wrote it. */}
+            {reasonLabel}{job.dispute_reason}
           </p>
         )}
         {job.disputed_at && (
           <p
-            className="font-serif italic mt-1 text-ds-11"
+            className="font-sans mt-1 text-ds-11"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Filed {formatDistanceToNow(new Date(job.disputed_at), { addSuffix: true })}
@@ -118,7 +157,13 @@ export function DisputedSection({
         <DeadlineCountdown
           deadline={job.dispute_deadline}
           expiredText="Deadline passed — payment auto-releasing to you"
-          consequenceText="If the poster doesn't resolve or escalate, payment auto-releases to you after the deadline."
+          /* Both branches state the SAME mechanism —
+             `auto-resolve-disputes` settles every non-escalated expired
+             dispute with `_outcome: "helper"` (index.ts:196) — but only one of
+             them can be read as "complain and wait, and you win". The
+             helper-opened branch says what the clock does without dressing it
+             up as a reward, and names the move that actually resolves it. */
+          consequenceText={consequenceText}
           variant="destructive"
         />
       )}
@@ -149,14 +194,18 @@ export function DisputedSection({
         </section>
       )}
 
-      {/* Respond form */}
+      {/* Respond form. `canRespond` is false when THIS helper opened the
+          dispute: the box writes `dispute_helper_response`, which the poster's
+          card renders under the heading "Helpr's response", so there is nothing
+          to respond to and the control read as being asked to answer your own
+          complaint. Their words are already in `dispute_reason`, shown above. */}
       {!hasResponded && canRespond && (
         <div className="space-y-2">
           {/* Say who reads it once it is out of the poster's hands, so the
               control does not read as a dead end. */}
           {awaitingAdmin && (
             <p
-              className="font-serif italic text-ds-11"
+              className="font-sans text-ds-11"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
               An admin is deciding this one. You can still add your side — it goes
@@ -229,6 +278,45 @@ export function DisputedSection({
         </div>
       )}
 
+      {/* WITHDRAW — the exit that did not exist. Shaped like "Respond to
+          Dispute" above rather than as a chip in the row below, because it is
+          this panel's primary move for the person who filed, and the three
+          chips at the foot are all read-only or off-card. The two are mutually
+          exclusive by construction: `canRespond` is false for the opener and
+          `canWithdraw` is true only for the opener. */}
+      {canWithdraw && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full"
+          disabled={withdrawing}
+          onClick={() => setWithdrawConfirmOpen(true)}
+        >
+          <Undo2 className="w-4 h-4 mr-1" /> Withdraw Dispute
+        </Button>
+      )}
+      {/* Gated alongside its button — a confirm whose primary action the
+          server would refuse must not be reachable at all (the same rule
+          `canResolve` gates the poster's release confirm with). */}
+      {canWithdraw && (
+        <BrandConfirmDialog
+          open={withdrawConfirmOpen}
+          onOpenChange={setWithdrawConfirmOpen}
+          title="Withdraw this dispute?"
+          description="The job goes back to where it was before you filed, and the payment comes off hold and returns to its normal schedule. You can file again if the issue isn't actually settled."
+          callout={{ icon: AlertTriangle, text: "Only withdraw if you and the poster have sorted it out." }}
+          primaryLabel="Withdraw Dispute"
+          /* `bark`, not `sienna`: sienna is reserved for the genuinely
+             irreversible (the poster's twin releases escrow and can never be
+             undone). A withdrawal moves no money and `rpc_open_dispute`'s
+             existing-dispute branch re-freezes the job if it is filed again. */
+          primaryTone="bark"
+          primaryDisabled={withdrawing}
+          onPrimary={() => { void withdrawDispute(); }}
+          secondaryLabel="Keep It Open"
+        />
+      )}
+
       {/* No hardcoded "within 72 hours" policy line — the DeadlineCountdown
           above renders the job's ACTUAL dispute_deadline and its caption
           already says what happens when it lapses; a fixed 72h sentence
@@ -261,7 +349,11 @@ export function DisputedSection({
           label="Contact Admin"
           ariaLabel="Contact an admin about this dispute"
           tone="neutral"
-          onClick={() => navigate("/support")}
+          /* Carries the job, same as the poster's chip in PostedJobActions —
+             `?topic=` / `?subject=` are the only params Support.tsx reads, and
+             a job UUID identifies the row without putting a person, a price or
+             an address in a URL. */
+          onClick={() => navigate(`/support?topic=report&subject=${encodeURIComponent(`Dispute on job ${app.job_id}`)}`)}
         />
       </JobActionRow>
     </div>

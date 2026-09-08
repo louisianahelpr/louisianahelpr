@@ -2,20 +2,31 @@
  * Characterization tests for src/lib/messageScanner.ts (F-TRUST-01).
  *
  * This scanner is ADVISORY UX only — it provides instant client-side warnings.
- * The authoritative gate is the Postgres trigger function scan_message_content()
- * (supabase/migrations/20260510033701_scan_message_remove_ambiguous.sql).
- * Both must be kept in sync; these tests pin the client's current behaviour so
- * future drift is caught immediately.
+ * The authoritative gate is the Postgres trigger function
+ * scan_message_content(). Its CURRENT definition lives in
+ * supabase/migrations/20260904042645_word_boundary_direct_pay_and_paypal_scanner.sql
+ * — NOT the 2026-06-18 migration this comment used to name, which is three
+ * revisions stale (this file's own header drifting out of date, while
+ * describing itself as the thing that catches drift, is exactly the kind of
+ * gap that let the server and client patterns diverge in the first place —
+ * see "known residual" below). Both must be kept in sync; these tests pin
+ * the client's current behaviour so future drift is caught immediately.
  *
- * Known intentional client-vs-server divergence (as of 2026-06-18):
+ * Known intentional client-vs-server divergence (as of 2026-09-04):
  *
  *   CLIENT-ONLY (soft UX warning, no server fraud_flag):
  *     "my number" / "my email" — dropped from server (too ambiguous; 2 flags in
  *     24 h trigger a 7-day account auto-suspend, so false-positive risk outweighs
- *     the security value at the server level).
+ *     the security value at the server level). Intentional and unchanged.
  *
- *   SERVER-ONLY (triggers fraud_flag + possible auto-suspend, no client warning):
- *     "cash only" / "in cash" — intentionally server-only.
+ *   "cash only" / "in cash" used to be server-only — the server struck the
+ *   sender for either phrase with no client-side warning at all, so the
+ *   message read as delivered in the sender's own thread while the
+ *   recipient's copy was silently hidden. Closed 2026-09-04: the client now
+ *   warns on both phrases too. The server remains the sole enforcer (this
+ *   scanner has never done anything but warn); the fix is purely that the
+ *   sender now gets the same heads-up before send that the server will act
+ *   on after send.
  *
  *   PHONE regex difference:
  *     Client:  /(\+?1?\s*[-.]?\s*\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4})/
@@ -34,6 +45,8 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readdirSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { scanMessage, hasViolation } from "./messageScanner";
 
 // messageScanner is the gatekeeper that prevents off-platform activity
@@ -68,6 +81,32 @@ describe("scanMessage", () => {
     it("does NOT flag 9-digit strings (too short)", () => {
       const v = scanMessage("Order number 12345-6789");
       expect(v.some((x) => x.type === "phone_number")).toBe(false);
+    });
+
+    it("flags slash/underscore/asterisk-separated numbers — server catches these, client used to miss them (closed 2026-09-04)", () => {
+      // Widened from `[\s.-]*` to `[^0-9a-zA-Z]{0,4}` to match
+      // scan_message_content()'s separator scope exactly. Before this, a
+      // message like "reach 504/555/1212" composed clean client-side and
+      // was silently hidden + could strike the sender server-side — the
+      // same phantom-delivery shape the cash-only/in-cash fix closed, one
+      // separator character wider.
+      const cases = ["reach 504/555/1212", "call 504_555_1212", "try 504*555*1212"];
+      for (const msg of cases) {
+        const v = scanMessage(msg);
+        expect(v.some((x) => x.type === "phone_number"), `should flag: ${msg}`).toBe(true);
+      }
+    });
+
+    it("flags a leading-separator phone number — server has no leading-boundary requirement at all (V-016, lh-verifier 2026-09-04)", () => {
+      // The prior fix above widened the MIDDLE two separators but left the
+      // leading segment as `\s*[-.]?\s*\(?` — narrower than the server,
+      // which has no special leading-boundary handling: its regex is just
+      // three digit groups joined by `[^0-9a-zA-Z]{0,4}`, with no anchor and
+      // no required prefix character at all. "504_555_0100" (underscore
+      // before the area code, not just between groups) matched server-side
+      // and was missed here until the leading segment was widened to match.
+      const v = scanMessage("reach me at 504_555_0100");
+      expect(v.some((x) => x.type === "phone_number")).toBe(true);
     });
   });
 
@@ -200,18 +239,21 @@ describe("F-TRUST-01 — client-only phrases (no server fraud_flag)", () => {
   });
 });
 
-describe("F-TRUST-01 — server-only phrases (not caught client-side)", () => {
-  it("does NOT flag 'cash only' — this is a server-only gate", () => {
-    // Intentional design: the client scanner has no regex for "cash only".
-    // If this test starts FAILING it means the client added the pattern —
-    // update this test and remove the server-only note above.
+describe("F-TRUST-01 — 'cash only'/'in cash' now warn client-side too (closed 2026-09-04)", () => {
+  // These were server-only: the server strikes the sender for either phrase,
+  // but the client showed no warning before send, so the message read as
+  // delivered in the sender's own thread while the recipient's copy was
+  // silently hidden — a phantom-delivery bug. The client now warns on the
+  // same phrases the server acts on; the server remains the sole enforcer
+  // (this scanner is advisory-only, per the file header).
+  it("flags 'cash only' — client now warns before the server strikes", () => {
     const v = scanMessage("I only take cash only payments");
-    expect(v.some((x) => x.type === "direct_pay")).toBe(false);
+    expect(v.some((x) => x.type === "direct_pay")).toBe(true);
   });
 
-  it("does NOT flag 'in cash' — server-only gate", () => {
+  it("flags 'in cash' — client now warns before the server strikes", () => {
     const v = scanMessage("Please pay me in cash");
-    expect(v.some((x) => x.type === "direct_pay")).toBe(false);
+    expect(v.some((x) => x.type === "direct_pay")).toBe(true);
   });
 });
 
@@ -298,4 +340,92 @@ describe("F-TRUST-01 — clean legitimate job messages produce zero violations",
       expect(scanMessage(msg)).toHaveLength(0);
     });
   }
+});
+
+/**
+ * Structural guard on the SERVER side, added 2026-09-04 after a lane found
+ * that `scan_message_content()`'s off-platform branches had NO word
+ * boundaries anywhere except `\mbtc\M`/`\meth\M` — so "text me" struck a
+ * sender for writing "a text message", "crypto" struck one for
+ * "cryptocurrency", "paypal" struck one for "paypalette".
+ *
+ * vitest cannot execute Postgres's regex engine (`\m`/`\M` aren't valid
+ * JavaScript regex syntax), so this cannot re-run the actual match the way
+ * the phone-number tests above do for the client. What it CAN do — and
+ * what the file's own header used to warn was missing — is read the LATEST
+ * migration that redefines the function and assert every off-platform
+ * phrase is still wrapped in `\m...\M`. This fails loudly if someone
+ * "simplifies" the regex back to bare substrings, which is exactly how
+ * this class of bug shipped the first time: quietly, with a green suite,
+ * because nothing here was reading the SQL at all.
+ */
+describe("scan_message_content() word-boundary guard (server-side, structural)", () => {
+  const MIGRATIONS_DIR = resolve(__dirname, "../../supabase/migrations");
+  // The patterns moved on 2026-09-06. scan_message_content() now DELEGATES to
+  // contact_leak_reason(), because the same rule had to guard `applications`
+  // too (a review found phone numbers and emails crossing between strangers
+  // through the application note and the offer message, which no trigger
+  // scanned). So the word-boundary guard this suite protects lives in the
+  // extracted function now.
+  //
+  // Both markers are searched, newest migration first, so this keeps working
+  // whichever function currently owns the patterns — the guard is about the
+  // REGEXES, not about which function houses them.
+  const FUNCTION_MARKERS = [
+    "CREATE OR REPLACE FUNCTION public.contact_leak_reason(",
+    "CREATE OR REPLACE FUNCTION public.scan_message_content()",
+  ];
+
+  function latestScanMessageContentBody(): string {
+    const files = readdirSync(MIGRATIONS_DIR)
+      .filter((f) => f.endsWith(".sql"))
+      .sort(); // filenames are timestamp-prefixed — lexical sort is chronological
+    for (let i = files.length - 1; i >= 0; i--) {
+      const sql = readFileSync(resolve(MIGRATIONS_DIR, files[i]), "utf8");
+      for (const marker of FUNCTION_MARKERS) {
+        const start = sql.indexOf(marker);
+        if (start === -1) continue;
+        const end = sql.indexOf("$function$;", sql.indexOf("$function$", start) + 1);
+        const body = sql.slice(start, end === -1 ? undefined : end);
+        // A delegating body carries no patterns — keep looking for the one that
+        // actually holds them, or this passes vacuously on a two-line wrapper.
+        if (body.includes("venmo")) return body;
+      }
+    }
+    throw new Error(
+      `No migration defines a body containing the scanner patterns (looked for ${FUNCTION_MARKERS.join(" or ")}) — the guard itself has drifted`,
+    );
+  }
+
+  const body = latestScanMessageContentBody();
+
+  // Every phrase/word this migration deliberately word-boundary-guarded.
+  // If one of these regresses to a bare substring, this list is the record
+  // of what the fix covered — update it deliberately, don't just delete
+  // the failing assertion.
+  const GUARDED_TERMS = [
+    "venmo", "cashapp", "cash app", "zelle", "paypal", "crypto", "bitcoin",
+    "btc", "eth",
+    "pay me direct", "off the app", "outside the app", "skip the fee",
+    "avoid the fee", "cash only", "in cash", "text me", "call me",
+    "whatsapp", "telegram", "dm me", "hit me up", "contact me at",
+    "reach me at", "send money to", "pay outside",
+  ];
+
+  it("found a definition to check", () => {
+    expect(body.length, "latestScanMessageContentBody() returned nothing").toBeGreaterThan(0);
+  });
+
+  for (const term of GUARDED_TERMS) {
+    it(`"${term}" is wrapped in \\m...\\M, not a bare substring`, () => {
+      // Postgres regex literals escape backslashes in the SQL source as
+      // written (single backslash inside a plain string), so the literal
+      // text to look for is exactly `\mTERM\M`.
+      expect(
+        body,
+        `Expected \\m${term}\\M in scan_message_content() — found the bare word/phrase without a boundary guard, which is the exact bug this test exists to catch.`,
+      ).toContain(`\\m${term}\\M`);
+    });
+  }
+
 });

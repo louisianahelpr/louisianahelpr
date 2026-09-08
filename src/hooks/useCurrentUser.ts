@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { subscribeWithRecovery, type RecoveringSubscription } from "@/lib/realtimeRecovery";
 import { queryKeys } from "@/lib/queryKeys";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -103,13 +102,40 @@ const fetchCurrentUser = async (
   // own roles" policy (USING auth.uid() = user_id) lets them read their own
   // rows, so no admin row resolves as `{ data: null, error: null }` — a real
   // answer, not an error. An error here really does mean "could not determine".
-  const adminPromise = withTimeout(
+  // ONE attempt is not enough (AR-011, lh-authz-rls 2026-09-04): this whole
+  // promise catches and RESOLVES on failure, so a slow/flaky connection never
+  // reaches React Query's own `retry: 2` — that only applies to a REJECTED
+  // query, and this one never rejects. Verified live: a single injected
+  // HTTP 500 on this exact read locked a real admin out of /admin with no
+  // automatic retry, needing a manual "Try again" tap. Retrying INSIDE the
+  // existing 10s timeout budget (not adding a new one) means a fast error is
+  // retried for free while a genuinely slow connection still gets the same
+  // 10s it always had — not 30s of extra waiting for a legitimately down
+  // network.
+  const ADMIN_ROLE_ATTEMPTS = 3;
+  const ADMIN_ROLE_RETRY_DELAY_MS = 250;
+  const readAdminRoleOnce = () =>
     Promise.resolve(
       supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle(),
     ).then(({ data, error }): { ok: true; isAdmin: boolean } => {
       if (error) throw error;
       return { ok: true, isAdmin: !!data };
-    }),
+    });
+  const adminPromise = withTimeout(
+    (async (): Promise<{ ok: true; isAdmin: boolean }> => {
+      let lastErr: unknown;
+      for (let attempt = 0; attempt < ADMIN_ROLE_ATTEMPTS; attempt++) {
+        if (attempt > 0) {
+          await new Promise((resolve) => window.setTimeout(resolve, ADMIN_ROLE_RETRY_DELAY_MS * attempt));
+        }
+        try {
+          return await readAdminRoleOnce();
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr;
+    })(),
   ).catch((err): { ok: false; isAdmin: false } => {
     // Loud on purpose: this used to vanish without a trace, which is most of
     // why it took a two-lane outage to find.
@@ -127,69 +153,26 @@ const fetchCurrentUser = async (
 };
 
 /**
- * Refcounted, per-user subscription to the caller's OWN profiles row.
+ * There is deliberately NO realtime subscription to the caller's own profile.
  *
- * Every consumer registers a listener; only the FIRST opens a realtime
- * channel and only the LAST closes it. Keyed by user id so a session switch
- * gets its own channel and the old one is torn down when its last listener
- * leaves.
+ * There used to be one — a refcounted `profile-self-<uid>` channel binding
+ * UPDATE on `public.profiles` — and it had never delivered a single event.
+ * Migration 20260423164103 DROPPED `profiles` from the `supabase_realtime`
+ * publication on purpose, to stop broadcasting sensitive PII, so from that day
+ * the binding was dead. Supabase does not error on a binding to an unpublished
+ * table; the channel simply reports CHANNEL_ERROR and retries forever, which
+ * is why this survived so long — it read as working code and cost nothing
+ * visible. (Filed as SF-017.)
+ *
+ * Re-publishing `profiles` is NOT the fix: that reopens the exact PII
+ * broadcast the 2026-04 migration closed.
+ *
+ * What actually keeps the profile fresh is the query config below —
+ * `staleTime: 30s` plus `refetchOnWindowFocus` and `refetchOnReconnect`. An
+ * admin flipping `approval_status`, `idv_status`, `subscription_tier` or a ban
+ * reaches an open client on the next focus or within 30 seconds. That was
+ * always the real mechanism; it just was not the one the comments credited.
  */
-const ownProfileChannels = new Map<
-  string,
-  { sub: RecoveringSubscription; listeners: Set<() => void> }
->();
-
-function subscribeToOwnProfile(userId: string, onChange: () => void): () => void {
-  let entry = ownProfileChannels.get(userId);
-
-  if (!entry) {
-    const listeners = new Set<() => void>();
-    // subscribeWithRecovery keeps this in lockstep with the rest of the
-    // codebase — it owns the nonce (re-minted per reconnect attempt), the
-    // backoff, and the health reporting, so this registry can't drift from the
-    // hook-shaped call sites.
-    const sub = subscribeWithRecovery(
-      (name) => supabase
-      .channel(name)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "profiles",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          // Copy before iterating: a listener may unsubscribe on invalidation.
-          for (const fn of [...listeners]) fn();
-        },
-      ),
-      {
-        name: `profile-self-${userId}`,
-        // The listeners are cache invalidations, so re-firing them all after an
-        // outage IS the backfill: whatever changed on the profile while the
-        // socket was down gets re-read on the next render.
-        onRecovered: () => {
-          for (const fn of [...listeners]) fn();
-        },
-      },
-    );
-    entry = { sub, listeners };
-    ownProfileChannels.set(userId, entry);
-  }
-
-  entry.listeners.add(onChange);
-
-  return () => {
-    const current = ownProfileChannels.get(userId);
-    if (!current) return;
-    current.listeners.delete(onChange);
-    if (current.listeners.size === 0) {
-      ownProfileChannels.delete(userId);
-      current.sub.close();
-    }
-  };
-}
 
 export const useCurrentUser = (): CurrentUser => {
   const { user, isReady } = useAuthReady();
@@ -199,8 +182,10 @@ export const useCurrentUser = (): CurrentUser => {
     queryKey: queryKeys.currentUser.byId(user?.id),
     queryFn: () => fetchCurrentUser(user!.id),
     enabled: isReady && !!user,
+    // This is the ONLY mechanism that refreshes the profile — see the block
+    // comment above `useCurrentUser` for why there is no realtime channel.
     // Short staleTime so approval-status changes (made by an admin) get picked
-    // up quickly even if realtime is unavailable.
+    // up quickly; focus/reconnect refetch covers the returning-user case.
     staleTime: 30 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: true,
@@ -208,25 +193,6 @@ export const useCurrentUser = (): CurrentUser => {
     retry: 2,
   });
 
-  // Realtime: when the current user's profile row is updated (e.g. admin
-  // flips approval_status from "pending" → "approved"), invalidate the cache
-  // so the UI reflects the new status without a manual reload.
-  //
-  // ONE channel per user, refcounted — not one per hook consumer. 39 files
-  // call useCurrentUser(), and this effect used to live in the hook body, so
-  // every mounted instance opened its own websocket channel against the SAME
-  // profiles row with the SAME filter. A runtime capture on 2026-08-31 found
-  // 13 channels open on /dashboard, 7 of them identical `profile-self-*`
-  // subscriptions (9 on /profile). The per-subscription nonce made them all distinct, so
-  // the "unique channel name" house rule technically held while the app quietly
-  // burned 7-9x its share of Supabase's per-project concurrent-subscription
-  // budget on every page load.
-  useEffect(() => {
-    if (!user?.id) return;
-    return subscribeToOwnProfile(user.id, () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(user.id) });
-    });
-  }, [user?.id, queryClient]);
 
   const refresh = async () => {
     if (!user?.id) return;

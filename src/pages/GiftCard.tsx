@@ -159,7 +159,7 @@ export default function GiftCard() {
       } catch (e) {
         report(e, { tags: { source: "GiftCard.claim" } });
         errorToast("Couldn't claim gift card", {
-          description: e instanceof Error ? e.message : "Please try again.",
+          description: e instanceof Error ? e.message : "Try again?",
         });
       } finally {
         setClaiming(false);
@@ -350,7 +350,7 @@ export default function GiftCard() {
               className="w-4 h-4 shrink-0 rounded-full border-2 border-t-transparent motion-safe:animate-spin"
               style={{ borderColor: "hsl(var(--success-ink))", borderTopColor: "transparent" }}
             />
-            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--gift-ink))" }}>
+            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--gift-ink))" }}>
               Claiming your gift card…
             </p>
           </div>
@@ -391,7 +391,7 @@ export default function GiftCard() {
                 </p>
               </div>
               <p
-                className="font-serif italic text-ds-13 leading-relaxed"
+                className="font-sans text-ds-13 leading-relaxed"
                 style={{ color: "hsl(var(--ink-deep) / 0.75)" }}
               >
                 Send a Helpr gift card to someone you know. Find them by name or type their email,
@@ -448,7 +448,7 @@ export default function GiftCard() {
               <div>
                 <p
                   id="gift-occasion-label"
-                  className="font-serif italic text-ds-12 mb-2"
+                  className="font-sans text-ds-12 mb-2"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Occasion
@@ -539,7 +539,7 @@ export default function GiftCard() {
                   <div className="mt-3">
                     <p
                       id="gift-design-label"
-                      className="font-serif italic text-ds-12 mb-2"
+                      className="font-sans text-ds-12 mb-2"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Card design
@@ -573,7 +573,7 @@ export default function GiftCard() {
                           >
                             <span
                               aria-hidden
-                              className="w-8 h-8 shrink-0 rounded-[6px]"
+                              className="w-8 h-8 shrink-0 rounded-md"
                               style={{
                                 background: d.background,
                                 border: "0.5px solid hsl(var(--ink-deep) / 0.15)",
@@ -623,7 +623,7 @@ export default function GiftCard() {
               <div>
                 <p
                   id="gift-amount-label"
-                  className="font-serif italic text-ds-12 mb-2"
+                  className="font-sans text-ds-12 mb-2"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Amount
@@ -663,7 +663,7 @@ export default function GiftCard() {
 
                 <label
                   htmlFor="gift-custom-amount"
-                  className="block font-serif italic text-ds-12 mt-3 mb-1.5"
+                  className="block font-sans text-ds-12 mt-3 mb-1.5"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Or enter a custom amount
@@ -702,7 +702,7 @@ export default function GiftCard() {
                 </div>
                 {amountTooLarge && (
                   <p
-                    className="font-serif italic text-ds-11 mt-1.5"
+                    className="font-sans text-ds-11 mt-1.5"
                     style={{ color: "hsl(var(--burnt-sienna))" }}
                   >
                     The largest single gift card is ${MAX_GIFT}.
@@ -710,7 +710,7 @@ export default function GiftCard() {
                 )}
                 <p
                   id="gift-amount-help"
-                  className="font-serif italic text-ds-11 mt-1.5"
+                  className="font-sans text-ds-11 mt-1.5"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   ${MIN_GIFT}–${MAX_GIFT} per gift card. A card-processing fee ({(STRIPE_PCT * 100).toFixed(1)}% + {STRIPE_FLAT_CENTS}¢) is added at checkout.
@@ -729,7 +729,7 @@ export default function GiftCard() {
                       and one fewer string to keep in sync. */}
                   <label
                     htmlFor="gift-note"
-                    className="font-serif italic text-ds-12"
+                    className="font-sans text-ds-12"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Personal note — optional
@@ -748,7 +748,7 @@ export default function GiftCard() {
                   placeholder={occasion.notePlaceholder}
                   rows={2}
                   maxLength={MAX_NOTE_LENGTH}
-                  className="rounded-ds-sm bg-background/60 border-border/60 font-serif italic text-ds-13 leading-relaxed"
+                  className="rounded-ds-sm bg-background/60 border-border/60 font-sans text-ds-13 leading-relaxed"
                 />
               </div>
 

@@ -4,7 +4,7 @@ import { Toaster as Sonner, toast } from "sonner";
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 // Brand-aligned toast styling — translucent parchment surface with
-// olivewood hairline border, font-serif italic body, and stage-tinted
+// olivewood hairline border, font-sans body, and stage-tinted
 // icon colors (bark for success, sienna for error/warning).
 // The app is light-only (dark mode was removed), so the toaster is
 // hardcoded to the light theme.
@@ -78,7 +78,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         unstyled: false,
         classNames: {
           toast:
-            "group toast !rounded-2xl !border-0 !shadow-[0_1px_2px_hsl(var(--olivewood)/0.06),0_14px_30px_-8px_hsl(var(--olivewood)/0.20)] !text-[hsl(var(--ink-deep))] !font-serif !italic !text-ds-14 !leading-snug !backdrop-blur-[18px] !backdrop-saturate-[160%] before:absolute before:inset-0 before:rounded-2xl before:border before:border-[hsl(var(--olivewood)/0.12)] before:pointer-events-none",
+            "group toast !rounded-2xl !border-0 !shadow-[0_1px_2px_hsl(var(--olivewood)/0.06),0_14px_30px_-8px_hsl(var(--olivewood)/0.20)] !text-[hsl(var(--ink-deep))] !font-sans !text-ds-14 !leading-snug !backdrop-blur-[18px] !backdrop-saturate-[160%] before:absolute before:inset-0 before:rounded-2xl before:border before:border-[hsl(var(--olivewood)/0.12)] before:pointer-events-none",
           // Titles wrap like any other text now. The old `!whitespace-nowrap`
           // (owner, 2026-08-30: "one line", aimed at short titles like "Turn
           // on notifications?") also caught every plain `toast.error("...")`
@@ -92,8 +92,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
           // so it wraps at the actual available width instead of the text's
           // un-shrunk intrinsic width; short titles still render on one line
           // because they're short, not because wrapping is disabled.
-          title: "!font-display !italic !font-bold !not-[font-serif] !text-ds-15 !leading-tight !whitespace-normal !break-words !min-w-0 !text-[hsl(var(--ink-deep))]",
-          description: "!font-serif !italic !text-ds-12 !text-[hsl(var(--olivewood)/0.8)] !whitespace-normal !break-words !min-w-0",
+          title: "!font-display !italic !font-bold !text-ds-15 !leading-tight !whitespace-normal !break-words !min-w-0 !text-[hsl(var(--ink-deep))]",
+          description: "!font-sans !text-ds-12 !text-[hsl(var(--olivewood)/0.8)] !whitespace-normal !break-words !min-w-0",
           // Action ("View", "Retry", …) — the toast's one real control, so it
           // gets the app's primary-CTA surface in miniature: the same bark
           // gradient, top-edge highlight and lift as <Button variant="primary">

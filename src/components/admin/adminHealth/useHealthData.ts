@@ -102,12 +102,16 @@ export const useHealthData = () => {
       // Volumes are still small (~tens of open jobs, low hundreds of helpers),
       // so client-side aggregation is fine. Convert to an RPC if either query
       // routinely returns more than a few hundred rows.
-      // helper_preferred_parishes.helper_id FKs to auth.users (= profiles.user_id),
-      // NOT to public.profiles, so PostgREST can't embed `profiles!inner(...)` here
-      // — that request 400s and, read via `.data || []`, would silently show 0
-      // helpers in every parish. Fetch the prefs, then filter by a separate
-      // profiles lookup keyed by user_id = helper_id.
-      const [openJobs, prefRows] = await Promise.all([
+      // Supply is counted from `profiles.parish` — the parish derived from each
+      // account's ZIP. It used to be counted from `helper_preferred_parishes`,
+      // which meant this panel reported ZERO helpers in every parish for the
+      // life of the product: nothing could ever write that table, so it was
+      // permanently empty, and it was removed on 2026-09-07 (migration
+      // 20260907194734). `profiles.parish` is the same signal the two server
+      // paths that matter already use — `get_ranked_open_jobs`' parish rung and
+      // `notify_helpers_on_job_post`'s fan-out — so the panel now measures the
+      // supply those paths actually reach.
+      const [openJobs, helperProfiles] = await Promise.all([
         (async () =>
           unwrap(
             await supabase.from("jobs").select("id, parish, created_at").eq("status", "open"),
@@ -115,26 +119,16 @@ export const useHealthData = () => {
         (async () =>
           unwrap(
             await supabase
-              .from("helper_preferred_parishes")
-              .select("parish, helper_id"),
-          ) as { parish: string; helper_id: string }[])(),
+              .from("profiles")
+              .select("user_id, parish, ban_status")
+              .not("parish", "is", null)
+              .eq("approval_status", "approved"),
+          ) as { user_id: string; parish: string | null; ban_status: string | null }[])(),
       ]);
 
-      const prefHelperIds = [...new Set(prefRows.map((r) => r.helper_id))];
-      let activeHelperIds = new Set<string>();
-      if (prefHelperIds.length > 0) {
-        const activeProfiles = unwrap(
-          await supabase
-            .from("profiles")
-            .select("user_id, ban_status")
-            .in("user_id", prefHelperIds)
-            .eq("approval_status", "approved"),
-        ) as { user_id: string; ban_status: string | null }[];
-        activeHelperIds = new Set(
-          activeProfiles.filter((p) => p.ban_status !== "banned").map((p) => p.user_id),
-        );
-      }
-      const helperRows = prefRows.filter((r) => activeHelperIds.has(r.helper_id));
+      const helperRows = helperProfiles
+        .filter((p) => p.ban_status !== "banned")
+        .map((p) => ({ parish: p.parish, helper_id: p.user_id }));
 
       const openByParish = new Map<string, number>();
       for (const j of openJobs) {

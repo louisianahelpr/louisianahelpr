@@ -23,9 +23,6 @@ type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
 export type ProfileReview = {
   rating: number;
-  punctuality: number | null;
-  quality: number | null;
-  communication: number | null;
   feedback: string | null;
   created_at: string;
   reviewerName: string;
@@ -94,7 +91,7 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
       const data = unwrap(
         await supabase
           .from("reviews")
-          .select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
+          .select("rating, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
           .eq("reviewee_id", id)
           .lte("feedback_visible_at", new Date().toISOString())
           .neq("jobs.status", "cancelled")
@@ -130,9 +127,6 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
       const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
       return data.map((r: any) => ({
         rating: r.rating,
-        punctuality: r.punctuality ?? null,
-        quality: r.quality ?? null,
-        communication: r.communication ?? null,
         feedback: r.feedback,
         created_at: r.created_at,
         // "a neighbor", not "User": every other consumer surface for this exact
@@ -142,7 +136,7 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
         // same review. Admin surfaces keep "Deleted user" — an admin should see
         // the truth.
         reviewerName: (r.reviewer_id ? nameMap.get(r.reviewer_id) : null) || "a neighbor",
-        jobTitle: jobMap.get(r.job_id) || "a task",
+        jobTitle: jobMap.get(r.job_id) || "a job",
       }));
     },
   });
@@ -171,6 +165,34 @@ export function useProfileEarnings(userId: string | undefined, enabled: boolean)
         .select("job_id")
         .eq("helper_id", id);
       const rosterJobIds = [...new Set((unwrap(rosterRes) ?? []).map((r) => r.job_id))];
+      // NO `is_seed` FILTER HERE, AND THE OMISSION IS DELIBERATE — READ THIS
+      // BEFORE ADDING ONE BACK.
+      //
+      // It was added on 2026-09-04 for ME-042: seed fixtures written straight
+      // into SQL with `payment_status='released'` and no `payout_transfers`
+      // row made "total earned" ($349.60) disagree with the payout ledger
+      // ($248.40). It was removed on 2026-09-06 because it filtered on the
+      // wrong axis and broke a real screen. External QA ran a full job loop,
+      // the poster approved and released, and the helper's Earnings & Payouts
+      // read "$0.00 · total earned · 0 jobs" and "No earnings yet" — while My
+      // Jobs → Done showed the same job at $105 with its proof photos.
+      // Reproduced against prod: helper 437de07d (profile `is_seed=false`, a
+      // real account, Stripe connected) had exactly one non-cancelled job,
+      // 8133a907 "QA main loop mow and edge", `is_seed=true`. This one clause
+      // was the whole reason every figure on that screen was zero.
+      //
+      // `is_seed` marks a FIXTURE ROW. It does not mark money that did not
+      // move, which is what ME-042 was actually about, and it is not consulted
+      // by My Jobs, by `useProfileStats`, or by the Work Record — so putting
+      // it here is what made two screens disagree about one job. The honest
+      // axis is `payment_status`, and it now lives in `isEarnedJob`
+      // (earningsTabHelpers.ts): a completed job counts as earned only when
+      // its money is `payout_pending` or `released`, so a refunded or
+      // charged-back job stops counting as income too — which the old
+      // `status === "completed"` test got wrong for every account, fixture or
+      // not. Admin aggregates keep excluding `is_seed` unconditionally
+      // (see src/config/showSeedJobs.ts); a platform-wide money figure and one
+      // person's own ledger are not the same instrument.
       const jobsQuery = supabase.from("jobs").select("*").neq("status", "cancelled");
       const [jobsRes, tipsRes] = await Promise.all([
         (rosterJobIds.length

@@ -14,13 +14,36 @@
 // STRIPE_SECRET_KEY), those live IDs don't exist and create-pro-checkout
 // fails with an internal error. To support test-mode QA without duplicating
 // the file, each ID can be overridden by a matching `STRIPE_PRICE_*` env
-// var. `resolvePrice()` reads the env at call time — undefined env → fall
-// back to the hardcoded live ID — so client-side (vitest, browser) code
-// that has no `Deno.env` still gets the live IDs at import time, and edge
-// runtime that provides the env sees the test IDs. Set the six vars via
-// `supabase secrets set` when swapping keys.
+// var — but the override is only HONORED when STRIPE_SECRET_KEY is itself a
+// test key (`sk_test_...`). Set the six vars via `supabase secrets set` when
+// testing.
+//
+// ME-039 (lh-money-escrow, 2026-09-04): the override used to apply
+// unconditionally whenever the six STRIPE_PRICE_* vars were set, with
+// nothing coupling their removal to flipping STRIPE_SECRET_KEY back to live.
+// A go-live that swapped the key but forgot to unset the six overrides (or
+// unset them in a separate step CI doesn't enforce) would silently post test
+// Price IDs to a live Stripe key and 500 every membership checkout —
+// launch-day-shaped, since nothing short of a live transaction attempt would
+// catch it. Deriving the mode from the key's own prefix removes the
+// human-coordinated step entirely: the ID always matches whatever mode the
+// key running RIGHT NOW is actually in, so the two can no longer drift apart.
 
-export type ProTierKey = "basic" | "pro" | "elite";
+export type ProTierKey = "basic" | "pro" | "plus" | "elite";
+
+/**
+ * How long a "Once" (one_time) purchase entitles the buyer, on EVERY store.
+ *
+ * Two writers stamp `subscription_expires_at` for a one-time pass:
+ * stripe-webhook's checkoutSessionCompleted (web) and
+ * _shared/appleAppStore.ts computeExpiry (iOS). Until 2026-09-07 the web
+ * handler hard-coded 30 days and the Apple path hard-coded 365 — the same
+ * product, the same price, twelve times the entitlement depending on which
+ * button was tapped, and nothing comparing the two. The UI copy reads from
+ * src/lib/subscriptionTiers.ts ONE_TIME_PASS_DAYS; proTiers.parity.test.ts
+ * pins that to this.
+ */
+export const ONE_TIME_PASS_DAYS = 30;
 export type ProBillingCycle = "monthly" | "annual" | "one_time";
 
 // Read a Deno.env var safely — returns undefined outside a Deno runtime
@@ -29,6 +52,12 @@ const readEnv = (key: string): string | undefined => {
   const d = (globalThis as { Deno?: { env?: { get?: (k: string) => string | undefined } } }).Deno;
   return d?.env?.get?.(key);
 };
+
+// The override only ever applies in test mode — never in vitest/browser
+// (no Deno.env → undefined → falls through to "not test mode" → live IDs,
+// same as before) and never when STRIPE_SECRET_KEY is a live key, no matter
+// what the six STRIPE_PRICE_* vars are set to.
+const isStripeTestMode = (): boolean => (readEnv("STRIPE_SECRET_KEY") ?? "").startsWith("sk_test_");
 
 const LIVE_PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
@@ -39,19 +68,42 @@ const LIVE_PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = 
     // placeholder string to live Stripe and returned an opaque 500.
     // Verified against live acct_1RQbAfKp2H4b7tEC: all three are active,
     // livemode, and match PRO_RECURRING_AMOUNT_CENTS (500 / 5000 / 500).
+    //
+    // ELITE REPOINTED 2026-09-05. The old ids
+    // (price_1TAZkSKp…lf0VNiEa / …agD42xRa / …mn27C8JM) are still ACTIVE in
+    // live Stripe and still charge the PRE-RAISE $15 / $150 / $15. The
+    // 2026-08-27 raise to $20 / $200 / $20 reached this file and the TEST-mode
+    // Prices; live never got it. Read straight off the live account today:
+    // Basic and Pro matched to the cent, Elite was 25% under on all three
+    // cycles — so the moment STRIPE_SECRET_KEY goes live the storefront sells
+    // Elite at $20 and Stripe collects $15.
+    //
+    // Nothing could have caught it. PRO_RECURRING_AMOUNT_CENTS is only ever
+    // compared against our own displayed prices (proTiers.parity.test.ts), so
+    // the guard is a closed loop between two files we control and cannot see
+    // Stripe at all. Zero live subscriptions existed, so nobody was
+    // grandfathered and no refund is owed.
+    //
+    // Stripe Prices are IMMUTABLE in unit_amount, so the fix is new Price
+    // objects, not an edit. The old ones are deliberately left active until
+    // this deploys — archiving them first would break live checkout in the
+    // window between.
     basic: "price_1TAZjdKp2H4b7tECG4TDPOxd",
     pro: "price_1TAZkLKp2H4b7tEC0ACbAX2y",
-    elite: "price_1TAZkSKp2H4b7tEClf0VNiEa",
+    plus: "price_1UCROAKp2H4b7tECluSTpunn",
+    elite: "price_1UCRNVKp2H4b7tECg66qPod9",
   },
   annual: {
     basic: "price_1TAZkXKp2H4b7tECRBtNRne5",
     pro: "price_1TAZkbKp2H4b7tECZ7Qr6CZS",
-    elite: "price_1TAZkcKp2H4b7tECagD42xRa",
+    plus: "price_1UCROHKp2H4b7tECpRrkVVsR",
+    elite: "price_1UCRNsKp2H4b7tECkZLTQjRB",
   },
   one_time: {
     basic: "price_1TAZkdKp2H4b7tECtvvFRyJf",
     pro: "price_1TAZkeKp2H4b7tECnfZ7vF0C",
-    elite: "price_1TAZkeKp2H4b7tECmn27C8JM",
+    plus: "price_1UCROlKp2H4b7tECxd4qNA5i",
+    elite: "price_1UCRNzKp2H4b7tEC3MUHI7Lu",
   },
 };
 
@@ -59,16 +111,19 @@ const ENV_KEY: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
     basic: "STRIPE_PRICE_BASIC_MONTHLY",
     pro: "STRIPE_PRICE_PRO_MONTHLY",
+    plus: "STRIPE_PRICE_PLUS_MONTHLY",
     elite: "STRIPE_PRICE_ELITE_MONTHLY",
   },
   annual: {
     basic: "STRIPE_PRICE_BASIC_ANNUAL",
     pro: "STRIPE_PRICE_PRO_ANNUAL",
+    plus: "STRIPE_PRICE_PLUS_ANNUAL",
     elite: "STRIPE_PRICE_ELITE_ANNUAL",
   },
   one_time: {
     basic: "STRIPE_PRICE_BASIC_ONETIME",
     pro: "STRIPE_PRICE_PRO_ONETIME",
+    plus: "STRIPE_PRICE_PLUS_ONETIME",
     elite: "STRIPE_PRICE_ELITE_ONETIME",
   },
 };
@@ -81,22 +136,45 @@ const ENV_KEY: Record<ProBillingCycle, Record<ProTierKey, string>> = {
  * are exposed as getters so each read hits the env fresh — no module-load
  * snapshot to invalidate when secrets rotate.
  */
+const resolvePrice = (cycle: ProBillingCycle, tier: ProTierKey): string => {
+  if (isStripeTestMode()) {
+    const override = readEnv(ENV_KEY[cycle][tier]);
+    if (override) return override;
+  }
+  return LIVE_PRO_PRICE_MAP[cycle][tier];
+};
+
+// NOTE THE MISSING `as Record<ProTierKey, string>` CASTS. They used to be on
+// each cycle, and they were load-bearing in the worst way: the objects listed
+// only basic/pro/elite, and the cast asserted to TypeScript that they were
+// complete. When Plus was restored on 2026-09-05 the compiler therefore said
+// nothing, `PRO_PRICE_MAP.monthly.plus` was `undefined`, and create-pro-checkout
+// would have thrown "No Stripe price configured for tier plus" on every Plus
+// purchase — the tier sellable everywhere except the one place that charges.
+//
+// Worse, the parity tests derive their tier list FROM this object, so the
+// omission was invisible to them too: a registry cannot fail for a member it
+// never had. Without the casts, a new ProTierKey is a compile error here, which
+// is the only guard that actually works.
 export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
-    get basic() { return readEnv(ENV_KEY.monthly.basic) ?? LIVE_PRO_PRICE_MAP.monthly.basic; },
-    get pro() { return readEnv(ENV_KEY.monthly.pro) ?? LIVE_PRO_PRICE_MAP.monthly.pro; },
-    get elite() { return readEnv(ENV_KEY.monthly.elite) ?? LIVE_PRO_PRICE_MAP.monthly.elite; },
-  } as Record<ProTierKey, string>,
+    get basic() { return resolvePrice("monthly", "basic"); },
+    get pro() { return resolvePrice("monthly", "pro"); },
+    get plus() { return resolvePrice("monthly", "plus"); },
+    get elite() { return resolvePrice("monthly", "elite"); },
+  },
   annual: {
-    get basic() { return readEnv(ENV_KEY.annual.basic) ?? LIVE_PRO_PRICE_MAP.annual.basic; },
-    get pro() { return readEnv(ENV_KEY.annual.pro) ?? LIVE_PRO_PRICE_MAP.annual.pro; },
-    get elite() { return readEnv(ENV_KEY.annual.elite) ?? LIVE_PRO_PRICE_MAP.annual.elite; },
-  } as Record<ProTierKey, string>,
+    get basic() { return resolvePrice("annual", "basic"); },
+    get pro() { return resolvePrice("annual", "pro"); },
+    get plus() { return resolvePrice("annual", "plus"); },
+    get elite() { return resolvePrice("annual", "elite"); },
+  },
   one_time: {
-    get basic() { return readEnv(ENV_KEY.one_time.basic) ?? LIVE_PRO_PRICE_MAP.one_time.basic; },
-    get pro() { return readEnv(ENV_KEY.one_time.pro) ?? LIVE_PRO_PRICE_MAP.one_time.pro; },
-    get elite() { return readEnv(ENV_KEY.one_time.elite) ?? LIVE_PRO_PRICE_MAP.one_time.elite; },
-  } as Record<ProTierKey, string>,
+    get basic() { return resolvePrice("one_time", "basic"); },
+    get pro() { return resolvePrice("one_time", "pro"); },
+    get plus() { return resolvePrice("one_time", "plus"); },
+    get elite() { return resolvePrice("one_time", "elite"); },
+  },
 };
 
 /**
@@ -114,6 +192,6 @@ export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> 
  * would itself be an un-guarded guess.
  */
 export const PRO_RECURRING_AMOUNT_CENTS: Record<"monthly" | "annual", Record<ProTierKey, number>> = {
-  monthly: { basic: 500, pro: 1000, elite: 2000 },
-  annual: { basic: 5000, pro: 10000, elite: 20000 },
+  monthly: { basic: 500, pro: 1000, plus: 1500, elite: 2000 },
+  annual: { basic: 5000, pro: 10000, plus: 15000, elite: 20000 },
 };

@@ -30,17 +30,36 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { report } from "@/lib/errorLogger";
 import { safeStorage } from "@/lib/safeStorage";
-import { formatPrice } from "@/lib/format";
+// formatPriceExact, not formatPrice: the sentences below state a sum of money
+// that is ACTUALLY SITTING IN ESCROW. See the note at the render site.
+import { formatPriceExact } from "@/lib/format";
 import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { shareNative } from "@/lib/nativeShare";
+// The visibility delay is DERIVED, never retyped — `public.early_access_cutoff()`
+// is the enforcement point and `earlyAccess.ts` is the client mirror the parity
+// test already pins it to. See the "Posted" caption below.
+import { MAX_EARLY_ACCESS_DELAY_MINUTES } from "@/lib/earlyAccess";
 
 // Visual lifecycle preview — replaces the dense paragraph that used to
 // sit in this same slot. Keeps the same content (4 stages from job-state
 // machine: open → accepted → in_progress → completed) but presents it
 // as scannable steps so customers know what to expect next.
 const LIFECYCLE_STEPS = [
-  { icon: Megaphone, label: "Posted", caption: "Your job is live for nearby Helprs." },
+  // "Your job is live for nearby Helprs." was not true for most of the people
+  // it was about. `public.early_access_cutoff()` holds a brand-new job back
+  // from anyone without the early-access perk for
+  // MAX_EARLY_ACCESS_DELAY_MINUTES — Elite sees it at once, Free waits the
+  // full window — so the poster was told their job had reached an audience
+  // that, for the largest tier by far, could not see it yet. That reads as a
+  // dead feed rather than as a delay, and it is the reason a poster gets no
+  // applicants for twenty minutes and assumes nobody wants the job. Saying so
+  // costs one clause and turns a silent wait into an expected one.
+  {
+    icon: Megaphone,
+    label: "Posted",
+    caption: `Live now — nearby Helprs see it within ${MAX_EARLY_ACCESS_DELAY_MINUTES} min.`,
+  },
   { icon: Handshake, label: "Accepted", caption: "You review applicants and pick one." },
   { icon: Hammer, label: "In progress", caption: "Helpr arrives and gets to work." },
   { icon: Wallet, label: "Released", caption: "Both confirm — payment goes out." },
@@ -76,7 +95,9 @@ const LIFECYCLE_STEPS = [
 type ConfirmState = "checking" | "held" | "not_held" | "unknown";
 
 /** Why we ended up in `unknown` — changes only the explanatory sentence. */
-type UnknownReason = "no-reference" | "unreachable" | "not-found" | "moved" | "pending";
+// ME-041 (lh-money-escrow, 2026-09-04): "moved" was declared here but nothing
+// in this file ever assigned it — dead since whenever it was added.
+type UnknownReason = "no-reference" | "unreachable" | "not-found" | "pending";
 
 /**
  * `jobs.payment_status` values where "held securely until you confirm the work
@@ -90,7 +111,13 @@ type UnknownReason = "no-reference" | "unreachable" | "not-found" | "moved" | "p
  * user to My Posts where the job's real state is shown. Better to say "we
  * can't confirm that here" than to print a sentence that isn't true.
  */
-const HELD_STATUSES = new Set(["escrow", "payout_pending"]);
+// "released" added (ME-041, lh-money-escrow 2026-09-04): re-opening this
+// return URL for a job whose payout already completed fell through every
+// poll attempt (matched neither set) and landed on the "hasn't been
+// confirmed on our side yet… please don't pay again" pending copy — actively
+// wrong for a payment that not only succeeded but has already been paid out.
+// `released` means the charge succeeded at least as much as `escrow` did.
+const HELD_STATUSES = new Set(["escrow", "payout_pending", "released"]);
 
 /** States that mean this job never got funded. */
 const NOT_HELD_STATUSES = new Set(["failed", "cancelled", "abandoned"]);
@@ -129,6 +156,10 @@ const PaymentSuccess = () => {
   // Job category, read in the same lookup, purely to pick the materials list.
   // Null (or a category with no entry in categoryMaterials) renders nothing.
   const [category, setCategory] = useState<string | null>(null);
+  // ME-041: distinguishes "still escrowed, releases on your confirmation"
+  // from "already released" — both are `isHeld`, but they are not the same
+  // claim, and the escrow copy below is false for the second one.
+  const [alreadyReleased, setAlreadyReleased] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState>(
     resolvedJobId ? "checking" : "unknown",
   );
@@ -197,7 +228,13 @@ const PaymentSuccess = () => {
     void hapticLight();
     // Clear the cached id so the next visit to this page doesn't
     // re-surface the wrong job.
-    try { safeStorage.removeItem("helpr_last_posted_job_id"); } catch { /* ignore */ }
+    try {
+      safeStorage.removeItem("helpr_last_posted_job_id");
+    } catch {
+      // Silent by design: this only clears a convenience pointer to the job
+      // just posted. A stale value is read defensively everywhere it is used,
+      // and safeStorage already swallows the private-mode throw.
+    }
     if (resolvedJobId) {
       navigate(`/post-job?rebook=${resolvedJobId}`);
     } else {
@@ -207,7 +244,13 @@ const PaymentSuccess = () => {
 
   const handleViewApplicants = () => {
     void hapticLight();
-    try { safeStorage.removeItem("helpr_last_posted_job_id"); } catch { /* ignore */ }
+    try {
+      safeStorage.removeItem("helpr_last_posted_job_id");
+    } catch {
+      // Silent by design: this only clears a convenience pointer to the job
+      // just posted. A stale value is read defensively everywhere it is used,
+      // and safeStorage already swallows the private-mode throw.
+    }
     if (resolvedJobId) {
       navigate(`/my-posts?job=${resolvedJobId}`);
     } else {
@@ -264,6 +307,7 @@ const PaymentSuccess = () => {
 
         const status = data.payment_status;
         if (status && HELD_STATUSES.has(status)) {
+          if (status === "released") setAlreadyReleased(true);
           setConfirmState("held");
           return;
         }
@@ -401,11 +445,31 @@ const PaymentSuccess = () => {
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             aria-live="polite"
           >
+            {/* `formatPriceExact`, NOT `formatPrice`. These two sentences assert
+                a specific sum of money that is really in escrow — "$X is held
+                securely", "$X was paid and has already been released". A
+                rounded assertion about a real balance is just a false one:
+                `formatPrice` rounds to the nearest dollar, so a $136.40 escrow
+                read "$136 is held securely" (understating what the poster paid)
+                and a $136.60 escrow read "$137" (claiming 40c that is not
+                there). This is a receipt, which is exactly what
+                `formatPriceExact` is for. */}
             {isHeld ? (
-              escrowAmount != null ? (
+              alreadyReleased ? (
+                escrowAmount != null ? (
+                  <>
+                    <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                      ${formatPriceExact(escrowAmount)}
+                    </span>{" "}
+                    was paid and has already been released to your helper.
+                  </>
+                ) : (
+                  <>This payment was already released to your helper.</>
+                )
+              ) : escrowAmount != null ? (
                 <>
                   <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                    ${formatPrice(escrowAmount)}
+                    ${formatPriceExact(escrowAmount)}
                   </span>{" "}
                   is held securely — released when you confirm the work is done.
                 </>
@@ -476,7 +540,7 @@ const PaymentSuccess = () => {
                             </span>
                           )}
                         </p>
-                        <p className="font-serif italic text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                        <p className="font-sans text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                           {step.caption}
                         </p>
                       </div>
@@ -559,7 +623,12 @@ const PaymentSuccess = () => {
           <Button
             variant="ghost"
             onClick={() => {
-              try { safeStorage.removeItem("helpr_last_posted_job_id"); } catch { /* ignore */ }
+              try {
+                safeStorage.removeItem("helpr_last_posted_job_id");
+              } catch {
+                // Silent by design — same convenience pointer as above; a
+                // stale value is handled by every reader.
+              }
               navigate("/dashboard");
             }}
             className="w-full rounded-ds-md"

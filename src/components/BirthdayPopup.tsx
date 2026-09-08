@@ -11,14 +11,30 @@ import { parseLocalDate } from "@/lib/dateUtils";
 interface BirthdayPopupProps {
   dateOfBirth: string | null | undefined;
   firstName: string;
+  /**
+   * Hold this card closed while something with a prior claim on the screen is
+   * still up — in practice the onboarding tour, its only sibling overlay on
+   * Dashboard.
+   *
+   * Both dialogs are Radix modals at `z-50` and were mounted as unconditional
+   * siblings that opened independently. On a first login that landed on the
+   * member's birthday the tour card (337×191) covered this one (187×250)
+   * entirely: the greeting was on screen, focus-trapped underneath, and
+   * unreachable until the tour was skipped. Ordering them — tour first, then
+   * the greeting — is what this prop is.
+   *
+   * It does NOT change the once-per-day rule: nothing is written to storage
+   * while deferred, so the greeting still appears the moment the tour clears.
+   */
+  deferred?: boolean;
 }
 
-const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
+const BirthdayPopup = ({ dateOfBirth, firstName, deferred = false }: BirthdayPopupProps) => {
   const reducedMotion = useReducedMotion();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (!dateOfBirth) return;
+    if (!dateOfBirth || deferred) return;
 
     const today = new Date();
     const dob = parseLocalDate(dateOfBirth);
@@ -36,7 +52,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
       }
       setShow(true);
     }
-  }, [dateOfBirth]);
+  }, [dateOfBirth, deferred]);
 
   const dismiss = () => {
     setShow(false);
@@ -70,7 +86,18 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
             {/* Bare primitive (not DialogContent) so we don't inherit the
                 shared glass-modal padding + built-in close X, both of
                 which would clash with the bespoke celebratory layout. */}
-            <DialogPrimitive.Content asChild forceMount>
+            <DialogPrimitive.Content
+              asChild
+              forceMount
+              // Park focus on the card, not its first tabbable. Radix would
+              // focus the X, and with nothing pointer-driven before it the
+              // ring is shown — measured 2026-09-07: the card opened with a
+              // boxed X in every theme. Same rule DialogContent applies.
+              onOpenAutoFocus={(e) => {
+                e.preventDefault();
+                (e.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
+              }}
+            >
               <motion.div
                 // Centering MUST NOT share the CSS `transform` property with the
                 // scale spring. framer writes `transform` inline every frame, so
@@ -93,7 +120,11 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                 // Fixed positioning makes `w-auto` shrink-to-fit, so the card
                 // now hugs its longest line and stays centred by the
                 // `translate: -50% -50%` below.
-                className="fixed left-1/2 top-1/2 z-50 rounded-2xl liquid-glass shadow-2xl px-6 py-5 w-auto max-w-[calc(100%-2rem)] sm:max-w-sm text-center focus:outline-none"
+                // `min-w-[15rem]`: the card hugs its content, and the only
+                // block-level content is the button, so at 375 it measured
+                // 188px wide and the title broke into three lines ("Happy /
+                // Birthday, / Audit"). 240px keeps a first name on two lines.
+                className="fixed left-1/2 top-1/2 z-50 rounded-2xl liquid-glass shadow-2xl px-6 py-5 w-auto min-w-[15rem] max-w-[calc(100%-2rem)] sm:max-w-sm text-center focus:outline-none"
                 style={{
                   translate: "-50% -50%",
                   backgroundImage:
@@ -105,9 +136,12 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                     "0 24px 48px -12px hsl(var(--olivewood) / 0.22)",
                 }}
               >
+                {/* 44px box like the shared close X; the bare 16px glyph was
+                    also the whole tap target. */}
                 <button
+                  type="button"
                   onClick={dismiss}
-                  className="absolute top-3 right-3 transition-colors active:opacity-70"
+                  className="absolute top-1 right-1 inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors active:opacity-70"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   aria-label="Close"
                 >

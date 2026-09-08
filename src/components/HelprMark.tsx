@@ -30,7 +30,7 @@ const emblemSizeMap = { sm: "h-8", md: "h-10", lg: "h-14" };
 
 /**
  * Helpr·LA wordmark — wrought-iron H emblem (Garden District ironwork
- * with a verdigris fleur-de-lis center) followed by italic EB Garamond
+ * with a verdigris fleur-de-lis center) followed by Montserrat
  * "Helpr" and a Burnt-Sienna "·LA" tail.
  *
  * The H emblem is a real photograph; we use the trimmed transparent PNG
@@ -59,7 +59,7 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnl
       {!emblemOnly && (
       <span className="inline-flex items-baseline gap-0.5">
         <span
-          className="font-serif leading-none"
+          className="font-sans leading-none"
           style={{
             fontSize: s.helpr,
             fontWeight: 500,
@@ -71,7 +71,7 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnl
         </span>
         {!hideSuffix && (
           <span
-            className="font-serif italic leading-none"
+            className="font-sans leading-none"
             style={{
               fontSize: s.la,
               fontWeight: 400,

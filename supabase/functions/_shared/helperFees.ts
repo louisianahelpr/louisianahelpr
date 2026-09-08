@@ -6,13 +6,18 @@
 //
 // The subscription tier sets the percentage:
 //
-//     free → 12%   basic → 11%   pro → 10%   elite → 8%
+//     free → 12%   basic → 11%   pro → 10%   plus → 9%   elite → 8%
 //
-// There is no `plus` tier — this header used to list "plus → 9%", which has
-// never existed in `TIER_FEE_PERCENT`, in `subscriptionTiers.ts`, or as a
-// purchasable Stripe price. A raw "plus" therefore resolves to the free rate
-// (12) via DEFAULT_TIER_FEE_PERCENT, which is the safe direction, but the
-// comment implied a discount the code does not grant.
+// `plus` is REAL again as of 2026-09-05, and this header has now said both
+// things, so the history matters. Plus shipped 2026-08-27 and was pulled a day
+// later — not because the tier was wrong, but because its LIVE Stripe Price
+// ids were `price_TODO_LIVE_PLUS_*` placeholders while both storefronts sold
+// it, so every Plus purchase would have 500'd the moment the live key went in.
+// This header then correctly said "there is no plus tier". It is back with
+// three real live Prices (created and verified against
+// acct_1RQbAfKp2H4b7tEC), and proTiers.parity.test.ts now forbids a
+// placeholder id on ANY paid tier and cycle, which is the general form of the
+// bug rather than a patch for this one instance.
 //
 // There is no `business` tier either. A `business: 6` rung sat in the table
 // below until 2026-09-01. Nothing could sell it (`create-pro-checkout`'s
@@ -27,7 +32,8 @@
 // two key sets together and removing it from one side alone reds the build.
 //
 // A stray "business" now resolves to DEFAULT_TIER_FEE_PERCENT (12) like any
-// other unrecognised value — the same safe direction as "plus".
+// other unrecognised value. (That sentence used to end "— the same safe
+// direction as `plus`", which stopped being true when Plus came back.)
 //
 // This MUST stay in lock-step with `src/lib/subscriptionTiers.ts` TIER_PERKS
 // (the React/TS source the UI renders from). The edge runtime is Deno and
@@ -45,6 +51,10 @@ export const TIER_FEE_PERCENT: Record<string, number> = {
   free: 12,
   basic: 11,
   pro: 10,
+  // Plus, restored 2026-09-05 with real LIVE Price ids this time — the reason
+  // it was pulled a day after shipping was `price_TODO_LIVE_PLUS_*`
+  // placeholders, not the tier itself.
+  plus: 9,
   elite: 8,
 };
 

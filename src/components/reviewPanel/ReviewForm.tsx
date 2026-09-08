@@ -21,16 +21,14 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative } from "@/lib/nativeCamera";
 import { report } from "@/lib/errorLogger";
 import { StarRow } from "./StarRow";
-import { CATEGORY_ROWS, safeImageSrc, type CategoryKey, type ReviewFormProps } from "./types";
+import { quickTagsFor, safeImageSrc, type ReviewFormProps } from "./types";
 import { userFacingError } from "@/lib/userFacingError";
 
-export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, canTip = false }: ReviewFormProps) => {
-  const [scores, setScores] = useState<Record<CategoryKey, number>>({
-    rating: 0,
-    punctuality: 0,
-    quality: 0,
-    communication: 0,
-  });
+export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, canTip = false, revieweeRole = "helper" }: ReviewFormProps) => {
+  // ONE overall star rating. The three sub-criteria this used to collect
+  // (punctuality / quality / communication) were removed on 2026-09-07 along
+  // with their columns — see ./types.
+  const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [submitting, setSubmitting] = useState(false);
   // Photo attachments — up to 3 photos per review.
@@ -79,7 +77,9 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
     }
   };
 
-  const quickOptions = ["Great communicator", "On time", "Quality work", "Very professional", "Highly recommend", "Friendly & helpful"];
+  // The tags still adapt to WHO is being rated — "On time" and "Quality work"
+  // describe someone who came and did a job. See ./types.
+  const quickOptions = quickTagsFor(revieweeRole);
 
   const toggleQuickOption = (option: string) => {
     setFeedback((prev) => {
@@ -89,18 +89,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
     });
   };
 
-  const setScore = (key: CategoryKey, v: number) => setScores((prev) => ({ ...prev, [key]: v }));
-
-  // Only the Overall rating is required to submit. The three detailed
-  // categories are optional — previously requiring all four meant a
-  // user who only wanted to leave an overall star rating hit a hard
-  // wall ("Please rate all four categories") and the job silently
-  // never got reviewed.
-  const canSubmit = scores.rating > 0;
-  // (There used to be an `allRated` flag here — "the user also filled the
-  // optional category stars" — whose only consumer was the submit button's
-  // label, which it flipped between two different names for one action. The
-  // label is fixed now, so the flag has no reader.)
+  const canSubmit = rating > 0;
 
   const handleSubmit = async () => {
     if (!canSubmit) {
@@ -180,12 +169,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
         job_id: jobId,
         reviewer_id: user.id,
         reviewee_id: revieweeId,
-        rating: scores.rating,
-      // Unrated detailed categories persist as null (not 0) so the
-      // ReviewList averages skip them rather than dragging the score down.
-      punctuality: scores.punctuality > 0 ? scores.punctuality : null,
-      quality: scores.quality > 0 ? scores.quality : null,
-      communication: scores.communication > 0 ? scores.communication : null,
+        rating,
         feedback: feedback.trim() || null,
         photo_urls: uploadedPhotoUrls,
       })
@@ -217,7 +201,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
       // Aha-moment analytics + native review prompt. A 5-star review is the
       // strongest signal of satisfaction we have. It no longer decides who is
       // offered the App Store prompt — see the note further down.
-      track(AhaEvent.ReviewLeft, { job_id: jobId, rating: scores.rating });
+      track(AhaEvent.ReviewLeft, { job_id: jobId, rating });
       // True first-review (any rating) — count this user's prior reviews
       // before treating this submission as the first.
       try {
@@ -226,12 +210,12 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
           .select("id", { count: "exact", head: true })
           .eq("reviewer_id", user.id);
         if ((priorReviews ?? 0) <= 1) {
-          track(AhaEvent.FirstReviewLeft, { job_id: jobId, rating: scores.rating });
+          track(AhaEvent.FirstReviewLeft, { job_id: jobId, rating });
         }
       } catch { /* analytics must never break the flow */ }
       // ASK EVERYONE, WHATEVER THEY RATED (owner, 2026-09-02: "anyone can rate it").
       //
-      // This used to fire ONLY when scores.rating === 5, so the App Store
+      // This used to fire ONLY when rating === 5, so the App Store
       // prompt was shown exclusively to people who had just said they were
       // delighted and never to anyone who rated 1-4. That reliably produces a
       // high public rating, which is exactly why it is not allowed: Apple's
@@ -243,12 +227,12 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
       // calling it unconditionally does not nag: submitting a review is a
       // sensible moment to ask, and now it is the SAME moment for every user.
       void maybeRequestInAppReview();
-      if (scores.rating === 5) {
+      if (rating === 5) {
         // Analytics only. The event still measures five-star reviews; what it
         // no longer does is decide who gets asked to rate the app.
         track(AhaEvent.FirstFiveStarReview, { job_id: jobId, rating: 5 });
       }
-      if (scores.rating === 5 && canTip) {
+      if (rating === 5 && canTip) {
         // 5-star moment — show the tip prompt instead of closing immediately
         // so the poster can tip while still satisfied.
         setTipPromptOpen(true);
@@ -277,22 +261,13 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
             row inside here pushed the whole track past the dialog's own width
             and clipped every child's right edge. */}
         <div className="space-y-3 min-w-0">
-          {CATEGORY_ROWS.map((row) => (
-            <StarRow
-              key={row.key}
-              value={scores[row.key]}
-              onChange={(v) => setScore(row.key, v)}
-              label={row.label}
-              sublabel={row.sublabel}
-              optional={!row.required}
-            />
-          ))}
-          <p
-            className="font-serif italic text-ds-12"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Only the Overall rating is needed — the rest are optional. You can skip them and still post your review.
-          </p>
+          <StarRow
+            value={rating}
+            onChange={setRating}
+            label="Overall"
+            sublabel="Your overall experience"
+            optional={false}
+          />
           {/* ONE scrollable line, not three stacked rows. Class string is the
               canonical chip-scroll-row from `QuickReplies` (same right-edge
               fade mask + hidden scrollbar) so it reads as a sibling of the
@@ -344,7 +319,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             rows={3}
-            className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14 leading-relaxed"
+            className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed"
           />
 
           {/* Photo attachments — up to 3 photos */}
@@ -389,14 +364,14 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
                   }}
                 >
                   <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} />
-                  <span className="font-serif italic text-ds-9" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <span className="font-sans text-ds-9" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     {photoFiles.length === 0 ? "Add Photo" : "Add More"}
                   </span>
                 </button>
               )}
             </div>
             {photoFiles.length > 0 && (
-              <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {photoFiles.length}/{MAX_PHOTOS} photo{photoFiles.length !== 1 ? "s" : ""} attached
               </p>
             )}

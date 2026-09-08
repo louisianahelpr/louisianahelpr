@@ -91,10 +91,19 @@ let cachedStatus: MapKitStatus = "idle";
 let pending: Promise<MapKitStatus> | null = null;
 
 function getBuildTimeToken(): string | undefined {
-  // Vite injects import.meta.env.* at build time. We use bracket access
-  // so a missing var doesn't blow up TS strict mode.
-  const env = (import.meta as { env?: Record<string, string | undefined> }).env;
-  return env?.VITE_APPLE_MAPKIT_TOKEN;
+  // Named property access, NOT `(import.meta as {...}).env` — that cast
+  // defeats Vite's per-key static replacement (it can only inline
+  // `import.meta.env.VITE_X` as a literal string when it can see the exact
+  // key at the reference site), so Vite fell back to embedding the WHOLE
+  // runtime `import.meta.env` object verbatim. That object reflects every
+  // env var present in whichever machine ran the build — not just the ones
+  // this app declares — so this chunk's content, and therefore its hashed
+  // filename, differed between a GitHub Actions build and a Vercel build
+  // even with identical source and identical VITE_* secrets, which is
+  // exactly the class of bug that leaves Sentry unable to symbolicate a
+  // production stack trace (see .github/workflows/sentry-release.yml).
+  // Direct property access lets Vite inline just this one string.
+  return import.meta.env.VITE_APPLE_MAPKIT_TOKEN;
 }
 
 /**
@@ -121,9 +130,10 @@ function getBuildTimeToken(): string | undefined {
  * a console warning MapKit happens to print.
  */
 async function fetchServerToken(): Promise<string | null> {
-  const env = (import.meta as { env?: Record<string, string | undefined> }).env;
-  const base = env?.VITE_SUPABASE_URL;
-  const apikey = env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+  // Named access — see getBuildTimeToken's comment above for why the
+  // bracket-cast form this replaced is a real bug, not just style.
+  const base = import.meta.env.VITE_SUPABASE_URL;
+  const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   if (!base || !apikey) return null;
 
   try {
@@ -182,7 +192,50 @@ function reportServerTokenFailure(reason: string) {
  * MapKit calls `authorizationCallback` again on refresh, so this runs more than
  * once per session and the server path gets picked up without a reload.
  */
+/**
+ * A token fetch already in flight, so the network round-trip can be started
+ * BEFORE MapKit asks for it.
+ *
+ * MapKit only invokes `authorizationCallback` once its own script has
+ * downloaded, parsed and `init()` has run — so resolving the token in there
+ * put an edge-function round-trip strictly AFTER Apple's CDN round-trip, for
+ * two requests that have nothing to do with each other. Measured on prod
+ * (/dashboard, Chromium 393x852, warm wired): mapkit.js requested 3550ms,
+ * responded 3782ms; `functions/v1/mapkit-token` requested 3803ms, responded
+ * 4055ms; MapKit's own `ma/bootstrap` at 4058ms — before a single tile. The
+ * token wait was 252ms of pure serial dead time on a wired connection, and it
+ * is a Supabase edge function, so a cold start makes it seconds.
+ *
+ * `primeToken()` is called at script-insertion time; `resolveToken()` consumes
+ * whatever is in flight. Only the FIRST resolution is shared: MapKit calls the
+ * callback again on every token refresh (~hourly) and a refresh must mint a
+ * fresh token, never replay the primed one — so the slot is cleared as soon as
+ * it is read.
+ */
+let primedToken: Promise<string | undefined> | null = null;
+
+function primeToken(): void {
+  if (primedToken) return;
+  // Swallow here only to keep an unhandled rejection off the console — the
+  // consumer below re-enters `resolveToken`'s normal path, which does its own
+  // reporting and falls back to the build-time token.
+  primedToken = resolveTokenUncached().catch(() => undefined);
+}
+
 async function resolveToken(): Promise<string | undefined> {
+  const primed = primedToken;
+  if (primed) {
+    primedToken = null;
+    const t = await primed;
+    if (t) return t;
+    // The primed attempt came up empty (network failure, or no token from
+    // either source). Fall through and try again for real rather than
+    // reporting a transient failure as a permanent one.
+  }
+  return resolveTokenUncached();
+}
+
+async function resolveTokenUncached(): Promise<string | undefined> {
   const served = await fetchServerToken();
   if (served) {
     setTokenSource("server");
@@ -299,6 +352,7 @@ function loadScript(): Promise<MapKitStatus> {
     // dropped out before resolving), reuse it.
     const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
     if (existing) {
+      primeToken();
       if (window.mapkit) {
         initMapKit();
       } else {
@@ -307,6 +361,10 @@ function loadScript(): Promise<MapKitStatus> {
       }
       return;
     }
+
+    // Start the token round-trip NOW, in parallel with Apple's CDN fetch,
+    // instead of waiting for MapKit to ask for it. See `primedToken`.
+    primeToken();
 
     const script = document.createElement("script");
     script.id = SCRIPT_ID;

@@ -168,13 +168,30 @@ const AdminPayoutBatches = () => {
           .limit(50),
       );
       const rows = (data ?? []) as Omit<PayoutLedgerRow, "profiles">[];
-      const helperIds = [...new Set(rows.map((r) => r.helper_id))];
-      const profileRows = unwrap(
-        await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", helperIds),
-      );
+      // `helper_id` is NULLABLE: payout_transfers_helper_id_fkey is
+      // ON DELETE SET NULL against auth.users, so a helper who deletes their
+      // account leaves their settled transfers behind with a null helper.
+      //
+      // A null must never reach `.in()`. PostgREST serialises the list into
+      // the URL as `in.(<uuid>,null)`, Postgres rejects `null` as a uuid
+      // literal, and the response is HTTP 400 `22P02 invalid input syntax for
+      // type uuid: "null"` — for the WHOLE request, not one row. Wrapped in
+      // `unwrap()` that throws, so a single departed helper would put the
+      // entire payout ledger into an error state rather than blanking one
+      // name. Verified against prod: `in.(<uuid>,null)` → 400, the same query
+      // without the null → 200.
+      //
+      // The row itself still renders; `nameMap.get(null)` misses and
+      // LedgerList falls back to its "Unknown Helpr" label.
+      const helperIds = [...new Set(rows.map((r) => r.helper_id).filter((id): id is string => !!id))];
+      const profileRows = helperIds.length
+        ? unwrap(
+            await supabase
+              .from("profiles")
+              .select("user_id, full_name")
+              .in("user_id", helperIds),
+          )
+        : [];
       const nameMap = new Map((profileRows ?? []).map((p) => [p.user_id, p.full_name]));
       return rows.map((r) => ({
         ...r,
@@ -233,7 +250,21 @@ const AdminPayoutBatches = () => {
           body: { job_id: jobId },
         });
         if (error) { failures.push(jobId); continue; }
-        try { assertTransferHappened(data); } catch { failures.push(jobId); }
+        try {
+          assertTransferHappened(data);
+        } catch (err) {
+          // NOT silent: release-payout answered without a transfer. The admin
+          // sees this job in the failure count, but a count is not a diagnosis
+          // — and a payout that reports success while moving no money is the
+          // single worst failure this screen can have. Record it with the job
+          // id so it can be reconciled against Stripe afterwards.
+          report(err, {
+            severity: "error",
+            tags: { area: "payout", op: "releaseBatch.assertTransfer" },
+            context: { jobId },
+          });
+          failures.push(jobId);
+        }
       }
 
       const paid = jobIds.length - failures.length;
@@ -357,14 +388,16 @@ const AdminPayoutBatches = () => {
           localStorage (see adminPayoutBatchesHelpers), so they are scoped to
           THIS browser — the tab label says so, because a second admin sees an
           unheld batch with a live Pay Out button. */}
+      {/* `overflow-x-auto` + nowrap tabs: "Hold for Review (this device) (0)"
+          wrapped to three lines at 375 and read as a broken control. */}
       {batches.length > 0 && (
-        <div role="tablist" aria-label="Payout queue" className="flex gap-1.5 border-b border-border">
+        <div role="tablist" aria-label="Payout queue" className="flex gap-1.5 border-b border-border overflow-x-auto no-scrollbar">
           <button
             type="button"
             role="tab"
             aria-selected={tab === "ready"}
             onClick={() => { setTab("ready"); clearSelection(); }}
-            className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
+            className={`shrink-0 whitespace-nowrap pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
               tab === "ready" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -378,7 +411,7 @@ const AdminPayoutBatches = () => {
             role="tab"
             aria-selected={tab === "hold"}
             onClick={() => { setTab("hold"); clearSelection(); }}
-            className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
+            className={`shrink-0 whitespace-nowrap pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
               tab === "hold" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -498,7 +531,7 @@ const AdminPayoutBatches = () => {
           <div className="space-y-3">
             <DialogBody>
               <p>
-                Moves this helper's batch to the Hold-for-review queue. No
+                Moves this Helpr's batch to the Hold-for-review queue. No
                 Stripe transfer is fired. Logged to admin_audit_log.
               </p>
             </DialogBody>

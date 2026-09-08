@@ -31,8 +31,15 @@ export interface ConfigCheck {
   detail: string;
 }
 
-/** Flag keys the app actually reads. Anything else stored is a leftover. */
-const LIVE_FLAG_KEYS = ["idv_requirement_paused"];
+/**
+ * Flag keys the app actually reads. Anything else stored is a leftover.
+ *
+ * Empty since 2026-09-07: `idv_requirement_paused` was the last reader and the
+ * owner deleted it (identity verification is now unconditional). Every key
+ * still sitting in the blob is therefore a leftover, which is exactly what this
+ * check is for.
+ */
+const LIVE_FLAG_KEYS: string[] = [];
 
 export const useConfigChecks = () => {
   return useInstantQuery<ConfigCheck[]>({

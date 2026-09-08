@@ -15,7 +15,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock } from "lucide-react";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
-import { suggestEmailCorrection, passwordStrength } from "./signupHelpers";
+import {
+  suggestEmailCorrection,
+  passwordStrength,
+  PASSWORD_RULES,
+  PASSWORD_MIN_LENGTH,
+  unmetPasswordRules,
+  passwordProblem,
+} from "./signupHelpers";
 
 export interface SignupStep1Props {
   email: string;
@@ -75,7 +82,11 @@ export function SignupStep1({
   // form can gate inline (focus the first bad field) instead of firing a
   // stack of toasts on Continue.
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const passwordValid = password.length >= 8 && /[A-Z]/.test(password) && /\d/.test(password);
+  // Derived from the shared rule list, NOT re-implemented. This line used to
+  // read `password.length >= 8 && /[A-Z]/ && /\d/` — three of the five rules
+  // the parent (and the Supabase project) actually enforce — so it waved
+  // through passwords it then had to reject with a toast. See PASSWORD_RULES.
+  const passwordValid = unmetPasswordRules(password).length === 0;
   const emailSuggestion = emailValid ? suggestEmailCorrection(email) : null;
   // Shared by the field border and the message below it, so a field can never
   // show one without the other.
@@ -140,7 +151,7 @@ export function SignupStep1({
               email-verification (the click-the-link step after signup)
               already catches typos. The double field was 2014-era
               friction that costs activations without preventing errors. */}
-          <Label htmlFor="email" className={labelCls}>Email <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+          <Label htmlFor="email" className={labelCls}>Email <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
             <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" aria-invalid={emailError} aria-describedby={emailError ? "signup-email-error" : undefined}
@@ -157,7 +168,7 @@ export function SignupStep1({
               empty case used to paint the border with no words at all, which
               is a "something's wrong" with no path out. */}
           {emailError && (
-            <p id="signup-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-destructive">
+            <p id="signup-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
               <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
               {email.trim() ? "Enter a valid email address" : "Add your email address"}
             </p>
@@ -174,10 +185,10 @@ export function SignupStep1({
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password" className={labelCls}>Password <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+          <Label htmlFor="password" className={labelCls}>Password <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
-            <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={8} aria-invalid={passwordError} aria-describedby={passwordError ? "signup-password-error" : undefined}
+            <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={PASSWORD_MIN_LENGTH} aria-invalid={passwordError} aria-describedby={passwordError ? "signup-password-error" : undefined}
               className={`${inputCls} pl-10 pr-10 ${passwordError ? "!border-destructive focus-visible:!border-destructive" : ""}`} autoComplete="new-password" />
             <button
               type="button"
@@ -193,19 +204,33 @@ export function SignupStep1({
               <ArrowBigUp className="w-3.5 h-3.5" strokeWidth={2} aria-hidden /> Caps Lock is on
             </p>
           )}
-          {attempted && !password && (
-            <p id="signup-password-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-destructive">
-              <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
-              Add a password
+          {/* The message must cover BOTH failure modes the red border covers.
+              It used to render only for `attempted && !password`, so an empty
+              field said "Add a password" while a weak one — the far more
+              common case — got the border, a focus jump and silence. The
+              `passwordError` condition is the same boolean that paints the
+              border, so the two can no longer disagree. */}
+          {passwordError && (
+            <p id="signup-password-error" role="alert" className="inline-flex items-start gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
+              <X className="w-3.5 h-3.5 shrink-0 mt-px" strokeWidth={2.5} aria-hidden />
+              {password ? passwordProblem(password) : "Add a password"}
             </p>
           )}
           {password.length > 0 && (() => {
             // Strength meter — a quality nudge that sits above the hard
             // requirement chips. Burnt-sienna for weak/fair, bark for good,
-            // green (primary) for strong.
+            // green (--success-ink) for strong.
+            //
+            // Strong WAS `--primary`, and `--primary` is defined as
+            // `var(--bark)` — so "Good" and "Strong" painted the identical
+            // rgb(95,101,67) in light and the identical rgb(149,160,106) in
+            // dark. A four-segment meter whose top two states are byte-for-byte
+            // the same colour cannot tell you that you improved the password,
+            // which is the entire job of the top segment. The comment above
+            // always said "green"; the token simply was not one.
             const { score, label } = passwordStrength(password);
             const barColor =
-              score >= 4 ? "hsl(var(--primary))" : score === 3 ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))";
+              score >= 4 ? "hsl(var(--success-ink))" : score === 3 ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))";
             return (
               <div className="flex items-center gap-2">
                 <div className="flex gap-1 flex-1">
@@ -224,14 +249,12 @@ export function SignupStep1({
             );
           })()}
           {(() => {
-            // Real-time checklist mirrors the validation in Signup.tsx so
-            // the user knows exactly what's missing before they tap Continue
-            // (previously they'd hit Continue and get a generic toast). Shown
-            // from the start (not just once the user types) so the password
-            // rules set expectations before the first keystroke.
-            const hasLength = password.length >= 8;
-            const hasUpper = /[A-Z]/.test(password);
-            const hasNumber = /\d/.test(password);
+            // Real-time checklist, rendered from PASSWORD_RULES rather than
+            // from a hand-copied subset. It listed three of the five rules,
+            // which meant "Lowercase" and "Symbol" — both enforced by the
+            // Supabase project — were never stated until they caused a
+            // rejection. Shown from the start (not just once the user types)
+            // so the rules set expectations before the first keystroke.
             const Req = ({ ok, label }: { ok: boolean; label: string }) => (
               <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
                 {ok ? <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden /> : <Circle className="w-3 h-3" strokeWidth={2} aria-hidden />}
@@ -240,9 +263,9 @@ export function SignupStep1({
             );
             return (
               <div className="flex flex-wrap gap-x-3 gap-y-1 px-0.5 mt-1">
-                <Req ok={hasLength} label="8+ characters" />
-                <Req ok={hasUpper} label="Uppercase" />
-                <Req ok={hasNumber} label="Number" />
+                {PASSWORD_RULES.map((rule) => (
+                  <Req key={rule.label} ok={rule.test(password)} label={rule.label} />
+                ))}
               </div>
             );
           })()}
@@ -283,6 +306,11 @@ export function SignupStep1({
         <Checkbox
           id="policies"
           aria-labelledby="policies-label"
+          // The nudge is a shake plus a burnt-sienna border — both PURELY
+          // VISUAL. Without aria-invalid a screen-reader user tapped Continue
+          // and perceived nothing at all, while the email and password fields
+          // next to it announce their errors properly.
+          aria-invalid={nudgeKey > 0 && !acceptedPolicies}
           checked={acceptedPolicies}
           onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
@@ -332,6 +360,8 @@ export function SignupStep1({
         <Checkbox
           id="age-confirm"
           aria-labelledby="age-confirm-label"
+          // Same reason as the policies box above — the nudge is visual only.
+          aria-invalid={nudgeKey > 0 && !ageConfirmed}
           checked={ageConfirmed}
           onCheckedChange={(checked) => setAgeConfirmed(checked === true)}
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
@@ -375,6 +405,33 @@ export function SignupStep1({
           Email me occasional Helpr news and offers.
         </span>
       </label>
+
+      {/* SCREEN-READER PARITY FOR THE CONSENT GATE.
+          Tapping Continue with a required box unchecked shakes it and paints a
+          burnt-sienna border. Both are purely visual, so a screen-reader user
+          got NOTHING — no alert, no aria-invalid, nothing — while an empty
+          email announces "Add your email address" and a malformed one
+          announces "Enter a valid email address" through a real role=alert.
+          The gate was the one blocker on this screen you could not perceive.
+
+          Deliberately sr-only: the shake + border ARE the sighted design and
+          this must not add a second, visible error to a screen the owner has
+          already tuned. It names the specific box(es) still unticked, so the
+          announcement is as actionable as the visual nudge.
+
+          Keyed on nudgeKey so a repeat tap re-announces — an aria-live region
+          whose text is unchanged between taps is silent on every screen
+          reader, which would reproduce the original defect for anyone who
+          taps twice. */}
+      <p key={`consent-alert-${nudgeKey}`} role="alert" className="sr-only">
+        {nudgeKey > 0 && (!acceptedPolicies || !ageConfirmed)
+          ? !acceptedPolicies && !ageConfirmed
+            ? "To continue, agree to the Terms, Rules and Privacy, and confirm you are 18 or older."
+            : !acceptedPolicies
+              ? "To continue, agree to the Terms, Rules and Privacy."
+              : "To continue, confirm you are 18 years of age or older."
+          : ""}
+      </p>
       </div>
 
       <Button
@@ -394,7 +451,7 @@ export function SignupStep1({
       <div className="hidden lg:flex flex-col items-center gap-3" aria-hidden>
         <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         <span
-          className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
+          className="text-ds-11 tracking-[0.2em] uppercase font-sans"
           style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
         >
           or
@@ -412,7 +469,7 @@ export function SignupStep1({
       <div className="flex items-center gap-3 lg:hidden">
         <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         <span
-          className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
+          className="text-ds-11 tracking-[0.2em] uppercase font-sans"
           style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
         >
           or

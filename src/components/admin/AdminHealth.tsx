@@ -498,7 +498,7 @@ const AdminHealth = () => {
           </p>
         )}
         {pushStats.total === 0 && (
-          <p className="text-ds-11 text-muted-foreground italic">
+          <p className="text-ds-11 text-muted-foreground">
             No devices registered yet. Have a user open the iOS/Android app, sign in,
             and tap Allow on the push permission prompt — token will register on next launch.
           </p>

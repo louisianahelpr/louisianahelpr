@@ -17,7 +17,8 @@
   ],
   "ignoreDependencies": [
     "npm",
-    "puppeteer"
+    "puppeteer",
+    "cordova-plugin-purchase"
   ],
   "rules": {
     "files": "error",

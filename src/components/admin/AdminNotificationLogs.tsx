@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,6 @@ import { RefreshCw, Search, Mail, Smartphone, Bell, AlertCircle, Loader2, AlertT
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
-import { useQueryClient } from "@tanstack/react-query";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
 import { toneTextClasses } from "@/components/admin/tones";
@@ -148,7 +146,6 @@ function LogsPlaceholder({
 }
 
 const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProps) => {
-  const qc = useQueryClient();
   const { user } = useAuthReady();
   const adminId = user?.id;
   const [search, setSearch] = useState(initialSearch);
@@ -191,29 +188,21 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
     },
   });
 
-  useEffect(() => {
-    // Deliberately unfiltered (admin-only): unlike user-facing channels — which
-    // MUST carry a user-scoped server-side `filter` per the realtime rule — this
-    // is the admin notification-log viewer, whose whole purpose is to reflect
-    // EVERY notification the platform sends. Scoping it to one user would defeat
-    // the feature. subscribeWithRecovery still gives it a unique channel name so
-    // Supabase doesn't dedupe it against another admin channel, and the
-    // `page === 0` guard keeps the invalidation burst sane.
-    const sub = subscribeWithRecovery(
-      (name) => supabase
-      .channel(name)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notification_logs" }, () => {
-        // Prefix invalidate — matches every (adminId, filters) variant
-        // currently cached for this admin's session.
-        if (page === 0) qc.invalidateQueries({ queryKey: queryKeys.admin.notificationLogsAll });
-      }),
-      {
-        name: "admin-notification-logs",
-        onRecovered: () => qc.invalidateQueries({ queryKey: queryKeys.admin.notificationLogsAll }),
-      },
-    );
-    return () => { sub.close(); };
-  }, [page, qc]);
+  // There is deliberately NO realtime subscription here.
+  //
+  // This used to open an `admin-notification-logs` channel binding INSERT on
+  // `notification_logs`. That table is in NO publication in prod — not
+  // `supabase_realtime`, not any other — so the binding had never delivered a
+  // single event and never would. Supabase does not error on a binding to an
+  // unpublished table: the channel reports CHANNEL_ERROR and retries forever,
+  // which is why a dead subscription read as working code. (Filed as SF-017.)
+  //
+  // The log list is paginated and admin-driven, so a manual refresh or a page
+  // change is an adequate and honest refresh path. If live tail is ever wanted
+  // here, the prerequisite is publishing the table:
+  //   ALTER PUBLICATION supabase_realtime ADD TABLE public.notification_logs;
+  // in a guarded migration — and only after deciding that streaming every
+  // notification the platform sends to every admin browser is acceptable.
 
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
@@ -361,7 +350,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   <td className="px-4 py-2.5 max-w-[280px] truncate">
                     <div className="truncate">{row.subject || <span className="text-muted-foreground">—</span>}</div>
                     {row.error_message && (
-                      <div className="text-ds-11 text-destructive truncate mt-0.5">{row.error_message}</div>
+                      <div className="text-ds-11 text-[hsl(var(--destructive-ink))] truncate mt-0.5">{row.error_message}</div>
                     )}
                   </td>
                   <td className="px-4 py-2.5">
@@ -414,7 +403,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   {/* Recipient + category */}
                   <div className="flex items-center justify-between gap-2 text-ds-13">
                     <span className="truncate text-foreground">
-                      {row.recipient_email || <span className="text-muted-foreground italic">No recipient</span>}
+                      {row.recipient_email || <span className="text-muted-foreground">No recipient</span>}
                     </span>
                     <span className="text-ds-11 text-muted-foreground flex-shrink-0">
                       {CATEGORY_LABEL[row.category] ?? row.category}
@@ -426,7 +415,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   )}
                   {/* Error */}
                   {row.error_message && (
-                    <p className="text-ds-11 text-destructive truncate">{row.error_message}</p>
+                    <p className="text-ds-11 text-[hsl(var(--destructive-ink))] truncate">{row.error_message}</p>
                   )}
                 </div>
               ))}

@@ -19,6 +19,7 @@ import {
   validateFile,
   fileToBase64,
   ageFromDob,
+  passwordProblem,
 } from "./signup/signupHelpers";
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
@@ -26,6 +27,8 @@ import { getPublicOrigin } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
 import { recognizedAuthError } from "@/lib/authErrors";
 import { completeSignupErrorCopy } from "./signup/completeSignupError";
+import { useParishForZip } from "@/hooks/useParishForZip";
+import { parishForCity } from "@/lib/parishes";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -88,6 +91,27 @@ const Signup = () => {
   const [phone, setPhone] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [location, setLocation] = useState("");
+  // ZIP is REQUIRED (owner, 2026-09-05) — see the validator below. It resolves
+  // the member's parish, which is what drives job-match notifications, the
+  // daily digest, and Louisiana sales tax. Digits only, mirrors
+  // ProfileEditForm's own zipCode input.
+  const [zipCode, setZipCode] = useState("");
+  // Live parish resolution from the ZIP, shared with CompleteProfile and
+  // ProfileEditForm — resolved as the user types so both hints below can
+  // render before submit, not just at it.
+  const { parish: resolvedZipParish, unknownZip } = useParishForZip(zipCode);
+  // Soft mismatch hint (owner-requested 2026-09-04): only fires when the
+  // typed City is a RECOGNIZED city of a DIFFERENT parish than the ZIP
+  // resolved to — never when the city is merely absent from the registry
+  // (parishForCity's own contract: null means "unknown", not "no match"),
+  // so a real small-town combination the registry doesn't list never gets
+  // flagged as wrong.
+  const cityZipMismatch = (() => {
+    if (!resolvedZipParish) return null;
+    const cityParish = parishForCity(location);
+    if (!cityParish || cityParish.name === resolvedZipParish) return null;
+    return `That ZIP usually maps to ${resolvedZipParish} Parish, not where ${location.trim()} is (${cityParish.name} Parish) — double check it.`;
+  })();
   // Referral code is captured only from the `?ref=` deep link now (the manual
   // entry field lived on the removed Step 3). process_referral just records the
   // link at signup; the $5 credit is released by a DB trigger when the referred
@@ -153,6 +177,15 @@ const Signup = () => {
     // DOB, phone, city) and skips /complete-profile entirely; only Google/
     // Apple sign-ins, which never see this step, still land on it.
     if (!location.trim()) errors.location = "Add your city";
+    // ZIP is REQUIRED as of 2026-09-05 (owner). It is the ONLY input that
+    // resolves a parish, and parish drives helper job-match notifications, the
+    // daily digest, and Louisiana sales tax. An account without one works
+    // everywhere except the places that quietly matter most.
+    {
+      const zip = zipCode.replace(/\D/g, "");
+      if (!zip) errors.zipCode = "Add your ZIP code";
+      else if (zip.length !== 5) errors.zipCode = "Enter a 5-digit ZIP code";
+    }
     // Bio is optional — but if the user starts one, keep the 20-char floor so
     // a half-typed sentence doesn't ship as their whole profile.
     if (bio.trim().length > 0 && bio.trim().length < 20) errors.bio = "Add at least 20 characters, or leave it blank for now";
@@ -217,7 +250,7 @@ const Signup = () => {
   // Validates the "Account credentials + agreements" content (UI step 1).
   const validateAccountStep = async () => {
     if (!email.trim()) { toast.error("Add your email address."); return false; }
-    // These four must match the Supabase project's password policy exactly.
+    // The password rules must match the Supabase project's policy exactly.
     // They did not: the project requires a lowercase letter, an uppercase
     // letter, a digit AND a symbol, while this validator asked for only the
     // middle two. A password like "Password1" therefore sailed past the form,
@@ -228,11 +261,15 @@ const Signup = () => {
     // `toast.error(err.message)` at the bottom of createAccountAndFinish.
     // Verified against prod 2026-09-01. Each rule now fails locally, in
     // English, before the round-trip.
-    if (password.length < 8) { toast.error("Password needs at least 8 characters."); return false; }
-    if (!/[a-z]/.test(password)) { toast.error("Add at least one lowercase letter to your password."); return false; }
-    if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter to your password."); return false; }
-    if (!/[0-9]/.test(password)) { toast.error("Add at least one number to your password."); return false; }
-    if (!/[^A-Za-z0-9]/.test(password)) { toast.error("Add at least one symbol to your password — for example ! ? # or $."); return false; }
+    //
+    // They are spelled out ONCE, in PASSWORD_RULES (signupHelpers), because
+    // fixing them here left SignupStep1's own inline gate still checking three
+    // of the five — so the step waved through passwords this function then
+    // rejected with a toast about a rule the form had never displayed. One
+    // list now feeds this check, the inline gate, the requirement chips and
+    // the inline error message; they cannot drift apart again.
+    const pwProblem = passwordProblem(password);
+    if (pwProblem) { toast.error(pwProblem); return false; }
     if (!acceptedPolicies) { toast.error("Check the box to agree to the terms and platform rules."); return false; }
     if (!ageConfirmed) { toast.error("Check the box to confirm you're 18 or older."); return false; }
     return true;
@@ -242,6 +279,10 @@ const Signup = () => {
   const completeProfile = async (userId: string) => {
     const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
     const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
+    // Reuse the already-resolved value from the live effect above rather
+    // than re-querying — it tracks zipCode exactly, so it's always current
+    // by the time a user reaches this step.
+    const parish = resolvedZipParish;
 
     // The optional profile extras that used to be collected on Step 3 are
     // handled two different ways now, and the difference matters:
@@ -260,6 +301,9 @@ const Signup = () => {
         phone,
         bio,
         location,
+        // Required now — the validator above guarantees 5 digits.
+        zipCode: zipCode.trim(),
+        parish,
         dateOfBirth: dateOfBirth || null,
         // Explicit marketing-email consent captured at signup. Defaults to
         // false server-side; passing it here lets a user who ticked the box
@@ -354,7 +398,13 @@ const Signup = () => {
         // same generic message they'd see on ForgotPassword — set here,
         // read-and-cleared by Login. Without it the user pressed "Create
         // account" and silently arrived on a different screen.
-        try { sessionStorage.setItem("helpr_signup_redirect", "1"); } catch { /* private mode */ }
+        try {
+          sessionStorage.setItem("helpr_signup_redirect", "1");
+        } catch {
+          // Silent by design: this only hands Login the one-shot neutral note
+          // explaining the redirect. Losing it costs a line of copy — and must
+          // never cost the redirect itself, which is the enumeration defence.
+        }
         navigate("/login");
         return;
       }
@@ -506,6 +556,10 @@ const Signup = () => {
             setDateOfBirth={setDateOfBirth}
             location={location}
             setLocation={setLocation}
+            zipCode={zipCode}
+            setZipCode={setZipCode}
+            zipCityMismatch={cityZipMismatch}
+            zipUnknown={unknownZip}
             bio={bio}
             setBio={setBio}
             inputCls={inputCls}

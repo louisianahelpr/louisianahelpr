@@ -149,7 +149,7 @@ const SwipeableJobCard = ({
               the SOS chip. Tint and border unchanged. */}
           <X className="w-5 h-5" style={{ color: "hsl(var(--danger-ink))" }} strokeWidth={2.5} />
           <span
-            className="text-ds-10 font-serif italic uppercase tracking-[0.18em]"
+            className="text-ds-10 font-sans uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--danger-ink))" }}
           >
             Not interested
@@ -176,10 +176,10 @@ const SwipeableJobCard = ({
         >
           <Send className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={2.5} />
           <span
-            className="text-ds-10 font-serif italic uppercase tracking-[0.18em]"
+            className="text-ds-10 font-sans uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--bark))" }}
           >
-            {job.instant_book ? "Book" : "Apply"}
+            Apply
           </span>
         </motion.div>
       </motion.div>

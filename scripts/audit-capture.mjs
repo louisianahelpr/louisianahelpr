@@ -54,7 +54,13 @@ const repoRoot = path.resolve(__dirname, '..');
 // ---------- config ----------
 const TARGET = 'https://www.louisianahelpr.com';
 const TEST_EMAIL = 'eli.test.helper@louisianahelpr.com';
-const TEST_USER_ID = '6bdc1f67-ae1f-46a0-8edf-4035629a6147';
+// NOT a constant any more. The account behind TEST_EMAIL was deleted and
+// re-created on 2026-09-07 (old auth id 6bdc1f67-…a6147 → 404 from GoTrue,
+// new id f6cc3ebb-…0734f), and for as long as this id was hard-coded the
+// snapshot/restore guard quietly tracked ZERO rows — a restore that reports
+// "0 row(s)" and exits 0 looks exactly like an account that never changed.
+// Resolve it from the email every run; see resolveTestUserId().
+let TEST_USER_ID = null;
 // Was a hardcoded date that had to be edited by hand before every run — forget
 // and you silently overwrite the previous capture. Defaults to today.
 const DATE_DIR = process.env.AUDIT_DATE || new Date().toISOString().slice(0, 10);
@@ -79,7 +85,7 @@ const AUTHED_ROUTES = [
   // /work-record, /auto-tip, /str-settings and /wrapped are no longer routes.
   // They are Profile tabs now and are covered by PROFILE_ROUTES below, derived
   // from the Tab union itself so they cannot be missed.
-  '/my-posts?filter=done', '/messages', '/post-job', '/jobs', '/settings',
+  '/my-posts?filter=done', '/messages', '/post-job', '/settings',
   '/settings/profile', '/availability', '/schedule', '/earnings',
   '/saved-helpers', '/data-rights', '/gift-card', '/payment-success', '/help', '/support',
   '/legal', '/privacy', '/terms', '/rules',
@@ -436,13 +442,13 @@ async function captureCell({ browser, cellName, url, viewport, outDirBase, sessi
 const TRACKED_TABLES = [
   {
     table: 'notification_preferences',
-    filter: `user_id=eq.${TEST_USER_ID}`,
+    filter: () => `user_id=eq.${TEST_USER_ID}`,
     // A control sweep flipped push_enabled to false here and left it.
     columns: null, // null = whole row
   },
   {
     table: 'helper_availability',
-    filter: `helper_id=eq.${TEST_USER_ID}`,
+    filter: () => `helper_id=eq.${TEST_USER_ID}`,
     // A control sweep flipped all 7 is_available rows to false and left them.
     columns: null,
   },
@@ -491,10 +497,25 @@ async function restPatchById(env, table, id, row) {
  * Read the test account's mutable state and write it to disk. Returns the
  * snapshot object (also usable in-process).
  */
+/**
+ * The test account's CURRENT auth id, looked up by email through the
+ * service-role REST endpoint. Throws rather than falling back to a literal:
+ * a guess here is what made the guard a no-op for a whole sweep cycle.
+ */
+async function resolveTestUserId(env) {
+  if (TEST_USER_ID) return TEST_USER_ID;
+  const rows = await restGet(env, 'profiles', `email=eq.${encodeURIComponent(TEST_EMAIL)}`);
+  const id = rows?.[0]?.user_id;
+  if (!id) throw new Error(`resolveTestUserId: no profiles row for ${TEST_EMAIL} — refusing to snapshot/restore against a guessed id`);
+  TEST_USER_ID = id;
+  return id;
+}
+
 async function snapshotAccountState(env, outDir) {
+  await resolveTestUserId(env);
   const snapshot = { takenAt: new Date().toISOString(), userId: TEST_USER_ID, tables: {} };
   for (const spec of TRACKED_TABLES) {
-    snapshot.tables[spec.table] = await restGet(env, spec.table, spec.filter);
+    snapshot.tables[spec.table] = await restGet(env, spec.table, spec.filter());
   }
   const counts = Object.entries(snapshot.tables)
     .map(([t, rows]) => `${t}:${rows.length}`)
@@ -725,7 +746,7 @@ async function main() {
 // snapshot/restore logic (see the ⚠️ block at the top):
 //   import { snapshotAccountState, restoreAccountState, readEnv } from './audit-capture.mjs';
 // Importing this file must therefore NOT start a capture — hence the guard.
-export { snapshotAccountState, restoreAccountState, readEnv, TRACKED_TABLES, LATEST_SNAPSHOT_PATH };
+export { snapshotAccountState, restoreAccountState, resolveTestUserId, readEnv, TRACKED_TABLES, LATEST_SNAPSHOT_PATH };
 
 const invokedDirectly =
   process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

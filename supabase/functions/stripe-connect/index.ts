@@ -97,8 +97,19 @@ serve(async (req) => {
           capabilities: {
             transfers: { requested: true },
           },
+          // `daily`, not `manual`. `manual` left every free-tier helper with
+          // no path from their Connect balance to their bank at all — the
+          // only payout call anywhere in this codebase is Instant Payout,
+          // which is gated to paid tiers, so a free helper's earnings just
+          // sat in their Stripe balance forever. `daily` gives everyone an
+          // automatic sweep, and it does not conflict with Instant Payout:
+          // that call still pays out on demand from whatever balance has
+          // already cleared, ahead of the next automatic cycle. Matches what
+          // the Help Center already tells every helper ("transfers to your
+          // bank within 2 business days... every standard payout after that
+          // is free") — that copy described a schedule that never existed.
           settings: {
-            payouts: { schedule: { interval: "manual" } },
+            payouts: { schedule: { interval: "daily" } },
           },
           metadata: { user_id: user.id },
         }, { idempotencyKey: `stripe-connect-create-${user.id}` });

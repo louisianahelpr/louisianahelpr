@@ -519,7 +519,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
                 Louisiana Helpr is locked
               </h1>
               <p
-                className="mt-2 max-w-[30ch] font-serif text-ds-13 italic"
+                className="mt-2 max-w-[30ch] font-sans text-ds-13"
                 style={{ color: "hsl(var(--olivewood) / 0.85)" }}
               >
                 {explainer}

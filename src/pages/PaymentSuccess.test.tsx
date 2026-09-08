@@ -215,26 +215,46 @@ describe("PaymentSuccess", () => {
       await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
     });
 
-    it("does NOT claim escrow for a job whose money has already moved", async () => {
-      // `released` / `refunded` are not failures, but "held securely —
-      // released when you confirm the work is done" is false for them. The
-      // screen must decline to say it rather than print a stale sentence.
+    it("claims success for an ALREADY-RELEASED job, but with corrected copy (not the escrow sentence)", async () => {
+      // ME-041 (lh-money-escrow, 2026-09-04): `released` used to match
+      // neither HELD_STATUSES nor NOT_HELD_STATUSES, so re-opening this
+      // return URL for a job whose payout had already completed fell
+      // through every poll attempt and landed on "we couldn't confirm your
+      // payment… please don't pay again" — actively wrong for a payment
+      // that had not only succeeded but had already been paid out. The
+      // fix is to still claim success (the money really was collected and
+      // released), just never say the escrow-specific "released when you
+      // confirm the work is done" sentence, which IS false once released.
+      jobsLookup = {
+        data: { budget: 80, category: "cleaning", payment_status: "released" },
+        error: null,
+      };
+      renderAt();
+      const heading = await screen.findByRole("heading", { level: 1 });
+      expect(heading).toHaveTextContent(/payment authorized/i);
+      expect(screen.getByText(/already been released/i)).toBeInTheDocument();
+      expect(screen.queryByText(/released when you confirm the work is done/i)).not.toBeInTheDocument();
+    });
+
+    it("does NOT claim success for 'refunded' — genuinely ambiguous, unlike 'released'", async () => {
+      // A refund means money was taken and then returned — "was this
+      // payment confirmed" is a real unresolved question, not the same
+      // shape as `released` (taken and definitely kept). Declining to
+      // claim success here is still the right call.
       vi.useFakeTimers({ shouldAdvanceTime: true });
-      for (const status of ["released", "refunded"]) {
-        jobsLookup = {
-          data: { budget: 80, category: "cleaning", payment_status: status },
-          error: null,
-        };
-        const view = renderAt();
-        await act(async () => {
-          await vi.advanceTimersByTimeAsync(8_000);
-        });
-        await waitFor(() => {
-          expect(screen.getByText(/we couldn't confirm your payment/i)).toBeInTheDocument();
-        });
-        expectNoSuccessClaim();
-        view.unmount();
-      }
+      jobsLookup = {
+        data: { budget: 80, category: "cleaning", payment_status: "refunded" },
+        error: null,
+      };
+      const view = renderAt();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(8_000);
+      });
+      await waitFor(() => {
+        expect(screen.getByText(/we couldn't confirm your payment/i)).toBeInTheDocument();
+      });
+      expectNoSuccessClaim();
+      view.unmount();
     });
   });
 });

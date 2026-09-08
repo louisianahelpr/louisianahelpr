@@ -46,9 +46,11 @@ const PublicLayout = ({
   // legal ... there should not be any redirection back to public pages once
   // they are signed in").
   //
-  // /help, /legal, /support and /subscription are reachable BOTH from the
-  // marketing site (Footer destinations, logged out) and from inside the app
-  // (Profile → Legal & Policies, Help Center, Membership). They used to render
+  // /help, /legal and /support are reachable BOTH from the marketing site
+  // (Footer destinations, logged out) and from inside the app (Profile → Legal
+  // & Policies, Help Center). Membership is NOT one of them any more: the
+  // standalone /subscription route was removed in 49f4f2f30 and it lives only
+  // at /profile?tab=subscription. They used to render
   // marketing chrome — the Navbar with its Log In / Get Started CTAs and the
   // "download on the App Store" Footer — to everyone, so a signed-in person
   // opening Legal from their Profile was dropped onto the marketing site

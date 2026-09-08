@@ -4,11 +4,16 @@
  *
  * Server source of truth lives in `public.application_rate_log` +
  * `rpc_check_application_rate` + `rpc_record_application_attempt`
- * (migration 20260609130000). The decided limits are:
+ * (migration 20260609130000).
  *
- *   • 10 applications / minute
- *   • 50 applications / hour
- *   • 200 applications / day
+ * THE LIMITS ARE NO LONGER CONSTANTS AND DEFAULT TO NONE. This comment named
+ * 10/min, 50/hr, 200/day until 2026-09-07. Those numbers are now
+ * `platform_settings.application_cap_per_minute` / `_per_hour` /
+ * `daily_application_cap`, read by `application_cap()`, and all three ship
+ * NULL — unlimited (owner decision: "there should not be an application cap").
+ * `rpc_check_application_rate` short-circuits to allowed when every cap is
+ * off, so in the shipped configuration this helper is a no-op round trip that
+ * exists to keep the lever wired.
  *
  * Flow at the call site:
  *   1. checkApplicationRate({ applicantId })  — BEFORE inserting.

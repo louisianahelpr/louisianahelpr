@@ -139,7 +139,7 @@ export function PhotoNameSection({
               never interrupts. */}
           <p
             aria-live="polite"
-            className="font-serif italic mt-1 leading-snug text-ds-12"
+            className="font-sans mt-1 leading-snug text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {avatarCaption(photoRejection)}

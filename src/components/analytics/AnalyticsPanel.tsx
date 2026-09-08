@@ -65,7 +65,7 @@ export function StatTile({
 }) {
   return (
     <div
-      className="rounded-xl px-3 py-2.5 min-w-0"
+      className="rounded-ds-md px-3 py-2.5 min-w-0"
       style={{
         background: "hsl(var(--ivory-sand) / 0.6)",
         border: "0.5px solid hsl(var(--olivewood) / 0.10)",

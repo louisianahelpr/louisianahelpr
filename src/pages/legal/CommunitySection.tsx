@@ -341,7 +341,7 @@ export const CommunityContent = () => (
             <li><strong className="text-foreground">2nd violation:</strong> 7-day suspension.</li>
             <li><strong className="text-foreground">3rd violation:</strong> 30-day suspension.</li>
             <li><strong className="text-foreground">4th and beyond:</strong> Reviewed by a human for a permanent ban — it is never automatic.</li>
-            <li className="!list-none pl-0 pt-1 text-muted-foreground">Counts <em>confirmed violations</em>, not reports made against you. Admin actions, cancellations with a helper assigned, off-platform flags, job denials and no-shows are handled separately and do not feed this ladder.</li>
+            <li className="!list-none pl-0 pt-1 text-muted-foreground">Counts <em>confirmed violations</em>, not reports made against you. Admin actions, cancellations with a Helpr assigned, off-platform flags, job denials and no-shows are handled separately and do not feed this ladder.</li>
           </ul>
         }
       />

@@ -38,7 +38,10 @@ const OPEN_JOB = {
   start_time: "14:00",
   location: "New Orleans, LA",
   status: "open",
-  payment_status: "paid",
+  // "escrow" — an open job that has been funded. NOT "paid": the
+  // `jobs_payment_status_check` constraint has never admitted that value, so
+  // this described a row prod could not hold. See fixturePaymentStatus.test.ts.
+  payment_status: "escrow",
   // useDashboardFilters has a 20-minute "early access" delay for free
   // helpers — anything posted in the last 20 minutes is hidden from
   // non-subscribers (the perk that justifies the Basic/Pro/Elite tier).

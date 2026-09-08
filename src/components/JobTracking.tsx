@@ -11,7 +11,8 @@ import { haversineMiles } from "@/lib/geo";
 import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, CalendarCheck, FileText, AlertTriangle, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
-import { parseLocalDate } from "@/lib/dateUtils";
+import { jobStartDateTime } from "@/lib/dateUtils";
+import { jobDateMs, todayMs, JOB_TIMEZONE } from "@/lib/jobDate";
 import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { arrivalEstablished, arrivalGateMessage, arrivalState, arrivalStateLabel, type ArrivalState } from "@/lib/arrivalGate";
@@ -140,6 +141,11 @@ export type JobProgressEvidence = {
   /** Job date (YYYY-MM-DD) — lets the mutual gate honour an accept that
    *  itself happened inside the 24h window. Optional; absent = lenient. */
   jobDateNeeded?: string;
+  /** `jobs.start_time` ("HH:MM:SS"). Lets the day-of grace window measure from
+   *  the job's real START in the job's zone — the same instant JobConfirmation
+   *  opens against — rather than from midnight in the reader's zone. Optional;
+   *  absent = midnight, which is the lenient direction. */
+  jobStartTime?: string | null;
   posterConfirmedAt?: string | null;
   helperOnTheWayAt?: string | null;
   helperArrivedAt?: string | null;
@@ -174,6 +180,7 @@ export function deriveCurrentStatusIdx({
   helperConfirmedAt,
   helperDayofConfirmedAt,
   jobDateNeeded,
+  jobStartTime,
   posterConfirmedAt,
   helperOnTheWayAt,
   helperArrivedAt,
@@ -212,10 +219,17 @@ export function deriveCurrentStatusIdx({
   const helperAnsweredDayOf =
     !!helperDayofConfirmedAt ||
     (!!helperConfirmedAt &&
-      (!jobDateNeeded ||
-        parseLocalDate(jobDateNeeded).getTime() -
-          new Date(helperConfirmedAt).getTime() <=
-          24 * 3_600_000));
+      (() => {
+        // Measured against the job's real START in the JOB's zone. This used
+        // to subtract an absolute timestamp from `parseLocalDate(...)`, which
+        // is midnight in the VIEWER's zone — two operands in different frames,
+        // so the grace window slid by the reader's UTC offset and by however
+        // far the start time sits from midnight. "Same grace as
+        // JobConfirmation" is asserted by the comment above; it is only true
+        // if both measure from the same instant.
+        const start = jobStartDateTime(jobDateNeeded, jobStartTime);
+        return !start || start.getTime() - new Date(helperConfirmedAt).getTime() <= 24 * 3_600_000;
+      })());
   if (helperAnsweredDayOf && posterConfirmedAt) {
     atLeast(STATUS_IDX.job_confirmed);
   }
@@ -1131,6 +1145,7 @@ export function JobTracking({
     helperConfirmedAt,
     helperDayofConfirmedAt,
     jobDateNeeded,
+    jobStartTime,
     posterConfirmedAt,
     helperOnTheWayAt: jobStamps.onTheWayAt,
     helperArrivedAt: jobStamps.arrivedAt,
@@ -1551,7 +1566,27 @@ export function JobTracking({
                     // Constrained to the column, a long label wraps within its
                     // own step and the edge mask feathers whole steps as
                     // intended.
-                    className="w-full text-ds-9 min-[360px]:text-ds-10 font-sans font-semibold text-center leading-tight"
+                    //
+                    // `min-h-[2.5em]` RESERVES BOTH LINES ON EVERY STEP.
+                    // "On the Way" is the one label that does not fit a 60px
+                    // column on one line, so it — and only it — wrapped to two.
+                    // Measured at 500px: that column stood 61px tall against 47
+                    // for the other seven, and because the row is `items-start`
+                    // the extra 14px hung below its neighbours, so a row of
+                    // eight identical steps visibly sagged under one of them.
+                    // Reserving two lines' height makes every column the same
+                    // height whichever label happens to wrap, at the same cost
+                    // the tallest one was already imposing on the row.
+                    //
+                    // 2.9em, NOT 2.5em: the line box here is 1.45× the font
+                    // size, not the 1.25 `leading-tight` implies — `text-ds-9`
+                    // and `text-ds-10` each ship `lineHeight: "1.45"` in
+                    // tailwind.config.ts and win, and `html.senior-mode` keeps
+                    // 1.45 too. 2.5em undershot the real two-line box by 4px
+                    // and left the row still visibly uneven; 2 × 1.45 lands it
+                    // exactly, and being em-relative it holds at ds-9, ds-10
+                    // and senior-mode alike.
+                    className="w-full min-h-[2.9em] text-ds-9 min-[360px]:text-ds-10 font-sans font-semibold text-center leading-tight"
                     style={{
                       color: isCurrent
                         ? "hsl(var(--bark))"
@@ -1699,12 +1734,15 @@ export function JobTracking({
 
       {/* Helper controls — skip the job_confirmed step since that's handled by JobConfirmation */}
       {isHelper && (() => {
-        let jobDay: Date | null = null;
-        if (jobDateNeeded) {
-          jobDay = parseLocalDate(jobDateNeeded);
-        }
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // The job's DAY and the job's START are both resolved in the JOB's
+        // timezone, never the viewer's. A 2026-09-06 end-to-end review viewing
+        // from Pacific found this whole block two hours out on a 6:30 PM
+        // Central job: the countdown, the "Actions unlock at" string, and the
+        // gate that actually enables the button. See jobStartDateTime.
+        const jobDayMs = jobDateMs(jobDateNeeded);
+        const jobDay: Date | null = jobDayMs === null ? null : new Date(jobDayMs);
+        const todayStartMs = todayMs();
+        const startAt = jobStartDateTime(jobDateNeeded, jobStartTime);
 
         // Find next actionable status (skip job_confirmed — handled by JobConfirmation component)
         let nextIdx = currentStatusIdx + 1;
@@ -1721,8 +1759,11 @@ export function JobTracking({
                to render nothing, so this line pointed at an empty space.
                JobConfirmation now shows its own "opens in …" card in that
                window, and this line matches it rather than contradicting it. */
+            // Measured from the real START, not from midnight of the job's
+            // day. Off midnight, an evening job's window opened up to 18 hours
+            // early and this line promised a control that was not there yet.
             const confirmOpen =
-              !jobDay || jobDay.getTime() - Date.now() <= 24 * 3_600_000;
+              !startAt || startAt.getTime() - Date.now() <= 24 * 3_600_000;
             /* Silent before the window opens: JobConfirmation renders its own
                "Confirmation opens in …" strip directly below in that state and
                says the same thing with a clock attached. Two sentences saying
@@ -1770,33 +1811,36 @@ export function JobTracking({
         // "they're on the way" signal meaningless. A job with no start_time
         // falls back to the old day gate — with nothing to measure against,
         // day-of is the honest window.
-        const startAt = jobDay
-          ? (() => {
-              if (!jobStartTime) return null;
-              const [h, m] = jobStartTime.split(":").map(Number);
-              const d = new Date(jobDay);
-              d.setHours(h || 0, m || 0, 0, 0);
-              return d;
-            })()
-          : null;
         const UNLOCK_BEFORE_MS = 2 * 3_600_000;
-        const isLocked = startAt
+        // `startAt` falls back to midnight in the job's zone when there is no
+        // start_time, so the two-hour rule would unlock a flexible job at 10 PM
+        // the night before. Only gate on it when a start time actually exists;
+        // otherwise the day gate is the honest window.
+        const isLocked = jobStartTime && startAt
           ? Date.now() < startAt.getTime() - UNLOCK_BEFORE_MS
-          : jobDay
-            ? today < jobDay
+          : jobDayMs !== null
+            ? todayStartMs < jobDayMs
             : false;
         const lockMessage = isLocked
-          ? startAt
+          ? jobStartTime && startAt
             ? (() => {
                 // Date-stamp the UNLOCK moment, not the job's day — for an
                 // early-morning start the 2h-before unlock lands on the
                 // PREVIOUS calendar day (a 12:00 AM Aug 29 job unlocks
                 // 10:00 PM Aug 28; the old string said "on Aug 29").
                 const unlockAt = new Date(startAt.getTime() - UNLOCK_BEFORE_MS);
-                const unlockDay = new Date(unlockAt);
-                unlockDay.setHours(0, 0, 0, 0);
-                const dateSuffix = today < unlockDay ? ` on ${formatShortDate(unlockDay)}` : "";
-                return `Actions unlock at ${unlockAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}${dateSuffix}`;
+                // Rendered in the JOB's zone. Printing this instant with the
+                // viewer's default zone would name an hour the helper will not
+                // see on the clock at the job, which is the same defect one
+                // layer up in the sentence rather than the gate.
+                const zoned = { timeZone: JOB_TIMEZONE } as const;
+                const unlockDayStr = unlockAt.toLocaleDateString("en-CA", zoned);
+                const unlockDayMs = jobDateMs(unlockDayStr);
+                const dateSuffix =
+                  unlockDayMs !== null && todayStartMs < unlockDayMs
+                    ? ` on ${formatShortDate(new Date(unlockDayMs))}`
+                    : "";
+                return `Actions unlock at ${unlockAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", ...zoned })}${dateSuffix}`;
               })()
             : `Actions available on ${formatShortDate(jobDay!)}`
           : null;
@@ -1931,7 +1975,7 @@ export function JobTracking({
                 }}
                 secondaryLabel="Cancel"
               >
-                <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood))" }}>
+                <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood))" }}>
                   The poster gets {COPY_AUTO_RELEASE_HOURS} hours to approve the work or ask for a change. If they don’t answer, your payment releases to you automatically. You can’t take this back from here.
                 </p>
               </BrandConfirmDialog>

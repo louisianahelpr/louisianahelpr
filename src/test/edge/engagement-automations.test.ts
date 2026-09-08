@@ -215,6 +215,26 @@ describe("engagement-automations edge function", () => {
     expect(queued()).toHaveLength(0);
   });
 
+  it("honours the Email MASTER even when Promotions is still on", async () => {
+    // Since 20260907032218 the master is its own column and no longer writes
+    // `false` across the categories. So master OFF + Promotions ON is the
+    // state "mute all email" leaves behind — and this cron used to read only
+    // `email_promotions`, which meant the master suppressed notifications but
+    // not marketing. Measured 2026-09-07 on the helper test account.
+    const fn = await loadConfigured();
+    seedOneDripRecipient();
+    scenario.reads.notification_preferences = {
+      rows: [{ user_id: "user-1", email_promotions: true, email_enabled: false }],
+    };
+
+    const res = await fn.fetch(cronRequest(fn));
+    const b = await body(res);
+
+    expect(res.status).toBe(200);
+    expect(b.drip).toBe(0);
+    expect(queued()).toHaveLength(0);
+  });
+
   it("does NOT advance the drip cursor when the enqueue fails", async () => {
     // Advancing a cursor over an email that was never queued skips the step
     // silently and forever.

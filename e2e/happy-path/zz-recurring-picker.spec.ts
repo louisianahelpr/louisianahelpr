@@ -97,7 +97,13 @@ for (const width of [375, 1440]) {
       await dayGroup.getByRole("button", { name: label }).click();
     }
     await expect(page.getByText("0 visits")).toHaveCount(0);
-    await expect(page.getByText(/Choose the date this starts/)).toBeVisible();
+    // Matches the copy by the FIELD IT NAMES, not by a sentence fragment.
+    // It used to read "Choose the date this starts (up in Schedule)" — wrong
+    // twice: the form's sections are Details / Logistics / Budget, so there is
+    // no Schedule to look up to, and the date field sits directly BELOW this
+    // sentence. Asserting on "Date needed" survives a rewording and still fails
+    // if the hint stops pointing at a real field.
+    await expect(page.getByText(/Date needed.*just below/i)).toBeVisible();
     // Let the chip transition settle before measuring — `transition-all` means
     // the last-clicked day is still mid-fade the instant the click resolves,
     // and a half-faded chip is not what a user ever sees.

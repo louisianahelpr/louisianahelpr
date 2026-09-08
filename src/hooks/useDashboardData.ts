@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { formatName } from "@/lib/utils";
+import { dedupeById, formatName } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -304,7 +304,33 @@ export function useDashboardData() {
             // the guest feed, which has no profile. Measured at Baton Rouge, a
             // 1-mile radius returned every open job including one 72.7 miles
             // out, under a "Filtered Results" heading (BD-001).
-            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count",
+            // `credential_tier` and `parish` were added to the view by
+            // 20260904031002. Without `credential_tier` here,
+            // `JobDetailFooter`'s `(job.credential_tier ?? 0) > 0` lock check
+            // was permanently false on this feed — a poster-restricted job
+            // read as open to everyone. Without `parish`, the drive-time
+            // readout and ranking tie-break silently no-op'd on /dashboard
+            // while working on /jobs, which reads the same column from a
+            // different RPC.
+            // `is_auto_created` was added here on 2026-09-05 (ef3550115) and
+            // took the WHOLE FEED DOWN: this select runs against
+            // `open_jobs_browse`, and that view does not project the column —
+            // only `public.jobs` has it. PostgREST answers an unknown column
+            // with 400 / 42703 for the entire query, so /dashboard rendered
+            // "We couldn't load jobs" for every helper rather than degrading.
+            //
+            // Nothing on this feed ever read it. Its only consumer is
+            // `UnfundedJobNotice`, which lives on the POSTER's card and reads
+            // `public.jobs` directly — so the column was added to the wrong
+            // query, and removing it here restores the feed without narrowing
+            // anything. Adding it to the view instead would widen what browse
+            // exposes for a consumer that does not exist.
+            //
+            // The two columns named in the note above (`credential_tier`,
+            // `parish`) are the counter-example worth keeping in view: both
+            // were added to the VIEW first, by 20260904031002, before any
+            // select asked for them.
+            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish",
           )
           .neq("payment_status", "abandoned");
 
@@ -315,7 +341,7 @@ export function useDashboardData() {
         rawJobsRes = unwrap(await withTimeout(filteredQuery
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
-          .range(offset, offset + PAGE_SIZE), JOBS_QUERY_TIMEOUT_MS, "Loading tasks timed out")) as any[];
+          .range(offset, offset + PAGE_SIZE), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out")) as any[];
       } catch (viewErr) {
         report(viewErr, {
           // "error" — a thrown open_jobs_browse query bricks the entire
@@ -358,7 +384,7 @@ export function useDashboardData() {
           .from("profiles")
           .select("user_id, subscription_tier, subscription_expires_at")
           .in("user_id", posterIds),
-      ]), JOBS_QUERY_TIMEOUT_MS, "Loading tasks timed out");
+      ]), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out");
 
       const nameMap = new Map(
         profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
@@ -459,7 +485,7 @@ export function useDashboardData() {
     // so don't make the user wait through 2 silent auto-retries (~36s). Other
     // transient errors keep the default retry behavior.
     retry: (failureCount, error) =>
-      error instanceof Error && error.message === "Loading tasks timed out"
+      error instanceof Error && error.message === "Loading jobs timed out"
         ? false
         : failureCount < 2,
     // SWR — same 2-minute fresh window as ctx above. Pages loaded on the last
@@ -493,8 +519,12 @@ export function useDashboardData() {
   });
 
   // Flatten loaded pages into a single array for downstream filtering/sorting.
+  // `dedupeById` because the pages are OFFSET/LIMIT windows over an order
+  // (`boosted_at DESC`) that mutates between fetches: a boost purchased while
+  // the helper is mid-scroll lifts that row above the offset and re-serves the
+  // previous page's last card as this page's first. See the helper's comment.
   const allJobs = useMemo<EnrichedJob[]>(
-    () => (pagesData?.pages ?? []).flatMap((p) => p.jobs),
+    () => dedupeById((pagesData?.pages ?? []).flatMap((p) => p.jobs)),
     [pagesData],
   );
 

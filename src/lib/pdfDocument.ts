@@ -156,14 +156,15 @@ export async function createLetterheadPdf(
   //     one the owner has twice asked for by name ("Emails should use the h
   //     logo") and the one on the app-lock screen. Drawn at its true aspect
   //     ratio from `HELPR_MARK_PX`, never a guessed box, so it cannot squash.
-  //  2. THE WORDMARK IS SET IN A SERIF ITALIC. In the app "Helpr" is italic EB
-  //     Garamond with a Burnt-Sienna "- LA" tail (see HelprMark.tsx). jsPDF
-  //     ships only the standard 14 faces, and embedding EB Garamond would mean
-  //     `addFileToVFS` + `addFont` and a ~200KB base64 font subset in the
-  //     chunk, for one export, on a path that must also work offline. Times
-  //     BoldItalic is a real serif italic, costs ZERO bytes because every PDF
-  //     reader has it, and cannot fall back to tofu in whatever ancient
-  //     Acrobat a leasing office runs.
+  //  2. THE WORDMARK IS SET IN A SANS. In the app "Helpr" is Montserrat with a
+  //     Burnt-Sienna "- LA" tail (see HelprMark.tsx; EB Garamond was retired
+  //     2026-09-07). jsPDF ships only the standard 14 faces, and embedding
+  //     Montserrat would mean `addFileToVFS` + `addFont` and a ~200KB base64
+  //     font subset in the chunk, for one export, on a path that must also
+  //     work offline. Helvetica is the standard-14 sans, costs ZERO bytes
+  //     because every PDF reader has it, and cannot fall back to tofu in
+  //     whatever ancient Acrobat a leasing office runs. The document TITLE
+  //     keeps Times BoldItalic as the stand-in for the Bodoni heading voice.
   //  3. COLOUR. Bark on the section band, Burnt Sienna on the LA tail, warm
   //     hairlines. Enough to read as Helpr, not so much that a landlord thinks
   //     he is holding an advert.
@@ -173,13 +174,13 @@ export async function createLetterheadPdf(
   doc.addImage(HELPR_MARK_PNG, "PNG", MARGIN, 52, MARK_W, MARK_H);
 
   const wordmarkX = MARGIN + MARK_W + 10;
-  doc.setFont("times", "bolditalic");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(25);
   ink(INK);
   doc.text("Helpr", wordmarkX, 78);
   // MEASURE WHILE THE WORDMARK'S FONT IS STILL SET. `getTextWidth` reads the
   // document's CURRENT font and size — the same trap `fitLines` above
-  // documents — so measuring after the switch to 12pt italic would place the
+  // documents — so measuring after the switch to 12pt would place the
   // tail on top of the "r".
   const wordmarkW = doc.getTextWidth("Helpr");
 
@@ -192,7 +193,7 @@ export async function createLetterheadPdf(
   // no Latin-1 slot at all. If a future edit adds another non-ASCII glyph,
   // RENDER THE PDF and look — the failure is a silently wrong glyph, not an
   // exception.
-  doc.setFont("times", "italic");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
   ink(SIENNA);
   doc.text("· LA", wordmarkX + wordmarkW + 7, 78, { charSpace: 1.6 });

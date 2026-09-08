@@ -99,7 +99,7 @@ export const DashboardHome = ({
             >
               Welcome back
             </h1>
-            <p className="font-serif italic mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-sans mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {hasAlerts ? "There are items needing attention today." : "Everything looks calm on the platform."}
             </p>
           </div>
@@ -115,7 +115,7 @@ export const DashboardHome = ({
       </div>
 
       {dataError && (
-        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-ds-11 text-destructive">
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-ds-11 text-[hsl(var(--destructive-ink))]">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
           <span>Some stats may be outdated — a data request failed. Refresh to retry.</span>
         </div>

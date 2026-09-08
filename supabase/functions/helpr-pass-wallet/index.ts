@@ -16,7 +16,8 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { TIER_DISPLAY_NAMES } from "../_shared/tierNames.ts";
+import { tierDisplayName } from "../_shared/tierNames.ts";
+import { profileHasPerk, tiersGrantingPerk, tiersGrantingPerkSentence } from "../_shared/tierPerks.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,15 +64,26 @@ Deno.serve(async (req) => {
     if (!profile) throw new Error("Profile not found");
 
     const subTier = (profile.subscription_tier ?? "free") as string;
-    const subExp = profile.subscription_expires_at
-      ? new Date(profile.subscription_expires_at)
-      : null;
-    const subActive = subExp ? subExp > new Date() : false;
-    if (!subActive || subTier !== "elite") {
+    // A NULL `subscription_expires_at` on a paid tier means "no scheduled
+    // end" and counts as ACTIVE — the house convention, owned by
+    // _shared/tierPerks.ts and spelled out in the SQL of
+    // public.early_access_cutoff. This gate read `subExp ? … : false`, the
+    // opposite, so a comped or lifetime Elite member — exactly the accounts
+    // most likely to carry a null expiry — was refused their own perk with a
+    // 402 telling them to buy the tier they already hold (SC-014, the same
+    // inversion found and fixed in create-boost-payment). The tier list and
+    // the refusal copy are now derived from the same table, so the sentence
+    // can never name a set the gate disagrees with.
+    const entitled = profileHasPerk(
+      profile.subscription_tier,
+      profile.subscription_expires_at,
+      "helprPass",
+    );
+    if (!entitled) {
       return new Response(
         JSON.stringify({
-          error: `Helpr Pass is a ${TIER_DISPLAY_NAMES.elite} perk.`,
-          required_tier: "elite",
+          error: `Helpr Pass is a ${tiersGrantingPerkSentence("helprPass", tierDisplayName)} perk.`,
+          required_tier: tiersGrantingPerk("helprPass")[0],
         }),
         {
           status: 402,
@@ -100,7 +112,10 @@ Deno.serve(async (req) => {
         Deno.env.get("PASS_TYPE_IDENTIFIER") ?? "pass.com.louisianahelpr.helprpass",
       teamIdentifier: Deno.env.get("APPLE_TEAM_ID") ?? "TEAMID",
       organizationName: "Louisiana Helpr",
-      description: `Helpr Pass — ${TIER_DISPLAY_NAMES.elite} member ID`,
+      // The holder's OWN tier, not a hard-coded Elite. Today only Elite can
+      // reach this line, but a pass that prints a tier the holder does not
+      // have is the next bug the moment `helprPass` moves down the ladder.
+      description: `Helpr Pass — ${tierDisplayName(subTier)} member ID`,
       serialNumber: user.id,
       backgroundColor: "rgb(94, 101, 68)", // bark
       foregroundColor: "rgb(248, 244, 235)", // parchment
@@ -115,7 +130,7 @@ Deno.serve(async (req) => {
             label: "RATING",
             value: avgRating != null ? `${avgRating} ★` : "New",
           },
-          { key: "tier", label: "TIER", value: TIER_DISPLAY_NAMES.elite },
+          { key: "tier", label: "TIER", value: tierDisplayName(subTier) },
         ],
         auxiliaryFields: [
           {

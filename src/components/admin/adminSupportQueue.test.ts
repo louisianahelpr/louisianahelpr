@@ -42,6 +42,12 @@ describe("priority entitlement is derived, not hardcoded", () => {
 
   it("only entitled tiers report the perk", () => {
     expect(hasPrioritySupport("elite")).toBe(true);
+    // Plus is a real tier again (2026-09-05) and deliberately does NOT get
+    // priority support: TIER_PERKS.plus.dedicatedSupport is false, because
+    // moving one of Elite's identity perks down is a pricing decision the
+    // owner has not made. Asserted here so restoring the tier cannot quietly
+    // hand out Elite's support queue with it.
+    expect(hasPrioritySupport("plus")).toBe(false);
     expect(hasPrioritySupport("pro")).toBe(false);
     expect(hasPrioritySupport("basic")).toBe(false);
     expect(hasPrioritySupport("free")).toBe(false);
@@ -69,7 +75,10 @@ describe("resolveSupportTier — the tier NOW, not the raw column", () => {
 
   it("resolves a retired 'business' — and any unknown value — to free", () => {
     expect(resolveSupportTier("business", null, NOW)).toBe("free");
-    expect(resolveSupportTier("plus", null, NOW)).toBe("free");
+    // "plus" was in this list until 2026-09-05, when it stopped being an
+    // unknown value. It now resolves to itself; the assertion that matters for
+    // this queue — that it earns no priority — lives above.
+    expect(resolveSupportTier("plus", null, NOW)).toBe("plus");
     expect(resolveSupportTier(null, null, NOW)).toBe("free");
     expect(resolveSupportTier(undefined, undefined, NOW)).toBe("free");
   });

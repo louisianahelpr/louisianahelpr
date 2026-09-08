@@ -402,6 +402,19 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
       // decline goes through `useOfferHandlers`, which writes the reason onto
       // a real row.
       decline_reason: null,
+      // Same reasoning as `decline_reason`: these belong to the contact-info
+      // scanner (20260907005738), which runs on the text of a REAL application
+      // as it is written. A direct offer has no such row and no applicant-authored
+      // text to scan, so it has never been flagged — not-flagged is the truthful
+      // value here, not a placeholder.
+      flag_reason: null,
+      flagged_hidden: false,
+      // 20260907061408 snapshots the job's 2dp point onto a real application at
+      // apply time so the proximity RPCs read a fixed point instead of a
+      // poster-movable one. A direct offer never went through apply, so there
+      // is no snapshot — and nothing reads these off a synthetic row.
+      job_latitude: null,
+      job_longitude: null,
       attachment_urls: null,
       poster_viewed_at: null,
       stake_amount: null,

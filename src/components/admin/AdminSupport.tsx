@@ -18,7 +18,11 @@ import { TIER_PERKS, toSubscriptionTier, type SubscriptionTier } from "@/lib/sub
 
 type Ticket = {
   id: string;
-  reporter_id: string;
+  // Nullable since 20260902051631 — purge_user_data() nulls it when the
+  // reporter deletes their account, keeping the report as a record about the
+  // person reported ON. Stale generated types hid this until a 2026-09-04
+  // regen surfaced the mismatch; the read path below already guarded it.
+  reporter_id: string | null;
   reason: string;
   description: string | null;
   status: string;

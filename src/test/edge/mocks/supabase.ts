@@ -75,9 +75,23 @@ export interface SupabaseScenario {
   /** rpc name -> error to return instead of data. Fail-closed paths need it. */
   rpcErrors?: Record<string, { message: string; code?: string }>;
   /** Every rpc() call, in order — lets a test assert an RPC was NOT made. */
-  rpcCalls?: Array<{ name: string; args: unknown }>;
+  rpcCalls?: Array<{ name: string; args: unknown; client?: number }>;
   /**
-   * Captured writes, in order. `filters` records the `eq`/`neq`/`in` calls that
+   * Every createClient(url, key, options) call, in order, WITH the options.
+   *
+   * The third argument used to be dropped on the floor here, and that blind
+   * spot let a real outage ship on 2026-09-05: create-pro-checkout called an
+   * `authenticated`-only RPC on a client built from the anon key with no
+   * Authorization header, so it ran as `anon`, hit 42501, failed closed, and
+   * killed every membership purchase. No source grep could see it and no edge
+   * test could either, because the mock could not tell the two clients apart.
+   *
+   * Recording the options is what makes "which identity did this call run as"
+   * an assertable property rather than a code-review hope.
+   */
+  clients?: Array<{ url: string; key: string; options?: Record<string, unknown> }>;
+  /**
+   * Captured writes, in order. `filters` records the `eq`/`neq`/`in`/`or` calls that
    * were chained onto the write — the filters themselves are no-ops for
    * matching (the scenario decides the result), but a conditional write's
    * predicate IS the behaviour under test in the money paths, so it has to be
@@ -87,7 +101,7 @@ export interface SupabaseScenario {
     table: string;
     op: "insert" | "update" | "delete";
     payload: unknown;
-    filters: Array<{ op: "eq" | "neq" | "in"; column: string; value: unknown }>;
+    filters: Array<{ op: "eq" | "neq" | "in" | "or"; column: string; value: unknown }>;
     /**
      * The column list passed to the write's trailing `.select(...)`, or null
      * when the write did not end in one.
@@ -125,6 +139,7 @@ export function freshScenario(): SupabaseScenario {
     rpc: {},
     rpcErrors: {},
     rpcCalls: [],
+    clients: [],
     writes: [],
     writeErrors: {},
     writeSelectRows: {},
@@ -155,7 +170,7 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   private cols = "";
   /** Column list passed to a WRITE's trailing `.select(...)`. */
   private writeSelectCols: string | null = null;
-  private filters: Array<{ op: "eq" | "neq" | "in"; column: string; value: unknown }> = [];
+  private filters: Array<{ op: "eq" | "neq" | "in" | "or"; column: string; value: unknown }> = [];
   /** Set by `.select(cols, { count: "exact" })`. */
   private wantsCount = false;
   /** Set by `.select(cols, { head: true })` — a count with no rows. */
@@ -220,7 +235,18 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
     this.filters.push({ op: "in", column: column ?? "", value });
     return this;
   }
-  or() {
+  /**
+   * `.or("a.is.null,a.neq.b")` — RECORDED, not a silent no-op.
+   *
+   * It used to drop the expression on the floor, which meant a test could not
+   * tell an `.or(...)` guard from no guard at all. That is the whole shape of
+   * the bug this mock exists to catch: `execute-dispute-split`'s markFailed
+   * guarded with `.neq("execution_status","executed")`, which is NULL-blind in
+   * SQL and matched zero rows on exactly the disputes it needed to mark. The
+   * fix is an `.or()` — and an unrecorded `.or()` is a guard no test can assert.
+   */
+  or(expression?: string) {
+    this.filters.push({ op: "or", column: "", value: expression });
     return this;
   }
   is() {
@@ -381,8 +407,15 @@ export interface SupabaseClientMock {
   rpc: ReturnType<typeof vi.fn>;
 }
 
-/** The constructor the function code calls as `createClient(url, key)`. */
-export function createClient(_url: string, _key: string): SupabaseClientMock {
+/** The constructor the function code calls as `createClient(url, key, options)`. */
+export function createClient(
+  _url: string,
+  _key: string,
+  _options?: Record<string, unknown>,
+): SupabaseClientMock {
+  // Recorded so a test can assert WHICH client an RPC ran on — see `clients`.
+  (scenario.clients ??= []).push({ url: _url, key: _key, options: _options });
+  const clientIndex = (scenario.clients?.length ?? 1) - 1;
   return {
     from: (table: string) => new QueryBuilder(table),
     auth: {
@@ -403,7 +436,10 @@ export function createClient(_url: string, _key: string): SupabaseClientMock {
       },
     },
     rpc: vi.fn(async (name: string, args?: unknown) => {
-      scenario.rpcCalls?.push({ name, args });
+      // `client` is the index into scenario.clients — i.e. WHICH client this
+      // RPC ran on. Without it, "the RPC was called" and "the RPC was called as
+      // the right identity" are the same assertion, and they are not.
+      scenario.rpcCalls?.push({ name, args, client: clientIndex });
       const err = scenario.rpcErrors?.[name];
       if (err) return { data: null, error: err };
       // A function value is called with the arguments, so one scenario can

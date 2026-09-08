@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
-import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { mutationErrorMessage } from "@/lib/mutationResult";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
@@ -26,6 +26,7 @@ import {
 } from "../JobActionRow";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
+import { posterDisputeControls } from "./posterDisputeControls";
 
 interface PostedJobActionsProps {
   job: Job;
@@ -33,6 +34,9 @@ interface PostedJobActionsProps {
   helperNames: Record<string, string>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
   onBoost: (jobId: string) => void;
+  /** True when the job has never been funded, so it is invisible to every
+      helper. Boost sells reach on a listing that has none — see PostedJobCard. */
+  unfunded?: boolean;
   onEdit: (job: Job) => void;
   onCancel: (job: Job) => void;
   onComplete: (jobId: string) => void;
@@ -130,6 +134,7 @@ export function PostedJobActions({
   helperNames,
   completedJobMeta,
   onBoost,
+  unfunded = false,
   onEdit,
   onCancel,
   onComplete,
@@ -162,7 +167,76 @@ export function PostedJobActions({
   // resolved") both said "close a ticket" and neither said "move money" —
   // while Approve, the exact same money action one state earlier, opens
   // CompletionChoiceSheet first. Same consequence, same class of confirm.
+  // ESCALATE, BEHIND A CONFIRM. This ran straight from the chip's onClick:
+  // one tap, no sheet, no undo. It is protective (it is the only move that
+  // stops the auto-release at the deadline) but it is also one-way for the
+  // poster — once escalated the Resolve & Pay chip is gone and a human
+  // decides. Measured 2026-09-07: a single tap on the danger-toned chip
+  // escalated a live dispute with nothing asked. Resolve & Pay has confirmed
+  // through BrandConfirmDialog since it was renamed; this is the same bar.
+  const escalateDispute = async () => {
+    setDisputeActing(true);
+    try {
+      // BELONGS IN AN RPC, AND CANNOT BE FIXED FROM HERE.
+      //
+      // ONE SERVER-SIDE CALL. This block used to be a client
+      // write plus a browser fan-out, and both halves were wrong.
+      //
+      // The write set only `jobs.dispute_status` — the
+      // denormalised mirror — because there was no RPC to write
+      // both sides, and the `disputes` row stayed 'open'.
+      //
+      // The fan-out reached NOBODY and failed without an error:
+      // `user_roles` has exactly one policy an ordinary user can
+      // read (`auth.uid() = user_id`), so the select returned
+      // `{ data: [], error: null }`, `adminErr` was null, the loop
+      // never ran, and the toast still said an admin would review
+      // it. Escalation is the ONLY move that stops
+      // auto-resolve-disputes releasing the whole escrow at the
+      // deadline, so "we told the admins" being quietly false was
+      // the most expensive silent success on this card.
+      //
+      // `rpc_escalate_dispute` (20260907034826) does both server-
+      // side. It deliberately does NOT write
+      // `disputes.status = 'escalated'` — that value is outside
+      // the table's CHECK — and leaves `jobs.status` alone,
+      // because AdminDisputes builds its queue from
+      // `jobs.status = 'disputed'` (AdminDisputes.tsx:66). Writing
+      // either would delete escalated disputes from the queue that
+      // exists to action them.
+      try {
+        const { error: escalateErr } = await (supabase.rpc as never as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ error: { code?: string; message?: string } | null }>)(
+          "rpc_escalate_dispute",
+          { _job_id: job.id },
+        );
+        if (escalateErr) {
+          // PGRST202 = the RPC has not deployed yet. Migrations
+          // land on merge, so there is a window where the client
+          // is ahead of the database; a deploy-lag miss is not a
+          // reason to tell the poster their escalation failed
+          // when it may simply be a minute early.
+          if (String(escalateErr.code ?? "") !== "PGRST202") throw escalateErr;
+          report(escalateErr, { tags: { source: "PostedJobCard.escalateDispute.deployLag" } });
+        }
+      } catch (err) {
+        hapticError();
+        toast.error(mutationErrorMessage(err, "We couldn't escalate that — please try again."));
+        return;
+      }
+      hapticSuccess();
+      // Escalating froze the payout and handed the decision to a
+      // human, and the card said nothing about it.
+      toast.success("Escalated — an admin will review this and decide.");
+      onActionComplete();
+    } finally {
+      setDisputeActing(false);
+    }
+  };
   const [resolveConfirmOpen, setResolveConfirmOpen] = useState(false);
+  const [escalateConfirmOpen, setEscalateConfirmOpen] = useState(false);
 
   // Lifted out of the chip's onClick so the confirm dialog below can call the
   // same code path — the chip now only opens the dialog. Body is otherwise
@@ -177,7 +251,23 @@ export function PostedJobActions({
       // promised the helper payment that no release path would ever pick up —
       // escrow stayed held forever.
       const { error } = await supabase.rpc("rpc_withdraw_dispute" as never, { _job_id: job.id } as never);
-      if (error) { hapticError(); toast.error("We couldn't mark that resolved — please try again."); return; }
+      // REPORTED, not just toasted. This call failed 100% of the time from
+      // 20260901032007 until 20260907034644 — the dispute column whitelist
+      // pinned `decided_at`, which the RPC stamps in the same statement as the
+      // status flip, so every tap came back 42501 "only the evidence on a
+      // dispute may be changed". Nothing logged it: the toast said "please try
+      // again", the user did, and it failed identically, forever. A money
+      // control that is dead for months with zero Sentry events is the whole
+      // argument for this line.
+      if (error) {
+        report(error, { tags: { source: "PostedJobCard.withdrawDispute" }, context: { job_id: job.id } });
+        hapticError();
+        // Wording unchanged: `mutationErrorMessage` returns its fallback for a
+        // plain PostgrestError, so routing through it would only look like it
+        // was doing something.
+        toast.error("We couldn't mark that resolved — please try again.");
+        return;
+      }
       const { data: releaseData, error: releaseError } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId: job.id } });
       if (releaseError || releaseData?.error) {
         report(releaseError ?? new Error(String(releaseData?.error)), { tags: { source: "PostedJobCard.resolveDisputeRelease" }, context: { job_id: job.id } });
@@ -287,10 +377,10 @@ export function PostedJobActions({
               >
                 <Rocket className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.25} />
                 <p
-                  className="font-serif italic leading-snug text-ds-12"
+                  className="font-sans leading-snug text-ds-12"
                   style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                 >
-                  <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                  <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                     Boosted until {boostExp.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}.
                   </span>{" "}
                   Re-boost available after expiry.
@@ -318,20 +408,29 @@ export function PostedJobActions({
                   was extracted FROM this row. Colours are carried across
                   verbatim in jobActionChipStyle — the only rendered change is
                   the 44px minimum height these were ~3px short of. */}
-              <JobActionRow columns={4}>
+              <JobActionRow columns={unfunded ? 3 : 4}>
                 <ShareJobButton
                   job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
                   layout="stack"
                   className={JOB_ACTION_CHIP_CLASS}
                   style={jobActionChipStyle("share")}
                 />
-                <JobActionChip
-                  icon={Rocket}
-                  label={isBoosted ? "Boosted" : "Boost"}
-                  tone="boost"
-                  disabled={!!isBoosted}
-                  onClick={() => onBoost(job.id)}
-                />
+                {/* Boost sells REACH. An unfunded job has none — every browse
+                    surface filters on a funded payment_status — so charging to
+                    promote it would be selling nothing. Dropped entirely rather
+                    than disabled: a greyed chip invites a tap and an
+                    explanation, and UnfundedJobNotice already gives the poster
+                    the one action that helps. The row falls to 3 columns so the
+                    remaining chips stay evenly spaced at 375. */}
+                {!unfunded && (
+                  <JobActionChip
+                    icon={Rocket}
+                    label={isBoosted ? "Boosted" : "Boost"}
+                    tone="boost"
+                    disabled={!!isBoosted}
+                    onClick={() => onBoost(job.id)}
+                  />
+                )}
                 <JobActionChip
                   icon={Pencil}
                   label="Edit"
@@ -547,7 +646,7 @@ export function PostedJobActions({
                   {showApprove && hasProof && (
                     <div className="space-y-1.5">
                       <p
-                        className="font-serif italic leading-snug text-ds-11 px-1"
+                        className="font-sans leading-snug text-ds-11 px-1"
                         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                       >
                         Your Helpr's proof photos — check these before you approve.
@@ -643,7 +742,7 @@ export function PostedJobActions({
                       step. */}
                   {showApprove && (
                     <p
-                      className="font-serif italic leading-snug text-ds-11 px-1"
+                      className="font-sans leading-snug text-ds-11 px-1"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Approve to release payment — then you can review and tip.
@@ -865,18 +964,23 @@ export function PostedJobActions({
           );
         })()}
         {job.status === "disputed" && (() => {
-          const disputeStatus = job.dispute_status || "open";
-          const isDisputer = job.disputed_by === userId;
-          // Once escalated, nothing auto-releases and there is nothing for the
-          // poster to do — `auto-resolve-disputes` skips escalated disputes and
-          // only nags admins. Both the 72h countdown and the static policy box
-          // below therefore have to stay quiet, or they promise a deadline that
-          // will never fire. This became load-bearing with helper_abort_job
-          // (20260825190000), which opens ESCALATED disputes on purpose so a
-          // helper who walked off a started job can't be paid in full by a
-          // timeout — but the copy was already wrong for a poster-escalated one.
-          const awaitingAdmin = disputeStatus === "escalated";
-          const showDeadline = !!job.dispute_deadline && disputeStatus !== "resolved" && !awaitingAdmin;
+          // Controls AND the sentences that describe them come from one call.
+          // They used to be computed in two places — the flags here, the copy
+          // inline in the JSX below with no gate on it at all — and they
+          // drifted: the caption promised "Confirm the issue is fixed or
+          // escalate to admin" to posters who had neither control. See
+          // posterDisputeControls.ts for the two states that produced, both
+          // reproduced against production, and posterDisputeCopy.test.ts for
+          // the invariant that now holds them together.
+          const {
+            disputeStatus,
+            awaitingAdmin,
+            showDeadline,
+            canResolve,
+            canEscalate,
+            consequenceText,
+            policyText,
+          } = posterDisputeControls(job, userId);
           return (
           <div className="space-y-2">
             {job.poster_confirmed_working_at && (
@@ -891,7 +995,7 @@ export function PostedJobActions({
               />
             )}
             <div className="p-3 rounded-ds-sm bg-destructive/5 border border-destructive/20">
-              <p className="text-ds-11 text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />
+              <p className="text-ds-11 text-[hsl(var(--destructive-ink))] font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />
                 {disputeStatus === "escalated" ? "Escalated to Admin" : disputeStatus === "resolved" ? "Dispute Resolved" : "Dispute Under Review"}
               </p>
               {/* The "Admin is reviewing…" line used to be its OWN separate
@@ -903,7 +1007,7 @@ export function PostedJobActions({
                   ? "Admin is reviewing this dispute. You'll be notified of the outcome, and nothing is charged or released until then."
                   : "Payment is on hold pending resolution."}
               </p>
-              {job.dispute_reason && <p className="text-ds-11 text-muted-foreground mt-1 italic">"{job.dispute_reason}"</p>}
+              {job.dispute_reason && <p className="text-ds-11 text-muted-foreground mt-1">"{job.dispute_reason}"</p>}
               {job.dispute_helper_response && (
                 <div className="mt-2 p-2 rounded bg-muted/50">
                   <p className="text-ds-10 text-muted-foreground font-medium">Helpr's response:</p>
@@ -914,7 +1018,12 @@ export function PostedJobActions({
                 <DeadlineCountdown
                   deadline={job.dispute_deadline}
                   expiredText="Deadline passed — payment auto-releasing to Helpr"
-                  consequenceText="Confirm the issue is fixed or escalate to admin. If no action is taken, payment auto-releases to the Helpr."
+                  /* Derived from the controls that are actually on this card,
+                     not from the happy path — same call, same branch. Each
+                     wording names only moves this poster can make, and every
+                     one still answers the question that matters: what happens
+                     if I do nothing. */
+                  consequenceText={consequenceText}
                   variant="destructive"
                 />
               )}
@@ -925,13 +1034,24 @@ export function PostedJobActions({
                 with a live number — the box was the same sentence twice. */}
             {!showDeadline && !awaitingAdmin && (
               <div className="p-2 rounded-ds-sm bg-card">
+                {/* Same correction as the countdown's caption above: this
+                    sentence used to name two controls regardless of whether
+                    either was on the card. It is the fallback wording, shown
+                    only when there is no live `dispute_deadline` to count. */}
+                {/* ONE hour literal in this file, still — the window is stated
+                    once as a shared prefix and the branches say only what THIS
+                    poster can do inside it. Writing it into each branch would
+                    have put three copies of "72 hours" in one paragraph and
+                    tripped escrowTiming.copyParity.test.ts, which exists
+                    precisely to stop restatements of the clock drifting apart. */}
                 <p className="text-ds-10 text-muted-foreground leading-relaxed">
-                  <strong>Policy:</strong> You have 72 hours to confirm the issue is fixed or escalate to admin. If you do nothing, payment auto-releases to the Helpr.
+                  <strong>Policy:</strong> {policyText}{" "}
+                  You have 72 hours; if you do nothing, payment auto-releases to the Helpr.
                 </p>
               </div>
             )}
             {/* Disputer actions: Resolve & Pay or Escalate */}
-            {isDisputer && disputeStatus === "open" && (
+            {canEscalate && (
               /* Same JobActionRow every other state uses — this was a
                  hand-rolled `grid-cols-2 gap-2` of a SOLID success button
                  beside an outline one, the loudest pair in the card, on the
@@ -939,13 +1059,16 @@ export function PostedJobActions({
                  instead: `approve` for the resolution, `danger` for the
                  escalation. */
               <>
-              <JobActionRow columns={2}>
+              {/* One column when Resolve & Pay isn't this poster's to offer,
+                  so Escalate fills the row rather than sitting beside a gap. */}
+              <JobActionRow columns={canResolve ? 2 : 1}>
                 {/* "Mark Resolved" was a lie of omission: one tap released the
                     ENTIRE escrow to the helper, and neither the label nor the
                     spoken name mentioned money. It is named for its
                     consequence now and confirms before it moves anything —
                     the same bar Approve already met via
                     CompletionChoiceSheet. */}
+                {canResolve && (
                 <JobActionChip
                   icon={CheckCircle2}
                   label="Resolve & Pay"
@@ -954,54 +1077,8 @@ export function PostedJobActions({
                   disabled={disputeActing}
                   onClick={(e) => { e.stopPropagation(); setResolveConfirmOpen(true); }}
                 />
-                <JobActionChip icon={AlertTriangle} label="Escalate" ariaLabel="Escalate — send this dispute to a Helpr admin to decide" tone="danger" disabled={disputeActing} onClick={async (e) => {
-                  e.stopPropagation();
-                  setDisputeActing(true);
-                  try {
-                    // BELONGS IN AN RPC, AND CANNOT BE FIXED FROM HERE.
-                    //
-                    // 20260825190000_dispute_single_source.sql declares
-                    // public.disputes the record of truth and the jobs.dispute_*
-                    // columns a denormalised mirror; every other transition has a
-                    // server-side writer (rpc_open_dispute, rpc_decide_dispute,
-                    // rpc_withdraw_dispute) that writes BOTH in one statement.
-                    // Escalation has none, so this writes only the mirror and the
-                    // disputes row stays 'open'.
-                    //
-                    // Mirroring it client-side is not merely unclean, it is
-                    // impossible: disputes.status carries
-                    // CHECK (status IN ('open','decided','withdrawn')) — no
-                    // 'escalated' value — and the "disputes opener update" policy
-                    // pins WITH CHECK (status = 'open'), so the write would be
-                    // refused twice over. There is no escalated_at column either.
-                    // FOLLOW-UP: an rpc_escalate_dispute that widens the CHECK and
-                    // writes both sides. Not this lane (no new migrations here).
-                    //
-                    // What keeps this honest meanwhile: the admin queue reads
-                    // disputes WHERE status='open', so an escalated dispute is
-                    // still in it, and the fan-out below tells the admins directly.
-                    try {
-                      unwrapMutation(
-                        await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id).select("id"),
-                        { action: "escalate this dispute" },
-                      );
-                    } catch (err) {
-                      hapticError();
-                      toast.error(mutationErrorMessage(err, "We couldn't escalate that — please try again."));
-                      return;
-                    }
-                    const { data: adminRoles, error: adminErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-                    if (adminErr) report(adminErr, { tags: { source: "PostedJobCard.escalateNotifyAdmins" } });
-                    if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin", job_id: job.id }); } }
-                    hapticSuccess();
-                    // Escalating froze the payout and handed the decision to a
-                    // human, and the card said nothing about it.
-                    toast.success("Escalated — an admin will review this and decide.");
-                    onActionComplete();
-                  } finally {
-                    setDisputeActing(false);
-                  }
-                }} />
+                )}
+                <JobActionChip icon={AlertTriangle} label="Escalate" ariaLabel="Escalate — send this dispute to a Helpr admin to decide" tone="danger" disabled={disputeActing} onClick={(e) => { e.stopPropagation(); setEscalateConfirmOpen(true); }} />
               </JobActionRow>
               {/* The shared confirm — NOT a new modal. BrandConfirmDialog is
                   the shell behind every confirm in the app (Log Out, Decline
@@ -1010,16 +1087,40 @@ export function PostedJobActions({
                   enforces. `sienna` because this is irreversible and
                   one-directional: the money leaves escrow and the dispute the
                   poster raised is over. */}
+              {/* Gated on `canResolve` alongside its chip: the row can now
+                  render with Escalate alone, and a confirm whose primary
+                  action the server would refuse must not be reachable at all. */}
+              {canResolve && (
               <BrandConfirmDialog
                 open={resolveConfirmOpen}
                 onOpenChange={setResolveConfirmOpen}
                 title="Release the payment?"
-                description={`Resolving this dispute closes it and releases the full amount held in escrow to ${job.helper_id ? (helperNames[job.helper_id] || "your Helpr") : "your Helpr"}. You can't reopen this dispute afterwards.`}
+                description={(() => {
+                  // helperNames values are abbreviated ("Hallie H.") and end
+                  // in a period whenever the surname is an initial, so a
+                  // hard-coded ". You can't" rendered "Hallie H.. You can't".
+                  const who = job.helper_id ? (helperNames[job.helper_id] || "your Helpr") : "your Helpr";
+                  const sentence = `Resolving this dispute closes it and releases the full amount held for this job to ${who}`;
+                  return `${sentence.endsWith(".") ? sentence : sentence + "."} You can't reopen this dispute afterwards.`;
+                })()}
                 callout={{ icon: DollarSign, text: "This moves real money. Only resolve if the issue is actually fixed." }}
                 primaryLabel="Release Payment"
                 primaryTone="sienna"
                 primaryDisabled={disputeActing}
                 onPrimary={() => { void resolveDisputeAndRelease(); }}
+                secondaryLabel="Cancel"
+              />
+              )}
+              <BrandConfirmDialog
+                open={escalateConfirmOpen}
+                onOpenChange={setEscalateConfirmOpen}
+                title="Send this to an admin?"
+                description="A Helpr admin will review the dispute and decide the outcome. Nothing is charged or released until they do, and you won't be able to resolve it yourself afterwards."
+                callout={{ icon: AlertTriangle, text: "Use this when you and your Helpr can't settle it between you." }}
+                primaryLabel="Escalate to Admin"
+                primaryTone="sienna"
+                primaryDisabled={disputeActing}
+                onPrimary={() => { setEscalateConfirmOpen(false); void escalateDispute(); }}
                 secondaryLabel="Cancel"
               />
               </>
@@ -1061,7 +1162,18 @@ export function PostedJobActions({
                 label="Contact Admin"
                 ariaLabel="Contact Admin — get help from a Helpr admin about this dispute"
                 tone="neutral"
-                onClick={() => navigate("/support")}
+                /* CARRIES THE JOB. This used to be a bare `/support` — the
+                   person arrived at a blank form with no topic, no subject and
+                   no job id, having tapped a button that named the thing they
+                   wanted help with. Support then had to ask which job.
+
+                   `?topic=` and `?subject=` are the two params Support.tsx
+                   reads, and its comment there is explicit that a URL is the
+                   wrong place for anything personal — so this carries the job
+                   UUID, which identifies the row without disclosing a person, a
+                   price or an address. Not `?message=`: that param does not
+                   exist, deliberately. */
+                onClick={() => navigate(`/support?topic=report&subject=${encodeURIComponent(`Dispute on job ${job.id}`)}`)}
               />
             </JobActionRow>
           </div>

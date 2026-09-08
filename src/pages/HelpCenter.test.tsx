@@ -6,6 +6,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import HelpCenter from "./HelpCenter";
+import { FAQ_SECTIONS } from "./helpCenter/helpCenterContent";
+import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
+import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
+import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
+import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/detailsSectionConstants";
 
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: () => {} }));
 vi.mock("@/integrations/supabase/client", () => ({
@@ -113,5 +118,47 @@ describe("/help open and closed sections do not look identical", () => {
     expect(header.getAttribute("aria-controls")).toBe("faq-panel-getting-started");
     fireEvent.click(header);
     await waitFor(() => expect(container.querySelector("#faq-panel-getting-started")).toBeTruthy());
+  });
+});
+
+describe("/help FAQ copy is derived from config, not retyped", () => {
+  // The membership section shipped an answer reading "20-minute early job
+  // access (Pro gets 10, Basic 5)". Plus and its 15 minutes were absent — from
+  // a sentence whose whole job is comparing plans, on a page whose fee answer
+  // already listed Plus. The set is derived from TIER_PERKS' own keys here, so
+  // this cannot pass vacuously by being written against the same list it checks.
+  const paidTiers = (Object.keys(TIER_PERKS) as SubscriptionTier[])
+    .filter((tier) => TIER_PERKS[tier].price !== null);
+
+  const allAnswers = FAQ_SECTIONS.flatMap((section) => section.items.map((item) => `${item.q} ${item.a}`)).join("\n");
+
+  it("names every paid tier somewhere in the FAQ", () => {
+    expect(paidTiers.length).toBeGreaterThan(1);
+    for (const tier of paidTiers) {
+      expect(allAnswers).toContain(TIER_PERKS[tier].name);
+    }
+  });
+
+  it("states each tier's early-access head start using the number earlyAccess.ts owns", () => {
+    const withHeadStart = paidTiers.filter((tier) => earlyAccessHeadStartMinutes(tier) > 0);
+    expect(withHeadStart.length).toBeGreaterThan(1);
+    // Every head start must appear, and no tier may be described with a minute
+    // count that belongs to a different tier — the ladder is rendered as
+    // "<Name> <minutes>", so both halves are checked together.
+    for (const tier of withHeadStart) {
+      expect(allAnswers).toContain(`${TIER_PERKS[tier].name} ${earlyAccessHeadStartMinutes(tier)}`);
+    }
+  });
+
+  it("names the credential categories the post form actually offers, and no others", () => {
+    // The trade-credential answer hand-typed "handyman, painting, moving, and
+    // assembly"; Storm Prep and Yard Work were added to the form on 2026-09-06
+    // and the sentence stayed wrong. Derived from the form's own set now.
+    const credentialAnswer = allAnswers.match(/On trade jobs \(([^)]+)\)/)?.[1];
+    expect(credentialAnswer).toBeTruthy();
+    for (const value of JOB_CATEGORY_VALUES) {
+      const named = credentialAnswer!.includes(JOB_CATEGORY_LABELS[value].toLowerCase());
+      expect(named).toBe(CREDENTIAL_TIER_CATEGORIES.has(value));
+    }
   });
 });

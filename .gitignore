@@ -128,3 +128,6 @@ tmp/audit/
 # scripts/build-og-shell.mjs on every `npm run build`. Never commit it: a
 # stale copy would serve last week`s asset hashes to /jobs/:id.
 scripts/generated/
+
+# Playwright capture output (the committed copy lives in scripts/asc/assets)
+e2e-artifacts/

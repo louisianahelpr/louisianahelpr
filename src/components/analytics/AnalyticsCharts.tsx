@@ -19,6 +19,7 @@ import {
   YAxis,
 } from "recharts";
 import type { EarningsMonth } from "@/lib/helperAnalytics";
+import { formatPriceExact } from "@/lib/format";
 
 // Two series, two roles: what the helper kept, and what the platform took.
 // Bare HSL rather than `hsl(var(--token))` because recharts copies the string
@@ -39,7 +40,7 @@ const TOOLTIP_STYLE = {
   fontSize: "0.78rem",
 } as const;
 
-const money = (v: number) => `$${Number(v).toFixed(2)}`;
+const money = (v: number) => `$${formatPriceExact(v)}`;
 
 export function EarningsFeeChart({ data }: { data: EarningsMonth[] }) {
   return (

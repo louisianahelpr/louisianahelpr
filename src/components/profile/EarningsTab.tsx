@@ -6,12 +6,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { instantPayoutFeeLabel, instantPayoutMinLabel } from "@/lib/instantPayoutFee";
 import {
   FORM_1099K_GROSS_THRESHOLD_DOLLARS,
-  FORM_1099K_TRANSACTION_THRESHOLD,
-  form1099kGrossLabel,
 } from "@/lib/moneyLimits";
 import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { stripeProcessingCostCents } from "@/lib/stripeFees";
-import { tierFeePercent } from "@/lib/subscriptionTiers";
+import { tierFeePercent, profileHasPerk } from "@/lib/subscriptionTiers";
 import { toast } from "sonner";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
@@ -31,6 +29,8 @@ import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
 import {
   buildPayoutsCsv,
   completedWithin,
+  isAwaitingTransfer,
+  isEarnedJob,
   rangeStartMs,
 } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { useEarningsData } from "@/components/profile/earningsTab/useEarningsData";
@@ -87,8 +87,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // convention tierFeePercent uses, so the gate and the fee rate can never
   // disagree about whether a membership is live.
   const subTier = (profile?.subscription_tier ?? "free") as string;
-  const subExp = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
-  const subActive = subExp ? subExp > new Date() : true;
   // Fee % to apply when a job row's helper_fee_percent is null (legacy row
   // pre-dating the column). Derive it from the helper's own subscription
   // tier — same ladder /analytics and /work-record use — so a Free helper's
@@ -96,7 +94,17 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // tab disagree with every other earnings surface. A populated per-job
   // column still wins (it's the fee actually charged on that payout).
   const helperFeeFallbackPct = tierFeePercent(subTier, profile?.subscription_expires_at ?? null);
-  const canUseInstantPayout = subActive && (subTier === "basic" || subTier === "pro" || subTier === "elite");
+  // CC-019: this was a hand-typed `basic || pro || elite` list, and the
+  // instant-payout edge function held a second copy of it. Plus was missing
+  // from both, so a paying Plus member saw no button and, if they reached the
+  // endpoint anyway, a 403 telling them to downgrade. Both sides now call the
+  // same `profileHasPerk`, which also owns the expiry convention (null expiry
+  // on a paid tier = active).
+  const canUseInstantPayout = profileHasPerk(
+    profile?.subscription_tier,
+    profile?.subscription_expires_at,
+    "instantPayout",
+  );
   // Pagination for the earnings-history list. Power helpers with 100+
   // completed jobs were rendering them all; this caps the initial render
   // at PAGE and grows by PAGE on each Load-more tap.
@@ -148,7 +156,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     });
   };
 
-  const completedJobs = earningsJobs.filter((j) => j.status === "completed");
+  // EARNED, not merely "completed". `status === "completed"` was the whole
+  // test until 2026-09-06, and it counts a job whose money was refunded to the
+  // poster or charged back by the card issuer — both reachable on a completed
+  // job, both still `completed` afterwards. `isEarnedJob` adds the
+  // payment_status half: money committed (`payout_pending`) or moved
+  // (`released`). See the state table in earningsTabHelpers.ts.
+  const completedJobs = earningsJobs.filter(isEarnedJob);
   const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
   // Take-home per job comes from the one shared definition in
   // `helperEarnings.ts`, which keeps this tab's long-standing behaviour: the
@@ -172,22 +186,25 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
   // Money the poster has ALREADY approved but that Stripe has not been told
   // about yet. auto-release-payment flips the job to `payout_pending` with a
-  // 24h `payout_scheduled_at`, and only then does release-payout create the
-  // actual transfer — so for that whole day the amount sits on the PLATFORM's
-  // balance and appears in neither Stripe bucket the wallet reads. From the
-  // helper's chair a job they were paid for simply vanished: approved, and
-  // then in neither Available nor Pending. Surface it as its own line rather
-  // than leaving them to notice the absence.
-  const releasingJobs = earningsJobs.filter(
-    (j) => (j as { payment_status?: string | null }).payment_status === "payout_pending",
-  );
+  // `payout_scheduled_at` PAYOUT_HOLD_HOURS out, and only then does
+  // release-payout create the actual transfer — so for that whole window the
+  // amount sits on the PLATFORM's balance and appears in neither Stripe bucket
+  // the wallet reads. From the helper's chair a job they were paid for simply
+  // vanished: approved, and then in neither Available nor Pending.
+  //
+  // This line now renders in <EarningsSummaryCard />, NOT in <WalletCard />
+  // where it used to live. WalletCard only mounts once Stripe is connected, so
+  // the one state that most needs explaining — "I finished a job, where is my
+  // money" — was silent for exactly the helper who has not finished payout
+  // setup and has the most reason to ask.
+  const releasingJobs = earningsJobs.filter(isAwaitingTransfer);
   const releasingCents = Math.round(
     sumHelperTakeHomeDollars(releasingJobs, helperFeeFallbackPct) * 100,
   );
-  // Soonest scheduled arrival, for the "clears <date>" copy.
+  // Soonest scheduled arrival, for the "reaches your wallet <date>" copy.
   const releasingAt =
     releasingJobs
-      .map((j) => (j as { payout_scheduled_at?: string | null }).payout_scheduled_at)
+      .map((j) => j.payout_scheduled_at)
       .filter((d): d is string => !!d)
       .sort()[0] ?? null;
 
@@ -404,6 +421,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           tipsDollars={rangeTips}
           tipCount={rangeTipRows.length}
           inProgressCount={inProgressJobs.length}
+          releasingCents={releasingCents}
+          releasingAt={releasingAt}
         />
 
         {/* Wallet card (Available + Pending side-by-side).
@@ -442,8 +461,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           refreshing={refreshing}
           availableTotal={availableTotal}
           pendingTotal={pendingTotal}
-          releasingCents={releasingCents}
-          releasingAt={releasingAt}
           canUseInstantPayout={canUseInstantPayout}
           onRefresh={handleRefresh}
           onCashOut={() => setPayoutDialogOpen(true)}
@@ -622,13 +639,43 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
       {/* The tax note belongs to the payout view, not to whatever happens to
           be last on the page. It used to sit under the analytics dashboard,
-          restating the 1099-K threshold the banner above had already named. */}
+          restating the 1099-K threshold the banner above had already named.
+
+          IT NO LONGER STATES THE THRESHOLD, and that is the point of the
+          2026-09-06 rewrite. This sentence read "exceed $20,000 in gross
+          payments and 200 transactions" — a bare number, undated, unsourced,
+          rendered to a helper as tax guidance in the screen where they read
+          about their own money. The federal 1099-K threshold has moved
+          repeatedly in the last few years (a $600 rule scheduled, deferred by
+          the IRS twice, then repealed), so a number typed into product copy is
+          a claim with a short shelf life and a real cost when it goes stale:
+          a helper under the stated line concludes nothing is coming, and files
+          as if no form exists.
+
+          The honest version says what we actually know — Stripe issues the
+          form when the federal thresholds are met, it is federal rather than
+          Louisiana, and no action is needed — and sends anyone who needs the
+          current number to the IRS, who owns it. The threshold constants stay
+          in `moneyLimits.ts` because ThresholdBanner still needs a level to
+          fire a heads-up at; what changed is that we no longer publish ours as
+          if it were the law. The two Legal pages still state it with a dated
+          citation, which is a different kind of claim — flagged for the owner
+          rather than rewritten here. */}
       {view === "payouts" && (
 
       <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">
         <Info className="w-3 h-3 mt-0.5 shrink-0" />
         <span>
-          <strong className="text-muted-foreground">Tax reporting:</strong> The IRS requires a Form 1099-K for Helprs who exceed {form1099kGrossLabel()} in gross payments and {FORM_1099K_TRANSACTION_THRESHOLD} transactions in a calendar year — a federal filing, not a Louisiana one. Stripe issues these automatically — no action needed.
+          <strong className="text-muted-foreground">Tax reporting:</strong> If your payments pass the federal Form 1099-K reporting thresholds for the year, Stripe issues the form automatically — no action needed on your side. It&rsquo;s a federal filing, not a Louisiana one. The thresholds have changed several times recently, so check{" "}
+          <a
+            href="https://www.irs.gov/businesses/understanding-your-form-1099-k"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="link-standard"
+          >
+            the IRS&rsquo;s own 1099-K guidance
+          </a>{" "}
+          for the current numbers, and talk to a tax professional about your situation.
         </span>
       </p>
       )}
@@ -637,7 +684,12 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
         icon={Zap}
-        title="Cash out instantly."
+        // Title Case, no full stop — the only popup title in the app that
+        // was sentence-cased with a period, sitting one tap away from
+        // "Cash Out Instantly" (InstantPayoutDialog). Named for what the
+        // sheet does (unlock), not the feature it gates, so the two are
+        // distinguishable when read aloud.
+        title="Unlock Instant Cash Out"
         body="Skip the 1–2 business day wait. Subscribed Helprs can route earnings to a debit card in about 30 minutes."
         perks={[
           "Instant payouts to debit card (~30 min)",

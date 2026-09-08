@@ -70,7 +70,7 @@ export const HELPER_MILESTONES: readonly HelperMilestoneDef[] = [
   {
     id: "twenty_five_jobs",
     title: "🏆 25 jobs done",
-    description: "You're an Elite-tier helper now.",
+    description: "Top Rated is within reach — keep the ratings up.",
   },
   {
     id: "first_1k_earnings",
@@ -80,7 +80,7 @@ export const HELPER_MILESTONES: readonly HelperMilestoneDef[] = [
   {
     id: "first_five_star_streak_of_5",
     title: "✨ 5 perfect ratings in a row",
-    description: "Customers love you.",
+    description: "Posters love you.",
   },
 ] as const;
 

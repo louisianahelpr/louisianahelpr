@@ -65,8 +65,9 @@ pluralization consistency (#1507) · `3de4022b` signup avatar dual-label (#1503)
   `customer_id IS NULL` count is zero. SI-012 is armed, not fired.
 - `seed_jobs_hidden_publicly()` is **false**, so fixture jobs are visible on
   purpose. That is not a defect; it is the pre-launch position of the switch.
-- `supabase/.temp/project-ref` points at **staging**. Pass the prod ref
-  (`fncmgoasalhdgfwzhsqa`) explicitly or you will audit the wrong database.
+- `supabase/.temp/project-ref` points at **prod** (`fncmgoasalhdgfwzhsqa`). It pointed
+  at staging when this was compiled; the staging project was retired 2026-09-07 and
+  the ref repointed. Still confirm it before trusting a `--linked` result.
 - Stripe keys are LIVE. **No lane transacts.** Reaching a real-money path is a
   finding to file, not an action to take.
 

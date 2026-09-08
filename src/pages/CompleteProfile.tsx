@@ -11,7 +11,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
-import { Camera, Check, Circle, Loader2, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, Camera, Check, Circle, Loader2, ShieldCheck, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { DatePickerField } from "@/components/DatePickerField";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
@@ -26,6 +26,8 @@ import { safeInternalRedirect } from "@/lib/authRedirects";
 import { LATEST_TERMS_VERSION } from "@/lib/consent";
 import { report } from "@/lib/errorLogger";
 import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
+import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
+import { parishForCity } from "@/lib/parishes";
 import type { ProfileCompletionUpdates } from "./completeProfile/types";
 import {
   ALLOWED_IMAGE_TYPES,
@@ -57,6 +59,16 @@ const CompleteProfile = () => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
+  // Optional — mirrors the same field on Signup.tsx's email path (S-001).
+  const [zipCode, setZipCode] = useState("");
+  const { parish: resolvedZipParish, unknownZip } = useParishForZip(zipCode);
+  // Soft mismatch hint — see the identical comment in Signup.tsx.
+  const cityZipMismatch = (() => {
+    if (!resolvedZipParish) return null;
+    const cityParish = parishForCity(location);
+    if (!cityParish || cityParish.name === resolvedZipParish) return null;
+    return `That ZIP usually maps to ${resolvedZipParish} Parish, not where ${location.trim()} is (${cityParish.name} Parish) — double check it.`;
+  })();
   const [bio, setBio] = useState("");
   // Hydrated from profile.accepted_terms_at on mount so users who already
   // accepted (and were bounced back here for some other missing field, or who
@@ -93,6 +105,7 @@ const CompleteProfile = () => {
     if (profile.date_of_birth && !dateOfBirth) setDateOfBirth(profile.date_of_birth);
     if (profile.phone && !phone) setPhone(formatPhone(profile.phone));
     if (profile.location && !location) setLocation(profile.location);
+    if (profile.zip_code && !zipCode) setZipCode(profile.zip_code);
     if (profile.bio && !bio) setBio(profile.bio);
     // NOTE: avatar_url is deliberately NOT hydrated here. This effect is
     // one-shot (hydratedRef), and the avatar is the one field the gate reads
@@ -170,6 +183,13 @@ const CompleteProfile = () => {
       { label: "Date of birth (18+)", done: Boolean(dateOfBirth) && ageOk },
       { label: "Phone number", done: phoneDigits.length === 10 },
       { label: "City", done: location.trim().length > 0 },
+      // ZIP is REQUIRED as of 2026-09-05 (owner). It matters MORE on this
+      // screen than on email signup: Google/Apple sign-ins never see
+      // SignupStep2, so this is the only place they are ever asked. Leaving it
+      // optional here would have moved the gap rather than closed it — social
+      // accounts would still land with no parish, and therefore no job-match
+      // notifications, no digest, and no Louisiana sales tax.
+      { label: "ZIP code", done: zipCode.replace(/\D/g, "").length === 5 },
       // Government-issued ID is intentionally NOT in the required checklist:
       // new signup (SignupStep2) no longer collects it, and identity
       // verification is deferred to first-post / IDV. The upload field below
@@ -187,6 +207,11 @@ const CompleteProfile = () => {
     ageOk,
     phone,
     location,
+    // zipCode is load-bearing here, not tidiness: the checklist gates the
+    // submit button, so omitting it would leave "ZIP code" permanently
+    // unchecked and the button permanently disabled no matter what the user
+    // typed — a form nobody could finish.
+    zipCode,
     acceptedPolicies,
   ]);
 
@@ -252,6 +277,7 @@ const CompleteProfile = () => {
     if (!ageOk) return fail("You'll need to be 18 or older to join.");
     if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return fail("Add a valid phone number — at least 10 digits.");
     if (!location.trim()) return fail("Tell us your city to continue.");
+    if (zipCode.replace(/\D/g, "").length !== 5) return fail("Add your 5-digit ZIP code to continue.");
     if (!avatarFile && !profile?.avatar_url) return fail("Add a profile photo to continue.");
     // Government-issued ID is no longer required here — it's optional at
     // profile completion and deferred to first-post / IDV (matches the
@@ -275,6 +301,9 @@ const CompleteProfile = () => {
       const { avatarUrl, idDocumentPath, staleAvatarObjects } =
         await uploadProfileFiles(user.id, avatarFile, null);
 
+      // Reuse the already-resolved value from the live effect above.
+      const parish = resolvedZipParish;
+
       // A superseded photo that survived the replace is STILL PUBLIC. Do not
       // fail the submit over it — the new photo is live and the profile is
       // about to point at it — but never let it pass silently either: if the
@@ -292,6 +321,9 @@ const CompleteProfile = () => {
         phone: phone.trim(),
         bio: bio.trim(),
         location: location.trim(),
+        // Required now — the checklist and submit guard both enforce 5 digits.
+        zip_code: zipCode.trim(),
+        ...(parish ? { parish } : {}),
         date_of_birth: dateOfBirth,
         // `approval_status: "pending"` used to be sent here. It never did
         // anything for a normal user — the BEFORE UPDATE trigger
@@ -539,7 +571,7 @@ const CompleteProfile = () => {
             >
               Almost there.
             </h1>
-            <p className="mt-3 font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="mt-3 font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               We need a few details before you can use Helpr. This keeps the community safe.
             </p>
           </div>
@@ -593,7 +625,7 @@ const CompleteProfile = () => {
               <p className="text-ds-11 text-muted-foreground">
                 {avatarPreview && !avatarBroken
                   ? "Tap to change · JPG, PNG, WebP (5MB max)"
-                  : <>Profile photo <span className="text-destructive">*</span> · tap to add</>}
+                  : <>Profile photo <span className="text-[hsl(var(--destructive-ink))]">*</span> · tap to add</>}
               </p>
               {/* WHERE THIS FILE GOES, said at the moment the file is chosen.
                   The `avatars` bucket is PUBLIC — anonymously fetchable at a
@@ -616,7 +648,7 @@ const CompleteProfile = () => {
                 one chance to catch a wrong or missing name either way. */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="firstName">First name <span className="text-destructive">*</span></Label>
+                <Label htmlFor="firstName">First name <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
                 <div className="relative">
                   <Input
                     id="firstName"
@@ -632,7 +664,7 @@ const CompleteProfile = () => {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="lastName">Last name <span className="text-destructive">*</span></Label>
+                <Label htmlFor="lastName">Last name <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
                 <div className="relative">
                   <Input
                     id="lastName"
@@ -650,7 +682,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="dob">Date of birth (must be 18+) <span className="text-destructive">*</span></Label>
+              <Label htmlFor="dob">Date of birth (must be 18+) <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
               {/* Same shared DatePickerField as Signup's DOB field (tap-to-open
                   wheel, checkmark once a valid date is picked) — was a
                   separate three-Select picker here, reading as a different
@@ -666,12 +698,12 @@ const CompleteProfile = () => {
                 className="rounded-ds-md"
               />
               {dateOfBirth && !ageOk && (
-                <p className="text-ds-11 text-destructive">You'll need to be 18 or older to join Helpr.</p>
+                <p className="text-ds-11 text-[hsl(var(--destructive-ink))]">You'll need to be 18 or older to join Helpr.</p>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
+              <Label htmlFor="phone">Phone <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
               <div className="relative">
                 <Input
                   id="phone"
@@ -689,25 +721,60 @@ const CompleteProfile = () => {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
-              {/* CityAutocomplete is the same combobox used on the
-                  Post-a-Task form. It nudges the user toward canonical
-                  Louisiana spellings (the LOUISIANA_CITIES bundle) but
-                  still accepts a free-typed value for tiny communities
-                  not on the list, so the form never traps anyone. */}
-              <div className="relative">
-                <CityAutocomplete
-                  id="city"
-                  value={location}
-                  onChange={setLocation}
-                  className={`rounded-ds-md ${cityValid ? "pr-10" : ""}`}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor="city">City <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+                {/* CityAutocomplete is the same combobox used on the
+                    Post-a-Task form. It nudges the user toward canonical
+                    Louisiana spellings (the LOUISIANA_CITIES bundle) but
+                    still accepts a free-typed value for tiny communities
+                    not on the list, so the form never traps anyone. */}
+                <div className="relative">
+                  <CityAutocomplete
+                    id="city"
+                    value={location}
+                    onChange={setLocation}
+                    className={`rounded-ds-md ${cityValid ? "pr-10" : ""}`}
+                  />
+                  {cityValid && (
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
+                  )}
+                </div>
+              </div>
+              {/* REQUIRED (owner, 2026-09-05) — see the checklist entry above.
+                  SignupStep2 carries the identical field for the same reason;
+                  this one covers the social sign-ins that never see it. */}
+              <div className="space-y-1.5">
+                <Label htmlFor="zipCode">
+                  ZIP <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span>
+                </Label>
+                <Input
+                  id="zipCode"
+                  value={zipCode}
+                  onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  maxLength={5}
+                  placeholder="70801"
+                  className="rounded-ds-md"
                 />
-                {cityValid && (
-                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
-                )}
               </div>
             </div>
+            {/* An unrecognised ZIP used to render nothing at all here, which is
+                how someone could finish this form and be invisible to the job
+                fan-out with no one — them or us — any the wiser. */}
+            {unknownZip && (
+              <p role="status" className="flex items-start gap-1 text-ds-11 -mt-1" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />
+                {UNKNOWN_ZIP_MESSAGE}
+              </p>
+            )}
+            {cityZipMismatch && (
+              <p className="flex items-center gap-1 text-ds-11 -mt-1" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                <AlertCircle className="w-3 h-3 shrink-0" aria-hidden />
+                {cityZipMismatch}
+              </p>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="bio">About you <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>

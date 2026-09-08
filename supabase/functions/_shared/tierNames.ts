@@ -27,6 +27,9 @@ export const TIER_DISPLAY_NAMES: Record<string, string> = {
   free: "Free",
   basic: "Basic",
   pro: "Pro",
+  // "Plus", never "Helpr Plus" — the no-brand-prefix ruling above applies to
+  // every tier added after it, this one included.
+  plus: "Plus",
   elite: "Elite",
 };
 

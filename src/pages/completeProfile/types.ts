@@ -9,6 +9,9 @@ export interface ProfileCompletionUpdates {
   phone: string;
   bio: string;
   location: string;
+  /** Optional — unlocks parish-based helper notifications + LA sales tax. */
+  zip_code?: string;
+  parish?: string | null;
   date_of_birth: string;
   /**
    * `approval_status` is deliberately absent. `tr_prevent_self_escalation`

@@ -177,14 +177,23 @@ export function RecurringSchedulePicker({
           them. The series starts on the job's own date, so with no date chosen
           there is nothing to count — and telling the poster "0 visits" reads as
           "your schedule is broken" when the real answer is "we need the date
-          first, and it's the field above this one". */}
+          first".
+
+          WHERE that field is: directly BELOW this picker, labelled "Date
+          needed", inside the Logistics section (LogisticsSection.tsx — the
+          picker renders at :328, the date field at :363). The copy said "up in
+          Schedule", which was wrong twice: the form's sections are Details /
+          Logistics / Budget, so there is no Schedule to look up to, and the
+          field is under this sentence rather than above it. A poster told to
+          scroll up to a section that does not exist has been sent looking for
+          something they will not find. */}
       {days.length === 0 ? (
         <p className="text-ds-11 text-muted-foreground">
           Pick at least one day to see the schedule.
         </p>
       ) : dates.length === 0 ? (
         <p className="text-ds-11 text-muted-foreground">
-          Choose the date this starts (up in Schedule) and we&apos;ll show every visit.
+          Set &ldquo;Date needed&rdquo; just below and we&apos;ll show every visit.
         </p>
       ) : (
         <div className="rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2.5 space-y-1">

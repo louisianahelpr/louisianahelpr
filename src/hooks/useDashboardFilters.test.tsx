@@ -12,6 +12,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
 import { useDashboardFilters } from "./useDashboardFilters";
+import { displayedPayDollars } from "@/lib/jobDisplayPay";
 
 // Smart-sort is now the persisted default. Wipe the storage key between
 // tests so each renderHook starts from a clean slate and existing tests
@@ -68,7 +69,7 @@ function makeJob(overrides: Partial<EnrichedJob> = {}): EnrichedJob {
 
 const baseProfile = { parish: "Orleans" } as unknown as Profile;
 
-function setup(allJobs: EnrichedJob[], opts: Partial<{ userId: string; profile: Profile | null; helprTier: string | null }> = {}) {
+function setup(allJobs: EnrichedJob[], opts: Partial<{ userId: string; profile: Profile | null; helprTier: string | null; effectiveFee: number }> = {}) {
   // Fresh client per test — retry: false so a would-be network failure
   // (there shouldn't be any real queries left; useDashboardJobsCount is
   // mocked above) doesn't retry-loop and slow the suite down.
@@ -80,6 +81,7 @@ function setup(allJobs: EnrichedJob[], opts: Partial<{ userId: string; profile: 
       profile: opts.profile ?? null,
       helprTier: opts.helprTier ?? null,
       helperAvailability: [],
+      effectiveFee: opts.effectiveFee ?? 12,
     }),
     // The hook now mirrors its filters into the URL (so a history entry
     // carries the view it represents), which needs a router in scope. It
@@ -396,6 +398,51 @@ describe("useDashboardFilters — sort priority chain", () => {
     const { result } = setup(jobs);
     act(() => result.current.setSortBy("lowest_pay"));
     expect(result.current.filteredJobs.map((j) => j.id)).toEqual(["low", "mid", "high"]);
+  });
+
+  // Prevents: a GROUP job ranked by its gross budget instead of the per-helper
+  // take-home printed on its own card. External QA, 2026-09-06 — "Highest pay"
+  // returned $352, $58, $79, … because the $200 ÷ 3 = $58 group job sorted as
+  // if it paid $200. A solo job's net is a fixed % of budget, so the two orders
+  // agree there and only a group job can catch this.
+  it("sortBy='highest_pay' ranks a group job by the per-helper take-home its card shows, not the gross budget", () => {
+    const FEE = 12;
+    const group = makeJob({ id: "group200x3", budget: 200, is_group_job: true, helpers_needed: 3 });
+    const solo = makeJob({ id: "solo79", budget: 79 });
+    // The fixture is only a regression test if the two orders actually
+    // disagree: gross says group > solo, displayed take-home says the reverse.
+    expect(group.budget).toBeGreaterThan(solo.budget);
+    expect(displayedPayDollars(group, FEE)).toBeLessThan(displayedPayDollars(solo, FEE));
+
+    const { result } = setup([group, solo, makeJob({ id: "solo35", budget: 35 })], { effectiveFee: FEE });
+    act(() => result.current.setSortBy("highest_pay"));
+    expect(result.current.filteredJobs.map((j) => j.id)).toEqual(["solo79", "group200x3", "solo35"]);
+
+    // …and the sorted sequence is monotonically non-increasing in the number
+    // the card renders, which is the property the control promises.
+    const shown = result.current.filteredJobs.map((j) => displayedPayDollars(j, FEE));
+    for (let i = 1; i < shown.length; i++) {
+      expect(shown[i]).toBeLessThanOrEqual(shown[i - 1]);
+    }
+  });
+
+  it("the pay sort follows the VIEWER's fee tier, so two viewers can order the same feed differently", () => {
+    // Commission scales the budget but NOT the urgent bonus (that passes
+    // through net of its own Stripe cost), so a job whose pay is mostly bonus
+    // climbs as the viewer's fee rises. If the hook ignored `effectiveFee`
+    // these two would order identically for everyone.
+    const plain = makeJob({ id: "plain", budget: 100 });
+    const bonusy = makeJob({ id: "bonusy", budget: 80, is_urgent: true, urgent_fee: 20 });
+
+    const elite = setup([plain, bonusy], { effectiveFee: 0 });
+    act(() => elite.result.current.setSortBy("highest_pay"));
+    expect(displayedPayDollars(plain, 0)).toBeGreaterThan(displayedPayDollars(bonusy, 0));
+    expect(elite.result.current.filteredJobs.map((j) => j.id)).toEqual(["plain", "bonusy"]);
+
+    const pricey = setup([plain, bonusy], { effectiveFee: 50 });
+    act(() => pricey.result.current.setSortBy("highest_pay"));
+    expect(displayedPayDollars(plain, 50)).toBeLessThan(displayedPayDollars(bonusy, 50));
+    expect(pricey.result.current.filteredJobs.map((j) => j.id)).toEqual(["bonusy", "plain"]);
   });
 });
 

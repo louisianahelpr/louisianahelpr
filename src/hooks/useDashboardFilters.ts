@@ -51,9 +51,16 @@ interface UseDashboardFiltersOptions {
    */
   helprTier?: string | null;
   helperAvailability: { day_of_week: number; is_available: boolean; start_time: string; end_time: string }[];
+  /**
+   * The VIEWER's platform commission percent — the same value the feed passes
+   * to `JobPrice` as `effectiveFee`. Required because the "Highest pay" /
+   * "Lowest pay" modes order by the take-home figure the card renders, and
+   * that figure depends on the viewer's tier. See `jobDisplayPay.ts`.
+   */
+  effectiveFee: number;
 }
 
-export function useDashboardFilters({ allJobs, userId, profile, helperAvailability }: UseDashboardFiltersOptions) {
+export function useDashboardFilters({ allJobs, userId, profile, helperAvailability, effectiveFee }: UseDashboardFiltersOptions) {
   // Browse state lives in the URL, not only in React state.
   //
   // It used to be plain `useState`, which made every history entry for the
@@ -137,6 +144,22 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
    * notice — the screen looked like it was working.
    */
   const nearbyUnavailable = nearbyMiles !== null && userLoc.status !== "ready";
+  // The radius DID run, but from a parish centroid derived from the signup ZIP
+  // rather than a device fix (see useUserLocation's fallback chain). Callers
+  // must not quote a small mileage off this as though it were measured — it is
+  // parish-scale. Same principle as `nearbyUnavailable`: the UI never claims
+  // more precision than it has (BD-001).
+  const nearbyApproximate =
+    nearbyMiles !== null && userLoc.status === "ready" && userLoc.approximate;
+
+  /**
+   * True when a predicate that ONLY exists client-side is actually removing
+   * jobs — an applied radius (approximate or not), or the availability match.
+   * Neither has a server-side equivalent in useDashboardJobsCount, so while
+   * either is on, that count describes a different set from the rendered one.
+   */
+  const clientOnlyNarrowing =
+    (nearbyMiles !== null && !nearbyUnavailable) || matchAvailability;
 
   // Budget is ONE filter even though it occupies two state slots: the sheet's
   // budget bands ("$50 – $150") write min AND max together, so counting them
@@ -147,7 +170,15 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   // (which didn't) disagreed, and the "Filtered · N active" eyebrow could
   // read "Filtered · 0 active" while a search query was the only thing
   // filtering the feed.
-  const activeFilterCount = [selectedCategory, minBudget || maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : "", urgentOnly ? "on" : "", searchQuery ? "on" : ""].filter(Boolean).length;
+  // `nearbyUnavailable ? "" : locationFilter` — a radius with no coordinates
+  // behind it is NOT an active filter, because it is provably changing
+  // nothing. Counting it lit the Filters badge and printed "Filtered · N
+  // active" over a feed in which every job had been kept — the same lie
+  // `nearbyUnavailable` above exists to prevent, just told by a different
+  // control. The chip stays visibly selected inside the sheet, beside the
+  // message saying why it is not applied; that is the one place the user can
+  // still see what they picked.
+  const activeFilterCount = [selectedCategory, minBudget || maxBudget, nearbyUnavailable ? "" : locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : "", urgentOnly ? "on" : "", searchQuery ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
   const clearFilters = () => {
@@ -315,7 +346,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
       // default "smart" feed; layering them ahead of an explicit sort
       // left "Highest pay" sorting only within each priority stratum,
       // which read as the control doing nothing (2026-08-28 regression).
-      if (sortBy !== "smart") return compareJobsBySortMode(a, b, sortBy);
+      if (sortBy !== "smart") return compareJobsBySortMode(a, b, sortBy, effectiveFee);
       // Boosted is the ONE true pin-to-top (owner, 2026-08-29: "that's the
       // whole point of boosted") — it's a paid placement, so it has to
       // actually place. Urgent is a badge, not a queue-jump: an urgent job
@@ -355,9 +386,9 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
           const bi = smartIndexByJobId?.get(b.id) ?? Number.MAX_SAFE_INTEGER;
           return ai - bi;
         }
-        default: return compareJobsBySortMode(a, b, sortBy);
+        default: return compareJobsBySortMode(a, b, sortBy, effectiveFee);
       }
-    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
+    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate, effectiveFee]);
 
   // The same filter state, shaped for the Browse map. The map runs its own
   // (unpaginated) fetch against a narrow PII-safe row, so it can't reuse
@@ -436,7 +467,18 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     urgentOnly, setUrgentOnly,
     activeFilterCount, hasFilters, clearFilters,
     filteredJobs, nearbyJobs, mapFilter,
-    totalMatchingCount, totalMatchingCountLoading,
-    userLoc, nearbyMiles, nearbyUnavailable,
+    // NULL whenever a filter the server count cannot express is actually
+    // narrowing the feed, which falls the header back to the rendered count.
+    // useDashboardJobsCount reproduces only the predicates that translate
+    // cleanly to SQL and skips the haversine radius and matchAvailability, so
+    // with a 5-mile radius applied it answered 3 over a list of 1 and did not
+    // move when a card left. Its own comment calls that an acceptable
+    // over-count; "3 jobs match your filters" above one card is not an
+    // over-count, it is a false statement about the set on screen. An
+    // undercount while infinite-scroll is still loading is the lesser lie —
+    // it is never more than the reader can already see.
+    totalMatchingCount: clientOnlyNarrowing ? null : totalMatchingCount,
+    totalMatchingCountLoading,
+    userLoc, nearbyMiles, nearbyUnavailable, nearbyApproximate,
   };
 }

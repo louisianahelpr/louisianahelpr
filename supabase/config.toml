@@ -45,7 +45,33 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.process-scheduled-payouts]
     verify_jwt = false
+  # release-payout was the ONE payout function still behind the JWT gateway,
+  # and the consequence was that its documented CRON_SECRET door did not exist.
+  # Proven against prod 2026-09-07: a POST with a non-JWT bearer never reaches
+  # the function at all — the gateway answers
+  # {"code":"UNAUTHORIZED_INVALID_JWT_FORMAT"} — while the identical request to
+  # process-scheduled-payouts reaches its handler and gets that function's own
+  # plain "Unauthorized". So the `Bearer <CRON_SECRET>` branch in
+  # release-payout:79 has never been reachable by anything, and the only reason
+  # the product works is that auto-release-payment:552 calls it with the
+  # SERVICE ROLE key, which happens to be a JWT and so slips past the gateway.
+  #
+  # This is not a loosening. verify_jwt = true admits ANY valid JWT, including
+  # every signed-in user's — it never restricted this endpoint to operators.
+  # The real gate is and remains the function's own check: cron secret, service
+  # role, or a JWT carrying has_role(admin). What the gateway was doing was
+  # rejecting the one credential shape the function documents as its primary
+  # door, which is why every sibling here (auto-release-payment,
+  # process-scheduled-payouts, void-cancelled-payments, auto-resolve-disputes,
+  # money-reconciliation) is already false.
+  [functions.release-payout]
+    verify_jwt = false
   [functions.stripe-webhook]
+    verify_jwt = false
+  # Apple posts these unauthenticated — it cannot present a Supabase JWT.
+  # The handler trusts nothing in the body beyond a transaction id and
+  # re-pulls the authoritative transaction from Apple; see its header.
+  [functions.apple-app-store-notifications]
     verify_jwt = false
   [functions.email-tracking]
     verify_jwt = false
@@ -57,12 +83,39 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # the function; a bad signature writes nothing and answers 400.
   [functions.email-unsubscribe]
     verify_jwt = false
-  # admin-update-email deliberately has NO verify_jwt override: it is the only
-  # endpoint that can change a user's login identity, and it is called from the
-  # admin UI via supabase.functions.invoke (which attaches the caller's JWT), so
-  # there is no unauthenticated caller to accommodate. Its in-function
-  # getClaims + has_role check is sound on its own; keeping the gateway check as
-  # well is defence-in-depth on an account-takeover-grade action.
+  # admin-update-email: the gateway JWT check is REQUIRED and now DECLARED.
+  #
+  # It is the only endpoint that can change a user's login identity, and it is
+  # called from the admin UI via supabase.functions.invoke (which attaches the
+  # caller's JWT), so there is no unauthenticated caller to accommodate. Its
+  # in-function getClaims + has_role check is sound on its own; the gateway
+  # check is defence-in-depth on an account-takeover-grade action.
+  #
+  # This block used to say it "deliberately has NO verify_jwt override" and
+  # relied on the gateway default of true. Prod disagreed: the deployed function
+  # carried verify_jwt=false, so the second layer this comment promised did not
+  # exist, and an unauthenticated request reached the handler (confirmed
+  # 2026-09-06 — the endpoint answered with its OWN 401 body rather than the
+  # gateway's UNAUTHORIZED_NO_AUTH_HEADER). Not exploitable, because the
+  # in-function gate held and fails closed. But an absent stanza cannot assert
+  # anything: "the default is true" is a claim about the deploy, not a fact in
+  # the repo, and it silently stopped being true. Declaring it explicitly is
+  # what makes the guarantee reproducible from source (EF-025).
+  [functions.admin-update-email]
+    verify_jwt = true
+  # verification-webhook: inbound callbacks from background-check vendors, which
+  # cannot present a Supabase JWT. Without this the gateway 401s every delivery
+  # before the handler runs, so the function's own signature verification can
+  # never execute — the same shape that made health-check dead from 2026-04-26
+  # and left resend-webhook's suppression list permanently empty.
+  #
+  # Safe: the handler verifies each vendor's signature itself and is stricter
+  # than the gateway would be. Latent rather than urgent today (no vendor is
+  # live and verification_checks is empty), which is precisely why it had to be
+  # fixed now — the day a vendor is switched on, this reads as implemented and
+  # silently is not (EF-001).
+  [functions.verification-webhook]
+    verify_jwt = false
   [functions.pro-customer-portal]
     verify_jwt = false
   [functions.weekly-helper-report]
@@ -99,6 +152,20 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # is present when a recurring visit is charged. That is the point.
   [functions.charge-recurring-visits]
     verify_jwt = false
+  # auto-tip-charge: charges a poster's saved card off-session after a job
+  # completes, invoked only by pg_cron. Same posture as its 12 cron siblings
+  # above; it was the ONE that never got a stanza.
+  #
+  # Prod already runs it with verify_jwt=false, so this changes no behaviour —
+  # it makes the gate reproducible from the repo instead of an artefact of
+  # deploy history. Worth stating plainly for the next reader, because the
+  # obvious inference is wrong: an absent stanza does NOT mean the next deploy
+  # would flip this to true and silently kill every auto-tip. cron.job builds
+  # its header from the vault `service_role_key`, which is the LEGACY key and
+  # IS a JWT, so verify_jwt=true would pass it anyway. Verified healthy in
+  # cron_run_log (hourly 200s) on 2026-09-07 (EF-026).
+  [functions.auto-tip-charge]
+    verify_jwt = false
   [functions.expiring-jobs-push]
     verify_jwt = false
   [functions.payment-confirm-reminder]
@@ -116,6 +183,20 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # is an ADMIN. verify_jwt=false hands that decision to the function, it does
   # not remove it.
   [functions.health-check]
+    verify_jwt = false
+  # marketing-publish / marketing-token-health: invoked by pg_cron via
+  # net.http_post with `Bearer <service_role_key>` from the vault
+  # (20260903040120_schedule_marketing_crons.sql). That key is `sb_secret_*`,
+  # NOT a JWT, so with the gateway default of verify_jwt=true both would be
+  # rejected 401 before the handler ran — the same silent failure recorded for
+  # health-check above, which went unnoticed from 2026-04-26.
+  #
+  # Safe: both functions do their own auth and are stricter than the gateway.
+  # marketing-publish additionally refuses to claim any work unless the kill
+  # switch reads true, so a bad caller cannot cause a post.
+  [functions.marketing-publish]
+    verify_jwt = false
+  [functions.marketing-token-health]
     verify_jwt = false
   # Service-role-only: send-notification-email accepts a bearer token equal to
   # SUPABASE_SERVICE_ROLE_KEY and renders an HTML email branded as Helpr. With

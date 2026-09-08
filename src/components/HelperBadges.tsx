@@ -1,10 +1,11 @@
-import { Star, Trophy, Zap, Shield, Flame, Heart, Crown, Target, Sparkles } from "lucide-react";
+import { Trophy, Zap, Shield, Flame, Heart, Target } from "lucide-react";
 // Membership badge labels come from the ONE tier-name source so a badge on a
 // helper card reads exactly like the plan card that sold it ("Helpr Pro", not
 // "Pro"). The EARNED Elite badge further down is a different thing entirely —
 // a performance ladder rung, not a purchase — and deliberately keeps its own
 // bare "Elite" label.
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { normalizeTier, tierDisplayName } from "@/lib/subscriptionTiers";
+import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
 
 export type HelperBadge = {
   key: string;
@@ -25,29 +26,24 @@ export function computeBadges(stats: {
 }): HelperBadge[] {
   const badges: HelperBadge[] = [];
 
-  // Tier badges — always first. Pro + Elite are paid prestige tiers, so
-  // they wear the antique gold (matches the wrought-iron logo finials).
-  // Basic stays neutral so the gold reads as something earned.
-  if (stats.helprTier === "elite") {
+  // Tier badges — always first, and ONE derived badge rather than an
+  // if/else-if chain per tier. The chain this replaces handled
+  // elite/pro/basic, so a Plus helper wore no membership badge at all
+  // (CC-019). Treatment (mark, chip class, icon colour) comes from
+  // tierBadgeStyle, shared with JobPosterCard and IdentityHeader; the
+  // gold-for-Elite / neutral-for-Basic rule lives there now.
+  //
+  // `stats.isPro` is the legacy boolean flag some callers still pass; it
+  // continues to mean "treat as Pro" when no tier string is supplied.
+  const tierForBadge = stats.helprTier ?? (stats.isPro ? "pro" : null);
+  const tierStyle = tierBadgeStyle(tierForBadge);
+  if (tierStyle) {
+    const TierIcon = tierStyle.icon;
     badges.push({
-      key: "elite_sub",
-      label: TIER_PERKS.elite.name,
-      icon: <Crown className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} />,
-      color: "tier-gold-elite",
-    });
-  } else if (stats.helprTier === "pro" || stats.isPro) {
-    badges.push({
-      key: "pro",
-      label: TIER_PERKS.pro.name,
-      icon: <Sparkles className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} />,
-      color: "tier-gold-pro",
-    });
-  } else if (stats.helprTier === "basic") {
-    badges.push({
-      key: "basic_sub",
-      label: TIER_PERKS.basic.name,
-      icon: <Star className="w-3 h-3" />,
-      color: "bg-secondary/80 text-secondary-foreground border border-border",
+      key: `tier_${normalizeTier(tierForBadge)}`,
+      label: tierDisplayName(tierForBadge),
+      icon: <TierIcon className="w-3 h-3" style={tierStyle.chipIconColor ? { color: tierStyle.chipIconColor } : undefined} />,
+      color: tierStyle.chipClass,
     });
   }
 
@@ -92,7 +88,7 @@ export function computeBadges(stats: {
       key: "streak",
       label: "On Fire",
       icon: <Flame className="w-3 h-3" />,
-      color: "bg-destructive/10 text-destructive",
+      color: "bg-destructive/10 text-[hsl(var(--destructive-ink))]",
     });
   }
 
@@ -129,7 +125,7 @@ export function computeBadges(stats: {
       key: "community_fav",
       label: "Community Fav",
       icon: <Heart className="w-3 h-3" />,
-      color: "bg-destructive/10 text-destructive",
+      color: "bg-destructive/10 text-[hsl(var(--destructive-ink))]",
     });
   }
 

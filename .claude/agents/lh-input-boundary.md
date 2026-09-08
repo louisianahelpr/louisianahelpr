@@ -135,8 +135,9 @@ that a human never typed is exactly where a boundary bug survives.
 
 You write to the seeded account: `snapshotAccountState()` / `restoreAccountState()` in a
 `finally`, then `--restore` and confirm clean before reporting done. **Never run
-adversarial input against prod** -- confirm which Supabase project you are pointed at
-(`supabase/.temp/project-ref` currently points at staging).
+adversarial input against prod** -- and there is no longer anywhere else to point:
+the staging project was retired 2026-09-07, so `supabase/.temp/project-ref` is prod
+(`fncmgoasalhdgfwzhsqa`). Confirm the ref, then use a disposable test account.
 
 ## Evidence bar
 

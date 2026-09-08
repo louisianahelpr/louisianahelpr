@@ -263,62 +263,43 @@ describe("useCurrentUser", () => {
       await waitFor(() => expect(result.current.adminStatus).toBe("admin"));
       expect(result.current.isAdmin).toBe(true);
     });
-  });
 
-  it("subscribes to a postgres_changes channel for the user's profile row", async () => {
-    mocks.authReadyState.user = { id: "u1" };
-    mocks.authReadyState.isReady = true;
-    mocks.profileMaybeSingle.mockResolvedValue({ data: null, error: null });
-    mocks.rolesMaybeSingle.mockResolvedValue({ data: null, error: null });
+    it("AR-011: retries the role lookup within one fetch, so a single transient failure never surfaces as 'unknown'", async () => {
+      // Before the fix, `fetchCurrentUser` caught the FIRST error and
+      // resolved — so `useQuery`'s own `retry: 2` (disabled by `wrap`'s
+      // QueryClient anyway, but true in production too) never got a chance:
+      // the query itself always "succeeded" with adminCheckFailed=true. One
+      // flaky response therefore locked an admin out with no automatic
+      // retry — verified live 2026-09-04 by injecting a single HTTP 500 and
+      // counting exactly one `user_roles` request for the page's life.
+      mocks.authReadyState.user = { id: "u1" };
+      mocks.authReadyState.isReady = true;
+      mocks.profileMaybeSingle.mockResolvedValue({
+        data: { user_id: "u1", full_name: "Lexi" },
+        error: null,
+      });
+      mocks.rolesMaybeSingle
+        .mockResolvedValueOnce({ data: null, error: { message: "transient 500" } })
+        .mockResolvedValueOnce({ data: { role: "admin" }, error: null });
 
-    renderHook(() => useCurrentUser(), { wrapper: wrap });
-    await waitFor(() => expect(mocks.channelMock).toHaveBeenCalledOnce());
-    // Channel name includes the user id + a UUID nonce
-    const channelName = mocks.channelMock.mock.calls[0][0] as string;
-    expect(channelName).toMatch(/^profile-self-u1-/);
-  });
+      const { result } = renderHook(() => useCurrentUser(), { wrapper: wrap });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-  it("re-fetches profile when the realtime channel fires (admin flips status)", async () => {
-    mocks.authReadyState.user = { id: "u1" };
-    mocks.authReadyState.isReady = true;
-    mocks.profileMaybeSingle.mockResolvedValue({
-      data: { user_id: "u1", full_name: "Lexi", approval_status: "pending" },
-      error: null,
+      // The single transient failure is absorbed by the in-flight retry —
+      // the confirmed admin state comes back on the FIRST fetch, no refresh()
+      // call needed.
+      expect(result.current.adminStatus).toBe("admin");
+      expect(result.current.isAdmin).toBe(true);
+      expect(mocks.rolesMaybeSingle).toHaveBeenCalledTimes(2);
     });
-    mocks.rolesMaybeSingle.mockResolvedValue({ data: null, error: null });
-
-    const { result } = renderHook(() => useCurrentUser(), { wrapper: wrap });
-    await waitFor(() => expect(result.current.profile).toBeTruthy());
-    expect(result.current.profile?.approval_status).toBe("pending");
-
-    // Now the admin "approves" the user — realtime fires, refetch returns
-    // the updated row.
-    mocks.profileMaybeSingle.mockResolvedValue({
-      data: { user_id: "u1", full_name: "Lexi", approval_status: "approved" },
-      error: null,
-    });
-
-    await act(async () => {
-      mocks.channelHandlerRef.get()?.();
-      await new Promise<void>((r) => setTimeout(r, 0));
-    });
-
-    await waitFor(() =>
-      expect(result.current.profile?.approval_status).toBe("approved"),
-    );
   });
 
-  it("removes the channel on unmount", async () => {
-    mocks.authReadyState.user = { id: "u1" };
-    mocks.authReadyState.isReady = true;
-    mocks.profileMaybeSingle.mockResolvedValue({ data: null, error: null });
-    mocks.rolesMaybeSingle.mockResolvedValue({ data: null, error: null });
-
-    const { unmount } = renderHook(() => useCurrentUser(), { wrapper: wrap });
-    await waitFor(() => expect(mocks.channelMock).toHaveBeenCalledOnce());
-    unmount();
-    expect(mocks.removeChannelMock).toHaveBeenCalledOnce();
-  });
+  // The three realtime-channel tests that lived here were deleted with the
+  // channel itself (3a6942f5e): `profiles` is not in the supabase_realtime
+  // publication (dropped 20260423164103, a deliberate PII fix), so the binding
+  // could never fire and the tests only ever asserted the shape of a dead
+  // subscription. Freshness is staleTime + refetchOnWindowFocus — see the
+  // comment above `useCurrentUser`.
 
   it("returns a refresh() that invalidates the user query", async () => {
     mocks.authReadyState.user = { id: "u1" };

@@ -41,7 +41,7 @@ export function DocumentsTab({ viewProfile, idDocSignedUrl }: DocumentsTabProps)
             )}
           </div>
         ) : (
-          <p className="text-ds-11 text-muted-foreground italic">Not provided</p>
+          <p className="text-ds-11 text-muted-foreground">Not provided</p>
         )}
       </div>
 
@@ -83,7 +83,7 @@ export function DocumentsTab({ viewProfile, idDocSignedUrl }: DocumentsTabProps)
             </a>
           </div>
         ) : (
-          <p className="text-ds-11 text-muted-foreground italic">Not provided</p>
+          <p className="text-ds-11 text-muted-foreground">Not provided</p>
         )}
       </div>
 
@@ -110,7 +110,7 @@ export function DocumentsTab({ viewProfile, idDocSignedUrl }: DocumentsTabProps)
             })}
           </div>
         ) : (
-          <p className="text-ds-11 text-muted-foreground italic">Not provided</p>
+          <p className="text-ds-11 text-muted-foreground">Not provided</p>
         )}
       </div>
     </TabsContent>

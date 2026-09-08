@@ -74,7 +74,7 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
             </p>
           </DialogBody>
           <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
-            <p className="text-ds-11 text-destructive flex items-center gap-1">
+            <p className="text-ds-11 text-[hsl(var(--destructive-ink))] flex items-center gap-1">
               <AlertTriangle className="w-3 h-3" />
               This action is permanent and cannot be undone. All user data will be removed.
             </p>

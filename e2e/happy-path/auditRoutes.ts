@@ -62,7 +62,8 @@ export async function toggleDashboardMap(page: Page): Promise<boolean> {
         return true;
       }
     } catch {
-      /* try next */
+      /* This candidate selector is absent or unclickable on this route —
+         fall through to the next one; returning false below is the trace. */
     }
   }
   return false;
@@ -178,7 +179,6 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   },
   { name: "my-posts", url: "/my-posts" },
   { name: "my-jobs", url: "/my-jobs" },
-  { name: "jobs", url: "/jobs" },
   { name: "messages", url: "/messages" },
   { name: "post-job", url: "/post-job" },
   { name: "payment-success", url: "/payment-success" },
@@ -320,6 +320,10 @@ export const ADMIN_VIEWS = [
   // a permanent ban is a person's decision instead of something the offender's
   // own client handed itself (2026-08-25).
   "banreview",
+  // "social" — the Facebook/Instagram auto-poster console. Distinct from
+  // "marketing" above, which is the Resend email-campaign sender; they are two
+  // separate systems that happen to share a word.
+  "social",
 ] as const;
 
 const adminRules = () => [mockTable("user_roles", [{ role: "admin" }])];

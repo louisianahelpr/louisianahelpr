@@ -26,7 +26,7 @@ export function DescriptionField({
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
+        <Label htmlFor="description">Description <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         <span className="text-ds-11 tabular-nums text-muted-foreground">{description.length}/{DESCRIPTION_MAX}</span>
       </div>
       <Textarea
@@ -69,7 +69,7 @@ export function DescriptionField({
         if (unmet.length === 0) return null;
         return (
           <p
-            className="text-ds-11 font-serif italic leading-snug"
+            className="text-ds-11 font-sans leading-snug"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Tip: {unmet.join(" · ")}

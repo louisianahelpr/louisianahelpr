@@ -130,10 +130,141 @@ serve(async (req) => {
       if (jobError || !job) throw new Error("Job not found");
       if (job.customer_id !== user.id) throw new Error("Not authorized");
 
-      // Idempotency: if payment is already in progress or paid, don't create another session
-      if (job.stripe_session_id && job.payment_status && job.payment_status !== "unpaid") {
-        throw new Error("Payment has already been initiated for this job. If you need to retry, please cancel the existing payment first.");
+      // ─── Re-mint gate: which payment_status may open a NEW checkout ───
+      //
+      // This used to be `job.stripe_session_id && payment_status !== "unpaid"`,
+      // which refused every state that keeps a session id after the money did
+      // NOT land — and both of them do:
+      //   • 'abandoned' — void-cancelled-payments' Part B sweep marks an
+      //     unpaid-at-Stripe checkout abandoned WITHOUT clearing
+      //     stripe_session_id.
+      //   • 'failed' — stripe-webhook's payment_intent.payment_failed stamps
+      //     it on a job that is still unpaid (declined card), session id intact.
+      // Those are exactly the two states UnfundedJobNotice offers "Finish
+      // paying" for, so its one CTA 500'd forever — with a message naming a
+      // "cancel the existing payment" control that does not exist anywhere in
+      // the product. Reproduced live against prod job
+      // b732b37d-20e7-4685-abba-50d8602fe6b1 ('abandoned', cs_test_b1V0Ji…).
+      //
+      // The gate is now the payment_status VOCABULARY (jobs_payment_status_check:
+      // unpaid, escrow, payout_pending, released, refunded, cancelled,
+      // abandoned, failed, chargeback, cancelling) rather than the presence of
+      // a session id — a session id is evidence a checkout was opened, never
+      // evidence money landed, and the seven other states all mean money moved
+      // or the job is settled. Null is treated as 'unpaid' (the pre-checkout
+      // default), matching the old guard's `&& job.payment_status`.
+      const RE_MINTABLE_PAYMENT_STATUSES = new Set(["unpaid", "abandoned", "failed"]);
+      const currentPaymentStatus = job.payment_status ?? "unpaid";
+      if (!RE_MINTABLE_PAYMENT_STATUSES.has(currentPaymentStatus)) {
+        throw new Error("This job's payment has already been processed. Open the job to see its payment status.");
       }
+
+      // ─── Retire the previous Checkout Session before minting another ───
+      //
+      // Two live sessions on one job is the double-funding shape, so the old
+      // one must be gone (or provably dead) before a new one exists.
+      //
+      // The Stripe read is also the LAST word on whether money is in flight:
+      // payment_status above is our copy, and a webhook that has not landed
+      // yet (or was stamped 'failed' by an out-of-order event) makes it stale
+      // in exactly the direction that would let a poster pay twice. If Stripe
+      // says this session is complete/paid, or its PaymentIntent is anywhere
+      // past `requires_payment_method`, we refuse and let the webhook settle it.
+      const previousSessionId: string | null = job.stripe_session_id ?? null;
+      if (previousSessionId) {
+        const prior = await stripe.checkout.sessions.retrieve(previousSessionId, {
+          expand: ["payment_intent"],
+        });
+        const priorPi = prior.payment_intent as Stripe.PaymentIntent | null;
+        const priorPiLive = !!priorPi &&
+          !["requires_payment_method", "canceled"].includes(priorPi.status);
+        if (prior.status === "complete" || prior.payment_status === "paid" || priorPiLive) {
+          console.error(
+            `[create-payment] refusing re-mint for job ${jobId}: prior session ${previousSessionId} is live (status=${prior.status}, payment_status=${prior.payment_status}, pi=${priorPi?.id ?? "none"}/${priorPi?.status ?? "none"}) while jobs.payment_status='${currentPaymentStatus}'`,
+          );
+          throw new Error("A payment for this job is still being processed. Give it a moment and refresh before trying again.");
+        }
+        if (prior.status === "open") {
+          // Expire rather than leave it: an abandoned-but-open session stays
+          // payable, and the poster may still have that tab.
+          //
+          // `expire` is NOT idempotent — a second call raises "Only Checkout
+          // Sessions with a status in [open] can be expired". The Checkout
+          // Session CREATE below is deduped by its idempotency key, so a
+          // double-tap survives that, but nothing dedupes this call: measured
+          // 2026-09-07 with two concurrent "Finish paying" taps, the winner
+          // got 200 + a session and the loser got a 500 carrying Stripe's raw
+          // error — reintroducing the exact dead end this fix removes, one race
+          // narrower. Re-read instead of trusting the error text: if the
+          // session has left `open`, someone else retired it and that is the
+          // outcome we wanted.
+          try {
+            await stripe.checkout.sessions.expire(previousSessionId);
+          } catch (expireErr) {
+            const recheck = await stripe.checkout.sessions.retrieve(previousSessionId);
+            if (recheck.status === "open") throw expireErr;
+            if (recheck.status === "complete" || recheck.payment_status === "paid") {
+              // It was paid out from under us between the two reads. Never mint
+              // a second checkout on top of a real charge.
+              console.error(`[create-payment] prior session ${previousSessionId} completed mid-re-mint for job ${jobId}`);
+              throw new Error("A payment for this job is still being processed. Give it a moment and refresh before trying again.");
+            }
+            console.log(`[create-payment] prior session ${previousSessionId} was already retired by a concurrent re-mint (status=${recheck.status})`);
+          }
+        }
+      }
+
+      /**
+       * Idempotency key suffix — why the key cannot be `escrow-${jobId}` alone.
+       *
+       * That key is what makes a double-tap safe: two rapid requests get the
+       * SAME Checkout Session instead of two escrow charges. But Stripe keeps
+       * a key for 24h and replays the ORIGINAL response, so a poster retrying
+       * a genuinely dead checkout inside that window would be handed back the
+       * session we just expired — a `url` that leads nowhere, i.e. the same
+       * dead end this fix exists to remove, wearing a 200.
+       *
+       * Keying on the session being REPLACED keeps both properties: concurrent
+       * taps read the same `previousSessionId` and therefore share a key, while
+       * a later retry reads the session id we are about to write and gets a
+       * fresh one. A job that never had a session keeps the original key
+       * exactly as before.
+       */
+      const remintKeySuffix = previousSessionId ? `-after-${previousSessionId}` : "";
+
+      /**
+       * Record a newly-minted session on the job, tolerating the double-tap.
+       *
+       * The write is guarded on the session id we READ, so a concurrent request
+       * that already re-stamped the job cannot be clobbered. A zero-row match
+       * is therefore ambiguous — it means either that race or a genuinely lost
+       * write — so re-read and treat "the job already carries this session" as
+       * success. Under Stripe's idempotency key both callers hold the same
+       * session id, so this is the normal double-tap outcome, not an error.
+       *
+       * `payment_status` returns to 'unpaid' because that is the money-in-flight
+       * state every downstream sweep keys on: checkout.session.expired only
+       * clears a session hold `.eq("payment_status","unpaid")`, void-cancelled-
+       * payments' abandoned sweep only selects 'unpaid', and payment_failed only
+       * stamps over null-or-'unpaid'. Leaving it 'abandoned'/'failed' would mint
+       * a live checkout that none of those three can ever clean up again.
+       */
+      const stampSession = async (newSessionId: string, extra: Record<string, unknown>) => {
+        let q = supabaseAdmin
+          .from("jobs")
+          .update({ stripe_session_id: newSessionId, payment_status: "unpaid", ...extra })
+          .eq("id", jobId);
+        q = previousSessionId
+          ? q.eq("stripe_session_id", previousSessionId)
+          : q.is("stripe_session_id", null);
+        const { data: updated, error: updateErr } = await q.select("id");
+        if (updateErr) return { ok: false as const, reason: updateErr.message };
+        if (updated && updated.length > 0) return { ok: true as const };
+        const { data: recheck } = await supabaseAdmin
+          .from("jobs").select("stripe_session_id").eq("id", jobId).maybeSingle();
+        if (recheck?.stripe_session_id === newSessionId) return { ok: true as const };
+        return { ok: false as const, reason: `matched 0 rows; job now holds ${recheck?.stripe_session_id ?? "null"}` };
+      };
 
       // ─── Pay It Forward redemption ───
       // A recipient redeeming a directed gift funds the job from the
@@ -203,7 +334,7 @@ serve(async (req) => {
           cancel_url: buildRedirectUrl(`/post-job?pif_credit=${encodeURIComponent(pifCreditId)}`, isNative),
           metadata: { job_id: jobId, customer_id: user.id, pif_credit_id: pifCreditId },
         }, {
-          idempotencyKey: `pif-diff-${jobId}`,
+          idempotencyKey: `pif-diff-${jobId}${remintKeySuffix}`,
         });
 
         // Record the session on the job, exactly as the full-escrow path below
@@ -216,13 +347,9 @@ serve(async (req) => {
         // shortfall left the job open+unpaid forever, permanently consuming one
         // of the poster's open-job slots in enforce_open_job_limit.
         // .select("id") because a zero-row match returns error === null.
-        const { data: diffUpdated, error: diffUpdateErr } = await supabaseAdmin
-          .from("jobs")
-          .update({ stripe_session_id: diffSession.id })
-          .eq("id", jobId)
-          .select("id");
-        if (diffUpdateErr || !diffUpdated || diffUpdated.length === 0) {
-          console.error(`[create-payment] PIF difference session ${diffSession.id} created for job ${jobId} but jobs.update failed:`, diffUpdateErr ?? "matched 0 rows");
+        const diffStamp = await stampSession(diffSession.id, {});
+        if (!diffStamp.ok) {
+          console.error(`[create-payment] PIF difference session ${diffSession.id} created for job ${jobId} but jobs.update failed:`, diffStamp.reason);
           // Safe to fail loudly: the credit is still 'reserved' against THIS
           // job, and redeem_pif_credit treats re-entry for the same job as a
           // retry, so the user can simply try again.
@@ -431,25 +558,25 @@ serve(async (req) => {
         // Idempotency: a double-submit (double-tap, retried request) for the same
         // job reuses the existing Checkout Session instead of creating a second
         // escrow charge. Scoped per job; Stripe expires the key after 24h.
-        idempotencyKey: `escrow-${jobId}`,
+        idempotencyKey: `escrow-${jobId}${remintKeySuffix}`,
       });
 
       // Store both fee structures on the job. Fail the request if this write
       // fails: without stripe_session_id the double-payment guard is blind and
       // the frozen fee percents are lost — the unused Checkout Session is
       // harmless, so failing loudly here costs nothing.
-      const { data: escrowUpdated, error: escrowUpdateErr } = await supabaseAdmin.from("jobs").update({
-        stripe_session_id: session.id,
+      // stampSession carries the .select("id") zero-row guard: a zero-row match
+      // (error === null) would otherwise look identical to success here,
+      // leaving stripe_session_id unset — the double-payment guard goes blind
+      // and the frozen fee percents are lost.
+      const escrowStamp = await stampSession(session.id, {
         platform_fee_percent: customerFeePercent,
         platform_fee_amount: helperFeeAmount,
         customer_fee_amount: customerFeeAmount,
         helper_fee_percent: helperFeePercent,
-      }).eq("id", jobId).select("id");
-      // .select("id"): a zero-row match (error === null) would otherwise look
-      // identical to success here, leaving stripe_session_id unset — the
-      // double-payment guard goes blind and the frozen fee percents are lost.
-      if (escrowUpdateErr || !escrowUpdated || escrowUpdated.length === 0) {
-        console.error(`[create-payment] escrow session ${session.id} created for job ${jobId} but jobs.update failed:`, escrowUpdateErr ?? "matched 0 rows");
+      });
+      if (!escrowStamp.ok) {
+        console.error(`[create-payment] escrow session ${session.id} created for job ${jobId} but jobs.update failed:`, escrowStamp.reason);
         throw new Error("Could not record the payment session — please try again");
       }
 

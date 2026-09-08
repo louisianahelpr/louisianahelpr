@@ -9,6 +9,7 @@ import { resolve } from "node:path";
 import {
   cancellationFeePercent,
   computeCancellationFee,
+  hoursUntilJob,
   jobLocalMidnightMs,
 } from "../../supabase/functions/_shared/cancellationFee";
 
@@ -49,6 +50,7 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
       computeCancellationFee({
         budget: 200,
         date_needed: "2099-01-01",
+        start_time: null,
         cancelled_at: "2099-01-01T00:00:00Z", // 0h before → would be 50% if helper
         helper_id: null,
       }),
@@ -60,6 +62,7 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
       computeCancellationFee({
         budget: 200,
         date_needed: farFuture,
+        start_time: null,
         cancelled_at: "2026-01-01T00:00:00Z",
         helper_id: "helper-1",
       }),
@@ -78,6 +81,7 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
       computeCancellationFee({
         budget: 200,
         date_needed: "2099-01-02",
+        start_time: null,
         cancelled_at: cancelledAt,
         helper_id: "helper-1",
       }),
@@ -95,6 +99,7 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
       computeCancellationFee({
         budget: 200,
         date_needed: "2099-01-02",
+        start_time: null,
         cancelled_at: cancelledAt,
         helper_id: "helper-1",
       }),
@@ -110,13 +115,13 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
     // was pinned to the platform zone.
     const start = jobLocalMidnightMs("2099-01-02");
     const cancelledAt = new Date(start - 1 * 3600 * 1000).toISOString();
-    const base = { budget: 80, date_needed: "2099-01-02", cancelled_at: cancelledAt, helper_id: "h" };
+    const base = { budget: 80, date_needed: "2099-01-02", start_time: null, cancelled_at: cancelledAt, helper_id: "h" };
     expect(computeCancellationFee(base)).toBe(40); // 50% of 80, not a forged number
   });
 
   it("returns 0 on missing/invalid budget", () => {
-    expect(computeCancellationFee({ budget: 0, date_needed: farFuture, cancelled_at: null, helper_id: "h" })).toBe(0);
-    expect(computeCancellationFee({ budget: null, date_needed: farFuture, cancelled_at: null, helper_id: "h" })).toBe(0);
+    expect(computeCancellationFee({ budget: 0, date_needed: farFuture, start_time: null, cancelled_at: null, helper_id: "h" })).toBe(0);
+    expect(computeCancellationFee({ budget: null, date_needed: farFuture, start_time: null, cancelled_at: null, helper_id: "h" })).toBe(0);
   });
 });
 
@@ -231,5 +236,68 @@ describe("late_cancellation SQL writers stay on the shared helper", () => {
     expect(code.match(/public\.is_late_cancellation\(/g)?.length).toBeGreaterThanOrEqual(3);
     expect(code).not.toMatch(/late_cancellation\s*=\s*\(v_hours IS NOT NULL/);
     expect(code).not.toMatch(/v_late\s*:=\s*\(v_hours/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REGRESSION: the fee ladder must anchor on the job's START TIME, not midnight
+// of its day. Before 2026-09-05 `start_time` was never consulted, so a 6:00 PM
+// job was priced as if it began at 00:00 — eighteen hours early — and every job
+// fell into a harsher tier than its schedule earns.
+//
+// The error was one-directional (midnight is never later than the real start),
+// so it could only ever OVERCHARGE. That is what makes it chargeback material
+// and why these cases assert the cheaper tier is now reached.
+// Mirrors migration 20260905021859, verified against prod at the same values.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("fee ladder anchors on start_time, not midnight", () => {
+  it("the filed case: 41h before a 6pm job is FREE, not the 25% tier", () => {
+    // Cancel 01:00 CT; job the next day at 18:00 CT => 41 real hours of notice.
+    // Midnight-anchored maths returned 23 and charged 25% of budget.
+    const hours = hoursUntilJob("2026-09-06", "2026-09-05T06:00:00Z", "18:00:00");
+    expect(Math.round(hours)).toBe(41);
+    expect(clientPercent(true, hours)).toBe(0);
+
+    expect(
+      computeCancellationFee({
+        budget: 400,
+        date_needed: "2026-09-06",
+        start_time: "18:00:00",
+        cancelled_at: "2026-09-05T06:00:00Z",
+        helper_id: "h",
+      }),
+    ).toBe(0);
+  });
+
+  it("still charges the late tiers when the job really is close", () => {
+    // 1h before a 09:00 CT job -> 50%.
+    const late = hoursUntilJob("2026-09-05", "2026-09-05T13:00:00Z", "09:00:00");
+    expect(Math.round(late)).toBe(1);
+    expect(clientPercent(true, late)).toBe(50);
+
+    // 12h before a 21:00 CT job -> 25%.
+    const mid = hoursUntilJob("2026-09-05", "2026-09-05T14:00:00Z", "21:00:00");
+    expect(Math.round(mid)).toBe(12);
+    expect(clientPercent(true, mid)).toBe(25);
+  });
+
+  it("a null start_time still means midnight — the documented fallback", () => {
+    const withNull = hoursUntilJob("2026-09-06", "2026-09-05T06:00:00Z", null);
+    expect(Math.round(withNull)).toBe(23);
+    // and that is strictly worse for the poster than the real 18:00 start,
+    // which is exactly the bug this suite pins.
+    const withStart = hoursUntilJob("2026-09-06", "2026-09-05T06:00:00Z", "18:00:00");
+    expect(withStart).toBeGreaterThan(withNull);
+  });
+
+  it("never quotes a HARSHER tier than the real start earns, across the day", () => {
+    // Property: for every start_time, anchoring on the real start can only ever
+    // give >= the notice midnight gives — so the fee can only ever go down.
+    for (const hh of ["00", "06", "09", "12", "18", "23"]) {
+      const real = hoursUntilJob("2026-09-06", "2026-09-05T06:00:00Z", `${hh}:00:00`);
+      const midnight = hoursUntilJob("2026-09-06", "2026-09-05T06:00:00Z", null);
+      expect(real).toBeGreaterThanOrEqual(midnight);
+      expect(clientPercent(true, real)).toBeLessThanOrEqual(clientPercent(true, midnight));
+    }
   });
 });

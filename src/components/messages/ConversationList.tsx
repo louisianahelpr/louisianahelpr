@@ -64,6 +64,13 @@ interface ConversationListProps {
   allConversations?: Conversation[];
   loading: boolean;
   loadError: boolean;
+  /**
+   * Retry for the inbox error state. Must come from the hook rather than
+   * being built here from `userId`: `loadError` is true in a branch where
+   * `userId` is null by definition, so a `if (userId)` retry is dead in the
+   * one state it most needs to work. See useMessagesData.retryInbox.
+   */
+  retryInbox: () => void | Promise<void>;
   userId: string | null;
   /** Reloads the conversation list — drives retry + pull-to-refresh. */
   loadConversations: (uid: string) => Promise<void>;
@@ -162,6 +169,7 @@ export function ConversationList({
   allConversations,
   loading,
   loadError,
+  retryInbox,
   userId,
   loadConversations,
   openConvo,
@@ -550,7 +558,7 @@ export function ConversationList({
           outside the 200-message fetch window (see the onClick refresh
           above) and simply not be resolvable here yet. */}
       {inboxFilter === "recentlyDeleted" && (
-        <p className="px-4 pb-1 text-ds-10 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+        <p className="px-4 pb-1 text-ds-10 font-sans" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
           Hidden threads stay here until restored — not on a timer. Very old ones may take a refresh to appear.
         </p>
       )}
@@ -861,7 +869,7 @@ export function ConversationList({
             <div className="flex-1 min-h-0 flex">
               <ErrorState
                 title="We couldn't load your messages."
-                onRetry={() => { if (userId) loadConversations(userId); }}
+                onRetry={() => { void retryInbox(); }}
               />
             </div>
           ) : !loading && conversations.length === 0 && !isSpecialFilterView ? (
@@ -929,7 +937,7 @@ export function ConversationList({
                 {inboxFilter === "unread" ? "You're all caught up" : "Nothing here right now"}
               </p>
               <p
-                className="font-serif italic text-ds-13 max-w-[240px]"
+                className="font-sans text-ds-13 max-w-[240px]"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {/* NAME THE NUMBER, the way My Jobs does ("you have 3 in
@@ -985,7 +993,7 @@ export function ConversationList({
                 No conversations match
               </p>
               <p
-                className="font-serif italic text-ds-13 max-w-[240px]"
+                className="font-sans text-ds-13 max-w-[240px]"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {/* Same generic search-empty state as the default inbox, but

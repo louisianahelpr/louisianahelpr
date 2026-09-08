@@ -1,11 +1,27 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { ApplyConfirmDialog } from "./ApplyConfirmDialog";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import { scanMessage } from "@/lib/messageScanner";
 
 // The body only imports `toast` for the over-5MB file guard, which these
 // tests never trip — a thin stub satisfies the import.
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+
+// ApplyBody now asks whether the CURRENT user can actually be awarded a job,
+// so it can say so above the submit button (see useAwardBlockReason). That
+// hook reads `useCurrentUser`, which is a React Query consumer — and these
+// tests render the dialog bare, with no QueryClientProvider and no Router.
+// Stubbing the hook keeps each test on the subject it was written for (the
+// earnings math and the pitch field) instead of dragging two providers into
+// all sixteen. `null` = nothing blocks this helper, which is the state every
+// pre-existing test assumed. The notice's own behaviour is covered by its
+// dedicated block at the bottom of this file.
+const mockAwardBlockReason = vi.fn<() => string | null>(() => null);
+vi.mock("@/hooks/useAwardBlockReason", () => ({
+  useAwardBlockReason: () => mockAwardBlockReason(),
+}));
 
 function makeJob(overrides: Partial<EnrichedJob> = {}): EnrichedJob {
   return {
@@ -181,10 +197,17 @@ describe("ApplyConfirmDialog", () => {
     expect(screen.getByText("450/500")).toBeInTheDocument();
   });
 
-  it("offers to save a default pitch only once there is one to save", () => {
-    // The checkbox used to render on an empty field, offering to save nothing.
+  it("shows the default-pitch option from the start, inert until there is one to save", () => {
+    // It used to MOUNT on the first keystroke, which fixed "offering to save
+    // nothing" by making an option appear out of nowhere mid-typing and shove
+    // the submit button 25px down at 375 (50px at 1440) — under a thumb already
+    // travelling toward it. Present-but-disabled says the same thing and moves
+    // nothing, so the row is here on an empty field too.
     render(<ApplyConfirmDialog {...makeProps()} />);
-    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    const empty = screen.getByRole("checkbox", { name: /save as my default pitch/i });
+    expect(empty).toHaveAttribute("data-state", "unchecked");
+    expect(empty).toBeDisabled();
+    cleanup();
 
     render(<ApplyConfirmDialog {...makeProps({ applyMessage: "I have done this before." })} />);
     const box = screen.getByRole("checkbox", { name: /save as my default pitch/i });
@@ -196,6 +219,7 @@ describe("ApplyConfirmDialog", () => {
     // The label both wraps the control and points at it with htmlFor; a
     // double-forwarded click would toggle twice and land back on unchecked.
     expect(box).toHaveAttribute("data-state", "unchecked");
+    expect(box).toBeEnabled();
     fireEvent.click(screen.getByText("Save as my default pitch"));
     expect(box).toHaveAttribute("data-state", "checked");
   });
@@ -209,5 +233,115 @@ describe("ApplyConfirmDialog", () => {
     expect(screen.queryByText("resume.pdf")).not.toBeInTheDocument();
     expect(screen.queryByText(/add attachments/i)).not.toBeInTheDocument();
     expect(container.querySelector('input[type="file"]')).toBeNull();
+  });
+
+  /**
+   * The award gate, told to the person it acts on.
+   *
+   * `helper_award_block_reason()` decides who may be handed a job. Both other
+   * audiences were already served — the poster gets a message on a disabled
+   * Hire button, and a helper who reaches the ACCEPT step gets
+   * `AwardGateDialog`. The helper doing the APPLYING was told nothing, and
+   * measured against prod on 2026-09-06 that was seven of eight non-seed
+   * profiles: every one of them free to apply, none of them hireable, no
+   * explanation anywhere. The silence reads as posters passing you over.
+   *
+   * Applying stays UNGATED on purpose (owner's decision, documented in
+   * src/lib/awardGate.ts), so these assert an explanation that never becomes
+   * a barrier: the submit button must survive.
+   */
+  describe("award-block notice", () => {
+    it("says nothing when the helper can be hired", () => {
+      mockAwardBlockReason.mockReturnValue(null);
+      render(<ApplyConfirmDialog {...makeProps()} />);
+      expect(screen.queryByText(/can't be hired yet/i)).not.toBeInTheDocument();
+    });
+
+    it("explains an unfinished payout account without blocking the apply", () => {
+      mockAwardBlockReason.mockReturnValue("helper_payout_setup_incomplete");
+      render(
+        <MemoryRouter>
+          <ApplyConfirmDialog {...makeProps()} />
+        </MemoryRouter>,
+      );
+      expect(screen.getByText(/can't be hired yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/payout account exists/i)).toBeInTheDocument();
+      // The fix is one tap away and points at the tab that actually holds it.
+      expect(screen.getByRole("link", { name: /set up payouts/i })).toHaveAttribute(
+        "href",
+        "/profile?tab=payment",
+      );
+      // THE POINT: still applyable. A notice that disabled this would be the
+      // opposite of the owner's decision.
+      expect(screen.getByRole("button", { name: "Apply Now" })).toBeEnabled();
+    });
+
+    it("explains an unfinished identity check", () => {
+      mockAwardBlockReason.mockReturnValue("helper_identity_unverified");
+      render(
+        <MemoryRouter>
+          <ApplyConfirmDialog {...makeProps()} />
+        </MemoryRouter>,
+      );
+      expect(screen.getByText(/confirming who you are/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Apply Now" })).toBeEnabled();
+    });
+
+    it("stays silent on helper_unknown — a failed profile read is not news for this screen", () => {
+      // That verdict means we could not read the profile at all. Reporting an
+      // internal read failure to somebody mid-application helps nobody, and
+      // the accept-step dialog still covers it if it persists.
+      mockAwardBlockReason.mockReturnValue("helper_unknown");
+      render(<ApplyConfirmDialog {...makeProps()} />);
+      expect(screen.queryByText(/can't be hired yet/i)).not.toBeInTheDocument();
+    });
+  });
+});
+
+/**
+ * THE CONTACT FILTER TOLD THE SENDER NOTHING.
+ *
+ * A helper's apply note goes through the same server-side contact scan as a
+ * chat message. When it fires, the application is stored with
+ * `flagged_hidden = true` and the poster never sees the note — but the helper
+ * was shown "Application sent!" and nothing else, so they waited on a reply to
+ * a sentence nobody had read. Reproduced against prod on 2026-09-07: two rows
+ * landed with flagged_hidden = true while the UI reported plain success.
+ *
+ * Messages has always blocked the same content BEFORE sending, with a dialog
+ * naming the exact words. Apply now uses that same scanner and that same
+ * dialog. The server-side scan stays where it is — this is the UI half of a
+ * defence in depth, not a replacement for it.
+ */
+describe("ApplyConfirmDialog contact filter", () => {
+  const PHONE_NOTE = "Sure, just call me at 504-555-0100 and we'll sort it out.";
+
+  it("catches the exact note prod stored as flagged_hidden", () => {
+    const found = scanMessage(PHONE_NOTE);
+    expect(found.map((v) => v.type)).toContain("phone_number");
+  });
+
+  it("blocks before sending and quotes the offending text", () => {
+    const handleApplyConfirm = vi.fn();
+    render(<ApplyConfirmDialog {...makeProps({ applyMessage: PHONE_NOTE, handleApplyConfirm })} />);
+    fireEvent.click(screen.getByRole("button", { name: /apply now/i }));
+    expect(handleApplyConfirm).not.toHaveBeenCalled();
+    expect(screen.getByText(/violates platform rules/i)).toBeInTheDocument();
+    // The dialog wraps the match in typographic quotes, so match on content.
+    expect(document.body.textContent).toContain("504-555-0100");
+  });
+
+  it("lets a clean note through untouched", () => {
+    const handleApplyConfirm = vi.fn();
+    render(
+      <ApplyConfirmDialog
+        {...makeProps({
+          applyMessage: "I have moved furniture for three years and can bring a dolly.",
+          handleApplyConfirm,
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /apply now/i }));
+    expect(handleApplyConfirm).toHaveBeenCalled();
   });
 });

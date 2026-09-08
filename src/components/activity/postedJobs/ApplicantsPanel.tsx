@@ -3,15 +3,17 @@ import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, Eye, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
+import { ArrowUp, Eye, MapPin, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
 import { hapticLight } from "@/lib/haptics";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { tierDisplayName } from "@/lib/subscriptionTiers";
+import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
 import { type Job, type EnrichedApplication } from "../activityConstants";
 import { type JobAnalytics } from "./useJobAnalytics";
 import { useApplicantComparison } from "./useApplicantComparison";
+import { type DistanceBand } from "./useApplicantSignals";
 import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
 import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } from "./applicantsPanel/ApplicantsStates";
 import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
@@ -34,7 +36,7 @@ interface ApplicantsPanelProps {
   completedCountsMap: Map<string, number>;
   repeatHireMap: Map<string, number>;
   onTimeMap: Map<string, number>;
-  distanceMap: Map<string, number>;
+  distanceBandMap: Map<string, DistanceBand>;
   /** Reach for the selected job. Undefined until the view-count query
       resolves, or when the job has never been viewed — the readout is
       simply omitted in both cases rather than rendering a zero. */
@@ -63,7 +65,7 @@ export function ApplicantsPanel({
   completedCountsMap,
   repeatHireMap,
   onTimeMap,
-  distanceMap,
+  distanceBandMap,
   jobAnalytics,
   onBoost,
   onEdit,
@@ -111,7 +113,7 @@ export function ApplicantsPanel({
     completedCountsMap,
     repeatHireMap,
     onTimeMap,
-    distanceMap,
+    distanceBandMap,
   });
 
   /**
@@ -210,7 +212,7 @@ export function ApplicantsPanel({
               padding the same way the hand-rolled version sat `-mt-2` under
               PageHeader. */}
           <p
-            className="text-ds-11 font-serif italic truncate -mt-4 mb-2"
+            className="text-ds-11 font-sans truncate -mt-4 mb-2"
             style={{ color: "hsl(var(--olivewood) / 0.80)" }}
           >
             {selectedJob.title}
@@ -258,21 +260,18 @@ export function ApplicantsPanel({
                     style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                   >
                     Ranked on ratings, work history and verified credentials.
-                    {" "}Pro and Elite members get a small placement bump — enough to
+                    {" "}Members on Pro and above get a small placement bump — enough to
                     settle a close call, never enough to outrank a stronger helper.
                   </p>
                 )}
 
                 {/* Applicant cards */}
-                {sortedApplications.map(({ app, signals, neighborCount, promotedByTier }) => {
+                {sortedApplications.map(({ app, signals, neighborCount, distanceBand, promotedByTier }) => {
                   const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
-                  const isElite = helperTier === "elite";
-                  const isPro = helperTier === "pro";
-                  const haloColor = isElite
-                    ? "hsl(var(--gold-warm))"
-                    : isPro
-                      ? "hsl(var(--burnt-sienna))"
-                      : null;
+                  // Derived from the shared badge table, so Plus gets the same
+                  // halo as Pro instead of none at all (CC-019).
+                  const helperTierStyle = tierBadgeStyle(helperTier);
+                  const haloColor = helperTierStyle?.prestige ? helperTierStyle.color : null;
                   const helperName = formatName(app.profiles?.full_name, "Helpr");
                   const helperInitials = helperInitialsFrom(helperName);
                   const isTopPick = applicantSort === "recommended" && app.helper_id === topHelperIdByScore && applications.length > 1;
@@ -386,28 +385,24 @@ export function ApplicantsPanel({
                               >
                                 {helperName}
                               </a>
-                              {isElite && (
+                              {/* ONE derived pill. Two hard-coded blocks
+                                  (elite, pro) meant a Plus helper's name
+                                  carried no plan at all on the hiring surface
+                                  (CC-019). The Elite label also reads
+                                  --gold-ink now rather than --gold-warm on a
+                                  gold wash, which measured 2.53:1 — the same
+                                  contrast fix already made in IdentityHeader,
+                                  and now made once in tierBadgeStyle. */}
+                              {helperTierStyle?.prestige && (
                                 <span
                                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
                                   style={{
-                                    background: "hsl(var(--gold-warm) / 0.14)",
-                                    color: "hsl(var(--gold-warm))",
+                                    background: helperTierStyle.headerBackground,
+                                    color: helperTierStyle.headerColor,
                                     letterSpacing: "0.08em",
                                   }}
                                 >
-                                  {TIER_PERKS.elite.name}
-                                </span>
-                              )}
-                              {isPro && (
-                                <span
-                                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
-                                  style={{
-                                    background: "hsl(var(--burnt-sienna) / 0.12)",
-                                    color: "hsl(var(--burnt-sienna))",
-                                    letterSpacing: "0.08em",
-                                  }}
-                                >
-                                  {TIER_PERKS.pro.name}
+                                  {tierDisplayName(helperTier)}
                                 </span>
                               )}
                               {/* Licensed/Insured badges — the hiring surface
@@ -434,7 +429,7 @@ export function ApplicantsPanel({
                             {/* Trust signals row */}
                             {visibleSignals.length > 0 && (
                               <p
-                                className="font-serif italic mt-0.5 leading-snug text-ds-12"
+                                className="font-sans mt-0.5 leading-snug text-ds-12"
                                 style={{ color: "hsl(var(--olivewood) / 0.80)" }}
                               >
                                 {visibleSignals.join(" · ")}
@@ -449,6 +444,24 @@ export function ApplicantsPanel({
                                 the job address (from get_neighbor_hire_count RPC).
                                 Uses bark color so it reads as a warm local signal
                                 distinct from the neutral olivewood signals above. */}
+                            {/* Proximity, as the BAND the server chose — never
+                                a distance. Several exact distances trilaterate
+                                to a home address, and the poster owning the
+                                jobs is what makes that reachable, so the number
+                                never leaves the database (migration
+                                20260907051731). Absent when the applicant has
+                                no precise location on file, which means
+                                "unknown", NOT "far away" — so nothing is
+                                rendered rather than a misleading placeholder. */}
+                            {distanceBand && (
+                              <span
+                                className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
+                                style={{ color: "hsl(var(--olivewood))" }}
+                              >
+                                <MapPin className="w-3 h-3 shrink-0" aria-hidden="true" />
+                                {distanceBand.label}
+                              </span>
+                            )}
                             {neighborCount > 0 && (
                               <span
                                 className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
@@ -566,14 +579,31 @@ export function ApplicantsPanel({
                           />
                         </div>
 
-                        {/* Row 2: applicant message — compact quote style */}
+                        {/* Row 2: applicant message — compact quote style.
+                            `flagged_hidden` is set server-side by
+                            applications_scan_contact_info when the note carries
+                            a phone number, email, off-platform payment service
+                            or an intent phrase. Setting the flag without
+                            honouring it here would leave the leak on screen and
+                            only LOOK fixed — the note reached this exact
+                            component verbatim in the 2026-09-06 review. */}
                         {app.message && (
-                          <p
-                            className="font-serif italic text-ds-13 leading-snug line-clamp-2 pl-14"
-                            style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
-                          >
-                            "{app.message}"
-                          </p>
+                          app.flagged_hidden ? (
+                            <p
+                              className="font-sans text-ds-13 leading-snug pl-14"
+                              style={{ color: "hsl(var(--burnt-sienna))" }}
+                            >
+                              This note was hidden — it looked like contact or payment details.
+                              Keep the conversation on Helpr so your payment stays protected.
+                            </p>
+                          ) : (
+                            <p
+                              className="font-sans text-ds-13 leading-snug line-clamp-2 pl-14"
+                              style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
+                            >
+                              "{app.message}"
+                            </p>
+                          )
                         )}
 
                         {/* Row 3: attachments */}
@@ -622,7 +652,7 @@ export function ApplicantsPanel({
                             <button
                               type="button"
                               onClick={() => { setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id]); }}
-                              className="text-left w-full text-ds-12 italic flex items-start gap-1.5"
+                              className="text-left w-full text-ds-12 flex items-start gap-1.5"
                               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                             >
                               <Pencil className="w-3 h-3 mt-0.5 shrink-0" />
@@ -708,7 +738,7 @@ function ApplicantVerificationChip({
       style={{ background: "hsl(var(--amber-tint) / 0.16)", color: "hsl(var(--amber-ink))" }}
       // Kept short deliberately: at 375px the chip shares its row with the
       // Hire button, and "Payout setup unfinished" clipped under it.
-      title={payoutReady ? "Stripe has not finished verifying this helper's identity" : "This helper has not set up a payout account yet"}
+      title={payoutReady ? "Stripe has not finished verifying this Helpr's identity" : "This Helpr has not set up a payout account yet"}
     >
       <ShieldAlert className="w-3 h-3" strokeWidth={2} aria-hidden="true" />
       {payoutReady ? "Stripe verifying" : "No payout account"}

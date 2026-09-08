@@ -3,7 +3,7 @@
  * There are exactly four: Free / Basic / Pro / Elite.
  *
  * Consumer prices MUST equal the live Stripe Price objects (verified):
- *   basic $5/mo $50/yr   pro  $10/mo  $100/yr   elite  $20/mo  $200/yr
+ *   basic $5/mo $50/yr   pro $10/mo $100/yr   plus $15/mo $150/yr   elite $20/mo $200/yr
  * `annualPrice` is stored as the monthly-equivalent of the annual plan
  * (yearly ÷ 12) because the membership cards render it as "$X/mo annual".
  *
@@ -41,13 +41,28 @@
  *
  * The tier IDs align with the subscription_tier column on profiles
  * ("basic", "pro", "elite"). "free" is the default/null case. The commission
- * ladder is four rungs: free 12% → basic 11% → pro 10% → elite 8%.
+ * ladder is five rungs: free 12% → basic 11% → pro 10% → plus 9% → elite 8%.
  *
- * There is deliberately NO 9% rung. A "Plus" tier ($15/mo, 9%) shipped on
- * 2026-08-27 and was removed by the owner on 2026-08-28 — it was never wired
- * into LIVE Stripe (its three Price IDs were placeholders), so selling it the
- * moment the live key went in would have 500'd every purchase. Do not
- * reintroduce a rung between Pro and Elite without live Stripe Prices.
+ * PLUS, restored 2026-09-05 on the owner's call: $15/mo, 9% fee, between Pro
+ * and Elite. It shipped 2026-08-27 and was pulled a day later — NOT because
+ * the tier was wrong, but because its three LIVE Stripe Price ids were
+ * `price_TODO_LIVE_PLUS_*` placeholders while both storefronts sold it, so
+ * every purchase would have 500'd the moment the live key went in.
+ *
+ * The condition that removal set — "do not reintroduce a rung between Pro and
+ * Elite without live Stripe Prices" — is now met: three real Prices were
+ * created on acct_1RQbAfKp2H4b7tEC and read back to confirm their amounts
+ * ($15 / $150 / $15). proTiers.parity.test.ts additionally forbids a
+ * placeholder id on ANY paid tier and cycle, so the failure mode is guarded in
+ * general rather than patched for this one tier.
+ *
+ * Its only NEW perk is the 15-minute early-access step (Pro 10 → Plus 15 →
+ * Elite 20); everything else it grants, it grants by inheriting Pro, which the
+ * ladder requires — a higher tier can never hold fewer perks than a lower one.
+ * Elite's identity perks (Featured Crown Badge, priority support) are
+ * deliberately NOT moved down: which of them Plus should get is a pricing
+ * judgement for the owner, not an interpolation, so Plus ships thin-but-honest
+ * rather than advertising a perk that does not exist or gutting Elite unasked.
  *
  * BASIC positioning: entry paid tier ($5/mo) for helpers testing the
  * marketplace who want the utility perks (Instant Payouts, 5-min Early
@@ -61,6 +76,17 @@
 // below advertises it, so it reads the number rather than restating it — no
 // cycle: productPrices imports only lib/format, which imports nothing.
 import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
+// The early-access minute counts are DERIVED, never retyped. Every bullet
+// below used to state its own literal ("10-min early access"), which made the
+// storefront's promise a second, independent copy of a number Postgres
+// enforces — and `earlyAccess.parity.test.ts` only ever pinned the SQL to
+// `earlyAccess.ts`, not to these strings. Reading them through the module the
+// parity test already grades puts the copy inside that guard. No cycle:
+// earlyAccess.ts imports nothing.
+import {
+  MAX_EARLY_ACCESS_DELAY_MINUTES,
+  earlyAccessHeadStartMinutes,
+} from "@/lib/earlyAccess";
 // The display NAMES live in `_shared/tierNames.ts` so the edge functions that
 // print a tier at a user (expire-subscriptions' "your pass ended" notice, the
 // Helpr Pass wallet TIER field) read the SAME strings as the app — a Deno
@@ -68,8 +94,28 @@ import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
 // below is populated from it, and `tierNames.parity.test.ts` pins the two
 // together. Re-exported so UI code has one import for tier naming.
 import { TIER_DISPLAY_NAMES, tierDisplayName } from "../../supabase/functions/_shared/tierNames";
+// The perk BOOLEANS live on the edge side too — instant-payout and
+// create-boost-payment gate on them and cannot import this module. See the
+// TierPerks interface comment below and _shared/tierPerks.ts's header (CC-019).
+import {
+  TIER_PERK_MATRIX,
+  type TierId,
+  type TierPerkKey,
+} from "../../supabase/functions/_shared/tierPerks";
 
 export { tierDisplayName };
+export {
+  TIER_PERK_MATRIX,
+  TIER_ORDER,
+  hasPerk,
+  profileHasPerk,
+  tierRank,
+  tiersGrantingPerk,
+  tiersGrantingPerkSentence,
+  normalizeTier,
+  type TierId,
+  type TierPerkKey,
+} from "../../supabase/functions/_shared/tierPerks";
 
 /**
  * How long a "Once" (one-time) tier purchase actually entitles the buyer.
@@ -85,17 +131,23 @@ export { tierDisplayName };
  */
 export const ONE_TIME_PASS_DAYS = 30;
 
-export type SubscriptionTier = "free" | "basic" | "pro" | "elite";
+export type SubscriptionTier = TierId;
 
-export interface TierPerks {
+/**
+ * The perk BOOLEANS are not declared here any more — they are inherited from
+ * `TIER_PERK_MATRIX` (supabase/functions/_shared/tierPerks.ts), which the rows
+ * below spread in. Before CC-019 each row typed its own `priorityPlacement:
+ * true` etc., which made this table a SECOND copy of a fact the edge functions
+ * held separately, and the five gates that got Plus wrong all read the copy
+ * that had not been updated. Perk truth now lives in exactly one table that
+ * both runtimes can reach; this file adds only what is React-side and
+ * commercial (price, copy, fee percent).
+ */
+export interface TierPerks extends Record<TierPerkKey, boolean> {
   name: string;
   price: number | null;         // monthly USD, null = free
   annualPrice: number | null;   // annual plan's monthly-equivalent (yearly ÷ 12), null = free
-  platformFeePercent: number;   // % taken from helper payout — descends as price rises (free 12% → basic 11% → pro 10% → elite 8%)
-  priorityPlacement: boolean;   // application floated higher in poster's recommended list
-  featuredBadge: boolean;       // gold/crown badge on profile and applicant cards
-  earlyAccess: boolean;         // sees new jobs before non-subscribers (basic 5m / pro 10m / elite 20m)
-  advancedAnalytics: boolean;   // earnings trends, category breakdown, best hours
+  platformFeePercent: number;   // % taken from helper payout — descends as price rises (free 12% → basic 11% → pro 10% → plus 9% → elite 8%)
   // `multiTech` and `verifiedBusiness` were removed on 2026-09-01, ahead of the
   // Business tier itself. Both were Business-only booleans describing features
   // whose backends were deleted by migration
@@ -106,7 +158,6 @@ export interface TierPerks {
   // `featureBullets` copy — so they were pure marketing description of things
   // that do not exist. Do not reintroduce a perk flag before the feature that
   // satisfies it.
-  dedicatedSupport: boolean;    // priority support response SLA
   tagline: string;
   ctaLabel: string;
   // Marketing perk bullets shown on BOTH the public /subscription page and the
@@ -124,14 +175,21 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     price: null,
     annualPrice: null,
     platformFeePercent: 12,
-    priorityPlacement: false,
-    featuredBadge: false,
-    earlyAccess: false,
-    advancedAnalytics: false,
-    dedicatedSupport: false,
+    ...TIER_PERK_MATRIX.free,
     tagline: "No commitment",
     ctaLabel: "Current Plan",
-    featureBullets: ["Access to all open jobs", "Basic applicant visibility"],
+    // "Access to all open jobs" full stop was true but incomplete, and it was
+    // the ONLY thing the app ever told a Helpr about the early-access gate:
+    // free members wait MAX_EARLY_ACCESS_DELAY_MINUTES before a new job is
+    // visible to them at all (`public.early_access_cutoff()`), and nothing on
+    // any surface said so. It also left every paid tier's "N-min early access"
+    // bullet measured against a baseline the reader had never been given —
+    // early compared to WHAT. Naming the wait here is the disclosure and the
+    // upsell in one line.
+    featureBullets: [
+      `All open jobs, ${MAX_EARLY_ACCESS_DELAY_MINUTES} min after posting`,
+      "Basic applicant visibility",
+    ],
   },
   basic: {
     name: TIER_DISPLAY_NAMES.basic,
@@ -140,20 +198,15 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     // at monthly). Matches the "2 months free" pattern used by Pro/Elite.
     annualPrice: 4.17,
     platformFeePercent: 11,
-    priorityPlacement: false,
-    featuredBadge: false,
-    // 5-min early access (see earlyAccess.ts). Boolean here just signals
-    // "gets some tier of early access"; the concrete minute count lives
-    // in earlyAccess.ts's tier switch.
-    earlyAccess: true,
-    advancedAnalytics: false,
-    dedicatedSupport: false,
+    // `earlyAccess: true` here just signals "gets some tier of early access";
+    // the concrete minute count (5) lives in earlyAccess.ts's tier switch.
+    ...TIER_PERK_MATRIX.basic,
     tagline: "Faster payouts",
     ctaLabel: "Upgrade",
     featureBullets: [
       "Helpr Badge",
       "Instant Payouts",
-      "5-min early access",
+      `${earlyAccessHeadStartMinutes("basic")}-min early access`,
       `${BOOST_DISCOUNT_PCT}% off Job Boosts`,
     ],
   },
@@ -162,20 +215,35 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     price: 10,
     annualPrice: 8.33,
     platformFeePercent: 10,
-    priorityPlacement: true,
-    featuredBadge: false,
-    earlyAccess: true,
-    advancedAnalytics: true,
-    dedicatedSupport: false,
+    ...TIER_PERK_MATRIX.pro,
     tagline: "For serious earners",
     ctaLabel: "Upgrade",
     featureBullets: [
       "Priority Placement",
       "Portfolio Showcase",
-      "10-min early access",
+      `${earlyAccessHeadStartMinutes("pro")}-min early access`,
       "1 free Job Boost every month",
       "Advanced Analytics",
     ],
+  },
+  plus: {
+    name: TIER_DISPLAY_NAMES.plus,
+    price: 15,
+    annualPrice: 12.5, // $150/yr ÷ 12
+    platformFeePercent: 9,
+    // Everything Pro grants, because a tier above Pro must never grant less —
+    // enforced by the ladder assertion in tierPerks.parity.test.ts, not by the
+    // care of whoever edits this row.
+    ...TIER_PERK_MATRIX.plus,
+    tagline: "A lower cut on every job",
+    ctaLabel: "Upgrade",
+    // ONE bullet, and that is the honest state of this tier: the only thing
+    // Plus adds over Pro that is a real shipping feature is the extra five
+    // minutes of early access. Its actual value proposition is the 9% fee,
+    // which both storefronts render prominently and separately (which is why
+    // fees are deliberately absent from every tier's bullets). Do not pad this
+    // list with a perk that isn't built.
+    featureBullets: [`${earlyAccessHeadStartMinutes("plus")}-min early access`],
   },
   elite: {
     name: TIER_DISPLAY_NAMES.elite,
@@ -187,16 +255,12 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     price: 20,
     annualPrice: 16.67,
     platformFeePercent: 8,
-    priorityPlacement: true,
-    featuredBadge: true,
-    earlyAccess: true,
-    advancedAnalytics: true,
-    dedicatedSupport: true,
+    ...TIER_PERK_MATRIX.elite,
     tagline: "Maximum visibility",
     ctaLabel: "Upgrade",
     featureBullets: [
       "Featured Crown Badge",
-      "20-min early access",
+      `${earlyAccessHeadStartMinutes("elite")}-min early access`,
       "Free unlimited Job Boosts",
       // Fits ONE line on the in-app Membership card, which is the tightest
       // surface: its bullets get 160.6px at 402pt (the price column takes the
@@ -244,7 +308,20 @@ export function getPaysSelfBack(
  * Unknown / null / empty → "free" (the safe default that never charges a
  * user for perks they didn't opt into). */
 export function toSubscriptionTier(raw: string | null | undefined): SubscriptionTier {
-  if (raw === "basic" || raw === "pro" || raw === "elite") return raw;
+  // DERIVED from TIER_PERKS, not a hand-written allowlist. This read
+  // `raw === "basic" || raw === "pro" || raw === "elite"` and was missed when
+  // Plus was restored on 2026-09-05, so every client-side Plus fee resolved to
+  // the FREE rate: the storefront would have shown a Plus member 12% while the
+  // edge payout resolver charged them the correct 9%. The UI and the money
+  // disagreeing about commission is the exact class this file exists to
+  // prevent, and a hardcoded list here cannot fail for a tier it never had.
+  //
+  // hasOwnProperty rather than `in`, so an inherited key like "constructor"
+  // cannot resolve to a tier — the same prototype-lookup hole create-pro-
+  // checkout's ALLOWED_TIERS guards against.
+  if (raw && Object.prototype.hasOwnProperty.call(TIER_PERKS, raw)) {
+    return raw as SubscriptionTier;
+  }
   return "free";
 }
 
@@ -255,7 +332,7 @@ export function toSubscriptionTier(raw: string | null | undefined): Subscription
  * the edge payout resolver (`_shared/helperFees.ts` `getHelperFeePercent`) so the
  * commission the UI SHOWS a helper matches the fee their payout is actually
  * charged. The ladder is identical for poster and helper (free 12 / basic
- * 11 / pro 10 / elite 8). Case is normalized so "PRO" resolves like "pro",
+ * 11 / pro 10 / plus 9 / elite 8). Case is normalized so "PRO" resolves like "pro",
  * and any value off the ladder — including a legacy "business" — falls to the
  * free rate, which never under-charges.
  */

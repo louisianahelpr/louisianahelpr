@@ -98,6 +98,7 @@ const Messages = () => {
     setMessages,
     loading,
     loadError,
+    retryInbox,
     chatLoadError,
     chatLoading,
     hasMoreMessages,
@@ -385,6 +386,7 @@ const Messages = () => {
       allConversations={allConversations}
       loading={loading}
       loadError={loadError}
+      retryInbox={retryInbox}
       userId={userId}
       loadConversations={loadConversations}
       openConvo={openConvo}

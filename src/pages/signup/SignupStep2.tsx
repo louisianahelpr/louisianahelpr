@@ -18,6 +18,7 @@ import {
   Check,
 } from "lucide-react";
 import { DatePickerField } from "@/components/DatePickerField";
+import { UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { formatPhone } from "./signupHelpers";
 
@@ -39,7 +40,7 @@ function FieldError({ id, message }: { id: string; message?: string }) {
     <p
       id={id}
       role="alert"
-      className="flex items-center gap-1 text-ds-11 text-destructive mt-1"
+      className="flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))] mt-1"
     >
       <AlertCircle className="w-3 h-3 shrink-0" aria-hidden />
       {message}
@@ -60,6 +61,16 @@ export interface SignupStep2Props {
   setDateOfBirth: (v: string) => void;
   location: string;
   setLocation: (v: string) => void;
+  /** Optional — unlocks parish-based helper notifications + LA sales tax. */
+  zipCode: string;
+  setZipCode: (v: string) => void;
+  /** Soft sanity hint — set when the ZIP's parish and the typed City's
+   * recognized parish disagree. Null when there's nothing to flag. */
+  zipCityMismatch?: string | null;
+  /** True when the lookup succeeded and Louisiana has no such ZIP. The account
+   * can still be created; it just won't be reachable by the parish fan-out,
+   * which is precisely why the person has to be told before they finish. */
+  zipUnknown?: boolean;
   bio: string;
   setBio: (v: string) => void;
   inputCls: string;
@@ -95,6 +106,10 @@ export function SignupStep2(props: SignupStep2Props) {
     setDateOfBirth,
     location,
     setLocation,
+    zipCode,
+    setZipCode,
+    zipCityMismatch,
+    zipUnknown,
     bio,
     setBio,
     inputCls,
@@ -135,7 +150,7 @@ export function SignupStep2(props: SignupStep2Props) {
             pushed First/Last to x=273 while every field below started at
             x=129 — a visible step down the form's left edge. */}
         <div className="space-y-2 text-center pb-3">
-          <Label className={labelCls}>Profile photo <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+          <Label className={labelCls}>Profile photo <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
           <div className="flex flex-col items-center gap-1.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform rounded-full focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
             <div
@@ -188,7 +203,7 @@ export function SignupStep2(props: SignupStep2Props) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+            <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
             <div className="relative">
               <Input id="firstName" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required aria-required="true" autoComplete="given-name" autoCapitalize="words" aria-invalid={!!fieldErrors.firstName} aria-describedby={fieldErrors.firstName ? "firstName-error" : undefined} className={`${inputCls}${firstNameValid && !fieldErrors.firstName ? " pr-10" : ""}${fieldErrors.firstName ? " border-destructive" : ""}`} />
               {firstNameValid && !fieldErrors.firstName && (
@@ -198,7 +213,7 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="firstName-error" message={fieldErrors.firstName} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName" className={labelCls}>Last name <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+            <Label htmlFor="lastName" className={labelCls}>Last name <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
             <div className="relative">
               <Input id="lastName" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required aria-required="true" autoComplete="family-name" autoCapitalize="words" aria-invalid={!!fieldErrors.lastName} aria-describedby={fieldErrors.lastName ? "lastName-error" : undefined} className={`${inputCls}${lastNameValid && !fieldErrors.lastName ? " pr-10" : ""}${fieldErrors.lastName ? " border-destructive" : ""}`} />
               {lastNameValid && !fieldErrors.lastName && (
@@ -208,12 +223,20 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="lastName-error" message={fieldErrors.lastName} />
           </div>
         </div>
-        {/* Date of birth pairs half-width with Phone: it keeps one left
-            edge with every field below, and a short date never needs a
-            full-width control. */}
-        <div className="grid grid-cols-2 gap-3 items-start">
+        {/* Date of birth pairs half-width with Phone — but only from `sm` up.
+            This used to be an unconditional `grid-cols-2`, on the reasoning
+            that "a short date never needs a full-width control". Measured at
+            375, that is false in both states: the trigger's text box is 83px
+            wide there, the placeholder "Select a date" wants 96.6px, and a
+            real value — "September 6, 1990" — wants 138.4px. So the field
+            truncated to "Select a ..." before entry and to a fragment of the
+            month AFTER it, meaning a user could not read back the date of
+            birth they had just chosen on a required field that gates an 18+
+            check. Nothing about the pairing survives on a phone; from `sm` the
+            card is wide enough and it pairs as designed. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
           <div className="space-y-2">
-            <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+            <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
             {/* Single native date field — on iOS this opens the system wheel
                 picker (one tap), and `max` (today − 18y) keeps the wheel near a
                 plausible birth year and blocks under-18 dates at the UI layer;
@@ -236,7 +259,7 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone" className={labelCls}>Phone number <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+            <Label htmlFor="phone" className={labelCls}>Phone number <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
             <div className="relative">
               {/* Country code badge — Helpr is Louisiana-only, so every
                   number is +1. Showing it inline makes the formatting
@@ -278,21 +301,73 @@ export function SignupStep2(props: SignupStep2Props) {
             enough to collect here. Colocating it in signup means an email
             signup satisfies CompleteProfile's full gate immediately and
             never sees /complete-profile at all. */}
-        <div className="space-y-2">
-          <Label htmlFor="location" className={labelCls}>City <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
-          <div className="relative">
-            <CityAutocomplete
-              id="location"
-              value={location}
-              onChange={(v) => { setLocation(v); clearFieldError?.("location"); }}
-              className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`}
-            />
-            {locationValid && !fieldErrors.location && (
-              <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
-            )}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="col-span-2 space-y-2">
+            <Label htmlFor="location" className={labelCls}>City <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
+            <div className="relative">
+              <CityAutocomplete
+                id="location"
+                value={location}
+                onChange={(v) => { setLocation(v); clearFieldError?.("location"); }}
+                className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`}
+              />
+              {locationValid && !fieldErrors.location && (
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
+              )}
+            </div>
+            <FieldError id="location-error" message={fieldErrors.location} />
           </div>
-          <FieldError id="location-error" message={fieldErrors.location} />
+          {/* ZIP is REQUIRED (owner decision 2026-09-05). It used to be
+              optional, on the reasoning that a second required field on the
+              highest-traffic form in the product is a friction cost worth
+              weighing deliberately. The owner has now weighed it: ZIP is the
+              only thing that resolves a member's PARISH, and parish is what
+              drives "a job near you" notifications, the daily digest, and
+              Louisiana sales tax on jobs this account posts. Optional meant a
+              silently degraded account — signed up fine, then never heard
+              about a single nearby job and never understood why. */}
+          <div className="space-y-2">
+            <Label htmlFor="zipCode" className={labelCls}>
+              ZIP <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span>
+            </Label>
+            <Input
+              id="zipCode"
+              value={zipCode}
+              onChange={(e) => {
+                setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5));
+                clearFieldError?.("zipCode");
+              }}
+              inputMode="numeric"
+              autoComplete="postal-code"
+              maxLength={5}
+              placeholder="70801"
+              aria-invalid={!!fieldErrors.zipCode}
+              aria-describedby={fieldErrors.zipCode ? "zipCode-error" : undefined}
+              className={`${inputCls}${fieldErrors.zipCode ? " border-destructive" : ""}`}
+            />
+            <FieldError id="zipCode-error" message={fieldErrors.zipCode} />
+          </div>
         </div>
+        {zipUnknown && (
+          <p
+            id="zipCode-unknown"
+            role="status"
+            className="flex items-start gap-1 text-ds-11"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          >
+            <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />
+            {UNKNOWN_ZIP_MESSAGE}
+          </p>
+        )}
+        {zipCityMismatch && (
+          <p
+            className="flex items-center gap-1 text-ds-11"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          >
+            <AlertCircle className="w-3 h-3 shrink-0" aria-hidden />
+            {zipCityMismatch}
+          </p>
+        )}
         <div className="space-y-2">
           <Label htmlFor="bio" className={labelCls}>About you <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
           <Textarea
@@ -309,7 +384,14 @@ export function SignupStep2(props: SignupStep2Props) {
           {fieldErrors.bio
             ? <FieldError id="bio-error" message={fieldErrors.bio} />
             : <p id="bio-help" className="text-ds-11 text-muted-foreground">
-                You can always add this later from your profile.
+                {/* "This" — not the sentence's old bare form, "You can always
+                    add this later from your profile." That line sits at the
+                    BOTTOM of the step, under the last field, with six required
+                    fields stacked above it, and external QA read it as a
+                    promise about the whole form — then hit "Add a profile
+                    photo" on submit. It only ever meant the bio. Naming the
+                    field removes the reading it cannot support. */}
+                The bio is optional — you can add it later from your profile.
               </p>
           }
         </div>

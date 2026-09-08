@@ -14,6 +14,13 @@ interface DeleteAccountDialogProps {
   deletingAccount: boolean;
   onDelete: () => void;
   /**
+   * True once the server has confirmed the account is gone — the dialog swaps
+   * to its final panel and refuses to show anything that reads as "not done".
+   */
+  accountDeleted: boolean;
+  /** Sign out and leave. Fired by the final panel's only button. */
+  onAcknowledgeDeleted: () => void;
+  /**
    * Extra rows for the "Kept, without your name" column.
    *
    * Exists for /account-banned, the second entry point to this flow. A banned
@@ -145,12 +152,63 @@ export function DeleteAccountDialog({
   setDeleteConfirmText,
   deletingAccount,
   onDelete,
+  accountDeleted,
+  onAcknowledgeDeleted,
   extraKeptItems,
 }: DeleteAccountDialogProps) {
-  const handleOpenChange = (o: boolean) => {
-    onOpenChange(o);
-    if (!o) { setDeleteConfirmText(""); setDeleteStep(1); }
-  };
+  // Delegate, and nothing else. This used to also run
+  // `setDeleteConfirmText(""); setDeleteStep(1)` on every close — harmless
+  // while "close" only ever meant "cancelled", but "Delete Forever" is wrapped
+  // in `DialogPrimitive.Close` by dialog.tsx (every action inside a
+  // `role="alertdialog"` is), so a successful delete ALSO fires this. It would
+  // rewind the dialog to step 1 while the request was in flight, flashing
+  // "Delete Your Helpr Account?" at someone whose account was already gone.
+  // `useDeleteAccount.requestDelete()` already resets both on the way in,
+  // which is the only moment either needs resetting.
+  const handleOpenChange = (o: boolean) => { onOpenChange(o); };
+
+  /**
+   * The confirmation. Deletion is the most irreversible action in the app and
+   * it used to end in silence: the handler signed out and dropped the user on
+   * the marketing landing page with no message, which is indistinguishable
+   * from a session expiring. Measured 2026-09-06 on the real screen — after
+   * "Delete Forever" the app navigated to `/` and rendered "Log In / Get
+   * Started" with zero toasts fired. Someone who sees nothing happen clicks
+   * again, or concludes their data is still there.
+   *
+   * A toast could not carry this even if one were fired: `applyToastPolicy()`
+   * (src/lib/toastPolicy.ts) suppresses every `toast.success` without an
+   * action, app-wide. So the confirmation is a panel the user has to dismiss,
+   * and dismissing it IS the acknowledgement — the sign-out and the redirect
+   * hang off it.
+   */
+  if (accountDeleted) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent role="alertdialog">
+          {/* The shared Hero, not a hand-rolled <h2>. Every popup in the app
+              wears one header treatment; this one was drawing its own, which
+              popupShellInventory catches precisely so a new dialog cannot
+              quietly become the app's 150th slightly-different header. */}
+          <DialogHero
+            title={<><Check className="w-5 h-5" strokeWidth={2.5} /> Your account is deleted.</>}
+          />
+          <div className="text-center space-y-4 py-2" role="status" aria-live="polite">
+            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
+              Your profile, photos and ID documents have been erased. The payment
+              records the law requires us to keep no longer carry your name.
+            </p>
+            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              You&rsquo;re being signed out on this device. Nothing else is needed.
+            </p>
+          </div>
+          <DialogFooter>
+            <DialogSecondaryAction onClick={onAcknowledgeDeleted}>Done</DialogSecondaryAction>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (deleteStep === 1) {
     return (

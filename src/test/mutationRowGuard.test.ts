@@ -122,7 +122,9 @@ const RISK_TABLES = [
   // table (self-mint RLS, and nothing ever minted or spent a credit).
   "referral_credits",
   "disputes",
-  "job_disputes",
+  // "job_disputes" was here until migration
+  // 20260904034410_drop_dead_features_instant_book_skills_reminders_dup_disputes
+  // dropped the table — a duplicate of "disputes" with zero readers.
   // Moderation, safety, and the consequence ladder. Deleting one of these
   // LIFTS a consequence: a ban, a shadowban, a strike, a fraud flag, a block
   // between two people who asked not to be in contact, a safety report.

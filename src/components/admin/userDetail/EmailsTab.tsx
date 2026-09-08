@@ -110,7 +110,7 @@ export function EmailsTab({
               </span>
             </div>
           ) : (
-            <p className="text-ds-11 text-muted-foreground italic">No opens or clicks tracked yet</p>
+            <p className="text-ds-11 text-muted-foreground">No opens or clicks tracked yet</p>
           )}
         </div>
       )}
@@ -137,7 +137,7 @@ export function EmailsTab({
               </span>
             </div>
           ) : (
-            <p className="text-ds-11 text-muted-foreground italic">No opens or clicks tracked yet</p>
+            <p className="text-ds-11 text-muted-foreground">No opens or clicks tracked yet</p>
           )}
         </div>
       )}
@@ -159,17 +159,17 @@ export function EmailsTab({
           )}
           {(denialOpens.length > 0 || denialClicks.length > 0) ? (
             <div className="flex gap-4 pt-1">
-              <span className="flex items-center gap-1 text-ds-11 text-destructive">
+              <span className="flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
                 <Eye className="w-3 h-3" /> {denialOpens.length} open{denialOpens.length !== 1 ? 's' : ''}
                 {denialOpens[0] && <span className="text-muted-foreground ml-1">({formatShortDate(denialOpens[0].created_at)})</span>}
               </span>
-              <span className="flex items-center gap-1 text-ds-11 text-destructive">
+              <span className="flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
                 <MousePointerClick className="w-3 h-3" /> {denialClicks.length} click{denialClicks.length !== 1 ? 's' : ''}
                 {denialClicks[0] && <span className="text-muted-foreground ml-1">({formatShortDate(denialClicks[0].created_at)})</span>}
               </span>
             </div>
           ) : (
-            <p className="text-ds-11 text-muted-foreground italic">No opens or clicks tracked yet</p>
+            <p className="text-ds-11 text-muted-foreground">No opens or clicks tracked yet</p>
           )}
         </div>
       )}
@@ -185,7 +185,7 @@ export function EmailsTab({
           )}
         </h4>
         {emailSendStats.length === 0 ? (
-          <p className="text-ds-11 text-muted-foreground italic">No emails on record</p>
+          <p className="text-ds-11 text-muted-foreground">No emails on record</p>
         ) : (
           <div className="rounded-ds-md border border-border bg-secondary/30 divide-y divide-border overflow-hidden">
             {emailSendStats.map((s) => (

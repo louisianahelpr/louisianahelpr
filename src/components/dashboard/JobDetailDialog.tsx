@@ -5,6 +5,7 @@ import {
   Repeat, Rocket, Zap, Bookmark, Flag, Star,
 } from "lucide-react";
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
+import { formatCategory } from "@/lib/format";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { getCity } from "@/lib/locationUtils";
@@ -355,17 +356,42 @@ const JobDetailDialog = ({
           // floor means the box does not resize between steps, which is what
           // dialog.tsx prescribed as the right fix all along — "reserve the
           // content's height, not re-anchor one dialog".
-          // 74dvh resolves to ≥600px on every standard phone height (812–932px),
-          // which floors both the detail step (~552px) and the apply step
-          // (~575px) at the same height. Without this floor, centred positioning
-          // absorbs the 23px height delta as an 11.5px top-edge shift
-          // (apply-single-sheet.spec.ts assertion). TC-003.
-          "min-h-[min(74dvh,600px)]",
+          // 68dvh IS THE APPLY STEP'S REAL HEIGHT — do not shrink it.
+          //
+          // Owner reported the sheet looking a third empty and I lowered this
+          // to 58dvh, measured off their screenshot. That measurement was of
+          // ONE job with a two-line description at 393px wide, and generalising
+          // it was wrong: e2e/happy-path/apply-single-sheet.spec.ts went red on
+          // the exact assertion this floor exists to protect.
+          //
+          // Measured properly, in that spec's own harness at 375x812:
+          //   detail step top 170.5  -> box 471px  (== the 58dvh floor)
+          //   apply  step top 132.1  -> box 547.8px (== 67.5dvh)
+          // The apply step needs 67.5dvh, so a 58dvh floor let the box grow
+          // 76.8px and, because it is CENTRED, walked the top edge 38.4px up.
+          //
+          // So the empty space under a SHORT job's detail step is not slack —
+          // it is the room the apply step is about to need, held still so the
+          // surface doesn't jump when you step forward. Removing it means
+          // giving up either the centring (owner asked for it twice) or the
+          // stable anchor (the regression this spec was written for).
+          //
+          // The only fix that gets all three is a per-job reservation measured
+          // at runtime from the settled apply content, rather than any single
+          // CSS number. That is a real change, not a tweak to this line.
+          //
+          // GUESTS GET NO FLOOR. The reservation exists for the apply step, and
+          // a guest never reaches one — "Sign up to apply" navigates away. For
+          // them the floor was pure dead space: measured on /browse?job=<id>
+          // at 375x812 the content ended at y=681 inside a box ending at 682
+          // only because the box was 552px tall for ~430px of content; a card
+          // that is 40% blank under its one CTA.
+          !guest && "min-h-[min(68dvh,600px)]",
           "content-start",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg",
           "sm:pb-7",
           "lg:max-w-3xl",
-        ].join(" ")}
+        ].filter(Boolean).join(" ")}
 
         onTouchStart={(e) => {
           if (!_allJobs || !_onSelect) return;
@@ -431,7 +457,7 @@ const JobDetailDialog = ({
             {job.description && (
               <div className="relative min-w-0 mt-1">
                 {/* THE HOUSE BODY VOICE, not this dialog's own (2026-08-31).
-                    This was `font-serif text-ds-15` at `ink-deep / 0.88`,
+                    This was `font-sans text-ds-15` at `ink-deep / 0.88`,
                     hand-set here — upright serif, one of the SEVEN different
                     body sizes the popup audit found across 24 dialogs, and two
                     steps larger and darker than the prose every confirm in the
@@ -570,20 +596,6 @@ const JobDetailDialog = ({
                 0/1/2/3/4 badges are all just "the row is taller", and the
                 title's clearance stops being the hand-tuned `mt-5` magic
                 number it used to be (see the title row below).
-            THIS WENT TO `flex-nowrap` ON 2026-09-03 AND CAME BACK, measured.
-            The owner asked for Recommended to sit "on the right of the
-            category", which is an ORDER request — and order is preserved by
-            wrapping. Making the row nowrap to honour it was an unforced
-            change, and it inverted the priority: the category chip was the
-            only shrinkable item (Recommended/Urgent/Boosted are all
-            `shrink-0`), so the CATEGORY NAME — the most important label in the
-            row — was the first thing sacrificed. Measured on the built bundle
-            with recommended+urgent+boosted: the label rendered at 0 of 61px, a
-            bare unlabelled icon, at 320/375/393, and the row still overflowed
-            the sheet by 53.6px at 320 on top of that. Restoring `flex-wrap`
-            gives 61/61px at every width and every badge combination with zero
-            overflow, and the requested order is unchanged.
-
             DELIBERATE TRADE-OFF: at 320px, four badges (~460px of pills) into
             a 168px lane-free width is genuinely 3–4 short lines. That is the
             chosen resolution — every badge stays readable and nothing hides —
@@ -596,10 +608,10 @@ const JobDetailDialog = ({
             because the collision was measured at 768 too. */}
         <div
           data-frame-chrome="true"
-          className={`relative order-first z-20 pointer-events-none flex flex-wrap items-stretch -mt-4 -mx-4 sm:-mt-5 sm:-mx-5 ${iconLaneReserve}`}
+          className={`relative order-first z-20 pointer-events-none flex flex-nowrap items-stretch min-w-0 -mt-4 -mx-4 sm:-mt-5 sm:-mx-5 ${iconLaneReserve}`}
         >
           <span
-            className={`inline-flex shrink-0 items-center gap-1.5 pl-3.5 pr-3 py-1.5 rounded-tl-lg text-ds-13 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
+            className={`inline-flex min-w-0 shrink items-center gap-1.5 pl-3.5 pr-3 py-1.5 rounded-tl-lg text-ds-13 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
           >
             <CategoryIcon
               category={job.category}
@@ -607,8 +619,18 @@ const JobDetailDialog = ({
               className="w-3.5 h-3.5 shrink-0"
               strokeWidth={2.25}
             />
-            <span className="font-serif italic">
-              {categoryLabels[job.category] || job.category}
+            {/* Below 400px the rail is ~173px after the icon lane's reserve,
+                and "Moving" + URGENT is 200 — so the category shrank to "M…"
+                on every urgent/boosted/recommended sheet at 375 (measured
+                2026-09-07 as Hallie on Perry's truck job). A one-letter label
+                is worse than none: the glyph is unique per category and the
+                title above says what the work is, so on a crowded rail the
+                word steps aside and the icon carries it. Uncrowded rails and
+                wider phones keep the word. */}
+            <span
+              className={`font-sans truncate ${isRecommended || job.is_urgent || job.isBoosted ? "max-[399px]:sr-only" : ""}`}
+            >
+              {categoryLabels[job.category] || formatCategory(job.category)}
             </span>
           </span>
           {/* Recommended — right of category, before Urgent/Boosted (owner:

@@ -319,26 +319,60 @@ serve(async (req) => {
           continue;
         }
 
-        // The Stripe customer is resolved by email, matching create-payment —
-        // there is no stripe_customer_id column on profiles.
-        const customers = await stripe.customers.list({ email, limit: 1 });
-        const customerId = customers.data[0]?.id;
+        // ONE EMAIL, MANY STRIPE CUSTOMERS. Stripe does not treat email as a
+        // key: every checkout that did not explicitly reuse an existing
+        // customer mints a new record, and this function used to resolve by
+        // `customers.list({ email, limit: 1 })` — picking whichever record
+        // is newest, with no regard for which one (if any) actually holds a
+        // saved card. A poster who had checked out more than once could have
+        // their real, working card sitting on an older record while the
+        // newest one was empty: this would call `giveUp("no_saved_card",
+        // true)`, tell the poster their payment had a problem, and never
+        // charge them — for a card that was fine all along.
+        //
+        // `charge-recurring-visits` hit and fixed the identical bug
+        // (documented there in full) by scanning every candidate record for
+        // one that actually has a card, batched so it costs one round trip
+        // per MAX_CUSTOMER_RECORDS_PER_BATCH candidates rather than one per
+        // record. With a single customer record — the common case — this is
+        // byte-for-byte the old behaviour; it only differs where the old
+        // code picked the wrong record.
+        const customers = await stripe.customers.list({ email, limit: 100 });
+        let customerId: string | undefined;
+        let paymentMethodId: string | undefined;
+        const MAX_CUSTOMER_RECORDS_PER_BATCH = 10;
+        for (
+          let i = 0;
+          i < customers.data.length && !customerId;
+          i += MAX_CUSTOMER_RECORDS_PER_BATCH
+        ) {
+          const batch = customers.data.slice(i, i + MAX_CUSTOMER_RECORDS_PER_BATCH);
+          const cards = await Promise.all(
+            batch.map(async (candidate) => {
+              const methods = await stripe.paymentMethods.list({
+                customer: candidate.id,
+                type: "card",
+                limit: 1,
+              });
+              return methods.data[0]?.id;
+            }),
+          );
+          const hit = cards.findIndex((id) => !!id);
+          if (hit >= 0) {
+            customerId = batch[hit].id;
+            paymentMethodId = cards[hit];
+          }
+        }
+
         if (!customerId) {
           await giveUp("no_stripe_customer", true);
           results.prompted++;
           continue;
         }
-
         // A saved card is what makes this possible without a redirect. It
         // exists only if the poster ticked "Save card for next time" at
         // checkout (setup_future_usage). Without one we stop and let the app
         // ask — never a silent no-op.
-        const methods = await stripe.paymentMethods.list({
-          customer: customerId,
-          type: "card",
-          limit: 1,
-        });
-        const paymentMethodId = methods.data[0]?.id;
         if (!paymentMethodId) {
           await giveUp("no_saved_card", true);
           results.prompted++;
@@ -357,6 +391,13 @@ serve(async (req) => {
             off_session: true,
             confirm: true,
             description: `Auto-tip — job ${jobId}`,
+            // The asymmetry this closes: a FAILED auto-tip already gets a
+            // notification (giveUp, above) — a successful one, the card
+            // actually being charged off-session with no confirmation step
+            // at all, got nothing. Stripe's own receipt is the cheapest
+            // confirmation channel available for a charge with no client
+            // present to show a success toast to.
+            receipt_email: email,
             transfer_data: { destination: helperProfile.stripe_account_id as string },
             application_fee_amount: feeCents,
             metadata: {
@@ -404,6 +445,24 @@ serve(async (req) => {
           );
           results.charged++;
           log("charged", { jobId, tipCents });
+
+          // SC-003: the failure path (giveUp, above) has told the poster for
+          // as long as this function has existed. The success path — a card
+          // being charged off-session, without them present to see a toast —
+          // told them nothing at all, so the FIRST time they learned about an
+          // auto-tip was potentially a bank statement line. Mirrors the
+          // failure notification's shape and its "never swallowed" guard.
+          const { error: successNotifyErr } = await supabase.from("notifications").insert({
+            user_id: c.customer_id,
+            type: "payment",
+            title: "Your auto-tip was sent",
+            message: `We sent a $${(tipCents / 100).toFixed(2)} tip to your helper for this job — no action needed.`,
+            link: `/my-posts?job=${c.job_id}`,
+          });
+          if (successNotifyErr) {
+            log("ERROR writing tip-success notification", { jobId, error: successNotifyErr.message });
+            defects.record(`tip-success notification ${jobId}: ${successNotifyErr.message}`);
+          }
         } else {
           // requires_action means the card wants SCA, which needs the user
           // present — exactly what off-session cannot do. Treat as prompt.

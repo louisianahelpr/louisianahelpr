@@ -35,7 +35,7 @@ describe("TIER_PERKS fee model", () => {
     // this table and `TIER_FEE_PERCENT` in one commit (the parity tests tie the
     // two key sets together), so a re-added row here must be a deliberate edit
     // that also updates the edge ladder.
-    expect(Object.keys(TIER_PERKS).sort()).toEqual(["basic", "elite", "free", "pro"]);
+    expect(Object.keys(TIER_PERKS).sort()).toEqual(["basic", "elite", "free", "plus", "pro"]);
     expect((TIER_PERKS as Record<string, unknown>).business).toBeUndefined();
   });
 

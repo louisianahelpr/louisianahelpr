@@ -254,7 +254,7 @@ export function MessageBubble({
               {replyParent.mine ? "You" : "Them"}
             </p>
             <p
-              className="text-ds-11 font-serif italic leading-snug line-clamp-2"
+              className="text-ds-11 font-sans leading-snug line-clamp-2"
               style={{ color: mine ? "hsl(var(--parchment) / 0.80)" : "hsl(var(--olivewood) / 0.85)" }}
             >
               {replyParent.content?.trim() || "Attachment"}

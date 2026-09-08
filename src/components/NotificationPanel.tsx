@@ -497,7 +497,7 @@ const NotificationPanel = () => {
                 Couldn't load notifications.
               </p>
               <p
-                className="font-serif italic text-ds-12 leading-snug"
+                className="font-sans text-ds-12 leading-snug"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Our end had a hiccup — not yours.
@@ -537,7 +537,7 @@ const NotificationPanel = () => {
                   : "Nothing new yet."}
               </p>
               <p
-                className="font-serif italic text-ds-12 leading-snug"
+                className="font-sans text-ds-12 leading-snug"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {filter === "unread" && notifications.length > 0
@@ -550,7 +550,7 @@ const NotificationPanel = () => {
               {groupedNotifications.map((group) => (
                 <section key={group.key}>
                   <div
-                    className="sticky top-0 z-10 px-4 py-1.5 flex items-center justify-between font-serif italic uppercase tracking-[0.18em] text-ds-10"
+                    className="sticky top-0 z-10 px-4 py-1.5 flex items-center justify-between font-sans uppercase tracking-[0.18em] text-ds-10"
                     style={{
                       color: "hsl(var(--burnt-sienna))",
                       background:
@@ -648,7 +648,7 @@ const NotificationPanel = () => {
                               )}
                             </div>
                             <p
-                              className="font-serif italic mt-0.5 line-clamp-2 text-ds-12"
+                              className="font-sans mt-0.5 line-clamp-2 text-ds-12"
                               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                             >
                               {n.message}
@@ -699,7 +699,7 @@ const NotificationPanel = () => {
                               );
                             })()}
                             <p
-                              className="font-serif italic mt-1 text-ds-11"
+                              className="font-sans mt-1 text-ds-11"
                               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                             >
                               {timeAgo(n.created_at)}

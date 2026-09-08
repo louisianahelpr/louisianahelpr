@@ -34,7 +34,12 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => navigateMock };
 });
 
-const GOOD = "Abcdefg1234";
+// A password the SUPABASE PROJECT accepts, not merely one this screen used to
+// accept. The old value here was "Abcdefg1234" — 11 characters, no symbol —
+// which satisfied the three rules the form stated and would have been refused
+// by prod with 422 weak_password. See PASSWORD_RULES in signupHelpers for the
+// probe that established the real policy (12 chars + all four classes).
+const GOOD = "Qa#Helpr2026!x";
 
 async function submitNewPassword() {
   render(
@@ -103,5 +108,79 @@ describe("a successful password change leaves visible evidence", () => {
     expect(screen.queryByText(/Password updated\./i)).toBeNull();
     expect(screen.getByRole("button", { name: /Update Password/i })).toBeTruthy();
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The failure this screen could not report.
+ *
+ * External QA typed `CoworkQA2026x` into both fields. The helper text said "At
+ * least 8 characters, 1 uppercase, 1 number", the meter said "Strong", the
+ * green tick and "✓ Passwords match" both showed, the button was enabled — and
+ * `PUT /auth/v1/user` answered 422 `weak_password`, because the project also
+ * requires a symbol and twelve characters. Nothing on screen said so. What DID
+ * appear was "Couldn't sign you in — give it another try?", the login-flavoured
+ * fallback in `friendlyAuthError`, on a page where the sign-in had already
+ * succeeded — and it stacked a copy per tap.
+ */
+describe("a REFUSED password says why", () => {
+  beforeEach(() => {
+    updateUserMock.mockReset().mockResolvedValue({ error: null });
+    getSessionMock.mockReset().mockResolvedValue({ data: { session: { user: { id: "u1" } } }, error: null });
+    toastError.mockReset();
+    navigateMock.mockReset();
+  });
+
+  async function typeAndSubmit(password: string) {
+    render(
+      <MemoryRouter initialEntries={["/reset-password"]}>
+        <ResetPassword />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByLabelText(/New password/i)).toBeTruthy());
+    fireEvent.change(screen.getByLabelText(/New password/i), { target: { value: password } });
+    fireEvent.change(screen.getByLabelText(/Confirm password/i), { target: { value: password } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Update Password/i }));
+    });
+  }
+
+  it("names the missing rule instead of sending a request the server will refuse", async () => {
+    await typeAndSubmit("CoworkQA2026x");
+    // Caught in the client — no round-trip, so no 422 to mistranslate.
+    expect(updateUserMock).not.toHaveBeenCalled();
+    // And the reason is IN THE FORM, not only in a toast that expires in 4s.
+    const inline = document.getElementById("reset-password-error");
+    expect(inline).toBeTruthy();
+    expect(inline!.textContent).toMatch(/symbol/i);
+    expect(inline!.getAttribute("role")).toBe("alert");
+  });
+
+  it("never blames the sign-in for a password the server refused", async () => {
+    // Client rules pass, server refuses anyway — the policy-drift case. The
+    // guarantee is that the server's own reason reaches the user; the one
+    // thing that must never happen is it being replaced by a sign-in error.
+    updateUserMock.mockResolvedValue({
+      error: { code: "weak_password", message: "Password should be at least 12 characters." },
+    });
+    await typeAndSubmit(GOOD);
+    const inline = document.getElementById("reset-password-error");
+    expect(inline).toBeTruthy();
+    expect(inline!.textContent).not.toMatch(/sign you in/i);
+    expect(inline!.textContent).toMatch(/12 characters/);
+  });
+
+  it("replaces the message on a repeat tap rather than stacking copies", async () => {
+    await typeAndSubmit("CoworkQA2026x");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Update Password/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Update Password/i }));
+    });
+    // Every call carries the same sonner id, which is what makes the third tap
+    // replace the first toast instead of adding a third one to the pile.
+    expect(toastError).toHaveBeenCalled();
+    for (const call of toastError.mock.calls) {
+      expect((call[1] as { id?: string } | undefined)?.id).toBe("reset-password-error");
+    }
   });
 });

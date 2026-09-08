@@ -1,3 +1,9 @@
+// The set of tiers that get Priority Placement is asked of the shared perk
+// matrix, never listed here. Imported straight from `_shared` (which depends on
+// nothing) rather than through `@/lib/subscriptionTiers`, to keep this module
+// free of the storefront's copy/price imports.
+import { TIER_ORDER, hasPerk, tierRank } from "../../supabase/functions/_shared/tierPerks";
+
 export interface ApplicantScore {
   userId: string;
   /**
@@ -21,7 +27,17 @@ export interface ApplicantData {
   repeatHirePercent: number | null; // 0-100
   onTimePercent: number | null;     // 0-100
   credentialTier: number;           // 0-3 from helper_credentials
-  distanceKm: number | null;
+  /**
+   * Proximity BAND rank: 1 = under 5 mi, 2 = 5-15, 3 = 15-30, 4 = 30+.
+   * null when the applicant has no precise location on file (they declined
+   * the permission), which is not the same as "far away" and scores nothing
+   * either way.
+   *
+   * A rank, not a distance, all the way from the database: several exact
+   * distances trilaterate to a home address, so no client-visible surface
+   * carries one. See migration 20260907051731.
+   */
+  distanceBandRank: number | null;
   responseTimeMinutes: number | null;
   neighborCount: number;            // how many nearby addresses hired them (trust graph)
   /**
@@ -36,7 +52,7 @@ export interface ApplicantData {
 /**
  * PRIORITY PLACEMENT — a BOUNDED boost, never an override.
  *
- * TIER_PERKS advertises "Priority Placement" on Pro and Elite ("application
+ * TIER_PERK_MATRIX grants "Priority Placement" to Pro and up ("application
  * floated higher in the poster's list"), and until now the app charged for it
  * and delivered nothing: useApplicantsState sorted the enriched applicants by
  * tier, and useApplicantComparison immediately re-sorted the same array by
@@ -71,17 +87,27 @@ export interface ApplicantData {
 export const PRIORITY_PLACEMENT_MAX_POINTS = 2;
 
 /**
- * Placement points for an ACTIVE tier. Basic does not include Priority
- * Placement (TIER_PERKS.basic.priorityPlacement === false), so it scores 0 —
- * as do free, null, an expired tier already resolved to null upstream, and any
- * unrecognised string including the retired 'business'. Unknown → no perk is
- * the same direction DEFAULT_TIER_FEE_PERCENT takes.
+ * Placement points for an ACTIVE tier.
+ *
+ * WHO gets points is asked of `hasPerk(tier, "priorityPlacement")`, never of a
+ * tier list. It was `elite → full, pro → half, everything else → 0`, which
+ * silently scored Plus at ZERO even though TIER_PERKS.plus.priorityPlacement
+ * is true and the storefront sells Plus as "everything in Pro" (CC-019). Basic
+ * still scores 0 because Basic genuinely does not include the perk — that now
+ * follows from the matrix rather than from this function remembering it, as do
+ * free, null, an expired tier already resolved to null upstream, and any
+ * unrecognised string including the retired 'business'.
+ *
+ * HOW MANY points is a ladder position: the top tier gets the full boost and
+ * every other entitled tier gets half, so a new rung between Pro and Elite
+ * cannot accidentally outrank Elite.
  */
 export function priorityPlacementPoints(tier: string | null | undefined): number {
-  const t = (tier ?? "").toLowerCase();
-  if (t === "elite") return PRIORITY_PLACEMENT_MAX_POINTS;
-  if (t === "pro") return PRIORITY_PLACEMENT_MAX_POINTS / 2;
-  return 0;
+  if (!hasPerk(tier, "priorityPlacement")) return 0;
+  const topTier = TIER_ORDER[TIER_ORDER.length - 1];
+  return tierRank(tier) >= tierRank(topTier)
+    ? PRIORITY_PLACEMENT_MAX_POINTS
+    : PRIORITY_PLACEMENT_MAX_POINTS / 2;
 }
 
 export function scoreApplicant(a: ApplicantData): ApplicantScore {
@@ -117,9 +143,10 @@ export function scoreApplicant(a: ApplicantData): ApplicantScore {
   if (a.credentialTier >= 2) signals.push("Licensed");
   if (a.credentialTier >= 3) signals.push("Insured");
 
-  // Distance (closer = better, up to 5 pts)
-  if (a.distanceKm != null) {
-    score += Math.max(0, 5 - a.distanceKm * 0.5);
+  // Proximity (closer = better, up to 5 pts). Stepped, because the input is
+  // a band — there is no distance to decay smoothly over, by design.
+  if (a.distanceBandRank != null) {
+    score += [5, 3, 1, 0][a.distanceBandRank - 1] ?? 0;
   }
 
   // Neighbor trust (up to 5 pts)

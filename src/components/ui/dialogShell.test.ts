@@ -384,7 +384,7 @@ describe("Popup grammar — body voice", () => {
   it("DialogBody is byte-identical to the confirm family's description", () => {
     const dlg = read("src/components/ui/dialog.tsx");
     const brand = read("src/components/ui/BrandConfirmDialog.tsx");
-    const TYPE = "font-serif italic text-ds-12 leading-relaxed";
+    const TYPE = "font-sans text-ds-12 leading-relaxed";
     const COLOR = 'hsl(var(--olivewood) / 0.8)';
     expect(dlg, "DialogBody's type token").toContain(TYPE);
     expect(dlg, "DialogBody's colour").toContain(COLOR);
@@ -1014,6 +1014,12 @@ describe("Popup grammar — footer", () => {
       "Keep It On",
       "Keep the Job",
       "Close",
+      // DeleteAccountDialog's post-deletion confirmation. "Cancel" would be a
+      // lie twice over: there is nothing left to cancel — the account is
+      // already gone and the session is being signed out — and offering to
+      // cancel an irreversible thing that has already happened is the cruellest
+      // possible reading. This popup reports an outcome; "Done" acknowledges it.
+      "Done",
     ]);
 
     // Not a dismiss at all: in a STEPPED dialog the secondary walks back one

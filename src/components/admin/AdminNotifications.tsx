@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Bell, Mail, Smartphone, AlertTriangle, Users, Briefcase, DollarSign, Star, ShieldAlert, Megaphone } from "lucide-react";
+import { Bell, Mail, Smartphone, AlertTriangle, Users, Briefcase, DollarSign, Star, ShieldAlert, Megaphone, Navigation, CheckCircle2, Receipt } from "lucide-react";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { unwrapMutation } from "@/lib/mutationResult";
 
@@ -16,7 +16,15 @@ type NotifPrefs = {
   reviews: boolean;
   promotions: boolean;
   system_alerts: boolean;
+  /** Push master. Its own column — gates the categories, never rewrites them. */
   push_enabled: boolean;
+  /** Email master, the twin of `push_enabled` (migration 20260907032218).
+   *  OPTIONAL until that migration deploys and types are regenerated: the row
+   *  comes back from `select("*")`, so before the column exists the field is
+   *  simply absent. Optional is also the safe direction at runtime — absent
+   *  reads falsy and the screen falls back to the derived master rather than
+   *  claiming email is off. */
+  email_enabled?: boolean;
   email_job_applications: boolean;
   email_job_updates: boolean;
   email_messages: boolean;
@@ -24,8 +32,28 @@ type NotifPrefs = {
   email_reviews: boolean;
   email_promotions: boolean;
   email_system_alerts: boolean;
+  new_offers: boolean;
+  email_new_offers: boolean;
+  transit_updates: boolean;
+  email_transit_updates: boolean;
+  work_status: boolean;
+  email_work_status: boolean;
+  financial_alerts: boolean;
+  email_financial_alerts: boolean;
 };
 
+// All ELEVEN preference columns `notification_type_pref_map` routes through —
+// the same set the user-facing screen lists in
+// `src/components/notificationPreferences/constants.tsx`, and the set
+// `src/test/notificationTypeRegistries.test.ts` derives from the map's seed
+// rows and diffs both registries against.
+//
+// This list held seven. `new_offers`, `transit_updates`, `work_status` and
+// `financial_alerts` had no control here at all, so an admin could not turn
+// off transit pings or payout alerts from the admin surface — and, until the
+// masters below stopped blanket-writing the categories, "All Email off" left
+// those four still sending, because the blanket write only covered the rows it
+// could see.
 const NOTIFICATION_GROUPS = [
   {
     label: "Job Applications",
@@ -75,6 +103,34 @@ const NOTIFICATION_GROUPS = [
     icon: ShieldAlert,
     pushKey: "system_alerts" as const,
     emailKey: "email_system_alerts" as const,
+  },
+  {
+    label: "Job Offers",
+    description: "Direct offers made to you for a specific job",
+    icon: Briefcase,
+    pushKey: "new_offers" as const,
+    emailKey: "email_new_offers" as const,
+  },
+  {
+    label: "Transit Updates",
+    description: "On the way / arrived pings from a Helpr",
+    icon: Navigation,
+    pushKey: "transit_updates" as const,
+    emailKey: "email_transit_updates" as const,
+  },
+  {
+    label: "Work Status",
+    description: "Started and completed updates on a job in progress",
+    icon: CheckCircle2,
+    pushKey: "work_status" as const,
+    emailKey: "email_work_status" as const,
+  },
+  {
+    label: "Payments & Tips",
+    description: "Tip received, payout sent, instant payout",
+    icon: Receipt,
+    pushKey: "financial_alerts" as const,
+    emailKey: "email_financial_alerts" as const,
   },
 ];
 
@@ -152,22 +208,37 @@ const AdminNotifications = () => {
     }
   };
 
-  const toggleAllPush = async (enabled: boolean) => {
+  // ── Masters write ONE column each and never touch the categories ──
+  //
+  // Both of these used to blanket-write every category column alongside the
+  // master, so turning a master off destroyed the admin's per-category choices
+  // and turning it back on wrote `true` over all of them. `email_promotions`
+  // came back on that way — a silent re-subscribe to marketing mail, which is
+  // the one category where re-consenting somebody by accident carries legal
+  // weight. The push master did it too, and additionally wrote `push_enabled`,
+  // so it was destroying state it did not even need to read.
+  //
+  // Both master columns are gates enforced server-side without any help from
+  // the category columns: `push_enabled` in `fan_out_push_on_notification`,
+  // `email_enabled` in `send-notification-email`. Writing the categories was
+  // never what made the master work — it was only what made it lossy.
+  const setMaster = async (
+    key: "push_enabled" | "email_enabled",
+    enabled: boolean,
+    action: string,
+  ) => {
     if (!prefs) return;
-    const updates: Partial<NotifPrefs> = { push_enabled: enabled };
-    NOTIFICATION_GROUPS.forEach(g => { updates[g.pushKey] = enabled; });
-
     const prev = { ...prefs };
-    setPrefs({ ...prefs, ...updates });
+    setPrefs({ ...prefs, [key]: enabled });
 
     try {
       unwrapMutation(
         await supabase
           .from("notification_preferences")
-          .update(updates)
+          .update({ [key]: enabled } as never)
           .eq("id", prefs.id)
           .select("id"),
-        { action: "update push preferences" },
+        { action },
       );
     } catch {
       setPrefs(prev);
@@ -175,34 +246,26 @@ const AdminNotifications = () => {
     }
   };
 
-  const toggleAllEmail = async (enabled: boolean) => {
-    if (!prefs) return;
-    const updates: Partial<NotifPrefs> = {};
-    NOTIFICATION_GROUPS.forEach(g => { updates[g.emailKey] = enabled; });
+  const toggleAllPush = (enabled: boolean) =>
+    void setMaster("push_enabled", enabled, "update push preferences");
 
-    const prev = { ...prefs };
-    setPrefs({ ...prefs, ...updates });
-
-    try {
-      unwrapMutation(
-        await supabase
-          .from("notification_preferences")
-          .update(updates)
-          .eq("id", prefs.id)
-          .select("id"),
-        { action: "update email preferences" },
-      );
-    } catch {
-      setPrefs(prev);
-      toast.error("Couldn't update preferences — try again.");
-    }
-  };
+  const toggleAllEmail = (enabled: boolean) =>
+    void setMaster("email_enabled", enabled, "update email preferences");
 
   if (loading) return <p className="text-muted-foreground">Loading notification preferences…</p>;
   if (!prefs) return <p className="text-destructive">We couldn't load notification preferences.</p>;
 
-  const allPushOn = NOTIFICATION_GROUPS.every(g => prefs[g.pushKey]);
-  const allEmailOn = NOTIFICATION_GROUPS.every(g => prefs[g.emailKey]);
+  // The master switches read their own column, not a derived "are all eleven
+  // categories on". Derived state is what made the old master ambiguous: it
+  // showed OFF for an admin who had merely unticked one category, and there
+  // was nowhere to store "muted, but remember my choices".
+  //
+  // `email_enabled` may be absent for the length of the deploy window between
+  // migration 20260907032218 landing and this bundle landing (two pipelines,
+  // one merge). PostgREST omits the key rather than returning false, and `!==
+  // false` reads that absence as "no master yet" instead of muting the screen.
+  const allPushOn = prefs.push_enabled;
+  const allEmailOn = prefs.email_enabled !== false;
 
   return (
     <AdminViewShell>
@@ -221,7 +284,7 @@ const AdminNotifications = () => {
                 >
                   All In-App
                 </Label>
-                <p className="text-ds-11 text-muted-foreground">Push & in-app notifications</p>
+                <p className="text-ds-11 text-muted-foreground">Mutes every push below. Your per-category choices are kept.</p>
               </div>
             </div>
             {/* id + htmlFor, matching the per-category switches below. These two
@@ -240,7 +303,7 @@ const AdminNotifications = () => {
                 >
                   All Email
                 </Label>
-                <p className="text-ds-11 text-muted-foreground">Email notifications</p>
+                <p className="text-ds-11 text-muted-foreground">Mutes every email below. Your per-category choices are kept.</p>
               </div>
             </div>
             <Switch id="all-email" checked={allEmailOn} onCheckedChange={toggleAllEmail} />
@@ -272,9 +335,13 @@ const AdminNotifications = () => {
                 <Label htmlFor={`push-${group.pushKey}`} className="text-ds-11 text-muted-foreground cursor-pointer">
                   Push
                 </Label>
+                {/* Shows category AND master, and the master being off greys
+                    the row rather than rewriting it — so the stored category
+                    value survives a master off → on cycle. */}
                 <Switch
                   id={`push-${group.pushKey}`}
-                  checked={prefs[group.pushKey]}
+                  checked={prefs[group.pushKey] && allPushOn}
+                  disabled={!allPushOn}
                   onCheckedChange={(v) => updatePref(group.pushKey, v)}
                 />
               </div>
@@ -285,7 +352,8 @@ const AdminNotifications = () => {
                 </Label>
                 <Switch
                   id={`email-${group.emailKey}`}
-                  checked={prefs[group.emailKey]}
+                  checked={prefs[group.emailKey] && allEmailOn}
+                  disabled={!allEmailOn}
                   onCheckedChange={(v) => updatePref(group.emailKey, v)}
                 />
               </div>

@@ -127,14 +127,18 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           {/* `canTip`: only the POSTER may tip, and only this mount is the
               poster. The helper-side mount below leaves it off — see
               ReviewFormProps.canTip. */}
-          <ReviewForm canTip open={!!props.reviewJob} onClose={() => { props.setReviewJob(null); props.setReviewTarget(null); props.onRefresh(); }} jobId={props.reviewJob.id} revieweeId={props.reviewTarget.id} revieweeName={props.reviewTarget.name} />
+          <ReviewForm canTip revieweeRole="helper" open={!!props.reviewJob} onClose={() => { props.setReviewJob(null); props.setReviewTarget(null); props.onRefresh(); }} jobId={props.reviewJob.id} revieweeId={props.reviewTarget.id} revieweeName={props.reviewTarget.name} />
         </Suspense>
       )}
 
       {/* Helper reviewing poster */}
       {props.helperReviewJob && (
         <Suspense fallback={null}>
-          <ReviewForm open={!!props.helperReviewJob} onClose={() => { props.setHelperReviewJob(null); props.onRefresh(); }} jobId={props.helperReviewJob.jobId} revieweeId={props.helperReviewJob.posterId} revieweeName={props.helperReviewJob.posterName} />
+          {/* The poster direction swaps the star rows and the quick tags for
+              ones a poster can actually be rated on. Without it this mount
+              asked a helper to score the person who HIRED them on "showed up on
+              time" and "quality of work" — see ./reviewPanel/types.ts. */}
+          <ReviewForm revieweeRole="poster" open={!!props.helperReviewJob} onClose={() => { props.setHelperReviewJob(null); props.onRefresh(); }} jobId={props.helperReviewJob.jobId} revieweeId={props.helperReviewJob.posterId} revieweeName={props.helperReviewJob.posterName} />
         </Suspense>
       )}
 
@@ -217,8 +221,14 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       {props.cancelDialogJob && props.user && (
         <CancellationDialog
           jobId={props.cancelDialogJob.id} jobTitle={props.cancelDialogJob.title}
-          jobDate={props.cancelDialogJob.date_needed} jobBudget={props.cancelDialogJob.budget}
+          jobDate={props.cancelDialogJob.date_needed}
+          jobStartTime={props.cancelDialogJob.start_time ?? null}
+          jobBudget={props.cancelDialogJob.budget}
           hasHelper={!!props.cancelDialogJob.helper_id}
+          wasFunded={
+            props.cancelDialogJob.payment_status !== "unpaid" &&
+            props.cancelDialogJob.payment_status !== "abandoned"
+          }
           helperId={props.cancelDialogJob.helper_id}
           helperName={props.cancelDialogJob.helper_id ? (props.helperNames?.[props.cancelDialogJob.helper_id] || "the Helpr") : undefined}
           open={!!props.cancelDialogJob} onClose={() => props.setCancelDialogJob(null)} onCancelled={props.onRefresh}
@@ -250,6 +260,12 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       {props.disputeJob && props.user && (
         <DisputeDialog
           jobId={props.disputeJob.id}
+          /* Which card this was opened from decides which five reasons the
+             dialog offers and whose consequence copy it prints. Derived from
+             the job, not from the tab: `/my-posts` and `/my-jobs` both mount
+             this one dialog, and a poster who also worked a job would get the
+             wrong list from a route check. */
+          side={props.disputeJob.helper_id === props.user.id ? "helper" : "poster"}
           userId={props.user.id} open={!!props.disputeJob}
           onClose={() => props.setDisputeJob(null)} onDisputed={props.onRefresh}
         />

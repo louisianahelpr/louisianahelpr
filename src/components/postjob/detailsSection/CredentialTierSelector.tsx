@@ -84,7 +84,7 @@ export function CredentialTierSelector({
     <div className="space-y-2.5">
       <div className="space-y-0.5">
         <Label id="who-can-apply-label">Who can apply?</Label>
-        <p className="text-ds-11 font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+        <p className="text-ds-11 font-sans leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           Require credentials for licensed trade work.
         </p>
       </div>
@@ -180,7 +180,7 @@ export function CredentialTierSelector({
           the selection changes without moving focus. */}
       <p
         aria-live="polite"
-        className="text-ds-11 font-serif italic leading-snug"
+        className="text-ds-11 font-sans leading-snug"
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         {selected.sub}

@@ -195,6 +195,26 @@ export function postedActivityBucket(
 /** Which bucket a job I APPLIED to belongs in. */
 export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
   const jobStatus = app.job?.status;
+  // NO JOB ROW = THE JOB IS GONE, NOT "still waiting on a decision".
+  // `get_jobs_for_my_applications` returns a job to a helper only when
+  // customer_id = me, helper_id = me, status = 'open', or they are on the
+  // group roster. A job CANCELLED BEFORE ANYONE WAS HIRED matches none of
+  // those, so the row simply never arrives and `app.job` is null — which used
+  // to fall all the way through to the "Applied, awaiting their decision"
+  // default at the bottom of this function and park the application in Waiting
+  // forever.
+  //
+  // The card already knew better: with no job it renders "Job no longer
+  // available — this job has closed, so its details aren't available any
+  // more." So the list and the card were saying different things about the
+  // same row, and the count on the Waiting tab was the one that was wrong.
+  // Measured in prod: 15 such applications across 10 helpers, against 3
+  // genuinely pending.
+  //
+  // Deliberately NOT done by writing applications.status: the only terminal
+  // values are accepted/rejected, and 'rejected' would tell those 10 people a
+  // poster turned them down when the job was merely cancelled.
+  if (!app.job) return "cancelled";
   if (app.status === "rejected" || jobStatus === "cancelled") return "cancelled";
   if (jobStatus === "completed") return "done";
   // An offer held for me, or a revision the poster asked for — my move, and the
@@ -267,6 +287,10 @@ function needsHelperResponse(app: {
 
 export function bucketAppliedApp(app: { status: string; job?: { status: string } | null }): Bucket {
   const jobStatus = app.job?.status;
+  // Same rule as appliedActivityBucket above, for the grouped "All" view: a
+  // missing job row means the job is gone, so the application belongs under
+  // Cancelled rather than defaulting to Active at the bottom of this function.
+  if (!app.job) return "cancelled";
   if (jobStatus === "completed") return "completed";
   if (jobStatus === "cancelled") return "cancelled";
   if (app.status === "rejected") return "cancelled";

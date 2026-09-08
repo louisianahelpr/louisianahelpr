@@ -342,7 +342,12 @@ const Admin = () => {
       supportTickets: supportRes.count || 0,
       activeJobs: activeRes.count || 0,
       completedJobs: completedRes.count || 0,
-      totalRevenue: paymentRows.reduce((s, j) => s + (j.budget || 0), 0),
+      // Gross, the same way Analytics defines "Payments Collected": what the
+      // poster was actually charged (budget + their service fee). Summing the
+      // budget alone put $5709.99 on this tile beside $5751.99 on Analytics,
+      // one click apart, under the same label — the tiles had been unified
+      // visually and the number had not (measured 2026-09-07).
+      totalRevenue: paymentRows.reduce((s, j) => s + (j.budget || 0) + (j.customer_fee_amount || 0), 0),
       totalFees: paymentRows.reduce((s, j) => s + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0), 0),
       disputedJobs: disputesRes.count || 0,
       activeSubscriptions: subsRes.count || 0,

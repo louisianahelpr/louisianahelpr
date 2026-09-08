@@ -219,7 +219,15 @@ export const DisputeCard = ({
           two full-width buttons, reading as the least important of the three.
           Now all three are full-width and stacked on a phone and share one row
           from `sm` up, with the primary named for what it opens. */}
-      {filter === "open" && !isActivePanel && (
+      {/* Not on a decided-but-unsettled card. Every one of these three is
+          refused server-side once a decision is on record: rpc_decide_dispute
+          raises "dispute already decided", and both quick actions go through
+          create-payment's `job.status !== "disputed"` guard, which the decision
+          already flipped to completed/cancelled. The only live control for
+          that card is "Retry settlement" above — offering a Decide form with a
+          fresh 50/50 slider beside a recorded 50/50 decision was three ways
+          to earn an error toast (driven live 2026-09-07). */}
+      {filter === "open" && !isActivePanel && !unsettled && (
         <div className="flex flex-col gap-2 pt-2 border-t border-border sm:flex-row sm:flex-wrap">
           <Button size="sm" className="w-full sm:w-auto" onClick={() => openDecisionPanel(job)}>
             <Scale className="w-4 h-4 mr-1" /> Decide Outcome…

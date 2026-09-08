@@ -48,6 +48,7 @@ type Report = {
   /** False when the actor has no `profiles` row — messaging them is a no-op. */
   reporter_exists?: boolean;
   reported_exists?: boolean;
+  reported_job_exists?: boolean;
   assigned_to_name?: string;
 };
 
@@ -183,6 +184,8 @@ const AdminReports = () => {
           // be written against a user_id with nothing behind it.
           reporter_exists: r.reporter_id !== null && nameMap.has(r.reporter_id),
           reported_exists: nameMap.has(r.reported_id),
+          // A job subject that still exists is one the admin can open.
+          reported_job_exists: !isUserSubject(r) && jobTitles.has(r.reported_id),
           assigned_to_name: r.assigned_to ? nameMap.get(r.assigned_to) : undefined,
         }));
       }
@@ -496,13 +499,34 @@ const AdminReports = () => {
                   affordance, which reads as clipped rather than scrollable —
                   the same fade AdminFilterStrip puts on chip rows. */}
               <div className="flex flex-nowrap gap-2 pt-1 overflow-x-auto no-scrollbar [&>button]:shrink-0 [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)]">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => navigate(`/user/${report.reported_id}`)}
-                >
-                  <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Profile
-                </Button>
+                {/* `reported_id` is a JOB id for job reports, and this button
+                    sent every one of them to /user/<job-id> — a profile page
+                    that 404s. Seen on the live queue 2026-09-07: "Deleted job
+                    — Spam or scam" offered "View Profile". Route by subject,
+                    and disable when the subject is gone rather than open a
+                    page that will only say so. A review or message report
+                    carries that row's id, not a person's — no profile to open. */}
+                {report.reported_type === "job" ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!report.reported_job_exists}
+                    title={!report.reported_job_exists ? "This job no longer exists" : undefined}
+                    onClick={() => navigate(`/jobs/${report.reported_id}`)}
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Job
+                  </Button>
+                ) : report.reported_type === "review" || report.reported_type === "message" ? null : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={report.reported_exists === false}
+                    title={report.reported_exists === false ? "This account no longer exists" : undefined}
+                    onClick={() => navigate(`/user/${report.reported_id}`)}
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Profile
+                  </Button>
+                )}
                 {(report.status === "pending" || report.status === "new" || report.status === "investigating") && (
                   <>
                     {!report.assigned_to && (

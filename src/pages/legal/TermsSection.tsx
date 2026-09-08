@@ -8,12 +8,12 @@ import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
 import {
   URGENT_FEE_FLOOR_DOLLARS,
-  ONBOARDING_FEE_CENTS,
   FORM_1099K_TRANSACTION_THRESHOLD,
   form1099kGrossLabel,
   formatDollarsWhole,
 } from "@/lib/moneyLimits";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
+import { useOnboardingFeeCents, formatFeeLabel } from "@/hooks/useOnboardingFee";
 import { LAST_UPDATED } from "./legalSections";
 // The auto-release window and the total time-to-funds are the platform's
 // binding promises about when money moves; derive them from the same config
@@ -24,8 +24,6 @@ import {
   TOTAL_TO_PAYOUT_HOURS,
 } from "../../../supabase/functions/_shared/escrowTiming";
 import { legalFmtMo } from "./legalSections";
-
-const ONBOARDING_FEE_DOLLARS = ONBOARDING_FEE_CENTS / 100;
 
 // "Annual plans save about N months" is a PRICE claim, so compute it from the
 // prices instead of typing it as prose. `annualPrice` is the annual plan's
@@ -43,7 +41,15 @@ const ANNUAL_MONTHS_SAVED = (() => {
 const FEE_FLOOR = TIER_PERKS.elite;
 
 /* ─────────────────────────────  TERMS  ───────────────────────────── */
-export const TermsContent = () => (
+export const TermsContent = () => {
+  // The setup fee is quoted from platform_settings — the number the platform
+  // actually charges — never from a code constant; see useOnboardingFeeCents
+  // for why. It is also the "account setup fee" everywhere a member meets it
+  // (checkout, the IDV prompt, the profile row); these Terms were the one
+  // surface still calling it an "onboarding fee". Null while loading or on
+  // failure, in which case the row simply does not quote a number.
+  const feeLabel = formatFeeLabel(useOnboardingFeeCents());
+  return (
   <div className="space-y-3">
     <TldrCard
       items={[
@@ -145,12 +151,13 @@ export const TermsContent = () => (
       />
       <PolicyRowItem
         icon={Receipt}
-        title={`One-time $${ONBOARDING_FEE_DOLLARS.toFixed(0)} onboarding fee`}
+        title={feeLabel ? `One-time ${feeLabel} account setup fee` : "One-time account setup fee"}
         body={
           <>
-            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first — your first job post or your first payout — is when the {formatDollarsWhole(ONBOARDING_FEE_DOLLARS)} onboarding fee is collected.</p>
-            <p><strong className="text-foreground">If you post first:</strong> the {formatDollarsWhole(ONBOARDING_FEE_DOLLARS)} is added as a line item at checkout the first time you post.</p>
-            <p><strong className="text-foreground">If you only earn:</strong> the {formatDollarsWhole(ONBOARDING_FEE_DOLLARS)} is deducted from your first payout, automatically.</p>
+            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first — your first job post, your first payout, or your identity verification — is when the {feeLabel ? `${feeLabel} ` : ""}account setup fee is collected.</p>
+            <p><strong className="text-foreground">If you post first:</strong> the fee is added as a line item at checkout the first time you post.</p>
+            <p><strong className="text-foreground">If you only earn:</strong> the fee is deducted from your first payout, automatically.</p>
+            <p><strong className="text-foreground">If you verify your identity first:</strong> the fee is settled before your Stripe Identity check starts. It is the same fee, and it covers that check.</p>
             <p>You'll never be charged twice. Once paid, your account is set.</p>
           </>
         }
@@ -160,7 +167,7 @@ export const TermsContent = () => (
         title="Identity verification (one attempt)"
         body={
           <>
-            <p><strong className="text-foreground">Stripe Identity is on us — once.</strong> Helpr covers the cost of one Stripe ID + selfie check per account.</p>
+            <p><strong className="text-foreground">Your account setup fee covers one check.</strong> The one-time fee above pays for one Stripe ID + selfie check per account — there is no separate charge for verification.</p>
             <p><strong className="text-foreground">If your verification fails the first time</strong>, an admin will review your submitted ID manually within 24 hours. There is no self-service retry — please make sure your photos are clear, well-lit, and show all four corners of the ID before you submit.</p>
             <p>Once verified (auto or by admin), you're set for the life of your account.</p>
           </>
@@ -315,4 +322,5 @@ export const TermsContent = () => (
       <PolicyFooter updated={LAST_UPDATED.terms} />
     </HideOnSearch>
   </div>
-);
+  );
+};

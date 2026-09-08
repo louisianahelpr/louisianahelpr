@@ -57,7 +57,11 @@
     // with it because appleAppStore mints the App Store Server API bearer
     // through it (dynamically, but TS still resolves the module).
     "supabase/functions/_shared/appleAppStore.ts",
-    "supabase/functions/_shared/jwt.ts"
+    "supabase/functions/_shared/jwt.ts",
+    // Unsettled-dispute gate. unsettledDispute.ts is imported by
+    // src/test/edge/release-payout-unsettled-dispute.test.ts to test the
+    // guard directly through the real module source.
+    "supabase/functions/_shared/unsettledDispute.ts"
   ],
   "exclude": [
     "src/test/edge/**/*.gen.ts",

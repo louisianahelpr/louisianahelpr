@@ -277,3 +277,58 @@ email was NOT a grant/RLS problem (service_role has INSERT, verified) but
 PostgREST's PGRST002 schema-cache reload window after a migration, with no
 retry on our side — **"A schema-cache reload cost a live user their email,
 permanently"** — now retried.
+
+## The usage wall (03:02Z) and what I landed afterwards
+
+Every lane hit the session limit within a minute of each other at 03:02Z.
+Final reports had arrived from admin-self-ban and money-review-2; the
+others died mid-sentence. State at the moment of death, then what I did:
+
+**Landed by the lanes before the wall:** `1dd9059be` (money-review-2 — the
+unsettled-dispute gate now has 8 harness tests, incl. the two cases the
+live 409 could never reach: `execution_status` NULL blocks, 42703 fails
+closed, 42P01 tolerated); `04904056f` (finish-paying — the re-mint's own
+double-tap: `expire()` is not idempotent); `617577fcf` (tsconfig include
+for `_shared/unsettledDispute.ts`, which had CI red on TS6307).
+
+**Landed by me after the wall:**
+- `72e98ba58` — main was RED at `617577fcf` on two repo-wide guards the
+  withdraw lane's scoped run never saw: `rpc_withdraw_dispute` discovered
+  as an open-job selector (it reads `disputes.status`, a precondition), and
+  "Keep It Open" rejected by the popup grammar. Both declared with reasons,
+  the shape the registries already hold. This is exactly the
+  "verify repo-wide" rule; the lane closed on a green scoped run.
+- `c20afc416` — split-preview's finished-but-uncommitted fix: the admin
+  dispute card printed `$31.90 refunded` under `$30.00 gross` because the
+  two columns used different bases. Each column now reconciles
+  (gross − deduction = net) at every slider position; 10 new parity cases.
+  **Not eyeballed on the rendered card** — the lane died about to
+  intercept the network response for the $60 + $6 case; the number is
+  proven, the pixels are not.
+- **Test-admin grant REVOKED** (03:05Z-ish, after admin-self-ban's tests
+  went 17/17). Verified live: `user_roles` holds `admin` for exactly the
+  two owner accounts and nothing else.
+
+**Died with nothing on disk (re-run these):**
+- `poster-leads` (Fable): UnderlineTabs overlap on My Posts at 375, toast
+  placement, support subject shows a UUID, attach-menu copy. Had built a
+  Playwright driver, no findings filed.
+- `sweep-helper`: was at "the poster cancels after hire" — helper-side
+  cancel-after-hire state unswept.
+- `sweep-dialogs`: helper is unbanned; helper-side dialog survey not
+  started.
+- `sweep-poster`'s checklist script (fonts/touch-targets/gloss/box-in-box
+  per route) never ran.
+
+**money-review-2's design note, reported not done:** `rpc_decide_dispute`
+writes `status='completed'` / `dispute_status='resolved'` at DECISION time,
+before any money moves; everything shipped tonight is a filter around that.
+The clean shape is decision → `disputes` only, `execute-dispute-split` owns
+the job transition. It touches AdminDisputes' Decided bucket, two
+notifications and `admin_release_dispute` — its own task, state machine
+drawn first.
+
+**Still uncommitted in the shared tree, unclaimed by any lane:**
+`capacitor.config.ts`, `deno.lock`, `fastlane/README.md`,
+`fastlane/ios_app_metadata.yml`, `ios/App/App.xcodeproj/project.pbxproj`,
+`ios/App/App/Info.plist`. Left alone.

@@ -443,9 +443,24 @@ all four visuals → yes; seed flag → **Not yet** (untouched).
      (self-strike only — a user can only hurt themselves). Report, not fixed.
   Also: 19 legacy completed jobs carry a null `helper_confirmed_at`; they are
   terminal and unaffected.
-- **Test-account avatars — CLOSED.** `profiles.avatar_url = NULL` for
-  eli.test.helper and helpr-audit-web-0824 (2 rows, fixtures only). Edit
-  Profile no longer shows the "couldn't load your photo" state.
+- **Test-account avatars — CLOSED, with a correction.** I first set
+  `profiles.avatar_url = NULL` on eli.test.helper and helpr-audit-web-0824,
+  which cleared the broken-photo state and ALSO locked both accounts out
+  of every protected route: `ProtectedRoute`'s Big-7 completeness gate
+  counts `avatar_url` (`ProtectedRoute.tsx:114`), so null bounces to
+  `/complete-profile`. The visuals lane caught it. Both rows now point at
+  the `brand-asset` edge function (serves 200 image/png, already used as
+  an avatar by another profile) — gate satisfied, no 400. Fixtures only.
+- **Three visuals — CLOSED** (`885ddd48d`, `6814bfa73`, `22887b3f7`;
+  spec-prop fix `d4a9bcb77`). −$0.00 was born in `DisputeCard`'s
+  `−${money2()}` template, not the split math — formatter now snaps to
+  `$0.00` unsigned. Helper's Cancelled card says who cancelled (resolved
+  by id, never role) and quotes the fee the way the push did. Outer
+  Edit/Withdraw row gone while the inline editor is open. Eyeballed at
+  375 both themes, zero overflow; shots in
+  `~/.lh-audit/sweep-visuals-3/shots/`. Admin session was unreachable
+  (test-admin grant revoked), so fix 1 is proven by rendering the real
+  `DisputeCard` in a harness, not the live admin page.
 - **Three visuals (−$0.00 at split extremes, richer helper Cancelled card,
   outer Edit/Withdraw hidden while editing)** — lane `sweep-visuals-3`
   (fable), see the entry below once landed.

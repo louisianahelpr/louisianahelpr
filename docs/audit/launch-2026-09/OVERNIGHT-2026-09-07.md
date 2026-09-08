@@ -173,3 +173,41 @@ once produced 83 HTTP 500s and saturated the money alarm). My recommendation:
   E2E helper FAILED `preference_row_ensure_failed`. → `admin-self-ban` (Opus).
 - Report-only: `/admin` renders two `<main>` landmarks (App shell +
   `Admin.tsx:523`) — file is under sweep-admin's uncommitted edits.
+
+## Admin sweep CLOSED (`1c990f06f`) — 25 views × 375/1440 × light/dark = 100 shots
+
+Zero horizontal overflow on every capture, no NaN/undefined/[object Object],
+every destructive dialog names amount and party and cancels clean. Nine fixes
+pushed (job-report "View Profile" went to `/user/<job-id>`; decided-unsettled
+dispute card still offered Decide/Quick Release/Quick Refund; "Users with
+codes 41" on 8 profiles; Dashboard vs Analytics "Payments Collected" differed
+by the customer-fee sum; audit-log trigger rows read only "op: UPDATE"; Stripe
+transfer id never rendered at 375; three 375 wrap defects). Shots in
+`~/.lh-sweep/admin/shots/`.
+
+Not reached (need populated states the classifier will not let a lane seed):
+pending accounts, pending credentials, IDV review, open exceptions, ban
+review, fraud flags, support tickets, broadcasts, expired subscriptions — all
+shot EMPTY only. The payout-batch "Hold" button never registered a Playwright
+click across two passes — **worth one manual tap**.
+
+**Owner calls (report-only, product):**
+- Seed handling is inconsistent across the console: Dashboard/Analytics
+  exclude `is_seed`, Subscriptions/Payouts/Disputes/Tiers/Users include it, so
+  "0 Active Subscriptions" sits one click from "Active Subs 1". Suggest a
+  "Demo" badge on seed rows where they are included.
+- The seed dispute (no PaymentIntent) is permanently unsettleable and sits in
+  the Exception Queue as "$180 stuck" with a Retry that cannot succeed — no
+  dismiss / manual-settle path.
+- "Payments Collected" counts escrow rows with NO `stripe_payment_intent_id`
+  ($5,359.99 of SQL-inserted test jobs counted as collected).
+- Low: Delete Account confirm is one click, no typed confirmation; Manually
+  Verify offered on an already-verified user; "Emails sent 0/3" beside "31
+  TOTAL"; bulk-approve sticky bar covers the last card's amount at 375;
+  Flagged queue is 3/5 cancelled jobs flagged for "date passed".
+- `disputeSplitPreview.ts` poster column: net > gross (gross from budget, net
+  from capture) → `split-preview` lane (Opus).
+- "Finish paying" on a declined/abandoned checkout 500s forever in
+  create-payment (session id kept in 'abandoned'/'failed', guard refuses) →
+  `finish-paying` lane (Opus). sweep-helper's `88d2a40d1` already makes the
+  'failed' state render honestly instead of as a healthy "Posted" card.

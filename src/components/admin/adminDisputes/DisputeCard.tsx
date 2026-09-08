@@ -15,8 +15,21 @@ import { isUnsettled, unsettledReason } from "./unsettled";
  * amounts an admin is comparing reads as two different kinds of number, so
  * this column alone always shows cents. Everywhere else keeps the house rule.
  */
-const money2 = (n: number): string =>
-  (Number.isFinite(n) ? n : 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money2 = (n: number): string => {
+  const safe = Number.isFinite(n) ? n : 0;
+  // A remainder like −0.0000001 (posterGross − posterNet at 0%) would print
+  // "-0.00". Anything that rounds to zero IS zero — no sign, ever.
+  const cents = Math.round(safe * 100);
+  return (cents === 0 ? 0 : safe).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+/**
+ * The deduction line: "−$10.80 commission". At the extremes (100/0, 0/100)
+ * the losing column withholds nothing, and "−$0.00 Stripe keeps" reads as a
+ * charge that does not exist. A deduction that rounds to zero drops the sign.
+ */
+const deduction2 = (n: number): string =>
+  Math.round((Number.isFinite(n) ? n : 0) * 100) === 0 ? `$${money2(0)}` : `\u2212$${money2(n)}`;
 
 interface DisputeCardProps {
   job: DisputedJob;
@@ -323,7 +336,7 @@ export const DisputeCard = ({
                     ${money2(c.gross)} gross
                   </p>
                   <p className="text-ds-10 text-muted-foreground">
-                    −${money2(c.deduction)} {c.deductionLabel}
+                    {deduction2(c.deduction)} {c.deductionLabel}
                   </p>
                 </div>
               ))}

@@ -167,7 +167,76 @@ export function PostedJobActions({
   // resolved") both said "close a ticket" and neither said "move money" —
   // while Approve, the exact same money action one state earlier, opens
   // CompletionChoiceSheet first. Same consequence, same class of confirm.
+  // ESCALATE, BEHIND A CONFIRM. This ran straight from the chip's onClick:
+  // one tap, no sheet, no undo. It is protective (it is the only move that
+  // stops the auto-release at the deadline) but it is also one-way for the
+  // poster — once escalated the Resolve & Pay chip is gone and a human
+  // decides. Measured 2026-09-07: a single tap on the danger-toned chip
+  // escalated a live dispute with nothing asked. Resolve & Pay has confirmed
+  // through BrandConfirmDialog since it was renamed; this is the same bar.
+  const escalateDispute = async () => {
+    setDisputeActing(true);
+    try {
+      // BELONGS IN AN RPC, AND CANNOT BE FIXED FROM HERE.
+      //
+      // ONE SERVER-SIDE CALL. This block used to be a client
+      // write plus a browser fan-out, and both halves were wrong.
+      //
+      // The write set only `jobs.dispute_status` — the
+      // denormalised mirror — because there was no RPC to write
+      // both sides, and the `disputes` row stayed 'open'.
+      //
+      // The fan-out reached NOBODY and failed without an error:
+      // `user_roles` has exactly one policy an ordinary user can
+      // read (`auth.uid() = user_id`), so the select returned
+      // `{ data: [], error: null }`, `adminErr` was null, the loop
+      // never ran, and the toast still said an admin would review
+      // it. Escalation is the ONLY move that stops
+      // auto-resolve-disputes releasing the whole escrow at the
+      // deadline, so "we told the admins" being quietly false was
+      // the most expensive silent success on this card.
+      //
+      // `rpc_escalate_dispute` (20260907034826) does both server-
+      // side. It deliberately does NOT write
+      // `disputes.status = 'escalated'` — that value is outside
+      // the table's CHECK — and leaves `jobs.status` alone,
+      // because AdminDisputes builds its queue from
+      // `jobs.status = 'disputed'` (AdminDisputes.tsx:66). Writing
+      // either would delete escalated disputes from the queue that
+      // exists to action them.
+      try {
+        const { error: escalateErr } = await (supabase.rpc as never as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ error: { code?: string; message?: string } | null }>)(
+          "rpc_escalate_dispute",
+          { _job_id: job.id },
+        );
+        if (escalateErr) {
+          // PGRST202 = the RPC has not deployed yet. Migrations
+          // land on merge, so there is a window where the client
+          // is ahead of the database; a deploy-lag miss is not a
+          // reason to tell the poster their escalation failed
+          // when it may simply be a minute early.
+          if (String(escalateErr.code ?? "") !== "PGRST202") throw escalateErr;
+          report(escalateErr, { tags: { source: "PostedJobCard.escalateDispute.deployLag" } });
+        }
+      } catch (err) {
+        hapticError();
+        toast.error(mutationErrorMessage(err, "We couldn't escalate that — please try again."));
+        return;
+      }
+      hapticSuccess();
+      // Escalating froze the payout and handed the decision to a
+      // human, and the card said nothing about it.
+      toast.success("Escalated — an admin will review this and decide.");
+      onActionComplete();
+    } finally {
+      setDisputeActing(false);
+    }
+  };
   const [resolveConfirmOpen, setResolveConfirmOpen] = useState(false);
+  const [escalateConfirmOpen, setEscalateConfirmOpen] = useState(false);
 
   // Lifted out of the chip's onClick so the confirm dialog below can call the
   // same code path — the chip now only opens the dialog. Body is otherwise
@@ -1009,68 +1078,7 @@ export function PostedJobActions({
                   onClick={(e) => { e.stopPropagation(); setResolveConfirmOpen(true); }}
                 />
                 )}
-                <JobActionChip icon={AlertTriangle} label="Escalate" ariaLabel="Escalate — send this dispute to a Helpr admin to decide" tone="danger" disabled={disputeActing} onClick={async (e) => {
-                  e.stopPropagation();
-                  setDisputeActing(true);
-                  try {
-                    // BELONGS IN AN RPC, AND CANNOT BE FIXED FROM HERE.
-                    //
-                    // ONE SERVER-SIDE CALL. This block used to be a client
-                    // write plus a browser fan-out, and both halves were wrong.
-                    //
-                    // The write set only `jobs.dispute_status` — the
-                    // denormalised mirror — because there was no RPC to write
-                    // both sides, and the `disputes` row stayed 'open'.
-                    //
-                    // The fan-out reached NOBODY and failed without an error:
-                    // `user_roles` has exactly one policy an ordinary user can
-                    // read (`auth.uid() = user_id`), so the select returned
-                    // `{ data: [], error: null }`, `adminErr` was null, the loop
-                    // never ran, and the toast still said an admin would review
-                    // it. Escalation is the ONLY move that stops
-                    // auto-resolve-disputes releasing the whole escrow at the
-                    // deadline, so "we told the admins" being quietly false was
-                    // the most expensive silent success on this card.
-                    //
-                    // `rpc_escalate_dispute` (20260907034826) does both server-
-                    // side. It deliberately does NOT write
-                    // `disputes.status = 'escalated'` — that value is outside
-                    // the table's CHECK — and leaves `jobs.status` alone,
-                    // because AdminDisputes builds its queue from
-                    // `jobs.status = 'disputed'` (AdminDisputes.tsx:66). Writing
-                    // either would delete escalated disputes from the queue that
-                    // exists to action them.
-                    try {
-                      const { error: escalateErr } = await (supabase.rpc as never as (
-                        fn: string,
-                        args: Record<string, unknown>,
-                      ) => Promise<{ error: { code?: string; message?: string } | null }>)(
-                        "rpc_escalate_dispute",
-                        { _job_id: job.id },
-                      );
-                      if (escalateErr) {
-                        // PGRST202 = the RPC has not deployed yet. Migrations
-                        // land on merge, so there is a window where the client
-                        // is ahead of the database; a deploy-lag miss is not a
-                        // reason to tell the poster their escalation failed
-                        // when it may simply be a minute early.
-                        if (String(escalateErr.code ?? "") !== "PGRST202") throw escalateErr;
-                        report(escalateErr, { tags: { source: "PostedJobCard.escalateDispute.deployLag" } });
-                      }
-                    } catch (err) {
-                      hapticError();
-                      toast.error(mutationErrorMessage(err, "We couldn't escalate that — please try again."));
-                      return;
-                    }
-                    hapticSuccess();
-                    // Escalating froze the payout and handed the decision to a
-                    // human, and the card said nothing about it.
-                    toast.success("Escalated — an admin will review this and decide.");
-                    onActionComplete();
-                  } finally {
-                    setDisputeActing(false);
-                  }
-                }} />
+                <JobActionChip icon={AlertTriangle} label="Escalate" ariaLabel="Escalate — send this dispute to a Helpr admin to decide" tone="danger" disabled={disputeActing} onClick={(e) => { e.stopPropagation(); setEscalateConfirmOpen(true); }} />
               </JobActionRow>
               {/* The shared confirm — NOT a new modal. BrandConfirmDialog is
                   the shell behind every confirm in the app (Log Out, Decline
@@ -1087,7 +1095,14 @@ export function PostedJobActions({
                 open={resolveConfirmOpen}
                 onOpenChange={setResolveConfirmOpen}
                 title="Release the payment?"
-                description={`Resolving this dispute closes it and releases the full amount held for this job to ${job.helper_id ? (helperNames[job.helper_id] || "your Helpr") : "your Helpr"}. You can't reopen this dispute afterwards.`}
+                description={(() => {
+                  // helperNames values are abbreviated ("Hallie H.") and end
+                  // in a period whenever the surname is an initial, so a
+                  // hard-coded ". You can't" rendered "Hallie H.. You can't".
+                  const who = job.helper_id ? (helperNames[job.helper_id] || "your Helpr") : "your Helpr";
+                  const sentence = `Resolving this dispute closes it and releases the full amount held for this job to ${who}`;
+                  return `${sentence.endsWith(".") ? sentence : sentence + "."} You can't reopen this dispute afterwards.`;
+                })()}
                 callout={{ icon: DollarSign, text: "This moves real money. Only resolve if the issue is actually fixed." }}
                 primaryLabel="Release Payment"
                 primaryTone="sienna"
@@ -1096,6 +1111,18 @@ export function PostedJobActions({
                 secondaryLabel="Cancel"
               />
               )}
+              <BrandConfirmDialog
+                open={escalateConfirmOpen}
+                onOpenChange={setEscalateConfirmOpen}
+                title="Send this to an admin?"
+                description="A Helpr admin will review the dispute and decide the outcome. Nothing is charged or released until they do, and you won't be able to resolve it yourself afterwards."
+                callout={{ icon: AlertTriangle, text: "Use this when you and your Helpr can't settle it between you." }}
+                primaryLabel="Escalate to Admin"
+                primaryTone="sienna"
+                primaryDisabled={disputeActing}
+                onPrimary={() => { setEscalateConfirmOpen(false); void escalateDispute(); }}
+                secondaryLabel="Cancel"
+              />
               </>
             )}
             {/* View Timeline / Message / Contact Admin used to be two rows —

@@ -9,6 +9,7 @@ import { resolve } from "node:path";
 import {
   cancellationFeePercent,
   computeCancellationFee,
+  helperIsCommitted,
   hoursUntilJob,
   jobLocalMidnightMs,
 } from "../../supabase/functions/_shared/cancellationFee";
@@ -53,6 +54,7 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
         start_time: null,
         cancelled_at: "2099-01-01T00:00:00Z", // 0h before → would be 50% if helper
         helper_id: null,
+        helper_confirmed_at: null,
       }),
     ).toBe(0);
   });
@@ -65,6 +67,7 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
         start_time: null,
         cancelled_at: "2026-01-01T00:00:00Z",
         helper_id: "helper-1",
+        helper_confirmed_at: "2099-01-01T00:00:00Z",
       }),
     ).toBe(0);
   });
@@ -84,6 +87,7 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
         start_time: null,
         cancelled_at: cancelledAt,
         helper_id: "helper-1",
+        helper_confirmed_at: "2099-01-01T00:00:00Z",
       }),
     ).toBe(50); // 25% of 200
   });
@@ -102,6 +106,7 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
         start_time: null,
         cancelled_at: cancelledAt,
         helper_id: "helper-1",
+        helper_confirmed_at: "2099-01-01T00:00:00Z",
       }),
     ).toBe(100); // 50% of 200
   });
@@ -115,13 +120,49 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
     // was pinned to the platform zone.
     const start = jobLocalMidnightMs("2099-01-02");
     const cancelledAt = new Date(start - 1 * 3600 * 1000).toISOString();
-    const base = { budget: 80, date_needed: "2099-01-02", start_time: null, cancelled_at: cancelledAt, helper_id: "h" };
+    const base = { budget: 80, date_needed: "2099-01-02", start_time: null, cancelled_at: cancelledAt, helper_id: "h", helper_confirmed_at: "2099-01-01T00:00:00Z" };
     expect(computeCancellationFee(base)).toBe(40); // 50% of 80, not a forged number
   });
 
+  /**
+   * OWNER DECISION 2026-09-08. `helper_id` answers "did the poster pick
+   * somebody", not "did that somebody agree". accept_application sets
+   * helper_id as the POSTER's act; the Helpr's half of the handshake is
+   * helper_confirmed_at, and its absence is what expire_unanswered_offers
+   * penalises the HELPER for. A fee whose whole justification is
+   * "compensate the Helpr for their committed time" cannot be owed by a
+   * poster who walked away from an offer nobody ever answered.
+   *
+   * This is a VALUE test, not a mirror: it pins the case that shipped wrong
+   * — an assigned-but-unconfirmed helper on a 1-hour-out job, which used to
+   * compute the top 50% tier.
+   */
+  it("returns 0 when the Helpr was offered the job but never accepted", () => {
+    const start = jobLocalMidnightMs("2099-01-02");
+    const cancelledAt = new Date(start - 1 * 3600 * 1000).toISOString();
+    expect(
+      computeCancellationFee({
+        budget: 200,
+        date_needed: "2099-01-02",
+        start_time: null,
+        cancelled_at: cancelledAt,
+        helper_id: "helper-1",
+        helper_confirmed_at: null, // chosen, never confirmed
+      }),
+    ).toBe(0);
+  });
+
+  it("helperIsCommitted needs BOTH the assignment and the acceptance", () => {
+    expect(helperIsCommitted({ helper_id: null, helper_confirmed_at: null })).toBe(false);
+    expect(helperIsCommitted({ helper_id: "h", helper_confirmed_at: null })).toBe(false);
+    // A stray confirmation stamp with no assignment is not a commitment either.
+    expect(helperIsCommitted({ helper_id: null, helper_confirmed_at: "2099-01-01T00:00:00Z" })).toBe(false);
+    expect(helperIsCommitted({ helper_id: "h", helper_confirmed_at: "2099-01-01T00:00:00Z" })).toBe(true);
+  });
+
   it("returns 0 on missing/invalid budget", () => {
-    expect(computeCancellationFee({ budget: 0, date_needed: farFuture, start_time: null, cancelled_at: null, helper_id: "h" })).toBe(0);
-    expect(computeCancellationFee({ budget: null, date_needed: farFuture, start_time: null, cancelled_at: null, helper_id: "h" })).toBe(0);
+    expect(computeCancellationFee({ budget: 0, date_needed: farFuture, start_time: null, cancelled_at: null, helper_id: "h", helper_confirmed_at: "2099-01-01T00:00:00Z" })).toBe(0);
+    expect(computeCancellationFee({ budget: null, date_needed: farFuture, start_time: null, cancelled_at: null, helper_id: "h", helper_confirmed_at: "2099-01-01T00:00:00Z" })).toBe(0);
   });
 });
 
@@ -265,6 +306,7 @@ describe("fee ladder anchors on start_time, not midnight", () => {
         start_time: "18:00:00",
         cancelled_at: "2026-09-05T06:00:00Z",
         helper_id: "h",
+        helper_confirmed_at: "2099-01-01T00:00:00Z",
       }),
     ).toBe(0);
   });

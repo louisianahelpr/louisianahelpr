@@ -20,6 +20,7 @@ import { formatName } from "@/lib/utils";
 // the old bespoke ladder and became false the moment migration 20260831183302
 // moved the top rung to a reversible 7-day restriction pending admin review.
 import { NO_SHOW_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
+import { helperIsCommitted } from "../../../supabase/functions/_shared/cancellationFee";
 import type { Job, EnrichedApplication } from "./activityConstants";
 
 // Dialogs are conditionally rendered — none are visible on first paint. Each
@@ -217,14 +218,25 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Cancellation Dialog */}
+      {/* Cancellation Dialog.
+
+          hasHelper is COMMITMENT, not assignment (changed 2026-09-08). The
+          poster choosing an applicant sets jobs.helper_id; the Helpr's own
+          acceptance sets helper_confirmed_at. poster_cancel_job charges the
+          fee and records the reliability strike on the second, so the quote
+          shown here has to turn on the same thing — otherwise the dialog
+          promises a fee and a strike the server will not apply. Same predicate
+          as helperIsCommitted() in _shared/cancellationFee.ts. */}
       {props.cancelDialogJob && props.user && (
         <CancellationDialog
           jobId={props.cancelDialogJob.id} jobTitle={props.cancelDialogJob.title}
           jobDate={props.cancelDialogJob.date_needed}
           jobStartTime={props.cancelDialogJob.start_time ?? null}
           jobBudget={props.cancelDialogJob.budget}
-          hasHelper={!!props.cancelDialogJob.helper_id}
+          hasHelper={helperIsCommitted({
+            helper_id: props.cancelDialogJob.helper_id,
+            helper_confirmed_at: props.cancelDialogJob.helper_confirmed_at ?? null,
+          })}
           wasFunded={
             props.cancelDialogJob.payment_status !== "unpaid" &&
             props.cancelDialogJob.payment_status !== "abandoned"

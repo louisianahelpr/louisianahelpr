@@ -127,6 +127,18 @@ describe("ban evasion: quiet to the user, complete to the admin", () => {
       "ban_evasion_attempt details are being line-clamped again; the matched signal, " +
         "original ban and attempted email would be cut off",
     ).toMatch(/flag\.flag_type === "ban_evasion_attempt"[\s\S]{0,200}whitespace-pre-line/);
+
+    // A refused signup is refused BEFORE the profile write, so `full_name` is
+    // empty by construction for this flag type — every row headlined "Unknown"
+    // until the email fallback existed. Verified on the running console at 375.
+    expect(
+      dash,
+      "the fraud console stopped falling back to the account email, so every " +
+        "ban_evasion_attempt row headlines 'Unknown' again",
+    ).toMatch(/emailMap\.get\(f\.user_id\)/);
+    expect(dash, "the profiles hydration no longer selects email").toMatch(
+      /select\("user_id, full_name, email"\)/,
+    );
   });
 
   it("reach is email + phone + identity, and nothing wider", () => {

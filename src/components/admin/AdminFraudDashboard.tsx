@@ -103,12 +103,25 @@ const AdminFraudDashboard = () => {
       // — a missing display name must not blank the whole surface.
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, email")
         .in("user_id", userIds);
       if (profilesError) report(profilesError, { severity: "warning", tags: { source: "AdminFraudDashboard.hydrateNames" } });
 
       const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
-      return data.map((f: any) => ({ ...f, user_name: formatName(nameMap.get(f.user_id), "Unknown") }));
+      // Email is the fallback headline, and `ban_evasion_attempt` is why it had
+      // to exist. A refused signup is refused BEFORE the profile write, so
+      // `full_name` is empty by construction for that flag type — not
+      // occasionally, always — and every one of those rows headlined "Unknown".
+      // The email is what an operator actually acts on, it is already inside
+      // `details`, and this is an admin-only surface.
+      const emailMap = new Map(profiles?.map(p => [p.user_id, p.email]) || []);
+      return data.map((f: any) => {
+        const named = formatName(nameMap.get(f.user_id), "");
+        return {
+          ...f,
+          user_name: named || emailMap.get(f.user_id) || "Unknown",
+        };
+      });
     },
   });
 

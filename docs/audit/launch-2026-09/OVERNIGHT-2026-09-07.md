@@ -338,3 +338,27 @@ drawn first.
 `capacitor.config.ts`, `deno.lock`, `fastlane/README.md`,
 `fastlane/ios_app_metadata.yml`, `ios/App/App.xcodeproj/project.pbxproj`,
 `ios/App/App/Info.plist`. Left alone.
+
+## Poster leads, re-run after the reset (CLOSED — `0c90334dc`, `51c25da6d`, `a3970e3aa`)
+
+- **My Posts fifth tab** was on screen for no one: five labels measure
+  ~382–407px in a ~333px column, the scroller's 4px inset hid "Cancelled"
+  entirely, and `/my-posts?filter=cancelled` selected a tab 50px
+  off-screen. Scroller now bleeds to the card edge so the fifth label
+  peeks, and the selected tab scrolls itself into view. After: Cancelled
+  at x 262–334 when selected. **Owner call:** at rest the peek is a sliver
+  of "C" — two rows vs a fade mask is yours.
+- **Toast vs dock: not reproducible.** Sonner is top-anchored on phone;
+  a fired toast sits at y 8–78, the dock at 748–812. No change.
+- **Support subject** pre-filled `Dispute on job <uuid>`, clipped
+  mid-token. Both producers now use `supportSubject.ts` →
+  `Dispute on "Assemble a crib…" (job #3f2a9c1e)`, short id kept so
+  support can find the row.
+- **Attach sheet** — no role bleed; the footer said "photos and PDFs
+  only" directly under Location and Voice note. Now "Photos and PDFs up
+  to 5MB."
+- Reported, untouched: the attach popover is translucent enough to read
+  the thread through it; quick-reply chips clip at its edge with no fade.
+
+Shots: `~/.lh-audit/poster-leads-2/shots/`. Typecheck 0, scoped vitest
+141 files green.

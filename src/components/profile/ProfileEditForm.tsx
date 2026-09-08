@@ -204,7 +204,11 @@ export function ProfileEditForm({
                   inputMode="numeric"
                   autoComplete="postal-code"
                   maxLength={5}
-                  className="h-10"
+                  // px-3, not the Input default px-4: at 375 this column is
+                  // ~82px wide, and 32px of padding left 49px for five 16px
+                  // digits — measured scrollWidth 83 vs clientWidth 80, so the
+                  // last digit of "70808" was clipped on the primary viewport.
+                  className="h-10 px-3"
                 />
               </div>
             </div>

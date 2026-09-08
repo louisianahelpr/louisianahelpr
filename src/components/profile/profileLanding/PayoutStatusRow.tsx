@@ -53,11 +53,11 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry }: PayoutStatusRowPro
         }}
       >
         <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
-        <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
+        <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug psr-label">
           <span className="font-semibold">We couldn't check your payout account.</span> Check it before you count on getting paid.
         </p>
         <span
-          className="shrink-0 text-ds-11 font-semibold inline-flex items-center gap-0.5"
+          className="shrink-0 text-ds-11 font-semibold inline-flex items-center gap-0.5 psr-action"
           style={{ color: "hsl(var(--burnt-sienna))" }}
         >
           Retry <RefreshCw className="w-3.5 h-3.5" strokeWidth={2.25} />
@@ -98,11 +98,11 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry }: PayoutStatusRowPro
       }
     >
       <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
-      <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
+      <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug psr-label">
         <span className="font-semibold">Finish setting up</span> — add your payout account to accept jobs and get paid.
       </p>
       <span
-        className="shrink-0 text-ds-11 font-semibold inline-flex items-center gap-0.5"
+        className="shrink-0 text-ds-11 font-semibold inline-flex items-center gap-0.5 psr-action"
         style={{ color: "hsl(var(--burnt-sienna))" }}
       >
         Set Up <ChevronRightIcon className="w-3.5 h-3.5" strokeWidth={2.25} />

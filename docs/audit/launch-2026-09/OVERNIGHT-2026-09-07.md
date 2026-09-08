@@ -211,3 +211,28 @@ click across two passes — **worth one manual tap**.
   create-payment (session id kept in 'abandoned'/'failed', guard refuses) →
   `finish-paying` lane (Opus). sweep-helper's `88d2a40d1` already makes the
   'failed' state render honestly instead of as a healthy "Posted" card.
+
+## Poster sweep CLOSED — 526 shots, 11 fixes on main
+
+Every poster screen at 375/1440 × light/dark, zero overflow on all cells;
+checkout reached Stripe and matched the breakdown to the cent ($95.20; Pro
+$95.50 incl. $2 setup). Fixes: `6fc5496a4` `355d9661c` `8bafa7d39`
+`f41f556d3`+`228a81ea7` `2b766fda7` `d7639cdc4` (read receipts, HIGH)
+`c25e4b028` `22a6257af` `b00a419d0` (Escalate was one tap, irreversible, no
+confirm) `2a0053892`. Shots in `~/.lh-sweep/poster/shots/`.
+
+Dispatched to `poster-leads` (Fable): shared `UnderlineTabs` overlap at 375;
+push-nudge toast covering sheet headers / rail CTA; raw job UUID as support
+subject + "Checking your session…" over a usable form; attach-menu copy
+("photos and PDFs only") contradicting its own items.
+
+**Owner calls (report-only):** `formatPrice` shows "$5,000" on the card and
+"$4,999.99" on payment-success for the same job (whole-dollar rounding of
+gross budgets — same family as the floored take-home you already ruled on);
+notifications print full names ("Hallie Helper marked the job complete")
+where the UI says "Hallie H."; copy addresses helpers only on the Reviews
+("the poster's words") and Analytics ("Apply for a job and finish one") tabs —
+a role-copy defect by the house rule; IDV gate only fires at Continue to
+Payment after the whole form; Applicants panel is a 3-hop ~7 s waterfall.
+Not reached: keyboard-open cells, tip/gift-card checkout submits, real
+Release Payment, post-job photo/video upload, offline.

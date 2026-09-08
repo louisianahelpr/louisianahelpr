@@ -413,3 +413,39 @@ unlisted-dependency rule (`@typescript-eslint/parser`, bare `playwright` in
 three scripts → `b599e20bf`) and the dead-edge-function guard (stale
 `helpr-pass-wallet` entry once its test landed → `be03a1b40`). **Test is
 green on main at `be03a1b40`** — first green since `617577fcf`.
+
+## 2026-09-08 — owner pop-up answers, closed
+
+Answers: dup notification → fix; strike → "No strike for pending offers";
+all four visuals → yes; seed flag → **Not yet** (untouched).
+
+- **Duplicate cancel notification — CLOSED `a04800206`.** `notify_on_job_update`
+  now skips its insert when the transaction-local `app.sanctioned_cancel`
+  GUC is `on` (every sanctioned cancel path already sets it for the
+  RPC-only trigger), so the RPC's richer, fee-aware notification is the
+  only one. Deployed, `pg_get_functiondef` on prod shows the guard, version
+  `20260908155310` recorded.
+- **Strike for cancelling a never-accepted offer — CLOSED `941307f26`.**
+  `poster_cancel_job` gates the violation ladder on
+  `helper_id IS NOT NULL AND helper_confirmed_at IS NOT NULL` (the column
+  `auto_start_due_jobs` already treats as "truly booked"). Verified live:
+  gate present, ACL `authenticated, service_role` only. Three flags the
+  lane raised that I did NOT resolve unilaterally:
+  1. The same gate also zeroes the **cancellation fee** for an unaccepted
+     offer (`_shared/cancellationFee.ts`, void-cancelled-payments,
+     money-reconciliation, ActivityDialogs all agree). This can only lower
+     a charge, never raise one. If you want the fee kept while the strike
+     goes, say so — it's a one-line split.
+  2. **Group jobs never set `helper_confirmed_at`**, so cancelling a
+     rostered group job now takes no strike and no fee either. Pre-existing
+     data-model gap; needs a decision on what "committed" means for a roster.
+  3. `authenticated` holds EXECUTE on `apply_cancellation_violation_consequence`
+     (self-strike only — a user can only hurt themselves). Report, not fixed.
+  Also: 19 legacy completed jobs carry a null `helper_confirmed_at`; they are
+  terminal and unaffected.
+- **Test-account avatars — CLOSED.** `profiles.avatar_url = NULL` for
+  eli.test.helper and helpr-audit-web-0824 (2 rows, fixtures only). Edit
+  Profile no longer shows the "couldn't load your photo" state.
+- **Three visuals (−$0.00 at split extremes, richer helper Cancelled card,
+  outer Edit/Withdraw hidden while editing)** — lane `sweep-visuals-3`
+  (fable), see the entry below once landed.

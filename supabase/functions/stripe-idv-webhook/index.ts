@@ -256,11 +256,126 @@ serve(async (req) => {
       if (event.type === "identity.verification_session.verified") {
         // Stripe Identity returns "verified" as a binary outcome. We compute a
         // confidence score from selfie + document signals when available.
+        // `verified_outputs` is expandable and redacted by default — without
+        // asking for it, the legal name and date of birth Stripe confirmed are
+        // simply absent from the object, and the identity fingerprint below
+        // would be NULL for every single verification. That is the failure
+        // mode this expand exists to prevent.
         const verified = await stripe.identity.verificationSessions.retrieve(
           session.id,
-          { expand: ["last_verification_report"] }
+          { expand: ["last_verification_report", "verified_outputs"] }
         );
         const report = verified.last_verification_report as Stripe.Identity.VerificationReport | null;
+
+        // ── Identity-level ban enforcement ────────────────────────────────
+        //
+        // A new email defeats `retained_bans.email_sha256`; a second SIM
+        // defeats the phone key. This is the layer that holds, because
+        // identity is required to work: the returning user has to present a
+        // different government document belonging to a different person.
+        //
+        // NOTHING identifying is stored. First name, last name, DOB and (when
+        // the document type carries one) the document number are passed to
+        // `identity_fingerprint()`, which salts them with a Vault secret the
+        // database cannot read back in plaintext and returns a SHA-256. The
+        // raw values never leave this closure.
+        const outputs = (verified.verified_outputs ??
+          null) as Stripe.Identity.VerificationSession.VerifiedOutputs | null;
+        const docFirst = report?.document?.first_name ?? null;
+        const docLast = report?.document?.last_name ?? null;
+        const docDob = report?.document?.dob ?? null;
+        const dobOf = (d: { day?: number | null; month?: number | null; year?: number | null } | null) =>
+          d?.year && d?.month && d?.day
+            ? `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`
+            : null;
+
+        const firstName = outputs?.first_name ?? docFirst;
+        const lastName = outputs?.last_name ?? docLast;
+        const dob = dobOf(outputs?.dob ?? null) ?? dobOf(docDob ?? null);
+        // Present only when the document type provides one AND Stripe has not
+        // redacted it. Absent is fine — identity_fingerprint() folds an empty
+        // document number in as an empty string, consistently on both sides.
+        const docNumber = report?.document?.number ?? null;
+
+        let identityHash: string | null = null;
+        if (firstName && lastName && dob) {
+          const { data: fp, error: fpErr } = await supabase.rpc("identity_fingerprint", {
+            p_first_name: firstName,
+            p_last_name: lastName,
+            p_dob: dob,
+            p_doc_number: docNumber,
+          });
+          if (fpErr) {
+            // Do NOT approve on a failed fingerprint — approving is the
+            // irreversible half. Throwing routes into the outer catch, which
+            // rolls back the dedupe row and returns 500 so Stripe redelivers.
+            throw new Error(`identity_fingerprint failed: ${fpErr.message}`);
+          }
+          identityHash = (fp as string | null) ?? null;
+        } else {
+          console.warn(
+            `[stripe-idv-webhook] no name/DOB in verified_outputs for ${session.id} — identity ban check skipped`,
+          );
+        }
+
+        if (identityHash) {
+          const { data: banCheck, error: banErr } = await supabase.rpc("enforce_retained_ban", {
+            p_user_id: userId,
+            p_email: null,
+            p_phone: null,
+            p_identity_sha256: identityHash,
+          });
+          if (banErr) {
+            // Same reasoning: never approve past an unanswered ban question.
+            throw new Error(`enforce_retained_ban failed: ${banErr.message}`);
+          }
+
+          if (banCheck?.banned) {
+            // The account is left UNVERIFIED — `enforce_retained_ban` has
+            // already re-applied the ban status, and the jobs INSERT policy
+            // reads `idv_status = 'verified'`, so writing anything else here
+            // would hand a banned person the one capability the ban exists to
+            // remove.
+            const { error: flagErr } = await supabase.from("fraud_flags").insert({
+              user_id: userId,
+              flag_type: "retained_ban_identity_match",
+              details:
+                `Stripe Identity verified against a document fingerprint retained from a prior ban ` +
+                `(matched on ${banCheck.matched_on}). IDV refused; account left unverified and the ` +
+                `prior judgment re-applied. Session ${session.id}.`,
+            });
+            if (flagErr) {
+              console.error("[stripe-idv-webhook] failed to write fraud flag:", flagErr);
+            }
+
+            const { error: refuseErr } = await supabase
+              .from("profiles")
+              .update({
+                idv_session_id: session.id,
+                idv_status: "failed",
+                idv_confidence: 0,
+                idv_failure_reason: "Identity matched a previously removed account.",
+                approval_status: "denied",
+                legacy_manual_review: false,
+              })
+              .eq("user_id", userId);
+            if (refuseErr) throw refuseErr;
+
+            await postSlackOpsAlert({
+              kind: "stripe_webhook_error",
+              severity: "warning",
+              title: "Banned identity attempted to re-verify",
+              message:
+                "A Stripe Identity session verified against a document fingerprint retained from a prior ban. " +
+                "The account was left unverified, denied, and flagged in `fraud_flags`.",
+              fields: { "Session ID": session.id, "Matched on": String(banCheck.matched_on ?? "identity") },
+            });
+
+            return new Response(JSON.stringify({ received: true, refused: "retained_ban" }), {
+              status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
 
         // Heuristic confidence: 100 if document + selfie both verified with no errors,
         // 90 if minor issues, otherwise fall back to manual review.
@@ -269,6 +384,13 @@ serve(async (req) => {
         else if (!report?.selfie) confidence = 80;
 
         updateData.idv_confidence = confidence;
+
+        // Carried on the live profile so that if this account is banned later,
+        // `retain_ban_for_user()` has an identity key to copy into
+        // `retained_bans` — a ban with no fingerprint on file is the gap this
+        // whole change closes, and the fingerprint can only be captured here,
+        // while the verification is in hand.
+        if (identityHash) updateData.identity_sha256 = identityHash;
 
         if (confidence >= threshold) {
           updateData.idv_status = "verified";

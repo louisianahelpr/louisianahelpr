@@ -281,6 +281,55 @@ serve(async (req) => {
       });
     }
 
+    // ── Retained-ban check on the PHONE ───────────────────────────────────
+    //
+    // `handle_new_user()` already checked the email at `auth.users` INSERT.
+    // It could not check the phone, because email/password signup leaves
+    // `auth.users.phone` NULL — this function is the first moment the number
+    // is known, and it is the last moment before the profile becomes real.
+    //
+    // Ordering matters: this runs BEFORE any storage upload or profile write,
+    // so a banned person returning under a new address does not get to fill
+    // the ID/licence/insurance buckets on the way to being refused.
+    //
+    // `enforce_retained_ban` re-applies the original judgment to this account
+    // (so signing in lands them on /account-banned with the real reason and
+    // the Contact Support appeal route) and tells us it did, so we can also
+    // stop the completion here with a message that is not a generic 500.
+    //
+    // FAILS OPEN, deliberately and narrowly: an unreachable RPC must not turn
+    // into "nobody can finish signing up". The check runs again on every
+    // subsequent completion attempt, and the identity layer below it does not
+    // fail open at all.
+    if (phone) {
+      try {
+        const { data: banCheck, error: banErr } = await supabase.rpc("enforce_retained_ban", {
+          p_user_id: userId,
+          p_email: null,
+          p_phone: phone,
+          p_identity_sha256: null,
+        });
+        if (banErr) {
+          console.error("[complete-signup] retained-ban phone check failed:", banErr.message);
+        } else if (banCheck?.banned) {
+          console.warn(
+            `[complete-signup] refused: retained ban matched on ${banCheck.matched_on} for ${userId}`,
+          );
+          return new Response(
+            JSON.stringify({
+              error:
+                "This phone number belongs to an account that was removed from Louisiana Helpr. " +
+                "If you believe this is a mistake, contact support@louisianahelpr.com and we'll review it.",
+              code: "retained_ban",
+            }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      } catch (e) {
+        console.error("[complete-signup] retained-ban phone check threw:", e);
+      }
+    }
+
     // Enforce file size limits (5 MB max per file)
     const MAX_FILE_SIZE = 5 * 1024 * 1024;
     const checkBase64Size = (b64: string | null, label: string) => {

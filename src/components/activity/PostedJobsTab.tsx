@@ -307,6 +307,7 @@ export const PostedJobsTab = ({
     repeatHireMap,
     onTimeMap,
     distanceBandMap,
+    signalsPending,
   } = useApplicantSignals(applications, selectedJob);
 
   // Per-job analytics (view counts + conversion + bid range) for the
@@ -501,7 +502,9 @@ export const PostedJobsTab = ({
           selectedJob={selectedJob}
           setSelectedJob={setSelectedJob}
           applications={applications}
-          applicationsLoading={applicationsLoading}
+          // The skeleton stays up until the RANKING inputs are here too —
+          // see `signalsPending` in useApplicantSignals for the swap it stops.
+          applicationsLoading={applicationsLoading || (applications.length > 0 && signalsPending)}
           applicationsError={applicationsError}
           onLoadApplications={onLoadApplications}
           onAcceptApplication={onAcceptApplication}

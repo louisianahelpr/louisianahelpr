@@ -134,12 +134,84 @@ describe("helper dispute panel — copy is aimed at whoever filed", () => {
     }
   });
 
+  /**
+   * THE FILER'S ONLY NON-ADMIN EXIT. Added 2026-09-07.
+   *
+   * `rpc_withdraw_dispute` is opener-only by design, and the poster's own card
+   * says so — "Your Helpr opened this, so only they can withdraw it". Until
+   * this shipped, they could not: the panel offered no withdraw control at all,
+   * so a helper-opened dispute had exactly one route out and it went through an
+   * admin. (Even a button would have failed — the RPC's `UPDATE public.jobs`
+   * stamps `dispute_resolved_at`, which `enforce_helper_jobs_column_whitelist`
+   * refused for the assigned helper: 42501, 100% of the time. Fixed in
+   * 20260908024937 and pinned by jobsGuardRpcParity.test.ts.)
+   *
+   * The gate is asserted as a RELATION against the poster's, not as a literal,
+   * so widening either side alone fails here.
+   */
+  it("offers the filer a withdrawal, and only in the states the RPC accepts", () => {
+    for (const status of DISPUTE_STATUSES) {
+      const mine = helperDisputeCopy({ disputed_by: ME, dispute_status: status }, ME);
+      // `disputes.status` stays 'open' through both of these, which is the row
+      // rpc_withdraw_dispute looks for.
+      const live = status === null || status === "open" || status === "helper_responded";
+      expect(
+        mine.canWithdraw,
+        `dispute_status=${String(status)}: the filer's withdraw control disagrees with ` +
+          `the states rpc_withdraw_dispute will accept. Offering it where the server ` +
+          `refuses is the same defect one layer down.`,
+      ).toBe(live);
+    }
+  });
+
+  it("never offers a withdrawal to the party who did not file", () => {
+    for (const status of DISPUTE_STATUSES) {
+      expect(
+        helperDisputeCopy({ disputed_by: POSTER, dispute_status: status }, ME).canWithdraw,
+        `dispute_status=${String(status)}: an accused helper was offered a control the ` +
+          `RPC refuses with "only the party who opened this dispute may withdraw it".`,
+      ).toBe(false);
+    }
+  });
+
+  it("never offers both the response box and the withdrawal on one card", () => {
+    // They answer opposite questions and only one of the two people sees each.
+    for (const filer of [ME, POSTER]) {
+      for (const status of DISPUTE_STATUSES) {
+        const c = helperDisputeCopy({ disputed_by: filer, dispute_status: status }, ME);
+        expect(c.canRespond && c.canWithdraw, `filer=${filer} status=${String(status)}`).toBe(false);
+      }
+    }
+  });
+
+  it("names the withdrawal in the countdown caption exactly when it is offered", () => {
+    // The caption used to send a filer whose issue was already settled to an
+    // admin, because withdrawing was not reachable from this card.
+    for (const status of DISPUTE_STATUSES) {
+      const c = helperDisputeCopy({ disputed_by: ME, dispute_status: status }, ME);
+      expect(
+        /withdraw/i.test(c.consequenceText),
+        `dispute_status=${String(status)}: the caption and the controls disagree about ` +
+          `whether withdrawing is available.`,
+      ).toBe(c.canWithdraw);
+    }
+  });
+
   it("the component actually renders these strings rather than its own", () => {
     // The split only helps if DisputedSection consumes it. A copy left inline
     // would drift back, which is the failure this whole file exists for.
     const src = readFileSync(resolve(__dirname, "DisputedSection.tsx"), "utf8");
     expect(src).toContain("helperDisputeCopy(job, app.helper_id)");
-    for (const bound of ["{headline}", "{reasonLabel}", "consequenceText={consequenceText}"]) {
+    for (const bound of [
+      "{headline}",
+      "{reasonLabel}",
+      "consequenceText={consequenceText}",
+      // The withdraw control must be gated on the flag above rather than on a
+      // condition re-derived in the JSX — that drift is what this file exists
+      // for, and here it would mean offering a button the server refuses.
+      "{canWithdraw && (",
+      'supabase.rpc("rpc_withdraw_dispute"',
+    ]) {
       expect(
         src.includes(bound),
         `DisputedSection no longer renders ${bound} — the copy has been inlined again ` +

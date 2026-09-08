@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { JobActionRow, JobActionChip } from "@/components/activity/JobActionRow";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, MessageSquare, Send } from "lucide-react";
+import { AlertTriangle, MessageSquare, Send, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
@@ -47,8 +50,53 @@ export function DisputedSection({
   // production case that proved otherwise and what each branch now says; the
   // rules live there rather than inline so helperDisputeCopy.test.ts can walk
   // the whole state space without a render.
-  const { awaitingAdmin, headline, reasonLabel, consequenceText, canRespond } =
+  const { awaitingAdmin, headline, reasonLabel, consequenceText, canRespond, canWithdraw } =
     helperDisputeCopy(job, app.helper_id);
+  const [withdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+
+  // The helper's only non-admin exit from a dispute they raised. Mirrors the
+  // poster's Resolve & Pay handler (PostedJobActions) minus the money: a
+  // withdrawal moves nothing, it un-freezes the job and hands it back to the
+  // status it held before the dispute — `completed`/payout_pending if the
+  // poster had already approved, `in_progress` if not.
+  //
+  // REPORTED, not just toasted, for exactly the reason the poster's twin is:
+  // this RPC was a 100%-failing call for the opener-helper until 20260908024937
+  // (42501 "Helpers may not modify jobs.dispute_resolved_at" — the helper
+  // column whitelist did not list the stamp the RPC's own UPDATE writes), and
+  // a money control that is dead for months with zero Sentry events is what
+  // this line exists to prevent.
+  const withdrawDispute = async () => {
+    setWithdrawing(true);
+    try {
+      const { error } = await supabase.rpc("rpc_withdraw_dispute" as never, { _job_id: app.job_id } as never);
+      if (error) {
+        report(error, { tags: { source: "DisputedSection.withdrawDispute" }, context: { job_id: app.job_id } });
+        hapticError();
+        toast.error("We couldn't withdraw that dispute — please try again.");
+        return;
+      }
+      if (job.customer_id) {
+        await createNotification({
+          user_id: job.customer_id,
+          title: "Dispute withdrawn",
+          message: `The Helpr withdrew the dispute on "${job.title}". The payment is off hold and back on its normal schedule.`,
+          type: "info",
+          // `?job=` — the job returns to whichever bucket its restored status
+          // computes; a fixed `?filter=` would be wrong for one of the two.
+          link: `/my-posts?job=${job.id}`,
+        });
+      }
+      hapticSuccess();
+      toast.success("Dispute withdrawn — the payment is off hold.");
+      setWithdrawConfirmOpen(false);
+      onRefresh();
+    } finally {
+      setWithdrawing(false);
+    }
+  };
+
   return (
     <div
       className="px-4 py-3 space-y-2.5"
@@ -228,6 +276,45 @@ export function DisputedSection({
             </Button>
           )}
         </div>
+      )}
+
+      {/* WITHDRAW — the exit that did not exist. Shaped like "Respond to
+          Dispute" above rather than as a chip in the row below, because it is
+          this panel's primary move for the person who filed, and the three
+          chips at the foot are all read-only or off-card. The two are mutually
+          exclusive by construction: `canRespond` is false for the opener and
+          `canWithdraw` is true only for the opener. */}
+      {canWithdraw && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full"
+          disabled={withdrawing}
+          onClick={() => setWithdrawConfirmOpen(true)}
+        >
+          <Undo2 className="w-4 h-4 mr-1" /> Withdraw Dispute
+        </Button>
+      )}
+      {/* Gated alongside its button — a confirm whose primary action the
+          server would refuse must not be reachable at all (the same rule
+          `canResolve` gates the poster's release confirm with). */}
+      {canWithdraw && (
+        <BrandConfirmDialog
+          open={withdrawConfirmOpen}
+          onOpenChange={setWithdrawConfirmOpen}
+          title="Withdraw this dispute?"
+          description="The job goes back to where it was before you filed, and the payment comes off hold and returns to its normal schedule. You can file again if the issue isn't actually settled."
+          callout={{ icon: AlertTriangle, text: "Only withdraw if you and the poster have sorted it out." }}
+          primaryLabel="Withdraw Dispute"
+          /* `bark`, not `sienna`: sienna is reserved for the genuinely
+             irreversible (the poster's twin releases escrow and can never be
+             undone). A withdrawal moves no money and `rpc_open_dispute`'s
+             existing-dispute branch re-freezes the job if it is filed again. */
+          primaryTone="bark"
+          primaryDisabled={withdrawing}
+          onPrimary={() => { void withdrawDispute(); }}
+          secondaryLabel="Keep It Open"
+        />
       )}
 
       {/* No hardcoded "within 72 hours" policy line — the DeadlineCountdown

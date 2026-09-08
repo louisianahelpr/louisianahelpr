@@ -50,6 +50,23 @@ export interface HelperDisputeCopy {
    * "Helpr's response".
    */
   canRespond: boolean;
+  /**
+   * Offer "Withdraw Dispute" — the helper's only exit that is not an admin.
+   *
+   * Until 2026-09-07 this panel had no such control, and the poster's card
+   * said so out loud: "Your Helpr opened this, so only they can withdraw it."
+   * Nobody could. `rpc_withdraw_dispute` is opener-only by design, so a
+   * helper-opened dispute could be closed by exactly one party — who was
+   * offered no button — and every one of them had to reach an admin.
+   *
+   * The gate mirrors the poster's `canResolve` deliberately: opener, and one
+   * of the two PRE-DECISION values of the mirror column. `disputes.status`
+   * stays 'open' through both, which is what the RPC looks for. 'escalated'
+   * and 'under_review' are excluded — an admin owns the outcome then, and
+   * `helper_abort_job` opens its dispute escalated on purpose so a walked-off
+   * job cannot be closed out from under the poster.
+   */
+  canWithdraw: boolean;
 }
 
 export function helperDisputeCopy(
@@ -68,6 +85,9 @@ export function helperDisputeCopy(
   // enforce_helper_jobs_column_whitelist's ALLOW-list in every dispute state.
   const respondableStatus = ["open", "escalated", "under_review"].includes(disputeStatus);
 
+  // See `canWithdraw` above. Same two values the poster's `canResolve` reads.
+  const disputeLive = disputeStatus === "open" || disputeStatus === "helper_responded";
+
   return {
     disputeStatus,
     awaitingAdmin,
@@ -79,8 +99,15 @@ export function helperDisputeCopy(
         : "Both sides are talking it out.",
     reasonLabel: iOpenedIt ? "Your reason: " : "Reason: ",
     consequenceText: iOpenedIt
-      ? "Waiting it out isn't a win — if nobody resolves this and the poster doesn't escalate, the hold just lapses and the payment releases on its normal schedule. Talk it through, or ask an admin to decide."
+      ? // Names the move the panel actually offers. The old tail ("Talk it
+        // through, or ask an admin to decide") was written when withdrawing
+        // was not reachable from this card, and sent a helper whose issue was
+        // already settled to an admin for no reason.
+        `Waiting it out isn't a win — if nobody resolves this and the poster doesn't escalate, the hold just lapses and the payment releases on its normal schedule. Talk it through, ${
+          disputeLive ? "withdraw it if it's sorted, " : ""
+        }or ask an admin to decide.`
       : "If the poster doesn't resolve or escalate, payment auto-releases to you after the deadline.",
     canRespond: respondableStatus && !iOpenedIt,
+    canWithdraw: iOpenedIt && disputeLive,
   };
 }

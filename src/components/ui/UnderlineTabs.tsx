@@ -61,7 +61,7 @@ export function UnderlineTabs({
     <div
       role="group"
       aria-label={ariaLabel}
-      className={`flex items-baseline gap-4 shrink-0${className ? ` ${className}` : ""}`}
+      className={`flex items-baseline gap-4 shrink-0 min-w-max${className ? ` ${className}` : ""}`}
     >
       {tabs.map((t) => {
         const isActive = value === t.key;
@@ -74,7 +74,7 @@ export function UnderlineTabs({
               hapticLight();
               onChange(t.key);
             }}
-            className={`group inline-flex items-baseline gap-1 !min-h-0 !min-w-0 transition-colors ${
+            className={`group inline-flex shrink-0 items-baseline gap-1 !min-h-0 !min-w-0 transition-colors ${
               dense ? "py-0.5" : "py-[13px]"
             }`}
             style={{

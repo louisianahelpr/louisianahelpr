@@ -464,11 +464,22 @@ export function useMessagesData({
           ),
         );
         // Persist in the background — do NOT block the UI on the round-trip.
-        // `read_at` isn't in the generated types yet (migration lag — see
-        // supabase/migrations/20260830233932_add_messages_read_at.sql).
+        // `read` ONLY. This wrote `{ read, read_at }` and every call was a
+        // 403: 20260824180000 (R11) locked the table to column-level
+        // `GRANT UPDATE (read)` so a recipient cannot rewrite a sender's
+        // message, and 20260830233932 added `read_at` six days later
+        // without extending the grant. Postgres refuses the whole
+        // statement when any named column is unprivileged, so from
+        // 2026-08-30 no client could mark a message read through this
+        // path — reproduced live 2026-09-07 as the poster: PATCH
+        // {read,read_at} → 42501, PATCH {read} → 200. The optimistic flag
+        // then reverted and the unread badge came straight back.
+        // `read_at` belongs to the database (a trigger stamping it when
+        // `read` flips, or the grant widened); the client never needs to
+        // send it.
         void supabase
           .from("messages")
-          .update({ read: true, read_at: new Date().toISOString() } as any)
+          .update({ read: true })
           .in("id", unreadIds)
           .then(({ error: markError }) => {
             if (markError) {

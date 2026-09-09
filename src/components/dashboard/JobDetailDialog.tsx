@@ -72,14 +72,15 @@ const JobDetailDialog = ({
   useEffect(() => { setStep("detail"); setPinnedTop(null); }, [jobId]);
 
   /* THE TOP EDGE IS PINNED THE MOMENT YOU STEP FORWARD.
-     The sheet opens centred (owner, twice) with a 68dvh floor so a short job
-     does not resize between steps. That floor was sized to the apply step as
-     it stood on 2026-09-03; e319103eb then added the "you can't be hired yet"
-     explainer to the apply step, which for the majority of real helpers
-     (7 of 8 non-seed profiles, measured 2026-09-06) pushes the apply content
-     past the floor. Centring absorbs the growth symmetrically, so the top
-     edge walked 73px up at 375x812 (129.9 -> 56.8) — the exact jump
-     apply-single-sheet.spec.ts exists to catch.
+     The sheet opens centred (owner, twice) and sizes to its content. It used
+     to carry a 68dvh floor so a short job would not resize between steps;
+     e319103eb then added the "you can't be hired yet" explainer to the apply
+     step, which for the majority of real helpers (7 of 8 non-seed profiles,
+     measured 2026-09-06) pushed the apply content past the floor anyway.
+     Centring absorbs growth symmetrically, so the top edge walked 73px up at
+     375x812 (129.9 -> 56.8) — the exact jump apply-single-sheet.spec.ts
+     exists to catch. The floor is gone now (it was dead space under
+     Continue); this pin is what holds the edge.
 
      Rather than guess a taller floor for every job, the sheet reads its own
      top edge right before the step changes and holds it there for the rest
@@ -385,44 +386,17 @@ const JobDetailDialog = ({
           // space under it). `stepped` is removed HERE and stays for the other
           // three multi-step dialogs.
           //
-          // The height is RESERVED so centring cannot reintroduce the 66.4px
-          // jump that made this top-anchored in the first place: a vertically
-          // centred box absorbs a height change symmetrically, so stepping
-          // detail -> apply moved the whole surface up by half of it. Pinning a
-          // floor means the box does not resize between steps, which is what
-          // dialog.tsx prescribed as the right fix all along — "reserve the
-          // content's height, not re-anchor one dialog".
-          // 68dvh IS THE APPLY STEP'S REAL HEIGHT — do not shrink it.
-          //
-          // Owner reported the sheet looking a third empty and I lowered this
-          // to 58dvh, measured off their screenshot. That measurement was of
-          // ONE job with a two-line description at 393px wide, and generalising
-          // it was wrong: e2e/happy-path/apply-single-sheet.spec.ts went red on
-          // the exact assertion this floor exists to protect.
-          //
-          // Measured properly, in that spec's own harness at 375x812:
-          //   detail step top 170.5  -> box 471px  (== the 58dvh floor)
-          //   apply  step top 132.1  -> box 547.8px (== 67.5dvh)
-          // The apply step needs 67.5dvh, so a 58dvh floor let the box grow
-          // 76.8px and, because it is CENTRED, walked the top edge 38.4px up.
-          //
-          // So the empty space under a SHORT job's detail step is not slack —
-          // it is the room the apply step is about to need, held still so the
-          // surface doesn't jump when you step forward. Removing it means
-          // giving up either the centring (owner asked for it twice) or the
-          // stable anchor (the regression this spec was written for).
-          //
-          // The only fix that gets all three is a per-job reservation measured
-          // at runtime from the settled apply content, rather than any single
-          // CSS number. That is a real change, not a tweak to this line.
-          //
-          // GUESTS GET NO FLOOR. The reservation exists for the apply step, and
-          // a guest never reaches one — "Sign up to apply" navigates away. For
-          // them the floor was pure dead space: measured on /browse?job=<id>
-          // at 375x812 the content ended at y=681 inside a box ending at 682
-          // only because the box was 552px tall for ~430px of content; a card
-          // that is 40% blank under its one CTA.
-          !guest && "min-h-[min(68dvh,600px)]",
+          // NO HEIGHT FLOOR. This carried `min-h-[min(68dvh,600px)]` for the
+          // authed sheet from 2026-09-03 to 2026-09-09, reserving the apply
+          // step's height on the detail step so a centred box could not jump
+          // when it grew. The reservation was dead space under a short job's
+          // Continue — owner flagged it three times, the last from a device
+          // screenshot with ~430px blank below the CTA — and it stopped being
+          // load-bearing the moment `goToApply` pinned the top edge on
+          // step-forward (9694c4750): the box now sizes to its content on
+          // every step and grows DOWNWARD from the held edge, so stability no
+          // longer costs the detail step any height. apply-single-sheet.spec
+          // still asserts the top edge does not move.
           "content-start",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg",
           "sm:pb-7",

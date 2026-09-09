@@ -284,7 +284,7 @@ function PostedJobCardInner({
                 <AlertTriangle className="w-3 h-3 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
                 <span
                   className="font-sans uppercase text-ds-10"
-                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                  style={{ color: "hsl(var(--sienna-ink))", letterSpacing: "0.18em" }}
                 >
                   {job.dispute_status === "escalated" ? "Admin reviewing" : "Dispute open"}
                 </span>

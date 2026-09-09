@@ -146,7 +146,7 @@ export function IDVPromptDialog({
       onOpenChange(false);
       await openExternalUrl(data.url);
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Couldn't open checkout");
+      toast.error(e instanceof Error ? e.message : "Couldn't open checkout — try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -186,7 +186,7 @@ export function IDVPromptDialog({
       onLaunched?.();
       await openExternalUrl(data.url);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Couldn't start verification";
+      const msg = e instanceof Error ? e.message : "Couldn't start verification — try again?";
       toast.error(msg);
     } finally {
       setLoading(false);

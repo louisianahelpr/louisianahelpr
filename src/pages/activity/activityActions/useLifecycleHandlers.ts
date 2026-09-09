@@ -222,9 +222,9 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           // Non-fatal — the perk offer is a nice-to-have.
         }
       }
-    } catch (err) {
+    } catch {
       hapticError();
-      toast.error(err instanceof Error ? err.message : "We couldn't mark this job complete — please try again.");
+      toast.error("We couldn't mark this job complete — please try again.");
     } finally {
       setCompletingJobId(null);
     }
@@ -238,7 +238,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       hapticSuccess();
       toast("Revision marked as fixed");
       refresh();
-    } catch (err) { hapticError(); toast.error(err instanceof Error ? err.message : "We couldn't resolve that revision — please try again."); }
+    } catch { hapticError(); toast.error("We couldn't resolve that revision — please try again."); }
   };
 
 
@@ -417,7 +417,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
             : "No-show reported — the Helpr has been warned and your job is open again.",
       );
       refresh();
-    } catch (err) { hapticError(); toast.error(err instanceof Error ? err.message : "We couldn't report the no-show just now — please try again."); }
+    } catch { hapticError(); toast.error("We couldn't report the no-show just now — please try again."); }
     finally { setReportingNoShow(false); setNoShowJobId(null); }
   };
 

@@ -137,7 +137,7 @@ export function AnalyticsUpgradePanel({
             lives in `.btn-grad-primary` (index.css) — never an inline
             `background` shorthand, which silently resets background-image. */}
         <Button
-          className="btn-grad-primary !text-[hsl(var(--parchment))] flex-1 h-11 rounded-full font-semibold"
+          className="btn-grad-primary !text-[hsl(var(--parchment))] flex-1 h-11 rounded-ds-md font-semibold"
           onClick={() => navigate("/profile?tab=subscription")}
         >
           See {target.name} plans

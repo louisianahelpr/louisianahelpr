@@ -58,11 +58,12 @@ export function VerificationStatusRow({ profile }: { profile: Profile | null }) 
   const content = (
     <>
       <Icon className="w-4 h-4 shrink-0" style={{ color: accent }} strokeWidth={2.25} />
-      <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
+      <p id="verification-status-body" className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
         <span className="font-semibold">{copy.headline}</span> {copy.body}
       </p>
       {copy.action && (
         <span
+          id="verification-status-action"
           className="shrink-0 text-ds-11 font-semibold inline-flex items-center gap-0.5"
           style={{ color: accent }}
         >

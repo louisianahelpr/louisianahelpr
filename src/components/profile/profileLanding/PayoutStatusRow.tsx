@@ -53,10 +53,11 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry }: PayoutStatusRowPro
         }}
       >
         <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
-        <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
+        <p id="payout-status-body" className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
           <span className="font-semibold">We couldn't check your payout account.</span> Check it before you count on getting paid.
         </p>
         <span
+          id="payout-status-action"
           className="shrink-0 text-ds-11 font-semibold inline-flex items-center gap-0.5"
           style={{ color: "hsl(var(--burnt-sienna))" }}
         >
@@ -98,10 +99,11 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry }: PayoutStatusRowPro
       }
     >
       <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
-      <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
+      <p id="payout-status-body" className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
         <span className="font-semibold">Finish setting up</span> — add your payout account to accept jobs and get paid.
       </p>
       <span
+        id="payout-status-action"
         className="shrink-0 text-ds-11 font-semibold inline-flex items-center gap-0.5"
         style={{ color: "hsl(var(--burnt-sienna))" }}
       >

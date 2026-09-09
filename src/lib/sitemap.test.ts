@@ -10,6 +10,7 @@
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
 const ROOT = resolve(__dirname, "..", "..");
@@ -65,5 +66,22 @@ describe("sitemap.xml", () => {
       (p) => !registeredPaths.includes(p),
     );
     expect(missing).toEqual([]);
+  });
+
+  // The two guards above grade the COMMITTED file. Nothing graded the
+  // GENERATOR, so the two could disagree — and on 2026-09-09 they did, in
+  // opposite directions: this suite asserted /browse must be listed while
+  // scripts/generate-sitemap.mjs had started classifying it redirect-only,
+  // so `Sitemap drift` went red on main and told the reader to regenerate,
+  // which would have deleted a live 200 page from the sitemap and left this
+  // suite red instead. Run the generator's own check so the file and the
+  // thing that produces it can never drift apart again.
+  it("agrees with scripts/generate-sitemap.mjs", () => {
+    const run = spawnSync(process.execPath, [resolve(ROOT, "scripts/generate-sitemap.mjs"), "--check"], {
+      cwd: ROOT,
+      encoding: "utf8",
+    });
+    expect(`${run.stdout}${run.stderr}`.trim()).toContain("up to date");
+    expect(run.status).toBe(0);
   });
 });

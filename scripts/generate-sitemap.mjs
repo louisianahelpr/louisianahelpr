@@ -155,13 +155,25 @@ function classify(routes) {
     // which returned nothing but a <Navigate> and were being advertised to
     // search engines as real pages.
     //
-    // SELF-CLOSING IS THE LOAD-BEARING HALF OF THIS TEST, not tidiness.
+    // CHILDREN ARE THE LOAD-BEARING HALF OF THIS TEST, not tidiness.
     // Matching the name alone would also reject
     //   <Route path="/" element={<...><MarketingRedirect>{routeEl(<Index/>)}...
     // — MarketingRedirect WRAPS the homepage's real content rather than
     // replacing it, so a name-only rule silently drops `/` from the sitemap.
-    // A redirect-only element renders no children; a wrapper has them.
-    if (/<[A-Z]\w*Redirect\b[^>]*\/>/.test(r.element)) { reject("redirect-only route"); continue; }
+    // A redirect-only element renders no children; a wrapper has them, and a
+    // wrapper is therefore the one with a closing tag.
+    //
+    // Ask for the closing tag rather than testing the opening tag for `/>`.
+    // A `/>` test reads the same and is wrong the moment a wrapper takes a
+    // JSX-valued PROP, because the prop closes itself INSIDE the opening tag:
+    //   <MarketingRedirect fallback={<DashboardRouteSkeleton />}>
+    // matches `<\w*Redirect[^>]*\/>` even though it wraps real children. That
+    // dropped `/browse` — a live 200 and the highest-priority page after `/` —
+    // out of the sitemap the day `fallback` was added (123c28bc5, 2026-09-09),
+    // and the drift check told whoever hit it to regenerate, which would have
+    // committed the de-indexing.
+    const redirectName = r.element.match(/<([A-Z]\w*Redirect)\b/)?.[1];
+    if (redirectName && !r.element.includes(`</${redirectName}>`)) { reject("redirect-only route"); continue; }
     if (/\bProtectedRoute\b/.test(r.element)) { reject("behind ProtectedRoute (auth)"); continue; }
     if (/\bAdminRoute\b/.test(r.element)) { reject("admin-only"); continue; }
     if (NOINDEX[r.path]) { reject(`noindex — ${NOINDEX[r.path]}`); continue; }

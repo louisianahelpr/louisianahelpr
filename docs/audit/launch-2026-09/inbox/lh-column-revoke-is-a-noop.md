@@ -46,3 +46,31 @@ the line is decoration.
    `profiles` at all. It is inert behind RLS, but it is one dropped policy
    away from not being — and nothing in the schema explains why it is there.
    That is a real question for the authz lane, not a change to make casually.
+
+## The mirror axis: a column GRANT is mandatory where no table grant exists
+
+Recorded 2026-09-09 alongside the above, because the two together are the
+whole rule and either one alone is misleading.
+
+The same migration's GRANT half was **load-bearing and did land**.
+`authenticated` holds NO table-level UPDATE on `public.profiles` — only
+column-level UPDATE on an allowlist — so without
+
+```sql
+GRANT UPDATE (onboarding_tour_completed_at) ON public.profiles TO authenticated;
+```
+
+every user's write would have failed 42501 forever, the tour would have kept
+re-showing, and the diff would have read as correct. Verified twice against
+prod, and the client write was then observed landing on a real row
+(`onboarding_tour_completed_at` went from NULL to a timestamp 10s old, read
+back from prod after a real signed-in session stamped it).
+
+So, stated once:
+
+- A column-scoped **REVOKE** is powerless against a table-level grant.
+- A column-scoped **GRANT** is mandatory where no table-level grant exists.
+
+Both are invisible in review, in opposite directions: the useless line looks
+protective, and the missing line looks unnecessary. The only way to tell
+which you have is to read the object back.

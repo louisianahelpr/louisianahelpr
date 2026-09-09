@@ -113,6 +113,19 @@ jobs:
         # committed file carries a graphql_public block and CLI-version
         # parenthesisation worth ~40 lines of spurious diff (GD-005), and a gate
         # that cries wolf on formatting is a gate someone disables.
+        #
+        # continue-on-error, and the run is failed for it at the very end
+        # instead. This step sits BEFORE "Compute drift", so failing here
+        # aborted the job and the migration diff never ran — the thing this
+        # workflow exists to do. types.ts went stale on 2026-09-03 and the
+        # next SIX nightly runs were red for that and only that: no migration
+        # comparison, no drift issue, no way to tell from the red square that
+        # the actual check had not executed. The file's own header warns
+        # against a "found drift but passed" state; this was the mirror of it,
+        # a "never looked but failed" state, and it reads identically from
+        # outside. Both conditions still turn the run red.
+        id: types_fresh
+        continue-on-error: true
         if: steps.precheck.outputs.skip != 'true'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -335,12 +348,21 @@ jobs:
         env:
           MISSING_PROD: ${{ steps.drift.outputs.missing_prod }}
           MISSING_REPO: ${{ steps.drift.outputs.missing_repo }}
+          TYPES_FRESH: ${{ steps.types_fresh.outcome }}
         run: |
           set -euo pipefail
+          if [ "${TYPES_FRESH:-success}" = "failure" ]; then
+            echo "::error::src/integrations/supabase/types.ts is stale against the live schema — see the 'types.ts matches the live schema' step above for the exact list."
+            echo "::error::FIX: npm run db:types, then fix the type errors it surfaces. Do not silence it with a cast."
+            failed=1
+          fi
           if [ "${MISSING_PROD:-0}" != "0" ] || [ "${MISSING_REPO:-0}" != "0" ]; then
             echo "::error::Migration drift detected — ${MISSING_PROD} migration(s) in the repo are NOT applied to prod, ${MISSING_REPO} in prod are NOT in the repo."
             echo "::error::See the migration-drift issue this run just opened/updated for the exact version list."
             echo "::error::Repo-not-in-prod: re-run db-deploy.yml. Prod-not-in-repo: recover the SQL from Studio history and commit it."
+            failed=1
+          fi
+          if [ "${failed:-0}" = "1" ]; then
             exit 1
           fi
-          echo "✅ Zero drift — every local migration version is present in prod's ledger and vice versa."
+          echo "✅ Zero drift — every local migration version is present in prod's ledger and vice versa, and types.ts matches it."

@@ -5,7 +5,6 @@ import { initNative, hideSplash } from "./lib/nativeInit";
 import { installGlobalErrorHandlers } from "./lib/errorLogger";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
-import { recoverFromChunkError } from "./lib/chunkReload";
 import { initSimpleMode } from "./lib/simpleMode";
 import { applyToastPolicy } from "./lib/toastPolicy";
 import { applyPrePaintShellClasses } from "./lib/prePaintShellClasses";
@@ -33,38 +32,33 @@ installGlobalErrorHandlers();
 // is exactly the experience this mode exists to prevent.
 initSimpleMode();
 
-// Stale-chunk recovery — eager, before render. When a deploy changes the
-// content-hashed chunk filenames, a tab still running the previous build
-// fails to fetch a lazy chunk on navigation. Vite fires a cancelable
-// `vite:preloadError` on window *before* throwing; preventDefault() stops
-// the throw so we own the recovery (a one-shot cache-busting reload) and
-// the user never hits an error boundary on the common case. The error
-// boundaries keep the same detection as a backstop for throws that bypass
-// this event (e.g. a bare `import()` rejection inside an effect).
-window.addEventListener("vite:preloadError", (event) => {
-  // Only swallow the throw when we are ACTUALLY going to recover.
-  //
-  // This used to call preventDefault() unconditionally, BEFORE knowing
-  // whether recoverFromChunkError() would reload. Vite's preload helper wraps
-  // both the dependency preload and the real import() in one catch, so
-  // preventDefault() makes that catch resolve the import with `undefined`.
-  // React.lazy then reads `.default` off undefined and throws a plain
-  // TypeError — which is NOT the "Failed to fetch dynamically imported
-  // module" string isChunkLoadError() matches (lib/chunkReload.ts:15-32).
-  //
-  // So whenever recovery declines — the 10s one-shot guard
-  // (chunkReload.ts:102) or being offline (chunkReload.ts:95) — three things
-  // went wrong at once: a routine stale deploy showed the generic
-  // "This page hit a problem" card instead of the chunk-aware "Update ready"
-  // copy; "Try Again" re-rendered the same dead module reference and threw
-  // again, leaving the user stuck; and report() fired, turning every stale
-  // deploy into Sentry route-error noise — the exact noise the chunk branch
-  // at RouteErrorBoundary.tsx:81-91 exists to prevent.
-  //
-  // Letting the event through when we are not recovering restores the
-  // intended fallthrough: the boundary sees a real chunk error and renders
-  // the right copy. Verified by blocking an asset chunk in Playwright.
-  if (recoverFromChunkError()) event.preventDefault();
+// Stale-chunk recovery — handled entirely in RouteErrorBoundary.
+//
+// When a deploy changes content-hashed chunk filenames, a tab on the old
+// build fails to lazy-import a route chunk. Vite fires a cancelable
+// `vite:preloadError` on window before throwing. We do NOT call
+// preventDefault() here.
+//
+// Why not: Vite's preload helper (z/__vitePreload in the bundle) catches the
+// import rejection through the same catch as the dependency-preload pass. If
+// preventDefault() is called, i() returns `undefined` instead of throwing, so
+// the import() resolves with `undefined`. React.lazy then reads `.default` off
+// `undefined` → TypeError. That TypeError does NOT match the
+// "Failed to fetch dynamically imported module" string that isChunkLoadError()
+// matches (lib/chunkReload.ts:15-32), so RouteErrorBoundary shows the generic
+// "This page hit a problem" card and misses the chunk-aware "Update ready."
+// copy. Additionally, the conditional `if (recoverFromChunkError())` guard is
+// time-based (10s, chunkReload.ts:102); in slow environments the 10s window
+// can elapse between page init and the first import failure, causing
+// preventDefault() to fire even when the guard appears active.
+//
+// Letting the error propagate naturally means React.lazy captures the real
+// Error object (status=2), RouteErrorBoundary.componentDidCatch receives a
+// genuine chunk-load error, isChunkLoadError() matches, and the boundary
+// renders "Update ready." while recoverFromChunkError() in componentDidCatch
+// handles the one-shot reload when appropriate.
+window.addEventListener("vite:preloadError", () => {
+  // Intentionally empty — let the error propagate to RouteErrorBoundary.
 });
 
 // Dev-mode service-worker exorcism — production registers a Workbox SW

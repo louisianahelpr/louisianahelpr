@@ -82,9 +82,14 @@ export const hardReloadBypassCache = async () => {
 };
 
 /**
- * Recover from a stale-chunk error: hard-reload at most once per 10s window
+ * Recover from a stale-chunk error: hard-reload at most once per 30s window
  * (session-scoped) so we never loop. Returns true if a reload was kicked
  * off, false if the guard suppressed it (already reloaded recently).
+ *
+ * 30s (not 10s) because Playwright's DevTools overhead means the gap between
+ * guard-set (page init) and the first recoverFromChunkError() call in
+ * componentDidCatch can reach ~13s even in production-preview builds — the
+ * guard must remain active until the error boundary is reached.
  */
 export const recoverFromChunkError = (): boolean => {
   // Same offline guard as hardReloadBypassCache, checked here too so callers
@@ -99,7 +104,7 @@ export const recoverFromChunkError = (): boolean => {
   } catch {
     /* sessionStorage unavailable (private mode / SSR) — fall through */
   }
-  if (Date.now() - last <= 10_000) return false;
+  if (Date.now() - last <= 30_000) return false;
   try {
     sessionStorage.setItem(RELOAD_FLAG, String(Date.now()));
   } catch {

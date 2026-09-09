@@ -27,6 +27,7 @@ import {
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
 import { posterDisputeControls } from "./posterDisputeControls";
+import { disputeSupportSubject } from "@/lib/supportSubject";
 
 interface PostedJobActionsProps {
   job: Job;
@@ -1170,10 +1171,12 @@ export function PostedJobActions({
                    `?topic=` and `?subject=` are the two params Support.tsx
                    reads, and its comment there is explicit that a URL is the
                    wrong place for anything personal — so this carries the job
-                   UUID, which identifies the row without disclosing a person, a
-                   price or an address. Not `?message=`: that param does not
-                   exist, deliberately. */
-                onClick={() => navigate(`/support?topic=report&subject=${encodeURIComponent(`Dispute on job ${job.id}`)}`)}
+                   TITLE (already public on Browse) plus a short id for support
+                   to find the row. It used to be the bare UUID, which arrived
+                   as a 36-char hex subject the person could not recognise and
+                   the 375 input clipped mid-token. Not `?message=`: that param
+                   does not exist, deliberately. */
+                onClick={() => navigate(`/support?topic=report&subject=${encodeURIComponent(disputeSupportSubject(job))}`)}
               />
             </JobActionRow>
           </div>

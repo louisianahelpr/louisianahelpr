@@ -351,7 +351,20 @@ export function ApplyBody({
         </p>
       )}
 
-      <div className="flex gap-1.5">
+      {/* STICKY, NOT PINNED. The form above is routinely taller than the sheet
+          and scrolls in flow (JobDetailDialog explains why there is no footer
+          track). Since e319103eb added the "can't be hired yet" explainer the
+          apply step overflows a 375x812 viewport for most real helpers, and
+          JobDetailDialog now holds its top edge still when you step forward —
+          so without this the Apply button sat 40px below the fold
+          (apply-dialog-fit.spec.ts). `position: sticky` keeps it on screen
+          while content overflows and costs nothing when it doesn't: a short
+          form leaves the row exactly where it was, in flow, with no reserved
+          space under it. The negative bottom margin lets its surface run to the
+          sheet's bottom padding edge so scrolled content passes under, not
+          through; no horizontal bleed — apply-dialog-fit.spec.ts holds every
+          element inside the content box. */}
+      <div className="sheet-sticky-actions flex gap-1.5 -mb-4 pb-4 sm:-mb-5 sm:pb-5 pt-2">
         {/* Back — collapses the inline form to the plain footer instead of
             closing the whole sheet (owner: "add back button to left"). Only
             JobDetailDialog's merged-into-one-screen flow passes `onBack`;

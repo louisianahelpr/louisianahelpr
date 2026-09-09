@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { hapticLight } from "@/lib/haptics";
 
 /**
@@ -57,8 +58,23 @@ export function UnderlineTabs({
    */
   dense?: boolean;
 }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  // The selected tab must be ON SCREEN. On phone this row lives in a
+  // horizontal scroller and five labels do not fit 375, so a tab chosen from
+  // outside the row — `?filter=cancelled` from a deep link, or the
+  // empty-bucket "Show Done" button — could be the live filter while its
+  // underline sat 50px past the card's edge, and the row read as "nothing
+  // selected". `inline: "nearest"` scrolls only as far as it must and only
+  // along this row; `block: "nearest"` keeps it from also yanking the page.
+  // (Optional-called: jsdom has no scrollIntoView, and the test renders of
+  // this component would otherwise throw on mount.)
+  useEffect(() => {
+    const active = rootRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    active?.scrollIntoView?.({ inline: "nearest", block: "nearest" });
+  }, [value]);
   return (
     <div
+      ref={rootRef}
       role="group"
       aria-label={ariaLabel}
       className={`flex items-baseline gap-4 shrink-0 min-w-max${className ? ` ${className}` : ""}`}

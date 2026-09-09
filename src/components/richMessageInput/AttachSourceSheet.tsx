@@ -117,12 +117,16 @@ export const AttachSourceSheet = ({
             );
           })}
         </div>
+        {/* Scoped to the file rows. This read "Up to 5MB · photos and PDFs
+            only." under a list that also offers Location and Voice note — a
+            footer that says "only" while two of the five rows above it are
+            neither is a menu contradicting itself. The limit belongs to the
+            three file pickers, so name them. */}
         <p
           className="mt-3 font-sans text-ds-12 leading-relaxed text-center"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          Up to {Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB ·
-          photos and PDFs only.
+          Photos and PDFs up to {Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB.
         </p>
       </PopoverContent>
     </Popover>

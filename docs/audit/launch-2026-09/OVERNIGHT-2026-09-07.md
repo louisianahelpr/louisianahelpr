@@ -277,3 +277,235 @@ email was NOT a grant/RLS problem (service_role has INSERT, verified) but
 PostgREST's PGRST002 schema-cache reload window after a migration, with no
 retry on our side — **"A schema-cache reload cost a live user their email,
 permanently"** — now retried.
+
+## The usage wall (03:02Z) and what I landed afterwards
+
+Every lane hit the session limit within a minute of each other at 03:02Z.
+Final reports had arrived from admin-self-ban and money-review-2; the
+others died mid-sentence. State at the moment of death, then what I did:
+
+**Landed by the lanes before the wall:** `1dd9059be` (money-review-2 — the
+unsettled-dispute gate now has 8 harness tests, incl. the two cases the
+live 409 could never reach: `execution_status` NULL blocks, 42703 fails
+closed, 42P01 tolerated); `04904056f` (finish-paying — the re-mint's own
+double-tap: `expire()` is not idempotent); `617577fcf` (tsconfig include
+for `_shared/unsettledDispute.ts`, which had CI red on TS6307).
+
+**Landed by me after the wall:**
+- `72e98ba58` — main was RED at `617577fcf` on two repo-wide guards the
+  withdraw lane's scoped run never saw: `rpc_withdraw_dispute` discovered
+  as an open-job selector (it reads `disputes.status`, a precondition), and
+  "Keep It Open" rejected by the popup grammar. Both declared with reasons,
+  the shape the registries already hold. This is exactly the
+  "verify repo-wide" rule; the lane closed on a green scoped run.
+- `c20afc416` — split-preview's finished-but-uncommitted fix: the admin
+  dispute card printed `$31.90 refunded` under `$30.00 gross` because the
+  two columns used different bases. Each column now reconciles
+  (gross − deduction = net) at every slider position; 10 new parity cases.
+  **Eyeballed after the reset** (split-eyeball lane, real `DisputeCard`
+  mounted through a throwaway Vite entry, deleted after): at 375 and 1440,
+  light and dark, the card reads `$33.00 gross / $31.90 refunded /
+  −$1.10 Stripe keeps` and `$30.00 / $26.40 / −$3.60 commission (12%)`
+  at 50/50, and reconciles by eye at 0/100 and 100/0; net is the
+  emphasised line; zero overflow. Shots in
+  `~/.lh-audit/split-eyeball/shots/`. One nit for you: the zero side
+  prints `−$0.00 Stripe keeps` — a minus on nothing. Left as is because
+  four aligned rows per column may be deliberate.
+- **Test-admin grant REVOKED** (03:05Z-ish, after admin-self-ban's tests
+  went 17/17). Verified live: `user_roles` holds `admin` for exactly the
+  two owner accounts and nothing else.
+
+**Died with nothing on disk (re-run these):**
+- `poster-leads` (Fable): UnderlineTabs overlap on My Posts at 375, toast
+  placement, support subject shows a UUID, attach-menu copy. Had built a
+  Playwright driver, no findings filed.
+- `sweep-helper`: was at "the poster cancels after hire" — helper-side
+  cancel-after-hire state unswept.
+- `sweep-dialogs`: helper is unbanned; helper-side dialog survey not
+  started.
+- `sweep-poster`'s checklist script (fonts/touch-targets/gloss/box-in-box
+  per route) never ran.
+
+**money-review-2's design note, reported not done:** `rpc_decide_dispute`
+writes `status='completed'` / `dispute_status='resolved'` at DECISION time,
+before any money moves; everything shipped tonight is a filter around that.
+The clean shape is decision → `disputes` only, `execute-dispute-split` owns
+the job transition. It touches AdminDisputes' Decided bucket, two
+notifications and `admin_release_dispute` — its own task, state machine
+drawn first.
+
+**Still uncommitted in the shared tree, unclaimed by any lane:**
+`capacitor.config.ts`, `deno.lock`, `fastlane/README.md`,
+`fastlane/ios_app_metadata.yml`, `ios/App/App.xcodeproj/project.pbxproj`,
+`ios/App/App/Info.plist`. Left alone.
+
+## Poster leads, re-run after the reset (CLOSED — `0c90334dc`, `51c25da6d`, `a3970e3aa`)
+
+- **My Posts fifth tab** was on screen for no one: five labels measure
+  ~382–407px in a ~333px column, the scroller's 4px inset hid "Cancelled"
+  entirely, and `/my-posts?filter=cancelled` selected a tab 50px
+  off-screen. Scroller now bleeds to the card edge so the fifth label
+  peeks, and the selected tab scrolls itself into view. After: Cancelled
+  at x 262–334 when selected. **Owner call:** at rest the peek is a sliver
+  of "C" — two rows vs a fade mask is yours.
+- **Toast vs dock: not reproducible.** Sonner is top-anchored on phone;
+  a fired toast sits at y 8–78, the dock at 748–812. No change.
+- **Support subject** pre-filled `Dispute on job <uuid>`, clipped
+  mid-token. Both producers now use `supportSubject.ts` →
+  `Dispute on "Assemble a crib…" (job #3f2a9c1e)`, short id kept so
+  support can find the row.
+- **Attach sheet** — no role bleed; the footer said "photos and PDFs
+  only" directly under Location and Voice note. Now "Photos and PDFs up
+  to 5MB."
+- Reported, untouched: the attach popover is translucent enough to read
+  the thread through it; quick-reply chips clip at its edge with no fade.
+
+Shots: `~/.lh-audit/poster-leads-2/shots/`. Typecheck 0, scoped vitest
+141 files green.
+
+## Helper-side surveys, re-run after the reset (CLOSED — `b7a80daa5`, `6772b9505`)
+
+**A. Poster cancels after hire, seen from the helper.** Activity Cancelled
+card, notification, its View destination, job detail, Earnings all say
+something true (shots A18–A24, light + dark). One fix: the helper's
+cancel notification offered a **"Repost"** pill — a poster-only action on
+a job they never owned — now "View", landing on the Cancelled bucket.
+Messages thread was NOT forceable: no thread exists until an offer is
+accepted and the helper fixture has no Stripe payout account.
+
+**B. Every helper-side dialog/sheet** (edit/withdraw application, job
+detail, report, profile, delete, log out, messages empty + menu, edit
+profile, filters): all PASS at 375 in both themes, zero overflow. One fix:
+Edit Profile's ZIP field clipped its fifth digit (scrollWidth 83 in an
+80px box) — padding restored.
+
+**Owner calls from this pass:**
+- **Duplicate cancel notification** — `poster_cancel_job` inserts one and
+  `notify_on_job_update` (trigger) inserts a second, same timestamp,
+  confirmed live. Needs a migration.
+- **A strike for cancelling a PENDING offer** — the offer was never
+  accepted, the dialog says "After a Helpr is selected", and a
+  `user_violations` row + `ban_status` escalation were still written.
+  Ladder or copy is wrong; money/trust, untouched. (Test rows restored.)
+- Helper's Cancelled card is minimal ("Job was cancelled") — name the
+  canceller / any fee?
+- Outer Edit/Withdraw stay visible while the inline application editor
+  is open.
+- Both sweep accounts carry an `avatar_url` that 400s → Edit Profile
+  shows the "couldn't load your photo" state. Null the two URLs.
+- Accept-then-cancel needs a helper fixture with a Stripe payout account.
+
+Shots: `~/.lh-audit/sweep-helper-2/shots/` (51).
+
+## CI after the reset
+
+Main was red on three consecutive pushes for three different reasons,
+all mine to catch: two repo-wide registries the withdraw lane never ran
+(`72e98ba58`), the admin card spec my scoped run skipped (`5b5b88a19`),
+and then a THIRD walker losing the `.gen.ts` race. That race is now
+fixed at the source (`5c8fadfbb`): the edge harness writes its temp
+modules to a git-ignored `.lh-edge-gen/` at the repo root, outside every
+scanner, with its specifiers absolutised. Full suite 330/330, typecheck 0.
+
+**Addendum:** the Test workflow had TWO more red steps hiding behind the
+three above — each earlier failure stopped the job before they ran. knip's
+unlisted-dependency rule (`@typescript-eslint/parser`, bare `playwright` in
+three scripts → `b599e20bf`) and the dead-edge-function guard (stale
+`helpr-pass-wallet` entry once its test landed → `be03a1b40`). **Test is
+green on main at `be03a1b40`** — first green since `617577fcf`.
+
+## 2026-09-08 — owner pop-up answers, closed
+
+Answers: dup notification → fix; strike → "No strike for pending offers";
+all four visuals → yes; seed flag → **Not yet** (untouched).
+
+- **Duplicate cancel notification — CLOSED `a04800206`.** `notify_on_job_update`
+  now skips its insert when the transaction-local `app.sanctioned_cancel`
+  GUC is `on` (every sanctioned cancel path already sets it for the
+  RPC-only trigger), so the RPC's richer, fee-aware notification is the
+  only one. Deployed, `pg_get_functiondef` on prod shows the guard, version
+  `20260908155310` recorded.
+- **Strike for cancelling a never-accepted offer — CLOSED `941307f26`.**
+  `poster_cancel_job` gates the violation ladder on
+  `helper_id IS NOT NULL AND helper_confirmed_at IS NOT NULL` (the column
+  `auto_start_due_jobs` already treats as "truly booked"). Verified live:
+  gate present, ACL `authenticated, service_role` only. Three flags the
+  lane raised that I did NOT resolve unilaterally:
+  1. The same gate also zeroes the **cancellation fee** for an unaccepted
+     offer (`_shared/cancellationFee.ts`, void-cancelled-payments,
+     money-reconciliation, ActivityDialogs all agree). This can only lower
+     a charge, never raise one. If you want the fee kept while the strike
+     goes, say so — it's a one-line split.
+  2. **Group jobs never set `helper_confirmed_at`**, so cancelling a
+     rostered group job now takes no strike and no fee either. Pre-existing
+     data-model gap; needs a decision on what "committed" means for a roster.
+  3. `authenticated` holds EXECUTE on `apply_cancellation_violation_consequence`
+     (self-strike only — a user can only hurt themselves). Report, not fixed.
+  Also: 19 legacy completed jobs carry a null `helper_confirmed_at`; they are
+  terminal and unaffected.
+- **Test-account avatars — CLOSED, with a correction.** I first set
+  `profiles.avatar_url = NULL` on eli.test.helper and helpr-audit-web-0824,
+  which cleared the broken-photo state and ALSO locked both accounts out
+  of every protected route: `ProtectedRoute`'s Big-7 completeness gate
+  counts `avatar_url` (`ProtectedRoute.tsx:114`), so null bounces to
+  `/complete-profile`. The visuals lane caught it. Both rows now point at
+  the `brand-asset` edge function (serves 200 image/png, already used as
+  an avatar by another profile) — gate satisfied, no 400. Fixtures only.
+- **Three visuals — CLOSED** (`885ddd48d`, `6814bfa73`, `22887b3f7`;
+  spec-prop fix `d4a9bcb77`). −$0.00 was born in `DisputeCard`'s
+  `−${money2()}` template, not the split math — formatter now snaps to
+  `$0.00` unsigned. Helper's Cancelled card says who cancelled (resolved
+  by id, never role) and quotes the fee the way the push did. Outer
+  Edit/Withdraw row gone while the inline editor is open. Eyeballed at
+  375 both themes, zero overflow; shots in
+  `~/.lh-audit/sweep-visuals-3/shots/`. Admin session was unreachable
+  (test-admin grant revoked), so fix 1 is proven by rendering the real
+  `DisputeCard` in a harness, not the live admin page.
+- **Three visuals (−$0.00 at split extremes, richer helper Cancelled card,
+  outer Edit/Withdraw hidden while editing)** — lane `sweep-visuals-3`
+  (fable), see the entry below once landed.
+
+## 2026-09-08 — the smoke suite was red for 150 runs and nobody could see it
+
+`9694c4750`. "E2E happy-path smoke" last passed on `92bc539ee` (2026-09-06
+21:33). Every run since — ~150 of them — died on the job's time budget after
+dozens of 30-second failures, which GitHub reports as **cancelled**, and
+cancelled is not red: no failure badge, no email, nothing in the checks
+summary that reads as broken. In a clean worktree the suite could not finish
+at all; it is **108 passed / 0 failed** now.
+
+Seven causes. Three were real app regressions, four were the suite asserting
+things the app had (correctly) stopped doing:
+
+1. **NotificationPanel crashed** on `n.message.toLowerCase()` — the fixture
+   served a `body` column notifications has never had (also `reviews.comment`
+   → `feedback`, `profiles.is_verified` removed). `fixtureSchemaContract`
+   now grades every fixture row for unknown columns and for missing
+   NOT-NULL-no-default columns; `schemaTables()` had been dropping the first
+   column of every table.
+2. **Terms re-consent dialog** over every authed screen (un-broken by
+   `80a3f01b4`): fixtures pin `terms_version_accepted`.
+3. Runtime probe's realtime-binding floor 25 → 20 (`bf0cd91c8` removed three
+   unfiltered bindings; the probe was asserting the old defect).
+4. `home-chrome` asserted the List/Map toggle you reversed in `c7bce404e`.
+5. `device-pass` at 320 flagged the deliberate `min-w-max` tab scroller.
+6. `earnings-length`: `mockTable` ignored `.eq("customer_id")`, so the
+   helper's own twelve jobs came back as poster spend ("across 12 jobs");
+   `mockTable` gains `honorFilters`.
+7. **`apply-single-sheet` — real, from `e319103eb`.** The "you can't be hired
+   yet" explainer pushed the apply step past the 68dvh floor for the state
+   most real helpers are in, and a centred box absorbs growth symmetrically:
+   the top edge walked **73px up** (129.9 → 56.8 at 375×812) on Continue.
+   The sheet now reads its own top edge before stepping forward and holds it
+   for the rest of the open — grows downward only. That put Apply Now 40px
+   below the fold, so the action row is `position: sticky`: on screen while
+   the form overflows, in flow with no reserved space when it doesn't.
+   Eyeballed at 375, both themes, top/mid/end of scroll.
+
+Gate in `~/.lh-gate` (detached at origin/main): typecheck clean, vitest 331
+files / 3777 passed, happy-path 108/108. **Ready for a TestFlight build once
+CI on `9694c4750` is green.**
+
+Lesson for the CLAUDE.md pile: a workflow that self-cancels on its time
+budget is invisible. Filter `gh run list` on `conclusion == "cancelled"` as
+hard as on `failure`.

@@ -300,11 +300,21 @@ export function ActivityHeader({
 
       {/* PHONE: the same tabs, on their own line under the title row. Rendered
           only when they are not already IN that row, and hidden while the
-          search input has taken the row over — one control at a time. The
-          horizontal scroller is insurance for a 320px screen; from 375 up the
-          four labels fit without it. */}
+          search input has taken the row over — one control at a time.
+
+          The scroller BLEEDS TO THE CARD EDGE (`-mx-5 px-5`, the title card's
+          own `px-5`), not to a 4px inset. This used to say the four labels fit
+          at 375 without scrolling; there are five now, and their content width
+          is ~407px against a 335px column, so the row always scrolls on a
+          phone. With the 4px inset the scroller's clip edge sat INSIDE the
+          card padding, and "Cancelled" — starting 1px past it — was hidden
+          whole: the empty-bucket copy said "1 in Cancelled" under a tab row
+          that showed no Cancelled. Clipping at the card's rounded edge instead
+          lets the fifth label peek, cut by the card, which is the one signal
+          that says "this scrolls". `scroll-px-5` keeps a tab you scroll to
+          from landing under the padding. */}
       {!inlineFilters && tabsOpen && (
-        <div id="activity-status-tabs" className="-mx-1 px-1 pb-0.5 overflow-x-auto scrollbar-hide">
+        <div id="activity-status-tabs" className="-mx-5 px-5 scroll-px-5 pb-0.5 overflow-x-auto scrollbar-hide">
           {statusTabs}
         </div>
       )}

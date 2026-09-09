@@ -333,32 +333,26 @@ for (const width of [320, 375, 1440]) {
     await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Get started" })).toBeVisible();
 
-    // The guest brand row carries NO action icons — this diverges from the
-    // authed Home on purpose. Search and Filters were pulled from this surface
-    // (owner: they "take up too much space at the top"): a signed-out visitor
-    // has nothing saved to filter against and has not yet been given a reason
-    // to narrow anything, so the icons spent the most valuable strip of the
-    // screen on controls that answer a question they have not asked. The
-    // authed row still asserts both icons (see the /dashboard test above), so
-    // this is a deliberate difference, not a surface silently losing chrome.
+    // The guest brand row carries the SAME Search + Filters cluster as the
+    // authed Home. This used to assert the opposite: Search and Filters were
+    // pulled from the guest surface in August (owner: they "take up too much
+    // space at the top"), which left /browse mounting every filter and the map
+    // with no control that could open any of them. The owner reversed it on
+    // 2026-09-07 ("/browse can have the filters", c7bce404e), and this spec
+    // kept the suite red for two days asserting the decision it replaced.
     for (const name of ACTION_ICON_NAMES) {
       await expect(
-        page.getByRole("button", { name }),
-        `guest brand row must not carry ${name} @ ${width}`,
-      ).toHaveCount(0);
+        page.getByRole("button", { name }).first(),
+        `guest brand row must carry ${name} @ ${width}`,
+      ).toBeVisible();
     }
 
     // The inline List/Map toggle is GONE, and that is deliberate (owner,
     // 2026-08-19: "Don't give the list or map option in the guest page like
-    // this. Remove it and move jobs up"). This used to assert the opposite.
-    //
-    // Asserted as an absence rather than deleted, because the recorded
-    // consequence is worth pinning: the guest title bar has no filter icon,
-    // and the filter sheet is where this control lives on every other
-    // surface, so a signed-out visitor now has NO route to the map and `view`
-    // is effectively pinned to "list". If the toggle reappears here, someone
-    // has re-added the row instead of restoring map access the agreed way
-    // (put the filter icon back in the guest title bar).
+    // this. Remove it and move jobs up"). The map is reached the agreed way
+    // instead — through the Filters sheet, whose trigger the guest row now
+    // carries (asserted above). If the inline row reappears here, someone
+    // has re-added it instead of using the sheet.
     await expect(
       page.getByRole("group", { name: "Feed view" }),
       `guest List/Map toggle was removed on purpose @ ${width}`,

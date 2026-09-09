@@ -291,7 +291,27 @@ export function schemaTables(): Map<string, Set<string>> {
   re.lastIndex = src.indexOf("Tables: {");
   let m: RegExpExecArray | null;
   while ((m = re.exec(src)) !== null) {
-    out.set(m[1], new Set([...m[2].matchAll(/\n {10}([a-z0-9_]+)\??:/g)].map((c) => c[1])));
+    out.set(m[1], new Set([...("\n" + m[2]).matchAll(/\n {10}([a-z0-9_]+)\??:/g)].map((c) => c[1])));
+  }
+  return out;
+}
+
+/**
+ * table → columns the Insert type marks REQUIRED (no `?`) — i.e. NOT NULL with
+ * no default. A fixture row missing one of these is a row the database would
+ * refuse, and a row the app then reads with a field that is `undefined`.
+ * `notifications.message` was spelled `body` in the seed for months: prod's
+ * NOT NULL made it impossible, the mock served it, and every authed smoke spec
+ * crashed on `n.message.toLowerCase()` while the contract graded the row clean.
+ */
+export function schemaRequired(): Map<string, Set<string>> {
+  const src = readFileSync(TYPES, "utf8");
+  const out = new Map<string, Set<string>>();
+  const re = /\n {6}([a-z0-9_]+): \{\n {8}Row: \{[\s\S]*?\n {8}\}\n {8}Insert: \{\n([\s\S]*?)\n {8}\}/g;
+  re.lastIndex = src.indexOf("Tables: {");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(src)) !== null) {
+    out.set(m[1], new Set([...("\n" + m[2]).matchAll(/\n {10}([a-z0-9_]+):/g)].map((c) => c[1])));
   }
   return out;
 }

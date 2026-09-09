@@ -12,7 +12,9 @@
  * and the radius actually runs — flagged approximate, because a centroid is
  * parish-scale and must never be quoted as a fix.
  */
-import { chromium } from "playwright";
+// `@playwright/test` re-exports chromium and is the listed dependency;
+// bare `playwright` is only transitive, which knip flags as unlisted.
+import { chromium } from "@playwright/test";
 import { execSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 

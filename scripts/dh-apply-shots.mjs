@@ -5,7 +5,9 @@
  * Lives inside the repo on purpose — running from a scratch dir fails with
  * ERR_MODULE_NOT_FOUND: playwright (no node_modules to resolve against).
  */
-import { chromium } from "playwright";
+// `@playwright/test` re-exports chromium and is the listed dependency;
+// bare `playwright` is only transitive, which knip flags as unlisted.
+import { chromium } from "@playwright/test";
 import { execSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 

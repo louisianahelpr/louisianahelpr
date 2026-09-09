@@ -245,7 +245,25 @@ async function assertFits(page: Page) {
     document.querySelectorAll<HTMLElement>("body *").forEach((el) => {
       const r = el.getBoundingClientRect();
       // >1px of slop absorbs sub-pixel rounding on transformed elements.
-      if (r.width > vw + 1) wide.push(`${el.tagName}.${el.className}`.slice(0, 120));
+      if (r.width <= vw + 1) return;
+      // Same exemption as device-pass-measure: a row inside a horizontal
+      // SCROLLER is wider than the viewport on purpose (UnderlineTabs' five
+      // status labels measure ~382px at 375 since 0c90334dc) and the user can
+      // reach all of it. Exempt an element whose nearest overflow-x
+      // auto/scroll ancestor itself fits; `hidden` stays a failure because
+      // content clipped by a hidden ancestor is unreachable. CI fonts render
+      // the row a few px wider than local, which is how this passed 108/108
+      // in the gate and went red on the runner.
+      let p = el.parentElement;
+      while (p && p !== document.body) {
+        const ox = getComputedStyle(p).overflowX;
+        if (ox === "auto" || ox === "scroll") {
+          if (p.getBoundingClientRect().width <= vw + 1) return;
+          break;
+        }
+        p = p.parentElement;
+      }
+      wide.push(`${el.tagName}.${el.className}`.slice(0, 120));
     });
     return { scrollWidth: de.scrollWidth, clientWidth: vw, wide: wide.slice(0, 5) };
   });

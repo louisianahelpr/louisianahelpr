@@ -33,12 +33,17 @@ export function CancellationFeePill({
     fallbackFeePercent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT,
   );
   const netAmt = `$${formatPriceFloor(job.cancellation_fee * (1 - feePercent / 100))}`;
+  // Same sentence the push/in-app notification from `poster_cancel_job`
+  // already sent ("You'll receive approximately $X as a cancellation fee").
+  // The card used to say "$X to you after the platform fee, pending" — two
+  // phrasings of one number, read minutes apart, is how a user decides the
+  // app is guessing.
   const statusCopy: Record<string, string> = {
-    pending: `Cancellation fee — ${netAmt} to you after the platform fee, pending`,
-    charged: `Cancellation fee — ${netAmt} to you after the platform fee`,
+    pending: `You'll receive approximately ${netAmt} as a cancellation fee — processing`,
+    charged: `You received ${netAmt} as a cancellation fee`,
     waived:  `Cancellation fee waived`,
   };
-  const label = statusCopy[status] ?? `Cancellation fee — ${netAmt} to you after the platform fee`;
+  const label = statusCopy[status] ?? `You'll receive approximately ${netAmt} as a cancellation fee`;
   const isPending = status === "pending";
   const isCharged = status === "charged";
   return (

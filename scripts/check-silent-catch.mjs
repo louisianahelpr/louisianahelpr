@@ -18,7 +18,12 @@
  * Exits non-zero when anything is reported.
  */
 import { Linter } from "eslint";
-import tsParser from "@typescript-eslint/parser";
+// The parser comes through the `typescript-eslint` meta-package the repo
+// already lists (same route eslint.config.js takes); importing
+// `@typescript-eslint/parser` directly reaches a transitive package and
+// fails knip's unlisted-dependency gate.
+import tseslint from "typescript-eslint";
+const tsParser = tseslint.parser;
 import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";

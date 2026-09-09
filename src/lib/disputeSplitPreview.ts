@@ -36,7 +36,19 @@ export interface DisputeSplitJob extends HelperEarningsJob {
 }
 
 export interface SplitPreview {
-  /** Gross share of the budget, before any deduction. */
+  /**
+   * Each party's share of ITS OWN basis, before that leg's deduction — so
+   * `gross − deduction === net` holds in both columns. The two bases differ on
+   * purpose, exactly as the executor's do: the Helpr's leg is drawn from the
+   * budget (plus the net urgent fee), the poster's from the whole CAPTURE
+   * (budget + service fee + urgent fee + sales tax), because the poster paid
+   * the service fee and tax and gets their share of those back.
+   *
+   * These used to be the same basis for both — `budget × share` — while the
+   * nets were not, which on a $60 job with a $6 service fee split 50/50 printed
+   * "$31.90 refunded / $30.00 gross / −$1.11 Stripe keeps": a net ABOVE its own
+   * gross, with a deduction that reconciled nothing.
+   */
   helperGross: number;
   posterGross: number;
   /** What the Helpr's Connect account is credited — exact. */
@@ -45,7 +57,12 @@ export interface SplitPreview {
   helperCommission: number;
   /** What the poster's card is refunded — estimated from the job's line items. */
   posterNet: number;
-  /** Processing cost Stripe keeps on the poster's leg. */
+  /**
+   * Processing cost Stripe keeps on the poster's leg — the REMAINDER,
+   * `posterGross − posterNet`, so the three numbers in the column add up.
+   * Equal to the poster's pro-rata share of `stripeProcessingCostCents` up to
+   * the executor's own cent-rounding of the refund.
+   */
   posterProcessingCost: number;
   /** The commission rate applied, for display. */
   helperFeePercent: number;
@@ -93,15 +110,19 @@ export function previewDisputeSplit(
   const capturedCents = Math.round(captured * 100);
   const processingCents = capturedCents > 0 ? stripeProcessingCostCents(capturedCents) : 0;
   const refundableCents = Math.max(0, capturedCents - processingCents);
+  // `Math.round` to whole cents, mirroring the executor's
+  // `refundCents = Math.max(0, Math.round(refundableCents * posterShare))`.
   const posterNet = Math.round(refundableCents * posterShare) / 100;
+  const posterGross = Math.round(capturedCents * posterShare) / 100;
 
   return {
-    helperGross: (budget / shares) * share,
-    posterGross: budget * posterShare,
+    helperGross: budgetShare + urgentShare,
+    posterGross,
     helperNet,
     helperCommission: commission,
     posterNet,
-    posterProcessingCost: (processingCents * posterShare) / 100,
+    // The remainder, not an independent computation — see the field's doc.
+    posterProcessingCost: posterGross - posterNet,
     helperFeePercent: feePercent,
   };
 }

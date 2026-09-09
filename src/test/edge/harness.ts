@@ -18,9 +18,10 @@
  *      mock modules in `./mocks/`, rewrite `_shared/*` imports likewise (at any
  *      `../` depth), and rewrite each intra-function local specifier to the
  *      flat `.gen.ts` sibling that module was emitted as.
- *   3. Write every rewritten module to a temp `.gen.ts` file inside this
- *      directory so vitest's own TypeScript transform compiles it, and so the
- *      `./mocks/*` + `./<sibling>.gen.ts` specifiers all resolve from one dir.
+ *   3. Write every rewritten module to a temp `.gen.ts` file in GEN_DIR (a
+ *      git-ignored dot-dir at the repo root, outside every source walker) so
+ *      vitest's own TypeScript transform compiles it; `./mocks/*` and REAL
+ *      `_shared` specifiers are absolutised so they resolve from there.
  *   4. Dynamically `import()` the ENTRY temp module (its static imports pull in
  *      the rest of the graph). A mock `serve()` (injected via the rewrite)
  *      captures the request handler.
@@ -30,7 +31,7 @@
  * release / revision / refund branches, signature handling) runs unchanged —
  * only its external dependencies are swapped for inspectable doubles.
  */
-import { readFileSync, writeFileSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { join, resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
@@ -38,6 +39,17 @@ import { randomBytes } from "node:crypto";
 /** This file's own directory — `import.meta.url` is portable under vitest. */
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "../../..");
+/**
+ * Where the rewritten modules are written. NOT this directory: ~25 registry
+ * tests walk `src/` with readdir+readFile, and a `.gen.ts` that exists for
+ * the few ms between write and `rmSync` is listed by one of them and gone by
+ * the time it is read — ENOENT, and a red CI on whichever walker lost the
+ * race that run (three different ones in one night). Nothing walks the repo
+ * root, so a git-ignored dot-dir there is outside every scanner. Every
+ * specifier the rewrite emits is absolutised in `absolutiseSpecifiers`, so
+ * the files resolve `./mocks/*` and the REAL `_shared` modules from anywhere.
+ */
+const GEN_DIR = join(REPO_ROOT, ".lh-edge-gen");
 const FUNCTIONS_DIR = join(REPO_ROOT, "supabase", "functions");
 
 /** Mock-module specifiers, resolved relative to a `.gen.ts` in THIS dir. */
@@ -485,6 +497,19 @@ export interface EdgeHarness {
   }) => Request;
 }
 
+/**
+ * Rewrites every HERE-relative specifier (`./mocks/x.ts`, `../../../supabase/
+ * functions/_shared/x.ts`) in a generated module to the absolute path it was
+ * meant to name, so the module resolves from GEN_DIR. Gen siblings
+ * (`./<name>.gen.ts`) are left relative on purpose.
+ */
+function absolutiseSpecifiers(src: string): string {
+  return src.replace(
+    /(from\s+)(["'])((?:\.\/mocks\/|(?:\.\.\/)+supabase\/)[^"']+)\2/g,
+    (_m, from: string, q: string, spec: string) => `${from}${q}${resolve(HERE, spec)}${q}`,
+  );
+}
+
 /** A module in the function's local graph, emitted as a flat `.gen.ts`. */
 interface GenModule {
   /** Absolute path of the original source module. */
@@ -567,13 +592,17 @@ export async function loadEdgeFunction(fnName: string): Promise<EdgeHarness> {
     toWrite.push({ genName: mod.genName, source: src });
   }
 
-  // Write into THIS directory (NOT a subdir) so relative `./mocks/*` and
-  // `./<sibling>.gen.ts` specifiers resolve, and vitest applies its TypeScript
-  // transform on import. The `.gen.` infix is git-ignored. All files must be on
-  // disk before the entry is imported, since its static imports pull them in.
+  // Write into GEN_DIR (see its doc). Sibling `./<x>.gen.ts` specifiers stay
+  // relative — they are all emitted into the same directory — and every
+  // `./mocks/*` or `../../../supabase/...` specifier the rewrite produced,
+  // which was written relative to THIS directory, becomes absolute so it
+  // still resolves from there. Vitest applies its TypeScript transform to
+  // any file it imports inside the repo. All files must be on disk before
+  // the entry is imported, since its static imports pull them in.
+  mkdirSync(GEN_DIR, { recursive: true });
   for (const { genName, source } of toWrite) {
-    const p = join(HERE, genName);
-    writeFileSync(p, source, "utf8");
+    const p = join(GEN_DIR, genName);
+    writeFileSync(p, absolutiseSpecifiers(source), "utf8");
     written.push(p);
   }
 
@@ -593,7 +622,7 @@ export async function loadEdgeFunction(fnName: string): Promise<EdgeHarness> {
   // nothing that worked before changes behaviour.
   (globalThis as { Deno?: unknown }).Deno = deno.__denoStub;
 
-  const entryGenPath = join(HERE, entry.genName);
+  const entryGenPath = join(GEN_DIR, entry.genName);
   try {
     // `?t=` cache-bust so repeated loads in one process re-evaluate the module.
     await import(/* @vite-ignore */ `${entryGenPath}?t=${Date.now()}`);

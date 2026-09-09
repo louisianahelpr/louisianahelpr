@@ -222,13 +222,23 @@ const LEDGER: Array<{ file: string; vocabulary: string; reason: string }> = [
 
 const SCAN_ROOTS = ["src", "supabase/functions"];
 
+// The edge harness writes per-run `*.gen.ts` temp files under src/test/edge
+// and deletes them while the suite runs, so a file listed by readdir can be
+// gone by the time it is stat'd or read (CI red at 5b5b88a19 on exactly
+// that ENOENT). They are not source: skip them, and tolerate a vanish.
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     if (entry === "node_modules" || entry === "dist") continue;
+    if (/\.gen\.tsx?$/.test(entry)) continue;
     const p = join(dir, entry);
-    if (statSync(p).isDirectory()) walk(p, out);
-    // .gen.ts files are transient build artifacts, not hand-written source
-    else if (/\.(ts|tsx)$/.test(entry) && !entry.endsWith(".gen.ts")) out.push(p);
+    let isDir: boolean;
+    try {
+      isDir = statSync(p).isDirectory();
+    } catch {
+      continue;
+    }
+    if (isDir) walk(p, out);
+    else if (/\.(ts|tsx)$/.test(entry)) out.push(p);
   }
   return out;
 }
@@ -282,7 +292,13 @@ function scan(): Offender[] {
     for (const abs of walk(join(ROOT, root))) {
       const file = relative(ROOT, abs).split(sep).join("/");
       if (SOURCES_OF_TRUTH.includes(file)) continue;
-      found.push(...offendersIn(file, readFileSync(abs, "utf8")));
+      let text: string;
+      try {
+        text = readFileSync(abs, "utf8");
+      } catch {
+        continue; // vanished between listing and read — see walk()
+      }
+      found.push(...offendersIn(file, text));
     }
   }
   return found;

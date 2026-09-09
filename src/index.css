@@ -2160,6 +2160,20 @@ button,
    backdrop-filter that Tailwind's `backdrop-blur` utility omits (the
    Capacitor / older-Safari webview needs it). Per-modal layout — gap,
    padding, max-height — stays at the call site. */
+/* The apply step's action row (ApplyBody). Sticks to the bottom of the
+   scrolling .glass-modal it lives in; painted the modal's own surface so the
+   note field scrolls under it rather than showing through. Dark rule below
+   mirrors .glass-modal's dark fill. */
+.sheet-sticky-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background-color: hsl(var(--background));
+}
+[data-theme="dark"] .sheet-sticky-actions {
+  background-color: hsl(20 12% 13%);
+}
+
 .glass-modal {
   border: 1px solid hsla(0, 0%, 100%, 0.3);
   /* Bumped from 0.85 (owner, 2026-08-30: "the background feels darker than

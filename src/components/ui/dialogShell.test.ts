@@ -1013,9 +1013,10 @@ describe("Popup grammar — footer", () => {
       "No Thanks",
       "Keep It On",
       "Keep the Job",
-      // DisputedSection: declining to withdraw a live dispute — the job stays
-      // disputed, not cancelled. This is an invitation being declined, not a
-      // confirm-cancel.
+      // DisputedSection's withdraw confirm ("Withdraw this dispute?"). Same
+      // grammar as "Keep the Job": the secondary names the state that is
+      // KEPT, because "Cancel" beside "Withdraw" reads as cancelling the
+      // dispute — the exact opposite of what the button does.
       "Keep It Open",
       "Close",
       // DeleteAccountDialog's post-deletion confirmation. "Cancel" would be a

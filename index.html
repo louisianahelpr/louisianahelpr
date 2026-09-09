@@ -49,7 +49,7 @@
          less-restrictive CSP header from vercel.json — and when both are
          present the browser INTERSECTS them per W3C CSP spec, silently
          blocking PostHog, OpenAI, Stripe checkout iframes, etc. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'unsafe-inline' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'unsafe-inline' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -58,62 +58,41 @@
     <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest?v=helpr2" />
 
-    <!-- Performance: preconnect + font load tuned for LCP.
-         The H1 hero headline uses Bodoni Moda (display font) and is the LCP
-         element on desktop. The previous media="print"+onload="this.media='all'"
-         swap delayed the font CSS request until AFTER the JS bundle parsed,
-         causing the LCP H1 to repaint late and tanking the desktop Real
-         Experience Score (74 / "Needs Improvement"). Fix: load the font CSS
-         as a normal blocking stylesheet. `display=swap` (in the URL) keeps
-         fallback text visible immediately so FCP isn't blocked, while letting
-         the LCP text settle into Bodoni Moda as soon as the woff2 lands —
-         which now starts in parallel with the preload below instead of
-         waiting on the JS parse.
+    <!-- Fonts are SELF-HOSTED (public/fonts, @font-face at the top of
+         src/index.css) as of 2026-09-09. There is deliberately no Google
+         Fonts stylesheet and no font-CDN preconnect here any more, and
+         nothing should reintroduce one: this app ships inside a WKWebView in
+         an .ipa, so on a fresh install and on every offline launch the
+         cross-origin fetch could not win and the hero H1 painted in Georgia. The old comment block here argued at length about
+         display=swap vs display=optional vs a media="print"+onload swap —
+         all three were arguments about how to lose that race gracefully. The
+         race is gone; the woff2 ships with the binary.
 
-         This fix was originally landed in PR #222 then accidentally reverted
-         by PR #223 (which carried a stale index.html block on its branch).
-         Do NOT reintroduce the print/onload pattern — see guardrail below. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+         Two preloads only, both for the LCP path: the Bodoni Moda latin
+         face (the hero H1) and the Montserrat latin face (everything else
+         above the fold). The remaining faces — latin-ext for both, Bodoni
+         italic, Beth Ellen — are left to the @font-face fetch; preloading
+         them competes with the LCP for bandwidth and none of them is on the
+         first paint. `crossorigin` is REQUIRED on a font preload even
+         same-origin: fonts are fetched in CORS mode, and a preload without it
+         is a second, wasted download rather than a warm cache hit. -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/bodoni-moda-normal-latin.woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/montserrat-normal-latin.woff2"
+      crossorigin
+    />
     <!-- Preconnect to Supabase to shorten the longest network dependency chain (LCP/data fetches) -->
     <link rel="preconnect" href="https://fncmgoasalhdgfwzhsqa.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://fncmgoasalhdgfwzhsqa.supabase.co" />
-    <!-- Preload + stylesheet for the editorial font stack. The preload kicks
-         off the CSS fetch at highest priority; the stylesheet link below
-         consumes that response without re-fetching. `display=swap` in the URL
-         paints fallback text immediately AND swaps in Bodoni Moda whenever the
-         woff2 lands, however late that is.
-
-         This was `display=optional` until 2026-08-10. `optional` sounds
-         permissive but is the strictest value there is: ~100ms block, then if
-         the font hasn't arrived the browser commits to the fallback for the
-         WHOLE page view and never swaps. On a cold cache over mobile a web
-         font essentially never wins that race, so first-time visitors saw the
-         hero H1 — the largest brand asset the product has — render in Georgia,
-         permanently. It bought a Lighthouse CLS score with the brand's first
-         impression. Do NOT put `optional` back; if CLS regresses, self-host the
-         single Bodoni 900 weight the hero needs as a preloaded woff2 instead.
-         Do NOT reintroduce media="print"+onload swap here — it delays the
-         font request behind JS-parse and regresses LCP. -->
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,700;0,900;1,700&family=Montserrat:wght@400;500;600;700&display=swap"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,700;0,900;1,700&family=Montserrat:wght@400;500;600;700&display=swap"
-    />
-    <!-- Beth Ellen is the handwritten signature accent (dashboard greeting
-         name). It MUST actually render — `display=optional` would let the
-         browser permanently fall back to the generic `cursive` (system Snell
-         Roundhand/Apple Chancery) whenever the font isn't already cached on
-         first paint. `display=swap` guarantees it swaps in once downloaded. It is not the LCP element, so the swap costs
-         nothing visually. -->
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Beth+Ellen&display=swap"
-    />
 
     <!-- Hero image preloads intentionally removed 2026-05-19.
          The hero used to render a photographic <img> (hero-courtyard-*.webp),

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { successToast } from "@/lib/toast";
-import { hapticLight } from "@/lib/haptics";
+import { hapticLight, hapticError } from "@/lib/haptics";
 
 interface SaveHelperButtonProps {
   helperId: string;
@@ -89,6 +89,7 @@ const SaveHelperButton = ({
       // Revert on failure so the persisted state stays consistent.
       setSaved(previousSaved);
       onChange?.(previousSaved);
+      hapticError();
       toast.error(previousSaved ? "Couldn't unsave Helpr — try again?" : "Couldn't save Helpr — try again?");
     } else if (nextSaved) {
       successToast("Saved to your Helprs", {

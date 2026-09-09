@@ -5,6 +5,7 @@ import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Home, ClipboardList, MessageSquare, User, Send, Plus } from "lucide-react";
 import { safeStorage, ensureHydrated } from "@/lib/safeStorage";
+import { fetchTourCompletion, markTourCompleted } from "@/lib/onboardingTourCompletion";
 import { HelprMark } from "@/components/HelprMark";
 
 type TourStep = {
@@ -191,28 +192,92 @@ const OnboardingTour = ({ profileComplete = false, userId, onActiveChange }: Onb
       setPending(false);
       return;
     }
-    // `getState()` reads localStorage synchronously, but on native the
-    // durable Preferences mirror hasn't necessarily copied back into
-    // localStorage yet at this point — main.tsx renders the app before
-    // `hydrateStorage()` resolves, to avoid blocking first paint. Reading
-    // pre-hydrate can see a stale "not completed" even though the account
-    // finished the tour, re-showing it after eviction/relaunch. Wait for
-    // hydration so this decision uses the durable value.
+    // TWO sources, and only one of them is the truth.
+    //
+    // Device storage (`getState`) is a fast local HINT: it is read
+    // synchronously, and on native the durable Preferences mirror may not have
+    // copied back into localStorage yet (main.tsx renders before
+    // `hydrateStorage()` resolves), so we still wait for `ensureHydrated()`
+    // before trusting it. What it CANNOT do is survive a reinstall or a fresh
+    // TestFlight build — which is why long-standing accounts kept being shown
+    // the whole tour again on a clean install. The account column
+    // `profiles.onboarding_tour_completed_at` is the source of truth.
+    //
+    // The hint still earns its place: it stops the card flashing for someone
+    // who completed the tour seconds ago while the account read is in flight,
+    // and it is the fallback during the deploy-lag window before the migration
+    // has landed.
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     ensureHydrated()
-      .then(() => {
+      .then(async () => {
         if (cancelled) return;
         const hydrated = getState(userId);
         setState(hydrated);
-        if (hydrated.completed) {
-          setPending(false);
+
+        // Signed out (or mid-session-restore): nothing to ask the server about.
+        if (!userId) {
+          if (hydrated.completed) {
+            setPending(false);
+            return;
+          }
+          timer = setTimeout(() => setVisible(true), 1500);
           return;
         }
-        timer = setTimeout(() => setVisible(true), 1500);
+
+        const account = await fetchTourCompletion(userId);
+        if (cancelled) return;
+
+        switch (account.status) {
+          case "completed":
+            // Truth says done. Adopt it locally so the next launch short-
+            // circuits without a round trip.
+            if (!hydrated.completed) {
+              const adopted = { ...hydrated, completed: true };
+              saveState(userId, adopted);
+              setState(adopted);
+            }
+            setPending(false);
+            return;
+
+          case "not_completed":
+            if (hydrated.completed) {
+              // SELF-HEAL. This device remembers a completion the account never
+              // recorded — every user who finished the tour before this shipped.
+              // There is no backfill for that (the record only ever existed on
+              // the handset), so the first dashboard visit after this change
+              // migrates it. Fire-and-forget: it never throws, and a failure
+              // just means we try again next visit.
+              void markTourCompleted(userId);
+              setPending(false);
+              return;
+            }
+            timer = setTimeout(() => setVisible(true), 1500);
+            return;
+
+          case "unavailable":
+            // Deploy-lag window: the column is not in PostgREST's schema cache
+            // yet. Behave exactly as before this change — device hint only.
+            if (hydrated.completed) {
+              setPending(false);
+              return;
+            }
+            timer = setTimeout(() => setVisible(true), 1500);
+            return;
+
+          case "error":
+            // We could not establish the truth (offline, RLS, no profile row).
+            // "Don't know" must never render as "never completed" — that is the
+            // spurious re-show this whole change exists to stop. Stay quiet this
+            // session; the tour is not urgent and will be offered next launch.
+            setPending(false);
+            return;
+        }
       })
-      // A storage read that never resolves must not permanently suppress the
-      // dialog queued behind this one.
+      // `ensureHydrated()` is the only thing here that can still reject — the
+      // account lookup swallows its own failures. A storage read that never
+      // resolves must not permanently suppress the dialog queued behind this
+      // one (BirthdayPopup waits on `pending`).
       .catch(() => {
         if (!cancelled) setPending(false);
       });
@@ -226,6 +291,19 @@ const OnboardingTour = ({ profileComplete = false, userId, onActiveChange }: Onb
     onActiveChange?.(pending);
   }, [pending, onActiveChange]);
 
+  /**
+   * Stamp completion on the ACCOUNT as well as the device.
+   *
+   * Fire-and-forget by design: `markTourCompleted` never throws and never
+   * blocks the dismissal the user just made. If the write is lost (offline,
+   * deploy lag) the device copy still hides the tour, and the self-heal branch
+   * in the effect above re-attempts it on the next dashboard visit.
+   */
+  const persistCompletion = useCallback(() => {
+    if (!userId) return;
+    void markTourCompleted(userId);
+  }, [userId]);
+
   const updateState = useCallback((updates: Partial<OnboardingState>) => {
     setState(prev => {
       const next = { ...prev, ...updates };
@@ -238,6 +316,7 @@ const OnboardingTour = ({ profileComplete = false, userId, onActiveChange }: Onb
   // See handleDialogOpenChange below.
   const handleSkip = () => {
     updateState({ completed: true });
+    persistCompletion();
     setVisible(false);
     setPending(false);
   };
@@ -266,6 +345,7 @@ const OnboardingTour = ({ profileComplete = false, userId, onActiveChange }: Onb
 
   const finishTour = () => {
     updateState({ completed: true, completedSteps: steps.map((s) => s.id) });
+    persistCompletion();
     setVisible(false);
     setPending(false);
   };

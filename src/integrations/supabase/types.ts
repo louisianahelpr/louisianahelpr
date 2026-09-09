@@ -2762,6 +2762,7 @@ export type Database = {
           marketing_consent: boolean
           onboarding_fee_charged_at: string | null
           onboarding_fee_paid: boolean
+          onboarding_tour_completed_at: string | null
           parish: string | null
           parish_source: string | null
           phone: string | null
@@ -2865,6 +2866,7 @@ export type Database = {
           marketing_consent?: boolean
           onboarding_fee_charged_at?: string | null
           onboarding_fee_paid?: boolean
+          onboarding_tour_completed_at?: string | null
           parish?: string | null
           parish_source?: string | null
           phone?: string | null
@@ -2968,6 +2970,7 @@ export type Database = {
           marketing_consent?: boolean
           onboarding_fee_charged_at?: string | null
           onboarding_fee_paid?: boolean
+          onboarding_tour_completed_at?: string | null
           parish?: string | null
           parish_source?: string | null
           phone?: string | null

@@ -100,6 +100,7 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
 
     setDenying(false);
     setReason("");
+    toast.success(`${formatName(profile.full_name)} denied — they've been notified.`);
     onSuccess?.();
     onClose();
   };

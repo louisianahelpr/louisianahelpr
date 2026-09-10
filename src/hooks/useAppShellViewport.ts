@@ -148,7 +148,7 @@ export const isDocumentScrollRoute = (pathname: string) => {
  * kicks in. Matches Tailwind's `lg` breakpoint so `lg:` utilities and this
  * gate stay in lockstep.
  */
-/* 900, not 1024. The desktop website — left rail, wide layout — used to begin
+/* 900, not 1024. The desktop website — right rail, wide layout — used to begin
    at 1024, which meant a docked browser pane (commonly 600-1020px) never
    qualified and always got the phone/tablet treatment. Lowered so a normal
    split-screen window gets the real desktop site.
@@ -191,8 +191,10 @@ export const useAppShellViewport = () => {
         html.classList.add("app-shell");
       }
       // Mirror the DesktopSidebarNav's own visibility gate onto <html> so the
-      // CSS that insets pages from the fixed left rail turns on/off with the
-      // rail itself. The gate MUST include `!!user`, exactly like the rail's
+      // CSS that insets pages from the fixed RIGHT rail turns on/off with the
+      // rail itself. (Both of these said "left" until 2026-09-10; the only two
+      // rail insets in the stylesheet are `right:` on `.app-shell-frame` and
+      // `padding-right:` on `#root`. There is no left inset anywhere.) The gate MUST include `!!user`, exactly like the rail's
       // render gate (DesktopSidebarNav) and the marketing Navbar's step-aside
       // gate — otherwise a guest-reachable rail route (e.g. /browse, which
       // bounces authed users away, so its visitor is ALWAYS logged out) insets

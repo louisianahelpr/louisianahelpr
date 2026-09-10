@@ -385,7 +385,7 @@ serve(async (req) => {
 
       // Check if the poster owes the one-time onboarding fee (first job post) and
       // resolve their OWN subscription tier so the service fee follows the
-      // 12/11/10/8 ladder — one user, one tier, one percent, whichever side of
+      // 12/11/10/9/8 ladder — one user, one tier, one percent, whichever side of
       // the job they are on.
       // If that read fails, the fee falls back to the FREE-tier rate — see the
       // fallback expression below for why it is not the global setting.

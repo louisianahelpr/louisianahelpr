@@ -13,7 +13,9 @@
 // sales tax — about 9-11%" applied to the WHOLE charge, and an "Estimated
 // total" range built from it. But create-payment marks the service fee, the
 // urgent tip and the one-time setup fee `txcd_00000000` (non-taxable), and
-// marks the labor line taxable only for `assembly`. So on a typical job Stripe
+// marks the labor line taxable only for the categories in TAXABLE_CATEGORIES
+// below — `assembly` AND `handyman` (this said "only `assembly`" until
+// 2026-09-10). So on a typical job Stripe
 // charges exactly ZERO sales tax — the screen quoted $118.16-$120.32 for a
 // charge of $108.40. The two totals the owner saw side by side were the
 // invented estimate and the real one.

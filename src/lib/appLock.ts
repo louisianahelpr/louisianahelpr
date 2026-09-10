@@ -167,9 +167,14 @@ export function setAppLockEnabled(enabled: boolean): void {
   } catch {
     // Silent by design, and in practice unreachable: every access here goes
     // through safeStorage, which already swallows the private-mode/quota
-    // throw internally. This outer catch is belt-and-braces. Failing to
-    // PERSIST the preference is also the safe direction — an unreadable lock
-    // state locks.
+    // throw internally. This outer catch is belt-and-braces.
+    //
+    // This used to claim "an unreadable lock state locks". It does NOT, and
+    // the header is the accurate one: the lock is OPT-IN and fails OPEN on
+    // the setting. A failed PERSIST leaves the key absent, so the
+    // `getItem(...) === "1"` read in isAppLockEnabled is false and the app
+    // stays UNLOCKED — same answer as that reader's own catch, ten lines
+    // above, which returns false on purpose.
   }
 }
 
@@ -189,9 +194,15 @@ export function getAppLockGraceMs(): number {
     if (!Number.isFinite(parsed) || !ALLOWED_GRACE_MS.has(parsed)) return APP_LOCK_GRACE_MS;
     return parsed;
   } catch {
-    // Silent by design: an unreadable grace period falls back to the shortest
-    // sanctioned default, the most conservative answer available — it can
-    // only make the lock prompt sooner, never later.
+    // Silent by design: an unreadable grace period falls back to
+    // APP_LOCK_GRACE_MS, the DEFAULT window — which is the middle of the
+    // three offered options, not the shortest. This used to say "the
+    // shortest sanctioned default … it can only make the lock prompt
+    // sooner, never later", and that is wrong in one direction that
+    // matters: for a user who deliberately chose "Immediately" (ms: 0),
+    // an unreadable or corrupt value silently WIDENS their window to 60s.
+    // Falling back to 0 instead would be the strictly conservative answer;
+    // that is a behaviour change, deliberately not made here.
     return APP_LOCK_GRACE_MS;
   }
 }

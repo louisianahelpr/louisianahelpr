@@ -23,7 +23,7 @@ const PAID_CONSUMER_TIERS: SubscriptionTier[] = ["basic", "pro", "elite"];
 const ALL_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
 
 describe("TIER_PERKS fee model", () => {
-  it("uses the documented platform fee per tier (12 / 11 / 10 / 8)", () => {
+  it("uses the documented platform fee per tier (12 / 11 / 10 / 9 / 8)", () => {
     expect(TIER_PERKS.free.platformFeePercent).toBe(12);
     expect(TIER_PERKS.basic.platformFeePercent).toBe(11);
     expect(TIER_PERKS.pro.platformFeePercent).toBe(10);

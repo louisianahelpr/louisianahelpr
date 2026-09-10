@@ -50,8 +50,13 @@
 //   WIDE   — always the address. `ipMaxRequests` per `windowMs`, defaulting to
 //            ten times the narrow limit.
 //
-// WHY THE SUBJECT IS TRUSTWORTHY AND A HEADER IS NOT. 33 of this project's 36
-// configured functions run with `verify_jwt = true`, so the Supabase gateway
+// WHY THE SUBJECT IS TRUSTWORTHY AND A HEADER IS NOT. `verify_jwt = true` is
+// the gateway DEFAULT, and 28 of the 71 function dirs declare no stanza at
+// all, so most functions here run with it. (This said "33 of this project's 36
+// configured functions" until 2026-09-10; config.toml holds 43 stanzas, 42 of
+// them `false` — close to backwards. The conclusion survives for the callers
+// that matter: of the 18 importers, only the three named below declare
+// `false`.) Where it is on, the Supabase gateway
 // has already validated the token's signature before the handler is entered —
 // the `sub` claim is the platform's assertion, not the caller's. The decode
 // below is therefore a read of an already-verified claim, not an act of trust.

@@ -129,12 +129,15 @@ const NotificationPreferences = () => {
         console.error("[NotificationPreferences] failed to load preferences:", error);
         toast.error("Couldn't load notification preferences — try again?");
       } else if (data) {
-        // Cast through `any` because the generated supabase/types.ts
-        // doesn't include `quiet_start` / `quiet_end` until the new
-        // migration is applied + types are regenerated. The column is
-        // safe to read either way (Postgres returns NULL when absent
-        // on an older deploy, and the upsert below selectively writes
-        // only the keys we care about).
+        // The cast is a LEFTOVER, not a requirement. It was added while
+        // `quiet_start` / `quiet_end` were still absent from the generated
+        // types; they have since been regenerated and both columns are
+        // present (src/integrations/supabase/types.ts, `quiet_end` /
+        // `quiet_start` on notification_preferences). Reading through
+        // Record<string, unknown> is still safe — Postgres returns NULL when
+        // a column is absent on an older deploy, and the upsert below
+        // selectively writes only the keys we care about — but nothing here
+        // needs the widening any more.
         const row = data as Record<string, unknown>;
         setEmailMasterColumn("email_enabled" in row);
         setPrefs({

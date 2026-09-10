@@ -193,10 +193,11 @@ jobs:
       - name: Resolve run scope
         id: scope
         env:
-          # A scheduled run has no `inputs` at all. Two crons share the
+          # A scheduled run has no `inputs` at all. THREE crons share the
           # `schedule` event, so `github.event.schedule` (the exact cron
           # string that fired) disambiguates which sweep to run — Sunday
-          # 05:30 UTC -> seeded, Wednesday 05:00 UTC -> error. dispatch and
+          # 05:30 UTC -> seeded, Wednesday 05:00 UTC -> error, Friday
+          # 05:00 UTC -> overlay. dispatch and
           # push/pull_request keep their existing defaults ('empty' unless a
           # dispatch input says otherwise).
           SWEEPS: ${{ github.event.inputs.sweeps || (github.event.schedule == '30 5 * * 0' && 'seeded') || (github.event.schedule == '0 5 * * 3' && 'error') || (github.event.schedule == '0 5 * * 5' && 'overlay') || 'empty' }}

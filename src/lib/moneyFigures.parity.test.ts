@@ -28,7 +28,7 @@ import {
 
 describe("poster service fee (%) — tier-derived, not a flat rate", () => {
   // SOURCE OF TRUTH: the poster's OWN subscription tier, resolved by
-  // posterFeePercentForTier (src/lib/posterFees.ts), mirroring the same 12/11/10/8
+  // posterFeePercentForTier (src/lib/posterFees.ts), mirroring the same 12/11/10/9/8
   // ladder as the helper commission. The edge authority is
   // supabase/functions/_shared/posterFees.ts and the two are guarded against
   // drift by posterFees.parity.test.ts.
@@ -58,7 +58,7 @@ describe("poster service fee (%) — tier-derived, not a flat rate", () => {
   });
 
   it("uses the SAME ladder as the helper-side tier commission", () => {
-    // Poster service fee and helper platform fee share one 12/11/10/8 ladder —
+    // Poster service fee and helper platform fee share one 12/11/10/9/8 ladder —
     // one user, one tier, one percent. Assert the source ladder so a future
     // change to one tier is caught here too.
     expect(TIER_PERKS.free.platformFeePercent).toBe(12);

@@ -44,11 +44,11 @@
 //                      action buttons registered on the iOS side
 //                      (UNNotificationCategory). Common values:
 //                        "JOB_APPLY"    → Apply, Save
-//                        "MESSAGE"      → Reply (text input)
+//                        "MESSAGE"      → Reply
 //                        "JOB_ACCEPTED" → Message, View
 //                      If not supplied, the function infers one from
 //                      `link` heuristics (e.g. /messages → MESSAGE).
-//                      iOS-side category registration is a follow-up.
+//                      Registered on iOS in AppDelegate.swift:55-83.
 //   time_sensitive   — When true, APNs payload sets
 //                      `interruption-level: "time-sensitive"` so the
 //                      notification can break through Focus / Silent

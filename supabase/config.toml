@@ -1,16 +1,27 @@
 project_id = "fncmgoasalhdgfwzhsqa"
 
 [functions]
-  # Public. It is a PRICING PREVIEW — it creates nothing, holds nothing and
-  # charges nobody; create-payment still computes the real tax via
+  # Public. It is a PRICING PREVIEW — it holds nothing and charges nobody. It
+  # DOES create a Stripe Tax Calculation object on every request (index.ts's
+  # own docblock is correctly hedged; this line said "creates nothing" until
+  # 2026-09-10), on an endpoint that is neither authenticated nor rate-limited; create-payment still computes the real tax via
   # automatic_tax. Requiring a JWT would break the quote on the post-a-job flow
   # before a session is established, and the worst a caller can do is learn the
   # sales tax on an amount in a ZIP, which is public information.
   [functions.calculate-tax]
     verify_jwt = false
-  # Public on purpose. The token this mints is locked to the requesting origin
-  # and lives one hour, so a token obtained without a session only works on
-  # this app's own domain — the same thing a visitor gets by loading the page.
+  # Public on purpose. A token minted for a BROWSER is locked to the
+  # requesting origin and lives one hour, so it only works on this app's own
+  # domain — the same thing a visitor gets by loading the page.
+  #
+  # THE LOCK IS CONDITIONAL. `originClaimFor` returns null when the request
+  # carries no `Origin` header, and index.ts then does
+  # `if (origin) payload.origin = origin` — so a caller that simply OMITS
+  # Origin gets a signed token with no origin claim, valid on any domain for
+  # an hour and re-mintable. The carve-out is deliberate (the native WebView
+  # is a capacitor:// context Apple cannot match anyway), but it IS a
+  # carve-out; this asserted an unconditional guarantee until 2026-09-10, and
+  # that guarantee is what verify_jwt = false rests on.
   # Requiring a JWT would instead break maps for the guest-visible surfaces and
   # add a failure mode inside the native WebView, where the anon session is not
   # always established before the first map mounts.
@@ -154,7 +165,12 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   # auto-tip-charge: charges a poster's saved card off-session after a job
   # completes, invoked only by pg_cron. Same posture as its 12 cron siblings
-  # above; it was the ONE that never got a stanza.
+  # above. This said it was "the ONE that never got a stanza"; as of
+  # 2026-09-10 three cron-invoked functions still have none —
+  # daily-match-digest, saved-helper-availability-push and str-ical-sync — so
+  # they run on the gateway default verify_jwt = true and reach their handler
+  # only because pg_cron sends the vault service_role_key, which IS a JWT.
+  # That is the accident this file warns against relying on.
   #
   # Prod already runs it with verify_jwt=false, so this changes no behaviour —
   # it makes the gate reproducible from the repo instead of an artefact of

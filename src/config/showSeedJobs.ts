@@ -29,8 +29,9 @@
  *    shipped bundle does. Flipping it for iOS means a build, a submission and
  *    App Review; the web would flip immediately and the native app days later.
  *    "Every public surface stops showing fixtures" would be false on the
- *    surface that matters most for as long as review takes. Same reason
- *    `src/lib/featureFlags.ts` exists.
+ *    surface that matters most for as long as review takes. Same reason the
+ *    since-deleted `src/lib/featureFlags.ts` read its switch from the database
+ *    rather than from a bundled constant.
  * 2. A CLIENT-SUPPLIED FILTER IS ONE THE CLIENT CAN DROP. That shape had just
  *    been removed from these exact three surfaces one migration earlier
  *    (20260901022522), because it was how the paid Early Access window leaked

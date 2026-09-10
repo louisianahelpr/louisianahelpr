@@ -154,7 +154,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // Waived on a gift-funded post: create-payment returns before this line
   // item exists, so quoting it would overstate the charge.
   const onboardingFeeAmount = hasGift || onboardingFeePaid ? 0 : onboardingFeeCents / 100;
-  // The poster service fee is their OWN tier percent (12/11/10/8), floored at
+  // The poster service fee is their OWN tier percent (12/11/10/9/8), floored at
   // Stripe's real processing cost on the whole transaction so a tiny job can
   // never lose the platform money to fees. Compute in cents via the same
   // authority the create-payment edge function uses (posterFees), so the shown

@@ -3,7 +3,7 @@
 // `create-payment` edge function will charge.
 //
 // The poster's own subscription tier sets the service-fee percentage, using the
-// SAME 12 / 11 / 10 / 8 ladder the helper commission uses — one user, one tier,
+// SAME 12 / 11 / 10 / 9 / 8 ladder the helper commission uses — one user, one tier,
 // one percent — sourced from `TIER_PERKS` in `subscriptionTiers.ts`.
 // The collected fee is floored at Stripe's real processing cost on the whole
 // transaction so a tiny job can never lose the platform money to fees.
@@ -42,7 +42,7 @@ export function posterFeePercentForTier(
  * edge authority.
  *
  * @param budgetCents        job budget in cents
- * @param feePercent         the poster's resolved tier fee percent (12/11/10/8)
+ * @param feePercent         the poster's resolved tier fee percent (12/11/10/9/8)
  * @param otherChargeCents   sum of every OTHER charged line item, in cents
  */
 export function posterServiceFeeCents(

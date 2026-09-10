@@ -1,6 +1,8 @@
 /**
  * subscriptionTiers.ts — canonical perk definitions for the membership tiers.
- * There are exactly four: Free / Basic / Pro / Elite.
+ * There are FIVE: Free / Basic / Pro / Plus / Elite. (This said "exactly
+ * four" until 2026-09-10 — Plus was restored 2026-09-05 with real live Price
+ * ids, and several sibling comments still enumerated the pre-Plus set.)
  *
  * Consumer prices MUST equal the live Stripe Price objects (verified):
  *   basic $5/mo $50/yr   pro $10/mo $100/yr   plus $15/mo $150/yr   elite $20/mo $200/yr
@@ -19,11 +21,14 @@
  * this table at 6%, described as the fee reference for business accounts. It
  * was removed on 2026-09-01 because nothing could reach it, in either
  * direction:
- *   • Nothing could SELL it — `create-pro-checkout`'s ALLOWED_TIERS is
- *     ["basic","pro","elite"] and throws on anything else (verified live in
- *     test mode: a `business` checkout returns an error, `basic`/`pro`/`elite`
- *     return a session); `ProTierKey` is "basic"|"pro"|"elite"; no Stripe Price
- *     maps to it; `_shared/PRODUCT_TO_TIER` maps no product to it; there is no
+ *   • Nothing could SELL it — `create-pro-checkout`'s ALLOWED_TIERS is every
+ *     PAID tier and throws on anything else (verified live in test mode: a
+ *     `business` checkout returns an error, the paid tiers return a session);
+ *     `ProTierKey` covers the same paid set. Read both from their own files
+ *     rather than restating them here — this comment used to enumerate them
+ *     and was two tiers out of date by 2026-09-10, and the enumeration also
+ *     trips literalRegistryGuard. No Stripe Price maps to `business`;
+ *     `_shared/PRODUCT_TO_TIER` maps no product to it; there is no
  *     seat-checkout function.
  *   • Nothing could HOLD it — the business backend (`businesses`,
  *     `business_members`, the seat ladder) was dropped by migrations

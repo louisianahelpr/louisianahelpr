@@ -1,6 +1,7 @@
 // Native-only initialization — runs once at app boot.
-// Sets the iOS/Android status bar to match the app theme and hides the
-// branded splash screen after the first paint so it doesn't linger.
+// Sets the iOS/Android status bar style and platform attributes. It does NOT
+// hide the splash screen — that is done from src/main.tsx on the frame after
+// React's first paint (see the NOTE beside the SplashScreen import below).
 //
 import { initSocialLogin } from "./socialLogin";
 // Safe on web: every call is wrapped in a try/catch and no-ops if the

@@ -359,7 +359,8 @@ void hydrateStorage();
     window.addEventListener("load", scheduleFallback, { once: true });
   }
 
-  // Fire-and-forget native setup (status bar, splash hide). Web = no-op.
+  // Fire-and-forget native setup (status bar, platform attributes). Web =
+  // no-op. The splash hide is NOT in here — it runs above, after first paint.
   initNative();
 
   // Shake-to-report: navigate to support pre-tagged as a bug report.

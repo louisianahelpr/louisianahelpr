@@ -467,9 +467,14 @@ export async function handleCheckoutSessionCompleted(
   }
 
   // Handle a directed Pay-It-Forward gift — the donor's card just captured, so
-  // MINT the prepaid credit now. The webhook (service-role) is the ONLY writer
-  // of pif_credits; the client mint path was removed so a recipient can never
-  // fabricate or inflate a credit. Everything needed to mint rides in the
+  // MINT the prepaid credit now. The webhook (service-role) is the only path
+  // that MINTS a pif_credit from nothing; the client mint path was removed so
+  // a recipient can never fabricate or inflate a credit. (This said "the ONLY
+  // writer of pif_credits" until 2026-09-10 — five other writers MUTATE
+  // existing rows: claim-pif-credit, checkoutSessionExpired, and the
+  // redeem/restore RPCs plus the deletion anonymisers. The security clause
+  // still holds — those RPCs are revoked from anon and authenticated — but
+  // "the ONLY writer" is what would stop the next auditor enumerating them.) Everything needed to mint rides in the
   // session metadata set by create-pif-donation.
   if (kind === "pif_donation") {
     const donorId = (session.metadata as any)?.donor_id as string | undefined;

@@ -19,9 +19,11 @@ import { safeInternalRedirect } from "@/lib/authRedirects";
  * safeStorage key can: `trackKey` mirrors it into Capacitor Preferences, so it
  * outlives both a reload and an app restart.
  *
- * Consumed at exactly two points, both of which are "the moment a session
- * first exists": Login's post-sign-in redirect and Signup's
- * already-authenticated bounce. Reading is destructive (`takeJobIntent`) so a
+ * Consumed at THREE points. Two are "the moment a session first exists" —
+ * Login's post-sign-in redirect and Signup's already-authenticated bounce.
+ * The third is not: AccountPending spends the stored `?redirect=` target when
+ * an ALREADY signed-in pending account is approved. That consumer was added
+ * later, and this said "exactly two points" until 2026-09-10. Reading is destructive (`takeJobIntent`) so a
  * stale intent can never hijack a later, unrelated sign-in.
  */
 const KEY = "helpr.jobIntent";
@@ -112,8 +114,10 @@ export function signupUrlFor(path?: string | null): string {
  * The guest save hook (owner, 2026-08-24): a logged-out visitor tapping the
  * bookmark shouldn't dead-end — the tap is the strongest interest signal a
  * guest can give. Same storage rules as the job intent above (tracked key,
- * survives the verification round-trip, destructive read), consumed by
- * `consumePendingSave` from the authed bounce targets.
+ * survives the verification round-trip, destructive read), consumed via
+ * `takePendingSave` from the authed bounce targets — the reader is wired up
+ * in `src/hooks/usePendingSaveConsumer.ts`. (There is no `consumePendingSave`;
+ * this named one until 2026-09-10.)
  */
 const SAVE_KEY = "helpr.pendingSaveJob";
 trackKey(SAVE_KEY);

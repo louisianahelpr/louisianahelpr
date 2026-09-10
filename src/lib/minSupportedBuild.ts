@@ -11,14 +11,21 @@ import { supabase } from "@/integrations/supabase/client";
  * binaries stop letting anyone in.
  *
  * ─────────────────────────────────────────────────────────────────────────
- * THIS FILE FAILS **OPEN**, AND THAT IS THE OPPOSITE OF ITS NEIGHBOUR.
+ * THIS FILE FAILS **OPEN**, AND THAT WAS THE OPPOSITE OF ITS NEIGHBOUR.
  *
- * `lib/featureFlags.ts` fails CLOSED on purpose: a dropped read there must not
+ * `lib/featureFlags.ts` failed CLOSED on purpose: a dropped read there must not
  * lift a compliance gate, because nothing visibly breaks when a gate stops
- * gating. Read that file for the shape of the cache — TTL, in-flight dedupe,
- * a single quiet catch — because this one deliberately copies it. Then read
- * this paragraph, because the direction of the fallback is inverted and the
- * inversion is the entire safety property.
+ * gating. The shape of the cache here — TTL, in-flight dedupe, a single quiet
+ * catch — was copied from it deliberately, with the direction of the FALLBACK
+ * inverted, and that inversion is the entire safety property.
+ *
+ * DO NOT GO LOOKING FOR THAT FILE. `featureFlags.ts` and its test were deleted
+ * on 2026-09-07 (8105570c0, "A safety gate with an off switch is a safety gate
+ * with a hole") when the last flag it carried, `idv_requirement_paused`, was
+ * removed and identity verification became unconditional. The asymmetry it
+ * illustrated is why this paragraph survives it: a compliance gate must fail
+ * CLOSED, a force-update gate must fail OPEN, and the two must never be
+ * reasoned about with the same instinct.
  *
  * A force-update gate that blocks when its own read fails is an outage you
  * cannot fix remotely. Supabase down, captive wifi, an airport hotspot, a
@@ -40,7 +47,8 @@ import { supabase } from "@/integrations/supabase/client";
  */
 
 /**
- * Same 60s window as `featureFlags.ts`, for the same reason and one more.
+ * Same 60s window the deleted `featureFlags.ts` used (see the header), for the
+ * same reason and one more.
  * The shared reason: this sits on a hot path where a round trip is felt
  * directly — here it is the app-start path, so the cost is paid in
  * time-to-first-screen on every launch. The extra reason: a short TTL is what
@@ -129,8 +137,8 @@ export async function readMinSupportedBuild(): Promise<number> {
       const row = Array.isArray(data) ? data[0] : data;
       // `min_supported_build` arrives only once migration 20260901035235 has
       // deployed. Until then the key is simply absent, which normalizes to
-      // GATE_OFF without a special case — the same shape featureFlags.ts uses
-      // for its own deploy-lag window.
+      // GATE_OFF without a special case — the same shape the since-deleted
+      // featureFlags.ts used for its own deploy-lag window.
       const value = normalizeMinBuild(
         (row as { min_supported_build?: unknown } | null | undefined)?.min_supported_build,
       );

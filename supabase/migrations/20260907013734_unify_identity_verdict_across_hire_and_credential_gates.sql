@@ -207,8 +207,15 @@ $function$;
 COMMENT ON FUNCTION public.get_user_credential_tier(uuid) IS
   'Credential tier 0-3. Tier 1 (identity) is satisfied by Stripe Connect''s verdict, the legacy id_verification_status, OR Stripe Identity (idv_status) — the last was missing, leaving genuinely ID-verified helpers at tier 0 and hidden from credential-gated jobs.';
 
--- Grants are NOT inherited by CREATE OR REPLACE, but Supabase's
--- ALTER DEFAULT PRIVILEGES grants EXECUTE on every new public function to anon,
+-- CREATE OR REPLACE PRESERVES the existing ACL (only DROP + CREATE resets it),
+-- so the statements below are a deliberate restatement rather than a
+-- re-grant. This block said "Grants are NOT inherited by CREATE OR REPLACE"
+-- until 2026-09-10 — backwards, and against six siblings that state the rule
+-- correctly (20260520204909, 20260609150000, 20260829030000, 20260831232513,
+-- 20260908020801, 20260908024646).
+--
+-- The half that matters is unchanged and is why the roles are named: Supabase's
+-- ALTER DEFAULT PRIVILEGES grants EXECUTE on every NEW public function to anon,
 -- authenticated AND service_role individually. REVOKE ... FROM PUBLIC does not
 -- touch those, so name the roles explicitly — see CLAUDE.md.
 REVOKE ALL ON FUNCTION public.helper_award_block_reason(uuid) FROM PUBLIC, anon;

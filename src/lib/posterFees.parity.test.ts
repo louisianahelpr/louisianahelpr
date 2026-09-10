@@ -22,7 +22,7 @@ describe("poster-fee tier ladder + Stripe floor parity (UI ↔ edge)", () => {
     }
   });
 
-  it("encodes the agreed 12 / 11 / 10 / 8 ladder from the free/paid tiers", () => {
+  it("encodes the agreed 12 / 11 / 10 / 9 / 8 ladder from the free/paid tiers", () => {
     expect(uiPosterFeePercentForTier("free")).toBe(12);
     expect(uiPosterFeePercentForTier("basic")).toBe(11);
     expect(uiPosterFeePercentForTier("pro")).toBe(10);

@@ -209,7 +209,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         .not("payment_status", "in", "(unpaid,abandoned)")
         .then(({ count }) => { setOpenJobCount(count ?? 0); });
       // Whether this poster still owes the one-time setup fee, and their own
-      // subscription tier — so the shown service fee (12/11/10/8) and total match
+      // subscription tier — so the shown service fee (12/11/10/9/8) and total match
       // what the create-payment edge function will actually charge. The global
       // customer_fee_percent fetched above stays as the fallback if no row.
       supabase

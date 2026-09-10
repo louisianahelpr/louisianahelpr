@@ -2,7 +2,7 @@
 // at checkout, for the Deno edge runtime.
 //
 // The poster's own subscription tier sets the service-fee percentage, using the
-// SAME 12 / 11 / 10 / 8 ladder as the helper-side commission — one user, one
+// SAME 12 / 11 / 10 / 9 / 8 ladder as the helper-side commission — one user, one
 // tier, one percent. We reuse `feePercentForTier` from `helperFees.ts` so there
 // is exactly one fee ladder in the edge runtime and one parity test
 // (`src/lib/helperFees.parity.test.ts`) guarding it against
@@ -52,7 +52,7 @@ export function posterFeePercentForTier(
  * loss on fees for a tiny job.
  *
  * @param budgetCents        job budget in cents (the taxable/escrowed amount)
- * @param feePercent         the poster's resolved tier fee percent (12/11/10/8)
+ * @param feePercent         the poster's resolved tier fee percent (12/11/10/9/8)
  * @param otherChargeCents   sum of every OTHER charged line item, in cents
  */
 export function posterServiceFeeCents(

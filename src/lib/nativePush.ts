@@ -342,9 +342,11 @@ export function useNativePushSetup() {
         // `@/lib/deepLinkRoute` so the routing table is unit-tested
         // independently of Capacitor's bridge, and so the AASA path
         // claims in public/.well-known/apple-app-site-association and
-        // the JS routing stay in sync (both files reference the same
-        // set of paths: /jobs/*, /j/*, /user/*, /u/*, /messages/*,
-        // /m/*, /legal*, /post-job*).
+        // the JS routing stay in sync. Do NOT enumerate that path set
+        // here — this comment used to, listing eight paths when the
+        // AASA claims thirty-three, and the copy rotted the moment the
+        // link census expanded it. `src/test/aasaRouteParity.test.ts`
+        // is the authority: it derives both sides and fails on drift.
         //
         // STRICT host check: on TestFlight cold-install, Capacitor
         // sometimes fires appUrlOpen with the install-source URL on

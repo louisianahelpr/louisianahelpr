@@ -27,7 +27,9 @@ afterEach(() => {
 
 /**
  * The whole file asserts ONE property from many angles, and it is the inverse
- * of the one lib/featureFlags.test.ts asserts: the only way this returns a
+ * of the one the deleted lib/featureFlags.test.ts asserted (that file went with
+ * featureFlags.ts on 2026-09-07 — see the header of minSupportedBuild.ts): the
+ * only way this returns a
  * blocking threshold is an operator having deliberately stored a positive
  * integer. Every other outcome — including every way the read can go wrong —
  * must return 0 and leave the app usable.

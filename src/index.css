@@ -1304,7 +1304,7 @@ html.web-desktop {
      this selector, a fixed-shell route reachable while signed OUT — /browse
      is the case, and it bounces authed users away, so its visitor is ALWAYS
      logged out — got inset 248px for a rail that never rendered: a dead
-     grey band down the left of the whole page at 1440. The document-scroll
+     grey band down the right of the whole page at 1440. The document-scroll
      twin below (`html.web-desktop.desktop-rail:not(.app-shell) #root`) has
      always been gated this way; this one was not, so the two disagreed. */
   /* Reserved only while the panel is actually OPEN.

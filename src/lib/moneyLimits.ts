@@ -4,9 +4,16 @@
  * (Legal, post-a-job wizard, budget picker, cancellation policy, new-helper
  * restrictions) MUST import from here rather than restating the value —
  * that's how the "$5 min" vs "$10 min" drift between the enforced code and
- * the binding Legal doc happened. `moneyFigures.parity.test.ts` guards
- * this: if a hardcoded literal reappears in one of the covered files,
- * that test fails.
+ * the binding Legal doc happened.
+ *
+ * THAT RECURRENCE IS NOT GUARDED. This block used to claim
+ * `moneyFigures.parity.test.ts` fails "if a hardcoded literal reappears in
+ * one of the covered files". It does not cover these constants: it imports
+ * only the urgent-fee and 1099-K figures, and its one file scan is a single
+ * regex over EarningsTab.tsx for the 1099-K prose. No test anywhere imports
+ * MIN_JOB_BUDGET_DOLLARS or LATE_CANCEL_PERCENT. The import rule above is a
+ * convention held by review, not by CI — treat it that way until someone
+ * extends the parity test to these figures.
  */
 
 /** Minimum job budget a poster may set (whole dollars).

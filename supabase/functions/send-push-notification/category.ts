@@ -10,7 +10,7 @@
 // contract — both sides must agree on the spelling.
 //
 //   JOB_APPLY    → Apply, Save           (browse-notifications)
-//   MESSAGE      → Reply (text input)    (incoming chat messages)
+//   MESSAGE      → Reply                 (incoming chat messages)
 //   JOB_ACCEPTED → Message, View         (a job you are already on)
 //
 // Future categories should be added here AND registered on the iOS
@@ -54,12 +54,19 @@ export type PushCategory = 'JOB_APPLY' | 'MESSAGE' | 'JOB_ACCEPTED'
  * and APNs renders an absent or unknown category as a plain tappable
  * notification.
  *
- * NOTE: none of this reaches a device yet. The UNNotificationCategory /
- * UNNotificationAction registration this contract depends on does not exist
- * anywhere in the iOS project — grep JOB_APPLY outside these two files and
- * there are no hits — so APNs currently drops every identifier below. The
- * inference being right is a precondition for that registration, not a
- * substitute for it.
+ * THE iOS REGISTRATION NOW EXISTS. This note used to say the opposite — that
+ * no UNNotificationCategory / UNNotificationAction registration existed
+ * anywhere in the iOS project and APNs therefore dropped every identifier
+ * below. That has been false since `ios/App/App/AppDelegate.swift:55-83`
+ * landed: it builds all three categories with the exact spellings here and
+ * registers them in the app's ONE `setNotificationCategories` call.
+ *
+ * Two things follow, and both matter more than the correction itself.
+ * `setNotificationCategories` REPLACES the whole set, so a second call added
+ * "to register the missing categories" silently unregisters these — do not
+ * add one. And MESSAGE's Reply is a plain `UNNotificationAction`, NOT a text
+ * input: AppDelegate deliberately does not register `UNTextInputNotification-
+ * Action` because nothing consumes the typed string.
  */
 export function inferCategoryFromLink(link: string | null | undefined): PushCategory | undefined {
   // Strip the query string first: many live links carry `?job=<uuid>`.

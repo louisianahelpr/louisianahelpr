@@ -461,13 +461,13 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
               >
                 {/* A single lifted pill that slides between tabs via framer's
                     shared-layout (`layoutId`) — only the active trigger mounts
-                    it, so switching documents animates the pill across rather
-                    than hopping. `btn-grad-primary` is the shared primary-CTA
-                    surface, so the selected document reads as a glossy primary
-                    control and can never drift from the canonical gradient.
-                    Distinct layoutId from /legal's `legalTabPill`: the two
-                    bands are never mounted together, and a shared id across
-                    routes is how a pill flies in from an unrelated screen. */}
+                    it, so switching documents animates the sliding border+shadow
+                    across. `btn-grad-primary` is the shared primary-CTA surface,
+                    so the selected document reads as a glossy primary control and
+                    can never drift from the canonical gradient. Distinct layoutId
+                    from /legal's `legalTabPill`: the two bands are never mounted
+                    together, and a shared id across routes is how a pill flies in
+                    from an unrelated screen. */}
                 {isActive && (
                   <motion.span
                     layoutId="legalDirectoryTabPill"

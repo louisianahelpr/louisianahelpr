@@ -347,7 +347,7 @@ const AdminBroadcasts = () => {
                 </div>
                 <p className="text-ds-11 text-muted-foreground mt-1">{b.message}</p>
                 <p className="text-ds-10 text-muted-foreground/60 mt-1">
-                  Expires: {new Date(b.expires_at).toLocaleString()}
+                  Expires: {new Date(b.expires_at).toLocaleString("en-US")}
                 </p>
               </div>
               <Button

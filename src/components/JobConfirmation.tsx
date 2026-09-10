@@ -432,7 +432,7 @@ export function JobConfirmation({
         {myConfirmed && (
           <p className="font-sans inline-flex items-center gap-1 text-ds-10" style={{ color: "hsl(var(--bark) / 0.85)" }}>
             <ShieldCheck className="w-3 h-3" />
-            Confirmed {new Date(myConfirmed).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+            Confirmed {new Date(myConfirmed).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
           </p>
         )}
 

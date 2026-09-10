@@ -2,6 +2,7 @@ import { TrendingUp, Gift } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { earnedRangeLabel, formatCents } from "./earningsTabHelpers";
 import { EarningsRangeToggle, type EarningsRange } from "./EarningsRangeToggle";
+import { formatShortDate } from "@/lib/format";
 // The payout hold is the cron's own constant, shared with `release-payout` and
 // `process-scheduled-payouts`. Interpolated, never restated as a literal — the
 // same rule ActiveJobSection and JobTracking follow.
@@ -176,7 +177,7 @@ export function EarningsSummaryCard({
                 of a made-up date, and take the number of hours from the same
                 constant the cron schedules on — never a retyped "24". */}
             {releasingAt
-              ? `Approved — reaches your wallet ${new Date(releasingAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+              ? `Approved — reaches your wallet ${formatShortDate(releasingAt)}`
               : `Approved — releases ${PAYOUT_HOLD_HOURS} hours after approval`}
           </span>
           <span

@@ -533,8 +533,12 @@ export function PostedJobActions({
                 </Button>
               </div>
             )}
-            {/* 48h auto-release countdown after helper marks complete
-                (matches auto-release-payment cron cutoff). */}
+            {/* AUTO_COMPLETE_HOURS auto-release countdown after the helper
+                marks complete. The deadline below reads the shared constant,
+                which is 24 — TIGHTENED from 48 on 2026-08-24. This comment
+                said "48h" on both halves until 2026-09-10; do not "restore"
+                it, that would double every poster's review window and delay
+                every helper payout by a day. */}
             {job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at && instantReleaseOn && (
               <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm" style={{ background: "hsl(var(--bark) / 0.08)", color: "hsl(var(--bark))" }}>
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />

@@ -27,7 +27,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
   // the logged-out "Log in / Get Started" pair.
   const { user } = useAuthReady();
   // On the wide desktop *website*, a signed-in visitor already has the
-  // persistent left rail (DesktopSidebarNav) on app/marketing routes the rail
+  // persistent RIGHT rail (DesktopSidebarNav) on app/marketing routes the rail
   // covers (e.g. /jobs, /browse). Showing this top marketing nav too would
   // stack two navs with a redundant "Open app" CTA — so step aside and let the
   // rail be the sole chrome. Guests keep the marketing nav (the rail's

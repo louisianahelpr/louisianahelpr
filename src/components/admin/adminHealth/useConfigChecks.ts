@@ -34,10 +34,22 @@ export interface ConfigCheck {
 /**
  * Flag keys the app actually reads. Anything else stored is a leftover.
  *
- * Empty since 2026-09-07: `idv_requirement_paused` was the last reader and the
- * owner deleted it (identity verification is now unconditional). Every key
- * still sitting in the blob is therefore a leftover, which is exactly what this
- * check is for.
+ * Emptied 2026-09-07 when `idv_requirement_paused`, the last CLIENT reader,
+ * was deleted (identity verification is now unconditional).
+ *
+ * THE "EVERY OTHER KEY IS A LEFTOVER" CONCLUSION IS WRONG, and this list is
+ * the bug, not the comment. It only ever tracked keys read from TypeScript;
+ * `seed_jobs_hidden_publicly` is read from POSTGRES —
+ * `public.seed_jobs_hidden_publicly()` (migration 20260901035245) is the sole
+ * authority for seed-job visibility and four browse surfaces call it. With
+ * this array empty the check below reports that key as "nothing reads" it,
+ * and the remedy for an orphan key is to delete it — which makes the function
+ * COALESCE to false and un-hides the demo fixtures on the public
+ * marketplace. That is the launch switch.
+ *
+ * Adding the key here is the fix; it is deliberately NOT made in this
+ * comment-only pass. Until then, treat a "Feature flags" warning naming
+ * `seed_jobs_hidden_publicly` as a false positive.
  */
 const LIVE_FLAG_KEYS: string[] = [];
 

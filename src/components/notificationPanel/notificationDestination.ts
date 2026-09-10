@@ -18,9 +18,12 @@
  *
  * `notifications.job_id` (20260901035600) is a real reference, so the
  * destination is now DERIVED at tap time from the job rather than guessed at
- * write time. This function is the one place that derivation happens, shared
- * by the in-app panel and the native push handler so the two can never
- * disagree about where the same row goes.
+ * write time. This function is where the in-app PANEL derives it. It is NOT
+ * shared with the native push handler, despite what this said until
+ * 2026-09-10: src/lib/nativePush.ts never imports it and string-parses the
+ * link itself instead. So the two CAN disagree about where the same row goes,
+ * and for a row whose `link` is a bare list route with a populated `job_id`
+ * they do — the bell lands on the job, the push lands on the list.
  *
  * `link` is deliberately NOT redundant and is NOT going away: plenty of
  * notifications legitimately point somewhere that is not a job (admin, the

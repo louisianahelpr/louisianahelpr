@@ -445,7 +445,11 @@ export function ConversationList({
   // clear the selection and drop out of select mode.
   useEffect(() => {
     if (resetSelectionNonce > 0) exitSelectMode();
-    // Only react to the nonce changing (exitSelectMode is stable).
+    // Only react to the nonce changing. exitSelectMode is deliberately
+    // omitted — and it is NOT stable (a plain arrow re-created every render;
+    // this said "is stable" until 2026-09-10). Harmless only because it
+    // closes over nothing but useState setters. Anything closure-dependent
+    // added to it would go stale here silently.
   }, [resetSelectionNonce]);
 
   // The current pinned key-set for the rendered conversations. Kept

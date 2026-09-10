@@ -15,7 +15,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
  *
  * Mirrors WEB_DESKTOP_QUERY in useAppShellViewport.ts — keep the two in sync.
  */
-/* 900, not 1024. The desktop website — left rail, wide layout — used to begin
+/* 900, not 1024. The desktop website — right rail, wide layout — used to begin
    at 1024, which meant a docked browser pane (commonly 600-1020px) never
    qualified and always got the phone/tablet treatment. Lowered so a normal
    split-screen window gets the real desktop site.

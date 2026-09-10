@@ -58,7 +58,12 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
   const [submitting, setSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
 
-  // Eligibility check runs once on mount. If the user qualifies, the
+  // NOT once on mount, despite what this used to say: the deps include
+  // `onClose`, and the sole caller passes a fresh inline arrow every render
+  // (CompletionPrompts.tsx), which is not memoized. So every re-render while
+  // this sheet is open re-runs checkNpsEligibility AND re-fires the
+  // nps_prompt_shown event, inflating the survey's denominator. Memoizing
+  // the caller's onClose is the fix; not made in this comment-only pass. If the user qualifies, the
   // sheet opens; otherwise we silently call onClose so the parent can
   // move on without a flash of an empty prompt.
   useEffect(() => {

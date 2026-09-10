@@ -85,7 +85,11 @@ export const RichMessageInput = ({
     const trimmed = textRef.current.trimEnd();
     setText(trimmed ? `${trimmed} ${dictated}` : dictated);
     notifyTyping();
-    // setText / notifyTyping are stable in the callsites we care about.
+    // setText / notifyTyping are plain arrows in this component body, so they
+  // are re-created every render and this useCallback([]) freezes the FIRST
+  // pair forever. (This said they are "stable"; they are not.) Harmless
+  // today because what they close over is stable: onChange is a useState
+  // setter and onTyping is a useCallback reading a ref.
   }, []);
   const voice = useVoiceDictation({
     onFinal: handleVoiceFinal,

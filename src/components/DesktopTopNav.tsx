@@ -9,7 +9,7 @@ import { Menu } from "lucide-react";
 
 /**
  * The signed-in app bar for the DESKTOP WEBSITE — emblem left, notification
- * bell right, spanning the full viewport above the left sidebar rail.
+ * bell right, spanning the full viewport above the RIGHT sidebar rail.
  *
  * Rendered ONCE, globally, from App.tsx beside {@link DesktopSidebarNav}, and
  * gated on the identical three conditions that component uses:

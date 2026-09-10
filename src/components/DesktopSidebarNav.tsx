@@ -26,7 +26,7 @@ import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 export { isDesktopRailRoute };
 
 /**
- * DesktopSidebarNav — the persistent left-rail navigation shown ONLY on the
+ * DesktopSidebarNav — the persistent RIGHT-rail navigation shown ONLY on the
  * wide desktop *website* (web-desktop). It is the desktop counterpart to the
  * floating bottom {@link MobileNav} dock; the two are mutually exclusive:
  *

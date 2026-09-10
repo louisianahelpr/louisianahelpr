@@ -1226,7 +1226,7 @@ body {
   /* Centered phone-frame presentation. This is the MOBILE-web / tablet
      treatment and it must NOT apply on `web-desktop` (the wide desktop
      website), where we instead let the shell fill the viewport and add a
-     persistent left sidebar. Scoping every rule to `:not(.web-desktop)`
+     persistent right sidebar. Scoping every rule to `:not(.web-desktop)`
      keeps mobile-web + tablet byte-identical while desktop opts out. */
   html.app-shell:not(.web-desktop) {
     background-color: hsl(40 5% 93%);
@@ -1282,7 +1282,10 @@ body {
    useAppShellViewport.ts). The native app and phone-width browsers never get
    this class, so their layout is unchanged.
 
-   The persistent left sidebar (DesktopSidebarNav) is a fixed-position rail.
+   The persistent RIGHT sidebar (DesktopSidebarNav) is a fixed-position rail
+   (`fixed right-0`). Several comments in this file and in src/hooks said
+   "left" until 2026-09-10; the only two rail insets anywhere are the
+   `right:` and `padding-right:` rules below.
    We reserve its width as a CSS variable and inset the app shell + content
    from the left by that amount so the shell fills the rest of the viewport
    instead of floating in a 680px column with gray gutters. */
@@ -1439,7 +1442,7 @@ html.web-desktop {
   }
 
   /* Full-bleed top header. On the desktop website the header spans the ENTIRE
-     viewport width, sitting above the left sidebar rail, rather than being
+     viewport width, sitting above the right sidebar rail, rather than being
      inset alongside the content. The frame stays inset by the sidebar width
      (so content clears the rail); lifting the header out of that frame's flow
      via fixed positioning lets it reach x:0 and cover the rail's reserved top

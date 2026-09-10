@@ -171,10 +171,29 @@ const CompleteProfile = () => {
     return age >= 18;
   }, [dateOfBirth]);
 
-  // Live "Big 7" checklist — mirrors ProtectedRoute's gate so the user can
-  // see exactly which fields still need attention. Each item is satisfied
-  // either by the local form state OR by an existing value already on
-  // the profile row (e.g. an avatar uploaded previously).
+  // Live "Big 7" checklist. IT DOES NOT MIRROR ProtectedRoute's GATE, though
+  // this said it did until 2026-09-10, and the divergence has a consequence.
+  //
+  // This list has SEVEN items; PROFILE_GATE_FIELDS (ProtectedRoute.tsx) has
+  // FIVE — it carries neither "ZIP code" nor the policy acceptance. The
+  // early-return below bounces to /dashboard on isProfileComplete(profile),
+  // which consults only those five. So an account whose row already holds
+  // full_name, avatar_url, date_of_birth, phone and location but NO zip_code
+  // is redirected away before this screen can ask for the ZIP — i.e. the
+  // requirement added 2026-09-05 to close the parish gap is unreachable for
+  // exactly the population that predates it. That is the S-001 shape:
+  // a correct fix sitting behind a gate that makes it a no-op.
+  //
+  // ProtectedRoute's own comment states the contract — "The two definitions
+  // of 'complete' must stay in sync; the form is the source of truth." Adding
+  // zip_code to PROFILE_GATE_FIELDS is the fix, and it is a behaviour change
+  // deliberately NOT made in this comment-only pass. Note the direction
+  // matters: that file records two prior redirect LOOPS caused by the gate
+  // requiring MORE than the form, so the sync has to be done in the order
+  // the contract names.
+  //
+  // Each item is satisfied either by the local form state OR by an existing
+  // value already on the profile row (e.g. an avatar uploaded previously).
   const checklist = useMemo(() => {
     const phoneDigits = phone.replace(/\D/g, "");
     return [
@@ -523,8 +542,9 @@ const CompleteProfile = () => {
 
   // Don't trap users who don't actually need this gate. Legacy accounts
   // bypass entirely, and anyone whose profile already satisfies the Big 7
-  // gets bounced straight to the dashboard instead of staring at a 0/8
-  // checklist they can't dismiss.
+  // gets bounced straight to the dashboard instead of staring at a 0/7
+  // checklist they can't dismiss. (Said 0/8; the checklist has seven items.)
+  // See the divergence note on `checklist` above before touching this gate.
   if (profile && (profile.is_legacy_user === true || isProfileComplete(profile))) {
     return <Navigate to="/dashboard" replace />;
   }

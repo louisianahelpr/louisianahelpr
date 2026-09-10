@@ -298,6 +298,13 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         });
       }
 
+      const actionLabel =
+        banType === "warning"
+          ? `Warning recorded for ${profile.full_name || "user"}.`
+          : banType === "temporary"
+            ? `Temp ban applied — ${profile.full_name || "user"} suspended for ${duration} day${duration === "1" ? "" : "s"}.`
+            : `${profile.full_name || "User"}'s account permanently banned.`;
+      toast.success(actionLabel);
       onSuccess?.();
       handleClose();
     } catch (err) {

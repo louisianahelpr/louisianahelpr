@@ -180,6 +180,13 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
+      - name: Drop the Google Chrome apt source
+        # `playwright install --with-deps` runs `apt-get update`, which fails the
+        # whole step (exit 100) whenever dl.google.com serves a bad index — seen
+        # 2026-09-09 as "Hash Sum mismatch", red across four workflows on two
+        # consecutive runs while the app code was fine. We install Chromium from
+        # Playwright, so Google's repo is only ever a source of outages here.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - run: npx playwright install --with-deps chromium
       - name: auth + payment lifecycle
@@ -220,6 +227,13 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
+      - name: Drop the Google Chrome apt source
+        # `playwright install --with-deps` runs `apt-get update`, which fails the
+        # whole step (exit 100) whenever dl.google.com serves a bad index — seen
+        # 2026-09-09 as "Hash Sum mismatch", red across four workflows on two
+        # consecutive runs while the app code was fine. We install Chromium from
+        # Playwright, so Google's repo is only ever a source of outages here.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - run: npx playwright install --with-deps chromium
       - name: day-of confirm across two roles
@@ -283,6 +297,13 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
+      - name: Drop the Google Chrome apt source
+        # `playwright install --with-deps` runs `apt-get update`, which fails the
+        # whole step (exit 100) whenever dl.google.com serves a bad index — seen
+        # 2026-09-09 as "Hash Sum mismatch", red across four workflows on two
+        # consecutive runs while the app code was fine. We install Chromium from
+        # Playwright, so Google's repo is only ever a source of outages here.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - run: npx playwright install --with-deps chromium
 

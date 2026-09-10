@@ -38,7 +38,7 @@ const FEED_RULES: MockRule[] = [
   { match: (u, m) => m === "POST" && u.pathname === "/rest/v1/rpc/get_safe_profiles",
     handle: () => ({ status: 200, body: FEED_JOBS.map((j, i) => ({
       user_id: j.customer_id, full_name: ["Camille R.", "Tre B.", "Marie H.", "Eli T."][i],
-      avatar_url: null, is_verified: true, location: j.location })) }) },
+      avatar_url: null, location: j.location })) }) },
 ];
 
 // App Store product-page screenshots, generated from the real app.

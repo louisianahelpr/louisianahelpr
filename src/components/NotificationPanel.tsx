@@ -505,7 +505,7 @@ const NotificationPanel = () => {
               <button
                 type="button"
                 onClick={loadNotifications}
-                className="mt-1 h-11 px-5 rounded-full btn-grad-primary text-ds-12 font-sans font-semibold"
+                className="mt-1 h-11 px-5 rounded-ds-md btn-grad-primary text-ds-12 font-sans font-semibold"
                 style={{ color: "hsl(var(--parchment))", boxShadow: "var(--elev-bark-raised)" }}
               >
                 Try again

@@ -706,35 +706,49 @@ const Dashboard = () => {
             onApply={handleApplyRequest}
             onReport={setReportJobId}
             onSelect={openDetailJob}
-            /* THE APPLY STEP, RENDERED IN THE SAME SHEET.
-               Applying used to close this sheet and open a separate centred
-               AlertDialog, so one continuous act played as three motions
-               across two anchors (owner, 2026-08-28). ApplyBody now renders as
-               the second step of this surface; useApplyFlow still owns all the
-               state and the mutation, so nothing about submitting changed —
-               only where the markup mounts. */
-            applyStep={({ onBack }) =>
-              confirmApplyJob ? (
+            /* THE APPLY FORM, ON THIS SAME SHEET — NO SECOND STEP.
+               Applying was a separate centred AlertDialog, then the second
+               STEP of this sheet, and is now simply part of it (owner,
+               2026-09-09: "collapse the TWO steps into ONE ... one less tap
+               to apply"). useApplyFlow still owns the mutation; only where
+               the markup mounts and when the guards run has changed.
+
+               WITHHELD ON YOUR OWN POST, synchronously. `user` is available
+               here without a round trip, while the sheet's own `viewerUserId`
+               resolves a beat after open — so deciding it here is what stops
+               a poster seeing an apply form flash on their own job. The sheet
+               falls back to the footer, which says "This is your post".
+
+               THE GUARDS MOVED TO THE SUBMIT. `handleApplyRequest` (offline,
+               impersonation, signed out, own post) used to run on the
+               Continue tap. There is no Continue, so it runs on Apply Now,
+               immediately before the mutation — same guards, same refusals,
+               one tap later. */
+            applyForm={
+              detailJob.customer_id !== user?.id ? (
                 <Suspense fallback={null}>
                   <ApplyBody
-                        open
-                        onClose={() => setConfirmApplyJobId(null)}
-                        confirmApplyJob={confirmApplyJob}
-                        platformFee={platformFee}
-                        applyMessage={applyMessage}
-                        setApplyMessage={setApplyMessage}
-                        applyFiles={applyFiles}
-                        setApplyFiles={setApplyFiles}
-                        applyLoading={applyLoading}
-                        hideEarnings
-                        onBack={onBack}
-                        handleApplyConfirm={() => {
-                          // Submitting takes the whole sheet down — the helpr
-                          // is done with this job either way, and the success
-                          // toast is the confirmation.
-                          handleApplyConfirm();
-                          closeDetailJob();
-                        }}
+                    open
+                    onClose={() => setConfirmApplyJobId(null)}
+                    confirmApplyJob={detailJob}
+                    platformFee={platformFee}
+                    applyMessage={applyMessage}
+                    setApplyMessage={setApplyMessage}
+                    applyFiles={applyFiles}
+                    setApplyFiles={setApplyFiles}
+                    applyLoading={applyLoading}
+                    hideEarnings
+                    handleApplyConfirm={async () => {
+                      const accepted = await handleApplyRequest(detailJob.id);
+                      if (accepted === false) return;
+                      // Submitting takes the whole sheet down — the helpr is
+                      // done with this job either way, and the success toast
+                      // is the confirmation. The id is passed explicitly:
+                      // handleApplyRequest set it in state one tick ago and
+                      // this render cannot see it yet.
+                      handleApplyConfirm(detailJob.id);
+                      closeDetailJob();
+                    }}
                   />
                 </Suspense>
               ) : null

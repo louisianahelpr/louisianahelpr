@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
-import { WifiOff, BookmarkCheck, ChevronLeft, AlertTriangle } from "lucide-react";
+import { WifiOff, BookmarkCheck, AlertTriangle } from "lucide-react";
 import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
 import { helperApplyBlockNotice } from "@/lib/awardGate";
 import { errorToast } from "@/lib/toast";
@@ -25,9 +25,9 @@ import {
  * ApplyBody — everything on the apply step except the surface it sits on.
  *
  * Extracted from ApplyConfirmDialog so the SAME markup can render in two
- * places: in-place as the second step of the job-detail sheet (the normal
- * route, see JobDetailDialog), and inside a standalone sheet for the
- * QuickApply deep link, where there is no detail sheet to step out of.
+ * places: inline on the job-detail sheet itself (the normal route — one
+ * sheet, one CTA, see JobDetailDialog), and inside a standalone sheet for the
+ * QuickApply deep link, where no detail sheet is open to host it.
  *
  * What changed when it moved (owner, 2026-08-28 — "I don't like this"):
  *
@@ -63,15 +63,6 @@ type Props = ApplyConfirmDialogProps & {
    * elsewhere, so it keeps the card (this defaults to false).
    */
   hideEarnings?: boolean;
-  /**
-   * Collapses the inline form back to the plain footer (owner, 2026-08-30:
-   * "add back button to left" — the merged-into-one-screen apply form still
-   * needs a way to back out of it besides closing the whole sheet). Renders
-   * a small icon button to the left of Apply Now when supplied; omitted
-   * entirely for the standalone QuickApply sheet, which has no "back" state
-   * to return to.
-   */
-  onBack?: () => void;
 };
 
 /** Counter appears with this much room left, not before. */
@@ -86,7 +77,6 @@ export function ApplyBody({
   applyLoading,
   handleApplyConfirm,
   hideEarnings = false,
-  onBack,
 }: Props) {
   const { online } = useOnlineStatus();
   // `helper_unknown` is excluded deliberately — see helperApplyBlockNotice.
@@ -351,24 +341,25 @@ export function ApplyBody({
         </p>
       )}
 
-      <div className="flex gap-1.5">
-        {/* Back — collapses the inline form to the plain footer instead of
-            closing the whole sheet (owner: "add back button to left"). Only
-            JobDetailDialog's merged-into-one-screen flow passes `onBack`;
-            the standalone QuickApply sheet has nothing to collapse back to. */}
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label="Back"
-            className="shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-ds-md flex items-center justify-center btn-press"
-            style={{ border: "0.5px solid hsl(var(--bark) / 0.28)", color: "hsl(var(--bark))" }}
-          >
-            <ChevronLeft className="w-4 h-4" strokeWidth={2.25} />
-          </button>
-        )}
-        {/* Same primitive and surface as the "Continue" CTA that leads here
-            (JobDetailFooter) — one button, one set of effects: the glossy
+      {/* STICKY, NOT PINNED. This form is part of the job-detail sheet's own
+          run of content now (one sheet, one CTA — owner, 2026-09-09) and that
+          sheet is routinely taller than the viewport, so `position: sticky`
+          keeps the submit row on screen while the note field and the payout
+          explainer scroll past it. It costs nothing when the sheet fits: a
+          short job leaves this row exactly where it sits in flow, with no
+          reserved space under it — that is what the negative bottom margins
+          buy, by cancelling the scroll container's own bottom padding.
+          THEY DO NOT MAKE THE PAINT REACH THE BOTTOM; a negative margin also
+          lifts where `bottom: 0` parks the row, which left a 16px band under
+          it where content kept scrolling into view (a stray "Set Up Payouts"
+          under the CTA — owner, 2026-09-09). The `box-shadow` in
+          `.sheet-sticky-actions` is what closes that band; see the long note
+          on the rule in index.css before touching either half. No horizontal
+          bleed either way — apply-dialog-fit.spec.ts holds every element
+          inside the content box. */}
+      <div className="sheet-sticky-actions flex gap-1.5 -mb-4 pb-4 sm:-mb-5 sm:pb-5 pt-2">
+        {/* Same primitive and surface as every other primary CTA in the app,
+            JobDetailFooter's included — one button, one set of effects: the glossy
             `btn-grad-primary` radial, the hover brighten/lift/glow and the
             active press collapse all come from <Button>'s primary variant.
             That sentence used to be aspirational: BOTH buttons then overrode
@@ -376,12 +367,11 @@ export function ApplyBody({
             bark/0.86)` — the surface of the deleted `bark` variant, painted
             by hand. Inline background beats the class, so the computed
             background-image here was the flat two-stop linear, not the
-            radial every other primary CTA resolves to. These two are the two
-            STEPS of one sheet, so they are converted together or not at all:
-            a glossy Continue leading to a flat Apply Now is the same surface
-            disagreeing with itself mid-act.
+            radial every other primary CTA resolves to. Assert the COMPUTED
+            `background-image` if you are checking this — the class list said
+            `btn-grad-primary` the whole time it was flat.
             Geometry (`h-11 sm:h-12`) stays local and unchanged — it matches
-            the CTA slot on the step before this one. */}
+            the footer CTA slot this button replaces. */}
         <Button
           size="lg"
           type="button"

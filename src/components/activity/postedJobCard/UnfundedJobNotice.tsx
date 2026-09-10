@@ -103,7 +103,7 @@ export function UnfundedJobNotice({ job, onFund, funding }: Props) {
   const cta = abandoned ? "Finish paying" : "Fund & publish";
 
   return (
-    <div className="rounded-xl border border-[hsl(var(--burnt-sienna))]/30 bg-[hsl(var(--burnt-sienna))]/5 p-3">
+    <div className="rounded-2xl border border-[hsl(var(--burnt-sienna))]/30 bg-[hsl(var(--burnt-sienna))]/5 p-3">
       <div className="flex items-start gap-2">
         <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--accent-ink))]" aria-hidden="true" />
         <div className="min-w-0 flex-1">

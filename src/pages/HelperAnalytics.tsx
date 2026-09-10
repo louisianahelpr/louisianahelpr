@@ -140,7 +140,7 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
           <button
             type="button"
             onClick={() => void refetch()}
-            className="btn-grad-primary !text-[hsl(var(--parchment))] h-11 px-5 rounded-full font-semibold text-ds-13"
+            className="btn-grad-primary !text-[hsl(var(--parchment))] h-11 px-5 rounded-ds-md font-semibold text-ds-13"
           >
             Try again
           </button>

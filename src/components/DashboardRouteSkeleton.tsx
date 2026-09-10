@@ -51,9 +51,27 @@ const DashboardRouteSkeleton = () => (
       animate
       panelElevation="raised"
       titleCard={
-        <div className="flex items-center justify-between" aria-hidden>
+        <div className="flex items-center justify-between gap-1 sm:gap-2" aria-hidden>
           <HelprMark to={null} emblemOnly size="md" />
-          <Skeleton className="h-11 w-11 rounded-full" />
+          {/* THREE controls, not one. The real row (DashboardTitleBar +
+              BrowseTasksActions) ends in search · filters · bell — two
+              `h-10 w-10` ghost buttons and one `size="icon"` Button, which is
+              `h-14 w-14` (button.tsx:106) — inside a `gap-1.5 sm:gap-2
+              shrink-0 -mr-2` cluster. This skeleton stood ONE 44px circle
+              there, so at 375/slow-3G the header visibly rearranged when the
+              real bar landed (~17.3s cold): the emblem stayed put and the
+              trailing cluster jumped from 44px wide to 148px.
+              Geometry mirrored exactly — same gaps, same `-mr-2`, same three
+              box widths. The bell bone is drawn at 40px inside its 56px box
+              because 56px of solid fill would read as a button that isn't
+              there; the RESERVATION is what has to match, and it does. */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 -mr-2">
+            <Skeleton className="h-10 w-10 rounded-ds-md" />
+            <Skeleton className="h-10 w-10 rounded-ds-md" />
+            <span className="h-14 w-14 flex items-center justify-center">
+              <Skeleton className="h-10 w-10 rounded-full" />
+            </span>
+          </div>
         </div>
       }
       titleCardClassName={TITLE_BAR_PADDING}

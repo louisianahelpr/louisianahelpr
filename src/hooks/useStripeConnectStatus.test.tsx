@@ -88,7 +88,7 @@ describe("useStripeConnectStatus", () => {
     expect(mocks.report).toHaveBeenCalled();
   });
 
-  it("reserves the banner's slot while pending ONLY when the last answer said payouts were off", async () => {
+  it("reserves the banner's slot while pending when the last answer said payouts were off", async () => {
     mocks.store.set(SEED_KEY, "0");
     mocks.invoke.mockReturnValue(new Promise(() => {}));
     const { result } = renderHook(() => useStripeConnectStatus(), { wrapper });
@@ -102,10 +102,22 @@ describe("useStripeConnectStatus", () => {
     expect(result.current.payoutPrompt).toEqual({ kind: "none" });
   });
 
-  it("does NOT reserve a slot on a first-ever check (no remembered answer)", async () => {
+  // INVERTED 2026-09-09, deliberately. This asserted `none` on a first-ever
+  // check, which is precisely the launch that had no reservation and took the
+  // full jump: a fresh install has no remembered answer, so the banner popped
+  // in after paint and shoved the page 67px (route CLS 0.0514, measured on a
+  // production build over throttled slow 3G at 375x812). The old expectation
+  // was not protecting anything — it described the defect.
+  //
+  // Reserving on the bare unknown costs a payouts-enabled account one
+  // placeholder on its FIRST launch on a device and nothing thereafter (the
+  // test above covers the remembered-enabled case, which stays `none`), and it
+  // is the only launch where nothing on the device can tell the two
+  // populations apart.
+  it("DOES reserve a slot on a first-ever check (no remembered answer)", async () => {
     mocks.invoke.mockReturnValue(new Promise(() => {}));
     const { result } = renderHook(() => useStripeConnectStatus(), { wrapper });
-    expect(result.current.payoutPrompt).toEqual({ kind: "none" });
+    expect(result.current.payoutPrompt).toEqual({ kind: "reserve" });
   });
 
   it("never asks Stripe for an account that isn't approved yet", async () => {

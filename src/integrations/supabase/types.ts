@@ -2762,6 +2762,7 @@ export type Database = {
           marketing_consent: boolean
           onboarding_fee_charged_at: string | null
           onboarding_fee_paid: boolean
+          onboarding_tour_completed_at: string | null
           parish: string | null
           parish_source: string | null
           phone: string | null
@@ -2865,6 +2866,7 @@ export type Database = {
           marketing_consent?: boolean
           onboarding_fee_charged_at?: string | null
           onboarding_fee_paid?: boolean
+          onboarding_tour_completed_at?: string | null
           parish?: string | null
           parish_source?: string | null
           phone?: string | null
@@ -2968,6 +2970,7 @@ export type Database = {
           marketing_consent?: boolean
           onboarding_fee_charged_at?: string | null
           onboarding_fee_paid?: boolean
+          onboarding_tour_completed_at?: string | null
           parish?: string | null
           parish_source?: string | null
           phone?: string | null
@@ -5363,7 +5366,6 @@ export type Database = {
         Args: { p_idv_status: string; p_stripe_identity_verified: boolean }
         Returns: boolean
       }
-      idv_requirement_paused: { Args: never; Returns: boolean }
       is_caller_banned: { Args: never; Returns: boolean }
       is_category_taxable: {
         Args: { _category: Database["public"]["Enums"]["job_category"] }

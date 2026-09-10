@@ -13,6 +13,20 @@ interface MarketingRedirectProps {
   children: ReactNode;
   /** Where a signed-in visitor is sent. */
   to?: string;
+  /**
+   * What the token-holding visitor sees while the auth check loads and
+   * resolves — i.e. the frame they are held in on their way to `to`.
+   *
+   * Defaults to the plain parchment surface, which is right for `/`: the
+   * landing route can end in EITHER a redirect or the marketing page, so any
+   * content-shaped bones would be guessing at a layout.
+   *
+   * `/browse` is not ambiguous in the same way. A visitor who reaches this
+   * branch there has a token, so the overwhelmingly likely destination is
+   * /dashboard, and passing DashboardRouteSkeleton means the wait is spent in
+   * the shape that is about to arrive rather than on a blank field.
+   */
+  fallback?: ReactNode;
 }
 
 /**
@@ -74,7 +88,11 @@ interface MarketingRedirectProps {
  *   • /jobs, /browse, /jobs/:id — each already redirects authenticated users
  *     itself, with deep-link handling this wrapper doesn't have.
  */
-const MarketingRedirect = ({ children, to = "/dashboard" }: MarketingRedirectProps) => {
+const MarketingRedirect = ({
+  children,
+  to = "/dashboard",
+  fallback = <div className="min-h-screen bg-premium-page" />,
+}: MarketingRedirectProps) => {
   const [maybeSignedIn] = useState(() => !isNativePlatform && hasPersistedAuthToken());
 
   // Two ways to land here: a guest (the overwhelmingly common case on the
@@ -83,8 +101,8 @@ const MarketingRedirect = ({ children, to = "/dashboard" }: MarketingRedirectPro
   if (!maybeSignedIn) return <>{children}</>;
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-premium-page" />}>
-      <SignedInRedirect to={to}>{children}</SignedInRedirect>
+    <Suspense fallback={fallback}>
+      <SignedInRedirect to={to} pendingFallback={fallback}>{children}</SignedInRedirect>
     </Suspense>
   );
 };

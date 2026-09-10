@@ -20,6 +20,8 @@ import { useLongPress } from "@/hooks/useLongPress";
 import { NavQuickMenu, NavQuickMenuItem } from "@/components/mobileNav/NavQuickMenu";
 import { useRecentConversationsPreview } from "@/components/mobileNav/useRecentConversationsPreview";
 import { POSTED_STATUS_FILTERS } from "@/pages/activity/activityFilters";
+import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
+import { transformedImageUrl } from "@/lib/imageUrl";
 import {
   leftItems,
   rightItems,
@@ -34,7 +36,29 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const reducedMotion = useReducedMotion();
   const queryClient = useQueryClient();
   const { user, profile, isLoading } = useCurrentUser();
-  const isGuest = !isLoading && !user;
+  // While `useCurrentUser` is still resolving there is no `user` to read, and
+  // this used to resolve to `!isLoading && !user` — i.e. "not a guest" for
+  // EVERYONE during the auth window. That is wrong in both directions on a
+  // cold start: a real guest got the full dock painted and then yanked away
+  // when auth landed, and `dockHidden` below stayed false for that whole
+  // window, so `no-bottom-nav` (which zeroes `--bottom-nav-h` for all 22
+  // `pb-safe-nav` pages) landed 2–3s late and the ~112px strip collapsed under
+  // whatever the visitor had already scrolled to.
+  //
+  // `hasPersistedAuthToken()` is the existing synchronous stand-in and it is
+  // used here exactly as documented: `false` is trustworthy (no token → guest
+  // → no dock, decided on the first frame), `true` is a maybe — and a maybe is
+  // enough to paint the dock SHELL immediately instead of waiting on the
+  // network, which is the whole point. `useCurrentUser` still owns the answer
+  // the moment it has one; the only cost of a wrong `true` is the dock showing
+  // for a beat on a stale token, which is what happened for every visitor
+  // before.
+  //
+  // Read once into a ref: the probe touches localStorage and the answer cannot
+  // change under this component (a sign-out unmounts it), so re-reading on
+  // every render would be a synchronous storage hit per keystroke elsewhere.
+  const maybeSignedIn = useRef(hasPersistedAuthToken()).current;
+  const isGuest = isLoading ? !maybeSignedIn : !user;
   // A pending user can browse/apply, but /post-job stays gated until
   // review clears. Hide the Post FAB for them so they don't tap into a
   // redirect — see ProtectedRoute (the route has no `allowPending`).
@@ -114,6 +138,29 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const t = window.setTimeout(run, 1500);
     return () => window.clearTimeout(t);
   }, [dockHidden, isPendingApproval, user?.id, queryClient]);
+
+  // Warm the profile photo the INSTANT `useCurrentUser` produces a URL, rather
+  // than when the dock's <UserAvatar> happens to mount and issue the request
+  // itself. Measured cold at 375/slow-3G the dock avatar sat on its monogram
+  // for up to 12s: the request could not even be ISSUED until the nav chunk
+  // had loaded, mounted, and laid the (lazily-loaded) <img> out. This puts the
+  // fetch in flight as soon as the URL exists, so by the time the element
+  // mounts the bitmap is usually already in the memory cache — where
+  // UserAvatar's ref-callback path shows it at full opacity in its first
+  // frame, with no cross-fade at all.
+  //
+  // Same `pixelSize` as the dock's own <UserAvatar> (48) so this warms the
+  // EXACT URL that element will request; a different size is a different CDN
+  // transform and would warm nothing. Fire-and-forget: the Image is not
+  // retained, errors are irrelevant (UserAvatar has its own error path), and
+  // nothing here decides anything.
+  const avatarUrl = profile?.avatar_url;
+  useEffect(() => {
+    if (!avatarUrl || typeof Image === "undefined") return;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = transformedImageUrl(avatarUrl, { width: 48, height: 48 });
+  }, [avatarUrl]);
 
   const [gateOpen, setGateOpen] = useState(false);
 

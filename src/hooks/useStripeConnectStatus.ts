@@ -19,9 +19,9 @@ interface StripeConnectStatus {
  * disagree about the same fact.
  *
  * - `none`    — payouts work, or the question doesn't apply. Render nothing.
- * - `reserve` — we don't know yet, but the last answer we got on this device
- *               said payouts were NOT enabled, so the banner is about to
- *               appear. Hold its height (aria-hidden) so nothing jumps.
+ * - `reserve` — we don't know yet. Hold the banner's height (aria-hidden) so
+ *               that whatever the answer turns out to be, nothing below this
+ *               slot moves when it arrives.
  * - `setup`   — confirmed: this account cannot receive money yet.
  * - `error`   — the status call FAILED. Deliberately its own state: it must
  *               never be collapsed into `none`, which looks identical to
@@ -41,8 +41,9 @@ export interface StripeConnectStatusResult {
 
 /**
  * Per-account memo of the LAST successful answer to "are payouts enabled?".
- * One bit, not a cached status object — it is used only to decide whether to
- * reserve the banner's height on first paint, never to make a claim.
+ * One bit, not a cached status object — it must never be rendered as a claim.
+ * It decides ONE thing: whether to skip reserving the banner's height, which
+ * is safe only for a device that has already been told payouts are enabled.
  *
  * `helpr_` prefix so `safeStorage` mirrors it into Capacitor Preferences —
  * plain localStorage is evicted by WebKit on the exact cold launch this is
@@ -142,11 +143,16 @@ export function useStripeConnectStatus(): StripeConnectStatusResult {
     if (!userId || !approved) return { kind: "none" };
     if (isError) return { kind: "error" };
     if (data) return data.payouts_enabled ? { kind: "none" } : { kind: "setup" };
-    // No answer yet. Reserve the banner's height ONLY when the last answer we
-    // saw said payouts were off — i.e. when the banner is genuinely likely to
-    // appear. Reserving on a bare unknown would hand every already-paid user a
-    // blank band that then collapses, trading one jump for another.
-    return lastKnownPayoutsEnabled === false ? { kind: "reserve" } : { kind: "none" };
+    // No answer yet. Reserve the banner's height on the bare UNKNOWN — a
+    // fresh install has no last-known bit, and that is exactly the cold launch
+    // that measured 0.0514 route CLS as the banner popped in and shoved the
+    // page 67px. The ONE case we skip is a device that has already been told
+    // payouts are enabled: that user's banner is not coming, so reserving for
+    // them would only trade their jump for a collapsing blank band (measured
+    // 0.0538 when the reserve fired unconditionally). Fresh install with
+    // payouts enabled still sees the placeholder once; nothing on the device
+    // can distinguish it from the unpaid case until the RPC answers.
+    return lastKnownPayoutsEnabled === true ? { kind: "none" } : { kind: "reserve" };
   }, [userId, approved, isError, data, lastKnownPayoutsEnabled]);
 
   return { payoutPrompt, refetchStatus: () => { void refetch(); } };

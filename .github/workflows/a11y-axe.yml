@@ -223,6 +223,14 @@ jobs:
         # instead of failing the run.
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
+      - name: Drop the Google Chrome apt source
+        # `playwright install --with-deps` runs `apt-get update`, which fails the
+        # whole step (exit 100) whenever dl.google.com serves a bad index — seen
+        # 2026-09-09 as "Hash Sum mismatch", red across four workflows on two
+        # consecutive runs while the app code was fine. We install Chromium from
+        # Playwright, so Google's repo is only ever a source of outages here.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+
       - name: Install Playwright Chromium browser
         if: needs.changes.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
         run: npx playwright install --with-deps chromium

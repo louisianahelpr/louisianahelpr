@@ -1,5 +1,6 @@
 import { test, expect, installSupabaseMocks, seedAuthedSession, FAKE_CUSTOMER } from "./fixtures";
 import type { MockRule } from "./fixtures";
+import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
 
 const OTHER = "00000000-0000-4000-8000-0000000000aa";
 const AGO = (m: number) => new Date(Date.now() - m * 60000).toISOString();
@@ -33,7 +34,7 @@ const PROFILE = {
   phone: "5045550100", location: "New Orleans, LA",
   id_document_url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
   approval_status: "approved", ban_status: "active", is_legacy_user: true, subscription_tier: "free",
-  subscription_expires_at: null, referral_code: "SMOKE", is_verified: true, role: "customer",
+  subscription_expires_at: null, referral_code: "SMOKE", terms_version_accepted: LATEST_TERMS_VERSION, role: "customer",
   skills: "moving", created_at: AGO(9999), updated_at: AGO(1),
 };
 
@@ -41,7 +42,7 @@ const rules: MockRule[] = [
   { match: (u, m) => m === "GET" && u.pathname === "/rest/v1/open_jobs_browse", handle: () => ({ status: 200, body: JOBS }) },
   { match: (u, m) => m === "GET" && u.pathname === "/rest/v1/profiles", handle: () => ({ status: 200, body: [PROFILE] }) },
   { match: (u, m) => m === "POST" && u.pathname === "/rest/v1/rpc/get_safe_profiles",
-    handle: () => ({ status: 200, body: [{ user_id: OTHER, full_name: "Other Poster", avatar_url: null, is_verified: true, location: "Shreveport, LA" }] }) },
+    handle: () => ({ status: 200, body: [{ user_id: OTHER, full_name: "Other Poster", avatar_url: null, location: "Shreveport, LA" }] }) },
 ];
 
 // Regression guard: every open job the backend returns must be rendered by

@@ -18,7 +18,7 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { hapticSuccess } from "@/lib/haptics";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 
 interface AvailabilityTabProps {
   userId: string;
@@ -84,6 +84,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
       // Was a bare `catch {}` → toast. A dropped or revoked RPC is exactly the
       // failure this screen cannot see on its own, so it needs a signal.
       report(err, { severity: "error", tags: { source: "AvailabilityTab.toggle" }, context: { userId } });
+      hapticError();
       toast.error("Couldn't update availability — try again.");
     } finally {
       setToggling(false);

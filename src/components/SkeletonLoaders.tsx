@@ -79,11 +79,29 @@ export const DashboardSkeleton = () => (
         arrive), one soft silhouette per card instead of six bars, and the
         card's own footprint carried by height alone. The layout still reserves
         the same space, so nothing jumps when the feed lands. */}
+    {/* FILL, not `.skeleton-glass`. These cards sit inside a PageScaffold
+        panel that is ALREADY an opaque white raised surface, and
+        `.skeleton-glass` is `hsla(0,0%,100%,0.42)` over a 20px backdrop blur
+        (src/index.css:2541) — white-on-white at 0.42, i.e. nothing. Measured
+        cold at 375/slow-3G the feed panel read as BLANK WHITE for the whole
+        ~20s wait and the real cards appeared to pop out of nothing.
+
+        `Skeleton` is the house primitive and already carries the house fill
+        (`hsl(var(--olivewood)/0.10)`) plus the shimmer sweep, and it inverts
+        with the theme, so the ghost cards now use it directly rather than a
+        bare div. The hairline is the same `--olivewood` token at the opacity
+        JobCardSkeleton's own footer rule uses, so the silhouette has an edge
+        on the panel in both themes.
+
+        Deliberately LOCAL. `.skeleton-glass` has exactly three call sites in
+        the repo — JobCardSkeleton (line 9), ActivityCardSkeleton (line 40) and
+        this one — and the other two are correct where they sit; changing the
+        shared class to fix one surface is the blanket-edit mistake. */}
     <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4" aria-hidden>
       {[0, 1, 2, 3].map((i) => (
-        <div
+        <Skeleton
           key={i}
-          className="rounded-2xl skeleton-glass h-[104px]"
+          className="rounded-2xl h-[104px] border border-[hsl(var(--olivewood)/0.12)]"
           style={{ borderRadius: "1rem" }}
         />
       ))}

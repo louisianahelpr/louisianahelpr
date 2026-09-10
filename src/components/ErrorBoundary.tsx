@@ -92,7 +92,7 @@ class ErrorBoundary extends React.Component<Props, State> {
       const chunkError = isChunkLoadError(this.state.error);
 
       return (
-        <div className="min-h-[300px] flex flex-col items-center justify-center gap-4 p-8 text-center">
+        <div className="min-h-[300px] flex flex-col items-center justify-center gap-4 p-8 text-center bg-background rounded-2xl">
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center"
             style={{

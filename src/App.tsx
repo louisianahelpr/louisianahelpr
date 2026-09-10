@@ -20,6 +20,14 @@ import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import RouteSuspenseFallback from "@/components/RouteSuspenseFallback";
 import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
 import DashboardRouteSkeleton from "@/components/DashboardRouteSkeleton";
+// Per-route Suspense fallbacks. Each is built ONLY from primitives already in
+// this entry chunk (Skeleton, PageScaffold/AppShell) so it paints on the first
+// tick, in the shape its route's own loading branch uses — see the block
+// comment in DashboardRouteSkeleton for why three different-shaped frames in
+// a row read as three loading screens.
+import ActivityRouteSkeleton from "@/components/ActivityRouteSkeleton";
+import ProfileRouteSkeleton from "@/components/ProfileRouteSkeleton";
+import LoginRouteSkeleton from "@/components/LoginRouteSkeleton";
 // OfflineBanner statically imports WifiOff from lucide-react, which would
 // otherwise pull the entire lucide chunk onto the critical initial load path.
 // It's only ever visible when the network drops (rare), so lazy-loading is safe.
@@ -159,7 +167,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Every other public route is deliberately NOT wrapped — see the
           per-route notes below and the block comment in MarketingRedirect. */}
       <Route path="/" element={<RouteErrorBoundary><MarketingRedirect>{routeEl(<PageTransition><Index /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />
-      <Route path="/login" element={<RouteErrorBoundary>{routeEl(<PageTransition><Login /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/login" element={<RouteErrorBoundary>{routeEl(<PageTransition><Login /></PageTransition>, <LoginRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/signup" element={<RouteErrorBoundary>{routeEl(<PageTransition><Signup /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/signup-pending" element={<RouteErrorBoundary>{routeEl(<PageTransition><SignupPending /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/complete-profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowUnapproved><CompleteProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -173,10 +181,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           moments that require it (accept, payout) inside the components.
           `denied`/banned users are still redirected — see ProtectedRoute. */}
       <Route path="/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
-      <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowUnapproved><Profile /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowUnapproved fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/my-jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Activity defaultTab="applied" /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/my-posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Activity defaultTab="posted" /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/my-jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending fallback={<ActivityRouteSkeleton tab="applied" />}><Activity defaultTab="applied" /></ProtectedRoute>, <ActivityRouteSkeleton tab="applied" />)}</RouteErrorBoundary>} />
+      <Route path="/my-posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending fallback={<ActivityRouteSkeleton tab="posted" />}><Activity defaultTab="posted" /></ProtectedRoute>, <ActivityRouteSkeleton tab="posted" />)}</RouteErrorBoundary>} />
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -290,8 +298,31 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Guest "home dashboard" — what iOS native users see before signing up.
           Mirrors /dashboard's chrome and JobCard rendering, but every action
           routes to /signup. Public web visitors can hit it too if they want
-          a no-account preview, though the marketing landing remains canonical. */}
-      <Route path="/browse" element={<RouteErrorBoundary>{routeEl(<PageTransition><DashboardGuest /></PageTransition>, <GuestBrowseSkeleton />)}</RouteErrorBoundary>} />
+          a no-account preview, though the marketing landing remains canonical.
+
+          WRAPPED IN <MarketingRedirect>, like `/` and for the same reason.
+          DashboardGuest DOES redirect a signed-in visitor to /dashboard — but
+          it decides that from `supabase.auth.getSession()`, INSIDE the route
+          chunk, so the guest chunk and the Supabase client both had to
+          download before the redirect could even be considered. Measured on a
+          cold 375x812 slow-3G load: a signed-in user got the full guest browse
+          page — chips row, guest header, "Log in / Sign up" — for ~10s, and
+          then the entire screen swapped to the dashboard. The placeholder was
+          not a placeholder; it was the wrong page.
+
+          MarketingRedirect's synchronous `hasPersistedAuthToken()` probe
+          answers on the first tick with no Supabase and no chunk, so a
+          token-holding visitor never renders DashboardGuest at all. Its
+          fallback is DashboardRouteSkeleton — the shape of where they are
+          GOING, so the redirect lands in a frame it keeps.
+
+          Guests are untouched: the probe returns false, `children` renders on
+          exactly the same tick as before, and GuestBrowseSkeleton is still the
+          chunk fallback. Native is untouched too — MarketingRedirect is a
+          no-op there, and NativeLaunchRouter already owns that decision.
+          DashboardGuest's own redirect stays as the floor under a stale or
+          revoked token. */}
+      <Route path="/browse" element={<RouteErrorBoundary><MarketingRedirect fallback={<DashboardRouteSkeleton />}>{routeEl(<PageTransition><DashboardGuest /></PageTransition>, <GuestBrowseSkeleton />)}</MarketingRedirect></RouteErrorBoundary>} />
       {/* Same exception as /terms and /privacy above — a policy document, not
           marketing. No signed-in bounce. */}
       <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />

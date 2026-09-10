@@ -58,7 +58,7 @@ export function VerificationStatusRow({ profile }: { profile: Profile | null }) 
   const content = (
     <>
       <Icon className="w-4 h-4 shrink-0" style={{ color: accent }} strokeWidth={2.25} />
-      <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug vsr-label">
+      <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug vsr-body">
         <span className="font-semibold">{copy.headline}</span> {copy.body}
       </p>
       {copy.action && (

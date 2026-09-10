@@ -40,7 +40,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { computeCancellationFee, hoursUntilJob } from "../_shared/cancellationFee.ts";
+import { computeCancellationFee, helperIsCommitted, hoursUntilJob } from "../_shared/cancellationFee.ts";
 import { helperCommissionDollars, feePercentForTier } from "../_shared/helperFees.ts";
 import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -262,7 +262,7 @@ serve(async (req) => {
       feeNoHelper: new Check(
         "cancellation_fee_without_helper",
         "critical",
-        "Non-zero cancellation_fee with helper_id IS NULL. The ladder charges 0% when nobody was committed, so this fee is owed to no one.",
+        "Non-zero cancellation_fee with no COMMITTED Helpr (helper_id IS NULL, or helper_confirmed_at IS NULL so the offer was never accepted). The ladder charges 0% when nobody was committed, so this fee is owed to no one.",
       ),
       disputeNoRow: new Check(
         "dispute_flag_without_row",
@@ -314,7 +314,7 @@ serve(async (req) => {
       const q = admin
         .from("jobs")
         .select(
-          "id, is_seed, status, payment_status, budget, date_needed, start_time, cancelled_at, helper_id, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at",
+          "id, is_seed, status, payment_status, budget, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at",
           countOpt,
         )
         // Paging without an ORDER BY is sampling, not paging: the cap and the
@@ -344,6 +344,11 @@ serve(async (req) => {
         start_time: job.start_time as string | null,
         cancelled_at: job.cancelled_at as string | null,
         helper_id: job.helper_id as string | null,
+        // Required by CancellationFeeJob since 2026-09-08: a Helpr who was
+        // offered the job but never accepted is not committed, and the fee
+        // ladder no longer charges for them. Omitting it here would make the
+        // reconciliation flag every correctly-zeroed row as a mismatch.
+        helper_confirmed_at: job.helper_confirmed_at as string | null,
       });
       const storedFee = money(job.cancellation_fee);
 
@@ -360,7 +365,10 @@ serve(async (req) => {
       // late_cancellation is the <24h tier. Only derivable when a helper was
       // assigned and the schedule is known; otherwise the flag has no defined
       // truth and is skipped rather than guessed at.
-      if (job.helper_id && job.date_needed) {
+      // CHANGED 2026-09-08: gated on commitment, not assignment. A merely
+      // offered Helpr is charged 0%, so late_cancellation is written false and
+      // an assignment-based expectation here would flag every one of those.
+      if (helperIsCommitted({ helper_id: job.helper_id as string | null, helper_confirmed_at: job.helper_confirmed_at as string | null }) && job.date_needed) {
         const hrs = hoursUntilJob(
           job.date_needed as string,
           job.cancelled_at as string | null,
@@ -395,7 +403,7 @@ serve(async (req) => {
         }
       }
 
-      if (storedFee > 0 && !job.helper_id) {
+      if (storedFee > 0 && !helperIsCommitted({ helper_id: job.helper_id as string | null, helper_confirmed_at: job.helper_confirmed_at as string | null })) {
         checks.feeNoHelper.add({ job_id: job.id, cancellation_fee: storedFee });
       }
     }

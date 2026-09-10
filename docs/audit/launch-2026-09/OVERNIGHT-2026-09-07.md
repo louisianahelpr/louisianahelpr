@@ -406,3 +406,106 @@ and then a THIRD walker losing the `.gen.ts` race. That race is now
 fixed at the source (`5c8fadfbb`): the edge harness writes its temp
 modules to a git-ignored `.lh-edge-gen/` at the repo root, outside every
 scanner, with its specifiers absolutised. Full suite 330/330, typecheck 0.
+
+**Addendum:** the Test workflow had TWO more red steps hiding behind the
+three above — each earlier failure stopped the job before they ran. knip's
+unlisted-dependency rule (`@typescript-eslint/parser`, bare `playwright` in
+three scripts → `b599e20bf`) and the dead-edge-function guard (stale
+`helpr-pass-wallet` entry once its test landed → `be03a1b40`). **Test is
+green on main at `be03a1b40`** — first green since `617577fcf`.
+
+## 2026-09-08 — owner pop-up answers, closed
+
+Answers: dup notification → fix; strike → "No strike for pending offers";
+all four visuals → yes; seed flag → **Not yet** (untouched).
+
+- **Duplicate cancel notification — CLOSED `a04800206`.** `notify_on_job_update`
+  now skips its insert when the transaction-local `app.sanctioned_cancel`
+  GUC is `on` (every sanctioned cancel path already sets it for the
+  RPC-only trigger), so the RPC's richer, fee-aware notification is the
+  only one. Deployed, `pg_get_functiondef` on prod shows the guard, version
+  `20260908155310` recorded.
+- **Strike for cancelling a never-accepted offer — CLOSED `941307f26`.**
+  `poster_cancel_job` gates the violation ladder on
+  `helper_id IS NOT NULL AND helper_confirmed_at IS NOT NULL` (the column
+  `auto_start_due_jobs` already treats as "truly booked"). Verified live:
+  gate present, ACL `authenticated, service_role` only. Three flags the
+  lane raised that I did NOT resolve unilaterally:
+  1. The same gate also zeroes the **cancellation fee** for an unaccepted
+     offer (`_shared/cancellationFee.ts`, void-cancelled-payments,
+     money-reconciliation, ActivityDialogs all agree). This can only lower
+     a charge, never raise one. If you want the fee kept while the strike
+     goes, say so — it's a one-line split.
+  2. **Group jobs never set `helper_confirmed_at`**, so cancelling a
+     rostered group job now takes no strike and no fee either. Pre-existing
+     data-model gap; needs a decision on what "committed" means for a roster.
+  3. `authenticated` holds EXECUTE on `apply_cancellation_violation_consequence`
+     (self-strike only — a user can only hurt themselves). Report, not fixed.
+  Also: 19 legacy completed jobs carry a null `helper_confirmed_at`; they are
+  terminal and unaffected.
+- **Test-account avatars — CLOSED, with a correction.** I first set
+  `profiles.avatar_url = NULL` on eli.test.helper and helpr-audit-web-0824,
+  which cleared the broken-photo state and ALSO locked both accounts out
+  of every protected route: `ProtectedRoute`'s Big-7 completeness gate
+  counts `avatar_url` (`ProtectedRoute.tsx:114`), so null bounces to
+  `/complete-profile`. The visuals lane caught it. Both rows now point at
+  the `brand-asset` edge function (serves 200 image/png, already used as
+  an avatar by another profile) — gate satisfied, no 400. Fixtures only.
+- **Three visuals — CLOSED** (`885ddd48d`, `6814bfa73`, `22887b3f7`;
+  spec-prop fix `d4a9bcb77`). −$0.00 was born in `DisputeCard`'s
+  `−${money2()}` template, not the split math — formatter now snaps to
+  `$0.00` unsigned. Helper's Cancelled card says who cancelled (resolved
+  by id, never role) and quotes the fee the way the push did. Outer
+  Edit/Withdraw row gone while the inline editor is open. Eyeballed at
+  375 both themes, zero overflow; shots in
+  `~/.lh-audit/sweep-visuals-3/shots/`. Admin session was unreachable
+  (test-admin grant revoked), so fix 1 is proven by rendering the real
+  `DisputeCard` in a harness, not the live admin page.
+- **Three visuals (−$0.00 at split extremes, richer helper Cancelled card,
+  outer Edit/Withdraw hidden while editing)** — lane `sweep-visuals-3`
+  (fable), see the entry below once landed.
+
+## 2026-09-08 — the smoke suite was red for 150 runs and nobody could see it
+
+`9694c4750`. "E2E happy-path smoke" last passed on `92bc539ee` (2026-09-06
+21:33). Every run since — ~150 of them — died on the job's time budget after
+dozens of 30-second failures, which GitHub reports as **cancelled**, and
+cancelled is not red: no failure badge, no email, nothing in the checks
+summary that reads as broken. In a clean worktree the suite could not finish
+at all; it is **108 passed / 0 failed** now.
+
+Seven causes. Three were real app regressions, four were the suite asserting
+things the app had (correctly) stopped doing:
+
+1. **NotificationPanel crashed** on `n.message.toLowerCase()` — the fixture
+   served a `body` column notifications has never had (also `reviews.comment`
+   → `feedback`, `profiles.is_verified` removed). `fixtureSchemaContract`
+   now grades every fixture row for unknown columns and for missing
+   NOT-NULL-no-default columns; `schemaTables()` had been dropping the first
+   column of every table.
+2. **Terms re-consent dialog** over every authed screen (un-broken by
+   `80a3f01b4`): fixtures pin `terms_version_accepted`.
+3. Runtime probe's realtime-binding floor 25 → 20 (`bf0cd91c8` removed three
+   unfiltered bindings; the probe was asserting the old defect).
+4. `home-chrome` asserted the List/Map toggle you reversed in `c7bce404e`.
+5. `device-pass` at 320 flagged the deliberate `min-w-max` tab scroller.
+6. `earnings-length`: `mockTable` ignored `.eq("customer_id")`, so the
+   helper's own twelve jobs came back as poster spend ("across 12 jobs");
+   `mockTable` gains `honorFilters`.
+7. **`apply-single-sheet` — real, from `e319103eb`.** The "you can't be hired
+   yet" explainer pushed the apply step past the 68dvh floor for the state
+   most real helpers are in, and a centred box absorbs growth symmetrically:
+   the top edge walked **73px up** (129.9 → 56.8 at 375×812) on Continue.
+   The sheet now reads its own top edge before stepping forward and holds it
+   for the rest of the open — grows downward only. That put Apply Now 40px
+   below the fold, so the action row is `position: sticky`: on screen while
+   the form overflows, in flow with no reserved space when it doesn't.
+   Eyeballed at 375, both themes, top/mid/end of scroll.
+
+Gate in `~/.lh-gate` (detached at origin/main): typecheck clean, vitest 331
+files / 3777 passed, happy-path 108/108. **Ready for a TestFlight build once
+CI on `9694c4750` is green.**
+
+Lesson for the CLAUDE.md pile: a workflow that self-cancels on its time
+budget is invisible. Filter `gh run list` on `conclusion == "cancelled"` as
+hard as on `failure`.

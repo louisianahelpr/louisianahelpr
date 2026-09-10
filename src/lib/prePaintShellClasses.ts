@@ -51,8 +51,33 @@ export function applyPrePaintShellClasses() {
   html.classList.toggle("web-desktop", isWebDesktop);
 
   // `!!user` in the hook; the synchronous probe stands in for it here.
+  const maybeSignedIn = hasPersistedAuthToken();
+
   html.classList.toggle(
     "desktop-rail",
-    isWebDesktop && isDesktopRailRoute(pathname) && hasPersistedAuthToken(),
+    isWebDesktop && isDesktopRailRoute(pathname) && maybeSignedIn,
   );
+
+  // `no-bottom-nav` — the same pre-paint argument, one class over.
+  //
+  // MobileNav owns this class, and it sets it from an EFFECT inside its own
+  // lazily-loaded chunk. Measured cold at 375/slow-3G on guest `/`, it landed
+  // 2–3s after first paint — and it zeroes `--bottom-nav-h`, which feeds the
+  // `pb-safe-nav` token on 22 pages, so a ~112px strip collapsed under the
+  // content two seconds in. Anyone who had started scrolling saw the footer
+  // jump.
+  //
+  // Only the `false` half of the probe is acted on, and only additively: no
+  // token means definitely a guest, means definitely no dock, means the strip
+  // is definitely dead — that is safe to collapse before paint. A `true` (or a
+  // storage we cannot read) touches NOTHING, leaving the class exactly as the
+  // document loaded it, because "maybe signed in" is not enough to decide and
+  // guessing the reservation ON costs nothing but a dock-height gap that the
+  // dock is about to fill.
+  //
+  // MobileNav still owns the truth: its effect runs `toggle(..., dockHidden)`
+  // on mount and covers the cases this cannot see — a signed-in visitor on a
+  // marketing page, `noNavPages`, and a stale token whose session is invalid.
+  // This only moves the common guest answer earlier.
+  if (!maybeSignedIn) html.classList.add("no-bottom-nav");
 }

@@ -450,24 +450,29 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
               <TabsTrigger
                 key={key}
                 value={key}
-                className={`relative h-11 inline-flex flex-1 min-w-0 items-center justify-center gap-1 sm:gap-1.5 rounded-ds-md text-ds-11 sm:text-ds-13 font-sans font-semibold leading-none transition-colors duration-200 px-1${isActive ? " btn-grad-primary" : ""}`}
-                style={{ color: isActive ? "hsl(var(--parchment))" : "hsl(var(--olivewood))" }}
+                className="relative h-11 inline-flex flex-1 min-w-0 items-center justify-center gap-1 sm:gap-1.5 rounded-ds-md text-ds-11 sm:text-ds-13 font-sans font-semibold leading-none transition-colors duration-200 px-1"
+                style={{
+                  color: isActive ? "hsl(var(--parchment))" : "hsl(var(--olivewood))",
+                  // data-[state=active]:bg-background (parchment) causes the axe walk
+                  // algorithm to see 1:1 contrast; override it so both walk and pixel
+                  // methods see a dark background behind the parchment label.
+                  ...(isActive ? { backgroundColor: "hsl(var(--bark))" } : {}),
+                }}
               >
                 {/* A single lifted pill that slides between tabs via framer's
                     shared-layout (`layoutId`) — only the active trigger mounts
                     it, so switching documents animates the sliding border+shadow
-                    across. `btn-grad-primary` is applied to the trigger itself
-                    so axe sees it as the text's background (an absolutely-
-                    positioned child is invisible to the contrast tree); the pill
-                    carries only the border/shadow for the spring animation.
-                    Distinct layoutId from /legal's `legalTabPill`: the two
-                    bands are never mounted together, and a shared id across
-                    routes is how a pill flies in from an unrelated screen. */}
+                    across. `btn-grad-primary` is the shared primary-CTA surface,
+                    so the selected document reads as a glossy primary control and
+                    can never drift from the canonical gradient. Distinct layoutId
+                    from /legal's `legalTabPill`: the two bands are never mounted
+                    together, and a shared id across routes is how a pill flies in
+                    from an unrelated screen. */}
                 {isActive && (
                   <motion.span
                     layoutId="legalDirectoryTabPill"
                     transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
-                    className="absolute inset-0 rounded-ds-md"
+                    className="absolute inset-0 rounded-ds-md btn-grad-primary"
                     style={{
                       border: "1px solid hsl(var(--bark-border))",
                       boxShadow:

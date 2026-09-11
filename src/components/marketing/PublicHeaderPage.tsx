@@ -21,6 +21,14 @@ interface PublicHeaderPageProps {
    *  entrance-fade animation. Adds no padding/max-width of its own, so it
    *  never touches the header's container geometry. */
   headerWrapperClassName?: string;
+  /** Trailing controls on the title ROW itself — forwarded verbatim to
+   *  PageHeader. Exists so a page with header actions (the guest /browse feed
+   *  puts its search + filter icons here) can still use this shell instead of
+   *  hand-rolling PublicLayout + PageHeader + a padded body, which is the
+   *  drift this component exists to prevent. Omitted by Legal, Help Center
+   *  and Support, which have no title-row actions, so their headers are
+   *  byte-identical to before. */
+  titleActions?: ReactNode;
   children: ReactNode;
 }
 
@@ -45,9 +53,18 @@ export function PublicHeaderPage({
   width = "public",
   bottomPaddingClassName,
   headerWrapperClassName,
+  titleActions,
   children,
 }: PublicHeaderPageProps) {
-  const header = <PageHeader title={title} backTo={backTo} width={width} topInsetHandled />;
+  const header = (
+    <PageHeader
+      title={title}
+      backTo={backTo}
+      width={width}
+      topInsetHandled
+      titleActions={titleActions}
+    />
+  );
   return (
     <PublicLayout>
       {headerWrapperClassName ? <div className={headerWrapperClassName}>{header}</div> : header}

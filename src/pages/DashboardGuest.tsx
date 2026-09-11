@@ -36,8 +36,7 @@ import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/Das
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { signupUrlFor } from "@/lib/jobIntent";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
-import PublicLayout from "@/components/marketing/PublicLayout";
-import PageHeader from "@/components/PageHeader";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { isNativePlatform } from "@/lib/nativeInit";
 
 /**
@@ -808,34 +807,41 @@ const DashboardGuest = () => {
   // (which already renders Log In / Get Started for a signed-out visitor)
   // above, the site Footer (Company/Legal columns) below. See the shell-split
   // note atop this component for why this diverges from the native branch.
+  // PublicHeaderPage, NOT a hand-rolled PublicLayout + PageHeader + padded
+  // body. This first shipped as that hand-rolled skeleton, which is precisely
+  // the thing PublicHeaderPage was extracted to stop anyone writing again
+  // (owner, 2026-08-30: "legal help center and jobs should all be one
+  // component and share the same shell") — and it drifted immediately and in
+  // exactly the documented way: a stray `pt-3` on the feed wrapper stacked
+  // onto PageHeader's own `pb-6`, so the title-to-content gap here was 36px
+  // while /help and /legal held at 24. That is the SAME defect, to the class
+  // of value, that PublicHeaderPage's own header comment records Legal and
+  // Help Center growing with a stray `pt-4`. The header owns the full gap
+  // above and below the title; a body under it must never add its own.
   return (
-    <PublicLayout>
-      <PageHeader
-        title="Browse Jobs"
-        backTo="/"
-        width="public"
-        topInsetHandled
-        titleActions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
-      />
-      <div className="px-5 sm:px-8 lg:px-12 pb-16">
-        {filters.searchOpen && (
-          <div className="mx-auto page-measure pb-3">
-            <BrowseSearchBar filters={filters} />
-          </div>
-        )}
-        <div className="mx-auto page-measure">
-          {toolbar}
-          {view === "map" ? (
-            <div className="h-[70vh] min-h-[420px] overflow-hidden rounded-2xl mt-3">
-              {mapView}
-            </div>
-          ) : (
-            <div className="pt-3">{feedList}</div>
-          )}
+    <PublicHeaderPage
+      title="Browse Jobs"
+      width="public"
+      titleActions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
+      bottomPaddingClassName="pb-16"
+    >
+      {filters.searchOpen && (
+        <div className="mx-auto page-measure pb-3">
+          <BrowseSearchBar filters={filters} />
         </div>
+      )}
+      <div className="mx-auto page-measure">
+        {toolbar}
+        {view === "map" ? (
+          <div className="h-[70vh] min-h-[420px] overflow-hidden rounded-2xl mt-3">
+            {mapView}
+          </div>
+        ) : (
+          feedList
+        )}
       </div>
       {detailDialog}
-    </PublicLayout>
+    </PublicHeaderPage>
   );
 };
 

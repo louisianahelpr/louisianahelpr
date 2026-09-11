@@ -54,10 +54,32 @@ const SCRIPT_ID = "apple-mapkit-js";
 /** How long to wait for MapKit to report its authorization outcome. */
 const AUTH_CONFIRM_TIMEOUT_MS = 5_000;
 
-/** How long to wait for the server to mint a token before falling back to the
- *  build-time one. Deliberately short: a slow edge cold-start must not delay
- *  the map, and the fallback is a fully working token. */
-const SERVER_TOKEN_TIMEOUT_MS = 3_000;
+/**
+ * How long to wait for the server to mint a token.
+ *
+ * WAS 3_000, on the reasoning that "a slow edge cold-start must not delay the
+ * map, and the fallback is a fully working token". The second half of that
+ * sentence is FALSE IN PRODUCTION and has been since this landed. Vercel prod
+ * has no `VITE_APPLE_MAPKIT_TOKEN`, so Vite inlined `undefined`, constant-folded
+ * `built ? "build-time" : "none"` to `"none"`, and dead-code-eliminated the
+ * whole fallback branch out of the bundle — verified 2026-09-11 against the
+ * deployed chunk `app-shared-CzGSMji3.js`, whose `resolveTokenUncached` minifies
+ * to `async function Kf(){let e=await Vf();if(e)return Rf("server"),e;Rf("none")}`
+ * with the string `build-time` absent from all 96 chunks.
+ *
+ * So aborting early does not fall back to anything — it means NO TOKEN AT ALL,
+ * and the map dies. Measured against prod the same day, six consecutive calls
+ * to `mapkit-token` on a warm wired connection: 1.48s, 1.14s, 2.18s, 3.15s,
+ * 2.78s, 4.43s — two of six over the old 3s budget, and a phone on cellular is
+ * worse. That is the whole outage: `error_logs` carries a steady drip of
+ * "signal is aborted without reason" from this exact abort.
+ *
+ * Waiting is now strictly better than failing, and the wait is nearly free:
+ * `primeToken()` starts this fetch in parallel with Apple's 807KB script
+ * download, so in the common case the token is already in hand by the time
+ * MapKit asks for it.
+ */
+const SERVER_TOKEN_TIMEOUT_MS = 8_000;
 
 // Reported once per DISTINCT REASON, not once per session and not once per
 // call. MapKit re-invokes the authorization callback on every refresh, so an
@@ -89,6 +111,33 @@ function setTokenSource(next: MapKitTokenSource) {
 
 let cachedStatus: MapKitStatus = "idle";
 let pending: Promise<MapKitStatus> | null = null;
+
+/**
+ * Subscribers to the load status.
+ *
+ * `loadScript()` hands back a ONE-SHOT promise, so for a long time the only way
+ * a component learned the status was the single value that promise resolved
+ * with. Every later transition was invisible to anything already mounted — and
+ * there are several, because MapKit re-invokes `authorizationCallback` on every
+ * hourly refresh and a refresh can fail. Worse, the optimistic
+ * AUTH_CONFIRM_TIMEOUT_MS timer could resolve the promise "ready" while token
+ * resolution was still in flight; when that resolution then came up empty,
+ * `settle("missing-token")` updated `cachedStatus` but called `resolve()` on an
+ * already-resolved promise, which is a no-op. Consumers were left holding a
+ * "ready" that was a lie, MapKit was never handed a token, and its Geocoder
+ * therefore never invoked its callback — which is exactly how JobLocationPreview
+ * pulsed on its loading skeleton forever instead of falling through to its
+ * "isn't available" state.
+ *
+ * Mirrors `tokenSourceListeners` below; same reasoning, same shape.
+ */
+const statusListeners = new Set<(s: MapKitStatus) => void>();
+
+function setCachedStatus(next: MapKitStatus) {
+  if (cachedStatus === next) return;
+  cachedStatus = next;
+  statusListeners.forEach((fn) => fn(next));
+}
 
 function getBuildTimeToken(): string | undefined {
   // Named property access, NOT `(import.meta as {...}).env` — that cast
@@ -141,9 +190,16 @@ async function fetchServerToken(): Promise<string | null> {
     // reproduce the very "Locating… forever" hang this hook already guards.
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), SERVER_TOKEN_TIMEOUT_MS);
+    // GET, not POST. The edge function answers `Cache-Control: private,
+    // max-age=3300` precisely so a browser can reuse the token for 55 minutes
+    // (it lives 60), but a POST response is never served from the HTTP cache —
+    // so that header has been inert since it was written and EVERY page load
+    // paid a fresh edge round-trip, which is what keeps hitting the abort
+    // above. The function is method-agnostic (only OPTIONS is special-cased);
+    // verified 2026-09-11 against prod: GET → 200 with a valid token in 0.75s.
     const res = await fetch(`${base}/functions/v1/mapkit-token`, {
-      method: "POST",
-      headers: { apikey, "Content-Type": "application/json" },
+      method: "GET",
+      headers: { apikey },
       signal: controller.signal,
     }).finally(() => clearTimeout(timer));
 
@@ -261,10 +317,12 @@ function loadScript(): Promise<MapKitStatus> {
   // which reports "missing-token" only when BOTH sources come up empty.
 
   pending = new Promise<MapKitStatus>((resolve) => {
-    cachedStatus = "loading";
+    setCachedStatus("loading");
 
     const finish = (status: MapKitStatus) => {
-      cachedStatus = status;
+      // setCachedStatus, not a bare assignment: a status reached AFTER this
+      // promise has already resolved must still reach mounted consumers.
+      setCachedStatus(status);
       pending = null;
       resolve(status);
     };
@@ -298,14 +356,20 @@ function loadScript(): Promise<MapKitStatus> {
         let onError: ((e: { status?: string }) => void) | undefined;
         let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
 
+        let settled = false;
+
         const settle = (status: MapKitStatus) => {
           clearTimeout(fallbackTimer);
+          fallbackTimer = undefined;
           if (onConfig) events.removeEventListener?.("configuration-change", onConfig);
           if (onError) events.removeEventListener?.("error", onError);
+          settled = true;
           finish(status);
         };
 
-        if (typeof events.addEventListener === "function") {
+        const eventsSupported = typeof events.addEventListener === "function";
+
+        if (eventsSupported) {
           onConfig = (e) => {
             // "Initialized" on first auth, "Refreshed" on token renewal.
             if (e?.status === "Initialized" || e?.status === "Refreshed") settle("ready");
@@ -313,14 +377,33 @@ function loadScript(): Promise<MapKitStatus> {
           onError = () => settle("error");
           events.addEventListener("configuration-change", onConfig);
           events.addEventListener("error", onError);
-
-          // Deliberate optimism on timeout. If a future MapKit stops emitting
-          // these events, falling back to "ready" keeps address autocomplete
-          // working exactly as it does today rather than silently disabling it
-          // across all six consumers. The per-call timeout in
-          // CurrentLocationPill covers the hang this leaves open.
-          fallbackTimer = setTimeout(() => settle("ready"), AUTH_CONFIRM_TIMEOUT_MS);
+          // NOTE: the optimistic fallback timer is deliberately NOT armed here.
+          // See `armAuthConfirmTimeout` below.
         }
+
+        /**
+         * Arm the "assume it worked" timer — but only once MapKit has actually
+         * been handed a token.
+         *
+         * This used to start at init time, which raced token resolution and
+         * lost. `resolveToken()` can legitimately take up to two
+         * SERVER_TOKEN_TIMEOUT_MS windows (the primed attempt, then a real
+         * retry), and the old 5s timer beat that whenever Apple's script came
+         * from the HTTP cache — i.e. on every repeat visit. It then resolved
+         * the promise "ready" for a MapKit that had never been authorized and
+         * never would be, producing a Geocoder whose callback is never invoked
+         * and a caller that waits on it forever.
+         *
+         * The timer's actual purpose is narrow: cover a future MapKit that
+         * stops emitting `configuration-change`. That risk only exists AFTER
+         * we have given it a token, so that is when the clock should start.
+         * If no token is ever produced, `settle("missing-token")` below is the
+         * only honest outcome and nothing should paper over it.
+         */
+        const armAuthConfirmTimeout = () => {
+          if (!eventsSupported || settled || fallbackTimer !== undefined) return;
+          fallbackTimer = setTimeout(() => settle("ready"), AUTH_CONFIRM_TIMEOUT_MS);
+        };
 
         // MapKit invokes this on init and again on every refresh, which is
         // precisely the hook short-lived server tokens need — resolve fresh
@@ -329,6 +412,7 @@ function loadScript(): Promise<MapKitStatus> {
           authorizationCallback: (done) => {
             void resolveToken().then((t) => {
               if (t) {
+                armAuthConfirmTimeout();
                 done(t);
                 return;
               }
@@ -342,7 +426,7 @@ function loadScript(): Promise<MapKitStatus> {
         });
 
         // No event support at all — preserve the old behaviour.
-        if (typeof events.addEventListener !== "function") finish("ready");
+        if (!eventsSupported) finish("ready");
       } catch {
         finish("error");
       }
@@ -389,11 +473,20 @@ export function useMapKitJs(): MapKitStatus {
 
   useEffect(() => {
     let cancelled = false;
+    // Subscribe BEFORE kicking off the load, and keep the subscription for the
+    // component's whole life. The promise below reports exactly one value; the
+    // status can change after it (a failed hourly token refresh, or a late
+    // `settle("missing-token")` once token resolution finally comes up empty).
+    // Without this, a consumer keeps rendering a status that stopped being true
+    // — which is how the job-sheet map preview stayed on its skeleton forever.
+    statusListeners.add(setStatus);
+    setStatus(cachedStatus);
     loadScript().then((s) => {
       if (!cancelled) setStatus(s);
     });
     return () => {
       cancelled = true;
+      statusListeners.delete(setStatus);
     };
   }, []);
 

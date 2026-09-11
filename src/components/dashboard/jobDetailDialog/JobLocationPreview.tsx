@@ -54,12 +54,48 @@ interface MapKitRuntime {
  * have different triggering rules, and forcing one signature over both
  * would have made the shared component harder to read for either caller.
  */
+/**
+ * How long this preview is allowed to show its loading skeleton before it gives
+ * up and says so.
+ *
+ * There is no such thing as "still loading" forever, but this component had
+ * three separate routes to exactly that, and production sat on all of them
+ * (owner, 2026-09-11: "why isnt map loading" — the element was stuck on
+ * `role="status" aria-label="Loading map" ... animate-pulse`, pulsing grey
+ * indefinitely and never reaching the error state one branch below):
+ *
+ *   1. `mapKitStatus` never settling — the hook's optimistic auth timer could
+ *      resolve "ready" for a MapKit that was never handed a token, and its
+ *      Geocoder then never invokes the callback below. Fixed at source in
+ *      useMapKitJs, but a consumer must not depend on that being true forever.
+ *   2. A whitespace-only `address`, which passes the `job.location` truthiness
+ *      check at the call site but fails `address.trim()` here, so the geocode
+ *      effect returns immediately and nothing ever sets state again.
+ *   3. `mk.Geocoder` being absent, which also returns early and sets nothing.
+ *
+ * A watchdog covers all three and any future fourth. 15s is deliberately
+ * generous — it must not fire while a slow phone is still legitimately working
+ * through Apple's 807KB script plus an 8s token budget — because its job is to
+ * terminate "never", not to be snappy.
+ */
+const MAP_PREVIEW_TIMEOUT_MS = 15_000;
+
 export function JobLocationPreview({ address }: { address: string }) {
   const mapKitStatus = useMapKitJs();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapKitMapInstance | null>(null);
   const [resolved, setResolved] = useState<{ lat: number; lng: number } | null>(null);
   const [geocodeFailed, setGeocodeFailed] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+
+  // Watchdog. Keyed on `address` only: a new address is a genuinely new attempt
+  // and deserves a fresh window, but a status flap must NOT keep resetting the
+  // clock or "never" becomes reachable again by a different road.
+  useEffect(() => {
+    setTimedOut(false);
+    const t = setTimeout(() => setTimedOut(true), MAP_PREVIEW_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [address]);
 
   useEffect(() => {
     if (mapKitStatus !== "ready" || !window.mapkit || !address.trim()) return;
@@ -117,7 +153,15 @@ export function JobLocationPreview({ address }: { address: string }) {
     };
   }, [resolved, mapKitStatus]);
 
-  if (mapKitStatus === "missing-token" || mapKitStatus === "error" || geocodeFailed) {
+  // `timedOut && !resolved`, not a bare `timedOut`: once a pin is on screen the
+  // watchdog is irrelevant and must never tear down a working map.
+  if (
+    mapKitStatus === "missing-token" ||
+    mapKitStatus === "error" ||
+    geocodeFailed ||
+    !address.trim() ||
+    (timedOut && !resolved)
+  ) {
     return (
       <div
         role="status"

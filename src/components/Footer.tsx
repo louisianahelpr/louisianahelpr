@@ -1,7 +1,6 @@
 import { Apple, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
-import { APP_STORE_URL } from "@/lib/appStore";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { browseDestinationFor } from "@/lib/browseDestination";
 
@@ -45,7 +44,6 @@ const Instagram = ({ className }: { className?: string }) => (
 // screen it is the ONLY way out of a blocked app, so the two copies must not
 // be allowed to drift.
 const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
-const INSTAGRAM_URL = "https://www.instagram.com/louisianahelpr";
 
 /**
  * Editorial footer — matches the landing hero's parchment surface, no
@@ -216,20 +214,19 @@ const Footer = () => {
               the circles `rounded-full` implies. Height was never the problem —
               width was being taken away. */}
           <div className="flex items-center gap-2.5">
-            <a
-              href={APP_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
-              aria-label="Download on the App Store (opens in a new tab)"
-              title="Download on the App Store"
+            {/* Apple (App Store) and Instagram are not live yet — inert
+                chips with a "Coming soon" label rather than a link, so
+                nothing implies a destination that doesn't exist. Facebook
+                is the only real, clickable account. */}
+            <button
+              type="button"
+              disabled
+              className="group inline-flex h-11 w-11 shrink-0 cursor-not-allowed items-center justify-center rounded-full bg-[hsl(var(--olivewood))]/40 text-[hsl(var(--parchment))] shadow-sm"
+              aria-label="Apple App Store — coming soon"
+              title="Coming soon"
             >
-              <Apple
-                className="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110"
-                strokeWidth={1.5}
-                fill="currentColor"
-              />
-            </a>
+              <Apple className="h-[18px] w-[18px]" strokeWidth={1.5} fill="currentColor" />
+            </button>
             <a
               href={FACEBOOK_URL}
               target="_blank"
@@ -244,20 +241,19 @@ const Footer = () => {
                 fill="currentColor"
               />
             </a>
-            <a
-              href={INSTAGRAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+            <button
+              type="button"
+              disabled
+              className="group inline-flex h-11 w-11 shrink-0 cursor-not-allowed items-center justify-center rounded-full text-white shadow-sm"
               style={{
                 background:
-                  "linear-gradient(135deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)",
+                  "linear-gradient(135deg, rgba(249,206,52,0.45) 0%, rgba(238,42,123,0.45) 50%, rgba(98,40,215,0.45) 100%)",
               }}
-              aria-label="Follow us on Instagram (opens in a new tab)"
-              title="Follow us on Instagram"
+              aria-label="Instagram — coming soon"
+              title="Coming soon"
             >
-              <Instagram className="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110" />
-            </a>
+              <Instagram className="h-[18px] w-[18px]" />
+            </button>
           </div>
         </div>
       </div>

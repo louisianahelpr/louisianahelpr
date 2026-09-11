@@ -20,7 +20,7 @@ interface PayoutStatusRowProps {
  * spacer would silently come out shorter.)
  */
 const BOX =
-  "w-full flex items-center gap-2.5 rounded-ds-md border px-3 py-2.5 text-left transition-all";
+  "w-full flex items-center gap-2.5 rounded-ds-md border px-3 py-2.5 text-left";
 
 /**
  * The payout slot at the top of the Profile settings card.
@@ -68,9 +68,8 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry }: PayoutStatusRowPro
 
   // `reserve` renders the SETUP banner's exact markup, held open but wearing
   // a neutral loading fill with its contents hidden — so it occupies the
-  // right height while asserting nothing. It is only ever rendered when the
-  // last answer this device saw said payouts were off, i.e. when the banner
-  // is genuinely about to appear; see `useStripeConnectStatus`.
+  // right height while asserting nothing. It is rendered whenever the status
+  // question is still open; see `useStripeConnectStatus`.
   const reserving = prompt.kind === "reserve";
 
   return (

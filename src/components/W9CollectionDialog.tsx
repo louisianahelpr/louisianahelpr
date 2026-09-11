@@ -76,7 +76,7 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
     } catch (err: any) {
       hapticError();
       if (err?.code === "42P01" || err?.code === "PGRST204") {
-        toast.error("W-9 records table not yet deployed — your acceptance is recorded but the signature wasn't.");
+        toast.error("We couldn't record your signature right now — try again.");
       } else {
         toast.error(userFacingError(err, "We couldn't record that signature — try again."));
       }

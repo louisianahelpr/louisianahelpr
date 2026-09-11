@@ -839,8 +839,8 @@ const UserProfile = () => {
                   aria-hidden
                 />
                 <span>
-                  You pay Helpr, not the member — the money is held in escrow
-                  and released once the job is done.
+                  You pay Helpr, not the member — the money is held securely
+                  (in escrow) and released once the job is done.
                 </span>
               </p>
               <p

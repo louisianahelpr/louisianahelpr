@@ -2,6 +2,7 @@ import { useLayoutEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
+import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
 /**
@@ -188,7 +189,39 @@ export const WEB_DESKTOP_QUERY = "(min-width: 900px)";
  */
 export const useAppShellViewport = () => {
   const { pathname } = useLocation();
-  const { user } = useAuthReady();
+  const { user, isReady } = useAuthReady();
+
+  /**
+   * "Is the rail going to be on screen?" — answerable on the FIRST layout
+   * effect, which `!!user` alone is not.
+   *
+   * `user` resolves asynchronously (supabase.auth.getSession, over the network
+   * whenever the access token needs refreshing). Until it lands it is `null`,
+   * which is indistinguishable from a genuine guest — so this effect ran on
+   * mount, read `null`, and REMOVED the `desktop-rail` class that
+   * prePaintShellClasses had correctly stamped before paint. The inset went
+   * with it: the page painted at the full viewport width, and then slid 248px
+   * narrower when auth finally resolved and the class came back. Measured at
+   * 1440 on 2026-09-11 — <html> carried `desktop-rail` at t=211ms, lost it at
+   * t=225ms, and the content column animated 1440 → 1192 between t=238ms and
+   * t=424ms on /my-jobs, with the same 248px delta on /my-posts, /profile,
+   * /messages, /dashboard, /help and /legal. That IS the owner's "opens wide
+   * then gets smaller".
+   *
+   * So while auth is still in flight, fall back to the synchronous probe this
+   * app already uses for exactly this question (MarketingRedirect, MobileNav,
+   * prePaintShellClasses). Its `false` is trustworthy — no token means a
+   * definite guest, so a guest-reachable rail route like /browse still gets no
+   * inset for a rail that never renders, which is the dead-gutter bug the
+   * `!!user` gate was added for. Its `true` is a maybe, and the only way to be
+   * wrong is a stale token whose session turns out to be invalid: that case
+   * lands back on the old behaviour (the class is removed once `isReady`) and
+   * is strictly rarer than the reflow every signed-in load was paying.
+   *
+   * Once `isReady` is true, `user` is the only input — no guessing survives
+   * past the answer arriving.
+   */
+  const railUserPresent = isReady ? !!user : !!user || hasPersistedAuthToken();
 
   useLayoutEffect(() => {
     const apply = () => {
@@ -218,7 +251,7 @@ export const useAppShellViewport = () => {
       const isWebDesktop = html.classList.contains("web-desktop");
       html.classList.toggle(
         "desktop-rail",
-        isWebDesktop && isDesktopRailRoute(pathname) && !!user,
+        isWebDesktop && isDesktopRailRoute(pathname) && railUserPresent,
       );
     };
     apply();
@@ -230,7 +263,7 @@ export const useAppShellViewport = () => {
       // them correctly. Only the re-apply hook is released.
       if (reapplyShellClasses === apply) reapplyShellClasses = null;
     };
-  }, [pathname, user]);
+  }, [pathname, railUserPresent]);
 
   // Web-desktop detection. Independent of route (the chrome/layout applies on
   // every signed-in fixed-shell page), so it lives in its own effect that runs

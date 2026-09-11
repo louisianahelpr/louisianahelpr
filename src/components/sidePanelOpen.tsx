@@ -2,7 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -10,6 +10,66 @@ import {
 import { safeStorage } from "@/lib/safeStorage";
 
 const STORAGE_KEY = "helpr.sidePanelOpen";
+
+/**
+ * The panel's persisted state, read synchronously.
+ *
+ * Exported because `prePaintShellClasses` has to answer the same question
+ * BEFORE React mounts — the `side-panel-open` class is half of the rail
+ * inset's selector, so a first paint without it is a full-width paint. Kept
+ * here, next to the writer, rather than copied there: the key and the
+ * default-open rule are one fact, and a second copy of them is a drift the
+ * next default change would not notice.
+ */
+export const readSidePanelOpen = (): boolean => {
+  const stored = safeStorage.getItem(STORAGE_KEY);
+  return stored === null ? true : stored === "1";
+};
+
+/**
+ * How long the content inset eases for — must match the 300ms in the
+ * `.shell-transitions` rules in index.css.
+ */
+const SHELL_TRANSITION_MS = 300;
+let disarmTimer: number | undefined;
+
+/**
+ * Turn the content-inset ease ON for exactly one panel toggle.
+ *
+ * index.css eases `#root { padding-right }` and `.app-shell-frame { right }`
+ * so the page moves WITH the sliding panel instead of lurching ahead of it.
+ * That is the only thing the ease is for — and left unconditional it also
+ * animated two changes that are not the panel moving at all, both of which
+ * the owner saw as a page "opening wide and then getting smaller":
+ *
+ *   - BOOT. #root is in index.html and is painted (boot gradient) before the
+ *     app's module has even been fetched, so the rail classes always land on
+ *     an already-painted element and the 0 → 248px they turn on was a
+ *     transitionable change. Measured 2026-09-11 at 1440: /legal's column slid
+ *     1440 → 1192 over t=611–878ms, /help over t=239–518ms.
+ *   - ROUTE CHANGE between the two shell kinds. Going /my-jobs → /help drops
+ *     the `app-shell` class, which hands the inset from `.app-shell-frame`'s
+ *     `right` to `#root`'s `padding-right` — and #root's padding had been 0
+ *     the whole time, so it eased 0 → 248px while the rail sat there already
+ *     on screen. Measured at t=3091–3391ms on that navigation.
+ *
+ * Neither is the panel moving, so neither should animate. Arming here — in the
+ * one function every toggle goes through — makes the rule "this eases because
+ * the user pressed the hamburger", which is what it always meant. The class is
+ * added synchronously BEFORE the state update, so the after-change style that
+ * the transition is computed from already carries it; it is removed once the
+ * ease has run so the next route change is instant again.
+ */
+const armShellTransitions = () => {
+  if (typeof document === "undefined") return;
+  const el = document.documentElement;
+  el.classList.add("shell-transitions");
+  if (disarmTimer !== undefined) window.clearTimeout(disarmTimer);
+  disarmTimer = window.setTimeout(() => {
+    el.classList.remove("shell-transitions");
+    disarmTimer = undefined;
+  }, SHELL_TRANSITION_MS + 100);
+};
 
 /**
  * Whether the website's side panel (DesktopSidebarNav) is showing.
@@ -41,12 +101,11 @@ const SidePanelContext = createContext<SidePanelValue>({
 });
 
 export const SidePanelProvider = ({ children }: { children: ReactNode }) => {
-  const [open, setOpenState] = useState<boolean>(() => {
-    const stored = safeStorage.getItem(STORAGE_KEY);
-    return stored === null ? true : stored === "1";
-  });
+  const [open, setOpenState] = useState<boolean>(readSidePanelOpen);
 
   const setOpen = useCallback((next: boolean) => {
+    // Before the state change, not after — see armShellTransitions.
+    armShellTransitions();
     setOpenState(next);
     safeStorage.setItem(STORAGE_KEY, next ? "1" : "0");
   }, []);
@@ -56,7 +115,17 @@ export const SidePanelProvider = ({ children }: { children: ReactNode }) => {
   // Mirror onto <html> so CSS can inset the content by the panel width without
   // every page needing to read this context. Matches how `desktop-rail` and
   // `web-desktop` are already mirrored by useAppShellViewport.
-  useEffect(() => {
+  //
+  // LAYOUT effect, not a passive one. Both rail-inset rules in index.css
+  // require `.side-panel-open` alongside `.desktop-rail`, so this class is not
+  // decoration — it is half of the gate that decides whether the content
+  // column is 1440 or 1192 wide at 1440px. A passive effect runs AFTER the
+  // browser has painted, so on every hard load the page painted full-width and
+  // then slid 248px narrower over the 300ms transition those rules carry.
+  // Measured 2026-09-11 at 1440: /my-jobs painted frameW=1440 at t=225ms and
+  // reached 1192 at t=424ms, and the class series showed exactly why — at
+  // t=211ms <html> carried `desktop-rail` but not `side-panel-open`.
+  useLayoutEffect(() => {
     const el = document.documentElement;
     el.classList.toggle("side-panel-open", open);
     return () => el.classList.remove("side-panel-open");

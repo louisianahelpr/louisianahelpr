@@ -28,6 +28,7 @@
 import { Capacitor } from "@capacitor/core";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
+import { readSidePanelOpen } from "@/components/sidePanelOpen";
 import { isDocumentScrollRoute, WEB_DESKTOP_QUERY } from "@/hooks/useAppShellViewport";
 
 export function applyPrePaintShellClasses() {
@@ -57,6 +58,21 @@ export function applyPrePaintShellClasses() {
     "desktop-rail",
     isWebDesktop && isDesktopRailRoute(pathname) && maybeSignedIn,
   );
+
+  // `side-panel-open` — the OTHER half of the rail-inset selector, and the
+  // reason this file did not actually fix the reflow it was written for.
+  //
+  // Both insets in index.css read
+  //   html.web-desktop.app-shell.desktop-rail.side-panel-open .app-shell-frame
+  //   html.web-desktop.desktop-rail.side-panel-open:not(.app-shell) #root
+  // so stamping `desktop-rail` alone changes nothing: the selector still does
+  // not match, the page still paints at the full 1440, and the inset lands
+  // only when SidePanelProvider's effect adds this class — which, until it was
+  // made a LAYOUT effect alongside this change, was after first paint.
+  // SidePanelProvider still owns the truth (toggle, persistence); this only
+  // moves its opening answer in front of the paint, reading the same key
+  // through the same helper so the two cannot disagree.
+  html.classList.toggle("side-panel-open", readSidePanelOpen());
 
   // `no-bottom-nav` — the same pre-paint argument, one class over.
   //

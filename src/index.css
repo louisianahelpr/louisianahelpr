@@ -1546,12 +1546,26 @@ html.web-desktop {
      lurched, then the panel caught up. Matching duration and curve makes the
      two read as one movement (owner: "side panel should move in and out
      smoother"). Applied to the BASE selectors so it eases in both directions,
-     and only under motion-safe. */
+     and only under motion-safe.
+
+     `.shell-transitions` is REQUIRED, and it is what keeps this rule to the
+     panel. It is added by `armShellTransitions()` in sidePanelOpen.tsx for the
+     ~300ms around a hamburger toggle and removed again, so an inset change
+     that is NOT the panel moving never animates. Two of those existed and both
+     read to the owner as a page "opening wide and then getting smaller"
+     (measured 2026-09-11 at 1440): at BOOT, #root is in index.html and is
+     painted before the app's module runs, so the classes always land on an
+     already-painted element and 0 → 248px eased in view (/legal t=611–878ms,
+     /help t=239–518ms); and on a ROUTE CHANGE between the two shell kinds
+     (/my-jobs → /help drops `app-shell`, handing the inset from
+     `.app-shell-frame`'s `right` to `#root`'s padding-right, which had been 0
+     all along — eased t=3091–3391ms with the rail already on screen). The full
+     reasoning lives on `armShellTransitions`. */
   @media (prefers-reduced-motion: no-preference) {
-    html.web-desktop.desktop-rail:not(.app-shell) #root {
+    html.shell-transitions.web-desktop.desktop-rail:not(.app-shell) #root {
       transition: padding-right 300ms cubic-bezier(0.32, 0.72, 0, 1);
     }
-    html.web-desktop.app-shell.desktop-rail .app-shell-frame {
+    html.shell-transitions.web-desktop.app-shell.desktop-rail .app-shell-frame {
       transition: right 300ms cubic-bezier(0.32, 0.72, 0, 1);
     }
   }

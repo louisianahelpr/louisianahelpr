@@ -1,0 +1,1 @@
+function e(e,t){return t?(e??[]).find(e=>e?.user_id===t)??null:null}export{e as t};

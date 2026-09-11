@@ -1,0 +1,1 @@
+import{t as e}from"./client-BYw2gSew.js";export{e as supabase};

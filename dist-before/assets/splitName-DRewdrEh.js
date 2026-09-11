@@ -1,0 +1,1 @@
+function e(e){let t=(e||``).trim().split(/\s+/).filter(Boolean);return{firstName:t[0]||``,lastName:t.slice(1).join(` `)}}export{e as t};

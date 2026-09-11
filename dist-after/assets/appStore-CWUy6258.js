@@ -1,0 +1,1 @@
+var e=`https://apps.apple.com/us/app/helpr/id6754470134`;export{e as t};

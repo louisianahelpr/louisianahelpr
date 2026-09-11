@@ -1,0 +1,1 @@
+import{t as e}from"./react-vendor-BGPYkPvd.js";import{t}from"./PageHeader-Cog_s6Ts.js";var n=e();function r({title:e,onBack:r,backTo:i,rightSlot:a}){return(0,n.jsx)(`div`,{className:`-mb-4`,children:(0,n.jsx)(t,{title:e,onBack:r,backTo:i,titleActions:a,width:`none`,topInsetHandled:!0})})}export{r as t};

@@ -1,0 +1,1 @@
+function e(e){if(!e)return``;let t=e.split(`,`).map(e=>e.trim()).filter(Boolean);if(t.length===0)return``;let n=t[t.length-1];return(/^\d{5}(-\d{4})?$/.test(n)||/^[A-Za-z]{2}(\s+\d{5}(-\d{4})?)?$/.test(n))&&t.length>1&&(t=t.slice(0,-1)),t[t.length-1]??``}export{e as t};

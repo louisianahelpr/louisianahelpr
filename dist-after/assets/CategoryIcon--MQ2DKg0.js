@@ -1,0 +1,1 @@
+import{t as e}from"./react-vendor-BGPYkPvd.js";import{t}from"./categoryIcons-CxHor6gH.js";import{r as n}from"./activityConstants-Cd5ISKWN.js";var r=e();function i({category:e,"aria-label":i,...a}){let o=t(e),s=a[`aria-hidden`]===!0||a[`aria-hidden`]===`true`?void 0:i??n[e]??e;return(0,r.jsx)(o,{...a,"aria-label":s,role:s?`img`:void 0})}export{i as t};

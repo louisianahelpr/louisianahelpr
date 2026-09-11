@@ -1,0 +1,1 @@
+function e(e){if(e==null||e===``)return 10;let t=Number(e);return Number.isFinite(t)?t:10}export{e as t};

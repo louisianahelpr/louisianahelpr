@@ -1,0 +1,1 @@
+import{p as e}from"./tanstack-GeF0Et4_.js";import{r as t}from"./nativeInit-DK25nvZA.js";import{n}from"./dist-D1alMPZu.js";function r(){let r=typeof navigator>`u`||navigator.onLine,i=!t||e.isOnline();return r&&i?!0:(n.error(`You're offline. Try again when you're back.`),!1)}export{r as t};

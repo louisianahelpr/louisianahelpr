@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-hePW80VL.js";import{ai as t}from"./lucide-C0V5YzXT.js";import{u as n}from"./chunk-BV7QT456-BSbKON7v.js";import{t as r}from"./jobLinkRef-tlKoNBt7.js";var i=e(t(),1);function a(){let[e]=n(),[t,a]=(0,i.useState)(null);return(0,i.useEffect)(()=>{let t=r(e.get(`ref`));a(t)},[]),t}export{a as t};

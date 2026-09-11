@@ -1,0 +1,1 @@
+var e={background:`transparent`,border:`none`,boxShadow:`none`,paddingTop:`2.5rem`,paddingBottom:`2.5rem`};export{e as t};

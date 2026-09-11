@@ -1,0 +1,1 @@
+function e(e,t,n,r){let i=e=>e*Math.PI/180,a=i(n-e),o=i(r-t),s=Math.sin(a/2)**2+Math.cos(i(e))*Math.cos(i(n))*Math.sin(o/2)**2;return 7917.6*Math.asin(Math.sqrt(s))}function t(e){if(!e)return null;let t=e.match(/^nearby:(\d+(?:\.\d+)?)$/);return t?parseFloat(t[1]):null}export{t as n,e as t};

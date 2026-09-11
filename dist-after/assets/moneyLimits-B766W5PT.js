@@ -1,0 +1,1 @@
+var e=5e3,t=e;function n(e){return`$${e.toLocaleString(`en-US`)}`}var r=2e4,i=()=>n(r);export{n as a,i,e as n,t as r,r as t};

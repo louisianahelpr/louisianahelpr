@@ -1,0 +1,1 @@
+var e=[`from-[#f0f2f4] to-[#979a86]`,`from-[#f0f2f4] to-[#c18f78]`,`from-[#f0f2f4] to-[#8c8d87]`,`from-[#f0f2f4] to-[#d3b073]`,`from-[#ffffff] to-[#969983]`,`from-[#e2e4e9] to-[#b77f66]`,`from-[#f0f2f4] to-[#b2b6aa]`,`from-[#ffffff] to-[#ddbd87]`];function t(t){let n=t??``,r=5381;for(let e=0;e<n.length;e++)r=(r<<5)+r+n.charCodeAt(e)|0;return e[Math.abs(r)%e.length]}export{t};

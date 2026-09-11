@@ -1,0 +1,1 @@
+import{r as e}from"./nativeInit-DK25nvZA.js";import{t}from"./esm-AmtgdUgq.js";async function n(n,r){if(!e){window.location.href=n;return}let i;r&&(i=await t.addListener(`browserFinished`,()=>{i?.remove(),r()}));try{await t.open({url:n,presentationStyle:`popover`})}catch(e){throw await i?.remove(),e}}export{n as t};

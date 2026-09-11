@@ -1,0 +1,1 @@
+import{t as e}from"./react-vendor-BGPYkPvd.js";import{r as t}from"./chunk-BV7QT456-BSbKON7v.js";import{t as n}from"./useCurrentUser-CF3hUCxR.js";var r=e(),i=()=>{let{user:e,isLoading:i}=n();return i?(0,r.jsx)(`div`,{className:`min-h-screen bg-premium-page`}):(0,r.jsx)(t,{to:e?`/dashboard`:`/browse`,replace:!0})};export{i as default};

@@ -1,0 +1,1 @@
+import{f as e}from"./tanstack-GeF0Et4_.js";import{t}from"./queryPersister-CKRQGs7h.js";var n=new e({defaultOptions:{queries:{staleTime:6e4,gcTime:t,retry:(e,t)=>{let n=t?.status??t?.statusCode??Number(t?.code);return typeof n==`number`&&n>=400&&n<500?!1:e<2},refetchOnWindowFocus:!0},mutations:{networkMode:`always`,retry:0}}});export{n as t};

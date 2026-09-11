@@ -1,0 +1,60 @@
+## Helpr — Production HTTP headers
+## Picked up by Vercel/Netlify-style hosting. Sets baseline security headers
+## on every web response. Capacitor (iOS/Android) ignores these — those
+## platforms get headers from WKWebView config + the meta CSP in index.html.
+
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(), geolocation=(self), payment=(self "https://js.stripe.com" "https://hooks.stripe.com"), interest-cohort=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://hooks.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://api.resend.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://hooks.stripe.com https://*.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+
+# Hashed build assets — safe to cache for a year (filename changes on rebuild).
+# Vercel/Netlify hosting needs explicit per-extension rules under /assets/*
+# because some CDNs don't always honor the bare /assets/* glob for nested paths.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.js
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.css
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.webp
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.png
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.jpg
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.woff
+  Cache-Control: public, max-age=31536000, immutable
+
+# Static images at the root of /public — long cache, content-hashed by build
+/*.webp
+  Cache-Control: public, max-age=31536000, immutable
+/*.png
+  Cache-Control: public, max-age=2592000
+/*.jpg
+  Cache-Control: public, max-age=2592000
+/*.svg
+  Cache-Control: public, max-age=2592000
+/*.ico
+  Cache-Control: public, max-age=2592000
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+/*.woff
+  Cache-Control: public, max-age=31536000, immutable
+
+# Service worker + manifest must always revalidate
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
+/sw-push.js
+  Cache-Control: no-cache
+/registerSW.js
+  Cache-Control: no-cache

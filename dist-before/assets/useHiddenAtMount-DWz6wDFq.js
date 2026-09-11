@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-hePW80VL.js";import{ai as t}from"./lucide-C0V5YzXT.js";var n=e(t(),1);function r(){let[e]=(0,n.useState)(()=>typeof document<`u`&&document.visibilityState===`hidden`);return e}export{r as t};

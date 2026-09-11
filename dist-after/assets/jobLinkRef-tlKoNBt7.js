@@ -1,0 +1,1 @@
+var e=[`msg`,`notif`,`share`,`email`];function t(t){if(!t)return null;let n=t;if(!e.includes(n))return null;try{sessionStorage.setItem(`helpr_job_link_ref`,n)}catch{}return n}export{t};

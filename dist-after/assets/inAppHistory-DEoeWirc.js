@@ -1,0 +1,1 @@
+function e(e){if(typeof window<`u`){let e=window.history.state?.idx;if(typeof e==`number`)return e>0}return e!==void 0&&e!=="default"}export{e as t};

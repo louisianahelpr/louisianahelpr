@@ -1,0 +1,1 @@
+var e=e=>e*60*60*1e3;export{e as t};

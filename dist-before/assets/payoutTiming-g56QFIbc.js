@@ -1,0 +1,1 @@
+var e=`within 2 business days`;export{e as t};

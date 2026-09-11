@@ -1,0 +1,1 @@
+import{t as e}from"./queryClient-BHLDldqb.js";export{e as queryClient};

@@ -1,0 +1,1 @@
+import{Dt as e,Et as t,Nr as n,R as r,St as i,U as a,Vn as o,b as s,er as c,r as l,rn as u,wt as d,xn as f}from"./lucide-C0V5YzXT.js";var p={cleaning:r,yard_work:u,moving:s,errands:a,handyman:l,painting:t,delivery:e,pet_care:i,assembly:f,storm_prep:c,events:d,other:o},m=n;function h(e){return e?p[e]??m:m}export{h as t};

@@ -1,0 +1,1 @@
+import{u as e}from"./tanstack-GeF0Et4_.js";function t({key:t,fetcher:n,fallback:r,enabled:i=!0,staleTime:a=6e4,gcTime:o=3e5,...s}){let c=e({queryKey:t,queryFn:n,enabled:i,staleTime:a,gcTime:o,...s});return{...c,data:c.data??r,isInitialLoading:c.isLoading&&c.data===void 0&&(r===void 0||Array.isArray(r)&&r.length===0)}}export{t};

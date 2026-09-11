@@ -1,0 +1,1 @@
+import{t as e}from"./tanstack-GeF0Et4_.js";export{e as persistQueryClient};

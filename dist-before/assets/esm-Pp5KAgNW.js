@@ -1,0 +1,1 @@
+import{t as e}from"./preload-helper-Czpn1I53.js";import{c as t}from"./dist-C-6fxXiX.js";var n=t(`Preferences`,{web:()=>e(()=>import(`./web-DP5kgtBW.js`).then(e=>new e.PreferencesWeb),[])});export{n as t};

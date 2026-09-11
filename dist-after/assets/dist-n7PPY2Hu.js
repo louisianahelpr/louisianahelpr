@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-hePW80VL.js";import{ai as t}from"./lucide-C0V5YzXT.js";var n=e(t(),1),r=Object.defineProperty,i=(e,t)=>r(e,`name`,{value:t,configurable:!0});function a(e){let t=n.useRef(e);return n.useEffect(()=>{t.current=e}),n.useMemo(()=>((...e)=>t.current?.(...e)),[])}i(a,`useCallbackRef`);export{a as t};

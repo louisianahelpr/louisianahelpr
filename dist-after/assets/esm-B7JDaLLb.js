@@ -1,0 +1,1 @@
+import{t as e}from"./preload-helper-Czpn1I53.js";import{c as t}from"./dist-C-6fxXiX.js";var n=t(`Share`,{web:()=>e(()=>import(`./web-LjFibBka.js`).then(e=>new e.ShareWeb),[])});export{n as Share};

@@ -1,0 +1,1 @@
+function e(e,t){return t&&new Date(t).getTime()<Date.now()?null:e??null}function t(e){return n(e)*60*1e3}function n(e){return 20-r(e)}function r(e){return e===`elite`?20:e===`plus`?15:e===`pro`?10:e===`basic`?5:0}export{r as n,e as r,t};

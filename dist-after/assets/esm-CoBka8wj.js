@@ -1,0 +1,1 @@
+import{t as e}from"./preload-helper-Czpn1I53.js";import{c as t}from"./dist-C-6fxXiX.js";var n=t(`Badge`,{web:()=>e(()=>import(`./web-BAncCPNb.js`).then(e=>new e.BadgeWeb),[])});export{n as Badge};

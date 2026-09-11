@@ -157,7 +157,11 @@ const AdminHelperTiers = () => {
                       {helper.parish ? `${helper.parish} Parish` : "No parish set"}
                     </span>
                   </div>
-                  <div className="flex gap-3 text-ds-11 text-muted-foreground">
+                  {/* `flex-wrap` + `whitespace-nowrap`: at 375 the three stats
+                      used to share one line with the View button and broke
+                      mid-phrase ("5.00 avg / (10 / reviews)"). Each stat now
+                      wraps as a unit. */}
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-ds-11 text-muted-foreground [&>span]:whitespace-nowrap">
                     <span className="flex items-center gap-0.5">
                       {/* intentional: gold star (rating icon), not a status tone */}
                       <Star className="w-3 h-3 fill-amber-400 text-amber-400" />

@@ -388,14 +388,16 @@ const AdminPayoutBatches = () => {
           localStorage (see adminPayoutBatchesHelpers), so they are scoped to
           THIS browser — the tab label says so, because a second admin sees an
           unheld batch with a live Pay Out button. */}
+      {/* `overflow-x-auto` + nowrap tabs: "Hold for Review (this device) (0)"
+          wrapped to three lines at 375 and read as a broken control. */}
       {batches.length > 0 && (
-        <div role="tablist" aria-label="Payout queue" className="flex gap-1.5 border-b border-border">
+        <div role="tablist" aria-label="Payout queue" className="flex gap-1.5 border-b border-border overflow-x-auto no-scrollbar">
           <button
             type="button"
             role="tab"
             aria-selected={tab === "ready"}
             onClick={() => { setTab("ready"); clearSelection(); }}
-            className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
+            className={`shrink-0 whitespace-nowrap pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
               tab === "ready" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -409,7 +411,7 @@ const AdminPayoutBatches = () => {
             role="tab"
             aria-selected={tab === "hold"}
             onClick={() => { setTab("hold"); clearSelection(); }}
-            className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
+            className={`shrink-0 whitespace-nowrap pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
               tab === "hold" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >

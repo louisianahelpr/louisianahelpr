@@ -1,0 +1,12 @@
+import { chromium } from "playwright";
+import { execSync } from "node:child_process";
+const sess = JSON.parse(execSync("node scripts/test-signin-link.mjs helper --session --json").toString());
+const b = await chromium.launch({ headless: true });
+const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("helpr_onboarding", JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] })); }, [sess.key, sess.value]);
+const page = await ctx.newPage();
+await page.goto("http://localhost:4205/admin?view=people", { waitUntil: "networkidle" }); await page.waitForTimeout(1500);
+await page.screenshot({ path: "shots/probe-people-1440-viewport.png" });
+const r = await page.evaluate(() => { const i = document.querySelector("main input"); const c = i?.closest(".liquid-glass, section, div[class*=rounded]"); return { inputRight: i?.getBoundingClientRect().right, cardRight: c?.getBoundingClientRect().right, h1: document.querySelector("h1")?.getBoundingClientRect() }; });
+console.log(JSON.stringify(r));
+await b.close();

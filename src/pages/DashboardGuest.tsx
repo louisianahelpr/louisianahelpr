@@ -36,15 +36,33 @@ import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/Das
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { signupUrlFor } from "@/lib/jobIntent";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
+import PublicLayout from "@/components/marketing/PublicLayout";
+import PageHeader from "@/components/PageHeader";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 /**
- * DashboardGuest — read-only home shown to logged-out iOS visitors.
+ * DashboardGuest — read-only "browse" view shown to logged-out visitors,
+ * reached natively (the iOS/Android app's guest home) and on the web at
+ * `/browse`.
  *
- * Mirrors the authenticated /dashboard's two-card layout (greeting card
- * on top, Browse Tasks card extending to the viewport bottom) so guests
- * see the actual marketplace surface, not a marketing landing. Every
- * interactive action routes to /signup so Apple's "preview before
- * signup" requirement is met without exposing private data.
+ * SHELL SPLITS ON `isNativePlatform`, the same axis PublicLayout itself
+ * already uses for Legal/Help/Support (see PublicLayout.tsx's `useAppChrome`)
+ * — not a new role-based branch, the established one:
+ *
+ *   - Native: the in-app dashboard chrome (PageScaffold's two-card layout —
+ *     greeting card on top, Browse Tasks card extending to the viewport
+ *     bottom) so a guest inside the app sees the actual marketplace surface,
+ *     not marketing chrome it can't be part of yet.
+ *   - Web: `PublicLayout` — the SAME shell as /legal, /help and /support
+ *     (marketing Navbar with its own Log In / Get Started, and the site
+ *     Footer with Company/Legal links). A signed-out visitor landing on
+ *     /browse in a browser was getting the app's fixed-viewport dashboard
+ *     frame with no footer and no way back to the rest of the site — the
+ *     one guest-reachable page that didn't look like it belonged to the same
+ *     site as Terms/Rules/Privacy.
+ *
+ * Every interactive action still routes to /signup so Apple's "preview
+ * before signup" requirement is met without exposing private data.
  *
  * Lives parallel to Dashboard.tsx because Dashboard pervasively assumes
  * an authenticated user (Supabase calls scoped by user.id, approval
@@ -55,10 +73,13 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
  * and the feed itself behave identically. SavedSearches is internally gated
  * on a signed-in user, so it correctly stays hidden for guests.
  *
- * The chrome matches too: a brand row — emblem, then "Log in" / "Get started"
- * where Home puts its live-job pill and its bell. There is no app bar on
- * either screen. The one deliberate difference is that this row carries NO
- * search or filter icons (see the DashboardTitleBar comment below); Home does.
+ * On native, the chrome matches Home too: a brand row — emblem, then
+ * "Log in" / "Get started" where Home puts its live-job pill and its bell.
+ * There is no app bar. The one deliberate difference from Home is that this
+ * row carries NO search or filter icons (see the DashboardTitleBar comment
+ * below); Home does. On web, search/filters live in PageHeader's
+ * `titleActions` instead — Navbar already owns the brand row and the auth
+ * actions there.
  */
 
 /**
@@ -464,292 +485,357 @@ const DashboardGuest = () => {
   // Never paint the guest surface before we know whether there's a session.
   if (!sessionChecked) return <GuestBrowseSkeleton />;
 
-  return (
-    /* Bottom clearance uses the `pb-safe-nav` token, never a hardcoded 96px.
-       The token resolves to
-       `calc(safe-area-bottom + var(--bottom-nav-h, 96px) + 1rem)`, and
-       MobileNav sets `--bottom-nav-h: 0px` (through the `no-bottom-nav` class)
-       on every surface where the dock does not render. This is one of them:
-       MobileNav.tsx:284 returns null for guests. Inlining the 96px opted out
-       of that signal, so the guest feed reserved ~146px of clearance under the
-       last card for a dock that is never there. */
-    <PageScaffold
-      maxWidth="narrow"
-      animate
-      // No `header` — the guest feed carried a sticky app bar whose only job
-      // was to state the brand and hold the two auth actions. Both now live in
-      // the title card's single row below, exactly as Home's emblem + bell do,
-      // so the screen is one band of chrome over a large title instead of a
-      // bar over a card over a title. PageScaffold takes on the top safe-area
-      // inset itself when no header is passed.
-      titleCard={
-        <DashboardTitleBar
-          // The crest points at the marketing landing, not at this feed: a
-          // signed-out visitor tapping it wants the front door.
-          emblemTo="/"
-          // No `status` — the live-job pill is a signed-in thing.
-          //
-          // Search + filters DO belong here (owner, 2026-09-07: "/browse can
-          // have the filters"). This row carried only the auth pair until
-          // then, on the reasoning that a signed-out visitor "is not running a
-          // refined search". The cost of that was not a missing nicety: the
-          // filter sheet, the sort control and the List/Map toggle were all
-          // already mounted on this page and fully wired, and this was the
-          // only control that could open any of them — so every one of them
-          // was unreachable code on the widest step of the funnel, and the
-          // browse map could never be displayed at all.
-          //
-          // "Is there work near ME" is the first question a visitor has, and
-          // it is answerable signed-out: the feed projects the view's masked
-          // coordinates and the radius is a client-side haversine, so nothing
-          // here needs an account. Only saves, availability and saved searches
-          // do, and those route to /signup from inside the sheet.
-          actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
-          searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
-                    trailing={<GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />}
-        />
+  // Web (non-native) scrolls the document, so "clear filters" scrolls the
+  // window instead of reaching into the native branch's internal
+  // PullToRefreshWrapper container — there is no such container on web (see
+  // the shell-split note atop this component).
+  const scrollFeedToTop = () => {
+    if (isNativePlatform) {
+      const el = containerRef.current;
+      if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  // Shared Browse toolbar — the category picker row and the active-filter
+  // chips. Search and the filter sheet open from `titleActions`/`actions`
+  // in each shell's header below. `user={null}` keeps SavedSearches hidden
+  // for guests. Identical on both shells; only the surrounding chrome
+  // differs.
+  const toolbar = (
+    <BrowseTasksToolbar
+      // Same anchor the Filters button carries, so the desktop-web popover
+      // opens against it instead of floating.
+      filtersAnchorRef={filtersButtonRef}
+      titleSrOnly
+      filters={filters}
+      user={null}
+      helperAvailability={[]}
+      view={view}
+      setView={setView}
+      onClearAllFilters={scrollFeedToTop}
+    />
+  );
+
+  const mapView = (
+    <Suspense
+      fallback={
+        <div className="p-4">
+          <Skeleton className="h-full w-full rounded-2xl" />
+        </div>
       }
-      titleCardClassName={TITLE_BAR_PADDING}
     >
-            {/* The inline List ⇄ Map chips were REMOVED here (owner, 2026-08-19:
-                "Don't give the list or map option in the guest page like this.
-                Remove it and move jobs up").
+      <BrowseMap
+        onJobAction={requireSignup}
+        filters={filters.mapFilter}
+        onClearFilters={filters.clearFilters}
+        // Guests have no tier, so they see the free-plan rate — the same
+        // assumption the guest JobCard below already makes, so list and map
+        // quote one number.
+        effectiveFee={TIER_PERKS.free.platformFeePercent}
+        emptyStateCta={{
+          label: "Get pinged when a job lands",
+          onClick: () => navigate("/signup"),
+        }}
+      />
+    </Suspense>
+  );
 
-                Consequence, recorded deliberately: the guest title bar carries
-                no filter icon, and the filter sheet is where this control lives
-                on every other surface — so a signed-out visitor now has no route
-                to the map at all, and `view` is effectively pinned to "list"
-                here. That is the owner's call, not an oversight. Restoring map
-                access means putting the filter icon back in the guest title bar
-                (pass `actions` to DashboardTitleBar), NOT re-adding this row. */}
+  // `feedBottomClass` fills the slot `pb-safe-nav` filled before (dock
+  // clearance for MobileNav, which never renders for guests — see the
+  // original comment this replaced): on web the page ends in the real
+  // Footer, not a bottom dock, so a small fixed gap stands in for it instead.
+  const feedBottomClass = isNativePlatform ? "pb-safe-nav" : "pb-4";
+  const emptyWrapperClass = isNativePlatform
+    ? "flex-1 min-h-full flex"
+    : "min-h-[50vh] flex";
 
-            {/* Shared Browse toolbar — the category picker row and the
-                active-filter chips. Search and the filter sheet are not
-                reachable on this surface (no icons in the title bar), so in
-                practice this renders the sr-only heading and nothing else
-                until a filter is set some other way. `user={null}` keeps
-                SavedSearches hidden for guests. */}
-            <BrowseTasksToolbar
-              // Same anchor the Filters button carries, so the desktop-web
-              // popover opens against it instead of floating.
-              filtersAnchorRef={filtersButtonRef}
-              titleSrOnly
-              // `null` keeps SavedSearches out of the icon cluster — it is a
-              // signed-in feature.
-              filters={filters}
-              user={null}
-              helperAvailability={[]}
-              view={view}
-              setView={setView}
-              onClearAllFilters={() => {
-                const el = containerRef.current;
-                if (el) el.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            />
-
-            {/* Inner scroll area — list of cards or map. Map renders flush
-                with no padding so its tiles can fill the panel edge-to-edge. */}
-            {view === "map" ? (
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <Suspense
-                  fallback={
-                    <div className="p-4">
-                      <Skeleton className="h-full w-full rounded-2xl" />
-                    </div>
-                  }
-                >
-                  <BrowseMap
-                    onJobAction={requireSignup}
-                    filters={filters.mapFilter}
-                    onClearFilters={filters.clearFilters}
-                    // Guests have no tier, so they see the free-plan rate —
-                    // the same assumption the guest JobCard below already
-                    // makes, so list and map quote one number.
-                    effectiveFee={TIER_PERKS.free.platformFeePercent}
-                    emptyStateCta={{
-                      label: "Get pinged when a job lands",
-                      onClick: () => navigate("/signup"),
-                    }}
-                  />
-                </Suspense>
-              </div>
-            ) : (
-              <PullToRefreshWrapper
-                ref={containerRef}
-                pullDistance={pullDistance}
-                refreshing={refreshing}
-                isPulling={isPulling}
-                canTrigger={canTrigger}
-                className="flex-1 min-h-0 px-4 pt-3 pb-0"
-              >
-                {isLoading ? (
-                  /* Loading feed — shape-matched JobCardSkeletons (the same
-                     primitive the authenticated dashboard uses) so the cards
-                     swap in without shifting the layout (no CLS). Reserves the
-                     same vertical rhythm as the real list below. */
-                  <div
-                    role="status"
-                    aria-live="polite"
-                    aria-busy="true"
-                    className={`${FEED_GRID_CLASS} pb-safe-nav`}
-                  >
-                    <span className="sr-only">Loading jobs…</span>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <JobCardSkeleton key={i} />
-                    ))}
-                  </div>
-                ) : filters.filteredJobs.length === 0 ? (() => {
-                  // Geo-aware empty copy mirrors the authed BrowseTasksFeed
-                  // (#690 parity): when "Near me" is active and coords
-                  // resolved, suggest a concrete wider radius rather than a
-                  // generic "widen your parish".
-                  const nearbyActive =
-                    filters.nearbyMiles !== null && filters.locationFilter.startsWith("nearby:");
-                  const currentMiles = filters.nearbyMiles ?? 0;
-                  const nextMiles =
-                    currentMiles < 5 ? 10 : currentMiles < 10 ? 25 : currentMiles < 25 ? 50 : 100;
-                  return (
-                  <div className="flex-1 min-h-full flex">
-                    {isError ? (
-                    <ErrorState
-                      title="We couldn't load jobs."
-                      body="Pull down to refresh, or tap Try again. If it sticks, our end is having a hiccup — not yours."
-                      onRetry={() => refetch()}
-                    />
-                    ) : (
-                    <EmptyState
-                      icon={Search}
-                      eyebrow={
-                        filters.hasFilters
-                          ? nearbyActive
-                            ? "Nothing within range"
-                            : "No matches"
-                          : "All quiet — for now"
-                      }
-                      title={
-                        filters.hasFilters
-                          ? nearbyActive
-                            ? `No jobs within ${currentMiles} mi of you.`
-                            : "No jobs match your filters."
-                          : "Nothing today, neighbor."
-                      }
-                      body={
-                        filters.hasFilters
-                          ? nearbyActive
-                            ? `Try widening to ${nextMiles} mi, or clear the radius to see all open work across your parish.`
-                            : "Try a different category, a wider time window, or clearing a filter."
-                          : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
-                      }
-                      action={
-                        filters.hasFilters ? (
-                          nearbyActive ? (
-                            <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
-                              <button
-                                type="button"
-                                onClick={() => filters.setLocationFilter(`nearby:${nextMiles}`)}
-                                className="text-ds-11 font-semibold text-primary hover:underline btn-press"
-                              >
-                                Widen to {nextMiles} mi
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => filters.setLocationFilter("")}
-                                className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
-                              >
-                                Show All Locations
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={filters.clearFilters}
-                              className="text-ds-11 font-semibold text-primary hover:underline btn-press"
-                            >
-                              Clear Filters
-                            </button>
-                          )
-                        ) : (
-                          /* Unfiltered empty state used to pass NO action, so a
-                             visitor who landed on Browse before any jobs were
-                             posted read "check back soon" and had nowhere to go
-                             — a dead end at the exact moment they were most
-                             curious. The signed-in version of this same state
-                             offers two ways forward; the guest one offered
-                             none.
-
-                             Both routes lead to signup because both require an
-                             account, but they are named for what the visitor
-                             wants rather than for the gate: watching for work,
-                             or hiring someone. */
-                          <div className="flex flex-col items-center gap-2.5">
-                            {/* `outline`, not the filled primary. This is an
-                                EMPTY state — there is nothing here to act on,
-                                so a full-weight green CTA slab was shouting
-                                about an absence. The outline keeps the way
-                                forward available without making "no jobs
-                                today" look like the most important thing on
-                                the screen. */}
-                            <Button
-                              variant="outline"
-                              onClick={() => navigate("/signup")}
-                              className="rounded-ds-md h-11 px-5 font-semibold"
-                            >
-                              Notify Me When Work Lands
-                            </Button>
-                            <button
-                              type="button"
-                              onClick={() => navigate("/signup")}
-                              className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
-                            >
-                              Or Hire Someone for a Job
-                            </button>
-                          </div>
-                        )
-                      }
-                    />
-                    )}
-                  </div>
-                  );
-                })() : (
-                  <div
-                    className={`${FEED_GRID_CLASS} animate-in fade-in-0 duration-500 pb-safe-nav`}
-                  >
-                    {/* No re-sort here: useDashboardFilters already sorts
-                        urgent-first (then boosted etc.), so a second
-                        urgent-only sort was a redundant pass that could only
-                        ever scramble the tie-breaks below it. */}
-                    {filters.filteredJobs.map((job, idx) => (
-                      <JobCard
-                        key={job.id}
-                        job={job}
-                        variant="guest"
-                        effectiveFee={TIER_PERKS.free.platformFeePercent}
-                        currentUserId={undefined}
-                        showApply
-                        onApply={requireSignup}
-                        onReport={requireSignup}
-                        onSelect={openDetailJob}
-                        onToggleSave={requireSignup}
-                        index={idx}
-                      />
-                    ))}
-                  </div>
-                )}
-              </PullToRefreshWrapper>
-            )}
-      {detailJob && (
-        <Suspense fallback={null}>
-          <JobDetailDialog
-            guest
-            job={detailJob}
-            effectiveFee={TIER_PERKS.free.platformFeePercent}
-            onClose={closeDetailJob}
-            onApply={requireSignup}
-            onReport={requireSignup}
+  const feedList = (
+    <>
+      {isLoading ? (
+        /* Loading feed — shape-matched JobCardSkeletons (the same
+           primitive the authenticated dashboard uses) so the cards
+           swap in without shifting the layout (no CLS). Reserves the
+           same vertical rhythm as the real list below. */
+        <div
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          className={`${FEED_GRID_CLASS} ${feedBottomClass}`}
+        >
+          <span className="sr-only">Loading jobs…</span>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <JobCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : filters.filteredJobs.length === 0 ? (() => {
+        // Geo-aware empty copy mirrors the authed BrowseTasksFeed
+        // (#690 parity): when "Near me" is active and coords
+        // resolved, suggest a concrete wider radius rather than a
+        // generic "widen your parish".
+        const nearbyActive =
+          filters.nearbyMiles !== null && filters.locationFilter.startsWith("nearby:");
+        const currentMiles = filters.nearbyMiles ?? 0;
+        const nextMiles =
+          currentMiles < 5 ? 10 : currentMiles < 10 ? 25 : currentMiles < 25 ? 50 : 100;
+        return (
+        <div className={emptyWrapperClass}>
+          {isError ? (
+          <ErrorState
+            title="We couldn't load jobs."
+            body="Pull down to refresh, or tap Try again. If it sticks, our end is having a hiccup — not yours."
+            onRetry={() => refetch()}
           />
-        </Suspense>
+          ) : (
+          <EmptyState
+            icon={Search}
+            eyebrow={
+              filters.hasFilters
+                ? nearbyActive
+                  ? "Nothing within range"
+                  : "No matches"
+                : "All quiet — for now"
+            }
+            title={
+              filters.hasFilters
+                ? nearbyActive
+                  ? `No jobs within ${currentMiles} mi of you.`
+                  : "No jobs match your filters."
+                : "Nothing today, neighbor."
+            }
+            body={
+              filters.hasFilters
+                ? nearbyActive
+                  ? `Try widening to ${nextMiles} mi, or clear the radius to see all open work across your parish.`
+                  : "Try a different category, a wider time window, or clearing a filter."
+                : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
+            }
+            action={
+              filters.hasFilters ? (
+                nearbyActive ? (
+                  <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
+                    <button
+                      type="button"
+                      onClick={() => filters.setLocationFilter(`nearby:${nextMiles}`)}
+                      className="text-ds-11 font-semibold text-primary hover:underline btn-press"
+                    >
+                      Widen to {nextMiles} mi
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => filters.setLocationFilter("")}
+                      className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
+                    >
+                      Show All Locations
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={filters.clearFilters}
+                    className="text-ds-11 font-semibold text-primary hover:underline btn-press"
+                  >
+                    Clear Filters
+                  </button>
+                )
+              ) : (
+                /* Unfiltered empty state used to pass NO action, so a
+                   visitor who landed on Browse before any jobs were
+                   posted read "check back soon" and had nowhere to go
+                   — a dead end at the exact moment they were most
+                   curious. The signed-in version of this same state
+                   offers two ways forward; the guest one offered
+                   none.
+
+                   Both routes lead to signup because both require an
+                   account, but they are named for what the visitor
+                   wants rather than for the gate: watching for work,
+                   or hiring someone. */
+                <div className="flex flex-col items-center gap-2.5">
+                  {/* `outline`, not the filled primary. This is an
+                      EMPTY state — there is nothing here to act on,
+                      so a full-weight green CTA slab was shouting
+                      about an absence. The outline keeps the way
+                      forward available without making "no jobs
+                      today" look like the most important thing on
+                      the screen. */}
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/signup")}
+                    className="rounded-ds-md h-11 px-5 font-semibold"
+                  >
+                    Notify Me When Work Lands
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/signup")}
+                    className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
+                  >
+                    Or Hire Someone for a Job
+                  </button>
+                </div>
+              )
+            }
+          />
+          )}
+        </div>
+        );
+      })() : (
+        <div
+          className={`${FEED_GRID_CLASS} animate-in fade-in-0 duration-500 ${feedBottomClass}`}
+        >
+          {/* No re-sort here: useDashboardFilters already sorts
+              urgent-first (then boosted etc.), so a second
+              urgent-only sort was a redundant pass that could only
+              ever scramble the tie-breaks below it. */}
+          {filters.filteredJobs.map((job, idx) => (
+            <JobCard
+              key={job.id}
+              job={job}
+              variant="guest"
+              effectiveFee={TIER_PERKS.free.platformFeePercent}
+              currentUserId={undefined}
+              showApply
+              onApply={requireSignup}
+              onReport={requireSignup}
+              onSelect={openDetailJob}
+              onToggleSave={requireSignup}
+              index={idx}
+            />
+          ))}
+        </div>
       )}
-    </PageScaffold>
+    </>
+  );
+
+  const detailDialog = detailJob && (
+    <Suspense fallback={null}>
+      <JobDetailDialog
+        guest
+        job={detailJob}
+        effectiveFee={TIER_PERKS.free.platformFeePercent}
+        onClose={closeDetailJob}
+        onApply={requireSignup}
+        onReport={requireSignup}
+      />
+    </Suspense>
+  );
+
+  if (isNativePlatform) {
+    return (
+      /* Bottom clearance uses the `pb-safe-nav` token, never a hardcoded 96px.
+         The token resolves to
+         `calc(safe-area-bottom + var(--bottom-nav-h, 96px) + 1rem)`, and
+         MobileNav sets `--bottom-nav-h: 0px` (through the `no-bottom-nav`
+         class) on every surface where the dock does not render. This is one
+         of them: MobileNav.tsx:284 returns null for guests. Inlining the
+         96px opted out of that signal, so the guest feed reserved ~146px of
+         clearance under the last card for a dock that is never there. */
+      <PageScaffold
+        maxWidth="narrow"
+        animate
+        // No `header` — the guest feed carried a sticky app bar whose only job
+        // was to state the brand and hold the two auth actions. Both now live in
+        // the title card's single row below, exactly as Home's emblem + bell do,
+        // so the screen is one band of chrome over a large title instead of a
+        // bar over a card over a title. PageScaffold takes on the top safe-area
+        // inset itself when no header is passed.
+        titleCard={
+          <DashboardTitleBar
+            // The crest points at the marketing landing, not at this feed: a
+            // signed-out visitor tapping it wants the front door.
+            emblemTo="/"
+            // No `status` — the live-job pill is a signed-in thing.
+            //
+            // Search + filters DO belong here (owner, 2026-09-07: "/browse can
+            // have the filters"). This row carried only the auth pair until
+            // then, on the reasoning that a signed-out visitor "is not running a
+            // refined search". The cost of that was not a missing nicety: the
+            // filter sheet, the sort control and the List/Map toggle were all
+            // already mounted on this page and fully wired, and this was the
+            // only control that could open any of them — so every one of them
+            // was unreachable code on the widest step of the funnel, and the
+            // browse map could never be displayed at all.
+            //
+            // "Is there work near ME" is the first question a visitor has, and
+            // it is answerable signed-out: the feed projects the view's masked
+            // coordinates and the radius is a client-side haversine, so nothing
+            // here needs an account. Only saves, availability and saved searches
+            // do, and those route to /signup from inside the sheet.
+            actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
+            searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
+            trailing={<GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />}
+          />
+        }
+        titleCardClassName={TITLE_BAR_PADDING}
+      >
+        {/* The inline List ⇄ Map chips were REMOVED here (owner, 2026-08-19:
+            "Don't give the list or map option in the guest page like this.
+            Remove it and move jobs up").
+
+            Consequence, recorded deliberately: the guest title bar carries
+            no filter icon, and the filter sheet is where this control lives
+            on every other surface — so a signed-out visitor now has no route
+            to the map at all, and `view` is effectively pinned to "list"
+            here. That is the owner's call, not an oversight. Restoring map
+            access means putting the filter icon back in the guest title bar
+            (pass `actions` to DashboardTitleBar), NOT re-adding this row. */}
+        {toolbar}
+
+        {/* Inner scroll area — list of cards or map. Map renders flush
+            with no padding so its tiles can fill the panel edge-to-edge. */}
+        {view === "map" ? (
+          <div className="flex-1 min-h-0 overflow-hidden">{mapView}</div>
+        ) : (
+          <PullToRefreshWrapper
+            ref={containerRef}
+            pullDistance={pullDistance}
+            refreshing={refreshing}
+            isPulling={isPulling}
+            canTrigger={canTrigger}
+            className="flex-1 min-h-0 px-4 pt-3 pb-0"
+          >
+            {feedList}
+          </PullToRefreshWrapper>
+        )}
+        {detailDialog}
+      </PageScaffold>
+    );
+  }
+
+  // Web: the SAME shell as /legal, /help and /support — marketing Navbar
+  // (which already renders Log In / Get Started for a signed-out visitor)
+  // above, the site Footer (Company/Legal columns) below. See the shell-split
+  // note atop this component for why this diverges from the native branch.
+  return (
+    <PublicLayout>
+      <PageHeader
+        title="Browse Jobs"
+        backTo="/"
+        width="public"
+        topInsetHandled
+        titleActions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
+      />
+      <div className="px-5 sm:px-8 lg:px-12 pb-16">
+        {filters.searchOpen && (
+          <div className="mx-auto page-measure pb-3">
+            <BrowseSearchBar filters={filters} />
+          </div>
+        )}
+        <div className="mx-auto page-measure">
+          {toolbar}
+          {view === "map" ? (
+            <div className="h-[70vh] min-h-[420px] overflow-hidden rounded-2xl mt-3">
+              {mapView}
+            </div>
+          ) : (
+            <div className="pt-3">{feedList}</div>
+          )}
+        </div>
+      </div>
+      {detailDialog}
+    </PublicLayout>
   );
 };
 

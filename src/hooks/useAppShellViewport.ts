@@ -79,6 +79,14 @@ const DOCUMENT_SCROLL_ROUTES = [
 
   // Public marketing / informational pages (document-scroll)
   "/help",         // Help Center — static FAQ / support page
+  // /browse — the guest browse feed. Web-only entry: it renders through
+  // PublicLayout on web now (same shell as /legal, /help, /rules), so it
+  // needs the document-scroll lock lifted so the visitor can reach the
+  // Footer below the feed. On NATIVE it must stay app-shell (see
+  // NATIVE_APP_SHELL_ROUTES below) — DashboardGuest keeps rendering through
+  // PageScaffold/AppShell there, its own internal scroll container, exactly
+  // as before this split existed.
+  "/browse",
   // The six standalone settings sub-pages that used to be listed here left
   // with their routes on 2026-09-02 — they are Profile tabs now
   // (?tab=work_record, home_history, str_settings, auto_tip, wrapped,
@@ -94,7 +102,7 @@ const DOCUMENT_SCROLL_ROUTES = [
 // during momentum scrolling and lets content ghost into the notch. So on
 // native it must be html-locked like every other AppShell page. On web it
 // stays long-form document-scroll for SEO.
-const NATIVE_APP_SHELL_ROUTES = ["/legal"];
+const NATIVE_APP_SHELL_ROUTES = ["/legal", "/browse"];
 
 /**
  * The pathname currently rendering the `path="*"` catch-all (NotFound), or

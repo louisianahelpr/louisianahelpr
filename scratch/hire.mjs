@@ -1,0 +1,21 @@
+import { launch, persona, shot, grabToasts, BASE, log, restQ } from "./lib.mjs";
+const JOB="e6979a12-ee25-46c9-98f5-c088189849e5", MARK="EJLOOP050383";
+log("poster notifications:", JSON.stringify(await restQ(`notifications?user_id=eq.71c56dfb-b326-4010-b960-b18dd3966e7f&select=type,title,message,link,created_at&order=created_at.desc&limit=5`)));
+const b=await launch(); const {page}=await persona(b,"poster");
+await page.goto(`${BASE}/my-posts`, { waitUntil:"domcontentloaded" });
+await page.waitForTimeout(9000);
+await shot(page,"HR1-myposts");
+log("BODY:", (await page.innerText("body")).replace(/\s+/g," ").slice(0,700));
+const card = page.getByText(MARK).first();
+if (!(await card.count())) { const sw = page.getByText(/Show Waiting/); if (await sw.count()) { await sw.click(); await page.waitForTimeout(2000);} }
+await page.getByText(MARK).first().click();
+await page.waitForTimeout(2500);
+await shot(page,"HR2-expanded");
+log("EXPANDED:", (await page.innerText("body")).replace(/\s+/g," ").slice(0,900));
+const ap = page.getByRole("button",{name:/Applicants/}).first();
+log("applicants btn:", await ap.count(), await ap.innerText().catch(()=>""));
+await ap.click(); await page.waitForTimeout(3000);
+await shot(page,"HR3-applicants");
+log("PANEL:", (await page.innerText("body")).replace(/\s+/g," ").slice(0,1200));
+log("buttons:", await page.$$eval("button", ns=>ns.filter(n=>n.offsetParent).map(n=>({t:n.innerText.replace(/\s+/g," ").trim(),a:n.getAttribute("aria-label")})).slice(0,30)));
+await b.close();

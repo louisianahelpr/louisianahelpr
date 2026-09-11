@@ -1,0 +1,25 @@
+import { launch, persona, shot, grabToasts, BASE, log, restQ } from "./lib.mjs";
+import path from "node:path";
+const JOB="e6979a12-ee25-46c9-98f5-c088189849e5", MARK="EJLOOP050383";
+const b=await launch(); const {page}=await persona(b,"helper");
+const net=[];
+page.on("response", async r=>{const u=r.url(); if(/storage|proof|jobs\?id/.test(u)) net.push(`${r.status()} ${r.request().method()} ${u.replace(/https:\/\/[^/]+/,"").slice(0,120)}`);});
+page.on("pageerror", e=>log("PAGEERROR:", String(e).slice(0,200)));
+await page.goto(`${BASE}/my-jobs?filter=scheduled`, { waitUntil:"domcontentloaded" });
+await page.waitForTimeout(10000);
+await page.getByText(MARK).first().click(); await page.waitForTimeout(3000);
+const btn = page.getByRole("button",{name:/Before Photos/i}).first();
+await btn.click(); await page.waitForTimeout(2500);
+await shot(page,"P3-dialog");
+log("DIALOG TEXT:", (await page.innerText("body")).replace(/\s+/g," ").slice(-700));
+log("dialog buttons:", await page.$$eval("button", ns=>ns.filter(n=>n.offsetParent).map(n=>n.innerText.replace(/\s+/g," ").trim()).filter(Boolean).slice(-12)));
+await page.locator("input[type=file]").last().setInputFiles(path.resolve("scratch","before.png"));
+log("file set");
+for (const t of [2000,4000,6000,8000]) { await page.waitForTimeout(2000);
+  log(`t+${t}`, (await page.innerText("body")).replace(/\s+/g," ").slice(-350)); }
+await shot(page,"P3-after-set");
+log("toasts:", await grabToasts(page,5000));
+log("dialog buttons now:", await page.$$eval("button", ns=>ns.filter(n=>n.offsetParent).map(n=>n.innerText.replace(/\s+/g," ").trim()).filter(Boolean).slice(-12)));
+log("NET:", net);
+log("PROOF:", JSON.stringify((await restQ(`jobs?id=eq.${JOB}&select=proof_before_urls,proof_after_urls`))[0]));
+await b.close();

@@ -1,0 +1,23 @@
+import { launch, persona, shot, grabToasts, BASE, log, restQ } from "./lib.mjs";
+const JOB="e6979a12-ee25-46c9-98f5-c088189849e5", MARK="EJLOOP050383";
+const b=await launch(); const {page}=await persona(b,"poster");
+await page.goto(`${BASE}/my-posts`, { waitUntil:"domcontentloaded" });
+await page.getByText(MARK).first().waitFor({timeout:40000});
+await page.getByText(MARK).first().click(); await page.waitForTimeout(2500);
+await page.getByRole("button",{name:/Applicants/}).first().click(); await page.waitForTimeout(3000);
+await shot(page,"HIRE1-panel");
+const hire = page.getByRole("button",{name:/^Select /});
+log("hire buttons:", await hire.count());
+await hire.first().click();
+await page.waitForTimeout(2500);
+await shot(page,"HIRE2-deadline");
+log("DIALOG:", (await page.innerText("body")).replace(/\s+/g," ").slice(-800));
+log("buttons:", await page.$$eval("button", ns=>ns.filter(n=>n.offsetParent).map(n=>n.innerText.replace(/\s+/g," ").trim()).filter(Boolean).slice(-14)));
+const send = page.getByRole("button",{name:/Send Offer/i});
+if (await send.count()) { await send.click(); const t=await grabToasts(page,9000); log("TOASTS:",t); }
+else log("!! no Send Offer button");
+await page.waitForTimeout(2000);
+await shot(page,"HIRE3-after");
+log("job:", JSON.stringify(await restQ(`jobs?id=eq.${JOB}&select=status,payment_status,helper_id,response_deadline,helper_confirmed_at`)));
+log("app:", JSON.stringify(await restQ(`applications?job_id=eq.${JOB}&select=status`)));
+await b.close();

@@ -1,0 +1,15 @@
+import { launch, persona, shot, log, ANON, SB } from "./lib.mjs";
+const JOB="e6979a12-ee25-46c9-98f5-c088189849e5";
+const b=await launch();
+const {page}=await persona(b,"poster",{width:1280,height:900});
+await page.goto("http://localhost:8347/my-posts"); await page.waitForTimeout(5000);
+const res=await page.evaluate(async ([j,sb,a])=>{const k=Object.keys(localStorage).find(x=>x.includes("auth-token"));const t=JSON.parse(localStorage.getItem(k)).access_token;
+ const r=await fetch(`${sb}/functions/v1/create-payment`,{method:"POST",headers:{Authorization:`Bearer ${t}`,"Content-Type":"application/json",apikey:a},body:JSON.stringify({action:"escrow",jobId:j})});return await r.text();},[JOB,SB,ANON]);
+await page.goto(JSON.parse(res).url); await page.waitForTimeout(5000);
+await page.getByTestId("card-accordion-item-button").click().catch(()=>{});
+await page.waitForTimeout(3000);
+await shot(page,"S-probe");
+const inputs = await page.$$eval("input", ns=>ns.map(n=>({id:n.id,name:n.name,ph:n.placeholder,type:n.type,vis:!!n.offsetParent})));
+log(JSON.stringify(inputs,null,1));
+const frames = page.frames().map(f=>f.url().slice(0,90)); log("FRAMES:", frames);
+await b.close();

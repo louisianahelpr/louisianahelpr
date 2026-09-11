@@ -1,0 +1,15 @@
+import { launch, persona, shot, log, ANON, SB } from "./lib.mjs";
+const JOB="e6979a12-ee25-46c9-98f5-c088189849e5";
+const b=await launch(); const {page}=await persona(b,"poster",{width:1280,height:900});
+await page.goto("http://localhost:8347/my-posts"); await page.waitForTimeout(5000);
+const res=await page.evaluate(async ([j,sb,a])=>{const k=Object.keys(localStorage).find(x=>x.includes("auth-token"));const t=JSON.parse(localStorage.getItem(k)).access_token;
+ const r=await fetch(`${sb}/functions/v1/create-payment`,{method:"POST",headers:{Authorization:`Bearer ${t}`,"Content-Type":"application/json",apikey:a},body:JSON.stringify({action:"escrow",jobId:j})});return await r.text();},[JOB,SB,ANON]);
+await page.goto(JSON.parse(res).url); await page.waitForTimeout(6000);
+log("radios:", await page.getByRole("radio").count());
+const tids = await page.$$eval("[data-testid]", ns=>[...new Set(ns.map(n=>n.getAttribute("data-testid")))].slice(0,40));
+log("testids:", tids);
+await page.getByRole("radio").first().click({force:true}).catch(e=>log("radio click fail",String(e).slice(0,90)));
+await page.waitForTimeout(3000);
+await shot(page,"S2");
+log("card inputs now:", await page.$$eval("input", ns=>ns.filter(n=>n.offsetParent).map(n=>n.id||n.name||n.placeholder)));
+await b.close();

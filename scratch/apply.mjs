@@ -1,0 +1,22 @@
+import { launch, persona, shot, grabToasts, BASE, log, restQ } from "./lib.mjs";
+const JOB="e6979a12-ee25-46c9-98f5-c088189849e5", MARK="EJLOOP050383";
+const b=await launch(); const {page}=await persona(b,"helper");
+await page.goto(`${BASE}/browse`, { waitUntil:"domcontentloaded" });
+await page.getByText(MARK).first().waitFor({timeout:40000});
+await page.getByText(MARK).first().click(); await page.waitForTimeout(2000);
+await page.getByRole("button",{name:/Continue/}).click(); await page.waitForTimeout(2500);
+await shot(page,"A1-apply-step");
+log("APPLY STEP:", (await page.innerText("body")).replace(/\s+/g," ").slice(-900));
+log("buttons:", await page.$$eval("button", ns=>ns.filter(n=>n.offsetParent).map(n=>n.innerText.replace(/\s+/g," ").trim()).filter(Boolean).slice(-15)));
+const ta = page.locator("textarea");
+if (await ta.count()) { await ta.last().fill("Audit journey application. I can do this Saturday morning."); log("filled message"); }
+await page.waitForTimeout(500);
+await shot(page,"A2-apply-filled");
+const submit = page.getByRole("button",{name:/Apply Now|Book Now|Send Application|Apply/i}).last();
+log("submit:", await submit.innerText());
+await submit.click();
+const toasts = await grabToasts(page, 8000);
+log("TOASTS:", toasts);
+await shot(page,"A3-applied");
+log("rows:", JSON.stringify(await restQ(`applications?job_id=eq.${JOB}&select=id,helper_id,status,message,created_at`)));
+await b.close();

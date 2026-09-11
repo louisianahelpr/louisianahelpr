@@ -117,8 +117,8 @@ export const PolicyFooter = ({ updated, cta = false }: { updated?: string; cta?:
       // target, real routing. The gloss comes from `variant="primary"`
       // (btn-grad-primary in index.css); never hand-paint a `background`
       // shorthand over it, which silently resets the gradient (CLAUDE.md).
-      <Button variant="primary" size="lg" className="shrink-0 rounded-ds-md w-full sm:w-auto" asChild>
-        <Link to="/support">Contact support</Link>
+      <Button variant="primary" size="lg" className="shrink-0 rounded-ds-md h-11 sm:h-12 w-full sm:w-auto" asChild>
+        <Link to="/support">Contact Support</Link>
       </Button>
     )}
     {updated && (

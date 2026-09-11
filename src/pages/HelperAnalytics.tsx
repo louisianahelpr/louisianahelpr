@@ -142,7 +142,7 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
             onClick={() => void refetch()}
             className="btn-grad-primary !text-[hsl(var(--parchment))] h-11 px-5 rounded-ds-md font-semibold text-ds-13"
           >
-            Try again
+            Try Again
           </button>
         }
       />,

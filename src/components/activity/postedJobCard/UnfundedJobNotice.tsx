@@ -100,7 +100,7 @@ export function UnfundedJobNotice({ job, onFund, funding }: Props) {
   const body = abandoned
     ? "Your checkout wasn't completed, so this job is still private — no Helpr can see it or apply. Finish paying to publish it."
     : "We created this from your calendar, but no Helpr can see it until it's funded. Fund it to publish and start getting applicants.";
-  const cta = abandoned ? "Finish paying" : "Fund & publish";
+  const cta = abandoned ? "Finish Paying" : "Fund & Publish";
 
   return (
     <div className="rounded-2xl border border-[hsl(var(--burnt-sienna))]/30 bg-[hsl(var(--burnt-sienna))]/5 p-3">

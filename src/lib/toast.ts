@@ -110,6 +110,14 @@ export function errorToast(message: string, options: ErrorToastOptions = {}) {
     id,
     action,
     cancel,
+    // `critical` toasts render the labelled "Dismiss" cancel button above —
+    // the global × (Toaster `closeButton`) would be a second, unlabelled
+    // way to do the exact same thing. Owner, 2026-09-11: "not now and x do
+    // the same thing. one or the other." `undefined` here (the non-critical
+    // case) is not the same as omitting the field: sonner only falls back
+    // to the Toaster default when the per-toast value is `!= null`, so this
+    // still leaves the × in place on every non-critical error toast.
+    closeButton: critical ? false : undefined,
   });
 }
 

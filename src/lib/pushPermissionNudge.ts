@@ -202,6 +202,14 @@ export function usePushPermissionNudge() {
         const { title } = COPY[reason];
         toast(title, {
           duration: 12_000,
+          // This toast already has a labelled "Not now" cancel — the global
+          // × (Toaster `closeButton`) would be a second, unlabelled way to
+          // do the exact same thing. Owner, 2026-09-11: "not now and x do the
+          // same thing. one or the other." Per-toast `closeButton: false`
+          // overrides the Toaster default for just this toast (sonner keeps
+          // the global value whenever the per-toast field is undefined —
+          // see node_modules/sonner/dist/index.mjs:521-526).
+          closeButton: false,
           action: {
             label: "Enable",
             onClick: () => {

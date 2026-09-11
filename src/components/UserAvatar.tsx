@@ -158,6 +158,20 @@ const UserAvatar = React.forwardRef<
   // element that is already in its error state and nothing re-requests.
   const [corsMode, setCorsMode] = React.useState<"anonymous" | "plain">("anonymous");
 
+  // Has the photo actually DECODED? Drives the cross-fade below.
+  //
+  // The monogram is always mounted underneath (see the header), which is what
+  // makes "no empty frame" true — but it also means a cold install paints the
+  // initials and then HARD-SWAPS to the photograph the instant it lands.
+  // Measured 375/slow-3G: 1.0s apart on /profile, up to 12s in the bottom
+  // dock. Two different faces for one person, one snapping over the other.
+  //
+  // `false` here is not "no photo" — `rejection` still owns that verdict and
+  // this state is deliberately NOT part of it, so `onPhotoRejected` keeps its
+  // documented contract ("not fired while the image is still in flight").
+  // All this decides is opacity.
+  const [loaded, setLoaded] = React.useState(false);
+
   const gradient = avatarGradientFor(userId);
   // Hardened: an explicitly-passed empty/whitespace `initials` must not win
   // over the derived value, or the monogram is a coloured circle with nothing
@@ -206,6 +220,9 @@ const UserAvatar = React.forwardRef<
     prevSrc.current = imageSrc;
     setFailure(null);
     setCorsMode("anonymous");
+    // Row recycling again: without this, slot N's `loaded` would carry over
+    // and occupant N+1's photo would appear at full opacity mid-fetch.
+    setLoaded(false);
   }
 
   const handleError = React.useCallback(() => {
@@ -225,10 +242,19 @@ const UserAvatar = React.forwardRef<
   const inspect = React.useCallback((img: HTMLImageElement | null) => {
     if (!img) return;
     if (isBlankAvatarBitmap(img)) setFailure("blank-bitmap");
+    // `complete` is true here for an image already in the memory cache — the
+    // list-scroll case. The ref callback runs in the COMMIT phase, before
+    // paint, so flipping `loaded` now means a cached photo appears at full
+    // opacity in its first frame and never fades. A fade on a cached avatar
+    // would be a new flicker introduced by the fix for a flicker.
+    if (img.complete && img.naturalWidth > 0) setLoaded(true);
   }, []);
 
   const handleLoad = React.useCallback(
-    (e: React.SyntheticEvent<HTMLImageElement>) => inspect(e.currentTarget),
+    (e: React.SyntheticEvent<HTMLImageElement>) => {
+      inspect(e.currentTarget);
+      setLoaded(true);
+    },
     [inspect],
   );
 
@@ -308,7 +334,18 @@ const UserAvatar = React.forwardRef<
           // `object-cover` rather than the primitive's bare `aspect-square
           // h-full w-full`: a 2502×1407 avatar (there is one on prod) was
           // being squashed into the circle instead of cropped.
-          className="absolute inset-0 h-full w-full object-cover"
+          // CROSS-FADE, not a hard swap. The monogram underneath stays put and
+          // the photograph fades over it, so the transition reads as one
+          // avatar resolving rather than two identities trading places. 260ms
+          // is short enough that a fast (or cached — see `inspect`) load is
+          // imperceptible and long enough that a 12s cold dock load doesn't
+          // snap. Honours Reduce Motion: `motion-reduce` drops the transition
+          // and the photo simply appears, i.e. today's behaviour.
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover",
+            "transition-opacity duration-[260ms] ease-out motion-reduce:transition-none",
+            loaded ? "opacity-100" : "opacity-0",
+          )}
         />
       ) : null}
     </Avatar>

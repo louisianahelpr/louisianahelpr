@@ -285,12 +285,19 @@ export function FilterSheet({
   );
 
   // A panel ANCHORED TO THE SCREEN, not a centered modal and not a floating
-  // card off the Filters button — at ANY width (owner, 2026-08-30: reviewed a
-  // centered-modal / inset-sheet / anchored-panel comparison and picked
-  // anchored for Filters specifically; then 2026-08-31, seeing it on device:
-  // "This blur is not correct it should be anchored to screen remove the
-  // blur"). So: full-bleed under the header, no scrim, no caret, no side
-  // margins, opaque surface.
+  // card off the Filters button — on phone/native (owner, 2026-08-30:
+  // reviewed a centered-modal / inset-sheet / anchored-panel comparison and
+  // picked anchored for Filters specifically; then 2026-08-31, seeing it on
+  // device: "This blur is not correct it should be anchored to screen remove
+  // the blur"). So there: full-bleed under the header, no scrim, no caret, no
+  // side margins, opaque surface.
+  //
+  // Desktop web is the one exception to "at any width" (2026-09-11 fix): it
+  // IS the floating card off the Filters button that the line above says this
+  // isn't — see `screenPanelContentProps`'s desktop branch in
+  // `anchoredPanel.tsx` for why a full-bleed band on that breakpoint was a
+  // bug, not this decision reversed. `modal`, no scrim, and the dismiss layer
+  // all still apply there too — only the geometry and the chrome flip.
   //
   // `modal` STAYS. It is not what produced the blur — it is what buys the
   // focus trap, `aria-hidden` on the page behind, and the scroll lock that
@@ -386,19 +393,27 @@ export function FilterSheet({
           // (from `screenPanelContentProps`) plus the opaque full-bleed
           // surface; the inner div below is only the flex column that holds
           // the header and the scroller.
-          className={screenPanelContentClass}
+          className={screenPanelContentClass(band)}
         >
-          {/* No notch. A band that reaches both screen edges is not pointing
-              at anything, and the owner asked for it anchored to the screen
-              rather than to the sliders icon. */}
+          {/* No notch on phone/native — a band that reaches both screen edges
+              is not pointing at anything, and the owner asked for it anchored
+              to the screen rather than to the sliders icon. Desktop web does
+              not carry this caret either; a content-sized dropdown docked
+              under the Filters button reads as anchored without one. */}
           <div
-            // `mx-auto max-w-*` is a CONTENT measure, not a side margin — the
-            // band's SURFACE still reaches both edges of the header it hangs
-            // under. Below 512px (every phone) it changes nothing. On the
-            // desktop website (`lg` = the `web-desktop` gate, 900px) the band
-            // is the feed column's width and the content opens up to match,
-            // so Sort's five chips and Category's twelve sit in wrapping rows
+            // `mx-auto max-w-*` is a CONTENT measure, not a side margin — on
+            // phone/native the band's SURFACE still reaches both edges of the
+            // header it hangs under, and below 512px this changes nothing. At
+            // `lg` (the `web-desktop` gate, 900px) it opens to max-w-3xl so
+            // Sort's five chips and Category's twelve sit in wrapping rows
             // instead of a phone column in the middle of the band.
+            //
+            // On desktop web (2026-09-11 fix) this max-w-3xl is what caps the
+            // whole PANEL's width now, not just this inner column's — see
+            // `screenPanelContentProps`'s desktop branch in
+            // `anchoredPanel.tsx`: `PopoverContent` carries no forced width
+            // there, so it shrinks to fit this wrapper instead of the 1576px
+            // content-column band it used to stretch to.
             className="relative flex min-h-0 w-full max-w-lg lg:max-w-3xl flex-1 mx-auto flex-col overflow-hidden"
           >
             {/* Panel header — a title and an unmistakable way out. There was

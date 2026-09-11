@@ -12,7 +12,8 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
  * Notifications: "Same for this. No blur"; and, asked whether the two should
  * match: "Yes — both the same").
  *
- * A panel is a SCREEN-ANCHORED BAND, not a floating card:
+ * Below the desktop web breakpoint (phone width, and the native app — see
+ * `useIsWebDesktop`), a panel is a SCREEN-ANCHORED BAND, not a floating card:
  *
  *   1. No scrim.              The page behind is neither dimmed nor blurred.
  *                             `ui/popover.tsx` still portals a
@@ -26,9 +27,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
  *                             sits in. No side margins, no caret, no floating
  *                             rounded card — `useScreenPanelBand` measures the
  *                             band and `screenPanelContentProps` feeds it to
- *                             Radix. (Desktop website only: edge to edge of
- *                             the content panel beside the rail instead of
- *                             the whole screen — see `DESKTOP_PANEL_SELECTOR`.)
+ *                             Radix.
  *   3. Opaque surface.        `screenPanelSurfaceStyle`, not `.glass-modal`:
  *                             a solid `--background` with a hairline bottom
  *                             edge and a soft downward shadow. A full-bleed
@@ -40,11 +39,18 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
  *                             `DismissableLayer`); the X is the visible,
  *                             touch-discoverable equivalent.
  *
+ * ON DESKTOP WEB (`html.web-desktop`, ≥900px, never the native app) a panel is
+ * instead a NORMAL ANCHORED DROPDOWN — real rounded corners, a real border and
+ * shadow, sized to its content, docked under the trigger that opened it. See
+ * the comment above `measureScreenPanelBand`'s desktop branch for the bug this
+ * replaced and why.
+ *
  * Mount the panel with `modal` on `<Popover>`. That is deliberately KEPT even
  * though the scrim is gone: it is what locks page scroll behind the panel (so
  * the panel's own list scrolls, not the feed), traps focus inside the panel,
  * and returns focus to the trigger on close. None of those depended on the
- * scrim's paint; all three would be lost by going non-modal.
+ * scrim's paint; all three would be lost by going non-modal. True on both
+ * breakpoints — the dropdown treatment did not change this.
  */
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -76,12 +82,38 @@ const PANEL_HEADER_SELECTOR =
  */
 const MAX_HEADER_HEIGHT = 200;
 
-/** On the desktop website, the content column a panel is cut to — the page
- *  panel beside the rail, or the shell frame when the trigger sits outside a
- *  page panel (a full-width top bar's bell). */
-const DESKTOP_PANEL_SELECTOR = ".page-panel, .app-shell-frame";
+/**
+ * DESKTOP WEB IS NO LONGER A NARROWER BAND — IT IS A NORMAL ANCHORED DROPDOWN.
+ *
+ * Fixed 2026-09-11 (owner report): both panels rendered on desktop web as a
+ * FULL-BLEED BAND across the content column — `PopoverContent` carried an
+ * inline `width` equal to the whole page-panel/app-shell-frame rect (measured
+ * live: 1048px for Notifications, 1576px for Filters), with the real content
+ * stranded in its own `max-w-lg`/`max-w-3xl mx-auto` inner wrapper — a giant
+ * empty band on both sides of a narrow column. That inline `width` is what
+ * `DESKTOP_PANEL_SELECTOR` used to compute (the page panel's rect), narrowing
+ * the band from the viewport to the content column but never all the way
+ * down to the trigger. `DESKTOP_PANEL_SELECTOR` is gone with it.
+ *
+ * Desktop web now skips the screen-band geometry entirely and anchors to the
+ * TRIGGER's own rect — `side="bottom" align="end"`, `avoidCollisions: true` —
+ * the same way any ordinary Radix dropdown (see `dropdown-menu.tsx`, which
+ * sets no width at all) sizes itself: shrink-to-fit around its content, which
+ * is exactly what a `PopoverContent` with no forced `width` and a
+ * `position: absolute` Radix wrapper already does. The existing content caps
+ * (`max-w-lg` for Notifications, `max-w-lg lg:max-w-3xl` for Filters) still
+ * cap how wide that shrink-to-fit box can grow — they were never the bug.
+ *
+ * Phone width and the native app are UNCHANGED — `measureScreenPanelBand`
+ * only takes this branch when `html.web-desktop` is present, which per
+ * `useIsWebDesktop` is never true below 900px and never true in the native
+ * shell. Below that width the full-bleed screen-band treatment this file's
+ * header comment describes is exactly as it was.
+ */
 
-/** Breathing room under the trigger when no header bar could be identified. */
+/** Breathing room under the trigger when no header bar could be identified,
+ *  and — on desktop web — the gap kept between the trigger and the dropdown
+ *  that now anchors directly to it. */
 const TRIGGER_FALLBACK_GAP = 8;
 
 /** Gap kept between the panel's bottom edge and the dock (or the screen). */
@@ -92,31 +124,100 @@ const PANEL_MIN_HEIGHT = 160;
 
 export interface ScreenPanelBand {
   /** Viewport x of the band's left edge: 0 on a phone (the band starts at
-   *  the screen edge); on the desktop website, the left edge of the content
-   *  panel the trigger sits in. */
+   *  the screen edge); on desktop web, the trigger's own left edge. */
   left: number;
-  /** Viewport y of the panel's top edge (the header's bottom). */
+  /** Viewport y of the panel's top edge: the header's bottom on a phone; on
+   *  desktop web, the trigger's own bottom edge (a small `sideOffset` in
+   *  `screenPanelContentProps` supplies the gap under it). */
   top: number;
   /** `documentElement.clientWidth` on a phone (the scrollbar is excluded on
    *  purpose, so a full-bleed panel can never itself create horizontal
-   *  overflow); on the desktop website, the content panel's width. */
+   *  overflow). On desktop web this is the trigger's own width — it only
+   *  feeds the virtual anchor's rect for `align="end"` to read off of; it is
+   *  NOT applied as the panel's width there (see `desktop` below). */
   width: number;
   /** Height budget: everything from `top` down to the dock, less a gap. */
   maxHeight: number;
+  /** True on desktop web (`html.web-desktop`, ≥900px, never the native app).
+   *  `screenPanelContentProps`/`screenPanelContentClass` key off this to
+   *  render a content-sized anchored dropdown instead of a full-bleed band —
+   *  see the comment above this function's desktop branch. */
+  desktop: boolean;
 }
 
-const EMPTY_BAND: ScreenPanelBand = { left: 0, top: 0, width: 0, maxHeight: 0 };
+const EMPTY_BAND: ScreenPanelBand = { left: 0, top: 0, width: 0, maxHeight: 0, desktop: false };
 
+/**
+ * DESKTOP WEB: an anchored dropdown under the trigger, not a band.
+ *
+ * Bug (owner report, 2026-09-11): on desktop web both panels rendered as a
+ * full-bleed band the width of the content column beside the rail (measured
+ * live: 1048px for Notifications, 1576px for Filters) — an inline `width` on
+ * `PopoverContent` computed from `trigger.closest(".page-panel,
+ * .app-shell-frame")`'s rect, the same header-band geometry the phone
+ * treatment uses. The content itself was already correctly capped by its own
+ * `max-w-lg`/`max-w-3xl mx-auto` inner wrapper, so the visible result was that
+ * capped content marooned in the middle of a much wider, chrome-stripped band
+ * (`rounded-none border-0 shadow-none` from `screenPanelContentClass`).
+ *
+ * Fix: on desktop web, skip the band geometry and hand Radix the TRIGGER's
+ * own rect as the anchor, with `align="end"` (both triggers sit at the
+ * trailing edge of their row — the bell in `DesktopTopNav`, the Filters
+ * button in `BrowseTasksActions`) and `avoidCollisions: true` in
+ * `screenPanelContentProps`. With no forced `width`, `PopoverContent` sizes
+ * itself the same way any other Radix dropdown in this app does (see
+ * `dropdown-menu.tsx`, which sets no width at all) — shrink-to-fit around its
+ * content, still capped by that same `max-w-lg`/`max-w-3xl` inner wrapper.
+ * `screenPanelContentClass` gives it back real corners, border and shadow for
+ * this breakpoint only.
+ *
+ * Phone and native are untouched: this whole branch is gated on
+ * `doc.classList.contains("web-desktop")`, which `useIsWebDesktop` never sets
+ * below 900px or inside the native shell.
+ */
 function measureScreenPanelBand(
   trigger: HTMLElement | null,
   extraBottomInset: number,
 ): ScreenPanelBand {
   if (typeof document === "undefined") return EMPTY_BAND;
   const doc = document.documentElement;
-  let left = 0;
-  let width = doc.clientWidth;
   const viewportHeight = doc.clientHeight;
+  const isDesktop = doc.classList.contains("web-desktop");
 
+  // The dock is a FIXED bar floating over the viewport, so the viewport's own
+  // height does not account for it. Measure the real thing rather than
+  // subtracting `--bottom-nav-h`'s 96px fallback everywhere: that fallback is
+  // also what a desktop viewport (where `.mobile-nav-frame` is
+  // `display: none`) would subtract, stranding 96px of empty screen under
+  // every desktop panel. (On desktop web this is always 0 — the dock is
+  // phone/native chrome — but the measurement is cheap and shared.)
+  const dock = document.querySelector<HTMLElement>(".mobile-nav-frame");
+  let bottomInset = 0;
+  if (dock && window.getComputedStyle(dock).display !== "none") {
+    bottomInset = Math.max(0, viewportHeight - dock.getBoundingClientRect().top);
+  }
+  // `max`, not `+`: the software keyboard occupies the SAME strip of screen as
+  // the dock, so adding them would shrink the panel by roughly twice what is
+  // actually covered.
+  bottomInset = Math.max(bottomInset, extraBottomInset);
+
+  if (isDesktop && trigger) {
+    const triggerRect = trigger.getBoundingClientRect();
+    const maxHeight = Math.max(
+      PANEL_MIN_HEIGHT,
+      viewportHeight - triggerRect.bottom - TRIGGER_FALLBACK_GAP - bottomInset - PANEL_BOTTOM_GAP,
+    );
+    return {
+      left: Math.round(triggerRect.left),
+      top: Math.round(triggerRect.bottom),
+      width: Math.round(triggerRect.width),
+      maxHeight: Math.round(maxHeight),
+      desktop: true,
+    };
+  }
+
+  const left = 0;
+  const width = doc.clientWidth;
   let top = 0;
   if (trigger) {
     const triggerRect = trigger.getBoundingClientRect();
@@ -129,45 +230,14 @@ function measureScreenPanelBand(
       top = rect.bottom;
       break;
     }
-    // DESKTOP WEBSITE ONLY: the band spans the content panel the trigger
-    // sits in, not the screen. Beside the 248px rail a viewport-wide band ran
-    // under the rail with a phone-width column of controls floating in the
-    // middle of a 1440px strip (external QA, 2026-09). Cut to the panel, it
-    // is the width of the column it belongs to. On a phone (no `web-desktop`
-    // on <html>, and never in the native app) nothing here runs — the band
-    // stays the full-bleed screen band the owner picked on device.
-    if (doc.classList.contains("web-desktop")) {
-      const panel = trigger.closest<HTMLElement>(DESKTOP_PANEL_SELECTOR);
-      const rect = panel?.getBoundingClientRect();
-      if (rect && rect.width > 0 && rect.width < width - 1) {
-        left = Math.max(0, Math.round(rect.left));
-        width = Math.min(Math.round(rect.width), doc.clientWidth - left);
-      }
-    }
   }
-
-  // The dock is a FIXED bar floating over the viewport, so the viewport's own
-  // height does not account for it. Measure the real thing rather than
-  // subtracting `--bottom-nav-h`'s 96px fallback everywhere: that fallback is
-  // also what a desktop viewport (where `.mobile-nav-frame` is
-  // `display: none`) would subtract, stranding 96px of empty screen under
-  // every desktop panel.
-  const dock = document.querySelector<HTMLElement>(".mobile-nav-frame");
-  let bottomInset = 0;
-  if (dock && window.getComputedStyle(dock).display !== "none") {
-    bottomInset = Math.max(0, viewportHeight - dock.getBoundingClientRect().top);
-  }
-  // `max`, not `+`: the software keyboard occupies the SAME strip of screen as
-  // the dock, so adding them would shrink the panel by roughly twice what is
-  // actually covered.
-  bottomInset = Math.max(bottomInset, extraBottomInset);
 
   const maxHeight = Math.max(
     PANEL_MIN_HEIGHT,
     viewportHeight - top - bottomInset - PANEL_BOTTOM_GAP,
   );
 
-  return { left, top: Math.round(top), width, maxHeight: Math.round(maxHeight) };
+  return { left, top: Math.round(top), width, maxHeight: Math.round(maxHeight), desktop: false };
 }
 
 /**
@@ -247,19 +317,44 @@ export function useScreenPanelBand(
 /**
  * The `PopoverContent` props that pin a panel to a measured band.
  *
- * `avoidCollisions={false}` is deliberate: collision handling exists to keep a
- * floating card on screen, and this panel is already sized and placed against
- * the screen. Left on, `shift` would slide a full-viewport-width panel
- * sideways to "fit" it and reintroduce the side margins.
+ * `avoidCollisions={false}` is deliberate on the phone/native path: collision
+ * handling exists to keep a floating card on screen, and this panel is
+ * already sized and placed against the screen. Left on, `shift` would slide a
+ * full-viewport-width panel sideways to "fit" it and reintroduce the side
+ * margins.
+ *
+ * On desktop web (`band.desktop`) this is the opposite panel — a normal
+ * anchored dropdown docked under the trigger, `align="end"` (both triggers
+ * sit at the trailing edge of their row) with collision avoidance back ON, the
+ * same as any other Radix dropdown in the app, so it slides to stay on screen
+ * rather than running off the right edge near a narrow viewport.
  */
 export function screenPanelContentProps(band: ScreenPanelBand): {
   side: "bottom";
-  align: "center";
+  align: "center" | "end";
   sideOffset: number;
   alignOffset: number;
   avoidCollisions: boolean;
   style: React.CSSProperties;
 } {
+  if (band.desktop) {
+    return {
+      side: "bottom" as const,
+      align: "end" as const,
+      sideOffset: TRIGGER_FALLBACK_GAP,
+      alignOffset: 0,
+      avoidCollisions: true,
+      style: {
+        // NO forced width here — this is the whole fix. Left to `width: auto`
+        // (Radix's Popper wrapper is `position: absolute`, so an unconstrained
+        // child shrink-wraps exactly like `dropdown-menu.tsx`'s content does),
+        // the panel sizes itself to its content, which is still capped by that
+        // content's own `max-w-lg`/`max-w-3xl mx-auto` inner wrapper.
+        maxHeight: band.maxHeight || undefined,
+        ...desktopPanelSurfaceStyle,
+      },
+    };
+  }
   return {
     side: "bottom" as const,
     align: "center" as const,
@@ -300,9 +395,30 @@ const screenPanelSurfaceStyle = {
   "--tw-exit-scale": "1",
 } as React.CSSProperties;
 
-/** Layout classes for a screen-anchored panel's `PopoverContent`. */
-export const screenPanelContentClass =
-  "flex flex-col w-auto max-w-none p-0 gap-0 border-0 rounded-none bg-transparent shadow-none outline-none overflow-hidden";
+/**
+ * The desktop-web dropdown's surface — a real card: opaque `--background`,
+ * a full border, a rounded-lg radius (the app's standard card radius token)
+ * and `--elev-sheet`'s floating-surface shadow (same recipe named
+ * `--shadow-elevated` elsewhere). No `--tw-enter-scale` override here, unlike
+ * `screenPanelSurfaceStyle` above — that override existed only to stop a
+ * 1440px-wide band from visibly stretching sideways on open; a content-sized
+ * dropdown is exactly the size a small `zoom-in-95` pop is meant for.
+ */
+const desktopPanelSurfaceStyle = {
+  background: "hsl(var(--background))",
+  border: "1px solid hsl(var(--olivewood) / 0.14)",
+  boxShadow: "var(--elev-sheet)",
+} as React.CSSProperties;
+
+/** Layout classes for a screen-anchored panel's `PopoverContent` — full-bleed
+ *  band on phone/native, real card on desktop web. Takes the band rather than
+ *  a bare boolean so a call site never has to import `ScreenPanelBand` just to
+ *  pass this through. */
+export function screenPanelContentClass(band: ScreenPanelBand): string {
+  return band.desktop
+    ? "flex flex-col w-auto p-0 gap-0 rounded-lg outline-none overflow-hidden"
+    : "flex flex-col w-auto max-w-none p-0 gap-0 border-0 rounded-none bg-transparent shadow-none outline-none overflow-hidden";
+}
 
 /*
  * The old exports that made a panel a FLOATING CARD are gone, not deprecated:

@@ -375,9 +375,12 @@ const NotificationPanel = () => {
       <PopoverTrigger asChild>
         <NotificationTrigger ref={triggerRef} unreadCount={unreadCount} />
       </PopoverTrigger>
-      {/* The panel is positioned against a measured SCREEN BAND, not against
-          the bell: a zero-height rect spanning the viewport at the bottom edge
-          of the header the bell sits in. The trigger still opens it; the band
+      {/* On phone/native, positioned against a measured SCREEN BAND, not
+          against the bell: a zero-height rect spanning the viewport at the
+          bottom edge of the header the bell sits in. On desktop web
+          (2026-09-11 fix) the rect IS the bell's own — a normal anchored
+          dropdown, not a band — see `measureScreenPanelBand`'s desktop
+          branch. Either way the trigger still opens it; this virtual anchor
           is what decides where it lands. See `useScreenPanelBand`. */}
       <PopoverAnchor virtualRef={anchorRef} />
       {/* NO SCRIM — the page behind is neither dimmed nor blurred (owner,
@@ -394,7 +397,7 @@ const NotificationPanel = () => {
       <PopoverContent
         {...screenPanelContentProps(band)}
         aria-labelledby={titleId}
-        className={screenPanelContentClass}
+        className={screenPanelContentClass(band)}
         // Park focus on the PANEL, not on its first focusable child. Radix's
         // default would land on "Mark all as read", so opening the panel and
         // pressing Enter — or a screen reader's first move — would silently
@@ -415,14 +418,22 @@ const NotificationPanel = () => {
             re-indenting the whole panel would bury the real change in a
             200-line whitespace diff.
 
-            `mx-auto max-w-lg` is a CONTENT measure, not a side margin: the
-            SURFACE still runs edge to edge (that is the whole point of a
-            screen-anchored band), but the rows inside it stop at the app's
-            shared popup measure. Without it the Unread/All segmented control
-            stretched to 1440px on the desktop website — one pill the width of
-            the window, which is not a control anyone reads as a control.
-            Below 512px, which is every phone the owner reviewed this on, the
-            measure is wider than the screen and changes nothing. */}
+            `mx-auto max-w-lg` is a CONTENT measure, not a side margin: on
+            phone/native the SURFACE still runs edge to edge (that is the
+            whole point of a screen-anchored band), but the rows inside it
+            stop at the app's shared popup measure. Without it the Unread/All
+            segmented control stretched to 1440px on the desktop website — one
+            pill the width of the window, which is not a control anyone reads
+            as a control. Below 512px, which is every phone the owner
+            reviewed this on, the measure is wider than the screen and
+            changes nothing.
+
+            On desktop web (2026-09-11 fix) this measure is now what decides
+            the whole panel's width too, not just the rows' — see
+            `screenPanelContentProps`'s desktop branch in `anchoredPanel.tsx`:
+            `PopoverContent` carries no forced width there, so it shrinks to
+            fit this `max-w-lg` wrapper instead of the 1048px content-column
+            band it used to stretch to. */}
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden w-full max-w-lg mx-auto">
         <AnchoredPanelHeader
           titleId={titleId}

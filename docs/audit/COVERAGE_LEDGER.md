@@ -56,27 +56,95 @@ clean while broken.
 
 ---
 
-## Summary — recomputed 2026-09-04 (was: as of 2026-08-31)
+## Summary — recomputed 2026-09-11 (was: recomputed 2026-09-04)
 
 | Status | Count | Share |
 | --- | ---: | ---: |
-| **WALKED** — operated against real data, with a durable artifact | **147** | 62% |
+| **WALKED** — operated against real data, with a durable artifact | **146** | 59% |
 | **PARTIAL** — touched only by an E2E spec (Chromium against a *mocked* Supabase) | **0** | 0% |
-| **NEVER WALKED** | **89** | 38% |
-| **Total tracked units** | **236** | |
+| **NEVER WALKED** | **102** | 41% |
+| **Total tracked units** | **248** | |
 
-Breakdown of the 236, each figure **re-derived from source on 2026-09-04**, not
+Breakdown of the 248, each figure **re-derived from source on 2026-09-11**, not
 carried forward:
 
-| Group | Total | Walked | Never | Δ since 2026-08-31 |
+| Group | Total | Walked | Never | Δ since 2026-09-04 |
 | --- | ---: | ---: | ---: | --- |
-| Real routes | 27 | 25 | 2 | −6: six became Profile tabs (c94209a08, 9c241632b) |
-| Redirect routes | 12 | 12 | 0 | −2: `/analytics` became a tab, `/pay-it-forward` deleted (2affc9dbb) |
-| Profile tabs | 24 | 17 | 7 | +7 tabs, none yet walked *as a tab* |
+| Real routes | 26 | 24 | 2 | −1: `/jobs` is no longer registered in `src/App.tsx` — retired |
+| Redirect routes | 14 | 12 | 2 | +2 untracked: `/warnings`, `/help-center` |
+| **Short-link redirects** | **6** | **0** | **6** | new group — `ShortLinkRedirect` routes were tracked nowhere |
+| Profile tabs | 24 | 17 | 7 | — |
 | Activity tabs | 2 | 2 | 0 | — |
-| Admin views | 25 | 24 | 1 | +1: `social` (8a3c7c3d7) |
-| Edge functions | 69 | 63 | 6 | +7 added, −1 (`boost-job`, deleted 11b192598) |
-| **Overlay/dialog roots** | **77** | **4** | **73** | grep now returns 77 roots, not 78 |
+| Admin views | 25 | 24 | 1 | — |
+| Edge functions | 71 | 63 | 8 | +2 untracked: `verify-apple-iap`, `apple-app-store-notifications` |
+| **Overlay/dialog roots** | **80** | **4** | **76** | +3: the grep now returns 80 roots, not 77 |
+
+### 2026-09-11 ledger-integrity check — what moved and why
+
+Nothing was promoted. One retirement, thirteen units added as `NEVER WALKED`,
+and one artifact loss that is annotated rather than downgraded.
+
+**THE ENTIRE 2026-08-31 ARTIFACT DIRECTORY IS GONE.** `~/lh-audit-2026-08-30/`
+does not exist on this machine. It is cited by **69 lines of this file** — every
+`WALKED` row in sections 1, 2, 3, 4 and 6, the `dialogs/` screenshots that carry
+section 7's four walked overlays, and `edge-functions.txt`, the sole artifact
+behind "all 63 executed again via curl". Nothing was found at
+`~/lh-audit-shots`, `~/.lh-audit` or `~/Documents/lh-audit`.
+
+These rows are **NOT downgraded**, and the reasoning matters because the next
+reader is entitled to a different call. Every one of them carries, *in this
+file*, a described measurement rather than prose — `axe 0, overflow 0, h1 1`
+per route, the aggregate `0 violations / 0 overflow / one h1 / none under 65%
+desktop fill`, per-function statuses, and commit SHAs that all resolve
+(`git cat-file -e` passes on all 15 real SHAs in this file; the 7 that do not
+are profile and job UUIDs, not commits). Rule 3 accepts a described measurement
+as evidence. What is lost is the ability for anyone to *re-examine* the walk —
+so treat these rows as a claim you can no longer audit, and re-walk before
+relying on any of them.
+
+**This is the third time.** 2026-09-04 annotated three dead paths
+(`.audit-shots/force-update/`, `/tmp/help-*.png`, `/tmp/lhnotif/*.png`) and
+wrote "stop writing audit artifacts to `/tmp` or a gitignored dir". A home
+directory is not durable either. **An audit artifact that is not committed to
+this repository will be gone inside two weeks.** The 2026-09-09 device sweep
+has already repeated the mistake — its evidence is under
+`~/.lh-visual-baseline/2026-09-09/`, which exists today and will not later.
+
+**`/jobs` is retired.** The row claimed `WALKED` but the route is not in the
+`<Route>` table in `src/App.tsx` any more. Retired, not downgraded — the walk
+happened, the unit did not survive.
+
+**Thirteen units existed in the code and were tracked nowhere here:**
+
+- two redirects — `/warnings` → `/profile?tab=warnings`, `/help-center` →
+  `/help` (§2);
+- six `ShortLinkRedirect` routes — `/j/:id`, `/u/:id`, `/m/:id`,
+  `/messages/:id`, `/post-job/*`, `/legal/:tab` — a whole class of route that
+  had no group (§2b);
+- two edge functions — `verify-apple-iap` and
+  `apple-app-store-notifications` (§5). Note what these two are: the Apple IAP
+  money path, landed on main in `36d2b0606` / `93f55a48d`, **never once
+  curled**;
+- three overlay roots — `RestrictApplicationsDialog`,
+  `MarketingComposerDialog`, `UserAuditLog` (§7).
+
+**Section 7's group table still does not add up.** Its rows sum to **103**
+roots while the grep it names returns **80**. The 2026-09-04 pass corrected the
+heading (78 → 77) and left the group table alone. It is over-counted by 23 and
+nobody should read a per-group number out of it until it is re-derived
+per-trigger.
+
+**Drift: 696 commits have landed since the 2026-08-31 walk, touching 534
+distinct files under `src/pages` and `src/components`.** Every `WALKED` row
+dated 2026-08-31 is 11 days old — inside the 14-day window by date, and stale
+by change several times over. There is no route in sections 1–4 or 6 whose
+underlying code has not moved.
+
+**The 2026-09-09 device visual sweep promoted nothing.**
+`docs/audit/device-sweeps/2026-09-09-device-visual-sweep.md` operated 14 routes
+on a real iPhone 17 Pro simulator and in Playwright WebKit, with per-check
+artifacts, and no row in this ledger reflects it. That is coverage genuinely
+earned and not recorded.
 
 ### 2026-09-04 ledger-integrity check — what moved and why
 
@@ -239,7 +307,7 @@ Methods, spelled: `browser` (Chrome, real session), `iOS sim`, `device`,
 
 ---
 
-## 1. Routes — screens (27 live + 6 retired)
+## 1. Routes — screens (26 live + 7 retired)
 
 Source of truth: the `<Route>` table in `src/App.tsx`. Enumerated, not guessed.
 
@@ -265,7 +333,7 @@ Source of truth: the `<Route>` table in `src/App.tsx`. Enumerated, not guessed.
 | `/messages` | Messages | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/support` | Support | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/legal` | Legal | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
-| `/jobs` | Jobs (public) | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/jobs` | Jobs (public) | RETIRED 2026-09-11 | n/a — unit no longer exists | Not in the `<Route>` table in `src/App.tsx`. Walked 2026-08-31 as a live route (6 breakpoints light + 2 dark; axe 0, overflow 0, h1 1) — the walk was real, the route is not. Retired by the 2026-09-11 integrity check, not downgraded. |
 | `/browse` | DashboardGuest | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/str-settings` | StrSettings | RETIRED 2026-09-02 | n/a — unit no longer exists | Route deregistered from `src/App.tsx`; the component is now a **Profile tab** (see §3), which is `NEVER WALKED` as a tab. The 2026-08-31 artifact photographs the retired route shell. Commits c94209a08 / 9c241632b |
 | `/auto-tip` | AutoTip | RETIRED 2026-09-02 | n/a — unit no longer exists | Route deregistered from `src/App.tsx`; the component is now a **Profile tab** (see §3), which is `NEVER WALKED` as a tab. The 2026-08-31 artifact photographs the retired route shell. Commits c94209a08 / 9c241632b |
@@ -280,7 +348,7 @@ Source of truth: the `<Route>` table in `src/App.tsx`. Enumerated, not guessed.
 | `/user/:userId` | UserProfile | NEVER WALKED | never | needs a live profile id — not driven this pass |
 
 
-## 2. Routes — redirects (12 live + 2 retired)
+## 2. Routes — redirects (14 live + 2 retired)
 
 A redirect is walked when you have observed the *landing* URL after navigating
 to the source, not when you have read the `<Navigate>` element.
@@ -301,6 +369,27 @@ to the source, not when you have read the `<Navigate>` element.
 | `/dashboard/post-login` | `/dashboard` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/settings/profile` | `/profile` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/settings` | `/profile` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/warnings` | `/profile?tab=warnings` | NEVER WALKED | never — untracked here until the 2026-09-11 integrity check found it in `src/App.tsx:263` |
+| `/help-center` | `/help` | NEVER WALKED | never — untracked here until the 2026-09-11 integrity check found it in `src/App.tsx:393` |
+
+
+## 2b. Short-link redirects (6)
+
+Source of truth: every `<Route>` in `src/App.tsx` whose element is
+`<ShortLinkRedirect />`. This whole class had no group in the ledger before
+2026-09-11, so six routes that resolve a short id into a real destination were
+tracked nowhere. A short link is walked when you have navigated the SOURCE form
+and observed the LANDING url — reading `ShortLinkRedirect` does not count, and
+neither does walking the destination route directly.
+
+| Route | Resolves to | Status | Evidence |
+| --- | --- | --- | --- |
+| `/j/:id` | a job detail | NEVER WALKED | never — added to the ledger 2026-09-11 |
+| `/u/:id` | a user profile | NEVER WALKED | never — added to the ledger 2026-09-11 |
+| `/m/:id` | a message thread | NEVER WALKED | never — added to the ledger 2026-09-11 |
+| `/messages/:id` | a message thread | NEVER WALKED | never — added to the ledger 2026-09-11 |
+| `/post-job/*` | the post-job flow | NEVER WALKED | never — added to the ledger 2026-09-11 |
+| `/legal/:tab` | `/legal?tab=…` | NEVER WALKED | never — added to the ledger 2026-09-11 |
 
 
 ## 3. Profile tabs (24)
@@ -352,7 +441,7 @@ them; a tab seen in one status is not a walked tab.
 | `posted` | `/my-posts` | WALKED | 2026-08-31 · browser; incl. ?filter=scheduled/waiting/done, 6 breakpoints. 2026-09-01 · browser (Playwright/Chromium 1440, session = helpr-audit-web-0824@mailinator.com, the job's own poster): notification deep-link resolution driven end to end. `?job=db21c20d…` → `/my-posts?job=…&filter=done`, chip **Done 3** the ONLY one selected, card "Rake and bag front-yard leaves" rendered (236×23 visible), 0 h-overflow — ~~/tmp/lhnotif/A-resolved-destination.png~~ **(2026-09-04: GONE, `/tmp` sweep; the measured record above is what carries this row).** Stale-filter case `?job=…&filter=offered` now also resolves to `filter=done`; with the precedence line temporarily reverted the same URL gave **0 chips selected and no card**, which is the defect. |
 | `applied` | `/my-jobs` | WALKED | 2026-08-31 · browser; incl. ?filter=scheduled/waiting/completed, 6 breakpoints |
 
-## 5. Edge functions (69)
+## 5. Edge functions (71)
 
 Source of truth: `supabase/functions/` (excluding `_shared`). "Walked" here
 means **executed against the deployed function** and the status observed —
@@ -412,6 +501,16 @@ prod: `create-payment` (real $86.00 test-mode checkout, PI succeeded),
 `stripe-idv-webhook`, `stripe-payouts`, `stripe-webhook`,
 `verification-webhook`, `void-cancelled-payments`, `weekly-helper-report`.
 
+**2026-09-11 — it drifted again, in the same direction, within a week.**
+Re-derived from `ls supabase/functions` (excluding `_shared`): **71 functions**,
+not 69. The two new ones are `verify-apple-iap` and
+`apple-app-store-notifications` — the Apple in-app-purchase money path, landed
+on main 2026-09-08 and never once executed. They are in the NEVER WALKED table
+below. **`~/lh-audit-2026-08-30/edge-functions.txt`, the sole artifact behind
+"all 63 executed again via curl", no longer exists** (see the 2026-09-11 note
+at the top of this file); the 63 stay WALKED on the per-function statuses
+recorded in the prose above, which is weaker evidence than it was.
+
 **2026-09-04 — this list was NOT re-derived, and it drifted in both directions.**
 Re-derived from `ls supabase/functions` (excluding `_shared`): **69 functions**,
 not 63.
@@ -431,6 +530,8 @@ not 63.
 | `subscription-reconciliation` | 2026-08-31 (`ad315368f`) | NEVER WALKED |
 | `marketing-publish` | 2026-09-02 (`8a3c7c3d7`) | NEVER WALKED |
 | `marketing-token-health` | 2026-09-02 (`8a3c7c3d7`) | NEVER WALKED |
+| `verify-apple-iap` | 2026-09-08 (`36d2b0606`) | NEVER WALKED — added 2026-09-11 |
+| `apple-app-store-notifications` | 2026-09-08 (`93f55a48d`) | NEVER WALKED — added 2026-09-11 |
 
 `backfill-job-geocode` (added 2026-08-30) *was* curled and is in the artifact,
 but was missing from this prose list — a third direction of drift. It is
@@ -545,7 +646,7 @@ All 24 rendered clean: 0 axe violations, 0 horizontal overflow, exactly one
 READ surface only — the destructive dialogs they host (ban, refund, delete,
 status override) are in section 7 and remain unwalked.
 
-## 7. Overlays — dialogs, sheets, popovers, drawers (77)
+## 7. Overlays — dialogs, sheets, popovers, drawers (80)
 
 Source of truth:
 `grep -roE "<(Dialog|AlertDialog|Sheet|Drawer|Popover|DropdownMenu|HoverCard)\s+open=" src --exclude-dir=ui`
@@ -553,7 +654,19 @@ Source of truth:
 why previous audits could report "all routes walked" while no popup in the app
 had ever been opened by an auditor.
 
-**Status: 4 of 77 WALKED.** (Corrected 2026-09-04. The grep named above now
+**Status: 4 of 80 WALKED.** (Recounted 2026-09-11: the grep above now returns
+**80** roots. Three overlay-bearing files have been added since 2026-09-01 and
+were tracked nowhere — `src/components/admin/RestrictApplicationsDialog.tsx`,
+`src/components/admin/marketing/MarketingComposerDialog.tsx` and
+`src/components/admin/userDetail/UserAuditLog.tsx`, all `NEVER WALKED`. The
+group table at the end of this section sums to **103** roots against a grep of
+80; it has been wrong since it was written and no per-group figure should be
+read out of it until it is re-derived per trigger. The four walked roots cite
+`~/lh-audit-2026-08-30/dialogs/`, **which no longer exists** — they survive on
+the described behaviour recorded in their rows, not on a retrievable
+screenshot.)
+
+(Corrected 2026-09-04. The grep named above now
 returns **77** roots. This line said "3 of 78" while the group table below
 said Profile was "2 of 14" for `DeleteAccountDialog` steps 1 and 2 — a fourth
 root — and the named table's `SecurityTab` change-email is itself a Profile

@@ -7,6 +7,15 @@ interface SignedInRedirectProps {
   to: string;
   /** What a signed-OUT visitor gets instead — the page itself. */
   children?: ReactNode;
+  /**
+   * What to render while auth state is still resolving. Defaults to the plain
+   * parchment surface this always used. <MarketingRedirect> passes the SAME
+   * element it gave its own Suspense boundary, so the chunk-download and the
+   * auth-resolve phases stay one continuous frame instead of two — without
+   * that, /browse's dashboard-shaped hold flickered back to a blank field for
+   * the length of the auth round-trip.
+   */
+  pendingFallback?: ReactNode;
 }
 
 /**
@@ -22,7 +31,11 @@ interface SignedInRedirectProps {
  * Same shape as the older `NativeRedirect` (which does this for the native
  * shell, where a guest goes to /browse rather than seeing a page).
  */
-const SignedInRedirect = ({ to, children }: SignedInRedirectProps) => {
+const SignedInRedirect = ({
+  to,
+  children,
+  pendingFallback = <div className="min-h-screen bg-premium-page" />,
+}: SignedInRedirectProps) => {
   // `isLoading` here means "auth state has not yet been determined" — the
   // supabase auth INITIAL_SESSION event hasn't fired (or, on native, the
   // Preferences hydrate hasn't resolved). Without this guard a signed-in
@@ -38,7 +51,7 @@ const SignedInRedirect = ({ to, children }: SignedInRedirectProps) => {
   // matching the Suspense fallback exactly means the chunk-download and
   // auth-resolve phases are indistinguishable: one calm surface that holds
   // until the real destination paints its own skeleton.
-  if (isLoading) return <div className="min-h-screen bg-premium-page" />;
+  if (isLoading) return <>{pendingFallback}</>;
 
   if (user) return <Navigate to={to} replace />;
 

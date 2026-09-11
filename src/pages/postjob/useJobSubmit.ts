@@ -206,7 +206,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(dateNeeded + "T00:00:00");
-    if (selectedDate < today) { toast.error("Date cannot be in the past."); scrollToField("date"); return; }
+    if (selectedDate < today) { toast.error("That date has already passed — pick a future date."); scrollToField("date"); return; }
     if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)."); scrollToField("flexible"); return; }
     // The date check above is midnight-to-midnight, so TODAY at a time that
     // has already gone by used to sail through — and the listing expiry is
@@ -229,7 +229,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // The budget is always required and always bounded now. It used to be
     // skipped entirely in "Accept bids" mode, which is how a bid job reached
     // checkout carrying a stale hidden budget and got charged for it.
-    if (!budget || parseFloat(budget) < MIN_JOB_BUDGET_DOLLARS) { toast.error(`Minimum budget is ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}`); scrollToField("budget"); return; }
+    if (!budget || parseFloat(budget) < MIN_JOB_BUDGET_DOLLARS) { toast.error(`Minimum budget is ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}.`); scrollToField("budget"); return; }
     if (parseFloat(budget) > MAX_JOB_BUDGET_DOLLARS) { toast.error(`Maximum budget is ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}.`); scrollToField("budget"); return; }
     if (isUrgent && (parseFloat(urgentFee) < URGENT_FEE_FLOOR_DOLLARS || isNaN(parseFloat(urgentFee)))) { toast.error(`Urgent bonus must be at least ${formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)}`); scrollToField("custom-urgent-fee"); return; }
     // The bonus had a floor but no CEILING, while the budget it rides on is

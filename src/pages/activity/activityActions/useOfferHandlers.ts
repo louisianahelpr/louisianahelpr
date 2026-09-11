@@ -199,7 +199,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           hasUser: !!user,
         },
       });
-      throw new Error("Something went wrong preparing this offer — please close and try again.");
+      throw new Error("Couldn't prepare this offer — please close and try again.");
     }
     const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
     // Optimistic: move the posted job into the "Awaiting Response" bucket

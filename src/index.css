@@ -1,3 +1,323 @@
+/* ===========================================================================
+   Self-hosted web fonts (was Google Fonts <link>s in index.html until
+   2026-09-09).
+
+   WHY: this app ships inside a WKWebView in an .ipa. A cross-origin
+   stylesheet + font fetch means a fresh install and EVERY offline launch
+   painted headings in Georgia and then swapped. Shipping the woff2 with the
+   binary removes the network from the critical path entirely.
+
+   These blocks are Google's own css2 output, verbatim except for the url():
+   same subsets (latin + latin-ext only — cyrillic/greek/math/symbols/
+   vietnamese are dropped, nothing in this product renders them), same
+   unicode-range, same discrete font-weight descriptors. The discrete weights
+   MATTER: Bodoni Moda and Montserrat are served as ONE wght-variable file
+   each, and it is the per-weight @font-face declaration that pins the
+   instance. Declaring `font-weight: 100 900` here instead would let a
+   `font-semibold` (600) Bodoni element render at a true 600 rather than
+   snapping up to 700 the way it does today — a rendering change, not a
+   simplification. Do not "tidy" these into ranges.
+
+   Do not add a weight here that nothing renders, and do not remove one
+   without checking: `font-display` + `font-medium` has zero call sites, so
+   Bodoni 500 is selected by nothing — it is kept only because it costs zero
+   bytes (same variable file) and keeping it makes this block a byte-for-byte
+   mirror of what shipped before.
+   =========================================================================== */
+
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/bodoni-moda-italic-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/bodoni-moda-italic-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/bodoni-moda-normal-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/bodoni-moda-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/bodoni-moda-normal-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/bodoni-moda-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/bodoni-moda-normal-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/bodoni-moda-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("/fonts/bodoni-moda-normal-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("/fonts/bodoni-moda-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/montserrat-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Beth Ellen";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/beth-ellen-normal-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ---------------------------------------------------------------------------
+   Metric-matched fallbacks. These are NOT extra downloads — each is a
+   `local()` face already on the device (Georgia / Arial) re-declared with
+   size-adjust + ascent/descent/line-gap overrides so it occupies EXACTLY the
+   box the real face will occupy. That is what removes the reflow on the swap;
+   `font-display: swap` alone only guarantees text is visible, not that it
+   stops moving when the woff2 lands.
+
+   The override values are MEASURED, never guessed: avg advance width over
+   [A-Za-z0-9 .,'-], WEIGHTED BY ENGLISH LETTER FREQUENCY (the capsize /
+   fontaine method — an unweighted average over the alphabet over-counts
+   capitals and rare letters, and measurably mismatched the italic hero span
+   by 6.1px), for each weight instance of the variable woff2 shipped in
+   public/fonts, divided by the same average for the local fallback, with the
+   hhea ascent/descent/lineGap divided by that ratio (fontTools instancer;
+   probe kept out of the repo).
+
+   Two things here are per-weight on purpose. Bodoni Moda is a wght-variable
+   font, so each weight has its OWN advance width — a single size-adjust for
+   the family would leave the 900 hero H1 mismatched by ~13%, which is the
+   exact shift this exists to remove. And the heavy weights fall back to
+   Georgia BOLD, not Georgia: a fallback face that declares font-weight 900
+   suppresses synthetic bolding, so pointing 900 at regular Georgia gives a
+   swap that matches in width and is visibly too LIGHT. Matching the local
+   face to the weight also keeps every size-adjust near 100%, which means
+   less distortion of the fallback's own shapes.
+
+   The unicode-range on each fallback face is NOT an optimisation, it is a
+   correctness fix, and removing it is a visible regression. Google's subset
+   declares codepoints the subset does not actually contain — Montserrat's
+   latin face declares U+2192 but ships no arrow glyph — so the browser walks
+   PAST the real face to the next family in the stack for those characters,
+   permanently, not just during the swap. With an unrestricted fallback that
+   next family became Arial instead of system-ui, and every "→" in the app
+   (the /rules page, CTA buttons) silently changed shape. Restricting the
+   fallback to the Latin text this product actually sets means anything the
+   real face lacks falls through to system-ui / Georgia exactly as it did
+   before self-hosting. Verified by full-page pixel diff on /rules: 4232px
+   differing before this line, 0 after.
+--------------------------------------------------------------------------- */
+@font-face {
+  font-family: "Bodoni Moda Fallback";
+  font-style: normal;
+  font-weight: 400;
+  src: local("Georgia");
+  size-adjust: 103.79%;
+  ascent-override: 108.4%;
+  descent-override: 38.54%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Bodoni Moda Fallback";
+  font-style: normal;
+  font-weight: 500;
+  src: local("Georgia");
+  size-adjust: 105.46%;
+  ascent-override: 106.68%;
+  descent-override: 37.93%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Bodoni Moda Fallback";
+  font-style: normal;
+  font-weight: 700;
+  src: local("Georgia Bold"), local("Georgia-Bold");
+  size-adjust: 94.32%;
+  ascent-override: 119.28%;
+  descent-override: 42.41%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Bodoni Moda Fallback";
+  font-style: normal;
+  font-weight: 900;
+  src: local("Georgia Bold"), local("Georgia-Bold");
+  size-adjust: 99.43%;
+  ascent-override: 113.15%;
+  descent-override: 40.23%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Bodoni Moda Fallback";
+  font-style: italic;
+  font-weight: 700;
+  src: local("Georgia Bold Italic"), local("Georgia-BoldItalic");
+  size-adjust: 87.8%;
+  ascent-override: 128.14%;
+  descent-override: 45.56%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Montserrat Fallback";
+  font-style: normal;
+  font-weight: 400;
+  src: local("Arial"), local("ArialMT");
+  size-adjust: 112.47%;
+  ascent-override: 86.06%;
+  descent-override: 22.32%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Montserrat Fallback";
+  font-style: normal;
+  font-weight: 500;
+  src: local("Arial"), local("ArialMT");
+  size-adjust: 114.31%;
+  ascent-override: 84.68%;
+  descent-override: 21.96%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Montserrat Fallback";
+  font-style: normal;
+  font-weight: 600;
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  size-adjust: 108.21%;
+  ascent-override: 89.46%;
+  descent-override: 23.2%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Montserrat Fallback";
+  font-style: normal;
+  font-weight: 700;
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  size-adjust: 110.22%;
+  ascent-override: 87.82%;
+  descent-override: 22.77%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -1611,7 +1931,7 @@ html.no-bottom-nav {
 }
 
 .text-page-title {
-  font-family: "Bodoni Moda", Georgia, serif !important;
+  font-family: "Bodoni Moda", "Bodoni Moda Fallback", Georgia, serif !important;
   font-style: italic !important;
   font-weight: 700 !important;
   font-size: var(--headline-hero) !important;
@@ -1621,7 +1941,7 @@ html.no-bottom-nav {
 }
 
 .text-section-title {
-  font-family: "Bodoni Moda", Georgia, serif !important;
+  font-family: "Bodoni Moda", "Bodoni Moda Fallback", Georgia, serif !important;
   font-style: italic !important;
   font-weight: 700 !important;
   font-size: var(--headline-section) !important;
@@ -2009,7 +2329,7 @@ button,
      in a single place. The type rules are kept (commented) so the label is a
      one-line restore if ever wanted. */
   display: none;
-  font-family: Montserrat, system-ui, sans-serif;
+  font-family: Montserrat, "Montserrat Fallback", system-ui, sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0.14em;

@@ -343,8 +343,7 @@ export function SavedSearches({
         <div className="space-y-2.5">
           <Label
             htmlFor="search-name"
-            className="font-sans uppercase text-ds-10"
-            style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.16em" }}
+            className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground"
           >
             Save current filters
           </Label>

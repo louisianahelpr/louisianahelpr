@@ -107,11 +107,8 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
 
           <div className="flex items-center gap-2">
             <div className="h-px flex-1" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
-            <span
-              className="font-sans uppercase text-ds-10"
-              style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.18em" }}
-            >
-              or custom
+            <span className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+              Or custom
             </span>
             <div className="h-px flex-1" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
           </div>

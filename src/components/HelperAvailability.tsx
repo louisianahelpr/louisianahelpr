@@ -285,10 +285,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
           fault, not an affordance. Three short pills on two lines costs one
           extra row of height and hides nothing. */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span
-          className="shrink-0 font-sans uppercase text-ds-10"
-          style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-        >
+        <span className="shrink-0 text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
           Quick set:
         </span>
         {[

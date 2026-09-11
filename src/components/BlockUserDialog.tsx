@@ -169,10 +169,7 @@ export function BlockUserDialog({
                 </ul>
               </DialogBody>
               <div className="space-y-1.5">
-                <label
-                  className="font-sans uppercase block text-ds-10"
-                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-                >
+                <label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground block">
                   Reason — optional, admin-only
                 </label>
                 <Textarea

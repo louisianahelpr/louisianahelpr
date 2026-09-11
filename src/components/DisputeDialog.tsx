@@ -285,7 +285,7 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
         />
         <div className="space-y-3.5">
           <div className="space-y-1.5">
-            <Label className="font-sans uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+            <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
               Reason
             </Label>
             <Select value={reason} onValueChange={setReason}>
@@ -301,7 +301,7 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
           </div>
 
           <div className="space-y-1.5">
-            <Label className="font-sans uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+            <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
               What happened?
             </Label>
             <Textarea
@@ -330,7 +330,7 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
           </div>
 
           <div className="space-y-1.5">
-            <Label className="font-sans uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+            <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
               Photo evidence — up to 5
             </Label>
             <div className="flex flex-wrap gap-1.5">

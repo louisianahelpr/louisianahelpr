@@ -187,7 +187,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           background: "radial-gradient(70% 90% at 50% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%), hsl(var(--parchment) / 0.5)",
         }}
       >
-        <p className="font-sans uppercase text-ds-10" style={{ color: "hsl(var(--sienna-ink))", letterSpacing: "0.18em" }}>
+        <p className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
           Your referral code
         </p>
         <p className="font-sans font-bold tabular-nums leading-none text-ds-40" style={{ color: "hsl(var(--primary))", letterSpacing: "0.18em" }}>
@@ -271,7 +271,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
                   "Total earned" wraps to two lines at 320/375 while its two
                   siblings stay on one, which pushed the middle tile's figure a
                   line lower than the numbers either side of it. */}
-              <span className="font-sans uppercase text-ds-10" style={{ color: "hsl(var(--sienna-ink))", letterSpacing: "0.18em" }}>
+              <span className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                 {label}
               </span>
             </div>

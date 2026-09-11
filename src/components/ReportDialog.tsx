@@ -457,8 +457,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                   all once they started typing. */}
               <label
                 htmlFor={detailsId}
-                className="font-sans uppercase block text-ds-10"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground block"
               >
                 What happened?
               </label>
@@ -586,13 +585,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 you want to follow up.
               </p>
               <div className="space-y-1">
-                <p
-                  className="font-sans uppercase text-ds-10"
-                  style={{
-                    color: "hsl(var(--olivewood) / 0.8)",
-                    letterSpacing: "0.16em",
-                  }}
-                >
+                <p className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                   Your case number
                 </p>
                 <button

@@ -329,8 +329,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           <div className="space-y-1.5">
             <Label
               htmlFor="new-email-input"
-              className="font-sans uppercase text-ds-10"
-              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+              className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground"
             >
               New email address
             </Label>

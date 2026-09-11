@@ -241,8 +241,20 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Chrome is already handled — Legal.tsx renders inside AppShell on
           native and PublicLayout on web. */}
       <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
-      <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
+      {/* Real routes, not redirects (owner, 2026-09-11): these used to be
+          <Navigate to="/legal?tab=…" replace/>, so a fresh tab (the signup
+          consent checkboxes open target="_blank" to /terms) cold-booted the
+          whole SPA, matched /terms, client-redirected to /legal, and only
+          then lazy-loaded the Legal chunk — a full routing round-trip plus a
+          re-render on the coldest possible path. Rendering <Legal/> directly
+          here, wrapped identically to the /legal route above, removes the
+          hop. Legal.tsx reads the tab from the PATH when there is no ?tab=
+          (see PATH_TAB there). Every property from the comment above the
+          /legal route still applies — not MarketingRedirect, reachable in
+          every auth state — since this is the same element, just mounted at
+          a different path. */}
+      <Route path="/terms" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/privacy" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       {/* /data-rights was a standalone page until 2026-08-18; its single
           remaining control (the GDPR/CCPA data export) now lives on the
           Profile Legal tab. The route is KEPT as a redirect rather than
@@ -324,8 +336,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           revoked token. */}
       <Route path="/browse" element={<RouteErrorBoundary><MarketingRedirect fallback={<DashboardRouteSkeleton />}>{routeEl(<PageTransition><DashboardGuest /></PageTransition>, <GuestBrowseSkeleton />)}</MarketingRedirect></RouteErrorBoundary>} />
       {/* Same exception as /terms and /privacy above — a policy document, not
-          marketing. No signed-in bounce. */}
-      <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />
+          marketing. No signed-in bounce. Real route, not a redirect, for the
+          same reason (owner, 2026-09-11) — see the comment above /terms. */}
+      <Route path="/rules" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       {/* The Community page was removed; keep old links landing somewhere sane. */}
 
       {/* Settings-style pages live inside the Profile shell so the

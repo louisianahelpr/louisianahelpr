@@ -109,10 +109,17 @@ test.describe("static routes + tools", () => {
     await expect(page.locator("#generate")).toBeVisible();
   });
 
-  test("redirect /terms → /legal?tab=terms", async ({ page }) => {
-    // The App.tsx route table has Navigate redirects for /terms, /privacy,
-    // /community, /rules. Smoke-test one to catch accidental removal.
+  test("/terms renders Legal directly, no redirect hop", async ({ page }) => {
+    // As of 2026-09-11, /terms, /privacy and /rules are their own <Legal>
+    // routes (App.tsx) instead of <Navigate> redirects to /legal?tab=… — the
+    // hop was a full extra routing round-trip on the coldest possible path
+    // (a fresh tab from the signup consent checkboxes). Smoke-test that the
+    // URL stays put and only one navigation occurs.
     await page.goto(`${BASE_URL}/terms`, { waitUntil: "domcontentloaded" });
-    await expect(page).toHaveURL(/\/legal/);
+    await expect(page).toHaveURL(/\/terms$/);
+    const navCount = await page.evaluate(
+      () => performance.getEntriesByType("navigation").length,
+    );
+    expect(navCount).toBe(1);
   });
 });

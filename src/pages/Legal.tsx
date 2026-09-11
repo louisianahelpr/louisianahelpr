@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { Search, X } from "lucide-react";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
@@ -57,7 +57,17 @@ const TAB_CONTENT: Record<TabKey, ReactNode> = {
 /* ─────────────────────────  PAGE  ───────────────────────── */
 const Legal = () => {
   const [params, setParams] = useSearchParams();
-  const tabParam = (params.get("tab") || "terms") as TabKey;
+  const location = useLocation();
+  // /terms, /privacy and /rules render this page directly (App.tsx) with no
+  // ?tab= — the path IS the tab in that case. ?tab= still wins whenever it is
+  // present, so /legal?tab=…#anchor links from LegalTab.tsx and PolicyFooter
+  // are unaffected. Never used when ?tab= is present, only as the fallback.
+  const PATH_TAB: Record<string, TabKey> = {
+    "/terms": "terms",
+    "/privacy": "privacy",
+    "/rules": "community",
+  };
+  const tabParam = (params.get("tab") || PATH_TAB[location.pathname] || "terms") as TabKey;
   const tab: TabKey = VALID_TABS.includes(tabParam) ? tabParam : "terms";
 
   // Where "back" lands when there is NO in-app history (a deep link, or a cold

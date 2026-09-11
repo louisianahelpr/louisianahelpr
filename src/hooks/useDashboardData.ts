@@ -377,13 +377,9 @@ export function useDashboardData() {
 
       // Phase 2: enrich page with poster names + review stats + subscription tier (for Search Priority).
       const posterIds = [...new Set(rawJobs.map((j) => j.customer_id))];
-      const [profilesRes, reviewStatsMap, posterTiersRes] = await withTimeout(Promise.all([
+      const [profilesRes, reviewStatsMap] = await withTimeout(Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
         fetchRatingStats(posterIds),
-        supabase
-          .from("profiles")
-          .select("user_id, subscription_tier, subscription_expires_at")
-          .in("user_id", posterIds),
       ]), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out");
 
       const nameMap = new Map(
@@ -411,13 +407,27 @@ export function useDashboardData() {
         rawJobs.map((j) => [j.id as string, (j.applicant_count as number | null) ?? 0]),
       );
 
-      // Build poster tier map — only count tier if subscription hasn't expired
-      const nowDate = new Date();
-      const posterTierMap = new Map<string, string | null>();
-      for (const p of posterTiersRes.data ?? []) {
-        const expired = p.subscription_expires_at ? new Date(p.subscription_expires_at) < nowDate : false;
-        posterTierMap.set(p.user_id, expired ? null : (p.subscription_tier ?? null));
-      }
+      // Poster tier — from get_safe_profiles, the SAME source as name/avatar
+      // above and as the guest dashboard and the /jobs board.
+      //
+      // This used to be its own `.from("profiles").select("user_id,
+      // subscription_tier, subscription_expires_at").in(...)`, with the expiry
+      // folded in here client-side. That read returned ZERO ROWS and no error
+      // for every poster but yourself: RLS does not let one member select
+      // another member's `profiles` row (verified live 2026-09-11 with a real
+      // authenticated token — `[]`; the same ids through get_safe_profiles
+      // return `subscription_tier: "pro"`). So the Pro/Elite Poster chip on
+      // JobPosterCard was dead on the signed-in dashboard for every job, while
+      // the logged-out dashboard — which already read the RPC — showed it. One
+      // fact, two sources, and the silent zero-row read is the one that lost.
+      //
+      // get_safe_profiles is the ONLY sanctioned route by which one member
+      // learns another's tier, and it resolves expiry server-side
+      // (20260901022522: `CASE WHEN subscription_expires_at <= now() THEN NULL`),
+      // so no client-side expiry check is needed or wanted here.
+      const posterTierMap = new Map<string, string | null>(
+        profilesRes.data?.map((p) => [p.user_id, p.subscription_tier ?? null]) || [],
+      );
 
       const now = new Date();
       // Start of today (local) — a one-off job whose date has already passed

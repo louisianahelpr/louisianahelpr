@@ -1,0 +1,1 @@
+import{zo as e}from"./app-shared-CzkIEHhM.js";export{e as queryClient};

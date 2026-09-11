@@ -1,0 +1,1 @@
+import{t as e}from"./tanstack-CSYMmcOu.js";export{e as persistQueryClient};

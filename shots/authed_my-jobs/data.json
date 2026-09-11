@@ -1,0 +1,2187 @@
+{
+ "route": {
+  "path": "/my-jobs",
+  "authed": true
+ },
+ "shots": [
+  {
+   "t": 0,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/00000.jpg"
+  },
+  {
+   "t": 252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/00252.jpg"
+  },
+  {
+   "t": 501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/00501.jpg"
+  },
+  {
+   "t": 1402,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/01402.jpg"
+  },
+  {
+   "t": 1423,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/01423.jpg"
+  },
+  {
+   "t": 1456,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/01456.jpg"
+  },
+  {
+   "t": 1501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/01501.jpg"
+  },
+  {
+   "t": 1750,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/01750.jpg"
+  },
+  {
+   "t": 2000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/02000.jpg"
+  },
+  {
+   "t": 2252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/02252.jpg"
+  },
+  {
+   "t": 2502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/02502.jpg"
+  },
+  {
+   "t": 2751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/02751.jpg"
+  },
+  {
+   "t": 3003,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/03003.jpg"
+  },
+  {
+   "t": 3252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/03252.jpg"
+  },
+  {
+   "t": 3500,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/03500.jpg"
+  },
+  {
+   "t": 3752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/03752.jpg"
+  },
+  {
+   "t": 4000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/04000.jpg"
+  },
+  {
+   "t": 4251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/04251.jpg"
+  },
+  {
+   "t": 4502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/04502.jpg"
+  },
+  {
+   "t": 4752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/04752.jpg"
+  },
+  {
+   "t": 5000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/05000.jpg"
+  },
+  {
+   "t": 5250,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/05250.jpg"
+  },
+  {
+   "t": 5500,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/05500.jpg"
+  },
+  {
+   "t": 5753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/05753.jpg"
+  },
+  {
+   "t": 6001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/06001.jpg"
+  },
+  {
+   "t": 6250,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/06250.jpg"
+  },
+  {
+   "t": 6500,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/06500.jpg"
+  },
+  {
+   "t": 6751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/06751.jpg"
+  },
+  {
+   "t": 7002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/07002.jpg"
+  },
+  {
+   "t": 7252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/07252.jpg"
+  },
+  {
+   "t": 7502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/07502.jpg"
+  },
+  {
+   "t": 7753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/07753.jpg"
+  },
+  {
+   "t": 8001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/08001.jpg"
+  },
+  {
+   "t": 8253,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/08253.jpg"
+  },
+  {
+   "t": 8503,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/08503.jpg"
+  },
+  {
+   "t": 8752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/08752.jpg"
+  },
+  {
+   "t": 9000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/09000.jpg"
+  },
+  {
+   "t": 9252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/09252.jpg"
+  },
+  {
+   "t": 9502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/09502.jpg"
+  },
+  {
+   "t": 9751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/09751.jpg"
+  },
+  {
+   "t": 10002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/10002.jpg"
+  },
+  {
+   "t": 10252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/10252.jpg"
+  },
+  {
+   "t": 10501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/10501.jpg"
+  },
+  {
+   "t": 10753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/10753.jpg"
+  },
+  {
+   "t": 11002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/11002.jpg"
+  },
+  {
+   "t": 11252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/11252.jpg"
+  },
+  {
+   "t": 11501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/11501.jpg"
+  },
+  {
+   "t": 11752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/11752.jpg"
+  },
+  {
+   "t": 12001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/12001.jpg"
+  },
+  {
+   "t": 12251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/12251.jpg"
+  },
+  {
+   "t": 12501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/12501.jpg"
+  },
+  {
+   "t": 12751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/12751.jpg"
+  },
+  {
+   "t": 13000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/13000.jpg"
+  },
+  {
+   "t": 13251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/13251.jpg"
+  },
+  {
+   "t": 13501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/13501.jpg"
+  },
+  {
+   "t": 13750,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/13750.jpg"
+  },
+  {
+   "t": 14000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/14000.jpg"
+  },
+  {
+   "t": 14250,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/14250.jpg"
+  },
+  {
+   "t": 14503,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/14503.jpg"
+  },
+  {
+   "t": 14750,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/14750.jpg"
+  },
+  {
+   "t": 15001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/15001.jpg"
+  },
+  {
+   "t": 15253,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/15253.jpg"
+  },
+  {
+   "t": 15501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/15501.jpg"
+  },
+  {
+   "t": 15752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/15752.jpg"
+  },
+  {
+   "t": 16001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/16001.jpg"
+  },
+  {
+   "t": 16251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/16251.jpg"
+  },
+  {
+   "t": 16502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/16502.jpg"
+  },
+  {
+   "t": 16753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/16753.jpg"
+  },
+  {
+   "t": 17001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/17001.jpg"
+  },
+  {
+   "t": 17253,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/17253.jpg"
+  },
+  {
+   "t": 17503,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/17503.jpg"
+  },
+  {
+   "t": 17751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/17751.jpg"
+  },
+  {
+   "t": 18002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/18002.jpg"
+  },
+  {
+   "t": 18251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/18251.jpg"
+  },
+  {
+   "t": 18501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/18501.jpg"
+  },
+  {
+   "t": 18751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/18751.jpg"
+  },
+  {
+   "t": 19002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/19002.jpg"
+  },
+  {
+   "t": 19252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/19252.jpg"
+  },
+  {
+   "t": 19501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/19501.jpg"
+  },
+  {
+   "t": 19750,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/19750.jpg"
+  },
+  {
+   "t": 20002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/20002.jpg"
+  },
+  {
+   "t": 20252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/20252.jpg"
+  },
+  {
+   "t": 20502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/20502.jpg"
+  },
+  {
+   "t": 20751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/20751.jpg"
+  },
+  {
+   "t": 21002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/21002.jpg"
+  },
+  {
+   "t": 21250,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/21250.jpg"
+  },
+  {
+   "t": 21501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/21501.jpg"
+  },
+  {
+   "t": 21752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/21752.jpg"
+  },
+  {
+   "t": 22000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/22000.jpg"
+  },
+  {
+   "t": 22251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/22251.jpg"
+  },
+  {
+   "t": 22500,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/22500.jpg"
+  },
+  {
+   "t": 22753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/22753.jpg"
+  },
+  {
+   "t": 23002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/23002.jpg"
+  },
+  {
+   "t": 23252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/23252.jpg"
+  },
+  {
+   "t": 23501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/23501.jpg"
+  },
+  {
+   "t": 23751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/23751.jpg"
+  },
+  {
+   "t": 24001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/24001.jpg"
+  },
+  {
+   "t": 24250,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/24250.jpg"
+  },
+  {
+   "t": 24501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/24501.jpg"
+  },
+  {
+   "t": 24752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/24752.jpg"
+  },
+  {
+   "t": 25002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/25002.jpg"
+  },
+  {
+   "t": 25252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/25252.jpg"
+  },
+  {
+   "t": 25502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/25502.jpg"
+  },
+  {
+   "t": 25750,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/25750.jpg"
+  },
+  {
+   "t": 26001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/26001.jpg"
+  },
+  {
+   "t": 26250,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/26250.jpg"
+  },
+  {
+   "t": 26502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/26502.jpg"
+  },
+  {
+   "t": 26751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/26751.jpg"
+  },
+  {
+   "t": 27000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/27000.jpg"
+  },
+  {
+   "t": 27252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/27252.jpg"
+  },
+  {
+   "t": 27501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/27501.jpg"
+  },
+  {
+   "t": 27751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/27751.jpg"
+  },
+  {
+   "t": 28000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/28000.jpg"
+  },
+  {
+   "t": 28251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/28251.jpg"
+  },
+  {
+   "t": 28502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/28502.jpg"
+  },
+  {
+   "t": 28751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/28751.jpg"
+  },
+  {
+   "t": 29001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/29001.jpg"
+  },
+  {
+   "t": 29252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/29252.jpg"
+  },
+  {
+   "t": 29502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/29502.jpg"
+  },
+  {
+   "t": 29752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/29752.jpg"
+  },
+  {
+   "t": 30001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/30001.jpg"
+  },
+  {
+   "t": 30252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/30252.jpg"
+  },
+  {
+   "t": 30501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/30501.jpg"
+  },
+  {
+   "t": 30751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/30751.jpg"
+  },
+  {
+   "t": 31000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/31000.jpg"
+  },
+  {
+   "t": 31252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/31252.jpg"
+  },
+  {
+   "t": 31502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/31502.jpg"
+  },
+  {
+   "t": 31752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/31752.jpg"
+  },
+  {
+   "t": 32001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/32001.jpg"
+  },
+  {
+   "t": 32251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/32251.jpg"
+  },
+  {
+   "t": 32502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/32502.jpg"
+  },
+  {
+   "t": 32752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/32752.jpg"
+  },
+  {
+   "t": 33002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/33002.jpg"
+  },
+  {
+   "t": 33251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/33251.jpg"
+  },
+  {
+   "t": 33501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/33501.jpg"
+  },
+  {
+   "t": 33753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/33753.jpg"
+  },
+  {
+   "t": 34002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/34002.jpg"
+  },
+  {
+   "t": 34252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/34252.jpg"
+  },
+  {
+   "t": 34501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/34501.jpg"
+  },
+  {
+   "t": 34752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/34752.jpg"
+  },
+  {
+   "t": 35002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/35002.jpg"
+  },
+  {
+   "t": 35252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/35252.jpg"
+  },
+  {
+   "t": 35500,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/35500.jpg"
+  },
+  {
+   "t": 35752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/35752.jpg"
+  },
+  {
+   "t": 36002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/36002.jpg"
+  },
+  {
+   "t": 36253,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/36253.jpg"
+  },
+  {
+   "t": 36501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/36501.jpg"
+  },
+  {
+   "t": 36751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/36751.jpg"
+  },
+  {
+   "t": 37000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/37000.jpg"
+  },
+  {
+   "t": 37251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/37251.jpg"
+  },
+  {
+   "t": 37501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/37501.jpg"
+  },
+  {
+   "t": 37751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/37751.jpg"
+  },
+  {
+   "t": 38000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/38000.jpg"
+  },
+  {
+   "t": 38252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/38252.jpg"
+  },
+  {
+   "t": 38499,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/38499.jpg"
+  },
+  {
+   "t": 38752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/38752.jpg"
+  },
+  {
+   "t": 39000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/39000.jpg"
+  },
+  {
+   "t": 39251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/39251.jpg"
+  },
+  {
+   "t": 39501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/39501.jpg"
+  },
+  {
+   "t": 39752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/39752.jpg"
+  },
+  {
+   "t": 40002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/40002.jpg"
+  },
+  {
+   "t": 40253,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/40253.jpg"
+  },
+  {
+   "t": 40501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/40501.jpg"
+  },
+  {
+   "t": 40752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/40752.jpg"
+  },
+  {
+   "t": 41001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/41001.jpg"
+  },
+  {
+   "t": 41252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/41252.jpg"
+  },
+  {
+   "t": 41501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/41501.jpg"
+  },
+  {
+   "t": 41752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/41752.jpg"
+  },
+  {
+   "t": 42000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/42000.jpg"
+  },
+  {
+   "t": 42251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/42251.jpg"
+  },
+  {
+   "t": 42502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/42502.jpg"
+  },
+  {
+   "t": 42751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/42751.jpg"
+  },
+  {
+   "t": 43002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/43002.jpg"
+  },
+  {
+   "t": 43252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/43252.jpg"
+  },
+  {
+   "t": 43500,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/43500.jpg"
+  },
+  {
+   "t": 43752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/43752.jpg"
+  },
+  {
+   "t": 44000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/44000.jpg"
+  },
+  {
+   "t": 44252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/44252.jpg"
+  },
+  {
+   "t": 44502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/44502.jpg"
+  },
+  {
+   "t": 44751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/44751.jpg"
+  },
+  {
+   "t": 45000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/45000.jpg"
+  },
+  {
+   "t": 45251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/45251.jpg"
+  },
+  {
+   "t": 45501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/45501.jpg"
+  },
+  {
+   "t": 45752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/45752.jpg"
+  },
+  {
+   "t": 46001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/46001.jpg"
+  },
+  {
+   "t": 46251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/46251.jpg"
+  },
+  {
+   "t": 46502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/46502.jpg"
+  },
+  {
+   "t": 46752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/46752.jpg"
+  },
+  {
+   "t": 47003,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/47003.jpg"
+  },
+  {
+   "t": 47250,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/47250.jpg"
+  },
+  {
+   "t": 47502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/47502.jpg"
+  },
+  {
+   "t": 47752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/47752.jpg"
+  },
+  {
+   "t": 48001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/48001.jpg"
+  },
+  {
+   "t": 48252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/48252.jpg"
+  },
+  {
+   "t": 48502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/48502.jpg"
+  },
+  {
+   "t": 48752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/48752.jpg"
+  },
+  {
+   "t": 49001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/49001.jpg"
+  },
+  {
+   "t": 49251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/49251.jpg"
+  },
+  {
+   "t": 49502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/49502.jpg"
+  },
+  {
+   "t": 49751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/49751.jpg"
+  },
+  {
+   "t": 50001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/50001.jpg"
+  },
+  {
+   "t": 50252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/50252.jpg"
+  },
+  {
+   "t": 50502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/50502.jpg"
+  },
+  {
+   "t": 50751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/50751.jpg"
+  },
+  {
+   "t": 51002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/51002.jpg"
+  },
+  {
+   "t": 51250,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/51250.jpg"
+  },
+  {
+   "t": 51502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/51502.jpg"
+  },
+  {
+   "t": 51752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/51752.jpg"
+  },
+  {
+   "t": 52002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/52002.jpg"
+  },
+  {
+   "t": 52252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/52252.jpg"
+  },
+  {
+   "t": 52502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/52502.jpg"
+  },
+  {
+   "t": 52751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/52751.jpg"
+  },
+  {
+   "t": 53002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/53002.jpg"
+  },
+  {
+   "t": 53252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/53252.jpg"
+  },
+  {
+   "t": 53503,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/53503.jpg"
+  },
+  {
+   "t": 53752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/53752.jpg"
+  },
+  {
+   "t": 54001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/54001.jpg"
+  },
+  {
+   "t": 54252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/54252.jpg"
+  },
+  {
+   "t": 54500,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/54500.jpg"
+  },
+  {
+   "t": 54751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/54751.jpg"
+  },
+  {
+   "t": 55000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/55000.jpg"
+  },
+  {
+   "t": 55252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/55252.jpg"
+  },
+  {
+   "t": 55503,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/55503.jpg"
+  },
+  {
+   "t": 55752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/55752.jpg"
+  },
+  {
+   "t": 56001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/56001.jpg"
+  },
+  {
+   "t": 56252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/56252.jpg"
+  },
+  {
+   "t": 56502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/56502.jpg"
+  },
+  {
+   "t": 56750,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/56750.jpg"
+  },
+  {
+   "t": 57001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/57001.jpg"
+  },
+  {
+   "t": 57252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/57252.jpg"
+  },
+  {
+   "t": 57501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/57501.jpg"
+  },
+  {
+   "t": 57751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/57751.jpg"
+  },
+  {
+   "t": 58001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/58001.jpg"
+  },
+  {
+   "t": 58251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/58251.jpg"
+  },
+  {
+   "t": 58500,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/58500.jpg"
+  },
+  {
+   "t": 58752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/58752.jpg"
+  },
+  {
+   "t": 59002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/59002.jpg"
+  },
+  {
+   "t": 59252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/59252.jpg"
+  },
+  {
+   "t": 59502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/59502.jpg"
+  },
+  {
+   "t": 59750,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/59750.jpg"
+  },
+  {
+   "t": 60002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/60002.jpg"
+  },
+  {
+   "t": 60251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/60251.jpg"
+  },
+  {
+   "t": 60502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/60502.jpg"
+  },
+  {
+   "t": 60752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/60752.jpg"
+  },
+  {
+   "t": 61002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/61002.jpg"
+  },
+  {
+   "t": 61253,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/61253.jpg"
+  },
+  {
+   "t": 61503,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/61503.jpg"
+  },
+  {
+   "t": 61753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/61753.jpg"
+  },
+  {
+   "t": 62003,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/62003.jpg"
+  },
+  {
+   "t": 62252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/62252.jpg"
+  },
+  {
+   "t": 62502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/62502.jpg"
+  },
+  {
+   "t": 62752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/62752.jpg"
+  },
+  {
+   "t": 63002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/63002.jpg"
+  },
+  {
+   "t": 63252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/63252.jpg"
+  },
+  {
+   "t": 63502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/63502.jpg"
+  },
+  {
+   "t": 63752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/63752.jpg"
+  },
+  {
+   "t": 64002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/64002.jpg"
+  },
+  {
+   "t": 64252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/64252.jpg"
+  },
+  {
+   "t": 64501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/64501.jpg"
+  },
+  {
+   "t": 64751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/64751.jpg"
+  },
+  {
+   "t": 65002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/65002.jpg"
+  },
+  {
+   "t": 65252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/65252.jpg"
+  },
+  {
+   "t": 65502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/65502.jpg"
+  },
+  {
+   "t": 65751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/65751.jpg"
+  },
+  {
+   "t": 66000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/66000.jpg"
+  },
+  {
+   "t": 66251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/66251.jpg"
+  },
+  {
+   "t": 66502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/66502.jpg"
+  },
+  {
+   "t": 66749,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/66749.jpg"
+  },
+  {
+   "t": 67003,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/67003.jpg"
+  },
+  {
+   "t": 67252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/67252.jpg"
+  },
+  {
+   "t": 67502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/67502.jpg"
+  },
+  {
+   "t": 67750,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/67750.jpg"
+  },
+  {
+   "t": 68002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/68002.jpg"
+  },
+  {
+   "t": 68252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/68252.jpg"
+  },
+  {
+   "t": 68502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/68502.jpg"
+  },
+  {
+   "t": 68751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/68751.jpg"
+  },
+  {
+   "t": 69002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/69002.jpg"
+  },
+  {
+   "t": 69251,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/69251.jpg"
+  },
+  {
+   "t": 69500,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/69500.jpg"
+  },
+  {
+   "t": 69749,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/69749.jpg"
+  },
+  {
+   "t": 70001,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_my-jobs/70001.jpg"
+  }
+ ],
+ "ls": [
+  {
+   "t": 17738,
+   "value": 0.00003114206443576241,
+   "hadRecentInput": false,
+   "sources": [
+    {
+     "node": "h1.font-display.font-bold.text-foreground.text-ds-20 \"My Jobs\"",
+     "prev": [
+      41,
+      31,
+      76.546875,
+      20
+     ],
+     "cur": [
+      41,
+      31,
+      76.546875,
+      20
+     ]
+    }
+   ]
+  }
+ ],
+ "log": [
+  {
+   "t": 478,
+   "kind": "fonts.ready",
+   "detail": {
+    "bodoni": true,
+    "montserrat": true
+   }
+  },
+  {
+   "t": 523,
+   "kind": "--user-text-scale",
+   "detail": "(unset)"
+  },
+  {
+   "t": 1404,
+   "kind": "paint",
+   "detail": {
+    "name": "first-paint",
+    "t": 1400
+   }
+  },
+  {
+   "t": 1821,
+   "kind": "paint",
+   "detail": {
+    "name": "first-contentful-paint",
+    "t": 1812
+   }
+  },
+  {
+   "t": 4088,
+   "kind": "lcp",
+   "detail": {
+    "t": 4084,
+    "size": 46620,
+    "el": "img.boot-mark"
+   }
+  },
+  {
+   "t": 6664,
+   "kind": "fonts.loadingdone",
+   "detail": [
+    "Montserrat 400 normal"
+   ]
+  },
+  {
+   "t": 12825,
+   "kind": "DOMContentLoaded",
+   "detail": null
+  },
+  {
+   "t": 12826,
+   "kind": "load",
+   "detail": null
+  },
+  {
+   "t": 12868,
+   "kind": "boot-loader-removed",
+   "detail": null
+  },
+  {
+   "t": 12870,
+   "kind": "dom.skeleton",
+   "detail": "div.mx-auto.max-w-lg.lg:max-w-5xl.space-y-4"
+  },
+  {
+   "t": 12871,
+   "kind": "dom.route-fallback",
+   "detail": "div.w-full.min-h-[60vh].px-4.py-6 \"Loading…\""
+  },
+  {
+   "t": 12902,
+   "kind": "html.style",
+   "detail": {
+    "from": null,
+    "to": "--user-text-scale: 1; --offline-banner-offset: 0px;"
+   }
+  },
+  {
+   "t": 12902,
+   "kind": "html.class",
+   "detail": {
+    "from": "app-shell",
+    "to": "app-shell side-panel-open"
+   }
+  },
+  {
+   "t": 12923,
+   "kind": "--user-text-scale",
+   "detail": "1"
+  },
+  {
+   "t": 15231,
+   "kind": "dom.mobile-nav",
+   "detail": "nav.mobile-nav-frame.fixed.bottom-0.left-0 \"ET\""
+  },
+  {
+   "t": 15232,
+   "kind": "dom.hero-h1",
+   "detail": "h1.sr-only \"My Jobs\""
+  },
+  {
+   "t": 15232,
+   "kind": "dom.route-fallback",
+   "detail": "gone"
+  },
+  {
+   "t": 15254,
+   "kind": "fonts.loadingdone",
+   "detail": [
+    "Montserrat 700 normal"
+   ]
+  },
+  {
+   "t": 17738,
+   "kind": "fonts.loadingdone",
+   "detail": [
+    "Bodoni Moda 700 italic",
+    "Bodoni Moda 700 normal"
+   ]
+  }
+ ],
+ "htmlClass": "app-shell side-panel-open",
+ "theme": "light",
+ "scale": "1",
+ "url": "http://localhost:4211/my-jobs",
+ "scrollW": 375,
+ "nav": [
+  {
+   "dcl": 12825,
+   "load": 12829,
+   "resp": 644
+  }
+ ],
+ "resources": [
+  {
+   "n": "/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,700;0,900;1,700&family=Montserrat:wght@400;500;600;700&display=swap",
+   "s": 533,
+   "e": 1238,
+   "size": 2224
+  },
+  {
+   "n": "/css2?family=Beth+Ellen&display=swap",
+   "s": 534,
+   "e": 1149,
+   "size": 597
+  },
+  {
+   "n": "/assets/index-C016SBmT.js",
+   "s": 623,
+   "e": 1561,
+   "size": 11747
+  },
+  {
+   "n": "/assets/index-CgsU6ckW.css",
+   "s": 624,
+   "e": 2964,
+   "size": 32315
+  },
+  {
+   "n": "/registerSW.js",
+   "s": 646,
+   "e": 1704,
+   "size": 434
+  },
+  {
+   "n": "/assets/helpr-logo-256-CEb1W4r4.webp",
+   "s": 646,
+   "e": 4078,
+   "size": 26714
+  },
+  {
+   "n": "/assets/rolldown-runtime-hePW80VL.js",
+   "s": 1565,
+   "e": 2028,
+   "size": 1016
+  },
+  {
+   "n": "/assets/lucide-Ds9korrR.js",
+   "s": 1565,
+   "e": 4165,
+   "size": 20186
+  },
+  {
+   "n": "/assets/button-KmUWf_RB.js",
+   "s": 1565,
+   "e": 3522,
+   "size": 1419
+  },
+  {
+   "n": "/assets/RouteSuspenseFallback-T7mGha0k.js",
+   "s": 1565,
+   "e": 4106,
+   "size": 1143
+  },
+  {
+   "n": "/assets/tanstack-CSYMmcOu.js",
+   "s": 1565,
+   "e": 4370,
+   "size": 19827
+  },
+  {
+   "n": "/assets/react-vendor-D6KBUCv7.js",
+   "s": 1565,
+   "e": 5955,
+   "size": 43046
+  },
+  {
+   "n": "/assets/app-shared-CzkIEHhM.js",
+   "s": 1565,
+   "e": 10464,
+   "size": 128290
+  },
+  {
+   "n": "/assets/skeleton-C4m1NfVL.js",
+   "s": 1566,
+   "e": 4573,
+   "size": 768
+  },
+  {
+   "n": "/assets/GuestBrowseSkeleton-LimeHs19.js",
+   "s": 1566,
+   "e": 4636,
+   "size": 855
+  },
+  {
+   "n": "/assets/SkeletonLoaders-BeK9378N.js",
+   "s": 1566,
+   "e": 4725,
+   "size": 1081
+  },
+  {
+   "n": "/assets/PageScaffold-CsEmyG3C.js",
+   "s": 1566,
+   "e": 4871,
+   "size": 1380
+  },
+  {
+   "n": "/assets/HelprMark-D3N0Ob-F.js",
+   "s": 1566,
+   "e": 5072,
+   "size": 1086
+  },
+  {
+   "n": "/assets/DashboardTitleBar-ByURPeNP.js",
+   "s": 1566,
+   "e": 5163,
+   "size": 1024
+  },
+  {
+   "n": "/assets/sidePanelOpen-CkxjmiGk.js",
+   "s": 1566,
+   "e": 5248,
+   "size": 1089
+  },
+  {
+   "n": "/assets/dist-D66p4EZ-.js",
+   "s": 3524,
+   "e": 5478,
+   "size": 1598
+  },
+  {
+   "n": "/assets/dist-Doh23784.js",
+   "s": 3524,
+   "e": 5603,
+   "size": 947
+  },
+  {
+   "n": "/assets/JobCardSkeleton-h3QYX-t9.js",
+   "s": 4637,
+   "e": 5689,
+   "size": 990
+  },
+  {
+   "n": "/assets/proxy-BHW7G84_.js",
+   "s": 4873,
+   "e": 8148,
+   "size": 39353
+  },
+  {
+   "n": "/assets/use-reduced-motion-DV3jDMnq.js",
+   "s": 4874,
+   "e": 6011,
+   "size": 548
+  },
+  {
+   "n": "/assets/AppShell-nYU0ov1o.js",
+   "s": 4874,
+   "e": 6128,
+   "size": 894
+  },
+  {
+   "n": "/assets/helpr-logo-96-Dg-lBfwp.js",
+   "s": 5074,
+   "e": 6215,
+   "size": 359
+  },
+  {
+   "n": "/assets/NotificationPanel-CrXYPpdL.js",
+   "s": 5165,
+   "e": 6861,
+   "size": 6390
+  },
+  {
+   "n": "/assets/AnimatePresence-B-wzBJyU.js",
+   "s": 6864,
+   "e": 7561,
+   "size": 2300
+  },
+  {
+   "n": "/assets/SegmentedControl-Bz2D9GrG.js",
+   "s": 6865,
+   "e": 7505,
+   "size": 1521
+  },
+  {
+   "n": "/assets/popover-BcDpXUAL.js",
+   "s": 6865,
+   "e": 7536,
+   "size": 2467
+  },
+  {
+   "n": "/assets/PullToRefreshWrapper-jpQJpocB.js",
+   "s": 6865,
+   "e": 7419,
+   "size": 1089
+  },
+  {
+   "n": "/assets/dist-DWIQO6Kh.js",
+   "s": 7538,
+   "e": 8180,
+   "size": 1528
+  },
+  {
+   "n": "/assets/dist-WFLWnF1U.js",
+   "s": 7538,
+   "e": 8004,
+   "size": 1145
+  },
+  {
+   "n": "/assets/dist-C5HrVn38.js",
+   "s": 7538,
+   "e": 8032,
+   "size": 1050
+  },
+  {
+   "n": "/assets/Combination-6G3fxHkA.js",
+   "s": 7538,
+   "e": 8502,
+   "size": 8118
+  },
+  {
+   "n": "/assets/dist-C7vcyZT1.js",
+   "s": 7538,
+   "e": 8590,
+   "size": 1597
+  },
+  {
+   "n": "/assets/dist-BgjEjA_v.js",
+   "s": 7538,
+   "e": 8912,
+   "size": 10218
+  },
+  {
+   "n": "/assets/supabase-CM9TG_WP.js",
+   "s": 8505,
+   "e": 10813,
+   "size": 54015
+  },
+  {
+   "n": "/assets/dist-os4YCgjG.js",
+   "s": 8505,
+   "e": 8972,
+   "size": 632
+  },
+  {
+   "n": "/assets/dist-pPowLj4C.js",
+   "s": 8914,
+   "e": 9381,
+   "size": 979
+  },
+  {
+   "n": "/assets/forms-BSyPMoo0.js",
+   "s": 10469,
+   "e": 11785,
+   "size": 22474
+  },
+  {
+   "n": "/assets/sentry-DXZC9xPt.js",
+   "s": 10469,
+   "e": 12747,
+   "size": 70780
+  },
+  {
+   "n": "/assets/web-CBulx356.js",
+   "s": 12816,
+   "e": 13246,
+   "size": 848
+  },
+  {
+   "n": "/assets/ScrollToTop-Brs6DgWz.js",
+   "s": 12868,
+   "e": 13454,
+   "size": 1472
+  },
+  {
+   "n": "/assets/OfflineBanner-MaiqD5-s.js",
+   "s": 12871,
+   "e": 13336,
+   "size": 1075
+  },
+  {
+   "n": "/assets/StrikeBanner-BQBbs-cT.js",
+   "s": 12872,
+   "e": 13480,
+   "size": 1604
+  },
+  {
+   "n": "/assets/ProtectedRoute-oRj7gsVG.js",
+   "s": 12872,
+   "e": 13387,
+   "size": 433
+  },
+  {
+   "n": "/assets/MobileNav-CpQztwlu.js",
+   "s": 12872,
+   "e": 13713,
+   "size": 6326
+  },
+  {
+   "n": "/assets/DesktopSidebarNav-BHoqmYB1.js",
+   "s": 12872,
+   "e": 13687,
+   "size": 472
+  },
+  {
+   "n": "/assets/DesktopTopNav-CaRw1aC6.js",
+   "s": 12872,
+   "e": 13769,
+   "size": 1005
+  },
+  {
+   "n": "/assets/PermissionRationaleDialog-BLQVeSNr.js",
+   "s": 12872,
+   "e": 13797,
+   "size": 1153
+  },
+  {
+   "n": "/assets/TermsReconsentDialog-CM0eqaCD.js",
+   "s": 12873,
+   "e": 13946,
+   "size": 1626
+  },
+  {
+   "n": "/_vercel/speed-insights/script.js",
+   "s": 12901,
+   "e": 15252,
+   "size": 300
+  },
+  {
+   "n": "/_vercel/insights/script.js",
+   "s": 12902,
+   "e": 15321,
+   "size": 300
+  },
+  {
+   "n": "/assets/modern-CIN-n0WO.js",
+   "s": 12902,
+   "e": 13922,
+   "size": 375
+  },
+  {
+   "n": "/assets/sentry-CLIxQj5l.js",
+   "s": 12903,
+   "e": 14121,
+   "size": 456
+  },
+  {
+   "n": "/assets/sonner-DhSOJvze.js",
+   "s": 12914,
+   "e": 14177,
+   "size": 1538
+  },
+  {
+   "n": "/assets/SuccessMomentHost-3lu8LMjz.js",
+   "s": 12915,
+   "e": 14207,
+   "size": 753
+  },
+  {
+   "n": "/rest/v1/profiles?select=*&user_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+   "s": 12919,
+   "e": 13628,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/user_roles?select=role&user_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&role=eq.admin",
+   "s": 12919,
+   "e": 13571,
+   "size": 0
+  },
+  {
+   "n": "/assets/ProtectedRoute-CAxI6yDt.js",
+   "s": 13388,
+   "e": 14272,
+   "size": 1691
+  },
+  {
+   "n": "/rest/v1/profiles?select=ban_status%2Cauto_suspended_until&user_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+   "s": 13485,
+   "e": 13979,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/profiles?select=ban_status%2Cauto_suspended_until&user_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+   "s": 13485,
+   "e": 14011,
+   "size": 0
+  },
+  {
+   "n": "/assets/DesktopSidebarNav-CUKLCA1P.js",
+   "s": 13690,
+   "e": 14420,
+   "size": 2907
+  },
+  {
+   "n": "/assets/UserAvatar-kngPRDAH.js",
+   "s": 13714,
+   "e": 14507,
+   "size": 1858
+  },
+  {
+   "n": "/assets/sheet-C4XvZs_f.js",
+   "s": 13714,
+   "e": 14568,
+   "size": 1805
+  },
+  {
+   "n": "/assets/mobileNavHelpers-jPNkUJFi.js",
+   "s": 13714,
+   "e": 14588,
+   "size": 901
+  },
+  {
+   "n": "/assets/loadConversations-Bgv3fPqy.js",
+   "s": 13715,
+   "e": 14654,
+   "size": 2030
+  },
+  {
+   "n": "/assets/activityFilters-mQ1VqJK9.js",
+   "s": 13715,
+   "e": 14738,
+   "size": 1893
+  },
+  {
+   "n": "/assets/dialog-7YYaM2Dh.js",
+   "s": 13799,
+   "e": 14887,
+   "size": 2326
+  },
+  {
+   "n": "/assets/SuccessMoment-CWvEW8F0.js",
+   "s": 14208,
+   "e": 14945,
+   "size": 1368
+  },
+  {
+   "n": "/assets/ErrorState-DhS5s27T.js",
+   "s": 14274,
+   "e": 15001,
+   "size": 997
+  },
+  {
+   "n": "/assets/adminNavGroups-BUsO9TcJ.js",
+   "s": 14423,
+   "e": 15027,
+   "size": 926
+  },
+  {
+   "n": "/assets/popupFooter-BZVB9TtH.js",
+   "s": 14570,
+   "e": 15121,
+   "size": 2256
+  },
+  {
+   "n": "/assets/EmptyState-Dk4Be1Yw.js",
+   "s": 15002,
+   "e": 15009,
+   "size": 0
+  },
+  {
+   "n": "/assets/BarkPillButton-V16LDQKW.js",
+   "s": 15003,
+   "e": 15009,
+   "size": 0
+  },
+  {
+   "n": "/assets/Activity-DSSAm4hg.js",
+   "s": 15014,
+   "e": 15017,
+   "size": 0
+  },
+  {
+   "n": "/assets/activityConstants-DTnJ3nzO.js",
+   "s": 15019,
+   "e": 15028,
+   "size": 0
+  },
+  {
+   "n": "/assets/textarea-B1LrzVWC.js",
+   "s": 15019,
+   "e": 15028,
+   "size": 0
+  },
+  {
+   "n": "/assets/SectionBoundary-oCrp_HH2.js",
+   "s": 15019,
+   "e": 15034,
+   "size": 0
+  },
+  {
+   "n": "/assets/LoadingHeading-DF48Ki6r.js",
+   "s": 15019,
+   "e": 15034,
+   "size": 0
+  },
+  {
+   "n": "/assets/ScreenHeaderRow-Bck-Funs.js",
+   "s": 15019,
+   "e": 15034,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/applications?select=id%2Cjobs%21inner%28customer_id%2Cstatus%29&status=eq.pending&poster_viewed_at=is.null&jobs.customer_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&jobs.status=eq.open",
+   "s": 15234,
+   "e": 15702,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/rpc/get_my_pending_direct_offers",
+   "s": 15234,
+   "e": 15761,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/applications?select=id%2Cjobs%21inner%28customer_id%2Cstatus%29&status=eq.pending&poster_viewed_at=is.null&jobs.customer_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&jobs.status=eq.open",
+   "s": 15235,
+   "e": 15730,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/rpc/get_my_pending_direct_offers",
+   "s": 15235,
+   "e": 15796,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/applications?select=*&helper_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&order=created_at.desc",
+   "s": 15236,
+   "e": 15431,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/rpc/get_my_pending_direct_offers",
+   "s": 15236,
+   "e": 15828,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/user_violations?select=job_id&user_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&violation_type=eq.job_denial",
+   "s": 15236,
+   "e": 15403,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/reviews?select=job_id&reviewer_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+   "s": 15238,
+   "e": 15425,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/user_blocks?select=blocker_id%2Cblocked_id&or=%28blocker_id.eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f%2Cblocked_id.eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f%29",
+   "s": 15238,
+   "e": 15428,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/profiles?select=terms_version_accepted&user_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+   "s": 15238,
+   "e": 15425,
+   "size": 0
+  },
+  {
+   "n": "/functions/v1/brand-asset",
+   "s": 15252,
+   "e": 15370,
+   "size": 0
+  },
+  {
+   "n": "/assets/Dashboard-DT-u67yN.js",
+   "s": 15257,
+   "e": 15286,
+   "size": 0
+  },
+  {
+   "n": "/assets/Messages-DvslY-3p.js",
+   "s": 15257,
+   "e": 15303,
+   "size": 0
+  },
+  {
+   "n": "/assets/Profile-CH0s4lY9.js",
+   "s": 15257,
+   "e": 15274,
+   "size": 0
+  },
+  {
+   "n": "/assets/PostJob-B2PHlY4E.js",
+   "s": 15257,
+   "e": 15302,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/jobs?select=id%2Ctitle%2Ccategory%2Cbudget%2Ccreated_at&customer_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&order=created_at.desc&limit=3",
+   "s": 15258,
+   "e": 15435,
+   "size": 0
+  },
+  {
+   "n": "/assets/BrandConfirmDialog-CCgc276g.js",
+   "s": 15276,
+   "e": 15308,
+   "size": 0
+  },
+  {
+   "n": "/assets/ProfileTabHeader-BBa8V4Py.js",
+   "s": 15276,
+   "e": 15296,
+   "size": 0
+  },
+  {
+   "n": "/assets/IDVPromptDialog-fuDcYhX-.js",
+   "s": 15276,
+   "e": 15330,
+   "size": 0
+  },
+  {
+   "n": "/assets/earningsTabHelpers-Cqmpvxg7.js",
+   "s": 15276,
+   "e": 15333,
+   "size": 0
+  },
+  {
+   "n": "/assets/HelperTierBadge-SID9VHfF.js",
+   "s": 15276,
+   "e": 15341,
+   "size": 0
+  },
+  {
+   "n": "/assets/animate-hWuBVBG5.js",
+   "s": 15288,
+   "e": 15349,
+   "size": 0
+  },
+  {
+   "n": "/assets/use-transform-DEIk3vI2.js",
+   "s": 15288,
+   "e": 15352,
+   "size": 0
+  },
+  {
+   "n": "/assets/dates-BXG5eew6.js",
+   "s": 15288,
+   "e": 15363,
+   "size": 0
+  },
+  {
+   "n": "/assets/JobCard-DNj9fml3.js",
+   "s": 15288,
+   "e": 15352,
+   "size": 0
+  },
+  {
+   "n": "/assets/BrowseTasksActions-xQwPm2s3.js",
+   "s": 15288,
+   "e": 15353,
+   "size": 0
+  },
+  {
+   "n": "/assets/PageHeader-CCHPAbq8.js",
+   "s": 15300,
+   "e": 15365,
+   "size": 0
+  },
+  {
+   "n": "/assets/HelprSpinner-OC7f5csc.js",
+   "s": 15306,
+   "e": 15367,
+   "size": 0
+  },
+  {
+   "n": "/assets/CategoryIcon-DibIkuzQ.js",
+   "s": 15306,
+   "e": 15366,
+   "size": 0
+  },
+  {
+   "n": "/assets/TimePickerSelect-BcJBYYBA.js",
+   "s": 15306,
+   "e": 15386,
+   "size": 0
+  },
+  {
+   "n": "/assets/select-7lp37oXc.js",
+   "s": 15306,
+   "e": 15386,
+   "size": 0
+  },
+  {
+   "n": "/assets/input-BdtZXOnx.js",
+   "s": 15306,
+   "e": 15405,
+   "size": 0
+  },
+  {
+   "n": "/assets/currency-input-CbTvP58Z.js",
+   "s": 15306,
+   "e": 15447,
+   "size": 0
+  },
+  {
+   "n": "/assets/label-O77K2SDa.js",
+   "s": 15306,
+   "e": 15416,
+   "size": 0
+  },
+  {
+   "n": "/assets/switch-DUsT7CgL.js",
+   "s": 15307,
+   "e": 15443,
+   "size": 0
+  },
+  {
+   "n": "/assets/TimePickerWheel-Dhbv4UHA.js",
+   "s": 15307,
+   "e": 15450,
+   "size": 0
+  },
+  {
+   "n": "/assets/DatePickerField-CCQLG6P9.js",
+   "s": 15307,
+   "e": 15458,
+   "size": 0
+  },
+  {
+   "n": "/assets/AppPage-BYoswxFp.js",
+   "s": 15307,
+   "e": 15458,
+   "size": 0
+  },
+  {
+   "n": "/assets/checkbox-B3kPfZAz.js",
+   "s": 15307,
+   "e": 15467,
+   "size": 0
+  },
+  {
+   "n": "/assets/CityAutocomplete-Ct9toSi1.js",
+   "s": 15307,
+   "e": 15475,
+   "size": 0
+  },
+  {
+   "n": "/assets/detailsSectionConstants-_1V6kcSu.js",
+   "s": 15307,
+   "e": 15476,
+   "size": 0
+  },
+  {
+   "n": "/assets/ReportDialog-BqiKxQK5.js",
+   "s": 15311,
+   "e": 15476,
+   "size": 0
+  },
+  {
+   "n": "/assets/ViolationDialog-i_ujRoNM.js",
+   "s": 15312,
+   "e": 15486,
+   "size": 0
+  },
+  {
+   "n": "/assets/PhotoLightbox-Cac63ifd.js",
+   "s": 15312,
+   "e": 15486,
+   "size": 0
+  },
+  {
+   "n": "/assets/EmptyStateIllustration-Dyttvt4M.js",
+   "s": 15312,
+   "e": 15499,
+   "size": 0
+  },
+  {
+   "n": "/assets/VirtualList-JO5yWXZA.js",
+   "s": 15312,
+   "e": 15492,
+   "size": 0
+  },
+  {
+   "n": "/assets/BlockUserDialog-BWBAc9Qq.js",
+   "s": 15312,
+   "e": 15511,
+   "size": 0
+  },
+  {
+   "n": "/assets/dropdown-menu-C0VVAofg.js",
+   "s": 15312,
+   "e": 15514,
+   "size": 0
+  },
+  {
+   "n": "/assets/JobCardMetaRow-DrSIot1C.js",
+   "s": 15353,
+   "e": 15516,
+   "size": 0
+  },
+  {
+   "n": "/assets/BackButton-CigftSKJ.js",
+   "s": 15366,
+   "e": 15516,
+   "size": 0
+  },
+  {
+   "n": "/assets/dist-BxKaHjKl.js",
+   "s": 15396,
+   "e": 15518,
+   "size": 0
+  },
+  {
+   "n": "/assets/dist-6gzxNnjX.js",
+   "s": 15396,
+   "e": 15519,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/messages?select=job_id%2Csender_id%2Ccreated_at&receiver_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&read=eq.false&is_system=not.is.true",
+   "s": 15438,
+   "e": 15596,
+   "size": 0
+  },
+  {
+   "n": "/assets/dist-CIVyzqxB.js",
+   "s": 15515,
+   "e": 15525,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/rpc/get_jobs_for_my_applications",
+   "s": 15840,
+   "e": 16354,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/rpc/get_safe_profiles",
+   "s": 16387,
+   "e": 16915,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/jobs?select=*&customer_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&order=created_at.desc",
+   "s": 16483,
+   "e": 16626,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/applications?select=job_id%2Cstatus%2Cjobs%21inner%28customer_id%29&jobs.customer_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+   "s": 16484,
+   "e": 16647,
+   "size": 0
+  },
+  {
+   "n": "/assets/client-Bs_FAZLl.js",
+   "s": 37832,
+   "e": 37844,
+   "size": 0
+  },
+  {
+   "n": "/assets/queryClient-DLZHbKM7.js",
+   "s": 37833,
+   "e": 37845,
+   "size": 0
+  },
+  {
+   "n": "/assets/queryPersister-BQdU97IX.js",
+   "s": 37833,
+   "e": 37846,
+   "size": 0
+  },
+  {
+   "n": "/assets/posthog-BUch2n1x.js",
+   "s": 37834,
+   "e": 37847,
+   "size": 0
+  },
+  {
+   "n": "/assets/posthog-DNR2l4Fo.js",
+   "s": 37848,
+   "e": 37868,
+   "size": 0
+  },
+  {
+   "n": "/array/phc_yA2vkpkovtyfY3zMTsBsxZpqdF5xh78hjvSaZ8mfuunj/config",
+   "s": 37966,
+   "e": 38497,
+   "size": 0
+  },
+  {
+   "n": "/assets/esm-Dx7E9h35.js",
+   "s": 37974,
+   "e": 37978,
+   "size": 0
+  },
+  {
+   "n": "/flags/?v=2",
+   "s": 38204,
+   "e": 38878,
+   "size": 0
+  }
+ ]
+}

@@ -1,0 +1,1 @@
+import{t as e}from"./react-vendor-D6KBUCv7.js";var t=e();function n({title:e,message:n}){return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(`h1`,{className:`sr-only`,children:e}),(0,t.jsx)(`p`,{className:`sr-only`,role:`status`,"aria-live":`polite`,children:n??`Loading ${e}…`})]})}export{n as t};

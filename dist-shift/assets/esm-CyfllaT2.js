@@ -1,0 +1,1 @@
+import{Po as e,rs as t}from"./app-shared-CzkIEHhM.js";var n=e(`Badge`,{web:()=>t(()=>import(`./web-CRCbn2gN.js`).then(e=>new e.BadgeWeb),[])});export{n as Badge};

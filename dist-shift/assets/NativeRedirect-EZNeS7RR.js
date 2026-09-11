@@ -1,0 +1,1 @@
+import{t as e}from"./react-vendor-D6KBUCv7.js";import{Yo as t,hi as n}from"./app-shared-CzkIEHhM.js";var r=e(),i=()=>{let{user:e,isLoading:i}=n();return i?(0,r.jsx)(`div`,{className:`min-h-screen bg-premium-page`}):(0,r.jsx)(t,{to:e?`/dashboard`:`/browse`,replace:!0})};export{i as default};

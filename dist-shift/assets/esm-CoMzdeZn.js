@@ -1,0 +1,1 @@
+import{Po as e,rs as t}from"./app-shared-CzkIEHhM.js";var n=e(`Share`,{web:()=>t(()=>import(`./web-DJSDTDb7.js`).then(e=>new e.ShareWeb),[])});export{n as Share};

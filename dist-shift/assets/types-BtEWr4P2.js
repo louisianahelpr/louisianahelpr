@@ -1,0 +1,1 @@
+import{Rr as e}from"./app-shared-CzkIEHhM.js";import{t}from"./tones-BooPTAR5.js";var n=e,r={unpaid:`neutral`,escrow:`warning`,payout_pending:`info`,released:`success`,refunded:`danger`,abandoned:`neutral`,cancelled:`neutral`,cancelling:`warning`,failed:`danger`,chargeback:`danger`},i=Object.fromEntries(Object.entries(r).map(([e,n])=>[e,t[n]]));export{n,i as r,r as t};

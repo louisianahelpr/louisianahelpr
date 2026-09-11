@@ -1,0 +1,1 @@
+import{t as e}from"./react-vendor-D6KBUCv7.js";import{Fo as t}from"./app-shared-CzkIEHhM.js";import{t as n}from"./button-KmUWf_RB.js";var r=e();function i({className:e,...i}){return(0,r.jsx)(n,{variant:`primary`,...i,className:t(`rounded-ds-md px-6 h-auto min-h-12 py-2.5 max-w-full whitespace-normal text-center leading-tight`,e)})}export{i as t};

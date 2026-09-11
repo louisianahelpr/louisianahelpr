@@ -1,0 +1,1 @@
+import{t as e}from"./react-vendor-D6KBUCv7.js";import"./select-7lp37oXc.js";e(),Array.from({length:12},(e,t)=>t===0?12:t);function t(e){if(!e||e===`flexible`)return`Flexible`;let[t,n]=e.split(`:`).map(Number),r=t>=12?`PM`:`AM`;return`${t===0?12:t>12?t-12:t}:${String(n).padStart(2,`0`)} ${r}`}export{t};

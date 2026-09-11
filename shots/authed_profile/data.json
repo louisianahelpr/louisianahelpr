@@ -1,0 +1,1634 @@
+{
+ "route": {
+  "path": "/profile",
+  "authed": true
+ },
+ "shots": [
+  {
+   "t": 0,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/00000.jpg"
+  },
+  {
+   "t": 268,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/00268.jpg"
+  },
+  {
+   "t": 504,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/00504.jpg"
+  },
+  {
+   "t": 1341,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/01341.jpg"
+  },
+  {
+   "t": 1395,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/01395.jpg"
+  },
+  {
+   "t": 1442,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/01442.jpg"
+  },
+  {
+   "t": 1508,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/01508.jpg"
+  },
+  {
+   "t": 1756,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/01756.jpg"
+  },
+  {
+   "t": 2016,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/02016.jpg"
+  },
+  {
+   "t": 2252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/02252.jpg"
+  },
+  {
+   "t": 2503,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/02503.jpg"
+  },
+  {
+   "t": 2753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/02753.jpg"
+  },
+  {
+   "t": 3000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/03000.jpg"
+  },
+  {
+   "t": 3268,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/03268.jpg"
+  },
+  {
+   "t": 3506,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/03506.jpg"
+  },
+  {
+   "t": 3751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/03751.jpg"
+  },
+  {
+   "t": 4000,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/04000.jpg"
+  },
+  {
+   "t": 4306,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/04306.jpg"
+  },
+  {
+   "t": 4503,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/04503.jpg"
+  },
+  {
+   "t": 4753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/04753.jpg"
+  },
+  {
+   "t": 5002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/05002.jpg"
+  },
+  {
+   "t": 5257,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/05257.jpg"
+  },
+  {
+   "t": 5602,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/05602.jpg"
+  },
+  {
+   "t": 5753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/05753.jpg"
+  },
+  {
+   "t": 6004,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/06004.jpg"
+  },
+  {
+   "t": 6261,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/06261.jpg"
+  },
+  {
+   "t": 6507,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/06507.jpg"
+  },
+  {
+   "t": 6761,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/06761.jpg"
+  },
+  {
+   "t": 7004,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/07004.jpg"
+  },
+  {
+   "t": 7255,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/07255.jpg"
+  },
+  {
+   "t": 7521,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/07521.jpg"
+  },
+  {
+   "t": 7757,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/07757.jpg"
+  },
+  {
+   "t": 8009,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/08009.jpg"
+  },
+  {
+   "t": 8258,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/08258.jpg"
+  },
+  {
+   "t": 8503,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/08503.jpg"
+  },
+  {
+   "t": 8780,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/08780.jpg"
+  },
+  {
+   "t": 9035,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/09035.jpg"
+  },
+  {
+   "t": 9289,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/09289.jpg"
+  },
+  {
+   "t": 9522,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/09522.jpg"
+  },
+  {
+   "t": 9759,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/09759.jpg"
+  },
+  {
+   "t": 10016,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/10016.jpg"
+  },
+  {
+   "t": 10267,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/10267.jpg"
+  },
+  {
+   "t": 10553,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/10553.jpg"
+  },
+  {
+   "t": 10762,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/10762.jpg"
+  },
+  {
+   "t": 11003,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/11003.jpg"
+  },
+  {
+   "t": 11256,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/11256.jpg"
+  },
+  {
+   "t": 11519,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/11519.jpg"
+  },
+  {
+   "t": 11772,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/11772.jpg"
+  },
+  {
+   "t": 12022,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/12022.jpg"
+  },
+  {
+   "t": 12302,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/12302.jpg"
+  },
+  {
+   "t": 12501,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/12501.jpg"
+  },
+  {
+   "t": 12808,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/12808.jpg"
+  },
+  {
+   "t": 13316,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/13316.jpg"
+  },
+  {
+   "t": 13428,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/13428.jpg"
+  },
+  {
+   "t": 13624,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/13624.jpg"
+  },
+  {
+   "t": 13753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/13753.jpg"
+  },
+  {
+   "t": 14002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/14002.jpg"
+  },
+  {
+   "t": 14253,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/14253.jpg"
+  },
+  {
+   "t": 14500,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/14500.jpg"
+  },
+  {
+   "t": 14752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/14752.jpg"
+  },
+  {
+   "t": 15004,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/15004.jpg"
+  },
+  {
+   "t": 15252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/15252.jpg"
+  },
+  {
+   "t": 15522,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/15522.jpg"
+  },
+  {
+   "t": 15922,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/15922.jpg"
+  },
+  {
+   "t": 16039,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/16039.jpg"
+  },
+  {
+   "t": 16255,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/16255.jpg"
+  },
+  {
+   "t": 16502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/16502.jpg"
+  },
+  {
+   "t": 16754,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/16754.jpg"
+  },
+  {
+   "t": 17005,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/17005.jpg"
+  },
+  {
+   "t": 17273,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/17273.jpg"
+  },
+  {
+   "t": 17536,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/17536.jpg"
+  },
+  {
+   "t": 17765,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/17765.jpg"
+  },
+  {
+   "t": 18035,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/18035.jpg"
+  },
+  {
+   "t": 18454,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/18454.jpg"
+  },
+  {
+   "t": 18611,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/18611.jpg"
+  },
+  {
+   "t": 18786,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/18786.jpg"
+  },
+  {
+   "t": 19037,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/19037.jpg"
+  },
+  {
+   "t": 19420,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/19420.jpg"
+  },
+  {
+   "t": 19925,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/19925.jpg"
+  },
+  {
+   "t": 20046,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/20046.jpg"
+  },
+  {
+   "t": 20201,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/20201.jpg"
+  },
+  {
+   "t": 20471,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/20471.jpg"
+  },
+  {
+   "t": 20532,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/20532.jpg"
+  },
+  {
+   "t": 20768,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/20768.jpg"
+  },
+  {
+   "t": 21053,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/21053.jpg"
+  },
+  {
+   "t": 21265,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/21265.jpg"
+  },
+  {
+   "t": 21868,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/21868.jpg"
+  },
+  {
+   "t": 22073,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/22073.jpg"
+  },
+  {
+   "t": 22214,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/22214.jpg"
+  },
+  {
+   "t": 22351,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/22351.jpg"
+  },
+  {
+   "t": 22519,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/22519.jpg"
+  },
+  {
+   "t": 22752,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/22752.jpg"
+  },
+  {
+   "t": 23008,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/23008.jpg"
+  },
+  {
+   "t": 23258,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/23258.jpg"
+  },
+  {
+   "t": 23551,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/23551.jpg"
+  },
+  {
+   "t": 23751,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/23751.jpg"
+  },
+  {
+   "t": 24007,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/24007.jpg"
+  },
+  {
+   "t": 24260,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/24260.jpg"
+  },
+  {
+   "t": 24507,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/24507.jpg"
+  },
+  {
+   "t": 24784,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/24784.jpg"
+  },
+  {
+   "t": 25002,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/25002.jpg"
+  },
+  {
+   "t": 25268,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/25268.jpg"
+  },
+  {
+   "t": 25506,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/25506.jpg"
+  },
+  {
+   "t": 25753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/25753.jpg"
+  },
+  {
+   "t": 26003,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/26003.jpg"
+  },
+  {
+   "t": 26255,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/26255.jpg"
+  },
+  {
+   "t": 26502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/26502.jpg"
+  },
+  {
+   "t": 26755,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/26755.jpg"
+  },
+  {
+   "t": 27008,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/27008.jpg"
+  },
+  {
+   "t": 27252,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/27252.jpg"
+  },
+  {
+   "t": 27515,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/27515.jpg"
+  },
+  {
+   "t": 27753,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/27753.jpg"
+  },
+  {
+   "t": 28018,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/28018.jpg"
+  },
+  {
+   "t": 28253,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/28253.jpg"
+  },
+  {
+   "t": 28502,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/28502.jpg"
+  },
+  {
+   "t": 28791,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/28791.jpg"
+  },
+  {
+   "t": 29101,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/29101.jpg"
+  },
+  {
+   "t": 31430,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/31430.jpg"
+  },
+  {
+   "t": 31802,
+   "file": "/Users/lexilombas/.lh-shift-ws/shots/authed_profile/31802.jpg"
+  }
+ ],
+ "ls": [
+  {
+   "t": 22294,
+   "value": 0.00009509249597579818,
+   "hadRecentInput": false,
+   "sources": [
+    {
+     "node": "h1.font-display.italic.font-bold.leading-tight \"Eli Testhelper\"",
+     "prev": [
+      140,
+      30,
+      156,
+      34
+     ],
+     "cur": [
+      139,
+      26,
+      136,
+      34
+     ]
+    }
+   ]
+  },
+  {
+   "t": 22470,
+   "value": 0.051293034693068666,
+   "hadRecentInput": false,
+   "sources": [
+    {
+     "node": "div.liquid-glass \"WorkScheduleYour calendar & upcoming job\"",
+     "prev": [
+      20,
+      347.734375,
+      335,
+      464.265625
+     ],
+     "cur": [
+      20,
+      415.734375,
+      335,
+      396.265625
+     ]
+    },
+    {
+     "node": "button.w-full.flex.items-center.gap-2.5 \"Verify your ID. A photo ID and a quick s\"",
+     "prev": [
+      29,
+      249.734375,
+      317,
+      97.625
+     ],
+     "cur": [
+      29,
+      317.109375,
+      317,
+      97.625
+     ]
+    },
+    {
+     "node": "div.rounded-ds-lg.liquid-glass.overflow-hidden \"After a JobAutomatic tips & instant paym\"",
+     "prev": [
+      20,
+      807.109375,
+      335,
+      4.890625
+     ],
+     "cur": [
+      0,
+      0,
+      0,
+      0
+     ]
+    }
+   ]
+  },
+  {
+   "t": 22510,
+   "value": 0.00224954215856973,
+   "hadRecentInput": false,
+   "sources": [
+    {
+     "node": "div.liquid-glass \"WorkScheduleYour calendar & upcoming job\"",
+     "prev": [
+      20,
+      416.390625,
+      335,
+      395.609375
+     ],
+     "cur": [
+      20,
+      419.390625,
+      335,
+      392.609375
+     ]
+    },
+    {
+     "node": "button.w-full.flex.items-center.gap-2.5 \"Verify your ID. A photo ID and a quick s\"",
+     "prev": [
+      29,
+      317.375,
+      317,
+      97.625
+     ],
+     "cur": [
+      29,
+      320.765625,
+      317,
+      97.625
+     ]
+    }
+   ]
+  },
+  {
+   "t": 22544,
+   "value": 0.0019949041522078514,
+   "hadRecentInput": false,
+   "sources": [
+    {
+     "node": "div.liquid-glass \"WorkScheduleYour calendar & upcoming job\"",
+     "prev": [
+      20,
+      419.421875,
+      335,
+      392.578125
+     ],
+     "cur": [
+      20,
+      422.421875,
+      335,
+      389.578125
+     ]
+    },
+    {
+     "node": "button.w-full.flex.items-center.gap-2.5 \"Verify your ID. A photo ID and a quick s\"",
+     "prev": [
+      29,
+      320.765625,
+      317,
+      97.625
+     ],
+     "cur": [
+      29,
+      323.796875,
+      317,
+      97.625
+     ]
+    }
+   ]
+  }
+ ],
+ "log": [
+  {
+   "t": 424,
+   "kind": "fonts.ready",
+   "detail": {
+    "bodoni": true,
+    "montserrat": true
+   }
+  },
+  {
+   "t": 474,
+   "kind": "--user-text-scale",
+   "detail": "(unset)"
+  },
+  {
+   "t": 1326,
+   "kind": "paint",
+   "detail": {
+    "name": "first-paint",
+    "t": 1320
+   }
+  },
+  {
+   "t": 1824,
+   "kind": "paint",
+   "detail": {
+    "name": "first-contentful-paint",
+    "t": 1816
+   }
+  },
+  {
+   "t": 4012,
+   "kind": "lcp",
+   "detail": {
+    "t": 3996,
+    "size": 46620,
+    "el": "img.boot-mark"
+   }
+  },
+  {
+   "t": 6592,
+   "kind": "fonts.loadingdone",
+   "detail": [
+    "Montserrat 400 normal"
+   ]
+  },
+  {
+   "t": 12982,
+   "kind": "DOMContentLoaded",
+   "detail": null
+  },
+  {
+   "t": 12982,
+   "kind": "load",
+   "detail": null
+  },
+  {
+   "t": 13062,
+   "kind": "boot-loader-removed",
+   "detail": null
+  },
+  {
+   "t": 13070,
+   "kind": "dom.skeleton",
+   "detail": "div.mx-auto.max-w-lg.lg:max-w-5xl.space-y-4"
+  },
+  {
+   "t": 13071,
+   "kind": "dom.route-fallback",
+   "detail": "div.w-full.min-h-[60vh].px-4.py-6 \"Loading…\""
+  },
+  {
+   "t": 13109,
+   "kind": "html.style",
+   "detail": {
+    "from": null,
+    "to": "--user-text-scale: 1; --offline-banner-offset: 0px;"
+   }
+  },
+  {
+   "t": 13109,
+   "kind": "html.class",
+   "detail": {
+    "from": "app-shell",
+    "to": "app-shell side-panel-open"
+   }
+  },
+  {
+   "t": 13129,
+   "kind": "--user-text-scale",
+   "detail": "1"
+  },
+  {
+   "t": 15644,
+   "kind": "dom.mobile-nav",
+   "detail": "nav.mobile-nav-frame.fixed.bottom-0.left-0 \"ET\""
+  },
+  {
+   "t": 15651,
+   "kind": "fonts.loadingdone",
+   "detail": [
+    "Montserrat 700 normal"
+   ]
+  },
+  {
+   "t": 21282,
+   "kind": "dom.route-fallback",
+   "detail": "gone"
+  },
+  {
+   "t": 21331,
+   "kind": "dom.avatar-img",
+   "detail": "img.absolute.inset-0.h-full.w-full"
+  },
+  {
+   "t": 21331,
+   "kind": "dom.hero-h1",
+   "detail": "h1.font-display.italic.font-bold.leading-tight \"Eli Testhelper\""
+  },
+  {
+   "t": 22259,
+   "kind": "fonts.loadingdone",
+   "detail": [
+    "Montserrat 600 normal",
+    "Bodoni Moda 700 italic"
+   ]
+  }
+ ],
+ "htmlClass": "app-shell side-panel-open",
+ "theme": "light",
+ "scale": "1",
+ "url": "http://localhost:4211/profile",
+ "scrollW": 375,
+ "nav": [
+  {
+   "dcl": 12982,
+   "load": 12990,
+   "resp": 624
+  }
+ ],
+ "resources": [
+  {
+   "n": "/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,700;0,900;1,700&family=Montserrat:wght@400;500;600;700&display=swap",
+   "s": 509,
+   "e": 1242,
+   "size": 2224
+  },
+  {
+   "n": "/css2?family=Beth+Ellen&display=swap",
+   "s": 509,
+   "e": 1153,
+   "size": 597
+  },
+  {
+   "n": "/assets/index-C016SBmT.js",
+   "s": 592,
+   "e": 1562,
+   "size": 11747
+  },
+  {
+   "n": "/assets/index-CgsU6ckW.css",
+   "s": 592,
+   "e": 2764,
+   "size": 32315
+  },
+  {
+   "n": "/registerSW.js",
+   "s": 625,
+   "e": 1701,
+   "size": 434
+  },
+  {
+   "n": "/assets/helpr-logo-256-CEb1W4r4.webp",
+   "s": 625,
+   "e": 3990,
+   "size": 26714
+  },
+  {
+   "n": "/assets/rolldown-runtime-hePW80VL.js",
+   "s": 1566,
+   "e": 2060,
+   "size": 1016
+  },
+  {
+   "n": "/assets/lucide-Ds9korrR.js",
+   "s": 1566,
+   "e": 4263,
+   "size": 20186
+  },
+  {
+   "n": "/assets/react-vendor-D6KBUCv7.js",
+   "s": 1566,
+   "e": 5956,
+   "size": 43046
+  },
+  {
+   "n": "/assets/button-KmUWf_RB.js",
+   "s": 1567,
+   "e": 3317,
+   "size": 1419
+  },
+  {
+   "n": "/assets/RouteSuspenseFallback-T7mGha0k.js",
+   "s": 1567,
+   "e": 3913,
+   "size": 1143
+  },
+  {
+   "n": "/assets/tanstack-CSYMmcOu.js",
+   "s": 1567,
+   "e": 4366,
+   "size": 19827
+  },
+  {
+   "n": "/assets/skeleton-C4m1NfVL.js",
+   "s": 1567,
+   "e": 4433,
+   "size": 768
+  },
+  {
+   "n": "/assets/app-shared-CzkIEHhM.js",
+   "s": 1567,
+   "e": 10445,
+   "size": 128290
+  },
+  {
+   "n": "/assets/GuestBrowseSkeleton-LimeHs19.js",
+   "s": 1567,
+   "e": 4524,
+   "size": 855
+  },
+  {
+   "n": "/assets/SkeletonLoaders-BeK9378N.js",
+   "s": 1567,
+   "e": 4756,
+   "size": 1081
+  },
+  {
+   "n": "/assets/PageScaffold-CsEmyG3C.js",
+   "s": 1567,
+   "e": 4876,
+   "size": 1380
+  },
+  {
+   "n": "/assets/HelprMark-D3N0Ob-F.js",
+   "s": 1567,
+   "e": 4958,
+   "size": 1086
+  },
+  {
+   "n": "/assets/DashboardTitleBar-ByURPeNP.js",
+   "s": 1567,
+   "e": 5048,
+   "size": 1024
+  },
+  {
+   "n": "/assets/sidePanelOpen-CkxjmiGk.js",
+   "s": 1567,
+   "e": 5256,
+   "size": 1089
+  },
+  {
+   "n": "/assets/dist-Doh23784.js",
+   "s": 3319,
+   "e": 5490,
+   "size": 947
+  },
+  {
+   "n": "/assets/dist-D66p4EZ-.js",
+   "s": 3319,
+   "e": 5510,
+   "size": 1598
+  },
+  {
+   "n": "/assets/JobCardSkeleton-h3QYX-t9.js",
+   "s": 4527,
+   "e": 5609,
+   "size": 990
+  },
+  {
+   "n": "/assets/proxy-BHW7G84_.js",
+   "s": 4892,
+   "e": 8093,
+   "size": 39353
+  },
+  {
+   "n": "/assets/use-reduced-motion-DV3jDMnq.js",
+   "s": 4893,
+   "e": 6015,
+   "size": 548
+  },
+  {
+   "n": "/assets/AppShell-nYU0ov1o.js",
+   "s": 4893,
+   "e": 6067,
+   "size": 894
+  },
+  {
+   "n": "/assets/helpr-logo-96-Dg-lBfwp.js",
+   "s": 4961,
+   "e": 6158,
+   "size": 359
+  },
+  {
+   "n": "/assets/NotificationPanel-CrXYPpdL.js",
+   "s": 5056,
+   "e": 6843,
+   "size": 6390
+  },
+  {
+   "n": "/assets/popover-BcDpXUAL.js",
+   "s": 6849,
+   "e": 7540,
+   "size": 2467
+  },
+  {
+   "n": "/assets/AnimatePresence-B-wzBJyU.js",
+   "s": 6849,
+   "e": 7568,
+   "size": 2300
+  },
+  {
+   "n": "/assets/SegmentedControl-Bz2D9GrG.js",
+   "s": 6850,
+   "e": 7509,
+   "size": 1521
+  },
+  {
+   "n": "/assets/PullToRefreshWrapper-jpQJpocB.js",
+   "s": 6850,
+   "e": 7416,
+   "size": 1089
+  },
+  {
+   "n": "/assets/dist-DWIQO6Kh.js",
+   "s": 7547,
+   "e": 8184,
+   "size": 1528
+  },
+  {
+   "n": "/assets/dist-C5HrVn38.js",
+   "s": 7547,
+   "e": 8009,
+   "size": 1050
+  },
+  {
+   "n": "/assets/dist-WFLWnF1U.js",
+   "s": 7547,
+   "e": 8066,
+   "size": 1145
+  },
+  {
+   "n": "/assets/Combination-6G3fxHkA.js",
+   "s": 7547,
+   "e": 8448,
+   "size": 8118
+  },
+  {
+   "n": "/assets/dist-C7vcyZT1.js",
+   "s": 7547,
+   "e": 8564,
+   "size": 1597
+  },
+  {
+   "n": "/assets/dist-BgjEjA_v.js",
+   "s": 7547,
+   "e": 8915,
+   "size": 10218
+  },
+  {
+   "n": "/assets/supabase-CM9TG_WP.js",
+   "s": 8456,
+   "e": 10793,
+   "size": 54015
+  },
+  {
+   "n": "/assets/dist-os4YCgjG.js",
+   "s": 8456,
+   "e": 8944,
+   "size": 632
+  },
+  {
+   "n": "/assets/dist-pPowLj4C.js",
+   "s": 8919,
+   "e": 9386,
+   "size": 979
+  },
+  {
+   "n": "/assets/forms-BSyPMoo0.js",
+   "s": 10484,
+   "e": 11817,
+   "size": 22474
+  },
+  {
+   "n": "/assets/sentry-DXZC9xPt.js",
+   "s": 10484,
+   "e": 12761,
+   "size": 70780
+  },
+  {
+   "n": "/assets/web-CBulx356.js",
+   "s": 12955,
+   "e": 13467,
+   "size": 848
+  },
+  {
+   "n": "/assets/ScrollToTop-Brs6DgWz.js",
+   "s": 13057,
+   "e": 13544,
+   "size": 1472
+  },
+  {
+   "n": "/assets/OfflineBanner-MaiqD5-s.js",
+   "s": 13072,
+   "e": 13515,
+   "size": 1075
+  },
+  {
+   "n": "/assets/StrikeBanner-BQBbs-cT.js",
+   "s": 13073,
+   "e": 13632,
+   "size": 1604
+  },
+  {
+   "n": "/assets/ProtectedRoute-oRj7gsVG.js",
+   "s": 13073,
+   "e": 13599,
+   "size": 433
+  },
+  {
+   "n": "/assets/DesktopSidebarNav-BHoqmYB1.js",
+   "s": 13074,
+   "e": 13946,
+   "size": 472
+  },
+  {
+   "n": "/assets/MobileNav-CpQztwlu.js",
+   "s": 13074,
+   "e": 14012,
+   "size": 6326
+  },
+  {
+   "n": "/assets/DesktopTopNav-CaRw1aC6.js",
+   "s": 13074,
+   "e": 13985,
+   "size": 1005
+  },
+  {
+   "n": "/assets/PermissionRationaleDialog-BLQVeSNr.js",
+   "s": 13074,
+   "e": 14040,
+   "size": 1153
+  },
+  {
+   "n": "/assets/TermsReconsentDialog-CM0eqaCD.js",
+   "s": 13074,
+   "e": 14127,
+   "size": 1626
+  },
+  {
+   "n": "/_vercel/speed-insights/script.js",
+   "s": 13108,
+   "e": 15497,
+   "size": 300
+  },
+  {
+   "n": "/_vercel/insights/script.js",
+   "s": 13109,
+   "e": 15647,
+   "size": 300
+  },
+  {
+   "n": "/assets/modern-CIN-n0WO.js",
+   "s": 13109,
+   "e": 14097,
+   "size": 375
+  },
+  {
+   "n": "/assets/sentry-CLIxQj5l.js",
+   "s": 13110,
+   "e": 14393,
+   "size": 456
+  },
+  {
+   "n": "/assets/sonner-DhSOJvze.js",
+   "s": 13124,
+   "e": 14481,
+   "size": 1538
+  },
+  {
+   "n": "/assets/SuccessMomentHost-3lu8LMjz.js",
+   "s": 13124,
+   "e": 14451,
+   "size": 753
+  },
+  {
+   "n": "/rest/v1/profiles?select=*&user_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+   "s": 13125,
+   "e": 13895,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/user_roles?select=role&user_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&role=eq.admin",
+   "s": 13125,
+   "e": 13832,
+   "size": 0
+  },
+  {
+   "n": "/assets/ProtectedRoute-CAxI6yDt.js",
+   "s": 13609,
+   "e": 14564,
+   "size": 1691
+  },
+  {
+   "n": "/rest/v1/profiles?select=ban_status%2Cauto_suspended_until&user_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+   "s": 13641,
+   "e": 14160,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/profiles?select=ban_status%2Cauto_suspended_until&user_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+   "s": 13641,
+   "e": 14190,
+   "size": 0
+  },
+  {
+   "n": "/assets/DesktopSidebarNav-CUKLCA1P.js",
+   "s": 13950,
+   "e": 14630,
+   "size": 2907
+  },
+  {
+   "n": "/assets/UserAvatar-kngPRDAH.js",
+   "s": 14021,
+   "e": 14660,
+   "size": 1858
+  },
+  {
+   "n": "/assets/sheet-C4XvZs_f.js",
+   "s": 14021,
+   "e": 14864,
+   "size": 1805
+  },
+  {
+   "n": "/assets/mobileNavHelpers-jPNkUJFi.js",
+   "s": 14021,
+   "e": 14891,
+   "size": 901
+  },
+  {
+   "n": "/assets/loadConversations-Bgv3fPqy.js",
+   "s": 14021,
+   "e": 14942,
+   "size": 2030
+  },
+  {
+   "n": "/assets/activityFilters-mQ1VqJK9.js",
+   "s": 14021,
+   "e": 15001,
+   "size": 1893
+  },
+  {
+   "n": "/assets/dialog-7YYaM2Dh.js",
+   "s": 14049,
+   "e": 15118,
+   "size": 2326
+  },
+  {
+   "n": "/assets/SuccessMoment-CWvEW8F0.js",
+   "s": 14457,
+   "e": 15097,
+   "size": 1368
+  },
+  {
+   "n": "/assets/ErrorState-DhS5s27T.js",
+   "s": 14588,
+   "e": 15298,
+   "size": 997
+  },
+  {
+   "n": "/assets/adminNavGroups-BUsO9TcJ.js",
+   "s": 14634,
+   "e": 15331,
+   "size": 926
+  },
+  {
+   "n": "/assets/popupFooter-BZVB9TtH.js",
+   "s": 14869,
+   "e": 15411,
+   "size": 2256
+  },
+  {
+   "n": "/assets/EmptyState-Dk4Be1Yw.js",
+   "s": 15301,
+   "e": 15768,
+   "size": 1216
+  },
+  {
+   "n": "/assets/BarkPillButton-V16LDQKW.js",
+   "s": 15303,
+   "e": 15741,
+   "size": 648
+  },
+  {
+   "n": "/rest/v1/applications?select=id%2Cjobs%21inner%28customer_id%2Cstatus%29&status=eq.pending&poster_viewed_at=is.null&jobs.customer_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&jobs.status=eq.open",
+   "s": 15644,
+   "e": 16239,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/rpc/get_my_pending_direct_offers",
+   "s": 15645,
+   "e": 16590,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/applications?select=id%2Cjobs%21inner%28customer_id%2Cstatus%29&status=eq.pending&poster_viewed_at=is.null&jobs.customer_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&jobs.status=eq.open",
+   "s": 15645,
+   "e": 16504,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/rpc/get_my_pending_direct_offers",
+   "s": 15645,
+   "e": 16385,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/user_blocks?select=blocker_id%2Cblocked_id&or=%28blocker_id.eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f%2Cblocked_id.eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f%29",
+   "s": 15645,
+   "e": 16439,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/profiles?select=terms_version_accepted&user_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+   "s": 15645,
+   "e": 16466,
+   "size": 0
+  },
+  {
+   "n": "/functions/v1/brand-asset",
+   "s": 15647,
+   "e": 19502,
+   "size": 0
+  },
+  {
+   "n": "/assets/Activity-DSSAm4hg.js",
+   "s": 15702,
+   "e": 17990,
+   "size": 13296
+  },
+  {
+   "n": "/assets/Dashboard-DT-u67yN.js",
+   "s": 15702,
+   "e": 18378,
+   "size": 17180
+  },
+  {
+   "n": "/assets/Profile-CH0s4lY9.js",
+   "s": 15703,
+   "e": 18037,
+   "size": 12632
+  },
+  {
+   "n": "/assets/Messages-DvslY-3p.js",
+   "s": 15703,
+   "e": 19259,
+   "size": 32354
+  },
+  {
+   "n": "/assets/PostJob-B2PHlY4E.js",
+   "s": 15703,
+   "e": 19517,
+   "size": 38399
+  },
+  {
+   "n": "/rest/v1/jobs?select=id%2Ctitle%2Ccategory%2Cbudget%2Ccreated_at&customer_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&order=created_at.desc&limit=3",
+   "s": 15707,
+   "e": 16566,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/messages?select=job_id%2Csender_id%2Ccreated_at&receiver_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&read=eq.false&is_system=not.is.true",
+   "s": 16449,
+   "e": 17234,
+   "size": 0
+  },
+  {
+   "n": "/assets/activityConstants-DTnJ3nzO.js",
+   "s": 18009,
+   "e": 18378,
+   "size": 0
+  },
+  {
+   "n": "/assets/textarea-B1LrzVWC.js",
+   "s": 18012,
+   "e": 18378,
+   "size": 0
+  },
+  {
+   "n": "/assets/SectionBoundary-oCrp_HH2.js",
+   "s": 18013,
+   "e": 18378,
+   "size": 0
+  },
+  {
+   "n": "/assets/LoadingHeading-DF48Ki6r.js",
+   "s": 18013,
+   "e": 18378,
+   "size": 0
+  },
+  {
+   "n": "/assets/ScreenHeaderRow-Bck-Funs.js",
+   "s": 18013,
+   "e": 19367,
+   "size": 0
+  },
+  {
+   "n": "/assets/BrandConfirmDialog-CCgc276g.js",
+   "s": 18047,
+   "e": 19444,
+   "size": 0
+  },
+  {
+   "n": "/assets/ProfileTabHeader-BBa8V4Py.js",
+   "s": 18049,
+   "e": 19016,
+   "size": 0
+  },
+  {
+   "n": "/assets/earningsTabHelpers-Cqmpvxg7.js",
+   "s": 18050,
+   "e": 19435,
+   "size": 0
+  },
+  {
+   "n": "/assets/IDVPromptDialog-fuDcYhX-.js",
+   "s": 18050,
+   "e": 19691,
+   "size": 0
+  },
+  {
+   "n": "/assets/HelperTierBadge-SID9VHfF.js",
+   "s": 18050,
+   "e": 19880,
+   "size": 0
+  },
+  {
+   "n": "/assets/animate-hWuBVBG5.js",
+   "s": 18385,
+   "e": 20013,
+   "size": 0
+  },
+  {
+   "n": "/assets/use-transform-DEIk3vI2.js",
+   "s": 18386,
+   "e": 20006,
+   "size": 0
+  },
+  {
+   "n": "/assets/JobCard-DNj9fml3.js",
+   "s": 18386,
+   "e": 20169,
+   "size": 0
+  },
+  {
+   "n": "/assets/dates-BXG5eew6.js",
+   "s": 18386,
+   "e": 20374,
+   "size": 0
+  },
+  {
+   "n": "/assets/BrowseTasksActions-xQwPm2s3.js",
+   "s": 18386,
+   "e": 20432,
+   "size": 0
+  },
+  {
+   "n": "/assets/PageHeader-CCHPAbq8.js",
+   "s": 19020,
+   "e": 20402,
+   "size": 0
+  },
+  {
+   "n": "/assets/input-BdtZXOnx.js",
+   "s": 19267,
+   "e": 20445,
+   "size": 0
+  },
+  {
+   "n": "/assets/ReportDialog-BqiKxQK5.js",
+   "s": 19268,
+   "e": 20632,
+   "size": 0
+  },
+  {
+   "n": "/assets/ViolationDialog-i_ujRoNM.js",
+   "s": 19268,
+   "e": 20637,
+   "size": 0
+  },
+  {
+   "n": "/assets/PhotoLightbox-Cac63ifd.js",
+   "s": 19269,
+   "e": 20727,
+   "size": 0
+  },
+  {
+   "n": "/assets/VirtualList-JO5yWXZA.js",
+   "s": 19269,
+   "e": 20663,
+   "size": 0
+  },
+  {
+   "n": "/assets/EmptyStateIllustration-Dyttvt4M.js",
+   "s": 19269,
+   "e": 20720,
+   "size": 0
+  },
+  {
+   "n": "/assets/dropdown-menu-C0VVAofg.js",
+   "s": 19271,
+   "e": 20736,
+   "size": 0
+  },
+  {
+   "n": "/assets/BlockUserDialog-BWBAc9Qq.js",
+   "s": 19271,
+   "e": 20788,
+   "size": 0
+  },
+  {
+   "n": "/assets/HelprSpinner-OC7f5csc.js",
+   "s": 19548,
+   "e": 20736,
+   "size": 0
+  },
+  {
+   "n": "/assets/CategoryIcon-DibIkuzQ.js",
+   "s": 19551,
+   "e": 20815,
+   "size": 0
+  },
+  {
+   "n": "/assets/label-O77K2SDa.js",
+   "s": 19551,
+   "e": 20887,
+   "size": 0
+  },
+  {
+   "n": "/assets/TimePickerSelect-BcJBYYBA.js",
+   "s": 19551,
+   "e": 20943,
+   "size": 0
+  },
+  {
+   "n": "/assets/select-7lp37oXc.js",
+   "s": 19551,
+   "e": 20987,
+   "size": 0
+  },
+  {
+   "n": "/assets/currency-input-CbTvP58Z.js",
+   "s": 19551,
+   "e": 21068,
+   "size": 0
+  },
+  {
+   "n": "/assets/switch-DUsT7CgL.js",
+   "s": 19551,
+   "e": 21070,
+   "size": 0
+  },
+  {
+   "n": "/assets/TimePickerWheel-Dhbv4UHA.js",
+   "s": 19551,
+   "e": 21136,
+   "size": 0
+  },
+  {
+   "n": "/assets/AppPage-BYoswxFp.js",
+   "s": 19551,
+   "e": 21154,
+   "size": 0
+  },
+  {
+   "n": "/assets/DatePickerField-CCQLG6P9.js",
+   "s": 19551,
+   "e": 21187,
+   "size": 0
+  },
+  {
+   "n": "/assets/checkbox-B3kPfZAz.js",
+   "s": 19551,
+   "e": 21212,
+   "size": 0
+  },
+  {
+   "n": "/assets/CityAutocomplete-Ct9toSi1.js",
+   "s": 19551,
+   "e": 21313,
+   "size": 0
+  },
+  {
+   "n": "/assets/detailsSectionConstants-_1V6kcSu.js",
+   "s": 19551,
+   "e": 21356,
+   "size": 0
+  },
+  {
+   "n": "/assets/JobCardMetaRow-DrSIot1C.js",
+   "s": 20171,
+   "e": 21282,
+   "size": 0
+  },
+  {
+   "n": "/assets/BackButton-CigftSKJ.js",
+   "s": 20404,
+   "e": 21227,
+   "size": 0
+  },
+  {
+   "n": "/assets/dist-BxKaHjKl.js",
+   "s": 20741,
+   "e": 21356,
+   "size": 0
+  },
+  {
+   "n": "/assets/dist-CIVyzqxB.js",
+   "s": 20741,
+   "e": 21475,
+   "size": 0
+  },
+  {
+   "n": "/assets/dist-6gzxNnjX.js",
+   "s": 20994,
+   "e": 21392,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/jobs?select=id&helper_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&status=eq.completed",
+   "s": 21283,
+   "e": 21841,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/reviews?select=rating&reviewee_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&feedback_visible_at=lte.2026-09-09T17%3A34%3A42.843Z",
+   "s": 21283,
+   "e": 21595,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/jobs?select=id&customer_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+   "s": 21283,
+   "e": 21866,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/group_job_helpers?select=job_id&helper_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+   "s": 21283,
+   "e": 21588,
+   "size": 0
+  },
+  {
+   "n": "/functions/v1/stripe-connect",
+   "s": 21332,
+   "e": 22445,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/rpc/get_public_platform_settings",
+   "s": 21333,
+   "e": 21953,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/rpc/get_parish_for_zip",
+   "s": 21333,
+   "e": 21923,
+   "size": 0
+  },
+  {
+   "n": "/functions/v1/brand-asset",
+   "s": 21410,
+   "e": 21555,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/jobs?select=*&status=neq.cancelled&helper_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&order=created_at.desc",
+   "s": 21594,
+   "e": 21792,
+   "size": 0
+  },
+  {
+   "n": "/rest/v1/tips?select=amount%2Cjob_id%2Ccreated_at&helper_id=eq.f6cc3ebb-9478-473c-8eb8-62b406f0734f&payment_status=eq.paid",
+   "s": 21594,
+   "e": 21797,
+   "size": 0
+  }
+ ]
+}

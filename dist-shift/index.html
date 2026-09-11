@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <title>Helpr — Louisiana's Local Job Partner | Hire or Find Work</title>
+    <meta name="description" content="Helpr connects you with trusted neighbors across Louisiana for cleaning, errands, moving, yard work, and more. Serving New Orleans, Baton Rouge, Shreveport &amp; beyond.">
+    <meta name="keywords" content="Louisiana Helprs, local job marketplace, cleaning services Louisiana, yard work, moving help, errands, handyman, New Orleans, Baton Rouge, Shreveport, Lafayette">
+    <meta name="geo.region" content="US-LA">
+    <meta name="geo.placename" content="Louisiana">
+    <link rel="canonical" href="https://www.louisianahelpr.com">
+    <meta name="author" content="Helpr" />
+    <!-- === CANVAS === Must equal --parchment in src/index.css so the native
+         status-bar / browser chrome band blends into the top of the page with
+         no seam (LH-18). Currently hsl(220 14% 95%) = #F1F2F4.
+         The SAME value must appear in capacitor.config.ts (splash +
+         StatusBar), manifest.webmanifest (theme_color + background_color),
+         the #root/#boot-loader inline styles BELOW, and — the one that keeps
+         getting missed — ios/App/App/Base.lproj/LaunchScreen.storyboard, which
+         holds it as sRGB floats (0.9451/0.9490/0.9569) and so never matches a
+         hex grep. FIVE places, one colour; if the palette flips, change all five.
+         (This previously claimed to match "#FAF9F5" while the manifest was
+         teal and Capacitor was warm #ECE9E4; three comments each asserted
+         agreement that did not exist.) -->
+    <meta name="theme-color" content="#F1F2F4" />
+    <meta name="application-name" content="Helpr" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Helpr" />
+
+    <!--
+      Smart App Banner — Mobile Safari shows a top banner on this domain
+      that deep-links into the installed Helpr iOS app (or to the App
+      Store if not installed) with the path passed as app-argument. This
+      meta is read only by Mobile Safari; every other surface ignores it.
+
+      The value is the numeric App Store ID (Apple ID) for Helpr —
+      id6754470134 in the store URL; only the digits go in the meta tag.
+      The bundle id (com.Helpr) does not work here — Apple requires the
+      numeric "Apple ID" / "App Store ID".
+    -->
+    <meta name="apple-itunes-app" content="app-id=6754470134, app-argument=helpr://" />
+
+    <!-- Capacitor-only CSP. file:// loads can't receive HTTP headers, so
+         the iOS/Android bundle relies on this meta tag. The web build
+         strips this entire tag at build time (see `html-strip-meta-csp`
+         plugin in vite.config.ts) because Vercel injects a separate,
+         less-restrictive CSP header from vercel.json — and when both are
+         present the browser INTERSECTS them per W3C CSP spec, silently
+         blocking PostHog, OpenAI, Stripe checkout iframes, etc. -->
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="shortcut icon" href="/favicon-32.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest?v=helpr2" />
+
+    <!-- Performance: preconnect + font load tuned for LCP.
+         The H1 hero headline uses Bodoni Moda (display font) and is the LCP
+         element on desktop. The previous media="print"+onload="this.media='all'"
+         swap delayed the font CSS request until AFTER the JS bundle parsed,
+         causing the LCP H1 to repaint late and tanking the desktop Real
+         Experience Score (74 / "Needs Improvement"). Fix: load the font CSS
+         as a normal blocking stylesheet. `display=swap` (in the URL) keeps
+         fallback text visible immediately so FCP isn't blocked, while letting
+         the LCP text settle into Bodoni Moda as soon as the woff2 lands —
+         which now starts in parallel with the preload below instead of
+         waiting on the JS parse.
+
+         This fix was originally landed in PR #222 then accidentally reverted
+         by PR #223 (which carried a stale index.html block on its branch).
+         Do NOT reintroduce the print/onload pattern — see guardrail below. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Preconnect to Supabase to shorten the longest network dependency chain (LCP/data fetches) -->
+    <link rel="preconnect" href="https://fncmgoasalhdgfwzhsqa.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://fncmgoasalhdgfwzhsqa.supabase.co" />
+    <!-- Preload + stylesheet for the editorial font stack. The preload kicks
+         off the CSS fetch at highest priority; the stylesheet link below
+         consumes that response without re-fetching. `display=swap` in the URL
+         paints fallback text immediately AND swaps in Bodoni Moda whenever the
+         woff2 lands, however late that is.
+
+         This was `display=optional` until 2026-08-10. `optional` sounds
+         permissive but is the strictest value there is: ~100ms block, then if
+         the font hasn't arrived the browser commits to the fallback for the
+         WHOLE page view and never swaps. On a cold cache over mobile a web
+         font essentially never wins that race, so first-time visitors saw the
+         hero H1 — the largest brand asset the product has — render in Georgia,
+         permanently. It bought a Lighthouse CLS score with the brand's first
+         impression. Do NOT put `optional` back; if CLS regresses, self-host the
+         single Bodoni 900 weight the hero needs as a preloaded woff2 instead.
+         Do NOT reintroduce media="print"+onload swap here — it delays the
+         font request behind JS-parse and regresses LCP. -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,700;0,900;1,700&family=Montserrat:wght@400;500;600;700&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,700;0,900;1,700&family=Montserrat:wght@400;500;600;700&display=swap"
+    />
+    <!-- Beth Ellen is the handwritten signature accent (dashboard greeting
+         name). It MUST actually render — `display=optional` would let the
+         browser permanently fall back to the generic `cursive` (system Snell
+         Roundhand/Apple Chancery) whenever the font isn't already cached on
+         first paint. `display=swap` guarantees it swaps in once downloaded. It is not the LCP element, so the swap costs
+         nothing visually. -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Beth+Ellen&display=swap"
+    />
+
+    <!-- Hero image preloads intentionally removed 2026-05-19.
+         The hero used to render a photographic <img> (hero-courtyard-*.webp),
+         but the editorial brand polish (4ba790a0) replaced it with the
+         Bodoni Moda H1, which is the LCP element.
+
+         (Corrected 2026-08-19: this used to name a "CSS-only PhoneCluster
+         mockup" as the other half of the hero. PhoneCluster was not rendered
+         by anything — Index.tsx mounts HeroSection, which never imported it —
+         and the whole component plus its private phoneCluster/ subtree has
+         been deleted. The Bodoni H1 is the LCP element on its own. Anyone
+         tuning LCP off the old wording was reasoning about a component that
+         did not run.) The preload + srcset still pointed at the retired image,
+         which made the browser fetch 100–430 KB of never-rendered bytes at
+         `fetchpriority="high"` on every desktop visit, starving the Bodoni
+         Moda webfont and the main JS bundle of bandwidth and connection slots.
+         Same story for the `/src/assets/helpr-icon-96.png` preload — that
+         filename isn't imported anywhere in src/, so Vite couldn't rewrite it
+         to a hashed asset; the Navbar's actual logo (HelprMark → helpr-logo-96.webp)
+         renders fine via its module import.
+         Net effect of removal: one fewer high-priority fetch on the critical
+         path and the LCP text element (Fraunces/Bodoni H1) gets the bandwidth
+         it actually needs. If a photographic hero returns, restore a single
+         preload that matches the rendered <img>'s exact src/srcset/sizes. -->
+    <!-- Sentry + PostHog both initialize inside requestIdleCallback (after
+         first paint), which means a preconnect handshake completes seconds
+         before the connection is actually used and gets flagged by
+         Lighthouse as "unused preconnect" (wastes ~50ms of main-thread + a
+         TLS slot). dns-prefetch keeps DNS resolution warm without paying
+         the TCP/TLS cost up front. -->
+    <link rel="dns-prefetch" href="https://o4511265714601984.ingest.us.sentry.io" />
+    <link rel="dns-prefetch" href="https://us.i.posthog.com" />
+    <link rel="dns-prefetch" href="https://us-assets.i.posthog.com" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.louisianahelpr.com" />
+    <meta property="og:title" content="Helpr — Louisiana's Local Job Partner" />
+    <meta property="og:description" content="Helpr connects you with trusted neighbors across Louisiana for cleaning, errands, moving, yard work, and more. Serving New Orleans, Baton Rouge, Shreveport &amp; beyond." />
+    <!-- === SOCIAL PREVIEW IMAGES — the centring is load-bearing ===
+         og-image.png is 1200×630 (1.91:1, the Open Graph standard) with the
+         wrought-iron H mark DEAD CENTRE on the #F1F2F4 canvas. Centre placement is
+         not styling: every consumer crops this file to its own aspect ratio from
+         the centre, so the mark survives all of them — 1.91:1 (Facebook/LinkedIn,
+         no crop at all), 2:1 (Twitter/X summary_large_image, trims 15px top and
+         bottom), and 1:1 (iOS's compact share-sheet thumbnail, WhatsApp, Android).
+
+         This replaced a 1640×624 banner whose only content was the "Helpr . LA"
+         wordmark sitting right of centre. iOS square-crops the share-sheet
+         thumbnail, which reduced that 1640-wide banner to its middle 624px — landing
+         mid-wordmark and slicing the "r" off, so every shared job previewed as a
+         blank cream tile reading "Help". Confirmed by centre-cropping the old file
+         to 624×624 and reproducing the exact thumbnail.
+
+         Rules that follow from that, for anyone regenerating this art:
+           • Keep text OUT of the central 630×630 square, or omit text entirely
+             (og:title already renders as the card headline right beneath the image,
+             so a wordmark baked into the picture is redundant anyway).
+           • Never go wider than 1.91:1 again — the extra width is pure crop bait.
+           • Anything that must never be clipped belongs inside that centre square.
+
+         The ?v=h2 query is a deliberate cache bust, not a stray. Facebook, Slack,
+         LinkedIn and Apple's LinkPresentation each cache a scraped og:image against
+         its full URL for weeks, independent of Cache-Control, so reusing the bare
+         /og-image.png path would have kept serving the clipped "Help" tile to
+         everyone who had already shared a link. The file at the bare path is the new
+         image too, so any stale scrape self-heals on revalidation. Bump to v=h3 (and
+         so on) whenever the artwork changes.
+
+         og-image-square.png (1024×1024 — the App Store icon at native resolution) is
+         declared as a SECOND og:image. Every major consumer takes the FIRST og:image,
+         so the banner remains the large-card image everywhere; the square exists for
+         any consumer that selects a candidate by aspect ratio instead. Order is
+         therefore significant — keep the banner first, and keep each
+         og:image:width/height/alt immediately after the og:image it describes, since
+         Open Graph binds structured sub-properties to the preceding parent by
+         position, not by name. -->
+    <meta property="og:image" content="https://www.louisianahelpr.com/og-image.png?v=h2" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Helpr mark — an ornate wrought-iron letter H with a fleur-de-lis at its centre" />
+    <meta property="og:image" content="https://www.louisianahelpr.com/og-image-square.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1024" />
+    <meta property="og:image:height" content="1024" />
+    <meta property="og:image:alt" content="The Helpr mark — an ornate wrought-iron letter H with a fleur-de-lis at its centre" />
+    <meta property="og:site_name" content="Helpr" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter / X card spec — also used by iMessage, Slack, Discord, LinkedIn
+         rich previews. No Twitter account required; these tags just control how
+         the link renders. summary_large_image yields a full-bleed hero card. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://www.louisianahelpr.com" />
+    <meta name="twitter:title" content="Helpr — Louisiana's Local Job Partner" />
+    <meta name="twitter:description" content="Helpr connects you with trusted neighbors across Louisiana for cleaning, errands, moving, yard work, and more. Serving New Orleans, Baton Rouge, Shreveport &amp; beyond." />
+    <!-- Deliberately the WIDE banner, not the square: summary_large_image crops to
+         2:1, so handing it the 1024×1024 square would shave the top and bottom off
+         the H. The banner's centred mark survives that crop untouched. -->
+    <meta name="twitter:image" content="https://www.louisianahelpr.com/og-image.png?v=h2" />
+    <meta name="twitter:image:alt" content="The Helpr mark — an ornate wrought-iron letter H with a fleur-de-lis at its centre" />
+
+    <!-- Site-wide structured data, served statically so non-JS crawlers
+         (Bing, social/link-preview bots, LLM crawlers) see Helpr's
+         LocalBusiness + Organization entities without executing the SPA.
+         Page-specific schema (WebApplication / FAQ / Breadcrumb) is still
+         injected client-side by the landing page. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "@id": "https://www.louisianahelpr.com/#business",
+      "name": "Helpr",
+      "description": "Louisiana's trusted marketplace connecting neighbors for cleaning, yard work, moving, errands, handyman services, and more.",
+      "url": "https://www.louisianahelpr.com",
+      "logo": "https://www.louisianahelpr.com/pwa-512x512-v2.png",
+      "image": "https://www.louisianahelpr.com/pwa-512x512-v2.png",
+      "priceRange": "$$",
+      "areaServed": [
+        { "@type": "State", "name": "Louisiana", "sameAs": "https://en.wikipedia.org/wiki/Louisiana" },
+        { "@type": "City", "name": "New Orleans", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Baton Rouge", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Shreveport", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Lafayette", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Lake Charles", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Kenner", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Bossier City", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Monroe", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Alexandria", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Houma", "containedInPlace": { "@type": "State", "name": "Louisiana" } }
+      ],
+      "geo": { "@type": "GeoCoordinates", "latitude": 30.9843, "longitude": -91.9623 },
+      "address": { "@type": "PostalAddress", "addressRegion": "LA", "addressCountry": "US" },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "opens": "00:00",
+        "closes": "23:59"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://www.louisianahelpr.com/#organization",
+      "name": "Helpr",
+      "legalName": "Helpr LLC",
+      "url": "https://www.louisianahelpr.com",
+      "logo": "https://www.louisianahelpr.com/pwa-512x512-v2.png",
+      "description": "Louisiana's trusted marketplace connecting neighbors for cleaning, yard work, moving, errands, handyman services, and more.",
+      "email": "admin@louisianahelpr.com",
+      "foundingDate": "2026",
+      "areaServed": { "@type": "State", "name": "Louisiana" },
+      "address": { "@type": "PostalAddress", "addressRegion": "LA", "addressCountry": "US" },
+      "sameAs": ["https://www.facebook.com/louisianahelpr"]
+    }
+    </script>
+
+    <!--
+      BLOCKED-STORAGE REPAIR. Runs before every other script on the page,
+      including third-party vendor bundles this app has no control over.
+
+      A browser with site data blocked (Safari "Block All Cookies", a
+      Chrome/Edge per-site block, Brave Shields at strict, some kiosk or
+      embedded webviews) does not make `localStorage.getItem()` return null —
+      it makes the `localStorage` PROPERTY ITSELF throw a SecurityError the
+      instant anything references `window.localStorage`, read or write. That
+      is not something a `try { localStorage.getItem(...) }` at each call
+      site can be relied on to catch everywhere: it has to be caught at every
+      single reference, forever, including inside every vendor bundle this
+      app ships (Supabase's own client construction, a dark-mode hook, a
+      social-login SDK all touch it directly), and a single unguarded access
+      anywhere in that graph throws before React ever mounts — a permanent
+      blank white screen, no error surfaced to the user or to Sentry, because
+      the crash happens before the error pipeline exists.
+
+      The fix is structural, not local: replace `window.localStorage` itself,
+      globally, with a real in-memory Storage-shaped object, before anything
+      else runs. Every later reference — ours or a vendor's — gets a working,
+      spec-shaped object back and never throws again. The tradeoff is that a
+      visitor in this state does not get persistent storage: their session,
+      theme choice and drafts do not survive a reload. That is a materially
+      better outcome than the one it replaces, and matches what already
+      happens for those visitors in stricter private-browsing modes anyway.
+    -->
+    <script>
+      (function () {
+        try {
+          var probeKey = "__helpr_boot_storage_probe__";
+          window.localStorage.setItem(probeKey, "1");
+          window.localStorage.removeItem(probeKey);
+        } catch (e) {
+          var mem = Object.create(null);
+          var memoryStorage = {
+            getItem: function (key) {
+              return Object.prototype.hasOwnProperty.call(mem, key) ? mem[key] : null;
+            },
+            setItem: function (key, value) {
+              mem[key] = String(value);
+            },
+            removeItem: function (key) {
+              delete mem[key];
+            },
+            clear: function () {
+              mem = Object.create(null);
+            },
+            key: function (index) {
+              var keys = Object.keys(mem);
+              return index >= 0 && index < keys.length ? keys[index] : null;
+            },
+            get length() {
+              return Object.keys(mem).length;
+            },
+          };
+          try {
+            Object.defineProperty(window, "localStorage", {
+              value: memoryStorage,
+              writable: false,
+              configurable: true,
+            });
+          } catch (e2) {
+            /* A browser that won't even let us redefine the property is
+               beyond what this page can repair — nothing further to try. */
+          }
+        }
+      })();
+    </script>
+
+    <!--
+      Pre-paint theme resolution. useDarkMode.ts only sets data-theme once the
+      JS bundle parses — after the inline boot loader below has already painted,
+      so dark-mode users saw a light flash on every cold start. This tiny inline
+      script mirrors useDarkMode's resolution (localStorage 'helpr-theme' →
+      system) and stamps data-theme on <html> before <body> renders. The bundle
+      reconciles to the same value later; this just removes the flash.
+    -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("helpr-theme") || "system";
+          var resolved =
+            t === "system"
+              ? window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
+              : t;
+          document.documentElement.setAttribute("data-theme", resolved);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
+
+    <!--
+      Boot-shell dark overrides. The #root / #boot-loader inline styles below
+      are light-tuned defaults; these !important rules repaint them for dark so
+      there's no light gutter (desktop) or flash (cold start) before React
+      mounts. Light path is left entirely on the inline styles.
+    -->
+    <style id="boot-theme">
+      /* The UA default `body { margin: 8px }` survives the first paint —
+         Tailwind's preflight only zeroes it once the app's stylesheet is
+         applied, and the inline boot shell above paints before that. Measured
+         (PerformanceObserver on 'layout-shift', production build, 375x812):
+         a 0.0099 shift on EVERY route, body moving [y 8, h 804] -> [y 0,
+         h 812]. It was the only load-time layout shift left in the app, and
+         it fires on every cold launch — i.e. the first thing anyone sees.
+         Zeroing it here, inline, makes first paint and steady state agree. */
+      html,
+      body {
+        margin: 0;
+      }
+      [data-theme="dark"] #root,
+      [data-theme="dark"] #boot-loader {
+        background: linear-gradient(160deg, hsl(220 15% 8%) 0%, hsl(220 12% 11%) 40%, hsl(200 15% 10%) 100%) !important;
+        background-color: hsl(220 15% 8%) !important;
+      }
+      /* Mirrors `[data-theme="dark"] .helpr-emblem` in src/index.css. It cannot
+         reuse that class: index.css ships with the JS bundle, which has not
+         parsed yet when this shell paints. The iron sits at roughly the same
+         value as the dark canvas, so dark LIFTS the mark rather than inverting
+         it — `brightness(0) invert(1)` would throw away the brass finials and
+         verdigris centre that make it a brand mark rather than a glyph. If the
+         rule in index.css changes, change this one with it. */
+      [data-theme="dark"] #boot-loader .boot-holder::after {
+        background: radial-gradient(ellipse at center,
+                    rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0) 70%) !important;
+      }
+      [data-theme="dark"] #boot-loader .boot-mark {
+        filter: brightness(1.9) saturate(1.2)
+                drop-shadow(0 2px 4px rgba(0, 0, 0, 0.65))
+                drop-shadow(0 10px 24px rgba(0, 0, 0, 0.7)) !important;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-C016SBmT.js"></script>
+    <link rel="preload" as="style" href="/assets/index-CgsU6ckW.css"><link rel="stylesheet" href="/assets/index-CgsU6ckW.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="/assets/index-CgsU6ckW.css"></noscript>
+    <meta name="build-commit" content="b117ad95c2eee231db4f6c11c040711e717837da">
+    <meta name="build-time" content="2026-09-09T17:28:08.130Z">
+  <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js" defer></script></head>
+  <body>
+    <!--
+      Inline FCP shell — brand ground + the real wrought-iron Helpr mark
+      (LH-50). History, because this spot has been wrong three ways:
+
+        1. A 580x580 splash <img> became Lighthouse's LCP element (the LCP
+           timer does not reset when React replaces the splash), so the score
+           waited on the splash to paint.
+        2. Stripped back to a bare background — a blank screen for ~2-3s on a
+           cold connection while the bundle parsed.
+        3. A generic 34px CSS ring spinner. Painted fast, but it is precisely
+           the "looks identical to every other React app" loader that
+           src/components/ui/HelprSpinner.tsx was written to abolish — and it
+           sat on the FIRST screen anyone sees.
+
+      Now: the actual brand mark ALONE, the same asset HelprMark and
+      HelprSpinner render. No wordmark — the mark carries the screen by
+      itself, and the app name is already on the home screen the user just
+      tapped. 256 source at 72px display, because 72 CSS px on a 3x phone is
+      216 device px and the 96 asset would upscale and go soft.
+
+      The accessible name lives on #boot-loader (role="status"
+      aria-label="Loading Helpr"), so removing the visible word costs nothing
+      to a screen reader; the <img> stays aria-hidden as pure decoration.
+
+      LCP: this IS an <img>, so it IS an LCP candidate — but LCP tracks the
+      LARGEST contentful paint, not the first, and the Bodoni hero H1 dwarfs a
+      72px mark and supersedes it. That is the difference from mistake 1: a
+      580x580 image stayed the largest thing on screen. Keep this small. If it
+      ever needs to grow past roughly a quarter of the viewport, re-measure LCP
+      before shipping it.
+
+      PATH: `./src/assets/...` is RELATIVE and Vite rewrites it to the hashed
+      asset (verified — it emits /assets/helpr-logo-256-<hash>.webp). Do NOT
+      write `/src/assets/...` with a leading slash: that reads as a public-dir
+      path, Vite cannot rewrite it, and it 404s in the build. That exact
+      mistake is recorded in the preload comment further up this file.
+
+      React's createRoot().render() clears #root's children on its first
+      commit, so this markup is removed the instant the app paints.
+    -->
+    <div id="root" style="background:linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);background-color:#F0F2F4;min-height:100vh;">
+      <div
+        id="boot-loader"
+        role="status"
+        aria-label="Loading Helpr"
+        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);background-color:#F0F2F4;"
+      >
+        <span class="boot-holder"><img
+          class="boot-mark"
+          src="/assets/helpr-logo-256-CEb1W4r4.webp"
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+          width="84"
+          height="72"
+          decoding="async"
+        /></span>
+        <style>
+          /* Same warm Olivewood lift the static mark carries everywhere else
+             (.helpr-emblem, src/index.css). Dark override lives in
+             #boot-theme in <head>. */
+          /* The holder carries the animation so the mark and its ground
+             shadow grow as one object. Animating the <img> alone would leave
+             the contact shadow static while the mark scaled over it. */
+          .boot-holder {
+            position: relative;
+            display: inline-block;
+            line-height: 0;
+            animation: mark-in 420ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+          }
+          /* Ground contact shadow — the pool the mark casts onto the surface
+             below it. The two drop-shadows on the mark say "this object is
+             lit"; this ellipse says "this object is standing on something".
+             Together they read as elevation rather than a floating cutout. */
+          .boot-holder::after {
+            content: "";
+            position: absolute;
+            z-index: 1;
+            left: 50%;
+            bottom: -14px;
+            transform: translateX(-50%);
+            width: 86px;
+            height: 14px;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at center,
+                        rgba(46, 47, 34, 0.30) 0%, rgba(46, 47, 34, 0) 70%);
+            filter: blur(4px);
+          }
+          .boot-mark {
+            position: relative;
+            z-index: 2;
+            /* The artwork is 256x220, NOT square. Constrain HEIGHT and let
+               width follow, exactly as HelprMark does with `h-* w-auto` —
+               setting both to 72 stretched the mark ~14% and is the kind of
+               thing that reads as "slightly off" without being nameable.
+               The width/height ATTRIBUTES carry the true 84x72 ratio so the
+               box reserved before decode matches what paints (no CLS). */
+            height: 72px;
+            width: auto;
+            -webkit-user-select: none;
+               -moz-user-select: none;
+                    user-select: none;
+            /* Elevation, not the inline-nav lift. .helpr-emblem's shadow is
+               tuned for a 20px mark sitting IN a toolbar; at 72px on an empty
+               ground it reads as flat. This is a two-layer cast: a tight
+               contact shadow plus a wide soft one, so the ironwork looks like
+               it is floating above the parchment rather than printed on it.
+               drop-shadow follows the PNG's alpha, so the shadow is
+               scroll-shaped — a box-shadow would cast a rectangle. */
+            filter: drop-shadow(0 2px 3px rgba(46, 47, 34, 0.18))
+                    drop-shadow(0 9px 20px rgba(46, 47, 34, 0.28));
+          }
+          /* The GROUND paints on frame 1 — never fade the background, or the
+             handoff from the native splash flashes. Only the MARK animates: a
+             420ms grow from 0.94, which reads as the icon opening into the app
+             (the gesture iOS already trains). No spinner: a launch screen is
+             static per Apple HIG. It never loops. */
+          @keyframes mark-in {
+            from { opacity: 0; transform: scale(0.94); }
+            to   { opacity: 1; transform: scale(1); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .boot-holder { animation: none; opacity: 1; }
+          }
+        </style>
+      </div>
+    </div>
+  </body>
+</html>

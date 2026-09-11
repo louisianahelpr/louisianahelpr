@@ -1,0 +1,1 @@
+import{Do as e}from"./app-shared-CzkIEHhM.js";export{e as Capacitor};

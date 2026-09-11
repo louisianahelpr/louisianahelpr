@@ -1,0 +1,1 @@
+import{t as e}from"./react-vendor-D6KBUCv7.js";import{Yo as t,hi as n}from"./app-shared-CzkIEHhM.js";var r=e(),i=({to:e,children:i})=>{let{user:a,isLoading:o}=n();return o?(0,r.jsx)(`div`,{className:`min-h-screen bg-premium-page`}):a?(0,r.jsx)(t,{to:e,replace:!0}):(0,r.jsx)(r.Fragment,{children:i})};export{i as default};

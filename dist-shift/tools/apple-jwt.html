@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Apple Sign In JWT Generator — Helpr</title>
+  <style>
+    :root {
+      --ink: #2A2A28;
+      --ink-light: #585854;
+      --bg: #FAFAF8;
+      --card: #FFFFFF;
+      --border: #D4D4CE;
+      --primary: #6B7855;
+      --primary-dark: #4F5840;
+      --warning: #B8842D;
+      --danger: #A0382D;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      padding: 24px 16px;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+    .sub { color: var(--ink-light); font-size: 0.9rem; margin-bottom: 24px; }
+    .notice {
+      background: #F0F4E8;
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.85rem;
+      margin-bottom: 20px;
+      color: var(--primary-dark);
+    }
+    .notice strong { color: var(--primary-dark); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+      color: var(--ink);
+    }
+    .hint {
+      font-size: 0.75rem;
+      color: var(--ink-light);
+      margin: -2px 0 6px;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: ui-monospace, "SF Mono", Consolas, monospace;
+      font-size: 0.85rem;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    textarea { min-height: 140px; resize: vertical; }
+    .row { margin-bottom: 14px; }
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: var(--primary-dark); }
+    button:disabled { background: var(--border); cursor: not-allowed; }
+    button.secondary {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+    .output {
+      display: none;
+      margin-top: 16px;
+    }
+    .output.show { display: block; }
+    .jwt-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: ui-monospace, "SF Mono", Consolas, monospace;
+      font-size: 0.78rem;
+      word-break: break-all;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 8px;
+    }
+    .meta {
+      font-size: 0.8rem;
+      color: var(--ink-light);
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .error {
+      color: var(--danger);
+      background: #FBE9E7;
+      border: 1px solid var(--danger);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 0.85rem;
+      display: none;
+      margin-top: 12px;
+    }
+    .error.show { display: block; }
+    .copy-msg {
+      color: var(--primary);
+      font-size: 0.8rem;
+      margin-left: 8px;
+      display: none;
+    }
+    .copy-msg.show { display: inline; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Apple Sign In JWT Generator</h1>
+    <p class="sub">Builds the OAuth client_secret JWT that Supabase requires for the Apple provider.</p>
+
+    <div class="notice">
+      <strong>This tool runs entirely in your browser.</strong> Your private key
+      never leaves this page — no server, no network calls, no logging.
+      Uses the Web Crypto API (built into every modern browser) to sign the JWT locally.
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <label for="teamId">Team ID</label>
+        <p class="hint">10-character team identifier shown next to your name on developer.apple.com.</p>
+        <input type="text" id="teamId" placeholder="ABCDE12345" maxlength="10">
+      </div>
+
+      <div class="row">
+        <label for="keyId">Key ID</label>
+        <p class="hint">10-character ID shown when you created the Sign In with Apple key. Matches the filename: AuthKey_&lt;KEY_ID&gt;.p8</p>
+        <input type="text" id="keyId" placeholder="ABCDE12345" maxlength="10">
+      </div>
+
+      <div class="row">
+        <label for="servicesId">Services ID</label>
+        <p class="hint">The OAuth client identifier you created (Identifiers → Services IDs). Example: com.Helpr.signin</p>
+        <input type="text" id="servicesId" placeholder="com.example.signin">
+      </div>
+
+      <div class="row">
+        <label for="p8">Private Key (.p8 contents)</label>
+        <p class="hint">Open AuthKey_&lt;KEY_ID&gt;.p8 in TextEdit / any text editor. Paste the entire contents including BEGIN/END lines.</p>
+        <textarea id="p8" placeholder="-----BEGIN PRIVATE KEY-----&#10;MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkw...&#10;-----END PRIVATE KEY-----"></textarea>
+      </div>
+
+      <div class="row">
+        <label for="expDays">Expires in (days)</label>
+        <p class="hint">Maximum 180 days (Apple's hard cap). You'll need to regenerate before this expires.</p>
+        <input type="text" id="expDays" value="180" maxlength="3">
+      </div>
+
+      <button id="generate">Generate JWT</button>
+      <span class="copy-msg" id="copyMsg">copied!</span>
+    </div>
+
+    <div class="error" id="error"></div>
+
+    <div class="output" id="output">
+      <div class="card">
+        <label>Generated JWT (paste into Supabase → Auth → Apple → Secret Key)</label>
+        <div class="jwt-box" id="jwtOut"></div>
+        <button class="secondary" id="copyBtn">Copy to clipboard</button>
+        <div class="meta" id="meta"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ─── Encoding helpers ───
+    const enc = new TextEncoder();
+    const b64url = (buf) => {
+      const bytes = buf instanceof ArrayBuffer ? new Uint8Array(buf) : buf;
+      let s = '';
+      for (const b of bytes) s += String.fromCharCode(b);
+      return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    };
+    const jsonB64url = (obj) => b64url(enc.encode(JSON.stringify(obj)));
+
+    // PEM → ArrayBuffer (PKCS#8 binary). Strip BEGIN/END/whitespace.
+    const pemToArrayBuffer = (pem) => {
+      const cleaned = pem
+        .replace(/-----BEGIN [^-]+-----/g, '')
+        .replace(/-----END [^-]+-----/g, '')
+        .replace(/\s+/g, '');
+      const binary = atob(cleaned);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    };
+
+    const showError = (msg) => {
+      const el = document.getElementById('error');
+      el.textContent = 'Error: ' + msg;
+      el.classList.add('show');
+      document.getElementById('output').classList.remove('show');
+    };
+    const clearError = () => {
+      document.getElementById('error').classList.remove('show');
+    };
+
+    document.getElementById('generate').addEventListener('click', async () => {
+      clearError();
+      const teamId = document.getElementById('teamId').value.trim();
+      const keyId = document.getElementById('keyId').value.trim();
+      const servicesId = document.getElementById('servicesId').value.trim();
+      const p8 = document.getElementById('p8').value.trim();
+      const expDays = parseInt(document.getElementById('expDays').value, 10) || 180;
+
+      if (!teamId) return showError('Team ID required');
+      if (!keyId) return showError('Key ID required');
+      if (!servicesId) return showError('Services ID required');
+      if (!p8 || !p8.includes('BEGIN PRIVATE KEY')) return showError('Paste the full .p8 contents including the BEGIN/END lines');
+      if (expDays < 1 || expDays > 180) return showError('Expiry must be between 1 and 180 days (Apple\'s cap)');
+
+      try {
+        const keyBuf = pemToArrayBuffer(p8);
+        // Apple Sign In keys are PKCS#8-formatted EC P-256 (prime256v1) keys.
+        const cryptoKey = await crypto.subtle.importKey(
+          'pkcs8',
+          keyBuf,
+          { name: 'ECDSA', namedCurve: 'P-256' },
+          false,
+          ['sign']
+        );
+
+        const now = Math.floor(Date.now() / 1000);
+        const exp = now + (expDays * 86400);
+
+        const header = { alg: 'ES256', kid: keyId, typ: 'JWT' };
+        const payload = {
+          iss: teamId,
+          iat: now,
+          exp: exp,
+          aud: 'https://appleid.apple.com',
+          sub: servicesId,
+        };
+
+        const signingInput = jsonB64url(header) + '.' + jsonB64url(payload);
+
+        // ECDSA SHA-256 sign — SubtleCrypto outputs raw IEEE-P1363 (64 bytes
+        // for P-256: r||s), exactly what JWT specs require.
+        const signature = await crypto.subtle.sign(
+          { name: 'ECDSA', hash: 'SHA-256' },
+          cryptoKey,
+          enc.encode(signingInput)
+        );
+
+        const jwt = signingInput + '.' + b64url(signature);
+
+        document.getElementById('jwtOut').textContent = jwt;
+        const expDate = new Date(exp * 1000).toLocaleDateString(undefined, {
+          year: 'numeric', month: 'short', day: 'numeric'
+        });
+        document.getElementById('meta').innerHTML =
+          '<span><strong>Issued:</strong> ' + new Date(now * 1000).toLocaleString() + '</span>' +
+          '<span><strong>Expires:</strong> ' + expDate + ' (regenerate before then)</span>';
+        document.getElementById('output').classList.add('show');
+      } catch (err) {
+        showError(err.message || String(err));
+      }
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const jwt = document.getElementById('jwtOut').textContent;
+      try {
+        await navigator.clipboard.writeText(jwt);
+        const msg = document.getElementById('copyMsg');
+        msg.classList.add('show');
+        setTimeout(() => msg.classList.remove('show'), 2000);
+      } catch (err) {
+        showError('Clipboard write failed — manually select and copy the JWT above.');
+      }
+    });
+  </script>
+</body>
+</html>

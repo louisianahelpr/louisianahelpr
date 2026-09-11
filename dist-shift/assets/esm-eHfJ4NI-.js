@@ -1,0 +1,1 @@
+import{Po as e,rs as t}from"./app-shared-CzkIEHhM.js";var n=e(`Network`,{web:()=>t(()=>import(`./web-Kw4TQzzK.js`).then(e=>new e.NetworkWeb),[])});export{n as Network};

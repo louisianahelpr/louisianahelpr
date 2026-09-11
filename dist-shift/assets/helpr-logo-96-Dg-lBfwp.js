@@ -1,0 +1,1 @@
+var e=`/assets/helpr-logo-96-C77gmY--.webp`;export{e as t};

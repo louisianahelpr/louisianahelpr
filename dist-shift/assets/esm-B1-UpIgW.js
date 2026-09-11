@@ -1,0 +1,1 @@
+import{Po as e,rs as t}from"./app-shared-CzkIEHhM.js";import{t as n}from"./synapse-D5y-aojA.js";var r=e(`Geolocation`,{web:()=>t(()=>import(`./web-CoW1eLFu.js`).then(e=>new e.GeolocationWeb),[])});n();export{r as Geolocation};

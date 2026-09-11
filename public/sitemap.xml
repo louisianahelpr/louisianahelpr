@@ -22,7 +22,22 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/privacy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/rules</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/support</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/terms</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -41,4 +56,7 @@
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
+  <!-- Emitted with default weight (0.5/monthly):
+       /privacy, /rules, /terms
+       Add an entry to WEIGHTS in scripts/generate-sitemap.mjs to tune these. -->
 </urlset>

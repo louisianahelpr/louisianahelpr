@@ -3,6 +3,7 @@ import { unregisterPushOnSignOut } from "@/lib/nativePush";
 import { clearRememberedRoute } from "@/lib/lastRoute";
 import { queryClient } from "@/lib/queryClient";
 import { removePersistedClient } from "@/lib/queryPersister";
+import { clearPersistedAuthToken } from "@/lib/persistedAuthToken";
 
 type SignOutOptions = { scope?: "global" | "local" | "others" };
 
@@ -31,7 +32,53 @@ export async function signOutWithPushCleanup(options?: SignOutOptions) {
   // No data leaks (ProtectedRoute and RLS still gate it), yet it plainly
   // isn't B's app. Cheap to clear, so clear it.
   clearRememberedRoute();
-  const result = await supabase.auth.signOut(options);
+  // ── THE FLOOR UNDER A FAILED SIGN-OUT ────────────────────────────────────
+  // Owner, 2026-09-11: "i had to click log out twice to actually log out."
+  //
+  // `auth.signOut()` has two failure modes that both LEAVE THE PERSISTED
+  // SESSION IN PLACE, and neither says a word:
+  //
+  //  1. It REJECTS. auth-js wraps every auth call in `_acquireLock`, which
+  //     throws `NavigatorLockAcquireTimeoutError` when another tab (or an
+  //     in-flight refresh in this one) holds `lock:sb-<ref>-auth-token` past
+  //     the timeout. Desktop Chrome with the app open twice is the whole
+  //     repro. The throw escapes this function, so every caller's
+  //     `await signOutWithPushCleanup(); navigate("/")` never reaches the
+  //     navigate: you stay on /profile, still signed in, and click again.
+  //     Same throw, already recorded on the delete path — see the comment in
+  //     `useDeleteAccount.handleDelete`.
+  //  2. It RETURNS `{ error }` WITHOUT removing the session. Read
+  //     `GoTrueClient._signOut`: if `_useSession` yields an error that is not
+  //     AuthSessionMissingError (an expired token whose refresh just failed
+  //     on the network, say) it returns that error *before* reaching
+  //     `removeCurrentSession()`. Every other error path does remove it;
+  //     that one does not.
+  //
+  // Either way the `sb-*-auth-token` key survives — and that key is exactly
+  // what `MarketingRedirect`/`prePaintShellClasses`/`MobileNav` fast-path off,
+  // so `navigate("/")` bounces straight back into the app as a signed-in user.
+  // The second click then succeeds, because the lock is free or the refresh
+  // has settled. Hence: twice.
+  //
+  // So sign-out is made terminal on the client. `clearPersistedAuthToken()`
+  // already exists as this floor (`useDeleteAccount` reaches for it for the
+  // same reason); it belongs HERE, under all ~12 call sites, not at one of
+  // them. Not for `scope: "others"`, which must deliberately keep this
+  // device's session.
+  let result: Awaited<ReturnType<typeof supabase.auth.signOut>>;
+  try {
+    result = await supabase.auth.signOut(options);
+  } catch (err) {
+    console.error("[signOut] auth.signOut() threw — clearing the session by hand", err);
+    result = { error: err as never };
+  }
+  // `result?.` because a rejecting/undefined-returning stub must not become a
+  // second failure inside the failure handler.
+  if (result?.error && options?.scope !== "others") {
+    // Loud, never dropped: this is the branch where the SDK did not do it.
+    console.error("[signOut] auth.signOut() failed — clearing the persisted session by hand", result.error);
+    clearPersistedAuthToken();
+  }
 
   // Wipe the in-memory React Query cache and the persisted IndexedDB copy, so
   // the next person on this device cannot rehydrate the previous user's data:

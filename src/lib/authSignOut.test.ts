@@ -88,6 +88,45 @@ describe("signOutWithPushCleanup", () => {
     spy.mockRestore();
   });
 
+  // ── "i had to click log out twice to actually log out" (owner, 2026-09-11) ──
+  // Both branches below left `sb-<ref>-auth-token` in localStorage, which is
+  // what MarketingRedirect reads — so the post-sign-out `navigate("/")` fed
+  // the user straight back into the app, and only the second click stuck.
+  const TOKEN_KEY = "sb-fncmgoasalhdgfwzhsqa-auth-token";
+
+  it("clears the persisted session when auth.signOut() RETURNS an error (auth-js can return early without removing it)", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({ access_token: "x" }));
+    signOut.mockResolvedValueOnce({ error: { name: "AuthApiError", message: "network" } as never });
+    const { signOutWithPushCleanup } = await import("./authSignOut");
+    await signOutWithPushCleanup();
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("clears the persisted session when auth.signOut() THROWS (NavigatorLockAcquireTimeoutError), and does not rethrow", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({ access_token: "x" }));
+    signOut.mockRejectedValueOnce(new Error("NavigatorLockAcquireTimeoutError"));
+    const { signOutWithPushCleanup } = await import("./authSignOut");
+    // The throw is what stopped every caller's `navigate()` from ever running.
+    await expect(signOutWithPushCleanup()).resolves.toBeDefined();
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+    spy.mockRestore();
+  });
+
+  it("leaves THIS device's session alone for scope:'others' — that sign-out is about other devices", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({ access_token: "x" }));
+    signOut.mockResolvedValueOnce({ error: { name: "AuthApiError", message: "network" } as never });
+    const { signOutWithPushCleanup } = await import("./authSignOut");
+    await signOutWithPushCleanup({ scope: "others" });
+    expect(localStorage.getItem(TOKEN_KEY)).not.toBeNull();
+    localStorage.removeItem(TOKEN_KEY);
+    spy.mockRestore();
+  });
+
   it("does not import sentry or posthog — the wipe must not ride on analytics", async () => {
     const { readFileSync } = await import("node:fs");
     const { resolve } = await import("node:path");

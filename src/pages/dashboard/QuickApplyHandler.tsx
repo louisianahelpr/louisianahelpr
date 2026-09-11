@@ -4,19 +4,43 @@ import { toast } from "sonner";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
-import { formatPrice } from "@/lib/format";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
-// Quick Apply handler for notification deep links
-export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
+// The one column list this handler fetches on a feed miss. It is the feed's
+// own `open_jobs_browse` select minus the pagination-only columns — the sheet
+// renders from these, and the poster-enrichment fields (`posterName`, rating,
+// avatar) are all OPTIONAL on `EnrichedJob`, so a bare view row is a valid
+// job for JobDetailDialog to open on.
+const SHEET_COLUMNS =
+  "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, pricing_mode, applicant_count, credential_tier, parish, payment_status, location, latitude, longitude";
+
+// Deep-link resolver for job notifications.
+//
+// IT OPENS THE JOB SHEET. It used to raise a sonner toast —
+// `Quick Apply: "<title>" ($40)` with an "Apply now" action — for the single
+// most common notification link in the product (470 of 1,584 prod
+// `notifications` rows carry `/dashboard?quickApply=<id>`, plus `/jobs/<id>`,
+// which redirects here). Owner, 2026-09-11: "jobs should never show like
+// this in a toast." A toast is transient feedback; a job is a price, a
+// location, a date, a poster, photos and a money decision, and the surface
+// built for that decision already exists — JobDetailDialog, which has the
+// apply form merged into it. So the deep link now resolves to exactly the
+// same open-the-sheet path a tap on a feed card takes.
+//
+// The only toast left is the failure toast: a job that is gone, filled or
+// still held back has no sheet to open.
+export const QuickApplyHandler = ({ searchParams, user, allJobs, onOpenJob, onHandled }: {
   searchParams: URLSearchParams;
   user: SupaUser | null;
   allJobs: EnrichedJob[];
-  onApply: (jobId: string) => void;
+  /** Open the job sheet — Dashboard's `openDetailJob`. */
+  onOpenJob: (job: EnrichedJob) => void;
+  /** Strip `?quickApply` from the URL (replace, never push). */
+  onHandled: () => void;
 }) => {
   const quickApplyId = searchParams.get("quickApply");
 
-  // `allJobs` and `onApply` are read through refs, NOT listed as deps — and
+  // `allJobs`, `onOpenJob` and `onHandled` are read through refs, NOT listed as deps — and
   // that is the whole fix, not a style choice.
   //
   // They were deps, and both change identity while the dashboard is still
@@ -53,8 +77,10 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
   const handledRef = useRef(false);
   const allJobsRef = useRef(allJobs);
   allJobsRef.current = allJobs;
-  const onApplyRef = useRef(onApply);
-  onApplyRef.current = onApply;
+  const onOpenJobRef = useRef(onOpenJob);
+  onOpenJobRef.current = onOpenJob;
+  const onHandledRef = useRef(onHandled);
+  onHandledRef.current = onHandled;
   const userId = user?.id ?? null;
 
   useEffect(() => {
@@ -68,21 +94,18 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
     handledRef.current = true;
     let cancelled = false;
 
-    // `title` is nullable on the miss path: `open_jobs_browse` projects it as
-    // nullable, and the branch below reads the view rather than the feed. A
-    // null one is dropped from the label rather than interpolated — the toast
-    // otherwise reads `Quick Apply: "null"`, and the action button is what
-    // matters here, not the name.
-    const promptToApply = (title: string | null, budget: number | null, isInstantBook = false) => {
-      const lead = isInstantBook ? "Instant Book" : "Quick Apply";
-      const named = title ? `${lead}: "${title}"` : lead;
-      toast(
-        `${named}${budget != null ? ` ($${formatPrice(budget)})` : ""}`,
-        {
-          action: { label: isInstantBook ? "Book now" : "Apply now", onClick: () => onApplyRef.current(quickApplyId) },
-          duration: 10000,
-        }
-      );
+    // Open the sheet and drop the param in the same beat. `onHandled` must
+    // REPLACE, never push — see the replaceState-throttle note in Dashboard;
+    // a pushed entry would also make Back re-fire the deep link.
+    const openSheet = (job: EnrichedJob) => {
+      onOpenJobRef.current(job);
+      onHandledRef.current();
+    };
+    // Every terminal branch that stays on the feed clears the param too, so a
+    // pull-to-refresh doesn't replay a link the user already saw fail.
+    const failWith = (message: string) => {
+      toast.error(message);
+      onHandledRef.current();
     };
 
     const feedJob = allJobsRef.current.find((j) => j.id === quickApplyId);
@@ -93,9 +116,9 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
         // an owner tapping their own Share link hits most often.
         goToOwnPost(quickApplyId);
       } else if (feedJob.status && feedJob.status !== "open") {
-        toast.error("This job isn't accepting applications anymore.");
+        failWith("This job isn't accepting applications anymore.");
       } else {
-        promptToApply(feedJob.title, feedJob.budget ?? null, !!(feedJob as { instant_book?: boolean }).instant_book);
+        openSheet(feedJob);
       }
       return;
     }
@@ -123,7 +146,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
     (async () => {
       const { data, error } = await supabase
         .from("open_jobs_browse")
-        .select("id, title, budget, customer_id, status")
+        .select(SHEET_COLUMNS)
         .eq("id", quickApplyId)
         .maybeSingle();
       if (cancelled) return;
@@ -135,7 +158,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
           tags: { source: "QuickApplyHandler.openJobsBrowseLookup" },
           context: { job_id: quickApplyId },
         });
-        toast.error("Couldn't load this job. Check your connection and try again.");
+        failWith("Couldn't load this job. Check your connection and try again.");
         return;
       }
       if (!data) {
@@ -171,7 +194,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
             tags: { source: "QuickApplyHandler.participantLookup" },
             context: { job_id: quickApplyId },
           });
-          toast.error("Couldn't load this job. Check your connection and try again.");
+          failWith("Couldn't load this job. Check your connection and try again.");
           return;
         }
         if (own) {
@@ -202,7 +225,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
         // So the copy names the likely causes without asserting any one of
         // them. It used to say only "isn't available to open YET", which reads
         // as a promise that waiting will work — false for a job that was filled.
-        toast.error("We can't open this job right now — it may have been filled or taken down. If you just got the alert, try again in a few minutes.");
+        failWith("We can't open this job right now — it may have been filled or taken down. If you just got the alert, try again in a few minutes.");
         return;
       }
       if (data.customer_id === userId) {
@@ -226,14 +249,15 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
         return;
       }
       if (data.status && data.status !== "open") {
-        toast.error("This job isn't accepting applications anymore.");
+        failWith("This job isn't accepting applications anymore.");
         return;
       }
-      // `open_jobs_browse` does not project `instant_book` (nor did the feed
-      // rows this same expression reads on the hit path), so this resolves to
-      // the Quick Apply copy. Kept as an optional read rather than dropped so
-      // the two branches stay identical if the view ever adds the column.
-      promptToApply(data.title ?? "", data.budget ?? null, !!(data as { instant_book?: boolean }).instant_book);
+      // A bare view row, opened as the sheet. No `promptToApply` any more —
+      // and no Instant Book branch either: the column was dropped from `jobs`
+      // by 20260904034410 (dead-feature cut) and `open_jobs_browse` never
+      // projected it, so the "Book Now" copy in ApplyBody is unreachable for
+      // every job in the product today. Verified, not assumed.
+      openSheet(data as unknown as EnrichedJob);
     })();
 
     return () => { cancelled = true; };

@@ -177,6 +177,16 @@ const Dashboard = () => {
   const { detailJob, openDetailJob, closeDetailJob } = useDetailJob({
     containerRef, searchParams, setSearchParams, allJobs,
   });
+  // Drop `?quickApply` once the deep link has resolved. Functional + replace:
+  // it reads `prev` rather than the captured `searchParams`, so it is stable,
+  // never re-fires the effect that called it, and adds no history entry.
+  const clearQuickApplyParam = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("quickApply");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   // List vs Map view. The map shows the same open jobs as the list,
   // pinned to neighborhood-rounded coords (privacy via the
@@ -811,7 +821,20 @@ const Dashboard = () => {
           onActiveChange={setTourActive}
         />
       </Suspense>
-      <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApplyRequest} />
+      {/* A job-match notification opens THE JOB SHEET, not a toast (owner,
+          2026-09-11). `openDetailJob` is the exact same entry point a tap on
+          a feed card uses — it snapshots the feed scroll and mirrors `?job=`
+          — so the deep link and the card converge on one surface. The
+          `quickApply` param is then dropped with a functional REPLACE, which
+          is what keeps this off the replaceState-throttle path: one write, no
+          `setSearchParams` loop, and Back can't re-fire the link. */}
+      <QuickApplyHandler
+        searchParams={searchParams}
+        user={user}
+        allJobs={allJobs}
+        onOpenJob={openDetailJob}
+        onHandled={clearQuickApplyParam}
+      />
 
 
       {/* STANDALONE apply sheet — only for the QuickApply deep link

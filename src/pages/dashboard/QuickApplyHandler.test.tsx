@@ -8,6 +8,12 @@
 // single-row lookup was `open_jobs_browse`, which by construction shows OPEN,
 // funded, early-access-released jobs and nothing else. Prod carries 34
 // `/jobs/<id>` notification rows and all of them are addressed to a party.
+//
+// And, since 2026-09-11: that a resolvable job OPENS THE JOB SHEET rather than
+// raising a toast about itself (owner). The first describe holds that — one
+// test for the feed hit, one for the fetch, one for the single error toast —
+// plus the param strip, because a `quickApply` left in the URL is a link that
+// can replay.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -45,17 +51,21 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
+const openJobMock = vi.fn();
+const handledMock = vi.fn();
+
 const USER = { id: "helper-1" } as unknown as Parameters<typeof QuickApplyHandler>[0]["user"];
 const JOB_ID = "job-abc";
 
-function renderHandler() {
+function renderHandler(allJobs: Parameters<typeof QuickApplyHandler>[0]["allJobs"] = []) {
   return render(
     <MemoryRouter>
       <QuickApplyHandler
         searchParams={new URLSearchParams(`quickApply=${JOB_ID}`)}
         user={USER}
-        allJobs={[]}
-        onApply={vi.fn()}
+        allJobs={allJobs}
+        onOpenJob={openJobMock}
+        onHandled={handledMock}
       />
     </MemoryRouter>,
   );
@@ -66,6 +76,54 @@ beforeEach(() => {
   navigateMock.mockClear();
   toastMock.mockClear();
   toastErrorMock.mockClear();
+  openJobMock.mockClear();
+  handledMock.mockClear();
+});
+
+describe("QuickApplyHandler — the deep link opens the job sheet", () => {
+  it("opens the sheet for a job already in the feed, and never toasts it", async () => {
+    const job = {
+      id: JOB_ID, title: "Haul brush", budget: 80, customer_id: "poster-9",
+      status: "open", description: "", category: "yard", date_needed: null,
+      location: null, created_at: "2026-09-10T00:00:00Z",
+    } as unknown as Parameters<typeof QuickApplyHandler>[0]["allJobs"][number];
+
+    renderHandler([job]);
+
+    await waitFor(() => expect(openJobMock).toHaveBeenCalledWith(job));
+    // THE regression this replaces: a sonner toast standing in for the sheet.
+    expect(toastMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).not.toHaveBeenCalled();
+    // …and the param is dropped, so nothing replays the link.
+    expect(handledMock).toHaveBeenCalled();
+  });
+
+  it("fetches a job that is NOT in the feed and opens the sheet on that row", async () => {
+    responses.set("open_jobs_browse", {
+      data: { id: JOB_ID, title: "Move a couch", budget: 120, customer_id: "poster-9", status: "open" },
+      error: null,
+    });
+
+    renderHandler();
+
+    await waitFor(() => expect(openJobMock).toHaveBeenCalledTimes(1));
+    expect(openJobMock.mock.calls[0][0]).toMatchObject({ id: JOB_ID, title: "Move a couch" });
+    expect(toastMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).not.toHaveBeenCalled();
+    expect(handledMock).toHaveBeenCalled();
+  });
+
+  it("shows ONE plain error toast — and no sheet — for an id nobody can see", async () => {
+    responses.set("open_jobs_browse", { data: null, error: null });
+    responses.set("jobs", { data: null, error: null });
+
+    renderHandler();
+
+    await waitFor(() => expect(toastErrorMock).toHaveBeenCalledTimes(1));
+    expect(openJobMock).not.toHaveBeenCalled();
+    expect(toastMock).not.toHaveBeenCalled();
+    expect(handledMock).toHaveBeenCalled();
+  });
 });
 
 describe("QuickApplyHandler — a job the browse view cannot show", () => {

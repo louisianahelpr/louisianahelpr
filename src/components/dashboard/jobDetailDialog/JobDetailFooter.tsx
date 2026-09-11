@@ -253,14 +253,15 @@ export const JobDetailFooter = ({
                 so the label sits at the button's true optical center instead of
                 being pushed left by the chevron. */}
             <span aria-hidden className="w-4 h-4 shrink-0" />
-            {/* "Continue", not "Apply Now" (owner, 2026-08-30) — tapping this
-                no longer applies anything; it reveals the note/attachments
-                form in place (see JobDetailDialog's merged-into-one-screen
-                apply flow), which has its OWN "Apply Now" that actually
-                submits. Two identically-labelled buttons doing different
-                things read as broken. (Instant Book, which used to skip this
-                form, was dropped in 20260904034410.) */}
-            <span className="truncate">Continue</span>
+            {/* "Apply Now" again (owner, 2026-09-09). It read "Continue" from
+                2026-08-30 while applying was a SECOND STEP of this sheet and
+                this button only revealed it. The two steps are collapsed —
+                the note field and the real "Apply Now" render on the detail
+                sheet itself now — so this branch is what is left when the
+                inline form is withheld: the transient frame before the
+                viewer's own id resolves on a job they posted. Naming it
+                "Continue" pointed at a step that no longer exists. */}
+            <span className="truncate">Apply Now</span>
             <ChevronRight
               className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
               strokeWidth={2.5}

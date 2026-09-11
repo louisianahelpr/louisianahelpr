@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHero, DialogBody, DIALOG_TOP_RIGHT_RESERVE } from "@/components/ui/dialog";
 import {
@@ -33,7 +33,8 @@ interface JobDetailDialogProps {
   userLng?: number | null;
   onClose: () => void;
   /** Returning `false` means the request was refused (offline, signed out,
-   *  your own post) — the sheet then stays on the detail step. */
+   *  your own post). Nothing steps any more, so the answer is only used by
+   *  the caller's own submit path; the sheet just stays where it is. */
   onApply: (jobId: string) => void | boolean | Promise<void | boolean>;
   onReport: (jobId: string) => void;
   /** Switching the dialog from one job to another (swipe gesture or similar-job tap). */
@@ -43,68 +44,40 @@ interface JobDetailDialogProps {
       The poster card, applicant banners, and authed look-ups are skipped —
       a guest only has the masked public RPC fields. */
   guest?: boolean;
-  /** Renders the APPLY STEP inside this same sheet.
+  /** THE APPLY FORM, RENDERED ON THIS SAME SHEET — NOT A SECOND STEP.
    *
-   *  When supplied, tapping Apply Now no longer closes the sheet and hands off
-   *  to a separate centred modal — it swaps this sheet's body in place, so the
-   *  whole apply flow happens on one surface anchored to one edge (owner,
-   *  2026-08-28: "I don't like how one opens at the bottom then the next is in
-   *  the middle"). Only the feed passes it; the guest surfaces (Jobs,
-   *  JobDetail, DashboardGuest) have no apply flow to render and keep the old
-   *  behaviour, where the footer's guest branch navigates to signup itself. */
-  applyStep?: (ctx: { onBack: () => void }) => ReactNode;
+   *  Owner, 2026-09-09, from two device screenshots: "collapse the two steps
+   *  into one". The note-to-poster field, the save-as-default-pitch checkbox,
+   *  the payout explainer and a single "Apply Now" now all live on the job
+   *  detail sheet itself. There is no Continue, no step change, and one less
+   *  tap to apply.
+   *
+   *  When supplied AND the viewer is actually able to apply, this renders in
+   *  place of the footer's Apply CTA (the footer's other three branches —
+   *  "This is your post", "Applied", the credential gate — are STATUS and
+   *  navigation, not commits, so they still render and this does not).
+   *  Only the feed passes it; the guest surfaces (Jobs, JobDetail,
+   *  DashboardGuest) have no apply flow and keep the footer's guest branch,
+   *  which navigates to signup itself. */
+  applyForm?: ReactNode;
 }
 
 const JobDetailDialog = ({
-  job, effectiveFee, allJobs: _allJobs, isSaved, onToggleSave, userLat, userLng, onClose, onApply, onReport, onSelect: _onSelect, guest = false, applyStep,
+  job, effectiveFee, allJobs: _allJobs, isSaved, onToggleSave, userLat, userLng, onClose, onApply, onReport, onSelect: _onSelect, guest = false, applyForm,
 }: JobDetailDialogProps) => {
   const navigate = useNavigate();
   const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
 
-  /* Which half of the sheet is showing. The apply UI used to be a separate
-     centred AlertDialog that opened AFTER this one closed; it is a step of
-     this same surface now. */
-  const [step, setStep] = useState<"detail" | "apply">("detail");
-  const jobId = job?.id ?? null;
-  // Back to the detail step whenever the sheet closes or swaps to another job
-  // — otherwise reopening the sheet, or swiping to the next job, would land
-  // straight on the apply form for a job the helpr has not read yet.
-  useEffect(() => { setStep("detail"); setPinnedTop(null); }, [jobId]);
+  /* NO STEP, NO PIN. This sheet used to carry `step: "detail" | "apply"`, a
+     `goToApply()` that read the sheet's own top edge and pinned it before
+     stepping, and a `pinnedTop`/`pinnedStyle` pair holding that edge for the
+     rest of the open. Every line of that existed for ONE reason: the box
+     resized when it swapped steps, and a centred box absorbs a resize
+     symmetrically, so the top edge walked 73px up at 375x812 mid-act.
 
-  /* THE TOP EDGE IS PINNED THE MOMENT YOU STEP FORWARD.
-     The sheet opens centred (owner, twice) and sizes to its content. It used
-     to carry a 68dvh floor so a short job would not resize between steps;
-     e319103eb then added the "you can't be hired yet" explainer to the apply
-     step, which for the majority of real helpers (7 of 8 non-seed profiles,
-     measured 2026-09-06) pushed the apply content past the floor anyway.
-     Centring absorbs growth symmetrically, so the top edge walked 73px up at
-     375x812 (129.9 -> 56.8) — the exact jump apply-single-sheet.spec.ts
-     exists to catch. The floor is gone now (it was dead space under
-     Continue); this pin is what holds the edge.
-
-     Rather than guess a taller floor for every job, the sheet reads its own
-     top edge right before the step changes and holds it there for the rest
-     of this open: the box may grow DOWNWARD into whatever the viewport has
-     left, and scrolls internally past that, but the edge the reader's eye is
-     resting on does not move. Reset on close / job swap so the next open is
-     centred again. */
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [pinnedTop, setPinnedTop] = useState<number | null>(null);
-  const goToApply = () => {
-    const top = contentRef.current?.getBoundingClientRect().top;
-    if (typeof top === "number" && Number.isFinite(top)) setPinnedTop(Math.round(top * 10) / 10);
-    setStep("apply");
-  };
-  const pinnedStyle =
-    pinnedTop == null
-      ? undefined
-      : {
-          top: pinnedTop,
-          translate: "-50% 0",
-          // Never taller than the space below the pinned edge; the base
-          // shell's overflow-y-auto scrolls the rest.
-          maxHeight: `calc(100dvh - ${pinnedTop}px - 1rem)`,
-        };
+     With one step there is nothing to pin — the sheet renders its final
+     height on the first frame and stays centred (owner asked for centred
+     twice). Re-adding a step is re-adding all of it. */
 
   const {
     descExpanded, setDescExpanded,
@@ -135,6 +108,33 @@ const JobDetailDialog = ({
   // helper_fee_percent, so a `job.helper_fee_percent ?? …` fallback here was
   // dead code that merely LOOKED like a different fee rule.)
   const commissionPercent = effectiveFee;
+
+  /* WHICH OF THE TWO SURFACES THE BOTTOM OF THIS SHEET IS.
+     The footer's CTA slot has four mutually exclusive branches and only ONE of
+     them is a commit: Apply. The other three — "This is your post", "Applied",
+     and the credential gate — are status and navigation, so they keep the
+     footer. The commit branch is replaced outright by the inline apply form,
+     which carries its own "Apply Now".
+
+     Read the conditions in the same order JobDetailFooter reads them, because
+     if these two disagree the sheet renders either two CTAs or none.
+
+     `viewerAppPosition === null` while the applications look-up is in flight,
+     so an already-applied job shows the form for a beat before collapsing to
+     "Applied". That is the rare case (the feed filters applied jobs out) and
+     it is the right way round: the overwhelmingly common viewer is a helpr who
+     can apply, and they get the correct layout on frame one.
+
+     The own-post case is NOT left to that race — Dashboard withholds
+     `applyForm` entirely when the signed-in user is the poster, which it knows
+     synchronously, so a poster never sees an apply form flash on their own
+     job. */
+  const showInlineApply =
+    !guest &&
+    !!applyForm &&
+    viewerUserId !== job.customer_id &&
+    viewerAppPosition === null &&
+    !((job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0));
 
   const handleAskQuestion = () => {
     // No onClose() — the route change unmounts this dialog on its own, and
@@ -225,8 +225,6 @@ const JobDetailDialog = ({
   return (
     <Dialog open={!!job} onOpenChange={() => onClose()}>
       <DialogContent
-        ref={contentRef}
-        style={pinnedStyle}
         topRightSlot={cornerActions}
         // ONE SHELL AT EVERY WIDTH — TOP-ANCHORED, CONTENT-SIZED.
         //
@@ -363,40 +361,25 @@ const JobDetailDialog = ({
           // grow in both directions while you read it. Top-anchoring hid that
           // by pinning one edge.
           //
-          // The owner has since asked for centred again, twice. Anchoring was
-          // treating the symptom: the box moves because its HEIGHT changes
-          // after open, and it changes because content lands late. That is
-          // NOT yet fixed where it belongs, and this comment previously claimed
-          // it was. It said "the panel now reserves its poster row and note
-          // field from the first frame (see `min-h` below)" — there is no
-          // `min-h` in this file and never was. I described a fix I had not
-          // written, and the stale e2e assertion on the old top-anchor hid the
-          // consequence until lh-test-ci removed it: measured live, the sheet
-          // still jumps 66px between the detail step (top 185) and the apply
-          // step (top 118.6), which is exactly the "opens small then gets
-          // bigger" the anchor was introduced to mask. Filed as TC-003.
-          //
-          // Left centred because the owner asked for centred twice, knowing the
-          // history. The jump is a real open defect, not an accepted cost — it
-          // needs a height reservation sized from the settled content, which is
-          // a measurement someone has to take rather than a number to guess.
+          // The owner has since asked for centred again, twice, and it is
+          // centred now with nothing left to fight it. Anchoring was treating a
+          // symptom: the box moved because its HEIGHT changed after open, and
+          // the biggest source of that was the detail -> apply STEP, which
+          // resized the sheet mid-act (measured: top 185 -> 118.6). There is
+          // one step now, so the sheet renders its whole height on the first
+          // frame. What is left is the ordinary late-content wobble every
+          // centred dialog in this app has (a tier query, a poster row) —
+          // small, and shared with the rest of the shell rather than special
+          // to this file.
           "max-h-[86dvh]",
-          // CENTRED (owner, 2026-09-03, from a device screenshot: top-anchored
-          // left the sheet floating in the upper third with a screen of empty
-          // space under it). `stepped` is removed HERE and stays for the other
-          // three multi-step dialogs.
-          //
-          // NO HEIGHT FLOOR. This carried `min-h-[min(68dvh,600px)]` for the
-          // authed sheet from 2026-09-03 to 2026-09-09, reserving the apply
-          // step's height on the detail step so a centred box could not jump
-          // when it grew. The reservation was dead space under a short job's
-          // Continue — owner flagged it three times, the last from a device
-          // screenshot with ~430px blank below the CTA — and it stopped being
-          // load-bearing the moment `goToApply` pinned the top edge on
-          // step-forward (9694c4750): the box now sizes to its content on
-          // every step and grows DOWNWARD from the held edge, so stability no
-          // longer costs the detail step any height. apply-single-sheet.spec
-          // still asserts the top edge does not move.
+          // NO HEIGHT FLOOR, AND NOTHING LEFT THAT WOULD WANT ONE. This carried
+          // `min-h-[min(68dvh,600px)]` from 2026-09-03 to 2026-09-09,
+          // reserving the apply step's height on the detail step so a centred
+          // box could not jump when it grew. It was dead space under a short
+          // job's Continue — owner flagged it three times, last from a device
+          // screenshot with ~430px blank below the CTA. Both the floor and the
+          // step it existed for are gone: the sheet hugs its content and the
+          // apply form is part of that content from the first frame.
           "content-start",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg",
           "sm:pb-7",
@@ -829,77 +812,34 @@ const JobDetailDialog = ({
           <JobPosterCard job={job} repeatJobs={repeatJobs} guest={guest} />
         )}
 
-        {/* Apply lives on THIS screen now — no second popup (owner: "they
-            will apply on the screen before this", "doesn't need to be 2
-            steps", "delete [the apply step]"). Tapping Apply Now used to
-            swap the whole sheet to a second view with its own back button
-            and a second copy of the title; it now just reveals the note +
-            attachments form in place, in the same scroll, same title. The
-            plain footer (Message / Apply / Applied / your-post / credential
-            gate) hides once that form is up — there is nothing left for it
-            to do until the helpr submits or the sheet closes.
-            The apply FORM renders here, in the body's source position and
-            above the footer: it is a note field plus an attachment picker
-            and is routinely taller than the sheet, so it belongs in the run
-            of content the dialog scrolls, not in a pinned track. */}
-        {step === "apply" && applyStep ? applyStep({ onBack: () => setStep("detail") }) : null}
-
+        {/* THE APPLY FORM, IN THE RUN OF CONTENT — one sheet, one CTA.
+            (owner, 2026-09-09: "collapse the TWO steps into ONE ... one less
+            tap to apply".) The note field, the save-as-default-pitch checkbox,
+            the payout explainer and the single "Apply Now" render right here,
+            below the poster card, in the same scroll and under the same title.
+            There is no Continue button and no step change left to make.
+            It sits in the body's source position rather than a pinned track
+            because it is routinely taller than the sheet — ApplyBody's own
+            `.sheet-sticky-actions` keeps its submit row on screen while the
+            content above it scrolls. */}
         {/* ── WHY THERE IS NO <DialogFooter> HERE ────────────────────────────
-            Deliberate, and the one part of the popup grammar this dialog does
-            not adopt. Recorded here rather than left as a silent omission.
-            THE MEASUREMENT. `DialogFooter` is only a flex row, so wrapping
-            this action strip in one would not by itself pin anything — but
-            every previous attempt to give this sheet a footer TRACK came with
-            a height to pin it against, and that is what produced the defect in
-            the geometry note on DialogContent above: `h-[92dvh]` +
-            `grid-rows-[auto_1fr_auto]` opened a sparse job at 747px with
-            364.7px of dead space between the last content pixel and a
-            stranded CTA (320: the same; a recommended+urgent+boosted job at
-            375: 337.7px). The lesson recorded there is that pinning a footer
-            to fill leftover space moves the emptiness somewhere worse. A
-            footer here is one `h-*` away from that every time.
-            THE SHAPE DOES NOT FIT EITHER, independently of the geometry. The
-            grammar's footer is at most one dismiss plus at most one commit,
-            built only from DialogSecondaryAction / DialogPrimaryAction /
-            DialogDestructiveAction. This strip is not that:
-              · Three of its four mutually-exclusive slot branches are not
-                commits at all — "This is your post" and "Applied — #3" are
-                STATUS, and the credential gate is a navigation.
-              · Those branches are deliberately the same `h-11 sm:h-12` box,
-                because `viewerTier` resolves a beat after open and an
-                unequal branch made the dialog visibly resize under the reader
-                (880px → 746px, the owner's "opens bigger then gets smaller").
-                The action primitives accept no `size` or `className` — by
-                design — so that equal-height invariant cannot be expressed
-                through them.
-              · The Message button is a 44px ICON, not a ghost text dismiss,
-                and the owner explicitly consolidated this row to ONE
-                full-width CTA with Message beside it (2026-08-30). On a phone
-                `POPUP_FOOTER_ROW` is a reversed COLUMN, so a DialogFooter
-                would stack Message as a second full-width bar under the CTA —
-                the two-slabs-of-equal-weight treatment that consolidation
-                removed.
-            Everything else in the grammar IS adopted: one shell, the Hero with
-            nothing above it, DialogBody prose, the shared close X, one
-            destructive colour. This dialog has a body-level action strip
-            instead of a footer, and that is the whole exception.
-            If you are about to add a `<DialogFooter>` here: re-read the
-            geometry note above, then re-measure a sparse job at 320/375 before
-            and after. `dialogShell.test.ts` pins this decision so the
-            re-reading is not optional. */}
-        {step === "apply" && applyStep ? null : (
+            NO <DialogFooter>, DELIBERATELY — the one popup in the app without
+            one. The full reasoning (three of the four CTA branches are status
+            or navigation rather than commits; the equal `h-11 sm:h-12` box
+            that stops the sheet resizing when `viewerTier` lands; the phone
+            column that would stack Message as a second slab; and the geometry
+            history where every footer TRACK arrived with a height and opened a
+            sparse job at 747px with 364.7px of dead space) is asserted and
+            recorded in `src/components/ui/dialogShell.test.ts` — read it there
+            before adding one, because that test will fail if you do. */}
+        {showInlineApply ? applyForm : (
           <JobDetailFooter
             job={job}
             guest={guest}
-            onApply={async (id) => {
-              const accepted = await onApply(id);
-              // Without an apply step (the guest surfaces) this closes as it
-              // always did. With one, the form reveals in place — but only if
-              // the request was actually accepted, or we would show an apply
-              // form for a job the flow just refused.
-              if (!applyStep) { onClose(); return; }
-              if (accepted !== false) goToApply();
-            }}
+            /* Only reached on the surfaces with no inline form: the guest
+               sheets (whose branch navigates to signup itself) and the three
+               non-commit branches above, which never call this. */
+            onApply={(id) => onApply(id)}
             navigate={navigate}
             viewerUserId={viewerUserId}
             viewerAppPosition={viewerAppPosition}

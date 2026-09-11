@@ -403,9 +403,16 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     },
   });
 
-  const handleApplyConfirm = useCallback(() => {
-    if (!user || !confirmApplyJobId || applyLoading) return;
-    const jobId = confirmApplyJobId;
+  /* `explicitJobId` — for the SINGLE-STEP job sheet (owner, 2026-09-09).
+     With the apply form living on the detail sheet itself there is no
+     Continue tap to set `confirmApplyJobId` first, so the submit handler
+     passes the job it is rendering for. React state set in the same tick as
+     the submit would not be readable here, which is why this is a parameter
+     and not a `setConfirmApplyJobId` immediately before the call. The
+     standalone QuickApply sheet still omits it and reads the state. */
+  const handleApplyConfirm = useCallback((explicitJobId?: string) => {
+    const jobId = explicitJobId ?? confirmApplyJobId;
+    if (!user || !jobId || applyLoading) return;
     const files = applyFiles;
     const message = applyMessage;
     // Instant Book was dropped (20260904034410, dead-feature cut) — always

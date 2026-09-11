@@ -367,10 +367,21 @@ const DialogContent = React.forwardRef<
           the close X independently absolute (required — see next comment).
 
           THE OFFSET IS THE X'S OUTER EDGE PLUS THE GAP, and it must be
-          recomputed whenever the X's box changes — it is a hand-computed
-          magic number, which is precisely why it is spelled out here:
-            default  right-1.5(6px)  + 44px + gap-0.5(2px) = 52px
-            compact  right-3 (12px)  + 32px + gap-0.5(2px) = 46px
+          recomputed whenever EITHER box changes — it is a hand-computed magic
+          number, which is precisely why it is spelled out here. Callers now
+          pass FULL-SIZE 44px icons (2026-09-11, owner wanted one size for the
+          whole row), so with `gap-2` (8px) the pitch inside this container is
+          44 + 8 = 52px, and the last icon's centre must sit 52px from the X's
+          centre to keep ONE pitch across all four:
+            X centre          = right-1 (4px) + 22 = 26px from the right edge
+            last icon centre  = 26 + 52          = 78px from the right edge
+            this container    = 78 - 22          = 56px  -> right-[56px]
+          Clearance check, because the trap below is real: the container's
+          right edge (56px) clears the X's left edge (4 + 44 = 48px) by 8px,
+          so nothing overlaps the X's transparent hit area.
+          Previous values, for reference — 32px compact icons with gap-2 gave
+          right-[52px]; older gap-0.5 variants gave 52px (default) / 46px
+          (compact).
           (Both offsets resolve against the same padding box, so the 1px
           `.glass-modal` border shifts the X and this container together and
           the 2px gap survives it. Measured 2026-09-02: last icon to X box,
@@ -412,7 +423,7 @@ const DialogContent = React.forwardRef<
           // transparent hit area, and elementFromPoint on the last icon would
           // return the CLOSE button — the dialog closing when the user meant to
           // Share. That trap is documented above and was verified once already.
-          className="absolute right-[52px] top-2 z-10 flex h-11 items-center gap-2"
+          className="absolute right-[56px] top-2 z-10 flex h-11 items-center gap-2"
         >
           {topRightSlot}
         </div>
@@ -515,9 +526,24 @@ const DialogContent = React.forwardRef<
             dialog with no icon cluster there is nothing to match and the X
             keeps the size it was measured at. The BOX is 44x44 either way;
             only the glyph inside it changes. */}
+        {/* THE GLYPH IS BIGGER THAN THE ICONS BESIDE IT, ON PURPOSE — because
+            lucide's X inks only the CENTRE HALF of its viewBox. Its two paths
+            run 6->18 of a 0..24 box (50% of each axis), while Bookmark spans
+            y=2..21 and Flag y=2..22 — roughly 80-90%. So at an identical
+            `h-4 w-4` render size, with an identical strokeWidth, the X's drawn
+            shape covers about half the area of its neighbours and reads as a
+            different, smaller control. The owner reported this four times
+            ("looks so much smaller", "not blending in"); it was called an
+            optical illusion twice and it is not one — it is measurable in the
+            path data.
+            20px at strokeWidth 2.5 puts the X's inked box at 10px against the
+            16px icons' ~13-14px of ink, which is what actually matches by eye.
+            The BOX stays 44x44 (HIG floor) either way; only the glyph changes.
+            If you "fix" this back to h-4 w-4 to match the other icons on
+            paper, you are reintroducing the complaint. */}
         <X
-          className={`${topRightSlot ? "h-4 w-4" : "h-[18px] w-[18px]"} transition-transform duration-300 group-hover:-translate-y-0.5`}
-          strokeWidth={2}
+          className={`${topRightSlot ? "h-5 w-5" : "h-[18px] w-[18px]"} transition-transform duration-300 group-hover:-translate-y-0.5`}
+          strokeWidth={topRightSlot ? 2.5 : 2}
         />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>

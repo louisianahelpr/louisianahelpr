@@ -153,16 +153,23 @@ const JobDetailDialog = ({
   // sign-up CTA.
   const cornerActions = !guest && (
     <>
-      {/* Share leftmost (owner: "share on the left") — Bookmark then
-          Flag follow. `compact` (32px, not the usual 44px) so the row
-          needs less clearance above the title (owner: 44px icons
-          "made a large gap above title") — the X button itself is
-          separate shared chrome and stays its usual size. */}
+      {/* Share leftmost (owner: "share on the left") — Bookmark then Flag
+          follow, all at the FULL 44px, matching the shared close X (owner,
+          2026-09-11: "i would prefer them be all 44 or 32. needs to be
+          consistent").
+          These were `compact` (32px) from 2026-08-30, when 44px icons were
+          reported as making "a large gap above title". That trade is no
+          longer available: the X cannot go to 32 — the `compactClose` prop
+          that allowed it was removed on 2026-09-02 precisely because 32x32
+          is under the 44x44 HIG tap-target floor, on the one control all 55
+          dialogs share. So 44 for all four is the only size that is both
+          consistent AND hittable. The row grows ~12px taller than the
+          compact version; that is the cost, and it is a deliberate trade,
+          not an oversight. */}
       {viewerUserId !== job.customer_id && (
         <ShareJobButton
           variant="icon"
           bare
-          compact
           // `?? ""` — a job whose poster deleted their account is anonymised,
           // not removed (20260901033011), so it has no address to name. getCity
           // answers "" and the share copy falls back to "Louisiana".
@@ -180,7 +187,6 @@ const JobDetailDialog = ({
           pressedBorder="0.5px solid hsl(var(--primary) / 0.4)"
           pressedColor="hsl(var(--primary))"
           bare
-          compact
           icon={
             <Bookmark
               className={`w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5 ${isSaved ? "fill-primary bookmark-pop" : ""}`}
@@ -194,7 +200,6 @@ const JobDetailDialog = ({
         ariaLabel="Report this job"
         onClick={() => { onReport(job.id); onClose(); }}
         bare
-        compact
         icon={
           <Flag className="w-4 h-4 transition-transform duration-300 group-hover:-rotate-12 group-active:rotate-0" />
         }

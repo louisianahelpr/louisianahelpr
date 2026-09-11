@@ -89,6 +89,17 @@ interface Meta {
   ogTitle: string;
   /** Absolute canonical URL for this route. */
   url: string;
+  /**
+   * `<meta name="robots">` content. Omitted means "leave the shell's default
+   * (index, follow) alone" — only sign-in-gated preview routes override it to
+   * "noindex, follow", since those routes bounce an anonymous crawler through
+   * `<ProtectedRoute>` and must never be indexed. See the comment beside the
+   * tag in index.html for why this exists instead of a robots.txt path
+   * Disallow: a Disallow blocks the FETCH (which is exactly what a link
+   * preview needs to succeed), while noindex only blocks indexing after a
+   * successful fetch.
+   */
+  robots?: string;
 }
 
 /* ------------------------------------------------------------------ *
@@ -179,6 +190,7 @@ function applyMeta(html: string, meta: Meta): string {
   out = setMetaContent(out, "name", "twitter:url", meta.url);
   out = setMetaContent(out, "name", "twitter:title", meta.ogTitle);
   out = setMetaContent(out, "name", "twitter:description", meta.description);
+  if (meta.robots) out = setMetaContent(out, "name", "robots", meta.robots);
   return out;
 }
 
@@ -317,6 +329,9 @@ function unavailableJobMeta(url: string): Meta {
     description:
       "This job has been filled, expired, or removed. Browse open jobs near you on Helpr — Louisiana's local job marketplace.",
     url,
+    // /jobs/:id is <ProtectedRoute>-gated — an anonymous crawler bounces to
+    // /signup, so this URL must never be indexed. See index.html's comment.
+    robots: "noindex, follow",
   };
 }
 
@@ -346,6 +361,9 @@ async function metaForJob(id: string, url: string): Promise<Meta | null> {
     ogTitle: title,
     description: clean(jobDescription(job), 200),
     url,
+    // Same rationale as unavailableJobMeta above: the page itself requires
+    // sign-in, only the preview card is public.
+    robots: "noindex, follow",
   };
 }
 

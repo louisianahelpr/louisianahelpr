@@ -74,6 +74,7 @@ const REQUIRED_ANCHORS = [
   { label: "twitter:url", re: /<meta name="twitter:url" content="[^"]*" \/>/ },
   { label: "twitter:title", re: /<meta name="twitter:title" content="[^"]*" \/>/ },
   { label: "twitter:description", re: /<meta name="twitter:description" content="[^"]*" \/>/ },
+  { label: 'meta name="robots"', re: /<meta name="robots" content="[^"]*" \/>/ },
 ];
 
 /** The image block must survive untouched — assert it is still intact. */

@@ -7,8 +7,21 @@ Allow: /
 # (React Router / useEffect) — so without this list every one of them was
 # crawlable and indexable as a real 200 page, byte-identical to the homepage.
 # lh-seo-web audit finding SW-003, 2026-09-02. Individual job pages
-# (/jobs/:id) went signed-in-only the same day; the index at /jobs stays
-# public and crawlable, so it is deliberately NOT in this list.
+# (/jobs/:id) went signed-in-only the same day and were added here too —
+# WRONG, fixed 2026-09-11: a path-level Disallow blocks the FETCH, which is
+# exactly what api/share.ts's link-preview card needs to succeed. Apple's
+# Messages/Safari share-sheet metadata fetcher carries no distinct bot token
+# (it reads as `User-agent: *`, same as Googlebot) and does honor robots.txt,
+# so `Disallow: /jobs/` silently defeated the whole point of api/share.ts:
+# tapping Share on a job showed the right title (that comes straight from the
+# JS `navigator.share()` call, not a fetch) but a generic placeholder icon,
+# because the OS never got past robots.txt to read the page's og:image /
+# favicon tags — despite every one of those assets returning a clean 200.
+# The no-index intent now lives where it belongs: `<meta name="robots"
+# content="noindex, follow">`, set server-side by api/share.ts for exactly
+# this route (see index.html's comment on the tag), which stops indexing
+# WITHOUT stopping the fetch. The index at /jobs stays public and crawlable,
+# so it is deliberately NOT in this list either way.
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /profile
@@ -34,7 +47,6 @@ Disallow: /signup-pending
 Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /user/
-Disallow: /jobs/
 # Internal engineering utility (client-side-only Apple JWT signer, sends
 # nothing over the network) — already carries <meta name="robots" noindex">
 # but was still crawlable/reachable with no entry here at all, which reads

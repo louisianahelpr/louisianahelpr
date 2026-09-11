@@ -1,0 +1,12 @@
+import { chromium } from "playwright";
+const BASE="http://localhost:4201"; const b=await chromium.launch();
+const c=await b.newContext({viewport:{width:375,height:812},colorScheme:"dark"}); const p=await c.newPage();
+await p.goto(BASE+"/help",{waitUntil:"networkidle"}); await p.waitForTimeout(500);
+console.log("help card", await p.evaluate(()=>{const el=[...document.querySelectorAll('button[aria-expanded]')][0].closest('div'); const cs=getComputedStyle(el); return [el.className.slice(0,80), cs.borderColor, cs.backgroundColor]}));
+await p.goto(BASE+"/legal",{waitUntil:"networkidle"}); await p.waitForTimeout(500);
+console.log("legal card", await p.evaluate(()=>{const el=[...document.querySelectorAll('button[aria-expanded]')][1].closest('div'); const cs=getComputedStyle(el); return [el.className.slice(0,80), cs.borderColor, cs.backgroundColor]}));
+await p.goto(BASE+"/support",{waitUntil:"networkidle"}); await p.waitForTimeout(500);
+console.log("support card", await p.evaluate(()=>{const el=document.querySelector('main form').closest('div'); const cs=getComputedStyle(el); return [el.className.slice(0,80), cs.borderColor, cs.backgroundColor]}));
+await p.goto(BASE+"/nope",{waitUntil:"networkidle"}); await p.waitForTimeout(500);
+console.log("404 copy", await p.evaluate(()=>{const el=document.querySelector('main p'); const cs=getComputedStyle(el); return [cs.color, getComputedStyle(document.body).backgroundColor]}));
+await b.close();

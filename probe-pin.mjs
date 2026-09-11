@@ -1,0 +1,10 @@
+import { chromium } from "playwright";
+const BASE="http://localhost:4201"; const b=await chromium.launch();
+const c=await b.newContext({viewport:{width:375,height:812}}); const p=await c.newPage();
+await p.goto(BASE+"/browse",{waitUntil:"networkidle"}); await p.waitForTimeout(800);
+await p.click('button[aria-label="Filters"]'); await p.waitForTimeout(600); await p.click('[role=dialog] button:has-text("Map")');
+await p.waitForTimeout(12000);
+await p.mouse.click(45,478); await p.waitForTimeout(1200); await p.screenshot({path:"shots/op-browse-map-pintap-375.png"});
+console.log("after pin tap →", p.url().replace(BASE,""), (await p.evaluate(()=>document.body.innerText)).replace(/\n+/g," | ").slice(0,300));
+await p.click("text=Pressure wash"); await p.waitForTimeout(900); console.log("after card →", p.url().replace(BASE,""));
+await b.close();

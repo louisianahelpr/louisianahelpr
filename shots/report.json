@@ -1,0 +1,2302 @@
+[
+  {
+    "slug": "landing",
+    "path": "/",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/",
+    "file": "landing-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [
+      "div.pointer-events-none.absolute.-inset-16 right=419"
+    ],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 42,
+      "Bodoni Moda": 8
+    },
+    "title": "Helpr — Louisiana's Local Job Partner | Hire or Find Work",
+    "h1": "Louisiana’s Local Job Partner.",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "browse",
+    "path": "/browse",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/browse",
+    "file": "browse-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [
+      "Denham Springs sw=94 cw=83"
+    ],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 71,
+      "Bodoni Moda": 4
+    },
+    "title": "Browse Local Jobs — Helpr",
+    "h1": "Browse Jobs",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "browse-map",
+    "path": "/browse?view=map",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/browse?view=map",
+    "file": "browse-map-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [
+      "Denham Springs sw=94 cw=83"
+    ],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 71,
+      "Bodoni Moda": 4
+    },
+    "title": "Browse Local Jobs — Helpr",
+    "h1": "Browse Jobs",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "login",
+    "path": "/login",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/login",
+    "file": "login-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "signup",
+    "path": "/signup",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/signup",
+    "file": "signup-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 1
+    },
+    "title": "Sign Up — Helpr",
+    "h1": "Create Account",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "forgot",
+    "path": "/forgot-password",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/forgot-password",
+    "file": "forgot-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 3,
+      "Bodoni Moda": 1
+    },
+    "title": "Reset Password — Helpr",
+    "h1": "Reset Password",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "reset",
+    "path": "/reset-password",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/reset-password",
+    "file": "reset-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 5,
+      "Bodoni Moda": 1
+    },
+    "title": "Set New Password — Helpr",
+    "h1": "Set New Password",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "legal-terms",
+    "path": "/legal?tab=terms",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/legal?tab=terms",
+    "file": "legal-terms-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 94,
+      "Bodoni Moda": 6
+    },
+    "title": "Terms of Service — Helpr",
+    "h1": "Legal",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "legal-community",
+    "path": "/legal?tab=community",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/legal?tab=community",
+    "file": "legal-community-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 107,
+      "Bodoni Moda": 8
+    },
+    "title": "Community Rules — Helpr",
+    "h1": "Legal",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "legal-privacy",
+    "path": "/legal?tab=privacy",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/legal?tab=privacy",
+    "file": "legal-privacy-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 93,
+      "Bodoni Moda": 8
+    },
+    "title": "Privacy Policy — Helpr",
+    "h1": "Legal",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "support",
+    "path": "/support",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/support",
+    "file": "support-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 1
+    },
+    "title": "Contact Support — Helpr",
+    "h1": "Contact Support",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "help",
+    "path": "/help",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/help",
+    "file": "help-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 82,
+      "Bodoni Moda": 1
+    },
+    "title": "Help Center — Helpr",
+    "h1": "Help Center",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "signup-pending",
+    "path": "/signup-pending",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/signup-pending",
+    "file": "signup-pending-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 43,
+      "Bodoni Moda": 1
+    },
+    "title": "Check Your Email — Helpr",
+    "h1": "Check Your Email",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "account-pending",
+    "path": "/account-pending",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/login",
+    "file": "account-pending-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "account-denied",
+    "path": "/account-denied",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/login",
+    "file": "account-denied-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "account-banned",
+    "path": "/account-banned",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/login",
+    "file": "account-banned-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "enterprise-404",
+    "path": "/enterprise",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/enterprise",
+    "file": "enterprise-404-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "business-404",
+    "path": "/business",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/business",
+    "file": "business-404-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "pif-404",
+    "path": "/pay-it-forward",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/pay-it-forward",
+    "file": "pif-404-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "notfound",
+    "path": "/this-does-not-exist",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/this-does-not-exist",
+    "file": "notfound-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "gift-card-guest",
+    "path": "/gift-card",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/login?redirect=%2Fgift-card",
+    "file": "gift-card-guest-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 18,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "job-guest",
+    "path": "/jobs/00000000-0000-0000-0000-000000000000",
+    "w": 375,
+    "theme": "light",
+    "finalUrl": "/login?redirect=%2Fjobs%2F00000000-0000-0000-0000-000000000000",
+    "file": "job-guest-375-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 18,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "landing",
+    "path": "/",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/",
+    "file": "landing-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 42,
+      "Bodoni Moda": 8
+    },
+    "title": "Helpr — Louisiana's Local Job Partner | Hire or Find Work",
+    "h1": "Louisiana’s Local Job Partner.",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "browse",
+    "path": "/browse",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/browse",
+    "file": "browse-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 71,
+      "Bodoni Moda": 4
+    },
+    "title": "Browse Local Jobs — Helpr",
+    "h1": "Browse Jobs",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "browse-map",
+    "path": "/browse?view=map",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/browse?view=map",
+    "file": "browse-map-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 71,
+      "Bodoni Moda": 4
+    },
+    "title": "Browse Local Jobs — Helpr",
+    "h1": "Browse Jobs",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "login",
+    "path": "/login",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/login",
+    "file": "login-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "signup",
+    "path": "/signup",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/signup",
+    "file": "signup-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 1
+    },
+    "title": "Sign Up — Helpr",
+    "h1": "Create Account",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "forgot",
+    "path": "/forgot-password",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/forgot-password",
+    "file": "forgot-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 3,
+      "Bodoni Moda": 1
+    },
+    "title": "Reset Password — Helpr",
+    "h1": "Reset Password",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "reset",
+    "path": "/reset-password",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/reset-password",
+    "file": "reset-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 5,
+      "Bodoni Moda": 1
+    },
+    "title": "Set New Password — Helpr",
+    "h1": "Set New Password",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "legal-terms",
+    "path": "/legal?tab=terms",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/legal?tab=terms",
+    "file": "legal-terms-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 94,
+      "Bodoni Moda": 6
+    },
+    "title": "Terms of Service — Helpr",
+    "h1": "Legal",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "legal-community",
+    "path": "/legal?tab=community",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/legal?tab=community",
+    "file": "legal-community-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 107,
+      "Bodoni Moda": 8
+    },
+    "title": "Community Rules — Helpr",
+    "h1": "Legal",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "legal-privacy",
+    "path": "/legal?tab=privacy",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/legal?tab=privacy",
+    "file": "legal-privacy-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 93,
+      "Bodoni Moda": 8
+    },
+    "title": "Privacy Policy — Helpr",
+    "h1": "Legal",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "support",
+    "path": "/support",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/support",
+    "file": "support-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 1
+    },
+    "title": "Contact Support — Helpr",
+    "h1": "Contact Support",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "help",
+    "path": "/help",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/help",
+    "file": "help-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 82,
+      "Bodoni Moda": 1
+    },
+    "title": "Help Center — Helpr",
+    "h1": "Help Center",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "signup-pending",
+    "path": "/signup-pending",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/signup-pending",
+    "file": "signup-pending-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 43,
+      "Bodoni Moda": 1
+    },
+    "title": "Check Your Email — Helpr",
+    "h1": "Check Your Email",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "account-pending",
+    "path": "/account-pending",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/login",
+    "file": "account-pending-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "account-denied",
+    "path": "/account-denied",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/login",
+    "file": "account-denied-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "account-banned",
+    "path": "/account-banned",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/login",
+    "file": "account-banned-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "enterprise-404",
+    "path": "/enterprise",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/enterprise",
+    "file": "enterprise-404-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "business-404",
+    "path": "/business",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/business",
+    "file": "business-404-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "pif-404",
+    "path": "/pay-it-forward",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/pay-it-forward",
+    "file": "pif-404-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "notfound",
+    "path": "/this-does-not-exist",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/this-does-not-exist",
+    "file": "notfound-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "gift-card-guest",
+    "path": "/gift-card",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/login?redirect=%2Fgift-card",
+    "file": "gift-card-guest-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 18,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "job-guest",
+    "path": "/jobs/00000000-0000-0000-0000-000000000000",
+    "w": 1440,
+    "theme": "light",
+    "finalUrl": "/login?redirect=%2Fjobs%2F00000000-0000-0000-0000-000000000000",
+    "file": "job-guest-1440-light.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 18,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(240, 242, 244)"
+  },
+  {
+    "slug": "landing",
+    "path": "/",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/",
+    "file": "landing-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [
+      "div.pointer-events-none.absolute.-inset-16 right=419"
+    ],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 42,
+      "Bodoni Moda": 8
+    },
+    "title": "Helpr — Louisiana's Local Job Partner | Hire or Find Work",
+    "h1": "Louisiana’s Local Job Partner.",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "browse",
+    "path": "/browse",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/browse",
+    "file": "browse-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [
+      "Denham Springs sw=94 cw=83"
+    ],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 71,
+      "Bodoni Moda": 4
+    },
+    "title": "Browse Local Jobs — Helpr",
+    "h1": "Browse Jobs",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "browse-map",
+    "path": "/browse?view=map",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/browse?view=map",
+    "file": "browse-map-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [
+      "Denham Springs sw=94 cw=83"
+    ],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 71,
+      "Bodoni Moda": 4
+    },
+    "title": "Browse Local Jobs — Helpr",
+    "h1": "Browse Jobs",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "login",
+    "path": "/login",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/login",
+    "file": "login-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "signup",
+    "path": "/signup",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/signup",
+    "file": "signup-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 1
+    },
+    "title": "Sign Up — Helpr",
+    "h1": "Create Account",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "forgot",
+    "path": "/forgot-password",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/forgot-password",
+    "file": "forgot-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 3,
+      "Bodoni Moda": 1
+    },
+    "title": "Reset Password — Helpr",
+    "h1": "Reset Password",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "reset",
+    "path": "/reset-password",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/reset-password",
+    "file": "reset-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 5,
+      "Bodoni Moda": 1
+    },
+    "title": "Set New Password — Helpr",
+    "h1": "Set New Password",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "legal-terms",
+    "path": "/legal?tab=terms",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/legal?tab=terms",
+    "file": "legal-terms-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 94,
+      "Bodoni Moda": 6
+    },
+    "title": "Terms of Service — Helpr",
+    "h1": "Legal",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "legal-community",
+    "path": "/legal?tab=community",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/legal?tab=community",
+    "file": "legal-community-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 107,
+      "Bodoni Moda": 8
+    },
+    "title": "Community Rules — Helpr",
+    "h1": "Legal",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "legal-privacy",
+    "path": "/legal?tab=privacy",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/legal?tab=privacy",
+    "file": "legal-privacy-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 93,
+      "Bodoni Moda": 8
+    },
+    "title": "Privacy Policy — Helpr",
+    "h1": "Legal",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "support",
+    "path": "/support",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/support",
+    "file": "support-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 1
+    },
+    "title": "Contact Support — Helpr",
+    "h1": "Contact Support",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "help",
+    "path": "/help",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/help",
+    "file": "help-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 82,
+      "Bodoni Moda": 1
+    },
+    "title": "Help Center — Helpr",
+    "h1": "Help Center",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "signup-pending",
+    "path": "/signup-pending",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/signup-pending",
+    "file": "signup-pending-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 43,
+      "Bodoni Moda": 1
+    },
+    "title": "Check Your Email — Helpr",
+    "h1": "Check Your Email",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "account-pending",
+    "path": "/account-pending",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/login",
+    "file": "account-pending-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "account-denied",
+    "path": "/account-denied",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/login",
+    "file": "account-denied-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "account-banned",
+    "path": "/account-banned",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/login",
+    "file": "account-banned-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "enterprise-404",
+    "path": "/enterprise",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/enterprise",
+    "file": "enterprise-404-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "business-404",
+    "path": "/business",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/business",
+    "file": "business-404-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "pif-404",
+    "path": "/pay-it-forward",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/pay-it-forward",
+    "file": "pif-404-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "notfound",
+    "path": "/this-does-not-exist",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/this-does-not-exist",
+    "file": "notfound-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "gift-card-guest",
+    "path": "/gift-card",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/login?redirect=%2Fgift-card",
+    "file": "gift-card-guest-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 18,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "job-guest",
+    "path": "/jobs/00000000-0000-0000-0000-000000000000",
+    "w": 375,
+    "theme": "dark",
+    "finalUrl": "/login?redirect=%2Fjobs%2F00000000-0000-0000-0000-000000000000",
+    "file": "job-guest-375-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 18,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "landing",
+    "path": "/",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/",
+    "file": "landing-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 42,
+      "Bodoni Moda": 8
+    },
+    "title": "Helpr — Louisiana's Local Job Partner | Hire or Find Work",
+    "h1": "Louisiana’s Local Job Partner.",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "browse",
+    "path": "/browse",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/browse",
+    "file": "browse-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 71,
+      "Bodoni Moda": 4
+    },
+    "title": "Browse Local Jobs — Helpr",
+    "h1": "Browse Jobs",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "browse-map",
+    "path": "/browse?view=map",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/browse?view=map",
+    "file": "browse-map-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 71,
+      "Bodoni Moda": 4
+    },
+    "title": "Browse Local Jobs — Helpr",
+    "h1": "Browse Jobs",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "login",
+    "path": "/login",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/login",
+    "file": "login-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "signup",
+    "path": "/signup",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/signup",
+    "file": "signup-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 1
+    },
+    "title": "Sign Up — Helpr",
+    "h1": "Create Account",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "forgot",
+    "path": "/forgot-password",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/forgot-password",
+    "file": "forgot-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 3,
+      "Bodoni Moda": 1
+    },
+    "title": "Reset Password — Helpr",
+    "h1": "Reset Password",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "reset",
+    "path": "/reset-password",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/reset-password",
+    "file": "reset-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 5,
+      "Bodoni Moda": 1
+    },
+    "title": "Set New Password — Helpr",
+    "h1": "Set New Password",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "legal-terms",
+    "path": "/legal?tab=terms",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/legal?tab=terms",
+    "file": "legal-terms-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 94,
+      "Bodoni Moda": 6
+    },
+    "title": "Terms of Service — Helpr",
+    "h1": "Legal",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "legal-community",
+    "path": "/legal?tab=community",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/legal?tab=community",
+    "file": "legal-community-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 107,
+      "Bodoni Moda": 8
+    },
+    "title": "Community Rules — Helpr",
+    "h1": "Legal",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "legal-privacy",
+    "path": "/legal?tab=privacy",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/legal?tab=privacy",
+    "file": "legal-privacy-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 93,
+      "Bodoni Moda": 8
+    },
+    "title": "Privacy Policy — Helpr",
+    "h1": "Legal",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "support",
+    "path": "/support",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/support",
+    "file": "support-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 1
+    },
+    "title": "Contact Support — Helpr",
+    "h1": "Contact Support",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "help",
+    "path": "/help",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/help",
+    "file": "help-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 82,
+      "Bodoni Moda": 1
+    },
+    "title": "Help Center — Helpr",
+    "h1": "Help Center",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "signup-pending",
+    "path": "/signup-pending",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/signup-pending",
+    "file": "signup-pending-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 43,
+      "Bodoni Moda": 1
+    },
+    "title": "Check Your Email — Helpr",
+    "h1": "Check Your Email",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "account-pending",
+    "path": "/account-pending",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/login",
+    "file": "account-pending-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "account-denied",
+    "path": "/account-denied",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/login",
+    "file": "account-denied-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "account-banned",
+    "path": "/account-banned",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/login",
+    "file": "account-banned-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 17,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "enterprise-404",
+    "path": "/enterprise",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/enterprise",
+    "file": "enterprise-404-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "business-404",
+    "path": "/business",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/business",
+    "file": "business-404-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "pif-404",
+    "path": "/pay-it-forward",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/pay-it-forward",
+    "file": "pif-404-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "notfound",
+    "path": "/this-does-not-exist",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/this-does-not-exist",
+    "file": "notfound-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 33,
+      "Bodoni Moda": 3
+    },
+    "title": "Page Not Found — Helpr",
+    "h1": "404",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "gift-card-guest",
+    "path": "/gift-card",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/login?redirect=%2Fgift-card",
+    "file": "gift-card-guest-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 18,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(20, 22, 26)"
+  },
+  {
+    "slug": "job-guest",
+    "path": "/jobs/00000000-0000-0000-0000-000000000000",
+    "w": 1440,
+    "theme": "dark",
+    "finalUrl": "/login?redirect=%2Fjobs%2F00000000-0000-0000-0000-000000000000",
+    "file": "job-guest-1440-dark.png",
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflow": false,
+    "wide": [],
+    "clipped": [],
+    "bad": [],
+    "brokenImgs": [],
+    "fonts": {
+      "Montserrat": 18,
+      "Bodoni Moda": 1
+    },
+    "title": "Log In — Helpr",
+    "h1": "Log In",
+    "bg": "rgb(20, 22, 26)"
+  }
+]

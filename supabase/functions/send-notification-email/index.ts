@@ -42,7 +42,9 @@ const TYPE_MAP: Record<string, { prefCol: string; category: string }> = {
   application:       { prefCol: 'email_job_applications', category: 'job_applications' },
   job_update:        { prefCol: 'email_job_updates',      category: 'job_updates' },
   job_updates:       { prefCol: 'email_job_updates',      category: 'job_updates' },
-  job_match:         { prefCol: 'email_job_updates',      category: 'job_updates' },
+  // Its own column since 2026-09-11 — job_match is the largest type in prod
+  // and users need to mute it without muting real updates on their own jobs.
+  job_match:         { prefCol: 'email_job_matches',      category: 'job_matches' },
   expired:           { prefCol: 'email_job_updates',      category: 'job_updates' },
   info:              { prefCol: 'email_work_status',      category: 'work_status' },
   success:           { prefCol: 'email_work_status',      category: 'work_status' },

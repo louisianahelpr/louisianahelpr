@@ -1974,6 +1974,7 @@ export type Database = {
           email_enabled: boolean
           email_financial_alerts: boolean
           email_job_applications: boolean
+          email_job_matches: boolean
           email_job_updates: boolean
           email_messages: boolean
           email_new_offers: boolean
@@ -1986,6 +1987,7 @@ export type Database = {
           financial_alerts: boolean
           id: string
           job_applications: boolean
+          job_matches: boolean
           job_updates: boolean
           match_digest_mode: boolean
           messages: boolean
@@ -2007,6 +2009,7 @@ export type Database = {
           email_enabled?: boolean
           email_financial_alerts?: boolean
           email_job_applications?: boolean
+          email_job_matches?: boolean
           email_job_updates?: boolean
           email_messages?: boolean
           email_new_offers?: boolean
@@ -2019,6 +2022,7 @@ export type Database = {
           financial_alerts?: boolean
           id?: string
           job_applications?: boolean
+          job_matches?: boolean
           job_updates?: boolean
           match_digest_mode?: boolean
           messages?: boolean
@@ -2040,6 +2044,7 @@ export type Database = {
           email_enabled?: boolean
           email_financial_alerts?: boolean
           email_job_applications?: boolean
+          email_job_matches?: boolean
           email_job_updates?: boolean
           email_messages?: boolean
           email_new_offers?: boolean
@@ -2052,6 +2057,7 @@ export type Database = {
           financial_alerts?: boolean
           id?: string
           job_applications?: boolean
+          job_matches?: boolean
           job_updates?: boolean
           match_digest_mode?: boolean
           messages?: boolean

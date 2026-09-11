@@ -263,21 +263,32 @@ Deno.serve(async (req) => {
     // immediately regardless of preference.
     const scoredIds = scored.map((h) => h.user_id);
     let digestMap = new Map<string, boolean>();
+    // ADDED 2026-09-11 — the job-match OFF switch, honoured at the SEND site.
+    // `job_matches` false means this helper does not want match notifications
+    // at all: no in-app row, no push, no digest entry. Absent row or absent
+    // column reads as TRUE — nobody loses matches by default.
+    const mutedMatches = new Set<string>();
     if (scoredIds.length > 0) {
       const { data: prefs } = await supabase
         .from("notification_preferences")
-        .select("user_id, match_digest_mode")
+        .select("user_id, match_digest_mode, job_matches")
         .in("user_id", scoredIds);
-      digestMap = new Map(
-        (prefs ?? []).map((p: { user_id: string; match_digest_mode: boolean | null }) =>
-          [p.user_id, !!p.match_digest_mode] as const,
-        ),
-      );
+      for (const p of (prefs ?? []) as Array<{
+        user_id: string;
+        match_digest_mode: boolean | null;
+        job_matches: boolean | null;
+      }>) {
+        digestMap.set(p.user_id, !!p.match_digest_mode);
+        if (p.job_matches === false) mutedMatches.add(p.user_id);
+      }
     }
 
     const immediate: typeof scored = [];
     const deferred: typeof scored = [];
     for (const h of scored) {
+      // The switch wins over everything, urgency included. A user who turned
+      // matches off asked for silence, not for a quieter kind of noise.
+      if (mutedMatches.has(h.user_id)) continue;
       const digest = digestMap.get(h.user_id) ?? false;
       if (job.is_urgent || !digest) {
         immediate.push(h);

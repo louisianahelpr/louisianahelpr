@@ -36,6 +36,13 @@ export interface Prefs {
   email_work_status: boolean;
   financial_alerts: boolean;
   email_financial_alerts: boolean;
+  /** New work matching your parish or a saved search (`notifications.type
+      = 'job_match'`). Its own column since 2026-09-11: it is the largest
+      notification type in prod and used to be gated by `new_offers`,
+      `job_updates`, or nothing at all depending on which of the four
+      producers fired. Defaults true — nobody loses matches silently. */
+  job_matches: boolean;
+  email_job_matches: boolean;
   /** When true, non-urgent job matches are batched into a daily
       digest instead of being pushed individually. Urgent jobs always
       fire realtime regardless. */

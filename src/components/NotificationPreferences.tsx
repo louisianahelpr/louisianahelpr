@@ -1,6 +1,6 @@
 // Quiet-hours window stored here is enforced server-side by the
 // send-push-notification edge function (PR #446).
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -522,61 +522,6 @@ const NotificationPreferences = () => {
           digest + per-category rows scroll between them so every option
           is reachable on a short viewport. */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-      {/* Digest mode toggle — when on, non-urgent job-match pushes are
-          batched into one daily summary instead of firing per-match.
-          Sits between the master and the per-category rows so it reads
-          as a delivery preference, not a category. */}
-      <div
-        className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
-        style={{
-          borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
-        }}
-      >
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <span
-            className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
-            style={{
-              background: "hsl(var(--burnt-sienna) / 0.14)",
-              color: "hsl(var(--burnt-sienna))",
-            }}
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-          </span>
-          <div className="min-w-0">
-            <Label
-              className="font-sans font-semibold block text-ds-14 mb-0"
-              style={{ color: "hsl(var(--ink-deep))" }}
-            >
-              Daily Match Digest
-            </Label>
-            <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Batch non-urgent matches into one push per day. Urgent jobs still fire instantly.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 min-[360px]:gap-6 shrink-0 ml-1.5 min-[360px]:ml-2">
-          <SwitchSlot
-            checked={prefs.match_digest_mode}
-            onCheckedChange={() => toggle("match_digest_mode")}
-            disabled={!loaded || !prefs.push_enabled}
-            ariaLabel="Daily match digest"
-            savingId="match_digest_mode"
-          />
-          {/* Email column placeholder — digest is a push-only delivery
-              mode, but the dash keeps the two-column grid visually
-              honest so the row reads as "app only, intentionally". */}
-          <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
-            <span
-              className="font-sans text-ds-14"
-              style={{ color: "hsl(var(--olivewood) / 0.3)" }}
-              aria-hidden
-            >
-              —
-            </span>
-            <span className="sr-only">Push-only, no email version</span>
-          </div>
-        </div>
-      </div>
 
       {/* Quiet hours — when on, non-critical pushes are suppressed
           between start and end (security alerts always fire). Sits
@@ -686,8 +631,8 @@ const NotificationPreferences = () => {
       </div>
 
       {rows.map((item) => (
+        <Fragment key={item.key}>
         <div
-          key={item.key}
           className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${
             prefs.push_enabled || (emailMasterEnabled && prefs[item.emailKey]) ? "" : "opacity-85"
           } ${saving ? "opacity-80 cursor-wait" : ""}`}
@@ -735,6 +680,65 @@ const NotificationPreferences = () => {
             />
           </div>
         </div>
+      {item.key === "job_matches" && (<>
+        {/* Digest mode toggle — when on, non-urgent job-match pushes are
+            batched into one daily summary instead of firing per-match.
+            Renders directly under the Job Matches row because it is a
+            delivery mode FOR that category, not a category of its own, and
+            greys out when Job Matches is off — nothing left to batch. */}
+        <div
+          className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled && prefs.job_matches ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
+          style={{
+            borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
+          }}
+        >
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <span
+              className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
+              style={{
+                background: "hsl(var(--burnt-sienna) / 0.14)",
+                color: "hsl(var(--burnt-sienna))",
+              }}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            </span>
+            <div className="min-w-0">
+              <Label
+                className="font-sans font-semibold block text-ds-14 mb-0"
+                style={{ color: "hsl(var(--ink-deep))" }}
+              >
+                Daily Match Digest
+              </Label>
+              <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                Batch non-urgent matches into one push per day. Urgent jobs still fire instantly.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 min-[360px]:gap-6 shrink-0 ml-1.5 min-[360px]:ml-2">
+            <SwitchSlot
+              checked={prefs.match_digest_mode}
+              onCheckedChange={() => toggle("match_digest_mode")}
+              disabled={!loaded || !prefs.push_enabled || !prefs.job_matches}
+              ariaLabel="Daily match digest"
+              savingId="match_digest_mode"
+            />
+            {/* Email column placeholder — digest is a push-only delivery
+                mode, but the dash keeps the two-column grid visually
+                honest so the row reads as "app only, intentionally". */}
+            <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
+              <span
+                className="font-sans text-ds-14"
+                style={{ color: "hsl(var(--olivewood) / 0.3)" }}
+                aria-hidden
+              >
+                —
+              </span>
+              <span className="sr-only">Push-only, no email version</span>
+            </div>
+          </div>
+        </div>
+        </>)}
+        </Fragment>
       ))}
 
       {/* Test button — proves push + email + in-app end-to-end (see

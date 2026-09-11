@@ -1,6 +1,6 @@
 import {
   Briefcase, MessageSquare, DollarSign, Star, Megaphone,
-  Navigation, CheckCircle2, Users, RefreshCw, Receipt, ShieldAlert,
+  Navigation, CheckCircle2, Users, RefreshCw, Receipt, ShieldAlert, Sparkles,
 } from "lucide-react";
 import type { Prefs, Row } from "./types";
 
@@ -16,6 +16,7 @@ export const defaultPrefs: Prefs = {
   transit_updates: true, email_transit_updates: false,
   work_status: true, email_work_status: true,
   financial_alerts: true, email_financial_alerts: true,
+  job_matches: true, email_job_matches: true,
   match_digest_mode: false,
   quiet_start: null,
   quiet_end: null,
@@ -69,6 +70,10 @@ export const rows: Row[] = [
   { key: "new_offers", emailKey: "email_new_offers", label: "Job Offers", icon: <Briefcase className="w-3.5 h-3.5" /> },
   { key: "job_applications", emailKey: "email_job_applications", label: "Applications", icon: <Users className="w-3.5 h-3.5" /> },
   { key: "job_updates", emailKey: "email_job_updates", label: "Job Updates", icon: <RefreshCw className="w-3.5 h-3.5" /> },
+  // The Daily Match Digest row renders directly beneath this one (see
+  // NotificationPreferences.tsx) — it is a delivery mode FOR this category,
+  // and it greys out when this switch is off.
+  { key: "job_matches", emailKey: "email_job_matches", label: "Job Matches", icon: <Sparkles className="w-3.5 h-3.5" /> },
   { key: "messages", emailKey: "email_messages", label: "Messages", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   { key: "transit_updates", emailKey: "email_transit_updates", label: "Transit Updates", icon: <Navigation className="w-3.5 h-3.5" /> },
   { key: "work_status", emailKey: "email_work_status", label: "Work Status", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },

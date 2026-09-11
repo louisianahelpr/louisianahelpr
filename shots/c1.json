@@ -1,0 +1,1050 @@
+[
+ {
+  "route": "/dashboard",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/my-posts",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"My Posts\" 20px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/my-posts?filter=waiting",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"My Posts\" 20px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/my-posts?filter=done",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"My Posts\" 20px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/messages",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Messages\" 20px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Audit Weblane\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=profile",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Edit Profile\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=earnings",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Earnings & Payouts\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=subscription",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Membership\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=notifications",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Notifications\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "BUTTON \"Push notifications master toggle\" 51x31",
+   "BUTTON \"Email notifications master toggle\" 51x31",
+   "BUTTON \"Daily match digest\" 51x31",
+   "BUTTON \"Quiet hours\" 51x31",
+   "BUTTON \"Job Offers push\" 51x31",
+   "BUTTON \"Job Offers email\" 51x31",
+   "BUTTON \"Applications push\" 51x31",
+   "BUTTON \"Applications email\" 51x31",
+   "BUTTON \"Job Updates push\" 51x31",
+   "BUTTON \"Job Updates email\" 51x31",
+   "BUTTON \"Messages push\" 51x31",
+   "BUTTON \"Messages email\" 51x31",
+   "BUTTON \"Transit Updates push\" 51x31",
+   "BUTTON \"Transit Updates email\" 51x31",
+   "BUTTON \"Work Status push\" 51x31"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=support",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Help & Support\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=legal",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Legal & Policies\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"contact support\" 91x14"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/gift-card",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Gift Card\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/post-job",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Post a Job\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/payment-success",
+  "vp": "m",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"We couldn't confirm your payment.\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/dashboard",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/my-posts",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"My Posts\" 20px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/my-posts?filter=waiting",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"My Posts\" 20px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/my-posts?filter=done",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"My Posts\" 20px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/messages",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Messages\" 20px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Audit Weblane\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=profile",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Edit Profile\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=earnings",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Earnings & Payouts\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=subscription",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Membership\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=notifications",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Notifications\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "BUTTON \"Push notifications master toggle\" 51x31",
+   "BUTTON \"Email notifications master toggle\" 51x31",
+   "BUTTON \"Daily match digest\" 51x31",
+   "BUTTON \"Quiet hours\" 51x31",
+   "BUTTON \"Job Offers push\" 51x31",
+   "BUTTON \"Job Offers email\" 51x31",
+   "BUTTON \"Applications push\" 51x31",
+   "BUTTON \"Applications email\" 51x31",
+   "BUTTON \"Job Updates push\" 51x31",
+   "BUTTON \"Job Updates email\" 51x31",
+   "BUTTON \"Messages push\" 51x31",
+   "BUTTON \"Messages email\" 51x31",
+   "BUTTON \"Transit Updates push\" 51x31",
+   "BUTTON \"Transit Updates email\" 51x31",
+   "BUTTON \"Work Status push\" 51x31"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=support",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Help & Support\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=legal",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Legal & Policies\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"contact support\" 91x14"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/gift-card",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Gift Card\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/post-job",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Post a Job\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/payment-success",
+  "vp": "m",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"We couldn't confirm your payment.\" 22.4px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/dashboard",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [
+   "DIV \"2\" ui-sans-serif, system-ui, sans-serif"
+  ],
+  "italics": [],
+  "titles": [],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/my-posts",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [],
+  "smallTargets": [
+   "BUTTON \"Needs You 1\" 77x21",
+   "BUTTON \"Scheduled\" 66x21",
+   "BUTTON \"Waiting 2\" 60x21",
+   "BUTTON \"Done 2\" 44x21",
+   "BUTTON \"Cancelled 1\" 72x21",
+   "BUTTON \"Search jobs\" 28x28",
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/my-posts?filter=waiting",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [],
+  "smallTargets": [
+   "BUTTON \"Needs You 1\" 76x21",
+   "BUTTON \"Scheduled\" 66x21",
+   "BUTTON \"Waiting 2\" 61x21",
+   "BUTTON \"Done 2\" 44x21",
+   "BUTTON \"Cancelled 1\" 72x21",
+   "BUTTON \"Search jobs\" 28x28",
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/my-posts?filter=done",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [],
+  "smallTargets": [
+   "BUTTON \"Needs You 1\" 76x21",
+   "BUTTON \"Scheduled\" 66x21",
+   "BUTTON \"Waiting 2\" 60x21",
+   "BUTTON \"Done 2\" 44x21",
+   "BUTTON \"Cancelled 1\" 72x21",
+   "BUTTON \"Search jobs\" 28x28",
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/messages",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [],
+  "smallTargets": [
+   "BUTTON \"All 1\" 27x21",
+   "BUTTON \"Unread 1\" 56x21",
+   "BUTTON \"Active\" 39x21",
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Audit Weblane\" 28px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=profile",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Edit Profile\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=earnings",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Earnings & Payouts\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=subscription",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Membership\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=notifications",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Notifications\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "BUTTON \"Push notifications master toggle\" 51x31",
+   "BUTTON \"Email notifications master toggle\" 51x31",
+   "BUTTON \"Daily match digest\" 51x31",
+   "BUTTON \"Quiet hours\" 51x31",
+   "BUTTON \"Job Offers push\" 51x31",
+   "BUTTON \"Job Offers email\" 51x31",
+   "BUTTON \"Applications push\" 51x31",
+   "BUTTON \"Applications email\" 51x31",
+   "BUTTON \"Job Updates push\" 51x31",
+   "BUTTON \"Job Updates email\" 51x31",
+   "BUTTON \"Messages push\" 51x31",
+   "BUTTON \"Messages email\" 51x31",
+   "BUTTON \"Transit Updates push\" 51x31",
+   "BUTTON \"Transit Updates email\" 51x31",
+   "BUTTON \"Work Status push\" 51x31"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=support",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Help & Support\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=legal",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Legal & Policies\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"contact support\" 91x14",
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/gift-card",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Gift Card\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/post-job",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Post a Job\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/payment-success",
+  "vp": "d",
+  "theme": "light",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"We couldn't confirm your payment.\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/dashboard",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [
+   "DIV \"2\" ui-sans-serif, system-ui, sans-serif"
+  ],
+  "italics": [],
+  "titles": [],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/my-posts",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [],
+  "smallTargets": [
+   "BUTTON \"Needs You 1\" 77x21",
+   "BUTTON \"Scheduled\" 66x21",
+   "BUTTON \"Waiting 2\" 60x21",
+   "BUTTON \"Done 2\" 44x21",
+   "BUTTON \"Cancelled 1\" 72x21",
+   "BUTTON \"Search jobs\" 28x28",
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/my-posts?filter=waiting",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [],
+  "smallTargets": [
+   "BUTTON \"Needs You 1\" 76x21",
+   "BUTTON \"Scheduled\" 66x21",
+   "BUTTON \"Waiting 2\" 61x21",
+   "BUTTON \"Done 2\" 44x21",
+   "BUTTON \"Cancelled 1\" 72x21",
+   "BUTTON \"Search jobs\" 28x28",
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/my-posts?filter=done",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [],
+  "smallTargets": [
+   "BUTTON \"Needs You 1\" 76x21",
+   "BUTTON \"Scheduled\" 66x21",
+   "BUTTON \"Waiting 2\" 60x21",
+   "BUTTON \"Done 2\" 44x21",
+   "BUTTON \"Cancelled 1\" 72x21",
+   "BUTTON \"Search jobs\" 28x28",
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/messages",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [],
+  "smallTargets": [
+   "BUTTON \"All 1\" 27x21",
+   "BUTTON \"Unread 1\" 56x21",
+   "BUTTON \"Active\" 39x21",
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Audit Weblane\" 28px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=profile",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Edit Profile\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=earnings",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Earnings & Payouts\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=subscription",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Membership\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=notifications",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Notifications\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "BUTTON \"Push notifications master toggle\" 51x31",
+   "BUTTON \"Email notifications master toggle\" 51x31",
+   "BUTTON \"Daily match digest\" 51x31",
+   "BUTTON \"Quiet hours\" 51x31",
+   "BUTTON \"Job Offers push\" 51x31",
+   "BUTTON \"Job Offers email\" 51x31",
+   "BUTTON \"Applications push\" 51x31",
+   "BUTTON \"Applications email\" 51x31",
+   "BUTTON \"Job Updates push\" 51x31",
+   "BUTTON \"Job Updates email\" 51x31",
+   "BUTTON \"Messages push\" 51x31",
+   "BUTTON \"Messages email\" 51x31",
+   "BUTTON \"Transit Updates push\" 51x31",
+   "BUTTON \"Transit Updates email\" 51x31",
+   "BUTTON \"Work Status push\" 51x31"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=support",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Help & Support\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/profile?tab=legal",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Legal & Policies\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"contact support\" 91x14",
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/gift-card",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Gift Card\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/post-job",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"Post a Job\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [
+   "A \"Helpr home\" 37x44"
+  ],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ },
+ {
+  "route": "/payment-success",
+  "vp": "d",
+  "theme": "dark",
+  "fonts": [],
+  "italics": [],
+  "titles": [
+   "H1 \"We couldn't confirm your payment.\" 24.8px 700 \"bodoni moda"
+  ],
+  "smallTargets": [],
+  "flatPrimaries": [],
+  "boxInBox": [],
+  "clipped": [],
+  "overflow": false
+ }
+]

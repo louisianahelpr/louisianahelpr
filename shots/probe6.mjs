@@ -1,0 +1,10 @@
+import { launch, ctx, goto, shoot } from './lib.mjs';
+const b = await launch(false); const page = await ctx(b, 'm', 'light');
+page.on('response', r => { if (r.status() >= 400 && !/vercel|placeholder/.test(r.url())) console.log('HTTP', r.status(), r.url().slice(0,200)); });
+page.on('console', m => { if (m.type() !== 'log') console.log('CONSOLE', m.type(), m.text().slice(0,300)); });
+await goto(page, '/my-posts', 1500);
+await page.locator('text=[sweep-poster] Applicants waiting').first().click(); await page.waitForTimeout(800);
+await page.locator('main button', { hasText: /Applicants \(2\)/ }).first().click(); await page.waitForTimeout(3000);
+await shoot(page, 'p6_applicants_click');
+console.log(await page.evaluate(() => document.body.innerText.replace(/\s+/g,' ').slice(0,1200)));
+await b.close();

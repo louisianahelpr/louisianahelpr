@@ -1,0 +1,15 @@
+import { launch, ctx, goto, shoot } from './lib.mjs';
+const b = await launch(false); const page = await ctx(b, 'm', 'light');
+page.on('response', r => { if (r.status() >= 400 && !/vercel|placeholder/.test(r.url())) console.log('HTTP', r.status(), r.url().slice(0,200)); });
+await goto(page, '/my-posts', 1500);
+await page.locator('text=[sweep-poster] Applicants waiting').first().click(); await page.waitForTimeout(800);
+await page.locator('main button', { hasText: /Applicants \(2\)/ }).first().click();
+await page.locator('text=Hallie H.').waitFor({ timeout: 40000 }); await page.waitForTimeout(1500);
+await page.locator('button[aria-label="Select Hallie H."]').click(); await page.waitForTimeout(1200);
+await page.locator('[role=dialog] textarea').fill('Looking forward to it — gate code is 1234.');
+await shoot(page, 'p8_offer_filled');
+await page.locator('[role=dialog] button', { hasText: /Send Offer/ }).click(); await page.waitForTimeout(3000);
+await shoot(page, 'p8_offer_sent');
+console.log(await page.evaluate(() => document.body.innerText.replace(/\s+/g,' ').slice(0,1200)));
+await goto(page, '/my-posts', 2000); await shoot(page, 'p8_after_offer_list', true);
+await b.close();

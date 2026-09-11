@@ -1,0 +1,14 @@
+import { launch, ctx, goto, shoot } from './lib.mjs';
+const b = await launch(false); const page = await ctx(b, 'm', 'light');
+await goto(page, '/my-posts?filter=done', 2500);
+await page.locator('text=[sweep-poster] Applicants two').first().click(); await page.waitForTimeout(1000);
+await page.locator('main button', { hasText: /Hire Again/ }).first().click(); await page.waitForTimeout(2000);
+await shoot(page, 'p33_hire_again', true);
+console.log('hire again ->', page.url().replace('http://localhost:4202',''), (await page.locator('main').innerText()).replace(/\s+/g,' ').slice(0, 300));
+await goto(page, '/my-posts?filter=done', 2500);
+await page.locator('text=[sweep-poster] Applicants two').first().click(); await page.waitForTimeout(1000);
+await page.locator('main button', { hasText: /Report Job/ }).first().click(); await page.waitForTimeout(1200);
+await page.locator('[role=dialog] button', { hasText: /Something else/ }).click(); await page.waitForTimeout(800);
+await shoot(page, 'p33_report_step2');
+console.log('report step2:', (await page.locator('[role=dialog]').last().innerText()).replace(/\s+/g,' ').slice(0, 300));
+await b.close();

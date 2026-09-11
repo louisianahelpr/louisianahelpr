@@ -1,0 +1,15 @@
+import { launch, ctx, goto, shoot } from './lib.mjs';
+import { fillForm } from './p14-fill.mjs';
+const b = await launch(false); const page = await ctx(b, 'm', 'light');
+page.on('response', async r => { const u = r.url(); if (/create-payment/.test(u)) { console.log('create-payment', r.status(), (await r.text()).slice(0, 400)); } });
+page.on('request', r => { if (/create-payment/.test(r.url())) console.log('REQ', r.postData()?.slice(0, 600)); });
+await fillForm(page, 'm');
+await page.locator('main button[type=submit]').last().click(); await page.waitForTimeout(1500);
+console.log((await page.locator('main').innerText()).replace(/\s+/g, ' ').slice(0, 1200));
+await page.locator('main [role=checkbox], main input[type=checkbox]').last().click(); await page.waitForTimeout(400);
+await page.locator('main button', { hasText: /Continue to Payment/ }).last().click();
+await page.waitForTimeout(6000);
+console.log('url', page.url().slice(0, 60));
+const amt = await page.evaluate(() => document.body.innerText.match(/\$[\d,.]+/g)?.slice(0, 5));
+console.log('stripe amounts', amt);
+await b.close();

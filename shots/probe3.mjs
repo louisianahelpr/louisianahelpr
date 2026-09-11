@@ -1,0 +1,10 @@
+import { launch, ctx, goto, shoot } from './lib.mjs';
+const b = await launch(true); const page = await ctx(b, 'm', 'dark');
+page.on('pageerror', e => console.log('PAGEERROR', e.message, '\n', (e.stack||'').slice(0,800)));
+await goto(page, '/my-posts');
+await page.locator('text=[polish-seed] Overdue open').first().click(); await page.waitForTimeout(800);
+const card = page.locator('text=[polish-seed] Overdue open').first().locator('xpath=ancestor::*[contains(@class,"rounded")][3]');
+console.log(await page.evaluate(() => [...document.querySelectorAll('main button')].map(b => (b.innerText.replace(/\s+/g,' ').trim() || '[' + b.getAttribute('aria-label') + ']')).join(' | ')));
+await page.getByRole('button', { name: /^Boost$/ }).first().click(); await page.waitForTimeout(1500);
+await shoot(page, 'p4_boost_dark');
+await b.close();

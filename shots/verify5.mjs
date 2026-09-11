@@ -1,0 +1,13 @@
+import { launch, ctx, goto, shoot } from './lib.mjs';
+const b = await launch(false); const page = await ctx(b, 'm', 'light');
+page.on('response', r => { if (/messages\?id=in/.test(r.url()) && r.request().method() === 'PATCH') console.log('PATCH messages', r.status()); });
+await goto(page, '/my-posts', 2000);
+await page.locator('text=[sweep-poster] Applicants waiting').first().click(); await page.waitForTimeout(900);
+await page.locator('main button', { hasText: /Resolve & Pay/ }).first().click(); await page.waitForTimeout(1000);
+const t = await page.evaluate(() => document.querySelector('[role=alertdialog], [role=dialog]')?.innerText.replace(/\s+/g,' '));
+console.log('release copy:', t?.match(/to [^.]+\.+ You/)?.[0]);
+await shoot(page, 'v5_release_copy');
+await page.keyboard.press('Escape');
+await goto(page, '/messages', 2500);
+await page.locator('main button', { hasText: /Hallie/ }).first().click(); await page.waitForTimeout(5000);
+await b.close();

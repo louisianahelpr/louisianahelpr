@@ -12,8 +12,6 @@ import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
-import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
-import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 // Lazy-load the map so the map chunk (and Apple's MapKit JS script) only
 // loads when guests actually toggle to map view. List view stays cheap.
@@ -747,23 +745,24 @@ const DashboardGuest = () => {
             emblemTo="/"
             // No `status` — the live-job pill is a signed-in thing.
             //
-            // Search + filters DO belong here (owner, 2026-09-07: "/browse can
-            // have the filters"). This row carried only the auth pair until
-            // then, on the reasoning that a signed-out visitor "is not running a
-            // refined search". The cost of that was not a missing nicety: the
-            // filter sheet, the sort control and the List/Map toggle were all
-            // already mounted on this page and fully wired, and this was the
-            // only control that could open any of them — so every one of them
-            // was unreachable code on the widest step of the funnel, and the
-            // browse map could never be displayed at all.
+            // NO SEARCH, NO FILTERS on the guest feed (owner, 2026-09-11:
+            // "just remove the filters here and the search. its not needed").
+            // This REVERSES the 2026-09-07 decision that put them here
+            // ("/browse can have the filters"), and the reversal is deliberate
+            // — the argument recorded for adding them was that the filter
+            // sheet, the sort control and the List/Map toggle were already
+            // mounted and unreachable without an entry point. That is true and
+            // is no longer a reason: the owner's answer is that a signed-out
+            // visitor does not need to refine a preview at all.
             //
-            // "Is there work near ME" is the first question a visitor has, and
-            // it is answerable signed-out: the feed projects the view's masked
-            // coordinates and the radius is a client-side haversine, so nothing
-            // here needs an account. Only saves, availability and saved searches
-            // do, and those route to /signup from inside the sheet.
-            actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
-            searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
+            // Consequence, recorded rather than discovered later: the filter
+            // sheet, the sort control and the List/Map toggle are once again
+            // mounted with no way to open them on this surface, so `view` is
+            // effectively pinned to "list" and the browse map is unreachable
+            // for guests. That is the owner's call, the same one made on
+            // 2026-08-19, not an oversight. Restoring any of it means putting
+            // an entry point back in this row — not re-adding an inline chip
+            // row.
             trailing={<GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />}
           />
         }
@@ -819,17 +818,15 @@ const DashboardGuest = () => {
   // Help Center growing with a stray `pt-4`. The header owns the full gap
   // above and below the title; a body under it must never add its own.
   return (
+    // No `titleActions` — see the note on the native branch's DashboardTitleBar
+    // above. The search and filter icons are gone from BOTH shells, because
+    // this page is ONE surface: diverging them would give the phone-sized
+    // website a control the native app does not have.
     <PublicHeaderPage
       title="Browse Jobs"
       width="public"
-      titleActions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
       bottomPaddingClassName="pb-16"
     >
-      {filters.searchOpen && (
-        <div className="mx-auto page-measure pb-3">
-          <BrowseSearchBar filters={filters} />
-        </div>
-      )}
       <div className="mx-auto page-measure">
         {toolbar}
         {view === "map" ? (

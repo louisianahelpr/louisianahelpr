@@ -375,8 +375,13 @@ function loadScript(): Promise<MapKitStatus> {
             if (e?.status === "Initialized" || e?.status === "Refreshed") settle("ready");
           };
           onError = () => settle("error");
-          events.addEventListener("configuration-change", onConfig);
-          events.addEventListener("error", onError);
+          // `?.` to match the removeEventListener calls in `settle` above.
+          // `eventsSupported` is a stored boolean, and TypeScript does not
+          // narrow an optional property through one — only through the inline
+          // `typeof` test. Both calls are unreachable unless the property is a
+          // function, so the optional call is a no-op at runtime.
+          events.addEventListener?.("configuration-change", onConfig);
+          events.addEventListener?.("error", onError);
           // NOTE: the optimistic fallback timer is deliberately NOT armed here.
           // See `armAuthConfirmTimeout` below.
         }

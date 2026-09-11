@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -95,6 +95,57 @@ export function ApplyBody({
 
   const savedTemplate = safeStorage.getItem(TEMPLATE_KEY);
   const differsFromTemplate = !!applyMessage.trim() && applyMessage !== savedTemplate;
+
+  // DOES THE HOST SHEET ACTUALLY SCROLL? The submit row's sticky treatment —
+  // `position: sticky` plus the negative bottom margin that cancels the scroll
+  // container's own bottom padding — is built for the overflowing sheet and
+  // is WRONG on one that fits.
+  //
+  // The negative margin makes the container compute its content 20px shorter
+  // than the row really renders. When the sheet scrolls that is harmless (it
+  // just means 20px less scrollable content). When it does NOT scroll, the
+  // container's height comes FROM that short measurement, so the row no longer
+  // fits inside it — and `bottom: 0` then does exactly what it is told and
+  // drags the row up into the element above it.
+  //
+  // Measured live on the merged job sheet at 1440 before this gate existed:
+  // the payout-gate notice ended at y=703.5 and the submit row began at
+  // y=697.5 — a 6px overlap that squared off the notice's bottom corners, on
+  // the one screen that explains why a helper cannot be hired yet (owner,
+  // 2026-09-11: "the you can apply button is cut off by apply"). The same
+  // mismatch left dead space under the button, which is the second half of
+  // the same report.
+  //
+  // The comment on `.sheet-sticky-actions` in index.css claimed this "costs
+  // nothing when the sheet fits". It cost 6px; the claim was never measured.
+  const stickyRowRef = useRef<HTMLDivElement>(null);
+  const [hostScrolls, setHostScrolls] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const row = stickyRowRef.current;
+    if (!row) return;
+    // Nearest ancestor that actually scrolls — the dialog surface in both
+    // hosts (the merged job sheet and the standalone QuickApply sheet).
+    let scroller: HTMLElement | null = row.parentElement;
+    while (scroller) {
+      const oy = getComputedStyle(scroller).overflowY;
+      if (oy === "auto" || oy === "scroll") break;
+      scroller = scroller.parentElement;
+    }
+    if (!scroller) return;
+    const el = scroller;
+    // 1px of slack: sub-pixel layout routinely leaves scrollHeight a hair
+    // above clientHeight on a sheet that visibly does not scroll.
+    const measure = () => setHostScrolls(el.scrollHeight - el.clientHeight > 1);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    ro.observe(row);
+    return () => ro.disconnect();
+    // `applyMessage` is in the deps because the note field grows with it,
+    // which is the one thing on this step that can tip a fitting sheet into
+    // a scrolling one.
+  }, [open, applyMessage, applyBlockNotice, online]);
 
   // No placeholder on the note field (owner, 2026-08-29). It carried a coaching
   // tip ("Higher-budget jobs go to Helprs who mention relevant experience"),
@@ -356,8 +407,22 @@ export function ApplyBody({
           `.sheet-sticky-actions` is what closes that band; see the long note
           on the rule in index.css before touching either half. No horizontal
           bleed either way — apply-dialog-fit.spec.ts holds every element
-          inside the content box. */}
-      <div className="sheet-sticky-actions flex gap-1.5 -mb-4 pb-4 sm:-mb-5 sm:pb-5 pt-2">
+          inside the content box.
+
+          ALL OF THAT IS GATED ON THE SHEET ACTUALLY SCROLLING (`hostScrolls`,
+          measured above). On a sheet that fits, the same negative margin
+          under-measures the container and `bottom: 0` pulls this row up over
+          the notice above it — so a fitting sheet gets plain flow: no sticky,
+          no negative margin, no shadow, and the row's own `pb` is the only
+          thing under the button. */}
+      <div
+        ref={stickyRowRef}
+        className={`flex gap-1.5 pt-2 ${
+          hostScrolls
+            ? "sheet-sticky-actions -mb-4 pb-4 sm:-mb-5 sm:pb-5"
+            : ""
+        }`}
+      >
         {/* Same primitive and surface as every other primary CTA in the app,
             JobDetailFooter's included — one button, one set of effects: the glossy
             `btn-grad-primary` radial, the hover brighten/lift/glow and the

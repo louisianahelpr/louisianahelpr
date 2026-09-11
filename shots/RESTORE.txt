@@ -1,0 +1,1 @@
+RESTORE: update profiles set idv_status='not_started' where user_id='96c9899e-87a2-49e2-bbdd-268717d52aee'; update profiles set latitude=null,longitude=null,location_captured_at=null where user_id='437de07d-1bd7-46c8-a451-6b46aa3bcad5' (was null? unknown - captured 01:28 by my run)

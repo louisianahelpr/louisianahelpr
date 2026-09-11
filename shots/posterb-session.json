@@ -1,0 +1,53 @@
+{
+  "key": "sb-fncmgoasalhdgfwzhsqa-auth-token",
+  "value": "{\"access_token\":\"eyJhbGciOiJFUzI1NiIsImtpZCI6IjU3MDAzYmFiLTBkNTItNDQ1ZC1iNDZlLWY0ZTE4M2Y2YmI0YiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2ZuY21nb2FzYWxoZGdmd3poc3FhLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI5NmM5ODk5ZS04N2EyLTQ5ZTItYmJkZC0yNjg3MTdkNTJhZWUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzg4ODM5NDk3LCJpYXQiOjE3ODg4MzU4OTcsImVtYWlsIjoiaGVscHItYXVkaXQtd2ViLTA4MjRAbWFpbGluYXRvci5jb20iLCJwaG9uZSI6IiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7ImVtYWlsX3ZlcmlmaWVkIjp0cnVlfSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJvdHAiLCJ0aW1lc3RhbXAiOjE3ODg4MzU4OTd9XSwic2Vzc2lvbl9pZCI6IjNjOWI2YjMzLTJmZWQtNGE3Ny1hMWY4LTM4MTg3NDg1YjNkZSIsImlzX2Fub255bW91cyI6ZmFsc2V9.HNw3C6cuMmpQPGqQM4T7CuBWdwMUHneO2RqhvaBBLGnwAZQ6HQ53GEMTpu9bZz0o1gngwMs1zVg38sJEWh8GzQ\",\"refresh_token\":\"ni6mlvorx2lk\",\"token_type\":\"bearer\",\"expires_in\":3600,\"expires_at\":1788839497,\"user\":{\"id\":\"96c9899e-87a2-49e2-bbdd-268717d52aee\",\"aud\":\"authenticated\",\"role\":\"authenticated\",\"email\":\"helpr-audit-web-0824@mailinator.com\",\"email_confirmed_at\":\"2026-09-07T06:11:01.136639Z\",\"phone\":\"\",\"confirmation_sent_at\":\"2026-09-07T06:11:00.913697Z\",\"confirmed_at\":\"2026-09-07T06:11:01.136639Z\",\"recovery_sent_at\":\"2026-09-08T02:51:36.743516Z\",\"last_sign_in_at\":\"2026-09-08T02:51:36.960348Z\",\"app_metadata\":{\"provider\":\"email\",\"providers\":[\"email\"]},\"user_metadata\":{\"email_verified\":true},\"identities\":[{\"identity_id\":\"80a7f9ec-1115-4a59-9a46-26159d8af1fd\",\"id\":\"96c9899e-87a2-49e2-bbdd-268717d52aee\",\"user_id\":\"96c9899e-87a2-49e2-bbdd-268717d52aee\",\"identity_data\":{\"email\":\"helpr-audit-web-0824@mailinator.com\",\"email_verified\":true,\"phone_verified\":false,\"sub\":\"96c9899e-87a2-49e2-bbdd-268717d52aee\"},\"provider\":\"email\",\"last_sign_in_at\":\"2026-09-07T06:11:00.997224Z\",\"created_at\":\"2026-09-07T06:11:00.997268Z\",\"updated_at\":\"2026-09-07T06:11:00.997268Z\",\"email\":\"helpr-audit-web-0824@mailinator.com\"}],\"created_at\":\"2026-09-07T06:11:00.991539Z\",\"updated_at\":\"2026-09-08T02:51:37.011009Z\",\"is_anonymous\":false}}",
+  "session": {
+    "access_token": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjU3MDAzYmFiLTBkNTItNDQ1ZC1iNDZlLWY0ZTE4M2Y2YmI0YiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2ZuY21nb2FzYWxoZGdmd3poc3FhLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI5NmM5ODk5ZS04N2EyLTQ5ZTItYmJkZC0yNjg3MTdkNTJhZWUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzg4ODM5NDk3LCJpYXQiOjE3ODg4MzU4OTcsImVtYWlsIjoiaGVscHItYXVkaXQtd2ViLTA4MjRAbWFpbGluYXRvci5jb20iLCJwaG9uZSI6IiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7ImVtYWlsX3ZlcmlmaWVkIjp0cnVlfSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJvdHAiLCJ0aW1lc3RhbXAiOjE3ODg4MzU4OTd9XSwic2Vzc2lvbl9pZCI6IjNjOWI2YjMzLTJmZWQtNGE3Ny1hMWY4LTM4MTg3NDg1YjNkZSIsImlzX2Fub255bW91cyI6ZmFsc2V9.HNw3C6cuMmpQPGqQM4T7CuBWdwMUHneO2RqhvaBBLGnwAZQ6HQ53GEMTpu9bZz0o1gngwMs1zVg38sJEWh8GzQ",
+    "refresh_token": "ni6mlvorx2lk",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "expires_at": 1788839497,
+    "user": {
+      "id": "96c9899e-87a2-49e2-bbdd-268717d52aee",
+      "aud": "authenticated",
+      "role": "authenticated",
+      "email": "helpr-audit-web-0824@mailinator.com",
+      "email_confirmed_at": "2026-09-07T06:11:01.136639Z",
+      "phone": "",
+      "confirmation_sent_at": "2026-09-07T06:11:00.913697Z",
+      "confirmed_at": "2026-09-07T06:11:01.136639Z",
+      "recovery_sent_at": "2026-09-08T02:51:36.743516Z",
+      "last_sign_in_at": "2026-09-08T02:51:36.960348Z",
+      "app_metadata": {
+        "provider": "email",
+        "providers": [
+          "email"
+        ]
+      },
+      "user_metadata": {
+        "email_verified": true
+      },
+      "identities": [
+        {
+          "identity_id": "80a7f9ec-1115-4a59-9a46-26159d8af1fd",
+          "id": "96c9899e-87a2-49e2-bbdd-268717d52aee",
+          "user_id": "96c9899e-87a2-49e2-bbdd-268717d52aee",
+          "identity_data": {
+            "email": "helpr-audit-web-0824@mailinator.com",
+            "email_verified": true,
+            "phone_verified": false,
+            "sub": "96c9899e-87a2-49e2-bbdd-268717d52aee"
+          },
+          "provider": "email",
+          "last_sign_in_at": "2026-09-07T06:11:00.997224Z",
+          "created_at": "2026-09-07T06:11:00.997268Z",
+          "updated_at": "2026-09-07T06:11:00.997268Z",
+          "email": "helpr-audit-web-0824@mailinator.com"
+        }
+      ],
+      "created_at": "2026-09-07T06:11:00.991539Z",
+      "updated_at": "2026-09-08T02:51:37.011009Z",
+      "is_anonymous": false
+    }
+  }
+}

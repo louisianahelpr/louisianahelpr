@@ -1,0 +1,57 @@
+{
+  "key": "sb-fncmgoasalhdgfwzhsqa-auth-token",
+  "value": "{\"access_token\":\"eyJhbGciOiJFUzI1NiIsImtpZCI6IjU3MDAzYmFiLTBkNTItNDQ1ZC1iNDZlLWY0ZTE4M2Y2YmI0YiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2ZuY21nb2FzYWxoZGdmd3poc3FhLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI3MWM1NmRmYi1iMzI2LTQwMTAtYjk2MC1iMThkZDM5NjZlN2YiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzg4ODMyNjIwLCJpYXQiOjE3ODg4MjkwMjAsImVtYWlsIjoiaGVscHItZTJlLXBvc3Rlci0wOTAyQG1haWxpbmF0b3IuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6ImhlbHByLWUyZS1wb3N0ZXItMDkwMkBtYWlsaW5hdG9yLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZnVsbF9uYW1lIjoiUGVycnkgUG9zdGVyIiwicGhvbmVfdmVyaWZpZWQiOmZhbHNlLCJzdWIiOiI3MWM1NmRmYi1iMzI2LTQwMTAtYjk2MC1iMThkZDM5NjZlN2YifSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJvdHAiLCJ0aW1lc3RhbXAiOjE3ODg4MjkwMjB9XSwic2Vzc2lvbl9pZCI6Ijk0ZDIwYTQ0LTJlZDYtNDFhMC1hMzRlLWU5YTA1Mzc3MDA5ZCIsImlzX2Fub255bW91cyI6ZmFsc2V9.n3LhwWjlzg8bygQmrsRUGdR3TxYO0aWY_5gnHzmG_Ve-9mfY72TjKLsRPZf6FfQmzS-JcKoRjV5LezIkBtAK-w\",\"refresh_token\":\"2fwtwp2jarx7\",\"token_type\":\"bearer\",\"expires_in\":3600,\"expires_at\":1788832620,\"user\":{\"id\":\"71c56dfb-b326-4010-b960-b18dd3966e7f\",\"aud\":\"authenticated\",\"role\":\"authenticated\",\"email\":\"helpr-e2e-poster-0902@mailinator.com\",\"email_confirmed_at\":\"2026-09-02T21:40:53.151751Z\",\"phone\":\"\",\"confirmed_at\":\"2026-09-02T21:40:53.151751Z\",\"recovery_sent_at\":\"2026-09-08T00:57:00.347605Z\",\"last_sign_in_at\":\"2026-09-08T00:57:00.491705Z\",\"app_metadata\":{\"provider\":\"email\",\"providers\":[\"email\"]},\"user_metadata\":{\"email\":\"helpr-e2e-poster-0902@mailinator.com\",\"email_verified\":false,\"full_name\":\"Perry Poster\",\"phone_verified\":false,\"sub\":\"71c56dfb-b326-4010-b960-b18dd3966e7f\"},\"identities\":[{\"identity_id\":\"39161569-e3ff-4a7a-909e-1c27aeb98e7d\",\"id\":\"71c56dfb-b326-4010-b960-b18dd3966e7f\",\"user_id\":\"71c56dfb-b326-4010-b960-b18dd3966e7f\",\"identity_data\":{\"email\":\"helpr-e2e-poster-0902@mailinator.com\",\"email_verified\":false,\"full_name\":\"Perry Poster\",\"phone_verified\":false,\"sub\":\"71c56dfb-b326-4010-b960-b18dd3966e7f\"},\"provider\":\"email\",\"last_sign_in_at\":\"2026-09-02T21:37:48.642559Z\",\"created_at\":\"2026-09-02T21:37:48.642617Z\",\"updated_at\":\"2026-09-02T21:37:48.642617Z\",\"email\":\"helpr-e2e-poster-0902@mailinator.com\"}],\"created_at\":\"2026-09-02T21:37:48.184503Z\",\"updated_at\":\"2026-09-08T00:57:00.494521Z\",\"is_anonymous\":false}}",
+  "session": {
+    "access_token": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjU3MDAzYmFiLTBkNTItNDQ1ZC1iNDZlLWY0ZTE4M2Y2YmI0YiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2ZuY21nb2FzYWxoZGdmd3poc3FhLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI3MWM1NmRmYi1iMzI2LTQwMTAtYjk2MC1iMThkZDM5NjZlN2YiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzg4ODMyNjIwLCJpYXQiOjE3ODg4MjkwMjAsImVtYWlsIjoiaGVscHItZTJlLXBvc3Rlci0wOTAyQG1haWxpbmF0b3IuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6ImhlbHByLWUyZS1wb3N0ZXItMDkwMkBtYWlsaW5hdG9yLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZnVsbF9uYW1lIjoiUGVycnkgUG9zdGVyIiwicGhvbmVfdmVyaWZpZWQiOmZhbHNlLCJzdWIiOiI3MWM1NmRmYi1iMzI2LTQwMTAtYjk2MC1iMThkZDM5NjZlN2YifSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJvdHAiLCJ0aW1lc3RhbXAiOjE3ODg4MjkwMjB9XSwic2Vzc2lvbl9pZCI6Ijk0ZDIwYTQ0LTJlZDYtNDFhMC1hMzRlLWU5YTA1Mzc3MDA5ZCIsImlzX2Fub255bW91cyI6ZmFsc2V9.n3LhwWjlzg8bygQmrsRUGdR3TxYO0aWY_5gnHzmG_Ve-9mfY72TjKLsRPZf6FfQmzS-JcKoRjV5LezIkBtAK-w",
+    "refresh_token": "2fwtwp2jarx7",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "expires_at": 1788832620,
+    "user": {
+      "id": "71c56dfb-b326-4010-b960-b18dd3966e7f",
+      "aud": "authenticated",
+      "role": "authenticated",
+      "email": "helpr-e2e-poster-0902@mailinator.com",
+      "email_confirmed_at": "2026-09-02T21:40:53.151751Z",
+      "phone": "",
+      "confirmed_at": "2026-09-02T21:40:53.151751Z",
+      "recovery_sent_at": "2026-09-08T00:57:00.347605Z",
+      "last_sign_in_at": "2026-09-08T00:57:00.491705Z",
+      "app_metadata": {
+        "provider": "email",
+        "providers": [
+          "email"
+        ]
+      },
+      "user_metadata": {
+        "email": "helpr-e2e-poster-0902@mailinator.com",
+        "email_verified": false,
+        "full_name": "Perry Poster",
+        "phone_verified": false,
+        "sub": "71c56dfb-b326-4010-b960-b18dd3966e7f"
+      },
+      "identities": [
+        {
+          "identity_id": "39161569-e3ff-4a7a-909e-1c27aeb98e7d",
+          "id": "71c56dfb-b326-4010-b960-b18dd3966e7f",
+          "user_id": "71c56dfb-b326-4010-b960-b18dd3966e7f",
+          "identity_data": {
+            "email": "helpr-e2e-poster-0902@mailinator.com",
+            "email_verified": false,
+            "full_name": "Perry Poster",
+            "phone_verified": false,
+            "sub": "71c56dfb-b326-4010-b960-b18dd3966e7f"
+          },
+          "provider": "email",
+          "last_sign_in_at": "2026-09-02T21:37:48.642559Z",
+          "created_at": "2026-09-02T21:37:48.642617Z",
+          "updated_at": "2026-09-02T21:37:48.642617Z",
+          "email": "helpr-e2e-poster-0902@mailinator.com"
+        }
+      ],
+      "created_at": "2026-09-02T21:37:48.184503Z",
+      "updated_at": "2026-09-08T00:57:00.494521Z",
+      "is_anonymous": false
+    }
+  }
+}

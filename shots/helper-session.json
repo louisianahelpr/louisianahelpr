@@ -1,0 +1,53 @@
+{
+  "key": "sb-fncmgoasalhdgfwzhsqa-auth-token",
+  "value": "{\"access_token\":\"eyJhbGciOiJFUzI1NiIsImtpZCI6IjU3MDAzYmFiLTBkNTItNDQ1ZC1iNDZlLWY0ZTE4M2Y2YmI0YiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2ZuY21nb2FzYWxoZGdmd3poc3FhLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmNmNjM2ViYi05NDc4LTQ3M2MtOGViOC02MmI0MDZmMDczNGYiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzg4ODMxNjM0LCJpYXQiOjE3ODg4MjgwMzQsImVtYWlsIjoiZWxpLnRlc3QuaGVscGVyQGxvdWlzaWFuYWhlbHByLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6Im90cCIsInRpbWVzdGFtcCI6MTc4ODgyODAzNH1dLCJzZXNzaW9uX2lkIjoiZTNjODQ2ODAtNzZhMy00ZWIyLTk1NWYtYzU2YmFjMmY1OGNkIiwiaXNfYW5vbnltb3VzIjpmYWxzZX0.qlwZ7F2tEPkBE-dkWCsqugu6NfnePAOlMAF-LXndhyFQPDzNfF6J-zT-eG083dTc2Ev2ltyAUgdI4yqzRm8bWw\",\"refresh_token\":\"czyxqlurorqy\",\"token_type\":\"bearer\",\"expires_in\":3600,\"expires_at\":1788831634,\"user\":{\"id\":\"f6cc3ebb-9478-473c-8eb8-62b406f0734f\",\"aud\":\"authenticated\",\"role\":\"authenticated\",\"email\":\"eli.test.helper@louisianahelpr.com\",\"email_confirmed_at\":\"2026-09-07T06:11:00.417552Z\",\"phone\":\"\",\"confirmation_sent_at\":\"2026-09-07T06:10:59.930169Z\",\"confirmed_at\":\"2026-09-07T06:11:00.417552Z\",\"recovery_sent_at\":\"2026-09-08T00:40:33.907906Z\",\"last_sign_in_at\":\"2026-09-08T00:40:34.199643Z\",\"app_metadata\":{\"provider\":\"email\",\"providers\":[\"email\"]},\"user_metadata\":{\"email_verified\":true},\"identities\":[{\"identity_id\":\"2f445ec0-05b4-474f-a6ba-c4976315d98b\",\"id\":\"f6cc3ebb-9478-473c-8eb8-62b406f0734f\",\"user_id\":\"f6cc3ebb-9478-473c-8eb8-62b406f0734f\",\"identity_data\":{\"email\":\"eli.test.helper@louisianahelpr.com\",\"email_verified\":true,\"phone_verified\":false,\"sub\":\"f6cc3ebb-9478-473c-8eb8-62b406f0734f\"},\"provider\":\"email\",\"last_sign_in_at\":\"2026-09-07T06:11:00.113204Z\",\"created_at\":\"2026-09-07T06:11:00.113253Z\",\"updated_at\":\"2026-09-07T06:11:00.113253Z\",\"email\":\"eli.test.helper@louisianahelpr.com\"}],\"created_at\":\"2026-09-07T06:11:00.01612Z\",\"updated_at\":\"2026-09-08T00:40:34.250574Z\",\"is_anonymous\":false}}",
+  "session": {
+    "access_token": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjU3MDAzYmFiLTBkNTItNDQ1ZC1iNDZlLWY0ZTE4M2Y2YmI0YiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2ZuY21nb2FzYWxoZGdmd3poc3FhLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmNmNjM2ViYi05NDc4LTQ3M2MtOGViOC02MmI0MDZmMDczNGYiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzg4ODMxNjM0LCJpYXQiOjE3ODg4MjgwMzQsImVtYWlsIjoiZWxpLnRlc3QuaGVscGVyQGxvdWlzaWFuYWhlbHByLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6Im90cCIsInRpbWVzdGFtcCI6MTc4ODgyODAzNH1dLCJzZXNzaW9uX2lkIjoiZTNjODQ2ODAtNzZhMy00ZWIyLTk1NWYtYzU2YmFjMmY1OGNkIiwiaXNfYW5vbnltb3VzIjpmYWxzZX0.qlwZ7F2tEPkBE-dkWCsqugu6NfnePAOlMAF-LXndhyFQPDzNfF6J-zT-eG083dTc2Ev2ltyAUgdI4yqzRm8bWw",
+    "refresh_token": "czyxqlurorqy",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "expires_at": 1788831634,
+    "user": {
+      "id": "f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+      "aud": "authenticated",
+      "role": "authenticated",
+      "email": "eli.test.helper@louisianahelpr.com",
+      "email_confirmed_at": "2026-09-07T06:11:00.417552Z",
+      "phone": "",
+      "confirmation_sent_at": "2026-09-07T06:10:59.930169Z",
+      "confirmed_at": "2026-09-07T06:11:00.417552Z",
+      "recovery_sent_at": "2026-09-08T00:40:33.907906Z",
+      "last_sign_in_at": "2026-09-08T00:40:34.199643Z",
+      "app_metadata": {
+        "provider": "email",
+        "providers": [
+          "email"
+        ]
+      },
+      "user_metadata": {
+        "email_verified": true
+      },
+      "identities": [
+        {
+          "identity_id": "2f445ec0-05b4-474f-a6ba-c4976315d98b",
+          "id": "f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+          "user_id": "f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+          "identity_data": {
+            "email": "eli.test.helper@louisianahelpr.com",
+            "email_verified": true,
+            "phone_verified": false,
+            "sub": "f6cc3ebb-9478-473c-8eb8-62b406f0734f"
+          },
+          "provider": "email",
+          "last_sign_in_at": "2026-09-07T06:11:00.113204Z",
+          "created_at": "2026-09-07T06:11:00.113253Z",
+          "updated_at": "2026-09-07T06:11:00.113253Z",
+          "email": "eli.test.helper@louisianahelpr.com"
+        }
+      ],
+      "created_at": "2026-09-07T06:11:00.01612Z",
+      "updated_at": "2026-09-08T00:40:34.250574Z",
+      "is_anonymous": false
+    }
+  }
+}

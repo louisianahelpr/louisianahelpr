@@ -1,0 +1,57 @@
+{
+  "key": "sb-fncmgoasalhdgfwzhsqa-auth-token",
+  "value": "{\"access_token\":\"eyJhbGciOiJFUzI1NiIsImtpZCI6IjU3MDAzYmFiLTBkNTItNDQ1ZC1iNDZlLWY0ZTE4M2Y2YmI0YiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2ZuY21nb2FzYWxoZGdmd3poc3FhLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI0MzdkZTA3ZC0xYmQ3LTQ2YzgtYTQ1MS02YjQ2YWEzYmNhZDUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzg4ODM4NDYzLCJpYXQiOjE3ODg4MzQ4NjMsImVtYWlsIjoiaGVscHItZTJlLWhlbHBlci0wOTAyQG1haWxpbmF0b3IuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6ImhlbHByLWUyZS1oZWxwZXItMDkwMkBtYWlsaW5hdG9yLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZnVsbF9uYW1lIjoiSGFsbGllIEhlbHBlciIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiNDM3ZGUwN2QtMWJkNy00NmM4LWE0NTEtNmI0NmFhM2JjYWQ1In0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoib3RwIiwidGltZXN0YW1wIjoxNzg4ODM0ODYzfV0sInNlc3Npb25faWQiOiJkNWNiMzE5NS05M2RkLTQ4ZWItYjUwMi04YmIyOGExMjBiY2EiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.pYeVoEIlKHnjRDDabSUwyKWinoRlNHZs7ONtXvqaEPHjbByCNUGut4k73aB2CEUykC7_-y3dsGceLnbHnEYWOg\",\"refresh_token\":\"djrrpmhqkq7a\",\"token_type\":\"bearer\",\"expires_in\":3600,\"expires_at\":1788838463,\"user\":{\"id\":\"437de07d-1bd7-46c8-a451-6b46aa3bcad5\",\"aud\":\"authenticated\",\"role\":\"authenticated\",\"email\":\"helpr-e2e-helper-0902@mailinator.com\",\"email_confirmed_at\":\"2026-09-02T22:14:57.390751Z\",\"phone\":\"\",\"confirmed_at\":\"2026-09-02T22:14:57.390751Z\",\"recovery_sent_at\":\"2026-09-08T02:34:22.756984Z\",\"last_sign_in_at\":\"2026-09-08T02:34:22.973118Z\",\"app_metadata\":{\"provider\":\"email\",\"providers\":[\"email\"]},\"user_metadata\":{\"email\":\"helpr-e2e-helper-0902@mailinator.com\",\"email_verified\":false,\"full_name\":\"Hallie Helper\",\"phone_verified\":false,\"sub\":\"437de07d-1bd7-46c8-a451-6b46aa3bcad5\"},\"identities\":[{\"identity_id\":\"e7f8485a-be89-468b-bda6-9e537ac8b706\",\"id\":\"437de07d-1bd7-46c8-a451-6b46aa3bcad5\",\"user_id\":\"437de07d-1bd7-46c8-a451-6b46aa3bcad5\",\"identity_data\":{\"email\":\"helpr-e2e-helper-0902@mailinator.com\",\"email_verified\":false,\"full_name\":\"Hallie Helper\",\"phone_verified\":false,\"sub\":\"437de07d-1bd7-46c8-a451-6b46aa3bcad5\"},\"provider\":\"email\",\"last_sign_in_at\":\"2026-09-02T22:10:09.283938Z\",\"created_at\":\"2026-09-02T22:10:09.284016Z\",\"updated_at\":\"2026-09-02T22:10:09.284016Z\",\"email\":\"helpr-e2e-helper-0902@mailinator.com\"}],\"created_at\":\"2026-09-02T22:10:09.194587Z\",\"updated_at\":\"2026-09-08T02:34:23.007545Z\",\"is_anonymous\":false}}",
+  "session": {
+    "access_token": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjU3MDAzYmFiLTBkNTItNDQ1ZC1iNDZlLWY0ZTE4M2Y2YmI0YiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2ZuY21nb2FzYWxoZGdmd3poc3FhLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI0MzdkZTA3ZC0xYmQ3LTQ2YzgtYTQ1MS02YjQ2YWEzYmNhZDUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzg4ODM4NDYzLCJpYXQiOjE3ODg4MzQ4NjMsImVtYWlsIjoiaGVscHItZTJlLWhlbHBlci0wOTAyQG1haWxpbmF0b3IuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6ImhlbHByLWUyZS1oZWxwZXItMDkwMkBtYWlsaW5hdG9yLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZnVsbF9uYW1lIjoiSGFsbGllIEhlbHBlciIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiNDM3ZGUwN2QtMWJkNy00NmM4LWE0NTEtNmI0NmFhM2JjYWQ1In0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoib3RwIiwidGltZXN0YW1wIjoxNzg4ODM0ODYzfV0sInNlc3Npb25faWQiOiJkNWNiMzE5NS05M2RkLTQ4ZWItYjUwMi04YmIyOGExMjBiY2EiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.pYeVoEIlKHnjRDDabSUwyKWinoRlNHZs7ONtXvqaEPHjbByCNUGut4k73aB2CEUykC7_-y3dsGceLnbHnEYWOg",
+    "refresh_token": "djrrpmhqkq7a",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "expires_at": 1788838463,
+    "user": {
+      "id": "437de07d-1bd7-46c8-a451-6b46aa3bcad5",
+      "aud": "authenticated",
+      "role": "authenticated",
+      "email": "helpr-e2e-helper-0902@mailinator.com",
+      "email_confirmed_at": "2026-09-02T22:14:57.390751Z",
+      "phone": "",
+      "confirmed_at": "2026-09-02T22:14:57.390751Z",
+      "recovery_sent_at": "2026-09-08T02:34:22.756984Z",
+      "last_sign_in_at": "2026-09-08T02:34:22.973118Z",
+      "app_metadata": {
+        "provider": "email",
+        "providers": [
+          "email"
+        ]
+      },
+      "user_metadata": {
+        "email": "helpr-e2e-helper-0902@mailinator.com",
+        "email_verified": false,
+        "full_name": "Hallie Helper",
+        "phone_verified": false,
+        "sub": "437de07d-1bd7-46c8-a451-6b46aa3bcad5"
+      },
+      "identities": [
+        {
+          "identity_id": "e7f8485a-be89-468b-bda6-9e537ac8b706",
+          "id": "437de07d-1bd7-46c8-a451-6b46aa3bcad5",
+          "user_id": "437de07d-1bd7-46c8-a451-6b46aa3bcad5",
+          "identity_data": {
+            "email": "helpr-e2e-helper-0902@mailinator.com",
+            "email_verified": false,
+            "full_name": "Hallie Helper",
+            "phone_verified": false,
+            "sub": "437de07d-1bd7-46c8-a451-6b46aa3bcad5"
+          },
+          "provider": "email",
+          "last_sign_in_at": "2026-09-02T22:10:09.283938Z",
+          "created_at": "2026-09-02T22:10:09.284016Z",
+          "updated_at": "2026-09-02T22:10:09.284016Z",
+          "email": "helpr-e2e-helper-0902@mailinator.com"
+        }
+      ],
+      "created_at": "2026-09-02T22:10:09.194587Z",
+      "updated_at": "2026-09-08T02:34:23.007545Z",
+      "is_anonymous": false
+    }
+  }
+}

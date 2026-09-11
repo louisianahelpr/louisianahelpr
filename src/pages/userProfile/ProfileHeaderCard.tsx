@@ -1,11 +1,8 @@
-import { useState, type ComponentProps, type ReactNode } from "react";
-import { Briefcase, Clock, MapPin, ShieldCheck, Users } from "lucide-react";
-import CredentialBadge from "@/components/CredentialBadge";
-import HelperTierBadge from "@/components/profile/HelperTierBadge";
+import { useState, type ReactNode } from "react";
+import { Briefcase, MapPin, ShieldCheck, Users } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import type { AvatarPhotoRejection } from "@/lib/avatarImage";
 import type { Database } from "@/integrations/supabase/types";
-import type { ProfileStatsShape, LastActiveLabel } from "./types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -16,12 +13,18 @@ type Props = {
   initials: string;
   isOwnProfile: boolean;
   isIdVerified: boolean;
-  lastActiveLabel: LastActiveLabel | null;
   mutualJobsCount: number;
-  tierProfile: { approval_status: string | null; stripe_identity_verified: boolean | null; stripe_account_id: string | null } | null;
-  stats: ProfileStatsShape;
-  hasSubmittedCredentials: boolean;
-  /** Earned milestone + badge chips — one row, rendered under the identity. */
+  /**
+   * The subscription-tier pill — the ONLY badge in the header, beside the
+   * name (owner, 2026-09-11). Null/undefined when the member has no tier, and
+   * then the header carries no badge at all.
+   */
+  tierBadge?: ReactNode;
+  /**
+   * EVERY other badge — trust, ladder, credentials, presence, milestones,
+   * performance — as one row under the identity, above the record. The
+   * header's own trust row is gone; see RecognitionRow.
+   */
   recognition?: ReactNode;
   /** The "At a glance" metric grid, rendered inside this same card. */
   atAGlance?: ReactNode;
@@ -85,11 +88,8 @@ export const ProfileHeaderCard = ({
   initials,
   isOwnProfile,
   isIdVerified,
-  lastActiveLabel,
   mutualJobsCount,
-  tierProfile,
-  stats,
-  hasSubmittedCredentials,
+  tierBadge,
   recognition,
   atAGlance,
 }: Props) => {
@@ -209,12 +209,11 @@ export const ProfileHeaderCard = ({
                 THAT face was identity-checked. Over a monogram it has no
                 referent: it decorates a generated block, which is precisely
                 how a flat upload came to look more trustworthy than a member
-                with no photo at all. The pill in the trust row states the same
-                fact in words, about the person rather than the picture, so
-                suppressing the overlay costs the profile nothing — a verified
-                member with a blank avatar still reads "Stripe verified" one
-                line down. Verify that pill is still there before ever
-                extending this gate to it. */}
+                with no photo at all. The "Stripe verified" badge in the badge
+                row below (RecognitionRow) states the same fact in words, about
+                the person rather than the picture, so suppressing the overlay
+                costs the profile nothing. Verify that badge is still there
+                before ever extending this gate to it. */}
             {idVerified && showsPhoto && (
               <div
                 // role="img" is required for the label to survive: aria-label is
@@ -239,12 +238,18 @@ export const ProfileHeaderCard = ({
                 place it appears on screen. `break-words` rather than
                 `truncate`: at 320 a long name has to be readable, and an
                 ellipsised person is worse than a two-line one. */}
-            <h2
-              className="font-display italic font-bold text-ds-22 leading-tight break-words mb-1"
-              style={{ color: "hsl(var(--ink-deep))" }}
-            >
-              {displayName}
-            </h2>
+            {/* NAME + TIER. The tier pill is the one badge allowed up here
+                (owner, 2026-09-11); it wraps under the name when the column
+                is too narrow for both, never truncating either. */}
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mb-1">
+              <h2
+                className="font-display italic font-bold text-ds-22 leading-tight break-words min-w-0"
+                style={{ color: "hsl(var(--ink-deep))" }}
+              >
+                {displayName}
+              </h2>
+              {tierBadge}
+            </div>
 
             {/* TRADING NAME — nothing at all when there is none. See (2). */}
             {businessName && (
@@ -296,118 +301,6 @@ export const ProfileHeaderCard = ({
                 {memberSinceLabel && <span>Since {memberSinceLabel}</span>}
               </div>
             )}
-
-            {/* TRUST ROW — in the flow, wrapped, never absolutely positioned.
-                Presence rides here too: it is the same kind of object (a small
-                fact about this profile), and giving it its own corner is what
-                started the overlap. */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {idVerified && (
-                <span
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
-                  style={{
-                    background: "hsl(var(--gold-warm) / 0.14)",
-                    border: "0.5px solid hsl(var(--gold-warm) / 0.36)",
-                  }}
-                >
-                  <ShieldCheck className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.5} />
-                  <span
-                    className="font-sans font-bold uppercase text-ds-10"
-                    style={{ color: "hsl(var(--gold-warm))", letterSpacing: "0.16em" }}
-                  >
-                    Stripe verified
-                  </span>
-                </span>
-              )}
-
-              {/* Verification ladder (#112) — self-hides at tier 0, so fresh
-                  signups get no placeholder pill. */}
-              <HelperTierBadge profile={tierProfile} stats={stats} size="md" />
-              <CredentialBadge
-                credentials={
-                  // `profiles.Row` and CredentialBadge's own (unexported)
-                  // CredentialState are structurally unrelated, so a direct
-                  // cast is a type error and `as never` is not comparable —
-                  // route it through the component's own prop type.
-                  //
-                  // business_name is nulled ON PURPOSE. The badge appends
-                  // "· <name>" to its own label, and this card now prints the
-                  // trading name as a line under the person's name (see (2)),
-                  // so leaving it in renders the same string twice about 60px
-                  // apart. The badge keeps its job — "Licensed & Insured" —
-                  // and the identity block keeps the name. Every OTHER surface
-                  // in the app still gets the suffix; the component is
-                  // untouched.
-                  {
-                    ...(profile as unknown as Record<string, unknown>),
-                    business_name: null,
-                  } as ComponentProps<typeof CredentialBadge>["credentials"]
-                }
-                size="md"
-              />
-
-              {/* Background-Checked — flipped by the verification trigger once a
-                  paid screening clears. */}
-              {(profile as unknown as { background_check_status?: string }).background_check_status === "verified" && (
-                <span
-                  className="inline-flex items-center rounded-full font-semibold border text-ds-11 px-2.5 py-1 gap-1"
-                  style={{
-                    background: "hsl(var(--sage) / 0.16)",
-                    color: "hsl(var(--success-ink))",
-                    borderColor: "hsl(var(--sage) / 0.4)",
-                  }}
-                  title="Background check passed — verified by Helpr"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Background-Checked
-                </span>
-              )}
-
-              {hasSubmittedCredentials && (
-                <span
-                  className="inline-flex items-center rounded-full font-medium border text-ds-11 px-2.5 py-1 gap-1"
-                  style={{
-                    backgroundColor: "hsl(var(--amber-tint) / 0.15)",
-                    color: "hsl(var(--amber-ink))",
-                    borderColor: "hsl(var(--amber-tint) / 0.4)",
-                  }}
-                  title="Credential submitted — verification in progress"
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  Verification in progress
-                </span>
-              )}
-
-              {/* Presence (#28) — quiet by design; it should never out-shout a
-                  verification badge. Green dot inside 10 minutes, olivewood
-                  otherwise, hidden entirely once stale (>7d). */}
-              {lastActiveLabel && (
-                <span
-                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-ds-11"
-                  style={{
-                    background: lastActiveLabel.isLive
-                      ? "hsl(var(--live) / 0.10)"
-                      : "hsl(var(--olivewood) / 0.08)",
-                    border: `0.5px solid ${
-                      lastActiveLabel.isLive ? "hsl(var(--live) / 0.35)" : "hsl(var(--olivewood) / 0.20)"
-                    }`,
-                    color: lastActiveLabel.isLive ? "hsl(var(--live))" : "hsl(var(--olivewood))",
-                  }}
-                >
-                  <span
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{
-                      background: lastActiveLabel.isLive
-                        ? "hsl(var(--live))"
-                        : "hsl(var(--olivewood) / 0.8)",
-                      boxShadow: lastActiveLabel.isLive ? "0 0 0 3px hsl(var(--live) / 0.18)" : "none",
-                    }}
-                    aria-hidden
-                  />
-                  <span className="font-medium">{lastActiveLabel.text}</span>
-                </span>
-              )}
-            </div>
 
             {/* BIO — capped to a reading measure. Without the cap it ran the
                 full 1100px card width on a desktop frame, which is unreadable

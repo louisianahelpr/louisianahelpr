@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, type ComponentProps, type ReactNode } from "react";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Banknote, Briefcase, Crown, Lock, MoreVertical, Flag, Ban, ShieldCheck, UserX } from "lucide-react";
+import { Briefcase, Crown, MoreVertical, Flag, Ban, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -25,6 +25,7 @@ import { ProfileHeaderCard } from "./userProfile/ProfileHeaderCard";
 import BackgroundCheckCard from "@/components/profile/BackgroundCheckCard";
 import { AtAGlanceCard } from "./userProfile/AtAGlanceCard";
 import { RecognitionRow } from "./userProfile/RecognitionRow";
+import { SubscriptionTierBadge } from "./userProfile/ProfileBadge";
 import { RatingBreakdown } from "./userProfile/RatingBreakdown";
 import { ReviewsSection } from "./userProfile/ReviewsSection";
 import { JobsList } from "./userProfile/JobsList";
@@ -102,7 +103,6 @@ const UserProfile = () => {
     completedWorkedJobs,
     completedWorkedCount,
     canReadReviewText,
-    statSamples,
     replyLatency,
     cancellationRate,
     mutualJobsCount,
@@ -334,23 +334,6 @@ const UserProfile = () => {
     );
   }
 
-  // The PUBLIC id-verification flag. `isIdVerified` (from the hook) reads a
-  // direct `profiles` select, which RLS only permits on your own row, so it is
-  // always false for a visitor; `get_safe_profiles` returns `is_id_verified`
-  // for exactly this purpose. Both are consulted, same as in the masthead.
-  const profileIdVerified =
-    isIdVerified ||
-    (profile as unknown as { is_id_verified?: boolean }).is_id_verified === true;
-
-  // PAYOUT READINESS — public, and the only place on this page that reads it.
-  // `(stripe_account_id IS NOT NULL AND stripe_payouts_enabled)`, computed
-  // server-side in `get_safe_profiles` (restored by migration 20260831213259
-  // after 20260831145430 dropped the column). Strict `=== true` so a row that
-  // predates the restore, or a fallback row from the direct self-select
-  // below, reads "not set up" rather than throwing.
-  const profilePayoutReady =
-    (profile as unknown as { is_payout_ready?: boolean }).is_payout_ready === true;
-
   // `.filter(Boolean)` before `.map`: " ".split(" ") is ["", ""], whose first
   // characters are `undefined`, and Array#join turns those into "" — so a
   // whitespace-only name produced EMPTY initials, and the avatar fallback
@@ -365,7 +348,12 @@ const UserProfile = () => {
       .join("")
       .toUpperCase()
       .slice(0, 2) || "?";
-  const badges = computeBadges({ avgRating: stats.avgRating, reviewCount: stats.reviewCount, completedJobs: stats.completedJobs, helprTier: profile.subscription_tier || null });
+  // `helprTier: null` ON PURPOSE. computeBadges puts the subscription-tier
+  // chip first in its list; on this page the tier is the ONE badge that lives
+  // in the header beside the name (<SubscriptionTierBadge>), so the row below
+  // must not carry it a second time. The earned performance badges do not
+  // depend on the tier.
+  const badges = computeBadges({ avgRating: stats.avgRating, reviewCount: stats.reviewCount, completedJobs: stats.completedJobs, helprTier: null });
 
   const lastActiveLabel = computeLastActiveLabel(lastActiveAt);
 
@@ -542,11 +530,8 @@ const UserProfile = () => {
             initials={initials}
             isOwnProfile={isOwnProfile}
             isIdVerified={isIdVerified}
-            lastActiveLabel={lastActiveLabel}
             mutualJobsCount={mutualJobsCount}
-            tierProfile={tierProfile}
-            stats={stats}
-            hasSubmittedCredentials={hasSubmittedCredentials}
+            tierBadge={<SubscriptionTierBadge tier={profile.subscription_tier} />}
             recognition={
               <RecognitionRow
                 milestoneStats={{
@@ -556,6 +541,22 @@ const UserProfile = () => {
                   credentialTier: data?.credentialTier ?? 0,
                 }}
                 badges={badges}
+                // Both the own-row flag AND the public `is_id_verified` column
+                // from get_safe_profiles — the direct select is RLS-blocked for
+                // every visitor, so the hook's flag alone is permanently false
+                // on someone else's profile.
+                idVerified={
+                  isIdVerified ||
+                  (profile as unknown as { is_id_verified?: boolean }).is_id_verified === true
+                }
+                ladderProfile={tierProfile}
+                ladderStats={stats}
+                credentials={profile as unknown as ComponentProps<typeof RecognitionRow>["credentials"]}
+                backgroundChecked={
+                  (profile as unknown as { background_check_status?: string }).background_check_status === "verified"
+                }
+                hasSubmittedCredentials={hasSubmittedCredentials}
+                lastActiveLabel={lastActiveLabel}
               />
             }
             atAGlance={
@@ -581,7 +582,6 @@ const UserProfile = () => {
                 cancellationRate={cancellationRate}
                 posterReputation={posterReputation}
                 repeatHirePercent={data?.repeatHirePercent ?? null}
-                statSamples={statSamples}
                 showReviews={showReviews}
                 showPostedJobs={showPostedJobs}
                 showWorkedJobs={showWorkedJobs}
@@ -783,120 +783,6 @@ const UserProfile = () => {
 
           </div>
 
-          {/* ── HOW A BOOKING IS PROTECTED ──
-              NOT pinned. It follows the last card and the page ends with it;
-              see the note on `wrap`. On a young marketplace the profile a
-              visitor lands on most often is one with no reviews and no record,
-              and the question it leaves them with is "so how do I know this is
-              safe?". This is the answer, and every line of it is sourced from
-              `get_safe_profiles` — the one read path that returns real values
-              to a viewer with no shared history.
-
-              ORDER MATTERS HERE (owner, 2026-08-31: keep the ID line, "but
-              quieter — below the escrow explainer, not leading"). The escrow
-              promise is unconditional and true of every booking, so it leads.
-              The ID line follows. A member who signed up this morning is not
-              introduced to a stranger with a sentence about what they have
-              not done.
-
-              WHAT IS *NOT* HERE: "Report this profile". Report User and Block
-              User already sit in the ⋮ menu at the top right, which is the
-              conventional home for them and was already built. A second entry
-              point at the foot of the page was a third way to say the same
-              thing (owner: "remove report from the bottom").
-
-              SOURCING. Every claim reads a column `get_safe_profiles` returns
-              to any caller — verified against prod on 2026-08-31 with the
-              anon key, i.e. a viewer with no session at all:
-                • `is_id_verified`  → true for 6bdc1f67, false for 2222…2201
-                • `is_payout_ready` → true for 6bdc1f67, false for 76b07824
-              Neither is reachable any other way: the direct `profiles` select
-              this page also runs returns ZERO rows for another member under
-              RLS (measured), so `isIdVerified` from the hook is permanently
-              false for a visitor and cannot be used on its own.
-
-              The escrow line states no timing figure on purpose — the release
-              window is config, and restating a config number in prose is how
-              the Legal "90%" bug happened. */}
-          <div
-            className="pt-5 flex flex-col gap-2.5"
-            style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.14)" }}
-          >
-            <p
-              className="font-sans font-semibold uppercase tracking-wider text-ds-11"
-              style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.12em" }}
-            >
-              Booking on Helpr
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              <p
-                className="font-sans text-ds-13 leading-relaxed flex items-start gap-2"
-                style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-              >
-                <Lock
-                  className="w-4 h-4 shrink-0 mt-0.5"
-                  style={{ color: "hsl(var(--bark) / 0.75)" }}
-                  aria-hidden
-                />
-                <span>
-                  You pay Helpr, not the member — the money is held securely
-                  (in escrow) and released once the job is done.
-                </span>
-              </p>
-              <p
-                className="font-sans text-ds-13 leading-relaxed flex items-start gap-2"
-                style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-              >
-                <ShieldCheck
-                  className="w-4 h-4 shrink-0 mt-0.5"
-                  style={{
-                    color: profileIdVerified
-                      ? "hsl(var(--bark) / 0.75)"
-                      : "hsl(var(--olivewood) / 0.5)",
-                  }}
-                  aria-hidden
-                />
-                <span>
-                  {profileIdVerified
-                    ? `${displayName}'s government ID has been verified by Stripe.`
-                    : `${displayName} hasn't verified a government ID yet.`}
-                </span>
-              </p>
-              {/* PAYOUT SETUP — new, and the one public fact about this member
-                  that this page rendered nowhere. It was dropped from
-                  `get_safe_profiles` by 20260831145430 and restored by
-                  20260831213259; `src/integrations/supabase/types.ts` already
-                  carries it, so no cast is needed. It is the difference
-                  between "escrow will reach this person" and "it will sit
-                  there", which is exactly what a poster about to pay wants to
-                  know, and it is legible on a profile with no other record. */}
-              <p
-                className="font-sans text-ds-13 leading-relaxed flex items-start gap-2"
-                style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-              >
-                <Banknote
-                  className="w-4 h-4 shrink-0 mt-0.5"
-                  style={{
-                    color: profilePayoutReady
-                      ? "hsl(var(--bark) / 0.75)"
-                      : "hsl(var(--olivewood) / 0.5)",
-                  }}
-                  aria-hidden
-                />
-                <span>
-                  {/* The negative branch is phrased about the SETUP, not the
-                      person, and names nobody. A brand-new profile already
-                      carries "hasn't built a public record yet" and "hasn't
-                      verified a government ID yet"; a third sentence beginning
-                      with their name and the word "hasn't" turns an honest
-                      page into a character reference. Same fact, no pile-on. */}
-                  {profilePayoutReady
-                    ? `${displayName} has finished payout setup with Stripe, so escrow can be released to them.`
-                    : "Payout setup isn't complete yet — no money can leave escrow until it is."}
-                </span>
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 

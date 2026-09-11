@@ -15,7 +15,6 @@ import type {
   ReplyLatency,
   CancellationRate,
   PosterReputation,
-  StatSamples,
 } from "./types";
 
 /**
@@ -167,8 +166,6 @@ type Props = {
    * the same card and made a stranger doubt both.
    */
   repeatHirePercent: number | null;
-  /** Sample sizes behind each gated rate. See `StatSamples`. */
-  statSamples: StatSamples;
   showReviews: boolean;
   showPostedJobs: boolean;
   showWorkedJobs: boolean;
@@ -190,7 +187,6 @@ export const AtAGlanceCard = ({
   cancellationRate,
   posterReputation,
   repeatHirePercent,
-  statSamples,
   showReviews,
   showPostedJobs,
   showWorkedJobs,
@@ -320,7 +316,7 @@ export const AtAGlanceCard = ({
   // `> 0` is deliberate and unchanged: a measured 0% across three or more
   // one-off clients is a true number but a punitive one, and "nobody has
   // rebooked them" is not a claim this card was built to make. Withheld, not
-  // rendered as a zero — and the withheld-stats line below says so.
+  // rendered as a zero.
   if (repeatHirePercent !== null && repeatHirePercent > 0) {
     cells.push({
       key: "repeat",
@@ -388,55 +384,11 @@ export const AtAGlanceCard = ({
     });
   }
 
-  /* ── WHAT WE WON'T PUBLISH, AND WHY ──────────────────────────────────
-     A rate below its sample floor arrives as `null` and its cell is simply
-     never pushed. That is right — rendering "0% on time" from one data point
-     is a lie of precision — but silence alone is its own small lie: the
-     reader cannot tell a withheld stat from a bad one, and this codebase has
-     form here (six admin queues once rendered an outage as an all-clear, and
-     "No disputes on record" printed on every profile regardless of truth).
-
-     So when a stat is withheld ONLY for want of history, say so in one quiet
-     line. Gated on `hasServerStats` because while the aggregates RPC is
-     undeployed the numbers on screen are the old client-side derivations,
-     which a visitor measures as zero — and editorialising about a sample size
-     we did not actually measure would be the same bug wearing new copy. */
-  const withheld: string[] = [];
-  /* Reply time carries its own measured-flag rather than riding on
-     `hasServerStats`: it comes from a different RPC, it is owner-only, and a
-     visitor never calls it — so a visitor must never be told a stat was
-     withheld from them that was never computed in the first place. */
-  if (
-    isOwnProfile &&
-    replyLatency.measured &&
-    replyLatency.medianReplyMinutes === null &&
-    replyLatency.replySample > 0
-  ) {
-    withheld.push("your reply time");
-  }
-  if (statSamples.hasServerStats) {
-    if (cancellationRate.rate === null && statSamples.jobs > 0) withheld.push("cancellations");
-    if (onTimeArrivalRate === null && statSamples.onTime > 0) withheld.push("on-time arrival");
-    if (revisionFrequency === null && statSamples.revisions > 0) withheld.push("revisions");
-    if (repeatHirePercent === null && statSamples.repeatClients > 0) withheld.push("repeat bookings");
-    if (posterReputation === null && statSamples.posterReviews > 0) withheld.push("their rating as a poster");
-  }
-  const withheldSentence =
-    withheld.length === 0
-      ? null
-      : withheld.length === 1
-      ? withheld[0]
-      : `${withheld.slice(0, -1).join(", ")} and ${withheld[withheld.length - 1]}`;
-
-  const label = (
-    <h2
-      id="at-a-glance-heading"
-      className="font-sans font-semibold uppercase tracking-wider text-ds-11 mb-2.5"
-      style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.12em" }}
-    >
-      At a glance
-    </h2>
-  );
+  /* No section heading, no "tap a highlighted figure" hint and no
+     "not enough history yet" line here any more — all three deleted by the
+     owner (2026-09-11: "delete", pointing at each). The tiles stand alone;
+     the section keeps an `aria-label` so the landmark stays named for
+     assistive tech now that the visible heading it used to point at is gone. */
 
   // ── NEW MEMBER ───────────────────────────────────────────────────────
   // Nothing measurable yet. Say so, in the person's own terms, and say what
@@ -444,8 +396,7 @@ export const AtAGlanceCard = ({
   // has to read as a profile that is simply new, not as a page that broke.
   if (cells.length === 0) {
     return (
-      <section aria-labelledby="at-a-glance-heading">
-        {label}
+      <section aria-label="At a glance">
         <div
           className="rounded-ds-md px-4 py-3.5 flex items-start gap-3"
           style={{ background: "hsl(var(--olivewood) / 0.05)" }}
@@ -481,8 +432,7 @@ export const AtAGlanceCard = ({
   }
 
   return (
-    <section aria-labelledby="at-a-glance-heading">
-      {label}
+    <section aria-label="At a glance">
       {/* Fills the width it is given: two-up on the narrowest phone, six-up on
           a desktop frame — so the card is never a short row of tiles stranded
           in a wide, empty band. */}
@@ -491,29 +441,6 @@ export const AtAGlanceCard = ({
           <MetricCell key={c.key} cell={c} />
         ))}
       </div>
-      {/* A tapped tile opens its list further down the page; say so once,
-          quietly, rather than leaving three of the cells looking like buttons
-          for no stated reason. */}
-      {/* 0.7, not 0.65. At 11px this needs 4.5:1 and 0.65 measured 4.38 —
-          the kind of miss that reads as "basically fine" and is not. 0.7
-          measures 5.08 light / 5.71 dark. */}
-      {cells.some((c) => c.onClick) && (
-        <p
-          className="mt-2 font-sans text-ds-11"
-          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-        >
-          Tap a highlighted figure to see what's behind it.
-        </p>
-      )}
-      {withheldSentence && (
-        <p
-          className="mt-2 font-sans text-ds-11 max-w-[60ch]"
-          style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-        >
-          Not enough history yet for {withheldSentence} — Helpr publishes a
-          figure only once there is enough behind it to be fair.
-        </p>
-      )}
     </section>
   );
 };

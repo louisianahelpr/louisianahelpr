@@ -12,6 +12,8 @@ export type HelperBadge = {
   label: string;
   icon: React.ReactNode;
   color: string;
+  /** What it means and how it was earned — read by the profile's badge popover. */
+  description: string;
 };
 
 export function computeBadges(stats: {
@@ -42,6 +44,7 @@ export function computeBadges(stats: {
     badges.push({
       key: `tier_${normalizeTier(tierForBadge)}`,
       label: tierDisplayName(tierForBadge),
+      description: "A paid Helpr membership.",
       icon: <TierIcon className="w-3 h-3" style={tierStyle.chipIconColor ? { color: tierStyle.chipIconColor } : undefined} />,
       color: tierStyle.chipClass,
     });
@@ -67,6 +70,7 @@ export function computeBadges(stats: {
     badges.push({
       key: "top_rated",
       label: "Highly Rated",
+      description: "A 4.8+ average rating across at least 3 reviews.",
       icon: <Trophy className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} />,
       color: "tier-gold-soft",
     });
@@ -77,6 +81,7 @@ export function computeBadges(stats: {
     badges.push({
       key: "trusted",
       label: "Trusted",
+      description: "5 or more completed jobs with a 4.0+ average rating.",
       icon: <Shield className="w-3 h-3" />,
       color: "bg-primary/10 text-primary",
     });
@@ -87,6 +92,7 @@ export function computeBadges(stats: {
     badges.push({
       key: "streak",
       label: "On Fire",
+      description: "10 or more completed jobs.",
       icon: <Flame className="w-3 h-3" />,
       color: "bg-destructive/10 text-[hsl(var(--destructive-ink))]",
     });
@@ -97,6 +103,7 @@ export function computeBadges(stats: {
     badges.push({
       key: "fast_responder",
       label: "Fast Responder",
+      description: "Typically replies in under 2 hours.",
       icon: <Zap className="w-3 h-3" />,
       color: "bg-accent/15 text-[hsl(var(--accent-ink))]",
     });
@@ -104,6 +111,7 @@ export function computeBadges(stats: {
     badges.push({
       key: "fast_responder",
       label: "Fast Responder",
+      description: "15 or more completed jobs — a steady, active Helpr.",
       icon: <Zap className="w-3 h-3" />,
       color: "bg-accent/15 text-[hsl(var(--accent-ink))]",
     });
@@ -114,6 +122,7 @@ export function computeBadges(stats: {
     badges.push({
       key: "reliable",
       label: "Reliable",
+      description: "5 or more completed jobs and no cancellations.",
       icon: <Target className="w-3 h-3" />,
       color: "bg-primary/10 text-primary",
     });
@@ -124,6 +133,7 @@ export function computeBadges(stats: {
     badges.push({
       key: "community_fav",
       label: "Community Fav",
+      description: "15 or more reviews from the people they have worked with.",
       icon: <Heart className="w-3 h-3" />,
       color: "bg-destructive/10 text-[hsl(var(--destructive-ink))]",
     });

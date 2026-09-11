@@ -1,6 +1,7 @@
 import { test, expect, FAKE_HELPER, installSupabaseMocks, mockTable, mockRpc } from "./fixtures";
 
-// ApplyConfirmDialog must FIT THE SCREEN.
+// The job sheet — job detail AND the apply form, one surface — must FIT THE
+// SCREEN.
 //
 // This dialog shipped cut off horizontally for months: AlertDialogContent is a
 // CSS grid, its body was a grid item with the default `min-width: auto`, and
@@ -216,17 +217,13 @@ for (const { name, width, job } of [
     await card.waitFor({ timeout: 20_000 });
     await card.click();
     const detail = page.locator('[role="dialog"]').last();
-    // The detail dialog's CTA is "Apply · earn $N" / "Book now" / "Continue"
-    // (2026-08-30: renamed for non-instant-book jobs) — match any of the openers.
-    const applyBtn = detail.getByRole("button", { name: /^(apply|book|bid|submit|place|continue)\b/i }).first();
-    await applyBtn.waitFor({ timeout: 10_000 });
-    await applyBtn.click();
-    // The sheet STAYS UP and swaps to the apply step in place — it no longer
-    // closes and hands off to a centred modal, which is the position jump this
-    // flow was rebuilt to remove (owner, 2026-08-28). Wait for the step's own
-    // submit button rather than for a second dialog that never appears.
+    // ONE SHEET, ONE STEP (owner, 2026-09-09). This used to tap a "Continue"
+    // CTA to reach the apply step; the note field and "Apply Now" are on the
+    // detail sheet itself now, so there is nothing to tap — and tapping the
+    // matcher's first hit would SUBMIT the application and close the sheet
+    // this spec exists to measure.
     await detail.getByRole("button", { name: /^(apply now|book now)$/i }).waitFor({ timeout: 10_000 });
-    // Let the step cross-fade settle before measuring.
+    // Let the open animation settle before measuring.
     await page.waitForTimeout(500);
 
     const m = (await page.evaluate(MEASURE)) as Measurement;

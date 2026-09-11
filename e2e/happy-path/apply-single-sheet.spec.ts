@@ -1,26 +1,26 @@
 import { test, expect, FAKE_HELPER, installSupabaseMocks, mockTable, mockRpc } from "./fixtures";
 
-// APPLYING HAPPENS ON ONE SURFACE, ANCHORED TO ONE PLACE.
+// APPLYING HAPPENS ON ONE SURFACE, IN ONE STEP.
 //
-// Owner, 2026-08-28: "I don't like how one opens at the bottom then the next is
-// in the middle." Tapping Apply used to close the job-detail bottom sheet and
-// open ApplyConfirmDialog — a CENTRED AlertDialog — so one continuous act
-// played as three motions across two anchors: the sheet dropped away, the
-// screen went bare, and a card faded in mid-viewport.
+// This spec used to prove that the sheet did not JUMP when it stepped from
+// detail to apply — it recorded the top edge, tapped Continue, and asserted
+// the edge had not moved. That premise is gone: the owner collapsed the two
+// steps into one on 2026-09-09 ("one sheet, one CTA, no step change, one less
+// tap to apply"), so there is no Continue, no second step, and nothing left
+// that could move.
 //
-// The apply UI is now the second STEP of the detail sheet itself. This spec
-// pins the three properties that make that true, all of which a screenshot
+// What it pins now is the shape that replaced it, all of which a screenshot
 // diff would miss:
 //
-//   1. No second dialog is created — the same element stays mounted.
-//   2. The surface never moves between steps — same anchor, both steps.
-//      (It anchored near the TOP, at 7vh, from 2026-08-31 until commit
-//      a46d6bdc on 2026-09-02 re-centred it — along with PetReportCard and
-//      PetForm — per the owner: "yes it was my call but I don't like it."
-//      This spec does NOT pin which edge the anchor is on; it pins that the
-//      anchor does not CHANGE mid-act, so it must not assert a specific
-//      top-of-viewport position, only that step 2's top equals step 1's.)
-//   3. Back returns to the job, rather than out of the sheet entirely.
+//   1. ONE SURFACE. Exactly one dialog, and no Continue/Back anywhere on it.
+//   2. ONE STEP. The note field, the save-as-default-pitch checkbox and
+//      "Apply Now" are on the SAME surface as the job's own title and
+//      description — reachable without tapping anything.
+//   3. NOTHING STEPS. Tapping around the sheet never swaps its body: the job
+//      description is still there after the note field has been typed into.
+//   4. THE CLOSE X IS REACHABLE and dismissing abandons the apply — no
+//      resurrected standalone apply form on the bare feed.
+//   5. NO DEAD BAND under the CTA on a short job: the sheet hugs its content.
 
 const BASE_JOB = {
   id: "22222222-2222-4222-8222-222222222222",
@@ -66,7 +66,7 @@ const POSTER_PROFILE = {
   subscription_expires_at: null,
 };
 
-test("applying stays on ONE top-anchored sheet", async ({ helperPage: page }) => {
+test("one sheet, one step: the apply form is on the job detail surface", async ({ helperPage: page }) => {
   await installSupabaseMocks(page, {
     user: FAKE_HELPER,
     rules: [
@@ -97,51 +97,131 @@ test("applying stays on ONE top-anchored sheet", async ({ helperPage: page }) =>
 
   const sheet = page.locator('[role="dialog"]').last();
   await sheet.waitFor({ timeout: 10_000 });
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(800);
 
-  const rectOf = async () => await sheet.evaluate((el) => {
-    const r = el.getBoundingClientRect();
-    return { top: +r.top.toFixed(1), bottom: +r.bottom.toFixed(1), vh: window.innerHeight };
-  });
-
-  // DETAIL STEP — record wherever the shared shell anchors it (centred as of
-  // a46d6bdc, 2026-09-02). This spec does not pin that value; step 2 below
-  // pins that it does not move.
-  const detailRect = await rectOf();
-  // The apply step's own back button is not on screen yet.
+  // 1. ONE SURFACE, and no step machinery on it.
+  expect(await page.locator('[role="dialog"],[role="alertdialog"]').count()).toBe(1);
   await expect(sheet.getByRole("button", { name: /^back$/i })).toHaveCount(0);
+  await expect(sheet.getByRole("button", { name: /^continue\b/i })).toHaveCount(0);
 
-  const applyBtn = sheet.getByRole("button", { name: /^(apply|book|continue)\b/i }).first();
-  await applyBtn.click();
-  await sheet.getByRole("button", { name: /^back$/i }).waitFor({ timeout: 10_000 });
-  await page.waitForTimeout(600);
+  // 2. ONE STEP — the job AND the apply form, together, with no tap in
+  //    between. This is the whole change: it used to take a Continue tap to
+  //    reach any of the three below.
+  await expect(sheet.getByText(BASE_JOB.description)).toBeVisible();
+  const note = sheet.getByRole("textbox");
+  await expect(note).toBeVisible();
+  await expect(sheet.getByRole("checkbox", { name: /save as my default pitch/i })).toBeVisible();
+  const applyNow = sheet.getByRole("button", { name: /^apply now$/i });
+  await expect(applyNow).toBeVisible();
 
-  // 1. NO SECOND SURFACE. Exactly one dialog is open — the apply UI is a step
-  //    of this one, not a modal stacked over it.
+  // The CTA wears the real gloss. Asserting the CLASS passes on a flat
+  // control (an inline `background` shorthand beats `.btn-grad-primary`), so
+  // read the COMPUTED background-image and require a gradient.
+  const cta = await applyNow.evaluate((el) => getComputedStyle(el).backgroundImage);
+  expect(cta, `Apply Now background-image: ${cta}`).toMatch(/gradient\(/);
+
+  // 3. NOTHING STEPS. Typing into the note must not swap the body out — the
+  //    job is still on screen, which is the property the two-step version
+  //    could not have.
+  await note.fill("I have moved a lot of couches.");
+  await page.waitForTimeout(300);
+  await expect(sheet.getByText(BASE_JOB.description)).toBeVisible();
+  await expect(sheet.getByRole("button", { name: /^apply now$/i })).toBeVisible();
   expect(await page.locator('[role="dialog"],[role="alertdialog"]').count()).toBe(1);
 
-  // 2. THE ANCHOR DID NOT MOVE. This is the regression that started it: the
-  //    replaced AlertDialog had its own anchor, so stepping forward made the
-  //    surface jump. The box may GROW downward as the apply form appears —
-  //    what must not change is where its top edge sits.
-  const applyRect = await rectOf();
-  expect(applyRect.top).toBeCloseTo(detailRect.top, 0);
-
-  // 3. The apply step really is showing. Dashboard passes hideEarnings=true
-  //    (earnings are already visible in the detail step above), so we verify
-  //    presence via the submit button and the note/pitch textarea instead.
-  await expect(sheet.getByRole("button", { name: /^(apply now|book now)$/i })).toBeVisible();
-  await expect(sheet.getByRole("textbox")).toBeVisible();
-
-  // 4. BACK GOES TO THE JOB, not out of the sheet.
-  await sheet.getByRole("button", { name: /^back$/i }).click();
-  await page.waitForTimeout(400);
-  await expect(sheet).toBeVisible();
-  await expect(sheet.getByRole("button", { name: /^back$/i })).toHaveCount(0);
-  await expect(sheet.getByText(BASE_JOB.description)).toBeVisible();
+  // 4. THE CLOSE X IS REACHABLE — on screen and hit-testable, not buried.
+  const close = sheet.getByRole("button", { name: /^close$/i });
+  await expect(close).toBeVisible();
+  const closeBox = await close.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return {
+      onScreen: r.top >= 0 && r.bottom <= window.innerHeight && r.left >= 0 && r.right <= window.innerWidth,
+      ownsItsCentre: !!hit && (hit === el || el.contains(hit)),
+      w: +r.width.toFixed(1),
+      h: +r.height.toFixed(1),
+    };
+  });
+  expect(closeBox.onScreen, JSON.stringify(closeBox)).toBe(true);
+  expect(closeBox.ownsItsCentre, JSON.stringify(closeBox)).toBe(true);
+  expect(closeBox.w).toBeGreaterThanOrEqual(44);
+  expect(closeBox.h).toBeGreaterThanOrEqual(44);
 });
 
-test("dismissing from the apply step abandons the apply", async ({ helperPage: page }) => {
+test("a short job leaves no dead band under the CTA", async ({ helperPage: page }) => {
+  // The two-step sheet reserved the apply step's height on the detail step
+  // (`min-h-[min(68dvh,600px)]`), which the owner flagged three times as a
+  // screenful of blank space under Continue. With one step there is nothing
+  // to reserve: the sheet hugs its content.
+  await installSupabaseMocks(page, {
+    user: FAKE_HELPER,
+    rules: [
+      mockRpc("get_public_platform_settings", [{ helper_fee_percent: 10 }]),
+      mockRpc("get_safe_profiles", [POSTER_PROFILE]),
+      mockTable("open_jobs_browse", [{ ...BASE_JOB, description: "Short one." }]),
+      mockTable("helper_availability", []),
+      mockTable("applications", []),
+      mockTable("user_blocks", []),
+      mockTable("saved_jobs", []),
+      mockTable("saved_searches", []),
+      mockTable("reviews", []),
+    ],
+  });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("helpr_onboarding", JSON.stringify({ seen: true, completed: true }));
+    } catch { /* no-storage guard */ }
+  });
+  // TALL viewport on purpose. The single sheet carries the whole apply form,
+  // so at 375x812 even a one-line job legitimately reaches the `max-h-[86dvh]`
+  // ceiling — a height that is EARNED, not reserved, and measuring there
+  // cannot tell the two apart. Give it 1400px and the question becomes the
+  // one that matters: with room to spare, does the box hug?
+  await page.setViewportSize({ width: 375, height: 1400 });
+  await page.goto("/dashboard");
+
+  const card = page.getByText(BASE_JOB.title);
+  await card.waitFor({ timeout: 20_000 });
+  await card.click();
+  const sheet = page.locator('[role="dialog"]').last();
+  await sheet.getByRole("button", { name: /^apply now$/i }).waitFor({ timeout: 10_000 });
+  await page.waitForTimeout(800);
+
+  const gap = await sheet.evaluate((el) => {
+    const dlg = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const btn = [...el.querySelectorAll("button")].find(
+      (b) => /^apply now$/i.test((b.textContent || "").trim()),
+    );
+    if (!btn) return { error: "no Apply Now" } as const;
+    // Measure to the ACTION ROW's bottom, not the button's. The row carries a
+    // deliberate `-mb-4 pb-4` so its opaque surface runs to the sheet's own
+    // padding edge and scrolled content passes UNDER it rather than through
+    // it — that 16px is paint, not dead space, and measuring the button
+    // instead reports it as a phantom gap.
+    const row = btn.closest(".sheet-sticky-actions") ?? btn;
+    const r = row.getBoundingClientRect();
+    return {
+      // Anything below the action row that is not the sheet's bottom padding.
+      // The reserved-height version measured ~430px here.
+      dead: +(dlg.bottom - parseFloat(cs.paddingBottom) - r.bottom).toFixed(1),
+      // The sheet must HUG: with 1400px to play with it must not have grown
+      // to fill the viewport.
+      sheetHeight: +dlg.height.toFixed(1),
+      vh: window.innerHeight,
+      scrolls: el.scrollHeight > el.clientHeight + 1,
+    };
+  });
+  expect(gap, JSON.stringify(gap)).not.toHaveProperty("error");
+  const g = gap as { dead: number; sheetHeight: number; vh: number; scrolls: boolean };
+  expect(g.dead, JSON.stringify(gap)).toBeLessThanOrEqual(4);
+  // Given room, the sheet sizes to its content instead of stretching to the
+  // 86dvh ceiling — and therefore does not scroll at all.
+  expect(g.sheetHeight, JSON.stringify(gap)).toBeLessThan(g.vh * 0.86 - 1);
+  expect(g.scrolls, JSON.stringify(gap)).toBe(false);
+});
+
+test("dismissing the sheet abandons the apply", async ({ helperPage: page }) => {
   // The pending-apply id outlives the sheet unless the close handler clears
   // it, and the standalone deep-link sheet renders on exactly that id — so a
   // stale one pops the apply form straight back up over the bare feed.
@@ -171,12 +251,12 @@ test("dismissing from the apply step abandons the apply", async ({ helperPage: p
   await card.waitFor({ timeout: 20_000 });
   await card.click();
   const sheet = page.locator('[role="dialog"]').last();
-  await sheet.waitFor({ timeout: 10_000 });
+  await sheet.getByRole("button", { name: /^apply now$/i }).waitFor({ timeout: 10_000 });
   await page.waitForTimeout(600);
 
-  await sheet.getByRole("button", { name: /^(apply|book|continue)\b/i }).first().click();
-  await sheet.getByRole("button", { name: /^back$/i }).waitFor({ timeout: 10_000 });
-
+  // Type into the note first: abandoning has to survive a half-written pitch,
+  // which is the state the stale-id bug was actually reachable from.
+  await sheet.getByRole("textbox").fill("half a pitch");
   await sheet.getByRole("button", { name: /^close$/i }).click();
   await page.waitForTimeout(800);
 

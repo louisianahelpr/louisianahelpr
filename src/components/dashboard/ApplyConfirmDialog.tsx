@@ -6,9 +6,9 @@ import { ApplyBody } from "@/components/dashboard/applyConfirmDialog/ApplyBody";
  * ApplyConfirmDialog — the STANDALONE apply surface, for the QuickApply deep
  * link (`?apply=<jobId>`), where there is no job-detail sheet to step out of.
  *
- * The normal route no longer uses this at all. Applying from the feed now
- * happens as the second step of the job-detail sheet itself
- * (JobDetailDialog's `applyStep`), so the two surfaces are one.
+ * The normal route no longer uses this at all. Applying from the feed happens
+ * on the job-detail sheet itself (JobDetailDialog's `applyForm`) — one sheet,
+ * one CTA, no step change.
  *
  * Why this stopped being an AlertDialog (owner, 2026-08-28: "I don't like how
  * one opens at the bottom then the next is in the middle"): the job-detail

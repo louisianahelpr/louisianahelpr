@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { haversineMiles } from "@/lib/geo";
 import { getParishCentroid } from "@/lib/parishCentroids";
 import { report } from "@/lib/errorLogger";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
+import { useViewerCredentialTier } from "@/hooks/useViewerCredentialTier";
 import type { EnrichedJob } from "../types";
 
 interface UseJobDetailDataArgs {
@@ -53,32 +53,12 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
   // profiles fetch went with it.)
 
   // Viewer's credential tier — used to gate the Apply button when the job
-  // requires a minimum tier. Fetched once per session (staleTime 60s) and
-  // falls back to 0 gracefully when the RPC doesn't exist yet (PGRST202).
-  const { data: viewerTier = 0 } = useQuery({
-    queryKey: ["viewerCredentialTier"],
-    enabled: !guest,
-    staleTime: 60_000,
-    queryFn: async (): Promise<number> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return 0;
-      try {
-        const { data, error } = await supabase.rpc("get_user_credential_tier", {
-          p_user_id: user.id,
-        });
-        // PGRST202 = function not found (migration not yet applied to prod) —
-        // treat as tier 0 so open jobs remain accessible.
-        if (error) {
-          if ((error as { code?: string }).code === "PGRST202") return 0;
-          report(error, { tags: { source: "JobDetailDialog.viewerTier" } });
-          return 0;
-        }
-        return typeof data === "number" ? data : 0;
-      } catch {
-        return 0;
-      }
-    },
-  });
+  // requires a minimum tier. SHARED HOOK, SHARED CACHE: the feed mounts
+  // `useViewerCredentialTier` too, so by the time a card is tapped the answer
+  // is already in hand and the sheet picks its bottom on frame one instead of
+  // asserting tier 0 and swapping ~95px of footer for form when the RPC lands.
+  // See the long note on the hook before moving this back inline.
+  const viewerTier = useViewerCredentialTier(!guest);
 
   // Reset transient state when the dialog switches to a new job.
   useEffect(() => {

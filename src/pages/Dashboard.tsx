@@ -48,6 +48,7 @@ import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useJobRef } from "@/hooks/useJobRef";
+import { useViewerCredentialTier } from "@/hooks/useViewerCredentialTier";
 import type { HelperAvailabilitySlot } from "./dashboard/dashboardTypes";
 import { QuickApplyHandler } from "./dashboard/QuickApplyHandler";
 import { useDashboardSideQueries } from "./dashboard/useDashboardSideQueries";
@@ -73,6 +74,15 @@ const Dashboard = () => {
   // Capture ?ref= attribution from deep-links (push notifications, share
   // links, etc.) so analytics can attribute which surface drove the open.
   useJobRef();
+
+  // WARM THE CREDENTIAL TIER HERE, NOT WHEN THE SHEET OPENS. Shared query key
+  // and staleTime with the job sheet, so by the time a card is tapped the
+  // answer is in cache and the sheet renders the right bottom on frame one.
+  // Asking for it on open instead let `useQuery`'s 0 default read as a real
+  // "lowest tier" verdict, and the sheet swapped footer-for-form 2.25s later
+  // — a measured 28.9px of top-edge movement, ~95px once the apply form is no
+  // longer the bigger late arrival. See the hook's own note.
+  useViewerCredentialTier(true);
 
   const {
     user, profile, isAdmin, loading, helprTier, allJobs, platformFee,
@@ -724,33 +734,52 @@ const Dashboard = () => {
                Continue tap. There is no Continue, so it runs on Apply Now,
                immediately before the mutation — same guards, same refusals,
                one tap later. */
+            /* NO <Suspense> OF ITS OWN — IT SHARES THE SHEET'S, ON PURPOSE.
+               ApplyBody is a separate lazy chunk. Wrapped in its own
+               `<Suspense fallback={null}>`, the sheet painted WITHOUT its apply
+               form and then INSERTED ~340px of it when the chunk landed. The
+               sheet is centred and content-sized, so that insertion moved both
+               edges: measured on the production bundle at 375x812, 4x CPU
+               throttling, 400kbps/400ms link, the top edge sat still at y=227.5
+               for a full second and then jumped to y=56.8 — 170.7px in ONE
+               frame, on a surface the reader was already reading. That is the
+               "very jumpy on open then settles" reported from TestFlight
+               1.0.4/7110, and it was the largest contributor by an order of
+               magnitude (next was 28.9px, and only on a credential-gated job).
+
+               Dropping the inner boundary lets the suspension bubble to the
+               sheet's own <Suspense> just below — the one already withholding
+               JobDetailDialog's chunk. Both lazy imports start in the same
+               commit, so the sheet waits for max(dialog, form) instead of
+               painting at dialog and reflowing at form: one paint, final
+               height, nothing moves. Not a skeleton and not a delay — it is
+               refusing to split ONE surface across two paints. Do not
+               "optimise" this back into a boundary of its own. */
             applyForm={
               detailJob.customer_id !== user?.id ? (
-                <Suspense fallback={null}>
-                  <ApplyBody
-                    open
-                    onClose={() => setConfirmApplyJobId(null)}
-                    confirmApplyJob={detailJob}
-                    platformFee={platformFee}
-                    applyMessage={applyMessage}
-                    setApplyMessage={setApplyMessage}
-                    applyFiles={applyFiles}
-                    setApplyFiles={setApplyFiles}
-                    applyLoading={applyLoading}
-                    hideEarnings
-                    handleApplyConfirm={async () => {
-                      const accepted = await handleApplyRequest(detailJob.id);
-                      if (accepted === false) return;
-                      // Submitting takes the whole sheet down — the helpr is
-                      // done with this job either way, and the success toast
-                      // is the confirmation. The id is passed explicitly:
-                      // handleApplyRequest set it in state one tick ago and
-                      // this render cannot see it yet.
-                      handleApplyConfirm(detailJob.id);
-                      closeDetailJob();
-                    }}
-                  />
-                </Suspense>
+                <ApplyBody
+                  open
+                  onClose={() => setConfirmApplyJobId(null)}
+                  confirmApplyJob={detailJob}
+                  platformFee={platformFee}
+                  applyMessage={applyMessage}
+                  setApplyMessage={setApplyMessage}
+                  applyFiles={applyFiles}
+                  setApplyFiles={setApplyFiles}
+                  applyLoading={applyLoading}
+                  hideEarnings
+                  handleApplyConfirm={async () => {
+                    const accepted = await handleApplyRequest(detailJob.id);
+                    if (accepted === false) return;
+                    // Submitting takes the whole sheet down — the helpr is
+                    // done with this job either way, and the success toast
+                    // is the confirmation. The id is passed explicitly:
+                    // handleApplyRequest set it in state one tick ago and
+                    // this render cannot see it yet.
+                    handleApplyConfirm(detailJob.id);
+                    closeDetailJob();
+                  }}
+                />
               ) : null
             }
           />

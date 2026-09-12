@@ -631,7 +631,10 @@ Two follow-ups worth keeping:
       in `/tmp/ui-review/`. Admin Jobs and Admin Health both render correctly and
       read well. This is the first time anything in Admin has been looked at.
 
-- [ ] **Nested white card inside white card — SYSTEMIC, needs the owner's call.**
+- [x] **Nested white card inside white card — SUPERSEDED.** The owner ruled on
+      this (see "Nested white cards" under Owner decisions below); a lane is
+      applying it. Kept for the evidence, not as a separate task.
+      Original report: **Nested white card inside white card — SYSTEMIC.**
       Two lanes hit it independently today: `/profile` landing draws 4
       (`SettingsSection.tsx:44` — each WORK / MONEY group is a `liquid-glass`
       card inside the outer `liquid-glass` wrapper), and Admin Health's
@@ -672,7 +675,8 @@ Two follow-ups worth keeping:
       PGlite (replay-safe); new test has a negative control so it cannot pass
       vacuously. Existing 40 rows NOT deleted — not authorised.
 
-- [ ] **`favorite_helpers` has no FK on `customer_id`/`helper_id`** — 7 of its 12
+- [x] **SUPERSEDED — see the full investigation under Owner decisions below.**
+      Original report: **`favorite_helpers` has no FK** — 7 of its 12
       live rows point at a customer in neither `profiles` nor `auth.users`.
       `notifications.user_id` has no FK either, which is how rows were written
       for a user that does not exist. Reachable with no other bug.

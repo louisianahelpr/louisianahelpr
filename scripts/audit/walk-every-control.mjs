@@ -128,6 +128,36 @@ for (const theme of THEMES) {
               p = p.parentElement;
             }
           });
+          // TEXT THAT IS CUT OFF. The owner reports this as "cut off" over and
+          // over — the apply button sitting on the payout notice, the skills
+          // chips reading "Eve…", the Work Record's clipped line. A leaf whose
+          // scrollWidth exceeds its clientWidth is text its own box cannot
+          // show. `text-overflow: ellipsis` is EXCLUDED: a deliberate one-line
+          // truncation with a visible ellipsis is a design choice, not a
+          // defect. What is caught is text clipped with no such affordance.
+          const clipped = [];
+          document.querySelectorAll("p, h1, h2, h3, h4, span, div, button, a, li").forEach((el) => {
+            if (el.children.length) return;
+            const t = (el.innerText || "").trim();
+            if (t.length < 6) return;
+            const cs = getComputedStyle(el);
+            if (cs.textOverflow === "ellipsis") return;
+            if (cs.overflow === "visible" && cs.overflowX === "visible") return;
+            // `sr-only` is a 1px clip box BY DESIGN — its text always overflows
+            // its own box, which is the whole technique. Counting it reported
+            // "Skip to content" clipped by 121px on every screen in the app,
+            // plus the sr-only headings and the map labels. The accessibility
+            // layer is not a layout defect.
+            if (el.closest(".sr-only") || el.classList.contains("sr-only")) return;
+            const r0 = el.getBoundingClientRect();
+            if (r0.width <= 2 || r0.height <= 2) return;
+            const overflowX = el.scrollWidth - el.clientWidth;
+            const overflowY = el.scrollHeight - el.clientHeight;
+            if (overflowX > 2 || overflowY > 2) {
+              clipped.push(`"${t.slice(0, 40)}" clipped by ${overflowX > 2 ? overflowX + "px wide" : overflowY + "px tall"}`);
+            }
+          });
+
           const over = [];
           document.querySelectorAll("*").forEach((el) => {
             const r = el.getBoundingClientRect();
@@ -138,6 +168,7 @@ for (const theme of THEMES) {
             hOverflow: de.scrollWidth - de.clientWidth,
             overflowing: over.slice(0, 3),
             nestedCards: nested,
+            clipped: clipped.slice(0, 4),
             nestedDetail: nestedDetail.slice(0, 4),
             htmlClass: de.className,
             frame: frame ? Math.round(frame.getBoundingClientRect().right) : null,
@@ -146,6 +177,7 @@ for (const theme of THEMES) {
           };
         });
 
+        if (rec.layout.clipped?.length) rec.findings.push(`TEXT CLIPPED: ${rec.layout.clipped.join(" ;; ")}`);
         if (rec.layout.hOverflow > 0) rec.findings.push(`H-OVERFLOW ${rec.layout.hOverflow}px: ${rec.layout.overflowing.join(", ")}`);
         if (rec.layout.nestedCards > 0) rec.findings.push(`NESTED CARDS x${rec.layout.nestedCards}: ${rec.layout.nestedDetail.join(" ;; ")}`);
         if (/something went wrong|couldn't load|page hit a problem|Update ready/i.test(rec.layout.text))

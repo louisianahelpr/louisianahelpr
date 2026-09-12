@@ -358,3 +358,37 @@ Now reachable in prod. Mild disagreement, not yet fixed.
       blanked eight Profile tabs. The orphan assertion should say "routed by
       nothing AND imported by nothing" — as written it describes a real
       condition but names it misleadingly.
+
+## Public-site visual pass (lead, 2026-09-11) — 20 routes captured at 375 and 1440
+
+- [ ] **Automated-test debris is live in prod, and two rows are on the PUBLIC
+      browse page right now.** SEEN at 375 on guest `/browse`: the first card
+      reads `[sweep-poster] Deep clean before...`. Prod holds **68** such rows:
+      61 titled `[E2E DO NOT ACCEPT] automated lifecycle …` and 7 from the sweep
+      harness (`[SWEEP] …`, `[sweep-poster] …`, `Sweep test — …`). All are
+      `is_seed = true`, so the launch switch will hide them — but that is an
+      argument about launch day, not about today, and a visitor on the site now
+      sees a bracketed test title as the top job. Two are `status = 'open'`:
+      `[sweep-poster] Deep clean before move-out` and
+      `Sweep test — deep clean kitchen`.
+      The growth matters as much as the rows: first seen 2026-09-07, last
+      2026-09-09, ~20 a day. The E2E lifecycle spec creates and never cleans up.
+      Deleting is a prod DELETE; the spec also needs to clean up after itself.
+
+Verified clean, so these can stop being re-reported:
+- **Legal tab pills are NOT unequal.** Measured all three at 375: Terms, Rules
+  and Privacy are each exactly **86px**, `flex: 1 1 0%`. The selected pill only
+  READS wider because it is the filled one. Backlog item was stale.
+- **The selected Legal pill does carry real gloss.** Computed `background-image`
+  on its `btn-grad-primary` child is a genuine `radial-gradient(...)`, not a
+  flat fill — checked the computed value, not the class name, per CLAUDE.md.
+- **The grey Apple chip in the footer is deliberate**, not a broken asset:
+  Apple and Instagram are `disabled` "coming soon" chips, Facebook is the only
+  live account. Reasoned in the code.
+- **The 404 page is fine** — "404", an explanation, Go Back and Back to Home,
+  with the marketing footer. The temp spec's matcher was wrong, not the page.
+- **/legal at 1440 fits correctly**: `#root` padding-right 248px applied once,
+  content column 48→1144 centred in the 1192 post-rail area, zero overflow.
+- **/dashboard at 375 fits**: frame 0→375 full width, zero overflow. Five
+  distinct job cards, no doubling — the seed delete is confirmed VISUALLY, not
+  just by a row count.

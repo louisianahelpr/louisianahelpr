@@ -1,4 +1,6 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { PhotoProofStep } from "@/components/PhotoProof";
+import { queryKeys } from "@/lib/queryKeys";
 import type { Job } from "../../activityConstants";
 
 /**
@@ -38,6 +40,27 @@ export function HelperPhotoAsk({
   // completion trigger in the same file, so the ask can never be hidden on a
   // database whose gate would still refuse the completion.
   const proofRequired = ((job as { require_photo_proof?: boolean | null }).require_photo_proof ?? true) !== false;
+
+  // READ THE JOB BACK AFTER AN UPLOAD — do not wait for realtime to do it.
+  //
+  // This ask advances on data: once the After photo exists, the Before ask is
+  // the one that renders. `PhotoProofStep` defaults its `onUploaded` to a
+  // no-op, so the only thing that moved the card forward was the realtime
+  // `jobs` subscription in useActivityData invalidating `["activity"]`. That
+  // channel is best-effort by this codebase's own account — it drops on a cold
+  // native socket, which is why AutoTip reads back explicitly for the same
+  // reason. With it down, a helper uploads the After photo, the dialog closes,
+  // and the card still says "Add an after photo". They re-upload, or they
+  // believe they are done while `enforce_helper_completion_gates` refuses the
+  // job for the missing Before — on the step that releases their payout.
+  //
+  // Invalidating the same key the realtime handler does makes the card's next
+  // state certain rather than hopeful; a live channel simply makes it redundant.
+  const queryClient = useQueryClient();
+  const readBack = () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
+  };
+
   if (!proofRequired) return null;
 
   const beforeUrls = job.proof_before_urls || [];
@@ -48,6 +71,7 @@ export function HelperPhotoAsk({
       jobId={jobId}
       type="before"
       existingUrls={beforeUrls}
+      onUploaded={readBack}
       title="Add a before photo"
       hint="Show the job as you found it, before you start."
     />
@@ -57,6 +81,7 @@ export function HelperPhotoAsk({
       jobId={jobId}
       type="after"
       existingUrls={afterUrls}
+      onUploaded={readBack}
       title="Add an after photo"
       // Deliberately does NOT repeat "the proof that releases your payment":
       // the tracker's own disabled-Done reason, rendered under the same

@@ -349,3 +349,12 @@ Now reachable in prod. Mild disagreement, not yet fixed.
       without the lock that makes it work — on three quarters of the legal
       surface, which is exactly the iOS notch-ghosting bug that list exists to
       prevent. Gate proved by mutation: every half fails when broken.
+- [x] **"7 dead page files to delete" — WRONG, do not delete them (2026-09-11).**
+      `AutoTip`, `HelprWrapped`, `HomeHistory`, `PetProfiles`, `StrSettings`,
+      `HelperAnalytics`, `WorkRecord` and `GiftCard` are all LIVE: every one is
+      imported by `src/pages/profile/ProfileTabPanels.tsx` and renders as the
+      body of a Profile tab. They are unROUTED, which is what the orphan check
+      reported, and "unrouted" was read as "dead". Deleting them would have
+      blanked eight Profile tabs. The orphan assertion should say "routed by
+      nothing AND imported by nothing" — as written it describes a real
+      condition but names it misleadingly.

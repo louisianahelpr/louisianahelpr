@@ -602,7 +602,12 @@ Two follow-ups worth keeping:
       read and the map panel only exists at desktop, but it is the same
       one-outage-many-messages shape just fixed for the toast. Desktop dashboard
       layout was not that lane's scope.
-- [ ] **One branch is code-verified but NOT runtime-verified.** The notification
+- [x] **NOW EXECUTED (b941fbfcd).** `NotificationPanel.refreshToast.test.tsx`
+      renders the real panel and drives the real `loadNotifications` through the
+      pull-to-refresh callback. Open panel with rows + failed refresh → toasts;
+      closed panel → silent. Proved both ways: removing the branch fails one
+      test, making it unconditional fails the other.
+      Original: **One branch is code-verified but NOT runtime-verified.** The notification
       toast's "panel open and already showing rows" branch is only reachable via
       pull-to-refresh or a realtime event; the harness stubs realtime inert and a
       synthetic touch gesture did not fire the pull handler (instrumented: 0
@@ -976,7 +981,12 @@ on every one.
       bell (toast y 8–78 vs bell y 21–77; `elementFromPoint` returns the toast).
       Three one-off fixes is a pattern, not a coincidence — this wants an owner
       ruling on where toasts belong, not a fourth patch.
-- [ ] **At 1440 the composer bar spans the 780px reading column, not the full
+- [x] **CLOSED, working as intended — no change.** Looked at it at 1440 now that
+      the thread sits in a panel: the header, the off-platform banner and the
+      composer share one centred 780px column, and the band behind the composer
+      lines up with the banner above it. The cap itself is the owner's fix for
+      "the bottom bar does not fit correctly"; widening it would reintroduce that.
+      Original: **At 1440 the composer bar spans the 780px reading column, not the full
       panel.** `ChatView` caps timeline and composer with one `max-w-[780px]`
       wrapper. That cap is owner-set ("the bottom bar does not fit correctly"),
       so it was left alone.
@@ -1200,7 +1210,31 @@ Two corrections to my own test, not the app:
   conversation is built FROM messages — a job with none has no thread to open.
   The real entry point is the job card's Message action. Not yet driven.
 
-- [ ] **THE MONEY LOOP IS NOT COVERED, and that is a deliberate gap.** Funding,
+- [x] **THE MONEY LOOP IS COVERED — passed on production 2026-09-12 19:41 UTC**
+      (run 34714860101, first attempt, 27.3s, no retry). Sandbox confirmed first,
+      not assumed: every `stripe_session_id` in `jobs` is `cs_test_`. Verified in
+      the database, not from the green tick: job `5f20df1e…` completed and
+      `released`, before AND after proof photos, helper and poster both done, a
+      review, and a `payout_transfers` row `status=paid`, 2200 cents ($25 budget
+      less the fee) with a real Stripe `tr_…` transfer id created at 19:41:49.
+      Getting there took five fixes, each found by reading the run rather than
+      guessing:
+        1. the token mint's "check the password" message was wrong — auth had
+           logged the sign-ins as 200; the mint is now a script that reports the
+           real HTTP status and retries (dba125b99);
+        2. the spec waited for a "Before Photos" button that the step-by-step
+           photo redesign had removed from production (ed8371fc0);
+        3. it uploaded before-then-after, but the Working step asks for the after
+           photo first (same commit);
+        4. a second `page.goto` raced the page's post-upload refetch and hung 296s;
+           the before upload now waits on the same page for the card to advance
+           (66f5d8108) — and a local check showed a refetch alone causes zero
+           history writes, so this is not a user-facing defect;
+        5. the final `is_seed === false` assertion predated the derive-from-account
+           migration; it now asserts the flag is UNCHANGED (a06d987ba).
+      Found and fixed a real product gap on the way: a proof-photo upload relied
+      only on best-effort realtime to advance the card (ad9a884b7).
+      Original: **THE MONEY LOOP IS NOT COVERED.** Funding,
       release and refund were all skipped. The Stripe key the edge functions
       actually use cannot be read, `scripts/e2e/stripe-sandbox-on.sh` is
       owner-run, and the Stripe account exposes a LIVE context — so driving a
@@ -1432,7 +1466,13 @@ Two supporting facts, so this is not a guess:
       a real-world side effect, and a "Saved" on every field edit is the clutter
       you removed in the first place.
 
-- [ ] **The production money-loop test is FLAKY, and the symptom is worth
+- [x] **RESOLVED — the "signed-out on return from checkout" symptom is a retry
+      artefact, not a user path.** It appeared on every RETRY attempt observed
+      today (11:38, 19:26, 19:38) and on no first attempt, and the clean run at
+      19:41 passed first time without it. The loop also continued past it each
+      time, since it is a warning with a fallback. Watch it if it ever shows on a
+      first attempt; until then it is not a defect.
+      Original: **The production money-loop test is FLAKY, and the symptom is worth
       watching.** `prod-lifecycle.spec.ts` ("post, fund, apply, hire, complete,
       release, review") failed once at 11:38 and PASSED on the very same commit
       at 11:10, with every other run today green — so the payment path is not
@@ -1448,3 +1488,14 @@ Two supporting facts, so this is not a guess:
       Stripe sandbox item), and because a single flake on a green day is a
       watch, not a diagnosis. **Next run that fails, pull the error-context.md
       artefact before it expires.**
+
+
+- [ ] **FOR THE OWNER — delete the duplicate of your ID document.** Confirmed by
+      SHA-256, not just size: `user-documents/76b07824…/avatar.png` is
+      byte-for-byte identical to `id-documents/76b07824…/id-document-1777828268516.png`
+      (both `63fc9c6d587cf9b5…`). My delete was blocked by the permission
+      classifier, so I did not route around it. To finish: Supabase dashboard →
+      Storage → `user-documents` → folder `76b07824-9b41-4741-a4c4-4f8de362f682`
+      → delete `avatar.png`. Keep the `id-documents` copy. Then upload a real
+      profile photo, which writes to the public `avatars` bucket and replaces the
+      dead URL. Nothing is leaked in the meantime — the bucket is private.

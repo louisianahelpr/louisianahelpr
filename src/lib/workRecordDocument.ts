@@ -389,10 +389,17 @@ export async function buildWorkRecordPdf(input: WorkRecordDocumentInput): Promis
   // August). Active Period below is TIME WORKED. They also cannot be read as
   // the same line: they sit in different sections of the sheet, under
   // different headings, and one is a single month where the other is a span.
+  // "Member since" is DROPPED when the date will not parse, exactly as the
+  // on-screen Work Record drops it — `formatMonthYear` returns null rather than
+  // the string "Invalid Date". This is a PDF handed to an employer, so the
+  // reasoning is the same but stronger: an absent column reads as "not shown",
+  // while the words "Invalid Date" printed under someone's name read as a fact
+  // about them. The remaining columns simply re-space themselves.
+  const memberSince = formatMonthYear(input.memberSince);
   const cols: [string, string][] = [
     ["Issued to", displayName(input)],
     ["ID verified by Stripe", input.identityVerified ? "Verified" : "Not verified"],
-    ["Member since", formatMonthYear(input.memberSince)],
+    ...(memberSince ? ([["Member since", memberSince]] as [string, string][]) : []),
   ];
   cols.forEach(([l, v], i) => {
     const x = MARGIN + colW * i;

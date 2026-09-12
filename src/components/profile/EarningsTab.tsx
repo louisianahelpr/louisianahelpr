@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -56,7 +56,13 @@ import { EarningHistory } from "@/components/profile/earningsTab/EarningHistory"
 // month, best categories, best days, success rate, profile views, repeat
 // hire, ratings & reviews) was removed 2026-08-30. None of it was wired to a
 // real Pro feature; it only ever showed a lock icon and an upgrade CTA. The
-// Insights view now shows the real, unlocked breakdown charts only.
+// breakdown section now shows the real, unlocked charts only.
+//
+// SPLIT AGAIN 2026-09-11 (owner: "earnings and payout page also needs to be
+// better organized", then chose two tabs): the merge was right about the
+// subject and wrong about the screen. `PaymentTab` — the payout ACCOUNT — was
+// lazily mounted in the middle of the reader's own earnings figures. It is now
+// the floor of a "Payouts" half, with money-in on the other side.
 const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
 
 /**
@@ -226,10 +232,22 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   });
 
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  /* Which quarter of the tab is on screen. See EarningsViewSwitcher for why
-     the four groups became a switch rather than four hairline rules. Opens on
-     "money" — the wallet is what a helpr comes here for. */
-  const [view, setView] = useState<EarningsView>("money");
+  /* Which half of the tab is on screen. See EarningsViewSwitcher for why the
+     groups became a switch rather than hairline rules, and why there are two
+     of them rather than four. Opens on "earnings" — "how am I doing" is the
+     question this screen is opened with; "where is my money" is the follow-up.
+
+     `?view=payouts` opens on the other half. READ ONCE, at mount, and never
+     written back: every deep link into this screen is `/profile?tab=earnings`
+     (plus the `/earnings` redirect onto it), and this is the hook that lets a
+     payout-specific notification land on the payout half without any of those
+     links changing. Mirroring the switch INTO the URL is deliberately not done
+     — WebKit throttles replaceState and this repo has already paid for that
+     once (see useSearchParamMirror). */
+  const [searchParams] = useSearchParams();
+  const [view, setView] = useState<EarningsView>(
+    searchParams.get("view") === "payouts" ? "payouts" : "earnings",
+  );
   /* Which slice of time the Money view's numbers cover. Opens on "lifetime" —
      the wallet balance is always lifetime; selecting "week" or "month" opts
      into the forward-looking cards those ranges fold in (see EarningsRangeToggle). */
@@ -338,21 +356,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           Supabase read. Suppression is per-device via safeStorage. */}
       <PayoutCelebration payouts={payoutLedger} />
 
-      {/* Motivational pill — consecutive 5-star reviews. Self-hides
-          below a 3-streak so it only appears when it actually means
-          something. Sits above the forecast so the helper sees their
-          "you're on a roll" cue before the projected total. */}
-      {helperId && (
-        <div className="flex">
-          <HelperStreakBadge helperId={helperId} />
-        </div>
-      )}
-
       {/* NOT CONNECTED YET: the connect card is the page. Everything below it
           — the wallet, the goal, the charts, the ledger — is either empty or
           about money that cannot move until Stripe is set up, so the one thing
-          a helpr can do sits directly under the forecast rather than eight
-          sections down behind a card that only scrolls to it.
+          a helpr can do sits at the top rather than behind a tab.
           `!stripeError` matters: a failed status fetch is NOT "not
           connected" — that state renders its own retry banner below. */}
       {!stripeLoading && !stripeError && !stripeData?.connected && payoutSection}
@@ -360,7 +367,14 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       {/* 1099-K banner — appears once YTD payouts cross the federal gross
           threshold (FORM_1099K_GROSS_THRESHOLD_DOLLARS). Quiet, dismissible
           per-user-per-year so it doesn't nag after the helper has seen it.
-          Tapping the CTA opens the existing PDF tax-export dialog. */}
+          Tapping the CTA opens the existing PDF tax-export dialog.
+
+          DELIBERATELY OUTSIDE BOTH VIEWS, and the only block that is. It is
+          not a section, it is an alert with a shelf life: it is triggered by
+          payouts (Payouts' subject) and its CTA exports earnings for tax
+          (Earnings' subject), so filing it under either hides it from a helpr
+          reading the other. It also self-dismisses permanently, which nothing
+          inside a view does. */}
       {show1099Banner && (
         <ThresholdBanner
           ytdYear={ytdYear}
@@ -369,49 +383,36 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         />
       )}
 
-      {/* THE ORPHANED "$357 / total earned" USED TO SIT HERE (owner,
-          2026-08-30: "357 is oddly placed. Fix it.") — a bare <p> on the page
-          background between the poster-spend card above and the tab bar below,
-          the only figure on the screen without a container. It has moved into
-          <EarningsSummaryCard /> at the top of the Money view, which is also
-          where the duplicate of it lived: the same `totalEarnings` value was
-          printed here AND as the first of three small tiles further down, one
-          number stated twice on one screen. One statement now, in a card whose
-          anatomy matches the wallet directly beneath it.
-
-          The date-range toggle used to sit here too, full-width and attached to
-          nothing, a screen above PaymentTab's near-identical poster-spend pill.
-          It now renders inside the card whose figures it scopes, and only in
-          the Money view — it governs nothing in History, Insights or Payouts,
-          where it was previously still on screen and inert. */}
-
-      {/* ONE VIEW AT A TIME. Everything above this line is either global
-          (header, celebration) or urgent (the 1099 banner, the connect card),
-          so it stays put; the four groups below take turns. */}
+      {/* TWO QUESTIONS, TWO TABS (owner, 2026-09-11). Above this line is
+          either global (header, celebration) or urgent (the 1099 banner, the
+          connect card); below it, "how am I doing" and "where is my money"
+          take turns instead of competing for one column. */}
       <EarningsViewSwitcher value={view} onChange={setView} />
 
-      {/* ─── MONEY ─── what I have, and what is coming ─── */}
-      {view === "money" && (
+      {/* ─── EARNINGS ─── what I made, and what it says about my work ───
+          Formerly three separate segments (Money · History · Insights) which
+          were three slices of the same question over the same jobs: the
+          summary sums them, the history lists them, the charts group them.
+          One view, ordered widest to narrowest — the figure, then what is
+          coming, then the breakdown, then the row-by-row ledger. */}
+      {view === "earnings" && (
       <section className="space-y-3">
-        {/* Payout data failed to load — say so, with a Retry. Without this
-            the tab silently rendered the "not connected" journey to a
-            connected helper whenever stripe-payouts hiccuped. */}
-        {(stripeError || ledgerError) && !stripeLoading && (
-          <ErrorState
-            variant="inline"
-            title="We couldn't load your payout data."
-            body="Your money is safe — we just couldn't reach Stripe. Tap Try again."
-            onRetry={handleRefresh}
-            retryDisabled={refreshing}
-          />
+        {/* Motivational pill — consecutive 5-star reviews. Self-hides below a
+            3-streak so it only appears when it actually means something. It
+            lives in THIS view, not above the switcher where it used to sit: it
+            is a fact about how the work is going, which is the question this
+            half of the screen answers, and it has nothing to say to someone
+            who opened the tab to check a bank connection. */}
+        {helperId && (
+          <div className="flex">
+            <HelperStreakBadge helperId={helperId} />
+          </div>
         )}
 
-        {/* EARNED — the first card of the Money view, and the only place on
-            this screen that states take-home. Sits above the wallet on
-            purpose: "what have I made" is the question a helpr opens this tab
-            with, and "where is that money right now" is the follow-up. It also
-            renders for a helpr who has NOT connected Stripe (who has earnings
-            but no wallet), which is exactly the state the owner screenshotted. */}
+        {/* EARNED — the first card, and the only place on this screen that
+            states take-home. It also renders for a helpr who has NOT connected
+            Stripe (who has earnings but no wallet), which is exactly the state
+            the owner screenshotted. */}
         <EarningsSummaryCard
           loading={loading}
           range={range}
@@ -425,68 +426,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           releasingAt={releasingAt}
         />
 
-        {/* Wallet card (Available + Pending side-by-side).
-            NOT RENDERED UNTIL STRIPE IS CONNECTED. Its disconnected state was
-            a second "Set up Payouts" card — the first thing on the page —
-            whose button did nothing but scroll down to the Payout & payments
-            section, which is a card that says the same sentence with the
-            button that actually starts Stripe onboarding. Two cards, one job,
-            one of them a signpost to the other (owner: "needs a full upgrade
-            and polish alot of the same info").
-
-            A helpr who has not connected does not have a wallet, so the
-            honest page for them has no wallet card. The Payout & payments
-            section moves up to just under the forecast in that state (see
-            below) so the connect CTA is still the first thing they can act
-            on. */}
-        {stripeLoading ? (
-          /* Wallet-shaped skeleton — owned here (not inside WalletCard)
-             because the card itself only ever renders connected+loaded. */
-          <div className="rounded-2xl liquid-glass p-5 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Skeleton className="h-3 w-20 rounded" />
-                <Skeleton className="h-7 w-24 rounded" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-3 w-20 rounded" />
-                <Skeleton className="h-7 w-24 rounded" />
-              </div>
-            </div>
-            <Skeleton className="h-9 w-full rounded-md" />
-          </div>
-        ) : stripeData?.connected && (
-        <WalletCard
-          stripeData={stripeData}
-          refreshing={refreshing}
-          availableTotal={availableTotal}
-          pendingTotal={pendingTotal}
-          canUseInstantPayout={canUseInstantPayout}
-          onRefresh={handleRefresh}
-          onCashOut={() => setPayoutDialogOpen(true)}
-          onUpgrade={() => setUpgradeOpen(true)}
-        />
-        )}
-
-        {/* THE 3-UP TILE ROW (Net / Tips / Active) WAS HERE. Its "Net" tile
-            printed `totalEarnings` — the identical value the orphaned headline
-            above the tab bar was already printing, from the same variable
-            through the same formatter. One figure, twice, on one screen. All
-            three facts now live in <EarningsSummaryCard /> above, where the
-            money ones follow the range toggle and the live job count is stated
-            separately as "right now" rather than sharing a scope it never had. */}
-
       {/* ─── COMING UP ────────────────────────────────────────────
-          Forward-looking content now lives BEHIND the date-range toggle
-          above, not permanently on the page (owner: the Sunday projection
-          and the monthly-goal streak card were always-visible even for a
-          helpr who opened the tab to check their lifetime total, which two
-          of these three cards have nothing to do with). Selecting "This
-          Week" or "This Month" opts in; "Lifetime"/"This Year" show neither.
-
-          The "Next 7 days" schedule strip stays unconditional — it isn't a
-          projection card, it's the roster of what's already on the
-          calendar, which is relevant regardless of range. */}
+          Forward-looking content lives BEHIND the date-range toggle above,
+          not permanently on the page (owner: the Sunday projection and the
+          monthly-goal streak card were always-visible even for a helpr who
+          opened the tab to check their lifetime total, which two of these
+          three cards have nothing to do with). Selecting "This Week" or
+          "This Month" opts in; "Lifetime"/"This Year" show neither. */}
       {range === "week" && (
         <>
           <SectionRule />
@@ -533,68 +479,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         </>
       )}
 
-      </section>
-      )}
-
-      {/* ─── HISTORY ──────────────────────────────────────────────
-          THREE lists of past money used to sit in a row with nothing
-          separating them — Stripe's payout history inside the wallet block,
-          the per-transfer ledger, and the per-job earnings list — each with a
-          different source and no label saying which was which. They are one
-          view now, ordered widest to narrowest: what landed in the bank, then
-          each transfer, then the jobs behind them.
-
-          This is the longest region on an active helpr by a wide margin — up
-          to 25 job rows plus both ledgers — and it is also the one nobody
-          reads on a normal visit. Behind its own tab it costs nothing until
-          asked for. */}
-      {view === "history" && (
-      <section className="space-y-4">
-
-{/* Payout history — inline year picker, no big empty box */}
-      {stripeData?.connected && (
-        <PayoutHistory
-          stripeData={stripeData}
-          exportYear={exportYear}
-          onExportYearChange={setExportYear}
-          payoutYears={payoutYears}
-        />
-      )}
-
-      {/* ACTUAL PAYOUTS (from the payout_transfers ledger) */}
-      {payoutLedger.length > 0 && (
-        <RecentTransfers payoutLedger={payoutLedger} />
-      )}
-
-      {/* ─── EARNING HISTORY ─── */}
-      <EarningHistory
-        earningsJobs={earningsJobs}
-        tips={tips}
-        loading={loading}
-        historyVisible={historyVisible}
-        page={PAGE}
-        onLoadMore={() => setHistoryVisible((n) => n + PAGE)}
-        onBrowseJobs={() => navigate("/dashboard")}
-        feeFallbackPct={helperFeeFallbackPct}
-      />
-
-      </section>
-      )}
-
-      {/* ─── INSIGHTS ─────────────────────────────────────────────
-          Just the real, unlocked breakdown charts. This view used to also
-          render HelperAnalyticsBody — an "Activity Trend" chart plus a grid
-          of PRO-locked teaser cards (earnings by month, best categories,
-          best days, success rate, profile views, repeat hire, ratings &
-          reviews) that were never wired to an actual Pro feature; they only
-          ever showed a lock icon and an upgrade CTA. Removed 2026-08-30
-          rather than kept as permanent non-functional furniture. */}
-      {view === "insights" && (
-      <section className="space-y-4">
+      {/* ─── BREAKDOWN ───────────────────────────────────────────
+          The real, unlocked charts. This was its own "Insights" segment, which
+          made a pie chart of the reader's own completed jobs a peer of the
+          wallet; it is a way of looking at the figure above it, so it sits
+          under it. (The segment also used to render HelperAnalyticsBody — an
+          "Activity Trend" chart plus a grid of PRO-locked teaser cards never
+          wired to an actual Pro feature. Removed 2026-08-30.) */}
+      <SectionRule />
       <p className="text-ds-11 px-1" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>More insights with every completed job</p>
-
-      {/* PIE + YTD vs PRIOR-YTD compare ───────────────────
-          Self-hides if there's no completed-job data. */}
       <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
 
       {/* The ONE entry point to /analytics (Advanced Analytics, built
@@ -622,62 +515,155 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           &rsaquo;
         </span>
       </button>
+
+      {/* ─── EARNING HISTORY ─── job by job, the rows behind the figure.
+          The per-JOB ledger belongs here, with the earnings it explains. The
+          two money-OUT ledgers it used to sit between (Stripe's payout history
+          and the per-transfer list) moved to the Payouts view: those describe
+          bank deposits, not work done. */}
+      <SectionRule />
+      <EarningHistory
+        earningsJobs={earningsJobs}
+        tips={tips}
+        loading={loading}
+        historyVisible={historyVisible}
+        page={PAGE}
+        onLoadMore={() => setHistoryVisible((n) => n + PAGE)}
+        onBrowseJobs={() => navigate("/dashboard")}
+        feeFallbackPct={helperFeeFallbackPct}
+      />
+
       </section>
       )}
 
-      {/* ─── PAYOUTS ─────────────────────────────────────────────────
-          Was the "payment" Profile tab, then the last block of a very long
-          column. `onSeeEarnings` is deliberately not passed: its "See full
-          breakdown →" link jumped to the Earnings tab, which is the very
-          screen it is sitting inside.
-
-          Only when Stripe IS connected — a helpr who has not connected gets
-          this same block inline near the top instead (see `payoutSection`),
-          because then it is the whole screen's business and should not be
-          hidden behind a tab. */}
-      {view === "payouts" && stripeData?.connected && payoutSection}
-
-      {/* The tax note belongs to the payout view, not to whatever happens to
-          be last on the page. It used to sit under the analytics dashboard,
-          restating the 1099-K threshold the banner above had already named.
-
-          IT NO LONGER STATES THE THRESHOLD, and that is the point of the
-          2026-09-06 rewrite. This sentence read "exceed $20,000 in gross
-          payments and 200 transactions" — a bare number, undated, unsourced,
-          rendered to a helper as tax guidance in the screen where they read
-          about their own money. The federal 1099-K threshold has moved
-          repeatedly in the last few years (a $600 rule scheduled, deferred by
-          the IRS twice, then repealed), so a number typed into product copy is
-          a claim with a short shelf life and a real cost when it goes stale:
-          a helper under the stated line concludes nothing is coming, and files
-          as if no form exists.
-
-          The honest version says what we actually know — Stripe issues the
-          form when the federal thresholds are met, it is federal rather than
-          Louisiana, and no action is needed — and sends anyone who needs the
-          current number to the IRS, who owns it. The threshold constants stay
-          in `moneyLimits.ts` because ThresholdBanner still needs a level to
-          fire a heads-up at; what changed is that we no longer publish ours as
-          if it were the law. The two Legal pages still state it with a dated
-          citation, which is a different kind of claim — flagged for the owner
-          rather than rewritten here. */}
+      {/* ─── PAYOUTS ─── where the money is, and how it reaches me ───
+          Everything money-OUT: the live balance and its cash-out button, the
+          two deposit ledgers, and the payout account itself. The account setup
+          (PaymentTab) used to be a lazy child nested inside this file's Money
+          column — settings rendered as a card among the reader's own numbers.
+          It is the bottom of its own half now. */}
       {view === "payouts" && (
+      <section className="space-y-3">
+        {/* Payout data failed to load — say so, with a Retry. Without this
+            the tab silently rendered the "not connected" journey to a
+            connected helper whenever stripe-payouts hiccuped. */}
+        {(stripeError || ledgerError) && !stripeLoading && (
+          <ErrorState
+            variant="inline"
+            title="We couldn't load your payout data."
+            body="Your money is safe — we just couldn't reach Stripe. Tap Try again."
+            onRetry={handleRefresh}
+            retryDisabled={refreshing}
+          />
+        )}
 
-      <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">
-        <Info className="w-3 h-3 mt-0.5 shrink-0" />
-        <span>
-          <strong className="text-muted-foreground">Tax reporting:</strong> If your payments pass the federal Form 1099-K reporting thresholds for the year, Stripe issues the form automatically — no action needed on your side. It&rsquo;s a federal filing, not a Louisiana one. The thresholds have changed several times recently, so check{" "}
-          <a
-            href="https://www.irs.gov/businesses/understanding-your-form-1099-k"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="link-standard"
-          >
-            the IRS&rsquo;s own 1099-K guidance
-          </a>{" "}
-          for the current numbers, and talk to a tax professional about your situation.
-        </span>
-      </p>
+        {/* Wallet card (Available + Pending side-by-side).
+            NOT RENDERED UNTIL STRIPE IS CONNECTED. Its disconnected state was
+            a second "Set up Payouts" card whose button did nothing but scroll
+            down to the section that says the same sentence with the button
+            that actually starts Stripe onboarding (owner: "needs a full
+            upgrade and polish alot of the same info"). A helpr who has not
+            connected does not have a wallet, so the honest page for them has
+            no wallet card — they get the connect block above the switcher. */}
+        {stripeLoading ? (
+          /* Wallet-shaped skeleton — owned here (not inside WalletCard)
+             because the card itself only ever renders connected+loaded. */
+          <div className="rounded-2xl liquid-glass p-5 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-20 rounded" />
+                <Skeleton className="h-7 w-24 rounded" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-20 rounded" />
+                <Skeleton className="h-7 w-24 rounded" />
+              </div>
+            </div>
+            <Skeleton className="h-9 w-full rounded-md" />
+          </div>
+        ) : stripeData?.connected && (
+        <WalletCard
+          stripeData={stripeData}
+          refreshing={refreshing}
+          availableTotal={availableTotal}
+          pendingTotal={pendingTotal}
+          canUseInstantPayout={canUseInstantPayout}
+          onRefresh={handleRefresh}
+          onCashOut={() => setPayoutDialogOpen(true)}
+          onUpgrade={() => setUpgradeOpen(true)}
+        />
+        )}
+
+        {/* Payout history — what landed in the bank (inline year picker, no
+            big empty box) — then each individual transfer behind it. */}
+        {stripeData?.connected && (
+          <>
+            <SectionRule />
+            <PayoutHistory
+              stripeData={stripeData}
+              exportYear={exportYear}
+              onExportYearChange={setExportYear}
+              payoutYears={payoutYears}
+            />
+          </>
+        )}
+
+        {/* ACTUAL PAYOUTS (from the payout_transfers ledger) */}
+        {payoutLedger.length > 0 && (
+          <RecentTransfers payoutLedger={payoutLedger} />
+        )}
+
+        {/* THE PAYOUT ACCOUNT. Was the "payment" Profile tab, then a lazy
+            component nested inside the Money column of this very file.
+            `onSeeEarnings` is deliberately not passed: its "See full
+            breakdown →" link jumped to the Earnings tab, which is the very
+            screen it is sitting inside.
+
+            Only when Stripe IS connected — a helpr who has not connected gets
+            this same block above the switcher instead (see `payoutSection`),
+            because then it is the whole screen's business and should not be
+            hidden behind a tab. */}
+        {stripeData?.connected && (
+          <>
+            <SectionRule />
+            {payoutSection}
+          </>
+        )}
+
+        {/* The tax note belongs to the payout view, not to whatever happens to
+            be last on the page.
+
+            IT NO LONGER STATES THE THRESHOLD, and that is the point of the
+            2026-09-06 rewrite. This sentence read "exceed $20,000 in gross
+            payments and 200 transactions" — a bare number, undated, unsourced,
+            rendered to a helper as tax guidance in the screen where they read
+            about their own money. The federal 1099-K threshold has moved
+            repeatedly in the last few years (a $600 rule scheduled, deferred by
+            the IRS twice, then repealed), so a number typed into product copy is
+            a claim with a short shelf life and a real cost when it goes stale:
+            a helper under the stated line concludes nothing is coming, and files
+            as if no form exists.
+
+            The honest version says what we actually know and sends anyone who
+            needs the current number to the IRS, who owns it. The threshold
+            constants stay in `moneyLimits.ts` because ThresholdBanner still
+            needs a level to fire a heads-up at. */}
+        <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">
+          <Info className="w-3 h-3 mt-0.5 shrink-0" />
+          <span>
+            <strong className="text-muted-foreground">Tax reporting:</strong> If your payments pass the federal Form 1099-K reporting thresholds for the year, Stripe issues the form automatically — no action needed on your side. It&rsquo;s a federal filing, not a Louisiana one. The thresholds have changed several times recently, so check{" "}
+            <a
+              href="https://www.irs.gov/businesses/understanding-your-form-1099-k"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-standard"
+            >
+              the IRS&rsquo;s own 1099-K guidance
+            </a>{" "}
+            for the current numbers, and talk to a tax professional about your situation.
+          </span>
+        </p>
+      </section>
       )}
 
       <ProUpgradeSheet

@@ -8,10 +8,18 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks } from "./fixtures";
 // 25-30 cards and four charts in a single column, grouped only by four hairline
 // rules doing the work of navigation.
 //
-// The four latent groups are now a segmented control. This spec pins the two
-// properties that matter and that a screenshot would not catch:
+// The latent groups are now a segmented control. It carried FOUR segments
+// until 2026-09-11, when the owner asked for the page to be better organised
+// and chose two: Earnings (what I made — the former Money, History and
+// Insights, which were three slices of one question over the same jobs) and
+// Payouts (where the money is and how it reaches me — the wallet, both deposit
+// ledgers, and the payout ACCOUNT, which until then was a lazy PaymentTab
+// mounted in the middle of the reader's own earnings figures).
 //
-//   1. All four views exist and are reachable.
+// This spec pins the two properties that matter and that a screenshot would
+// not catch:
+//
+//   1. Both views exist and are reachable.
 //   2. Only the SELECTED view is in the DOM — the others are not merely hidden.
 //      That is the whole saving: a helpr checking their balance does not pay to
 //      mount the analytics dashboard, both chart sets, or the full job ledger.
@@ -31,13 +39,7 @@ const MARKERS: Record<string, RegExp> = {
   // `earnedRangeLabel("lifetime")` is the replacement: EarningsTab opens on the
   // lifetime range, the card prints the label under the figure whatever the
   // figure is, and the phrase exists in exactly one place in src/.
-  Money: /total earned/i,
-  History: /Earning history/i,
-  // Was /take-home/i — that text came from HeroSummary, which was deleted
-  // once the tab's Money view made it the third statement of one number.
-  // The Pro upsell is the analytics dashboard's own, and renders whatever the
-  // account's data looks like.
-  Insights: /more insights with/i,
+  Earnings: /total earned/i,
   Payouts: /Tax reporting:/i,
 };
 
@@ -54,11 +56,11 @@ test("earnings tab renders one view at a time", async ({ helperPage: page }) => 
 
   const tabs = page.getByRole("tab");
   await tabs.first().waitFor({ timeout: 20_000 });
-  await expect(tabs).toHaveCount(4);
-  expect(await tabs.allInnerTexts()).toEqual(["Money", "History", "Insights", "Payouts"]);
+  await expect(tabs).toHaveCount(2);
+  expect(await tabs.allInnerTexts()).toEqual(["Earnings", "Payouts"]);
 
-  // Opens on Money — the wallet is what a helpr comes here for.
-  await expect(page.getByRole("tab", { name: "Money" })).toHaveAttribute("aria-selected", "true");
+  // Opens on Earnings — "how am I doing" is what a helpr comes here with.
+  await expect(page.getByRole("tab", { name: "Earnings" })).toHaveAttribute("aria-selected", "true");
 
   // Every tab is a full 44px HIG tap target. A segmented control is often
   // drawn at ~36px, and this one briefly was — by overriding the bare
@@ -92,4 +94,34 @@ test("earnings tab renders one view at a time", async ({ helperPage: page }) => 
       ).toHaveCount(0);
     }
   }
+
+  // The three former segments are ONE view now — the per-job ledger and the
+  // breakdown charts must be on the Earnings half, not behind a tab of their
+  // own. Asserting the absorbed content directly, because "two tabs exist" is
+  // equally true of a split that dropped a section on the floor.
+  await page.getByRole("tab", { name: "Earnings" }).click();
+  await expect(page.getByText(/Earning history/i).first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/more insights with/i).first()).toBeVisible();
+});
+
+// `/profile?tab=earnings` is the link every notification and email uses, and
+// `/earnings` redirects onto it. `?view=payouts` is the new, additive way for a
+// payout-specific one to land on the payout half — without it, a "your payout
+// arrived" push would open on the earnings summary.
+test("?view=payouts opens the payouts half, and the plain deep link still opens earnings", async ({ helperPage: page }) => {
+  await installSupabaseMocks(page, { user: FAKE_HELPER, rules: [] });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("helpr_onboarding", JSON.stringify({ seen: true, completed: true }));
+    } catch { /* no-storage guard */ }
+  });
+  await page.setViewportSize({ width: 375, height: 812 });
+
+  await page.goto("/profile?tab=earnings&view=payouts");
+  await page.getByRole("tab").first().waitFor({ timeout: 20_000 });
+  await expect(page.getByRole("tab", { name: "Payouts" })).toHaveAttribute("aria-selected", "true");
+
+  await page.goto("/profile?tab=earnings");
+  await page.getByRole("tab").first().waitFor({ timeout: 20_000 });
+  await expect(page.getByRole("tab", { name: "Earnings" })).toHaveAttribute("aria-selected", "true");
 });

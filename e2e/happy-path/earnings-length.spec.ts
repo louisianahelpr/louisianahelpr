@@ -4,17 +4,20 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks, mockTable, mockRpc } f
 // THE EARNINGS TAB HAS A LENGTH BUDGET, AND IT IS MEASURED.
 //
 // Owner, 2026-08-28: "Earnings and payout tab is also entirely too long."
-// The tab was split into four views (Money · History · Insights · Payouts) with
-// only the selected one mounted. `earnings-views.spec.ts` pins that structure;
-// this spec pins the RESULT, against a helpr who actually has money — the case
-// the complaint was about, and the one an empty mock cannot show.
+// The tab was split into views with only the selected one mounted.
+// `earnings-views.spec.ts` pins that structure; this spec pins the RESULT,
+// against a helpr who actually has money — the case the complaint was about,
+// and the one an empty mock cannot show.
 //
 // Measured on this fixture at 393x852:
-//   before the split, one column:  5382px  (6.3 screens)
-//   after — Money (the landing):   1013px  (1.2 screens)
-//           History (the longest): 2653px  (3.1 screens)
-//           Insights:              1472px  (1.7 screens)
-//           Payouts:                840px  (1.0 screens)
+//   before any split, one column:  5382px  (6.3 screens)
+//   four views — Money 1013 · History 2653 · Insights 1472 · Payouts 840
+//   two views (2026-09-11, owner chose Earnings vs Payouts):
+//           Earnings: see BUDGET_SCREENS below
+//           Payouts:  see BUDGET_SCREENS below
+// The Earnings budget is the sum of the three halves it absorbed plus
+// headroom; the whole column is still nowhere near the 6.3 screens that
+// produced the complaint, and the two questions no longer interleave.
 //
 // Two traps this spec exists to avoid, both of which produced wrong answers
 // before it was written:
@@ -75,10 +78,8 @@ const transfers = Array.from({ length: 8 }, (_, i) => ({
 /** Per-view ceilings, in viewport-heights, with headroom over the measured
  *  values above. A view that doubles will trip this; normal drift will not. */
 const BUDGET_SCREENS: Record<string, number> = {
-  Money: 2.0,
-  History: 4.0,
-  Insights: 2.6,
-  Payouts: 2.0,
+  Earnings: 6.0,
+  Payouts: 4.0,
 };
 
 /** Measures the tallest scroll container — see trap 1 in the header note. */
@@ -146,8 +147,14 @@ test("each earnings view stays within its length budget", async ({ helperPage: p
   await page.waitForTimeout(3_000);
 
   // The fixture really did produce a funded wallet — otherwise every
-  // assertion below would pass against an empty state.
+  // assertion below would pass against an empty state. The wallet lives on the
+  // Payouts half since 2026-09-11, so this precondition is checked there; the
+  // landing (Earnings) states take-home, not the balance.
+  await page.getByRole("tab", { name: "Payouts" }).click();
   await expect(page.getByText(/\$245\.00/).first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/\$1,636\.80/).first()).toHaveCount(0);
+  await page.getByRole("tab", { name: "Earnings" }).click();
+  await expect(page.getByText(/\$1,636\.80/).first()).toBeVisible({ timeout: 10_000 });
 
   for (const [name, budget] of Object.entries(BUDGET_SCREENS)) {
     await page.getByRole("tab", { name }).click();
@@ -195,7 +202,7 @@ test("lifetime take-home is stated in exactly one place", async ({ helperPage: p
   // "N jobs" / "N completed" is the tell — the count that rode alongside the
   // money figure in all three places. Exactly one view may claim it.
   const claims: Record<string, number> = {};
-  for (const name of ["Money", "History", "Insights", "Payouts"]) {
+  for (const name of ["Earnings", "Payouts"]) {
     await page.getByRole("tab", { name }).click();
     await page.waitForTimeout(1_200);
     const text = (await page.locator("body").innerText()).replace(/\s+/g, " ");
@@ -203,5 +210,5 @@ test("lifetime take-home is stated in exactly one place", async ({ helperPage: p
   }
   const total = Object.values(claims).reduce((a, b) => a + b, 0);
   expect(total, `lifetime completed-jobs count claimed by: ${JSON.stringify(claims)}`).toBe(1);
-  expect(claims.Money, "the Money view's Net tile is its one home").toBe(1);
+  expect(claims.Earnings, "the Earnings summary card is its one home").toBe(1);
 });

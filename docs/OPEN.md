@@ -587,7 +587,16 @@ Two follow-ups worth keeping:
 
 ## New, from the data-freshness lane (2026-09-11)
 
-- [ ] **/dashboard at 1440 shows TWO error cards for one outage** — "We couldn't
+- [x] **DONE e59a7ff85 — reproduced, then fixed.** With every non-account read
+      500ing at 1440: "We couldn't load jobs." at x=93 and "We couldn't load the
+      map." at x=663, side by side — two triangles, two Try again buttons. The
+      desktop map column is now gated on the EXACT condition the feed uses for
+      its own card, so the two cannot disagree. Cards **2 -> 1**; card width
+      **481 -> 1006** (spans the panel). `mapVisible` untouched so the column
+      returns the moment the feed has rows; healthy 1440 re-verified unchanged.
+      The map toggle is disabled while that card is up, since with the column
+      suppressed it would be an affordance guaranteed to do nothing.
+      Original report: **two error cards for one outage** — "We couldn't
       load jobs" and "We couldn't load the map", side by side
       (`/tmp/freshness/r4-dash-1440.png`). Each panel legitimately owns its own
       read and the map panel only exists at desktop, but it is the same
@@ -683,11 +692,35 @@ Two follow-ups worth keeping:
       of dead canvas — fixed in the same commit. AuthShell's column defaults to
       `items-start` and this page has no brand panel to balance it. Re-measured:
       card 48–496 **->** 496–944, centre 720 = viewport centre.
-- [ ] **"Get notified?" toast covers the My Jobs title card at 375.** Measured:
+- [x] **DONE e59a7ff85 — and WORSE than I logged it.** The toast does not
+      overlap the title card, it REPLACES it: toast y 8–84, the title card owns
+      the same band, so `<h1>My Jobs</h1>` is invisible and its two controls —
+      **"Search jobs" and "Filter by status" — are unreachable for the full
+      12 seconds**. No offset fixes that; the title card owns the top band by
+      design. The shared `<Toaster>` was NOT moved: the nudge alone opts out per
+      toast to `bottom-center`, and only below the Toaster's own 768px
+      breakpoint, so at 1440 it is untouched. The added bottom offsets were
+      verified inert for top-anchored toasts rather than assumed — an ordinary
+      toast still lands at y 8 at 375 and y 24 at 1440. Nudge at 375
+      **y 8–84 over the title -> y 640–716**, 32px clear of the dock; occluded
+      controls **2 -> 0**.
+      And the answer to why it fired on /my-jobs but not /dashboard: it is not a
+      global toast at all. `usePushPermissionNudge` is called only from
+      `Activity.tsx` and `useActivityActions.ts`.
+      Original report: **"Get notified?" toast covers the My Jobs title card** Measured:
       toast at y 8–84, the `<h1>` at y 31–51, and `elementFromPoint` over the
       title returns the toast. Harmless at 1440. Moving it means changing the
       toaster position app-wide, so it belongs to whoever owns toasts.
-- [ ] **AccountDenied / AccountBanned likely share the /payment-success defect** —
+- [x] **DONE e59a7ff85 — it DID reproduce.** There is no denied or banned
+      account in prod, which is why nobody had ever walked into it; the lane
+      rewrote `approval_status`/`ban_status` in the profiles RESPONSE client-side
+      so both screens rendered for real — **no prod row was mutated**. Both were
+      left-pinned at 1440: card x 48–496, centre 272 **->** 496–944, centre 720
+      (= viewport centre, no rail on these routes). 375 unchanged. Fixed with
+      `centerColumn`, the same prop `/payment-success` uses, applied to the
+      loading skeleton as well as the loaded branch so the card does not jump
+      when the profile lands.
+      Original report: **AccountDenied / AccountBanned likely share it** —
       same `AuthShell` call with no `centerColumn`, where AccountPending passes
       `align="center"`. CODE READ ONLY, not reproduced live, not touched.
 - [ ] **The open message thread at 1440 has no card boundary** — every other
@@ -807,3 +840,17 @@ on every one.
       CASCADE would destroy history the app deliberately keeps). Bring back a
       concrete plan. Applies to `favorite_helpers.customer_id` / `.helper_id`
       (7 of 12 live rows orphaned) and `notifications.user_id`.
+
+
+## New reports from the last-three lane (2026-09-11)
+
+- [ ] **At 1440 the desktop top-right toast overlaps the right rail's "Post a
+      Job" and "Notifications" controls.** Pre-existing, affects EVERY toast, and
+      unchanged by the nudge fix (which only moved that one toast, and only below
+      768px). Same family as the My Jobs defect, at the other breakpoint.
+- [ ] **A stale or partial Supabase session (user id missing) makes every authed
+      route render "We couldn't load your account", with `user_id=eq.undefined`
+      going to PostgREST.** Hit while building the harness, so it may be a
+      harness artefact — but the request is genuinely MALFORMED rather than
+      skipped, which is a guard missing at the call site, not a server problem.
+      Worth reproducing before believing either way.

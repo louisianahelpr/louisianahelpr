@@ -476,19 +476,54 @@ Verified clean, so these can stop being re-reported:
 
 ## Reports from the loading-states lane (not fixed, out of its scope)
 
-- [ ] **/my-jobs and /my-posts can serve a 60s-stale empty list with NO refetch.**
+- [x] **DONE f2b63d921.** Repro confirmed exactly: load /my-jobs empty, add an
+      application server-side, reload -> **0** network requests for 60s while the
+      page states the account has nothing. The persisted IndexedDB cache is what
+      lets it survive a reload. Fix: `refetchOnMount: "always"` on the two
+      activity CORE queries. Measured: `/rest/v1/applications` requests after
+      reload **0 -> 1**; "No applications yet" at t=5s and t=8s **shown ->
+      never**. Deliberately NOT `staleTime: 0` (that destroys the cache's
+      purpose — every observer, tab switch and focus becomes a fresh wave), and
+      NOT a zero-row-only stale window (a cached list of three that is now four
+      is wrong the same way; the defect is "we re-showed a cached claim without
+      checking it", not "empty is suspicious"). Cores only — details re-key off
+      the core result and refetch anyway. Regression checked: populated cache +
+      a 6s-slow revalidation paints rows at 800ms and never blanks to skeleton.
+      Original report: **60s-stale empty list with NO refetch.**
       Within `CORE_STALE = 60s`, a user who just gained an application saw
       "No applications yet" for the full staleness window with zero network
       requests issued. Not a loading-state bug, so that lane left it — but it is
       a real "your work is invisible" window.
-- [ ] **/dashboard shows two error messages for one outage** — a persistent
+- [x] **DONE f2b63d921.** The toast now fires only when the panel is open and
+      ALREADY showing rows. Measured: toast alongside the page's error card
+      **t=1.5s to ~5s -> none**. Panel opened while failing with no rows still
+      shows its inline card with Try again, 0 toasts. Eyeballed at 375 — one
+      card, nothing floating over it.
+      Original report: **two error messages for one outage** — a persistent
       inline "Couldn't load notifications — try again?" banner lingering ~4s
       beside the page's own error card.
-- [ ] **`useCurrentUser`'s `PROFILE_QUERY_TIMEOUT_MS` is 10s per attempt.**
+- [x] **DONE f2b63d921 — and it was MUCH worse than I reported.** I said "10s
+      plus a retry". It was **three** attempts: the query carried its own
+      `retry: 2`, which is exactly why a520a50a8's retry-schedule change never
+      reached it — this was the one query silently opting out of the shared
+      client policy, so the global fix looked applied and wasn't. Measured
+      against a hanging `/rest/v1/profiles`: time to "We couldn't load your
+      account" **32.2s -> 13.0s**. Timeout 10000 -> 6000, and the local `retry`
+      override removed so one place decides time-to-error. That also stops it
+      retrying 4xx profile errors, which it was doing.
+      Original report: **PROFILE_QUERY_TIMEOUT_MS is 10s per attempt.**
       Against a HANGING (not 500ing) backend, ProtectedRoute's account-level
       error card still costs 10s + a retry. The retry-count fix helps, but the
       10s timeout is the dominant term there.
-- [ ] **1440 not re-driven for S1/S2.** The fix is entirely in the data layer so
+- [x] **DONE — confirmed viewport-independent.** /my-jobs 935ms @1440 vs 923ms
+      @375; /dashboard 1906ms @1440 vs 1910ms @375. Screenshots opened and
+      looked at: designed error card, rail correct on the right, no dead gutter.
+      **Measurement caveat worth keeping:** the pre-fix /dashboard number read
+      1384ms and post-fix 1906ms. That is NOT a regression — the locator
+      `/couldn't load/i` was matching the notification TOAST before it was
+      removed. A measurement that was quietly measuring the wrong thing, which
+      is the exact hazard CLAUDE.md names.
+      Original report: **1440 not re-driven for S1/S2.** The fix is entirely in the data layer so
       it is viewport-independent, but it was verified at 375 only.
 
 ## CI reliability (lead, 2026-09-11)
@@ -546,3 +581,20 @@ Two follow-ups worth keeping:
 - [ ] `zz-tmp-state-matrix.spec.ts` mocks only two RPCs, so any RPC-backed tab
       will always show its error state in that sweep. Any future finding from it
       must be reproduced live before being believed.
+
+
+## New, from the data-freshness lane (2026-09-11)
+
+- [ ] **/dashboard at 1440 shows TWO error cards for one outage** — "We couldn't
+      load jobs" and "We couldn't load the map", side by side
+      (`/tmp/freshness/r4-dash-1440.png`). Each panel legitimately owns its own
+      read and the map panel only exists at desktop, but it is the same
+      one-outage-many-messages shape just fixed for the toast. Desktop dashboard
+      layout was not that lane's scope.
+- [ ] **One branch is code-verified but NOT runtime-verified.** The notification
+      toast's "panel open and already showing rows" branch is only reachable via
+      pull-to-refresh or a realtime event; the harness stubs realtime inert and a
+      synthetic touch gesture did not fire the pull handler (instrumented: 0
+      notification requests after the gesture). The branch was kept because it is
+      the conservative narrowing — without it that case goes silent — but it was
+      not proven to fire. Said plainly rather than counted as verified.

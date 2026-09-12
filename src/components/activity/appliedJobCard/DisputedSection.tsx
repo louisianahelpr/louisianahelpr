@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { JobActionRow, JobActionChip } from "@/components/activity/JobActionRow";
+import { JobActionChip } from "@/components/activity/JobActionRow";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, MessageSquare, Send, Undo2 } from "lucide-react";
@@ -11,6 +11,8 @@ import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { formatDistanceToNow } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
+import { JobStepCard } from "@/components/activity/JobStepCard";
+import { HelperPhotoAsk } from "./steps/HelperPhotoAsk";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { helperDisputeCopy } from "./helperDisputeCopy";
 import { disputeSupportSubject } from "@/lib/supportSubject";
@@ -53,6 +55,8 @@ export function DisputedSection({
   // the whole state space without a render.
   const { awaitingAdmin, headline, reasonLabel, consequenceText, canRespond, canWithdraw } =
     helperDisputeCopy(job, app.helper_id);
+  const hasAllProof =
+    (job.proof_before_urls?.length ?? 0) > 0 && (job.proof_after_urls?.length ?? 0) > 0;
   const [withdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
 
@@ -98,16 +102,11 @@ export function DisputedSection({
     }
   };
 
-  return (
-    <div
-      className="px-4 py-3 space-y-2.5"
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        borderTop: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-        background: "hsl(var(--burnt-sienna) / 0.06)",
-      }}
-    >
-      {/* Dispute info */}
+  /* A disputed job has left the step rail, so the dispute banner takes the
+     shell's `header` slot — the answer to "where is this job" is still the
+     first thing in the card, exactly as the tracker is on every live step. */
+  const header = (
+    <>
       <div
         className="rounded-ds-md p-3"
         style={{
@@ -168,20 +167,37 @@ export function DisputedSection({
           variant="destructive"
         />
       )}
+    </>
+  );
 
-      {/* Photo proof */}
-      {job.poster_confirmed_working_at && (
-        <PhotoProofGroup
-          jobId={app.job_id}
-          beforeUrls={job.proof_before_urls || []}
-          afterUrls={job.proof_after_urls || []}
-          canUploadBefore={true}
-          canUploadAfter={true}
-          requireAfter={true}
-          budget={job.budget || 0}
-        />
-      )}
+  /* ── THE HALF-MIGRATED STATE, FINISHED ──
+     Owner, 2026-09-11: this panel was still drawing the OLD Photo Proof card —
+     two columns, two live uploaders, a red requirement note — while every live
+     step of the same card had moved to one ask at a time. Two designs for one
+     thing shipped together because the lane that changed it was scoped to the
+     active states.
 
+     The ability to add evidence mid-dispute is NOT removed, it is asked for the
+     same way it is asked for everywhere else: HelperPhotoAsk renders the one
+     missing photo (Before, then After — chronological, because this is evidence
+     rather than a step). Once both exist there is nothing to ask for, so the
+     group becomes what it is on the completed card: a READ-ONLY review of what
+     was uploaded. */
+  const ask = job.poster_confirmed_working_at ? (
+    hasAllProof ? (
+      <PhotoProofGroup
+        jobId={app.job_id}
+        beforeUrls={job.proof_before_urls || []}
+        afterUrls={job.proof_after_urls || []}
+        canUpload={false}
+      />
+    ) : (
+      <HelperPhotoAsk jobId={app.job_id} job={job} step="dispute" />
+    )
+  ) : null;
+
+  const body = (
+    <>
       {/* Helper's response */}
       {hasResponded && (
         <section aria-labelledby={`dispute-response-${app.job_id}`} className="p-2 rounded-ds-sm bg-primary/5 border border-primary/20">
@@ -279,13 +295,17 @@ export function DisputedSection({
         </div>
       )}
 
-      {/* WITHDRAW — the exit that did not exist. Shaped like "Respond to
+    </>
+  );
+
+  /* WITHDRAW — the shell's ONE primary for this state. Shaped like "Respond to
           Dispute" above rather than as a chip in the row below, because it is
           this panel's primary move for the person who filed, and the three
-          chips at the foot are all read-only or off-card. The two are mutually
-          exclusive by construction: `canRespond` is false for the opener and
-          `canWithdraw` is true only for the opener. */}
-      {canWithdraw && (
+     chips at the foot are all read-only or off-card. The two are mutually
+     exclusive by construction: `canRespond` is false for the opener and
+     `canWithdraw` is true only for the opener — so the state never has two
+     primaries, which is the shell's rule. */
+  const primary = canWithdraw ? (
         <Button
           size="sm"
           variant="outline"
@@ -295,11 +315,12 @@ export function DisputedSection({
         >
           <Undo2 className="w-4 h-4 mr-1" /> Withdraw Dispute
         </Button>
-      )}
-      {/* Gated alongside its button — a confirm whose primary action the
-          server would refuse must not be reachable at all (the same rule
-          `canResolve` gates the poster's release confirm with). */}
-      {canWithdraw && (
+  ) : null;
+
+  /* Gated alongside its button — a confirm whose primary action the server
+     would refuse must not be reachable at all (the same rule `canResolve`
+     gates the poster's release confirm with). */
+  const dialogs = canWithdraw ? (
         <BrandConfirmDialog
           open={withdrawConfirmOpen}
           onOpenChange={setWithdrawConfirmOpen}
@@ -316,17 +337,18 @@ export function DisputedSection({
           onPrimary={() => { void withdrawDispute(); }}
           secondaryLabel="Keep It Open"
         />
-      )}
+  ) : null;
 
-      {/* No hardcoded "within 72 hours" policy line — the DeadlineCountdown
-          above renders the job's ACTUAL dispute_deadline and its caption
-          already says what happens when it lapses; a fixed 72h sentence
-          contradicted it whenever the live deadline differed. */}
-      {/* View Timeline / Message / Contact Admin — one 3-up row (mirrors the
-          same fix on the poster's side, PostedJobActions), instead of a
-          full-width View Timeline button followed by a separate 2-up row. */}
-      <JobActionRow columns={3}>
+  /* No hardcoded "within 72 hours" policy line — the DeadlineCountdown in the
+     header renders the job's ACTUAL dispute_deadline and its caption already
+     says what happens when it lapses.
+
+     View Timeline / Message / Contact Admin — three peers, and the SHELL counts
+     them, so this row is a 3-up for the same reason every other state's row is
+     the width it is. */
+  const actions = [
         <JobActionChip
+          key="timeline"
           icon={AlertTriangle}
           // "View Timeline & Add Evidence" wanted 169px in a 110px chip at
           // 375px and still overflowed by 45px at 1440. The chip wraps now,
@@ -337,15 +359,17 @@ export function DisputedSection({
           ariaLabel="View dispute timeline and add evidence"
           tone="neutral"
           onClick={() => onViewDispute(job)}
-        />
+        />,
         <JobActionChip
+          key="message"
           icon={MessageSquare}
           label="Message"
           ariaLabel="Message poster"
           tone="message"
           onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}
-        />
+        />,
         <JobActionChip
+          key="admin"
           icon={AlertTriangle}
           label="Contact Admin"
           ariaLabel="Contact an admin about this dispute"
@@ -357,7 +381,19 @@ export function DisputedSection({
              which the person could not recognise and 375 clipped mid-token.) */
           onClick={() => navigate(`/support?topic=report&subject=${encodeURIComponent(disputeSupportSubject({ id: app.job_id, title: job.title }))}`)}
         />
-      </JobActionRow>
-    </div>
+  ];
+
+  return (
+    <JobStepCard
+      side="helper"
+      step="disputed"
+      tone="alert"
+      header={header}
+      ask={ask}
+      notice={body}
+      primary={primary}
+      actions={actions}
+      dialogs={dialogs}
+    />
   );
 }

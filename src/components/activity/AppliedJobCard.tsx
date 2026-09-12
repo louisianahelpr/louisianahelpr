@@ -150,7 +150,12 @@ function AppliedJobCardInner({
     job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase();
   /** Whether the block between the meta row and the action row has ANY content.
    *  Every child of it is conditional — see the note at the block itself. */
-  const hasCardBody = !isMinimalCard && isExpanded && (!!app.posterName || showDescription);
+  /* `app.posterName` used to count towards this, because the "Posted by" band
+     lived in the body. It does not any more (the identity row sits in the meta
+     block, collapsed or not), so counting it here would reserve a padded band
+     for a child that no longer renders — the same empty-band defect
+     STATUS_RENDERS_ACTIONS exists to stop on the poster's card. */
+  const hasCardBody = showDescription;
 
   /**
    * Location · date · time — built once, placed twice. Desktop puts it on the
@@ -159,19 +164,39 @@ function AppliedJobCardInner({
    */
   const metaRow = (
     <>
-      {/* Issue #67 — who posted it used to be readable only after expanding
-          (the full "Posted by" row below, or a state-section tracker). A
-          collapsed card is what most of the list looks like, so the name was
-          invisible for most of the scroll. Same avatar-badge treatment as the
-          expanded row below, shrunk to fit the title bar; hidden once expanded
-          so the two don't say the same thing twice — the fuller row (with the
-          profile link) takes over from there. */}
-      {!isExpanded && app.posterName && (
+      {/* ── ONE FACT, ONE TREATMENT ──
+          Owner, twice: expanding the card silently REDREW who posted it. The
+          collapsed card showed this quiet inline row; expanding it replaced the
+          same fact with a grey `bg-muted/40` band, a bigger avatar and an added
+          "Posted by" label — a band nothing else on the card wears, and the
+          same grey-band treatment they had already objected to behind the
+          location chip. Expanding a card must reveal MORE, never restyle what
+          was already on screen.
+
+          So the identity is drawn ONCE, in both states, identically. The label
+          is gone with the band: the collapsed card had done without it since
+          Issue #67 and nobody has ever needed telling that the name on a job
+          they applied to is the person who posted it. The profile LINK — the
+          one thing the expanded row genuinely added — is kept, and kept in both
+          states, because it is capability, not decoration. */}
+      {app.posterName && (
         <div className="flex items-center gap-1 mb-1">
           <div className="w-4 h-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-9 font-bold shrink-0">
             {app.posterName[0].toUpperCase()}
           </div>
-          <span className="text-ds-11 text-muted-foreground truncate">{app.posterName}</span>
+          {/* An ownerless job still has a name to print — "a neighbor" — but no
+              profile behind it, and `/user/null` is not a page. */}
+          {posterId ? (
+            <a
+              href={`/user/${posterId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-ds-11 text-muted-foreground hover:underline truncate"
+            >
+              {app.posterName}
+            </a>
+          ) : (
+            <span className="text-ds-11 text-muted-foreground truncate">{app.posterName}</span>
+          )}
         </div>
       )}
       <JobCardMetaRow
@@ -280,36 +305,10 @@ function AppliedJobCardInner({
                 `expandedJobId` toggle, unchanged in wording and position — it
                 simply now gates the description too, which is what makes it
                 coherent. Nothing was bolted on beside it. */}
-            {/* Who posted it lives INSIDE the details now (owner: "posted by
-                can be moved to details here"). On a collapsed card it was a
-                permanent line for something the helper only needs when they
-                are actually weighing the job — and it was the reason the row
-                below existed at all. */}
-            {/* Avatar-badge row — matches PostedJobCard's "Offered to
-                {helper}" treatment (initial-letter circle + name link in a
-                tinted pill) exactly, rather than a bare text line, so
-                My Posts and My Jobs draw a "who's on the other side of
-                this job" fact the same way. */}
-            {!isMinimalCard && isExpanded && app.posterName && (
-              <div className="flex items-center gap-2 py-1.5 px-2.5 rounded-ds-sm bg-muted/40">
-                <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0">
-                  {app.posterName[0].toUpperCase()}
-                </div>
-                <span className="text-ds-11 text-muted-foreground">Posted by</span>
-                {/* An ownerless job still has a name to print — "a neighbor" —
-                    but no profile behind it, and `/user/null` is not a page.
-                    Plain text rather than a link that goes nowhere. */}
-                {posterId ? (
-                  <a href={`/user/${posterId}`} onClick={(e) => e.stopPropagation()} className="text-ds-11 font-medium text-primary hover:underline truncate">
-                    {app.posterName}
-                  </a>
-                ) : (
-                  <span className="text-ds-11 font-medium text-muted-foreground truncate">
-                    {app.posterName}
-                  </span>
-                )}
-              </div>
-            )}
+            {/* The "Posted by" band that used to sit here is GONE — the
+                identity row in the meta block above is now the only place this
+                card states who posted the job, in one treatment, expanded or
+                not. See the note there. */}
             {/* EYEBROW GONE AGAIN, and this time for good (owner, 2026-08-30:
                 "remove eye brows" — reversing the same day's "eye brows were
                 removed so update so they know what things are"). The

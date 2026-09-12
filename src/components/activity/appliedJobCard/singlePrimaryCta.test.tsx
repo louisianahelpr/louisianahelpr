@@ -29,7 +29,14 @@ vi.mock("@/lib/haptics", () => ({
 }));
 // Photo proof is an uploader, not a CTA surface — stubbed so the count stays
 // about completion actions.
-vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => <div data-testid="photo-proof" /> }));
+// Both exports. The mock carried only PhotoProofGroup, which was enough while
+// the step-anchored ask was reached through a branch these fixtures did not
+// take; the split made the ask a component of its own, so a missing export is
+// now a render error rather than a silently-absent panel.
+vi.mock("@/components/PhotoProof", () => ({
+  PhotoProofGroup: () => <div data-testid="photo-proof" />,
+  PhotoProofStep: ({ title }: { title: string }) => <div data-testid="photo-proof-step">{title}</div>,
+}));
 
 /** A supabase double whose every builder method chains and whose terminals
  *  resolve empty — enough for JobTracking / HelperRevisionCard to mount. */

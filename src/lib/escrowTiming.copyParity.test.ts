@@ -128,7 +128,9 @@ function scanHardcodedHours(): Hit[] {
  */
 const EXPECTED: Array<{ file: string; kind: "escrow" | "dispute" | "remind"; count: number }> = [
   { file: "src/components/DisputeDialog.tsx", kind: "dispute", count: 2 },
-  { file: "src/components/activity/postedJobCard/PostedJobActions.tsx", kind: "dispute", count: 1 },
+  // The poster's dispute copy moved into its own step component when the card
+  // was split onto the shared JobStepCard shell (2026-09-11).
+  { file: "src/components/activity/postedJobCard/steps/DisputedStep.tsx", kind: "dispute", count: 1 },
   // The Help Center's remaining literal is the 72h DISPUTE window, not the
   // escrow clock. Its escrow answer used to be here under kind "escrow" with
   // the numbers 24/24 hand-typed; it now interpolates COPY_AUTO_RELEASE_HOURS
@@ -363,8 +365,13 @@ describe("escrow/dispute/revision windows — copy must not restate the clock", 
       "src/pages/legal/CommunitySection.tsx",
       "src/pages/legal/TermsSection.tsx",
       "src/pages/PaymentSuccess.tsx",
-      "src/components/activity/appliedJobCard/ActiveJobSection.tsx",
-      "src/components/activity/postedJobCard/PostedJobActions.tsx",
+      // The helper card's auto-release copy moved into its per-step component
+      // when the card was split (2026-09-11); the container no longer prints a
+      // number, the step that shows it does.
+      "src/components/activity/appliedJobCard/steps/SubmittedStep.tsx",
+      // Same split: the poster's auto-release countdown lives in the step that
+      // shows it, and the container imports no copy constants at all.
+      "src/components/activity/postedJobCard/steps/InProgressStep.tsx",
     ]) {
       expect(
         repoFile(file),

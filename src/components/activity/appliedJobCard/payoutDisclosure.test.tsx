@@ -23,7 +23,7 @@
 // things that make the copy true: an approved-but-unpaid job must say the
 // payout is still ahead, and it must not claim the money has already moved.
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   AUTO_COMPLETE_HOURS,
@@ -31,12 +31,41 @@ import {
   TOTAL_TO_PAYOUT_HOURS,
 } from "../../../../supabase/functions/_shared/escrowTiming";
 
-const SRC = readFileSync(
-  resolve(process.cwd(), "src/components/activity/appliedJobCard/ActiveJobSection.tsx"),
-  "utf8",
-);
+/**
+ * EVERY file of the helper's applied card, not one named file.
+ *
+ * This read `ActiveJobSection.tsx` alone, and the card was split into a
+ * container plus one component per step on 2026-09-11 — at which point the
+ * payout sentences lived in `steps/SubmittedStep.tsx` and this suite was
+ * asserting about a file that no longer contained the copy it was policing. A
+ * test that names one path is a registry checked against itself; derive the set
+ * from the directory instead, so a future split cannot silently empty it.
+ */
+const CARD_DIR = resolve(process.cwd(), "src/components/activity/appliedJobCard");
+const cardFiles = (dir: string): string[] =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const full = resolve(dir, e.name);
+    if (e.isDirectory()) return cardFiles(full);
+    return e.name.endsWith(".tsx") && !e.name.includes(".test.") ? [full] : [];
+  });
+const SRC = cardFiles(CARD_DIR).map((f) => readFileSync(f, "utf8")).join("\n");
 /** Strip comments — the history above is written in them and quotes the old copy. */
 const code = SRC.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+/**
+ * The terminal state — poster has approved — and everything the card says
+ * after it. It used to be found by slicing at the literal condition
+ * `job.helper_completed_at && job.poster_completed_at`; the split named that
+ * condition (`fullyComplete`) and moved it into SubmittedStep, so the slice
+ * silently returned the WHOLE file and the assertions below passed for the
+ * wrong reason before they failed for the right one. Anchor on the named
+ * branch, and fail loudly if the anchor itself ever disappears.
+ */
+function terminalBranch(): string {
+  const at = SRC.indexOf("const fullyComplete");
+  expect(at, "SubmittedStep no longer names its terminal branch `fullyComplete`").toBeGreaterThan(-1);
+  return SRC.slice(at);
+}
 
 describe("the helper is told when the money actually moves", () => {
   it("states the payout hold rather than implying payment at approval", () => {
@@ -61,15 +90,13 @@ describe("the helper is told when the money actually moves", () => {
   it("says something about money in the completed state", () => {
     // The regression that hurt most was SILENCE. Assert the terminal branch
     // still speaks to the payout rather than reverting to a bare chip.
-    const done = code.slice(code.indexOf("job.helper_completed_at && job.poster_completed_at"));
-    expect(done).toMatch(/payout/i);
-    expect(done).toContain("PAYOUT_HOLD_HOURS");
+    expect(terminalBranch()).toMatch(/payout/i);
+    expect(terminalBranch()).toContain("PAYOUT_HOLD_HOURS");
   });
 
   it("distinguishes released from merely approved", () => {
     // 'released' is the only state in which the transfer has actually fired.
-    const done = code.slice(code.indexOf("job.helper_completed_at && job.poster_completed_at"));
-    expect(done).toContain('payment_status === "released"');
+    expect(terminalBranch()).toContain('payment_status === "released"');
   });
 });
 

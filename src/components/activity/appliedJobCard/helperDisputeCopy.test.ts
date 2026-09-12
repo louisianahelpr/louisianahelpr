@@ -209,7 +209,12 @@ describe("helper dispute panel — copy is aimed at whoever filed", () => {
       // The withdraw control must be gated on the flag above rather than on a
       // condition re-derived in the JSX — that drift is what this file exists
       // for, and here it would mean offering a button the server refuses.
-      "{canWithdraw && (",
+      // Gated on the flag above rather than on a condition re-derived in the
+      // JSX. It reads `canWithdraw ? (` since the card was split onto the
+      // shared JobStepCard shell — the withdraw control is that state's ONE
+      // primary, so it is assigned to the shell's `primary` slot rather than
+      // rendered inline.
+      "const primary = canWithdraw ?",
       'supabase.rpc("rpc_withdraw_dispute"',
     ]) {
       expect(

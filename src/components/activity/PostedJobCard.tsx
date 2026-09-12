@@ -143,17 +143,29 @@ function PostedJobCardInner({
    */
   const metaRow = (
             <>
-              {/* Issue #67 — the collapsed card said nothing about who the job
-                  went to; the helper's name only showed inside the "Offered to"
-                  strip or the tracker, both gated behind expand. Same
-                  avatar-badge treatment as that strip, shrunk to fit the title
-                  bar; hidden once expanded so the two don't repeat each other. */}
-              {!isExpanded && job.helper_id && (
+              {/* ── ONE FACT, ONE TREATMENT — the same fix as the helper card's
+                  poster row, and the same defect: expanding this card replaced
+                  this quiet inline identity with a grey `bg-muted/40` band, a
+                  bigger avatar and an "Offered to" label. One fact, two
+                  treatments, switched by a disclosure toggle.
+
+                  It is drawn ONCE now, in both states, with the profile link
+                  the band used to be the only place to get. Where the TRACKER
+                  is mounted it carries the helper's name and avatar in its own
+                  header (owner: the helper "belongs in the tracker"), so this
+                  row defers to it rather than repeating it. */}
+              {job.helper_id && !(isExpanded && showsTracker) && (
                 <div className="flex items-center gap-1 mb-1">
                   <div className="w-4 h-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-9 font-bold shrink-0">
                     {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
                   </div>
-                  <span className="text-ds-11 text-muted-foreground truncate">{helperName}</span>
+                  <a
+                    href={`/user/${job.helper_id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-ds-11 text-muted-foreground hover:underline truncate"
+                  >
+                    {helperName}
+                  </a>
                 </div>
               )}
               <JobCardMetaRow
@@ -368,31 +380,10 @@ function PostedJobCardInner({
               </div>
             )}
 
-              {/* Assigned helper display — only on the states with no tracking
-                  card. Where the tracker IS mounted it carries the helper's
-                  name and avatar in its own header instead (owner: the helper
-                  "belongs in the tracker, not in that small pop up icon
-                  thing"), so this row would be the same fact stated twice. */}
-              {job.helper_id && !showsTracker && (job.status === "revision_requested" || job.status === "completed" || job.status === "disputed") && (
-                <div className="flex items-center gap-2 py-1.5 px-2.5 rounded-ds-sm bg-muted/40">
-                  <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0">
-                    {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
-                  </div>
-                  {/* No "Completed by" prefix on a completed job: the card's
-                      status stripe already reads "Completed" four rows above,
-                      so this row was the second place the card announced the
-                      status. What it uniquely carries is WHO — the avatar plus
-                      the name link say that on their own. The other states keep
-                      their prefix, because "Offered to" is a fact the stripe
-                      does not carry. */}
-                  {job.status !== "completed" && (
-                    <span className="text-ds-11 text-muted-foreground">Offered to</span>
-                  )}
-                  <a href={`/user/${job.helper_id}`} onClick={(e) => e.stopPropagation()} className="text-ds-11 font-medium text-primary hover:underline">
-                    {helperNames[job.helper_id] || "Helpr"}
-                  </a>
-                </div>
-              )}
+              {/* The grey "Offered to …" band that used to sit here is GONE —
+                  the identity row in the meta block above states who the job
+                  went to, in one treatment, expanded or not. See the note
+                  there. */}
 
               {/* Cancelled: show fee info if a fee was recorded */}
               {job.status === "cancelled" && (

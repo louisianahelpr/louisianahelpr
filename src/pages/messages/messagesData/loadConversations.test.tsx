@@ -44,6 +44,7 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
 import { fetchConversations } from "./loadConversations";
 import { ConversationRow } from "@/components/messages/ConversationRow";
+import { avatarInitials } from "@/lib/avatarImage";
 
 // Real prod ids, so the fixture describes the exact shape that broke.
 const ME = "76b07824-9b41-4741-a4c4-4f8de362f682";
@@ -221,19 +222,22 @@ describe("ConversationRow — the avatar agrees with the name", () => {
     // The name the row shows.
     expect(screen.getByText("Eli T.")).toBeInTheDocument();
 
-    // The letter in the avatar circle. It has no photo, so the fallback
-    // initial is what renders — and it must be Eli's, not some other
-    // person's (the observed bug drew "DG" beside "Eli T.").
+    // The monogram in the avatar circle. It has no photo, so the fallback
+    // is what renders — and it must be Eli's, not some other person's (the
+    // observed bug drew "DG" beside "Eli T."). The row renders the shared
+    // UserAvatar now (a dead avatar_url used to paint a broken-image glyph
+    // here), so the monogram is `avatarInitials(name)` — "ET" — rather than
+    // the single hand-rolled `charAt(0)` it used to be.
     const avatar = container.querySelector<HTMLElement>(".rounded-full.w-11, .w-11.rounded-full");
     expect(avatar).not.toBeNull();
-    const initial = within(avatar!).getByText(/^[A-Z]$/).textContent;
-    expect(initial).toBe("E");
+    const initial = within(avatar!).getByText(/^[A-Z]{1,2}$/).textContent;
+    expect(initial).toBe(avatarInitials(convo.otherUserName));
     // Both derive from one string, so they cannot disagree — assert the
     // relationship, not just the literal.
-    expect(initial).toBe(convo.otherUserName.charAt(0).toUpperCase());
+    expect(initial?.charAt(0)).toBe(convo.otherUserName.charAt(0).toUpperCase());
     // And it is a real person's initial, not the fallback's.
-    expect(initial).not.toBe("U");
-    expect(initial).not.toBe("A");
+    expect(initial?.charAt(0)).not.toBe("U");
+    expect(initial?.charAt(0)).not.toBe("A");
   });
 });
 

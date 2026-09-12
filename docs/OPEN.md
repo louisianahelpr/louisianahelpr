@@ -598,3 +598,100 @@ Two follow-ups worth keeping:
       notification requests after the gesture). The branch was kept because it is
       the conservative narrowing — without it that case goes silent — but it was
       not proven to fire. Said plainly rather than counted as verified.
+
+## The audit apparatus was the bug (lead, 2026-09-11)
+
+- [x] **The admin visual sweep had never photographed a single admin view — fixed
+      431d63125.** Ran it myself. All 25 admin captures came back
+      **byte-for-byte identical**: every one a photograph of
+      `RouteErrorBoundary`'s chunk-load state ("Update ready."), and the run
+      reported **25 passed**. axe is perfectly happy with an error boundary — it
+      is a heading and two buttons, and it is accessible. So the one check the
+      file exists to perform had never run against a single admin view, and said
+      green. The gate already failed a screen that did NOT render (a thrown test
+      leaves `totalViolations` undefined); it did not fail a screen that rendered
+      SOMETHING ELSE, and that hole was wide enough to drive the whole admin
+      surface through. Now every capture is checked for the crash boundary, the
+      chunk-load boundary and the account-error card. Proved both ways: red
+      against the dev server naming both screens, green against a correct build.
+      A second, quieter hole found on the way: without `PLAYWRIGHT_WEB_SERVER=1`
+      all 25 tests pass in **672ms writing no images at all**.
+- [x] **The 25 admin views are now actually captured** — 25 PNGs, 25 distinct,
+      in `/tmp/ui-review/`. Admin Jobs and Admin Health both render correctly and
+      read well. This is the first time anything in Admin has been looked at.
+
+- [ ] **Nested white card inside white card — SYSTEMIC, needs the owner's call.**
+      Two lanes hit it independently today: `/profile` landing draws 4
+      (`SettingsSection.tsx:44` — each WORK / MONEY group is a `liquid-glass`
+      card inside the outer `liquid-glass` wrapper), and Admin Health's
+      "Configuration Checks" does the same (white bordered rows inside a white
+      bordered card). It is the 2026-09-07 defect class. It is NOT being fixed
+      unilaterally because the code records the owner ASKING for the eyebrow
+      grouping ("better organization", 2026-08-24). Suggested shape: keep the
+      eyebrows and the inner cards, drop the OUTER wrapper's material.
+
+## Notification duplicates — I was wrong, and the lane found the real one
+
+- [x] **My four "duplicate" groups were a FALSE POSITIVE — retracted.** My
+      grouping key omitted `link`. Each "pair" was two DIFFERENT jobs with
+      identical titles: `/jobs/5eed0a10-…-005` vs `/jobs/5eed0b10-…-005` — the
+      duplicate seed families. One sweep run legitimately visited both copies, so
+      `NOW()` matched to the microsecond. With `link` in the key: **0 groups over
+      14 days**. `sweep_job_start_reminders()` was read live via
+      `pg_get_functiondef` and is correct — single-table scan, no join
+      multiplication, gated on `start_reminder_sent_at IS NULL`. My "join
+      fan-out" hypothesis was wrong. The `admin_alert` repeats are also correct
+      (24h dedupe window; those timestamps are 30h apart).
+- [x] **The REAL defect, found by widening the search — fixed 870279f8f.**
+      `saved-helper-availability-push` stores its "already notified" cursor with
+      `.update(...).eq("user_id", id)`. For a customer with **no `profiles` row**
+      that matches zero rows and PostgREST returns `{ data: null, error: null }`,
+      so the `if (updateErr)` branch never fired, the cursor never advanced, and
+      the identical notification re-sent **every 6 hours forever**. This is
+      exactly CLAUDE.md's "a null error does NOT mean the write happened".
+      Live: **40 byte-identical rows** to one user, timestamps exactly `:41`
+      every 6h since 2026-09-07, still growing — and that user has no row in
+      `profiles` OR `auth.users`. Fix: skip a pair whose cursor cannot be stored,
+      and guard the write with `.select("user_id")` treating 0 rows as a defect.
+      Plus a BEFORE INSERT trigger refusing an exact repeat of
+      `(user_id, type, title, message, link)` within 10 minutes, counted in
+      `notification_dedupe_suppressions` so suppression is never silent.
+      Window chosen from the live table, not taste: across all 580 rows in
+      history exactly ONE pair would have been caught. Migration applied 3x under
+      PGlite (replay-safe); new test has a negative control so it cannot pass
+      vacuously. Existing 40 rows NOT deleted — not authorised.
+
+- [ ] **`favorite_helpers` has no FK on `customer_id`/`helper_id`** — 7 of its 12
+      live rows point at a customer in neither `profiles` nor `auth.users`.
+      `notifications.user_id` has no FK either, which is how rows were written
+      for a user that does not exist. Reachable with no other bug.
+
+## Authed visual sweep — REAL session, not mocks
+
+- [x] **Messages painted a broken-image glyph for the other party, every row and
+      the thread header, both widths — fixed 4a8690448.** Verified live: that
+      profile has a truthy `avatar_url` and storage answers **HTTP 400**.
+      `ConversationRow` and `ChatHeader` each hand-rolled an `<img>` with no
+      error path, so the browser drew its broken-image icon. `/user/:id` showed
+      initials for the same person because it goes through `UserAvatar` — the
+      hand-rolled copies were the bug, exactly the "never hand-roll" rule. Both
+      now use `UserAvatar`. Re-measured: visible broken `<img>` **10 -> 0** at
+      both widths, 14 monograms painted.
+- [x] **/payment-success at 1440 pinned its card to the left edge** with ~940px
+      of dead canvas — fixed in the same commit. AuthShell's column defaults to
+      `items-start` and this page has no brand panel to balance it. Re-measured:
+      card 48–496 **->** 496–944, centre 720 = viewport centre.
+- [ ] **"Get notified?" toast covers the My Jobs title card at 375.** Measured:
+      toast at y 8–84, the `<h1>` at y 31–51, and `elementFromPoint` over the
+      title returns the toast. Harmless at 1440. Moving it means changing the
+      toaster position app-wide, so it belongs to whoever owns toasts.
+- [ ] **AccountDenied / AccountBanned likely share the /payment-success defect** —
+      same `AuthShell` call with no `centerColumn`, where AccountPending passes
+      `align="center"`. CODE READ ONLY, not reproduced live, not touched.
+- [ ] **The open message thread at 1440 has no card boundary** — every other
+      authed page draws in a panel; the thread paints straight on canvas with a
+      composer whose white band ends abruptly. Centred correctly. Design call.
+
+Clean and worth recording: every authed route measured **zero horizontal
+overflow** at 375 and 1440, and at 1440 the rail inset was applied exactly once
+on every one.

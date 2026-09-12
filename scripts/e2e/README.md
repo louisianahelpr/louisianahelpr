@@ -20,9 +20,30 @@ context and blurs/intercepts the page — a harness that skips this audits the
 tour.
 
 ## Seeded two-role identities
-- **Poster (seeded)**: `helpr-audit-web-0824@mailinator.com` — profile id
-  `e977a30f-7065-4e75-8498-dba435ac2044` ("Audit Weblane"), 7 posted jobs
-  across every lifecycle state. Prefer this over the owner's account.
+
+> **Every id below was re-read from prod on 2026-09-12 and is a `user_id`,
+> not a `profiles.id`.** The previous version of this section named
+> `e977a30f-7065-4e75-8498-dba435ac2044` as Audit Weblane's "profile id". That
+> id exists nowhere in the database — not as a `profiles.id`, not as a
+> `user_id`, not in `auth.users`. It was stale enough to be actively
+> dangerous: forty orphaned notifications had been written to it, and when they
+> were cleaned up this README nearly argued them back into existence. **Look
+> every id up by email before trusting it, including these.**
+
+| Who | Email | `user_id` | `profiles.id` |
+|---|---|---|---|
+| Perry Poster (main E2E poster, 66 jobs) | `helpr-e2e-poster-0902@mailinator.com` | `71c56dfb-b326-4010-b960-b18dd3966e7f` | `b1180344-fc7a-43a3-8a89-8b1bd7ddfe00` |
+| Hallie Helper (main E2E helper) | `helpr-e2e-helper-0902@mailinator.com` | `437de07d-1bd7-46c8-a451-6b46aa3bcad5` | `214b6436-bb04-47ea-bb68-203280621caa` |
+| Eli Testhelper | `eli.test.helper@louisianahelpr.com` | `f6cc3ebb-9478-473c-8eb8-62b406f0734f` | `80389ad9-4d95-4cc8-836b-6af911711f3f` |
+| Audit Weblane (2 jobs) | `helpr-audit-web-0824@mailinator.com` | `96c9899e-87a2-49e2-bbdd-268717d52aee` | `62e886c6-8f1e-4706-9445-1f40ead73e11` |
+
+- **Poster (seeded)**: `helpr-audit-web-0824@mailinator.com` ("Audit Weblane").
+  Prefer this, or the Perry/Hallie pair below, over the owner's account. The
+  claim that it holds "7 posted jobs across every lifecycle state" was also
+  stale — it holds **2**. Perry Poster is the account with the deep job graph.
+- **The two-account pair** for anything crossing both sides of a job is
+  **Perry Poster + Hallie Helper**; they are what `prod-lifecycle.spec.ts` and
+  the two-role harness drive.
 - **Poster (owner)**: the owner's own account (lexilombas05@gmail.com) — log in
   normally. Only when you specifically need the owner's real data.
 - **Helper**: `eli.test.helper@louisianahelpr.com` — look its auth id up by

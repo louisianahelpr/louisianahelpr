@@ -54,6 +54,18 @@ import { ProfileBadge, PROFILE_BADGE_PILL } from "./ProfileBadge";
  *    affordance built on the SHARED `Popover`, never a hand-rolled one. A
  *    strong profile wore ~15 chips in one wrapped row at 375 before this.
  *
+ * 3. **Every badge says which capacity it was earned in** (owner,
+ *    2026-09-11: "can we make it a clear distinction how some are from the
+ *    poster side and some are from the helpr side"). The row is captioned
+ *    "As a Helpr" (the ladder rung and its milestones) and "Verified"
+ *    (identity and credentials, which are true of the person in either
+ *    capacity). An account both posts and does jobs, so unlabelled chips let
+ *    "Elite Helpr" read as a claim about someone's POSTING. There is no
+ *    "As a poster" badge today and none is invented here: the poster record
+ *    is real — poster-only rating and jobs-posted, both split server-side by
+ *    `get_public_profile_stats` — but it renders as numbers in
+ *    `AtAGlanceCard`, which is where a record with no threshold belongs.
+ *
  * Presence ("active 10 min ago") is NOT here any more either — it is live
  * state, not an achievement, and now renders as a status dot on the identity
  * line in `ProfileHeaderCard` beside "Baton Rouge · Since Sep 2026".
@@ -85,6 +97,22 @@ function MilestoneIcon({ name, color }: { name: string; color: string }) {
  */
 type BadgeSpec = {
   key: string;
+  /**
+   * WHICH CAPACITY THIS WAS EARNED IN. Owner, 2026-09-11: "can we make it a
+   * clear distinction how some are from the poster side and some are from the
+   * helpr side". Every account both posts jobs and does jobs, so an unlabelled
+   * row let "Elite Helpr" stand as a claim about someone's posting.
+   *
+   * - `helpr`   — the career ladder and its milestones: earned doing jobs.
+   * - `account` — identity and credentials: true of the person in EITHER
+   *   capacity (Stripe ID, background check, licence/insurance).
+   * - `poster`  — earned posting jobs. NO badge is in this group today and
+   *   none is invented here: the poster record is real but lives as numbers
+   *   in `AtAGlanceCard` (poster rating, jobs posted), not as an earnable
+   *   badge. The group exists so the split is stated by the same code that
+   *   would render one.
+   */
+  group: BadgeGroup;
   label: string;
   title?: string;
   icon: ReactNode;
@@ -95,6 +123,18 @@ type BadgeSpec = {
   extra?: ReactNode;
 };
 
+type BadgeGroup = "helpr" | "account" | "poster";
+
+/** The caption printed above each group. This is the whole distinction. */
+const GROUP_LABEL: Record<BadgeGroup, string> = {
+  helpr: "As a Helpr",
+  poster: "As a poster",
+  account: "Verified",
+};
+
+/** Display order of the groups, independent of the priority order the cap uses. */
+const GROUP_ORDER: BadgeGroup[] = ["helpr", "poster", "account"];
+
 function milestoneSpec(milestone: CareerMilestone): BadgeSpec {
   // ONE colour was doing three jobs: the 12% fill, the 28% border, and the
   // LABEL. The milestone palette is tuned as accents — "First Job" is
@@ -103,6 +143,7 @@ function milestoneSpec(milestone: CareerMilestone): BadgeSpec {
   // stays in the fill, the border and the icon.
   return {
     key: `milestone_${milestone.id}`,
+    group: "helpr",
     label: milestone.label,
     icon: <MilestoneIcon name={milestone.icon} color={milestone.color} />,
     description: `Career milestone — ${milestone.description}.`,
@@ -131,6 +172,7 @@ function ladderSpec(
       : null;
   return {
     key: "ladder",
+    group: "helpr",
     label: meta.label,
     title: `${meta.label} Helpr`,
     icon: <Icon strokeWidth={2.25} />,
@@ -196,6 +238,7 @@ function credentialSpec(credentials: CredentialFields): BadgeSpec | null {
   if (licenseVerified && insuranceVerified) {
     return {
       key: "credential",
+      group: "account",
       label: "Licensed & Insured",
       icon: <ShieldCheck className="verified-gold" />,
       className: "tier-gold-elite",
@@ -208,6 +251,7 @@ function credentialSpec(credentials: CredentialFields): BadgeSpec | null {
     const pendingOther = licenseVerified ? insurancePending : licensePending;
     return {
       key: "credential",
+      group: "account",
       label: which,
       icon: <BadgeCheck />,
       className: "border bg-primary/10 text-primary border-primary/30",
@@ -227,6 +271,7 @@ function credentialSpec(credentials: CredentialFields): BadgeSpec | null {
           : "Insurance pending";
     return {
       key: "credential",
+      group: "account",
       label,
       icon: <Clock />,
       className: "border bg-muted/50 text-muted-foreground border-border",
@@ -273,14 +318,19 @@ function MoreBadges({ hidden }: { hidden: BadgeSpec[] }) {
           border: "0.5px solid hsl(var(--bark) / 0.28)",
         }}
       >
+        {/* Grouped here too, by the same captions as the row — the split is
+            the point, so it cannot hold on the visible four and then dissolve
+            behind "+N more". */}
+        {GROUP_ORDER.filter((g) => hidden.some((s) => s.group === g)).map((g) => (
+        <div key={g} className="mb-2 last:mb-0">
         <p
           className="font-sans uppercase tracking-wider mb-2 text-ds-10"
           style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.14em" }}
         >
-          Also earned
+          {GROUP_LABEL[g]}
         </p>
         <ul className="space-y-2.5">
-          {hidden.map((spec) => (
+          {hidden.filter((spec) => spec.group === g).map((spec) => (
             <li key={spec.key}>
               <div className="flex items-center gap-2">
                 <span className="shrink-0 inline-flex items-center [&>svg]:w-3.5 [&>svg]:h-3.5">
@@ -299,6 +349,8 @@ function MoreBadges({ hidden }: { hidden: BadgeSpec[] }) {
             </li>
           ))}
         </ul>
+        </div>
+        ))}
       </PopoverContent>
     </Popover>
   );
@@ -344,6 +396,7 @@ export const RecognitionRow = ({
   if (backgroundChecked) {
     specs.push({
       key: "background_check",
+      group: "account",
       label: "Background-Checked",
       icon: <ShieldCheck />,
       description:
@@ -360,6 +413,7 @@ export const RecognitionRow = ({
   if (idVerified) {
     specs.push({
       key: "stripe_verified",
+      group: "account",
       label: "Stripe verified",
       icon: <ShieldCheck strokeWidth={2.5} style={{ color: "hsl(var(--gold-warm))" }} />,
       description:
@@ -379,6 +433,7 @@ export const RecognitionRow = ({
   if (hasSubmittedCredentials) {
     specs.push({
       key: "verification_in_progress",
+      group: "account",
       label: "Verification in progress",
       icon: <Clock />,
       description:
@@ -400,22 +455,51 @@ export const RecognitionRow = ({
   const visible = overflows ? specs.slice(0, VISIBLE_BADGE_CAP) : specs;
   const hidden = overflows ? specs.slice(VISIBLE_BADGE_CAP) : [];
 
+  // THE CAP IS APPLIED IN PRIORITY ORDER, THE ROW IS DRAWN IN GROUP ORDER.
+  // Those are two different orders on purpose. Sorting the specs into groups
+  // BEFORE slicing would let three career milestones push "Stripe verified"
+  // behind "+N more" on a strong helper's profile — the grouping is a caption
+  // change, and it must not silently re-rank which four badges survive.
+  const groups = GROUP_ORDER
+    .map((group) => ({ group, specs: visible.filter((s) => s.group === group) }))
+    .filter((g) => g.specs.length > 0);
+  // One group and nothing hidden: the caption is saying "these are the only
+  // badges, and they are all the same kind", which the reader can already see.
+  // Captions earn their line when there is a distinction to draw.
+  const showCaptions = groups.length > 1 || hidden.length > 0;
+
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {visible.map((spec) => (
-        <ProfileBadge
-          key={spec.key}
-          label={spec.label}
-          title={spec.title}
-          icon={spec.icon}
-          description={spec.description}
-          className={spec.className}
-          style={spec.style}
-        >
-          {spec.extra}
-        </ProfileBadge>
+    <div className="flex flex-col gap-2">
+      {groups.map(({ group, specs: groupSpecs }, i) => (
+        <div key={group}>
+          {showCaptions && (
+            <p
+              className="font-sans uppercase tracking-wider text-ds-10 mb-1"
+              style={{ color: "hsl(var(--olivewood) / 0.75)", letterSpacing: "0.14em" }}
+            >
+              {GROUP_LABEL[group]}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {groupSpecs.map((spec) => (
+              <ProfileBadge
+                key={spec.key}
+                label={spec.label}
+                title={spec.title}
+                icon={spec.icon}
+                description={spec.description}
+                className={spec.className}
+                style={spec.style}
+              >
+                {spec.extra}
+              </ProfileBadge>
+            ))}
+            {/* The overflow control rides the LAST group so it reads as
+                "…and more badges", not as a member of one capacity. */}
+            {i === groups.length - 1 && hidden.length > 0 && <MoreBadges hidden={hidden} />}
+          </div>
+        </div>
       ))}
-      {hidden.length > 0 && <MoreBadges hidden={hidden} />}
     </div>
   );
 };

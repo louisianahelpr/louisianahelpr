@@ -2,7 +2,6 @@ import { Star, ChevronRight } from "lucide-react";
 import { hasPerk, tierDisplayName } from "@/lib/subscriptionTiers";
 import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
 import { Link } from "react-router-dom";
-import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { TrustRow } from "@/components/TrustRow";
 import UserAvatar from "@/components/UserAvatar";
 import type { EnrichedJob } from "./types";
@@ -19,8 +18,9 @@ interface JobPosterCardProps {
 
 /**
  * JobPosterCard — the "Posted by" mini-profile tile in JobDetailDialog:
- * avatar, name, rating, helper badges, and the trust-signal row
- * (escrow, Pro/Elite poster, trusted, repeat-customer).
+ * avatar, name, rating, and the trust-signal row (ID-verified, Pro/Elite
+ * poster, repeat customer). POSTER-side and account-level signals only —
+ * never the helper career ladder; see the note in the body.
  *
  * Extracted verbatim from JobDetailDialog.tsx.
  */
@@ -34,11 +34,26 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
   // there with real content.)
   if (!job.customer_id) return null;
 
-  const posterBadges = computeBadges({
-    avgRating: job.posterAvgRating || 0,
-    reviewCount: job.posterReviewCount || 0,
-    completedJobs: job.posterCompletedJobs || 0,
-  });
+  /* NO `computeBadges` HERE ANY MORE. Owner, 2026-09-11: badges must say which
+     capacity they were earned in, and this tile is about the person AS A
+     POSTER. Passing no `helprTier` meant the only group this call could render
+     was the helper performance group — "Trusted", "On Fire", "Fast Responder",
+     "Community Fav" — helper-career language printed beside the words "Posted
+     by". That group was deleted from the public profile the same day
+     (69135b1f2), so this tile was also the last surface where a reader could
+     meet it, on the one screen where it was least true.
+
+     It was mostly dead on top of that: `posterCompletedJobs` is hardcoded to 0
+     at every call site that builds an `EnrichedJob` (useDashboardData.ts:455,
+     DashboardGuest.tsx:320, JobDetail.tsx) — no query supplies it — so the
+     three job-count badges could never fire and only "Highly Rated" /
+     "Community Fav" ever reached the screen.
+
+     What replaces it is what is REAL and poster-side or account-level:
+     `posterIdVerified` (get_safe_profiles.is_id_verified, already fetched and
+     until now dropped on the floor), the paid tier, and the repeat-hire
+     relationship. All three go through `TrustRow`, which already draws the ID
+     chip — no second badge component on this tile. */
   const posterInitials = (job.posterName || "User")
     .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
@@ -58,7 +73,11 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
      `hasReviews` went with it: reviews alone no longer justify opening the
      trust row, or a poster with reviews and nothing else would get an empty
      bordered band under their name. */
-  const showTrustRow = hasTier || repeatJobs >= 2;
+  // `posterIdVerified` is optional on EnrichedJob (the column arrives from
+  // get_safe_profiles only on the signed-in feed), so a surface that does not
+  // supply it simply shows no chip rather than an unfounded one.
+  const posterIdVerified = job.posterIdVerified === true;
+  const showTrustRow = hasTier || repeatJobs >= 2 || posterIdVerified;
 
   return (
     <Link
@@ -152,11 +171,6 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
             </p>
           )}
         </div>
-        {posterBadges.length > 0 && (
-          <div className="shrink-0">
-            <HelperBadges badges={posterBadges} />
-          </div>
-        )}
         {/* "View profile" affordance — chevron on the right edge so the
             card visually reads as tappable. */}
         <ChevronRight
@@ -196,7 +210,10 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
               NO avgRating/reviewCount here — TrustRow renders those as a
               rating chip, which is the number already printed beside the name
               two rows up. See `showTrustRow`. */}
-          <TrustRow repeatHirePercent={repeatJobs >= 2 ? 100 : undefined} />
+          <TrustRow
+            idVerified={posterIdVerified}
+            repeatHirePercent={repeatJobs >= 2 ? 100 : undefined}
+          />
         </div>
       )}
     </Link>

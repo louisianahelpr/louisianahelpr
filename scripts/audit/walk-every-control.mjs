@@ -94,11 +94,32 @@ for (const theme of THEMES) {
               cs.backgroundColor !== "transparent" &&
               parseFloat(cs.borderTopWidth) > 0;
           };
+          // THE DEFECT IS A CARD HUGGING ITS PARENT'S EDGE, not a card sitting
+          // inside a padded panel. The owner's description is "two boundaries
+          // 1px apart"; PageScaffold's documented two-card shell insets its job
+          // cards by 17px and is deliberate. Counting both made every dashboard
+          // report 4-6 "nested cards" that were working as designed, which
+          // buries the real ones. Only a gap of 6px or less counts.
           let nested = 0;
+          const nestedDetail = [];
           document.querySelectorAll("*").forEach((el) => {
             if (!isCard(el)) return;
             let p = el.parentElement;
-            while (p && p !== document.body) { if (isCard(p)) { nested++; break; } p = p.parentElement; }
+            while (p && p !== document.body) {
+              if (isCard(p)) {
+                const r = el.getBoundingClientRect(), pr = p.getBoundingClientRect();
+                const gap = Math.min(
+                  Math.abs(r.left - pr.left), Math.abs(r.right - pr.right),
+                  Math.abs(r.top - pr.top), Math.abs(r.bottom - pr.bottom),
+                );
+                if (gap <= 6) {
+                  nested++;
+                  nestedDetail.push(`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 28)} inside ${p.tagName.toLowerCase()}.${String(p.className).slice(0, 28)} @${Math.round(gap)}px`);
+                }
+                break;
+              }
+              p = p.parentElement;
+            }
           });
           const over = [];
           document.querySelectorAll("*").forEach((el) => {
@@ -110,6 +131,7 @@ for (const theme of THEMES) {
             hOverflow: de.scrollWidth - de.clientWidth,
             overflowing: over.slice(0, 3),
             nestedCards: nested,
+            nestedDetail: nestedDetail.slice(0, 4),
             htmlClass: de.className,
             frame: frame ? Math.round(frame.getBoundingClientRect().right) : null,
             rootPadRight: getComputedStyle(document.getElementById("root")).paddingRight,
@@ -118,7 +140,7 @@ for (const theme of THEMES) {
         });
 
         if (rec.layout.hOverflow > 0) rec.findings.push(`H-OVERFLOW ${rec.layout.hOverflow}px: ${rec.layout.overflowing.join(", ")}`);
-        if (rec.layout.nestedCards > 0) rec.findings.push(`NESTED CARDS x${rec.layout.nestedCards}`);
+        if (rec.layout.nestedCards > 0) rec.findings.push(`NESTED CARDS x${rec.layout.nestedCards}: ${rec.layout.nestedDetail.join(" ;; ")}`);
         if (/something went wrong|couldn't load|page hit a problem|Update ready/i.test(rec.layout.text))
           rec.findings.push(`ERROR STATE RENDERED: ${rec.layout.text.slice(0, 90)}`);
 
@@ -168,11 +190,28 @@ for (const theme of THEMES) {
                 INTERACTIVE.split(", ").map((t) => `${t}[title^="${esc}"]`).join(", "),
               ).first(),
             ];
-            let target = null;
-            for (const c of candidates) {
-              if (await c.count().catch(() => 0)) { target = c; break; }
+            // RESOLVE, AND IF IT IS GONE, PUT THE PAGE BACK AND LOOK AGAIN.
+            // The labels were captured on load; by the time the walk reaches
+            // the later ones an earlier click may have changed the screen —
+            // opening a message thread hides the bottom dock, so "Home",
+            // "Posts", "Jobs" and the rest simply no longer exist. Playwright
+            // then times out with a call log that says only "waiting for
+            // locator", and the harness reported the entire bottom nav as
+            // unclickable on /messages while elementFromPoint over every one of
+            // those buttons returned the button itself.
+            const resolve = async () => {
+              for (const c of candidates) {
+                if (await c.count().catch(() => 0)) return c;
+              }
+              return null;
+            };
+            let target = await resolve();
+            if (!target) {
+              await page.goto(BASE + route, { waitUntil: "domcontentloaded" });
+              await page.waitForTimeout(1500);
+              target = await resolve();
             }
-            if (!target) { rec.controls.push({ label, result: "harness could not address it" }); continue; }
+            if (!target) { rec.controls.push({ label, result: "not present on a freshly loaded page" }); continue; }
 
             // A link to the page you are already on is SUPPOSED to do nothing.
             let selfLink = false;
@@ -205,10 +244,18 @@ for (const theme of THEMES) {
             const errsBefore = consoleErrors.length;
             let why = "";
             try {
-              await target.click({ timeout: 3000 });
+              // Bring it into view first, and give the click a realistic
+              // budget. A 3s blind click reported the whole bottom nav on
+              // /messages as unclickable while `elementFromPoint` over every
+              // one of those buttons returned the button itself — the list
+              // beside them was still settling, so Playwright's stability check
+              // kept timing out. A harness that calls a working control broken
+              // costs more than one that is slightly slower.
+              await target.scrollIntoViewIfNeeded({ timeout: 2500 }).catch(() => {});
+              await target.click({ timeout: 8000 });
               await page.waitForTimeout(700);
             } catch (e) {
-              why = String(e.message).replace(/\s+/g, " ").slice(0, 150);
+              why = String(e.message).replace(/\s+/g, " ").slice(0, 400);
               rec.controls.push({ label, result: "NOT CLICKABLE", why });
               rec.findings.push(`UNCLICKABLE: "${label}" — ${why}`);
               continue;

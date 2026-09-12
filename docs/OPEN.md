@@ -189,3 +189,8 @@ The VERIFIED group shows "Stripe verified"; the AS A HELPR group directly
 below opens with a ladder rung also called "Verified". Same fact, twice, two
 inches apart. Drop the redundant one — the account-level badge above already
 says it. (owner, 2026-09-11)
+
+### DECIDED — At-a-glance stat tiles: exactly FOUR
+Rating · Jobs posted · Jobs completed · Cancelled. (owner, 2026-09-11, via
+pop-up, explicitly "im not asnwering this again".) Currently renders seven.
+Drop: on-time %, rebooked %, needed-revisions %.

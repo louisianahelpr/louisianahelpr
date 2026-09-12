@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, useMemo, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, useMemo, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,14 @@ import { report } from "@/lib/errorLogger";
 import { unwrapMutation } from "@/lib/mutationResult";
 import type { Notification, Filter } from "@/components/notificationPanel/types";
 import { typeIcons, groupByDay, timeAgo } from "@/components/notificationPanel/notificationPanelHelpers";
+import {
+  subscribeNotifications,
+  getNotificationSnapshot,
+  getNotificationServerSnapshot,
+  setNotificationUser,
+  setNotifications,
+  setUnreadTotal,
+} from "@/components/notificationPanel/notificationStore";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { notificationDestination } from "@/components/notificationPanel/notificationDestination";
 
@@ -38,17 +46,24 @@ const NotificationPanel = () => {
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
   const titleId = useId();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  /* The TRUE unread total, not the count within the fetched page.
-     Measured before this existed: the database held 76 unread while the badge
-     read 47, because both were derived from a `limit(50)` fetch. The bell and
-     the panel agreed with each other — which is what stopped them
-     contradicting on screen — but both under-reported reality, and did so
-     WORSE the more someone used the app. The most engaged users saw the least
-     accurate number.
+  /* SHARED ACROSS EVERY BELL. This was `useState` here, and `<NotificationPanel />`
+     is mounted in four places (DesktopTopNav, AdminTopBar, DashboardTitleBar,
+     DashboardHeader) — so each bell kept its own list and its own total and
+     they disagreed on screen. See notificationStore for the full note. */
+  const { notifications, unreadTotal } = useSyncExternalStore(
+    subscribeNotifications,
+    getNotificationSnapshot,
+    getNotificationServerSnapshot,
+  );
+  /* `unreadTotal` (read from the store above) is the TRUE database total, not
+     the count within the fetched page. Measured before it existed: the database
+     held 76 unread while the badge read 47, because both were derived from a
+     `limit(50)` fetch. The bell and the panel agreed with each other — which is
+     what stopped them contradicting on screen — but both under-reported
+     reality, and did so WORSE the more someone used the app. The most engaged
+     users saw the least accurate number.
      `head: true` returns no rows, and the (user_id, read) index already exists
      for exactly this shape, so it costs a count and no payload. */
-  const [unreadTotal, setUnreadTotal] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   /* The bell itself. `PopoverTrigger asChild` composes its own ref with the
      child's, so passing this to <NotificationTrigger> costs nothing and gives
@@ -84,7 +99,15 @@ const NotificationPanel = () => {
 
   const loadNotifications = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
+    if (!session?.user) {
+      // Signed out — drop the shared state so the next account cannot inherit
+      // this one's list or its unread count.
+      setNotificationUser(null);
+      return;
+    }
+    // No-op while the same person stays signed in; clears everything the
+    // moment the id changes.
+    setNotificationUser(session.user.id);
     const { data, error } = await supabase
       .from("notifications")
       .select("*")

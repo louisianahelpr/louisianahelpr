@@ -5,11 +5,11 @@ import {
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
 
-import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
+import { categoryColors } from "@/components/activity/activityConstants";
 import { JobHelprsChip } from "@/components/activity/JobCardMetaRow";
-import { CategoryIcon } from "@/components/job/CategoryIcon";
+import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
-import { formatPrice, formatPriceFloor, formatCategory } from "@/lib/format";
+import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { getCity } from "@/lib/locationUtils";
@@ -350,17 +350,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                  item that yields width; `max-w-[52%]` keeps a long or
                  unmapped raw category value from eating the rail even when
                  it is the only chip present. */}
-          <span
-            className={`inline-flex items-center gap-1 min-w-0 max-w-[52%] pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-ds-10 font-semibold leading-none shadow-sm ${catStyle.badge}`}
-          >
-            <CategoryIcon
-              category={job.category}
-              aria-hidden
-              className="w-2.5 h-2.5 shrink-0"
-              strokeWidth={2.25}
-            />
-            <span className="font-sans truncate">{categoryLabels[job.category] || formatCategory(job.category)}</span>
-          </span>
+          {/* ONE component, shared with the activity cards' JobCardShell —
+              see JobCategoryTab. Both files drew this tab by hand and had
+              already drifted (only this copy carried the truncation cap). */}
+          <JobCategoryTab category={job.category} flexible />
           {/* 2. Secondary slot — EXACTLY ONE chip, never both.
                  "Just in" outranks "Recommended" because freshness is
                  perishable (true for one early-access window, then gone
@@ -730,19 +723,27 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 on a handful of cards rather than all of them, and the reason
                 for the separate row went with it. whitespace-nowrap still
                 keeps "1 day left" from breaking across two lines. */}
-            {/* With a distance pill ALSO on the row, city + pill + date +
-                countdown is ~37px over a 375 row even with the clock gone and
-                the pill down to miles, and the city's 4.5rem floor then clips
-                mid-word ("Denha"). The countdown is the one that yields there:
-                an expiring card is already wearing its URGENT badge on the
-                rail above, so the hours are the redundant half. Cards with no
-                pill are untouched — the countdown stays inline at every width,
-                which is where the owner asked for it. */}
+            {/* THE COUNTDOWN YIELDS BEFORE THE CITY DOES, at every width —
+                not only on cards that also carry a distance pill (owner,
+                2026-09-11: "location must outrank the expiry countdown").
+                Where a job is, is the first filter a helper applies; how long
+                is left is secondary, and it is the half that is already said
+                twice — an expiring card wears its URGENT badge on the rail
+                above this row.
+
+                The old gate was `distanceLabel ? hidden…430px : flex`, i.e.
+                the countdown only gave way when a pill was also competing. On
+                a pill-less card at 375 the countdown therefore held its full
+                width ("16 hours left", ~78px) while the city, the only item on
+                this nowrap row that shrinks, clipped to its 4.5rem floor
+                mid-word. That is the reported defect: the row dropped the
+                place name and kept the countdown. Below 430px the hours are
+                now simply not drawn, and the city keeps the width. */}
             {expiryText && (
               <>
-                <span className={`shrink-0 opacity-30 ${distanceLabel ? "hidden [@media(min-width:430px)]:inline" : ""}`}>·</span>
+                <span className="shrink-0 opacity-30 hidden [@media(min-width:430px)]:inline">·</span>
                 <span
-                  className={`shrink-0 items-center gap-1 ${distanceLabel ? "hidden [@media(min-width:430px)]:flex" : "flex"} ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
+                  className={`shrink-0 items-center gap-1 hidden [@media(min-width:430px)]:flex ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
                 >
                   <Timer className="w-2.5 h-2.5 shrink-0" />
                   <span className="font-sans whitespace-nowrap">{expiryText}</span>

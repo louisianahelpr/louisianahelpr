@@ -1,7 +1,6 @@
 import { type ReactNode } from "react";
-import { categoryColors, categoryLabels } from "./activityConstants";
-import { CategoryIcon } from "@/components/job/CategoryIcon";
-import { formatCategory } from "@/lib/format";
+import { categoryColors } from "./activityConstants";
+import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 
 interface JobCardShellProps {
   /** When false, the card is non-interactive (no expand-on-click, no keyboard role). */
@@ -66,17 +65,9 @@ export function JobCardShell({
           (Browse has the same arrangement via its own `pt-6`). */}
       {category ? (
         <div className="absolute top-0 left-0 z-20 flex items-stretch">
-          <span
-            className={`inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-ds-10 font-semibold leading-none shadow-sm ${catStyle.badge}`}
-          >
-            <CategoryIcon
-              category={category}
-              aria-hidden
-              className="w-2.5 h-2.5 shrink-0"
-              strokeWidth={2.25}
-            />
-            <span className="font-sans">{categoryLabels[category] || formatCategory(category)}</span>
-          </span>
+          {/* ONE component, shared with the Browse feed card — see
+              JobCategoryTab. Both files used to draw this by hand. */}
+          <JobCategoryTab category={category} />
         </div>
       ) : null}
       {/*

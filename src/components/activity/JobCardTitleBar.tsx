@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { MoneyChip } from "@/components/job/MoneyChip";
 
 interface JobCardTitleBarProps {
   title: string;
@@ -65,28 +66,11 @@ export function JobCardTitleBar({ title, category, amount, amountTitle, meta }: 
           desktop website the same money, on two cards a column apart, was set
           two sizes and two weights. Every value below is JobPrice's `chip`
           variant verbatim; change one, change both. */}
-      <span
-        className="inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center shrink-0 ml-3"
-        title={amountTitle}
-        style={{
-          background: "hsl(var(--bark) / 0.10)",
-          border: "0.5px solid hsl(var(--bark) / 0.28)",
-        }}
-      >
-        <span
-          className="font-sans leading-none tabular-nums text-ds-17"
-          style={{
-            fontWeight: 800,
-            color: "hsl(var(--bark))",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          <span style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}>
-            $
-          </span>
-          {amount}
-        </span>
-      </span>
+      {/* THE pill, not a copy of it — MoneyChip owns the bark surface, the
+          geometry and the tight `$`. This bar used to write all of it out by
+          hand and was hand-resynced to JobPrice twice (palette, then size and
+          weight); there is one definition now and the two cannot drift. */}
+      <MoneyChip amount={amount} title={amountTitle} className="shrink-0 ml-3" />
       </div>
       {meta ? <div className="mt-1.5">{meta}</div> : null}
     </div>

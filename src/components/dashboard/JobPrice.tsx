@@ -1,5 +1,6 @@
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { MoneyAmount, MONEY_CHIP_SURFACE, MONEY_CHIP_SURFACE_LG } from "@/components/job/MoneyChip";
 
 export interface JobPriceProps {
   /** Gross posted budget (the customer's total). */
@@ -108,23 +109,11 @@ export function JobPrice({
   // chip — the small feed/Browse card price tile.
   // ──────────────────────────────────────────────────────────────────────
   if (variant === "chip") {
-    const amountNode = (
-      <span
-        className={`font-sans leading-none tabular-nums ${size === "lg" ? "text-ds-22" : "text-ds-17"}`}
-        style={{
-          fontWeight: 800,
-          color: "hsl(var(--bark))",
-          letterSpacing: "-0.02em",
-        }}
-      >
-        {/* Literal `$` pulled tight to the digits so the amount reads as
-            one confident figure. */}
-        <span style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}>
-          $
-        </span>
-        {earnings}
-      </span>
-    );
+    // The figure and the pill around it both come from MoneyChip now — the
+    // same two exports JobCardTitleBar renders, so the My Posts / My Jobs
+    // header bar and this feed chip cannot drift apart again (they had been
+    // hand-resynced twice: once for the palette, once for size and weight).
+    const amountNode = <MoneyAmount amount={earnings} size={size} />;
 
     const chipClass = `inline-flex flex-col items-center justify-center rounded-ds-md text-center ${size === "lg" ? "px-3.5 py-2" : "px-2.5 py-1"} ${className ?? ""}`;
     // `lg` gets a raised shadow + a stronger border so it visually leads the
@@ -132,16 +121,7 @@ export function JobPrice({
     // out more, above the rest") — the default `sm` chip stays flat, since
     // that's the feed card's dense list context where a shadow per card
     // would be visual noise, not emphasis.
-    const chipSurface = size === "lg"
-      ? {
-          background: "hsl(var(--bark) / 0.10)",
-          border: "0.5px solid hsl(var(--bark) / 0.4)",
-          boxShadow: "var(--elev-bark-raised)",
-        }
-      : {
-          background: "hsl(var(--bark) / 0.10)",
-          border: "0.5px solid hsl(var(--bark) / 0.28)",
-        };
+    const chipSurface = size === "lg" ? MONEY_CHIP_SURFACE_LG : MONEY_CHIP_SURFACE;
 
     // Plain <div>, not a <button> — these surfaces wrap the whole card in an
     // outer <button> (guest Browse), and a <button> may not nest inside a

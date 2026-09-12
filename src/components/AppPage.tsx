@@ -72,7 +72,28 @@ function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps
       className="bg-premium-page pt-safe-top"
     >
       <div className="container mx-auto px-5 lg:px-8 xl:px-12 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
-        <div className="w-full page-measure mx-auto h-full overflow-y-auto px-3 -mx-3 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
+        {/* NO `mx-auto` here, and that is the whole point of this line.
+            `.page-measure` already centres itself (`margin-inline: auto`, one
+            definition in index.css), so the utility was redundant — and it was
+            not harmless: `mx-auto` and `-mx-3` both set margin-inline, and the
+            utility layer resolved in `mx-auto`'s favour, so the negative
+            margin that was supposed to CANCEL `px-3` never applied. The pair
+            reads as a no-op bleed (pad 12, pull 12 back) and shipped as a
+            naked +12px inset per side on every AppPage screen and every
+            Profile tab.
+
+            Measured at 375 (dev server, Chromium), first content card:
+              Dashboard (PageScaffold) ... 335px wide at x=20
+              Availability (AppPage) ..... 311px wide at x=32   ← 12px in
+            and at 1440: 1096 @ x=48 vs 1072 @ x=60, the same 12px.
+            The whole family of fixed-shell pages was inset one step further
+            than its PageScaffold siblings, which is the "gap on the left and
+            right / small shadow" the owner reported.
+
+            `px-3` stays and is now genuinely cancelled: the padding is what
+            keeps a card's focus ring and shadow off this scroll container's
+            `overflow` clip. */}
+        <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
           <div className="animate-ds-page-in">
             {/* `space-y-4` is the shared tab shell — the same wrapper every
                 Profile tab uses, asserted byte-for-byte by

@@ -1507,11 +1507,13 @@ Two supporting facts, so this is not a guess:
       profile photo, which writes to the public `avatars` bucket and replaces the
       dead URL. Nothing is leaked in the meantime — the bucket is private.
 
-- [ ] **Complete Profile: ZIP shows no check mark when filled.** Owner, 2026-09-12,
+- [x] **DONE — ZIP shows its valid check on Complete Profile, signup AND Edit Profile.**
+      Original: **Complete Profile: ZIP shows no check mark when filled.** Owner, 2026-09-12,
       pointing at `#zipCode` holding "70528": the neighbouring fields show the
       valid ✓, ZIP does not. `src/pages/CompleteProfile.tsx:771`.
 
-- [ ] **Profile photo upload has no crop/position step — it cuts heads off.**
+- [x] **DONE — a position/zoom step before every profile photo save.**
+      Original: **Profile photo upload has no crop/position step — it cuts heads off.**
       Owner, 2026-09-12: "the profile picture spot doesnt give them the option to
       like center the picture better it crops their head off". The avatar is
       shown center-cropped in a circle with no way to move or zoom the image

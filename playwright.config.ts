@@ -141,6 +141,20 @@ export default defineConfig({
         serviceWorkers: "block",
       },
     },
+    {
+      // The SAME happy-path suite in real WebKit (owner, 2026-09-12: nightly
+      // WebKit run). The app ships in a WKWebView, and every other project is
+      // Chromium, which cannot see WebKit-only defects (CLAUDE.md, WebKit rule).
+      // Run only by name: .github/workflows/nightly-webkit.yml.
+      name: "happy-path-webkit",
+      testDir: "./e2e/happy-path",
+      use: {
+        ...devices["iPhone 13"],
+        viewport: { width: 375, height: 812 },
+        baseURL: HAPPY_PATH_BASE_URL,
+        serviceWorkers: "block",
+      },
+    },
   ],
   // Auto-start `vite preview` for the happy-path project. Gated behind
   // PLAYWRIGHT_WEB_SERVER=1 because Playwright's webServer block runs

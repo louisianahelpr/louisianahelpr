@@ -1,0 +1,55 @@
+name: Nightly WebKit happy-path
+
+permissions:
+  contents: read
+
+# Working-forwards change 6 (owner, 2026-09-12). The whole happy-path suite in
+# real WebKit every night. The app runs in WKWebView on iPhone; every PR-time
+# Playwright job is Chromium, which cannot see WebKit-only defects (the 13px
+# -apple-system-body text-scale bug survived a full Chromium audit). The
+# real-backend half of the change already runs nightly: e2e-real-backend.yml.
+
+on:
+  schedule:
+    - cron: "40 8 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-webkit
+  cancel-in-progress: false
+
+jobs:
+  webkit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Drop the Google Chrome apt source
+        # Same reason as e2e-happy-path.yml: its bad index fails apt-get update.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+
+      - run: npx playwright install --with-deps webkit
+
+      - name: Run happy-path in WebKit
+        env:
+          PLAYWRIGHT_WEB_SERVER: "1"
+        run: npx playwright test --project=happy-path-webkit
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-webkit-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14

@@ -58,6 +58,7 @@ export function BrowseTasksToolbar({
   // Kept in the prop list (BrowseTasksToolbarProps) so callers passing it
   // (Dashboard, DashboardGuest) don't need a matching change.
   titleSrOnly: _titleSrOnly = false,
+  renderHeading = true,
   filtersAnchorRef,
   savedOnly = false,
   onToggleSavedOnly,
@@ -146,7 +147,7 @@ export function BrowseTasksToolbar({
           "Clear All"). The heading itself stays sr-only either way; this
           screen has no visible title by design ("home will not have a
           title just the H logo"). */}
-      <h1 className="sr-only">{headingTitle}</h1>
+      {renderHeading && <h1 className="sr-only">{headingTitle}</h1>}
 
       {/* One-tap category picker row. */}
       {filters.selectedCategory && (

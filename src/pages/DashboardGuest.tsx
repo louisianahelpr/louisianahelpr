@@ -506,6 +506,12 @@ const DashboardGuest = () => {
       // opens against it instead of floating.
       filtersAnchorRef={filtersButtonRef}
       titleSrOnly
+      // WEB renders this page through `PublicHeaderPage title="Browse Jobs"`,
+      // which draws a visible <h1>. Without this the toolbar's own sr-only
+      // heading made a SECOND one on the same page. Native has no visible
+      // title (PageScaffold's card is the H logo), so there the toolbar's
+      // heading is the only one and must stay.
+      renderHeading={isNativePlatform}
       filters={filters}
       user={null}
       helperAvailability={[]}

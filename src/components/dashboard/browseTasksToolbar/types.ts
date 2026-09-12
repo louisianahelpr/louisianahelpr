@@ -49,5 +49,22 @@ export interface BrowseTasksToolbarProps {
    * showing a subset.
    */
   titleSrOnly?: boolean;
+  /**
+   * Whether this toolbar renders the screen's `<h1>`.
+   *
+   * It normally must: the browse screens have no visible title by design
+   * (owner: "home will not have a title just the H logo"), so the toolbar's
+   * sr-only heading is the only thing keeping the document from having zero
+   * headings, which is an a11y defect.
+   *
+   * It must NOT when the surrounding shell already supplies one. Guest
+   * `/browse` on WEB renders through `PublicHeaderPage title="Browse Jobs"`,
+   * which draws a visible `<h1>` — so the toolbar's sr-only copy made TWO
+   * `<h1>Browse Jobs</h1>` on that page: an a11y defect and a Playwright
+   * strict-mode violation, caught by `home-chrome.spec.ts` at 320, 375 and
+   * 1440. Native keeps rendering it, because `PageScaffold`'s title card there
+   * is the H logo and carries no heading of its own.
+   */
+  renderHeading?: boolean;
 }
 

@@ -330,8 +330,18 @@ for (const width of [320, 375, 1440]) {
     expect(layout.smallTapTargets, `guest sub-44px controls @ ${width}`).toEqual([]);
 
     // Both CTAs intact — never collapsed to icons, never behind a menu.
-    await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Get started" })).toBeVisible();
+    //
+    // Asserted as LINKS, not buttons. Guest /browse renders through
+    // `PublicHeaderPage` on web now, so these two CTAs are the marketing
+    // Navbar's — `<Button asChild><Link>`, which is an `<a>` and therefore
+    // `role="link"`. They used to be the old guest header's own buttons. The
+    // intent of the assertion is unchanged and is the thing worth keeping: both
+    // CTAs are visible, side by side, not collapsed behind a menu or an icon.
+    // (Role is what moved; the accessible NAME did not need touching —
+    // getByRole matches it case-insensitively, so "Log in" still matches the
+    // rendered "Log In".)
+    await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Get started" })).toBeVisible();
 
     // The guest brand row carries the SAME Search + Filters cluster as the
     // authed Home. This used to assert the opposite: Search and Filters were

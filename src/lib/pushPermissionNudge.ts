@@ -164,16 +164,6 @@ const COPY: Record<NudgeReason, { title: string }> = {
   "helper-first-accept": { title: "Get notified?" },
 };
 
-/** The Toaster's own breakpoint (src/components/ui/sonner.tsx): below 768px
- *  it anchors top-CENTER, at and above it top-RIGHT. Read at toast time, not
- *  at module load, so a rotation or a resized window gets the right answer.
- *  Defaults to phone when `matchMedia` is unavailable (SSR, jsdom), which is
- *  the primary surface. */
-const isPhoneWidth = (): boolean => {
-  if (typeof window === "undefined" || !window.matchMedia) return true;
-  return !window.matchMedia("(min-width: 768px)").matches;
-};
-
 // In-memory guard against concurrent triggers — two near-simultaneous
 // effects (initial fetch + realtime invalidation landing within ms) can
 // both await shouldNudgeForReason() before either calls markNudgeShown().
@@ -212,31 +202,21 @@ export function usePushPermissionNudge() {
         const { title } = COPY[reason];
         toast(title, {
           duration: 12_000,
-          // BOTTOM, for this toast only — not a change to the Toaster's
-          // top anchor, which the owner chose deliberately for transient
-          // confirmations (see src/components/ui/sonner.tsx).
+          // NO per-toast position override any more. This toast used to opt
+          // out to bottom-centre on phones, because the Toaster was anchored to
+          // the TOP and, measured at 375 on /my-jobs, the toast did not merely
+          // overlap the title card — it REPLACED it. `<h1>My Jobs</h1>` was
+          // gone, `elementFromPoint` over the title returned the toast, and the
+          // card's "Search jobs" and "Filter by status" controls were
+          // unreachable for the full 12 seconds.
           //
-          // Measured at 375 on /my-jobs: the top-anchored toast rendered at
-          // y 8–84 and the page's title card sits at exactly that height, so
-          // the toast REPLACED it — `<h1>My Jobs</h1>` (y 31–51) was gone,
-          // `elementFromPoint` over the title returned the toast, and the
-          // card's two controls, "Search jobs" and "Filter by status" (both
-          // y 19), were unreachable for the full 12 seconds. No top offset
-          // fixes that: the title card occupies the top band by design, so
-          // anything anchored there lands on it.
-          //
-          // This toast is the one that can afford to move. Every other toast
-          // in the app confirms something the user just did, and belongs next
-          // to where they did it; this one is an unprompted question about
-          // notifications, with a 12s dwell — three times a confirmation's —
-          // and no tie to the top of the page. Sonner renders each position
-          // in its own list, so this changes nothing about the others.
-          //
-          // PHONE ONLY, and the breakpoint is the Toaster's own (768px, the
-          // width at which it switches top-center → top-right). At 1440 the
-          // toast floats top-RIGHT, clear of the title card and over nothing —
-          // that state is not broken, so it is left exactly as it was.
-          position: isPhoneWidth() ? "bottom-center" : undefined,
+          // The owner has since ruled that EVERY toast is bottom-anchored
+          // (2026-09-12), after the same collision turned up twice more at the
+          // top of other screens. So the override is now the default, and
+          // keeping it would leave a special case that reads as meaningful and
+          // does nothing — the kind of stale exception that survives long after
+          // its reason and then gets defended. See the note in
+          // src/components/ui/sonner.tsx for the full history.
           // This toast already has a labelled "Not now" cancel — the global
           // × (Toaster `closeButton`) would be a second, unlabelled way to
           // do the exact same thing. Owner, 2026-09-11: "not now and x do the

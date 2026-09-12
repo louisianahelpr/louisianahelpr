@@ -35,21 +35,46 @@ const Toaster = ({ ...props }: ToasterProps) => {
   // wider viewports keep the desktop bottom-right placement. A resize
   // listener flips the anchor live so a rotation/orientation change is
   // handled cleanly.
-  // TOP, not bottom (owner decision). Bottom-anchored toasts on a phone land
-  // on top of the floating dock and whatever the user was just reading — the
-  // "Face ID lock turned off." confirmation covered the Active-sessions row of
-  // the very screen that produced it. A top banner is also the iOS convention
-  // for transient system confirmations, so it reads as chrome rather than as
-  // content that has appeared over your work.
-  const [position, setPosition] = useState<"top-center" | "top-right">(() => {
-    if (typeof window === "undefined") return "top-center";
-    return window.matchMedia("(min-width: 768px)").matches ? "top-right" : "top-center";
+  // BOTTOM, on every viewport. Owner ruling, 2026-09-12.
+  //
+  // THIS REVERSES AN EARLIER OWNER DECISION, and the reason it was reversed is
+  // the part worth keeping. Top was chosen because a bottom toast on a phone
+  // landed on the floating dock and on whatever the reader was looking at —
+  // the "Face ID lock turned off." confirmation covered the Active-sessions row
+  // of the screen that produced it — and because a top banner is the iOS
+  // convention for transient confirmations.
+  //
+  // What top actually produced was the same collision at the other end of the
+  // screen, three separate times in one day, each found and patched
+  // individually before anyone noticed the shape:
+  //   · the "Get notified?" nudge did not merely overlap the My Jobs title
+  //     card, it REPLACED it — the <h1> invisible and its Search and Filter
+  //     controls unreachable for a full 12 seconds (e59a7ff85);
+  //   · at 1440 the toast sat over the right rail's "Post a Job" and over the
+  //     header's Notifications control, with elementFromPoint returning the
+  //     toast — genuinely unclickable, not merely overlapped (afe650635);
+  //   · at 375 every top-centre toast covered the header's Notifications bell.
+  // Three one-off fixes is a pattern, not a coincidence. The owner ruled on the
+  // class rather than accepting a fourth patch.
+  //
+  // The dock — the original objection to bottom — is answered by the offsets
+  // below, which were already carrying the correct bottom values for the one
+  // toast that had opted out of the top anchor: safe-area + 96px clears a dock
+  // whose top edge measures 748 at 375. So this flip costs nothing that was not
+  // already solved; it only moves every other toast onto the solution.
+  //
+  // Do not flip this back on the strength of the iOS-convention argument alone:
+  // that argument is already recorded above, and it lost to three measured
+  // collisions.
+  const [position, setPosition] = useState<"bottom-center" | "bottom-right">(() => {
+    if (typeof window === "undefined") return "bottom-center";
+    return window.matchMedia("(min-width: 768px)").matches ? "bottom-right" : "bottom-center";
   });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mql = window.matchMedia("(min-width: 768px)");
-    const update = () => setPosition(mql.matches ? "top-right" : "top-center");
+    const update = () => setPosition(mql.matches ? "bottom-right" : "bottom-center");
     update();
     mql.addEventListener?.("change", update);
     return () => mql.removeEventListener?.("change", update);

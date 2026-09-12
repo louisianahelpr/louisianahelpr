@@ -1,8 +1,10 @@
 import { Apple, Heart } from "lucide-react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { browseDestinationFor } from "@/lib/browseDestination";
+import { prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
 
 // Inline Facebook glyph — lucide-react v1.x removed brand icons including
 // `Facebook`. Inlining the standard "f" mark keeps the social link working
@@ -55,6 +57,25 @@ const Footer = () => {
   // The footer renders on public AND authed surfaces (App.tsx, PageHeader,
   // AuthShell, PublicLayout), so its "Jobs" link cannot be a constant.
   const { user } = useAuthReady();
+
+  /* WARM THE FOOTER'S OWN DESTINATIONS WHILE THE READER IS STILL READING.
+     Legal and the Help Center are lazy chunks, and the footer used to be the
+     only nav surface in the app that prefetched nothing — so Terms, Rules and
+     Privacy were each fetched cold at the moment of the tap (owner,
+     2026-09-11: "terms rules and privact take awhile to load in the footer").
+
+     Idle-scheduled rather than hover-triggered, and that is the point: hover
+     does not exist on a phone, which is this app's primary surface, so an
+     onMouseEnter prefetch would have fixed the complaint only on desktop. By
+     the time anyone has scrolled far enough to SEE the footer, the page they
+     are on has long since settled, so the idle callback has had every chance
+     to fire. `prefetchRoute`'s `warmed` set keeps this to one fetch per chunk
+     for the session, and the returned canceller drops the pending callback if
+     the footer unmounts first.
+
+     One key covers /terms, /rules and /privacy: they resolve to the same
+     module, so warming /legal leaves the other three free. */
+  useEffect(() => prefetchRoutesWhenIdle(["/legal", "/help"]), []);
 
   return (
   <footer

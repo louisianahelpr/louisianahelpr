@@ -31,6 +31,26 @@ const prefetchers: Record<string, () => Promise<unknown>> = {
   "/activity": () => import("@/pages/Activity"),
   "/earnings": () => import("@/pages/Profile"),
   "/browse": () => import("@/pages/DashboardGuest"),
+
+  // THE FOOTER'S OWN DESTINATIONS. Every other nav surface in the app —
+  // Navbar, MobileNav, the desktop rail — prefetches what it links to; the
+  // footer was the only one that did not, and these were the only linked
+  // routes with no entry in this map at all. So a visitor clicking Terms
+  // from the footer paid for the Legal chunk cold, at the moment of the tap
+  // (owner, 2026-09-11: "terms rules and privact take awhile to load in the
+  // footer").
+  //
+  // Four keys for one chunk, deliberately. `/terms`, `/rules` and `/privacy`
+  // are REAL routes now rather than redirects into `/legal?tab=…`, so each is
+  // a path a visitor actually navigates to, and the prefix match below would
+  // not resolve any of them from a lone `/legal` key. `warmed` is keyed on the
+  // matched key rather than the module, so the first of them to be warmed
+  // still costs one fetch and the rest resolve from the module cache.
+  "/legal": () => import("@/pages/Legal"),
+  "/terms": () => import("@/pages/Legal"),
+  "/rules": () => import("@/pages/Legal"),
+  "/privacy": () => import("@/pages/Legal"),
+  "/help": () => import("@/pages/HelpCenter"),
 };
 
 const warmed = new Set<string>();

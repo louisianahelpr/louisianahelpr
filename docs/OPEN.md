@@ -726,3 +726,13 @@ on every one.
       and — worse — `zz-tmp-authed-verify` photographed loading skeletons while
       passing. Keeping a spec that produces confident, empty evidence is how the
       audits kept missing things.
+- [x] **deadcode gate went red, now green — 980c82a2a.** Two unused files, both
+      orphaned TODAY rather than found lying around: `MessagesEmptyThread` by my
+      own removal of the Messages two-pane split, and `HelperBadges` by the
+      identity work in `aa4ef9034`. Deleted both. Three comments named
+      `HelperBadges.tsx` as a live surface; deleting the file without touching
+      them would have left three confident statements pointing at something that
+      no longer exists — the exact failure mode that made this codebase hard to
+      audit. They now describe the surface, not the filename. NOT touching the
+      131 unused exports: dead code you happen to notice is a report, not a task.
+      `Test` workflow green on 980c82a2a.

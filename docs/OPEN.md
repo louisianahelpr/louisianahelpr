@@ -1259,3 +1259,54 @@ read as breaches. Each was checked against the database before being believed.
 A probe that cannot tell "your row" from "someone else's row" cannot report a
 leak, only noise; a 400/404 now reports itself as a broken probe rather than a
 finding.
+
+---
+
+# ☀️ MORNING SUMMARY — what happened overnight
+
+*(written as the night went; the audit sweep's full results are appended below
+when it finishes)*
+
+## Your three rulings, all done and verified in prod
+1. **No pills.** Both sides of the cancellation fee too. The amount survives as
+   a plain money line — a fee charged with nothing saying so would be worse than
+   the pill.
+2. **All toasts moved to the bottom.** This reversed an earlier decision of
+   yours, so the reason sits beside it in the code, and the ruling is now a
+   TEST that fails if anyone flips it back.
+3. **Foreign keys added and live**, verified by object state rather than by the
+   deploy going green. This closes the CLASS of bug behind the 40-notification
+   flood, not just the instance.
+
+## The most serious thing I found
+**Your profile photo is almost certainly your ID document.** Same byte count as
+your `id-documents` copy, written 80 milliseconds apart. Nothing is leaked — the
+bucket is private and the URL 400s — and the app already falls back to your
+initials, so the only live symptom is console noise. I did NOT copy it to the
+public bucket (that would publish an identity document) and did NOT edit your
+row. Upload a real photo and say the word; I will clear the dead object.
+
+## What I proved, rather than assumed
+- **No cross-account leaks**, 17 probes, two real sessions, asking the question a
+  hostile user would ask — including the exact address of a job she was never
+  hired for. With a control so it cannot pass vacuously.
+- **No real money is stuck.** Every integrity invariant over `jobs` is clean;
+  the only unresolved payments are seed fixtures.
+- **The dispute settlement path is intact** — I nearly filed it as broken
+  because a grep for the settler returned only tests. The call is there, split
+  across a line break.
+
+## What I could NOT do, and why
+**The money loop.** Funding, release and refund are untouched because I could
+not confirm the Stripe key the edge functions use is test mode, and the account
+has a live context. Driving a payment could have charged a real card. Run
+`scripts/e2e/stripe-sandbox-on.sh` and I will drive post → fund → apply → hire →
+complete → release → review end to end.
+
+## The honest note about the harness
+The audit tool accused working code **eight separate times** before it was
+trustworthy — dead controls that were already-selected tabs, an unclickable
+notifications bell that was a stale element handle, nested cards that were the
+documented two-card shell. Every finding in this file was reproduced by hand
+before being believed. That is why there are fewer findings here than you might
+expect, and why the ones that remain are real.

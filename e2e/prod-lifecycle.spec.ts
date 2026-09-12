@@ -299,6 +299,18 @@ async function uploadProofThroughTheApp(
   runId: string,
   type: "before" | "after",
   fileDir: string,
+  /* Only the FIRST ask navigates. The second stays on the page it is on and
+     waits for the card to advance on its own, which is exactly what a helper
+     sees: upload the after photo, and the before ask replaces it.
+     Navigating again was worse than redundant. On 2026-09-12 the after photo
+     uploaded 18 seconds into the run, and the follow-up `page.goto("/")` then
+     sat for 296 seconds until the test budget expired with net::ERR_ABORTED.
+     The trace shows the document request for "/" cancelled (status -1) in the
+     same instant the page refetched its My Jobs data after the upload. A hard
+     navigation racing the page's own post-upload update is a test artefact,
+     not a user path; staying put removes the race and asserts the behaviour
+     that matters instead. */
+  navigate = true,
 ): Promise<string> {
   const label = type === "before" ? "Before" : "After";
   const file = join(fileDir, `${type}.png`);
@@ -309,12 +321,14 @@ async function uploadProofThroughTheApp(
   // deep-link. `?job=` is the app's own highlight link — the same one every
   // notification uses — so the card is brought into view by product code
   // rather than by scrolling a list the test would have to guess the shape of.
-  await page.goto("/");
-  await page.evaluate(
-    ([key, value]) => localStorage.setItem(key, value),
-    [AUTH_STORAGE_KEY, JSON.stringify(helper)] as const,
-  );
-  await page.goto(`/my-jobs?job=${jobId}`);
+  if (navigate) {
+    await page.goto("/");
+    await page.evaluate(
+      ([key, value]) => localStorage.setItem(key, value),
+      [AUTH_STORAGE_KEY, JSON.stringify(helper)] as const,
+    );
+    await page.goto(`/my-jobs?job=${jobId}`);
+  }
 
   // Scoped by the run id, which is unique per run and is part of the job
   // title. A previous run that died mid-loop can leave a SECOND in-progress
@@ -808,7 +822,8 @@ test.describe("full money loop against production", () => {
     // still-missing Before only appears once the After exists). Uploading
     // Before first waits for a panel the app will not render yet.
     const afterPath = await uploadProofThroughTheApp(page, helper, job.id, runId, "after", proofDir);
-    const beforePath = await uploadProofThroughTheApp(page, helper, job.id, runId, "before", proofDir);
+    // No navigation: the card must move to the before ask by itself.
+    const beforePath = await uploadProofThroughTheApp(page, helper, job.id, runId, "before", proofDir, false);
 
     /* THE OBJECT EXISTS — asked of storage, not of the app that just claimed
        it. Listed as the HELPER (the `Users can read proof photos for their

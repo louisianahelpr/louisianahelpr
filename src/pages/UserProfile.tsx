@@ -17,7 +17,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
-import { computeBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
 import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
@@ -348,12 +347,14 @@ const UserProfile = () => {
       .join("")
       .toUpperCase()
       .slice(0, 2) || "?";
-  // `helprTier: null` ON PURPOSE. computeBadges puts the subscription-tier
-  // chip first in its list; on this page the tier is the ONE badge that lives
-  // in the header beside the name (<SubscriptionTierBadge>), so the row below
-  // must not carry it a second time. The earned performance badges do not
-  // depend on the tier.
-  const badges = computeBadges({ avgRating: stats.avgRating, reviewCount: stats.reviewCount, completedJobs: stats.completedJobs, helprTier: null });
+  // NO `computeBadges` CALL HERE ANY MORE. Owner, 2026-09-11: the
+  // performance-badge group (Highly Rated / Trusted / On Fire / Fast
+  // Responder / Community Fav / Reliable) is deleted from this page — it
+  // collided with the career ladder three ways, most visibly by printing
+  // "Trusted" three times at three thresholds. Career milestones are the
+  // earned system; the subscription tier is still the one header badge
+  // (<SubscriptionTierBadge>). `computeBadges` itself survives only for
+  // JobPosterCard, which is a different surface.
 
   const lastActiveLabel = computeLastActiveLabel(lastActiveAt);
 
@@ -540,7 +541,6 @@ const UserProfile = () => {
                   repeatHirePercent: data?.repeatHirePercent ?? 0,
                   credentialTier: data?.credentialTier ?? 0,
                 }}
-                badges={badges}
                 // Both the own-row flag AND the public `is_id_verified` column
                 // from get_safe_profiles — the direct select is RLS-blocked for
                 // every visitor, so the hook's flag alone is permanently false
@@ -556,9 +556,11 @@ const UserProfile = () => {
                   (profile as unknown as { background_check_status?: string }).background_check_status === "verified"
                 }
                 hasSubmittedCredentials={hasSubmittedCredentials}
-                lastActiveLabel={lastActiveLabel}
               />
             }
+            // PRESENCE on the identity line, not in the badge row — it is
+            // live state, not an achievement (owner, 2026-09-11).
+            lastActiveLabel={lastActiveLabel}
             atAGlance={
               <AtAGlanceCard
                 isOwnProfile={isOwnProfile}

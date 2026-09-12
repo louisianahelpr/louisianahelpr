@@ -3,6 +3,7 @@ import { Briefcase, MapPin, ShieldCheck, Users } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import type { AvatarPhotoRejection } from "@/lib/avatarImage";
 import type { Database } from "@/integrations/supabase/types";
+import type { LastActiveLabel } from "./types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -21,11 +22,19 @@ type Props = {
    */
   tierBadge?: ReactNode;
   /**
-   * EVERY other badge — trust, ladder, credentials, presence, milestones,
-   * performance — as one row under the identity, above the record. The
-   * header's own trust row is gone; see RecognitionRow.
+   * EVERY other badge — trust, ladder, credentials, milestones — as one
+   * capped row under the identity, above the record. The header's own trust
+   * row is gone; see RecognitionRow. Presence is NOT in here (see
+   * `lastActiveLabel`), and the performance-badge group no longer exists.
    */
   recognition?: ReactNode;
+  /**
+   * PRESENCE — "active 10 min ago" / "last seen 3d". Owner, 2026-09-11: this
+   * is live state, not an achievement, so it left the badge row and renders
+   * as a status dot on the identity line beside place and tenure. NULL when
+   * the member has not been seen inside the window the label covers.
+   */
+  lastActiveLabel?: LastActiveLabel | null;
   /** The "At a glance" metric grid, rendered inside this same card. */
   atAGlance?: ReactNode;
 };
@@ -91,6 +100,7 @@ export const ProfileHeaderCard = ({
   mutualJobsCount,
   tierBadge,
   recognition,
+  lastActiveLabel,
   atAGlance,
 }: Props) => {
   /* ── AVATAR: MIGRATED ONTO THE SHARED `<UserAvatar>` (2026-09-01) ───────
@@ -268,7 +278,7 @@ export const ProfileHeaderCard = ({
                 decision, see the note in PageHeader.tsx), so anything passed
                 there is silently dropped. Verified in Chrome — those props
                 render nothing. */}
-            {(location || memberSinceLabel) && (
+            {(location || memberSinceLabel || lastActiveLabel) && (
               // STACKED below `sm`, one row from `sm` up — and the separator
               // only exists in the row form. As a wrappable flex child the "·"
               // could end a line ("Lafayette ·" at 375) or start one ("· Since
@@ -299,6 +309,42 @@ export const ProfileHeaderCard = ({
                   </span>
                 )}
                 {memberSinceLabel && <span>Since {memberSinceLabel}</span>}
+                {/* PRESENCE — a dot and a phrase on the identity line, not a
+                    pill in the badge row (owner, 2026-09-11: it is live
+                    state, not something earned). Same separator discipline as
+                    above: the "·" only exists in the row form, so it can
+                    never dangle at the end of a wrapped line at 375. */}
+                {lastActiveLabel && (location || memberSinceLabel) && (
+                  <span aria-hidden className="hidden sm:inline">
+                    ·
+                  </span>
+                )}
+                {lastActiveLabel && (
+                  <span
+                    className="inline-flex items-center gap-1.5 min-w-0"
+                    style={{
+                      color: lastActiveLabel.isLive
+                        ? "hsl(var(--live))"
+                        : "hsl(var(--olivewood) / 0.8)",
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      className="rounded-full shrink-0"
+                      style={{
+                        width: 7,
+                        height: 7,
+                        background: lastActiveLabel.isLive
+                          ? "hsl(var(--live))"
+                          : "hsl(var(--olivewood) / 0.7)",
+                        boxShadow: lastActiveLabel.isLive
+                          ? "0 0 0 3px hsl(var(--live) / 0.18)"
+                          : "none",
+                      }}
+                    />
+                    <span className="truncate">{lastActiveLabel.text}</span>
+                  </span>
+                )}
               </div>
             )}
 
@@ -315,21 +361,31 @@ export const ProfileHeaderCard = ({
             )}
 
             {/* WHAT THEY DO */}
+            {/* WHAT THEY DO — deliberately NOT pill-shaped. Owner,
+                2026-09-11: the skills row sat directly under the badge row in
+                the same rounded-full tinted pill, so at a glance it read as
+                six more badges. Skills are self-declared; badges are earned,
+                and the profile must not dress the two the same. So this is a
+                labelled, comma-separated text list on a square-cornered
+                hairline strip: no radius, no per-item box, no icon, normal
+                weight, and a caption naming what it is. */}
             {skills.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {skills.map((s, i) => (
-                  <span
-                    key={`${s}-${i}`}
-                    className="text-ds-11 font-sans font-semibold px-2 py-0.5 rounded-full"
-                    style={{
-                      background: "hsl(var(--bark) / 0.10)",
-                      color: "hsl(var(--bark))",
-                      border: "0.5px solid hsl(var(--bark) / 0.20)",
-                    }}
-                  >
-                    {s}
-                  </span>
-                ))}
+              <div
+                className="mt-3 pt-2.5"
+                style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.16)" }}
+              >
+                <p
+                  className="font-sans uppercase tracking-wider text-ds-10 mb-1"
+                  style={{ color: "hsl(var(--olivewood) / 0.75)", letterSpacing: "0.14em" }}
+                >
+                  Skills
+                </p>
+                <p
+                  className="font-sans text-ds-13 leading-relaxed max-w-[62ch]"
+                  style={{ color: "hsl(var(--ink-deep) / 0.85)" }}
+                >
+                  {skills.join(", ")}
+                </p>
               </div>
             )}
 

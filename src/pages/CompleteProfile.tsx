@@ -917,7 +917,11 @@ const CompleteProfile = () => {
                 // without touching the shared `Button` variants: the label
                 // wraps to two lines under `sm`, and `h-auto`/`min-h-[60px]`
                 // keeps the tap target at its full size instead of clipping.
-                "h-auto min-h-[60px] whitespace-normal text-balance px-4 py-3 sm:px-8 sm:py-0",
+                //
+                // `!min-h-[60px]`, not `min-h-[60px]`: index.css's bare
+                // `button { min-height: 44px }` is unlayered, so it beat the
+                // utility and this rendered 49.5px beside a 60px Sign Out.
+                "h-auto !min-h-[60px] whitespace-normal min-[360px]:whitespace-nowrap text-balance px-4 py-3 sm:px-8 sm:py-0",
                 allComplete && !submitting && "btn-grad-primary",
               )}
               disabled={submitting || !allComplete}

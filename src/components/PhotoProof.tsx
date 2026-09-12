@@ -23,9 +23,20 @@ type PhotoProofProps = {
   type: "before" | "after";
   existingUrls: string[];
   onUploaded: () => void;
+  /**
+   * Trigger label override.
+   *
+   * The default ("Before Photos" / "After Photos") names the CATEGORY, which
+   * is right in PhotoProofGroup where two columns sit side by side and the
+   * label is the only thing telling them apart. Under PhotoProofStep's own
+   * "Add an after photo" header it was the same words twice, one above the
+   * other — a button restating its heading reads as the old rival control
+   * rather than the heading's action.
+   */
+  triggerLabel?: string;
 };
 
-const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProofProps) => {
+const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel }: PhotoProofProps) => {
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -159,7 +170,9 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProofProps) 
         className={`w-full min-w-0 h-auto min-h-9 py-1.5 whitespace-normal leading-tight ${hasPhotos ? "text-primary" : ""}`}
       >
         {hasPhotos ? <CheckCircle2 className="w-4 h-4 mr-1" /> : <Camera className="w-4 h-4 mr-1" />}
-        {type === "before" ? "Before" : "After"} {hasPhotos ? `(${existingUrls.length})` : "Photos"}
+        {triggerLabel && !hasPhotos
+          ? triggerLabel
+          : `${type === "before" ? "Before" : "After"} ${hasPhotos ? `(${existingUrls.length})` : "Photos"}`}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -476,7 +489,7 @@ export const PhotoProofStep = ({
   <CardSubPanel icon={Camera} title={title} tone="primary">
     <div className="space-y-2">
       <p className="text-ds-11 text-muted-foreground">{hint}</p>
-      <PhotoProof jobId={jobId} type={type} existingUrls={existingUrls} onUploaded={onUploaded} />
+      <PhotoProof jobId={jobId} type={type} existingUrls={existingUrls} onUploaded={onUploaded} triggerLabel="Add Photo" />
     </div>
   </CardSubPanel>
 );

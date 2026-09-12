@@ -481,6 +481,10 @@ function AppliedJobCardInner({
               completingJobId={completingJobId}
               onComplete={onComplete}
               onResolveRevision={onResolveRevision}
+              /* Same dialog the completed-job DisputeLink below opens — the
+                 mid-job "Report a Problem" escape is the same destination,
+                 not a second one. */
+              onOpenDispute={() => onDispute(job)}
               navigate={navigate}
             />
           )}

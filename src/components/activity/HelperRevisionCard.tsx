@@ -6,13 +6,19 @@
  * Shows:
  *   • The revision description (and photos if present)
  *   • "I'll fix it" → sets revision status to 'accepted' + notifies poster
- *   • "Discuss" → navigates to the message thread
+ *
+ * ONE PRIMARY, NO TWIN. "Discuss" used to sit beside it as an equal-width
+ * outline, navigating to `/messages?jobId=…&userId=…` — byte-for-byte the
+ * destination ActiveJobSection's "Message" chip already goes to, on the same
+ * card, ~40px below. Two controls, one destination, two names for it. The
+ * chip stays (it is the route a helper who genuinely cannot continue needs);
+ * the duplicate is gone. Owner, 2026-09-11: one primary + overflow.
  *
  * PGRST202 fallback: if job_revisions is not yet deployed, reads from
  * the legacy jobs.revision_note column instead.
  */
 import { useEffect, useState } from "react";
-import { AlertTriangle, Check, ChevronDown, MessageSquare, Wrench } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
@@ -20,7 +26,6 @@ import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
-import { useNavigate } from "react-router-dom";
 
 interface HelperRevisionCardProps {
   jobId: string;
@@ -28,6 +33,17 @@ interface HelperRevisionCardProps {
   /** Legacy fallback: the revision_note column on jobs */
   legacyRevisionNote: string | null;
   onAccepted: () => void;
+  /**
+   * Whether the helper has ACCEPTED the revision, reported upward on every
+   * load and on the accept tap.
+   *
+   * "Mark Fixed" is the parent's control but it is this card's state that
+   * decides whether it may exist: showing both at once was the competing pair
+   * the owner named ("Mark Fixed appears ONLY after they have accepted"), and
+   * the acceptance flag lives here because this is the component that reads
+   * `job_revisions.status`.
+   */
+  onAcceptedChange?: (accepted: boolean) => void;
 }
 
 interface RevisionRow {
@@ -42,8 +58,8 @@ export function HelperRevisionCard({
   posterId,
   legacyRevisionNote,
   onAccepted,
+  onAcceptedChange,
 }: HelperRevisionCardProps) {
-  const navigate = useNavigate();
   const [revision, setRevision] = useState<RevisionRow | null>(null);
   const [accepting, setAccepting] = useState(false);
 
@@ -94,6 +110,15 @@ export function HelperRevisionCard({
         }
       });
   }, [jobId, legacyRevisionNote]);
+
+  // Single source: whatever the loaded/optimistic row says, the parent hears.
+  const acknowledgedNow = revision?.status === "accepted";
+  useEffect(() => {
+    onAcceptedChange?.(acknowledgedNow);
+    // `onAcceptedChange` is intentionally out of the dep list — call sites pass
+    // an inline arrow, and including it re-fires this on every parent render.
+     
+  }, [acknowledgedNow]);
 
   const handleAccept = async () => {
     setAccepting(true);
@@ -160,7 +185,7 @@ export function HelperRevisionCard({
   // Acknowledged already — the row says so (or this tap just did). The
   // control becomes a receipt, not a button: the only next step is Mark
   // Fixed, which ActiveJobSection renders directly under this card.
-  const acknowledged = revision.status === "accepted";
+  const acknowledged = acknowledgedNow;
 
   return (
     <div
@@ -234,11 +259,11 @@ export function HelperRevisionCard({
         </ul>
       </details>
 
-      {/* Actions */}
-      <div className="flex gap-2 pt-0.5">
+      {/* Actions — ONE. See the header note on the removed "Discuss" twin. */}
+      <div className="pt-0.5">
         <Button
           size="sm"
-          className="flex-1 rounded-ds-md"
+          className="w-full rounded-ds-md"
           onClick={handleAccept}
           disabled={accepting || acknowledged}
           aria-disabled={acknowledged || undefined}
@@ -252,14 +277,6 @@ export function HelperRevisionCard({
         >
           {acknowledged ? <Check className="w-3.5 h-3.5 mr-1" /> : <Wrench className="w-3.5 h-3.5 mr-1" />}
           {acknowledged ? "On it" : accepting ? "Acknowledged…" : "I'll Fix It"}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="flex-1 rounded-ds-md"
-          onClick={() => navigate(posterId ? `/messages?jobId=${jobId}&userId=${posterId}` : "/messages")}
-        >
-          <MessageSquare className="w-3.5 h-3.5 mr-1" /> Discuss
         </Button>
       </div>
     </div>

@@ -100,6 +100,25 @@ interface DisputeLinkProps {
    * decoupled from any specific dialog wiring.
    */
   onOpenDispute: () => void;
+  /**
+   * FORCE the link visible for a state the 7-day-window predicate does not
+   * cover, with its own wording.
+   *
+   * Added 2026-09-11 for the one state that has no other exit. "Can't Finish"
+   * is now hidden once a job reaches Working (owner: "i dont belive they
+   * should be able to do this once thy have started the job"), which is right
+   * — and leaves a helper who is injured, on an unsafe site, or locked out
+   * with only Message. This is the escape, and it is deliberately THIS
+   * component rather than a new one: the quiet sienna underline, the
+   * stopPropagation, the never-double-file guards and the destination are all
+   * already correct here; only the visibility rule and the words differ.
+   *
+   * The two hard guards are NOT overridable — a job already in dispute still
+   * renders nothing, whatever a caller passes.
+   */
+  forceShow?: boolean;
+  /** Wording override, used with {@link forceShow}. */
+  label?: string;
   /** Override "now" for deterministic tests. */
   now?: Date;
   /** Optional className for the wrapper (caller controls spacing). */
@@ -110,10 +129,15 @@ export function DisputeLink({
   job,
   side,
   onOpenDispute,
+  forceShow = false,
+  label,
   now,
   className,
 }: DisputeLinkProps) {
-  if (!shouldShowDisputeLink(job, side, now)) return null;
+  // Never a double-file path, forced or not — the same two rules the
+  // predicate opens with.
+  if (job.disputed_at || job.status === "disputed") return null;
+  if (!forceShow && !shouldShowDisputeLink(job, side, now)) return null;
 
   return (
     <div className={`pt-2 text-center ${className ?? ""}`}>
@@ -129,10 +153,10 @@ export function DisputeLink({
         }}
         className="inline-flex items-center gap-1 text-ds-11 underline underline-offset-2 hover:opacity-80 active:opacity-70 transition-opacity"
         style={{ color: "hsl(var(--burnt-sienna))" }}
-        aria-label="Open a dispute about this job"
+        aria-label={label ? `${label} — open a dispute about this job` : "Open a dispute about this job"}
       >
         <AlertTriangle className="w-3 h-3" strokeWidth={2.25} />
-        Something Wrong? Open a Dispute
+        {label ?? "Something Wrong? Open a Dispute"}
       </button>
     </div>
   );

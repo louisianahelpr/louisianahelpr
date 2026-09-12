@@ -106,7 +106,12 @@ function makeApp(job: Job): AppliedApp {
   } as unknown as AppliedApp;
 }
 
-function renderSection(job: Job & { revision_note?: string | null }) {
+function renderSection(
+  job: Job & { revision_note?: string | null },
+  /** The live `job_tracking` row. Defaults to `working` — the state most of
+   *  these cases are about. Pass `on_the_way` to sit BEFORE work starts. */
+  trackingStatus: string = "working",
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
@@ -118,7 +123,7 @@ function renderSection(job: Job & { revision_note?: string | null }) {
           userId={HELPER}
           initialTracking={{
             id: "t-1",
-            status: "working",
+            status: trackingStatus,
             latitude: null,
             longitude: null,
             eta_minutes: null,
@@ -127,6 +132,7 @@ function renderSection(job: Job & { revision_note?: string | null }) {
           completingJobId={null}
           onComplete={vi.fn()}
           onResolveRevision={vi.fn()}
+          onOpenDispute={vi.fn()}
           navigate={vi.fn()}
         />
       </MemoryRouter>
@@ -206,6 +212,47 @@ const CASES: Array<{
   },
 ];
 
+/**
+ * The sanctioned exit, and its replacement.
+ *
+ * "Can't Finish" disappears once work is underway (owner: "i dont belive they
+ * should be able to do this once thy have started the job"). Removing a
+ * CONTROL must not remove the PATH, so the state that loses it — and only that
+ * state — gains a quiet "Report a Problem" link into the existing dispute
+ * dialog. These two tests are each other's complement: neither state may end
+ * up with both, and neither may end up with none.
+ */
+describe("helper active card — exactly one way out of a live job", () => {
+  const linkIn = (c: HTMLElement) =>
+    [...c.querySelectorAll("button")].find((b) => /Report a Problem/i.test(b.textContent || ""));
+  const exitIn = (c: HTMLElement) =>
+    [...c.querySelectorAll("button")].find((b) => /Can.t Finish/i.test(b.textContent || ""));
+
+  it("before Working: Can't Finish is the exit, and Report a Problem is not offered", async () => {
+    const { container } = renderSection(CASES[0].job, "on_the_way");
+    await act(async () => { await Promise.resolve(); });
+    expect(exitIn(container), "the pre-work exit disappeared").toBeTruthy();
+    expect(linkIn(container), "Report a Problem is duplicating an exit that already exists").toBeUndefined();
+  });
+
+  it("once Working: Can't Finish is gone and Report a Problem replaces it — subordinately", async () => {
+    const { container } = renderSection(CASES[1].job);
+    await act(async () => { await Promise.resolve(); });
+    expect(exitIn(container), "a job already underway still offers the unilateral bail").toBeUndefined();
+    const link = linkIn(container);
+    expect(link, "a working job has no exit at all — not even a report path").toBeTruthy();
+    // Subordinate by construction: never the glossy primary, never a chip in
+    // the action row beside Message.
+    expect(link!.className).not.toContain("btn-grad-primary");
+    expect(link!.hasAttribute("data-job-action-chip")).toBe(false);
+    // Message must stay reachable in this state — it is the other half of the
+    // answer for a helper who cannot continue.
+    expect(
+      [...container.querySelectorAll("button")].some((b) => /Message/i.test(b.textContent || "")),
+    ).toBe(true);
+  });
+});
+
 describe("helper active card — at most one primary CTA per state", () => {
   for (const { name, job, knownDefect } of CASES) {
     it(`renders no more than one glossy CTA: ${name}`, async () => {
@@ -244,17 +291,36 @@ describe("helper active card — at most one primary CTA per state", () => {
     expect(primaryCtas(container)).toEqual(["I'll Fix It"]);
   });
 
-  it("revision_requested still offers 'Mark Fixed', as a SECONDARY action", async () => {
-    // Removing the collision must not have removed the way out of it.
+  it("'Mark Fixed' does not exist until the revision is accepted", async () => {
+    // Owner, 2026-09-11: "Mark Fixed appears ONLY after they have accepted the
+    // revision (not before — today both show at once, which is why it reads as
+    // competing)". Accept-the-work and declare-it-done are sequential steps,
+    // and offering them simultaneously invited the second before the first.
     const { container } = renderSection(CASES[3].job);
-    const btn = [...container.querySelectorAll("button")].find((b) =>
-      /Mark Fixed/i.test(b.textContent || ""),
-    );
-    expect(btn, "the 'Mark Fixed' escape from a revision disappeared").toBeTruthy();
+    await act(async () => { await Promise.resolve(); });
+    const markFixed = () =>
+      [...container.querySelectorAll("button")].find((b) => /Mark Fixed/i.test(b.textContent || ""));
+    expect(markFixed(), "'Mark Fixed' is showing on a revision nobody has accepted yet").toBeUndefined();
+
+    // …and it must arrive once they accept, or the way out of a revision is gone.
+    const fixIt = await screen.findByRole("button", { name: /I'll Fix It/i });
+    await act(async () => { fixIt.click(); await Promise.resolve(); });
+    const btn = markFixed();
+    expect(btn, "the 'Mark Fixed' escape from an accepted revision never appeared").toBeTruthy();
     expect(
       btn!.className,
       "'Mark Fixed' must stay secondary — two glossy CTAs is the bug this file guards",
     ).not.toContain("btn-grad-primary");
+  });
+
+  it("the revision card no longer draws its own 'Discuss' twin of Message", async () => {
+    // Both navigated to `/messages?jobId=…&userId=…`. Verified identical
+    // before removal; the Message chip is the survivor.
+    const { container } = renderSection(CASES[3].job);
+    await act(async () => { await Promise.resolve(); });
+    const labels = [...container.querySelectorAll("button")].map((b) => (b.textContent || "").trim());
+    expect(labels.some((l) => /^Discuss$/i.test(l)), `[${labels.join(" | ")}]`).toBe(false);
+    expect(labels.some((l) => /Message/i.test(l)), "Message must stay reachable").toBe(true);
   });
 
   it("does not offer a completion CTA while a revision is open", async () => {

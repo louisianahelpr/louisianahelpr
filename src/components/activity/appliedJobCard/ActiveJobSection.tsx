@@ -10,7 +10,7 @@ import { hapticError } from "@/lib/haptics";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
-import { PhotoProofGroup } from "@/components/PhotoProof";
+import { PhotoProofStep } from "@/components/PhotoProof";
 import { hasRequiredProof } from "@/lib/photoProofPolicy";
 import { report } from "@/lib/errorLogger";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
@@ -18,6 +18,7 @@ import { deriveCurrentStatusIdx, STATUS_IDX, type TrackingData } from "@/compone
 import { HelperTrackerPanel } from "./HelperTrackerPanel";
 import { DirectionsButton } from "./DirectionsButton";
 import { HelperRevisionCard } from "@/components/activity/HelperRevisionCard";
+import { DisputeLink } from "@/components/jobs/DisputeLink";
 import type { AppliedApp, Job } from "../activityConstants";
 
 /** The floor a job has to sit above before its payout can be requested. Same
@@ -33,6 +34,10 @@ interface ActiveJobSectionProps {
   completingJobId: string | null;
   onComplete: (jobId: string) => void;
   onResolveRevision: (jobId: string) => void;
+  /** Opens the existing helper-side DisputeDialog (ActivityDialogs' `disputeJob`
+   *  state). Optional so a caller that has no dispute wiring simply gets no
+   *  Report a Problem link rather than a dead control. */
+  onOpenDispute?: () => void;
   navigate: (to: string) => void;
 }
 
@@ -46,9 +51,13 @@ export function ActiveJobSection({
   completingJobId,
   onComplete,
   onResolveRevision,
+  onOpenDispute,
   navigate,
 }: ActiveJobSectionProps) {
   const [resolving, setResolving] = useState(false);
+  /** Reported up by HelperRevisionCard from the `job_revisions` row it reads.
+   *  "Mark Fixed" may not exist before it is true — owner, 2026-09-11. */
+  const [revisionAccepted, setRevisionAccepted] = useState(false);
 
   // ── THE 30-MINUTE WINDOW HAS TO ELAPSE ON SCREEN ──
   //
@@ -108,7 +117,7 @@ export function ActiveJobSection({
   // item for item. `initialTracking` refreshes on the `job_tracking` realtime
   // subscription in useActivityData, so the tap that starts work also takes
   // the chip away.
-  const workUnderway =
+  const trackerIdx =
     deriveCurrentStatusIdx({
       trackingStatus: initialTracking?.status ?? null,
       jobStatus: job.status,
@@ -122,7 +131,9 @@ export function ActiveJobSection({
       posterConfirmedArrivalAt: job.poster_confirmed_arrival_at,
       helperCompletedAt: job.helper_completed_at,
       posterCompletedAt: job.poster_completed_at,
-    }) >= STATUS_IDX.working;
+    });
+  const workUnderway = trackerIdx >= STATUS_IDX.working;
+  const hasArrived = trackerIdx >= STATUS_IDX.arrived;
 
   // Server owns every part of this decision (helper_abort_job, migration
   // 20260825190000): which settlement path the job takes, and what the strike
@@ -319,6 +330,7 @@ export function ActiveJobSection({
             posterId={job.customer_id ?? null}
             legacyRevisionNote={job.revision_note ?? null}
             onAccepted={() => { /* optimistically keep showing the card — parent refetches */ }}
+            onAcceptedChange={setRevisionAccepted}
           />
           {job.revision_deadline && !job.revision_completed_at && (
             <DeadlineCountdown
@@ -344,27 +356,87 @@ export function ActiveJobSection({
               )}
             </div>
           ) : (
-            <Button size="sm" variant="outline" className="w-full" disabled={resolving} onClick={handleMarkFixed}><RefreshCw className={`w-4 h-4 mr-1${resolving ? " animate-spin" : ""}`} /> {resolving ? "Marking…" : "Mark Fixed"}</Button>
+            /* ONE PRIMARY, THEN THE NEXT STEP — not both at once.
+               "I'll Fix It" and "Mark Fixed" used to render together the
+               instant a revision arrived: accept-the-work and declare-it-done,
+               side by side, on a job the helper had not agreed to touch yet.
+               That is the pair the owner meant by "too many competing
+               buttons". Mark Fixed now appears only once the revision has
+               actually been accepted — the flag comes from the
+               `job_revisions` row HelperRevisionCard reads, so a revision
+               accepted in an earlier session still shows it on first paint. */
+            revisionAccepted && (
+              <Button size="sm" variant="outline" className="w-full" disabled={resolving} onClick={handleMarkFixed}><RefreshCw className={`w-4 h-4 mr-1${resolving ? " animate-spin" : ""}`} /> {resolving ? "Marking…" : "Mark Fixed"}</Button>
+            )
           )}
         </div>
       )}
 
-      {/* Photo proof — anchored on the helper's own ARRIVAL, the same stamp
-          that unlocks the payout button below. Gating this on the poster's
-          working confirmation hid the uploader behind a stamp a ghosting
-          poster never sets, while the payout button kept demanding the
-          photos the helper had no way to add. */}
-      {job.helper_arrived_at && (
-        <PhotoProofGroup
-          jobId={app.job_id}
-          beforeUrls={job.proof_before_urls || []}
-          afterUrls={job.proof_after_urls || []}
-          canUploadBefore={true}
-          canUploadAfter={true}
-          requireAfter={true}
-          budget={job.budget || 0}
-        />
-      )}
+      {/* ── THE PHOTO ASK IS A TRACKER STEP, NOT A CARD BESIDE IT ──
+          Owner, 2026-09-11: uploads "tie to tracker steps instead of sitting
+          always-on… one ask at a time, at the moment it makes sense".
+
+          What was here: PhotoProofGroup from the moment of arrival — a titled
+          "Photo Proof" panel with TWO uploaders and a red requirement note,
+          drawn directly under the live tracker and competing with it for the
+          answer to "what do I do next?". Both asks were live from the same
+          instant, including the After photo of work that had not started.
+
+          What is here now, derived from the SAME `trackerIdx` the rail above
+          is drawn from so the ask and the rail can never disagree:
+
+            arrived  → Before, and only Before
+            working  → After, and only After (it is what unlocks Done)
+            either one, once taken → gone
+
+          The group view is not lost: it is still the review surface on the
+          completed/poster-side cards, which is the context it was written
+          for. A revision-state card shows neither — the revision card owns
+          that state (decision 3). */}
+      {status !== "revision_requested" && !job.helper_completed_at && (() => {
+        // The poster-side toggle another lane is landing
+        // (`jobs.require_photo_proof`). Consumed defensively so this file is
+        // correct before or after that migration.
+        //
+        // IT DOES NOT RELAX THE ASK, AND DELIBERATELY SO. Verified against
+        // prod 2026-09-11: the trigger `trg_helper_completion_gates` →
+        // `public.enforce_helper_completion_gates()` raises
+        // `completion_requires_proof_photos` (23514) whenever a helper stamps
+        // `helper_completed_at` with EITHER proof array empty, and it reads no
+        // per-job flag — the column does not exist in prod and no function
+        // references it. Hiding the ask on `require_photo_proof = false` would
+        // therefore produce a job the helper can never mark done. The flag is
+        // read here so the wording can soften the moment the server agrees;
+        // the gate itself stays where the server is.
+        const proofOptional = (job as { require_photo_proof?: boolean | null }).require_photo_proof === false;
+        const beforeUrls = job.proof_before_urls || [];
+        const afterUrls = job.proof_after_urls || [];
+        if (hasArrived && beforeUrls.length === 0) {
+          return (
+            <PhotoProofStep
+              jobId={app.job_id}
+              type="before"
+              existingUrls={beforeUrls}
+              title="Add a before photo"
+              hint={proofOptional
+                ? "Your poster marked photos optional, but the job still can't be marked done without a before and after shot."
+                : "Show the job as you found it. This is half the proof that releases your payment."}
+            />
+          );
+        }
+        if (workUnderway && afterUrls.length === 0) {
+          return (
+            <PhotoProofStep
+              jobId={app.job_id}
+              type="after"
+              existingUrls={afterUrls}
+              title="Add an after photo"
+              hint="This is what unlocks Done — and it's the proof that releases your payment."
+            />
+          );
+        }
+        return null;
+      })()}
 
       {/* Complete + Message */}
       <div className="space-y-2">
@@ -382,8 +454,17 @@ export function ActiveJobSection({
           // is looking at it.
           const tooEarly = payoutUnlocksAt != null && now < payoutUnlocksAt;
           const minutesLeft = payoutUnlocksAt != null ? Math.ceil((payoutUnlocksAt - now) / 60000) : 0;
-          const disabled = completingJobId === app.job_id || !hasPhotos || tooEarly;
-          const label = completingJobId === app.job_id ? "…" : !hasPhotos ? "Upload before & after photos first" : tooEarly ? `Available in ${minutesLeft} min` : "Mark Complete";
+          // THE DISABLED TWIN IS GONE. While a photo is still missing this
+          // rendered as a dead full-width button reading "Upload before &
+          // after photos first" — an instruction wearing the costume of the
+          // action it was refusing, directly beneath the uploader that
+          // actually carries out the instruction. The step-anchored ask above
+          // IS this state now, so the button simply does not exist until the
+          // proof does. Nothing is unreachable: the ask and the button are
+          // driven by the same two arrays.
+          if (!hasPhotos) return null;
+          const disabled = completingJobId === app.job_id || tooEarly;
+          const label = completingJobId === app.job_id ? "…" : tooEarly ? `Available in ${minutesLeft} min` : "Mark Complete";
           return (
             <>
               <Button
@@ -462,6 +543,44 @@ export function ActiveJobSection({
                   />
                 )}
               </JobActionRow>
+              {/* ── THE ONE STATE WITH NO OTHER EXIT ──
+                  Owner, 2026-09-11: "report a problem add it only where
+                  necessary."
+
+                  `showExit` above removes "Can't Finish" the moment work is
+                  underway, which is the rule and is right. But removing a
+                  control must not remove the PATH: a helper who is hurt, on an
+                  unsafe site, or locked out of the property still needs a way
+                  out that is not "message the person you're stuck with". So
+                  this appears at exactly the complement of the exit chip —
+                  `workUnderway && !showExit` — and nowhere else. Before
+                  Working, "Can't Finish" is the correct control and this does
+                  not render; on a revision-state card the revision card owns
+                  the state and the poster's own dispute path already exists.
+
+                  WEIGHT: a quiet sienna underline, below the row, not in it.
+                  A dispute freezes escrow and puts a human in the loop; it is
+                  a last resort, not a peer of Message. Destination is the
+                  EXISTING helper-side DisputeDialog (`rpc_open_dispute`) —
+                  chosen over /support because it is the same escalation
+                  `helper_abort_job` itself performs for a job with work
+                  already done, so a helper who stops at Working and one who
+                  stops just before it land in the same queue instead of two. */}
+              {workUnderway && !showExit && onOpenDispute && (
+                <DisputeLink
+                  job={{
+                    status: job.status,
+                    poster_completed_at: job.poster_completed_at ?? null,
+                    helper_completed_at: job.helper_completed_at ?? null,
+                    disputed_at: (job as { disputed_at?: string | null }).disputed_at ?? null,
+                    revision_requested_at: job.revision_requested_at ?? null,
+                  }}
+                  side="helper"
+                  forceShow
+                  label="Report a Problem"
+                  onOpenDispute={onOpenDispute}
+                />
+              )}
               {aborted && (
                 <p className="font-sans text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   {aborted === "disputed"

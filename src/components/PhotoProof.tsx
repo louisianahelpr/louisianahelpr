@@ -10,6 +10,7 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
+import { CardSubPanel } from "@/components/ui/CardSubPanel";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
@@ -310,39 +311,29 @@ export const PhotoProofGroup = ({
   // If no photos at all and can't upload, show a minimal empty state
   if (!hasBefore && !hasAfter && !showBeforeUpload && !showAfterUpload) {
     return (
-      <div className="rounded-ds-md border border-border bg-muted/20 overflow-hidden">
-        <div className="px-3 py-2 bg-muted/30 border-b border-border/40 flex items-center gap-1.5">
-          <Image className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-ds-11 font-semibold text-foreground">Photo Proof</span>
-        </div>
-        <div className="px-3 py-3">
-          {/* Full `text-muted-foreground`, not `/60`: the alpha dropped this
-              11px line to 2.61:1 on the card surface (axe, serious). It was
-              invisible to the sweep because it only renders inside a completed
-              card's expanded section. */}
-          <p className="text-ds-11 text-muted-foreground text-center">No photos were uploaded for this job</p>
-        </div>
-      </div>
+      <CardSubPanel icon={Image} title="Photo Proof">
+        {/* Full `text-muted-foreground`, not `/60`: the alpha dropped this
+            11px line to 2.61:1 on the card surface (axe, serious). It was
+            invisible to the sweep because it only renders inside a completed
+            card's expanded section. */}
+        <p className="text-ds-11 text-muted-foreground text-center">No photos were uploaded for this job</p>
+      </CardSubPanel>
     );
   }
 
   return (
-    <div className="rounded-ds-md border border-border bg-muted/20 overflow-hidden">
-      {/* Header */}
-      <div className="px-3 py-2 bg-muted/30 border-b border-border/40 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Image className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-ds-11 font-semibold text-foreground">Photo Proof</span>
-        </div>
-        {(hasBefore || hasAfter) && (
-          <button onClick={() => setViewOpen(true)} className="text-ds-10 text-primary hover:underline font-medium">
+    <CardSubPanel
+      icon={Image}
+      title="Photo Proof"
+      action={
+        (hasBefore || hasAfter) ? (
+          <button onClick={() => setViewOpen(true)} className="text-ds-10 text-primary hover:underline font-medium shrink-0">
             View All
           </button>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="p-3">
+        ) : undefined
+      }
+    >
+      <>
         {/* `min-w-0` on both columns is load-bearing. A grid track defaults to
             minmax(auto, 1fr), so its MINIMUM width is the intrinsic width of
             its content — and the content is a `whitespace-nowrap` Button. At
@@ -409,7 +400,7 @@ export const PhotoProofGroup = ({
             <Camera className="w-3 h-3" /> {requiredProof({ budget }).reason}
           </p>
         )}
-      </div>
+      </>
 
       {/* Full view dialog */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
@@ -448,6 +439,44 @@ export const PhotoProofGroup = ({
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </CardSubPanel>
   );
 };
+
+/* ── The single, step-anchored ask ──────────────────────────────────────────
+ *
+ * Owner, 2026-09-11: photo uploads "tie to tracker steps instead of sitting
+ * always-on… one ask at a time, at the moment it makes sense, folded INTO the
+ * tracker rather than a separate card competing with it."
+ *
+ * PhotoProofGroup is the REVIEW surface — two columns, both uploaders, a red
+ * requirement note — and it is right where a job is being looked back on. On a
+ * LIVE job it was four competing controls beside a tracker that was already
+ * telling the helper what to do next. This renders exactly one: the photo the
+ * tracker's current step is waiting on, and nothing once it exists.
+ *
+ * It reuses PhotoProof (the uploader + its dialog) unchanged — only the
+ * chrome around it is different, and that chrome is the shared CardSubPanel.
+ */
+export const PhotoProofStep = ({
+  jobId,
+  type,
+  existingUrls,
+  onUploaded = () => {},
+  title,
+  hint,
+}: {
+  jobId: string;
+  type: "before" | "after";
+  existingUrls: string[];
+  onUploaded?: () => void;
+  title: string;
+  hint: string;
+}) => (
+  <CardSubPanel icon={Camera} title={title} tone="primary">
+    <div className="space-y-2">
+      <p className="text-ds-11 text-muted-foreground">{hint}</p>
+      <PhotoProof jobId={jobId} type={type} existingUrls={existingUrls} onUploaded={onUploaded} />
+    </div>
+  </CardSubPanel>
+);

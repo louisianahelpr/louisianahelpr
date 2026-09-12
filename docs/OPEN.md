@@ -222,3 +222,11 @@ xl:px-12` → `page-measure mx-auto`. The inner card stops short of the frame on
 both sides, so the page reads as a narrow sheet floating on a wider surface
 rather than filling it. This is the SHELL, so it affects every AppShell page —
 fix once in the shell, never per page.
+
+## Time picker regressed to a native input — restore the scroll wheels
+Owner, 2026-09-11: "this needs to be a scroll how it was before how hour time
+and ap pm". The Set-hours popover now renders a native `<input type="time">`
+("05:-- PM" with a clock affordance) instead of the previous hour / minute /
+AM-PM scroll columns. Native time inputs are keyboard-first and look different
+on every platform — which also breaks the one-surface rule, since iOS, Android
+and desktop each render their own. Restore the wheel picker.

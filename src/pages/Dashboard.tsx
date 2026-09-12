@@ -238,6 +238,25 @@ const Dashboard = () => {
   const [mapVisible, setMapVisible] = useState<boolean>(
     () => safeStorage.getItem("helpr.browseMapVisible") !== "0",
   );
+
+  // ONE OUTAGE, ONE MESSAGE — the same rule f2b63d921 applied to the
+  // notification toast, now applied to the desktop map column.
+  //
+  // The feed and the map each legitimately own their own read, and each
+  // renders a designed ErrorState when that read fails. At 1440 they sit side
+  // by side, so a single backend outage painted TWO cards — "We couldn't load
+  // jobs." at x 93 and "We couldn't load the map." at x 663, two warning
+  // triangles, two Try again buttons — for one failure with one cause and one
+  // remedy. (Measured at 1440 with every non-account read 500ing.)
+  //
+  // This is the EXACT condition BrowseTasksFeed uses to paint its own card
+  // (`loadError && allJobs.length === 0`), so the two can't disagree: when the
+  // feed is already saying it, the map column doesn't repeat it, and the one
+  // card spans the panel. Both surfaces read the same jobs, so the feed's
+  // "Try again" is the map's retry too. The moment the feed has rows again the
+  // column comes back — `mapVisible` is untouched, so the user's choice
+  // survives the outage.
+  const feedShowingLoadError = Boolean(loadError) && allJobs.length === 0;
   // The storage write is OUTSIDE the updater on purpose. React's StrictMode
   // invokes a state updater twice in development to surface exactly this: with
   // the setItem inside, the first call stored "0" and the second — re-run
@@ -573,9 +592,15 @@ const Dashboard = () => {
                             type="button"
                             onClick={toggleMap}
                             aria-pressed={mapVisible}
+                            // While the feed is showing the load-error card
+                            // the map column is suppressed (see
+                            // `feedShowingLoadError`), so this control has
+                            // nothing to show or hide. Offering it would be an
+                            // affordance that is guaranteed to do nothing.
+                            disabled={feedShowingLoadError}
                             aria-label={mapVisible ? "Hide the map" : "Show the map"}
                             title={mapVisible ? "Hide the map" : "Show the map"}
-                            className={`h-10 w-10 rounded-ds-md inline-flex items-center justify-center btn-press transition-colors ${
+                            className={`h-10 w-10 rounded-ds-md inline-flex items-center justify-center btn-press transition-colors disabled:opacity-40 disabled:pointer-events-none ${
                               mapVisible
                                 ? "text-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.10)]"
                                 : "text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--bark)/0.06)]"
@@ -666,7 +691,7 @@ const Dashboard = () => {
                     frame is full-width here (PageScaffold desktop), so the
                     map has real room and doesn't clip at a phone-width edge
                     the way the old side-map did (#12). */}
-                {isWebDesktop && mapVisible && (
+                {isWebDesktop && mapVisible && !feedShowingLoadError && (
                   <div
                     className="w-[48%] shrink-0 min-h-0 flex flex-col"
                     style={{ borderLeft: "1px solid hsl(var(--olivewood) / 0.12)" }}

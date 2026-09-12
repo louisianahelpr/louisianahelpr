@@ -72,8 +72,21 @@ const Toaster = ({ ...props }: ToasterProps) => {
       // bottom-anchored to lift the toast above the BottomNav; with the anchor
       // moved to the top they would have pinned it back down to the bottom
       // edge, so they move with it.
-      mobileOffset={{ top: "calc(var(--safe-area-top, 0px) + 8px)" }}
-      offset={{ top: "24px" }}
+      // `bottom` exists for the ONE toast that opts out of the top anchor per
+      // toast — `position: "bottom-center"` in pushPermissionNudge.ts, see the
+      // note there. Sonner v2 renders a container per y-position and each
+      // reads only its own side (`[data-y-position=top]{top:var(--offset-top)}`
+      // / `[data-y-position=bottom]{bottom:var(--offset-bottom)}`), so these
+      // two values are inert for every top-anchored toast — verified, not
+      // assumed: an ordinary toast still measures y=8 at 375 and y=24 at 1440
+      // with them set. Without them the bottom container falls back to
+      // sonner's own 16/24px and the toast lands ON the floating dock
+      // (measured at 375: toast bottom 796 against a dock starting at 748).
+      mobileOffset={{
+        top: "calc(var(--safe-area-top, 0px) + 8px)",
+        bottom: "calc(var(--safe-area-bottom, 0px) + 96px)",
+      }}
+      offset={{ top: "24px", bottom: "24px" }}
       toastOptions={{
         unstyled: false,
         classNames: {

@@ -71,14 +71,19 @@ const AccountDenied = () => {
   // approve your account." before the redirect effect ran.
   if (isLoading || !user) {
     return (
-      <AuthShell hideBack eyebrow="Account status" maxWidth="md">
+      // `centerColumn`: AuthShell defaults to `items-start`, and with no brand
+      // panel to balance it the card pinned to the LEFT edge — measured at 1440:
+      // card x 48–496, centre 272 against a viewport centre of 720, with ~940px
+      // of dead canvas beside it. Same prop, same reason as /payment-success
+      // (4a8690448) and Signup. 375 is unaffected (the column is full-width there).
+      <AuthShell hideBack centerColumn eyebrow="Account status" maxWidth="md">
         <div className="liquid-glass p-7 sm:p-8 min-h-[16rem] animate-pulse" aria-busy="true" />
       </AuthShell>
     );
   }
 
   return (
-    <AuthShell hideBack eyebrow="Account status" maxWidth="md">
+    <AuthShell hideBack centerColumn eyebrow="Account status" maxWidth="md">
       <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center">
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"

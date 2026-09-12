@@ -170,3 +170,16 @@ establishing their containing block. CLAUDE.md's standing trap: any ancestor
 with transform/filter/backdrop-filter/contain/will-change becomes the containing
 block for absolutely/fixed positioned descendants, and the map's own chrome uses
 backdrop-filter.
+- **The preview card is not anchored to its pin.** Tapping a pin opens the card
+  pinned to the BOTTOM of the map, nowhere near the marker that was tapped, so
+  the reader has to work out which pin they are looking at. It should attach to
+  (or at least point at) its own marker. Same screenshot set as above.
+
+### Notification count — ruled out
+`notifications.read` is `NOT NULL` in prod (10 false / 63 true for
+lexilombas05), so the null-vs-false split between the server count
+(`.eq("read", false)`) and the client filter (`!n.read`) is NOT the cause.
+Next suspect: there are FOUR `<NotificationPanel />` mounts (DesktopTopNav,
+AdminTopBar, DashboardTitleBar, DashboardHeader), each with its own
+`notifications` array and its own `unreadTotal`, sharing no cache. Mark one
+read and the others never hear about it. Lift the state into a shared query.

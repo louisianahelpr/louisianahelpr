@@ -4,6 +4,8 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 import noSilentCatch from "./scripts/eslint-rules/no-silent-catch.js";
+import noButtonHeightOverride from "./scripts/eslint-rules/no-button-height-override.js";
+import BUTTON_HEIGHT_LEGACY from "./scripts/eslint-rules/button-height-legacy.json" with { type: "json" };
 
 
 /* ── Type-scale guards ──────────────────────────────────────────────────
@@ -283,7 +285,7 @@ export default tseslint.config(
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
-      local: { rules: { "no-silent-catch": noSilentCatch } },
+      local: { rules: { "no-silent-catch": noSilentCatch, "no-button-height-override": noButtonHeightOverride } },
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
@@ -359,7 +361,17 @@ export default tseslint.config(
       // feature becomes one that never fires and never says why. See the
       // ledger comment above SILENT_CATCH_LEGACY.
       "local/no-silent-catch": "error",
+
+      // Button height comes from `size`. See the rule file for the
+      // Enter App / Sign Out incident this exists for.
+      "local/no-button-height-override": "error",
     },
+  },
+  {
+    // Hand-set Button heights that predate the rule. May only shrink:
+    // src/test/buttonHeightLedger.test.ts fails if a listed file is clean.
+    files: BUTTON_HEIGHT_LEGACY,
+    rules: { "local/no-button-height-override": "off" },
   },
   {
     // The silent-catch pile that predates the rule. Every OTHER guard still

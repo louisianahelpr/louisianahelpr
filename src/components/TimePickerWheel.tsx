@@ -17,6 +17,24 @@ interface TimePickerWheelProps {
   /** Accessible name for the desktop `<input type="time">` (the phone wheels
    *  label their own Hour / Minute / AM-PM controls). */
   ariaLabel?: string;
+  /**
+   * Which control to draw.
+   *
+   * `"auto"` (default, unchanged) swaps to a native `<input type="time">` on
+   * the desktop website. That swap exists for ONE reason, recorded below: a
+   * wheel stretched across a ~1030px form column becomes a 500px box holding
+   * one giant digit, and a mouse cannot spin it.
+   *
+   * `"wheels"` opts out. The reason it has to exist is that the swap is keyed
+   * on the DEVICE and the problem is the CONTAINER — so it also fired inside
+   * the 300px "Set hours" popover on Availability, where the wheels were never
+   * too wide and the native field is strictly worse: it rendered as the
+   * half-filled "05:-- PM" with a clock glyph, and `<input type="time">` draws
+   * differently in every browser and in the WKWebView, which breaks the
+   * one-surface rule this app holds to. A narrow, fixed-width host passes
+   * `"wheels"` and keeps the app's own control on every platform.
+   */
+  variant?: "auto" | "wheels";
 }
 
 const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => (i === 0 ? 12 : i));
@@ -156,7 +174,7 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
   );
 }
 
-export function TimePickerWheel({ value, onChange, disabled, className, ariaLabel = "Time" }: TimePickerWheelProps) {
+export function TimePickerWheel({ value, onChange, disabled, className, ariaLabel = "Time", variant = "auto" }: TimePickerWheelProps) {
   // With no value the wheels rest at their first rows — 12 and 00 — so the
   // fallback for the fields a first touch does NOT set must be what is
   // visibly in the band, or tapping "PM" on an empty field would commit an
@@ -171,7 +189,7 @@ export function TimePickerWheel({ value, onChange, disabled, className, ariaLabe
   // control is the desktop convention, reads empty ("--:-- --") until a time
   // is chosen, and is capped to a sensible width. Phones and the native app
   // (never web-desktop, even on iPad) keep the wheels untouched.
-  if (isWebDesktop) {
+  if (isWebDesktop && variant === "auto") {
     return (
       <Input
         type="time"

@@ -533,6 +533,8 @@ export function JobTracking({
   // The tracker's final step requests the payout, so it asks first — see the
   // BrandConfirmDialog at the bottom of the helper controls.
   const [confirmDoneOpen, setConfirmDoneOpen] = useState(false);
+  /** In-flight "Try My Location Again" — see `retryArrivalVerification`. */
+  const [retryingArrival, setRetryingArrival] = useState(false);
   const [helperConfirmedAt, setHelperConfirmedAt] = useState(initialHelperConfirmedAt);
   const [posterConfirmedAt, setPosterConfirmedAt] = useState(initialPosterConfirmedAt);
   // Lifecycle stamps off the jobs row, mirrored into state so the realtime
@@ -737,6 +739,141 @@ export function JobTracking({
       });
     });
     return location;
+  };
+
+  /**
+   * Same read as `getLocation`, but it KEEPS THE REASON it failed.
+   *
+   * `getLocation` deliberately swallows every failure into `null` because its
+   * caller (the `arrived` transition) proceeds either way — the claim is
+   * stamped whether or not a fix arrives. The retry below is the opposite: a
+   * failed fix is the ONLY thing it has to report, and "we couldn't get your
+   * location" is useless to a helper whose real problem is that they tapped
+   * Don't Allow. Permission-denied gets its own sentence naming Settings.
+   */
+  const getLocationOutcome = async (): Promise<
+    { lat: number; lng: number } | { error: "denied" | "unavailable" }
+  > => {
+    if (!isNativePlatform && !navigator.geolocation) return { error: "unavailable" };
+    let location: { lat: number; lng: number } | null = null;
+    let denied = false;
+    await requestPermission("location", async () => {
+      if (isNativePlatform) {
+        try {
+          const { Geolocation } = await import("@capacitor/geolocation");
+          const pos = await Geolocation.getCurrentPosition({ timeout: 10000 });
+          location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        } catch (e) {
+          // Capacitor surfaces a denial as a message, not a code, on iOS.
+          const msg = String((e as { message?: string } | null)?.message ?? e ?? "");
+          if (/denied|permission|authorized|authoriz/i.test(msg)) denied = true;
+        }
+        return;
+      }
+      await new Promise<void>((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            resolve();
+          },
+          (err) => {
+            // 1 === PERMISSION_DENIED
+            if (err?.code === 1) denied = true;
+            resolve();
+          },
+          { timeout: 10000 },
+        );
+      });
+    });
+    if (location) return location;
+    return { error: denied ? "denied" : "unavailable" };
+  };
+
+  /**
+   * RE-VERIFY AN ARRIVAL THAT IS ONLY *CLAIMED*.
+   *
+   * `mark_helper_arrival` used to fire exactly once, inside the `arrived`
+   * transition, and the rail only ever moves forward — so a helper who denied
+   * the location prompt at the instant they tapped "I've Arrived", then went
+   * and turned Location on, had NO WAY BACK. Their arrival was stuck at
+   * `claimed` forever and the only route out was the poster tapping "Confirm
+   * They Arrived". The recourse path is real and stays, but it must not be the
+   * only one: the helper's own phone is now working again and the server is
+   * perfectly willing to look.
+   *
+   * The RPC is safe to call again by construction (read the live definition):
+   * it COALESCEs `helper_arrived_at`, only ever ADDS
+   * `helper_arrival_verified_at`, and accepts `accepted` or `in_progress` —
+   * so a second call cannot un-verify, cannot re-stamp, and cannot move the
+   * rail. Nothing here touches `job_tracking`; the status is already
+   * `arrived`.
+   */
+  const retryArrivalVerification = async () => {
+    setRetryingArrival(true);
+    try {
+      const outcome = await getLocationOutcome();
+      if ("error" in outcome) {
+        hapticError();
+        toast.error(
+          outcome.error === "denied"
+            ? "Location is turned off for Louisiana Helpr. Open Settings → Privacy → Location Services, allow it for this app, then tap Try My Location Again."
+            : "We still couldn't get a location fix. Step outside or somewhere with a clearer sky and try again — or ask the poster to tap \"Confirm They Arrived\".",
+          { duration: 9000 },
+        );
+        return;
+      }
+
+      const { data: verdict, error: retryErr } = await supabase.rpc("mark_helper_arrival", {
+        p_job_id: jobId,
+        p_lat: outcome.lat,
+        p_lng: outcome.lng,
+      });
+      if (retryErr) {
+        report(retryErr, { tags: { source: "JobTracking.retryArrival" } });
+        hapticError();
+        toast.error(
+          retryErr.code === "PGRST202"
+            ? "Arrival check-in is updating — try again in a minute."
+            : "Couldn't re-check your arrival — try again?",
+        );
+        return;
+      }
+      // A null `error` does NOT mean the write happened. This RPC RAISEs on
+      // every refusal and otherwise always returns a jsonb verdict, so an
+      // absent body means something silently did nothing — say so rather than
+      // reporting a verification that may not exist.
+      const v = verdict as { verified?: boolean; distance_ft?: number | null } | null;
+      if (!v || typeof v.verified !== "boolean") {
+        report(new Error("mark_helper_arrival returned no verdict"), {
+          tags: { source: "JobTracking.retryArrival" },
+        });
+        hapticError();
+        toast.error("Couldn't re-check your arrival — try again?");
+        return;
+      }
+
+      if (v.verified) {
+        const nowIso = new Date().toISOString();
+        setJobStamps((prev) => ({
+          ...prev,
+          arrivedAt: prev.arrivedAt ?? nowIso,
+          arrivalVerifiedAt: prev.arrivalVerifiedAt ?? nowIso,
+        }));
+        hapticSuccess();
+        toast.success("Location confirmed — you're checked in at the job site.");
+        return;
+      }
+
+      hapticError();
+      toast.warning(
+        v.distance_ft != null
+          ? `We got your location, but you're about ${v.distance_ft}ft from the job site — too far to confirm it. Move closer and try again, or ask the poster to tap "Confirm They Arrived".`
+          : "We got your location but still couldn't confirm it. Try again from the job site, or ask the poster to tap \"Confirm They Arrived\".",
+        { duration: 9000 },
+      );
+    } finally {
+      setRetryingArrival(false);
+    }
   };
 
 
@@ -1991,6 +2128,28 @@ export function JobTracking({
               {/* The ACTION, not the step's name — see STATUSES. */}
               {nextStatus.action ?? nextStatus.label}
             </Button>
+            {/* THE WAY BACK FROM A CLAIMED-ONLY ARRIVAL.
+                Shown only while `arrivalState` is exactly `claimed` — the
+                arrival was asserted but never location-confirmed, which is the
+                one state where another GPS read can change anything. Not on
+                `verified` or `confirmed` (nothing left to prove) and not on
+                `none` (the "I've Arrived" button above is that step).
+                Helper-only by the same scoping as every other arrival action
+                here: it lives inside the `isHelper &&` block, and the RPC
+                itself refuses anyone but `jobs.helper_id` (42501). It does NOT
+                advance the rail — the status is already `arrived`. */}
+            {currentArrivalState === "claimed" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full"
+                onClick={() => { void retryArrivalVerification(); }}
+                disabled={retryingArrival || updating}
+              >
+                <MapPin className="w-3.5 h-3.5 mr-1" />
+                {retryingArrival ? "Checking…" : "Try My Location Again"}
+              </Button>
+            )}
             {/* THE ONE TAP THAT MOVES MONEY GETS A CONFIRMATION.
                 The poster's mirror of this decision opens CompletionChoiceSheet
                 and walks them through it; the helper's requested the payout on

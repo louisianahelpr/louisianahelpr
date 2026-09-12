@@ -83,13 +83,24 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
           onChange={setTab}
         />
 
+        {/* `variant="wheels"` — NOT the default "auto". TimePickerWheel swaps
+            itself for a native `<input type="time">` on the desktop website,
+            and that swap is right for the wide form columns it was written
+            for and wrong here: this popover is a FIXED 300px, so the wheels
+            were never the too-wide control the swap exists to avoid. What the
+            swap produced instead was the half-empty "05:-- PM" field with a
+            clock glyph reported on Availability's "Set hours" — a control that
+            draws differently in Chrome, Safari and the WKWebView, on a surface
+            the phone website and the native app are supposed to share. */}
         {tab === "start" ? (
           <TimePickerWheel
+            variant="wheels"
             value={start}
             onChange={(v) => onChange({ start: v, end })}
           />
         ) : (
           <TimePickerWheel
+            variant="wheels"
             value={end}
             onChange={(v) => onChange({ start, end: v })}
           />

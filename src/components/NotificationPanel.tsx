@@ -108,12 +108,54 @@ const NotificationPanel = () => {
     // No-op while the same person stays signed in; clears everything the
     // moment the id changes.
     setNotificationUser(session.user.id);
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .order("created_at", { ascending: false })
-      .limit(50);
+    /* TWO SELECTS, NOT ONE — and this is the whole of the third notification-
+       count bug. The panel used to fetch only "the latest 50 by created_at",
+       which is a RECENCY page, while the badge counts UNREAD across the whole
+       table. Those are different sets, and nothing kept the page from missing
+       the unread rows entirely.
+
+       Measured against prod on 2026-09-11 for lexilombas05@gmail.com: 73 rows,
+       10 unread, 63 read — and the ten unread ones rank 53rd to 62nd by
+       created_at, because they were created on 09-10 and 63 read rows landed
+       after them. So `unread_in_page` was **0** while `unread_total` was 10.
+       The bell was right (10, from the count query) and the PANEL was wrong in
+       three ways at once: the "Unread" segment claimed 10 over an empty list,
+       the seed effect below saw no unread in the page and opened the panel on
+       All, and `markAllRead` derives `unreadIds` from the page — so it found
+       nothing, returned early, and the Mark-all-read control was a SILENT
+       no-op on the exact account that needed it.
+       That is why the two previous fixes could not help: neither the store
+       (4b7c93f08) nor the optimistic decrement (c14f86df4) is wrong. The two
+       numbers were never out of sync — the LIST was, and no amount of sharing
+       one variable makes a page contain rows it never asked for.
+       So ask for them. The recency page stays (it is what "All" shows), and a
+       second, unread-scoped select guarantees the unread rows are present
+       whenever there are at most 50 of them. Merge, dedupe by id, re-sort. */
+    const [recent, unread] = await Promise.all([
+      supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .eq("read", false)
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+    // Either failing is a failed load: a recency page without its unread rows
+    // is the defect above, and unread rows without the page is not a list.
+    const error = recent.error ?? unread.error;
+    const data = error
+      ? null
+      : [...new Map(
+          [...(recent.data ?? []), ...(unread.data ?? [])].map((n) => [n.id, n]),
+        ).values()].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        );
     if (error) {
       console.error("[NotificationPanel] failed to load notifications:", error);
       // Surface to the error logger alongside the local console + toast
@@ -800,7 +842,7 @@ const NotificationPanel = () => {
             className="shrink-0 px-4 py-2 text-ds-11 font-sans text-center border-t border-[hsl(var(--olivewood)/0.12)]"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Showing the latest {notifications.length} · {unreadTotal} unread in total
+            Showing {notifications.length} · {unreadTotal} unread in total
           </p>
         )}
 

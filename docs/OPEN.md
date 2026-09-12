@@ -1516,3 +1516,17 @@ Two supporting facts, so this is not a guess:
       like center the picture better it crops their head off". The avatar is
       shown center-cropped in a circle with no way to move or zoom the image
       before saving.
+
+- [ ] **"Update ready." is an error screen pretending to be good news — remove it
+      everywhere.** Owner, 2026-09-12, clicking Terms / Rules / Privacy on Complete
+      Profile: "there should not be a such thing as an update ready screen this is
+      clearly an error and all of them need to be fixed". Reproduced on localhost:
+      all three routes render RouteErrorBoundary's chunk-load state. Cause on the
+      dev server is Vite `504 (Outdated Optimize Dep)` on `@radix-ui_react-tabs.js`
+      → `Failed to fetch dynamically imported module: …/Legal.tsx` (the dependency
+      pre-bundle went stale after today's `npm run build` / `cap sync`). But the
+      real defect is the SCREEN: any failed chunk load is labelled "A newer version
+      of the app was just released", which is a guess and here is false.
+- [ ] **Complete Profile: "Enter App" and "Sign Out" are different heights.** Owner,
+      2026-09-12: "buttons should be the same size". Measured from the selection:
+      Enter App 49.5px, Sign Out 60px, stacked full-width.

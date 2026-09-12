@@ -20,16 +20,16 @@ export function SettingsSection({
   onRequestDelete,
 }: SettingsSectionProps) {
   return (
-    <div
-      className="liquid-glass"
-      style={{
-        boxShadow:
-          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-          "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-          "0 12px 28px -10px hsl(var(--olivewood) / 0.14)",
-      }}
-    >
-      <div className="px-4 pt-3 pb-4 space-y-4">
+    /* NO CARD AROUND THE GROUPS. Owner, 2026-09-11: keep the groups, drop the
+       outer card. This wrapper used to be a `liquid-glass` panel, so every
+       group below drew a white bordered card INSIDE a white bordered card —
+       two boundaries a pixel apart, four times on this screen (measured
+       `.liquid-glass .liquid-glass` = 4). The group cards and their eyebrows
+       are the cards (owner, 2026-08-24: "better organization"); this is only
+       the spacing between them. Same ruling as the getting-started banners in
+       ProfileLanding. */
+    <div>
+      <div className="space-y-4">
         {/* Unified list-of-rows navigation, grouped by section. */}
         {menuGroups.map((group) => {
           return (

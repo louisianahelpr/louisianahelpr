@@ -288,9 +288,13 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
         />
       </div>
 
-      <div className="rounded-2xl liquid-glass p-5">
-        <HelperAvailability userId={userId} />
-      </div>
+      {/* NO CARD AROUND THE DAY CARDS. Owner, 2026-09-11: keep the groups,
+          drop the outer card. This was a `liquid-glass` panel, so every day
+          row inside HelperAvailability — itself a `liquid-glass` card — drew
+          a white bordered card inside a white bordered card, seven times
+          (measured 7 nested pairs at 375 and 1440). The day cards are the
+          cards; HelperAvailability supplies its own spacing. */}
+      <HelperAvailability userId={userId} />
     </div>
   );
 }

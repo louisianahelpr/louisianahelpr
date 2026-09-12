@@ -175,6 +175,7 @@ const AdminHealth = () => {
           an audit and finding it on the screen you already open. */}
       <AdminCard
         title="Configuration Checks"
+        surface="none"
         subtitle="Problems that do not surface anywhere else in the app."
       >
         {!configChecks || configChecks.length === 0 ? (
@@ -197,6 +198,7 @@ const AdminHealth = () => {
           run in four days while every dashboard read green. */}
       <AdminCard
         title="Scheduled Jobs"
+        surface="none"
         subtitle="Whether the automation that runs without anyone watching is actually running."
       >
         {!cronChecks || cronChecks.length === 0 ? (

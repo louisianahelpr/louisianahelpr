@@ -615,7 +615,11 @@ const AdminSettings = () => {
       </AdminCard>
 
       {/* Admin Management */}
+      {/* surface="none": each admin below is its own `liquid-glass` row, so the
+          default card put white bordered rows inside a white bordered card.
+          Owner, 2026-09-11: keep the groups, drop the outer card. */}
       <AdminCard
+        surface="none"
         title={<span className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-primary" /> Admin Users</span>}
         subtitle={adminsLoading ? undefined : `${admins.length} ${admins.length === 1 ? "account holds" : "accounts hold"} the admin role`}
         action={

@@ -644,7 +644,13 @@ const AdminDisputes = () => {
         </AdminCard>
       )}
 
+      {/* surface="none": every dispute below is its own bordered `bg-card`
+          (DisputeCard), so the default card drew a box inside the box that
+          already was the card. Owner, 2026-09-11: keep the groups, drop the
+          outer card. The inline EmptyState stays painted — with no outer card
+          it IS the card. */}
       <AdminCard
+        surface="none"
         title={filter === "open" ? "Open Queue" : "Decided"}
         subtitle={
           list.length === 0

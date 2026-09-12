@@ -473,7 +473,13 @@ const AdminJobs = () => {
         ))}
       </AdminFilterStrip>
 
+      {/* surface="none": every JobListItem below is its own bordered
+          `bg-card`, so the default card drew white bordered cards inside a
+          white bordered card (measured 5 nested pairs at 375 and 1440).
+          Owner, 2026-09-11: keep the groups, drop the outer card. The inline
+          EmptyState stays painted — with no outer card it IS the card. */}
       <AdminCard
+        surface="none"
         title={filter === "flagged" ? "Flagged Jobs" : filter === "resolved" ? "Resolved Flags" : filter === "ghost" ? "Ghost Jobs — open with no escrow" : "All Jobs"}
         subtitle={
           filteredJobs.length === 0

@@ -32,6 +32,7 @@ export function AdminCard({
   children,
   className,
   contentClassName,
+  surface = "card",
 }: {
   title?: ReactNode;
   subtitle?: ReactNode;
@@ -39,9 +40,22 @@ export function AdminCard({
   children: ReactNode;
   className?: string;
   contentClassName?: string;
+  /**
+   * `"none"` drops the card paint (fill, border, shadow, padding) and keeps
+   * only the header + content stack. For sections whose CHILDREN are already
+   * cards — a list of bordered rows, say — the default surface put a white
+   * bordered card around white bordered cards, two boundaries a pixel apart.
+   * Owner, 2026-09-11: keep the groups, drop the outer card.
+   */
+  surface?: "card" | "none";
 }) {
   return (
-    <section className={cn("rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4 sm:p-5", className)}>
+    <section
+      className={cn(
+        surface === "card" && "rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4 sm:p-5",
+        className,
+      )}
+    >
       {(title || action) && (
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {title && (

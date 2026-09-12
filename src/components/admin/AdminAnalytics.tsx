@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { formatPrice, formatPriceExact } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 /** The uppercase eyebrow the Dashboard home already uses to head a group of
  *  tiles. Twenty-odd cards down one column with no grouping is a list, not a
@@ -429,11 +430,14 @@ const AdminAnalytics = () => {
             </div>
           ) : (
             <EmptyState
-            variant="inline"
-            icon={Crown}
-            title="No subscribers yet"
-            body="Paid plans will appear here once someone upgrades."
-          />
+              variant="inline"
+              icon={Crown}
+              title="No subscribers yet"
+              body="Paid plans will appear here once someone upgrades."
+              // Inside an AdminCard: flatten, or it is a white tile inside a
+              // white tile (measured 1 nested pair on /admin?view=analytics).
+              surfaceStyle={NESTED_EMPTY_SURFACE}
+            />
           )}
         </AdminCard>
       </div>

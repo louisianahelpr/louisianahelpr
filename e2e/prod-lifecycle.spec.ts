@@ -319,14 +319,30 @@ async function uploadProofThroughTheApp(
   // Scoped by the run id, which is unique per run and is part of the job
   // title. A previous run that died mid-loop can leave a SECOND in-progress
   // job on this same account carrying the same marker, and an unscoped
-  // "Before Photos" button would then be a coin flip between them.
+  // "Add Photo" button would then be a coin flip between them.
   const card = page.locator("div.liquid-glass").filter({ hasText: runId }).first();
   await expect(
     card,
     `the helper's /my-jobs never rendered the card for run ${runId} — the job is ${jobId}`,
   ).toBeVisible({ timeout: 60_000 });
 
-  await card.getByRole("button", { name: new RegExp(`^${label} Photos$`) }).click();
+  // ONE PHOTO ASK AT A TIME, TIED TO THE TRACKER STEP (owner, 2026-09-11,
+  // HelperPhotoAsk.tsx). The card no longer carries a "Before Photos" /
+  // "After Photos" pair: it renders a single panel titled "Add a before photo"
+  // or "Add an after photo" whose button reads "Add Photo". This locator used
+  // to wait for `^Before Photos$`, which stopped existing when that redesign
+  // reached production — the money loop then sat on a fully funded, hired,
+  // in-progress job for the whole five-minute test budget, and failed in a way
+  // that read like a flake rather than a selector that had gone stale.
+  //
+  // The heading is asserted FIRST so the single "Add Photo" button is known to
+  // belong to the right type; the dialog title check below confirms it again.
+  const askHeading = type === "before" ? "Add a before photo" : "Add an after photo";
+  await expect(
+    card.getByText(askHeading, { exact: true }),
+    `the card never asked for the ${type} photo — the app shows one ask per tracker step, so check the order`,
+  ).toBeVisible({ timeout: 30_000 });
+  await card.getByRole("button", { name: /^Add Photo$/ }).click();
 
   // The dialog is portaled to <body>, so it is NOT inside `card`.
   const dialog = page.getByRole("dialog").filter({ hasText: `${label} photos` });
@@ -786,8 +802,13 @@ test.describe("full money loop against production", () => {
        Before AND after, because `hasRequiredProof` demands both and there is no
        reason to prove one path and stub the other. */
     const proofDir = mkdtempSync(join(tmpdir(), "lh-proof-"));
-    const beforePath = await uploadProofThroughTheApp(page, helper, job.id, runId, "before", proofDir);
+    // AFTER FIRST, then before — the order the app asks in. With arrival
+    // confirmed the card is on the Working step, and HelperPhotoAsk puts the
+    // After ask first there (a finished-work photo is the step's own ask; a
+    // still-missing Before only appears once the After exists). Uploading
+    // Before first waits for a panel the app will not render yet.
     const afterPath = await uploadProofThroughTheApp(page, helper, job.id, runId, "after", proofDir);
+    const beforePath = await uploadProofThroughTheApp(page, helper, job.id, runId, "before", proofDir);
 
     /* THE OBJECT EXISTS — asked of storage, not of the app that just claimed
        it. Listed as the HELPER (the `Users can read proof photos for their

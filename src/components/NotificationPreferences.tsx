@@ -1,6 +1,7 @@
 // Quiet-hours window stored here is enforced server-side by the
 // send-push-notification edge function (PR #446).
 import { Fragment, useEffect, useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -307,7 +308,7 @@ const NotificationPreferences = () => {
       // has to end in feedback rather than in silence — just without the
       // per-channel claim we can no longer back up.
       if (!channels) {
-        toast.success("Test sent — check the bell icon, and your email.");
+        confirmConsequential("Test sent — check the bell icon, and your email.");
         return;
       }
 
@@ -347,7 +348,7 @@ const NotificationPreferences = () => {
       } else if (issues.length > 0) {
         toast.warning(`Sent to ${joinList(landed)} — but ${joinList([...issues, ...(pushNote ? [pushNote] : [])])}.`);
       } else {
-        toast.success(`Sent to ${joinList(landed)}.${pushNote ? " No device is registered for push." : ""}`);
+        confirmConsequential(`Sent to ${joinList(landed)}.${pushNote ? " No device is registered for push." : ""}`);
       }
     } catch (err: unknown) {
       hapticError();

@@ -18,6 +18,7 @@
  * the legacy jobs.revision_note column instead.
  */
 import { useEffect, useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { AlertTriangle, Check, ChevronDown, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -168,7 +169,7 @@ export function HelperRevisionCard({
       // eventually re-reads it, and under load that has taken 10s+, during
       // which the button read "I'll Fix It" again as if nothing had happened.
       setRevision((r) => (r ? { ...r, status: "accepted" } : r));
-      toast.success("Got it — the poster knows you'll fix it. Tap Mark Fixed when it's done.");
+      confirmConsequential("Got it — the poster knows you'll fix it. Tap Mark Fixed when it's done.");
       onAccepted();
     } catch (err: unknown) {
       hapticError();

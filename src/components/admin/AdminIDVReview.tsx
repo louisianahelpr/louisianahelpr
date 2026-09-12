@@ -28,6 +28,7 @@
 //   Reject        -> idv_reject         (failed + a stored reason; still listed here)
 
 import { useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -151,7 +152,7 @@ const AdminIDVReview = () => {
         },
       });
       if (error) throw error;
-      toast.success(
+      confirmConsequential(
         decision === "manual_verify"
           ? "Approved — they can post and accept jobs now."
           : decision === "request_id_reupload"

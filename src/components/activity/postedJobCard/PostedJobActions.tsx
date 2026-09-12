@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -216,7 +217,7 @@ export function PostedJobActions({
       hapticSuccess();
       // Escalating froze the payout and handed the decision to a
       // human, and the card said nothing about it.
-      toast.success("Escalated — an admin will review this and decide.");
+      confirmConsequential("Escalated — an admin will review this and decide.");
       onActionComplete();
     } finally {
       setDisputeActing(false);
@@ -270,7 +271,7 @@ export function PostedJobActions({
       // The one action in this card that moves money and said NOTHING when it
       // landed — every sibling handler (confirm arrival, confirm working)
       // toasts. Silence after releasing escrow reads as "did that work?".
-      toast.success("Dispute resolved — payment released to your Helpr.");
+      confirmConsequential("Dispute resolved — payment released to your Helpr.");
       onActionComplete();
     } finally {
       setDisputeActing(false);

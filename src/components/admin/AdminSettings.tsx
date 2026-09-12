@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -149,7 +150,7 @@ const AdminSettings = () => {
     // people away, an operator changing it during an incident needs to see the
     // resulting behaviour confirmed back — and needs "0" to read unmistakably
     // as off, because that is the undo.
-    toast.success(
+    confirmConsequential(
       n === 0
         ? "Force-update gate turned OFF — no device is blocked."
         : `Force-update gate live — native builds below ${n} will be blocked within a minute.`,
@@ -208,7 +209,7 @@ const AdminSettings = () => {
     // Read the resulting BEHAVIOUR back, not "saved" — same reasoning as the
     // min-build control: a limit that is now off has removed a protection, and
     // that is the sentence the operator needs to see.
-    toast.success(
+    confirmConsequential(
       ABUSE_LIMITS.map((l) => describeCap(l.key, patch[l.key])).join(" "),
     );
     await logAdminAction("update_settings", "platform_settings", settingsId, patch);

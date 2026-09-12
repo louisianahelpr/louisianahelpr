@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -196,7 +197,7 @@ const BanReviewInner = () => {
         },
       });
       if (error) throw error;
-      toast.success(confirming ? "Account permanently banned." : "Restriction lifted.");
+      confirmConsequential(confirming ? "Account permanently banned." : "Restriction lifted.");
       qc.invalidateQueries({ queryKey });
       setConfirmTarget(null);
       setDismissTarget(null);

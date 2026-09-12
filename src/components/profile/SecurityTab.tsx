@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -251,7 +252,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     setEmailDialogOpen(false);
     // The dialog just closes on success — without this the user has no cue
     // that a confirmation email is now sitting in the NEW inbox.
-    toast.success(`Check ${trimmed} to confirm your new address.`);
+    confirmConsequential(`Check ${trimmed} to confirm your new address.`);
   };
 
   const [appLockOn, setAppLockOn] = useState(() => isAppLockEnabled());
@@ -473,7 +474,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               if (error) toast.error("Couldn't send the reset link — try again?");
               // Say it worked — the only visible change was the button label
               // flicking back from "Sending…", which reads as nothing happened.
-              else toast.success(`Reset link sent to ${email}.`);
+              else confirmConsequential(`Reset link sent to ${email}.`);
             }}
           >
             {resettingPassword ? "Sending…" : "Reset"}

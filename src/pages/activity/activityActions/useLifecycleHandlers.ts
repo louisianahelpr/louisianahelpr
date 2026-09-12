@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { createNotification } from "@/lib/notifications";
@@ -409,7 +410,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       // only silent one. The message names which rung the RPC actually reached
       // rather than a generic "done".
       hapticSuccess();
-      toast.success(
+      confirmConsequential(
         legacyBanned
           ? "No-show reported — this Helpr has been banned for repeated no-shows."
           : restricted

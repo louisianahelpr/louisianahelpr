@@ -29,6 +29,7 @@
 // ability to take on new work for a fixed window.
 
 import { useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import {
@@ -134,7 +135,7 @@ export function RestrictApplicationsDialog({
         reason: reason.trim(),
       });
 
-      toast.success(`Applications restricted for ${days} days.`);
+      confirmConsequential(`Applications restricted for ${days} days.`);
       onSuccess?.();
       handleClose();
     } catch (err) {

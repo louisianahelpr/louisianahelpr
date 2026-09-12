@@ -10,6 +10,7 @@
  * profiles so the timeline doesn't depend on a foreign-key relation.
  */
 import { useEffect, useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { History, ShieldAlert, Bell, UserCheck, Undo2 } from "lucide-react";
@@ -101,7 +102,7 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
       return;
     }
     const restored = (data as { access_restored?: boolean } | null)?.access_restored;
-    toast.success(
+    confirmConsequential(
       restored
         ? "Strike reversed and account access restored."
         : "Strike reversed. It no longer counts toward future warnings.",

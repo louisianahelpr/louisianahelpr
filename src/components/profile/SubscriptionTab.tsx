@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import type { CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,8 +77,20 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   const refreshSubscription = async () => {
     setRefreshing(true);
     try {
-      await supabase.functions.invoke("check-pro-subscription");
+      // THE RESULT WAS BEING THROWN AWAY. This used to be a bare
+      // `await supabase.functions.invoke("check-pro-subscription")`, and
+      // `functions.invoke` does not THROW on a failed function — it resolves
+      // with `{ data: null, error }`. So a 500 from the edge function never
+      // reached the `catch` below: the spinner stopped, the error toast never
+      // appeared, and the user was left believing their membership had been
+      // checked. CLAUDE.md: never drop the Supabase `error`.
+      const { error } = await supabase.functions.invoke("check-pro-subscription");
+      if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
+      // Consequential: it re-reads billing state held at Stripe, and when the
+      // membership is unchanged the screen looks identical before and after —
+      // so without this the button is indistinguishable from a dead one.
+      confirmConsequential("Membership status refreshed.");
     } catch {
       toast.error("Couldn't refresh your membership — try again?");
     } finally {
@@ -189,7 +202,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     try {
       await restorePurchases();
       await refreshSubscription();
-      toast.success("Purchases restored. If you had a membership, it's back on your account.");
+      confirmConsequential("Purchases restored. If you had a membership, it's back on your account.");
     } catch {
       toast.error("Couldn't restore purchases — try again?");
     } finally {

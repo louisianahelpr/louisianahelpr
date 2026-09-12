@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -244,7 +245,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
       // (`set_review_visibility`, 20260506192638). Closing silently made a
       // reviewer who checked the profile and saw nothing believe the review
       // had failed — and this is the one screen that can explain the wait.
-      toast.success(
+      confirmConsequential(
         "Review posted. It goes live once they review you too — or in 14 days, whichever comes first.",
       );
       onClose();

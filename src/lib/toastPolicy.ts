@@ -97,6 +97,55 @@ import { toast } from "sonner";
  * money and predates the bare-callable idiom); it is the exception, not the
  * pattern to copy. The bare callable is the supported route.
  */
+/**
+ * The real, unsuppressed `toast.success`, captured the moment the policy
+ * replaces it. `confirmConsequential` renders through THIS rather than the bare
+ * `toast()` callable, so a consequential confirmation keeps the success styling
+ * — the tinted check icon from `classNames.success` — instead of arriving as a
+ * neutral announcement indistinguishable from an informational one.
+ */
+let realSuccess: typeof toast.success | null = null;
+
+/**
+ * CONFIRM AN ACTION WHOSE EFFECT HAPPENS SOMEWHERE THE USER CANNOT SEE.
+ *
+ * Owner ruling, 2026-09-12: "re-enable success toasts for consequential actions
+ * only". Everything else stays suppressed by `applyToastPolicy` below.
+ *
+ * WHY THE RULING CHANGED. The blanket suppression (2026-08-13) was justified in
+ * this file's own header as confirmations that "read as clutter and, once
+ * toasts moved to the top of the screen, began covering page headers". On
+ * 2026-09-12 every toast moved to the BOTTOM, for exactly that reason — so the
+ * second half of the justification no longer holds, and the first half (clutter)
+ * is answered by keeping trivial confirmations silent.
+ *
+ * WHAT IT WAS HIDING. An audit that pressed every control and watched the
+ * network found consequential actions reaching the server and showing the user
+ * nothing: "Email me a password reset link" really posts to /auth/v1/recover,
+ * and the confirmation `Reset link sent to ${email}` was already written at the
+ * call site — suppressed, dead code that looked live, exactly as the table above
+ * warns. Press it and you cannot tell it worked, so you press it again.
+ *
+ * THE TEST — use this only when BOTH hold:
+ *   1. The effect lands OUTSIDE the user's own screen: an email or message sent
+ *      to someone, money that moves or leaves a hold, another person's account
+ *      standing changing, or behaviour that changes for every user.
+ *   2. Nothing on screen shows it. A row appearing, a toggle staying flipped, a
+ *      dialog closing, a tracker step advancing — those ANSWER the question, and
+ *      a toast on top of them is the clutter the ruling kept out.
+ *
+ * If you are reaching for this to confirm a save that the form already reflects,
+ * it is the wrong tool. Say nothing; that is the policy working.
+ */
+export function confirmConsequential(
+  message: Parameters<typeof toast.success>[0],
+  data?: Parameters<typeof toast.success>[1],
+): string | number {
+  // Falls back to the live property before the policy is applied (unit tests,
+  // Storybook), where `toast.success` is still the real one.
+  return (realSuccess ?? toast.success)(message, data);
+}
+
 export function applyToastPolicy() {
   const noop = () => "" as unknown as string | number;
 
@@ -110,6 +159,11 @@ export function applyToastPolicy() {
         ? (real as (m: unknown, d?: unknown) => string | number)(message, data)
         : noop()) as T;
 
+  // Capture the genuine renderer BEFORE replacing it. Guarded so a second call
+  // (a hot reload, a test that applies the policy twice) does not capture the
+  // already-suppressed wrapper and silently turn every consequential
+  // confirmation back into a no-op.
+  if (realSuccess === null) realSuccess = toast.success;
   toast.success = suppressUnlessActionable(toast.success);
   toast.info = suppressUnlessActionable(toast.info);
   toast.message = suppressUnlessActionable(toast.message);

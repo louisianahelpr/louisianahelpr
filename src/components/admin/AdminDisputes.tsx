@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
@@ -382,7 +383,7 @@ const AdminDisputes = () => {
           helperPaid > 0 ? `$${formatPriceExact(helperPaid)} to the Helpr` : null,
           posterRefunded > 0 ? `$${formatPriceExact(posterRefunded)} back to the poster` : null,
         ].filter(Boolean);
-        toast.success(`Dispute settled — ${parts.join(", ")}.`);
+        confirmConsequential(`Dispute settled — ${parts.join(", ")}.`);
       }
     }
   };

@@ -7,6 +7,7 @@
 // null also dismisses.
 
 import { useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import {
@@ -100,7 +101,7 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
 
     setDenying(false);
     setReason("");
-    toast.success(`${formatName(profile.full_name)} denied — they've been notified.`);
+    confirmConsequential(`${formatName(profile.full_name)} denied — they've been notified.`);
     onSuccess?.();
     onClose();
   };

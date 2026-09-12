@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -117,7 +118,7 @@ const AdminHealth = () => {
       } else if (result.no_tokens) {
         toast("No registered devices", { description: "Open the app on your phone and grant push permission first." });
       } else if ((result.sent ?? 0) > 0) {
-        toast.success(`Pushed to ${result.sent}/${result.total} device${result.total === 1 ? "" : "s"}`, { description: "Check your phone." });
+        confirmConsequential(`Pushed to ${result.sent}/${result.total} device${result.total === 1 ? "" : "s"}`, { description: "Check your phone." });
       } else {
         toast.error("All sends failed", { description: `0 of ${result.total} succeeded` });
       }
@@ -276,7 +277,7 @@ const AdminHealth = () => {
                   severity: "info",
                   tags: { source: "admin_smoke_test", kind: "manual" },
                 });
-                toast.success("Test event sent", { description: "Check Sentry in ~30 seconds." });
+                confirmConsequential("Test event sent", { description: "Check Sentry in ~30 seconds." });
               }}
             >
               Send Test Event

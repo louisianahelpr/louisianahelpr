@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { Button } from "@/components/ui/button";
 import { JobActionChip } from "@/components/activity/JobActionRow";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -94,7 +95,7 @@ export function DisputedSection({
         });
       }
       hapticSuccess();
-      toast.success("Dispute withdrawn — the payment is off hold.");
+      confirmConsequential("Dispute withdrawn — the payment is off hold.");
       setWithdrawConfirmOpen(false);
       onRefresh();
     } finally {

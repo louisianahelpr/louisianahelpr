@@ -5,6 +5,7 @@
 // and an onSuccess callback (refetch + close any parent profile detail).
 
 import { useState } from "react";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import {
@@ -304,7 +305,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           : banType === "temporary"
             ? `Temp ban applied — ${profile.full_name || "user"} suspended for ${duration} day${duration === "1" ? "" : "s"}.`
             : `${profile.full_name || "User"}'s account permanently banned.`;
-      toast.success(actionLabel);
+      confirmConsequential(actionLabel);
       onSuccess?.();
       handleClose();
     } catch (err) {

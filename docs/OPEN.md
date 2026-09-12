@@ -130,3 +130,19 @@ stalled on it:
   row drops the place name while keeping the expiry countdown — seen on
   `JobCard` in the browse feed with the map open. Where you are is the first
   filter a helper applies; how long is left is secondary. (owner, 2026-09-11)
+
+## The job card is not one component — CONFIRMED
+Owner asked directly ("is this all one component? if not fix it"). It is not:
+- The category corner-tab (`rounded-br-lg rounded-tr-none`) is hand-rolled in
+  **two** places — `activity/JobCardShell.tsx` and `dashboard/JobCard.tsx`.
+- `activity/JobCardTitleBar.tsx` already owns title + price pill, and
+  `dashboard/JobCard.tsx` reimplements the same thing inline instead.
+- The price pill's literal colours (`hsl(var(--bark) / 0.10)` fill,
+  `/ 0.28` border) are hand-written across 10+ files.
+
+SEQUENCING, deliberately: this waits for lane `step-components`, which is
+mid-flight defining the one shell both job cards fill. Retrofitting
+`dashboard/JobCard.tsx` onto pieces whose API is still moving would be work
+done twice. The moment that lane lands, the browse card adopts the same
+chip / title-price / meta pieces — that is the fix, not a second set of
+components.

@@ -6,6 +6,7 @@
 // container) so the back button, top padding, and dock alignment
 // stay consistent with every other Profile sub-tab.
 
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Heart, Search, ArrowUpDown, ListFilter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,8 @@ const CATEGORY_FILTER_OPTIONS = Object.entries(JOB_CATEGORY_LABELS) as [JobCateg
 
 export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const navigate = useNavigate();
+  // Closed by default — see the note on the header icon below.
+  const [searchOpen, setSearchOpen] = useState(false);
   const { user } = useCurrentUser();
   const {
     helpers,
@@ -74,9 +77,40 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
     // and a 12px rhythm where every sibling tab uses 16px: the concrete
     // reason this screen read as built by someone else.
     <div className="space-y-4">
+      {/* SEARCH IS AN ICON THAT OPENS A FIELD, like every other screen that
+          has search (owner, 2026-09-11: "any other screen have a search bar
+          like this? no then this one shouldnt either").
+
+          The field itself was already the shared shape — a previous pass made
+          it match BrowseSearchBar and left a comment claiming this screen had
+          stopped being the odd one out. It had not: BrowseSearchBar renders
+          only while `searchOpen`, behind a header icon, and so does the
+          Messages inbox and the Activity header. Matching the FIELD while
+          leaving it permanently on screen matched the paint and not the
+          pattern, which is the more visible half. A saved-Helprs list is
+          usually short enough to read without searching at all, so a
+          permanent field also spent a row on a control most visits never
+          touch. */}
       <ProfileTabHeader
         title="Saved Helprs"
         onBack={onBack}
+        rightSlot={
+          helpers.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (searchOpen) setSearch("");
+                setSearchOpen((v) => !v);
+              }}
+              aria-label={searchOpen ? "Close search" : "Search saved Helprs"}
+              aria-expanded={searchOpen}
+              className="w-11 h-11 inline-flex items-center justify-center rounded-full transition-colors hover:bg-[hsl(var(--bark)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
+              style={{ color: "hsl(var(--olivewood))" }}
+            >
+              {searchOpen ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
+            </button>
+          ) : undefined
+        }
       />
 
       <div className="space-y-3">
@@ -102,6 +136,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 the edge. The count reads "3 saved" rather than "3 saved
                 Helprs": the noun is already the page title two rows up, and
                 the shorter string is what lets it share this row at 320. */}
+            {searchOpen && (
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               {/* Deliberately NOT autoFocus: the field is permanent now, so
@@ -137,6 +172,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 </button>
               )}
             </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-2">
               {/* Filter — narrows the list to a skill category, next to

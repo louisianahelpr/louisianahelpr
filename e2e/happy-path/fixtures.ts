@@ -285,7 +285,11 @@ export async function installSupabaseMocks(
 
     // 3. PostgREST (table/RPC reads + writes)
     if (url.pathname.startsWith("/rest/v1/")) {
-      return route.fulfill(buildFulfill(honourSingleObject(req.headers(), handleRest(url, method, user, seed))));
+      return route.fulfill(
+        buildFulfill(
+          honourSingleObject(req.headers(), handleRest(url, method, user, seed, req.postData() ?? null)),
+        ),
+      );
     }
 
     // 4. Edge functions (e.g. complete-signup) — always 200 with an empty
@@ -527,6 +531,7 @@ function handleRest(
   method: string,
   user: FakeUser | undefined,
   seed = false,
+  postData: string | null = null,
 ): SupabaseResponse {
   // /rest/v1/<table>?... or /rest/v1/rpc/<name>
   const parts = url.pathname.replace("/rest/v1/", "").split("/");
@@ -611,12 +616,44 @@ function handleRest(
     return { status: 200, body: [] };
   }
 
-  // INSERT / UPDATE / DELETE — return an empty array so .insert().select()
-  // patterns get back data. supabase-js doesn't care about the row shape
-  // here; the dashboard mutations all refresh via React Query, and the
-  // mocked SELECTs will reflect the new state.
+  // INSERT / UPDATE / DELETE.
+  //
+  // A WRITE THAT ASKED FOR ITS ROW BACK MUST GET ITS ROW BACK. This used to
+  // return `[]` unconditionally, under a comment claiming that was "so
+  // .insert().select() patterns get back data" — an empty array is precisely
+  // NOT data, and the comment had never been checked against what the client
+  // then did with it.
+  //
+  // It went unnoticed while nothing honoured the object-Accept header. Once
+  // `honourSingleObject` started modelling real PostgREST (2026-09-11), every
+  // `.insert(...).select(...).single()` in the app began 406ing against the
+  // mock — because zero rows genuinely IS a 406. That is correct PostgREST
+  // behaviour for a write that returned nothing, and wrong as a model of a
+  // write that SUCCEEDED. It failed the empty-state sweep on /dashboard via
+  // `useReferralData`'s code insert, and the 406 looked like an app defect.
+  // (It is not: `referral_codes` has matching INSERT and SELECT policies in
+  // prod — `with_check (user_id = auth.uid())` and `using (user_id =
+  // auth.uid())` — verified against `pg_policy`, so the real insert returns
+  // its row.)
+  //
+  // Real PostgREST echoes the inserted/updated representation when the request
+  // asks for one. So do that: reflect the request body back as the row. It is
+  // the smallest model that is not a lie, and it keeps every write-then-read
+  // path in the app exercising the shape it will meet in production.
   if (["POST", "PATCH", "DELETE", "PUT"].includes(method)) {
-    return { status: 201, body: [] };
+    if (method === "DELETE") return { status: 200, body: [] };
+    let rows: unknown[] = [];
+    if (postData) {
+      try {
+        const parsed = JSON.parse(postData);
+        rows = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        // Non-JSON body (or none) — fall through to the empty representation
+        // rather than inventing a row we cannot describe.
+        rows = [];
+      }
+    }
+    return { status: 201, body: rows };
   }
 
   // Seeded rows for the audit sweep (opt-in via `seed: true`). Checked last,

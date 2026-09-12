@@ -1,5 +1,9 @@
 # Open list
 
+**This is the ONLY open-work list** (owner, 2026-09-12). Handoff memories, the
+audit-bus ledger and agent reports are evidence, not backlogs: anything still
+open from them gets a line here, with the check that guards it once one exists.
+
 Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
@@ -1559,11 +1563,10 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 
 ## Working forwards — owner, 2026-09-12: "all 6 need to happen"
 
-- [ ] **Lint for root-cause patterns at write time.** PART DONE 53440856f: `local/no-button-height-override` (76 legacy hits / 38 files on a shrink-only ledger, test shown red). Still to add: unlayered global element rules, new-tab links to redirecting routes. Unlayered global element rules that override utilities, hand-set button heights instead of Button sizes, new-tab links to redirecting routes.
-- [ ] **Changed-screen checks before push.** Button geometry, new-tab and press-every-control run on the routes a diff touches, locally, in under a minute.
-- [ ] **Owner reports become failing tests first.** Scaffolder shipped 55ba5a461 (`npm run repro`). Open: browser proof a generated spec runs and fails (waits for browser queue). Selected element + route → a failing spec, then the fix.
-- [ ] **One open-work list.** Fold the audit-bus ledger, handoff memories and agent reports into this file, each item linked to the check that guards it.
-- [ ] **Automatic browser lock + per-worktree test ports.** No manual pausing of agents; no port-4173 collisions.
-- [ ] **Nightly WebKit + real-backend run** of the sweeps, not only Chromium on mocks.
+- [x] **Lint for root-cause patterns at write time.** 53440856f `local/no-button-height-override` (76 legacy hits / 38 files, shrink-only ledger); 0f5bfe179 global control CSS may not out-rank utilities (red on the pre-fix index.css) and new-tab links may not target redirect routes (red on the original /terms case).
+- [x] **Changed-screen checks before push.** 213053f0f `.husky/pre-push` → `npm run check:changed`: import graph maps a diff to routes, sweeps only those at phone-light (/login: ~10s, screenshot inspected). Press-every-control joins it when that harness lands.
+- [x] **Owner reports become failing tests first.** 55ba5a461 `npm run repro`; generated spec proven in the browser: located the element, screenshotted 375 + 1440, failed on its placeholder.
+- [x] **One open-work list.** This file. CLAUDE.md now says so; memory handoffs and agent reports point here instead of carrying their own open items.
+- [x] **Automatic browser lock + per-worktree test ports.** c3b133e39: `~/.lh-browser.lock` via Playwright globalSetup (second holder waited 10s, then ran); worktrees get a path-derived port, main keeps 4173.
+- [x] **Nightly WebKit + real-backend run.** e83876cc5 `nightly-webkit.yml` runs the whole happy-path suite in real WebKit (helper-apply 2/2 locally; first CI run dispatched). Real backend already nightly in e2e-real-backend.yml.
 
-Order: starts after the five audit-gap agents and the final reviewer finish. Browser work one agent at a time.

@@ -284,3 +284,47 @@ previously-uncaptured Profile tabs is designed, not blank.
       script ran twice. This is why every job card looks doubled on /dashboard —
       it is duplicated DATA, not a render defect. Deleting one family is a
       destructive prod DELETE of ~130 rows; either family is equivalent.
+
+## Closed 2026-09-11
+
+- [x] **Notification panel count — ROOT CAUSE FOUND, fixed in 74bb850a9.** The
+      two numbers were never out of sync; the LIST was. The bell and the chip
+      read the same variable in the same component, so they cannot diverge. The
+      panel fetched the latest 50 by `created_at` (a recency page) while the
+      badge counted unread across the whole table. Different sets. On the
+      owner's account: 73 rows, 10 unread, 63 read — and the ten unread rank
+      53rd-62nd, because 63 read rows landed after them. So the page contained
+      zero unread while the chip correctly said 10. Re-measured through the real
+      component at that exact row shape: **unread rows rendered 0 → 10**. This
+      also un-breaks Mark all read, which derived its ids from the page, found
+      none, and returned early — a silent no-op on the one account that needed
+      it. My three previous attempts were all correct and all irrelevant: no
+      amount of sharing one variable makes a page contain rows it never asked
+      for.
+- [x] **Job cards render twice — was duplicated seed data, not a render defect.**
+      Closed by the prod delete above.
+- [x] **Browse map pin anchoring.** Nothing mirrored MapKit selection into the
+      DOM, so every pin stayed 44x44. Selected pin is now 64x64 with a halo and
+      a caret in that pin's screen column. Recenter and card overflow did NOT
+      reproduce (12/13px inside; the card sits 112px above the edge, which is
+      `MAP_DOCK_CLEARANCE`) so they were left alone.
+- [x] **Arrival retry.** `mark_helper_arrival` verified idempotent live — a
+      second call can only add the verified stamp. "Try my location again" added
+      while arrival is `claimed`; it never advances the rail.
+- [x] **Hardcoded availability vs the weekly grid.** The grid is authoritative:
+      it is the only one the helper configured. Was "Until 2:44 AM" over a 9-5
+      grid; now "Today's hours ended at 5:00 PM · signal 2 more hours". A
+      MISSING row resolves to what the grid draws, not to "off" — reading it as
+      "off" reintroduced the contradiction in one step, caught by screenshot.
+- [x] **Time-picker scroll wheels.** The native-input swap was keyed on the
+      DEVICE while the problem it solves is the CONTAINER, so it fired inside a
+      fixed 300px popover too. Wide desktop forms keep it; the popover opts out.
+      Verified `nativeTimeInputs: 0`, wheels + AM/PM at 1440 and 393.
+
+Not a defect: the lone `animate-pulse` is `MobileNav.tsx:779`, the `aria-hidden`,
+`motion-safe`-gated halo behind the Post FAB. Screenshot specs should exclude
+`[aria-hidden]` rather than assert "no pulse" — and note a `.animate-pulse`
+class selector misses it entirely, since it is `motion-safe:animate-pulse`.
+
+Open, small: the bell abbreviates at "99+" while the chip prints the true total.
+Now reachable in prod. Mild disagreement, not yet fixed.

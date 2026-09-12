@@ -1,0 +1,4 @@
+# Working-forwards change 2 (owner, 2026-09-12): sweep the screens this push
+# touches before it leaves the machine. LH_SKIP_CHANGED_CHECK=1 skips (say why
+# in the commit). CI still runs the full matrix.
+node scripts/check-changed.mjs

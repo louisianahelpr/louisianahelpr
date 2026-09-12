@@ -36,7 +36,9 @@
     "check:claude-md": "node scripts/check-claude-md.mjs",
     "check:surface-owners": "node scripts/check-surface-owners.mjs",
     "check:dead-links": "node scripts/check-dead-links.mjs",
-    "repro": "node scripts/new-repro.mjs"
+    "repro": "node scripts/new-repro.mjs",
+    "check:changed": "node scripts/check-changed.mjs",
+    "changed-routes": "node scripts/changed-routes.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",

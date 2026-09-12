@@ -429,6 +429,22 @@ test.describe.configure({ mode: "serial" });
 // RUN_VISUAL_SWEEP=1.
 const sweepDescribe = process.env.RUN_VISUAL_SWEEP ? test.describe : test.describe.skip;
 
+// SWEEP_ROUTES: comma-separated App.tsx route patterns (e.g. "/profile,/jobs/:id").
+// Set by `npm run check:changed` to sweep only the screens a diff touches.
+// Unset → every screen.
+const ROUTE_PATTERNS = (process.env.SWEEP_ROUTES ?? "")
+  .split(",")
+  .map((p) => p.trim())
+  .filter(Boolean)
+  .map((p) => new RegExp("^" + p.replace(/\*$/, ".*").replace(/:[^/]+/g, "[^/]+").replace(/\//g, "\\/") + "$"));
+function inScope<T extends { url: string }>(screens: T[]): T[] {
+  if (!ROUTE_PATTERNS.length) return screens;
+  return screens.filter((s) => {
+    const path = new URL(s.url, "http://x").pathname;
+    return ROUTE_PATTERNS.some((re) => re.test(path));
+  });
+}
+
 sweepDescribe("UI audit evidence sweep", () => {
   // FAIL FAST when there is nothing to sweep. Without this, a local run with no
   // preview server reported "147 passed" in 15 seconds: each screen's error is
@@ -452,7 +468,7 @@ sweepDescribe("UI audit evidence sweep", () => {
   let index = 0;
 
   for (const v of VARIANTS) {
-    for (const screen of ANON_SCREENS) {
+    for (const screen of inScope(ANON_SCREENS)) {
       const i = ++index;
       test(`${String(i).padStart(3, "0")} ${screen.name} (anon/${v.tag})`, async ({ page }) => {
         await installSupabaseMocks(page, { seed: true, rules: screen.rules });
@@ -469,7 +485,7 @@ sweepDescribe("UI audit evidence sweep", () => {
 
   for (const v of VARIANTS) {
     for (const role of ROLES) {
-      for (const screen of AUTHED_SCREENS) {
+      for (const screen of inScope(AUTHED_SCREENS)) {
         const i = ++index;
         const name = `${role.tag}-${screen.name}`;
         test(`${String(i).padStart(3, "0")} ${name} (${role.tag}/${v.tag})`, async ({ context, page, baseURL }) => {
@@ -483,7 +499,7 @@ sweepDescribe("UI audit evidence sweep", () => {
 
   // Admin (role-elevated customer).
   for (const v of VARIANTS) {
-    for (const screen of ADMIN_SCREENS) {
+    for (const screen of inScope(ADMIN_SCREENS)) {
       const i = ++index;
       test(`${String(i).padStart(3, "0")} ${screen.name} (admin/${v.tag})`, async ({ context, page, baseURL }) => {
         await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");

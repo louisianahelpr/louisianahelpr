@@ -7,6 +7,7 @@ import { CategoryPicker } from "./detailsSection/CategoryPicker";
 import { TitleField } from "./detailsSection/TitleField";
 import { DescriptionField } from "./detailsSection/DescriptionField";
 import { CredentialTierSelector } from "./detailsSection/CredentialTierSelector";
+import { PhotoProofToggle } from "./detailsSection/PhotoProofToggle";
 import { PhotoUpload } from "./detailsSection/PhotoUpload";
 import { VideoScope } from "./detailsSection/VideoScope";
 import type { DetailsSectionProps } from "./detailsSection/types";
@@ -32,6 +33,8 @@ export function DetailsSection({
   detailsComplete,
   credentialTier,
   setCredentialTier,
+  requirePhotoProof,
+  setRequirePhotoProof,
   scopeVideoUrl,
   onVideoSelect,
   onClearVideo,
@@ -85,6 +88,15 @@ export function DetailsSection({
           setCredentialTier={setCredentialTier}
         />
       )}
+
+      {/* Sits beside the credential tier because both answer the same
+          question — what this job requires of the Helpr — and above the
+          poster's OWN photo upload, which is a different thing entirely
+          (photos of the job as it is now, not proof that it got done). */}
+      <PhotoProofToggle
+        requirePhotoProof={requirePhotoProof}
+        setRequirePhotoProof={setRequirePhotoProof}
+      />
 
       <PhotoUpload
         imagePreviews={imagePreviews}

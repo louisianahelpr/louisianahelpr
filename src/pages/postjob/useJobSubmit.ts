@@ -116,6 +116,8 @@ export interface UseJobSubmitParams {
   offerToHelperId: string | null;
   offerResponseHours: number;
   credentialTier: number;
+  /** Poster's per-job before/after photo-proof requirement. */
+  requirePhotoProof: boolean;
   // Materials + card
   includeMaterials: boolean;
   materialsNote: string;
@@ -170,6 +172,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     offerToHelperId,
     offerResponseHours,
     credentialTier,
+    requirePhotoProof,
     includeMaterials,
     materialsNote,
     saveCardForFuture,
@@ -398,6 +401,11 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         offerToHelperId,
         offerResponseHours,
         credentialTier: opts.withExtras ? credentialTier : 0,
+        // Stripped on the retry path for the same reason credentialTier is:
+        // that retry exists for a prod that predates the column, and sending
+        // an unknown column would fail the INSERT a second time. `true` is the
+        // column default, so the deploy-lag window loses an opt-OUT only.
+        requirePhotoProof: opts.withExtras ? requirePhotoProof : true,
         department: null,
         requiresW9: false,
       });

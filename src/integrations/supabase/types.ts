@@ -1293,6 +1293,7 @@ export type Database = {
           removal_reason: string | null
           removed_at: string | null
           removed_by: string | null
+          require_photo_proof: boolean
           requires_w9: boolean
           response_deadline: string | null
           review_reminder_sent: boolean
@@ -1403,6 +1404,7 @@ export type Database = {
           removal_reason?: string | null
           removed_at?: string | null
           removed_by?: string | null
+          require_photo_proof?: boolean
           requires_w9?: boolean
           response_deadline?: string | null
           review_reminder_sent?: boolean
@@ -1513,6 +1515,7 @@ export type Database = {
           removal_reason?: string | null
           removed_at?: string | null
           removed_by?: string | null
+          require_photo_proof?: boolean
           requires_w9?: boolean
           response_deadline?: string | null
           review_reminder_sent?: boolean
@@ -4331,6 +4334,7 @@ export type Database = {
           photos: string[] | null
           pricing_mode: string | null
           recurrence_end_date: string | null
+          require_photo_proof: boolean
           recurrence_interval: string | null
           special_requirements: string | null
           start_time: string | null
@@ -4370,6 +4374,7 @@ export type Database = {
           photos?: string[] | null
           pricing_mode?: string | null
           recurrence_end_date?: string | null
+          require_photo_proof?: boolean
           recurrence_interval?: string | null
           special_requirements?: string | null
           start_time?: string | null
@@ -4409,6 +4414,7 @@ export type Database = {
           photos?: string[] | null
           pricing_mode?: string | null
           recurrence_end_date?: string | null
+          require_photo_proof?: boolean
           recurrence_interval?: string | null
           special_requirements?: string | null
           start_time?: string | null
@@ -4882,6 +4888,7 @@ export type Database = {
           removal_reason: string | null
           removed_at: string | null
           removed_by: string | null
+          require_photo_proof: boolean
           requires_w9: boolean
           response_deadline: string | null
           review_reminder_sent: boolean
@@ -5014,6 +5021,7 @@ export type Database = {
           removal_reason: string | null
           removed_at: string | null
           removed_by: string | null
+          require_photo_proof: boolean
           requires_w9: boolean
           response_deadline: string | null
           review_reminder_sent: boolean

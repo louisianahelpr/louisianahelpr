@@ -20,6 +20,12 @@ export interface DetailsSectionProps {
    *  Only shown for CREDENTIAL_TIER_CATEGORIES; all others stay at 0. */
   credentialTier: number;
   setCredentialTier: (tier: number) => void;
+  /** Does the helper have to upload before AND after photos before they can
+   *  mark this job complete? Pre-set from the category in usePostJobForm and
+   *  overridable here; persisted to jobs.require_photo_proof and read by the
+   *  DB trigger enforce_helper_completion_gates(). */
+  requirePhotoProof: boolean;
+  setRequirePhotoProof: (next: boolean) => void;
   /** Optional scope video — blob URL or storage URL once uploaded. */
   scopeVideoUrl?: string | null;
   /** Called when the user selects a video file. */

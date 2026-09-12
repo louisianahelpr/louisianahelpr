@@ -70,6 +70,13 @@ export interface BuildJobInsertPayloadInput {
    *  Only included in the INSERT when > 0 so a pre-push prod still accepts
    *  the payload (migration 20260612150000). */
   credentialTier?: number;
+  /** Does the helper have to upload before AND after photos before they can
+   *  mark this job complete? Poster-chosen per job, pre-set from the category.
+   *  Only included in the INSERT when FALSE, because true is the column's own
+   *  DEFAULT — so a prod that predates migration 20260912021641 still accepts
+   *  the payload for every job that keeps the historic requirement. Read
+   *  server-side by enforce_helper_completion_gates(). */
+  requirePhotoProof?: boolean;
 }
 
 /**
@@ -82,6 +89,7 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
   const requiresW9 = input.requiresW9 ?? false;
   const isInstantBook = input.isInstantBook ?? false;
   const credentialTier = input.credentialTier ?? 0;
+  const requirePhotoProof = input.requirePhotoProof ?? true;
   const {
     userId,
     businessId,
@@ -211,6 +219,11 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     // when > 0 so a pre-push prod INSERT still succeeds (DB default of 0
     // is applied automatically on the column). Retry path strips withExtras.
     ...(credentialTier > 0 ? ({ credential_tier: credentialTier } as Record<string, unknown>) : {}),
+    // require_photo_proof ships in migration 20260912021641. Omitted when true
+    // (the column default) so a pre-push prod INSERT still succeeds; written
+    // explicitly only when the poster opted OUT, which is the only case the
+    // default would get wrong.
+    ...(requirePhotoProof ? {} : ({ require_photo_proof: false } as Record<string, unknown>)),
     // jobs.department ships in migration 20260609170000. Cast through a
     // Record because the generated Supabase types haven't picked it up yet,
     // and omit the key entirely when it's empty so a pre-migration prod

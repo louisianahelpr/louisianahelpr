@@ -99,6 +99,8 @@ export function FormStep({ form }: FormStepProps) {
             detailsComplete={form.detailsComplete}
             credentialTier={form.credentialTier}
             setCredentialTier={form.setCredentialTier}
+            requirePhotoProof={form.requirePhotoProof}
+            setRequirePhotoProof={form.setRequirePhotoProof}
             scopeVideoUrl={form.scopeVideoPreviewUrl}
             onVideoSelect={form.handleVideoSelect}
             onClearVideo={form.clearVideo}

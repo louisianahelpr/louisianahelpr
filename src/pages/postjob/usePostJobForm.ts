@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { safeStorage } from "@/lib/safeStorage";
+import { defaultRequirePhotoProof } from "@/lib/photoProofDefaults";
 import { DEFAULT_OFFER_RESPONSE_HOURS } from "@/lib/offerResponseWindow";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { Step } from "./postJobFormTypes";
@@ -87,6 +88,27 @@ export function usePostJobForm() {
   useEffect(() => {
     if (category !== "pet_care") setSelectedPetIds([]);
   }, [category]);
+
+  /* Before/after photo proof — the POSTER'S call, per job.
+     Every job used to demand it unconditionally (enforced by the DB trigger
+     enforce_helper_completion_gates), which is right for work with a visible
+     result and meaningless for a delivery or a dog walk.
+
+     The toggle is PRE-SET from the category and then belongs to the poster.
+     `photoProofTouched` is what makes that possible: once they move the
+     switch, changing category must not silently move it back under them. */
+  const [requirePhotoProof, setRequirePhotoProofRaw] = useState(() =>
+    defaultRequirePhotoProof("other"),
+  );
+  const [photoProofTouched, setPhotoProofTouched] = useState(false);
+  const setRequirePhotoProof = useCallback((next: boolean) => {
+    setPhotoProofTouched(true);
+    setRequirePhotoProofRaw(next);
+  }, []);
+  useEffect(() => {
+    if (photoProofTouched) return;
+    setRequirePhotoProofRaw(defaultRequirePhotoProof(category));
+  }, [category, photoProofTouched]);
   const [streetAddress, setStreetAddress] = useState("");
   const [city, setCity] = useState("");
   // State is locked to LA (Helpr is Louisiana-only) and the field is rendered
@@ -379,6 +401,7 @@ export function usePostJobForm() {
     offerToHelperId,
     offerResponseHours,
     credentialTier,
+    requirePhotoProof,
     includeMaterials,
     materialsNote,
     saveCardForFuture,
@@ -538,6 +561,11 @@ export function usePostJobForm() {
         others always use 0. */
     credentialTier,
     setCredentialTier,
+    /** Does the helper have to upload before AND after photos before they can
+     *  mark this job complete? Pre-set from the category, poster-overridable,
+     *  and read server-side by enforce_helper_completion_gates(). */
+    requirePhotoProof,
+    setRequirePhotoProof,
     // Pricing mode fields
     isUrgent,
     setIsUrgent,

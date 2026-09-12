@@ -361,8 +361,32 @@ Now reachable in prod. Mild disagreement, not yet fixed.
 
 ## Public-site visual pass (lead, 2026-09-11) — 20 routes captured at 375 and 1440
 
-- [ ] **Automated-test debris is live in prod, and two rows are on the PUBLIC
-      browse page right now.** SEEN at 375 on guest `/browse`: the first card
+- [x] **Automated-test debris on the PUBLIC browse page — DONE 2026-09-11.**
+      Deleted the 19 test jobs that carried no financial records (with 12
+      applications, 7 reviews and 117 notifications), including BOTH publicly
+      visible rows. Backup: `docs/backups/test-debris-backup-2026-09-11.json`.
+      Re-measured the finding's own repro: test titles in `open_jobs_browse`
+      **2 -> 0**, and confirmed by eye in a fresh capture of guest `/browse` at
+      375 — the `[sweep-poster]` card is gone.
+
+      **49 rows deliberately NOT deleted.** They carry payout_transfers,
+      refunds, tips, disputes, W9 or PIF-credit records. `payout_transfers` is
+      ON DELETE RESTRICT, so a settled job cannot be deleted by anyone anyway —
+      and deleting settled money to tidy a list is worse than the list. None of
+      the 49 is `open`, so none is publicly visible.
+
+      **My "the spec never cleans up" claim was WRONG — correcting it.**
+      `scripts/e2e/prod-lifecycle-sweeper.mjs` already exists, already runs in
+      `e2e-real-backend.yml`, and already documents this exact residue and the
+      exact ON DELETE RESTRICT constraint I then hit. The evidence it works:
+      the newest test row is 2026-09-09, and dozens of CI runs have happened
+      since with zero new rows. The accumulation had already stopped before I
+      looked; what I deleted was historical residue from before it landed. The
+      only genuine gap is that the sweeper keys on `[E2E DO NOT ACCEPT]` and so
+      never covered the 7 sweep-harness titles (`[SWEEP]`, `[sweep-poster]`,
+      `Sweep test`) — which is where both public rows came from.
+
+      Original report: **Automated-test debris is live in prod.** SEEN at 375 on guest `/browse`: the first card
       reads `[sweep-poster] Deep clean before...`. Prod holds **68** such rows:
       61 titled `[E2E DO NOT ACCEPT] automated lifecycle …` and 7 from the sweep
       harness (`[SWEEP] …`, `[sweep-poster] …`, `Sweep test — …`). All are

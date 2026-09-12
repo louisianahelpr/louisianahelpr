@@ -8,8 +8,7 @@ import {
 import { report } from "@/lib/errorLogger";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColor } from "@/lib/statusColors";
-import { avatarGradientFor } from "@/lib/avatarGradient";
-import { cn } from "@/lib/utils";
+import UserAvatar from "@/components/UserAvatar";
 import type { Conversation } from "./types";
 
 interface ConversationRowProps {
@@ -293,36 +292,19 @@ const ConversationRowBase = ({
           deterministic warm gradient (hashed off the other user's id) so
           threads read as visually distinct at a glance rather than a stack
           of identical bark circles. */}
-      <div
-        className={cn(
-          "shrink-0 w-11 h-11 rounded-full flex items-center justify-center overflow-hidden self-center",
-          !c.otherUserAvatarUrl && cn("bg-gradient-to-br", avatarGradientFor(c.otherUserId)),
-        )}
-        style={{ border: "1px solid hsl(var(--olivewood) / 0.20)" }}
-      >
-        {c.otherUserAvatarUrl ? (
-          <img
-            loading="lazy"
-            decoding="async"
-            src={c.otherUserAvatarUrl}
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <span
-            className="text-ds-13 font-bold"
-            style={{
-              // Pinned #23231a, the light-mode --ink-deep, matching UserAvatar.
-              // The token inverts to near-white in dark mode while the avatar
-              // gradient (src/lib/avatarGradient.ts) deliberately does not, so
-              // the token here painted this initial at 1.66:1 on the tan face.
-              color: "#23231a",
-            }}
-          >
-            {c.otherUserName.charAt(0).toUpperCase()}
-          </span>
-        )}
-      </div>
+      {/* The shared primitive, not a hand-rolled <img>. The old <img> had no
+          onError path, so a truthy-but-dead `avatar_url` (prod row 76b07824…:
+          storage answers 400) painted the browser's broken-image glyph on
+          every row of the inbox. UserAvatar keeps the hashed gradient
+          monogram underneath and only fades the photo in once it loads. */}
+      <UserAvatar
+        userId={c.otherUserId}
+        src={c.otherUserAvatarUrl}
+        name={c.otherUserName}
+        pixelSize={44}
+        className="w-11 h-11 shrink-0 self-center"
+        fallbackClassName="text-ds-13"
+      />
       <button
         onClick={(e) => {
           // In select mode a tap toggles selection instead of opening the

@@ -8,8 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { OnlineIndicator } from "@/components/ChatPresence";
-import { avatarGradientFor } from "@/lib/avatarGradient";
-import { cn } from "@/lib/utils";
+import UserAvatar from "@/components/UserAvatar";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColor } from "@/lib/statusColors";
 import { snoozeRemainingLabel } from "@/lib/threadMutes";
@@ -143,40 +142,20 @@ export function ChatHeader({
         aria-describedby={subtitleId}
         className="min-w-0 flex-1 flex items-center gap-2 py-1 pr-1 rounded-ds-sm text-left btn-press"
       >
-        <span
-          className={cn(
-            "w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden",
-            // When no profile photo is set, the warm hashed gradient
-            // (keyed off `otherUserId`) replaces the flat bark tint so
-            // the chat partner has a stable visual identity.
-            !activeConvo.otherUserAvatarUrl &&
-              cn("bg-gradient-to-br", avatarGradientFor(activeConvo.otherUserId)),
-          )}
-          style={{ border: "1px solid hsl(var(--bark) / 0.22)" }}
-        >
-          {activeConvo.otherUserAvatarUrl ? (
-            <img
-              loading="lazy"
-              decoding="async"
-              src={activeConvo.otherUserAvatarUrl}
-              alt=""
-              aria-hidden="true"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span
-              className="text-ds-15 font-bold drop-shadow-sm"
-              style={{
-                // Pinned #23231a — same reason as ConversationRow and
-                // UserAvatar: the avatar gradient does not invert with the
-                // theme, so its ink must not either.
-                color: "#23231a",
-              }}
-            >
-              {activeConvo.otherUserName.charAt(0).toUpperCase()}
-            </span>
-          )}
-        </span>
+        {/* The shared primitive, not a hand-rolled <img>. The old <img> had
+            no onError path, so a truthy-but-dead `avatar_url` (prod row
+            76b07824…: storage answers 400) painted the browser's broken-image
+            glyph in every thread header. UserAvatar keeps the hashed gradient
+            monogram underneath and only fades the photo in once it loads. */}
+        <UserAvatar
+          userId={activeConvo.otherUserId}
+          src={activeConvo.otherUserAvatarUrl}
+          name={activeConvo.otherUserName}
+          pixelSize={40}
+          aria-hidden="true"
+          className="w-10 h-10 shrink-0"
+          fallbackClassName="text-ds-15"
+        />
 
         <span className="min-w-0 flex-1 flex flex-col">
           {/* Name line — name, presence/mute marks, then the chevron that

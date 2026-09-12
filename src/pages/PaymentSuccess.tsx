@@ -404,7 +404,10 @@ const PaymentSuccess = () => {
   );
 
   return (
-    <AuthShell hideBack eyebrow={eyebrow} maxWidth="md">
+    // `centerColumn`: without it AuthShell snaps to `items-start` and the
+    // card pins to the left edge (measured at 1440: card x 48–496, dead
+    // canvas across the other ~940px). Same prop, same reason as Signup.
+    <AuthShell hideBack centerColumn eyebrow={eyebrow} maxWidth="md">
       <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center">
         {/* The badge is a claim too — it only draws its checkmark when the
             payment is confirmed held. Every other state gets an honest mark

@@ -990,3 +990,53 @@ on every one.
       behaviour, which is why a naive tweak will not settle it. Handed to a lane
       with the brief that the reason you cannot be hired AND the link that fixes
       it must both stay readable.
+
+# ============================================================
+# OVERNIGHT BRIEF — agreed with the owner 2026-09-12, ~06:45 UTC
+# ============================================================
+# Owner: "no agents either, you do it all on your own no rush take your time
+# and be thorough" · "make sure every gap is covered. no excuses"
+#
+# THE CORRECTION THAT DEFINES THIS RUN. Owner: "you still didnt ask what the
+# audit should do bc last time there were alot of gaps you just looked and
+# didnt make sure anything worked as it should." So this is NOT a look-at-it
+# pass. Every screen must be PROVEN TO WORK, not just proven to render.
+#
+# COVERAGE — a screen is not audited until all of this exists for it:
+#   · states: empty · loading · error · populated
+#   · widths: 375 and 1440
+#   · themes: light and dark
+#   (up to 16 captures per screen, and EVERY screen gets seen)
+#
+# DEPTH — click EVERY control on every screen: buttons, links, tabs, toggles,
+# filters, form fields. Press it and verify WHAT ACTUALLY HAPPENED: the right
+# thing opened, the data changed, the state moved, the toast told the truth.
+# Anything that does nothing, or lies, is a defect.
+#
+# JOURNEYS — run the whole loop across two test accounts, Stripe test mode:
+# post → fund → apply → hire → message → on my way → arrived → working →
+# complete → approve → release → review, plus cancel, dispute and refund.
+#
+# PROD WRITES — allowed. Create test data freely, mark it clearly, back it up
+# and clean it up at the end. Never touch the owner's real rows.
+#
+# ROOT CAUSE — chase every failure all the way down: database, RLS policies,
+# edge functions, triggers. Verify the LIVE object, never the migration file.
+# Fix the cause, not the symptom.
+#
+# AUTHORITY — fix everything, including the subjective calls, using the rules
+# already given (CONSISTENCY above all). Owner reviews the diff.
+#
+# ORDER — daily screens first (Dashboard, My Jobs, My Posts, Messages, job
+# cards), then Profile + tabs, then Post a Job, then Admin, then the 94
+# overlays. But EVERYTHING must be seen.
+#
+# REPORT — tracker file as usual, plus a written summary covering what changed
+# and what needs the owner.
+#
+# RULINGS GIVEN TONIGHT, to action:
+#   · Remove the cancellation fee pill too — "no pills" means none.
+#   · Move ALL toasts to the bottom (above the dock on phone, bottom-right on
+#     desktop) so nothing at the top of any screen can be covered.
+#   · Run the whole foreign-key plan: clean the 11 orphans, then add the
+#     constraints, replay-safe, verified by object state.

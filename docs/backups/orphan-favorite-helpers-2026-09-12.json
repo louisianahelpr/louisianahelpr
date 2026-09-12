@@ -1,0 +1,93 @@
+{
+ "note": "11 orphaned favorite_helpers rows deleted from prod 2026-09-12 before adding FK constraints; every row pointed at a customer_id or helper_id present in neither profiles nor auth.users",
+ "rows": [
+  {
+   "id": "a365faa1-c633-433d-9713-41f6e78b5264",
+   "helper_id": "11111111-1111-1111-1111-111111111104",
+   "created_at": "2026-08-19T18:59:11.151565+00:00",
+   "customer_id": "76b07824-9b41-4741-a4c4-4f8de362f682",
+   "private_note": "Ok",
+   "business_account_id": null
+  },
+  {
+   "id": "a73bb092-1963-467b-bd7e-3c01ba7dd55b",
+   "helper_id": "11111111-1111-1111-1111-111111111103",
+   "created_at": "2026-08-20T04:48:31.976646+00:00",
+   "customer_id": "76b07824-9b41-4741-a4c4-4f8de362f682",
+   "private_note": null,
+   "business_account_id": null
+  },
+  {
+   "id": "bf98407a-c20d-4179-b822-e8090491e0c9",
+   "helper_id": "11111111-1111-1111-1111-111111111105",
+   "created_at": "2026-08-23T10:42:45.323219+00:00",
+   "customer_id": "76b07824-9b41-4741-a4c4-4f8de362f682",
+   "private_note": null,
+   "business_account_id": null
+  },
+  {
+   "id": "fa45d774-1295-4c1d-b742-8e1f5a1d11ea",
+   "helper_id": "6b472670-3f4d-4463-95a6-1cb38e9c634b",
+   "created_at": "2026-08-25T18:38:45.721689+00:00",
+   "customer_id": "76b07824-9b41-4741-a4c4-4f8de362f682",
+   "private_note": null,
+   "business_account_id": null
+  },
+  {
+   "id": "127af9c4-70e1-45ff-b136-7b32757eecad",
+   "helper_id": "e977a30f-7065-4e75-8498-dba435ac2044",
+   "created_at": "2026-08-30T06:39:33.485422+00:00",
+   "customer_id": "89794bd2-4d00-47c6-8bfe-ab9fcdd1864c",
+   "private_note": null,
+   "business_account_id": null
+  },
+  {
+   "id": "ef538180-0199-41f0-bd6d-3be810635fc0",
+   "helper_id": "22222222-2222-2222-2222-222222222201",
+   "created_at": "2026-09-01T00:28:00.832887+00:00",
+   "customer_id": "e977a30f-7065-4e75-8498-dba435ac2044",
+   "private_note": null,
+   "business_account_id": null
+  },
+  {
+   "id": "63f11e7b-98b4-4e7a-901e-74e88c08a597",
+   "helper_id": "12624886-e0ef-4972-b7e9-a8b38b4c506d",
+   "created_at": "2026-09-01T00:28:00.832887+00:00",
+   "customer_id": "e977a30f-7065-4e75-8498-dba435ac2044",
+   "private_note": null,
+   "business_account_id": null
+  },
+  {
+   "id": "f95c92bb-8917-4d32-87ab-663be6b6f512",
+   "helper_id": "6bdc1f67-ae1f-46a0-8edf-4035629a6147",
+   "created_at": "2026-09-01T00:28:00.832887+00:00",
+   "customer_id": "e977a30f-7065-4e75-8498-dba435ac2044",
+   "private_note": null,
+   "business_account_id": null
+  },
+  {
+   "id": "7663fa10-45c7-4051-98be-77ffa02c6e0c",
+   "helper_id": "76b07824-9b41-4741-a4c4-4f8de362f682",
+   "created_at": "2026-09-01T00:28:00.832887+00:00",
+   "customer_id": "e977a30f-7065-4e75-8498-dba435ac2044",
+   "private_note": null,
+   "business_account_id": null
+  },
+  {
+   "id": "f16cde7d-e64e-4647-bcc5-835ffd93fbed",
+   "helper_id": "6b472670-3f4d-4463-95a6-1cb38e9c634b",
+   "created_at": "2026-09-01T00:28:00.832887+00:00",
+   "customer_id": "e977a30f-7065-4e75-8498-dba435ac2044",
+   "private_note": null,
+   "business_account_id": null
+  },
+  {
+   "id": "4b1cbfc3-e49c-4b98-a81d-5846442654d4",
+   "helper_id": "d1d41c75-8170-494a-a491-eefed99d2713",
+   "created_at": "2026-09-01T00:28:00.832887+00:00",
+   "customer_id": "e977a30f-7065-4e75-8498-dba435ac2044",
+   "private_note": null,
+   "business_account_id": null
+  }
+ ]
+}

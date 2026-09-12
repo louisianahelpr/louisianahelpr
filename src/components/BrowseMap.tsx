@@ -613,6 +613,91 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
     }
   }, [hoveredJobId, mapReady, visibleJobs]);
 
+  // ── Selected pin ⇄ preview card, visibly tied together ──────────────────
+  //
+  // The sheet is deliberately a BOTTOM SHEET (see the long note on the JSX
+  // block below — owner's call, and the reasons still hold). What it was
+  // missing is the other half of that convention: on Apple/Google Maps the
+  // sheet is unambiguous about WHICH pin it describes, because the pin is
+  // visibly selected. Ours rendered the tapped pin exactly like the other
+  // fifteen, so the card was a card about "a job", not about that pin.
+  //
+  // Two cues, both driven from here:
+  //   1. the tapped pin is enlarged and haloed (inline styles, not a class —
+  //      the pin elements are MapKit-owned DOM and this file cannot add CSS);
+  //   2. a caret on the card's top edge sits in the pin's own COLUMN, so the
+  //      card literally points at it. Clamped inside the card, and hidden
+  //      when the pin is clustered away or not above the card.
+  //
+  // Both re-measure on every frame while a preview is open (and only then):
+  // MapKit animates the camera on open, so a one-shot measurement points at
+  // where the pin used to be.
+  const previewWrapRef = useRef<HTMLDivElement | null>(null);
+  const [caretLeft, setCaretLeft] = useState<number | null>(null);
+  const prevSelectedElRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const clearPin = () => {
+      const prev = prevSelectedElRef.current;
+      if (prev) {
+        prev.style.transform = "";
+        prev.style.zIndex = "";
+        prev.style.filter = "";
+        prevSelectedElRef.current = null;
+      }
+    };
+    const map = mapRef.current;
+    if (!map || !selectedJobId) {
+      clearPin();
+      setCaretLeft(null);
+      return;
+    }
+    let frame = 0;
+    const sync = () => {
+      frame = requestAnimationFrame(sync);
+      const el = map.element.querySelector<HTMLElement>(
+        `.browse-map-pin[data-job-id="${CSS.escape(selectedJobId)}"]`,
+      );
+      if (el !== prevSelectedElRef.current) clearPin();
+      if (!el) {
+        setCaretLeft(null);
+        return;
+      }
+      if (prevSelectedElRef.current !== el) {
+        // Scale from the pin's tip (transform-origin: bottom center, set in
+        // pinElement) so the point stays on its coordinate, and halo it so it
+        // reads as selected against any map ground.
+        el.style.transform = "scale(1.45)";
+        el.style.zIndex = "40";
+        el.style.filter =
+          "drop-shadow(0 0 0 hsl(var(--card))) drop-shadow(0 0 3px hsl(var(--card))) " +
+          "drop-shadow(0 4px 8px hsl(var(--olivewood) / 0.45))";
+        prevSelectedElRef.current = el;
+      }
+      const wrap = previewWrapRef.current;
+      if (!wrap) {
+        setCaretLeft(null);
+        return;
+      }
+      const pinRect = el.getBoundingClientRect();
+      const wrapRect = wrap.getBoundingClientRect();
+      // Hidden when the pin is clustered to zero size, or is not actually
+      // ABOVE the card — a caret that points sideways at nothing is worse
+      // than no caret.
+      if (pinRect.width === 0 || pinRect.bottom > wrapRect.top + 4) {
+        setCaretLeft(null);
+        return;
+      }
+      const x = pinRect.left + pinRect.width / 2 - wrapRect.left;
+      const clamped = Math.min(Math.max(x, 20), Math.max(20, wrapRect.width - 20));
+      setCaretLeft((cur) => (cur !== null && Math.abs(cur - clamped) < 0.5 ? cur : clamped));
+    };
+    sync();
+    return () => {
+      cancelAnimationFrame(frame);
+      clearPin();
+    };
+  }, [selectedJobId, mapReady, visibleJobs]);
+
   const recenter = useCallback(() => {
     const mk = getMapKit();
     const map = mapRef.current;
@@ -693,7 +778,12 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
           soft frosted caption over it. The wrapper passes pointer events
           through so the map stays pannable; only the caption card itself
           is interactive, so the guest signup CTA still works. */}
-      {isEmpty && (
+      {/* NOT while the map is unusable. "Nothing is posted here" is a claim
+          only a map that actually drew can make; when MapKit never loaded we
+          know nothing about the area, and rendering both states at once put
+          the empty-state copy legibly under the unavailable panel. One state
+          at a time — the unavailable panel below is the whole answer. */}
+      {isEmpty && !mapKitUnusable && (
         <div className="absolute inset-0 z-[350] flex items-center justify-center pointer-events-none px-6">
           <div
             className="pointer-events-auto flex flex-col items-center text-center gap-3 rounded-2xl px-6 py-6 max-w-[300px]"
@@ -865,6 +955,47 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
               both use it") — untouched, and NOT edited for this: the close
               control is the sheet's, not the card's. */}
           {selectedJob && (
+            <div
+              ref={previewWrapRef}
+              className="relative w-full max-w-[26rem] mx-auto pointer-events-none"
+            >
+              {/* The caret — the card's "this one" finger. Sits on the card's
+                  top edge in the selected pin's own column (see the sync
+                  effect), so the bottom sheet is no longer a card about some
+                  job, it is a card about THAT pin. Two stacked triangles: the
+                  back one is the card's border colour, the front one the
+                  card's fill, 1px lower — a border-drawn caret without an SVG
+                  and without fighting the sheet's own 1px border. */}
+              {caretLeft !== null && (
+                <span aria-hidden data-testid="browse-map-preview-caret" className="absolute top-0 left-0 w-full h-0">
+                  <span
+                    className="absolute"
+                    style={{
+                      left: caretLeft,
+                      top: -9,
+                      transform: "translateX(-50%)",
+                      width: 0,
+                      height: 0,
+                      borderLeft: "9px solid transparent",
+                      borderRight: "9px solid transparent",
+                      borderBottom: "9px solid hsl(var(--border))",
+                    }}
+                  />
+                  <span
+                    className="absolute"
+                    style={{
+                      left: caretLeft,
+                      top: -8,
+                      transform: "translateX(-50%)",
+                      width: 0,
+                      height: 0,
+                      borderLeft: "8px solid transparent",
+                      borderRight: "8px solid transparent",
+                      borderBottom: "8px solid hsl(var(--card))",
+                    }}
+                  />
+                </span>
+              )}
             <aside
               // Named with the JOB, not just "Job preview": a keyboard/screen
               // reader user lands on the close button inside this landmark, and
@@ -873,7 +1004,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
               // container and nothing about the content.
               aria-label={`Job preview: ${selectedJob.title}`}
               data-testid="browse-map-preview"
-              className="pointer-events-auto w-full max-w-[26rem] mx-auto motion-safe:animate-fade-in overflow-hidden"
+              className="pointer-events-auto w-full motion-safe:animate-fade-in overflow-hidden"
               style={{
                 borderRadius: "1rem",
                 backgroundColor: "hsl(var(--card))",
@@ -943,6 +1074,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
                 />
               </div>
             </aside>
+            </div>
           )}
         </div>
       )}

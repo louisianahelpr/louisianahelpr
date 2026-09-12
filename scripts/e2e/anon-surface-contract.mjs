@@ -161,18 +161,26 @@ const DEFINITIVE = (status) => (status >= 200 && status < 300) || status === 401
 
 async function probeSurface(object) {
   let view = await getRows(`${object}?select=*&limit=1`);
-  if (view.status >= 500) {
-    // One retry, because a gateway 5xx is a statement about the gateway.
-    await new Promise((r) => setTimeout(r, 1500));
+  for (let attempt = 1; view.status >= 500 && attempt <= 2; attempt++) {
+    // A gateway 5xx is a statement about the gateway, so retry with backoff.
+    await new Promise((r) => setTimeout(r, 1500 * attempt));
     view = await getRows(`${object}?select=*&limit=1`);
   }
   if (DEFINITIVE(view.status)) return { kind: "view", ...view };
 
-  const r = await fetch(`${BASE}/rest/v1/rpc/${object}`, {
+  // The RPC probe retries too. On 2026-09-12 the table probe was handled but a
+  // single rpc 504 on get_ranked_open_jobs still failed the whole job, and the
+  // re-run was green with nothing changed. A persistent 5xx still fails.
+  const callRpc = () => fetch(`${BASE}/rest/v1/rpc/${object}`, {
     method: "POST",
     headers: { ...HEADERS, "Content-Type": "application/json" },
     body: "{}",
   });
+  let r = await callRpc();
+  for (let attempt = 1; r.status >= 500 && attempt <= 2; attempt++) {
+    await new Promise((res) => setTimeout(res, 1500 * attempt));
+    r = await callRpc();
+  }
   const text = await r.text();
   let rows = null;
   try {

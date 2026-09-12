@@ -430,6 +430,21 @@ test.describe.configure({ mode: "serial" });
 const sweepDescribe = process.env.RUN_VISUAL_SWEEP ? test.describe : test.describe.skip;
 
 sweepDescribe("UI audit evidence sweep", () => {
+  // FAIL FAST when there is nothing to sweep. Without this, a local run with no
+  // preview server reported "147 passed" in 15 seconds: each screen's error is
+  // caught and recorded, so only the final gate noticed, and the per-screen
+  // lines all read green. A beforeAll failure in a serial describe fails every
+  // test with the real reason.
+  test.beforeAll(async ({ request, baseURL }) => {
+    const res = await request.get(baseURL ?? "/", { timeout: 15_000 }).catch((e: Error) => e);
+    if (res instanceof Error || !res.ok()) {
+      throw new Error(
+        `Preview server at ${baseURL} is not serving (${res instanceof Error ? res.message : `HTTP ${res.status()}`}). ` +
+          "Run `npm run build` and let playwright.config.ts's webServer start it, or start `vite preview` on that port.",
+      );
+    }
+  });
+
   // Each test owns one screen — Playwright's per-test timeout from the
   // global config applies; the catch in captureScreen flags a screen
   // failed and the next one still runs.

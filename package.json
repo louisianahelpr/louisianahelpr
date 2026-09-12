@@ -35,7 +35,8 @@
     "check:agent-refs": "node scripts/check-agent-refs.mjs",
     "check:claude-md": "node scripts/check-claude-md.mjs",
     "check:surface-owners": "node scripts/check-surface-owners.mjs",
-    "check:dead-links": "node scripts/check-dead-links.mjs"
+    "check:dead-links": "node scripts/check-dead-links.mjs",
+    "repro": "node scripts/new-repro.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",

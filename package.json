@@ -19,6 +19,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e:happy": "PLAYWRIGHT_WEB_SERVER=1 playwright test --project=happy-path",
+    "audit:press": "node scripts/audit/press-every-control.mjs",
     "typecheck": "npm run typecheck:app && npm run typecheck:edge",
     "typecheck:app": "tsc -b --noEmit",
     "typecheck:edge": "node scripts/typecheck-edge.mjs",

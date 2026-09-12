@@ -1,0 +1,647 @@
+/**
+ * PRESS EVERY CONTROL — the gap-free successor to walk-every-control.mjs.
+ *
+ * The owner's complaint: "there is no way every button has been clicked to be
+ * sure not failing." They were right. The walker had five holes, and this
+ * file closes each one by construction rather than by care:
+ *
+ *   1. `labels.slice(0, 40)`     → there is NO cap. Every control is queued.
+ *   2. default ROUTES=/dashboard → the route set is DERIVED FROM src/App.tsx
+ *                                  (same regex as auditCatalogRoutes.test.ts),
+ *                                  expanded with every Profile tab, every
+ *                                  admin view and every legal tab.
+ *   3. never pressed inside      → a press that opens a dialog / sheet /
+ *      dialogs                     popover / menu ENQUEUES every control
+ *                                  inside it, and those are pressed too, by
+ *                                  replaying the opener chain (depth ≤ MAX_DEPTH).
+ *   4. `new Set(labels)`         → controls are addressed by DOM PATH, so five
+ *                                  identical "View" buttons are five presses.
+ *   5. "content changed" = ok    → the classifier FAILS on an error toast, any
+ *                                  error-boundary copy, a console error, an
+ *                                  uncaught exception, a 4xx/5xx during the
+ *                                  press, or NO observable change at all.
+ *
+ * Two modes:
+ *   MODE=mock (default) — the happy-path Supabase mocks (e2e/happy-path/
+ *     fixtures.ts) with seed data, so it runs locally and in CI without a
+ *     single prod write. Destructive controls ARE pressed here — that is the
+ *     only place they can be.
+ *   MODE=prod — a real session via scripts/test-signin-link.mjs, read-only:
+ *     anything whose label reads as mutating is SKIPPED with a documented
+ *     reason and counted against coverage as such.
+ *
+ * Coverage is reported per route: controls found, pressed, passed, failed,
+ * skipped-with-reason. The exit code is 1 on any failed press, or on any
+ * control that was neither pressed nor skipped for a DOCUMENTED reason.
+ *
+ * Screenshots (owner-approved 2026-09-12): NOT every press. Every FAILED press
+ * gets a screenshot, plus a small sample per route (SAMPLE=n).
+ *
+ *   BASE=http://127.0.0.1:4173 node scripts/audit/press-every-control.mjs
+ *   ROUTES=/dashboard,/profile?tab=earnings  … to narrow
+ *   PERSONAS=customer                       … to narrow (anon,customer,helper,admin)
+ *   SHARD=1/4                               … CI sharding over the route list
+ *   MODE=prod ACCOUNT=poster-e2e            … read-only against prod
+ *
+ * The fixtures are TypeScript; Node's strip-types cannot load them (a
+ * parameter property in the realtime stub, extensionless imports), so they are
+ * bundled once with rolldown into node_modules/.cache and imported from there.
+ */
+import { chromium } from "@playwright/test";
+import { execSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+export const REPO = resolve(HERE, "../..");
+
+// ---------------------------------------------------------------------------
+// Route derivation — from the app, never from a hand-kept list.
+// ---------------------------------------------------------------------------
+
+/** Read `export const FLAG = true|false` out of src/config/*.ts. */
+function flagValue(name) {
+  const dir = resolve(REPO, "src/config");
+  if (!existsSync(dir)) return null;
+  for (const file of readdirSync(dir)) {
+    if (!file.endsWith(".ts")) continue;
+    const src = readFileSync(resolve(dir, file), "utf8");
+    const m = new RegExp(`export const ${name}\\s*=\\s*(true|false)`).exec(src);
+    if (m) return m[1] === "true";
+  }
+  return null;
+}
+
+/**
+ * Every `<Route path=…>` in src/App.tsx, with what wraps it. A route whose
+ * element is ONLY a redirect (`<Navigate …/>`, `<XRedirect />`) is kept in the
+ * list but marked, so the report can say "redirect — covered at its target"
+ * rather than pressing the same target twice.
+ */
+export function parseAppRoutes(appSrc = readFileSync(resolve(REPO, "src/App.tsx"), "utf8")) {
+  const out = [];
+  for (const m of appSrc.matchAll(/(\{\s*(\w+)\s*&&\s*)?<Route\s+path="([^"]+)"\s+element=\{([\s\S]*?)\}\s*\/>/g)) {
+    const guard = m[2];
+    if (guard && flagValue(guard) === false) continue;
+    const path = m[3];
+    const el = m[4].trim();
+    const redirect = /^<Navigate\b/.test(el) || /^<\w*Redirect\s*\/>$/.test(el);
+    out.push({
+      path,
+      redirect,
+      protected: el.includes("ProtectedRoute"),
+      admin: el.includes("AdminRoute"),
+    });
+  }
+  return out;
+}
+
+/** The Profile `Tab` union, parsed from its source so a new tab is walked. */
+export function parseProfileTabs(src = readFileSync(resolve(REPO, "src/pages/profile/types.ts"), "utf8")) {
+  const m = /export type Tab\s*=\s*([^;]+);/.exec(src);
+  if (!m) throw new Error("Could not find `export type Tab` in src/pages/profile/types.ts");
+  return [...m[1].matchAll(/"([a-z_]+)"/g)].map((x) => x[1]);
+}
+
+/** The Legal tabs, from the page's own union. */
+export function parseLegalTabs() {
+  const file = resolve(REPO, "src/pages/Legal.tsx");
+  if (!existsSync(file)) return ["terms", "privacy", "community"];
+  const src = readFileSync(file, "utf8");
+  const m = /type\s+(?:Legal)?Tab\s*=\s*([^;]+);/.exec(src);
+  if (!m) return ["terms", "privacy", "community"];
+  const tabs = [...m[1].matchAll(/"([a-z_-]+)"/g)].map((x) => x[1]);
+  return tabs.length ? tabs : ["terms", "privacy", "community"];
+}
+
+/**
+ * Concrete URLs to visit, with the persona set each applies to.
+ *
+ * PERSONAS: `anon` visits everything (a protected route lands on /login —
+ * that is detected and reported as a redirect, not pressed twice); `customer`
+ * visits everything; `helper` visits the protected routes (same route, a
+ * different set of controls); `admin` visits /admin and its views.
+ */
+export function deriveRouteSet({ seedJobId, helperId, customerId, adminViews }) {
+  const routes = parseAppRoutes();
+  const profileTabs = parseProfileTabs();
+  const legalTabs = parseLegalTabs();
+  const set = [];
+  const push = (url, base, personas) => set.push({ url, base: base.path, personas, redirect: base.redirect });
+
+  for (const r of routes) {
+    if (r.path === "*") {
+      push("/this-route-does-not-exist", r, ["anon", "customer"]);
+      continue;
+    }
+    let url = r.path
+      .replace(":userId", helperId)
+      .replace(/^\/jobs\/:id$/, `/jobs/${seedJobId}`)
+      .replace(/:[a-zA-Z]+/g, "test")
+      .replace(/\/\*$/, "/x");
+    if (r.admin) {
+      push(url, r, ["admin"]);
+      for (const v of adminViews) push(`${url}?view=${v}`, r, ["admin"]);
+      continue;
+    }
+    const personas = r.protected ? ["anon", "customer", "helper"] : ["anon", "customer"];
+    if (r.path === "/profile") {
+      push(url, r, personas);
+      for (const t of profileTabs) if (t !== "landing") push(`${url}?tab=${t}`, r, personas);
+      continue;
+    }
+    if (r.path === "/legal") {
+      for (const t of legalTabs) push(`${url}?tab=${t}`, r, personas);
+      continue;
+    }
+    if (r.path === "/user/:userId") {
+      push(url, r, personas);
+      push(`/user/${customerId}`, r, personas);
+      continue;
+    }
+    push(url, r, personas);
+  }
+  return set;
+}
+
+// ---------------------------------------------------------------------------
+// Fixture loading (TypeScript → one ESM bundle, cached in node_modules/.cache)
+// ---------------------------------------------------------------------------
+async function loadFixtures() {
+  const { rolldown } = await import("rolldown");
+  const outDir = resolve(REPO, "node_modules/.cache/press-every-control");
+  mkdirSync(outDir, { recursive: true });
+  const out = resolve(outDir, "fixtures.mjs");
+  const bundle = await rolldown({
+    input: resolve(REPO, "e2e/happy-path/auditRoutes.ts"),
+    platform: "node",
+    external: [/^[^./]/],
+    resolve: { tsconfigFilename: resolve(REPO, "tsconfig.json") },
+    logLevel: "silent",
+  });
+  await bundle.write({ file: out, format: "esm" });
+  await bundle.close?.();
+  return import(pathToFileURL(out).href + `?t=${Date.now()}`);
+}
+
+// ---------------------------------------------------------------------------
+// Classifier vocabulary
+// ---------------------------------------------------------------------------
+export const ERROR_BOUNDARY_RX = /This page hit a problem|Something went sideways|Couldn't load|We couldn't load|Update ready|newer version/i;
+/** Labels that MUTATE something. Pressed in mock mode only. */
+export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout)\b/i;
+/** Console lines the HARNESS causes, not the app. */
+const CONSOLE_NOISE = [
+  /Service Worker registration blocked by Playwright/i,
+  /Download the React DevTools/i,
+  /\[vite\] connect/i,
+  // A 406 from `.single()` with zero rows is real PostgREST behaviour the app
+  // handles (maybeSingle → null); the network watcher excludes 406 too.
+  /status of 406/i,
+];
+
+/** Documented skip reasons. Anything else unpressed FAILS the coverage gate. */
+export const DOCUMENTED_SKIPS = new Set([
+  "disabled (inert by design)",
+  "screen-reader only (pointer not expected)",
+  "already the active tab/route (no-op expected)",
+  "self-link (no-op expected)",
+  "external / new-tab link (covered by walk-every-control's new-tab pass)",
+  "mutating control — prod read-only mode",
+  "file picker (opens the OS dialog; not a DOM outcome)",
+  "inside a toast (transient; not page chrome)",
+  "opener chain could not be replayed (parent press reported separately)",
+]);
+
+// ---------------------------------------------------------------------------
+// Runtime
+// ---------------------------------------------------------------------------
+const OPEN_OVERLAY =
+  '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"], [role="menu"][data-state="open"], [role="listbox"][data-state="open"], [data-radix-popper-content-wrapper]';
+
+const CONTROL_SEL =
+  'button, a[href], summary, input[type="checkbox"], input[type="radio"], input[type="file"], ' +
+  '[role="button"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="link"], ' +
+  '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"]';
+
+/**
+ * Enumerate visible controls, each with a DOM path RELATIVE to `scopeSel`
+ * (document.body for the page; the newest open overlay for a recursion).
+ * Runs in the page.
+ */
+const ENUMERATE = ({ controlSel, overlaySel, scope, base }) => {
+  const root = scope === "overlay"
+    ? [...document.querySelectorAll(overlaySel)].pop()
+    : document.body;
+  if (!root) return [];
+  const pathFrom = (el, top) => {
+    const parts = [];
+    let n = el;
+    while (n && n !== top) {
+      const tag = n.tagName.toLowerCase();
+      let i = 1, s = n;
+      while ((s = s.previousElementSibling)) if (s.tagName === n.tagName) i++;
+      parts.unshift(`${tag}:nth-of-type(${i})`);
+      n = n.parentElement;
+    }
+    return parts.join(" > ");
+  };
+  const out = [];
+  root.querySelectorAll(controlSel).forEach((el) => {
+    // Page pass: a control inside an overlay belongs to the overlay pass.
+    if (scope !== "overlay" && el.closest(overlaySel)) return;
+    // The overlay pass owns only the newest overlay's controls.
+    if (scope === "overlay" && [...document.querySelectorAll(overlaySel)].pop() !== el.closest(overlaySel)) return;
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const srOnly = el.closest(".sr-only") !== null || el.classList.contains("sr-only");
+    if (!srOnly && (r.width < 4 || r.height < 4)) return;
+    if (cs.visibility === "hidden" || cs.display === "none") return;
+    const label = (el.getAttribute("aria-label") || el.innerText || el.getAttribute("title") || el.getAttribute("name") || "").trim().replace(/\s+/g, " ").slice(0, 60);
+    const on = (a) => el.getAttribute(a) === "true" || el.closest(`[${a}="true"]`) !== null;
+    const href = el.getAttribute("href");
+    let external = false, self = false;
+    if (href != null) {
+      if (/^(mailto|tel|sms):/i.test(href) || el.getAttribute("target") === "_blank") external = true;
+      else {
+        try {
+          const u = new URL(href, location.href);
+          if (u.origin !== location.origin) external = true;
+          else if (u.pathname === location.pathname && u.search === location.search) self = true;
+        } catch { external = true; }
+      }
+    }
+    out.push({
+      path: pathFrom(el, root),
+      label,
+      tag: el.tagName.toLowerCase(),
+      type: el.getAttribute("type"),
+      disabled: el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true",
+      srOnly,
+      active: on("aria-selected") || on("aria-current") || on("aria-pressed") || el.getAttribute("aria-current") === "page" ||
+        el.dataset.state === "active" || el.closest('[data-state="active"]') !== null,
+      external, self,
+      inToast: el.closest("[data-sonner-toaster]") !== null,
+    });
+  });
+  void base;
+  return out;
+};
+
+/** Structural fingerprint of the page; any difference is "something happened". */
+const SNAPSHOT = ({ overlaySel }) => {
+  const stripStyle = (html) => html.replace(/\sstyle="[^"]*"/g, "").replace(/\sdata-(?:focus-visible|highlighted)[^\s>]*/g, "");
+  const rootEl = document.getElementById("root");
+  const html = rootEl ? stripStyle(rootEl.innerHTML) : "";
+  let h = 0;
+  for (let i = 0; i < html.length; i++) h = (h * 31 + html.charCodeAt(i)) | 0;
+  return {
+    url: location.href,
+    hash: h,
+    body: (document.body.innerText || "").length,
+    overlays: document.querySelectorAll(overlaySel).length,
+    toasts: document.querySelectorAll("[data-sonner-toast]").length,
+    errorToasts: [...document.querySelectorAll('[data-sonner-toast][data-type="error"]')].map((t) => (t.innerText || "").trim().slice(0, 120)),
+    inputs: document.querySelectorAll("input, textarea, select").length,
+    state: [...document.querySelectorAll('[role="switch"], [aria-checked], [aria-expanded], [aria-selected], [aria-pressed], input, select, textarea, details')]
+      .map((e) => [e.getAttribute("aria-checked"), e.getAttribute("aria-expanded"), e.getAttribute("aria-selected"), e.getAttribute("aria-pressed"),
+        e.tagName === "DETAILS" ? String(e.open) : e.type === "checkbox" || e.type === "radio" ? String(e.checked) : (e.value ?? "")].join("/")).join(","),
+    focused: document.activeElement ? document.activeElement.tagName + ":" + (document.activeElement.getAttribute("aria-label") || document.activeElement.textContent || "").trim().slice(0, 30) : "",
+    text: (document.body.innerText || "").trim().replace(/\s+/g, " ").slice(0, 3000),
+  };
+};
+
+async function main() {
+  const BASE = (process.env.BASE ?? "http://127.0.0.1:4173").replace(/\/$/, "");
+  const MODE = process.env.MODE ?? "mock";
+  const OUT = process.env.OUT ?? resolve(REPO, "test-results/press-every-control");
+  const WIDTH = Number(process.env.WIDTH ?? 375);
+  const THEME = process.env.THEME ?? "light";
+  const MAX_DEPTH = Number(process.env.MAX_DEPTH ?? 3);
+  const SAMPLE = Number(process.env.SAMPLE ?? 2);
+  const PERSONAS = (process.env.PERSONAS ?? "anon,customer,helper,admin").split(",");
+  const SETTLE_MS = Number(process.env.SETTLE_MS ?? 600);
+  const PRESS_TIMEOUT = Number(process.env.PRESS_TIMEOUT ?? 8000);
+  mkdirSync(OUT, { recursive: true });
+  process.env.HAPPY_PATH_BASE_URL = BASE;
+
+  const fx = await loadFixtures();
+  const { FAKE_CUSTOMER, FAKE_HELPER, ADMIN_VIEWS, installSupabaseMocks, seedAuthedSession, mockTable } = fx;
+  const seedJobId = "10000000-0000-4000-8000-000000000001";
+
+  let routeSet = deriveRouteSet({ seedJobId, helperId: FAKE_HELPER.id, customerId: FAKE_CUSTOMER.id, adminViews: ADMIN_VIEWS });
+  if (process.env.ROUTES) {
+    const want = process.env.ROUTES.split(",");
+    routeSet = want.map((u) => routeSet.find((r) => r.url === u) ?? { url: u, base: u, personas: ["anon", "customer", "helper"], redirect: false });
+  }
+  if (process.env.SHARD) {
+    const [i, n] = process.env.SHARD.split("/").map(Number);
+    routeSet = routeSet.filter((_, k) => k % n === i - 1);
+  }
+
+  // Prod mode: one real session, one persona, mutating controls skipped.
+  let prodSession = null;
+  if (MODE === "prod") {
+    const account = process.env.ACCOUNT ?? "poster-e2e";
+    prodSession = process.env.SESSION_FILE
+      ? JSON.parse(readFileSync(process.env.SESSION_FILE, "utf8"))
+      : JSON.parse(execSync(`node scripts/test-signin-link.mjs ${account} --session --json`, { cwd: REPO, encoding: "utf8", maxBuffer: 1 << 24 }));
+  }
+
+  const browser = await chromium.launch();
+  const results = []; // one per route × persona
+  let failedPresses = 0, undocumented = 0, totalFound = 0, totalPressed = 0, shots = 0;
+
+  const personaUser = (p) => (p === "helper" ? FAKE_HELPER : p === "anon" ? undefined : FAKE_CUSTOMER);
+
+  for (const route of routeSet) {
+    if (route.redirect) {
+      results.push({ route: route.url, persona: "-", status: "redirect", note: "pure redirect route — its target is walked on its own row", controls: [] });
+      continue;
+    }
+    const personas = MODE === "prod" ? ["prod"] : route.personas.filter((p) => PERSONAS.includes(p));
+    for (const persona of personas) {
+      const rec = { route: route.url, persona, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [] };
+      results.push(rec);
+
+      const ctx = await browser.newContext({
+        viewport: { width: WIDTH, height: WIDTH <= 430 ? 812 : 900 },
+        colorScheme: THEME, deviceScaleFactor: 2,
+      });
+      await ctx.addInitScript((t) => { try { localStorage.setItem("helpr-theme", t); localStorage.setItem("helpr_welcomed", "1"); } catch { /* blocked */ } }, THEME);
+      if (MODE === "prod") {
+        await ctx.addInitScript(([k, v]) => {
+          try {
+            localStorage.setItem(k, v);
+            localStorage.setItem("helpr_onboarding", JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }));
+          } catch { /* blocked */ }
+        }, [prodSession.key, prodSession.value]);
+      } else if (persona !== "anon") {
+        await seedAuthedSession(ctx, personaUser(persona), BASE);
+      }
+
+      const page = await ctx.newPage();
+      const consoleErrors = [];
+      const netFails = [];
+      const popups = [];
+      page.on("console", (m) => {
+        if (m.type() !== "error") return;
+        const t = m.text();
+        if (CONSOLE_NOISE.some((rx) => rx.test(t))) return;
+        consoleErrors.push(t.replace(/\s+/g, " ").slice(0, 200));
+      });
+      page.on("pageerror", (e) => consoleErrors.push("uncaught: " + String(e.message).slice(0, 200)));
+      page.on("response", (r) => {
+        const s = r.status();
+        if (s >= 400 && s !== 406) netFails.push(`${s} ${r.request().method()} ${r.url().replace(/\?.*$/, "").split("/").slice(-2).join("/")}`);
+      });
+      ctx.on("page", (p) => { popups.push(p.url()); p.close().catch(() => {}); });
+      const downloads = [];
+      page.on("download", (d) => { downloads.push(d.suggestedFilename()); d.cancel().catch(() => {}); });
+
+      if (MODE !== "prod") {
+        const rules = persona === "admin" ? [mockTable("user_roles", [{ role: "admin" }])] : [];
+        await installSupabaseMocks(page, { user: personaUser(persona), seed: true, rules });
+      }
+
+      const settle = async () => {
+        await page.waitForFunction(() => {
+          const busy = document.querySelectorAll('[aria-busy="true"]').length;
+          const pulses = [...document.querySelectorAll('[class*="animate-pulse"]')].filter((e) => !e.closest("[aria-hidden='true']")).length;
+          return busy === 0 && pulses === 0;
+        }, { timeout: 8000 }).catch(() => {});
+        await page.waitForTimeout(SETTLE_MS);
+      };
+      const load = async () => {
+        await page.goto(BASE + route.url, { waitUntil: "domcontentloaded", timeout: 45_000 });
+        await page.waitForFunction(() => (document.body.innerText || "").trim().length > 20, { timeout: 15_000 }).catch(() => {});
+        await settle();
+      };
+      const sameScreen = (u) => {
+        const a = new URL(u), b = new URL(BASE + route.url);
+        const key = (x) => x.pathname + "|" + (x.searchParams.get("tab") ?? "") + "|" + (x.searchParams.get("view") ?? "");
+        return key(a) === key(b);
+      };
+      const snapshot = () => page.evaluate(SNAPSHOT, { overlaySel: OPEN_OVERLAY });
+      const enumerate = (scope) => page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE });
+      const slug = (s) => s.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "").slice(0, 80);
+      const shoot = async (name) => {
+        const file = `${OUT}/${slug(`${route.url}-${persona}-${name}`)}-${shots++}.png`;
+        await page.screenshot({ path: file, fullPage: false }).catch(() => {});
+        return file;
+      };
+
+      try {
+        await load();
+        const landed = page.url();
+        rec.landedOn = landed.replace(BASE, "");
+        if (!sameScreen(landed)) {
+          rec.status = "redirect";
+          rec.notes.push(`redirected to ${rec.landedOn} — that screen is walked on its own row`);
+          await ctx.close();
+          console.log(`[${route.url} ${persona}] → redirect ${rec.landedOn}`);
+          continue;
+        }
+        const boot = await snapshot();
+        if (ERROR_BOUNDARY_RX.test(boot.text)) {
+          rec.status = "error-on-load";
+          rec.failed++; failedPresses++;
+          rec.controls.push({ chain: [], label: "(page load)", result: "FAIL", why: "error boundary / error copy rendered on load", shot: await shoot("load-error") });
+        }
+
+        // Locator for a chain element: page-level path is relative to <body>;
+        // overlay-level paths are relative to the NEWEST open overlay.
+        const locate = (step) => step.scope === "overlay"
+          ? page.locator(OPEN_OVERLAY).last().locator(":scope > " + step.path)
+          : page.locator("body > " + step.path);
+
+        /** Re-establish the screen and replay every opener in `chain`. */
+        const replay = async (chain) => {
+          if (!sameScreen(page.url()) || chain.length === 0 || (await page.locator(OPEN_OVERLAY).count()) > 0) {
+            await load();
+          }
+          for (const step of chain) {
+            const loc = locate(step);
+            if (!(await loc.count())) return false;
+            const before = await page.locator(OPEN_OVERLAY).count();
+            await loc.first().scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => {});
+            await loc.first().click({ timeout: PRESS_TIMEOUT }).catch(() => {});
+            await page.waitForFunction(([sel, n]) => document.querySelectorAll(sel).length > n, [OPEN_OVERLAY, before], { timeout: 3000 }).catch(() => {});
+            await page.waitForTimeout(SETTLE_MS);
+            if ((await page.locator(OPEN_OVERLAY).count()) <= before) return false;
+          }
+          return true;
+        };
+
+        // The work queue: every control found on the page, then every control
+        // found inside any overlay a press opened.
+        const queue = (await enumerate("page")).map((c) => ({ chain: [], step: { scope: "page", path: c.path }, meta: c, depth: 0 }));
+        const seenOverlays = new Set();
+        let idx = 0;
+        let pageDirty = false; // a press changed the resting page; reload before the next one
+
+        while (idx < queue.length) {
+          const item = queue[idx++];
+          const { meta } = item;
+          const chain = item.chain.map((s) => s);
+          const label = meta.label || `<${meta.tag}${meta.type ? ` type=${meta.type}` : ""}>`;
+          const entry = { chain: [...chain.map((s) => s.label), label], path: item.step.path, depth: item.depth, label, result: "", why: "" };
+          rec.controls.push(entry);
+          rec.found++; totalFound++;
+
+          const skip = (why) => { entry.result = "SKIP"; entry.why = why; rec.skipped++; };
+          if (meta.disabled) { skip("disabled (inert by design)"); continue; }
+          if (meta.srOnly) { skip("screen-reader only (pointer not expected)"); continue; }
+          if (meta.active) { skip("already the active tab/route (no-op expected)"); continue; }
+          if (meta.self) { skip("self-link (no-op expected)"); continue; }
+          if (meta.external) { skip("external / new-tab link (covered by walk-every-control's new-tab pass)"); continue; }
+          if (meta.type === "file") { skip("file picker (opens the OS dialog; not a DOM outcome)"); continue; }
+          if (meta.inToast) { skip("inside a toast (transient; not page chrome)"); continue; }
+          if (MODE === "prod" && (DESTRUCTIVE_RX.test(label) || meta.type === "submit")) { skip("mutating control — prod read-only mode"); continue; }
+
+          // Baseline: the resting page with the opener chain replayed.
+          if (chain.length) {
+            if (!(await replay(chain))) {
+              // Once more from a clean load before giving up on it.
+              await load();
+              if (!(await replay(chain))) { skip("opener chain could not be replayed (parent press reported separately)"); continue; }
+            }
+          } else if (pageDirty || !sameScreen(page.url()) || (await page.locator(OPEN_OVERLAY).count()) > 0) {
+            await load();
+            pageDirty = false;
+          }
+
+          let target = locate(item.step);
+          if (!(await target.count())) {
+            await load(); pageDirty = false;
+            if (chain.length && !(await replay(chain))) { skip("opener chain could not be replayed (parent press reported separately)"); continue; }
+            target = locate(item.step);
+          }
+          if (!(await target.count())) {
+            entry.result = "FAIL"; entry.why = "control not found on a freshly loaded page (transient or non-deterministic DOM)";
+            rec.failed++; failedPresses++;
+            entry.shot = await shoot(`missing-${slug(label)}`);
+            continue;
+          }
+          target = target.first();
+
+          const before = await snapshot();
+          const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length;
+          try {
+            await target.scrollIntoViewIfNeeded({ timeout: 2500 }).catch(() => {});
+            await target.click({ timeout: PRESS_TIMEOUT });
+          } catch (e) {
+            // One retry: the layout may still have been settling under it.
+            await page.waitForTimeout(500);
+            try { await target.click({ timeout: PRESS_TIMEOUT }); }
+            catch {
+              entry.result = "FAIL"; entry.why = "NOT CLICKABLE: " + String(e.message).replace(/\s+/g, " ").slice(0, 300);
+              rec.failed++; failedPresses++;
+              entry.shot = await shoot(`unclickable-${slug(label)}`);
+              pageDirty = true;
+              continue;
+            }
+          }
+          rec.pressed++; totalPressed++;
+          await settle();
+          const after = await snapshot();
+
+          // ---- classify ------------------------------------------------
+          const problems = [];
+          const newErrToasts = after.errorToasts.filter((t) => !before.errorToasts.includes(t));
+          if (newErrToasts.length) problems.push(`error toast: "${newErrToasts[0]}"`);
+          if (ERROR_BOUNDARY_RX.test(after.text) && !ERROR_BOUNDARY_RX.test(before.text)) problems.push("error boundary / error copy rendered");
+          const newErrs = consoleErrors.slice(errs0);
+          if (newErrs.length) problems.push(`console: ${newErrs[0]}`);
+          const newNet = netFails.slice(net0);
+          if (newNet.length) problems.push(`network: ${[...new Set(newNet)].slice(0, 3).join(" | ")}`);
+
+          const changed =
+            after.url !== before.url ? `navigated → ${after.url.replace(BASE, "")}` :
+            popups.length > pop0 ? `opened a new tab (${popups[pop0]})` :
+            downloads.length > dl0 ? `started a download (${downloads[dl0]})` :
+            after.overlays > before.overlays ? "opened an overlay" :
+            after.overlays < before.overlays ? "closed the overlay" :
+            after.toasts > before.toasts ? "showed a toast" :
+            after.inputs !== before.inputs ? `revealed/removed a field (${before.inputs}→${after.inputs})` :
+            after.state !== before.state ? "changed a toggle/field" :
+            after.hash !== before.hash ? `changed the DOM (${after.body - before.body >= 0 ? "+" : ""}${after.body - before.body} chars)` :
+            after.focused !== before.focused ? "moved focus only" :
+            "";
+          if (!changed) problems.push("no observable change");
+          else if (changed === "moved focus only") problems.push("no observable change (focus moved, nothing else)");
+
+          entry.outcome = changed || "nothing";
+          if (problems.length) {
+            entry.result = "FAIL"; entry.why = problems.join("; ");
+            rec.failed++; failedPresses++;
+            entry.shot = await shoot(`fail-${slug(label)}`);
+          } else {
+            entry.result = "PASS"; rec.passed++;
+            if (rec.pressed <= SAMPLE) entry.shot = await shoot(`sample-${slug(label)}`);
+          }
+
+          // ---- recurse into what it opened -----------------------------
+          if (after.overlays > before.overlays && item.depth < MAX_DEPTH) {
+            const inner = await enumerate("overlay");
+            const key = inner.map((c) => c.path + c.label).join("|");
+            if (inner.length && !seenOverlays.has(key)) {
+              seenOverlays.add(key);
+              const nextChain = [...chain, { ...item.step, label }];
+              for (const c of inner) queue.push({ chain: nextChain, step: { scope: "overlay", path: c.path }, meta: c, depth: item.depth + 1 });
+              entry.opened = inner.length;
+            }
+            // Close it so the next page-level control starts clean.
+            await page.keyboard.press("Escape").catch(() => {});
+            await page.waitForTimeout(300);
+            if ((await page.locator(OPEN_OVERLAY).count()) > before.overlays) pageDirty = true;
+          } else if (after.url !== before.url || after.overlays !== before.overlays || after.inputs !== before.inputs || after.state !== before.state || after.hash !== before.hash) {
+            pageDirty = true;
+          }
+          if (chain.length) pageDirty = true;
+        }
+      } catch (e) {
+        rec.status = "harness-error";
+        rec.notes.push("HARNESS ERROR: " + String(e.message).replace(/\s+/g, " ").slice(0, 300));
+        rec.failed++; failedPresses++;
+      }
+      await ctx.close();
+      const unpressed = rec.controls.filter((c) => c.result === "SKIP" && !DOCUMENTED_SKIPS.has(c.why)).length;
+      undocumented += unpressed;
+      console.log(`[${route.url} ${persona}] found=${rec.found} pressed=${rec.pressed} pass=${rec.passed} fail=${rec.failed} skip=${rec.skipped}${rec.failed ? " :: " + rec.controls.filter((c) => c.result === "FAIL").slice(0, 4).map((c) => `"${c.chain.join(" › ")}" — ${c.why}`).join(" ;; ") : ""}`);
+    }
+  }
+  await browser.close();
+
+  // ---- coverage report ------------------------------------------------------
+  const lines = [];
+  lines.push("# press-every-control coverage", "", `mode=${MODE} width=${WIDTH} theme=${THEME} base=${BASE}`, "");
+  lines.push("| route | persona | found | pressed | pass | fail | skipped (documented) | undocumented |", "|---|---|---:|---:|---:|---:|---:|---:|");
+  for (const r of results) {
+    if (r.status === "redirect") { lines.push(`| ${r.route} | ${r.persona} | — | — | — | — | redirect → ${r.landedOn ?? "target"} | — |`); continue; }
+    const doc = r.controls.filter((c) => c.result === "SKIP" && DOCUMENTED_SKIPS.has(c.why)).length;
+    const undoc = r.controls.filter((c) => c.result === "SKIP" && !DOCUMENTED_SKIPS.has(c.why)).length;
+    lines.push(`| ${r.route} | ${r.persona} | ${r.found} | ${r.pressed} | ${r.passed} | ${r.failed} | ${doc} | ${undoc} |`);
+  }
+  const fails = results.flatMap((r) => r.controls.filter((c) => c.result === "FAIL").map((c) => ({ ...c, route: r.route, persona: r.persona })));
+  lines.push("", `## Failed presses (${fails.length})`, "");
+  for (const f of fails) lines.push(`- **${f.route}** (${f.persona}) › ${f.chain.join(" › ")} — ${f.why}${f.shot ? ` — ${f.shot}` : ""}`);
+  const skips = results.flatMap((r) => r.controls.filter((c) => c.result === "SKIP").map((c) => ({ ...c, route: r.route, persona: r.persona })));
+  lines.push("", `## Unpressed controls (${skips.length}) — every one with its reason`, "");
+  for (const s of skips) lines.push(`- ${s.route} (${s.persona}) › ${s.chain.join(" › ")} — ${s.why}${DOCUMENTED_SKIPS.has(s.why) ? "" : "  **UNDOCUMENTED**"}`);
+  writeFileSync(`${OUT}/coverage.md`, lines.join("\n") + "\n");
+  writeFileSync(`${OUT}/results.json`, JSON.stringify({ mode: MODE, width: WIDTH, theme: THEME, results }, null, 2));
+
+  const pressedOrDocumented = totalFound - undocumented;
+  console.log(`\nfound=${totalFound} pressed=${totalPressed} failed=${failedPresses} undocumented-skips=${undocumented} coverage=${totalFound ? ((pressedOrDocumented / totalFound) * 100).toFixed(1) : "100.0"}%`);
+  console.log(`wrote ${OUT}/coverage.md and ${OUT}/results.json (${shots} screenshots)`);
+  if (failedPresses > 0 || undocumented > 0) {
+    console.log(`FAIL: ${failedPresses} failed press(es), ${undocumented} control(s) unpressed without a documented reason`);
+    process.exit(1);
+  }
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((e) => { console.error(e); process.exit(2); });
+}

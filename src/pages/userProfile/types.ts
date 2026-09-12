@@ -76,7 +76,6 @@ export type CancellationRate = {
 
 export type LastActiveLabel = { text: string; isLive: boolean };
 
-export type PosterReputation = { reviewCount: number; avgRating: number };
 
 
 /**

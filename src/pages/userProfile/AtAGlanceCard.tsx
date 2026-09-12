@@ -14,7 +14,6 @@ import type {
   ProfileStatsShape,
   ReplyLatency,
   CancellationRate,
-  PosterReputation,
 } from "./types";
 
 /**
@@ -158,7 +157,6 @@ type Props = {
   onTimeArrivalRate: number | null;
   revisionFrequency: number | null;
   cancellationRate: CancellationRate;
-  posterReputation: PosterReputation | null;
   /**
    * % of this helper's clients who hired them again. NULL below three
    * distinct clients — ungated, one returning customer published a boldfaced
@@ -185,7 +183,6 @@ export const AtAGlanceCard = ({
   onTimeArrivalRate,
   revisionFrequency,
   cancellationRate,
-  posterReputation,
   repeatHirePercent,
   showReviews,
   showPostedJobs,
@@ -326,15 +323,21 @@ export const AtAGlanceCard = ({
     });
   }
 
-  if (posterReputation !== null) {
-    cells.push({
-      key: "poster",
-      icon: Star,
-      value: posterReputation.avgRating.toFixed(1),
-      label: `As a poster · ${posterReputation.reviewCount} review${posterReputation.reviewCount === 1 ? "" : "s"}`,
-    });
-  }
+  /* NO SECOND RATING TILE. A separate "As a poster · N reviews" star sat here
+     alongside the profile's main rating, so one person showed two different
+     scores inches apart and the reader had to work out which one meant what.
+     Owner, 2026-09-11: "no one rating" — this account has ONE reputation,
+     which is the same reason the app is never role-based.
 
+     Deleting it loses nothing: `get_public_profile_stats.avg_rating` already
+     counts poster reviews as well as helper ones. Verified against prod
+     rather than assumed — user 96c9899e has 0 completed jobs as a helper, 6
+     posted jobs, and still reports `avg_rating` 5.00 from a review that also
+     shows up in `poster_review_count`. So a pure poster keeps their rating;
+     it is just no longer printed twice.
+
+     `poster_avg_rating` remains in the RPC and is untouched — it carries a
+     3-review floor and was returning null here anyway. */
   if (revisionFrequency !== null) {
     cells.push({
       key: "revisions",

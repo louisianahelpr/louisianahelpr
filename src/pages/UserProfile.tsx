@@ -111,7 +111,6 @@ const UserProfile = () => {
     isIdVerified,
     backgroundCheckStatus,
     tierProfile,
-    posterReputation,
     postedTotalCount,
     loading,
   } = useUserProfileData(userId, currentUserId);
@@ -582,7 +581,6 @@ const UserProfile = () => {
                 onTimeArrivalRate={onTimeArrivalRate}
                 revisionFrequency={revisionFrequency}
                 cancellationRate={cancellationRate}
-                posterReputation={posterReputation}
                 repeatHirePercent={data?.repeatHirePercent ?? null}
                 showReviews={showReviews}
                 showPostedJobs={showPostedJobs}

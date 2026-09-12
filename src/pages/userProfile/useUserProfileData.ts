@@ -739,18 +739,23 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // Same 3-review floor, now enforced in SQL: `poster_avg_rating` arrives
       // already NULL below it, so there is one rule instead of two that can
       // drift apart.
-      const publicPosterAvg = publicStats ? num(publicStats.poster_avg_rating) : null;
       const publicPosterCount = int(publicStats?.poster_review_count) ?? 0;
-      const posterReputation = publicStats
-        ? publicPosterAvg !== null
-          ? { reviewCount: publicPosterCount, avgRating: publicPosterAvg }
-          : null
-        : posterRatings.length >= 3
-        ? {
-            reviewCount: posterRatings.length,
-            avgRating: posterRatings.reduce((a, b) => a + b, 0) / posterRatings.length,
-          }
-        : null;
+      /* No separate poster reputation any more (owner, 2026-09-11: "no one
+         rating"). This computed a second star rating from the poster-only
+         review subset, which AtAGlanceCard rendered as its own "As a poster"
+         tile beside the profile's main rating — two scores for one person,
+         inches apart, with nothing saying which was which.
+
+         Nothing is lost by dropping it: `avg_rating` from
+         get_public_profile_stats already counts poster reviews as well as
+         helper ones, verified against prod rather than assumed (user
+         96c9899e: 0 completed jobs as a helper, 6 posted, `avg_rating` 5.00
+         drawn from a review that also appears in `poster_review_count`). So a
+         pure poster still has a rating; it is simply not printed twice.
+
+         `publicPosterCount` and `posterRatings` are still read below as the
+         SAMPLE SIZE behind the repeat-hire and rate stats — that is a
+         denominator, not a second score, and it stays. */
 
       return {
         profile: {
@@ -833,7 +838,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
               : null
             : idCheckRes.data?.stripe_account_id ?? null,
         },
-        posterReputation,
         postedTotalCount: int(publicStats?.posted_jobs_total) ?? postedTotalRes.count ?? 0,
         postedCancelledCount: postedCancelledRes.count ?? 0,
         // Jobs completed AS A HELPER. `completedWorkedJobs.length` counts a
@@ -1062,7 +1066,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
   const isIdVerified = data?.isIdVerified ?? false;
   const backgroundCheckStatus = data?.backgroundCheckStatus ?? "none";
   const tierProfile = data?.tierProfile ?? null;
-  const posterReputation = data?.posterReputation ?? null;
   const postedTotalCount = data?.postedTotalCount ?? 0;
   const postedCancelledCount = data?.postedCancelledCount ?? 0;
   const loading = isLoading && !data;
@@ -1098,7 +1101,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     isIdVerified,
     backgroundCheckStatus,
     tierProfile,
-    posterReputation,
     postedTotalCount,
     postedCancelledCount,
     loading,

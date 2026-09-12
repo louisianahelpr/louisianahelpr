@@ -194,3 +194,18 @@ says it. (owner, 2026-09-11)
 Rating · Jobs posted · Jobs completed · Cancelled. (owner, 2026-09-11, via
 pop-up, explicitly "im not asnwering this again".) Currently renders seven.
 Drop: on-time %, rebooked %, needed-revisions %.
+
+## CONSISTENCY — identity verification has FOUR renderings
+One fact, four treatments, and the owner has raised this repeatedly:
+1. Profile "Verified" group — **"Stripe verified"**, gold pill + shield icon
+2. Profile "As a Helpr" group — **"Verified"**, ladder rung, different pill
+3. Profile header — **"ID verified by Stripe"**
+4. `dashboard/JobPosterCard.tsx:83` — **"✓ ID VERIFIED"**, uppercase, no pill,
+   a literal ✓ character instead of the shield icon everything else uses
+
+ONE component, ONE label, ONE treatment, everywhere. Pick the pill+shield form
+(it is the one with an icon and a real badge primitive behind it) and delete
+the other three. #2 is already logged separately as redundant with #1.
+
+This is the class the owner keeps pointing at: the same fact hand-drawn per
+surface. Same disease as the job card (three copies) and the price pill (10+).

@@ -423,7 +423,7 @@ const AdminSupport = () => {
                         <Badge variant="outline" className="text-ds-10 px-1.5 py-0">{cat.label}</Badge>
                         {/* WHY THIS ROW IS WHERE IT IS. The gold crown is the
                             same visual language the Elite `featuredBadge`
-                            already uses elsewhere (JobPosterCard, HelperBadges),
+                            already uses elsewhere (JobPosterCard, the applicant chips),
                             so an admin reads "paying top tier" without a
                             legend. Deliberately says "Priority" and not a
                             duration: no response-time promise is made anywhere.

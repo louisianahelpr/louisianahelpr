@@ -15,7 +15,7 @@
  * loads these fields.
  *
  * Thresholds are intentionally adjacent-but-not-identical to the existing
- * achievement badges in `HelperBadges.tsx` (Elite / Top Rated / Trusted),
+ * achievement badges (Elite / Top Rated / Trusted),
  * because the verification ladder answers a different question: "how
  * trusted is this person's account?" rather than "how decorated is their
  * track record?". A helpr with 5 perfect jobs but no Stripe will not reach

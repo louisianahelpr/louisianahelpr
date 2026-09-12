@@ -1,7 +1,7 @@
 // How a subscription tier is DRAWN, in one table.
 //
-// Three surfaces render a tier badge — JobPosterCard (poster tile),
-// HelperBadges (applicant/profile chips) and IdentityHeader (profile header) —
+// Three surfaces render a tier badge — JobPosterCard (poster tile), the
+// applicant/profile chips and IdentityHeader (profile header) —
 // and each of them used to carry its own `tier === "elite" ? … : tier ===
 // "pro" ? … : tier === "basic" ? …` chain. All three therefore drew NOTHING
 // for a Plus member (CC-019): the trust row opened, the badge slot was empty,

@@ -298,9 +298,15 @@ export function ProfileEditForm({
               and the map popup (`categoryColors` + `CategoryIcon`), so a
               skill reads as the same category chip everywhere in the app,
               not a differently-styled one-off here. One scrolling row
-              (not wrap) keeps the card's height fixed regardless of how
-              many presets exist. */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+              (not wrap) used to keep the card's height fixed — and hid four
+              of the eleven presets behind a `scrollbar-hide` overflow. At
+              1440 the row was cut mid-word ("Eve…") at the card edge with no
+              scrollbar and no fade, and a mouse has no horizontal swipe, so
+              those skills were unpickable from the desktop site (state-
+              matrix sweep, 2026-09-11). Wrapping shows every preset; the
+              card grows by a row or two, which is the honest height of an
+              eleven-option picker. */}
+          <div className="flex flex-wrap gap-1.5">
             {SKILL_PRESETS.map(({ value, label }) => {
               const active = skillList.some((s) => s.toLowerCase() === label.toLowerCase());
               const catStyle = categoryColors[value] || categoryColors.other;

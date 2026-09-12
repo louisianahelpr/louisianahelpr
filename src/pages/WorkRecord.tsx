@@ -171,11 +171,20 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
         .order("created_at", { ascending: false });
       const completedJobs = unwrap(jobsRes) as Job[];
 
-      // Fetch reviews received as helper
+      // Fetch reviews received as helper — the SAME set the Reviews tab
+      // shows (`useProfileStats`): only reviews past their anti-retaliation
+      // reveal (`feedback_visible_at <= now()`). This query used to have no
+      // reveal filter, so this document counted reviews the Reviews tab
+      // deliberately hides — "AVG RATING 4.5 (2)" here beside "No reviews
+      // yet" there, same account, same session (state-matrix sweep,
+      // 2026-09-11). In prod the reviews SELECT policy happens to enforce the
+      // reveal for everyone but the reviewer, which is why it never showed
+      // live; an employer-facing number must not lean on RLS to be right.
       const reviewsRes = await supabase
         .from("reviews")
         .select("rating")
-        .eq("reviewee_id", userId);
+        .eq("reviewee_id", userId)
+        .lte("feedback_visible_at", new Date().toISOString());
       const reviews = unwrap(reviewsRes) as { rating: number }[];
 
       const reviewCount = reviews.length;

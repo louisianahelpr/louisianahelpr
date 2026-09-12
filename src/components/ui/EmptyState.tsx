@@ -8,8 +8,14 @@ import type { CSSProperties, ReactNode } from "react";
  *   on full-surface empty states (Messages, My Posts / My Jobs, Browse).
  * - `inline`: a self-contained frosted card rounded on all four corners,
  *   sitting inline within a scrolling page — no dock bleed.
+ * - `bare`: LAYOUT ONLY — no fill, no border, no shadow, no radius. For an
+ *   empty state that already sits inside a `.liquid-glass` card the caller
+ *   owns (the Pets desktop rail). `inline` there drew a second bordered
+ *   white box 1px inside the first — the 2026-09-07 box-in-a-box defect
+ *   again, at 1440 this time (state-matrix sweep, 2026-09-11). The answer
+ *   is not a different radius; the inner box is not drawn at all.
  */
-type EmptyStateVariant = "dock" | "inline";
+type EmptyStateVariant = "dock" | "inline" | "bare";
 
 interface EmptyStateProps {
   /** Lucide icon rendered inside the frosted circle. */
@@ -77,6 +83,7 @@ export function EmptyState({
   surfaceStyle,
 }: EmptyStateProps) {
   const isDock = variant === "dock";
+  const isBare = variant === "bare";
 
   const variantStyle: CSSProperties = isDock
     ? {
@@ -170,7 +177,9 @@ export function EmptyState({
           // drawn. The dock now contributes LAYOUT only — it still fills the
           // panel and centres the content, it just paints nothing.
           ? "empty-state-dock flex-1 min-w-0 max-w-full flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10"
-          : "flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-14 rounded-2xl"
+          : isBare
+            ? "flex-1 min-w-0 max-w-full flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10"
+            : "flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-14 rounded-2xl"
       }
       style={cardStyle}
     >

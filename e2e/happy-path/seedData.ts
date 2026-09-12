@@ -314,6 +314,13 @@ export const SEED_REVIEWS = [
     rating: 5,
     feedback: "Fast, tidy, and put the boxes exactly where I asked.",
     created_at: AGO(2),
+    // Past its anti-retaliation reveal. Without this every visible-reviews
+    // reader (`.lte("feedback_visible_at", now)`) dropped the row and the
+    // populated Reviews tab rendered "No reviews yet" while the Work Record,
+    // which had no reveal filter, counted it — two screens disagreeing about
+    // fixture data that was never a legal prod row (the trigger always stamps
+    // this column).
+    feedback_visible_at: AGO(2),
   },
   {
     id: "40000000-0000-4000-8000-000000000002",
@@ -323,6 +330,7 @@ export const SEED_REVIEWS = [
     rating: 4,
     feedback: "Good work overall. Arrived a little late but kept me posted.",
     created_at: AGO(8),
+    feedback_visible_at: AGO(8),
   },
 ];
 

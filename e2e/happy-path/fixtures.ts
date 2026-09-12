@@ -285,7 +285,7 @@ export async function installSupabaseMocks(
 
     // 3. PostgREST (table/RPC reads + writes)
     if (url.pathname.startsWith("/rest/v1/")) {
-      return route.fulfill(buildFulfill(handleRest(url, method, user, seed)));
+      return route.fulfill(buildFulfill(honourSingleObject(req.headers(), handleRest(url, method, user, seed))));
     }
 
     // 4. Edge functions (e.g. complete-signup) — always 200 with an empty
@@ -360,6 +360,32 @@ export async function installSupabaseMocks(
 
     return route.fulfill({ status: 204, body: "" });
   });
+}
+
+/**
+ * `.single()` / `.maybeSingle()` send `Accept: application/vnd.pgrst.object+json`
+ * and real PostgREST answers with ONE OBJECT — or 406 / PGRST116 when the row
+ * count is not exactly one. This mock answered every read with an array, so a
+ * `.single()` caller got `data = [row]`: every field read off it was
+ * `undefined`, silently. The Work Record rendered "Helpr Member" and
+ * `Invalid Date` for MEMBER SINCE on an Employment & Earnings Record, and the
+ * state-matrix sweep filed it as an app defect (2026-09-11). The app was
+ * fine; the fixture was answering a question it had not been asked.
+ */
+function honourSingleObject(headers: Record<string, string>, resp: SupabaseResponse): SupabaseResponse {
+  const accept = headers["accept"] ?? headers["Accept"] ?? "";
+  if (!accept.includes("vnd.pgrst.object") || !Array.isArray(resp.body)) return resp;
+  const rows = resp.body as unknown[];
+  if (rows.length === 1) return { ...resp, body: rows[0] };
+  return {
+    status: 406,
+    body: {
+      code: "PGRST116",
+      details: `The result contains ${rows.length} rows`,
+      hint: null,
+      message: "JSON object requested, multiple (or no) rows returned",
+    },
+  };
 }
 
 function buildFulfill(resp: SupabaseResponse) {

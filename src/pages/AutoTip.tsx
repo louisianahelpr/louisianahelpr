@@ -430,25 +430,21 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
             two type treatments, over a single switch. The section heading is the
             name; the italic line is what it does. */}
         <section className="liquid-glass rounded-ds-md p-5 space-y-3">
-          <h2
-            id="instant-release-heading"
-            className="font-display font-bold text-ds-14"
-            style={{ color: "hsl(var(--ink-deep))" }}
-          >
-            Instant Release
-          </h2>
-          <div
-            className="rounded-ds-md p-3 flex items-center justify-between gap-3"
-            style={{ background: "hsl(var(--bark) / 0.06)", border: "0.5px solid hsl(var(--bark) / 0.18)" }}
-          >
-            <p
-              id="instant-release-desc"
-              className="min-w-0 font-sans text-ds-12 leading-snug"
-              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          {/* The switch sits on the HEADING row, not beside the sentence. It
+              used to share a tinted inner box with the description, which
+              left the body text a ~200px column beside a 44px switch inside
+              a card 335px wide at 375 — a full-width card wrapping its one
+              sentence in a ribbon (state-matrix sweep, 2026-09-11). The
+              heading names the setting, the switch is its control, and the
+              sentence beneath gets the card's whole width. */}
+          <div className="flex items-center justify-between gap-3">
+            <h2
+              id="instant-release-heading"
+              className="font-display font-bold text-ds-14"
+              style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Release payment as soon as the Helpr marks the job done with photo
-              proof — instead of holding it for your 24-hour review.
-            </p>
+              Instant Release
+            </h2>
             <Switch
               checked={autoRelease}
               onCheckedChange={setAutoRelease}
@@ -457,6 +453,14 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
               className="shrink-0"
             />
           </div>
+          <p
+            id="instant-release-desc"
+            className="font-sans text-ds-12 leading-snug"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            Release payment as soon as the Helpr marks the job done with photo
+            proof — instead of holding it for your 24-hour review.
+          </p>
         </section>
 
         <Button

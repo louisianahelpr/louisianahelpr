@@ -282,8 +282,11 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
 
               {!isLoading && !isError && pets?.length === 0 && (
                 <div className="p-4">
+                  {/* `bare`, not `inline`: this rail IS the liquid-glass card
+                      (the wrapper above), so an `inline` EmptyState painted a
+                      second bordered white box 1px inside it at 1440. */}
                   <EmptyState
-                    variant="inline"
+                    variant="bare"
                     icon={PawPrint}
                     title="No pets yet"
                     body="Add your first pet to get started."

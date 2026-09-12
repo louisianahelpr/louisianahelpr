@@ -229,6 +229,22 @@ for (const theme of THEMES) {
               .catch(() => false);
             if (srOnly) { rec.controls.push({ label, result: "screen-reader only (pointer not expected)" }); continue; }
 
+            // ALREADY SELECTED IS NOT DEAD. A tab that is the current tab, or a
+            // nav item for the route you are on, is SUPPOSED to do nothing when
+            // pressed. Without this the walk reports "Home" dead on /dashboard,
+            // "Posts" dead on /my-posts, "Messages" dead on /messages and
+            // "Terms" dead on the legal tab — four confident findings per run,
+            // none of them real, all of them crowding out the ones that are.
+            const active = await target
+              .evaluate((el) => {
+                const on = (a) => el.getAttribute(a) === "true" || el.closest(`[${a}="true"]`) !== null;
+                return on("aria-selected") || on("aria-current") || on("aria-pressed") ||
+                  el.getAttribute("aria-current") === "page" ||
+                  el.dataset.state === "active" || el.closest('[data-state="active"]') !== null;
+              })
+              .catch(() => false);
+            if (active) { rec.controls.push({ label, result: "already the active tab/route (no-op expected)" }); continue; }
+
             // A link to the page you are already on is SUPPOSED to do nothing.
             let selfLink = false;
             try {
@@ -250,6 +266,20 @@ for (const theme of THEMES) {
               controls: [...document.querySelectorAll("button, a[href]")]
                 .map((b) => b.getAttribute("aria-label") || (b.innerText || "").trim().slice(0, 20))
                 .filter(Boolean).sort().join("|"),
+              // TOGGLE AND FIELD STATE. Without this a control that flips a
+              // switch looks dead: "Copy Mon to all" on the availability tab
+              // turned the last day on — verified by hand, aria-checked false
+              // to true — and the harness reported DEAD CONTROL because the
+              // page's text length, input count and control names were all
+              // unchanged. Half this app's controls are toggles; a fingerprint
+              // that cannot see them cannot audit them.
+              state: [...document.querySelectorAll('[role="switch"], [aria-checked], [aria-expanded], [aria-selected], [aria-pressed], input, select, textarea')]
+                .map((e) => [
+                  e.getAttribute("aria-checked"), e.getAttribute("aria-expanded"),
+                  e.getAttribute("aria-selected"), e.getAttribute("aria-pressed"),
+                  e.type === "checkbox" || e.type === "radio" ? String(e.checked) : (e.value ?? ""),
+                ].join("/"))
+                .join(","),
               focused: document.activeElement ? document.activeElement.tagName : "",
             }));
             const before = {
@@ -286,6 +316,7 @@ for (const theme of THEMES) {
               after.dialogs > before.dialogs ? "opened a dialog" :
               after.controls !== before.controls ? "swapped the controls" :
               after.inputs !== before.inputs ? `revealed a field (inputs ${before.inputs}→${after.inputs})` :
+              after.state !== before.state ? "changed a toggle/field" :
               Math.abs(after.body - before.body) > 12 ? `content changed (${after.body - before.body > 0 ? "+" : ""}${after.body - before.body})` :
               "NOTHING HAPPENED";
 
@@ -311,7 +342,7 @@ for (const theme of THEMES) {
             if (after.url !== before.url) {
               await page.goto(BASE + route, { waitUntil: "domcontentloaded" });
               await page.waitForTimeout(1400);
-            } else if (after.controls !== before.controls || after.inputs !== before.inputs) {
+            } else if (after.controls !== before.controls || after.inputs !== before.inputs || after.state !== before.state) {
               // The chrome changed under us (a search field replacing the icon
               // row, a tab swapping the body). Reload so the next control is
               // pressed against the same starting state as the first.

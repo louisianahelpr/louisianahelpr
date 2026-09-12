@@ -738,3 +738,33 @@ on every one.
       audit. They now describe the surface, not the filename. NOT touching the
       131 unused exports: dead code you happen to notice is a report, not a task.
       `Test` workflow green on 980c82a2a.
+
+## Owner decisions, 2026-09-11
+
+- [x] **The 40 orphaned availability notifications are DELETED** (owner
+      approved). Backed up first to
+      `docs/backups/orphan-availability-notifications-2026-09-11.json` — all 40
+      rows, 40 unique ids, every field. Re-measured: rows for that user
+      **40 -> 0**, and `title ilike '%updated availability%'` across the whole
+      table is now **0**. The newest row was 2026-09-12T00:41, i.e. the flood was
+      still running right up to the deploy; the next 6-hourly tick at :41 is the
+      forward proof that it stays at zero.
+      (Note for anyone reading the delete: `returning` plus a count subquery in
+      ONE statement reports the pre-delete snapshot — it said "deleted 40,
+      remaining 40". The remaining count has to be a separate statement.)
+
+- [ ] **Nested white cards: owner ruled KEEP THE GROUPS, DROP THE OUTER CARD.**
+      The WORK / MONEY group cards and their eyebrow labels stay exactly as they
+      are; the outer wrapper stops painting a white card and a border, so there
+      is one boundary per group instead of a box inside a box. Applies
+      everywhere it appears — `/profile` landing (`SettingsSection.tsx:44`, 4
+      instances) and Admin Health's "Configuration Checks" at minimum. Sweep for
+      others rather than fixing only the two that were seen. NOT YET DONE.
+
+- [ ] **Missing foreign keys: owner ruled INVESTIGATE AND REPORT FIRST.** No
+      schema change yet. Work out what would break, how many existing rows
+      violate each constraint, and what account deletion is supposed to do here
+      (remember deletion ANONYMISES rather than deletes, so a naive FK with
+      CASCADE would destroy history the app deliberately keeps). Bring back a
+      concrete plan. Applies to `favorite_helpers.customer_id` / `.helper_id`
+      (7 of 12 live rows orphaned) and `notifications.user_id`.

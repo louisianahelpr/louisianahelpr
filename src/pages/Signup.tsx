@@ -560,6 +560,7 @@ const Signup = () => {
             setZipCode={setZipCode}
             zipCityMismatch={cityZipMismatch}
             zipUnknown={unknownZip}
+            zipRecognised={!!resolvedZipParish}
             bio={bio}
             setBio={setBio}
             inputCls={inputCls}

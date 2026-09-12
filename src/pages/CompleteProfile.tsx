@@ -240,6 +240,9 @@ const CompleteProfile = () => {
   const lastNameValid = lastName.trim().length > 0;
   const phoneValid = phone.replace(/\D/g, "").length === 10;
   const cityValid = location.trim().length > 0;
+  // The ✓ means "recognised", not "five digits". An unrecognised ZIP already
+  // renders its own warning below, so a check beside it would contradict it.
+  const zipValid = zipCode.length === 5 && !unknownZip && !!resolvedZipParish;
 
   // Same bounds as Signup's DOB picker: today − 18y upper bound (blocks
   // under-18 at the UI layer; the age check below is the backstop), today −
@@ -768,16 +771,23 @@ const CompleteProfile = () => {
                 <Label htmlFor="zipCode">
                   ZIP <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span>
                 </Label>
-                <Input
-                  id="zipCode"
-                  value={zipCode}
-                  onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                  inputMode="numeric"
-                  autoComplete="postal-code"
-                  maxLength={5}
-                  placeholder="70801"
-                  className="rounded-ds-md"
-                />
+                {/* Same valid ✓ as Phone and City beside it (owner, 2026-09-12:
+                    "missing the check even though the zip is entered"). */}
+                <div className="relative">
+                  <Input
+                    id="zipCode"
+                    value={zipCode}
+                    onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                    inputMode="numeric"
+                    autoComplete="postal-code"
+                    maxLength={5}
+                    placeholder="70801"
+                    className={`rounded-ds-md ${zipValid ? "pr-10" : ""}`}
+                  />
+                  {zipValid && (
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  )}
+                </div>
               </div>
             </div>
             {/* An unrecognised ZIP used to render nothing at all here, which is

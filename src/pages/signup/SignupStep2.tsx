@@ -71,6 +71,9 @@ export interface SignupStep2Props {
    * can still be created; it just won't be reachable by the parish fan-out,
    * which is precisely why the person has to be told before they finish. */
   zipUnknown?: boolean;
+  /** True once the ZIP resolved to a parish — drives the same valid ✓ the
+   *  other fields show. */
+  zipRecognised?: boolean;
   bio: string;
   setBio: (v: string) => void;
   inputCls: string;
@@ -110,6 +113,7 @@ export function SignupStep2(props: SignupStep2Props) {
     setZipCode,
     zipCityMismatch,
     zipUnknown,
+    zipRecognised,
     bio,
     setBio,
     inputCls,
@@ -330,21 +334,26 @@ export function SignupStep2(props: SignupStep2Props) {
             <Label htmlFor="zipCode" className={labelCls}>
               ZIP <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span>
             </Label>
-            <Input
-              id="zipCode"
-              value={zipCode}
-              onChange={(e) => {
-                setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5));
-                clearFieldError?.("zipCode");
-              }}
-              inputMode="numeric"
-              autoComplete="postal-code"
-              maxLength={5}
-              placeholder="70801"
-              aria-invalid={!!fieldErrors.zipCode}
-              aria-describedby={fieldErrors.zipCode ? "zipCode-error" : undefined}
-              className={`${inputCls}${fieldErrors.zipCode ? " border-destructive" : ""}`}
-            />
+            <div className="relative">
+              <Input
+                id="zipCode"
+                value={zipCode}
+                onChange={(e) => {
+                  setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5));
+                  clearFieldError?.("zipCode");
+                }}
+                inputMode="numeric"
+                autoComplete="postal-code"
+                maxLength={5}
+                placeholder="70801"
+                aria-invalid={!!fieldErrors.zipCode}
+                aria-describedby={fieldErrors.zipCode ? "zipCode-error" : undefined}
+                className={`${inputCls}${fieldErrors.zipCode ? " border-destructive" : ""}${zipRecognised ? " pr-10" : ""}`}
+              />
+              {zipRecognised && zipCode.length === 5 && !zipUnknown && (
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+              )}
+            </div>
             <FieldError id="zipCode-error" message={fieldErrors.zipCode} />
           </div>
         </div>

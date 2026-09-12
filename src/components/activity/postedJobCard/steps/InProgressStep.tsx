@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, AlertTriangle, MessageCircle, Wrench } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JobStepCard } from "@/components/activity/JobStepCard";
 import { JobActionChip, JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "../../JobActionRow";
@@ -100,15 +100,11 @@ export function InProgressStep(ctx: PosterStepCtx) {
       }
       notice={
         <>
-          {showConfirmWorking && (
-            <div
-              className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm"
-              style={{ background: "hsl(var(--amber-tint) / 0.10)", color: "hsl(var(--amber-ink))" }}
-            >
-              <Wrench className="w-3.5 h-3.5 shrink-0" />
-              <span className="font-medium">Is the Helpr working?</span>
-            </div>
-          )}
+          {/* The "Is the Helpr working?" prompt was REMOVED here (owner,
+              2026-09-11: "not needed. these are also on the tracker"). It
+              labelled the "Confirm They're Working" button that sits directly
+              under it, so it asked the question the button already answers,
+              while the tracker beside it already shows which step is current. */}
           {/* The deadline reads the shared constant — 24h, TIGHTENED from 48 on
               2026-08-24. Do not "restore" a 48: that would double every
               poster's review window and delay every helper payout by a day. */}

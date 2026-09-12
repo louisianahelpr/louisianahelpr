@@ -1,7 +1,7 @@
 import { memo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RotateCcw, RefreshCw, Clock, Check, MapPinOff, AlertTriangle } from "lucide-react";
+import { CheckCircle2, RotateCcw, RefreshCw, Check, MapPinOff, AlertTriangle } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";
@@ -452,16 +452,17 @@ function PostedJobCardInner({
               {/* Accepted status */}
               {job.status === "accepted" && (
                 <div className="space-y-2">
-                  {/* Only the WAITING half survives. "Eli T. accepted" was the
-                      tracker's Accepted step said again in words, a few rows
-                      above the tracker itself (owner: "remove", twice). The
-                      waiting pill is not a duplicate — nothing in the tracker
-                      says a step is overdue, only which one is current. */}
-                  {!job.helper_confirmed_at && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-ds-11 px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1" style={{ background: "hsl(var(--amber-tint) / 0.10)", color: "hsl(var(--amber-ink))" }}><Clock className="w-3 h-3" /> Waiting for {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} to accept</span>
-                    </div>
-                  )}
+                  {/* The "Waiting for … to accept" pill is GONE too (owner,
+                      2026-09-11: "no no pills").
+
+                      This one had survived an earlier pass with a written
+                      justification — that the tracker says which step is
+                      CURRENT but not that it is overdue. The owner has now
+                      ruled on the whole class rather than case by case: no
+                      status pills on the card, the tracker is where job state
+                      is read. Do not reintroduce one with a fresh argument for
+                      why this particular pill is different; that argument has
+                      already been made and overruled. */}
                   {/* Job countdown */}
                   <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
                   {job.helper_confirmed_at && (
@@ -500,9 +501,16 @@ function PostedJobCardInner({
               )}
 
 
-              {(job.status === "in_progress" || job.status === "revision_requested") && job.poster_confirmed_arrival_at && !job.poster_confirmed_working_at && (
-                <span className="text-ds-11 px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1" style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}><Check className="w-3 h-3" strokeWidth={3} /> Arrival confirmed</span>
-              )}
+              {/* The "Arrival confirmed" chip was REMOVED here (owner,
+                  2026-09-11, pointing at it on the card: "not needed. these are
+                  also on the tracker").
+
+                  It is the same defect as the completion-confirmation pills
+                  noted just below, which the owner had already had removed on
+                  2026-08-19 — this one simply survived that pass. The tracker
+                  directly below reads `posterConfirmedArrivalAt` and draws the
+                  Arrived step from it, so the chip restated, a few rows higher,
+                  the one fact the tracker already shows IN ORDER. */}
 
               {/* The completion-confirmation chip row was REMOVED here (owner,
                   2026-08-19: "remove offered to eli / eli confirmed / waiting

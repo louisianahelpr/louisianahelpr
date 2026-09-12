@@ -5,6 +5,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
+import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import AppShell from "@/components/AppShell";
@@ -439,9 +440,15 @@ const ProfilePage = () => {
     setIdUploading(false);
   };
 
+  const { requestCrop: requestAvatarCrop, dialog: avatarCropDialog } = useAvatarCrop();
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
+    const picked = e.target.files?.[0];
+    // Reset so picking the same file again after a cancel still fires onChange.
+    e.target.value = "";
+    if (!picked || !user) return;
+    // Let the member frame it first — the circle crops anything left to chance.
+    const file = await requestAvatarCrop(picked);
+    if (!file) return;
 
     // ── THIS IS THE "I UPLOADED THE WRONG THING" PATH ────────────────────
     //
@@ -722,6 +729,8 @@ const ProfilePage = () => {
         )}
       </div>
     </AppShell>
+
+    {avatarCropDialog}
 
     <BrandConfirmDialog
         open={showLogoutDialog}

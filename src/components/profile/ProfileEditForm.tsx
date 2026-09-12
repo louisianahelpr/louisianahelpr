@@ -98,6 +98,8 @@ export function ProfileEditForm({
   // (it's the value used for Louisiana sales tax). Mirrors the silent
   // lookup the Profile page already runs.
   const { parish: zipParish, unknownZip, resolution } = useParishForZip(zipCode);
+  // Recognised, not merely five digits — an unknown ZIP shows its own warning.
+  const zipValid = zipCode.length === 5 && !unknownZip && !!zipParish;
   // The hook reports `incomplete` until its first answer lands, which on mount
   // would blink the saved parish off the screen for a frame. Fall back to the
   // stored value until the lookup has actually said something.
@@ -185,11 +187,19 @@ export function ProfileEditForm({
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
+            {/* ZIP is a FIXED 6.25rem column, City takes the rest. ZIP now carries
+                the same valid ✓ as Phone and City (owner, 2026-09-12). A one-third
+                column (~82px at 375) had no room for it — five digits already
+                filled it. A 3 : 2 split fixed ZIP and clipped "Baton Rouge, LA" by
+                13px instead. Five digits never need more than a fixed width; a
+                city name uses whatever is left. Below 360px the two stack, because a
+                320px phone clipped the city even before this (29px) and cannot fit both.
+                Measured at 320 / 375 / 1440. */}
+            <div className="grid grid-cols-1 min-[360px]:grid-cols-[minmax(0,1fr)_6.25rem] gap-3">
+              <div>
                 <Label htmlFor="location" className="text-ds-11 mb-1.5 block">City</Label>
                 <div className="relative">
-                  <Input id="location" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" value={location} onChange={(e) => setLocation(e.target.value)} className={`h-10 ${locationValid ? "pr-10" : ""}`} />
+                  <Input id="location" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" value={location} onChange={(e) => setLocation(e.target.value)} className={`h-10 px-3 ${locationValid ? "pr-9" : ""}`} />
                   {locationValid && (
                     <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
                   )}
@@ -197,19 +207,22 @@ export function ProfileEditForm({
               </div>
               <div>
                 <Label htmlFor="zipCode" className="text-ds-11 mb-1.5 block">ZIP</Label>
-                <Input
-                  id="zipCode"
-                  value={zipCode}
-                  onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                  inputMode="numeric"
-                  autoComplete="postal-code"
-                  maxLength={5}
-                  // px-3, not the Input default px-4: at 375 this column is
-                  // ~82px wide, and 32px of padding left 49px for five 16px
-                  // digits — measured scrollWidth 83 vs clientWidth 80, so the
-                  // last digit of "70808" was clipped on the primary viewport.
-                  className="h-10 px-3"
-                />
+                <div className="relative">
+                  <Input
+                    id="zipCode"
+                    value={zipCode}
+                    onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                    inputMode="numeric"
+                    autoComplete="postal-code"
+                    maxLength={5}
+                    // px-3, not the Input default px-4: the last digit of "70808"
+                    // once clipped here at 375 (scrollWidth 83 vs clientWidth 80).
+                    className={`h-10 px-3 ${zipValid ? "pr-9" : ""}`}
+                  />
+                  {zipValid && (
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  )}
+                </div>
               </div>
             </div>
             {/* Parish confirmation — reassures the user the ZIP

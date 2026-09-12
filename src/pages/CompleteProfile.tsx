@@ -28,6 +28,7 @@ import { report } from "@/lib/errorLogger";
 import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
 import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { parishForCity } from "@/lib/parishes";
+import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
 import type { ProfileCompletionUpdates } from "./completeProfile/types";
 import {
   ALLOWED_IMAGE_TYPES,
@@ -152,9 +153,15 @@ const CompleteProfile = () => {
     return true;
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && validateFile(file, ALLOWED_IMAGE_TYPES, "Profile picture")) {
+  const { requestCrop: requestAvatarCrop, dialog: avatarCropDialog } = useAvatarCrop();
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files?.[0];
+    // Reset so picking the same file again after a cancel still fires onChange.
+    e.target.value = "";
+    if (!picked || !validateFile(picked, ALLOWED_IMAGE_TYPES, "Profile picture")) return;
+    // Frame it before it becomes the preview — the circle crops anything left to chance.
+    const file = await requestAvatarCrop(picked);
+    if (file) {
       setAvatarFile(file);
       setAvatarBroken(false);
       setAvatarPreview(URL.createObjectURL(file));
@@ -949,6 +956,7 @@ const CompleteProfile = () => {
             </p>
           </form>
       </div>
+      {avatarCropDialog}
     </AuthShell>
   );
 };

@@ -103,7 +103,14 @@ const DOCUMENT_SCROLL_ROUTES = [
 // during momentum scrolling and lets content ghost into the notch. So on
 // native it must be html-locked like every other AppShell page. On web it
 // stays long-form document-scroll for SEO.
-const NATIVE_APP_SHELL_ROUTES = ["/legal", "/browse"];
+// /terms, /privacy and /rules render the SAME Legal.tsx as /legal — they
+// stopped being redirect hops on 2026-09-11 (8570fdbef) and became real routes.
+// They were added to DOCUMENT_SCROLL_ROUTES and not here, so on native all
+// three rendered AppShell with no `html.app-shell` lock: the component's
+// internal scroll container without the viewport lock that makes it work, on
+// three quarters of the legal surface, which is precisely the ghosting bug the
+// paragraph above exists to prevent. Caught by shellConsistency.test.ts.
+const NATIVE_APP_SHELL_ROUTES = ["/legal", "/terms", "/privacy", "/rules", "/browse"];
 
 /**
  * The pathname currently rendering the `path="*"` catch-all (NotFound), or

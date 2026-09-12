@@ -613,11 +613,9 @@ test("2b · lazy-chunk fetch failure never white-screens; records what the user 
   const { body, preloadErrors } = await driveChunk404(page, context, { armReloadGuard: true });
   await shot(page, "2b-chunk-fetch-failure");
 
-  const state = body.includes("Update ready.")
-    ? "Update ready. (chunk-aware copy)"
-    : body.includes("This page hit a problem.")
-      ? "This page hit a problem. (GENERIC route-crash copy — see 2b-defect)"
-      : body.slice(0, 120);
+  const state = body.includes("This page hit a problem.")
+    ? "This page hit a problem. (honest error card)"
+    : body.slice(0, 120);
   console.log(`[boundary] chunk-404 user-visible state: ${state}`);
   console.log("[boundary] vite:preloadError payloads: " + JSON.stringify(preloadErrors, null, 2));
   writeArtifact("chunk-404-state.json", { state, body: body.slice(0, 400), preloadErrors });
@@ -628,7 +626,7 @@ test("2b · lazy-chunk fetch failure never white-screens; records what the user 
   await expect(page.getByRole("button", { name: /Try Again|Reload/i })).toBeVisible();
 });
 
-test("a chunk 404 shows the chunk-aware 'Update ready.' copy", async ({
+test("an unrecovered chunk 404 shows the honest error card, never 'Update ready'", async ({
   page,
   context,
 }) => {
@@ -649,7 +647,10 @@ test("a chunk 404 shows the chunk-aware 'Update ready.' copy", async ({
   // not the generic "This page hit a problem" card.
   test.slow();
   const { body } = await driveChunk404(page, context, { armReloadGuard: true });
-  expect(body).toContain("Update ready.");
+  // Owner, 2026-09-12: an "Update ready" screen is an error in disguise. The
+  // boundary auto-reloads once; if that does not recover, it says so plainly.
+  expect(body).toContain("This page hit a problem.");
+  expect(body).not.toMatch(/Update ready|newer version/i);
 });
 
 test("an offline lazy-route navigation shows chunk/offline copy", async ({

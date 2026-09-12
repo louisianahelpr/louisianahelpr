@@ -42,7 +42,14 @@ describe("email signup (SignupStep2)", () => {
   });
 
   it("shows the error on the field and clears it as the user types", () => {
-    const field = STEP2.slice(STEP2.indexOf('htmlFor="zipCode"'), STEP2.indexOf('htmlFor="zipCode"') + 900);
+    // Bounded by the field's own END MARKER, not a character count. This was
+    // `+ 900`, and adding the valid check beside the input (2026-09-12) pushed
+    // the FieldError past character 900 — the test failed with the field
+    // perfectly intact, because it measured the markup instead of reading it.
+    const start = STEP2.indexOf('htmlFor="zipCode"');
+    const end = STEP2.indexOf("zipCode-unknown", start);
+    expect(end, "the ZIP field's unknown-ZIP notice marker moved — re-anchor this test").toBeGreaterThan(start);
+    const field = STEP2.slice(start, end);
     expect(field).toContain('FieldError id="zipCode-error"');
     expect(field).toContain('clearFieldError?.("zipCode")');
     // Without aria-describedby the message is visible but unannounced.

@@ -86,8 +86,18 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
       // Render a quiet updating state instead. When recovery is NOT started
       // (offline, or the 10s re-entry guard), the real card still shows with
       // its Reload button, because then the user does have to act.
-      if (recoverFromChunkError()) this.setState({ recovering: true });
-      return;
+      if (recoverFromChunkError()) {
+        this.setState({ recovering: true });
+        return;
+      }
+      // The automatic reload did NOT start — either it already ran in the last
+      // 10s and the chunk still would not load, or the device is offline. That
+      // is a genuine failure, not a stale deploy, so it is reported like any
+      // other and falls through to the honest error card below. It used to be
+      // skipped here AND labelled "Update ready. A newer version of the app was
+      // just released" — a claim that is false in precisely the case this
+      // branch handles (owner, 2026-09-12: "there should not be a such thing as
+      // an update ready screen this is clearly an error").
     }
     // `report()` fans out to Sentry, PostHog, and the Supabase error_logs
     // table. The `route` tag lands on the Sentry event so we can slice
@@ -131,29 +141,31 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
             <RefreshCw className="h-6 w-6 motion-safe:animate-spin" strokeWidth={1.75} />
           </span>
           <p className="font-sans text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Updating to the latest version…
+            Loading…
           </p>
         </div>
       );
     }
+
+    // No "Update ready" state. A chunk that still fails after the automatic
+    // reload is an error like any other, and gets the same card; the only
+    // distinction worth making is offline, because that one has a real cause
+    // the member can act on.
+    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
 
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5 p-8 text-center">
         <div
           className="w-16 h-16 rounded-full flex items-center justify-center"
           style={{
-            background: chunkError ? "hsl(var(--bark) / 0.12)" : "hsl(var(--burnt-sienna) / 0.12)",
-            color: chunkError ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
-            border: `0.5px solid ${chunkError ? "hsl(var(--bark) / 0.22)" : "hsl(var(--burnt-sienna) / 0.24)"}`,
+            background: "hsl(var(--burnt-sienna) / 0.12)",
+            color: "hsl(var(--burnt-sienna))",
+            border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
             boxShadow:
               "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 6px 18px -6px hsl(var(--olivewood) / 0.20)",
           }}
         >
-          {chunkError ? (
-            <RefreshCw className="h-7 w-7" strokeWidth={1.75} />
-          ) : (
-            <AlertTriangle className="h-7 w-7" strokeWidth={1.75} />
-          )}
+          <AlertTriangle className="h-7 w-7" strokeWidth={1.75} />
         </div>
         <div className="space-y-1.5 max-w-md">
           <h3
@@ -164,7 +176,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
               letterSpacing: "-0.025em",
             }}
           >
-            {chunkError ? "Update ready." : "This page hit a problem."}
+            {offline ? "You're offline." : "This page hit a problem."}
           </h3>
           <p
             className="font-sans leading-relaxed text-ds-15"
@@ -172,8 +184,8 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
               color: "hsl(var(--olivewood) / 0.8)",
             }}
           >
-            {chunkError
-              ? "A newer version of the app was just released. Reload to pick it up."
+            {offline
+              ? "Reconnect and try again."
               : "We've logged it. Try again or head back home."}
           </p>
         </div>
@@ -184,7 +196,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
             className="rounded-ds-md"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            {chunkError ? "Reload" : "Try Again"}
+            Try Again
           </Button>
           <Button
             variant="outline"

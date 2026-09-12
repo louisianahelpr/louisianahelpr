@@ -50,20 +50,18 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Ship to Sentry + error_logs + PostHog. Skip stale-chunk noise.
-    if (!isChunkLoadError(error)) {
-      report(error, {
-        severity: "error",
-        tags: { source: "ErrorBoundary" },
-        context: { componentStack: errorInfo.componentStack },
-      });
-    }
-
-    // Auto-recover from stale chunk errors. Purge SW + caches first so
-    // the reload actually picks up the new bundle (one-shot 10s guard).
-    if (isChunkLoadError(error)) {
-      recoverFromChunkError();
-    }
+    // A stale chunk gets ONE automatic cache-busting reload (10s guard). Only
+    // when that reload actually starts is the error skipped as deploy noise.
+    // If it does not start — it already ran and the chunk still failed, or the
+    // device is offline — this is a real failure and is reported like any
+    // other. It used to be skipped unconditionally and shown as "Update
+    // ready", a claim that is false in exactly that case (owner, 2026-09-12).
+    if (isChunkLoadError(error) && recoverFromChunkError()) return;
+    report(error, {
+      severity: "error",
+      tags: { source: "ErrorBoundary" },
+      context: { componentStack: errorInfo.componentStack },
+    });
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -89,38 +87,34 @@ class ErrorBoundary extends React.Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
 
-      const chunkError = isChunkLoadError(this.state.error);
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
 
       return (
         <div className="min-h-[300px] flex flex-col items-center justify-center gap-4 p-8 text-center bg-background rounded-2xl">
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center"
             style={{
-              background: chunkError ? "hsl(var(--bark) / 0.12)" : "hsl(var(--burnt-sienna) / 0.12)",
-              color: chunkError ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
-              border: `0.5px solid ${chunkError ? "hsl(var(--bark) / 0.22)" : "hsl(var(--burnt-sienna) / 0.24)"}`,
+              background: "hsl(var(--burnt-sienna) / 0.12)",
+              color: "hsl(var(--burnt-sienna))",
+              border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
               boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 6px 18px -6px hsl(var(--olivewood) / 0.20)",
             }}
           >
-            {chunkError ? (
-              <RefreshCw className="h-6 w-6" strokeWidth={1.75} />
-            ) : (
-              <AlertTriangle className="h-6 w-6" strokeWidth={1.75} />
-            )}
+            <AlertTriangle className="h-6 w-6" strokeWidth={1.75} />
           </div>
           <div className="space-y-1.5">
             <h3
               className="font-display italic font-bold leading-tight"
               style={{ fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
             >
-              {chunkError ? "Update ready." : "Something went sideways."}
+              {offline ? "You're offline." : "Something went sideways."}
             </h3>
             <p
               className="font-sans leading-relaxed max-w-sm mx-auto text-ds-14"
               style={{ color: "hsl(var(--olivewood) / 0.80)" }}
             >
-              {chunkError
-                ? "A newer version of the app was just released. Reload to pick it up."
+              {offline
+                ? "Reconnect and try again."
                 : /* A render error's message is never copy — it is "Can't find
                      variable: x" or "undefined is not an object", and one was
                      shown to a person on /profile?tab=home_history on
@@ -135,7 +129,7 @@ class ErrorBoundary extends React.Component<Props, State> {
             className="rounded-ds-md"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            {chunkError ? "Reload" : "Try Again"}
+            Try Again
           </Button>
         </div>
       );

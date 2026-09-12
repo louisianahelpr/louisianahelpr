@@ -1,7 +1,7 @@
 import React, { Suspense, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { isChunkLoadError, hardReloadBypassCache } from "@/lib/chunkReload";
+import { isChunkLoadError, hardReloadBypassCache, recoverFromChunkError } from "@/lib/chunkReload";
 import { report } from "@/lib/errorLogger";
 
 /**
@@ -62,6 +62,10 @@ class SectionErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Same one-shot automatic reload the page-level boundaries use for a stale
+    // chunk. Only when it actually starts is the error treated as deploy noise;
+    // otherwise it is a real failure and is reported.
+    if (isChunkLoadError(error) && recoverFromChunkError()) return;
     report(error, {
       severity: "error",
       tags: { source: "SectionBoundary", section: this.props.label },
@@ -111,9 +115,9 @@ class SectionErrorBoundary extends React.Component<
                 letterSpacing: "-0.012em",
               }}
             >
-              {isChunkLoadError(this.state.error)
-                ? "Update ready."
-                : `Couldn't load ${this.props.label}.`}
+              {/* No "Update ready" — see RouteErrorBoundary. A section that
+                  failed to load says so, whatever the cause. */}
+              {`Couldn't load ${this.props.label}.`}
             </p>
             <p
               className="font-sans mt-0.5 text-ds-12"
@@ -121,37 +125,26 @@ class SectionErrorBoundary extends React.Component<
                 color: "hsl(var(--olivewood) / 0.8)",
               }}
             >
-              {isChunkLoadError(this.state.error)
-                ? "A newer version of the app was just released. Reload to pick it up."
-                : "The rest of the page is still fine. Tap retry to give this section another shot."}
+              The rest of the page is still fine. Tap retry to give this section another shot.
             </p>
             <div className="mt-3">
-              {/* A stale-deploy chunk error cannot be fixed by re-rendering —
-                  the module map itself is stale. Offer the reload the
-                  update banner offers, instead of a retry that re-throws the
-                  same miss and reads as a data failure ("Couldn't load your
-                  posts" for what is actually an update in progress). */}
-              {isChunkLoadError(this.state.error) ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => void hardReloadBypassCache()}
-                  className="rounded-ds-md h-8 text-ds-13"
-                >
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                  Reload
-                </Button>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={this.handleReset}
-                  className="rounded-ds-md h-8 text-ds-13"
-                >
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                  Try Again
-                </Button>
-              )}
+              {/* The label is the same either way; what the button DOES differs.
+                  A stale chunk cannot be fixed by re-rendering the same dead
+                  module reference, so for that case it does the cache-busting
+                  reload instead of a remount. */}
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={
+                  isChunkLoadError(this.state.error)
+                    ? () => void hardReloadBypassCache()
+                    : this.handleReset
+                }
+                className="rounded-ds-md h-8 text-ds-13"
+              >
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                Try Again
+              </Button>
             </div>
           </div>
         </div>

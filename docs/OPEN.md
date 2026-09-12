@@ -1405,3 +1405,20 @@ Two supporting facts, so this is not a guess:
       My recommendation is 2: the actions that need confirming are the ones with
       a real-world side effect, and a "Saved" on every field edit is the clutter
       you removed in the first place.
+
+- [ ] **The production money-loop test is FLAKY, and the symptom is worth
+      watching.** `prod-lifecycle.spec.ts` ("post, fund, apply, hire, complete,
+      release, review") failed once at 11:38 and PASSED on the very same commit
+      at 11:10, with every other run today green — so the payment path is not
+      broken, it is intermittent. The failure mode is specific and not a
+      timeout: it ends parked on
+      `…/login?redirect=%2Fpayment-success%3Fjob_id%3D…`, i.e. **the return from
+      Stripe checkout landed signed-OUT**, with the harness noting "no inline
+      error text found on the page".
+      That is the same shape as the native Stripe-return handoff problem already
+      in the notes. If a real poster hits it they are asked to log in again
+      immediately after paying, which is the worst possible moment. Not chased
+      further tonight because I could not drive the money loop myself (see the
+      Stripe sandbox item), and because a single flake on a green day is a
+      watch, not a diagnosis. **Next run that fails, pull the error-context.md
+      artefact before it expires.**

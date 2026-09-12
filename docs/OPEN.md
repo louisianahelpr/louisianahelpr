@@ -1490,7 +1490,14 @@ Two supporting facts, so this is not a guess:
       artefact before it expires.**
 
 
-- [ ] **FOR THE OWNER — delete the duplicate of your ID document.** Confirmed by
+- [ ] **FOR THE OWNER — the dead avatar URL is CLEARED (2026-09-12); the duplicate FILE is still there.**
+      `profiles.avatar_url` for the owner is now null, verified by the UPDATE's
+      returned row, so the 400 on every page is gone and the app shows initials.
+      The owner reported deleting the file, but `storage.objects` still lists
+      `user-documents/76b07824…/avatar.png` with its original 2026-05-03
+      timestamp, so that delete did not land. Everything else in the folder is
+      untouched and the `id-documents` copy is intact.
+      Original: **FOR THE OWNER — delete the duplicate of your ID document.** Confirmed by
       SHA-256, not just size: `user-documents/76b07824…/avatar.png` is
       byte-for-byte identical to `id-documents/76b07824…/id-document-1777828268516.png`
       (both `63fc9c6d587cf9b5…`). My delete was blocked by the permission

@@ -1356,3 +1356,52 @@ not defects, and worth saying plainly rather than filing thirty findings.
       native app are ONE surface. I have NOT changed it, because adding a toast
       would reverse your ruling. Options: a brief inline "Saved" beside the
       button (no toast), or accept web having no confirmation.
+
+## ⭐ THE FINDING WORTH READING FIRST — consequential actions confirm nothing, and the reason for that just expired
+
+Driving every control at 1440 turned up buttons that reach the server and then
+show the user **nothing at all**. Verified on the network, not guessed:
+
+| control | what it actually does | what you see |
+|---|---|---|
+| Security → "Email me a password reset link" | `POST /auth/v1/recover` — the email really is sent | **nothing** |
+| Subscription → "Refresh membership status" | `POST check-pro-subscription`, then refetches | **nothing** |
+| Auto-tip → "Save" | `PATCH profiles`, then refetches | **nothing** |
+
+Zero text change, zero toast, no dialog, no error. Press "Email me a password
+reset link" and you cannot tell it worked — so you press it again.
+
+**The cause is one deliberate app-wide policy**, `src/lib/toastPolicy.ts`, which
+suppresses every action-less `toast.success` (and `.message`/`.info`) on your
+2026-08-13 decision. Its own header gives the reason:
+
+> "The confirmations … read as clutter and, **once toasts moved to the top of
+> the screen, began covering page headers.**"
+
+**That reason no longer exists.** Toasts moved to the BOTTOM tonight, on your
+ruling, precisely because top-anchored toasts kept covering headers and controls.
+The policy was a workaround for the placement, and the placement is fixed.
+
+Two supporting facts, so this is not a guess:
+- The exception proves the mechanism. "Send test notification" DOES show a
+  toast — because its message carries a warning ("Sent to the bell icon — but
+  the Email switch for Work Status is off"), so it is not an action-less
+  success and the policy lets it through.
+- The auto-tip screen's own comment says the intended confirmation is "the
+  haptic plus the re-seeded values". **There are no haptics on the web**, and
+  the re-seeded values are identical to what the user just typed — so on the
+  phone-sized website and on desktop the confirmation is nothing at all. That
+  collides with the standing rule that the website and the app are ONE surface.
+
+- [ ] **DECISION FOR THE OWNER.** I did NOT re-enable success toasts — that
+      reverses an explicit ruling of yours and changes every screen at once.
+      The options:
+      1. **Re-enable them now that toasts sit at the bottom** (one-line change
+         in `toastPolicy.ts`) — fixes the whole invisible-action class at once.
+      2. **Re-enable only for consequential actions** (an email sent, a password
+         reset, a payment refreshed) and keep trivial saves silent.
+      3. **Keep them off and add inline confirmation** beside the button
+         ("Sent ✓"), which never covers anything.
+      My recommendation is 2: the actions that need confirming are the ones with
+      a real-world side effect, and a "Saved" on every field edit is the clutter
+      you removed in the first place.

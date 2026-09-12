@@ -1519,7 +1519,7 @@ Two supporting facts, so this is not a guess:
       shown center-cropped in a circle with no way to move or zoom the image
       before saving.
 
-- [ ] **"Update ready." is an error screen pretending to be good news — remove it
+- [x] **DONE (fd2d7f73c, screenshots of both honest cards) — "Update ready." is an error screen pretending to be good news — remove it
       everywhere.** Owner, 2026-09-12, clicking Terms / Rules / Privacy on Complete
       Profile: "there should not be a such thing as an update ready screen this is
       clearly an error and all of them need to be fixed". Reproduced on localhost:
@@ -1529,6 +1529,30 @@ Two supporting facts, so this is not a guess:
       pre-bundle went stale after today's `npm run build` / `cap sync`). But the
       real defect is the SCREEN: any failed chunk load is labelled "A newer version
       of the app was just released", which is a guess and here is false.
-- [ ] **Complete Profile: "Enter App" and "Sign Out" are different heights.** Owner,
+- [x] **DONE (325e4009c, measured 60/60 at 360, 375, 1440 + screenshot) — Complete Profile: "Enter App" and "Sign Out" are different heights.** Owner,
       2026-09-12: "buttons should be the same size". Measured from the selection:
       Enter App 49.5px, Sign Out 60px, stacked full-width.
+
+## Audit gaps — owner, 2026-09-12: "why were these missed and how do we fix this gap"
+
+Rule for this section (owner): nothing that needs the browser is marked done
+until the browser has been used to LOOK at it. Agents run one at a time.
+
+- [ ] **Button size classes that silently do nothing.** Unlayered
+      `button { min-height: 44px }` beats Tailwind utilities. Detector:
+      `buttonGeometry.ts` requestedNotRendered. Agent 1 (Opus), in browser now.
+- [ ] **Sibling buttons of different heights never compared.** Detector:
+      `buttonGeometry.ts` siblingMismatch, plus dialogs via overlay-sweep. Agent 2 (Fable), queued.
+- [ ] **New-tab links never followed.** walk-every-control.mjs + sweep
+      newTabDestinations. Agent 3 (Sonnet), code done, red/green browser proof queued.
+- [ ] **Stale deploy only simulated on one route.** Multi-route chunk-failure
+      spec. Agent 4 (Opus), queued.
+- [ ] **Visual sweep could report "147 passed" with no server.** Fixed in
+      91693fbd8: fails at the start (1 failed, 147 did not run, verified). Still
+      needs a real sweep run with the server up, screenshots looked at.
+- [ ] **Anon surface contract failed CI on one gateway 504.** Fixed in
+      91693fbd8: the rpc probe retries 5xx twice; verified green against prod.
+      Not browser work; closes when the next CI run is green.
+- [ ] **Parallel sessions collide on the test-server port 4173.** One session's
+      tests can hit another worktree's preview. The stale-bundle guard catches it
+      locally. Open: give each worktree its own HAPPY_PATH_PORT by default.

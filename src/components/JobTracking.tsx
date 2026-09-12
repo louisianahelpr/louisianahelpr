@@ -19,6 +19,7 @@ import { arrivalEstablished, arrivalGateMessage, arrivalState, arrivalStateLabel
 import { report } from "@/lib/errorLogger";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
 // pulled in when an active "on_the_way" tracking card is visible.
@@ -525,6 +526,10 @@ export function JobTracking({
   // fire one fetch per rendered card (N+1 across active jobs on Activity).
   const [tracking, setTracking] = useState<TrackingData | null>(initialTracking ?? null);
   const [updating, setUpdating] = useState(false);
+  /** Which tier of en-route tracking the RUNTIME actually established — never
+   *  what we hoped for. `null` means no watch is running. Drives both the
+   *  helper's honesty banner and the poster's freshness stamp. */
+  const [, setEnRouteMode] = useState<EnRouteMode | null>(null);
   // The tracker's final step requests the payout, so it asks first — see the
   // BrandConfirmDialog at the bottom of the helper controls.
   const [confirmDoneOpen, setConfirmDoneOpen] = useState(false);
@@ -646,55 +651,58 @@ export function JobTracking({
   //  * `on_the_way` only. Once arrived the position stops mattering, and
   //    tracking someone for the whole duration of a job is surveillance, not a
   //    feature.
-  //  * 45s cadence, which is frequent enough for "how far away are they" and
-  //    cheap enough not to eat the battery on a long drive.
   //  * Silent: a failed refresh leaves the last known point rather than
   //    throwing a toast at someone who is driving.
+  //
+  // ── WHY THIS IS NO LONGER A setInterval ────────────────────────────────
+  // It used to be `setInterval(pushPosition, 45_000)` — a JavaScript timer in
+  // the WKWebView. iOS suspends the WebView, and every timer in it, the moment
+  // the app is backgrounded. So the "live" tracker ran only while the helper
+  // was looking at the app and stopped the second they locked the phone or
+  // switched to Maps, which is exactly what a person driving to a job does:
+  // live when it did not matter, dead when it did. Nothing errored, nothing
+  // logged, and the poster's map kept presenting a stale point as current.
+  //
+  // `startEnRouteWatch` replaces it with a real position watch and reports
+  // which of three modes the runtime actually got (background / foreground /
+  // denied). That mode drives the UI below — we never claim background
+  // delivery we have not established. See src/lib/enRouteLocation.ts.
   useEffect(() => {
+    setEnRouteMode(null);
     if (!isHelper) return;
     if (tracking?.status !== "on_the_way") return;
-    if (!tracking?.id || tracking.id === "temp") return;
-    if (!isNativePlatform && !navigator.geolocation) return;
+    const trackingId = tracking?.id;
+    if (!trackingId || trackingId === "temp") return;
 
     let cancelled = false;
 
-    const pushPosition = async () => {
-      let loc: { lat: number; lng: number } | null;
-      try {
-        if (isNativePlatform) {
-          const { Geolocation } = await import("@capacitor/geolocation");
-          const pos = await Geolocation.getCurrentPosition({ timeout: 10000 });
-          loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        } else {
-          loc = await new Promise((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-              (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-              () => resolve(null),
-              { timeout: 10000, maximumAge: 30000 },
-            );
-          });
-        }
-      } catch {
-        return; // keep the last known point
-      }
-      if (cancelled || !loc) return;
-      // No unwrapMutation here on purpose: this is a best-effort background
-      // refresh, and a zero-row result just means the job moved on. The
-      // status writes below remain guarded, which is where correctness matters.
-      await supabase
-        .from("job_tracking")
-        .update({ latitude: loc.lat, longitude: loc.lng, updated_at: new Date().toISOString() })
-        .eq("id", tracking.id);
-    };
+    const watch = startEnRouteWatch({
+      onMode: (mode) => {
+        if (!cancelled) setEnRouteMode(mode);
+      },
+      onPosition: (p) => {
+        if (cancelled) return;
+        // No unwrapMutation here on purpose: this is a best-effort position
+        // refresh, and a zero-row result just means the job moved on. The
+        // status writes below remain guarded, which is where correctness
+        // matters. Fire-and-forget deliberately — the callback may run while
+        // the app is suspended-but-executing and must not block the watch.
+        void supabase
+          .from("job_tracking")
+          .update({
+            latitude: p.lat,
+            longitude: p.lng,
+            updated_at: new Date(p.at).toISOString(),
+          })
+          .eq("id", trackingId);
+      },
+    });
 
-    // Do NOT fire immediately — the status write that set `on_the_way` has
-    // just stored a fresh position.
-    const interval = setInterval(pushPosition, 45_000);
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      watch.stop();
     };
-  }, [isHelper, tracking?.status, tracking?.id, isNativePlatform]);
+  }, [isHelper, tracking?.status, tracking?.id]);
 
   const getLocation = async (): Promise<{ lat: number; lng: number } | null> => {
     if (!isNativePlatform && !navigator.geolocation) return null;

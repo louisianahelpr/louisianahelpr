@@ -2,7 +2,14 @@ import { useState } from "react";
 import { ShieldAlert, Share2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHero,
+  SheetFooter,
+  SheetSecondaryAction,
+  SheetDestructiveAction,
+} from "@/components/ui/sheet";
 import { shareNative } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { report } from "@/lib/errorLogger";
@@ -204,19 +211,26 @@ export function SosShareButton({
           DialogContent uses. */}
       <SheetContent side="bottom">
           <SheetHero title="Share Your Location" />
-          <div className="mt-4 space-y-2">
-            {/* Shared destructive variant, not a hand-written burnt-sienna
-                fill. Broadcasting your live location is a safety action the
-                sender cannot recall, so it takes the one destructive
-                treatment; it was a sixth inline colour. */}
-            {/* Reading a GPS fix takes up to 10s, and this button used to
-                jump straight to the share sheet because it had nothing to
-                fetch. Without a pending state the gap between tap and sheet
-                reads as the button not working — the failure mode this whole
-                control has to be free of. */}
-            <Button
-              variant="destructive"
-              className="w-full"
+          {/* THE SHARED POPUP FOOTER, not a hand-rolled stack of two
+              full-width buttons. This was the last sheet drawing its own
+              action row, and it was also the last surface in the app showing a
+              labelled "Cancel" AND the corner × at the same time — its ghost
+              Cancel could not register with SheetContent because it was not the
+              shared primitive (see popupDismiss.tsx). Through the primitive it
+              registers, the × goes away, and the sheet gets the one footer
+              every other popup has. Behaviour is byte-for-byte what it was:
+              same handlers, same disabled/aria-busy guards, same labels. */}
+          <SheetFooter className="mt-4">
+            <SheetSecondaryAction onClick={() => setOpen(false)} disabled={locating}>
+              Cancel
+            </SheetSecondaryAction>
+            {/* Broadcasting your live location is a safety action the sender
+                cannot recall, so it takes the one destructive treatment.
+                Reading a GPS fix takes up to 10s; without the pending state the
+                gap between tap and share sheet reads as the button not
+                working — the failure mode this whole control has to be free
+                of. */}
+            <SheetDestructiveAction
               disabled={locating}
               aria-busy={locating}
               onClick={share}
@@ -227,11 +241,8 @@ export function SosShareButton({
                 <Share2 className="w-4 h-4 mr-2" />
               )}
               {locating ? "Getting your location…" : "Share Location Link"}
-            </Button>
-            <Button variant="ghost" className="w-full" onClick={() => setOpen(false)} disabled={locating}>
-              Cancel
-            </Button>
-          </div>
+            </SheetDestructiveAction>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     </>

@@ -74,21 +74,26 @@
 <key>NSFaceIDUsageDescription</key>
 	<string>Helpr uses Face ID to confirm it's you before cashing out your earnings.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Helpr uses your location to show nearby jobs and confirm helpr arrival.</string>
+	<string>Helpr uses your location to show nearby jobs, and to share your position with the poster while you are on your way to a job — including when your screen is off — until you mark yourself arrived. Tracking stops there.</string>
 	<!--
-	  REQUIRED EVEN THOUGH THE APP NEVER REQUESTS "ALWAYS".
-	  App Store Connect rejected build 7101 (v1.0.4) with ITMS-90683 for the
-	  absence of this key. Helpr asks only for when-in-use and declares no
-	  `location` UIBackgroundMode — but Apple's static analysis reads the
-	  BINARY, and @capacitor/geolocation's CLLocationManager wrapper references
-	  requestAlwaysAuthorization. A referenced API needs a purpose string
-	  whether or not the app calls it, so the fix is the string, not a code
-	  change. The copy says plainly that background tracking does not happen,
-	  because a purpose string the app cannot honour is worse than none: this
-	  one is only ever shown if a future change actually requests Always.
+	  Present for TWO reasons, neither of which is that the app requests Always.
+	  1. App Store Connect rejected build 7101 (v1.0.4) with ITMS-90683 for its
+	     absence: Apple's static analysis reads the BINARY, and
+	     @capacitor/geolocation's CLLocationManager wrapper references
+	     requestAlwaysAuthorization, so the key is demanded whether or not the
+	     app calls it.
+	  2. iOS may later offer the user an "Always Allow" upgrade prompt of its
+	     own once it sees sustained background use, and it shows THIS string.
+	  Helpr requests when-in-use only (IONGLOCAuthorisationRequestType is
+	  hardcoded to .whenInUse in the plugin) — when-in-use plus the `location`
+	  background mode is all an active en-route session needs. The copy no
+	  longer claims "does not track in the background", because since
+	  BackgroundLocationPlugin.swift shipped, it does — within the en-route
+	  window and nowhere else. A purpose string that is out of date is an App
+	  Review rejection and, worse, a lie to the person reading the prompt.
 	-->
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Helpr uses your location only while you're using the app — to show nearby jobs and confirm helpr arrival. Helpr does not track your location in the background.</string>
+	<string>Helpr shares your position with the poster while you are on your way to a job, including when your screen is off, and stops as soon as you mark yourself arrived. Helpr never asks for Always access and never tracks you outside an active job.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Helpr can save downloaded receipts and shared images to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
@@ -96,9 +101,24 @@
 	<key>UIRequiresFullScreen</key>
 	<false/>
 
+	<!--
+	  `location` is REQUIRED for en-route tracking and is NOT sufficient on its
+	  own. CoreLocation stops delivering to a suspended app unless the running
+	  CLLocationManager ALSO sets allowsBackgroundLocationUpdates = true, which
+	  @capacitor/geolocation never does (grep it — the symbol is absent from the
+	  plugin and from IONGeolocationLib). Both halves live together:
+	  ios/App/App/BackgroundLocationPlugin.swift supplies the flag, this key
+	  makes setting it legal. Setting that flag WITHOUT this key raises an
+	  uncatchable ObjC exception, so the plugin reads this array back at runtime
+	  and degrades instead of crashing.
+
+	  Scope: the manager is started on "I'm On My Way" and stopped on arrival.
+	  Outside that window the app holds no background location claim.
+	-->
 	<key>UIBackgroundModes</key>
 	<array>
 			<string>remote-notification</string>
+			<string>location</string>
 		</array>
 	
 		<key>UIViewControllerBasedStatusBarAppearance</key>

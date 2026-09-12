@@ -171,7 +171,18 @@ const NotificationPanel = () => {
             // same row), and React would then render two elements with the same
             // key. Dedupe on id — the badge count is derived from this list, so
             // a duplicate would also overcount unread.
-            setNotifications((prev) => (prev.some((x) => x.id === n.id) ? prev : [n, ...prev]));
+            setNotifications((prev) => {
+              if (prev.some((x) => x.id === n.id)) return prev;
+              // THE TOTAL MOVES WITH THE LIST. `unreadTotal` used to be written
+              // in exactly one place — the initial count query — so every
+              // realtime arrival grew the list and left the badge behind, and
+              // the bell under-reported by one per notification received while
+              // the app stayed open. Incremented INSIDE the dedupe branch so a
+              // row that arrives twice (realtime racing the initial fetch)
+              // counts once, which is the same reason the dedupe exists.
+              if (!n.read) setUnreadTotal((t) => (t === null ? t : t + 1));
+              return [n, ...prev];
+            });
             // Play notification chime + vibrate
             try {
               const ctx = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
@@ -280,6 +291,13 @@ const NotificationPanel = () => {
     // Optimistic flip first so the row responds instantly; revert on failure
     // so the badge doesn't lie about what the server thinks is unread.
     setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+    // Keep the badge's own number in step with the row. `unreadTotal` is the
+    // TRUE database total and it wins over the page-derived count (see
+    // `unreadCount` below), so leaving it alone here left the bell reporting a
+    // number the visible list contradicted — the owner saw the bell on 10
+    // beside a panel saying 11. Clamped at 0 so a double-tap cannot drive it
+    // negative.
+    setUnreadTotal((t) => (t === null ? t : Math.max(0, t - 1)));
     try {
       // `.select("id")` + unwrapMutation is the CLAUDE.md row guard: RLS on
       // `notifications` is `auth.uid() = user_id`, so a row that isn't ours
@@ -293,6 +311,10 @@ const NotificationPanel = () => {
     } catch (err) {
       report(err, { tags: { source: "NotificationPanel.markAsRead" } });
       setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: false } : n));
+      // Roll the total back with the row — a failed write must not leave the
+      // badge one lower than the database, which is the same lie in the
+      // opposite direction.
+      setUnreadTotal((t) => (t === null ? t : t + 1));
     }
   };
 
@@ -301,6 +323,12 @@ const NotificationPanel = () => {
     if (unreadIds.length === 0) return;
     // Optimistically clear unread state so the UI responds immediately.
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    // NOT zero — `unreadIds` covers only the 50 rows this panel fetched, and
+    // `unreadTotal` is the whole database. On an account with more unread than
+    // one page (the case the count query exists for at all) setting 0 here
+    // would clear a badge that still has real unread behind it. Subtract what
+    // was actually marked.
+    setUnreadTotal((t) => (t === null ? t : Math.max(0, t - unreadIds.length)));
     try {
       // Every id must come back. A short result means some rows were filtered
       // out by RLS or no longer exist, and the badge would otherwise sit at 0
@@ -319,6 +347,7 @@ const NotificationPanel = () => {
       setNotifications((prev) =>
         prev.map((n) => (unreadIds.includes(n.id) ? { ...n, read: false } : n)),
       );
+      setUnreadTotal((t) => (t === null ? t : t + unreadIds.length));
       toast.error("Couldn't mark all as read — please try again.");
       return;
     }

@@ -761,7 +761,46 @@ on every one.
       instances) and Admin Health's "Configuration Checks" at minimum. Sweep for
       others rather than fixing only the two that were seen. NOT YET DONE.
 
-- [ ] **Missing foreign keys: owner ruled INVESTIGATE AND REPORT FIRST.** No
+- [ ] **Missing foreign keys — INVESTIGATION DONE, awaiting the owner's go.**
+      Findings, all measured live:
+
+      **The orphans are historical, and the leak is already plugged.** Every
+      orphaned `favorite_helpers` row was created **on or before 2026-09-01**.
+      The migration that makes account deletion purge these tables landed
+      **2026-09-02** (`20260902051631_account_deletion_reaches_tracking_consent_availability_favorites_reports`,
+      alongside `20260902014651_account_deletion_purges_the_no_fk_tables` — the
+      name says outright that the no-FK tables are handled in code by choice).
+      The single row created since (2026-09-11) is valid on BOTH sides. So the
+      deletion path works and is not producing new orphans.
+
+      **But an orphan already cost us a real bug today.** The 40-notification
+      flood came from an orphaned `favorite_helpers` row pointing at a customer
+      with no `profiles` row. A foreign key would have made that bug impossible
+      rather than merely fixed.
+
+      **Counts:** `favorite_helpers` 12 rows — 7 orphaned `customer_id`, 10
+      orphaned `helper_id`, identical against `profiles` and `auth.users`. Only
+      **1** row is clean on both sides. `notifications` 540 rows, **1** orphan
+      left after today's delete. `profiles` 8 rows, 8 of 8 have an `auth.users`
+      row, so that side is sound.
+
+      **The FK is safe to add, and CASCADE is the right rule.** `profiles.user_id`
+      already carries a UNIQUE constraint, so it is a valid FK target.
+      `favorite_helpers` today has only `UNIQUE (customer_id, helper_id)` and its
+      primary key — no FKs at all. Account deletion ANONYMISES rather than
+      deletes (`profiles.anonymized_at`), so the profiles row SURVIVES a normal
+      deletion and CASCADE would never fire on one. It fires only on a HARD
+      delete of a profile — which is exactly what produced these orphans.
+
+      **Recommended plan, in this order:** (1) delete the 11 pre-2026-09-02
+      orphan rows, keeping the 1 valid one; (2) add
+      `favorite_helpers.customer_id` and `.helper_id` -> `profiles(user_id)`
+      ON DELETE CASCADE; (3) same for `notifications.user_id` after clearing its
+      last orphan. Prove the migration replay-safe under PGlite by applying it
+      3x, per CLAUDE.md. Step 1 must precede step 2 — a constraint added over
+      existing orphans fails.
+
+      Superseded note: **owner ruled INVESTIGATE AND REPORT FIRST.** No
       schema change yet. Work out what would break, how many existing rows
       violate each constraint, and what account deletion is supposed to do here
       (remember deletion ANONYMISES rather than deletes, so a naive FK with

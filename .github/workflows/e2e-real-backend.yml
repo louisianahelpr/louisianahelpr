@@ -324,11 +324,9 @@ jobs:
           # sweeper. The sweeper deliberately does NOT take a service-role key —
           # a CI job holding service-role could delete anything in the database,
           # which is a far larger risk than the rows it tidies.
-          TOKEN=$(curl -s -X POST "$URL/auth/v1/token?grant_type=password" \
-            -H "apikey: $KEY" -H "Content-Type: application/json" \
-            -d "$(jq -nc --arg e "$POSTER_EMAIL" --arg p "$POSTER_PASSWORD" '{email:$e,password:$p}')" \
-            | jq -r '.access_token // empty')
-          test -n "$TOKEN" || { echo "::error::could not mint a poster token — check PLAYWRIGHT_POSTER_EMAIL / _PASSWORD"; exit 1; }
+          # The mint reports the real HTTP status and retries transient failures;
+          # see the header of the script for why the old inline form misled.
+          TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a poster token — the warnings above give the HTTP status and auth's reason"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
             node scripts/e2e/prod-lifecycle-sweeper.mjs
 
@@ -382,11 +380,7 @@ jobs:
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
-          TOKEN=$(curl -s -X POST "$URL/auth/v1/token?grant_type=password" \
-            -H "apikey: $KEY" -H "Content-Type: application/json" \
-            -d "$(jq -nc --arg e "$POSTER_EMAIL" --arg p "$POSTER_PASSWORD" '{email:$e,password:$p}')" \
-            | jq -r '.access_token // empty')
-          test -n "$TOKEN" || { echo "::warning::could not mint a token for teardown — rows may be stranded for the next run's pre-sweep"; exit 0; }
+          TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::warning::could not mint a token for teardown — rows may be stranded for the next run's pre-sweep"; exit 0; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
             node scripts/e2e/prod-lifecycle-sweeper.mjs
 

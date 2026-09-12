@@ -274,19 +274,56 @@ which is where "162" comes from. The owner's number was right.
       /my-jobs at 375: "No applications yet" at 3.8s, then at 15s the same page
       says "you have 1 in Waiting". The user is told they have nothing while
       they have work.
-- [ ] **S3 · Work Record prints `Invalid Date`** in MEMBER SINCE — on a document
+- [x] **S3 · DONE — it was the MOCK, not the app.** `WorkRecord.tsx` reads the
+      profile with `.single()`; the Playwright fixture ignored the
+      `Accept: application/vnd.pgrst.object+json` header and returned an ARRAY,
+      so `created_at` was undefined (`Invalid Date`) and `full_name` was
+      undefined ("Helpr Member" — visible in the same screenshot). Live, both
+      render correctly, and prod has 0 null `created_at` across 8 profiles.
+      Fixed at source with `honourSingleObject()` in the fixture, which now
+      unwraps one row or returns 406/PGRST116 like real PostgREST.
+      Original report: **Work Record prints `Invalid Date`** in MEMBER SINCE — on a document
       framed as an Employment & Earnings Record for an employer.
-- [ ] **S4 · Two screens disagree about the same reviews.** Work Record says
+- [x] **S4 · DONE — and Work Record was the one lying.** The Reviews tab filters
+      `feedback_visible_at <= now()`; Work Record had NO reveal filter, so it
+      counted reviews the app deliberately hides during the blind window. In
+      prod this never surfaced only because the `reviews` SELECT policy enforces
+      the reveal — verified live: as an ordinary member, 0 of 16 blind-window
+      reviews are readable. **An employer-facing number must not lean on RLS for
+      its correctness**, so the filter is now explicit in the page. The mock had
+      a second cause: `SEED_REVIEWS` lacked `feedback_visible_at`, a column the
+      prod trigger always stamps. Both fixed; the two screens now agree.
+      Original report: **Two screens disagree about the same reviews.** Work Record says
       AVG RATING 4.5 (2); ?tab=reviews says "No reviews yet". Same account,
       same session.
-- [ ] **S5 · Nested white card inside the white panel, still live** at
+- [x] **S5 · DONE.** The desktop rail wrapped `EmptyState variant="inline"`
+      (which paints its own fill and border) inside a `.liquid-glass` card. Added
+      a `bare` variant that carries layout and paints nothing. Measured:
+      liquid-glass boxes in the panel **2 -> 1**, then eyeballed. Every other
+      Profile tab checked at 1440 — no other nested card.
+      Original report: **Nested white card inside the white panel** at
       /profile?tab=pets @1440 — the 2026-09-07 defect at a width nobody rechecked.
-- [ ] **S6 · Skills chips clipped mid-word** at /profile?tab=profile @1440
+- [x] **S6 · DONE.** The chip row was `overflow-x-auto scrollbar-hide` — a
+      horizontal scroller with no affordance, and a mouse has no horizontal
+      swipe. Now wraps. Chips fully inside the card: 1440 **10/11 -> 11/11**,
+      375 **2/11 -> 11/11**. Eyeballed both.
+      Original report: **Skills chips clipped mid-word** at /profile?tab=profile @1440
       ("Eve…"), no scroll affordance.
-- [ ] **S7 · ?tab=analytics renders its error state against a healthy backend.**
-- [ ] **S8 · "Instant Release" body wraps in a ~250px column** inside a
+- [x] **S7 · NOT A DEFECT — the mock again.** The sweep's RPC catch-all returns
+      `null` for `get_helper_analytics`, and the page's `!data` branch correctly
+      renders the error. Live, the RPC returns a full payload and the page
+      renders the UPGRADE panel at both widths. The app is right; the temporary
+      spec was incomplete. Original report: **?tab=analytics error state.**
+- [x] **S8 · DONE.** The sentence was sharing a tinted box with the 44px
+      switch. Switch moved up to the heading row; the sentence gets the card's
+      width. Measured: description **204px / 4 lines -> 293px / 3 lines**,
+      switch top 508 -> 445. Eyeballed.
+      Original report: **"Instant Release" body wraps in a ~250px column** inside a
       full-width card, ?tab=auto_tip @375.
-- [ ] **S9 · Messages header pill paints a grey gradient band** across its right
+- [x] **S9 · NOT A DEFECT — deliberate.** It is `TITLE_CARD_STYLE`'s top-right
+      burnt-sienna radial glow, present on every title card. Sampled 254->251 RGB
+      across the right half, identical live and in the original screenshot. Left
+      alone. Original report: **Messages header pill grey band** across its right
       half, @1440 empty.
 
 Clean: zero horizontal overflow on all 54 captures; every empty state on the 15
@@ -483,3 +520,24 @@ Verified clean, so these can stop being re-reported:
   Aside, not a defect: the bell's click did not register through the browser
   pane's synthetic click; a real `.click()` opens it. Worth knowing so nobody
   files "the bell does nothing" from an automated driver.
+
+
+## The mock boundary lied three times in one sweep (2026-09-11)
+
+Three of the seven state-matrix "defects" (S3, S4-in-part, S7) were the
+Playwright fixture, not the app — and they were filed as SEEN because they WERE
+seen, in a screenshot. This is the `mock-boundary-is-why-audits-missed-it`
+pattern running in reverse: usually the mock hides a real defect; here it
+manufactured three. Both directions have the same root: **a fixture that does
+not behave like PostgREST**. The `.single()` bug is the sharpest case — the
+fixture ignored the object-Accept header for every `.single()` call in the app,
+so ANY page reading one row got an array and rendered undefined fields.
+Fixed at source, so the next sweep inherits a fixture that tells the truth.
+
+Two follow-ups worth keeping:
+- [ ] `formatMonthYear` prints `Invalid Date` for any unparseable input. Prod
+      cannot produce one today, but an employer-facing document should refuse to
+      render rather than print that. Report only, not yet done.
+- [ ] `zz-tmp-state-matrix.spec.ts` mocks only two RPCs, so any RPC-backed tab
+      will always show its error state in that sweep. Any future finding from it
+      must be reproduced live before being believed.

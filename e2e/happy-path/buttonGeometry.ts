@@ -17,11 +17,29 @@
 export interface ButtonGeometryReport {
   siblingMismatch: string[];
   requestedNotRendered: string[];
+  /**
+   * Controls the global HIG floor applies to (index.css, `@layer base`) that
+   * render under 44px on an axis WITHOUT a size class on that axis asking for
+   * it. Report-only: it is the before/after measure for moving the floor into
+   * the base layer, where an explicit `min-h-0`/`min-w-0` now legitimately wins.
+   */
+  belowTapFloor: string[];
+  /**
+   * `h-*` below 44px on a control the floor applies to, rendered at exactly
+   * 44px. That is the floor doing its job (`h-7` sets height, not min-height,
+   * so `max(28px, 44px)` wins by design), not a class the cascade defeated.
+   * Kept out of `requestedNotRendered` and recorded here so it stays visible.
+   */
+  heightHeldAtFloor: string[];
 }
 
 export function detectButtonGeometry(): ButtonGeometryReport {
   const siblingMismatch: string[] = [];
   const requestedNotRendered: string[] = [];
+  const belowTapFloor: string[] = [];
+  const heightHeldAtFloor: string[] = [];
+  const FLOOR_SEL =
+    "button:not([role='checkbox']):not([role='radio']):not([role='switch']), [role='button'], input[type='checkbox'], input[type='radio']";
 
   const visible = (el: Element) => {
     const r = el.getBoundingClientRect();
@@ -108,11 +126,29 @@ export function detectButtonGeometry(): ButtonGeometryReport {
       // released the height; the class list would contain both only by mistake
       // but is not this check's question.
       if (util === "h" && tokens.includes("h-auto")) continue;
+      if (util === "h" && want < 44 && Math.abs(got - 44) <= 1 && el.matches(FLOOR_SEL) && tokens.every((t) => !/^!?min-h-/.test(t))) {
+        heightHeldAtFloor.push(`"${name(el)}" asks ${tok} (${want}px), held at 44px`);
+        continue;
+      }
       if (Math.abs(got - want) > 1) {
         requestedNotRendered.push(`"${name(el)}" asks ${tok} (${want}px), renders ${got.toFixed(1)}px`);
       }
     }
   });
 
-  return { siblingMismatch, requestedNotRendered };
+  // ---- 3. tap-target floor -------------------------------------------------
+  document.querySelectorAll(FLOOR_SEL).forEach((el) => {
+    if (!visible(el)) return;
+    const tokens = String((el as HTMLElement).className?.toString?.() ?? "").split(/\s+/);
+    const asks = (re: RegExp) => tokens.some((t) => re.test(t.replace(/^[^\s]*:/, "").replace(/^!/, "")));
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const short = r.height < 43.5 && parseFloat(cs.minHeight || "0") < 43.5 && !asks(/^(min-h|h|size)-/);
+    const narrow = r.width < 43.5 && parseFloat(cs.minWidth || "0") < 43.5 && !asks(/^(min-w|w|size)-/);
+    if (short || narrow) {
+      belowTapFloor.push(`"${name(el)}" ${r.width.toFixed(1)}x${r.height.toFixed(1)}px`);
+    }
+  });
+
+  return { siblingMismatch, requestedNotRendered, belowTapFloor, heightHeldAtFloor };
 }

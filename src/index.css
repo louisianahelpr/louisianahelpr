@@ -356,6 +356,35 @@
       font-size: max(16px, 1em);
     }
   }
+
+  /* Touch Target Support (HIG 44x44pt minimum) — a FLOOR, not a size.
+
+     Scoped so it does NOT inflate Radix-rendered checkboxes / radios /
+     switches, which use <button> with a role attribute and provide their own
+     sizing; their tap target is reached via the surrounding <label>.
+
+     Two things make this a default that any size utility overrides, and both
+     are load-bearing:
+       1. `:where()` gives the selector ZERO specificity. Written bare, the
+          three `:not([role])` clauses scored (0,3,1) and beat every Tailwind
+          utility (0,1,0) — so `min-h-[60px]` on /complete-profile's primary
+          rendered 49.5px, and `min-h-0` on an inline icon did nothing. The
+          class was on the element and a code read saw 60px.
+       2. It lives in `@layer base`, which Tailwind emits before utilities, so
+          it also loses on source order. (Moving it here WITHOUT `:where()`
+          fixes nothing: specificity is compared before order.)
+     So: no size class → 44px. An explicit `min-h-*`/`min-w-*` → that value.
+     `h-7` alone does NOT set min-height, so it still gets the 44px floor.
+     e2e/happy-path/buttonGeometry.ts measures both halves in the sweep. */
+  :where(
+    button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]),
+    [role="button"],
+    input[type="checkbox"],
+    input[type="radio"]
+  ) {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 /* Light Mode (default) — Louisiana Helpr 2026 brand palette
@@ -2020,17 +2049,6 @@ html.no-bottom-nav {
   letter-spacing: 0;
 }
 
-/* Touch Target Support (HIG 44x44pt minimum) — scoped so it does NOT
-   inflate Radix-rendered checkboxes / radios / switches, which use
-   <button> with a role attribute and provide their own sizing. The
-   tap target is reached via the surrounding <label> instead. */
-button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]),
-[role="button"],
-input[type="checkbox"],
-input[type="radio"] {
-  min-height: 44px;
-  min-width: 44px;
-}
 
 /* Every search field in the app pairs `type="search"` with its own branded
    clear button (BrowseSearchBar, ConversationList, ActivityHeader, the admin

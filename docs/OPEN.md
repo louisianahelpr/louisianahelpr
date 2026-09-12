@@ -971,3 +971,22 @@ on every one.
       panel.** `ChatView` caps timeline and composer with one `max-w-[780px]`
       wrapper. That cap is owner-set ("the bottom bar does not fit correctly"),
       so it was left alone.
+
+## Still red, and it is the owner's own report (lead, 2026-09-11)
+
+- [ ] **The Apply sheet's submit row STILL covers the payout notice — my earlier
+      fix was incomplete.** Owner's words: "the you can apply button is cut off
+      by apply". `fa716f4b9` fixed the case where the sheet does NOT scroll, by
+      gating `.sheet-sticky-actions` on a real `hostScrolls` measurement. The
+      SCROLLING case was never fixed and is now **worse: 6px -> 21.1px**. I
+      opened the failure screenshot and LOOKED: "Apply Now" sits on the payout
+      notice and hides its last line and its "Set Up Payouts" link — the one
+      control that would let the user resolve the block.
+      Reproduces reliably locally AND in CI, so it is not the documented
+      shared-tree flakiness. It is the last red test in the happy-path smoke.
+      Mechanism as far as I got: with the sheet overflowing, the row's natural
+      position is below the fold, so `bottom: 0` pins it to the scroller's
+      bottom edge — exactly where the notice sits. That is ordinary sticky
+      behaviour, which is why a naive tweak will not settle it. Handed to a lane
+      with the brief that the reason you cannot be hired AND the link that fixes
+      it must both stay readable.

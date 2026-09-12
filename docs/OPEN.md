@@ -328,3 +328,24 @@ class selector misses it entirely, since it is `motion-safe:animate-pulse`.
 
 Open, small: the bell abbreviates at "99+" while the chip prints the true total.
 Now reachable in prod. Mild disagreement, not yet fixed.
+
+- [x] **`Admin.tsx` / `UserProfile.tsx` "hand-roll min-h-screen" — NOT a defect,
+      2026-09-11.** I filed these two myself and I was wrong. CLAUDE.md defines
+      TWO legitimate page shapes, and document-scroll pages are supposed to use
+      a plain `min-h-screen bg-premium-page pb-safe-nav` wrapper and explicitly
+      NOT `AppShell`. Both `/admin` and `/user` are in `DOCUMENT_SCROLL_ROUTES`.
+      `ALLOWED_SHELLS` had no entry for their category, so the test manufactured
+      two offenders. The danger was the FRAMING, not the false positive: the
+      comment said the list "must only ever SHRINK" and "deleting an entry is
+      the fix", which aims the next reader at wrapping both in `AppShell` —
+      breaking them twice (clipped below the fold under `overflow: hidden`, and
+      a second rail inset on top of `#root`'s). Category now derives from
+      `DOCUMENT_SCROLL_ROUTES`, exempt-by-name is gone.
+- [x] **`/terms`, `/privacy`, `/rules` lost their native viewport lock — FOUND
+      BY THE NEW GATE, fixed 2026-09-11.** `8570fdbef` made them real routes
+      three commits ago and added them to `DOCUMENT_SCROLL_ROUTES` but not to
+      `NATIVE_APP_SHELL_ROUTES`. On native they rendered `Legal.tsx` through
+      `AppShell` with no `html.app-shell` class — the internal scroll container
+      without the lock that makes it work — on three quarters of the legal
+      surface, which is exactly the iOS notch-ghosting bug that list exists to
+      prevent. Gate proved by mutation: every half fails when broken.

@@ -438,14 +438,20 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                       )}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                      Member since
-                    </p>
-                    <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-                      {formatMonthYear(data.profile.created_at)}
-                    </p>
-                  </div>
+                  {/* The whole field is dropped when the date will not parse,
+                      rather than printing "Invalid Date" at an employer. An
+                      absent row reads as "not shown"; the literal string reads
+                      as a fact about the person. */}
+                  {formatMonthYear(data.profile.created_at) && (
+                    <div>
+                      <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+                        Member since
+                      </p>
+                      <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
+                        {formatMonthYear(data.profile.created_at)}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -117,8 +117,19 @@ const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
  * Month + year for an INSTANT (`profiles.created_at`), resolved in Chicago.
  * Not for `date_needed` — see `formatWorkDayMonthYear`.
  */
-export function formatMonthYear(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
+export function formatMonthYear(dateStr: string): string | null {
+  // NULL RATHER THAN "Invalid Date". This document is framed to its reader as an
+  // Employment & Earnings Record shown to an employer, and `toLocaleDateString`
+  // on an unparseable value renders the literal string "Invalid Date" into that
+  // document — which is worse than the field being absent, because it reads as a
+  // statement about the person rather than about our data. Prod cannot produce
+  // one today (`profiles.created_at` is non-null), but the page reached this
+  // state once already on 2026-09-11 when a test fixture returned an array for a
+  // `.single()` read and `created_at` arrived undefined. The renderer decides
+  // what to do with a missing field; this function's job is to not invent one.
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
     timeZone: PLATFORM_TIME_ZONE,

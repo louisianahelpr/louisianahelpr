@@ -75,6 +75,17 @@ describe("work record dates resolve in the platform's zone, not the reader's", (
     expect(formatMonthYear(UTC_MIDNIGHT_JAN_1)).toBe("December 2026");
   });
 
+  it("returns null rather than printing \"Invalid Date\" at an employer", () => {
+    // This document is shown to an employer. `toLocaleDateString` renders the
+    // literal string "Invalid Date" for an unparseable value, which reads as a
+    // statement about the person rather than about our data. The page reached
+    // exactly this state on 2026-09-11 when a fixture returned an array for a
+    // `.single()` read and `created_at` arrived undefined.
+    expect(formatMonthYear("not a date")).toBeNull();
+    expect(formatMonthYear("")).toBeNull();
+    expect(formatMonthYear(undefined as unknown as string)).toBeNull();
+  });
+
   it("the long 'Generated' date is pinned to the same zone", () => {
     // 00:30 UTC on 1 September is still 31 August in Louisiana, and the
     // document is issued by a Louisiana business.

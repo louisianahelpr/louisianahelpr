@@ -573,8 +573,8 @@ const NotificationPanel = () => {
                   >
                     <span>{group.label}</span>
                     <span
-                      className="tabular-nums font-sans not-italic font-semibold"
-                      style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.04em" }}
+                      className="tabular-nums font-sans text-ds-11 font-normal"
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {group.items.length}
                     </span>

@@ -121,6 +121,25 @@ floats in a lopsided column with blank bands has failed the audit.
   no element wider than the viewport, and confirm the primary content column is
   centered in the available area with no rail-width dead band. Screenshot both.
 
+## How we work — owner standing orders (2026-09-12). Do not make the owner repeat these.
+
+- **Prevent, don't chase.** Every owner-reported bug ships with a CI check for its
+  whole CLASS, built from the app's own inventory, shown red on the original
+  bug. A fix without its check is not done.
+- **Gaps:** when you notice one, tell the owner what it is, then launch an agent
+  (you pick the model) to close it. No permission needed beyond telling them.
+- **Browser work runs one agent at a time.** Nothing that needs the browser is
+  done until someone has LOOKED at screenshots: every failure, plus a sample.
+  Scripts do the exhaustive pressing and measuring; screenshots are not taken of
+  everything.
+- **Completeness is proven, not claimed:** inventory from source, minus what was
+  checked, must be empty, and every check must be shown able to fail.
+- **Ping** (osascript + sound) when an agent or chunk finishes.
+- **The six efficiency changes** are all mandatory, tracked in docs/OPEN.md
+  under "Working forwards": lint for root-cause patterns, changed-screen
+  checks before push, owner reports become failing tests first, one open-work
+  list, automatic browser lock + per-worktree ports, nightly WebKit + real backend.
+
 ## Working rules
 
 - **Fix the EXACT thing named. Never guess the element, the look, or the

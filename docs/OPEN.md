@@ -1556,3 +1556,14 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] **Parallel sessions collide on the test-server port 4173.** One session's
       tests can hit another worktree's preview. The stale-bundle guard catches it
       locally. Open: give each worktree its own HAPPY_PATH_PORT by default.
+
+## Working forwards — owner, 2026-09-12: "all 6 need to happen"
+
+- [ ] **Lint for root-cause patterns at write time.** Unlayered global element rules that override utilities, hand-set button heights instead of Button sizes, new-tab links to redirecting routes.
+- [ ] **Changed-screen checks before push.** Button geometry, new-tab and press-every-control run on the routes a diff touches, locally, in under a minute.
+- [ ] **Owner reports become failing tests first.** Selected element + route → a failing spec, then the fix.
+- [ ] **One open-work list.** Fold the audit-bus ledger, handoff memories and agent reports into this file, each item linked to the check that guards it.
+- [ ] **Automatic browser lock + per-worktree test ports.** No manual pausing of agents; no port-4173 collisions.
+- [ ] **Nightly WebKit + real-backend run** of the sweeps, not only Chromium on mocks.
+
+Order: starts after the five audit-gap agents and the final reviewer finish. Browser work one agent at a time.

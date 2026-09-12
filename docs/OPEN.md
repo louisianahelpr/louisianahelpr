@@ -230,3 +230,15 @@ and ap pm". The Set-hours popover now renders a native `<input type="time">`
 AM-PM scroll columns. Native time inputs are keyboard-first and look different
 on every platform — which also breaks the one-surface rule, since iOS, Android
 and desktop each render their own. Restore the wheel picker.
+
+## Availability: "Until 2:44 AM" is a hardcoded 4 hours nobody chose
+`AvailabilityTab.tsx:73` calls `set_available_now` with `p_hours: 4`; the live
+RPC is `p_hours numeric DEFAULT 4` → `available_until = now() + 4 hours`. The
+card then prints "Until <that time>" as though it were a setting the helper
+picked. Tap it at 10:44 PM and it announces you as available until 2:44 AM.
+
+Worse, the SAME SCREEN holds a second, unrelated availability system: the
+weekly Sun–Sat grid (9 AM–5 PM). The grid says 9–5, the toggle says until
+2:44 AM, and neither reads the other. One fact, two systems — decide which is
+authoritative, and either let the helper choose the duration or derive it from
+the grid's hours for today.

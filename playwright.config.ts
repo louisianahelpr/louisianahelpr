@@ -64,12 +64,29 @@ const headlessShell = findAvailableHeadlessShell();
 // nothing wrong in the app or the spec. Set HAPPY_PATH_PORT (or the full
 // HAPPY_PATH_BASE_URL, which fixtures.ts already reads) to give a session its
 // own server. CI runs one job per machine and needs neither.
-const HAPPY_PATH_PORT = process.env.HAPPY_PATH_PORT || "4173";
+//
+// DEFAULT PER CHECKOUT (owner, 2026-09-12). The main checkout keeps 4173; any
+// other checkout (agent worktrees under .claude/worktrees/, ~/.lh-* trees) gets
+// a stable port derived from its path, so parallel copies never adopt each
+// other's preview. Written back to process.env so workers and fixtures.ts,
+// which read HAPPY_PATH_PORT, agree with the config.
+function defaultHappyPathPort(): string {
+  const root = process.cwd();
+  if (root.endsWith("/louisianahelpr")) return "4173";
+  let h = 0;
+  for (const ch of root) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return String(4200 + (h % 700));
+}
+const HAPPY_PATH_PORT = process.env.HAPPY_PATH_PORT || defaultHappyPathPort();
+process.env.HAPPY_PATH_PORT = HAPPY_PATH_PORT;
 const HAPPY_PATH_BASE_URL =
   process.env.HAPPY_PATH_BASE_URL || `http://127.0.0.1:${HAPPY_PATH_PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  // One browser run at a time on this machine; see e2e/browserLock.ts.
+  globalSetup: "./e2e/globalSetup.ts",
+  globalTeardown: "./e2e/globalTeardown.ts",
   timeout: 30_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

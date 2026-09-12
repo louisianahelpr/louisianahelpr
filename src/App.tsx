@@ -114,7 +114,6 @@ const DashboardGuest = lazyWithPreload(() => import("./pages/DashboardGuest"));
 // The seven pages that used to be lazy-imported here are now Profile tabs and
 // are lazy-imported by ProfileTabPanels instead: PetProfiles, WorkRecord,
 // HomeHistory, HelprWrapped, StrSettings, HelperAnalytics, AutoTip.
-const GiftCard = lazyWithPreload(() => import("./pages/GiftCard"));
 const HelpCenter = lazyWithPreload(() => import("./pages/HelpCenter"));
 const Support = lazyWithPreload(() => import("./pages/Support"));
 
@@ -353,7 +352,15 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           logged-out visitors. The page renders read-only for guests (current
           plan shows Free); tapping Upgrade routes them to sign in first. */}
       {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
-      <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><GiftCard /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* Gift Card is a PROFILE TAB now, like every one of its siblings (owner,
+          2026-09-11). `/gift-card` stays alive as a redirect and must carry
+          `?claim=<token>` through with it — that is the link in every gift
+          email (`_shared/pifGiftEmail.ts`), and a bare <Navigate> drops the
+          query, which has already broken this exact link once. Reading
+          `window.location.search` rather than `useSearchParams` keeps this to
+          one route element; it is exact here because <Navigate> renders only
+          once this path has matched. */}
+      <Route path="/gift-card" element={<Navigate replace to={`/profile?tab=gift_card${window.location.search.replace(/^\?/, "&")}`} />} />
       {/* NO /pay-it-forward ROUTE. The feature is a gift card and is named one
           everywhere now (owner: "it should not be named pay it forward though
           that's wrong").

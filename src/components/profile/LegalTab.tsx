@@ -1,11 +1,7 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import {
-  DollarSign, ChevronRight, Clock,
-  Crown, XCircle, Scale,
-  Building2, Wallet, HeartPulse, Siren, Download, Loader2,
-} from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,12 +11,14 @@ import { report } from "@/lib/errorLogger";
 import { hapticError } from "@/lib/haptics";
 import { saveOrShareFile } from "@/lib/fileExport";
 import { toast } from "sonner";
+import { TermsContent } from "@/pages/legal/TermsSection";
+import { CommunityContent } from "@/pages/legal/CommunitySection";
+import { PrivacyContent } from "@/pages/legal/PrivacySection";
 import {
   type TabKey,
   VALID_TABS,
   TAB_LABELS,
   TAB_ICONS,
-  TAB_ORIGIN_LABELS,
 } from "@/pages/legal/legalSections";
 
 // The same lazy import Profile and AccountBanned use: the dialog chunk and its
@@ -225,87 +223,35 @@ function DataExportCard() {
 // ---------- Documents ----------
 
 /**
- * ONE DOCUMENT ON SCREEN AT A TIME — the shape of the public /legal page.
+ * ONE DOCUMENT ON SCREEN AT A TIME, AND IT IS THE REAL TEXT.
  *
- * Owner, 2026-08-31, on a real device: "Legal is still all tangled together.
- * Should be similar to the public legal pages." "Still" because this was
- * raised on 2026-08-27 too and the first attempt did not land: that attempt
- * kept all three documents STACKED in one scroll and merely labelled the
- * boundaries — three ruled headings numbered "1/3", "2/3", "3/3", each with
- * its own indented "Jump to a section" rail hanging off it. The counters were
- * the tell. A design that has to number its documents so you can tell where
- * one ends is a design that has crammed three things into one place: to reach
- * Terms of service you scrolled past seven Community Rules anchors first.
+ * Owner, 2026-08-31 on a real device: "Legal is still all tangled together.
+ * Should be similar to the public legal pages." Then again, 2026-09-11: "how
+ * many times have i said this needs to b similar to the logged out screens
+ * yet it looks nothing like it."
  *
- * The public page (src/pages/Legal.tsx) never had that problem, because it
- * never stacks. It is [title] → [Terms | Rules | Privacy tab band] → ONE
- * policy. Switching document is a tap, not a scroll, and there is no counter
- * because there is never more than one document present to count.
+ * It did not look like it because it was a different KIND of screen. The
+ * public page is [title] → [Terms | Rules | Privacy] → one policy, in full.
+ * This tab had adopted the first two parts and then, where the policy should
+ * be, rendered a card linking OUT to /legal plus a list of deep links into
+ * it — a directory dressed as the page it was a directory for. That is also
+ * the redirection the owner banned outright ("there should not be any
+ * redirection back to public pages once they are signed in", 2026-08-30).
  *
- * So this directory now wears the same three parts, from the same source of
- * truth: `VALID_TABS` fixes the order (terms, community, privacy),
- * `TAB_LABELS` the names and `TAB_ICONS` the glyphs, all imported from
- * pages/legal/legalSections — the exact module the public tab band reads. The
- * two surfaces cannot drift into different names or a different order.
+ * Both halves now come from one place: `VALID_TABS` / `TAB_LABELS` /
+ * `TAB_ICONS` (pages/legal/legalSections) fix the band's order, names and
+ * glyphs, and `TermsContent` / `CommunityContent` / `PrivacyContent` are the
+ * exact elements `pages/Legal.tsx` mounts. The two surfaces cannot drift into
+ * a different order, a different name, or — the one that matters — a
+ * different wording of a clause someone has agreed to.
  *
- * What this buys, precisely: Terms of service is the DEFAULT panel, so it is
- * on screen at zero taps, and the other two are one tap each. Each document's
- * section shortcuts are the only shortcuts mounted, so a shortcut cannot be
- * read as belonging to the wrong policy — not because a rail says so, but
- * because the other documents are not rendered.
- *
- * PRESENTATION ONLY: this tab still states no policy of its own. Every clause
- * lives in src/pages/legal/; these are navigation labels and the deep links
- * are unchanged, one for one, from the numbered blocks they replace.
+ * STILL NO POLICY OF ITS OWN. This file states nothing; it composes. If a
+ * clause changes it changes in src/pages/legal/ and this file needs no edit.
  */
-interface LegalDocument {
-  /** In-app route to the full text (a <Navigate> to /legal?tab=…). */
-  to: string;
-  /** Full document name, as it reads in prose ("the full terms of service"). */
-  title: string;
-  body: string;
-  /** Deep links into this document's own sections. May be empty. */
-  sections: { to: string; icon: typeof Scale; title: string }[];
-}
-
-const LEGAL_DOCUMENTS: Record<TabKey, LegalDocument> = {
-  terms: {
-    to: "/terms",
-    title: "Terms of service",
-    body: "The contract between you and Helpr when you use the platform.",
-    sections: [
-      { to: "/legal?tab=terms#payment-escrow-fees", icon: DollarSign, title: "Platform fees & the split fee model" },
-      { to: "/legal?tab=terms#subscription-tiers", icon: Crown, title: "Membership tiers & pricing" },
-    ],
-  },
-  community: {
-    to: "/rules",
-    title: "Community Rules",
-    body: "How Helpr works — every guideline that governs jobs, payments, and conduct.",
-    sections: [
-      // "The basics" is this section's OWN title in CommunitySection. The row
-      // was labelled "Community Rules" back when the shortcuts were one flat
-      // list and every label had to carry its document's name; under the
-      // Community Rules panel it now merely restated it — and it never
-      // matched the heading it actually scrolls you to.
-      { to: "/legal?tab=community#basics", icon: Building2, title: "The basics" },
-      { to: "/legal?tab=community#posting-accepting", icon: Clock, title: "Budget limits, editing & new-Helpr limits" },
-      { to: "/legal?tab=community#cancellations", icon: XCircle, title: "Cancellations, response times & no-shows" },
-      { to: "/legal?tab=community#escrow-release", icon: Wallet, title: "How your payment is held & released" },
-      { to: "/legal?tab=community#disputes", icon: Scale, title: "Revisions, disputes & admin review" },
-      { to: "/legal?tab=community#strikes-bans", icon: Siren, title: "Strikes, bans & how we detect violations" },
-      { to: "/legal?tab=community#money-taxes", icon: HeartPulse, title: "Money & taxes" },
-    ],
-  },
-  privacy: {
-    to: "/privacy",
-    title: "Privacy policy",
-    body: "What we collect, how we use it, and how we keep it safe.",
-    // No section shortcuts. The data-export control below the tab band is the
-    // right this document grants, and the Privacy Policy links here for it in
-    // writing.
-    sections: [],
-  },
+const POLICY_CONTENT: Record<TabKey, ReactNode> = {
+  terms: <TermsContent />,
+  community: <CommunityContent />,
+  privacy: <PrivacyContent />,
 };
 
 // ---------- Page ----------
@@ -422,102 +368,34 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           })}
         </TabsList>
 
-        {VALID_TABS.map((key) => {
-          const document_ = LEGAL_DOCUMENTS[key];
-          const Icon = TAB_ICONS[key];
-          return (
-            <TabsContent key={key} value={key} className="mt-2">
-              <motion.div key={`${key}-panel`} {...fadeMotion} className="space-y-2">
-                {/* The document itself.
+        {/* THE POLICY TEXT ITSELF — the SAME components /legal renders.
 
-                    AFFORDANCE: this card NAVIGATES IN-APP. `/rules`, `/terms`
-                    and `/privacy` are <Navigate> redirects to `/legal?tab=…`
-                    (App.tsx), which renders inside AppShell on native —
-                    nothing leaves the app. It once carried an `ExternalLink`
-                    (↗) glyph, which promised exactly that. On a legal screen,
-                    where the whole question is where your data goes, a lying
-                    affordance is worse than cosmetic, so it carries the app's
-                    forward chevron (›).
+            This used to be a DIRECTORY: a card per document linking out to
+            /legal, plus a "Jump to a section" list of deep links. Two things
+            were wrong with it. It is precisely the bounce the owner forbade
+            ("there should not be any redirection back to public pages once
+            they are signed in", 2026-08-30), and it looked nothing like the
+            page it pointed at — which the owner has now said many times,
+            latterly "how many times have i said this needs to b similar to
+            the logged out screens yet it looks nothing like it".
 
-                      ›  chevron-right  → navigates in-app        (every row here)
-                      ↗  external-link  → opens outside the app   (nothing on
-                                                                   this screen
-                                                                   does) */}
-                <Link
-                  to={document_.to}
-                  className="glass-press block rounded-2xl liquid-glass squircle p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      <Icon className="w-4 h-4" strokeWidth={2.25} aria-hidden />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-display font-bold text-foreground leading-tight text-ds-15">
-                        Read the full {document_.title.toLowerCase()}
-                      </p>
-                      <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
-                        {document_.body}
-                      </p>
-                    </div>
-                    {/* aria-hidden: the row's accessible name already comes
-                        from its title + body text, which describes in-app
-                        navigation and never claims a new window. The glyph is
-                        decoration on top of that. */}
-                    <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
-                  </div>
-                </Link>
+            SHARED, NOT COPIED. `TermsContent` / `CommunityContent` /
+            `PrivacyContent` are the very elements `pages/Legal.tsx` mounts,
+            so there is exactly one wording of every clause in the codebase. A
+            second copy of legal text is a compliance hazard before it is a
+            drift hazard: the signed-in and signed-out readers would be
+            agreeing to different documents.
 
-                {/* This document's own sections — and only its own, because
-                    the other two panels are unmounted.
-
-                    (Earlier, the tab carried ~17 hand-written SUMMARIES of the
-                    cancellation windows, strike ladders, fee split, dispute
-                    steps, budget limits and verification rules — a second
-                    wording of copy /legal already owned, which had already
-                    drifted. Those are gone; these rows point at the canonical
-                    section. `/legal` owns the text, this tab owns getting you
-                    there. PolicySection auto-expands and scrolls to a matching
-                    `anchorId`.) */}
-                {document_.sections.length > 0 && (
-                  <div className="space-y-2 pt-2">
-                    {/* h2 under the tab's h1 — the panel has no heading of its
-                        own because the selected pill directly above already
-                        names the document (the same reason /legal dropped its
-                        per-tab H1), so this is the first heading inside it and
-                        must not skip a level. `TAB_ORIGIN_LABELS` gives the
-                        full document name for screen readers, since "Jump to a
-                        section" alone would read identically on all three. */}
-                    <h2
-                      className="font-sans font-semibold text-ds-11 uppercase tracking-[0.12em] px-1"
-                      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                    >
-                      Jump to a section
-                      <span className="sr-only"> in the {TAB_ORIGIN_LABELS[key]}</span>
-                    </h2>
-                    {document_.sections.map(({ to, icon: SectionIcon, title }) => (
-                      <Link
-                        key={to}
-                        to={to}
-                        className="glass-press flex items-center gap-3 rounded-2xl liquid-glass squircle px-4 py-3 transition-all hover:-translate-y-0.5 hover:shadow-md"
-                      >
-                        {/* Smaller badge than the document card above: same
-                            anatomy, one step down the hierarchy, so a section
-                            shortcut never reads as loud as a whole document. */}
-                        <div className="w-8 h-8 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                          <SectionIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden />
-                        </div>
-                        <p className="flex-1 min-w-0 font-sans font-semibold text-foreground text-ds-13 leading-snug">
-                          {title}
-                        </p>
-                        <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0" />
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            </TabsContent>
-          );
-        })}
+            The chrome differs and should: this is the in-app tab shell
+            (ProfileTabHeader + 44px triggers), that is the public page shell
+            (PublicHeaderPage + its own search). The CONTENT is identical. */}
+        {VALID_TABS.map((key) => (
+          <TabsContent key={key} value={key} className="mt-2">
+            <motion.div key={`${key}-panel`} {...fadeMotion}>
+              {POLICY_CONTENT[key]}
+            </motion.div>
+          </TabsContent>
+        ))}
       </Tabs>
 
       {/* DATA RIGHTS SIT OUTSIDE THE TAB BAND, not inside the Privacy panel.

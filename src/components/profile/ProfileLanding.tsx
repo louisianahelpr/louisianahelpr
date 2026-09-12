@@ -63,23 +63,20 @@ export function ProfileLanding({
           `helper_award_block_reason()` both refused unverified members. See
           `verificationPrompt.ts`. */}
       {(payoutPrompt.kind !== "none" || verificationPromptFor(profile).kind !== "none") && (
-        <div
-          className="liquid-glass"
-          style={{
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-              "0 12px 28px -10px hsl(var(--olivewood) / 0.14)",
-          }}
-        >
-          <div className="p-2 space-y-2">
-            <PayoutStatusRow
-              prompt={payoutPrompt}
-              onSetUp={() => onSelectTab("payment")}
-              onRetry={refetchStatus}
-            />
-            <VerificationStatusRow profile={profile} />
-          </div>
+        /* NO CARD BEHIND THESE BANNERS. Owner, 2026-09-11: remove the white
+           card behind "Finish setting up". Each row already draws its own
+           bordered, sienna-tinted surface (`PayoutStatusRow`'s BOX,
+           `VerificationStatusRow`'s), so the `liquid-glass` box put a second
+           boundary a single padding step outside the first — the same
+           box-inside-a-box the owner caught on the empty states. The rows are
+           the cards; this is just the gap between them. */
+        <div className="space-y-2">
+          <PayoutStatusRow
+            prompt={payoutPrompt}
+            onSetUp={() => onSelectTab("payment")}
+            onRetry={refetchStatus}
+          />
+          <VerificationStatusRow profile={profile} />
         </div>
       )}
 

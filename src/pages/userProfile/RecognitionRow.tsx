@@ -29,6 +29,12 @@ import {
 } from "@/lib/helperTier";
 import { TIER_META } from "@/components/profile/HelperTierBadge";
 import { ProfileBadge, PROFILE_BADGE_PILL } from "./ProfileBadge";
+import {
+  ID_VERIFIED_DESCRIPTION,
+  ID_VERIFIED_LABEL,
+  ID_VERIFIED_PILL_STYLE,
+  IdVerifiedShield,
+} from "@/components/profile/IdVerifiedPill";
 
 /**
  * THE BADGE ROW — the earned badges on the public profile, capped.
@@ -175,7 +181,15 @@ function ladderSpec(
 ): BadgeSpec | null {
   const tier: HelperTier = computeHelperTier(profile, stats);
   // Tier 0 hides the badge entirely — never a "Not verified" chip.
-  if (tier === 0) return null;
+  //
+  // TIER 1 IS HIDDEN TOO. Its label is literally "Verified" (TIER_META[1]),
+  // which is the same claim as the gold "ID verified" pill sitting inches
+  // above it in the Verified group — two chips, two colours, one fact, and
+  // the ladder one captioned "As a Helpr" as though ID verification were
+  // something you earn doing jobs. Owner, 2026-09-11: "not needed it clerly
+  // mentions this above". Tiers 2 ("Trusted") and 3 ("Top Rated") are real
+  // track-record rungs and are untouched.
+  if (tier === 0 || tier === 1) return null;
   const meta = TIER_META[tier];
   const Icon = meta.icon;
   const progress = describeTierProgress(tier, profile, stats);
@@ -427,15 +441,12 @@ export const RecognitionRow = ({
     specs.push({
       key: "stripe_verified",
       group: "account",
-      label: "Stripe verified",
-      icon: <ShieldCheck strokeWidth={2.5} style={{ color: "hsl(var(--gold-warm))" }} />,
-      description:
-        "A government ID was checked by Stripe Identity and matched this member. Earned by completing ID verification in Profile.",
-      style: {
-        background: "hsl(var(--gold-warm) / 0.14)",
-        border: "0.5px solid hsl(var(--gold-warm) / 0.36)",
-        color: "hsl(var(--gold-ink))",
-      },
+      // THE canonical treatment, imported rather than restated — see
+      // `IdVerifiedPill.tsx` for the three other forms this replaced.
+      label: ID_VERIFIED_LABEL,
+      icon: <IdVerifiedShield />,
+      description: ID_VERIFIED_DESCRIPTION,
+      style: ID_VERIFIED_PILL_STYLE,
     });
   }
 
@@ -470,7 +481,7 @@ export const RecognitionRow = ({
 
   // THE CAP IS APPLIED IN PRIORITY ORDER, THE ROW IS DRAWN IN GROUP ORDER.
   // Those are two different orders on purpose. Sorting the specs into groups
-  // BEFORE slicing would let three career milestones push "Stripe verified"
+  // BEFORE slicing would let three career milestones push "ID verified"
   // behind "+N more" on a strong helper's profile — the grouping is a caption
   // change, and it must not silently re-rank which four badges survive.
   const groups = GROUP_ORDER

@@ -66,7 +66,11 @@ const OWNERS = {
   // it is an alias, added 2026-09-07 so an advertised link resolves.
   "/help-center": ["lh-copy-content"],
   "/data-rights": ["lh-compliance-store", "lh-account-lifecycle"],
+  // /gift-card is a redirect to the tab as of 2026-09-11 (it still carries
+  // ?claim= out of gift emails), so both addresses are listed and both are
+  // owned by the same two lanes.
   "/gift-card": ["lh-compliance-store", "lh-subscriptions-credits"],
+  "?tab=gift_card": ["lh-compliance-store", "lh-subscriptions-credits"],
 
   // ── auth / account state ─────────────────────────────────────────────────
   "/login": ["lh-onboarding-auth"],

@@ -3,6 +3,7 @@ import { hasPerk, tierDisplayName } from "@/lib/subscriptionTiers";
 import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
 import { Link } from "react-router-dom";
 import { TrustRow } from "@/components/TrustRow";
+import { IdVerifiedPill } from "@/components/profile/IdVerifiedPill";
 import UserAvatar from "@/components/UserAvatar";
 import type { EnrichedJob } from "./types";
 
@@ -210,10 +211,17 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
               NO avgRating/reviewCount here — TrustRow renders those as a
               rating chip, which is the number already printed beside the name
               two rows up. See `showTrustRow`. */}
-          <TrustRow
-            idVerified={posterIdVerified}
-            repeatHirePercent={repeatJobs >= 2 ? 100 : undefined}
-          />
+          {/* ID VERIFICATION IN THE ONE FORM IT HAS. TrustRow drew it as
+              "✓ ID VERIFIED" — uppercase, letterspaced, a literal ✓
+              character, no pill — which was the fourth of four treatments of
+              a single fact across the app (owner, 2026-09-11: make it one).
+              The surviving form is the gold pill + shield from the profile
+              badge row, imported from `profile/IdVerifiedPill`, so the chip a
+              helper reads on a job is the same chip they will see on that
+              poster's profile. TrustRow keeps the repeat-hire signal, which
+              is a different claim. */}
+          {posterIdVerified && <IdVerifiedPill />}
+          <TrustRow repeatHirePercent={repeatJobs >= 2 ? 100 : undefined} />
         </div>
       )}
     </Link>

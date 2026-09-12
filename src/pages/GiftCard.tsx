@@ -15,7 +15,19 @@
  * link to protect. Claim URLs are /gift-card?claim=<token> now
  * (supabase/functions/_shared/pifGiftEmail.ts).
  *
- * Document-scroll page (PageHeader + min-h-screen).
+ * A PROFILE TAB (`/profile?tab=gift_card`), not a route of its own.
+ *
+ * It was the last standalone sibling: Work Record, Home History, Host
+ * Automation, After a Job, Wrapped and Pets are all `tab === "…"` panels in
+ * `pages/profile/ProfileTabPanels.tsx`, and this one screen still rendered on
+ * `AppPage` behind `/gift-card`. Owner, 2026-09-11: "THEY SHIULD ALL BE THE
+ * SAME EVERY SINGLIE FUCKING ONE".
+ *
+ * `/gift-card` still resolves — it redirects to the tab and CARRIES `?claim=`
+ * with it (App.tsx), because that is the address in every gift email
+ * (`supabase/functions/_shared/pifGiftEmail.ts`). Prod holds 3 `pif_credits`
+ * rows, all seed, none with a claim token, so nothing live depends on it
+ * today — the redirect exists so that stays true of tomorrow's emails too.
  *
  * Directed-gift model: a donor NAMES a recipient by email and pays Stripe up
  * front; only that person can redeem. There is no public "browse credits near
@@ -42,7 +54,7 @@ import { hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { STRIPE_PCT, STRIPE_FLAT_CENTS } from "@/lib/stripeFees";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
-import AppPage from "@/components/AppPage";
+import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -66,7 +78,7 @@ const MIN_GIFT = 10; // matches MIN_GIFT_CENTS (1000) in create-pif-donation
 const MAX_GIFT = 500; // matches MAX_GIFT_CENTS (50000) in create-pif-donation
 
 // ─── Main page ────────────────────────────────────────────────────────────────
-export default function GiftCard() {
+export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   usePageTitle("Gift Card — Helpr");
@@ -334,7 +346,12 @@ export default function GiftCard() {
     hasValidRecipient;
 
   return (
-    <AppPage title="Gift Card" backTo="/profile">
+    /* The canonical Profile-tab body: `space-y-4` under a ProfileTabHeader.
+       NOT AppPage — AppPage is AppShell + this header, and Profile.tsx already
+       owns the AppShell. Same shape PetProfiles, WorkRecord, HomeHistory,
+       StrSettings, AutoTip and HelprWrapped use. */
+    <div className="space-y-4">
+      <ProfileTabHeader title="Gift Card" onBack={onBack} />
         {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
         {/* Spans full width above the split so the status is visible regardless
             of which column the eye lands on first. */}
@@ -361,7 +378,7 @@ export default function GiftCard() {
             `lg:col-span-*`/`lg:sticky` classes that used to make sense on the
             old 12-col grid were left behind on this now-block-layout wrapper:
             since this page scrolls inside AppShell's internal container
-            (AppPage), `position: sticky` still activates in plain block flow
+            (the Profile tab shell), `position: sticky` still activates in plain block flow
             — it pinned the ENTIRE form (including this preview) at the top
             of the viewport while the "sent to you" / "sent by you" lists
             scrolled up underneath it, reading as everything overlapping the
@@ -775,7 +792,7 @@ export default function GiftCard() {
           </aside>
 
           {/* ── Right pane: gift listings ──────────────────────────────────────
-              No `pb-8` here: AppPage's scroll column already carries the
+              No `pb-8` here: Profile's scroll column already carries the
               canonical bottom-nav clearance (safe-area + 96px dock + 1rem), and
               a second per-page pad is the double-inset CLAUDE.md warns about —
               it only adds dead space under the last card. */}
@@ -853,6 +870,6 @@ export default function GiftCard() {
             </div>
           </section>
         </div>
-    </AppPage>
+    </div>
   );
 }

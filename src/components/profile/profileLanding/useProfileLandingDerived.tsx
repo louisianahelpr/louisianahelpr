@@ -175,11 +175,14 @@ export function useProfileLandingDerived({
           label: "Gift Card",
           icon: <Gift className="w-5 h-5" />,
           // Not "job credits" (owner, 2026-08-30) — there is no credit balance
-          // in this product. /gift-card sends a real Helpr gift card by email
-          // that the recipient claims and puts toward any job.
+          // in this product. It sends a real Helpr gift card by email that the
+          // recipient claims and puts toward any job.
           desc: "Send a Helpr gift card by email",
           tint: SECTION_TINT.work,
-          href: "/gift-card",
+          // A TAB, like every sibling in this list (2026-09-11). Pointing at
+          // `/gift-card` would still work — it redirects — but through a
+          // navigation the row does not need to make.
+          href: "/profile?tab=gift_card",
         },
         // "Benefits & Perks" (/benefits) removed 2026-08-31 (owner): the page
         // it opened had no partner agreements behind it, so the row promised

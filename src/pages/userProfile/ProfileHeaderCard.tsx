@@ -1,7 +1,6 @@
-import { useState, type ReactNode } from "react";
-import { Briefcase, MapPin, ShieldCheck, Users } from "lucide-react";
+import type { ReactNode } from "react";
+import { Briefcase, MapPin, Users } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
-import type { AvatarPhotoRejection } from "@/lib/avatarImage";
 import type { Database } from "@/integrations/supabase/types";
 import type { LastActiveLabel } from "./types";
 
@@ -96,7 +95,7 @@ export const ProfileHeaderCard = ({
   displayName,
   initials,
   isOwnProfile,
-  isIdVerified,
+  isIdVerified: _isIdVerified,
   mutualJobsCount,
   tierBadge,
   recognition,
@@ -136,27 +135,19 @@ export const ProfileHeaderCard = ({
      `monogram` derivation this file used to keep, including its
      never-render-an-empty-block guarantee.
 
-     THAT GAP IS NOW CLOSED (2026-08-31). `<UserAvatar>` reports its verdict
-     through `onPhotoRejected`, so this card can tell a photograph from a
-     rejected block and stops painting the "ID verified" shield over a
-     monogram. See `photoRejection` below. */
+     THAT GAP WAS CLOSED (2026-08-31) by `<UserAvatar>` reporting its verdict
+     through `onPhotoRejected`, which let this card stop painting an
+     "ID verified" shield over a monogram. The shield itself is gone now
+     (2026-09-11, one form for ID verification), so nothing here consumes the
+     verdict any more — but `<UserAvatar>` still uses it internally to choose
+     photo vs monogram, which is the half that mattered. */
 
-  // See (5) above: the private, own-row-only flag OR the public column that
-  // `get_safe_profiles` exposes precisely so visitors can see this.
-  const idVerified =
-    isIdVerified || (profile as unknown as { is_id_verified?: boolean }).is_id_verified === true;
-
-  // Seeded from the column rather than starting at `null`, because the child
-  // reports "no-photo" from a passive effect — i.e. AFTER paint. Starting at
-  // `null` therefore painted one frame with the ID-verified shield sitting on
-  // a monogram for every member who has no avatar at all, which is the exact
-  // artefact the gate below exists to prevent. A member who DOES have a photo
-  // still starts at `null` ("assume a photo"), so a real trust signal is never
-  // hidden while the bitmap is in flight.
-  const [photoRejection, setPhotoRejection] = useState<AvatarPhotoRejection | null>(
-    profile.avatar_url ? null : "no-photo",
-  );
-  const showsPhoto = photoRejection === null;
+  /* `idVerified` and the `photoRejection` state that gated it are GONE with
+     the avatar shield above — `isIdVerified` stays on the props (its callers
+     are unchanged, and the badge row is what publishes the claim now). The
+     whole "is this a real photograph?" question was asked here only so the
+     shield would not certify a monogram; `<UserAvatar>` still answers it for
+     itself when choosing photo vs monogram, which is the part that mattered. */
 
   const location = profile.location ?? null;
   const memberSinceLabel = profile.created_at
@@ -209,37 +200,19 @@ export const ProfileHeaderCard = ({
               // migrations pass `rounded-ds-md` here.
               fallbackClassName="rounded-ds-avatar squircle text-ds-24 ring-0 drop-shadow-sm"
               style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
-              onPhotoRejected={setPhotoRejection}
             />
-            {/* `showsPhoto` gates the CORNER badge only, and deliberately not
-                the "Stripe verified" pill in the trust row below.
-
-                The two are not the same claim. This badge is an overlay on a
-                PORTRAIT — a checkmark on the corner of a face, asserting that
-                THAT face was identity-checked. Over a monogram it has no
-                referent: it decorates a generated block, which is precisely
-                how a flat upload came to look more trustworthy than a member
-                with no photo at all. The "Stripe verified" badge in the badge
-                row below (RecognitionRow) states the same fact in words, about
-                the person rather than the picture, so suppressing the overlay
-                costs the profile nothing. Verify that badge is still there
-                before ever extending this gate to it. */}
-            {idVerified && showsPhoto && (
-              <div
-                // role="img" is required for the label to survive: aria-label is
-                // PROHIBITED on a bare <div> (implicit role=generic), so without
-                // it the badge reads as "ID verified" to sighted users only.
-                role="img"
-                aria-label="ID verified by Stripe"
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center"
-                style={{
-                  background: "hsl(var(--bark))",
-                  border: "2px solid hsl(var(--parchment))",
-                }}
-              >
-                <ShieldCheck className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.5} />
-              </div>
-            )}
+            {/* NO ID-VERIFIED SHIELD ON THE AVATAR ANY MORE.
+                ID verification rendered four ways across the app; the owner's
+                ruling (2026-09-11) is that it renders ONE way — the gold
+                pill + shield, which this very page already paints ~40px below
+                this avatar in the badge row (`RecognitionRow`). A bark disc
+                with a white shield stamped on the corner of the portrait was
+                a second treatment of that one fact, and the weaker of the
+                two: it decorated the PICTURE rather than saying anything
+                about the person, which is why it needed `showsPhoto` to stop
+                it certifying a generated monogram in the first place. The
+                claim is unchanged and still on screen; see
+                `components/profile/IdVerifiedPill.tsx`. */}
           </div>
 
           {/* ── Place, verification, bio, skills ── */}

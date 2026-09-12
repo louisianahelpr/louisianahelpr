@@ -1,12 +1,8 @@
 import {
-  Clock,
-  Timer,
-  RotateCcw,
   Star,
   XCircle,
   ClipboardList,
   Hammer,
-  Repeat,
   Sprout,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -179,11 +175,11 @@ export const AtAGlanceCard = ({
   stats,
   postedJobsCount,
   workedJobsCount,
-  replyLatency,
-  onTimeArrivalRate,
-  revisionFrequency,
+  replyLatency: _replyLatency,
+  onTimeArrivalRate: _onTimeArrivalRate,
+  revisionFrequency: _revisionFrequency,
   cancellationRate,
-  repeatHirePercent,
+  repeatHirePercent: _repeatHirePercent,
   showReviews,
   showPostedJobs,
   showWorkedJobs,
@@ -234,43 +230,20 @@ export const AtAGlanceCard = ({
     });
   }
 
-  /* ── TYPICAL REPLY TIME ───────────────────────────────────────────────
-     "Avg. reply time" used to be `avg(applications.updated_at - created_at)`
-     over applications this member SUBMITTED. `created_at` is them applying;
-     `updated_at` is a last-touch column only the POSTER may write. So the
-     figure was the poster's latency, printed under the helper's name — and
-     because `updated_at` moves on ANY write, not even reliably that: on prod,
-     three helpers on three jobs shared one `updated_at` to the microsecond
-     (one bulk maintenance write), and this cell rendered the distance to it as
-     "22d", "17d" and "3d". One of them had a real median reply time of 24
-     MINUTES.
+  /* ── EXACTLY FOUR TILES ──────────────────────────────────────────────
+     Owner, 2026-09-11, asked a second time and told me not to ask again:
+     this card shows Rating · Jobs posted · Jobs completed · Cancelled, and
+     nothing else. Deleted here with that ruling: "Typical reply time"
+     (owner-only, `get_my_reply_latency()`), "Arrived on time", "Posters who
+     rebooked" and "Needed revisions".
 
-     It now shows the median gap between the other party's message and this
-     member's answer. MEDIAN, not average: a real member's 47-minute median
-     becomes a 6.6-hour mean on the strength of one overnight gap, and "Avg."
-     would then be a claim about their worst night. Hence the label change.
-
-     OWNER ONLY, deliberately. `get_my_reply_latency()` reads auth.uid() and
-     takes no argument, so there is no version of it a visitor can call about
-     someone else — the same visibility the broken stat effectively had, since
-     `applications` is RLS-scoped to the parties. Publishing a reply time to
-     strangers is now defensible on accuracy grounds, but it is a disclosure
-     decision that belongs in `get_public_profile_stats` next to the other
-     public aggregates, not here. */
-  if (isOwnProfile && replyLatency.medianReplyMinutes !== null) {
-    const m = replyLatency.medianReplyMinutes;
-    cells.push({
-      key: "reply",
-      icon: Clock,
-      value:
-        m < 60
-          ? `${Math.round(m)}m`
-          : m < 1440
-          ? `${(m / 60).toFixed(1)}h`
-          : `${Math.round(m / 1440)}d`,
-      label: "Typical reply time",
-    });
-  }
+     The RPCs and the props behind them are untouched — the props are still
+     accepted and simply not rendered — so nothing else that reads those
+     numbers changes, and restoring a tile is a three-line edit rather than a
+     data re-plumb. What is gone is the DISPLAY: seven tiles wrapping to three
+     rows at 375 made the two numbers a stranger actually came for (rating,
+     jobs done) weigh the same as a derived percentage most profiles cannot
+     even populate. */
 
   /* ── ACCEPT RATE: DELETED, NOT REPAIRED ───────────────────────────────
      It was `accepted / total` over the applications this member sent, and no
@@ -290,38 +263,6 @@ export const AtAGlanceCard = ({
      to competitive jobs. There is no honest label for "other people's choices
      about you", so this is a deletion, not a relabel. */
 
-  if (onTimeArrivalRate !== null) {
-    cells.push({
-      key: "ontime",
-      icon: Timer,
-      value: `${onTimeArrivalRate.toFixed(0)}%`,
-      label: "Arrived on time",
-      tone:
-        onTimeArrivalRate >= 85
-          ? "hsl(var(--ink-deep))"
-          : onTimeArrivalRate >= 65
-          ? "hsl(var(--gold-warm))"
-          : "hsl(var(--burnt-sienna))",
-    });
-  }
-
-  // Repeat-hire rate was already fetched on this page (public SECURITY DEFINER
-  // RPC, `helper_repeat_hire_percent`) but only ever used as a hidden gate for
-  // a milestone — the number itself was never shown. It is the single best
-  // "would someone book them again?" signal a stranger can be given, so it is
-  // now a cell of its own.
-  // `> 0` is deliberate and unchanged: a measured 0% across three or more
-  // one-off clients is a true number but a punitive one, and "nobody has
-  // rebooked them" is not a claim this card was built to make. Withheld, not
-  // rendered as a zero.
-  if (repeatHirePercent !== null && repeatHirePercent > 0) {
-    cells.push({
-      key: "repeat",
-      icon: Repeat,
-      value: `${Math.round(repeatHirePercent)}%`,
-      label: "Posters who rebooked",
-    });
-  }
 
   /* NO SECOND RATING TILE. A separate "As a poster · N reviews" star sat here
      alongside the profile's main rating, so one person showed two different
@@ -338,20 +279,6 @@ export const AtAGlanceCard = ({
 
      `poster_avg_rating` remains in the RPC and is untouched — it carries a
      3-review floor and was returning null here anyway. */
-  if (revisionFrequency !== null) {
-    cells.push({
-      key: "revisions",
-      icon: RotateCcw,
-      value: `${revisionFrequency.toFixed(0)}%`,
-      label: "Needed revisions",
-      tone:
-        revisionFrequency <= 10
-          ? "hsl(var(--ink-deep))"
-          : revisionFrequency <= 25
-          ? "hsl(var(--gold-warm))"
-          : "hsl(var(--burnt-sienna))",
-    });
-  }
 
   /* CANCEL RATE — last, and no longer alarming at one-in-six.
      Neutral on your own profile: being shown your worst number in red every
@@ -436,10 +363,11 @@ export const AtAGlanceCard = ({
 
   return (
     <section aria-label="At a glance">
-      {/* Fills the width it is given: two-up on the narrowest phone, six-up on
-          a desktop frame — so the card is never a short row of tiles stranded
-          in a wide, empty band. */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+      {/* Four tiles max (see "EXACTLY FOUR TILES" above), so the grid tops out
+          at four columns: two-up on a phone, one row from `sm`. A six-column
+          track would have stranded four tiles in two-thirds of a desktop
+          frame. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {cells.map((c) => (
           <MetricCell key={c.key} cell={c} />
         ))}

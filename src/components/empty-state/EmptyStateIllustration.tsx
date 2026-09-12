@@ -32,7 +32,7 @@ export function EmptyStateIllustration({
   // it actually draws in.
   const defaultClass =
     variant === "reviews"
-      ? "mx-auto mb-4 h-auto w-28 text-[hsl(var(--burnt-sienna))]"
+      ? "mx-auto mb-5 h-auto w-28 text-[hsl(var(--burnt-sienna))]"
       : "mx-auto mb-4 h-24 w-24 text-[hsl(var(--burnt-sienna))]";
   return <Comp className={className ?? defaultClass} />;
 }

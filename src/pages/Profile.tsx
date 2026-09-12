@@ -656,7 +656,19 @@ const ProfilePage = () => {
               makes the gap above and below the title very nearly equal, which
               is what the owner asked for ("it needs to be the same height above
               and below"). */
-          <div className="w-full page-measure mx-auto h-full overflow-y-auto px-3 -mx-3 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
+          /* `mx-auto` is GONE and `w-full` is now an explicit bleed width.
+              Both halves of that are one bug: `mx-auto` and `-mx-3` set the
+              same property, `mx-auto` won, so the negative margin that was
+              meant to cancel `px-3` never applied and every Profile tab shipped
+              a naked +12px inset per side. (`.page-measure` centres itself in
+              index.css, so `mx-auto` bought nothing even before that.) With the
+              margins live, the box has to be 1.5rem wider than its parent or it
+              only shifts left instead of widening. Measured at 375 on
+              ?tab=availability: first card 311px at x=32 before, 335px at x=20
+              after — i.e. identical to the PageScaffold pages (Dashboard's is
+              335 at x=20). Same fix as AppPage.tsx (9e3f3ad7f), found by the
+              shell-cards lane. */
+          <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
           {/* `key={tab}` on the boundary re-mounts this wrapper on every
               tab switch, so `animate-ds-page-in` replays its entrance each

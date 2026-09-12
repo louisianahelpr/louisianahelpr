@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LegalTab } from "./LegalTab";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
@@ -80,11 +81,18 @@ afterEach(() => vi.restoreAllMocks());
 const selectDoc = (name: string) =>
   fireEvent.mouseDown(screen.getByRole("tab", { name }), { button: 0 });
 
+// The policy documents are the REAL ones now (TermsContent et al), and Terms
+// reads the live onboarding fee through React Query — so the tab needs a
+// client the way the app gives it one. Without it `useOnboardingFeeCents`
+// throws "No QueryClient set" and every assertion below fails for a reason
+// that has nothing to do with legal copy.
 const renderTab = () =>
   render(
-    <MemoryRouter>
-      <LegalTab onBack={() => {}} />
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter>
+        <LegalTab onBack={() => {}} />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 
 describe("Legal & policies — data rights", () => {
@@ -159,91 +167,47 @@ describe("Legal & policies — data rights", () => {
   });
 });
 
-describe("Legal & policies — one document per surface", () => {
-  // Owner, 2026-08-31: "Legal is still all tangled together. Should be similar
-  // to the public legal pages." The tab used to STACK all three documents in
-  // one scroll behind "1/3" / "2/3" / "3/3" headings, so reaching Terms meant
-  // scrolling past seven Community Rules anchors. It now wears /legal's shape:
-  // a Terms / Rules / Privacy band with exactly one document mounted.
+describe("Legal & policies — the same documents the signed-out page shows", () => {
+  /* Owner, repeatedly, latterly 2026-09-11: "how many times have i said this
+     needs to b similar to the logged out screens yet it looks nothing like
+     it." The tab used to render a DIRECTORY — a "Read the full terms of
+     service" card per document plus deep links — which sent a signed-in user
+     back out to the public /legal page, the exact bounce banned on
+     2026-08-30. It now renders the policy text itself, from the same
+     components pages/Legal.tsx mounts.
 
-  it("opens on Terms of service — zero taps, matching /legal's default tab", () => {
+     These assertions are about CONTENT, not about the render succeeding: the
+     old suite passed while the screen showed link cards, because it only ever
+     asked about link cards. */
+
+  it("renders the Terms of Service text itself, not a link to it", () => {
     renderTab();
-    expect(
-      screen.getByRole("link", { name: /Read the full terms of service/ }),
-    ).toHaveAttribute("href", "/terms");
-    // The other two documents are not merely below the fold — they are not
-    // rendered at all, which is what stops them tangling.
-    expect(screen.queryByRole("link", { name: /Read the full community rules/ })).toBeNull();
-    expect(screen.queryByRole("link", { name: /Read the full privacy policy/ })).toBeNull();
+    expect(screen.getByRole("heading", { name: /^Eligibility & accounts/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /^Payment, escrow & fees/ })).toBeInTheDocument();
   });
 
-  it("drops the 1/3 · 2/3 · 3/3 counters that admitted the stacking", () => {
+  it("sends nobody back out to the public legal pages", () => {
+    // The whole defect: every route out of here was a hop to /legal, /terms,
+    // /rules or /privacy — public pages, from inside the signed-in app.
     renderTab();
-    expect(screen.queryByText("1/3")).toBeNull();
-    expect(screen.queryByText("2/3")).toBeNull();
-    expect(screen.queryByText("3/3")).toBeNull();
+    for (const link of screen.getAllByRole("link")) {
+      expect(link.getAttribute("href") ?? "").not.toMatch(/^\/(legal|terms|rules|privacy)\b/);
+    }
   });
 
-  it("still leads to all three anchor policy documents, one tap each", () => {
+  it("puts each policy one tap away, with exactly one mounted at a time", () => {
     renderTab();
-    // Each panel opens with a "Read the full …" card. The matcher carries the
-    // row's body copy too, so the Community Rules card is told apart from a
-    // section shortcut pointing at the same rules.
-    expect(
-      screen.getByRole("link", { name: /Read the full terms of service/ }),
-    ).toHaveAttribute("href", "/terms");
+    expect(screen.getByRole("tab", { name: "Terms" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("heading", { name: /^The basics/ })).toBeNull();
 
     selectDoc("Rules");
-    expect(
-      screen.getByRole("link", { name: /Read the full community rules How Helpr works/ }),
-    ).toHaveAttribute("href", "/rules");
+    expect(screen.getByRole("heading", { name: /^The basics/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /^Posting & accepting jobs/ })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /^Eligibility & accounts/ })).toBeNull();
 
     selectDoc("Privacy");
-    expect(
-      screen.getByRole("link", { name: /Read the full privacy policy/ }),
-    ).toHaveAttribute("href", "/privacy");
-  });
-
-  it("mounts only the open document's section shortcuts", () => {
-    renderTab();
-    // Terms' own two anchors are present…
-    expect(
-      screen.getByRole("link", { name: /Platform fees & the split fee model/ }),
-    ).toHaveAttribute("href", "/legal?tab=terms#payment-escrow-fees");
-    expect(
-      screen.getByRole("link", { name: /Membership tiers & pricing/ }),
-    ).toHaveAttribute("href", "/legal?tab=terms#subscription-tiers");
-    // …and none of Community Rules' seven can be mistaken for one of them,
-    // because they are not in the document.
-    expect(screen.queryByRole("link", { name: /Cancellations, response times & no-shows/ })).toBeNull();
-    expect(screen.queryByRole("link", { name: /Strikes, bans & how we detect violations/ })).toBeNull();
-
-    selectDoc("Rules");
-    expect(
-      screen.getByRole("link", { name: /Cancellations, response times & no-shows/ }),
-    ).toHaveAttribute("href", "/legal?tab=community#cancellations");
-    expect(screen.queryByRole("link", { name: /Platform fees & the split fee model/ })).toBeNull();
-  });
-
-  it("preserves every deep link, one for one, across the three panels", () => {
-    // The anchors are consent-referenced navigation into legally load-bearing
-    // copy: the restructure is allowed to move them between panels, never to
-    // change or lose one. This is the full manifest.
-    renderTab();
-    const hrefFor = (name: RegExp) =>
-      screen.getByRole("link", { name }).getAttribute("href");
-
-    expect(hrefFor(/Platform fees & the split fee model/)).toBe("/legal?tab=terms#payment-escrow-fees");
-    expect(hrefFor(/Membership tiers & pricing/)).toBe("/legal?tab=terms#subscription-tiers");
-
-    selectDoc("Rules");
-    expect(hrefFor(/The basics/)).toBe("/legal?tab=community#basics");
-    expect(hrefFor(/Budget limits, editing & new-Helpr limits/)).toBe("/legal?tab=community#posting-accepting");
-    expect(hrefFor(/Cancellations, response times & no-shows/)).toBe("/legal?tab=community#cancellations");
-    expect(hrefFor(/How your payment is held & released/)).toBe("/legal?tab=community#escrow-release");
-    expect(hrefFor(/Revisions, disputes & admin review/)).toBe("/legal?tab=community#disputes");
-    expect(hrefFor(/Strikes, bans & how we detect violations/)).toBe("/legal?tab=community#strikes-bans");
-    expect(hrefFor(/Money & taxes/)).toBe("/legal?tab=community#money-taxes");
+    expect(screen.getByRole("heading", { name: /^Information we collect/ })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /^The basics/ })).toBeNull();
   });
 
   it("keeps the export on screen whichever document is open", () => {

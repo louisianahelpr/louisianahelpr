@@ -54,6 +54,7 @@ import {
   settleAnimations,
   type LayoutReport,
 } from "./auditRoutes";
+import { detectButtonGeometry, type ButtonGeometryReport } from "./buttonGeometry";
 // axe REFUSES to decide colour-contrast over a gradient — and this app's page
 // canvas is a gradient, so every contrast result landed in `incomplete`, which
 // this gate never read. See contrastResolve.ts for the whole story.
@@ -99,6 +100,15 @@ interface ScreenResult {
    * green captures.
    */
   wrongScreen?: string;
+  /** Sibling buttons of unequal height, and size classes the cascade defeated. See buttonGeometry.ts. */
+  buttonGeometry?: ButtonGeometryReport;
+  /**
+   * Same-origin links that open in a NEW TAB, each loaded cold in its own page.
+   * The page walk used to skip these as "opens elsewhere", which is how the
+   * consent checkboxes' /terms, /rules and /privacy links shipped a boundary
+   * screen nobody had ever opened.
+   */
+  newTabDestinations?: { href: string; problem: string | null }[];
   screenshot?: string;
   totalViolations?: number;
   topViolations?: ViolationSummary[];
@@ -304,11 +314,43 @@ async function captureScreen(
     const boundary = await page.evaluate(() => {
       const t = document.body?.innerText ?? "";
       if (/This page hit a problem/i.test(t)) return "RouteErrorBoundary (crash state)";
-      if (/Update ready\./i.test(t) && /Reload/i.test(t)) return "RouteErrorBoundary (chunk-load state)";
+      if (/Update ready|newer version/i.test(t)) return "retired 'Update ready' screen (must never render)";
+      if (/Something went sideways/i.test(t)) return "ErrorBoundary (app crash)";
       if (/We couldn't load your account/i.test(t)) return "ProtectedRoute account error";
       return null;
     });
     if (boundary) result.wrongScreen = boundary;
+
+    result.buttonGeometry = await page.evaluate(detectButtonGeometry);
+
+    const newTabHrefs = await page.evaluate(() =>
+      [...new Set(
+        [...document.querySelectorAll('a[target="_blank"][href]')]
+          .map((a) => new URL((a as HTMLAnchorElement).href, location.href))
+          .filter((u) => u.origin === location.origin)
+          .map((u) => u.pathname + u.search),
+      )],
+    );
+    result.newTabDestinations = [];
+    for (const href of newTabHrefs) {
+      const tab = await page.context().newPage();
+      let problem: string | null = null;
+      try {
+        await tab.goto(href, { waitUntil: "domcontentloaded", timeout: 30_000 });
+        await tab.waitForTimeout(2500);
+        const text = (await tab.locator("body").innerText()).replace(/\s+/g, " ").trim();
+        if (/This page hit a problem|Something went sideways|Couldn't load|Update ready|newer version/i.test(text)) {
+          problem = `error boundary: ${text.slice(0, 80)}`;
+        } else if (text.length < 40) {
+          problem = `blank (${text.length} chars)`;
+        }
+      } catch (e) {
+        problem = `failed to load: ${String((e as Error).message).slice(0, 80)}`;
+      } finally {
+        await tab.close();
+      }
+      result.newTabDestinations.push({ href, problem });
+    }
 
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const fileName = `${String(index).padStart(3, "0")}-${slug}-${variant.tag}.png`;
@@ -515,6 +557,24 @@ sweepDescribe("UI audit evidence sweep", () => {
       wrongScreen,
       "these captures are of an error boundary, not the screen (axe passes on an " +
         `error boundary, so this would otherwise read as clean):\n  - ${wrongScreen.join("\n  - ")}`,
+    ).toEqual([]);
+    const geometry = results.flatMap((r) => [
+      ...(r.buttonGeometry?.siblingMismatch ?? []).map((m) => `${r.index} ${r.name} (${r.variant}) — sibling buttons differ: ${m}`),
+      ...(r.buttonGeometry?.requestedNotRendered ?? []).map((m) => `${r.index} ${r.name} (${r.variant}) — size class ignored: ${m}`),
+    ]);
+    expect(
+      geometry,
+      "button geometry: stacked or side-by-side buttons must be the same height, and a size class " +
+        "on a control must actually render (see buttonGeometry.ts):\n  - " + geometry.join("\n  - "),
+    ).toEqual([]);
+    const brokenNewTabs = results.flatMap((r) =>
+      (r.newTabDestinations ?? [])
+        .filter((d) => d.problem)
+        .map((d) => `${r.index} ${r.name} (${r.variant}) → ${d.href}: ${d.problem}`),
+    );
+    expect(
+      brokenNewTabs,
+      `new-tab links whose destination does not render:\n  - ${brokenNewTabs.join("\n  - ")}`,
     ).toEqual([]);
     expect(
       violating,

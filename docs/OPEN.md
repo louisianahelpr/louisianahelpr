@@ -250,11 +250,27 @@ screen + 26 Profile tabs + 25 Admin views + Activity/Legal sections = **~73
 signed-in screens**, plus **94 files containing an overlay**. 73 + 94 = ~167,
 which is where "162" comes from. The owner's number was right.
 
-- [ ] **S1 · A backend failure shows ~20s of skeletons before any error.** SEEN
+- [x] **S1 · DONE (a520a50a8).** Cause: these pages pick skeleton-vs-error from
+      the query's settled state, so the shared retry schedule IS the
+      time-to-error. `queryClient.ts` had `retry: failureCount < 2` on TanStack's
+      default backoff — three round trips plus three seconds of pure waiting.
+      Now one retry with an explicit capped `retryDelay`. Measured at 375:
+      /my-jobs **3.41s -> 1.15s**, /my-posts 3.42 -> 1.40, /messages 3.39 -> 1.14,
+      /dashboard 1.44 -> 1.24. Retries were NOT removed — a spec that fails the
+      first read then succeeds proves a blip still self-heals with no error card.
+      Original report: **A backend failure shows ~20s of skeletons.** SEEN
       on /dashboard, /my-jobs, /my-posts, /messages, both widths. The designed
       "We couldn't load this / Try again" card only appears after React Query
       exhausts retry+backoff. Until then: blank pills, no message, no way out.
-- [ ] **S2 · A false empty state flashes before data resolves.** SEEN on
+- [x] **S2 · DONE (a520a50a8).** Cause: `useActivityData` returned
+      `loading: isLoading`, and `isLoading` is `isPending && isFetching` — false
+      in exactly the two states where there is no answer yet: a disabled query,
+      and a cached-empty result being refetched. So the empty state rendered
+      while the read that would return the user's work was still in flight. Now
+      the skeleton holds until the tab's core query has settled, and keeps
+      holding during a refetch only when there are zero rows to show (so a
+      background refetch never blanks an existing list). False-empty window
+      **3.7s -> 0s**. Original report: **A false empty state flashes.** SEEN on
       /my-jobs at 375: "No applications yet" at 3.8s, then at 15s the same page
       says "you have 1 in Waiting". The user is told they have nothing while
       they have work.
@@ -278,7 +294,7 @@ previously-uncaptured Profile tabs is designed, not blank.
 
 ## Needs the owner — prod write
 
-- [ ] **Duplicate seed family.** `jobs` holds two exact mirror families,
+      Original report: **Duplicate seed family.** `jobs` holds two exact mirror families,
       `5eed0a…` and `5eed0b…`: 26 jobs / 24 applications / 80 messages EACH,
       all 26 titles+statuses matching pairwise, identical `created_at`. The seed
       script ran twice. This is why every job card looks doubled on /dashboard —
@@ -382,9 +398,13 @@ Now reachable in prod. Mild disagreement, not yet fixed.
       the newest test row is 2026-09-09, and dozens of CI runs have happened
       since with zero new rows. The accumulation had already stopped before I
       looked; what I deleted was historical residue from before it landed. The
-      only genuine gap is that the sweeper keys on `[E2E DO NOT ACCEPT]` and so
-      never covered the 7 sweep-harness titles (`[SWEEP]`, `[sweep-poster]`,
-      `Sweep test`) — which is where both public rows came from.
+      The sweeper keys on `[E2E DO NOT ACCEPT]` and never covered the 7
+      sweep-harness titles (`[SWEEP]`, `[sweep-poster]`, `Sweep test`), which is
+      where both public rows came from — but that is NOT a gap to fix either:
+      grepped the whole repo and nothing creates those titles. The only match is
+      a code COMMENT in `HelperRevisionCard.tsx:75` citing "the [SWEEP] patio
+      job". They were typed by hand by an audit lane on 2026-09-07/08. No
+      recurring source, so no sweeper change is warranted. NOTHING TO DO HERE.
 
       Original report: **Automated-test debris is live in prod.** SEEN at 375 on guest `/browse`: the first card
       reads `[sweep-poster] Deep clean before...`. Prod holds **68** such rows:
@@ -416,3 +436,20 @@ Verified clean, so these can stop being re-reported:
 - **/dashboard at 375 fits**: frame 0→375 full width, zero overflow. Five
   distinct job cards, no doubling — the seed delete is confirmed VISUALLY, not
   just by a row count.
+
+## Reports from the loading-states lane (not fixed, out of its scope)
+
+- [ ] **/my-jobs and /my-posts can serve a 60s-stale empty list with NO refetch.**
+      Within `CORE_STALE = 60s`, a user who just gained an application saw
+      "No applications yet" for the full staleness window with zero network
+      requests issued. Not a loading-state bug, so that lane left it — but it is
+      a real "your work is invisible" window.
+- [ ] **/dashboard shows two error messages for one outage** — a persistent
+      inline "Couldn't load notifications — try again?" banner lingering ~4s
+      beside the page's own error card.
+- [ ] **`useCurrentUser`'s `PROFILE_QUERY_TIMEOUT_MS` is 10s per attempt.**
+      Against a HANGING (not 500ing) backend, ProtectedRoute's account-level
+      error card still costs 10s + a retry. The retry-count fix helps, but the
+      10s timeout is the dominant term there.
+- [ ] **1440 not re-driven for S1/S2.** The fix is entirely in the data layer so
+      it is viewport-independent, but it was verified at 375 only.

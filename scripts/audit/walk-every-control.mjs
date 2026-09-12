@@ -156,6 +156,13 @@ for (const theme of THEMES) {
             // plus the sr-only headings and the map labels. The accessibility
             // layer is not a layout defect.
             if (el.closest(".sr-only") || el.classList.contains("sr-only")) return;
+            // `-webkit-line-clamp` is a DELIBERATE multi-line truncation and it
+            // draws its own ellipsis, exactly like `text-overflow: ellipsis`
+            // does for one line. Tailwind's `line-clamp-2` sets it without
+            // setting `text-overflow`, so checking only the latter reported the
+            // Home History description excerpts as "clipped by 33px tall" — a
+            // designed two-line excerpt read as a defect.
+            if (cs.webkitLineClamp && cs.webkitLineClamp !== "none") return;
             const r0 = el.getBoundingClientRect();
             if (r0.width <= 2 || r0.height <= 2) return;
             const overflowX = el.scrollWidth - el.clientWidth;

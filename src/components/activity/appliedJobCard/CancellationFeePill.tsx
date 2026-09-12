@@ -44,26 +44,27 @@ export function CancellationFeePill({
     waived:  `Cancellation fee waived`,
   };
   const label = statusCopy[status] ?? `You'll receive approximately ${netAmt} as a cancellation fee`;
-  const isPending = status === "pending";
   const isCharged = status === "charged";
   return (
-    <span
-      className="inline-flex items-center gap-1 text-ds-11 font-medium px-2 py-0.5 rounded-full"
+    /* NO PILL. Owner, 2026-09-12: "no pills" — asked specifically about the fee
+       badge, since it states money rather than job state, and answered "remove
+       it too, no pills means none". The poster's side of this same fee
+       (PostedJobCard) got the identical treatment in the same pass; one surface
+       keeping the pill would be exactly the inconsistency the ruling exists to
+       remove.
+
+       The AMOUNT stays. A cancellation fee that is charged with nothing on the
+       card saying so is a worse defect than the pill ever was — this is the
+       helper's money. It is a plain line in the card's own type now.
+       `tabular-nums` stays so the digits align with the other money on the
+       card. */
+    <p
+      className="text-ds-11 font-medium tabular-nums"
       style={{
-        background: isCharged
-          ? "hsl(var(--charged-tint))"
-          : isPending
-          ? "hsl(var(--amber-tint) / 0.12)"
-          : "hsl(var(--olivewood) / 0.08)",
-        color: isCharged
-          ? "hsl(var(--charged-ink))"
-          : isPending
-          ? "hsl(var(--amber-ink))"
-          : "hsl(var(--olivewood))",
-        border: `0.5px solid ${isCharged ? "hsl(var(--charged-border))" : isPending ? "hsl(var(--amber-tint) / 0.30)" : "hsl(var(--olivewood) / 0.22)"}`,
+        color: isCharged ? "hsl(var(--charged-ink))" : "hsl(var(--olivewood) / 0.85)",
       }}
     >
       {label}
-    </span>
+    </p>
   );
 }

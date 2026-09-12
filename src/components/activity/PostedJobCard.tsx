@@ -392,47 +392,43 @@ function PostedJobCardInner({
                       the full-width status stripe at the top of the card now
                       says it, in the same destructive tint. Only the fee badge
                       (which the stripe does NOT carry) remains. */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {/* Fee status badge — only when a fee was actually assessed */}
-                    {job.cancellation_fee != null && job.cancellation_fee > 0 && job.cancellation_fee_status && (() => {
-                      const feeAmt = `$${formatPriceExact(job.cancellation_fee)}`;
-                      const statusCopy: Record<string, string> = {
-                        pending: `Fee ${feeAmt} · pending`,
-                        charged: `Fee ${feeAmt} · charged`,
-                        waived:  `Fee ${feeAmt} · waived`,
-                      };
-                      const label = statusCopy[job.cancellation_fee_status] ?? `Fee ${feeAmt}`;
-                      const isPending = job.cancellation_fee_status === "pending";
-                      const isCharged = job.cancellation_fee_status === "charged";
-                      return (
-                        <span
-                          className="inline-flex items-center gap-1 text-ds-11 font-medium px-2 py-0.5 rounded-full"
-                          style={{
-                            background: isCharged
-                              ? "hsl(var(--destructive) / 0.07)"
-                              : isPending
-                              ? "hsl(var(--gold-warm) / 0.12)"
-                              : "hsl(var(--olivewood) / 0.08)",
-                            color: isCharged
-                              ? "hsl(var(--destructive))"
-                              : isPending
-                              ? "hsl(var(--amber-ink))"
-                              : "hsl(var(--olivewood))",
-                            border: `0.5px solid ${isCharged ? "hsl(var(--destructive) / 0.20)" : isPending ? "hsl(var(--gold-warm) / 0.30)" : "hsl(var(--olivewood) / 0.22)"}`,
-                          }}
-                        >
-                          {/* No DollarSign glyph. `label` already carries the
-                              symbol (feeAmt is built as `$${…}` above), so the icon
-                              rendered "$ Fee $12.50 · charged" — the doubled money
-                              sign the owner reported. A currency symbol is
-                              typography: it belongs in the same text node as the
-                              digits, inheriting the font, weight and figure
-                              alignment, never beside them as a Lucide icon. */}
-                          <span className="tabular-nums">{label}</span>
-                        </span>
-                      );
-                    })()}
-                  </div>
+                  {/* NO PILL. Owner, 2026-09-12: "no pills" — and when asked
+                      whether this one should survive because it states money
+                      rather than job state, "remove it too, no pills means
+                      none". The FACT does not vanish with the pill: a charged
+                      cancellation fee with nothing on the card saying so would
+                      be a worse defect than the pill ever was. It is a plain
+                      money line now, in the card's own type, which is where a
+                      currency amount belongs anyway.
+
+                      Keeping `tabular-nums`: the digits still have to align
+                      with the other money on the card. And still no glyph —
+                      `feeAmt` already carries the symbol, which is what
+                      produced the doubled "$ Fee $12.50" the owner reported. A
+                      currency symbol is typography; it belongs in the same text
+                      node as the digits, never beside them as an icon. */}
+                  {job.cancellation_fee != null && job.cancellation_fee > 0 && job.cancellation_fee_status && (() => {
+                    const feeAmt = `$${formatPriceExact(job.cancellation_fee)}`;
+                    const statusCopy: Record<string, string> = {
+                      pending: `Fee ${feeAmt} · pending`,
+                      charged: `Fee ${feeAmt} · charged`,
+                      waived:  `Fee ${feeAmt} · waived`,
+                    };
+                    const label = statusCopy[job.cancellation_fee_status] ?? `Fee ${feeAmt}`;
+                    const isCharged = job.cancellation_fee_status === "charged";
+                    return (
+                      <p
+                        className="text-ds-11 font-medium tabular-nums"
+                        style={{
+                          color: isCharged
+                            ? "hsl(var(--destructive))"
+                            : "hsl(var(--olivewood) / 0.85)",
+                        }}
+                      >
+                        {label}
+                      </p>
+                    );
+                  })()}
                   {/* Re-post CTA — all cancelled / expired jobs.
                       Navigates to /post-job?rebook=<id> which pre-fills
                       every field except the date (date must be in the

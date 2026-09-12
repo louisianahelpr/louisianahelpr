@@ -242,3 +242,45 @@ weekly Sun–Sat grid (9 AM–5 PM). The grid says 9–5, the toggle says until
 2:44 AM, and neither reads the other. One fact, two systems — decide which is
 authoritative, and either let the helper choose the duration or derive it from
 the grid's hours for today.
+
+## From the state-matrix sweep (logged 2026-09-11)
+
+Real screen count, derived from code, not guessed: 28 routes that render a
+screen + 26 Profile tabs + 25 Admin views + Activity/Legal sections = **~73
+signed-in screens**, plus **94 files containing an overlay**. 73 + 94 = ~167,
+which is where "162" comes from. The owner's number was right.
+
+- [ ] **S1 · A backend failure shows ~20s of skeletons before any error.** SEEN
+      on /dashboard, /my-jobs, /my-posts, /messages, both widths. The designed
+      "We couldn't load this / Try again" card only appears after React Query
+      exhausts retry+backoff. Until then: blank pills, no message, no way out.
+- [ ] **S2 · A false empty state flashes before data resolves.** SEEN on
+      /my-jobs at 375: "No applications yet" at 3.8s, then at 15s the same page
+      says "you have 1 in Waiting". The user is told they have nothing while
+      they have work.
+- [ ] **S3 · Work Record prints `Invalid Date`** in MEMBER SINCE — on a document
+      framed as an Employment & Earnings Record for an employer.
+- [ ] **S4 · Two screens disagree about the same reviews.** Work Record says
+      AVG RATING 4.5 (2); ?tab=reviews says "No reviews yet". Same account,
+      same session.
+- [ ] **S5 · Nested white card inside the white panel, still live** at
+      /profile?tab=pets @1440 — the 2026-09-07 defect at a width nobody rechecked.
+- [ ] **S6 · Skills chips clipped mid-word** at /profile?tab=profile @1440
+      ("Eve…"), no scroll affordance.
+- [ ] **S7 · ?tab=analytics renders its error state against a healthy backend.**
+- [ ] **S8 · "Instant Release" body wraps in a ~250px column** inside a
+      full-width card, ?tab=auto_tip @375.
+- [ ] **S9 · Messages header pill paints a grey gradient band** across its right
+      half, @1440 empty.
+
+Clean: zero horizontal overflow on all 54 captures; every empty state on the 15
+previously-uncaptured Profile tabs is designed, not blank.
+
+## Needs the owner — prod write
+
+- [ ] **Duplicate seed family.** `jobs` holds two exact mirror families,
+      `5eed0a…` and `5eed0b…`: 26 jobs / 24 applications / 80 messages EACH,
+      all 26 titles+statuses matching pairwise, identical `created_at`. The seed
+      script ran twice. This is why every job card looks doubled on /dashboard —
+      it is duplicated DATA, not a render defect. Deleting one family is a
+      destructive prod DELETE of ~130 rows; either family is equivalent.

@@ -345,6 +345,43 @@ export function ApplyBody({
           was pure repeated work. Existing applications keep their stored
           `attachment_urls`; ApplicantsPanel still renders them. */}
 
+      {/* THE GATE NOTICE TRAVELS WITH THE BUTTON. One sticky block, not two
+          siblings where one is sticky and the other is not.
+
+          Why: `position: sticky; bottom: 0` inside a scroller ALWAYS lifts the
+          row off its flow position by exactly the distance its natural top is
+          below the scrollport bottom — that is the entire mechanism, and at
+          scroll-top on an overflowing sheet that distance is the whole
+          remaining overflow. Whatever sits immediately above the row in flow
+          is therefore covered until the sheet is scrolled to its very end.
+          Measured on the phone (375x812) with this block split in two: the
+          payout notice ended at y=691.3 and the lifted row began at y=670.2 —
+          21.1px over the notice's last line, which is the line carrying the
+          "Set Up Payouts" link (owner, 2026-09-11: "the you can apply button
+          is cut off by apply"; the failure is plain in a screenshot).
+
+          Reserving space under the row does not fix it — a spacer adds to the
+          scrollable height, so the row is lifted further and covers exactly as
+          much. Nothing can fix it while the notice is a separate sibling BELOW
+          the fold, because the lift is a definition, not a bug.
+
+          So the notice stops being the thing the row lands on and becomes part
+          of the thing that lands: the explanation of why you cannot be hired,
+          the link that fixes it, and the button it qualifies are one unit that
+          stays on screen together at every scroll position. What the row now
+          covers on the way past is the note field and the save-pitch checkbox
+          — ordinary scrolled-under content the user reaches by scrolling.
+
+          The wrapper is ALWAYS a `flex flex-col gap-3.5` column so the
+          spacing is byte-identical to the two blocks it replaces (the body's
+          own `gap-3.5`, plus the row's `pt-2`); only the sticky treatment is
+          conditional. */}
+      <div
+        ref={stickyRowRef}
+        className={`flex flex-col gap-3.5 ${
+          hostScrolls ? "sheet-sticky-actions -mb-4 pb-4 sm:-mb-5 sm:pb-5" : ""
+        }`}
+      >
       {/* THE HELPER'S OWN COPY OF THE AWARD GATE.
           Applying stays ungated on purpose (see useAwardBlockReason), so this
           explains rather than blocks — and it sits ABOVE the submit row, where
@@ -410,19 +447,13 @@ export function ApplyBody({
           inside the content box.
 
           ALL OF THAT IS GATED ON THE SHEET ACTUALLY SCROLLING (`hostScrolls`,
-          measured above). On a sheet that fits, the same negative margin
-          under-measures the container and `bottom: 0` pulls this row up over
-          the notice above it — so a fitting sheet gets plain flow: no sticky,
-          no negative margin, no shadow, and the row's own `pb` is the only
-          thing under the button. */}
-      <div
-        ref={stickyRowRef}
-        className={`flex gap-1.5 pt-2 ${
-          hostScrolls
-            ? "sheet-sticky-actions -mb-4 pb-4 sm:-mb-5 sm:pb-5"
-            : ""
-        }`}
-      >
+          measured above), and it is applied to the WRAPPER opened above, not
+          to this row — the notice rides with it. On a sheet that fits, the
+          same negative margin under-measures the container and `bottom: 0`
+          pulls the block up over whatever is above it — so a fitting sheet
+          gets plain flow: no sticky, no negative margin, no shadow, and the
+          row's own `pb` is the only thing under the button. */}
+      <div className="flex gap-1.5 pt-2">
         {/* Same primitive and surface as every other primary CTA in the app,
             JobDetailFooter's included — one button, one set of effects: the glossy
             `btn-grad-primary` radial, the hover brighten/lift/glow and the
@@ -450,6 +481,7 @@ export function ApplyBody({
               : !online ? "Try Again" : isInstantBook ? "Book Now" : "Apply Now"}
           </span>
         </Button>
+      </div>
       </div>
     </div>
   );

@@ -103,10 +103,35 @@ const MEASURE_OVERLAP = `(() => {
     return cr.height > 0 && cs.position !== "absolute" && cs.position !== "fixed";
   });
 
+  // A sticky element's rect is its flow position PLUS the lift \`bottom: 0\`
+  // applies, and that lift is the whole point of a sticky footer: content
+  // passes under it as you scroll. Measuring the lifted rect here would call
+  // every sticky footer in existence an overlap. So a sticky box is measured
+  // at its STATIC position — which is exactly what the desktop bug was about:
+  // there the row was lifted inside a container that had been measured too
+  // short, i.e. its FLOW was wrong. What the lift OCCLUDES is asserted
+  // separately, below.
+  //
+  // The static position is read by neutralising \`position\` for one synchronous
+  // layout and putting it straight back — \`offsetTop\` is NOT an alternative,
+  // it reports the used (lifted) position for a sticky box, which is how this
+  // helper was wrong on its first draft.
+  const boxOf = (el) => {
+    if (getComputedStyle(el).position !== "sticky") {
+      const r = el.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom };
+    }
+    const prev = el.style.position;
+    el.style.position = "static";
+    const r = el.getBoundingClientRect();
+    el.style.position = prev;
+    return { top: r.top, bottom: r.bottom };
+  };
+
   const overlaps = [];
   for (let i = 1; i < kids.length; i++) {
-    const prev = kids[i - 1].getBoundingClientRect();
-    const cur = kids[i].getBoundingClientRect();
+    const prev = boxOf(kids[i - 1]);
+    const cur = boxOf(kids[i]);
     // Positive = the current box starts ABOVE where the previous one ended.
     const overlap = prev.bottom - cur.top;
     if (overlap > 0.5) {
@@ -147,6 +172,63 @@ const MEASURE_OVERLAP = `(() => {
     noticePresent: !!dlg.querySelector('[role="status"]'),
   };
 })()`;
+
+/**
+ * THE OWNER'S ACTUAL DEFECT, measured directly: is the payout-gate notice —
+ * the sentence saying why this helper cannot be hired, and the "Set Up
+ * Payouts" link that fixes it — fully readable, or is the submit row sitting
+ * on it?
+ *
+ * Takes a scroll position as `SCROLL_FRACTION` and reports, at that position,
+ * how much of the notice is hidden: clipped by the scrollport, or covered by
+ * the Apply Now button. Both must be zero at EVERY scroll position, which is
+ * only true if the notice and the button are one sticky unit — the fix.
+ */
+const MEASURE_NOTICE = `(() => {
+  const dialogs = document.querySelectorAll('[role="dialog"],[role="alertdialog"]');
+  const dlg = dialogs[dialogs.length - 1];
+  if (!dlg) return { error: "dialog not open" };
+  const notice = [...dlg.querySelectorAll('[role="status"]')]
+    .find((n) => /can't be hired yet/i.test(n.textContent || ""));
+  if (!notice) return { error: "payout-gate notice not found" };
+  const btn = [...dlg.querySelectorAll("button")]
+    .find((b) => /^(apply now|book now)$/i.test((b.textContent || "").trim()));
+  if (!btn) return { error: "submit button not found" };
+
+  let scroller = notice.parentElement;
+  while (scroller) {
+    const oy = getComputedStyle(scroller).overflowY;
+    if (oy === "auto" || oy === "scroll") break;
+    scroller = scroller.parentElement;
+  }
+  if (!scroller) return { error: "scroller not found" };
+
+  const n = notice.getBoundingClientRect();
+  const b = btn.getBoundingClientRect();
+  const s = scroller.getBoundingClientRect();
+  const link = notice.querySelector("a");
+  const l = link ? link.getBoundingClientRect() : null;
+
+  return {
+    scrollTop: +scroller.scrollTop.toFixed(1),
+    // Hidden above/below the scrollport's own edges.
+    clippedPx: +(Math.max(0, s.top - n.top) + Math.max(0, n.bottom - s.bottom)).toFixed(1),
+    // Covered by the submit button (they are laid out in one column, so any
+    // vertical intersection is the button sitting on the notice).
+    coveredPx: +Math.max(0, Math.min(n.bottom, b.bottom) - Math.max(n.top, b.top)).toFixed(1),
+    // The one control that resolves the block must itself be on screen.
+    linkVisible: !!l && l.top >= s.top - 0.5 && l.bottom <= s.bottom + 0.5
+      && !(Math.min(l.bottom, b.bottom) - Math.max(l.top, b.top) > 0.5),
+  };
+})()`;
+
+type NoticeMeasurement = {
+  error?: string;
+  scrollTop: number;
+  clippedPx: number;
+  coveredPx: number;
+  linkVisible: boolean;
+};
 
 type OverlapMeasurement = {
   error?: string;
@@ -228,6 +310,45 @@ for (const { width, height, label } of [
       m.rowIsSticky,
       `sticky=${m.rowIsSticky} but sheetScrolls=${m.sheetScrolls} — the treatment must track the overflow`,
     ).toBe(m.sheetScrolls);
+
+    // THE OWNER'S REPORT, ASSERTED DIRECTLY, at the top, middle and bottom of
+    // the sheet's scroll range. The reason a helper cannot be hired and the
+    // link that fixes it have to be readable wherever the sheet happens to be
+    // scrolled — not only once the user has scrolled to its very end.
+    //
+    // Before the notice was moved inside the sticky block, this failed at
+    // scroll-top on the phone by 21.1px: the lifted row covered the notice's
+    // last line, which is the line carrying "Set Up Payouts".
+    for (const fraction of [0, 0.5, 1]) {
+      await page.evaluate((f) => {
+        const dialogs = document.querySelectorAll('[role="dialog"],[role="alertdialog"]');
+        const dlg = dialogs[dialogs.length - 1];
+        if (!dlg) return;
+        let el = dlg.querySelector('[role="status"]')?.parentElement ?? null;
+        while (el) {
+          const oy = getComputedStyle(el).overflowY;
+          if (oy === "auto" || oy === "scroll") break;
+          el = el.parentElement;
+        }
+        if (el) el.scrollTop = (el.scrollHeight - el.clientHeight) * f;
+      }, fraction);
+      await page.waitForTimeout(120);
+
+      const n = (await page.evaluate(MEASURE_NOTICE)) as NoticeMeasurement;
+      expect(n.error, `notice measure failed: ${n.error}`).toBeUndefined();
+      expect(
+        n.clippedPx,
+        `payout notice clipped by the sheet at scroll ${fraction}: ${n.clippedPx}px`,
+      ).toBeLessThanOrEqual(0.5);
+      expect(
+        n.coveredPx,
+        `submit button covers the payout notice at scroll ${fraction}: ${n.coveredPx}px`,
+      ).toBeLessThanOrEqual(0.5);
+      expect(
+        n.linkVisible,
+        `"Set Up Payouts" — the only control that clears the block — is not readable at scroll ${fraction}`,
+      ).toBe(true);
+    }
 
     // And nothing is left stranded under the button on a sheet that fits: the
     // row's own padding is the only thing below it, never a second gutter

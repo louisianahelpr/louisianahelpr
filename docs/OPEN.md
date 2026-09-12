@@ -1506,3 +1506,7 @@ Two supporting facts, so this is not a guess:
       → delete `avatar.png`. Keep the `id-documents` copy. Then upload a real
       profile photo, which writes to the public `avatars` bucket and replaces the
       dead URL. Nothing is leaked in the meantime — the bucket is private.
+
+- [ ] **Complete Profile: ZIP shows no check mark when filled.** Owner, 2026-09-12,
+      pointing at `#zipCode` holding "70528": the neighbouring fields show the
+      valid ✓, ZIP does not. `src/pages/CompleteProfile.tsx:771`.

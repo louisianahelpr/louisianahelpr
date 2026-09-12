@@ -91,6 +91,14 @@ interface ScreenResult {
   /** Viewport + theme this row was captured at. */
   variant?: string;
   status: "ok" | "skipped" | "failed";
+  /**
+   * True when the capture is of an ERROR BOUNDARY rather than the screen it
+   * claims to be. See the guard in captureScreen — this is the difference
+   * between "the screen did not render" (already caught) and "something else
+   * rendered in its place", which was not caught and produced 25 byte-identical
+   * green captures.
+   */
+  wrongScreen?: string;
   screenshot?: string;
   totalViolations?: number;
   topViolations?: ViolationSummary[];
@@ -273,6 +281,34 @@ async function captureScreen(
     // Settle deferred overlays + fades before the screenshot and the axe scan,
     // so neither captures a half-faded dialog. See settleAnimations' note.
     await settleAnimations(page);
+
+    /**
+     * IS THIS ACTUALLY THE SCREEN? The gate below already fails a screen that
+     * did not render — a thrown test leaves `totalViolations` undefined. It did
+     * NOT fail a screen that rendered something ELSE, and that hole was wide
+     * enough to drive the whole admin surface through.
+     *
+     * Measured 2026-09-11: pointed at a dev server, all 25 admin captures came
+     * back BYTE-FOR-BYTE IDENTICAL — every one a photograph of
+     * RouteErrorBoundary's chunk-load state ("Update ready.") — and the run
+     * reported 25 passed. axe is perfectly happy with an error boundary: it is
+     * a heading and two buttons, and it is accessible. So the one check this
+     * file exists to perform had never run against a single admin view, and
+     * said green. That is the same shape as the `incomplete` contrast hole
+     * documented at the gate below: a check that cannot fail is not a check.
+     *
+     * Recorded rather than thrown, because this describe is `mode: "serial"` —
+     * a throw here would skip every screen after it and truncate the very
+     * evidence the file is for.
+     */
+    const boundary = await page.evaluate(() => {
+      const t = document.body?.innerText ?? "";
+      if (/This page hit a problem/i.test(t)) return "RouteErrorBoundary (crash state)";
+      if (/Update ready\./i.test(t) && /Reload/i.test(t)) return "RouteErrorBoundary (chunk-load state)";
+      if (/We couldn't load your account/i.test(t)) return "ProtectedRoute account error";
+      return null;
+    });
+    if (boundary) result.wrongScreen = boundary;
 
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const fileName = `${String(index).padStart(3, "0")}-${slug}-${variant.tag}.png`;
@@ -464,6 +500,21 @@ sweepDescribe("UI audit evidence sweep", () => {
     expect(
       failedToRender,
       `screens that never rendered (so their axe result is meaningless):\n  - ${failedToRender.join("\n  - ")}`,
+    ).toEqual([]);
+
+    /**
+     * A screen that rendered SOMETHING ELSE is worse than one that rendered
+     * nothing, because it produces a plausible screenshot and a clean axe pass.
+     * See the guard in captureScreen for how 25 admin views were "audited"
+     * without one of them ever being on screen.
+     */
+    const wrongScreen = results
+      .filter((r) => r.wrongScreen)
+      .map((r) => `${r.index} ${r.name} (${r.variant}) @ ${r.url} — captured ${r.wrongScreen}`);
+    expect(
+      wrongScreen,
+      "these captures are of an error boundary, not the screen (axe passes on an " +
+        `error boundary, so this would otherwise read as clean):\n  - ${wrongScreen.join("\n  - ")}`,
     ).toEqual([]);
     expect(
       violating,

@@ -535,9 +535,14 @@ so ANY page reading one row got an array and rendered undefined fields.
 Fixed at source, so the next sweep inherits a fixture that tells the truth.
 
 Two follow-ups worth keeping:
-- [ ] `formatMonthYear` prints `Invalid Date` for any unparseable input. Prod
-      cannot produce one today, but an employer-facing document should refuse to
-      render rather than print that. Report only, not yet done.
+- [x] **`formatMonthYear` printed `Invalid Date` — DONE 7b4cbc59a.** It now
+      returns null and the Work Record drops the whole "Member since" field.
+      An absent row reads as "not shown"; the literal string reads as a fact
+      about the person, on a document framed to its reader as an Employment &
+      Earnings Record for an employer. Prod cannot produce it today, but the
+      page reached exactly this state on 2026-09-11 via the fixture bug. Proved
+      by stashing the guard: the new test fails `expected 'Invalid Date' to be
+      null` without it, 20/20 green with it.
 - [ ] `zz-tmp-state-matrix.spec.ts` mocks only two RPCs, so any RPC-backed tab
       will always show its error state in that sweep. Any future finding from it
       must be reproduced live before being believed.

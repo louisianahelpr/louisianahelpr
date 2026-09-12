@@ -124,3 +124,9 @@ stalled on it:
 - Screenshot BEFORE asserting, and open the PNG. A spec here passed while
   photographing a page of skeletons because it asserted the capture succeeded
   rather than that anything was in it.
+
+## Job card meta row
+- **Location must always outrank "16 hours left".** At narrow widths the meta
+  row drops the place name while keeping the expiry countdown — seen on
+  `JobCard` in the browse feed with the map open. Where you are is the first
+  filter a helper applies; how long is left is secondary. (owner, 2026-09-11)

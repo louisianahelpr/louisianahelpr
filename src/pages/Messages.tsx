@@ -18,8 +18,6 @@ import type { Conversation } from "@/components/messages/types";
 import { ChatView } from "@/components/messages/ChatView";
 import { ConversationList } from "@/components/messages/ConversationList";
 import { SectionBoundary } from "@/components/SectionBoundary";
-import { PageScaffold } from "@/components/ui/PageScaffold";
-import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 
 import {
   CHAT_OPEN_PATH,
@@ -30,16 +28,10 @@ import {
 import { useMessagesData } from "./messages/useMessagesData";
 import { useMessagesRealtime } from "./messages/useMessagesRealtime";
 import { useThreadMuteActions } from "./messages/useThreadMuteActions";
-import { MessagesEmptyThread } from "./messages/MessagesEmptyThread";
 
 const Messages = () => {
   usePageTitle("Messages — Helpr");
   const navigate = useNavigate();
-  // On the desktop website (≥1024px, non-native) the inbox and the open
-  // thread sit side by side in a single shell — the list on the left, the
-  // thread on the right — instead of the mobile screen-swap. False on
-  // phone/native, where the either/or swap below is unchanged.
-  const isWebDesktop = useIsWebDesktop();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const deepLinkJobId = searchParams.get("jobId");
@@ -375,11 +367,8 @@ const Messages = () => {
     hapticSuccess();
   };
 
-  // The two panes, built once and reused by both the mobile screen-swap
-  // and the desktop side-by-side split. `embedded={isWebDesktop}` strips
-  // each component's own full-viewport shell on desktop so they compose
-  // inside the single PageScaffold below; on mobile they keep their
-  // standalone shells exactly as before.
+  // The two panes. `embedded={false}` on both: each keeps its own
+  // full-viewport shell, because only one of them is ever on screen now.
   const listEl = (
     <ConversationList
       conversations={conversations}
@@ -393,7 +382,7 @@ const Messages = () => {
       setDeleteConvoConfirm={setDeleteConvoConfirm}
       onBatchArchive={(convos) => setBatchArchiveConfirm(convos)}
       resetSelectionNonce={selectionResetNonce}
-      embedded={isWebDesktop}
+      embedded={false}
       activeKey={
         activeConvo
           ? `${activeConvo.jobId}_${activeConvo.otherUserId}`
@@ -431,52 +420,36 @@ const Messages = () => {
       onSnoozeMute={handleSnoozeMute}
       onUnmute={handleUnmute}
       jobSystemEvents={jobSystemEvents}
-      embedded={isWebDesktop}
+      embedded={false}
     />
   ) : null;
 
   return (
     <>
-      {isWebDesktop ? (
-        <PageScaffold>
-          <div className="flex-1 min-h-0 flex">
-            {/* Left pane — the inbox list. Fixed width so the thread pane
-                gets the remaining space; right border separates the two. */}
-            <div
-              className="w-[340px] shrink-0 min-h-0 flex flex-col"
-              style={{ borderRight: "1px solid hsl(var(--olivewood) / 0.12)" }}
-            >
-              {/* `flex flex-col` (not just `flex-1 min-h-0`) is required here:
-                  this div's own parent IS a flex column, so `flex-1` on THIS
-                  div correctly stretches it to fill available height — but
-                  without `display:flex` on this div itself, ConversationList's
-                  root (`flex-1 min-h-0 flex flex-col`, embedded case) has no
-                  flex context to size against and collapses to its content
-                  height instead. Invisible with a long thread list (it
-                  scrolls internally either way), but with one short thread
-                  the select-mode floating action bar — positioned `bottom:
-                  1rem` inside what it assumes is the full-height pane —
-                  landed at content-height instead, directly on top of (and
-                  hiding) the only row. */}
-              <div className="flex-1 min-h-0 flex flex-col">
-                <SectionBoundary label="conversations">{listEl}</SectionBoundary>
-              </div>
-            </div>
-            {/* Right pane — the open thread, or a resting empty state when
-                nothing is selected yet. */}
-            <div className="flex-1 min-h-0 flex flex-col">
-              {chatEl ? (
-                <SectionBoundary label="chat">{chatEl}</SectionBoundary>
-              ) : (
-                // Tell it whether there is anything to pick. Without this it
-                // said "pick a thread on the left" beside a list showing
-                // "No messages yet."
-                <MessagesEmptyThread hasConversations={conversations.length > 0} />
-              )}
-            </div>
-          </div>
-        </PageScaffold>
-      ) : !activeConvo ? (
+      {/* ONE SURFACE, ONE THREAD AT A TIME — on every width (owner,
+          2026-09-11: "when a message is selected, i think it hould be the full
+          page and tehy go back to see the rest bc if you look at this its
+          being cut off").
+
+          This used to fork on `isWebDesktop` into a side-by-side split: a
+          fixed 340px inbox column beside the thread. That column is what was
+          cutting the conversation off — it took its width off the top of an
+          area the thread already had to fit a header, a message list, an
+          attachment row and a composer into, and the list's own header then
+          had to clip its controls to survive 340px (the search "Cancel" that
+          had to become an icon was the same squeeze).
+
+          The screen-swap the phone already used is simply the better answer at
+          both sizes, and it is the one that keeps this app ONE surface rather
+          than two layouts with two sets of bugs — which is the same rule that
+          says never diverge shape on platform. Selecting a thread gives it the
+          whole page; back returns to the list.
+
+          Consequence, recorded rather than left to be discovered:
+          `MessagesEmptyThread` ("pick a thread on the left") existed only for
+          the split's empty right-hand pane and now has no caller — there is no
+          such pane. Reported, not deleted. */}
+      {!activeConvo ? (
         <SectionBoundary label="conversations">{listEl}</SectionBoundary>
       ) : (
         <SectionBoundary label="chat">{chatEl}</SectionBoundary>

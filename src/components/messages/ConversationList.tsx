@@ -615,13 +615,24 @@ export function ConversationList({
           </button>
         )}
       </div>
+      {/* AN ICON, NOT THE WORD (owner, 2026-09-11: "put x icon remoce cancel
+          its eing cut off"). "Cancel" is a text button in a row that also
+          holds a full-width search field, so on a narrow list column it was
+          the thing that gave — clipped against the column edge. An icon has a
+          fixed width the row can always afford.
+
+          44px tap target via the `after:` overlay rather than a 44px BOX: the
+          visible control stays a 32px circle so it sits level with the search
+          field beside it, while the hit area extends past it. Same technique
+          the clear-search button above uses. */}
       <button
         type="button"
         onClick={() => { hapticLight(); setSearchOpen(false); setSearchQuery(""); }}
-        className="shrink-0 text-ds-13 font-medium btn-press py-2"
+        aria-label="Close search"
+        className="shrink-0 w-8 h-8 rounded-full inline-flex items-center justify-center btn-press transition-colors hover:bg-[hsl(var(--olivewood)/0.10)] active:bg-[hsl(var(--olivewood)/0.16)] relative after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:content-['']"
         style={{ color: "hsl(var(--bark))" }}
       >
-        Cancel
+        <X className="w-4 h-4" />
       </button>
     </>
   ) : null;

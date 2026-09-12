@@ -89,6 +89,18 @@ Deno.serve(async (req) => {
     for (const c of customerRows ?? []) {
       cursorByCustomer.set(c.user_id, (c.saved_helper_seen as Record<string, string> | null) ?? {});
     }
+    // A customer with NO `profiles` row has nowhere to store a cursor. Step 6's
+    // `.update(...).eq("user_id", id)` then matches zero rows and — this is the
+    // whole defect — PostgREST reports `{ data: null, error: null }`, so the
+    // "best-effort" write below logged nothing and the cursor stayed empty.
+    // Every run therefore re-sent the identical notification, forever: prod held
+    // 20 copies each of two "updated availability" rows for customer
+    // e977a30f-…, one per 6-hourly tick since 2026-09-07, still growing.
+    // `favorite_helpers` has no FK to `profiles` (orphan rows are real — 7 of
+    // the 12 pairs in prod point at a customer_id that is in neither `profiles`
+    // nor `auth.users`), so this is reachable without any bug elsewhere.
+    // No cursor storage ⇒ do not notify. One un-sent nudge to an account that
+    // does not exist beats an unbounded duplicate stream to one that does.
 
     // 4. Pull helper names so the notification message can name the helper.
     const { data: helperProfiles } = await supabase
@@ -115,6 +127,10 @@ Deno.serve(async (req) => {
     for (const fav of favorites) {
       const latest = latestByHelper.get(fav.helper_id);
       if (!latest) continue;
+      if (!cursorByCustomer.has(fav.customer_id)) {
+        defects.record(`no profiles row for customer ${fav.customer_id} — cursor cannot be stored, skipping`);
+        continue;
+      }
       const cursor = cursorByCustomer.get(fav.customer_id) ?? {};
       const lastSeen = cursor[fav.helper_id];
       if (lastSeen && new Date(lastSeen) >= new Date(latest)) continue;
@@ -143,15 +159,22 @@ Deno.serve(async (req) => {
     //    fails we still return success for the run since the notifications
     //    already went out (better one extra ping next run than silent loss).
     for (const [customerId, cursor] of cursorUpdates) {
-      const { error: updateErr } = await supabase
+      // `.select("user_id")`: a zero-row UPDATE returns a null error, which is
+      // exactly how this cursor silently never advanced. Nothing here may close
+      // on `error === null`.
+      const { data: bumped, error: updateErr } = await supabase
         .from("profiles")
         .update({ saved_helper_seen: cursor })
-        .eq("user_id", customerId);
+        .eq("user_id", customerId)
+        .select("user_id");
       if (updateErr) {
         console.warn("cursor update failed:", customerId, updateErr.message);
         // A cursor that never advances re-pings the same customer about the
         // same helper on every run — indefinitely, at 200.
         defects.record(`cursor update ${customerId}: ${updateErr.message}`);
+      } else if (!bumped || bumped.length === 0) {
+        console.warn("cursor update matched 0 rows:", customerId);
+        defects.record(`cursor update ${customerId}: matched 0 rows — cursor did not advance`);
       }
     }
 

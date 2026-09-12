@@ -201,23 +201,17 @@ export function ApplicantsPanel({
             ) : undefined
           }
         >
-          {/* Job name — kept as this component's own content directly beneath
-              the title, same as it always did. NOT folded into PageHeader's
-              `meta`: the owner's 2026-08-13 note retiring `meta` is a standing
-              design rule ("a title sitting next to a back button must not
-              carry a small line beneath it"), not just a note that it was
-              redundant that one time — so it stays off app-wide. AppPage has
-              no subtitle slot of its own, so this renders as a plain first
-              child, negative-margined up against the header's own bottom
-              padding the same way the hand-rolled version sat `-mt-2` under
-              PageHeader. */}
-          <p
-            className="text-ds-11 font-sans truncate -mt-4 mb-2"
-            style={{ color: "hsl(var(--olivewood) / 0.80)" }}
-          >
-            {selectedJob.title}
-          </p>
+          {/* NO JOB-NAME SUBTITLE under the "Applicants" title (owner,
+              2026-09-11: "delete").
 
+              This line survived the 2026-08-13 retirement of PageHeader's
+              `meta` slot by being re-hand-rolled as the panel's own first
+              child with a negative top margin — which kept the exact look the
+              standing rule was written to remove ("a title sitting next to a
+              back button must not carry a small line beneath it"). Keeping the
+              rule but reproducing its output one element lower is not keeping
+              the rule. The job is already identified by the card the reader
+              tapped to get here. */}
           {/* Capped at iPad-comfortable width — `.page-measure` (AppPage's
               own column) carries no max-width of its own (see index.css),
               so a reading/comfort measure like this one caps itself locally
@@ -312,13 +306,32 @@ export function ApplicantsPanel({
                         </div>
                       )}
 
-                      {/* Compact applicant card */}
+                      {/* Compact applicant card.
+
+                          OPAQUE `--card`, not `--surface-premium` (owner,
+                          2026-09-11: "pretty hard to see the card itself why
+                          is it not the same whiteish fill as every other
+                          box"). `--surface-premium` is a translucent gradient
+                          — it fades to `hsl(220 18% 96% / 0.74)`, i.e. 74%
+                          of a colour already close to the page — so the lower
+                          half of this card was mostly page showing through
+                          and the boundary all but vanished.
+
+                          That token is fine where it is used everywhere ELSE:
+                          ~20 call sites, nearly all inside dialogs and sheets,
+                          where it composites over an opaque surface rather
+                          than the page. This card is one of the few that sits
+                          directly ON the page, which is why it is the one that
+                          disappears. So the token is left alone and only this
+                          surface changes — the alternative, repainting a
+                          shared token, is the `.squircle` mistake.
+
+                          `backdrop-filter` goes with it: there is nothing to
+                          blur behind an opaque fill, and it is not free. */}
                       <div
                         className="rounded-ds-md p-3.5 space-y-2.5"
                         style={{
-                          background: "var(--surface-premium)",
-                          backdropFilter: "blur(16px)",
-                          WebkitBackdropFilter: "blur(16px)",
+                          background: "hsl(var(--card))",
                           border: isTopPick
                             ? "0.5px solid hsl(var(--burnt-sienna) / 0.30)"
                             : "0.5px solid hsl(var(--bark) / 0.18)",

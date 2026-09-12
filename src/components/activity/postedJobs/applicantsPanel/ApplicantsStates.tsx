@@ -21,10 +21,12 @@ export function ApplicantsLoadingState() {
         <div
           key={i}
           className="rounded-ds-md p-3.5 flex items-start gap-3"
+          /* Opaque `--card`, matching the real applicant card this is the
+             loading shape for — see the note on it in ApplicantsPanel.tsx. A
+             skeleton that sits on a different fill from the thing that
+             replaces it is a visible swap at the moment the query lands. */
           style={{
-            background: "var(--surface-premium)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
+            background: "hsl(var(--card))",
             border: "0.5px solid hsl(var(--bark) / 0.18)",
           }}
         >

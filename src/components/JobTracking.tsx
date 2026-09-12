@@ -1650,16 +1650,23 @@ export function JobTracking({
                       {arrivalCaption}
                     </span>
                   )}
-                  {s.key === "on_the_way" &&
-                    tracking?.status === "on_the_way" &&
-                    tracking.eta_minutes != null && (
-                      <span
-                        className="w-full text-ds-9 font-sans font-semibold text-center leading-tight tabular-nums"
-                        style={{ color: "hsl(var(--bark))", opacity: isClipped ? 0 : undefined }}
-                      >
-                        ~{tracking.eta_minutes} min
-                      </span>
-                    )}
+                  {/* THE ETA IS NO LONGER A THIRD LINE HERE (owner,
+                      2026-09-11: "move 12 min into the line below"). It now
+                      rides in the status line beneath the whole tracker,
+                      alongside "Location shared · 0.4 mi from the job" — see
+                      the ETA clause down there.
+
+                      This reverses the earlier "put eta under on the way"
+                      placement, and the reason that placement existed still
+                      holds — the number belongs NEXT TO the words it
+                      qualifies, not a card-width away. The status line
+                      satisfies that just as well: it is the other live fact
+                      about where the helper is, so "on the way, ~12 min,
+                      0.4 mi out" now reads as one sentence instead of the
+                      distance and the ETA sitting in two places. What it
+                      also buys is a tracker row where no column is ever
+                      taller than the others, which is what made "On the Way"
+                      wrap to two lines and hang below its neighbours. */}
                 </div>
               );
             })}
@@ -1718,6 +1725,20 @@ export function JobTracking({
               </span>
             );
           })()}
+          {/* ETA, moved here off the "On the Way" step (owner, 2026-09-11:
+              "move 12 min into the line below"). Same guard as before — only
+              while the helper is genuinely en route and the server has an
+              estimate — so this line never carries a stale number once they
+              have arrived. `tabular-nums` keeps the digits from reflowing the
+              line as the estimate ticks down. */}
+          {tracking?.status === "on_the_way" && tracking.eta_minutes != null && (
+            <span
+              className="ml-2 inline-flex items-center gap-0.5 tabular-nums font-semibold"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              ~{tracking.eta_minutes} min
+            </span>
+          )}
         </p>
       )}
 

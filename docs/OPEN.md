@@ -146,3 +146,14 @@ mid-flight defining the one shell both job cards fill. Retrofitting
 done twice. The moment that lane lands, the browse card adopts the same
 chip / title-price / meta pieces — that is the fix, not a second set of
 components.
+
+## Notification count — STILL WRONG (reported again 2026-09-11)
+My c14f86df4 fixed badge-vs-list DRIFT (setUnreadTotal was written once but the
+list mutated in five places). It did not fix this. Do not re-fix drift.
+
+One datum already gathered, prod: `lexilombas05@gmail.com` has **10** unread
+notification rows, of types `application` and `new_offers` only. The bell
+showed **10** — so the BELL IS CORRECT and the panel's "Unread 11" is the
+wrong number. Start there, not at the badge. Suspect the panel's own
+`unreadInPage`/tab-count derivation, or a row the list counts that the DB
+query does not (optimistic insert, realtime dupe).

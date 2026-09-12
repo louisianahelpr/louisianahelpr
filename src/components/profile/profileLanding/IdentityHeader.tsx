@@ -146,7 +146,16 @@ export function IdentityHeader({
               type="button"
               onClick={() => onSelectTab("profile")}
               aria-label={showsPhoto ? "Edit profile" : "Add a profile photo"}
-              className="w-[88px] h-[88px] rounded-ds-avatar squircle overflow-hidden active:scale-[0.98] transition-transform"
+              /* ROUND, matching the avatar inside it (owner, 2026-09-11:
+                 "remove the rectangle or square"). This button was
+                 `rounded-ds-avatar squircle` — a rounded SQUARE — while
+                 `UserAvatar` renders `rounded-full`. The `boxShadow` below is
+                 the tier ring, and it traces THIS element, so the ring drew a
+                 squircle around a circle and the corners read as a stray
+                 square behind the photo.
+                 Only this call site changes; the `.squircle` class itself is
+                 shared and is left alone. */
+              className="w-[88px] h-[88px] rounded-full overflow-hidden active:scale-[0.98] transition-transform"
               style={{
                 // Derived, so a Plus member gets the Pro ring instead of the
                 // free one (CC-019). Basic still wears the neutral ring — that

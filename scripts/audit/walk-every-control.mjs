@@ -15,7 +15,7 @@
  */
 import { chromium } from "@playwright/test";
 import { execSync } from "node:child_process";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 
 const BASE = process.env.BASE ?? "http://localhost:5183";
 const OUT = process.env.OUT ?? "/tmp/lh-audit";
@@ -27,11 +27,18 @@ const CLICK = process.env.CLICK !== "0";
 
 mkdirSync(OUT, { recursive: true });
 
-const session = JSON.parse(
-  execSync(`node scripts/test-signin-link.mjs ${ACCOUNT} --session --json`, {
-    cwd: "/Users/lexilombas/louisianahelpr", encoding: "utf8", maxBuffer: 1 << 24,
-  }),
-);
+// SESSION_FILE lets several runs SHARE one session. Minting is not idempotent:
+// a magic link is single-use and a new one invalidates the previous, so four
+// parallel sweeps each minting for the same account killed each other's links
+// and all four died with "otp_expired — Email link is invalid or has expired".
+// Mint once, write the blob, point every run at it.
+const session = process.env.SESSION_FILE
+  ? JSON.parse(readFileSync(process.env.SESSION_FILE, "utf8"))
+  : JSON.parse(
+      execSync(`node scripts/test-signin-link.mjs ${ACCOUNT} --session --json`, {
+        cwd: "/Users/lexilombas/louisianahelpr", encoding: "utf8", maxBuffer: 1 << 24,
+      }),
+    );
 
 const results = [];
 const browser = await chromium.launch();

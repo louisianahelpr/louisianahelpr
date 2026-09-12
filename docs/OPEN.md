@@ -183,3 +183,9 @@ Next suspect: there are FOUR `<NotificationPanel />` mounts (DesktopTopNav,
 AdminTopBar, DashboardTitleBar, DashboardHeader), each with its own
 `notifications` array and its own `unreadTotal`, sharing no cache. Mark one
 read and the others never hear about it. Lift the state into a shared query.
+
+## Profile badges — "Verified" rung duplicates "Stripe verified"
+The VERIFIED group shows "Stripe verified"; the AS A HELPR group directly
+below opens with a ladder rung also called "Verified". Same fact, twice, two
+inches apart. Drop the redundant one — the account-level badge above already
+says it. (owner, 2026-09-11)

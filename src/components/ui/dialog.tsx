@@ -9,6 +9,11 @@ import {
   POPUP_SECONDARY_CLS,
   POPUP_COMMIT_CLS,
 } from "@/components/ui/popupFooter";
+import {
+  PopupDismissCtx,
+  usePopupDismissPresence,
+  useRegisterPopupDismiss,
+} from "@/components/ui/popupDismiss";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -21,25 +26,13 @@ const DialogClose = DialogPrimitive.Close;
 /**
  * A DIALOG THAT OFFERS "CANCEL" DOES NOT ALSO NEED AN X.
  *
- * Both platforms this app lives beside agree on this and neither draws one:
- * Apple's UIAlertController has no close control at all — you dismiss by
- * choosing an action — and Material 3's basic dialog is the same, actions only.
- * The X belongs to full-screen and sheet surfaces (Apple puts Cancel top-left
- * and Done top-right; Material puts an X top-left), not to a confirmation.
- *
- * Ours had both, and the owner kept reporting the X as looking wrong without
- * being able to name why. It was not misaligned — though it was, by 6px, and
- * that is fixed too. It was REDUNDANT: a small glyph floating at the end of the
- * title line with nothing to do that Cancel was not already doing.
- *
- * Registration rather than a prop, deliberately. A `hideClose` prop would have
- * meant editing ~30 call sites and trusting each to pass it, which is how the
- * close button came to have three different sizes in the first place. Here the
- * rule enforces itself: render a DialogSecondaryAction and the X goes away.
- * Nothing to remember, nothing to pass, and a dialog cannot drift out of the
- * convention by omission.
+ * The rule, its reasoning and the registration mechanism all live in
+ * `popupDismiss.tsx` now — they are SHARED with sheet.tsx, which had none of
+ * this and rendered its × unconditionally (owner, 2026-09-11: "i thought we
+ * did no x if there is a cancel button globally"). Same move, same reason, as
+ * `popupFooter.ts`: a convention stated in one family's file is a convention
+ * the other families do not have.
  */
-const DialogDismissCtx = React.createContext<((present: boolean) => void) | null>(null);
 
 /**
  * Is this dialog a CONFIRM (`role="alertdialog"`)? Set by DialogContent, read
@@ -57,7 +50,7 @@ const DialogDismissCtx = React.createContext<((present: boolean) => void) | null
  * review, delete note, delete account.
  *
  * Making it a CONTEXT rather than a prop is deliberate, and the same argument
- * as DialogDismissCtx directly above: a prop means editing every call site and
+ * as PopupDismissCtx in popupDismiss.tsx: a prop means editing every call site and
  * trusting each to pass it, which is exactly how the close button came to have
  * three different sizes. Here `role="alertdialog"` — which those dialogs need
  * for accessibility anyway — is the single switch, and a confirm cannot drift
@@ -188,8 +181,8 @@ const DialogContent = React.forwardRef<
     stepped?: boolean;
   }
 >(({ className, children, onOpenAutoFocus, topRightSlot, closeDisabled, stepped, ...props }, ref) => {
-  // See DialogDismissCtx: a dialog whose footer offers Cancel drops the X.
-  const [hasDismiss, setHasDismiss] = React.useState(false);
+  // See popupDismiss.tsx: a dialog whose footer offers Cancel drops the X.
+  const [hasDismiss, setHasDismiss] = usePopupDismissPresence();
   // `role` is never set by this component, and `{...props}` is spread after
   // every attribute it does set, so a caller's `role="alertdialog"` reaches
   // the DOM intact. That is the switch; see DialogConfirmCtx.
@@ -360,7 +353,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       <DialogConfirmCtx.Provider value={isConfirm}>
-        <DialogDismissCtx.Provider value={setHasDismiss}>{children}</DialogDismissCtx.Provider>
+        <PopupDismissCtx.Provider value={setHasDismiss}>{children}</PopupDismissCtx.Provider>
       </DialogConfirmCtx.Provider>
       {/* `topRightSlot` (Share/Save/Report, when a caller passes them) sits to
           the left of the close X in its own absolute container, while keeping
@@ -845,13 +838,8 @@ const stripOverrides = (props: Record<string, unknown>) => {
 const DialogSecondaryAction = React.forwardRef<HTMLButtonElement, DialogActionProps>(
   ({ children, ...props }, ref) => {
     // Tell the surrounding DialogContent that this dialog has a Cancel, so it
-    // can drop its redundant X. Cleared on unmount so a dialog that swaps its
-    // footer (a multi-step flow losing its back action) gets the X back.
-    const register = React.useContext(DialogDismissCtx);
-    React.useEffect(() => {
-      register?.(true);
-      return () => register?.(false);
-    }, [register]);
+    // can drop its redundant X. See popupDismiss.tsx.
+    useRegisterPopupDismiss();
     return (
       // No `size="sm"`. The dismiss matches the commit's height (h-14, 56px) rather
     // than stepping down to 44: in a ROW the WIDTH already carries the hierarchy

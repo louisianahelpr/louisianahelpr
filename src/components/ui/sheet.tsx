@@ -10,6 +10,11 @@ import {
   POPUP_SECONDARY_CLS,
   POPUP_COMMIT_CLS,
 } from "@/components/ui/popupFooter";
+import {
+  PopupDismissCtx,
+  usePopupDismissPresence,
+  useRegisterPopupDismiss,
+} from "@/components/ui/popupDismiss";
 
 const Sheet = SheetPrimitive.Root;
 
@@ -86,6 +91,15 @@ interface SheetContentProps
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
   ({ side = "right", className, children, ...props }, ref) => {
+    // THE ONE DISMISSAL RULE (popupDismiss.tsx): a sheet whose footer offers a
+    // labelled dismiss does not also draw the corner ×. Dialogs have enforced
+    // this since 2026-08-31; sheets rendered the × unconditionally, so the
+    // three sheets that DO carry a SheetSecondaryAction — withdraw an
+    // application, decline an applicant, the NPS prompt — each shipped a
+    // "Cancel"/"Skip" and an × six inches apart doing the same job. Registered,
+    // never passed: see popupDismiss.tsx for why a `hideClose` prop is not the
+    // answer.
+    const [hasDismiss, setHasDismiss] = usePopupDismissPresence();
     // For side="right" / "left" / "top" the sheet reaches the top of
     // the viewport so the close button needs to clear the iOS safe-area
     // inset (notch / Dynamic Island) — otherwise it ends up under the
@@ -115,8 +129,8 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
           aria-describedby={undefined}
           {...props}
         >
-          {children}
-          <SheetCloseButton top={closeTop} right={closeRight} />
+          <PopupDismissCtx.Provider value={setHasDismiss}>{children}</PopupDismissCtx.Provider>
+          {!hasDismiss && <SheetCloseButton top={closeTop} right={closeRight} />}
         </SheetPrimitive.Content>
       </SheetPortal>
     );
@@ -308,7 +322,11 @@ const stripSheetOverrides = (props: Record<string, unknown>) => {
 };
 
 const SheetSecondaryAction = React.forwardRef<HTMLButtonElement, SheetActionProps>(
-  ({ children, ...props }, ref) => (
+  ({ children, ...props }, ref) => {
+    // Tell the surrounding SheetContent this sheet has a labelled way out, so
+    // it drops its redundant ×. See popupDismiss.tsx.
+    useRegisterPopupDismiss();
+    return (
     // No `size="sm"`. The dismiss matches the commit's height (h-14, 56px)
     // rather than stepping down to 44 — in a ROW the WIDTH already carries the
     // hierarchy (a quarter against three quarters), so a shorter box reads as
@@ -318,10 +336,11 @@ const SheetSecondaryAction = React.forwardRef<HTMLButtonElement, SheetActionProp
     // third family drifting the moment the other two were fixed, which is the
     // exact failure mode that ended alert-dialog.tsx. Asserted for BOTH files
     // in dialogShell.test.ts now, not just dialog.tsx.
-    <Button ref={ref} variant="ghost" className={POPUP_SECONDARY_CLS} {...stripSheetOverrides(props)}>
-      {children}
-    </Button>
-  ),
+      <Button ref={ref} variant="ghost" className={POPUP_SECONDARY_CLS} {...stripSheetOverrides(props)}>
+        {children}
+      </Button>
+    );
+  },
 );
 SheetSecondaryAction.displayName = "SheetSecondaryAction";
 
@@ -334,6 +353,24 @@ const SheetPrimaryAction = React.forwardRef<HTMLButtonElement, SheetActionProps>
 );
 SheetPrimaryAction.displayName = "SheetPrimaryAction";
 
+/**
+ * The destructive commit — DialogDestructiveAction's twin. Added 2026-09-11
+ * for SosShareButton, whose "Share Location Link" is an irreversible safety
+ * broadcast and was the last sheet still hand-rolling its own action row
+ * (`<Button variant="destructive" className="w-full">` over a ghost "Cancel").
+ * Without this the only way to give that sheet the shared footer would have
+ * been to demote a destructive action to the glossy primary, which is the kind
+ * of "close enough" that ends with five footers again.
+ */
+const SheetDestructiveAction = React.forwardRef<HTMLButtonElement, SheetActionProps>(
+  ({ children, ...props }, ref) => (
+    <Button ref={ref} variant="destructive" className={POPUP_COMMIT_CLS} {...stripSheetOverrides(props)}>
+      {children}
+    </Button>
+  ),
+);
+SheetDestructiveAction.displayName = "SheetDestructiveAction";
+
 
 export {
   Sheet,
@@ -343,4 +380,5 @@ export {
   SheetTitle,
   SheetSecondaryAction,
   SheetPrimaryAction,
+  SheetDestructiveAction,
 };

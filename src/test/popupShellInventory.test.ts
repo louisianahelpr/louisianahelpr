@@ -387,8 +387,6 @@ describe("one footer convention", () => {
       "download and closes.",
     "src/components/mobileNav/GateSheet.tsx":
       "A sign-in gate whose two choices are the content, not a footer under it.",
-    "src/components/SosShareButton.tsx":
-      "Safety sheet — each share target is the action.",
     "src/components/PhotoProof.tsx":
       "An uploader, not a form: each tile's control is its own action and the " +
       "sheet closes on selection. NOTE it does carry one stray Cancel that " +

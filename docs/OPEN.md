@@ -157,3 +157,16 @@ showed **10** — so the BELL IS CORRECT and the panel's "Unread 11" is the
 wrong number. Start there, not at the badge. Suspect the panel's own
 `unreadInPage`/tab-count derivation, or a row the list counts that the DB
 query does not (optimistic insert, realtime dupe).
+
+## Browse map — controls and preview card escape the map bounds
+Owner, 2026-09-11 ("fix this bullshit"), with three screenshots:
+- The **recenter button** (`browse-map-recenter`, BrowseMap.tsx:843) sits half
+  outside the map's right edge — clipped against the boundary between the map
+  and the page background.
+- The **job preview card** (`aside`, the drag-handle + close-X sheet) is cut off
+  at the bottom; its lower half runs past the visible map area.
+Both are `position: absolute` inside the map container — check what is actually
+establishing their containing block. CLAUDE.md's standing trap: any ancestor
+with transform/filter/backdrop-filter/contain/will-change becomes the containing
+block for absolutely/fixed positioned descendants, and the map's own chrome uses
+backdrop-filter.

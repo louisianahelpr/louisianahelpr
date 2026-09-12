@@ -471,3 +471,15 @@ Verified clean, so these can stop being re-reported:
       `504 view … rows=-` **→** `200 rpc … rows=9`, whole contract passes.
       Worth noting this was NOT caused by the seed/test deletes, which is the
       first thing I checked given the timing.
+
+- **Notification count — CONFIRMED BY EYE 2026-09-11, on real prod data.** Not a
+  count, not a test: opened the panel at 375 in Chrome against the owner's own
+  account and LOOKED. Bell badge **10**, "Unread" chip **10**, "THIS WEEK 10",
+  and **ten actual unread rows** rendered, each with its unread dot, default tab
+  Unread. The panel is 375 wide and 650 tall at top 86 — full width, correctly
+  sized, so it is not caught by the transformed-ancestor `position: fixed` trap.
+  After three fixes I called done without looking, this one was looked at.
+
+  Aside, not a defect: the bell's click did not register through the browser
+  pane's synthetic click; a real `.click()` opens it. Worth knowing so nobody
+  files "the bell does nothing" from an automated driver.

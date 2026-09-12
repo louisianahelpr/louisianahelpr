@@ -858,3 +858,14 @@ on every one.
       harness artefact — but the request is genuinely MALFORMED rather than
       skipped, which is a guard missing at the call site, not a server problem.
       Worth reproducing before believing either way.
+
+- [ ] **PENDING PROOF: the availability flood must stay at zero after the next
+      cron tick.** As of 2026-09-12 05:42 UTC: availability-titled notifications
+      **0**, `notification_dedupe_suppressions` **0** (nothing has tried to
+      duplicate yet), newest notification in the whole table 2026-09-11 20:37.
+      `cron.job` 39 runs `41 */6 * * *`, so the next tick is **06:41 UTC**. That
+      is the forward proof, and it has NOT happened yet — the fix is deployed and
+      the old rows are gone, but "no new ones are being written" is so far an
+      expectation, not a measurement. One query settles it:
+      `select count(*) from public.notifications where title ilike '%updated availability%';`
+      It must still be 0 after 06:41.

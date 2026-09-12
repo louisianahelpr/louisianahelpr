@@ -1339,11 +1339,13 @@ not defects, and worth saying plainly rather than filing thirty findings.
   /dashboard, which has the map. Same control, one screen.
 
 ### Real, and open
-- [ ] **TEXT CLIPPED on `/profile?tab=home_history`, four rows, both themes.**
-      "Automated end-to-end test row. Not a rea…" clipped by **33px vertically** —
-      the description box is shorter than its own text with no ellipsis and no
-      way to read the rest. The CONTENT is E2E debris, but the clipping is a
-      real layout defect that any long description would hit.
+- [x] **TEXT CLIPPED on home_history — RETRACTED, it was my detector.** The
+      description excerpt is `line-clamp-2`, a deliberate two-line truncation
+      that draws its OWN ellipsis. Tailwind sets `-webkit-line-clamp` without
+      setting `text-overflow`, so a check that only knew the latter read a
+      designed excerpt as text the box cannot show. Detector fixed; the route
+      now reports clean. **This was the last finding standing from the sweep,
+      and it was mine, not the app's.**
 - [ ] **OPEN QUESTION FOR THE OWNER — Save confirms with a haptic, and the web
       has no haptics.** The 2026-08-13 ruling killed action-less success toasts,
       and the stated confirmation on the auto-tip screen is "the haptic plus the

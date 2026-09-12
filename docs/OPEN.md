@@ -1083,3 +1083,44 @@ on every one.
       a hard delete, unrelated notifications untouched.
       This closes the class of bug behind the 40-notification flood, rather than
       only the instance.
+
+## ⚠️ FOR THE OWNER — your profile photo is (almost certainly) your ID document
+
+Found 2026-09-12 while walking /dashboard, /my-jobs, /my-posts, /messages and
+/profile with a real session. Every one of those pages logs
+`400 GET .../user-documents/76b07824…/avatar.png`.
+
+**Nothing is leaked.** That object is in the `user-documents` bucket, which is
+`public = false`, and I confirmed the URL answers **400** — both there and at
+the same path in the public `avatars` bucket. It is not anonymously fetchable.
+
+**But look at what it is.** In `storage.objects`, for your user id:
+
+| bucket | object | bytes | created |
+|---|---|---|---|
+| `user-documents` | `…/avatar.png` | **810107** | 2026-05-03 17:11:09.220671 |
+| `id-documents` | `…/id-document-1777828268516.png` | **810107** | 2026-05-03 17:11:09.302834 |
+
+Identical byte count, written **80 milliseconds apart**. That is one upload
+landing in two places: your identity document was also written as your avatar.
+This is precisely the scenario `src/lib/avatarStorage.ts`'s own header describes
+— "the ID picker and the avatar picker have sat one tap apart… Two identity
+documents were found live in this bucket exactly this way."
+
+**What I did and deliberately did not do.** I did NOT copy the file into the
+public `avatars` bucket to "fix" the broken image — that would publish an
+identity document. I did NOT null your `avatar_url`, because the brief says not
+to touch your real rows. The app already degrades correctly: every avatar call
+site now renders through the shared `UserAvatar`, which falls back to a
+monogram, so you see initials rather than a broken image. The only live symptom
+is the 400 in the console on every page.
+
+**What needs you:** upload a real profile photo (that writes to the public
+`avatars` bucket via the consolidated path, which is correct now), and then say
+the word and I will delete the stale `user-documents/…/avatar.png` object and
+clear the dead URL. The `id-documents` copy is where an ID document belongs and
+should stay.
+
+Systemic check done, not assumed: yours is the ONLY profile whose `avatar_url`
+points at a non-public bucket. Every other row uses `avatars` or the brand-asset
+function.

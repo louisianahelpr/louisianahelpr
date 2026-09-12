@@ -60,6 +60,31 @@ export function BrowseSearchBar({
   // Messages / PostJob / ProfileEditForm use; `block: "nearest"` because this
   // field is near the TOP of its scroller and "center" would drag it down
   // under the keyboard it is trying to escape.
+  // FOCUS ON OPEN — but only in the standalone header form.
+  //
+  // The comment on the input below explains why this field must NOT autofocus:
+  // EMBEDDED, it lives inside the "Refine Your Search" sheet, opened by a
+  // filter button whose job is sort/view/category. Focusing there threw the iOS
+  // keyboard over the Category chips and half the sort row the poster came for.
+  // That reasoning is right and is left alone.
+  //
+  // It simply does not apply to the other caller. Standalone, this bar exists
+  // because the user tapped the magnifier in the header — an action whose
+  // entire purpose is typing. Measured on /dashboard at 375: tapping it swapped
+  // the header for the field and left `document.activeElement` on BODY, so the
+  // keyboard did not appear and the field had to be tapped a second time. Two
+  // taps for one intent, on the app's primary surface.
+  useEffect(() => {
+    if (embedded) return;
+    const el = inputRef.current;
+    if (!el) return;
+    // A frame, so the header's swap has committed before focus moves — focusing
+    // an element that is still being laid out is how iOS ends up scrolling the
+    // page instead of raising the keyboard.
+    const raf = requestAnimationFrame(() => el.focus());
+    return () => cancelAnimationFrame(raf);
+  }, [embedded]);
+
   const keyboardInset = useKeyboardInset();
   useEffect(() => {
     if (keyboardInset <= 0) return;

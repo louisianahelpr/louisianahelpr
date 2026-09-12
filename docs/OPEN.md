@@ -1040,3 +1040,46 @@ on every one.
 #     desktop) so nothing at the top of any screen can be covered.
 #   · Run the whole foreign-key plan: clean the 11 orphans, then add the
 #     constraints, replay-safe, verified by object state.
+
+## Overnight — the three rulings, all DONE (2026-09-12)
+
+- [x] **Red build fixed first — a838fa807.** The empty-state sweep was failing a
+      137-screen run because /dashboard logged a 406 from `POST referral_codes`.
+      The mock returned `[]` for every write under a comment claiming that was
+      "so `.insert().select()` patterns get back data" — an empty array is
+      precisely NOT data. It only surfaced once `honourSingleObject` started
+      modelling real PostgREST earlier today. Chased to the live database rather
+      than believing the symptom: `referral_codes` has matching INSERT and
+      SELECT policies in prod (`pg_policy`), so the real insert DOES return its
+      row and there was no app defect behind the red. The mock now echoes the
+      request body as the representation, the way PostgREST does.
+      **1 failed request -> 0; empty-state sweep 137/137 green.**
+- [x] **No pills, including the fee — 903bbc622.** Both sides done in one pass,
+      the poster's card and the helper's, because one surface keeping it would
+      be the exact inconsistency the ruling removes. The AMOUNT stays as a plain
+      money line: a cancellation fee charged with nothing on the card saying so
+      would be worse than the pill, and on the helper's side it is their money.
+      `PostedJobCard` is down to one `rounded-full` and it is an avatar.
+- [x] **Every toast anchors to the bottom — 7c824db4c.** This REVERSES an
+      earlier owner decision, and the reason is recorded beside it because the
+      argument for top (a top banner is the iOS convention) is reasonable and
+      will be made again — it lost to three measured collisions in one day. The
+      dock, the original objection to bottom, was already solved by offsets the
+      one opted-out toast was using, so the flip costs nothing that was not
+      already handled. The nudge's per-toast override is DELETED rather than
+      left as a special case that reads as meaningful and does nothing.
+      **A comment could not stop a fourth reversal, so the ruling is a test**
+      (`src/test/toastPlacement.test.tsx`), proved to fail when reverted.
+- [x] **Foreign keys — 6417eed97, live in prod and verified by object state.**
+      `favorite_helpers.customer_id`, `.helper_id` and `notifications.user_id`
+      now REFERENCES `profiles(user_id) ON DELETE CASCADE`, confirmed with
+      `pg_get_constraintdef` rather than by the deploy going green. 11 orphaned
+      favourite rows + 1 debris notification cleared first (backed up), in that
+      order deliberately — a constraint added over violations fails outright.
+      Cascade is safe precisely because account deletion ANONYMISES rather than
+      deletes, so it can never fire on an ordinary deletion. Proved under
+      PGlite: applied 3x consecutively, orphan inserts refused on both tables,
+      the row SURVIVING when the profile is anonymised and disappearing only on
+      a hard delete, unrelated notifications untouched.
+      This closes the class of bug behind the 40-notification flood, rather than
+      only the instance.

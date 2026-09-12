@@ -561,6 +561,57 @@ function latestTrackingByJob(
 
 const CORE_STALE = 60 * 1000;
 
+/**
+ * MOUNTING /my-jobs OR /my-posts ALWAYS REVALIDATES, EVEN WHEN THE CACHE SAYS FRESH.
+ *
+ * `staleTime: CORE_STALE` plus React Query's default `refetchOnMount: true`
+ * means "refetch on mount only if stale". The cache is persisted to IndexedDB
+ * (src/lib/queryPersister.ts), so that combination survives a full page
+ * reload — and produced a state with no recovery path at all. Measured on the
+ * preview build at 375, helper account, one application added server-side
+ * between the two loads:
+ *
+ *   reload → t=1s/2s/3s skeleton, t=5s and t=8s "No applications yet",
+ *            requests to /rest/v1/applications after the reload: 0
+ *
+ * Not slow, not erroring: the page states, as a fact about the account, that
+ * the user has no applications, and nothing is even trying to find out
+ * otherwise for the rest of the 60s window. Their real work is invisible and
+ * the only escape is waiting it out.
+ *
+ * WHY `refetchOnMount: "always"` AND NOT `staleTime: 0`.
+ *   `staleTime: 0` would fix this repro and throw away everything the cache is
+ *   for: every re-render that mounts a new observer, every tab switch, every
+ *   window focus becomes a fresh network wave, and the idle warm of the other
+ *   tab (`prefetchActivityCores` / the warm effect below) stops being a warm
+ *   because nothing it writes is ever considered usable.
+ *   `"always"` keeps the exact property that matters — cached rows paint
+ *   IMMEDIATELY, with no skeleton — and adds one background revalidation at
+ *   the moment the claim is put back on screen. Stale-while-revalidate, which
+ *   is what these two routes wanted all along.
+ *
+ * WHY NOT "shorten the window only when the answer was zero rows".
+ *   `staleTime` can be a function of the query in v5, so a zero-row-specific
+ *   window is expressible. It was rejected because it fixes only the most
+ *   visible half: a cached list of three applications that has since become
+ *   four is wrong in exactly the same way, just less obviously, and a rule
+ *   keyed on row count would leave it stale. The defect is "we re-showed a
+ *   cached claim without checking it", not "empty is suspicious".
+ *
+ * The cost is one extra core read per mount of these two routes — the user's
+ * own work list, on a screen they opened deliberately. The detail queries are
+ * deliberately NOT given this: they are keyed on values derived from the core
+ * result, so a core that comes back changed re-keys them and they refetch on
+ * their own; forcing them too would double the wave for no extra freshness.
+ *
+ * This composes with the empty-state hold added in a520a50a8: with the
+ * revalidation now actually firing, `loading` stays true over a zero-row
+ * cached result while the refetch is in flight, so the window between the
+ * stale answer and the real one shows the skeleton rather than the false
+ * claim.
+ */
+const ACTIVITY_REFETCH_ON_MOUNT = "always" as const;
+
 /** Warm BOTH tabs' core caches (the Dashboard idle prefetch). The detail
     queries are deliberately NOT prefetched — they are keyed on the core data,
     so they cannot even be issued until the core has landed, and nothing on a
@@ -597,6 +648,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     queryFn: () => fetchPostedActivity(userId!),
     enabled: !!userId && isPosted,
     staleTime: CORE_STALE,
+    refetchOnMount: ACTIVITY_REFETCH_ON_MOUNT,
   });
 
   const appliedCore = useQuery({
@@ -604,6 +656,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     queryFn: () => fetchAppliedActivity(userId!),
     enabled: !!userId && !isPosted,
     staleTime: CORE_STALE,
+    refetchOnMount: ACTIVITY_REFETCH_ON_MOUNT,
   });
 
   const postedJobs = postedCore.data?.postedJobs;

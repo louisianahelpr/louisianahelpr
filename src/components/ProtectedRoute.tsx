@@ -279,8 +279,9 @@ const ProtectedRoute = ({
     // Observability — this exact failure silently absorbed PR #355 + #358
     // for hours before manual diagnosis. Reporting it gives Sentry a
     // dedicated tag to alert on. Note: useCurrentUser has already retried
-    // 2x and reported the underlying PostgrestError; this is the route-level
-    // signal that the user hit the non-fatal error gate.
+    // (per the shared client policy) and reported the underlying
+    // PostgrestError; this is the route-level signal that the user hit the
+    // non-fatal error gate.
     report(new Error("ProtectedRoute: profile fetch error (recoverable, session kept)"), {
       severity: "error",
       tags: { source: "ProtectedRoute.profileFetchError" },

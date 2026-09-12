@@ -19,7 +19,35 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
  */
 export type AdminStatus = "admin" | "not_admin" | "unknown";
 
-const PROFILE_QUERY_TIMEOUT_MS = 10000;
+/**
+ * HOW LONG A HANGING BACKEND CAN HOLD THE WHOLE APP BEFORE ANYONE IS TOLD.
+ *
+ * This is a per-ATTEMPT client-side leash on a single-row indexed read
+ * (`profiles` by `user_id`), and every authed route is behind it:
+ * ProtectedRoute renders nothing but a spinner until this query settles, so
+ * this number times the attempt count IS the time-to-"We couldn't load your
+ * account".
+ *
+ * It was 10000, and the query below carried its own `retry: 2` — which is the
+ * part nobody costed. Against a backend that HANGS (not one returning 500s,
+ * where the failure is instant) that is three 10s attempts plus TanStack's
+ * backoff between them. Measured on the preview build, /my-jobs, every
+ * `/rest/v1/profiles` request held open and never answered:
+ *
+ *   time to the account error card: 32.2s
+ *
+ * Thirty-two seconds of blank spinner with no message and no retry control.
+ * The retry-schedule fix in a520a50a8 did not touch it, because `retry: 2`
+ * here overrode the client default it changed.
+ *
+ * 6s is chosen as roughly double the worst TIME-TO-FIRST-BYTE a working
+ * connection plausibly pays for this read — a slow cellular round trip to
+ * Supabase is low single digits, and a single-row primary-key-shaped select
+ * that has not answered in six seconds is not about to. Going lower starts
+ * failing connections that would have succeeded; leaving it at ten only
+ * lengthens a wait that ends in the same error card either way.
+ */
+const PROFILE_QUERY_TIMEOUT_MS = 6000;
 const DEBUG_AUTH = import.meta.env.DEV;
 
 const withTimeout = async <T,>(promise: Promise<T>, ms = PROFILE_QUERY_TIMEOUT_MS): Promise<T> => {
@@ -88,7 +116,7 @@ const fetchCurrentUser = async (
   // `isAdmin === false` and bounced a real admin to /dashboard with nothing on
   // screen to say a lookup had failed — reproduced repeatedly against prod on
   // 2026-08-31 with the role row present and the response body confirmed
-  // `[{"role":"admin"}]`, on a connection slow enough to cross the 10s timeout.
+  // `[{"role":"admin"}]`, on a connection slow enough to cross the profile-query timeout.
   // Two lanes lost the admin surfaces to it, and the owner would lose them the
   // same way on hotel wifi.
   //
@@ -104,14 +132,14 @@ const fetchCurrentUser = async (
   // answer, not an error. An error here really does mean "could not determine".
   // ONE attempt is not enough (AR-011, lh-authz-rls 2026-09-04): this whole
   // promise catches and RESOLVES on failure, so a slow/flaky connection never
-  // reaches React Query's own `retry: 2` — that only applies to a REJECTED
+  // reaches React Query's own retry — that only applies to a REJECTED
   // query, and this one never rejects. Verified live: a single injected
   // HTTP 500 on this exact read locked a real admin out of /admin with no
   // automatic retry, needing a manual "Try again" tap. Retrying INSIDE the
-  // existing 10s timeout budget (not adding a new one) means a fast error is
+  // existing timeout budget (not adding a new one) means a fast error is
   // retried for free while a genuinely slow connection still gets the same
-  // 10s it always had — not 30s of extra waiting for a legitimately down
-  // network.
+  // PROFILE_QUERY_TIMEOUT_MS it always had — not three times that in extra
+  // waiting for a legitimately down network.
   const ADMIN_ROLE_ATTEMPTS = 3;
   const ADMIN_ROLE_RETRY_DELAY_MS = 250;
   const readAdminRoleOnce = () =>
@@ -190,7 +218,14 @@ export const useCurrentUser = (): CurrentUser => {
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    retry: 2,
+    // NO LOCAL `retry` OVERRIDE — inherit the client policy in
+    // src/lib/queryClient.ts (one retry, 500ms delay, and no retry at all on a
+    // 4xx, which this hard-coded `retry: 2` was overriding in both
+    // directions). It was `retry: 2`, and combined with the per-attempt
+    // timeout above that is what made a hanging backend cost 32.2s before the
+    // account error card appeared. The client policy exists precisely so the
+    // time-to-error-state is decided in one place; this was the one query
+    // opting out of it, silently.
   });
 
 

@@ -97,6 +97,14 @@ const NotificationPanel = () => {
     notificationsRef.current = notifications;
   }, [notifications]);
 
+  // Same capture problem, same answer: the toast decision below needs to know
+  // whether the panel is OPEN at the moment the load fails, not whether it was
+  // open on the render that created this closure.
+  const openRef = useRef(false);
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
   const loadNotifications = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
@@ -166,8 +174,34 @@ const NotificationPanel = () => {
       // show. A background refresh failure with prior data on screen
       // stays silent so a transient hiccup doesn't blow away a list the
       // user is mid-reading.
-      setLoadError((prev) => (notificationsRef.current.length === 0 ? true : prev));
-      toast.error("Couldn't load notifications — try again?");
+      const hasRowsOnScreen = notificationsRef.current.length > 0;
+      setLoadError((prev) => (hasRowsOnScreen ? prev : true));
+      // ONE OUTAGE, ONE MESSAGE.
+      //
+      // This toast used to fire on EVERY failed load, including the one that
+      // runs 800ms after any authed page mounts with the panel shut. So a
+      // single backend outage on /dashboard produced two messages for the same
+      // event: the page's own error card, and — floating over it for the four
+      // seconds a sonner toast lives — "Couldn't load notifications — try
+      // again?", about a panel the user had not opened and could not see.
+      // Measured at 375 with every non-account read 500ing: the toast was on
+      // screen alongside the page's error card from t=1.5s to ~t=5s.
+      //
+      // The panel already owns a designed failure state — the inline
+      // "Couldn't load notifications. / Our end had a hiccup — not yours."
+      // card with its own Try again button, rendered from `loadError` below.
+      // That is the right place for this news, because it is where the user
+      // goes to act on it. So the toast is now reserved for the single case
+      // that card cannot cover: the panel is OPEN and already showing rows, so
+      // `loadError` is deliberately suppressed (a background hiccup must not
+      // blow away a list mid-read) and nothing else on screen would say the
+      // refresh failed.
+      //
+      // Closed panel → no message here; the page's own error state speaks, and
+      // the inline card is waiting when the user opens the bell.
+      if (openRef.current && hasRowsOnScreen) {
+        toast.error("Couldn't load notifications — try again?");
+      }
       return;
     }
     setLoadError(false);

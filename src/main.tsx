@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { initNative, hideSplash } from "./lib/nativeInit";
-import { installGlobalErrorHandlers } from "./lib/errorLogger";
+import { installGlobalErrorHandlers, report } from "./lib/errorLogger";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
 import { recoverFromChunkError } from "./lib/chunkReload";
@@ -26,6 +26,29 @@ window.HELPR_BUILD = "2026-05-04-editorial-brand-polish";
 // Global error handlers are tiny + synchronous — keep them eager so we
 // catch any throw during the very first render.
 installGlobalErrorHandlers();
+
+// A boot that FAILED last time (index.html's boot watchdog: the entry module
+// graph 404'd, the one automatic reload did not fix it, and the member saw
+// "Helpr couldn't load."). That watchdog runs before the bundle exists, so it
+// cannot call report() itself; it leaves a record, and the first boot that
+// does get this far reports it. Offline failures are not defects and are
+// dropped, matching the in-app boundaries.
+try {
+  const raw = localStorage.getItem("helpr_boot_failure");
+  if (raw) {
+    localStorage.removeItem("helpr_boot_failure");
+    const rec = JSON.parse(raw) as { at?: number; src?: string; offline?: boolean; url?: string };
+    if (!rec.offline) {
+      report(new Error(`Boot failed: entry module graph did not load (${rec.src ?? "unknown"})`), {
+        severity: "error",
+        tags: { source: "BootWatchdog", route: rec.url ?? "" },
+        context: { failedAt: rec.at },
+      });
+    }
+  }
+} catch {
+  /* storage blocked or malformed record — nothing to report */
+}
 
 // Simple Mode — applied BEFORE render, and synchronously. It is a class on
 // <html> read from local storage, so it costs nothing; doing it after mount

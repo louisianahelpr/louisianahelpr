@@ -338,6 +338,106 @@
     </script>
 
     <!--
+      BOOT WATCHDOG — a stale HTML page whose own module graph is gone.
+
+      Every chunk-recovery path in the app (main.tsx's vite:preloadError
+      handler, the three error boundaries, lib/chunkReload.ts) lives INSIDE the
+      bundle. When the HTML itself is stale — a service-worker or CDN copy that
+      points at an entry file or vendor chunk a later deploy deleted — the entry
+      module graph fails to load, none of that code ever runs, and the inline
+      boot mark below just spins forever: no reload, no message, no report.
+      Found by e2e/happy-path/stale-deploy.spec.ts.
+
+      So this has to be inline and pre-bundle. A failed same-origin /assets/
+      script or modulepreload fires a non-bubbling `error` event at its element,
+      caught here in the capture phase. It only acts while #boot-loader is still
+      in the DOM (React removes it on first commit), so a lazy chunk failing
+      AFTER mount is left to the in-app recovery.
+
+      Same contract as recoverFromChunkError(): one cache-busting hard reload,
+      guarded by the same 10s sessionStorage key so the two layers never loop
+      between them; offline never reloads. If the reload does not recover, it
+      says so plainly and leaves a record that main.tsx reports on the next
+      boot that succeeds (report() is inside the bundle, which is exactly what
+      is missing right now).
+    -->
+    <script>
+      (function () {
+        var FLAG = "helpr_chunk_reload_at";
+        var fired = false;
+        function booted() {
+          return !document.getElementById("boot-loader");
+        }
+        function reloadFresh() {
+          var go = function () {
+            var u = new URL(window.location.href);
+            u.searchParams.set("_v", String(Date.now()));
+            window.location.replace(u.toString());
+          };
+          var tasks = [];
+          try {
+            if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+              tasks.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+                return Promise.all(rs.map(function (r) { return r.unregister().catch(function () {}); }));
+              }).catch(function () {}));
+            }
+            if (window.caches) {
+              tasks.push(caches.keys().then(function (ks) {
+                return Promise.all(ks.map(function (k) { return caches.delete(k).catch(function () {}); }));
+              }).catch(function () {}));
+            }
+          } catch (e) { /* proceed to reload */ }
+          Promise.all(tasks).then(go, go);
+        }
+        function showFailure(src, offline) {
+          try {
+            localStorage.setItem("helpr_boot_failure", JSON.stringify({
+              at: Date.now(), src: src, offline: offline, url: location.pathname
+            }));
+          } catch (e) { /* storage blocked — the message still shows */ }
+          var paint = function () {
+            var el = document.getElementById("boot-loader");
+            if (!el) return;
+            el.setAttribute("role", "alert");
+            el.setAttribute("aria-label", offline ? "You're offline." : "Helpr couldn't load.");
+            el.innerHTML =
+              '<div style="max-width:320px;padding:24px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:#2E2F22">' +
+              '<h1 style="margin:0 0 8px;font-size:22px;font-weight:700;line-height:1.25">' +
+              (offline ? "You're offline." : "Helpr couldn't load.") + "</h1>" +
+              '<p style="margin:0 0 20px;font-size:15px;line-height:1.5;opacity:.8">' +
+              (offline ? "Reconnect and try again." : "We've logged it. Check your connection and try again.") + "</p>" +
+              '<button type="button" id="boot-retry" style="min-height:44px;padding:0 22px;border:0;border-radius:12px;background:#2E2F22;color:#fff;font-size:15px;font-weight:600;cursor:pointer">Try Again</button>' +
+              "</div>";
+            var b = document.getElementById("boot-retry");
+            if (b) b.addEventListener("click", reloadFresh);
+          };
+          if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", paint);
+          else paint();
+        }
+        window.addEventListener("error", function (ev) {
+          var t = ev.target;
+          if (fired || !t || t === window) return;
+          var src = (t.tagName === "SCRIPT" && t.src) || (t.tagName === "LINK" && t.href) || "";
+          if (!src) return;
+          var u;
+          try { u = new URL(src, location.href); } catch (e) { return; }
+          if (u.origin !== location.origin || u.pathname.indexOf("/assets/") !== 0 || !/\.js$/.test(u.pathname)) return;
+          if (document.readyState !== "loading" && booted()) return;
+          fired = true;
+          var offline = navigator.onLine === false;
+          var last = 0;
+          try { last = Number(sessionStorage.getItem(FLAG) || "0"); } catch (e) { /* ignore */ }
+          if (!offline && Date.now() - last > 10000) {
+            try { sessionStorage.setItem(FLAG, String(Date.now())); } catch (e) { /* ignore */ }
+            reloadFresh();
+            return;
+          }
+          showFailure(u.pathname, offline);
+        }, true);
+      })();
+    </script>
+
+    <!--
       Pre-paint theme resolution. useDarkMode.ts only sets data-theme once the
       JS bundle parses — after the inline boot loader below has already painted,
       so dark-mode users saw a light flash on every cold start. This tiny inline

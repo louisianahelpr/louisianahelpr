@@ -727,7 +727,20 @@ Two follow-ups worth keeping:
       Original report: **AccountDenied / AccountBanned likely share it** —
       same `AuthShell` call with no `centerColumn`, where AccountPending passes
       `align="center"`. CODE READ ONLY, not reproduced live, not touched.
-- [ ] **The open message thread at 1440 has no card boundary** — every other
+- [x] **DONE afe650635.** Measured before: /my-jobs 1 panel at x 48–1144 (w
+      1096), inbox 1 panel, **thread 0 panels** at both widths — it painted
+      straight onto the canvas. `ChatPaneShell`'s standalone branch now renders
+      through `PageScaffold` (the shared shell, NOT a hand-rolled panel), which
+      is a thin wrapper over the same `AppShell`, so the 100dvh lock and
+      bottom-nav reservation are unchanged. After: thread **1 panel, x 48–1144,
+      w 1096, radius 24, 1px border — byte-identical geometry to /my-jobs**;
+      375 matches the inbox. The stop-condition was checked rather than assumed:
+      internal scrolling survives and the composer still reaches the viewport
+      edge, with all 14 `messages-thread.spec.ts` specs passing. The lane also
+      caught itself: re-using the page gutter inside the card pushed the
+      composer controls to x=40 at 375 and clipped "Type a message…" mid-word —
+      spotted in the SCREENSHOT and backed out.
+      Original report: **open thread at 1440 has no card boundary** — every other
       authed page draws in a panel; the thread paints straight on canvas with a
       composer whose white band ends abruptly. Centred correctly. Design call.
 
@@ -875,11 +888,38 @@ on every one.
 
 ## New reports from the last-three lane (2026-09-11)
 
-- [ ] **At 1440 the desktop top-right toast overlaps the right rail's "Post a
+- [x] **DONE afe650635 — worse than reported.** Toast x 1060–1416; rail "Post a
+      Job" x 1209–1411 overlapping, and over "Notifications"
+      `elementFromPoint` returned THE TOAST — genuinely unclickable, not merely
+      overlapped. Cause: sonner portals to `<body>`, so it sits outside BOTH
+      rail insets. Fixed in CSS gated on the same three classes as the existing
+      insets, setting `right` rather than the custom property sonner writes
+      inline. After: toast x **812–1168**, and `elementFromPoint` over both
+      controls returns the control. Scoped to right-anchored containers and
+      verified not assumed: the 375 top-centre toast is unchanged, and the rule
+      was checked in `dist/assets/*.css` after a build, not on the dev server —
+      the CSS-minifier trap in CLAUDE.md.
+      Original report: **desktop toast overlaps the rail**
       Job" and "Notifications" controls.** Pre-existing, affects EVERY toast, and
       unchanged by the nudge fix (which only moved that one toast, and only below
       768px). Same family as the My Jobs defect, at the other breakpoint.
-- [ ] **A stale or partial Supabase session (user id missing) makes every authed
+- [x] **DONE afe650635 — REAL, not a harness artefact.** `supabase.auth
+      .getSession()` does no shape validation: it checks the session exists and
+      has not expired, then hands the stored user straight through. This app
+      supplies its own storage adapter on both platforms, so those bytes travel
+      through code that can return a partial value, and `!!user` is then true.
+      Reproduced with the id stripped from the persisted session: **7 malformed
+      PostgREST requests from 5 call sites** (`profiles`, `user_roles`,
+      `user_blocks`, `messages`, `notifications` x3) — against prod those are
+      400s on a uuid column, i.e. "We couldn't load your account" with a Try
+      again that can never succeed. Fixed at the ROOT, not at five call sites:
+      `emitAuthSnapshot` normalises an id-less user to signed-out and reports to
+      Sentry. **7 -> 0**, and the user lands on /login with their path preserved.
+      Deliberately NOT fixed by flipping `useCurrentUser`'s `enabled`, which
+      would have made the query disabled -> `isLoading:false, data:undefined,
+      isError:false` -> ProtectedRoute's optimistic fall-through, i.e. **fail
+      OPEN for a banned account**.
+      Original report: **stale session sends `user_id=eq.undefined`**
       route render "We couldn't load your account", with `user_id=eq.undefined`
       going to PostgREST.** Hit while building the harness, so it may be a
       harness artefact — but the request is genuinely MALFORMED rather than
@@ -896,3 +936,38 @@ on every one.
       expectation, not a measurement. One query settles it:
       `select count(*) from public.notifications where title ilike '%updated availability%';`
       It must still be 0 after 06:41.
+
+
+## Guest /browse: I re-applied a decision the owner had already reversed
+
+- [x] **Search + Filters on guest /browse — ASKED, and the owner confirmed they
+      stay OFF (e85b82a5b).** I removed them earlier today (8321d4344). The test
+      guarding that area carried a dated note saying the owner had reversed that
+      exact removal on 2026-09-07 ("/browse can have the filters", c7bce404e)
+      and warning that the spec "kept the suite red for two days asserting the
+      decision it replaced". Rather than pick a side I put the contradiction to
+      the owner directly, who chose **keep them off, update the test**. The
+      assertion is now inverted with the full flip-flop history beside it and an
+      explicit "do not flip this back on the strength of the c7bce404e commit
+      message alone — ask first".
+- [x] **Guest /browse had TWO `<h1>Browse Jobs</h1>` — my regression, fixed
+      c27ad084b.** Moving the page onto `PublicHeaderPage` today gave it a
+      visible h1 while `BrowseTasksToolbar` still rendered its own sr-only one.
+      An a11y defect and a Playwright strict-mode violation, red at 320, 375 and
+      1440. The toolbar now takes `renderHeading`; NATIVE still renders it,
+      because `PageScaffold`'s title card there is the H logo and carries no
+      heading. The same shell change also turned the two CTAs into the marketing
+      Navbar's `<Button asChild><Link>` — an anchor, so `role="link"` — and the
+      spec now asserts the real role while keeping its intent.
+      8/8 in `home-chrome.spec.ts` green.
+
+- [ ] **Top-anchored toasts have now landed on a header control THREE times.**
+      The My Jobs title card (e59a7ff85), the desktop right rail (afe650635),
+      and now: at 375 every top-centre toast covers the header's Notifications
+      bell (toast y 8–78 vs bell y 21–77; `elementFromPoint` returns the toast).
+      Three one-off fixes is a pattern, not a coincidence — this wants an owner
+      ruling on where toasts belong, not a fourth patch.
+- [ ] **At 1440 the composer bar spans the 780px reading column, not the full
+      panel.** `ChatView` caps timeline and composer with one `max-w-[780px]`
+      wrapper. That cap is owner-set ("the bottom bar does not fit correctly"),
+      so it was left alone.

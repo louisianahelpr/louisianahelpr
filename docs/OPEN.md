@@ -695,3 +695,34 @@ Two follow-ups worth keeping:
 Clean and worth recording: every authed route measured **zero horizontal
 overflow** at 375 and 1440, and at 1440 the rail inset was applied exactly once
 on every one.
+
+## Deploy + gate verification (lead, 2026-09-11)
+
+- [x] **Both halves of the notification fix are LIVE in prod, verified by object
+      state rather than run colour** (CLAUDE.md: a green run is not a deploy).
+      `Supabase DB Deploy` green on 870279f8f, and in prod
+      `to_regclass('public.notification_dedupe_suppressions')` resolves and
+      `pg_get_triggerdef` shows
+      `CREATE TRIGGER suppress_exact_duplicate_notification BEFORE INSERT ON
+      public.notifications FOR EACH ROW`. `Supabase Edge Functions Deploy` also
+      ran and succeeded on the same sha, so the cursor fix is live too.
+      (I briefly thought the trigger had not landed — my own query filtered on
+      `tgname ilike '%dedupe%'` and the trigger is named `suppress_…`. The
+      filter was wrong, not the deploy. Worth recording because "verify by
+      object state" only works if the query actually asks the right question.)
+
+- [x] **I broke CI and CI caught it — 5f7113ba1.** Making `formatMonthYear`
+      return `string | null` broke the PDF export, which assigns it into a
+      `[string, string]` column tuple: `TS2322` in `workRecordDocument.ts:395`.
+      I had gated on `parsecheck` + a scoped vitest run and never ran the
+      typecheck — which is precisely the case CLAUDE.md describes when it says a
+      clean parse is never a substitute for `tsc -b --noEmit`. Fixed by dropping
+      the column rather than coercing it, matching the on-screen behaviour.
+      Full typecheck now clean, 20/20 tests green.
+
+- [x] **Temp sweep specs deleted** (`zz-tmp-authed-verify`, `zz-tmp-public-verify`,
+      `zz-tmp-state-matrix`, `zz-tmp-thread-verify`). They were untracked, so CI
+      never saw them, but they broke the LOCAL typecheck with implicit-any errors
+      and — worse — `zz-tmp-authed-verify` photographed loading skeletons while
+      passing. Keeping a spec that produces confident, empty evidence is how the
+      audits kept missing things.

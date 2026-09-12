@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
+import { CONFIRM_WINDOW_HOURS, confirmDeadlineMs } from "../_shared/confirmDeadline.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,20 +61,50 @@ Deno.serve(async (req) => {
     // `accepted` (trigger-stamped, migration 20260824213000) — so an
     // incidental row write can no longer reset the ghosting clock. Rows
     // that predate the stamp keep the old updated_at fallback.
-    const { data: staleAccepted, error: fetchError } = await supabase
+    //
+    // AND NOT BEFORE THE HELPER COULD ACTUALLY ANSWER. There used to be no
+    // predicate on `date_needed` at all, while JobConfirmation renders no
+    // confirm control until the job is inside 24 hours — so a helper who
+    // accepted a job five days out was un-booked at hour 24, four days before
+    // the button existed, and told they "didn't start within 24 hours". The
+    // deadline now comes from `_shared/confirmDeadline.ts`, which the card
+    // imports too: the window opens at midnight the day before (resolved in
+    // America/Chicago, never a UTC date string) and closes 12 hours later.
+    //
+    // `tomorrow` is a coarse DB-side prefilter only — the deadline is at the
+    // EARLIEST noon the day before the job, so nothing dated past tomorrow can
+    // possibly have lapsed. The exact per-job comparison happens below.
+    const tomorrow = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Chicago",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(Date.now() + 24 * 60 * 60 * 1000));
+
+    const { data: acceptedCandidates, error: fetchError } = await supabase
       .from("jobs")
-      .select("id, title, customer_id, helper_id")
+      .select("id, title, customer_id, helper_id, date_needed, accepted_at")
       .eq("status", "accepted")
       .is("helper_confirmed_at", null)
+      .lte("date_needed", tomorrow)
       .or(
         `accepted_at.lt.${twentyFourHoursAgo},and(accepted_at.is.null,updated_at.lt.${twentyFourHoursAgo})`,
       );
 
     if (fetchError) throw fetchError;
 
+    const nowMs = Date.now();
+    const staleAccepted = (acceptedCandidates || []).filter((j) => {
+      // No date to measure against: fall back to the old acceptance clock
+      // rather than stranding the row forever. `date_needed` is NOT NULL in
+      // prod, so this is belt-and-braces.
+      if (!j.date_needed) return true;
+      return confirmDeadlineMs(j.date_needed, j.accepted_at) <= nowMs;
+    });
+
     let expiredCount = 0;
 
-    for (const job of staleAccepted || []) {
+    for (const job of staleAccepted) {
       // Conditional + row-count checked. The write used to carry no status
       // predicate, and ('in_progress','open') IS an allowed transition — so a
       // job the helper had STARTED in the window between the read above and
@@ -123,7 +154,7 @@ Deno.serve(async (req) => {
       const { error: notifyErr } = await supabase.from("notifications").insert({
         user_id: job.customer_id,
         title: "Job re-opened",
-        message: `"${job.title}" was automatically re-opened because the helpr didn't start within 24 hours.`,
+        message: `"${job.title}" was automatically re-opened because the helpr didn't confirm they were still on by the deadline.`,
         // A change of status on the poster's own job — `job_updates`, the
         // category this event belongs to. `warning` routed it through
         // `system_alerts`, so muting platform alerts muted it.
@@ -143,7 +174,11 @@ Deno.serve(async (req) => {
         const { error: helperNotifyErr } = await supabase.from("notifications").insert({
           user_id: job.helper_id,
           title: "Job expired",
-          message: `You didn't start "${job.title}" within 24 hours. The job has been re-opened for other helprs.`,
+          // NOT "you didn't start". Starting is not something this helper was
+          // ever permitted to do — the job may still be days away. What they
+          // missed is the confirmation, and the copy has to name the thing the
+          // card actually asked them for, on the clock the card actually showed.
+          message: `You didn't confirm "${job.title}" within ${CONFIRM_WINDOW_HOURS} hours of the confirmation window opening, so it's been re-opened for other helprs.`,
           // `expired` is the existing type for exactly this (it maps to
           // `job_updates`), and it is what the notification centre already
           // draws an expiry icon for.

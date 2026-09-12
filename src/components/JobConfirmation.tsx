@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { CheckCircle2, Clock, ShieldCheck, CalendarClock } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
+import { CONFIRM_WINDOW_HOURS, confirmDeadlineMs } from "@/lib/jobDate";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
@@ -155,6 +156,14 @@ export function JobConfirmation({
     const h = Math.floor((minsUntilOpen % 1440) / 60);
     const m = minsUntilOpen % 60;
     const untilOpen = d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+    /* AND THE NUMBER THAT ACTUALLY BINDS. The strip used to say only when the
+       window opens, which reads as "then you'll have a day" — the owner's
+       objection: "the confirm window is kind of misleading if they have 24
+       hours to confirm it says 24 hours." They do not have 24 hours. The sweep
+       re-opens the job 12 hours after the window opens, so the window and the
+       deadline are quoted together, from the same shared helper the sweep
+       itself calls. */
+    const confirmBy = new Date(confirmDeadlineMs(dateNeeded));
     /* A STRIP, not a card. The first draft of this state was a full
        liquid-glass card with its own heading and paragraph, which put a THIRD
        card on a scheduled job — "Job starts in 5d 3h", the tracker, and then a
@@ -179,6 +188,17 @@ export function JobConfirmation({
             The day before, we ask you both to confirm you're still on — that's
             what unlocks the rest of the tracker.
           </p>
+          {!isOwner && (
+            <p className="text-ds-10 mt-0.5 font-semibold tabular-nums">
+              Then you'll have {CONFIRM_WINDOW_HOURS} hours — confirm by{" "}
+              {confirmBy.toLocaleString("en-US", {
+                weekday: "short",
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+              , or the job re-opens to other Helprs.
+            </p>
+          )}
         </div>
       </div>
     );
@@ -343,6 +363,29 @@ export function JobConfirmation({
     </Dialog>
   );
 
+  /* THE DEADLINE, ONCE THE WINDOW IS OPEN. Same source as the sweep
+     (`confirmDeadlineMs`), so the card cannot imply a window longer than the
+     one `auto-expire-jobs` enforces. Helper-only: the poster's confirmation
+     gates nothing and nothing expires on it. Rendered above the control in
+     BOTH variants — the helper's tracker uses `inline`, which is only the
+     button, so a deadline shown solely on the card variant would never reach
+     the person it applies to. */
+  const deadlineMs = confirmDeadlineMs(dateNeeded);
+  const deadlineNotice = !isOwner && isHelper && !myConfirmed && (
+    <p
+      className="text-ds-10 font-sans font-semibold tabular-nums mb-1.5"
+      style={{ color: "hsl(var(--burnt-sienna))" }}
+    >
+      {deadlineMs > now.getTime()
+        ? `Confirm by ${new Date(deadlineMs).toLocaleString("en-US", {
+            weekday: "short",
+            hour: "numeric",
+            minute: "2-digit",
+          })} (${Math.max(1, Math.round((deadlineMs - now.getTime()) / 60_000 / 60))}h left) or this job re-opens to other Helprs.`
+        : "Confirmation is past due — this job may re-open to other Helprs at any moment."}
+    </p>
+  );
+
   /** The one control, shared by both variants so they can't drift. */
   const confirmCta = !myConfirmed && (isOwner || isHelper) && (
     <Button
@@ -366,6 +409,7 @@ export function JobConfirmation({
   if (variant === "inline") {
     return (
       <>
+        {deadlineNotice}
         {confirmCta}
         {confirmDialog}
       </>
@@ -436,6 +480,7 @@ export function JobConfirmation({
           </p>
         )}
 
+        {deadlineNotice}
         {confirmCta}
       </div>
 

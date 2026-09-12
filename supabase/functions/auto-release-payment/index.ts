@@ -233,6 +233,78 @@ serve(async (req) => {
       (jobs || []).push(j);
     }
 
+    // ── Revision NEVER DELIVERED → open the dispute (2026-09-11) ──
+    // The other half of the revision flow, and the one with no exit at all.
+    //
+    // The settle-out pass above requires `revision_completed_at IS NOT NULL`,
+    // deliberately, because it moves money. So when the helper never delivers
+    // the fix, nothing matches it — and nothing else reads `revision_deadline`
+    // either: it had ZERO readers in supabase/functions, the only two hits
+    // being comments. The helper's "6h 5m remaining" countdown enforced
+    // nothing, the poster's card offered a dispute as an OPTIONAL act, and if
+    // both parties went quiet the escrow sat indefinitely.
+    //
+    // So the platform files the dispute the UI already promises the poster,
+    // and an admin decides the split. NO MONEY MOVES HERE — these rows are
+    // deliberately NOT pushed into `jobs`, so they never reach the release
+    // loop below. `open_dispute_as` flips the job to `disputed`, which is what
+    // freezes the escrow.
+    //
+    // IDEMPOTENT TWICE OVER: the job leaves `revision_requested` the moment
+    // the dispute opens, so a second sweep does not select it; and if it
+    // somehow did, `open_dispute_as`'s existing-open-dispute branch appends
+    // nothing and returns the same id rather than inserting a second row.
+    let revisionDisputesOpened = 0;
+    let undeliveredQuery = supabaseAdmin
+      .from("jobs")
+      // `revision_deadline` is the discriminator against the two sibling
+      // revision reads above — this is the only one keyed on it.
+      .select("id, title, revision_deadline, revision_note")
+      .eq("status", "revision_requested")
+      .eq("payment_status", "escrow")
+      .is("revision_completed_at", null)
+      .not("revision_deadline", "is", null)
+      .lte("revision_deadline", new Date().toISOString());
+    if (!includeSeed) undeliveredQuery = undeliveredQuery.eq("is_seed", false);
+    const { data: undelivered, error: undeliveredErr } = await undeliveredQuery;
+    if (undeliveredErr) {
+      // Fail open like its two siblings: a broken dispute sweep must never
+      // take the ordinary releases down with it.
+      console.error("[auto-release-payment] undelivered-revision query failed:", undeliveredErr);
+      defects.record(`undelivered-revision query: ${undeliveredErr.message}`);
+    }
+    for (const j of undelivered || []) {
+      // Long enough to clear the RPC's own 15-character description guard, and
+      // written as the admin will read it — they decide this from these words.
+      const reason =
+        `Revision not delivered before the deadline. The poster requested a revision on ` +
+        `"${j.title ?? "this job"}" and the helpr did not mark it complete before ` +
+        `${j.revision_deadline}. Opened automatically by the platform so the payment is ` +
+        `decided rather than left in escrow.`;
+      const { error: openErr } = await supabaseAdmin.rpc("open_dispute_as", {
+        _job_id: j.id,
+        // NULL opener = the platform filed it. See the migration header:
+        // the column is nullable, the admin queue never renders it, and
+        // rpc_withdraw_dispute correctly refuses to let either party
+        // unilaterally withdraw a dispute neither of them opened.
+        _opener_id: null,
+        _reason: reason,
+        _evidence_urls: [],
+      });
+      if (openErr) {
+        // PGRST202 = the RPC has not finished deploying yet. Not a defect on
+        // the first tick after a merge; it resolves itself on the next run.
+        if ((openErr as { code?: string }).code === "PGRST202") {
+          console.log(`[auto-release-payment] open_dispute_as not deployed yet — job ${j.id} deferred`);
+          continue;
+        }
+        console.error(`[auto-release-payment] failed to open dispute for job ${j.id}:`, openErr);
+        defects.record(`open dispute for undelivered revision ${j.id}: ${openErr.message}`);
+        continue;
+      }
+      revisionDisputesOpened++;
+    }
+
     let released = 0;
     const results: any[] = [];
 
@@ -650,7 +722,7 @@ serve(async (req) => {
 
     return cronResult(
       "auto-release-payment",
-      { success: true, released, results, paid, payoutResults, autoPayoutEnabled },
+      { success: true, released, results, paid, payoutResults, autoPayoutEnabled, revisionDisputesOpened },
       defects.defects,
       corsHeaders,
     );

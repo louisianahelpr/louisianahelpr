@@ -227,6 +227,10 @@ describe("fixture-job visibility — one switch, every surface", () => {
     ["public.helper_cancel_booking", "single-job mutation; status is a precondition"],
     ["public.report_helper_no_show", "single-job mutation; status is a precondition"],
     ["public.rpc_open_dispute", "single-job mutation; status is a precondition"],
+    // The shared body rpc_open_dispute now delegates to, so the platform's own
+    // filings (an undelivered revision past its deadline) take the identical
+    // path a person's do. Same shape as its caller: one job by id.
+    ["public.open_dispute_as", "single-job mutation; status is a precondition"],
     // The `status = 'open'` it reads is DISPUTES.status (the live dispute on
     // one job the caller opened), not jobs.status — re-created by
     // 20260908024937 so the helper-opener can withdraw.

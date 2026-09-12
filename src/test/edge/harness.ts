@@ -135,6 +135,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/cron-result.ts";`,
   );
 
+  // Confirmation deadline: `_shared/confirmDeadline.ts` is pure date maths
+  // (it only pulls `jobLocalMidnightMs` from cancellationFee.ts). Point at the
+  // REAL module — the whole point of that file is that the sweep and the card
+  // compute the identical instant, so a mock here would test nothing.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/confirmDeadline\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/confirmDeadline.ts";`,
+  );
+
   // Payout claim protocol: `_shared/payoutClaim.ts` has ZERO imports — it takes
   // the Supabase client as a parameter — so the generated file points at the
   // REAL module rather than a mock. This is deliberate: the claim protocol is

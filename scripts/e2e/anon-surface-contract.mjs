@@ -139,10 +139,35 @@ async function getRows(path) {
   return { status: r.status, rows, body: text.slice(0, 200) };
 }
 
-/** A view answers the table endpoint; a function needs the RPC endpoint. */
+/**
+ * A view answers the table endpoint; a function needs the RPC endpoint.
+ *
+ * THE FALLBACK MUST NOT KEY ON `!== 404`. It used to, and that made every
+ * transient gateway error read as "this view answered badly": on 2026-09-11 a
+ * 504 on the table probe for `get_ranked_open_jobs` short-circuited to
+ * kind:"view", status:504, and failed the build with "A signed-out visitor sees
+ * nothing there" — about an object that is not a view at all (it is
+ * `get_ranked_open_jobs(integer,integer,boolean,numeric,numeric,numeric)`, 31ms,
+ * with no client caller). The build went green on the next push with nothing
+ * fixed, which is the self-healing red CLAUDE.md warns about twice.
+ *
+ * So only a DEFINITIVE answer about the object's existence settles the kind:
+ * a 2xx (it is there and readable) or a 401/403 (it is there and refused). A
+ * 404 means look for a function instead. A 5xx means the gateway did not answer
+ * the question at all — retry once, then fall through to the RPC endpoint
+ * rather than convicting the object on a timeout.
+ */
+const DEFINITIVE = (status) => (status >= 200 && status < 300) || status === 401 || status === 403;
+
 async function probeSurface(object) {
-  const view = await getRows(`${object}?select=*&limit=1`);
-  if (view.status !== 404) return { kind: "view", ...view };
+  let view = await getRows(`${object}?select=*&limit=1`);
+  if (view.status >= 500) {
+    // One retry, because a gateway 5xx is a statement about the gateway.
+    await new Promise((r) => setTimeout(r, 1500));
+    view = await getRows(`${object}?select=*&limit=1`);
+  }
+  if (DEFINITIVE(view.status)) return { kind: "view", ...view };
+
   const r = await fetch(`${BASE}/rest/v1/rpc/${object}`, {
     method: "POST",
     headers: { ...HEADERS, "Content-Type": "application/json" },
@@ -154,7 +179,12 @@ async function probeSurface(object) {
     const parsed = JSON.parse(text);
     if (Array.isArray(parsed)) rows = parsed.length;
   } catch { /* not an array */ }
-  return { kind: "rpc", status: r.status, rows, body: text.slice(0, 200) };
+  // If neither endpoint gave a definitive answer, say so with BOTH statuses —
+  // "rpc 504" alone would hide that the table probe was the one that timed out.
+  const body = DEFINITIVE(r.status)
+    ? text.slice(0, 200)
+    : `table probe ${view.status}, rpc probe ${r.status}: ${text.slice(0, 150)}`;
+  return { kind: "rpc", status: r.status, rows, body };
 }
 
 const failures = [];

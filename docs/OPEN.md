@@ -578,9 +578,11 @@ Two follow-ups worth keeping:
       page reached exactly this state on 2026-09-11 via the fixture bug. Proved
       by stashing the guard: the new test fails `expected 'Invalid Date' to be
       null` without it, 20/20 green with it.
-- [ ] `zz-tmp-state-matrix.spec.ts` mocks only two RPCs, so any RPC-backed tab
-      will always show its error state in that sweep. Any future finding from it
-      must be reproduced live before being believed.
+- [x] **`zz-tmp-state-matrix.spec.ts` DELETED** along with the other three temp
+      sweep specs. It mocked only two RPCs, so any RPC-backed tab always showed
+      its error state in it — which is how it manufactured the analytics
+      "defect". A spec that produces confident, empty evidence is worse than no
+      spec.
 
 
 ## New, from the data-freshness lane (2026-09-11)

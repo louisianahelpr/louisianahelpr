@@ -515,7 +515,29 @@ export function useDashboardData() {
     // pull-to-refresh — both far cheaper than an all-pages poll.
   });
 
-  // Pro tier — separate lightweight query so it doesn't block dashboard
+  // Pro tier.
+  //
+  // `check-pro-subscription` is an edge function that talks to Stripe, and it
+  // is the slowest request on this screen by a wide margin: 893ms measured
+  // against prod on 2026-09-11, landing ~570ms after everything else on the
+  // Dashboard. That is the entire reason the membership chip pops in late.
+  //
+  // The fix is that it should never have been the RENDER path. The tier is
+  // already a column — `profiles.subscription_tier` + `subscription_expires_at`,
+  // which this very function is what writes and clears (it grants on an active
+  // Stripe sub, honours a still-valid one-time pass, and nulls both otherwise).
+  // So the column IS the function's own answer, one Stripe round trip stale.
+  // We render from Postgres immediately (~0ms — `profile` is already loaded
+  // for this screen, no extra request) and let the Stripe call revalidate in
+  // the background; when it disagrees, the real answer replaces the placeholder.
+  //
+  // `resolveEarlyAccessTier` is the shared expiry resolver (null expiry =
+  // active, expired = free), NOT a second hand-rolled copy of the rule — the
+  // CLAUDE.md lapsed-subscription lesson is exactly that folding expiry in by
+  // hand in one place and not another is how the two layers disagree.
+  //
+  // Placeholder only, never a cache write: a placeholder can't satisfy the
+  // query, so the revalidation still runs every time.
   const { data: proData } = useQuery({
     queryKey: queryKeys.dashboard.proTier(user?.id),
     queryFn: async () => {
@@ -526,6 +548,12 @@ export function useDashboardData() {
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
+    // Safe to persist: a tier is a label, not a gate. Every place that spends
+    // money off it (fee percent, early access) recomputes from the profile
+    // columns + the server, not from this string. See queryPersister.ts.
+    gcTime: PERSIST_MAX_AGE_MS,
+    placeholderData: () =>
+      resolveEarlyAccessTier(profile?.subscription_tier, profile?.subscription_expires_at),
   });
 
   // Flatten loaded pages into a single array for downstream filtering/sorting.

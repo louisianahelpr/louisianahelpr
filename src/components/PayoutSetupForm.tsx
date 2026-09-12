@@ -17,24 +17,15 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { getPublicReturnUrl } from "@/lib/authRedirects";
 import { queryKeys } from "@/lib/queryKeys";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import {
+  fetchPayoutMethods,
+  fetchPayoutStatus,
+  payoutMethodsQueryOptions,
+  payoutStatusQueryOptions,
+  type PayoutAccountStatus,
+  type PayoutMethod,
+} from "@/lib/payoutSetupQueries";
 import { requireBiometric } from "@/lib/biometricGate";
-
-type PayoutMethod = {
-  id: string;
-  type: string;
-  last4: string;
-  bank_name: string | null;
-  brand: string | null;
-  default_for_currency: boolean;
-};
-
-type AccountStatus = {
-  connected: boolean;
-  details_submitted: boolean;
-  payouts_enabled: boolean;
-  transfers_status: string;
-  requirements: string[];
-};
 
 export function PayoutSetupForm() {
   const qc = useQueryClient();
@@ -45,48 +36,22 @@ export function PayoutSetupForm() {
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
-  // A failed status check THROWS rather than resolving to null. Resolving
-  // null made a transient stripe-connect failure indistinguishable from a
-  // brand-new account, so a fully connected helper could open this form and
-  // be told "Connect to start earning". The error renders its own "we
-  // couldn't check" state below — same honesty rule as PayoutStatusRow.
-  const statusQuery = useQuery<AccountStatus | null>({
+  // Both fetchers + their persistence policy live in src/lib/payoutSetupQueries.ts
+  // so `usePrefetchUserData` can warm these exact keys from the Dashboard's idle
+  // window — these are the slowest class of request in the app (edge fn → Stripe,
+  // 395ms measured against prod) and the only real fix is to not start them here.
+  const statusQuery = useQuery<PayoutAccountStatus | null>({
     queryKey: queryKeys.payoutSetup.status(userId),
-    queryFn: async () => {
-      try {
-        const res = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
-        if (res.error) throw res.error;
-        return res.data || null;
-      } catch (err: unknown) {
-        report(err, { tags: { source: "PayoutSetupForm.status" } });
-        throw err;
-      }
-    },
+    queryFn: fetchPayoutStatus,
     enabled: !!userId,
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
+    ...payoutStatusQueryOptions,
   });
 
   const methodsQuery = useQuery<PayoutMethod[]>({
     queryKey: queryKeys.payoutSetup.methods(userId),
-    queryFn: async () => {
-      try {
-        const res = await supabase.functions.invoke("stripe-connect", { body: { action: "list_payout_methods" } });
-        if (res.error) {
-          // Methods are additive detail — degrade to an empty list, but
-          // never silently (CLAUDE.md: never drop the Supabase error).
-          report(res.error, { tags: { source: "PayoutSetupForm.methods" } });
-          return [];
-        }
-        return res.data?.methods || [];
-      } catch (err: unknown) {
-        report(err, { tags: { source: "PayoutSetupForm.methods" } });
-        return [];
-      }
-    },
+    queryFn: fetchPayoutMethods,
     enabled: !!userId,
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
+    ...payoutMethodsQueryOptions,
   });
 
   const status = statusQuery.data ?? null;

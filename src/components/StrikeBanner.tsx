@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/queryKeys";
 import { useBannerContribution, useSetBannerContribution } from "@/lib/offlineBannerLayout";
 import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -7,37 +9,49 @@ import { formatTimestamp } from "@/lib/format";
 import { report } from "@/lib/errorLogger";
 
 export default function StrikeBanner() {
-  const [status, setStatus] = useState<{
-    ban_status: string | null;
-    auto_suspended_until: string | null;
-  } | null>(null);
+  // The signed-in user's id, tracked off the auth stream exactly as before —
+  // but the READ is now a keyed query rather than a fetch fired from the
+  // effect. It used to fire once from getSession() and again from every
+  // onAuthStateChange event (INITIAL_SESSION, TOKEN_REFRESHED, …), so
+  // `profiles?select=ban_status` went out two or three times per session with
+  // nothing to dedupe it. One key, one request, shared with any future reader.
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    const load = async (userId: string) => {
-      if (cancelled) return;
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("ban_status, auto_suspended_until")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (cancelled) return;
-      if (error) {
-        console.error("[StrikeBanner] failed to load ban status:", error);
-        report(error, { severity: "warning", tags: { source: "StrikeBanner.load" } });
-        return;
-      }
-      if (data) setStatus(data);
-    };
     void supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user.id) void load(session.user.id);
+      if (!cancelled) setUserId(session?.user.id ?? null);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user.id) void load(session.user.id);
-      else setStatus(null);
+      setUserId(session?.user.id ?? null);
     });
     return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, []);
+
+  const { data: status = null } = useQuery({
+    queryKey: queryKeys.banStatus.byUser(userId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("ban_status, auto_suspended_until")
+        .eq("user_id", userId as string)
+        .maybeSingle();
+      if (error) {
+        console.error("[StrikeBanner] failed to load ban status:", error);
+        report(error, { severity: "warning", tags: { source: "StrikeBanner.load" } });
+        throw error;
+      }
+      return data ?? null;
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+    // NEVER persisted, and deliberately short-lived. This is enforcement
+    // state: a ban applied while the app was closed must not be papered over
+    // by a rehydrated "active" from yesterday's IndexedDB snapshot. Same
+    // reason escrow/payment_status and idv_status stay off disk.
+    gcTime: 60_000,
+    meta: { persist: false },
+  });
 
   // Reserve space for this banner the way OfflineBanner does, or every
   // fixed-shell page header (title card, back arrow, filter row) renders

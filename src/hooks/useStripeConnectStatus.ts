@@ -1,8 +1,12 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
+import { queryKeys } from "@/lib/queryKeys";
+import {
+  fetchPayoutStatus,
+  payoutStatusQueryOptions,
+  type PayoutAccountStatus,
+} from "@/lib/payoutSetupQueries";
 import { safeStorage } from "@/lib/safeStorage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -59,9 +63,23 @@ function readLastKnown(userId: string | undefined): boolean | null {
   return raw === "1" ? true : raw === "0" ? false : null;
 }
 
-/** Query key — same `["profile", userId, <section>]` family as useProfileTabData. */
+/**
+ * Query key — deliberately THE SAME KEY `PayoutSetupForm` reads.
+ *
+ * It used to be `["profile", userId, "stripe-connect-status"]`, a second,
+ * private key over the identical request: `stripe-connect { action: "status" }`,
+ * measured at 444ms median against prod because it is an edge function making a
+ * live Stripe call. Two keys meant /profile asked Stripe the same question
+ * twice — once for the landing's payout banner, once for the payout form — and
+ * React Query cannot dedupe what it cannot see is the same query. One key, one
+ * round trip, and the Dashboard's idle prefetch now warms BOTH consumers.
+ *
+ * The cached VALUE is the full `PayoutAccountStatus` (the form needs
+ * `requirements` / `transfers_status`); this hook narrows it per-observer via
+ * `select`, which never writes back to the cache.
+ */
 export const stripeConnectStatusKey = (userId: string) =>
-  ["profile", userId, "stripe-connect-status"] as const;
+  queryKeys.payoutSetup.status(userId);
 
 /**
  * The signed-in user's Stripe Connect payout status, for the Profile landing.
@@ -104,40 +122,44 @@ export function useStripeConnectStatus(): StripeConnectStatusResult {
   // slot after the real answer had already settled the layout.
   const lastKnownPayoutsEnabled = useMemo(() => readLastKnown(userId), [userId]);
 
-  const { data, isError, refetch } = useQuery<StripeConnectStatus>({
+  const { data, isError, refetch } = useQuery<PayoutAccountStatus | null, Error, StripeConnectStatus>({
     queryKey: stripeConnectStatusKey(userId ?? ""),
     enabled: !!userId && approved,
-    // Payout status changes only when the user acts (finishing onboarding,
-    // Stripe completing verification). Five minutes of staleness is invisible,
-    // and the two moments it could actually change — leaving the Payment tab,
-    // pull-to-refresh — invalidate this key explicitly in Profile.tsx.
-    staleTime: 5 * 60_000,
-    queryFn: async (): Promise<StripeConnectStatus> => {
-      try {
-        const raw = unwrap(
-          await supabase.functions.invoke<StripeConnectStatus>("stripe-connect", {
-            body: { action: "status" },
-          }),
-        );
-        if (!raw || typeof raw.payouts_enabled !== "boolean") {
-          throw new Error("stripe-connect status returned an unexpected shape");
-        }
-        const status: StripeConnectStatus = {
-          connected: !!raw.connected,
-          details_submitted: !!raw.details_submitted,
-          payouts_enabled: !!raw.payouts_enabled,
-        };
-        if (userId) safeStorage.setItem(lastKnownKey(userId), status.payouts_enabled ? "1" : "0");
-        return status;
-      } catch (err) {
-        report(err, {
-          severity: "warning",
-          tags: { area: "profile", action: "stripe-connect-status" },
-        });
+    queryFn: fetchPayoutStatus,
+    // staleTime / gcTime / the never-persist policy all live with the fetcher
+    // in payoutSetupQueries.ts — one place, so the two consumers of this key
+    // cannot drift into disagreeing about how long a payout answer is good for.
+    ...payoutStatusQueryOptions,
+    // Narrow to the three booleans this screen renders. `select` runs per
+    // observer and does NOT write to the cache, so PayoutSetupForm still reads
+    // the full object off the same key.
+    select: (raw): StripeConnectStatus => {
+      if (!raw || typeof raw.payouts_enabled !== "boolean") {
+        // Reported here, not swallowed: a malformed answer renders the same
+        // `error` prompt as a failed call, and if it were silent a broken
+        // edge-function deploy would look to us exactly like a healthy one.
+        // (The transport-level failure is reported by `fetchPayoutStatus`.)
+        const err = new Error("stripe-connect status returned an unexpected shape");
+        report(err, { severity: "warning", tags: { area: "profile", action: "stripe-connect-status" } });
         throw err;
       }
+      return {
+        connected: !!raw.connected,
+        details_submitted: !!raw.details_submitted,
+        payouts_enabled: !!raw.payouts_enabled,
+      };
     },
   });
+
+  // The last-known bit is written from the RESULT rather than from inside the
+  // queryFn: the fetch is now shared with PayoutSetupForm (and warmed by the
+  // Dashboard prefetch), so a queryFn side effect would fire for callers that
+  // have nothing to do with this banner — or not at all, when the answer comes
+  // from the cache. An effect fires exactly when this hook has an answer.
+  useEffect(() => {
+    if (!userId || !data) return;
+    safeStorage.setItem(lastKnownKey(userId), data.payouts_enabled ? "1" : "0");
+  }, [userId, data]);
 
   const payoutPrompt = useMemo<PayoutPrompt>(() => {
     if (!userId || !approved) return { kind: "none" };

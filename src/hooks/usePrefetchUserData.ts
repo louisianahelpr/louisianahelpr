@@ -4,6 +4,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { fetchReferralData } from "@/hooks/useReferralData";
 import { prefetchActivityCores } from "@/hooks/useActivityData";
 import { prefetchRoute } from "@/lib/routePrefetch";
+import { prefetchPayoutSetup } from "@/lib/payoutSetupQueries";
 
 /**
  * Warm caches for the screens a Dashboard user is most likely to tap next:
@@ -42,6 +43,13 @@ export function usePrefetchUserData(userId: string | undefined) {
       prefetchRoute("/my-posts");
       prefetchRoute("/my-jobs");
       prefetchRoute("/profile");
+      // The SLOW class. Everything above is PostgREST/RPC (~110ms); these two
+      // are edge fn → Stripe (395ms measured against prod) and are the whole
+      // reason /profile's payout card lands visibly after the rest of the
+      // screen. Warming them here spends that 395ms while the user is still
+      // looking at the Dashboard. Nothing else in the app warmed a
+      // Stripe-class query — this is the pattern the next one should copy.
+      prefetchPayoutSetup(queryClient, userId);
     });
   }, [userId, queryClient]);
 }

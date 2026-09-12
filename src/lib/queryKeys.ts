@@ -64,6 +64,17 @@ export const queryKeys = {
     appliedDetail: (userId: string, inputs: unknown) =>
       ["activity", "appliedDetail", userId, inputs] as const,
   },
+  /**
+   * Ban / auto-suspension status for the signed-in user. One key so the three
+   * reads StrikeBanner used to issue per session (getSession, then again on
+   * every onAuthStateChange event) collapse into one.
+   *
+   * NEVER persisted — see the `meta.persist: false` on the query. A banned
+   * user rehydrating a 24h-old "active" from IndexedDB is a trust failure.
+   */
+  banStatus: {
+    byUser: (userId: string | undefined | null) => ["ban-status", userId] as const,
+  },
   referral: {
     all: ["referral"] as const,
     byUser: (userId: string) => ["referral", userId] as const,

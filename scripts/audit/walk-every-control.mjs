@@ -73,6 +73,14 @@ for (const theme of THEMES) {
         if (r.status() >= 400) netFails.push(`${r.status()} ${r.request().method()} ${r.url().split("?")[0].split("/").slice(-2).join("/")}`);
       });
 
+      // NEW TABS ARE NOT "opens elsewhere" — they're a screen this harness
+      // used to never load. window.open()/target=_blank pop a `popup` event;
+      // catch every one so a click that opens a tab still gets its
+      // destination checked, even for controls this walk doesn't special-case
+      // below (a JS-driven window.open, not a plain <a target="_blank">).
+      const popups = [];
+      page.on("popup", (p) => popups.push(p));
+
       const rec = { route, width, theme, controls: [], findings: [] };
       try {
         await page.goto(BASE + route, { waitUntil: "domcontentloaded", timeout: 45_000 });
@@ -308,6 +316,54 @@ for (const theme of THEMES) {
             } catch { /* not a link */ }
             if (selfLink) { rec.controls.push({ label, result: "self-link (no-op expected)" }); continue; }
 
+            // NEW-TAB LINKS: the owner clicked /terms, /rules and /privacy
+            // from the consent checkbox on /complete-profile and got a
+            // broken boundary screen this walk had never opened, because
+            // clicking a target="_blank" anchor spawns a SEPARATE tab this
+            // loop never followed — "changed" would read as "opened a
+            // dialog"/nothing on the ORIGINAL page, and the real defect (the
+            // new tab itself) went unchecked. Don't click these at all: open
+            // the href directly in a fresh page in the same context, which
+            // gets the exact same result a real click would, without ever
+            // touching the page this loop is mid-walk on.
+            const blankInfo = await target
+              .evaluate((el) => {
+                if (el.tagName !== "A" || el.getAttribute("target") !== "_blank") return null;
+                const href = el.getAttribute("href");
+                if (!href) return null;
+                try {
+                  const u = new URL(href, location.href);
+                  if (u.origin !== location.origin) return null;
+                  return u.pathname + u.search;
+                } catch { return null; }
+              })
+              .catch(() => null);
+            if (blankInfo) {
+              const dest = await ctx.newPage();
+              let reason = null;
+              try {
+                await dest.goto(BASE + blankInfo, { waitUntil: "domcontentloaded", timeout: 30_000 });
+                await dest.waitForTimeout(2500);
+                const text = (await dest.locator("body").innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+                if (/This page hit a problem|Something went sideways|Couldn't load|Update ready/i.test(text)) {
+                  reason = `error boundary: ${text.slice(0, 80)}`;
+                } else if (text.length < 40) {
+                  reason = `blank (${text.length} chars)`;
+                }
+              } catch (e) {
+                reason = `failed to load: ${String(e.message).slice(0, 80)}`;
+              } finally {
+                await dest.close();
+              }
+              if (reason) {
+                rec.controls.push({ label, result: "NEW-TAB LINK BROKEN", why: reason });
+                rec.findings.push(`NEW-TAB LINK BROKEN: "${label}" → ${blankInfo}: ${reason}`);
+              } else {
+                rec.controls.push({ label, result: "new-tab destination renders" });
+              }
+              continue;
+            }
+
             // A STRUCTURAL fingerprint, not just a character count. Text
             // length alone reported "NOTHING HAPPENED" for the dashboard's
             // Search button, which actually swaps the whole header row for a
@@ -352,9 +408,40 @@ for (const theme of THEMES) {
               // beside them was still settling, so Playwright's stability check
               // kept timing out. A harness that calls a working control broken
               // costs more than one that is slightly slower.
+              const popupsBefore = popups.length;
               await target.scrollIntoViewIfNeeded({ timeout: 2500 }).catch(() => {});
               await target.click({ timeout: 8000 });
               await page.waitForTimeout(700);
+              // A window.open() control (not a plain target="_blank" anchor,
+              // already handled above) — the click just spawned a real new
+              // tab. Same gate: this is the exact screen the owner hit that
+              // no audit had opened, so check whatever rendered in it.
+              for (const popup of popups.slice(popupsBefore)) {
+                // Only our own screens. Stripe, Maps and mail links open other
+                // origins whose pages this harness has no business judging.
+                await popup.waitForLoadState("commit", { timeout: 15_000 }).catch(() => {});
+                if (!popup.url().startsWith(BASE)) { await popup.close().catch(() => {}); continue; }
+                let reason = null;
+                try {
+                  await popup.waitForLoadState("domcontentloaded", { timeout: 15_000 }).catch(() => {});
+                  await popup.waitForTimeout(2500);
+                  const text = (await popup.locator("body").innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+                  if (/This page hit a problem|Something went sideways|Couldn't load|Update ready/i.test(text)) {
+                    reason = `error boundary: ${text.slice(0, 80)}`;
+                  } else if (text.length < 40) {
+                    reason = `blank (${text.length} chars)`;
+                  }
+                } catch (e) {
+                  reason = `failed to load: ${String(e.message).slice(0, 80)}`;
+                } finally {
+                  await popup.close().catch(() => {});
+                }
+                if (reason) {
+                  rec.findings.push(`NEW-TAB LINK BROKEN: "${label}" → ${popup.url()}: ${reason}`);
+                } else {
+                  rec.controls.push({ label: `${label} (popup)`, result: "new-tab destination renders" });
+                }
+              }
             } catch (e) {
               why = String(e.message).replace(/\s+/g, " ").slice(0, 400);
               rec.controls.push({ label, result: "NOT CLICKABLE", why });

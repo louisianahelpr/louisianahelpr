@@ -343,18 +343,27 @@ for (const width of [320, 375, 1440]) {
     await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Get started" })).toBeVisible();
 
-    // The guest brand row carries the SAME Search + Filters cluster as the
-    // authed Home. This used to assert the opposite: Search and Filters were
-    // pulled from the guest surface in August (owner: they "take up too much
-    // space at the top"), which left /browse mounting every filter and the map
-    // with no control that could open any of them. The owner reversed it on
-    // 2026-09-07 ("/browse can have the filters", c7bce404e), and this spec
-    // kept the suite red for two days asserting the decision it replaced.
+    // NO Search and NO Filters on the guest surface. This assertion has now
+    // been flipped twice, so the history matters more than the assertion:
+    //
+    //   Aug 2026  — pulled from the guest surface (owner: they "take up too
+    //               much space at the top").
+    //   2026-09-07 — owner reversed it ("/browse can have the filters",
+    //               c7bce404e) and this spec was updated to require them.
+    //   2026-09-11 — removed again (8321d4344) because guest /browse and the
+    //               native app are ONE surface and diverging them would give
+    //               the phone-sized website a control the app does not have.
+    //               Owner CONFIRMED this directly when asked, choosing "keep
+    //               them off, update the test" over restoring them. That ruling
+    //               SUPERSEDES 2026-09-07.
+    //
+    // So do not flip this back on the strength of the c7bce404e commit message
+    // alone — it is the older decision. Ask first.
     for (const name of ACTION_ICON_NAMES) {
       await expect(
         page.getByRole("button", { name }).first(),
-        `guest brand row must carry ${name} @ ${width}`,
-      ).toBeVisible();
+        `guest brand row must NOT carry ${name} @ ${width} — removed 2026-09-11, owner-confirmed`,
+      ).toBeHidden();
     }
 
     // The inline List/Map toggle is GONE, and that is deliberate (owner,

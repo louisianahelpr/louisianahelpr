@@ -27,6 +27,7 @@ interface MapKitGeocoder {
 interface MapKitMapInstance {
   region: unknown;
   addAnnotation: (annotation: unknown) => void;
+  addOverlay: (overlay: unknown) => void;
   destroy?: () => void;
 }
 interface MapKitRuntime {
@@ -35,9 +36,38 @@ interface MapKitRuntime {
   CoordinateSpan: new (latDelta: number, lngDelta: number) => unknown;
   CoordinateRegion: new (center: unknown, span: unknown) => unknown;
   Map: new (el: HTMLElement, options: Record<string, unknown>) => MapKitMapInstance;
-  MarkerAnnotation?: new (coord: unknown, options: { color: string }) => unknown;
+  CircleOverlay?: new (coord: unknown, radius: number, options?: Record<string, unknown>) => unknown;
+  Style?: new (options: Record<string, unknown>) => unknown;
   FeatureVisibility?: { Hidden?: unknown };
 }
+
+/**
+ * APPROXIMATE AREA, NEVER THE DOORSTEP.
+ *
+ * This preview used to geocode the job's full address and drop a precise
+ * MarkerAnnotation on it, so anyone who could open a job could read the
+ * poster's exact street address off the map — before being hired, before any
+ * vetting, from a public-ish surface. The owner reported it three times in one
+ * day before it was fixed. It is a safety problem, not a cosmetic one.
+ *
+ * The mask is the SAME rule the database already applies: `open_jobs_browse`
+ * rounds `latitude`/`longitude` to 2 decimal places (migration 20260903031231),
+ * ~1.1km. Reusing that number rather than inventing a second one means the map
+ * cannot be more precise than the feed, and there is one definition of "roughly
+ * where" in the product.
+ *
+ * ROUNDING, not random jitter, and that is the security-relevant part: a random
+ * offset re-rolled on each render can be averaged away by loading the same job
+ * repeatedly, which recovers the true point. Rounding is deterministic — every
+ * viewer, every load, forever, sees the same cell, and there is nothing to
+ * average.
+ *
+ * The circle is drawn at 1.1km to match the cell the centre was rounded into,
+ * so the true address is somewhere inside the shape rather than at its middle.
+ */
+const MASK_DECIMALS = 2;
+const MASK_RADIUS_M = 1100;
+const maskCoordinate = (v: number) => Math.round(v * 10 ** MASK_DECIMALS) / 10 ** MASK_DECIMALS;
 
 /**
  * JobLocationPreview — an inline, non-interactive Apple MapKit pin for a
@@ -112,7 +142,9 @@ export function JobLocationPreview({ address }: { address: string }) {
           setGeocodeFailed(true);
           return;
         }
-        setResolved({ lat: coord.latitude, lng: coord.longitude });
+        // Masked at the point of capture, so the exact pair is never held in
+        // component state and cannot leak through a later change here.
+        setResolved({ lat: maskCoordinate(coord.latitude), lng: maskCoordinate(coord.longitude) });
       });
     } catch {
       setGeocodeFailed(true);
@@ -125,7 +157,9 @@ export function JobLocationPreview({ address }: { address: string }) {
     const mk = window.mapkit as unknown as MapKitRuntime;
     try {
       const center = new mk.Coordinate(resolved.lat, resolved.lng);
-      const span = new mk.CoordinateSpan(0.01, 0.01);
+      // Wide enough to hold the whole masked circle with margin. The old
+      // 0.01 span framed a single address tightly, which is its own tell.
+      const span = new mk.CoordinateSpan(0.035, 0.035);
       const region = new mk.CoordinateRegion(center, span);
       mapRef.current = new mk.Map(containerRef.current, {
         region,
@@ -140,9 +174,26 @@ export function JobLocationPreview({ address }: { address: string }) {
         isScrollEnabled: true,
         isRotationEnabled: false,
       });
-      const Annotation = mk.MarkerAnnotation;
-      if (Annotation) {
-        mapRef.current.addAnnotation(new Annotation(center, { color: resolveToken("--burnt-sienna", "#A65A40") }));
+      // A CIRCLE, NOT A PIN. A pin says "here"; this map is only entitled to
+      // say "around here". If the runtime has no CircleOverlay we draw nothing
+      // rather than falling back to the marker — showing the exact point is
+      // the failure this exists to prevent, so the safe degradation is an
+      // unannotated map, not a precise one.
+      const Circle = mk.CircleOverlay;
+      if (Circle) {
+        const tint = resolveToken("--burnt-sienna", "#A65A40");
+        const StyleCtor = mk.Style;
+        mapRef.current.addOverlay(
+          new Circle(center, MASK_RADIUS_M, StyleCtor ? {
+            style: new StyleCtor({
+              fillColor: tint,
+              fillOpacity: 0.16,
+              strokeColor: tint,
+              strokeOpacity: 0.55,
+              lineWidth: 1.5,
+            }),
+          } : undefined),
+        );
       }
     } catch {
       setGeocodeFailed(true);

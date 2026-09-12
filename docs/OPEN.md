@@ -209,3 +209,16 @@ the other three. #2 is already logged separately as redundant with #1.
 
 This is the class the owner keeps pointing at: the same fact hand-drawn per
 surface. Same disease as the job card (three copies) and the price pill (10+).
+- Profile: remove the white card behind the 'Finish setting up' payout banner (ProfileLanding, Profile.tsx:608) — the banner already has its own sienna-tinted surface; the liquid-glass box behind it is a second boundary. (owner, 2026-09-11)
+- Reviews empty state: fix spacing — the 5-star illustration sits too close/tight above 'No reviews yet' (EmptyStateIllustration.tsx:37, EmptyReviews). Its viewBox is cropped ('2 34 116 26') so the glyph's own bounds don't match its visual weight. (owner, 2026-09-11)
+
+## Shells leave a gap on the left and right — fix GLOBALLY
+Owner, 2026-09-11: "on all these there shouldnot be a gap on the left or right
+it needs to fill the space it stead rn ots showing like a small shadow look. so
+fix these shells globally".
+
+Seen on /profile?tab=availability: `AppShell` → `container mx-auto px-5 lg:px-8
+xl:px-12` → `page-measure mx-auto`. The inner card stops short of the frame on
+both sides, so the page reads as a narrow sheet floating on a wider surface
+rather than filling it. This is the SHELL, so it affects every AppShell page —
+fix once in the shell, never per page.

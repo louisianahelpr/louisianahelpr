@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import AppShell from "@/components/AppShell";
+import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 
 /**
  * Shell wrapper for the chat surface. Standalone (mobile/native) it owns
@@ -28,6 +29,26 @@ export function ChatPaneShell({
   header?: ReactNode;
   children: ReactNode;
 }) {
+  // WHERE THE CHAT HEADER GOES DEPENDS ON WHETHER THE PAGE ALREADY HAS A TOP
+  // BAR, and that is a CSS fact, not a preference. On `html.web-desktop
+  // .app-shell`, index.css promotes `.app-shell-header` to
+  // `position: fixed; top: 0; left: 0; right: 0` so it spans the whole
+  // viewport above the sidebar rail — correct for a page whose own header IS
+  // the top bar, and wrong here, because the desktop website also renders
+  // DesktopTopNav in exactly that band. Handing the chat header to AppShell's
+  // slot on desktop therefore parked it underneath the app's nav: the thread
+  // rendered with no back button and no name (owner: "where is the rest of
+  // the message info? back button? name? wtf"). That regressed the moment the
+  // desktop two-pane split was removed, because until then this branch never
+  // ran on desktop.
+  //
+  // So on desktop the header renders INLINE, as the first child of the column,
+  // beneath the nav that already exists. On phone/native — where there is no
+  // DesktopTopNav and the chat legitimately replaces the app chrome — it stays
+  // in AppShell's slot, pinned while the thread scrolls under it.
+  const isWebDesktop = useIsWebDesktop();
+  const headerInSlot = isWebDesktop ? undefined : header;
+
   if (embedded) {
     // Desktop two-pane: the chat header belongs inside the pane, above the
     // thread. No safe-area concerns — it isn't against the status bar.
@@ -49,13 +70,14 @@ export function ChatPaneShell({
       </div>
     );
   }
+
   return (
     // Fixed-viewport lock comes from AppShell, the single shell primitive.
     // `scrollable={false}` because the chat body manages its own scroll
     // (chatContainerRef); the message input bleeds to the safe-area bottom
     // rather than reserving dock space.
     <AppShell
-      header={header}
+      header={headerInSlot}
       scrollable={false}
       reserveBottomNav={false}
       className="bg-premium-page"
@@ -67,6 +89,7 @@ export function ChatPaneShell({
           message bubbles. Change one, change both. */}
       <div className="container mx-auto px-5 lg:px-8 xl:px-12 [--chat-gutter:1.25rem] lg:[--chat-gutter:2rem] xl:[--chat-gutter:3rem] pt-0 flex-1 min-h-0 flex flex-col">
         <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col">
+          {isWebDesktop ? header : null}
           {children}
         </div>
       </div>

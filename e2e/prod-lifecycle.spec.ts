@@ -1079,7 +1079,19 @@ test.describe("full money loop against production", () => {
     // or a later PATCH could have changed them mid-loop.
     const final = await readJob(request, poster, job.id);
     expect(final.parish, "parish became non-null during the run").toBeNull();
-    expect(final.is_seed, "nothing in the loop should have been able to set is_seed").toBe(false);
+    // UNCHANGED, not false. This line predates 20260908015405, when the column
+    // lock stopped hardcoding `is_seed := false` and began DERIVING it from the
+    // posting account. The insert-time check above was updated to match — it
+    // asserts the flag equals `profiles.is_seed`, which is true for these
+    // @mailinator.com fixture accounts — but this after-the-fact re-assertion
+    // was not, so it demanded `false` for a job the database had correctly
+    // flagged `true` from the moment it was created. On 2026-09-12 that was the
+    // ONLY failure in a run that had posted, funded through Stripe test
+    // checkout, hired, confirmed arrival, uploaded both photos, completed,
+    // released and reviewed. The claim this line exists to make is "nothing in
+    // the loop could CHANGE is_seed", so it is compared against the value the
+    // job was created with.
+    expect(final.is_seed, "nothing in the loop should have been able to change is_seed").toBe(posterRow.is_seed);
 
     // And the thing that matters most: this job never became publicly visible.
     const anonBrowse = await request.get(

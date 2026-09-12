@@ -1559,9 +1559,9 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 
 ## Working forwards — owner, 2026-09-12: "all 6 need to happen"
 
-- [ ] **Lint for root-cause patterns at write time.** Unlayered global element rules that override utilities, hand-set button heights instead of Button sizes, new-tab links to redirecting routes.
+- [ ] **Lint for root-cause patterns at write time.** PART DONE 53440856f: `local/no-button-height-override` (76 legacy hits / 38 files on a shrink-only ledger, test shown red). Still to add: unlayered global element rules, new-tab links to redirecting routes. Unlayered global element rules that override utilities, hand-set button heights instead of Button sizes, new-tab links to redirecting routes.
 - [ ] **Changed-screen checks before push.** Button geometry, new-tab and press-every-control run on the routes a diff touches, locally, in under a minute.
-- [ ] **Owner reports become failing tests first.** Selected element + route → a failing spec, then the fix.
+- [ ] **Owner reports become failing tests first.** Scaffolder shipped 55ba5a461 (`npm run repro`). Open: browser proof a generated spec runs and fails (waits for browser queue). Selected element + route → a failing spec, then the fix.
 - [ ] **One open-work list.** Fold the audit-bus ledger, handoff memories and agent reports into this file, each item linked to the check that guards it.
 - [ ] **Automatic browser lock + per-worktree test ports.** No manual pausing of agents; no port-4173 collisions.
 - [ ] **Nightly WebKit + real-backend run** of the sweeps, not only Chromium on mocks.

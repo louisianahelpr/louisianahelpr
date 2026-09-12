@@ -1124,3 +1124,75 @@ should stay.
 Systemic check done, not assumed: yours is the ONLY profile whose `avatar_url`
 points at a non-public bucket. Every other row uses `avatars` or the brand-asset
 function.
+
+## The night's audit — infrastructure, and what it has found so far
+
+**`scripts/audit/walk-every-control.mjs`** — the answer to "you just looked and
+didn't make sure anything worked". It signs in with a real prod session, waits
+for content rather than photographing skeletons, records layout facts, then
+presses EVERY button, link, tab, toggle and checkbox and records what actually
+changed: the URL, a dialog, the controls, the fields, the toggle state, the
+console.
+
+**It took six rounds to make it trustworthy, and that is the point.** Every one
+of these was the harness accusing working code:
+- held element handles across clicks, so a re-render detached them → reported
+  the notifications bell unclickable;
+- measured change by text length alone → reported the dashboard's Search dead,
+  when it swaps the whole header for a field (517 chars → 514);
+- counted any card inside a card → reported the documented two-card shell's
+  17px-inset job cards, 4-6 per dashboard;
+- took a minimum over four edge gaps → reported the tinted "Lafayette" location
+  chips as nested cards, 8 per screen;
+- reported `sr-only` controls unclickable — they are clipped to a pixel ON
+  PURPOSE, for screen readers;
+- reported the whole bottom nav on /messages unclickable, because opening a
+  thread hides the dock and the labels were captured on load;
+- reported already-active tabs dead ("Home" on /dashboard, "Posts" on
+  /my-posts, "Messages" on /messages, "Terms" on legal);
+- could not see toggle state, so "Copy Mon to all" looked dead.
+A harness that calls working controls broken spends the night's attention on
+itself. **Every finding below was reproduced by hand before being believed.**
+
+### Confirmed and FIXED
+- [x] **Tapping Search on /dashboard left the field unfocused** (bfadf5460).
+      The header swapped to a search box and `document.activeElement` stayed on
+      BODY, so on a phone the keyboard never came up and you had to tap again —
+      two taps for one intent on the primary surface. Fixed for the standalone
+      header form ONLY; the copy embedded in the filter sheet still does not
+      autofocus, deliberately, because that sheet is opened by a sort/category
+      control and focusing threw the keyboard over the chips. Verified both in
+      Chrome.
+
+### Confirmed NOT defects (evidence both ways, so they stop being re-reported)
+- **"Copy Mon to all" on the availability tab works.** It reported dead under
+  the test account because all seven of that account's days are ALREADY an
+  identical 09:00–17:00 — so the copy legitimately changes nothing. Driven on an
+  account where a day differed, it flips that day on (`aria-checked` false →
+  true). Not a defect; the data was uniform.
+- **`/`, `/browse`, `/complete-profile`, `/account-*`, `/admin` report the
+  dashboard's controls** because they REDIRECT for a signed-in approved
+  non-admin. Expected.
+
+### The two-account journey — `scripts/audit/two-account-journey.mjs`
+9 of 10 steps pass. It proves: both sessions are really signed in; each account
+can read its own profile under RLS; **the helper CANNOT read the poster's email**;
+the browse feed answers; and it cleans up its own rows.
+
+Two corrections to my own test, not the app:
+- It first reported an RLS failure on a message the helper could not read. The
+  thread's counterparty was the OWNER, not the helper, so **RLS was right and
+  the assertion was wrong.** (That run also put a test message in the owner's
+  real inbox; it has been deleted, and the script now cleans up.)
+- A completed job's thread offers no composer via `/messages?jobId=…` because a
+  conversation is built FROM messages — a job with none has no thread to open.
+  The real entry point is the job card's Message action. Not yet driven.
+
+- [ ] **THE MONEY LOOP IS NOT COVERED, and that is a deliberate gap.** Funding,
+      release and refund were all skipped. The Stripe key the edge functions
+      actually use cannot be read, `scripts/e2e/stripe-sandbox-on.sh` is
+      owner-run, and the Stripe account exposes a LIVE context — so driving a
+      payment could charge a real card. **Owner: run the sandbox script and I
+      will drive post → fund → apply → hire → complete → release → review end to
+      end.** Until then, escrow, payout and refund remain proven only by the CI
+      spec's own history, not by anything I ran tonight.

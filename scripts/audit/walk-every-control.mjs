@@ -245,6 +245,15 @@ for (const theme of THEMES) {
               .catch(() => false);
             if (active) { rec.controls.push({ label, result: "already the active tab/route (no-op expected)" }); continue; }
 
+            // A DISABLED control is meant to be inert. "Continue to Checkout"
+            // on /gift-card is disabled until a recipient and an amount exist,
+            // which is correct; clicking it and reporting the timeout as
+            // UNCLICKABLE turns a working guard into a defect report.
+            const isDisabled = await target
+              .evaluate((el) => el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true")
+              .catch(() => false);
+            if (isDisabled) { rec.controls.push({ label, result: "disabled (inert by design)" }); continue; }
+
             // A link to the page you are already on is SUPPOSED to do nothing.
             let selfLink = false;
             try {

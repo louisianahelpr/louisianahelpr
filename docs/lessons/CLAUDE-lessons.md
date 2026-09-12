@@ -1,0 +1,587 @@
+# CLAUDE.md lessons
+
+The histories and evidence behind the rules in `CLAUDE.md`, moved here verbatim
+on 2026-09-12 when CLAUDE.md was cut to a rules file. Each section is the original
+bullet or passage as it stood at f26c6a7e2. "This file" in the text below means
+CLAUDE.md as it was then. The only edits are file:line references re-pointed to
+where the cited code now lives (noted inline as [re-pointed 2026-09-12]).
+Add new lessons here, and a one-line rule with an [L] link in CLAUDE.md.
+
+<a id="appdelegate"></a>
+## AppDelegate is in scope (Stack)
+
+**But `AppDelegate.swift` is NOT out of scope, and "it's stock boilerplate"
+is not a reason to skip it.** This file used to say there was no meaningful
+native code, and that sentence is why push notifications were broken for the
+entire life of the project without anyone looking: Capacitor's
+`PushNotificationsPlugin` observes `.capacitorDidRegisterForRemoteNotifications`,
+that notification is *declared* by the framework but **posted from nowhere**,
+and the host app must post it from
+`didRegisterForRemoteNotificationsWithDeviceToken`. Stock boilerplate does
+not, so iOS handed the app a valid APNs token on every launch and it was
+dropped on the floor — unfillable `push_tokens`, no error, no log.
+
+**That specific bug is FIXED — verified 2026-09-02, do not go looking for it
+again.** `AppDelegate.swift:139-151` posts both
+`.capacitorDidRegisterForRemoteNotifications` and
+`.capacitorDidFailToRegisterForRemoteNotifications`, confirmed against the
+plugin's own source
+(`node_modules/@capacitor/push-notifications/ios/Sources/PushNotificationsPlugin/PushNotificationsPlugin.swift:38-46`)
+as the exact two names it observes, with `appDelegateRegistrationCalled`
+gating the delivered-notification APIs. `UNNotificationCategory` registration
+is present and matches `category.ts`. The history stays here because the
+LESSON generalises and the bug does not: a framework can declare a
+notification, observe it, and post it from nowhere — leaving the host app
+silently responsible for a link nothing warns you about. **If a native
+capability appears dead in a way no amount of TypeScript explains, read the
+AppDelegate.**
+
+<a id="shells"></a>
+## Page layout: which shell to use
+
+## Page layout — which shell to use
+
+There is exactly **one** fixed-viewport primitive: `AppShell`
+(`src/components/AppShell.tsx`). It owns the only implementation of the
+100dvh lock, the internal scroll container, the safe-area top inset, and the
+bottom-nav clearance. Never re-implement those — build on `AppShell`.
+
+- **Fixed-shell pages** — the page locks to 100dvh, the bottom nav stays
+  pinned, and scrolling happens in an internal container. Use `AppShell`
+  directly (Profile), or `PageScaffold`
+  (`src/components/ui/PageScaffold.tsx`) when you want its two-card layout
+  (Dashboard, Activity, Messages list, guest dashboard). `PageScaffold` is a
+  *thin wrapper over `AppShell`* — it adds only the title-card + bleeding
+  panel, never its own viewport lock. The four account-state screens
+  (SignupPending, AccountPending, AccountDenied, AccountBanned) are the
+  exception: they use `AuthShell`'s centered-card treatment, not `AppShell`
+  (`AccountPending.tsx:9`, `:212`, and the comment at `:208` explaining the
+  unification). This line used to name AccountPending as an `AppShell` page.
+- **Document-scroll pages** — long-form / tall content that scrolls the
+  document (legal, marketing, multi-step forms, Profile/Activity tab pages).
+  Use a plain `min-h-screen bg-premium-page pb-safe-nav` wrapper (with
+  `<PageHeader>` if a back-button header is needed). Do NOT use `AppShell`.
+- The authoritative map of which routes do which lives in
+  `DOCUMENT_SCROLL_ROUTES` in `src/hooks/useAppShellViewport.ts` — that hook
+  toggles the `app-shell` class on `<html>`. A page's shell choice and its
+  entry in that list must agree.
+
+<a id="fit-the-screen"></a>
+## Every page must fit the screen
+
+### Every page must FIT THE SCREEN — no dead gutters, no double insets
+
+A page must fill the space it's given at every breakpoint: content centered in
+the available area, no horizontal overflow, and **no empty rail-width gutter**
+on the desktop website. This is a hard requirement, not a nicety — a page that
+floats in a lopsided column with blank bands has failed the audit.
+
+<a id="rail-inset"></a>
+## Desktop rail inset: right edge, one layer
+
+- **The desktop rail is on the RIGHT, and its inset is applied in exactly ONE
+  layer.** This entry said LEFT until 2026-09-02, and named two rules that do
+  not exist: `.app-shell-frame { left: … }` and `#root { padding-left: … }`.
+  Grep the stylesheet — the only two rail insets in the entire file are
+  `right: var(--desktop-sidebar-w)` on `.app-shell-frame` (`src/index.css:1326` [re-pointed 2026-09-12; was :987])
+  and `padding-right: var(--desktop-sidebar-w)` on `#root`
+  (`src/index.css:1570` [re-pointed 2026-09-12; was :1188]). There is no `left:` or `padding-left:` rail inset
+  anywhere. `--desktop-sidebar-w` is 248px. Both rules are additionally gated on
+  `.side-panel-open`, so the inset exists only while the panel is open — a
+  closed panel is not a narrower rail, it is no rail.
+
+  Two things to know before trusting this paragraph OR the code around it.
+  `index.css`'s comment above the `#root` rule USED to say "pinned at the
+  viewport's left edge" while the declaration pads RIGHT; it is corrected now
+  (`src/index.css:1562` [re-pointed 2026-09-12; was :1193]), but the lesson stands: the declaration is
+  authoritative, never the prose beside it. And `.desktop-rail`
+  is not present for a guest at all — measured at 1440 on `/`, `/legal` and
+  `/browse`, `<html>` carries only `web-desktop side-panel-open`, so none of
+  this fires until you are signed in.
+
+  A page must **never** re-inset itself (no per-page `paddingRight`/`paddingLeft`
+  of the rail width, no `lg:pr-[248px]`, no extra flex spacer) — doing so insets
+  by a *second* rail width and knocks the centered column off-center. That was
+  the PostJob bug, in its original left-rail form: `#root` padded 248px AND the
+  page padded 248px → form shoved to x≈496 with a dead 250px gutter. Rail
+  clearance lives in the shared shell layer, period.
+- After the single inset, the inner content column centers in the *post-rail*
+  area (`mx-auto`), so its visual center is offset from the raw viewport center
+  by half the rail. Verify by measuring the column against the space beside the
+  rail, not against the whole window — and measure `.app-shell-frame`, NOT
+  `<main>`: `<main>` is a full-width scroll wrapper, and reading it instead is
+  how a lane first "measured" the rail on the wrong edge.
+- **Proof of "fits" is mandatory and measured, not eyeballed.** For any page you
+  touch, in Chrome at 1440 (rail present) AND 375 (no rail): assert
+  `documentElement.scrollWidth <= clientWidth` (zero horizontal overflow), assert
+  no element wider than the viewport, and confirm the primary content column is
+  centered in the available area with no rail-width dead band. Screenshot both.
+
+<a id="exact-thing"></a>
+## Fix the exact thing named / dead code is a report
+
+- **Fix the EXACT thing named. Never guess the element, the look, or the
+  scope, and never touch what sits next to it.** If the ask is ambiguous, ask —
+  do not pick an interpretation and edit. Related and separate: **dead or no-op
+  code you happen to notice is a REPORT, not a task.** The `.squircle` incident
+  was a blanket change to a shared class made because it looked unused; count
+  the call sites before touching anything shared, and say what you found instead
+  of changing it.
+
+<a id="verify-live"></a>
+## Verify against the live thing first
+
+- **Never claim something is broken from a migration file, a code read, or
+  another agent's summary. Verify against the live thing first** — `pg_policies`
+  and `pg_proc.proacl` for authz, `pg_get_functiondef` for behaviour, the
+  rendered UI for anything visual. Half a day has been lost more than once to a
+  confident "X is vulnerable" that the live database disproved in one query.
+  This is the same rule as re-measuring an outcome, pointed at the start of the
+  work instead of the end.
+
+<a id="repo-wide"></a>
+## Verify repo-wide
+
+- **Verify repo-wide, not just the files you touched.** `npm run typecheck`
+  plus `npx vitest run` across the whole repo. Scoped runs miss the
+  project-wide guards — the parity tests, the registry-drift checks, the
+  fixture-vs-schema contract — and main has been broken twice by a green
+  scoped run.
+
+<a id="never-hand-back"></a>
+## Never hand back work you could have done
+
+- **Never hand back work you could have done.** Exhaust the API, the CLI, a
+  temporary edge function, the logs, the browser. A blocked tool is not a
+  blocked task; find the other route. Manual steps for the owner are the last
+  resort, and only for things genuinely reserved to them — credentials,
+  payments, App Store and dashboard actions.
+
+<a id="look-at-it"></a>
+## LOOK AT IT: eyeball every visual change
+
+- **LOOK AT IT. Every visual change is verified by EYEBALL — an actual
+  screenshot of the actual screen — not by a measurement, a grep, or a diff**
+  (owner, 2026-09-07: "everything should also be done by eyeball visually...
+  I will not say it again"). Drive the app, take the screenshot, and LOOK at
+  the picture before saying anything is fixed.
+
+  A measurement only answers the question you thought to ask. On 2026-09-07 an
+  empty state rendered a bordered white card INSIDE the bordered white panel
+  that already was the card — two boundaries 1px apart, on every screen with an
+  empty state. It was obvious in a screenshot in under a second. It survived
+  three of my passes because I kept querying `borderRadius` instead of looking:
+  I "verified" a runtime detector reporting ZERO nested boxes across six routes,
+  and it reported zero only because I had defined nested as "fills its parent."
+  The owner sent a phone screenshot; I had scoped the whole fix to
+  `html.web-desktop`. Two passes were spent arguing about what RADIUS the inner
+  box should have, when the answer was that it should not have been drawn.
+
+  So the rule is BOTH, and in this order: **look first, then measure.** The
+  screenshot tells you what is wrong; the measurement tells you the number
+  moved. Neither substitutes for the other — but a number is worthless if
+  nobody has checked it is measuring the right thing.
+
+  This applies to layout, spacing, colour, type, empty states, dark mode and
+  every breakpoint that matters — 375 above all, because it is the primary
+  surface and the one the owner is usually holding. Screenshot before AND after.
+
+<a id="remeasure"></a>
+## A fix is not done until its own number moves
+
+- **A FIX IS NOT DONE UNTIL ITS OWN NUMBER MOVES. Re-measure the outcome, every
+  single time, without exception** (owner, 2026-09-07, emphatically). Closing a
+  finding on a diff — "the code now does X" — is not closing it. Re-run the
+  finding's own repro and record the NEW number beside the old one. If the
+  number did not move, the fix did not work, however correct the diff reads.
+
+  This is not a process nicety. Three launch blockers on 2026-09-06 were fixes
+  that shipped, read correctly in review, and did nothing:
+
+  * **S-001** — parish dead for 72% of accounts. Filed HIGH, launch blocker,
+    independently verified against prod. Fixed by adding ZIP to signup
+    (`eaa553f48`). The fix was right and achieved nothing: `anon` had no EXECUTE
+    on `get_parish_for_zip`, so every pre-auth lookup returned 42501 and
+    `lookupParishByZip` logged a warning and returned null. Re-running the
+    finding's own repro — `count(*) WHERE parish IS NULL` — would have shown the
+    number unmoved. Nobody ran it. An external reviewer re-found it five days
+    later.
+  * **FABLE R4** — helper-distance trilateration. "Fixed" with an ownership gate
+    `j.customer_id = auth.uid()`. That does not close the attack, because the
+    attacker OWNS the jobs: post three at chosen coordinates, query one
+    applicant against each, trilaterate from 0.1 km precision.
+  * **`rpc_withdraw_dispute`** — dead for every caller since `20260901032007`
+    pinned `decided_at`, which the RPC writes. That migration's OWN comment
+    records that PGlite proved a related case; it stopped one column short.
+    Months of 100% failure, zero Sentry events, because the client toasted
+    "please try again" and never reported.
+
+  Each is correct in the file it edits. The defect lives in the gap between the
+  fix and the runtime — an ACL, a trigger, an attacker who owns the input. **A
+  reader sees intent; only execution sees outcome.** So: measure the outcome.
+
+
+Each of these is a real, non-obvious gotcha that has cost real time — keep
+this list tight; project-specific trivia belongs in code comments, not here.
+
+<a id="css-minifier"></a>
+## CSS on the dev server is not a result (minifier; reduced transparency)
+
+- **A CSS result measured on the dev server is not a result — the minifier
+  can delete half your rule.** Vite's CSS minifier treats `backdrop-filter`
+  and `-webkit-backdrop-filter` as one property declared twice and keeps only
+  the LAST. A `prefers-reduced-transparency` rule that killed the blur
+  everywhere in dev shipped as the `-webkit-` half alone, which means
+  **Chromium `blur(40px)`, WebKit `none`** — so Reduce Transparency users got
+  the full 40px frost on the web, and it measured clean on device because
+  WebKit aliases the two. A lane reported "18 frosted elements → 0"; that
+  number came from a dev server and was false in the bundle.
+
+  This is the mirror of the WebKit rule below: there, Chromium cannot see a
+  WebKit bug; here, the dev server cannot see a Chromium one. Fix is an
+  `@supports` block the minifier cannot collapse. **Verify any CSS claim
+  against `dist/assets/*.css` after `npm run build`, not against the dev
+  server** — `grep -c "backdrop-filter:none" dist/assets/*.css` is the whole
+  check, and it distinguishes the two states in one command.
+
+  Related, same lane: setting every glass class to `hsl(var(--background))`
+  does not remove transparency, it removes the MATERIAL. `.liquid-glass` is
+  already opaque white in light mode, so the blanket repainted every card
+  canvas-coloured and a user asking for less transparency lost the boundary
+  between card and page. Opaque form of each surface's OWN colour, per theme.
+
+<a id="vitest-shared-tree"></a>
+## vitest run is not trustworthy in a shared tree
+
+- **`vitest run` is NOT trustworthy while several agents share this tree —
+  gate against a clean worktree.** Under parallel-lane load the full suite
+  fails a VARYING set of 1–22 tests that every one of them passes in
+  isolation; observed 2026-09-02 with 7–8 lanes running. The tell is the
+  shape, not the count: the failing set changes between consecutive runs,
+  the failures are `findBy*` timeouts rather than assertion mismatches, and
+  slow I/O-bound specs are hit hardest (`popupShellInventory` took 23.6s to
+  time out while scanning ~1200 files). Two separate lanes independently
+  reported `adminJobsNotifications.test.tsx` as broken; it passes 5/5 alone.
+  Chasing one of these as a real regression costs an hour and finds nothing.
+
+  Before believing a suite failure: `git worktree add --detach <path>
+  origin/main`, symlink `node_modules`, and run it there. That also removes
+  the other half of the problem — a dirty shared tree means you are testing
+  everyone's half-finished work, not yours. This is how the E2E lane got a
+  trustworthy 101/101 when the shared tree was red.
+
+<a id="webkit"></a>
+## Chromium cannot see WebKit-only bugs
+
+- **Chromium cannot see WebKit-only bugs — `npx playwright install webkit`
+  and A/B there.** The app ships in a WKWebView, and the classes of defect
+  that only appear in WebKit are invisible to every Chromium-based check we
+  run (Playwright default, the Chrome extension, jsdom). Found this way on
+  2026-09-01: `font: -apple-system-body` — the one CSS hook that reports the
+  OS text size — resolves to **13px** in real WebKit, because that is macOS's
+  system body size and macOS has no Dynamic Type. Divided by the iOS default
+  of 17 that is 0.765, so `--user-text-scale` clamped to 0.85 and every
+  desktop Safari user got the whole app ~15% smaller than designed. A/B'd
+  against the running dev server: `0.85` without the fix, `1` with it.
+  Chromium drops the declaration entirely and reports a clean `1` either way,
+  which is exactly why it survived a full audit. Playwright's `webkit` build
+  costs one 77MB download and runs headless — use it before declaring a
+  rendering or platform-API finding clean.
+
+<a id="git-idle"></a>
+## Never idle on a blocked git operation
+
+- **Never idle on a blocked git operation — resolve or abort within the run.**
+  A scheduled routine that hits a blocked merge/push and just sits there
+  produces zero signal: it never reports, never notifies, and the user does
+  not manually check sessions. (`lh-deps-and-drift` hung 19 hours on a
+  blocked `--admin` merge on 2026-08-28 with no completion, no notification,
+  nothing.) If a git action is refused, apply the documented fallback
+  immediately (e.g. commit direct to `main` per this file) and move on. If
+  truly stuck after a couple of attempts, stop the run cleanly and let the
+  next scheduled run pick it up — do not leave the session open and idle.
+
+<a id="vercel-json"></a>
+## A green Actions tab does not mean the deploy ran (vercel.json)
+
+- **A green Actions tab does NOT mean the deploy ran. `vercel.json` has taken
+  production down three times.** Vercel validates that file against its schema
+  **on its own side, before the build**, independently of GitHub Actions. An
+  invalid file therefore produces a fully green CI run, no build log to look
+  at, and production silently continuing to serve the previous bundle. Every
+  entry in `redirects`/`headers`/`rewrites` is `additionalProperties: false`,
+  and all three outages were the same instinct: JSON has no comments, so
+  someone explained a rule with an extra key (`comment` in `headers[1]` →
+  cea0055f; `//`, `//why`, `//requires`, `//status` in `redirects[0]` →
+  e926b307). **The trap is that `JSON.parse` succeeding feels like
+  validation** — every author had "checked" the file and it passed while
+  invalid. `scripts/check-vercel-config.mjs` now blocks this pre-commit via
+  lint-staged (offline by design; a hook that needs the network is a hook
+  people bypass). Put rule explanations in the commit message or beside the
+  code that depends on them, never in that file.
+
+<a id="revoke-anon"></a>
+## REVOKE FROM PUBLIC does not revoke anon; green db-deploy does not clear red
+
+- **`REVOKE ... FROM PUBLIC` does NOT revoke `anon`, and a green db-deploy does
+  NOT clear an earlier red one.** Two halves of the same afternoon (2026-09-05).
+  Supabase's `ALTER DEFAULT PRIVILEGES` grants EXECUTE on every new `public`
+  function to anon, authenticated and service_role **individually**, so
+  revoking PUBLIC drops only the implicit world grant and leaves all three
+  explicit ones intact. `admin_reverse_violation` shipped ending in
+  `REVOKE ALL ... FROM PUBLIC; GRANT EXECUTE ... TO authenticated;` — which
+  reads as least privilege and achieved nothing: anon kept EXECUTE on the only
+  `admin_*` function it could call. **A REVOKE that silently does nothing is
+  worse than none, because it reads as done in review.** Always name the roles:
+  `FROM PUBLIC, anon`. Verify in `pg_proc.proacl` — leading `=X/postgres` means
+  PUBLIC has it, `anon=X` means anon does (house norm: 168 of 241 revoked).
+
+  The reason it survived is the second half. `db-deploy.yml`'s migration-lint
+  gate lints only migrations **new relative to a diff base**, so it went red on
+  the commit that introduced the function ("New public function(s) defined
+  without an explicit GRANT or REVOKE") and the NEXT push went green without
+  re-examining it — the file was no longer new. The migration deploys either
+  way (`db push` applies everything pending), so the red looks self-healing
+  when nothing was fixed. **Read the red run itself**
+  (`gh run view <id> --log-failed | grep -E "❌|Process completed"`); a later
+  green is not an answer, and verify the fix by object state
+  (`pg_proc.proacl`, `to_regprocedure`), never by run colour. Same family as
+  the `vercel.json` rule above: the deploy that matters is not always the run
+  you happen to be looking at.
+
+<a id="no-staging"></a>
+## There is no staging
+
+- **THERE IS NO STAGING. There is one database: prod `fncmgoasalhdgfwzhsqa`.**
+  The staging project was retired 2026-09-07 (owner) because it was not a
+  safety net, it was a second source of truth that lied. It sat 148 migrations
+  behind prod (496 vs 644), still held NINE tables prod had deliberately
+  dropped — `time_credits` among them, whose INSERT policy let any signed-in
+  user mint their own currency — and `supabase/.temp/project-ref` pointed the
+  CLI AT IT, so `supabase db push` and `migration list --linked` from any dev
+  machine or agent silently addressed the stale project while
+  `db-drift-detect.yml` only ever diffed repo-vs-prod. Its drift was invisible
+  by construction. The `dev:staging` script compounded it by resolving to prod
+  anyway (no `.env.staging` ever existed), so "I am on staging" could be true
+  of the CLI and false of the app in the same terminal.
+
+  The ref now points at prod, and the staging dev/link/push scripts are
+  deleted from package.json. If you find yourself wanting a staging target, the answer is a test
+  that is safe to run against prod — not a second database to drift.
+
+  Still verify the ref before reading config or pushing: a secrets listing
+  through the CLI once nearly produced the false conclusion that APNs was
+  unconfigured, purely because it was reading the wrong project.
+
+<a id="apply-migration"></a>
+## Never apply migrations via MCP apply_migration
+
+- **NEVER apply migrations to prod via MCP `apply_migration`** (records the
+  wrong timestamp and poisons `schema_migrations` — cost a full ledger repair
+  once already). `execute_sql` for read-only checks/test rows is fine. If ever unavoidable,
+  reconcile with `supabase migration repair --status reverted/applied`.
+
+<a id="pglite"></a>
+## Execute migrations locally with PGlite
+
+- **You CAN execute a migration locally without Docker — use PGlite.**
+  "No local Postgres" has repeatedly meant migrations shipped reviewed-by-eye
+  only. `@electric-sql/pglite` is real Postgres compiled to WASM: install it
+  **outside the repo** (a scratch dir — do not add it to `package.json`), or
+  `npm i --no-save @electric-sql/pglite` when the probe has to live in the
+  repo to resolve its imports — verify `git status package.json
+  package-lock.json` comes back clean afterwards either way.
+  Build a prod-shaped schema, and run the migration verbatim. This is how the
+  PIF-restore migration got 22 assertions including a proven-idempotent
+  second run and a unique-violation race, none of which a read could have
+  established. Apply the file 3× consecutively to prove replay-safety.
+
+<a id="fixed-containing-block"></a>
+## position: fixed is not viewport-relative
+
+- **`position: fixed` inside a page is NOT relative to the viewport —
+  assume it never is.** A `transform`, `filter`, `backdrop-filter`,
+  `perspective`, `contain` or `will-change` on ANY ancestor makes that
+  ancestor the containing block for `fixed` descendants. Two independent
+  sources of this exist app-wide: `AppPage.tsx` wraps every child in
+  `animate-ds-page-in`, whose keyframe ends on `transform: translateY(0)`
+  with `animation-fill-mode: forwards`, so a non-`none` transform stays
+  applied forever; and — the bigger one — **every frosted surface**
+  (`.liquid-glass`, `.glass-modal`, the nav dock pill) carries
+  `backdrop-filter`. So a hand-rolled `fixed inset-0` overlay sizes itself to
+  whatever panel it happens to sit in. Measured: a "full-screen" dialog at
+  329×433 in a 393×852 viewport; a photo lightbox opened inside
+  JobDetailDialog at **10.2% of viewport height**; the nav quick-menu scrim
+  at 6.6%, so tapping anywhere above the dock did nothing. In every case the
+  element stays perfectly scrollable, so `overflow-y-auto` "fixes" nothing
+  and the real defect is invisible to a code read. **Portal overlays to
+  `document.body`** (the shared `Dialog` already does).
+  Two consequences of portalling that have each bitten once: an open Radix
+  modal sets `body { pointer-events: none }`, which **inherits** — a portaled
+  sibling renders at full size and is completely inert unless it sets
+  `pointer-events: auto`; and Radix's `hideOthers()` stamps `aria-hidden` on
+  late-added `<body>` children, so guard against your own overlay becoming
+  `role="dialog" aria-modal="true" aria-hidden="true"`.
+
+<a id="gloss"></a>
+## Two silent ways to lose the gloss
+
+- **Two silent ways to lose the gloss. Both shipped.** The rule is that
+  primary and selected controls wear `btn-grad-primary`; these defeat it with
+  no error and no warning, and in both cases the class is still on the element
+  so the class list looks correct.
+  1. **A Tailwind variant over a hand-written class compiles to NOTHING.**
+     `data-[state=checked]:btn-grad-primary` emits no CSS — variants only
+     compose over utilities Tailwind generates, and `.btn-grad-primary` lives
+     in `index.css`. Toggle these in JS instead.
+  2. **An inline `background` SHORTHAND resets `background-image`.** A
+     `style={{ background: "linear-gradient(...)" }}` on a `<Button>` that
+     already has `btn-grad-primary` wins, and the gradient you get is the
+     hand-painted one. This is how the job-sheet CTA and its apply-step twin
+     stayed flat. Use `backgroundImage` if you must override, or better,
+     don't.
+  **Therefore: when asserting gloss in a test, read the computed
+  `background-image` and check it is a real gradient.** Asserting the class
+  name passes on a flat control, which is why this kept coming back.
+
+<a id="credentials"></a>
+## Never rotate a shared credential silently
+
+- **Never rotate a shared credential silently.** The two test accounts are
+  shared with Cowork and every lane; I rotated their passwords twice in one
+  afternoon (2026-09-06) without saying so, which broke Cowork's run and
+  produced the "suspicious 04:31 sign-ins" it then filed as a finding. If a
+  credential must change, say so in the transcript and in
+  `docs/audit/launch-2026-09/inbox/` before changing it, and never change one
+  another agent is mid-run on.
+
+<a id="capacitor-await"></a>
+## Never await a Capacitor plugin object
+
+- **Never `await` a Capacitor plugin object — assimilation makes it a silent
+  no-op.** `registerPlugin()` returns a Proxy whose `get` trap manufactures a
+  method for ANY property, which is how it forwards unknown calls to native.
+  So resolving a promise *with the plugin itself* triggers thenable
+  assimilation: the runtime probes `.then`, the Proxy invents one, the runtime
+  calls it, and the bridge rejects with `"App.then()" is not implemented`
+  (`code: 'UNIMPLEMENTED'`). The difference is one word — `return App` breaks,
+  `return { App }` works — and the broken version reads perfectly. Behind a
+  fail-open `catch` it produces a feature that never fires and never says why.
+  Destructure at the import: `const { App } = await import("@capacitor/app")`,
+  which is what `AppLockGate.tsx`, `nativePush.ts` and `appLifecycle.ts`
+  already do. It surfaced only because the test runner reports unhandled
+  rejections.
+
+<a id="ownerless-jobs"></a>
+## A job can outlive the person who posted it
+
+- **A job can outlive the person who posted it.** Account deletion ANONYMISES
+  rather than deletes (`20260901033011`): `jobs.customer_id`, `jobs.location`,
+  `latitude`, `longitude`, `reviews.reviewer_id` and `disputes.opener_id` are
+  all nullable in prod, `description` becomes `'[removed at account deletion]'`,
+  and **`status` is deliberately preserved** — so an `open` job stays `open`
+  with no owner. Never assume those are populated; `regenerate types → 25 type
+  errors in 17 files` was one afternoon (SI-012). Two traps worth keeping:
+  coalescing a null to `""` is NOT neutral in a two-way comparison
+  (`userLocation.includes("")` is true for every string, so an address-less job
+  matched *every* nearby search), and a null inside a `.filter()` predicate
+  throws and empties the WHOLE list rather than dropping one row. Ownerless
+  jobs are excluded from discovery in the `open_jobs_browse` view — that view,
+  not the client, is where browse visibility belongs, because the feed and the
+  count both read it. Apple REQUIRES in-app account deletion, so this path
+  will be exercised.
+
+<a id="zero-row-writes"></a>
+## A null error does not mean the write happened
+
+- **A null `error` does NOT mean the write happened.** UPDATE/DELETE matching
+  zero rows returns `{ data: [], error: null }` — the most common serious bug
+  class here (escrow, bans, invites, admin actions). On any write touching
+  money/trust/safety: add `.select("id")` and pass through `unwrapMutation()`
+  (`src/lib/mutationResult.ts`). Skipping the guard is fine only when zero rows
+  is a legitimate outcome — say so in a comment.
+
+<a id="parsecheck"></a>
+## parsecheck.mjs is the fast syntax gate
+
+- **`node scripts/parsecheck.mjs <file>` (or `--all`) is the fast syntax
+  gate.** Seconds, no contention — use it after every edit when the real
+  typecheck is busy or forbidden. It catches the `{/* … */}`-between-JSX-
+  attributes break that `tsc --noEmit -p tsconfig.json` misses. It does
+  **not** resolve symbols, so it cannot see a missing import: `icon={Lock}`
+  with no lucide import parses clean and silently binds the DOM global
+  `Lock`. A clean parse is never a substitute for `npx tsc -b --noEmit`.
+
+<a id="parallel-lanes"></a>
+## Parallel lanes: stagger the gates
+
+- **Parallel lanes: stagger the gates.** Don't let concurrent sessions run
+  `typecheck`/`vitest`/`eslint` simultaneously — serialize them. Worktrees
+  belong under `$HOME` (e.g. `~/.lh-b-ws/tree`), never `/tmp`; commit
+  uncommitted work early.
+  **There is no fixed agent count** (the old "≤2–3" cap was lifted 2026-09-02).
+  Fan out as wide as the work is genuinely *disjoint by file* — the binding
+  limit is the shared gate, not a number, and everyone queues behind one
+  compile anyway. The lead owns the gate and runs it once, alone; give agents
+  `node scripts/parsecheck.mjs` instead and say so explicitly in their brief.
+
+<a id="agent-teams"></a>
+## Agent teams is ON
+
+- **Agent teams is ON** (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in
+  `~/.claude/settings.json`). Three things are easy to get wrong: a spawn
+  becomes an addressable **teammate** only if you pass `name:` — without it
+  there is no `ListAgents` row and no way to message or plan-approve it; the
+  **model comes from the agent definition silently** unless you pass `model:`,
+  and you can only see what it actually got by reading
+  `~/.claude/teams/session-*/config.json` afterwards (a research agent
+  defaulted to haiku and returned a self-contradictory answer); and a teammate
+  on `permissionMode: plan` is released by the **lead approving its plan** over
+  the team inbox. Fleet cross-talk is `SendMessage` to the orchestrator, which
+  fans out — lanes never message each other (`PROTOCOL.md` §7). The
+  `audit-bus.mjs` `msg`/`inbox` file channel is retired; `file`/`status`/
+  `dupe`/`list`/`rollup` remain the findings ledger. **Findings go in the bus,
+  conversation goes over `SendMessage`.**
+
+<a id="pick-models"></a>
+## You pick the model for every agent
+
+- **YOU pick the model for every agent — never ask which one.** Standing
+  authorization, given repeatedly and then shouted (2026-09-06): "ADJUST THE
+  MODELS AS NEEDED FOR THE BEST USAGE OF EACH MODEL." Asking "would Fable be
+  better?" or "should I use Opus for this?" is a question the owner has
+  already answered and reads as being pranked. Pass `model:` explicitly on
+  every spawn (the definition default is silent and has been haiku). Rule of
+  thumb: money/authz/data-model fixes and anything that must reason about a
+  chain of guards → `opus`; exhaustive visual driving, design judgement, and
+  "look at everything and tell me what's wrong" sweeps → `fable`; mechanical
+  disjoint edits with a clear spec → `sonnet`; never `haiku` for anything
+  whose answer will be believed. Re-verification of untrusted prior work goes
+  to a DIFFERENT model than the one that produced it.
+
+<a id="commit-main"></a>
+## Commit directly to main; review agents
+
+- **Commit directly to `main`** — no branch/PR ceremony needed. Locally, just
+  run `npm run typecheck` (plus `npx vitest run` when touching tested code);
+  lint/build/full-suite already run in CI (`husky pre-commit` +
+  `.github/workflows/test.yml`) — don't re-run the full local gate unless you
+  have specific reason to distrust CI (e.g. you changed build config itself).
+  If commits ever start reaching prod red, check `gh workflow list --all` for
+  `disabled_manually` before assuming the local gate is the only option.
+  Still review the working diff before committing money/auth/data-model
+  changes, since there's no PR gate to catch it otherwise. **The agents this
+  line used to name — `code-reviewer`, `silent-failure-hunter`,
+  `security-auditor` — DO NOT EXIST**, and haven't for long enough that the
+  rule was quietly unfollowable: the instruction reads as satisfiable, the
+  spawn fails, and the review gets skipped. Use what is actually installed:
+  `lh-silent-failure` (dropped errors, zero-row writes, fail-open catches),
+  `lh-authz-rls` (RLS, IDOR, SECURITY DEFINER, view/policy changes) and
+  `lh-money-escrow` (anything touching escrow, payouts or price). Tell them
+  **REVIEW ONLY — do not fix, do not edit, report findings** and to ignore
+  their own worktree/audit-bus/PROTOCOL preamble, which is written for a fleet
+  sweep, not a targeted diff review. The `/code-review` and `/security-review`
+  skills are the other option. `/code-review ultra` is user-triggered and
+  billed — you cannot launch it; recommend it, don't attempt it.
+- End every commit message with:
+  `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`

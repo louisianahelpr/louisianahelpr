@@ -46,6 +46,32 @@ const text = readFileSync(FILE, "utf8");
 const problems = [];
 let checked = 0;
 
+// ── 0. Size cap, lessons file, anchors, skill reference ────────────────────
+// 2026-09-12: CLAUDE.md had grown to 570 lines of war stories and rules in it
+// were being missed. It was cut to a rules file; the histories moved verbatim
+// to docs/lessons/CLAUDE-lessons.md. The cap is what stops it regrowing: a new
+// story belongs in the lessons file, with a one-line rule and [L] link here.
+const MAX_LINES = 200;
+const LESSONS = "docs/lessons/CLAUDE-lessons.md";
+const lineCount = text.split("\n").length;
+checked++;
+if (lineCount > MAX_LINES) {
+  problems.push(`is ${lineCount} lines — cap is ${MAX_LINES}. Move the history to ${LESSONS} and keep a one-line rule here`);
+}
+const lessons = existsSync(LESSONS) ? readFileSync(LESSONS, "utf8") : "";
+// Citations inside the moved histories must stay accurate too, so the path /
+// line / agent / CSS checks below run over both files.
+const cited = `${text}\n${lessons}`;
+for (const m of text.matchAll(/CLAUDE-lessons\.md#([a-z0-9-]+)/g)) {
+  checked++;
+  if (!lessons) { problems.push(`links ${LESSONS}#${m[1]} — ${LESSONS} does not exist`); break; }
+  if (!lessons.includes(`<a id="${m[1]}"></a>`)) problems.push(`links lesson anchor #${m[1]} — no such anchor in ${LESSONS}`);
+}
+const SKILL = ".claude/skills/lh-audit/SKILL.md";
+checked++;
+if (!text.includes(SKILL)) problems.push(`no longer references ${SKILL} — the audit standard pointer was lost`);
+else if (!existsSync(SKILL)) problems.push(`references ${SKILL} — file does not exist`);
+
 // ── 1. `path:line` citations — the file exists AND is long enough ───────────
 // A citation pointing past the end of a file is the clearest possible proof the
 // surrounding sentence was written against a different version.
@@ -54,7 +80,7 @@ let checked = 0;
 // `node_modules/@capacitor/push-notifications/ios/Sources/...swift:38` is
 // captured from `ios/` onward and reported as a missing file. That was this
 // checker's own first false positive.
-for (const m of text.matchAll(/(?:^|[`\s(])((?:node_modules|src|ios|supabase|scripts|e2e|docs)\/[A-Za-z0-9_@./-]+\.(?:ts|tsx|swift|css|sql|mjs|yml)):(\d+)/gm)) {
+for (const m of cited.matchAll(/(?:^|[`\s(])((?:node_modules|src|ios|supabase|scripts|e2e|docs)\/[A-Za-z0-9_@./-]+\.(?:ts|tsx|swift|css|sql|mjs|yml)):(\d+)/gm)) {
   const [, path, lineStr] = m;
   checked++;
   if (!existsSync(path)) { problems.push(`cites ${path}:${lineStr} — file does not exist`); continue; }
@@ -87,7 +113,7 @@ const repoFiles = new Map();
   }
 })(".");
 
-for (const m of text.matchAll(/`([A-Za-z0-9_]+\.(?:ts|tsx|swift|css|sql|mjs)):(\d+)/g)) {
+for (const m of cited.matchAll(/`([A-Za-z0-9_]+\.(?:ts|tsx|swift|css|sql|mjs)):(\d+)/g)) {
   const [, base, lineStr] = m;
   const resolved = repoFiles.get(base);
   checked++;
@@ -109,7 +135,7 @@ for (const m of text.matchAll(/`([A-Za-z0-9_]+\.(?:ts|tsx|swift|css|sql|mjs)):(\
 // "anything gitignored" would also skip a file that was genuinely deleted.
 const LOCAL_ONLY = new Set(["supabase/.temp/project-ref"]);
 
-for (const m of text.matchAll(/`((?:src|ios|supabase|scripts|e2e|docs|\.github|\.claude)\/[A-Za-z0-9_./*-]+)`/g)) {
+for (const m of cited.matchAll(/`((?:src|ios|supabase|scripts|e2e|docs|\.github|\.claude)\/[A-Za-z0-9_./*-]+)`/g)) {
   const path = m[1];
   if (path.includes("*")) continue; // globs are illustrative, not claims
   if (LOCAL_ONLY.has(path)) continue;
@@ -154,7 +180,7 @@ const PROSE_ONLY = new Map([
   ["lh-deps-and-drift", "a past session recounted in the git-idling rule, not an agent"],
 ]);
 
-for (const m of text.matchAll(/`(lh-[a-z0-9-]+)`/g)) {
+for (const m of cited.matchAll(/`(lh-[a-z0-9-]+)`/g)) {
   const name = m[1];
   if (PROSE_ONLY.has(name)) continue;
   checked++;
@@ -179,12 +205,12 @@ if (cssFiles.length) {
   const css = cssFiles.map((f) => readFileSync(f, "utf8")).join("\n");
   const norm = (s) => s.replace(/\s+/g, " ").trim();
   const haystack = norm(css);
-  for (const m of text.matchAll(/`([a-z-]+:\s*var\(--[a-z0-9-]+\))[^`]*`/gi)) {
+  for (const m of cited.matchAll(/`([a-z-]+:\s*var\(--[a-z0-9-]+\))[^`]*`/gi)) {
     const decl = norm(m[1]);
     // A leading `no ` / `not ` marks a declaration the document is BANNING, not
     // quoting — "no per-page `paddingLeft: var(--desktop-sidebar-w)`" must not
     // require that the banned thing exist.
-    const before = text.slice(Math.max(0, m.index - 24), m.index).toLowerCase();
+    const before = cited.slice(Math.max(0, m.index - 24), m.index).toLowerCase();
     if (/\b(no|not|never|without)\b[^.]*$/.test(before)) continue;
     checked++;
     if (!haystack.includes(decl)) {

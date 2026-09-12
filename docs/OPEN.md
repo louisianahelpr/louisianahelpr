@@ -453,3 +453,21 @@ Verified clean, so these can stop being re-reported:
       10s timeout is the dominant term there.
 - [ ] **1440 not re-driven for S1/S2.** The fix is entirely in the data layer so
       it is viewport-independent, but it was verified at 375 only.
+
+## CI reliability (lead, 2026-09-11)
+
+- [x] **The anon surface contract failed the build on a lie — fixed d5b193c56.**
+      `E2E real backend` went red at `b7bc81eb` with: *"public.get_ranked_open_jobs
+      — the anon ranked-jobs RPC surface — answered anon with HTTP 504. A
+      signed-out visitor sees nothing there."* None of that was true. I checked
+      the object rather than the message: it is not a view and not broken — it
+      is `get_ranked_open_jobs(integer,integer,boolean,numeric,numeric,numeric)`,
+      runs in **31ms**, and has no client caller. `probeSurface` decided the
+      object's kind from `table probe status !== 404`, so ANY transient gateway
+      error short-circuited to `kind: "view"` carrying the 5xx, and the failure
+      text then described a public outage that was not happening.
+      The next push went green with nothing fixed — the self-healing red
+      CLAUDE.md warns about twice. Re-measured against live prod:
+      `504 view … rows=-` **→** `200 rpc … rows=9`, whole contract passes.
+      Worth noting this was NOT caused by the seed/test deletes, which is the
+      first thing I checked given the timing.

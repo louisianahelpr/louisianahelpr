@@ -38,8 +38,25 @@ export const queryClient = new QueryClient({
           (error as { statusCode?: number })?.statusCode ??
           Number((error as { code?: number | string })?.code);
         if (typeof status === "number" && status >= 400 && status < 500) return false;
-        return failureCount < 2;
+        return failureCount < 1;
       },
+      // HOW LONG THE USER STARES AT A SKELETON BEFORE BEING TOLD ANYTHING.
+      //
+      // Every page here decides "skeleton vs error card" from the query's
+      // settled state, so the retry schedule IS the time-to-error-state. The
+      // old shape — 2 retries on TanStack's default backoff (1s, then 2s) —
+      // meant three round trips plus three seconds of pure waiting before the
+      // designed "We couldn't load this / Try again" card could render. On
+      // localhost with instant 500s that measured 3.4s; against a real backend
+      // that is failing slowly (each attempt paying its own latency/timeout)
+      // the same schedule was observed at ~20-25s of blank skeleton with no
+      // message and no retry control.
+      //
+      // One retry on a 500ms delay keeps the whole point of retrying — a
+      // single transient blip still self-heals without the user seeing an
+      // error — while capping the "we are still trying" window at roughly one
+      // extra round trip instead of three seconds plus two.
+      retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 2000),
       // Re-enable: in a live marketplace, returning to the app should
       // surface jobs that may have been claimed/cancelled while away.
       refetchOnWindowFocus: true,

@@ -797,8 +797,37 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
 
   const activeCore = isPosted ? postedCore : appliedCore;
 
+  // AN EMPTY STATE IS A CLAIM ABOUT THE ACCOUNT, SO IT MUST WAIT FOR AN ANSWER.
+  //
+  // Activity renders `ActivityEmptyState` ("No applications yet — while you
+  // scout for the right job, post one of your own") from `loading === false`
+  // plus a zero-length list. `isLoading` is `isPending && isFetching`, which
+  // is false in two states where we do NOT have an answer yet:
+  //   - the query is DISABLED (userId not resolved yet) — pending, not
+  //     fetching, so `isLoading` is false and the page confidently says the
+  //     account has nothing;
+  //   - a cached-empty result is being REFETCHED — data is `[]` and settled
+  //     from a previous fetch, so `isLoading` is false while the request that
+  //     will return the user's actual work is still in flight.
+  // Measured on /my-jobs at 375 with one real application: "No applications
+  // yet" from 0.7s, replaced by the real card only once the read landed.
+  //
+  // So: hold the skeleton until this tab's core query has actually settled,
+  // and keep holding it while a refetch is in flight *with nothing to show*.
+  // The `rowCount > 0` guard is what keeps this from being a regression — a
+  // background refetch over an existing list must not blank the page back to
+  // skeletons; only the zero-row case, where the alternative is a false
+  // claim, waits.
+  const activeRowCount = isPosted
+    ? (postedCore.data?.postedJobs.length ?? 0)
+    : (appliedCore.data?.appliedApps.length ?? 0);
+  const activeSettled = activeCore.isSuccess || activeCore.isError;
+  const loading =
+    !activeCore.isError &&
+    (!activeSettled || (activeCore.isFetching && activeRowCount === 0));
+
   return {
-    loading: activeCore.isLoading,
+    loading,
     loadError: activeCore.isError,
     postedJobs: posted.postedJobs,
     appliedApps: appliedAppsWithNames,

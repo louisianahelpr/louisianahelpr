@@ -790,7 +790,34 @@ on every one.
       ONE statement reports the pre-delete snapshot — it said "deleted 40,
       remaining 40". The remaining count has to be a separate statement.)
 
-- [ ] **Nested white cards: owner ruled KEEP THE GROUPS, DROP THE OUTER CARD.**
+- [x] **DONE 0e4a57017 — the owner's ruling applied, and it was FAR more than the
+      two screens anyone had seen.** 43 same-material (white-in-white) nested
+      pairs eliminated across 8 surfaces, identical counts at 375 and 1440:
+      `/profile` landing **4 -> 0**, `/settings` **4 -> 0**,
+      availability (both routes, both roles) **7 -> 0**, Admin Health's Config
+      Checks + Scheduled Jobs **20 -> 0**, Admin Jobs rows **5 -> 0**, Admin
+      Disputes **1 -> 0**, Admin Settings' admin-user rows **1 -> 0**, Admin
+      Analytics' empty state **1 -> 0**. Group cards, eyebrows and rows are
+      untouched — only the OUTER wrapper stopped painting, exactly as ruled.
+      Done through a shared mechanism, not per-page forks: `AdminCard` gained
+      `surface?: "card" | "none"`, default unchanged, so the other ~20 admin
+      views are untouched. Eyeballed at both widths, not just counted.
+
+      **The detector missed one on its first pass, for a reason worth keeping:**
+      it skipped `role="button"` elements, so Admin Jobs' rows did not register.
+      Widened, found, fixed. That is the same shape as the 2026-09-07 miss — a
+      detector whose definition quietly excluded the case — and it is why the
+      count is trustworthy only after you check what the detector cannot see.
+
+      Deliberately LEFT, with reasons: `PageScaffold`'s bleeding panel around job
+      cards (My Posts, Activity, Dashboard) matches the shape literally but IS
+      the documented two-card shell in CLAUDE.md — removing it is a layout
+      decision for the owner, not this ruling. Work Record's grey stat tiles and
+      the tinted inset panels inside AdminCards (`bg-muted/40`, `destructive/5`
+      and friends) are a different material and read as inset, not box-in-box.
+      Segmented-control tracks and the EmptyState icon disc are detector noise.
+
+      Original ruling: **KEEP THE GROUPS, DROP THE OUTER CARD.**
       The WORK / MONEY group cards and their eyebrow labels stay exactly as they
       are; the outer wrapper stops painting a white card and a border, so there
       is one boundary per group instead of a box inside a box. Applies

@@ -1196,3 +1196,40 @@ Two corrections to my own test, not the app:
       will drive post → fund → apply → hire → complete → release → review end to
       end.** Until then, escrow, payout and refund remain proven only by the CI
       spec's own history, not by anything I ran tonight.
+
+## Money and trust audit (read-only against prod, 2026-09-12)
+
+**No real money is stuck anywhere.** Checked every integrity invariant I could
+express over `jobs`:
+
+| check | result |
+|---|---|
+| REAL (non-seed) jobs with stuck money | **0** |
+| completed but not released/refunded/cancelled | 3 — **all `is_seed`** |
+| escrow still held on a finished job | 1 — **seed**, the disputed fixture |
+| released with no helper | 0 |
+| non-positive budget | 0 |
+| platform fee exceeding the budget | 0 |
+| open job already assigned a helper | 0 |
+| in-progress job with no helper | 0 |
+| `cancellation_fee_status = 'charged'` with no fee amount | 0 |
+| payout_transfers rows pointing at a job that no longer exists | 0 |
+
+Real jobs in prod: **3**. Payout rows 10, refunds 39, tips 3.
+
+**The repeating "Dispute split did not settle" alert — NOT a defect, and I
+nearly filed it as one.** Dispute `c7a12050` is `status=decided` with
+`execution_status='pending'`, never started, no error, so cron 15 (`21 */6`)
+re-alerts every 30h. My first read was that nothing calls
+`execute-dispute-split` — `grep -rn "execute-dispute-split" src` returns only
+its own tests. **That was wrong: the call is there, at
+`AdminDisputes.tsx:330`, split across a line break so the function name sits on
+the line after `invoke(`.** The designed flow is admin decides →
+`rpc_decide_dispute` → client invokes the settler, and `UnsettledSettlements.tsx`
+exists precisely to list decisions whose money has not moved. The stuck row is
+SEED data created already-decided without the settler ever being invoked.
+Worth clearing so the alert stops, but the product path is intact.
+
+A note on method: a multi-line call is invisible to a single-line grep, and
+"nothing calls this function" is exactly the kind of confident, wrong conclusion
+that a grep invites. Read the call site.

@@ -10,19 +10,36 @@ fraction of fixing them one report at a time.
 
 ---
 
-## Needs a decision before anyone can build
+## Decided 2026-09-11, now queued to build
 
-- **Live location tracking — should it be required?** Today it is
+- **Live location: background tracking, REQUIRED while en route.** Today it is
   `setInterval(pushPosition, 45_000)` in the WebView (JobTracking.tsx:692),
   running only while the job is `on_the_way`. There is no `watchPosition` and no
   background-location capability, so **iOS suspends it the moment the helper
-  locks their phone or opens Maps** — i.e. exactly while they are driving.
-  Making it genuinely live means background location, which means an Apple
-  review justification, a privacy-label change, battery cost, and a decision
-  about whether a helper must share continuous location to work at all.
-- **Earnings + payout organisation** — owner asked for it; scope not yet agreed.
+  locks their phone or opens Maps** — i.e. exactly while they are driving, which
+  is the only time it matters. Owner chose real background location from "On My
+  Way" until arrival. Carries `UIBackgroundModes: location`, an Apple review
+  justification, a privacy-label change, and battery cost.
+- **Earnings splits into two tabs.** Earnings = what you made (summary, history,
+  forecast, export, streak). Payouts = how you get paid (setup — currently
+  NESTED inside the earnings tab — methods, wallet/cash-out, threshold, payout
+  history, transfers, Instant Cash Out). Lane `earnings-split`.
 
-## Job card (helper side) — IN PROGRESS, lane `step-components`
+## Job card (BOTH sides) — IN PROGRESS, lane `step-components`
+Owner decided 2026-09-11: helper and poster cards share ONE shell, filling the
+same slots (tracker / primary action / secondary row / the ask / escape link)
+with different content per side and per step.
+
+- **Poster name has two treatments** (REPEAT report — raised before, not fixed).
+  `AppliedJobCard.tsx` ~169 collapsed: quiet inline avatar + name. ~293
+  expanded: the same fact as a grey `bg-muted/40` band with an added "Posted
+  by" label. Expanding a card should reveal more, never redraw what was
+  already there. `bg-muted/40` around an identity or meta row is suspect
+  generally here — the owner previously flagged the same band behind the
+  location chip.
+- Helper-name placement and the name in the tracking panel, poster side —
+  check whether these are the same one-fact-two-treatments shape.
+
 - One component per step; six states currently have six different layouts.
 - `DisputedSection` still renders the OLD hand-rolled Photo Proof card that
   `adb4773dd` replaced elsewhere. Two designs ship side by side today.
@@ -47,6 +64,29 @@ Measured against prod, warm median:
   `supabase.rpc` calls outside React Query, so no dedupe.
 - CLS is 0.0000 on all five routes measured. This reads as slow, not broken —
   do not spend budget on skeletons.
+
+## Messages screen
+- **A selected thread should be the FULL page**, with back to return to the
+  list. Today the list and the thread sit side by side and the thread is cut
+  off. (owner, 2026-09-11)
+- **Search: replace the "Cancel" text button with an × icon** —
+  `ConversationList.tsx:790` (`ScreenHeaderRow`). "Cancel" is being cut off.
+
+## Profile
+- **Avatar has a square/rectangle behind the circle** — remove it. Seen on the
+  profile header's 88px avatar (`AvatarFallback`), which is `rounded-full`, so
+  the square is coming from something behind or around it, not the fallback
+  itself.
+- ~~Verified group should sort before As-a-Helpr / As-a-poster~~ — DONE,
+  `RecognitionRow.tsx` GROUP_ORDER, not yet visually confirmed.
+
+## Notification counts — REOPENED, my error
+The owner reported the badge and the real numbers disagree, and noted I had
+called this fixed. **They are right and I fixed the wrong thing.** Commit
+`a93e5830b` only made the date-divider count LOOK like the panel's other quiet
+text — a styling change. It never touched whether the numbers AGREE. Observed:
+bell badge **10**, panel "Unread **11**". Two different sources of one count.
+Find both and make one authoritative.
 
 ## Bugs found but not fixed
 - **Every job card renders TWICE on /dashboard** (seen in the perf lane's

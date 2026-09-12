@@ -132,8 +132,21 @@ const GROUP_LABEL: Record<BadgeGroup, string> = {
   account: "Verified",
 };
 
-/** Display order of the groups, independent of the priority order the cap uses. */
-const GROUP_ORDER: BadgeGroup[] = ["helpr", "poster", "account"];
+/**
+ * Display order of the groups, independent of the priority order the cap uses.
+ *
+ * VERIFICATION FIRST (owner, 2026-09-11: "verified should go before the other
+ * badges such as as a helpr or poster"). Account-level trust qualifies
+ * everything below it — "Rising Star" from someone whose identity was never
+ * checked means something different from the same badge on a verified account,
+ * and a reader deciding whether to hand this person a key or a payment wants
+ * that answer before the achievements, not after them.
+ *
+ * It is also the group that does NOT depend on which side of the marketplace
+ * the person is on, so it reads as a property of the account rather than of a
+ * role — which is the distinction these captions exist to draw.
+ */
+const GROUP_ORDER: BadgeGroup[] = ["account", "helpr", "poster"];
 
 function milestoneSpec(milestone: CareerMilestone): BadgeSpec {
   // ONE colour was doing three jobs: the 12% fill, the 28% border, and the

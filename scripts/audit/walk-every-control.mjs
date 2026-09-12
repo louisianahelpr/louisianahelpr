@@ -13,7 +13,7 @@
  * The point is step 4. The owner's words: "last time there were alot of gaps
  * you just looked and didnt make sure anything worked as it should."
  */
-import { chromium } from "playwright";
+import { chromium } from "@playwright/test";
 import { execSync } from "node:child_process";
 import { writeFileSync, mkdirSync } from "node:fs";
 

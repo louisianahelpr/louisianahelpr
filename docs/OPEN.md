@@ -1310,3 +1310,47 @@ notifications bell that was a stale element handle, nested cards that were the
 documented two-card shell. Every finding in this file was reproduced by hand
 before being believed. That is why there are fewer findings here than you might
 expect, and why the ones that remain are real.
+
+## Sweep results — 58 routes, both widths, both themes
+
+Four runs. **375 light and 375 dark completed all 58 routes each**; the 1440 pair
+was re-run sequentially because four concurrent browsers starved the dev server
+and produced a wall of `page.goto: Timeout` on the Profile tabs — contention,
+not defects, and worth saying plainly rather than filing thirty findings.
+
+### Answered, with evidence — NOT defects
+- **"Save" on the auto-tip tab gives no feedback, and that is deliberate.** It
+  works: clicking it issues `PATCH profiles` then refetches, verified on the
+  network. There is no success toast because `applyToastPolicy()` neuters every
+  action-less `toast.success` app-wide by an owner decision of 2026-08-13
+  (confirmations read as clutter and covered the header). The intended
+  confirmation is the haptic plus the re-seeded values. **See the open question
+  below — that convention has a hole on the web.**
+- **"Copy Mon to all"** — no-op only because that account's seven days are
+  already an identical 09:00–17:00. Proven to work where a day differs.
+- **"Light" / "Dark" on the accessibility tab, "Off" on auto-tip, "Lifetime" on
+  earnings, "Post a new job" on /post-job, "Home" on /dashboard** — every one is
+  the already-selected option or the current route. Pressing them is supposed to
+  do nothing.
+- **"Follow us on Facebook"** opens a new tab, which the walker cannot see as a
+  change in the page it is watching.
+- **"Recenter map"** appears on /admin, /account-*, /signup-pending and / at
+  1440 because every one of those REDIRECTS a signed-in approved non-admin to
+  /dashboard, which has the map. Same control, one screen.
+
+### Real, and open
+- [ ] **TEXT CLIPPED on `/profile?tab=home_history`, four rows, both themes.**
+      "Automated end-to-end test row. Not a rea…" clipped by **33px vertically** —
+      the description box is shorter than its own text with no ellipsis and no
+      way to read the rest. The CONTENT is E2E debris, but the clipping is a
+      real layout defect that any long description would hit.
+- [ ] **OPEN QUESTION FOR THE OWNER — Save confirms with a haptic, and the web
+      has no haptics.** The 2026-08-13 ruling killed action-less success toasts,
+      and the stated confirmation on the auto-tip screen is "the haptic plus the
+      re-seeded values". On the phone-sized WEBSITE and on desktop there is no
+      haptic, and the re-seeded values are identical to what the user just
+      typed — so pressing Save produces **literally nothing observable**. That
+      collides with the standing rule that the phone-sized website and the
+      native app are ONE surface. I have NOT changed it, because adding a toast
+      would reverse your ruling. Options: a brief inline "Saved" beside the
+      button (no toast), or accept web having no confirmation.

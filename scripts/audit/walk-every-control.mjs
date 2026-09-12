@@ -108,10 +108,17 @@ for (const theme of THEMES) {
             while (p && p !== document.body) {
               if (isCard(p)) {
                 const r = el.getBoundingClientRect(), pr = p.getBoundingClientRect();
-                const gap = Math.min(
-                  Math.abs(r.left - pr.left), Math.abs(r.right - pr.right),
-                  Math.abs(r.top - pr.top), Math.abs(r.bottom - pr.bottom),
-                );
+                // IT MUST HUG ON BOTH OPPOSITE EDGES. A minimum over all four
+                // gaps calls any small control sitting near one edge a nested
+                // card — on /my-posts it flagged the "Lafayette" location chips,
+                // tinted 6%-opacity pills four pixels from the card's left
+                // edge, eight per screen. A card drawn inside a card spans its
+                // parent: it hugs left AND right, or top AND bottom. That is
+                // the shape the owner keeps pointing at, "two boundaries 1px
+                // apart", and nothing else.
+                const gapX = Math.max(Math.abs(r.left - pr.left), Math.abs(r.right - pr.right));
+                const gapY = Math.max(Math.abs(r.top - pr.top), Math.abs(r.bottom - pr.bottom));
+                const gap = Math.min(gapX, gapY);
                 if (gap <= 6) {
                   nested++;
                   nestedDetail.push(`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 28)} inside ${p.tagName.toLowerCase()}.${String(p.className).slice(0, 28)} @${Math.round(gap)}px`);
@@ -213,6 +220,15 @@ for (const theme of THEMES) {
             }
             if (!target) { rec.controls.push({ label, result: "not present on a freshly loaded page" }); continue; }
 
+            // `sr-only` controls are clipped to a pixel ON PURPOSE — they exist
+            // for a screen reader, and a pointer is never meant to reach them.
+            // "Expand Job Details" on /my-posts is one. Reporting them as
+            // unclickable is reporting the accessibility layer as a defect.
+            const srOnly = await target
+              .evaluate((el) => el.closest(".sr-only") !== null || el.classList.contains("sr-only"))
+              .catch(() => false);
+            if (srOnly) { rec.controls.push({ label, result: "screen-reader only (pointer not expected)" }); continue; }
+
             // A link to the page you are already on is SUPPOSED to do nothing.
             let selfLink = false;
             try {
@@ -273,10 +289,18 @@ for (const theme of THEMES) {
               Math.abs(after.body - before.body) > 12 ? `content changed (${after.body - before.body > 0 ? "+" : ""}${after.body - before.body})` :
               "NOTHING HAPPENED";
 
-            // A control that reveals a text field on a PHONE must focus it —
-            // otherwise the user taps search, gets a box, and has to tap again
-            // before the keyboard appears.
-            if (after.inputs > before.inputs && width <= 420 && after.focused !== "INPUT" && after.focused !== "TEXTAREA") {
+            // A control whose WHOLE PURPOSE is text entry must focus the field
+            // it reveals on a phone — otherwise the user taps search, gets a
+            // box, and has to tap again before the keyboard appears.
+            //
+            // Scoped to search-shaped controls on purpose. "Edit profile" and
+            // "Add a profile photo" also reveal inputs, and neither should
+            // steal focus: a multi-field form that grabs the keyboard on open
+            // hides itself behind it, and focusing a file picker achieves
+            // nothing. Flagging those was the same over-reach that had this
+            // harness calling working things broken.
+            const isSearchish = /search|find|filter/i.test(label);
+            if (isSearchish && after.inputs > before.inputs && width <= 420 && after.focused !== "INPUT" && after.focused !== "TEXTAREA") {
               rec.findings.push(`REVEALED A FIELD BUT DID NOT FOCUS IT: "${label}" (activeElement=${after.focused})`);
             }
             const newErrs = consoleErrors.slice(errsBefore);

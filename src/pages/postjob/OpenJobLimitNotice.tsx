@@ -25,7 +25,7 @@ export function OpenJobLimitNotice({ count = 5 }: { count?: number }) {
     >
       <div className="flex-1 min-w-0">
         <p className="text-ds-13 font-semibold" style={{ color: "hsl(var(--destructive))" }}>
-          You have {count} open jobs
+          You have {count} open {count === 1 ? "job" : "jobs"}
         </p>
         <p className="text-ds-11 text-muted-foreground mt-0.5">
           Helpr allows a maximum of 5 open jobs at a time. Close or complete an existing job before posting a new one.

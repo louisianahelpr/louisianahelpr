@@ -61,6 +61,14 @@ const SLA_BREACH_HOURS = 24;
 
 type ReportFilter = "pending" | "investigating" | "resolved" | "dismissed" | "all";
 
+const REPORT_STATUS_LABEL: Record<string, string> = {
+  pending: "New",
+  new: "New",
+  investigating: "Investigating",
+  resolved: "Resolved",
+  dismissed: "Dismissed",
+};
+
 const AdminReports = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -465,7 +473,7 @@ const AdminReports = () => {
                       report isn't a danger/delete action — the mauve destructive
                       color is reserved for genuinely destructive controls. */}
                   <Badge variant="sienna">
-                    {report.status === "pending" ? "new" : report.status}
+                    {REPORT_STATUS_LABEL[report.status] ?? report.status}
                   </Badge>
                   {report.assigned_to_name && (
                     <Badge variant="outline" className="text-ds-10 gap-0.5">

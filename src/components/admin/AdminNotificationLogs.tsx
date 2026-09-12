@@ -87,6 +87,10 @@ const channelMeta = (channel: string) =>
  * leaking onto an operator's screen. Named here instead.
  */
 const STATUS_LABEL: Record<string, string> = {
+  sent: "Sent",
+  failed: "Failed",
+  pending: "Pending",
+  queued: "Queued",
   token_deleted: "Token deleted",
 };
 

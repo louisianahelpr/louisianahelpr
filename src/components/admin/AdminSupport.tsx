@@ -217,6 +217,11 @@ const isMissingRpc = (error: { code?: string | null } | null | undefined) => err
 
 type QueueFilter = "pending" | "resolved" | "all";
 
+const TICKET_STATUS_LABEL: Record<string, string> = {
+  pending: "Pending",
+  resolved: "Resolved",
+};
+
 const AdminSupport = () => {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<QueueFilter>("pending");
@@ -466,8 +471,8 @@ const AdminSupport = () => {
                       support ticket isn't a danger/delete action — the mauve
                       destructive color is reserved for genuinely destructive
                       controls. */}
-                  <Badge variant={ticket.status === "pending" ? "sienna" : "secondary"} className="shrink-0 capitalize">
-                    {ticket.status}
+                  <Badge variant={ticket.status === "pending" ? "sienna" : "secondary"} className="shrink-0">
+                    {TICKET_STATUS_LABEL[ticket.status] ?? ticket.status}
                   </Badge>
                 </div>
 

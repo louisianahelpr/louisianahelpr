@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { formatDistanceToNow } from "date-fns";
+import { formatPriceExact } from "@/lib/format";
 
 interface DisputeRow {
   id: string;
@@ -273,8 +274,7 @@ export const DisputeTimelineDialog = ({
   // just going quiet on them.
   const blockedFromEvidence = !!dispute && dispute.status === "open" && !isOpener;
 
-  const usd = (cents: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  const usd = (cents: number) => `$${formatPriceExact(cents / 100)}`;
 
   const eyebrowCls = "text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground";
 

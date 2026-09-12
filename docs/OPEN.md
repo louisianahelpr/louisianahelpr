@@ -838,7 +838,9 @@ on every one.
       instances) and Admin Health's "Configuration Checks" at minimum. Sweep for
       others rather than fixing only the two that were seen. NOT YET DONE.
 
-- [ ] **Missing foreign keys — INVESTIGATION DONE, awaiting the owner's go.**
+- [x] **Missing foreign keys — DONE 6417eed97, owner said go.** Live in prod,
+      verified by `pg_get_constraintdef`. See the overnight rulings section.
+      Original: **Missing foreign keys — INVESTIGATION DONE.**
       Findings, all measured live:
 
       **The orphans are historical, and the leak is already plugged.** Every
@@ -926,7 +928,12 @@ on every one.
       skipped, which is a guard missing at the call site, not a server problem.
       Worth reproducing before believing either way.
 
-- [ ] **PENDING PROOF: the availability flood must stay at zero after the next
+- [x] **PROVEN 2026-09-12 18:56 UTC — the flood is over.** Cron 39 has now run
+      THREE times since the fix (06:41, 12:41, 18:41, last status `succeeded`)
+      and availability-titled notifications are still **0**, with
+      `notification_dedupe_suppressions` also 0 — nothing even tried to
+      duplicate. The expectation is now a measurement.
+      Original: **PENDING PROOF: the availability flood must stay at zero after the next
       cron tick.** As of 2026-09-12 05:42 UTC: availability-titled notifications
       **0**, `notification_dedupe_suppressions` **0** (nothing has tried to
       duplicate yet), newest notification in the whole table 2026-09-11 20:37.
@@ -961,7 +968,9 @@ on every one.
       spec now asserts the real role while keeping its intent.
       8/8 in `home-chrome.spec.ts` green.
 
-- [ ] **Top-anchored toasts have now landed on a header control THREE times.**
+- [x] **DONE 7c824db4c — every toast moved to the bottom**, owner ruling, locked
+      by `src/test/toastPlacement.test.ts`.
+      Original: **Top-anchored toasts have now landed on a header control THREE times.**
       The My Jobs title card (e59a7ff85), the desktop right rail (afe650635),
       and now: at 375 every top-centre toast covers the header's Notifications
       bell (toast y 8–78 vs bell y 21–77; `elementFromPoint` returns the toast).
@@ -974,7 +983,10 @@ on every one.
 
 ## Still red, and it is the owner's own report (lead, 2026-09-11)
 
-- [ ] **The Apply sheet's submit row STILL covers the payout notice — my earlier
+- [x] **DONE 84d84bc63 — the payout notice rides inside the sticky block with the
+      Apply button**, so the reason you cannot be hired and its Set Up Payouts
+      link are never covered. Overlap 21.1px → 0, checked in both hosts.
+      Original: **The Apply sheet's submit row STILL covers the payout notice — my earlier
       fix was incomplete.** Owner's words: "the you can apply button is cut off
       by apply". `fa716f4b9` fixed the case where the sheet does NOT scroll, by
       gating `.sheet-sticky-actions` on a real `hostScrolls` measurement. The
@@ -1346,7 +1358,10 @@ not defects, and worth saying plainly rather than filing thirty findings.
       designed excerpt as text the box cannot show. Detector fixed; the route
       now reports clean. **This was the last finding standing from the sweep,
       and it was mine, not the app's.**
-- [ ] **OPEN QUESTION FOR THE OWNER — Save confirms with a haptic, and the web
+- [x] **ANSWERED by the owner's "consequential actions only" ruling.** Auto-tip
+      Save is a settings save the form already reflects, so it stays silent by
+      design; the actions with a real-world effect now confirm.
+      Original: **OPEN QUESTION FOR THE OWNER — Save confirms with a haptic, and the web
       has no haptics.** The 2026-08-13 ruling killed action-less success toasts,
       and the stated confirmation on the auto-tip screen is "the haptic plus the
       re-seeded values". On the phone-sized WEBSITE and on desktop there is no

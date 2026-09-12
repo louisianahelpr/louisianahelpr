@@ -1329,6 +1329,36 @@ html.web-desktop {
     box-shadow: none;
   }
 
+  /* THE TOAST CLEARS THE RAIL TOO — it is the one fixed surface the two
+     inset rules above cannot reach. `.app-shell-frame` and `#root` both give
+     the rail its width back, but sonner PORTALS its container to <body>, so it
+     sits outside both and anchors itself to the raw viewport edge. Measured at
+     1440 on /dashboard with the panel open: the toast spanned x 1060–1416 at
+     y 24–94 while the rail's "Post a Job" sits at x 1209–1411, y 93–142 and
+     the header bell at x 1302–1346, y 6–50 — `elementFromPoint` over the
+     bell's centre returned the TOAST, so Notifications was genuinely
+     unclickable for the toast's whole dwell, not merely overlapped. This is
+     EVERY top-right toast, not one of them.
+
+     It has to be done here rather than through the Toaster's `offset` prop
+     because that prop is a single value for all viewports, and the rail exists
+     only while <html> carries `web-desktop desktop-rail side-panel-open` — a
+     closed panel is not a narrower rail, it is no rail, and a guest never gets
+     one at all. The same three classes that gate the two insets above gate
+     this, so the toast moves exactly when the rail is there.
+
+     `right`, not `--offset-right`: sonner writes `--offset-right` as an INLINE
+     custom property on the container, and an inline declaration always beats a
+     stylesheet one. It applies `right: var(--offset-right)` from its own
+     stylesheet, though, so a more specific selector for `right` wins cleanly.
+     Scoped to `[data-x-position="right"]` so a centre- or left-anchored
+     container (sonner renders one per position) is untouched — the phone's
+     bottom-centre push nudge included. */
+  html.web-desktop.desktop-rail.side-panel-open
+    [data-sonner-toaster][data-x-position="right"] {
+    right: calc(var(--desktop-sidebar-w) + 24px);
+  }
+
   /* THE PAGE COLOUR RUNS BEHIND THE PANEL TOO.
      The frame stops at the rail's edge, so the strip behind and around the
      side panel was never painted by the app at all — what showed through was

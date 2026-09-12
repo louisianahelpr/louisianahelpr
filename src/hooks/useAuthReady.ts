@@ -22,7 +22,55 @@ let authSnapshot: AuthSnapshot = { user: null, isReady: false };
 let authBootstrapStarted = false;
 const authListeners = new Set<(snapshot: AuthSnapshot) => void>();
 
-const emitAuthSnapshot = (snapshot: AuthSnapshot) => {
+/**
+ * A SESSION WITH NO `user.id` IS NOT A SESSION — it is a corrupt one, and the
+ * only safe reading of it is "signed out".
+ *
+ * `supabase.auth.getSession()` does not validate the shape of what comes back
+ * out of storage: `__loadSession` checks that a session object exists and that
+ * `expires_at` has not passed, then hands the stored `user` straight through
+ * (@supabase/auth-js GoTrueClient `__loadSession`). This app supplies a CUSTOM
+ * storage adapter on both platforms — the iOS keychain adapter natively,
+ * `getWebAuthStorage()`'s localStorage-or-in-memory fallback on the web — so
+ * the bytes that become `session.user` have travelled through code that can
+ * return a partial value, and nothing between there and here would notice.
+ *
+ * What that costs when it happens is not an error, which is the point:
+ * `!!user` is true, so every id-keyed query downstream runs with
+ * `undefined` as its filter. Measured on /dashboard with the id stripped from
+ * the persisted session — SEVEN malformed PostgREST requests on one page load,
+ * from five different call sites:
+ *
+ *   /rest/v1/profiles?select=*&user_id=eq.undefined
+ *   /rest/v1/user_roles?select=role&user_id=eq.undefined&role=eq.admin
+ *   /rest/v1/user_blocks?...or=(blocker_id.eq.undefined,blocked_id.eq.undefined)
+ *   /rest/v1/messages?...&receiver_id=eq.undefined&read=eq.false
+ *   /rest/v1/notifications?select=*&user_id=eq.undefined  (×3 variants)
+ *
+ * Against prod those are 400s on a uuid column, so `useCurrentUser` throws and
+ * every authed route renders "We couldn't load your account." with a Try again
+ * that can never succeed — the profile is not missing, the request was never
+ * answerable. Guarding each of those five call sites would be five guards for
+ * one cause; the cause is that this snapshot is allowed to carry a user nobody
+ * can query for. So it is normalised HERE, once, and the existing `!user`
+ * branch in ProtectedRoute does what it already does well: send them to /login
+ * with their intended path preserved, which is the correct remedy for a
+ * session that cannot be used.
+ *
+ * Reported, not swallowed — this is abnormal and must be visible in Sentry if
+ * it ever fires for a real account.
+ */
+const usableUser = (user: User | null): User | null => {
+  if (!user || user.id) return user;
+  report(new Error("useAuthReady: session carried a user with no id — treated as signed out"), {
+    severity: "error",
+    tags: { area: "auth", op: "sessionUserWithoutId" },
+  });
+  return null;
+};
+
+const emitAuthSnapshot = (rawSnapshot: AuthSnapshot) => {
+  const snapshot: AuthSnapshot = { ...rawSnapshot, user: usableUser(rawSnapshot.user) };
   // Sentry breadcrumb on the first isReady=true transition — gives any
   // post-auth-ready error a clear "we got through the auth bootstrap"
   // marker in the dashboard. One-shot via the prior snapshot check.

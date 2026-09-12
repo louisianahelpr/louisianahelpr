@@ -394,21 +394,25 @@ export function ActiveJobSection({
           for. A revision-state card shows neither — the revision card owns
           that state (decision 3). */}
       {status !== "revision_requested" && !job.helper_completed_at && (() => {
-        // The poster-side toggle another lane is landing
-        // (`jobs.require_photo_proof`). Consumed defensively so this file is
-        // correct before or after that migration.
+        // The poster's per-job answer (`jobs.require_photo_proof`, landed
+        // 2026-09-11). `?? true` because a client running against a database
+        // that predates the column must keep today's behaviour.
         //
-        // IT DOES NOT RELAX THE ASK, AND DELIBERATELY SO. Verified against
-        // prod 2026-09-11: the trigger `trg_helper_completion_gates` →
-        // `public.enforce_helper_completion_gates()` raises
-        // `completion_requires_proof_photos` (23514) whenever a helper stamps
-        // `helper_completed_at` with EITHER proof array empty, and it reads no
-        // per-job flag — the column does not exist in prod and no function
-        // references it. Hiding the ask on `require_photo_proof = false` would
-        // therefore produce a job the helper can never mark done. The flag is
-        // read here so the wording can soften the moment the server agrees;
-        // the gate itself stays where the server is.
-        const proofOptional = (job as { require_photo_proof?: boolean | null }).require_photo_proof === false;
+        // THE ASK MAY BE DROPPED ENTIRELY HERE, and only because the column
+        // and the gate that reads it ship in ONE migration: the same file that
+        // adds `require_photo_proof` patches
+        // `enforce_helper_completion_gates()` to read
+        // `COALESCE(NEW.require_photo_proof, true)`. So the column cannot
+        // exist on a database whose trigger would still refuse the completion
+        // — there is no window in which hiding the ask strands the helper.
+        // (Verified against prod 2026-09-11: before the deploy, neither the
+        // column nor the relaxed gate is present, and `?? true` covers it.)
+        //
+        // The arrival gate and the 30-minute floor are NOT part of this and
+        // still fire. A refused completion is not automatically a photo
+        // problem.
+        const proofRequired = ((job as { require_photo_proof?: boolean | null }).require_photo_proof ?? true) !== false;
+        if (!proofRequired) return null;
         const beforeUrls = job.proof_before_urls || [];
         const afterUrls = job.proof_after_urls || [];
         if (hasArrived && beforeUrls.length === 0) {
@@ -418,9 +422,7 @@ export function ActiveJobSection({
               type="before"
               existingUrls={beforeUrls}
               title="Add a before photo"
-              hint={proofOptional
-                ? "Your poster marked photos optional, but the job still can't be marked done without a before and after shot."
-                : "Show the job as you found it. This is half the proof that releases your payment."}
+              hint="Show the job as you found it. This is half the proof that releases your payment."
             />
           );
         }

@@ -440,6 +440,7 @@ export function JobTracking({
   // click-time check below is unchanged and remains the enforcement.
   proofBeforeUrls,
   proofAfterUrls,
+  requirePhotoProof,
   posterCompletedAt: initialPosterCompletedAt,
   initialTracking,
   jobLatitude,
@@ -491,6 +492,9 @@ export function JobTracking({
   /** Optional; when omitted the Done CTA's render-time proof gate stays off. */
   proofBeforeUrls?: string[] | null;
   proofAfterUrls?: string[] | null;
+  /** The poster's per-job photo answer. Omitted = required, which is the
+   *  column's own NOT NULL DEFAULT and the pre-migration behaviour. */
+  requirePhotoProof?: boolean | null;
   posterCompletedAt?: string | null;
   /**
    * Optional pre-fetched latest tracking row. When provided (including
@@ -761,7 +765,7 @@ export function JobTracking({
     if (newStatus === "done") {
       const { data: gate, error: gateErr } = await supabase
         .from("jobs")
-        .select("proof_before_urls, proof_after_urls, poster_confirmed_working_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at")
+        .select("proof_before_urls, proof_after_urls, require_photo_proof, poster_confirmed_working_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at")
         .eq("id", jobId)
         .single();
       if (gateErr) {
@@ -783,10 +787,16 @@ export function JobTracking({
       }
       // ONE shared proof rule (photoProofPolicy) — same predicate the payout
       // CTA and completeJob's re-check enforce, same stated reason.
-      const hasPhotos = hasRequiredProof(undefined, gate?.proof_before_urls, gate?.proof_after_urls);
+      // `gate`, not `undefined` — the poster's per-job answer
+      // (`require_photo_proof`, 2026-09-11) lives on this row and the DB
+      // trigger reads it. Passing undefined here demanded photos on a job the
+      // poster had excused and the server would have accepted: a dead Done
+      // button with a toast explaining a rule that no longer applied.
+      const proofJob = { require_photo_proof: gate?.require_photo_proof ?? true };
+      const hasPhotos = hasRequiredProof(proofJob, gate?.proof_before_urls, gate?.proof_after_urls);
       if (!hasPhotos) {
         hapticError();
-        toast.error(requiredProof().reason);
+        toast.error(requiredProof(proofJob).reason);
         setUpdating(false);
         return;
       }
@@ -1913,14 +1923,14 @@ export function JobTracking({
         const needsProof =
           isDoneStep &&
           proofBeforeUrls !== undefined &&
-          !hasRequiredProof(undefined, proofBeforeUrls, proofAfterUrls);
+          !hasRequiredProof({ require_photo_proof: requirePhotoProof ?? true }, proofBeforeUrls, proofAfterUrls);
 
         const disabledReason = updating
           ? "Saving your update — one moment…"
           : isLocked
             ? lockMessage
             : arrivalBlockReason
-              ?? (needsProof ? requiredProof().reason : null);
+              ?? (needsProof ? requiredProof({ require_photo_proof: requirePhotoProof ?? true }).reason : null);
 
         return (
           <div className="pt-2 border-t border-border space-y-2">

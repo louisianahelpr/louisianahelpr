@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { DatePickerField } from "@/components/DatePickerField";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +60,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const [startTime, setStartTime] = useState("");
   const [, setBudget] = useState("");
   const [specialReq, setSpecialReq] = useState("");
+  const [requirePhotoProof, setRequirePhotoProof] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showDiscard, setShowDiscard] = useState(false);
@@ -74,6 +76,10 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       setStartTime(job.start_time || "");
       setBudget(job.budget?.toString() || "");
       setSpecialReq(job.special_requirements || "");
+      // `?? true` mirrors the column's own NOT NULL DEFAULT, so a row read by a
+      // client older than the migration prepopulates as "required" rather than
+      // silently saving the requirement away.
+      setRequirePhotoProof((job as { require_photo_proof?: boolean | null }).require_photo_proof ?? true);
     }
   }, [job]);
 
@@ -86,6 +92,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       title: title.trim(), description: description.trim(), category,
       location: location.trim(), date_needed: dateNeeded, start_time: startTime || null,
       special_requirements: specialReq.trim() || null,
+      require_photo_proof: requirePhotoProof,
       // Moving the schedule MUST move the listing expiry with it. It didn't:
       // a job pushed 08-31 -> 09-03 kept its 08-31 expires_at, which is what
       // the feed and the map filter on, so the poster's paid listing stayed
@@ -231,6 +238,35 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             <div className="space-y-1.5">
               <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Special requirements</Label>
               <Textarea aria-label="Special requirements" value={specialReq} onChange={(e) => setSpecialReq(e.target.value)} rows={2} disabled={hasHelper} autoCapitalize="sentences" />
+            </div>
+            {/* PHOTO PROOF — editable even once a Helpr is assigned, which is
+                the opposite of every field above it and is the point.
+                `enforce_helper_completion_gates()` reads NEW.require_photo_proof
+                at the moment the Helpr marks the job done, not the value at
+                post time, so a poster who answered wrong is otherwise stuck:
+                their only remedy would be cancelling a job someone is already
+                working. Turning it off only ever relaxes a gate, and turning it
+                back on is answerable by the Helpr, who can still add photos. */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <Label htmlFor="edit-require-photo-proof" className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                  Require before &amp; after photos
+                </Label>
+                {/* Olivewood, not shadcn's `text-muted-foreground` grey — the
+                    app's own body voice, which is what dialogShell.test.ts's
+                    grey-prose rule exists to hold the line on. */}
+                <p className="text-ds-11 mt-1 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  {requirePhotoProof
+                    ? "Your Helpr can't mark this job done without them."
+                    : "Your Helpr can finish without photos — good for deliveries, errands and dog walks."}
+                </p>
+              </div>
+              <Switch
+                id="edit-require-photo-proof"
+                checked={requirePhotoProof}
+                onCheckedChange={setRequirePhotoProof}
+                aria-label="Require before and after photos"
+              />
             </div>
           </section>
         </div>

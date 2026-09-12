@@ -146,6 +146,10 @@ export function HelperTrackerPanel({
         // the tap rather than after.
         proofBeforeUrls={job.proof_before_urls || []}
         proofAfterUrls={job.proof_after_urls || []}
+        // The poster's per-job photo answer, so the tracker's Done CTA and the
+        // card's payout button read ONE rule. Without it the tracker kept
+        // demanding photos the server had stopped requiring.
+        requirePhotoProof={(job as { require_photo_proof?: boolean | null }).require_photo_proof ?? true}
         helperConfirmedAt={job.helper_confirmed_at}
         helperDayofConfirmedAt={job.helper_dayof_confirmed_at}
         posterConfirmedAt={job.poster_confirmed_at}

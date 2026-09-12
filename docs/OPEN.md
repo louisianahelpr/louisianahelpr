@@ -1393,7 +1393,18 @@ Two supporting facts, so this is not a guess:
   phone-sized website and on desktop the confirmation is nothing at all. That
   collides with the standing rule that the website and the app are ONE surface.
 
-- [ ] **DECISION FOR THE OWNER.** I did NOT re-enable success toasts — that
+- [x] **DONE 40dbf2d84 — owner ruled "consequential actions only".** A new
+      `confirmConsequential` renders through the real `toast.success`, keeping
+      success styling; 22 call sites across 18 files moved (password reset,
+      email change, membership refresh and restore, dispute resolved / withdrawn
+      / settled, bans, denials, restrictions, strike reversal, force-update gate,
+      abuse caps, test notifications, review posted). Trivial saves stay silent.
+      Also fixed a dropped error under it: Refresh membership status discarded
+      `functions.invoke`'s result, so a server failure never reached the catch.
+      Seen by eye at 375 and 1440: success check, bottom-anchored, clear of the
+      dock. Guard tests proved to fail both ways.
+
+      Original: **DECISION FOR THE OWNER.** I did NOT re-enable success toasts — that
       reverses an explicit ruling of yours and changes every screen at once.
       The options:
       1. **Re-enable them now that toasts sit at the bottom** (one-line change

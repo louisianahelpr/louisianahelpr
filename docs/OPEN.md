@@ -1233,3 +1233,29 @@ Worth clearing so the alert stops, but the product path is intact.
 A note on method: a multi-line call is invisible to a single-line grep, and
 "nothing calls this function" is exactly the kind of confident, wrong conclusion
 that a grep invites. Read the call site.
+
+## Cross-account authorization — NO LEAKS (17 probes, two real sessions)
+
+`scripts/audit/cross-account-authz.mjs`. Not a policy read: two real tokens, real
+PostgREST, one signed-in member asking for another's rows — the question a
+hostile user would ask. CLAUDE.md is explicit that a policy can look correct and
+still not do what you think.
+
+Clean on all of it: payout transfers, refunds, tips, disputes, PIF credits, W9
+tax records, verification history, other people's roles, fee config, error logs,
+push tokens, saved searches, saved helpers, notifications, messages to third
+parties, the poster's email, and **the exact address of a job she was never
+hired for** (no latitude/longitude handed over).
+
+It carries a control so it cannot pass vacuously: the helper must still be able
+to read her OWN profile. A database where nothing works must not look like a
+database where nothing leaks.
+
+**Its first run reported five leaks and every one was the probe's fault** — two
+asked for a column and a table that do not exist (`payout_transfers.amount`,
+`id_verifications`), and three forgot to exclude the user's OWN rows, so her own
+role, tips on jobs she worked and disputes she is a party to all came back and
+read as breaches. Each was checked against the database before being believed.
+A probe that cannot tell "your row" from "someone else's row" cannot report a
+leak, only noise; a 400/404 now reports itself as a broken probe rather than a
+finding.

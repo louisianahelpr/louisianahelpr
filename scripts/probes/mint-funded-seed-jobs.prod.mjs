@@ -9,7 +9,7 @@
 // (admin-dispute-race.prod.mjs) that need a capture to refund or transfer from.
 // Refuses to pay anything but a cs_test_ session.
 import { appendFileSync } from "node:fs";
-import { chromium } from "playwright";
+import { chromium } from "@playwright/test";
 import { rest, session, invoke } from "./lib/prodEnv.mjs";
 
 const [nArg, out] = process.argv.slice(2);

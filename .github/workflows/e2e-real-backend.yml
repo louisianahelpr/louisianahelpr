@@ -357,7 +357,7 @@ jobs:
       # browser saw instead of from a guess.
       - name: Keep the trace and screenshots when the loop fails
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: prod-lifecycle-trace
           path: |

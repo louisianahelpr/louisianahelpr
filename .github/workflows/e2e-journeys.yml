@@ -102,7 +102,7 @@ jobs:
 
       - name: Keep milestones, failure screenshots and traces
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: journeys-results
           path: |
@@ -178,7 +178,7 @@ jobs:
 
       - name: Keep milestones, failure screenshots and traces
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: journeys-webkit-results
           path: |

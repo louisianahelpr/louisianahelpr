@@ -14,6 +14,51 @@ fraction of fixing them one report at a time.
 
 ---
 
+## Mocked Playwright specs → prod (owner: NO MOCK MODE, EVER) — IN PROGRESS 2026-09-13
+
+Inventory taken from source, not declared: a file counts as mocked if it answers
+the Supabase origin itself (`route()` on `supabase.co` / `/rest/v1` / `/auth/v1`
+/ `/functions/v1` plus a `fulfill`, or the shared `installSupabaseMocks` /
+`mockTable` / `mockRpc` helpers). The classifier is
+`src/test/e2eNoSupabaseMocks.test.ts`, which is also the ratchet guard — it fails
+on any NEW mock and fails if its BASELINE names a file that no longer mocks, so
+the list can only shrink.
+
+**Count at start: 36 files** — 30 `.spec.ts` + 6 helper modules.
+
+Helpers (the mock machinery itself): `happy-path/fixtures.ts`,
+`happy-path/seedData.ts`, `happy-path/seedDataHeavy.ts`,
+`happy-path/state-matrix/stateMatrix.ts`, `happy-path/sweepCore.ts`,
+`prod-audit/harness.ts`.
+
+Specs (30): everything under `happy-path/` except `buttonGeometry.spec.ts` and
+`popupFooterFit.spec.ts` (source-scan + layout measurement, no backend at all),
+plus `visual-audit/desktop-fill.spec.ts`, `visual-audit/responsive.spec.ts`,
+`payment-lifecycle.spec.ts`, `prod-audit/messy-input.spec.ts`,
+`prod-audit/interruptions.spec.ts`.
+
+**Approach.** A new `e2e/prod-ui/` project driving the DEPLOYED app with the two
+shared accounts. `e2e/prod-ui/fixtures.ts` re-exports the fixture names the mocked
+suite used (`customerPage`, `helperPage`, `checkA11y`) but backs them with
+`getSession` from `e2e/journeys/fixtures.ts` (import only — another lane owns that
+file) and the `is_seed` rows from `scripts/prod-seed.mjs`, so a spec body mostly
+survives the move. Specs migrate in groups; the mocked copy is deleted only once
+its prod copy is green, and each group updates the ratchet BASELINE and the
+`e2eSpecsReachableInCi` registration in the same commit.
+
+**States that cannot be seeded on prod are recorded as a stated GAP in the spec**
+(`skipUncovered`, which annotates and prints a `::warning::`), never as a quiet
+pass. GAPs are listed here as they are found.
+
+**The pre-push visual sweep** (`happy-path/visual-audit-sweep.spec.ts`) is mocked
+and is the one piece where a straight port makes every push slow. Proposal:
+replace it with a prod CHANGED-SCREENS check — map the diff's changed files to the
+routes they render (the existing `auditRoutes.ts` route table), capture only those
+routes against prod, and fall back to the full sweep nightly. Whole-surface
+coverage stays; it just moves off the push path.
+
+---
+
 ## Cleanup candidates — dead code found 2026-09-13 (`npx knip`, call sites counted)
 
 `npm run deadcode` (knip) reports **0 unused files and 0 unused dependencies** —

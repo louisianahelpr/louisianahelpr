@@ -116,7 +116,10 @@ const MetricCell = ({ cell }: { cell: Cell }) => {
       className={cn(
         // min-h-[58px] clears the 44px tap-target floor with room to spare.
         "flex flex-col gap-0.5 rounded-ds-md px-3 py-2.5 sm:py-3.5 min-w-0 min-h-[58px] justify-center text-left",
-        "transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        // Outline, not ring: the selected state below paints an inline
+        // boxShadow, which is the property Tailwind's ring lives in, so a
+        // ring could never show on the selected cell.
+        "transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         // SELECTED = GLOSSY. Project rule: a selected control wears the
         // primary gradient (`btn-grad-primary`), never a flat tint.
         cell.selected

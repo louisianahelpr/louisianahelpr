@@ -45,6 +45,17 @@ export interface SignupStep1Props {
   onContinue: () => void | Promise<void>;
 }
 
+// One password-rule chip of the live checklist. Module-level, not declared
+// inside the render body: a component declared inside another is a new type
+// every render, which remounts it each keystroke (see
+// src/test/noNestedComponentDefinitions.test.ts).
+const Req = ({ ok, label }: { ok: boolean; label: string }) => (
+  <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
+    {ok ? <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden /> : <Circle className="w-3 h-3" strokeWidth={2} aria-hidden />}
+    {label}
+  </span>
+);
+
 export function SignupStep1({
   email,
   setEmail,
@@ -255,12 +266,6 @@ export function SignupStep1({
             // Supabase project — were never stated until they caused a
             // rejection. Shown from the start (not just once the user types)
             // so the rules set expectations before the first keystroke.
-            const Req = ({ ok, label }: { ok: boolean; label: string }) => (
-              <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
-                {ok ? <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden /> : <Circle className="w-3 h-3" strokeWidth={2} aria-hidden />}
-                {label}
-              </span>
-            );
             return (
               <div className="flex flex-wrap gap-x-3 gap-y-1 px-0.5 mt-1">
                 {PASSWORD_RULES.map((rule) => (

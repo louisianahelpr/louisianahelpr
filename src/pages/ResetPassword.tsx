@@ -17,6 +17,17 @@ import {
   PASSWORD_MIN_LENGTH,
 } from "./signup/signupHelpers";
 
+// One password-rule chip of the live checklist. Module-level, not declared
+// inside the render body: a component declared inside another is a new type
+// every render, which remounts it each keystroke (see
+// src/test/noNestedComponentDefinitions.test.ts).
+const Req = ({ ok, label }: { ok: boolean; label: string }) => (
+  <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
+    {ok ? <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden /> : <Circle className="w-3 h-3" strokeWidth={2} aria-hidden />}
+    {label}
+  </span>
+);
+
 const ResetPassword = () => {
   // usePageMeta, not usePageTitle: this was the one funnel page shipping a
   // bare <title> with no description/canonical/OG, so a shared or indexed
@@ -326,12 +337,6 @@ const ResetPassword = () => {
                   satisfied every word of it was refused by the server, which
                   is the definition of a rule discovered by rejection. */}
               {(() => {
-                const Req = ({ ok, label }: { ok: boolean; label: string }) => (
-                  <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
-                    {ok ? <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden /> : <Circle className="w-3 h-3" strokeWidth={2} aria-hidden />}
-                    {label}
-                  </span>
-                );
                 return (
                   <div className="flex flex-wrap gap-x-3 gap-y-1 px-0.5 mt-1">
                     {PASSWORD_RULES.map((rule) => (

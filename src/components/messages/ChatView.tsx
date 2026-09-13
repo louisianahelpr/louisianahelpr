@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, X } from "lucide-react";
@@ -183,6 +183,18 @@ export function ChatView({
       // Quota / private mode — silently ignore; in-memory state still works.
     }
   };
+  // Opening a thread REPLACES the inbox on screen (Messages.tsx swaps the
+  // list for this view), so the row the user pressed is gone and the browser
+  // drops focus to <body>: a keyboard user's next Tab starts from the top of
+  // the document and a screen reader hears nothing about where it landed
+  // (audit, 2026-09-12). Move focus onto the thread's own heading — the
+  // standard "new screen" hand-off: the name is announced, and Tab continues
+  // from the header (Back is next). Re-run when the thread changes.
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (embedded) return;
+    headingRef.current?.focus({ preventScroll: true });
+  }, [embedded, activeConvo.jobId, activeConvo.otherUserId]);
   // Open the snooze picker for the active thread.
   const [muteSheetOpen, setMuteSheetOpen] = useState(false);
   // Single-photo lightbox for tapped chat images — keeps the photo inside
@@ -338,7 +350,7 @@ export function ChatView({
               is carried separately and silently. Embedded (desktop split) the
               page already has its one <h1> from PageScaffold. */}
           {!embedded && (
-            <h1 className="sr-only">
+            <h1 ref={headingRef} tabIndex={-1} className="sr-only focus:outline-none">
               Conversation with {activeConvo.otherUserName}
             </h1>
           )}

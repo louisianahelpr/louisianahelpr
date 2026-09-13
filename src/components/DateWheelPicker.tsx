@@ -95,8 +95,13 @@ function WheelColumn({ labels, values, value, onChange, ariaLabel, className }: 
       aria-label={ariaLabel}
       tabIndex={0}
       className={cn(
-        "relative h-[200px] overflow-y-auto snap-y snap-mandatory scrollbar-none",
-        "focus-visible:outline-none",
+        "relative h-[200px] overflow-y-auto snap-y snap-mandatory scrollbar-none rounded-ds-md",
+        // Focusable (tabIndex=0) means it MUST show where focus is. This was
+        // `focus-visible:outline-none` with nothing in its place, so a
+        // keyboard user tabbing into the wheel saw no change at all
+        // (audit, 2026-09-12). Inset ring: the three columns sit flush in a
+        // grid, so an outset ring would be clipped by its neighbours.
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--olivewood))]",
         className,
       )}
       style={{ scrollbarWidth: "none" }}

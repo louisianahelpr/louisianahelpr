@@ -131,8 +131,12 @@ export function PhotoUpload({
             })}
           </Reorder.Group>
           {imageFiles.length < 5 && (
+            /* Focus is an OUTLINE here, not a ring: Tailwind's ring is a
+               box-shadow, and this label paints its own inline boxShadow
+               (the parchment chip), which wins over the class — the ring
+               shipped in dbed7befd and never showed (2026-09-12). */
             <label
-              className="mt-2.5 w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97] focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]"
+              className="mt-2.5 w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[hsl(var(--bark)/0.45)]"
               style={{
                 background: "hsl(var(--parchment) / 0.7)",
                 border: "0.5px solid hsl(var(--bark) / 0.28)",
@@ -220,7 +224,7 @@ export function PhotoUpload({
           })}
           {imageFiles.length < 5 && (
             <label
-              className="w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97] focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]"
+              className="w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[hsl(var(--bark)/0.45)]"
               style={{
                 background: "hsl(var(--parchment) / 0.7)",
                 border: "0.5px solid hsl(var(--bark) / 0.28)",

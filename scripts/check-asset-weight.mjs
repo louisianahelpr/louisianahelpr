@@ -92,7 +92,9 @@ if (mode === "all") {
   files = git(["ls-files", "-z"]).split("\0").filter(Boolean);
 } else if (base) {
   // Added or modified only: a deletion never adds a blob.
-  files = git(["diff", "--name-only", "--diff-filter=AM", `${base}...HEAD`]).split("\n").filter(Boolean);
+  // Two-dot (tree vs tree), not three-dot: CI checks out shallow, so the
+  // merge base a three-dot diff needs is usually absent and git exits 128.
+  files = git(["diff", "--name-only", "--diff-filter=AM", base, "HEAD"]).split("\n").filter(Boolean);
 } else {
   files = git(["diff", "--cached", "--name-only", "--diff-filter=AM"]).split("\n").filter(Boolean);
 }

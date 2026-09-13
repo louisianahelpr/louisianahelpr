@@ -738,7 +738,7 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.declined).toBe(1);
     expect(res.status).toBe(500);
     expect(reasons(b)).toContain("poster was not told");
-    expect(reasons(b)).toContain("standing helper was not told");
+    expect(reasons(b)).toContain("standing Helpr was not told");
   });
 
   // ═══════════════════════════════════════════════════════════════════════

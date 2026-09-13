@@ -255,7 +255,7 @@ export function ApplicantsPanel({
                   >
                     Ranked on ratings, work history and verified credentials.
                     {" "}Members on Pro and above get a small placement bump — enough to
-                    settle a close call, never enough to outrank a stronger helper.
+                    settle a close call, never enough to outrank a stronger Helpr.
                   </p>
                 )}
 

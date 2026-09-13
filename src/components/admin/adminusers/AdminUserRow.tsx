@@ -222,7 +222,7 @@ const AdminUserRowBase = ({
                     {jobsDone} completed
                   </>,
                   undefined,
-                  "Jobs with status 'completed', as helper or poster.",
+                  "Jobs with status 'completed', as Helpr or poster.",
                 )}
 
                 {/* Money that has MOVED through this account — spent as poster,

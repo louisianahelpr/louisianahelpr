@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
         .update({
           status: "cancelled",
           cancelled_at: now,
-          cancellation_reason: "Job listing expired — scheduled time passed with no helper assigned",
+          cancellation_reason: "Job listing expired — scheduled time passed with no Helpr assigned",
         })
         .eq("id", job.id)
         .eq("status", "open")

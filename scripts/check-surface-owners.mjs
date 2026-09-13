@@ -100,6 +100,7 @@ const OWNERS = {
   // covers the native handoff and not what this page asserts about the money.
   "/payment-success": ["lh-money-escrow", "lh-native-bridge"],
   "/earnings": ["lh-money-escrow"],
+  "/saved-helprs": ["lh-trust-safety"],
   "/saved-helpers": ["lh-trust-safety"],
   "/schedule": ["lh-scheduling-time"],
   "/availability": ["lh-scheduling-time"],

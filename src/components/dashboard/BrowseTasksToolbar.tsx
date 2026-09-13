@@ -59,6 +59,7 @@ export function BrowseTasksToolbar({
   // (Dashboard, DashboardGuest) don't need a matching change.
   titleSrOnly: _titleSrOnly = false,
   renderHeading = true,
+  screenName = "Browse Jobs",
   filtersAnchorRef,
   savedOnly = false,
   onToggleSavedOnly,
@@ -100,8 +101,8 @@ export function BrowseTasksToolbar({
       ? "Filtered Results — distance measured from your approximate area"
       : "Filtered Results"
     : filters.nearbyUnavailable
-      ? "Browse Jobs — location unavailable, distance filter not applied"
-      : "Browse Jobs";
+      ? `${screenName} — location unavailable, distance filter not applied`
+      : screenName;
 
   return (
     <>

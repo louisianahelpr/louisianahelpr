@@ -256,7 +256,7 @@ Deno.serve(async (req) => {
           console.error("[send-marketing-blast] helper segment read failed:", why);
           return new Response(
             JSON.stringify({
-              error: `Could not resolve the helper segment (${why}). Blast aborted — no email was sent.`,
+              error: `Could not resolve the Helpr segment (${why}). Blast aborted — no email was sent.`,
             }),
             { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );

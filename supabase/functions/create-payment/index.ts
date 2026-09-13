@@ -909,8 +909,8 @@ serve(async (req) => {
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
       if (job.status !== "completed") throw new Error("Job must be completed to tip");
-      if (user.id !== job.customer_id) throw new Error("Only the customer can tip the helper");
-      if (!job.helper_id) throw new Error("No helper assigned to this job");
+      if (user.id !== job.customer_id) throw new Error("Only the customer can tip the Helpr");
+      if (!job.helper_id) throw new Error("No Helpr assigned to this job");
 
       const helperId = job.helper_id;
 
@@ -925,11 +925,11 @@ serve(async (req) => {
         .maybeSingle();
       if (helperProfileErr) {
         console.error(`[create-payment] tip — helper profile read failed for ${helperId}:`, helperProfileErr);
-        throw new Error("Could not verify the helper's payout account — please try again");
+        throw new Error("Could not verify the Helpr's payout account — please try again");
       }
       if (!helperProfile?.stripe_account_id) {
         return new Response(
-          JSON.stringify({ error: "This helper hasn't set up their payout account yet and cannot receive tips at this time." }),
+          JSON.stringify({ error: "This Helpr hasn't set up their payout account yet and cannot receive tips at this time." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
         );
       }
@@ -1238,7 +1238,7 @@ serve(async (req) => {
           );
           return new Response(
             JSON.stringify({
-              error: "Could not verify the helper roster for this group job. No money was moved.",
+              error: "Could not verify the Helpr roster for this group job. No money was moved.",
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
           );
@@ -2118,7 +2118,7 @@ async function transferToHelper(
         await supabaseAdmin.from("notifications").insert({
           user_id: adminId,
           title: "Transfer failed",
-          message: `Failed to transfer $${amount.toFixed(2)} to helper for job ${jobId}. Error: ${(e as Error).message}`,
+          message: `Failed to transfer $${amount.toFixed(2)} to Helpr for job ${jobId}. Error: ${(e as Error).message}`,
           type: "warning",
           link: "/admin",
         });

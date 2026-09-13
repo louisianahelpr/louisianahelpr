@@ -107,6 +107,7 @@ const ROUTES = [
   "/subscription",
   "/profile?tab=analytics",
   "/earnings",
+  "/saved-helprs",
   "/saved-helpers",
   "/profile?tab=str_settings",
   "/profile?tab=auto_tip",

@@ -291,7 +291,7 @@ serve(async (req) => {
     );
   }
   if (helperShare > 0 && !job.helper_id) {
-    return await refuse({ error: "split awards the helper a share but the job has no helper_id" }, 409);
+    return await refuse({ error: "split awards the Helpr a share but the job has no helper_id" }, 409);
   }
   if (posterShare > 0 && !job.customer_id) {
     return await refuse({ error: "split awards the poster a share but the job has no customer_id" }, 409);
@@ -930,7 +930,7 @@ serve(async (req) => {
       // A transient read must not masquerade as "helper never onboarded".
       console.error(`[execute-dispute-split] helper profile read failed for ${job.helper_id}:`, helperErr);
       await markFailed(supabaseAdmin, disputeId, "helper profile read failed");
-      return json({ error: "helper profile read failed — retry" }, 500);
+      return json({ error: "Helpr profile read failed — retry" }, 500);
     }
     if (!helper?.stripe_account_id) {
       await markFailed(supabaseAdmin, disputeId, "helper has not completed Stripe Connect onboarding");

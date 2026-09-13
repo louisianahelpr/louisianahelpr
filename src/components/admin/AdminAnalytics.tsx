@@ -415,7 +415,7 @@ const AdminAnalytics = () => {
           </div>
           {helpers.length > 0 && (
             <p className="text-ds-11 text-muted-foreground mt-3">
-              {((helpers.length - subFree) / helpers.length * 100).toFixed(0)}% of helpers subscribed
+              {((helpers.length - subFree) / helpers.length * 100).toFixed(0)}% of Helprs subscribed
             </p>
           )}
         </button>

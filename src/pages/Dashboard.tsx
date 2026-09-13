@@ -59,10 +59,10 @@ import { useDetailJob } from "./dashboard/useDetailJob";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  // Matches the h1 this page renders ("Browse Jobs" — LoadingHeading and
+  // Matches the h1 this page renders ("Home" — LoadingHeading and
   // BrowseTasksToolbar both), not the route name. "Dashboard — Helpr" named a
   // word that appears nowhere on the screen.
-  usePageTitle("Browse Jobs — Helpr");
+  usePageTitle("Home — Helpr");
 
   // The Filters button lives in the title card (BrowseTasksActions) while the
   // filter panel lives in BrowseTasksToolbar below it. This page is the one
@@ -358,7 +358,7 @@ const Dashboard = () => {
         {/* The loaded screen's only <h1> lives in BrowseTasksToolbar, which
             doesn't exist yet here — so the pending screen had no heading at
             all. Visually hidden; the skeleton stays the visible design. */}
-        <LoadingHeading title="Browse Jobs" message="Loading jobs near you…" />
+        <LoadingHeading title="Home" message="Loading jobs near you…" />
         <DashboardSkeleton />
       </PageScaffold>
     );
@@ -619,6 +619,7 @@ const Dashboard = () => {
                   )}
 
                   <BrowseTasksToolbar
+                    screenName="Home"
                     filtersAnchorRef={filtersButtonRef}
                     titleSrOnly
                     filters={filters}

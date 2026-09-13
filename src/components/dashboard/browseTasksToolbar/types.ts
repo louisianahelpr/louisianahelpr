@@ -66,5 +66,12 @@ export interface BrowseTasksToolbarProps {
    * is the H logo and carries no heading of its own.
    */
   renderHeading?: boolean;
+  /**
+   * The screen's name as its sr-only `<h1>` announces it when no filter is
+   * narrowing the feed. Signed-in `/dashboard` passes "Home" so the heading
+   * matches its nav tab (owner, 2026-09-13); guest `/browse` keeps the
+   * default "Browse Jobs".
+   */
+  screenName?: string;
 }
 

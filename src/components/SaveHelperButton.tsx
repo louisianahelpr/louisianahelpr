@@ -93,7 +93,7 @@ const SaveHelperButton = ({
       toast.error(previousSaved ? "Couldn't unsave Helpr — try again?" : "Couldn't save Helpr — try again?");
     } else if (nextSaved) {
       successToast("Saved to your Helprs", {
-        action: { label: "View", onClick: () => navigate("/saved-helpers") },
+        action: { label: "View", onClick: () => navigate("/saved-helprs") },
       });
     }
 

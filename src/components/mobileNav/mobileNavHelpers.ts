@@ -47,7 +47,7 @@ export const rightItems = [
   { path: "/profile", icon: UserRound, label: "Profile" },
 ];
 
-export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs/", "/browse", "/account-pending", "/saved-helpers",
+export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs/", "/browse", "/account-pending", "/saved-helprs", "/saved-helpers",
   // Standalone settings sub-pages keep the bottom tab bar so they share the
   // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
   // "/benefits" left this list 2026-08-31 with the page itself — the route is
@@ -97,5 +97,5 @@ export const tabStacks: Record<string, string[]> = {
   "/my-posts": ["/activity"],
   "/my-jobs": ["/earnings"],
   "/messages": [],
-  "/profile": ["/support", "/user", "/admin", "/schedule", "/availability", "/saved-helpers"],
+  "/profile": ["/support", "/user", "/admin", "/schedule", "/availability", "/saved-helprs", "/saved-helpers"],
 };

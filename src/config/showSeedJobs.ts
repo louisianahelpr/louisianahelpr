@@ -118,7 +118,7 @@ export const SEED_GATED_SURFACES = [
   // so removing the gate from this one would have failed no test at all.
   // That is the same shape as the `get_public_open_jobs` omission above: a
   // registry that is both the test's input and its definition of correctness.
-  { surface: "new-job helper push", object: "public.notify_helpers_on_job_post" },
+  { surface: "new-job Helpr push", object: "public.notify_helpers_on_job_post" },
   // MISSING UNTIL 2026-09-03, and it never had the gate at all — unlike the
   // entry above it, which was gated but unregistered. The daily per-parish
   // digest email counted fixture jobs, and at the time it was found EVERY open

@@ -21,7 +21,7 @@ export async function handleAccountUpdated(
     .eq("stripe_account_id", account.id)
     .maybeSingle();
   if (helperProfileError) {
-    throw new Error(`helper lookup failed for account ${account.id}: ${helperProfileError.message}`);
+    throw new Error(`Helpr lookup failed for account ${account.id}: ${helperProfileError.message}`);
   }
 
   if (helperProfile) {
@@ -107,7 +107,7 @@ export async function handleAccountUpdated(
               db_error: approvalErr.message.slice(0, 200),
             },
           });
-          throw new Error(`Failed to auto-approve helper ${helperProfile.user_id} for account ${account.id}: ${approvalErr.message}`);
+          throw new Error(`Failed to auto-approve Helpr ${helperProfile.user_id} for account ${account.id}: ${approvalErr.message}`);
         } else {
           logStep("✅ Auto-approved helper via Stripe verification", { userId: helperProfile.user_id });
           await supabase.from("notifications").insert({

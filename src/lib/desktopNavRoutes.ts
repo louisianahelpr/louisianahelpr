@@ -15,7 +15,7 @@ const AUTH_PREFIXES = [
   "/admin",
   "/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile",
   "/messages", "/schedule", "/availability", "/user", "/earnings",
-  "/browse", "/saved-helpers",
+  "/browse", "/saved-helprs", "/saved-helpers",
   // Strictly-authed (ProtectedRoute) app pages with no public sibling that
   // shares their prefix. They belong to the signed-in app chrome, so the
   // desktop left rail must own their navigation too — otherwise the page

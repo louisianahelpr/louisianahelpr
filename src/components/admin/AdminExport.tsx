@@ -113,7 +113,7 @@ const AdminExport = () => {
       return;
     }
     if (!rowsRaw?.length) { toast.error("No data to export."); setExporting(null); return; }
-    const header = "Job ID,Title,Category,Status,Budget,Platform Fee,Customer ID,Helper ID,Date Needed,Created,Payment Status,Department,Business ID";
+    const header = "Job ID,Title,Category,Status,Budget,Platform Fee,Customer ID,Helpr ID,Date Needed,Created,Payment Status,Department,Business ID";
     const rows = rowsRaw.map((j: any) => [
       j.id, j.title, j.category, j.status, j.budget, j.platform_fee_amount, j.customer_id, j.helper_id,
       j.date_needed, j.created_at, j.payment_status, j.department ?? "", j.business_id ?? "",
@@ -151,7 +151,7 @@ const AdminExport = () => {
     // two agree.
     const FEE_FALLBACK_PERCENT = 10;
     const header =
-      "Job ID,Title,Budget,Platform Fee (stamped),Platform Fee (resolved),Fee %,Helper Fee %,Fee Settled,Urgent Fee,Helper ID,Customer ID,Payment Status,Completed At";
+      "Job ID,Title,Budget,Platform Fee (stamped),Platform Fee (resolved),Fee %,Helpr Fee %,Fee Settled,Urgent Fee,Helpr ID,Customer ID,Payment Status,Completed At";
     const rows = data.map((j) => {
       const settled = isSettledForDisplay(j as Parameters<typeof isSettledForDisplay>[0]);
       const resolved = helperPlatformFeeDollars(

@@ -347,7 +347,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           where the user expects. */}
       <Route path="/schedule" element={<Navigate to="/profile?tab=schedule" replace />} />
       <Route path="/availability" element={<Navigate to="/profile?tab=availability" replace />} />
-      <Route path="/saved-helpers" element={<Navigate to="/profile?tab=saved_helpers" replace />} />
+      <Route path="/saved-helprs" element={<Navigate to="/profile?tab=saved_helpers" replace />} />
+      {/* Old spelling, kept so existing links and notifications still land. */}
+      <Route path="/saved-helpers" element={<Navigate to="/saved-helprs" replace />} />
       {/* Public so the footer "Plans" link and marketing CTAs resolve for
           logged-out visitors. The page renders read-only for guests (current
           plan shows Free); tapping Upgrade routes them to sign in first. */}

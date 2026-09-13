@@ -308,7 +308,7 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
             <Textarea
               value={reason}
               onChange={(ev) => setReason(ev.target.value)}
-              placeholder="Why is this being reversed? e.g. helper provided GPS proof they were on site"
+              placeholder="Why is this being reversed? e.g. Helpr provided GPS proof they were on site"
               rows={3}
               aria-label="Reason for reversing this strike"
             />

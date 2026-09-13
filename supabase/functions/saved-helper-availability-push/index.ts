@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
       .in("user_id", helperIds);
     const helperNameMap = new Map<string, string>();
     for (const h of helperProfiles ?? []) {
-      const first = (h.full_name ?? "").trim().split(/\s+/)[0] || "Your helper";
+      const first = (h.full_name ?? "").trim().split(/\s+/)[0] || "Your Helpr";
       helperNameMap.set(h.user_id, first);
     }
 
@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
       const lastSeen = cursor[fav.helper_id];
       if (lastSeen && new Date(lastSeen) >= new Date(latest)) continue;
 
-      const helperName = helperNameMap.get(fav.helper_id) ?? "Your helper";
+      const helperName = helperNameMap.get(fav.helper_id) ?? "Your Helpr";
       notifications.push({
         user_id: fav.customer_id,
         title: `${helperName} updated availability`,

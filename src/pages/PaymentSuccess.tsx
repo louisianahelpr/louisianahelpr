@@ -464,10 +464,10 @@ const PaymentSuccess = () => {
                     <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                       ${formatPriceExact(escrowAmount)}
                     </span>{" "}
-                    was paid and has already been released to your helper.
+                    was paid and has already been released to your Helpr.
                   </>
                 ) : (
-                  <>This payment was already released to your helper.</>
+                  <>This payment was already released to your Helpr.</>
                 )
               ) : escrowAmount != null ? (
                 <>

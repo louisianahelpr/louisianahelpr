@@ -188,7 +188,7 @@ export function RestrictApplicationsDialog({
               aria-label="Restriction reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Required — internal only, the helper never sees this."
+              placeholder="Required — internal only, the Helpr never sees this."
               rows={3}
             />
           </div>

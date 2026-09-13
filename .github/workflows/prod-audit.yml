@@ -119,8 +119,21 @@ jobs:
           } > .env
           test -s .env
 
+      # The playwright line stays literal: src/test/e2eSpecsReachableInCi reads
+      # these workflows as text, and a ${{ }} expression on this line is parsed
+      # as positional file filters that match nothing — the specs would then
+      # report as run by no CI job. The optional -g goes through an env var and
+      # a shell branch instead.
       - name: Run the prod audit suites
-        run: npx playwright test --project=prod-audit --workers=1 --reporter=list ${{ inputs.grep && format('-g "{0}"', inputs.grep) || '' }}
+        env:
+          GREP: ${{ inputs.grep }}
+        run: |
+          set -euo pipefail
+          if [ -n "$GREP" ]; then
+            npx playwright test --project=prod-audit --workers=1 --reporter=list -g "$GREP"
+          else
+            npx playwright test --project=prod-audit --workers=1 --reporter=list
+          fi
 
       - name: Keep failure screenshots, samples and traces
         if: always()

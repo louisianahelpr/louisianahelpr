@@ -261,7 +261,7 @@ describe("Playwright project resolution", () => {
     // happy-path-webkit opens with a comment before `name:` and is not parsed,
     // which is fine — it collects the same files as happy-path.
     expect(projects.map((p) => p.name).sort()).toEqual([
-      "a11y-prod", "a11y-prod-webkit", "chromium", "happy-path", "journeys", "journeys-webkit",
+      "a11y-prod", "a11y-prod-webkit", "chromium", "happy-path", "journeys", "journeys-webkit", "prod-audit",
     ]);
     const chromium = specsInProject(projects.find((p) => p.name === "chromium")!, specs);
     const happy = specsInProject(projects.find((p) => p.name === "happy-path")!, specs);

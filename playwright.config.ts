@@ -129,12 +129,17 @@ export default defineConfig({
       retries: 0,
       use: { ...devices["iPhone 13"], screenshot: "only-on-failure", trace: "retain-on-failure", actionTimeout: 20_000 },
     },
+    // PROD audits (owner, 2026-09-12: no mock mode ever): messy input on every
+    // form and the deep-link / interruption journeys, against the deployed app
+    // (PLAYWRIGHT_BASE_URL, default prod web) as the shared test accounts.
+    // Phone-sized: 375 is the primary surface. Serial: the specs share two
+    // accounts. Nightly: .github/workflows/prod-audit.yml.
+    //
+    // The block opens with `name:` on purpose: src/test/e2eSpecsReachableInCi
+    // parses this file literally, and a comment before `name:` makes the whole
+    // project invisible to it — i.e. its specs silently report as run by no CI
+    // job.
     {
-      // PROD audits (owner, 2026-09-12: no mock mode ever): messy input on
-      // every form and the deep-link / interruption journeys, against the
-      // deployed app (PLAYWRIGHT_BASE_URL, default prod web) as the shared
-      // test accounts. Phone-sized: 375 is the primary surface. Serial: the
-      // specs share two accounts. Nightly: .github/workflows/prod-audit.yml.
       name: "prod-audit",
       testDir: "./e2e/prod-audit",
       fullyParallel: false,

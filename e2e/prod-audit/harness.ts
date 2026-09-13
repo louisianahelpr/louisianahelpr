@@ -9,7 +9,7 @@
  * `cleanupMarked` can remove exactly what a run created.
  */
 import type { APIRequestContext, BrowserContext, Locator, Page, Request, TestInfo } from "@playwright/test";
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -346,12 +346,34 @@ export function watchWrites(page: Page, re: RegExp): Request[] {
   return hits;
 }
 
-/** Wait for the SPA to settle after a navigation: boot loader gone, network quiet. */
+/**
+ * Wait for the SPA to settle after a navigation: boot loader gone, network quiet.
+ *
+ * Plus a deploy-in-flight guard. When a lazy chunk 404s because a new build
+ * landed mid-navigation, the app recovers itself (chunkReload.ts): it drops the
+ * service worker and caches and reloads once with `?_v=<now>`. Its own 10s
+ * guard then refuses a second reload, so if that one reload still lands on a
+ * half-propagated deploy the visitor sees "Something went sideways" — measured
+ * on prod 2026-09-13 at /messages/a/b/c, which renders the designed 404 on
+ * every attempt before and after. That is a deploy artifact, not the screen
+ * under test, so once (and only once) we let the recovery finish and reload.
+ */
 export async function settle(page: Page, ms = 600): Promise<void> {
   await page.waitForLoadState("domcontentloaded").catch(() => {});
   await page.waitForFunction(() => !document.getElementById("boot-loader"), null, { timeout: 30_000 }).catch(() => {});
   await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
   await page.waitForTimeout(ms);
+  if (new URL(page.url()).searchParams.has("_v")) {
+    test.info().annotations.push({ type: "stale-bundle", description: `the app recovered from a stale chunk at ${page.url()}` });
+    await page.waitForTimeout(3_000);
+    const clean = new URL(page.url());
+    clean.searchParams.delete("_v");
+    await page.goto(clean.toString());
+    await page.waitForLoadState("domcontentloaded").catch(() => {});
+    await page.waitForFunction(() => !document.getElementById("boot-loader"), null, { timeout: 30_000 }).catch(() => {});
+    await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
+    await page.waitForTimeout(ms);
+  }
 }
 
 /** Dismiss the onboarding tour / birthday / any stray modal that is not the one under test. */

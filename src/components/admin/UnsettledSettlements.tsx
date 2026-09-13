@@ -114,7 +114,7 @@ export const UnsettledSettlements = () => {
               <p className="font-semibold text-ds-13 text-foreground min-w-0 truncate">
                 {r.jobs?.title ?? "Untitled job"}
               </p>
-              <span className="shrink-0 inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-semibold uppercase tracking-wide">
+              <span className="shrink-0 inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-destructive/15 text-red-800 dark:text-red-400 font-semibold uppercase tracking-wide">
                 <AlertTriangle className="w-3 h-3" /> {EXECUTION_LABELS[r.execution_status ?? "pending"] ?? r.execution_status}
               </span>
             </div>

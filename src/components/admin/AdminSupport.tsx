@@ -455,10 +455,10 @@ const AdminSupport = () => {
                       </div>
                       <p className="text-ds-11 text-muted-foreground break-words">
                         {ticket.reporter_name}
-                        {ticket.reporter_email && <span className="text-muted-foreground/60"> · {ticket.reporter_email}</span>}
+                        {ticket.reporter_email && <span className="text-muted-foreground"> · {ticket.reporter_email}</span>}
                         {" · "}
                         {formatShortDate(ticket.created_at)}
-                        {waiting && <span className="text-muted-foreground/60"> · {waiting}</span>}
+                        {waiting && <span className="text-muted-foreground"> · {waiting}</span>}
                       </p>
                     </div>
                   </div>

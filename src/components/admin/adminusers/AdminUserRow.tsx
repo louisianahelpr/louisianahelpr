@@ -132,7 +132,7 @@ const AdminUserRowBase = ({
               ? `${waitDays}d ${remHours}h waiting`
               : `${Math.floor(waitHours)}h waiting`;
             const tone = waitHours >= 48
-              ? "bg-destructive/15 text-destructive border-destructive/30"
+              ? "bg-destructive/15 text-red-800 dark:text-red-400 border-destructive/30"
               : waitHours >= 24
               ? "bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30"
               : "bg-primary/10 text-primary border-primary/20";
@@ -185,9 +185,9 @@ const AdminUserRowBase = ({
                   strikes === 0
                     ? "bg-primary/10 text-primary"
                     : strikes >= 3
-                      ? "bg-destructive/15 text-destructive"
+                      ? "bg-destructive/15 text-red-800 dark:text-red-400"
                       : strikes === 2
-                        ? "bg-destructive/15 text-destructive"
+                        ? "bg-destructive/15 text-red-800 dark:text-red-400"
                         : "bg-accent/20 text-[hsl(var(--accent-ink))]"
                 )}
 
@@ -198,7 +198,7 @@ const AdminUserRowBase = ({
                     <Flag className="w-3 h-3" />
                     {openReports} open
                   </>,
-                  "bg-destructive/15 text-destructive"
+                  "bg-destructive/15 text-red-800 dark:text-red-400"
                 )}
 
                 {/* Rating + count (helpers especially, but show for anyone with reviews) */}
@@ -264,7 +264,7 @@ const AdminUserRowBase = ({
                     <Clock className="w-3 h-3" />
                     Never logged in
                   </>,
-                  "bg-destructive/15 text-destructive font-semibold"
+                  "bg-destructive/15 text-red-800 dark:text-red-400 font-semibold"
                 ) : lastLogin && chip(
                   "online",
                   <>
@@ -321,7 +321,7 @@ const AdminUserRowBase = ({
                   }
                   if (count === 0) return null;
                   const tone = count >= 3
-                    ? "bg-destructive/15 text-destructive font-semibold"
+                    ? "bg-destructive/15 text-red-800 dark:text-red-400 font-semibold"
                     : count >= 2
                     ? "bg-accent/20 text-[hsl(var(--accent-ink))]"
                     : "bg-secondary/40 text-muted-foreground";

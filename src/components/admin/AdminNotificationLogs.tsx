@@ -45,7 +45,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 const STATUS_VARIANT: Record<string, string> = {
   sent: cn("bg-success/15 border-success/30", toneTextClasses.success),
-  failed: "bg-destructive/15 text-destructive border-destructive/30",
+  failed: "bg-destructive/15 text-red-800 dark:text-red-400 border-destructive/30",
   suppressed: cn("bg-warning/15 border-warning/30", toneTextClasses.warning),
   skipped: "bg-muted text-muted-foreground border-border",
   // Push only. One row per device registration APNs/FCM rejected as

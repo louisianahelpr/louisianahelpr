@@ -2378,7 +2378,9 @@ button,
 }
 
 .segmented-count-selected {
-  background: hsl(var(--parchment) / 0.22);
+  /* olivewood is the ink opposite parchment in both themes, so this pushes the
+     pill away from its text: 3.41:1 light / 4.19:1 dark at parchment/0.22. */
+  background: hsl(var(--olivewood) / 0.4);
   color: hsl(var(--parchment));
 }
 

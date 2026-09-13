@@ -30,13 +30,18 @@ and one reachable-looking code path that cannot execute.
       `useApplyFlow.ts:244`, and `postjob/jobSubmitHelpers.ts:217`, which still
       sends `instant_book: true` on insert — a column prod no longer has.
       That last one is the reason this is not cosmetic.
-- [ ] **12 scripts referenced by nothing** — not in `package.json`, any workflow,
-      any doc, or any other script: `scripts/asc/{fix-availability,
-      fix-review-issues,inspect,screenshots}.mjs`,
-      `scripts/audit/{a11y-focus-repro,complete-profile-icon-clip}.mjs`,
-      `scripts/check-silent-catch.mjs`, `scripts/dh-{apply,nearby}-shots.mjs`,
-      `scripts/e2e/cleanup-stray-testusers.sh`, `scripts/mapkit-token.mjs`,
-      `scripts/probes/restrict-marketing-media.probe.mjs`.
+- [x] **"12 scripts referenced by nothing" was a bad signal — only ONE was dead.**
+      Reading them changed the answer: `scripts/mapkit-token.mjs` is how the
+      live `VITE_APPLE_MAPKIT_TOKEN` gets regenerated, `check-silent-catch.mjs`
+      documents in its own header why it exists outside ESLint,
+      `scripts/asc/*` is in-flight App Store Connect work, `probes/*.probe.mjs`
+      are run by hand with a PGlite dir, and `audit/a11y-focus-repro.mjs` and
+      `complete-profile-icon-clip.mjs` were written the same day as this sweep.
+      An operator tool is invoked by a person, so "nothing imports it" says
+      nothing about whether it is dead. Only
+      `scripts/e2e/cleanup-stray-testusers.sh` was genuinely spent (a one-shot
+      for the 2026-08-24 id mixup); deleted. **Do not re-run this heuristic and
+      act on it** — grep-for-references cannot see a human caller.
 - [ ] **62 unused exports + 15 unused exported types + 32 duplicate exports.**
       Mostly a module exporting both a named symbol and a default when only one
       is ever imported (`ProUpgradeSheet` 1 importer — the default;

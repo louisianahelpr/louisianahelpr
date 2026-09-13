@@ -1,7 +1,7 @@
 # Naming mismatches and dead code — 2026-09-13
 
 Report only. Nothing edited, committed or deleted. Measured on `origin/main @ 27b2e9b86`
-in a detached worktree. Excluded per brief: Pay It Forward / gift-card names,
+in a detached worktree. Excluded per brief: old gift-card names,
 useApplyFlow.ts, useJobSubmit.ts, chunkReload.ts, e2e/liveSession.ts, admin tiers view.
 
 **DB: NOT verified live.** The Supabase MCP needs re-authorization (non-interactive

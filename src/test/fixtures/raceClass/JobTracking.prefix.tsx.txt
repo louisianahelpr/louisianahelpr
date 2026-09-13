@@ -1033,20 +1033,7 @@ export function JobTracking({
     if (newStatus === "done") {
       try {
         unwrapMutation(
-          // .in("status", …): the client half of the race proven 20/20 on prod
-          // 2026-09-13. This write used to carry an id predicate and nothing
-          // else, so queued behind poster_cancel_job()'s FOR UPDATE it stamped
-          // a CANCELLED job and told the helper their payout clock had started
-          // on a job that will never pay. The database guarantee is
-          // trg_completion_on_live_job (20260913052119); this predicate is what
-          // turns the refusal into "0 rows" and the honest message below rather
-          // than a raw 42501.
-          await supabase
-            .from("jobs")
-            .update({ helper_completed_at: now })
-            .eq("id", jobId)
-            .in("status", ["accepted", "in_progress", "revision_requested"])
-            .select("id"),
+          await supabase.from("jobs").update({ helper_completed_at: now }).eq("id", jobId).select("id"),
           {
             action: "mark the job complete",
             rejectedMessage: "We couldn't mark this job complete — it may have already been completed or cancelled. Pull to refresh.",

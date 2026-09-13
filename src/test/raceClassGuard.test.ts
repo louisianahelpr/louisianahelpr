@@ -19,6 +19,10 @@ import * as guard from "../../scripts/check-race-class.mjs";
 const FIX = "20260913014328";
 const FIXTURES = resolve(__dirname, "fixtures/raceClass");
 const OFFER_HANDLERS = "src/pages/activity/activityActions/useOfferHandlers.ts";
+const FIX2 = "20260913052119";
+const REPO_ROOT = resolve(__dirname, "../..");
+const DISPUTE_DIALOG = "src/components/DisputeDialog.tsx";
+const JOB_TRACKING = "src/components/JobTracking.tsx";
 
 type Hit = { key: string; file: string; line?: number };
 
@@ -44,6 +48,45 @@ describe("race-class guard — red on the pre-fix code, green on the fix", () =>
   it("passes the fixed helper confirm (.eq(\"status\", \"accepted\"))", () => {
     const src = readFileSync(resolve(FIXTURES, "useOfferHandlers.fixed.ts.txt"), "utf8");
     expect(guard.clientHitsInSource(OFFER_HANDLERS, src)).toEqual([]);
+  });
+});
+
+describe("race-class guard — wave two (settle / dispute / complete), red on the pre-fix code", () => {
+  /**
+   * The three candidates wave one left in the baseline, each proven on PROD
+   * 2026-09-13 with scripts/probes/race2-prod.probe.mjs before being fixed in
+   * 20260913052119: settle_dispute_record 3/20 (timing-dependent), DisputeDialog 20/20,
+   * JobTracking helper_completed_at 20/20.
+   */
+  it("flags settle_dispute_record when the FOR SHARE migration is absent", () => {
+    const keys = guard.sqlHits(guard.readMigrations({ exclude: [FIX2] })).map((h: Hit) => h.key);
+    expect(keys).toContain("sql:public.settle_dispute_record");
+  });
+
+  it("passes settle_dispute_record with the FOR SHARE migration applied", () => {
+    const keys = guard.sqlHits(guard.readMigrations()).map((h: Hit) => h.key);
+    expect(keys).not.toContain("sql:public.settle_dispute_record");
+    // The new completion trigger does not read jobs at all.
+    expect(keys).not.toContain("sql:public.enforce_completion_on_live_job");
+  });
+
+  it("flags the pre-fix dispute filing (status, no status predicate)", () => {
+    const src = readFileSync(resolve(FIXTURES, "DisputeDialog.prefix.tsx.txt"), "utf8");
+    const keys = guard.clientHitsInSource(DISPUTE_DIALOG, src).map((h: Hit) => h.key);
+    expect(keys).toContain(`client:${DISPUTE_DIALOG}::status`);
+  });
+
+  it("flags the pre-fix completion stamp (helper_completed_at, no status predicate)", () => {
+    const src = readFileSync(resolve(FIXTURES, "JobTracking.prefix.tsx.txt"), "utf8");
+    const keys = guard.clientHitsInSource(JOB_TRACKING, src).map((h: Hit) => h.key);
+    expect(keys).toContain(`client:${JOB_TRACKING}::helper_completed_at`);
+  });
+
+  it("passes both live files now that each write carries .in(\"status\", …)", () => {
+    const live = (rel: string) =>
+      guard.clientHitsInSource(rel, readFileSync(resolve(REPO_ROOT, rel), "utf8")).map((h: Hit) => h.key);
+    expect(live(DISPUTE_DIALOG)).not.toContain(`client:${DISPUTE_DIALOG}::status`);
+    expect(live(JOB_TRACKING)).not.toContain(`client:${JOB_TRACKING}::helper_completed_at`);
   });
 });
 

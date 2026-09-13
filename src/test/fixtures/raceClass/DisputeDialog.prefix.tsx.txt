@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 import {
   Dialog,
@@ -81,25 +81,7 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
     setEvidenceFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Synchronous in-flight guard. `submitting` is React state, so it does not
-  // land until the next render — two clicks in ONE JS task both passed it and
-  // sent two `rpc_open_dispute` calls, and the second took the RPC's
-  // existing-dispute branch and stored every evidence url a SECOND time (20/20
-  // on prod, 2026-09-13). The server is set-like about that now
-  // (array_append_missing, 20260913052119); this stops the second call being
-  // made at all, and is the same guard Apply Now, hire, review and tip carry.
-  const submittingRef = useRef(false);
   const handleSubmit = async () => {
-    if (submittingRef.current) return;
-    submittingRef.current = true;
-    try {
-      await submitOnce();
-    } finally {
-      submittingRef.current = false;
-    }
-  };
-
-  const submitOnce = async () => {
     if (!reason) {
       hapticError();
       toast.error("Please select a reason.");
@@ -200,17 +182,7 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
             dispute_evidence_urls: evidenceUrls,
             disputed_at: new Date().toISOString(),
             disputed_by: userId,
-          })
-            .eq("id", jobId)
-            // The disputed state HOLDS THE MONEY, so it may only be written
-            // onto a job that is still live. Without this predicate the
-            // fallback would stamp `disputed` onto a job a concurrent
-            // poster_cancel_job had just cancelled — the same class as the
-            // completion stamp fixed in 20260913052119. The allowed set is the
-            // transition matrix's own `-> disputed` edges
-            // (enforce_job_status_transition).
-            .in("status", ["accepted", "in_progress", "revision_requested", "completed"])
-            .select("id"),
+          }).eq("id", jobId).select("id"),
           {
             action: "open a dispute on this job",
             rejectedMessage: "This job couldn't be disputed — it may have already been resolved or closed. Refresh and try again.",

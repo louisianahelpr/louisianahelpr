@@ -6,7 +6,8 @@ import * as harness from "../../scripts/audit/press-every-control.mjs";
 
 type ParsedRoute = { path: string; redirect: boolean; protected: boolean; admin: boolean };
 type DerivedRow = { url: string; base: string; personas: string[]; redirect: boolean };
-const deriveRouteSet = harness.deriveRouteSet as (o: { seedJobId: string; helperId: string; customerId: string; adminViews: string[] }) => DerivedRow[];
+const deriveRouteSet = harness.deriveRouteSet as (o: { seedJobId: string; jobIds?: string[]; helperId: string; customerId: string; adminViews: string[] }) => DerivedRow[];
+const parseAdminViews = harness.parseAdminViews as () => string[];
 const parseAppRoutes = harness.parseAppRoutes as () => ParsedRoute[];
 const parseProfileTabs = harness.parseProfileTabs as () => string[];
 const DOCUMENTED_SKIPS = harness.DOCUMENTED_SKIPS as Set<string>;
@@ -58,9 +59,22 @@ describe("press-every-control route derivation", () => {
     expect(derived.some((r) => r.url === "/admin?view=analytics" && r.personas.includes("admin"))).toBe(true);
   });
 
-  it("visits protected routes as both customer and helper, and public routes anonymously", () => {
+  it("walks every real job id it was given as its own /jobs/:id row", () => {
+    const rows = deriveRouteSet({ seedJobId: "J1", jobIds: ["J1", "J2", "J3"], helperId: "H", customerId: "C", adminViews: [] });
+    expect(rows.filter((r) => r.base === "/jobs/:id").map((r) => r.url)).toEqual(["/jobs/J1", "/jobs/J2", "/jobs/J3"]);
+  });
+
+  it("derives the admin views from src/pages/Admin.tsx, not a hand-kept list", () => {
+    const views = parseAdminViews();
+    const src = readFileSync(resolve(repoRoot, "src/pages/Admin.tsx"), "utf8");
+    const independent = [...(/type View\s*=\s*([^;]+);/.exec(src)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).filter((v) => v !== "home");
+    expect(views).toEqual(independent);
+    expect(views).toContain("people");
+  });
+
+  it("visits protected routes as customer, helper and the incomplete-profile account; public routes anonymously", () => {
     const dash = derived.find((r) => r.url === "/dashboard");
-    expect(dash?.personas).toEqual(expect.arrayContaining(["anon", "customer", "helper"]));
+    expect(dash?.personas).toEqual(expect.arrayContaining(["anon", "customer", "helper", "incomplete"]));
     const help = derived.find((r) => r.url === "/help");
     expect(help?.personas).toEqual(expect.arrayContaining(["anon", "customer"]));
   });

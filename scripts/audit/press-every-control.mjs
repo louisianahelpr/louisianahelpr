@@ -21,14 +21,20 @@
  *                                  uncaught exception, a 4xx/5xx during the
  *                                  press, or NO observable change at all.
  *
- * Two modes:
- *   MODE=mock (default) — the happy-path Supabase mocks (e2e/happy-path/
- *     fixtures.ts) with seed data, so it runs locally and in CI without a
- *     single prod write. Destructive controls ARE pressed here — that is the
- *     only place they can be.
- *   MODE=prod — a real session via scripts/test-signin-link.mjs, read-only:
- *     anything whose label reads as mutating is SKIPPED with a documented
- *     reason and counted against coverage as such.
+ * PROD ONLY (owner, 2026-09-12: "no mock mode ever"). Every persona is a real
+ * session on the shared test accounts (e2e/prodSessions.ts → poster-e2e,
+ * helper-e2e, admin-e2e, incomplete-e2e), every :id is a real id, and every
+ * press hits the real backend. Safety is in scripts/audit/pressProdSafety.mjs:
+ *   - a MUTATING press (delete/pay/send/ban/cancel/submit/…) is allowed ONLY
+ *     when its target is test-owned: the URL's record id resolves (read-only
+ *     select) to a test account, or the row/card/dialog around the control
+ *     names a test-owned entity, or the route's subject is the signed-in test
+ *     account itself. Anything else is SKIPPED "not test-owned".
+ *   - admin actions only against seed test targets (never self-scoped).
+ *   - payment presses only while Stripe is in TEST mode (cs_test_ on a real
+ *     Checkout Session, as prod-lifecycle.spec.ts detects it).
+ *   - the shared SEED fixtures are never mutated; this run creates its own
+ *     fixture job for /jobs/:id and cleans up everything it made afterwards.
  *
  * Coverage is reported per route: controls found, pressed, passed, failed,
  * skipped-with-reason. The exit code is 1 on any failed press, or on any
@@ -39,19 +45,21 @@
  *
  *   BASE=http://127.0.0.1:4173 node scripts/audit/press-every-control.mjs
  *   ROUTES=/dashboard,/profile?tab=earnings  … to narrow
- *   PERSONAS=customer                       … to narrow (anon,customer,helper,admin)
+ *   PERSONAS=customer                       … to narrow (anon,customer,helper,admin,incomplete)
  *   SHARD=1/4                               … CI sharding over the route list
- *   MODE=prod ACCOUNT=poster-e2e            … read-only against prod
+ *   CLEANUP_SINCE=<iso>                     … clean-up only (the workflow's final job)
  *
- * The fixtures are TypeScript; Node's strip-types cannot load them (a
- * parameter property in the realtime stub, extensionless imports), so they are
- * bundled once with rolldown into node_modules/.cache and imported from there.
+ * Needs `.env` with VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY and
+ * SUPABASE_SERVICE_ROLE_KEY (session minting only; nothing else reads it).
  */
 import { chromium } from "@playwright/test";
-import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  cleanup, createPressJob, loadTestOwners, makeStripeProbe, mintAccounts, mutationGate, prodSelect,
+  rowNamesTestOwner, snapshotProfile, urlOwnership,
+} from "./pressProdSafety.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const REPO = resolve(HERE, "../..");
@@ -104,6 +112,13 @@ export function parseProfileTabs(src = readFileSync(resolve(REPO, "src/pages/pro
   return [...m[1].matchAll(/"([a-z_]+)"/g)].map((x) => x[1]);
 }
 
+/** The admin `View` union, parsed from src/pages/Admin.tsx so a new view is walked. */
+export function parseAdminViews(src = readFileSync(resolve(REPO, "src/pages/Admin.tsx"), "utf8")) {
+  const m = /type View\s*=\s*([^;]+);/.exec(src);
+  if (!m) throw new Error("Could not find `type View` in src/pages/Admin.tsx");
+  return [...m[1].matchAll(/"([a-z_]+)"/g)].map((x) => x[1]).filter((v) => v !== "home");
+}
+
 /** The Legal tabs, from the page's own union. */
 export function parseLegalTabs() {
   const file = resolve(REPO, "src/pages/Legal.tsx");
@@ -123,10 +138,11 @@ export function parseLegalTabs() {
  * visits everything; `helper` visits the protected routes (same route, a
  * different set of controls); `admin` visits /admin and its views.
  */
-export function deriveRouteSet({ seedJobId, helperId, customerId, adminViews }) {
+export function deriveRouteSet({ seedJobId, helperId, customerId, adminViews, jobIds = [seedJobId] }) {
   const routes = parseAppRoutes();
   const profileTabs = parseProfileTabs();
   const legalTabs = parseLegalTabs();
+  const PROTECTED = ["anon", "customer", "helper", "incomplete"];
   const set = [];
   const push = (url, base, personas) => set.push({ url, base: base.path, personas, redirect: base.redirect });
 
@@ -145,7 +161,12 @@ export function deriveRouteSet({ seedJobId, helperId, customerId, adminViews }) 
       for (const v of adminViews) push(`${url}?view=${v}`, r, ["admin"]);
       continue;
     }
-    const personas = r.protected ? ["anon", "customer", "helper"] : ["anon", "customer"];
+    const personas = r.protected ? PROTECTED : ["anon", "customer"];
+    if (r.path === "/jobs/:id") {
+      // Every real job the run resolved (the press fixture + one per state the test accounts own).
+      for (const id of jobIds) push(`/jobs/${id}`, r, personas);
+      continue;
+    }
     if (r.path === "/profile") {
       push(url, r, personas);
       for (const t of profileTabs) if (t !== "landing") push(`${url}?tab=${t}`, r, personas);
@@ -166,38 +187,16 @@ export function deriveRouteSet({ seedJobId, helperId, customerId, adminViews }) 
 }
 
 // ---------------------------------------------------------------------------
-// Fixture loading (TypeScript → one ESM bundle, cached in node_modules/.cache)
-// ---------------------------------------------------------------------------
-async function loadFixtures() {
-  const { rolldown } = await import("rolldown");
-  const outDir = resolve(REPO, "node_modules/.cache/press-every-control");
-  mkdirSync(outDir, { recursive: true });
-  const out = resolve(outDir, "fixtures.mjs");
-  // auditRoutes.ts only IMPORTS the fake users and mock installers, so bundling
-  // it alone left FAKE_HELPER undefined. The entry re-exports both modules.
-  const entry = resolve(outDir, "entry.ts");
-  writeFileSync(entry, `export * from ${JSON.stringify(resolve(REPO, "e2e/happy-path/fixtures.ts"))};\nexport * from ${JSON.stringify(resolve(REPO, "e2e/happy-path/auditRoutes.ts"))};\n`);
-  const bundle = await rolldown({
-    input: entry,
-    platform: "node",
-    external: [/^[^./]/],
-    resolve: { tsconfigFilename: resolve(REPO, "tsconfig.json") },
-    logLevel: "silent",
-  });
-  await bundle.write({ file: out, format: "esm" });
-  await bundle.close?.();
-  return import(pathToFileURL(out).href + `?t=${Date.now()}`);
-}
-
-// ---------------------------------------------------------------------------
 // Classifier vocabulary
 // ---------------------------------------------------------------------------
 // The ONE shared list of error-screen signatures (e2e/errorScreens.ts), so a
 // new error surface is caught by every harness at once.
 import { ERROR_SCREEN_PATTERNS } from "../../e2e/errorScreens.ts";
 export const ERROR_BOUNDARY_RX = new RegExp(ERROR_SCREEN_PATTERNS.filter((p) => p.name !== "404 on a real route").map((p) => p.re.source).join("|"), "i");
-/** Labels that MUTATE something. Pressed in mock mode only. */
+/** Labels that MUTATE something. Pressed only on a test-owned target (see pressProdSafety.mjs). */
 export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout)\b/i;
+export { ACCOUNT_DESTROY_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
+import { PAYMENT_RX } from "./pressProdSafety.mjs";
 /** Console lines the HARNESS causes, not the app. */
 const CONSOLE_NOISE = [
   /Service Worker registration blocked by Playwright/i,
@@ -215,7 +214,13 @@ export const DOCUMENTED_SKIPS = new Set([
   "already the active tab/route (no-op expected)",
   "self-link (no-op expected)",
   "external / new-tab link (covered by walk-every-control's new-tab pass)",
-  "mutating control — prod read-only mode",
+  "not test-owned (mutating control; target is not a test-account record)",
+  "not test-owned (mutating control; no record id in the URL and the row names no test entity)",
+  "admin action without a seed test target",
+  "shared SEED fixture (test-owned, but other sweeps depend on it; the run's own fixture covers the action)",
+  "payment control — Stripe is not in TEST mode",
+  "would destroy or lock the shared test account",
+  "account unavailable (persona not minted)",
   "file picker (opens the OS dialog; not a DOM outcome)",
   "inside a toast (transient; not page chrome)",
   "opener chain could not be replayed (parent press reported separately)",
@@ -290,8 +295,19 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base }) => {
         el.dataset.state === "active" || el.closest('[data-state="active"]') !== null,
       external, self,
       inToast: el.closest("[data-sonner-toaster]") !== null,
+      // The record this control acts on, as the user sees it: the nearest row / card / dialog.
+      rowText: (el.closest('tr, li, article, [role="row"], [role="listitem"], [role="dialog"], [role="alertdialog"], [class*="card"], [class*="Card"]')?.innerText || "").replace(/\s+/g, " ").slice(0, 400),
     });
   });
+  // Ordinal among controls sharing a label and tag, so a control can be found
+  // again by identity when its DOM path has moved (a toast, a portal, a
+  // re-ordered list between two loads of the same screen).
+  const seen = new Map();
+  for (const c of out) {
+    const k = c.tag + "|" + c.label;
+    c.ordinal = seen.get(k) ?? 0;
+    seen.set(k, c.ordinal + 1);
+  }
   void base;
   return out;
 };
@@ -321,41 +337,69 @@ const SNAPSHOT = ({ overlaySel }) => {
 
 async function main() {
   const BASE = (process.env.BASE ?? "http://127.0.0.1:4173").replace(/\/$/, "");
-  const MODE = process.env.MODE ?? "mock";
-  // SEED=heavy → the stress seed (e2e/happy-path/seedDataHeavy.ts). Unset → normal seed.
-  const SEED = process.env.SEED === "heavy" ? "heavy" : true;
   const OUT = process.env.OUT ?? resolve(REPO, "test-results/press-every-control");
   const WIDTH = Number(process.env.WIDTH ?? 375);
   const THEME = process.env.THEME ?? "light";
   const MAX_DEPTH = Number(process.env.MAX_DEPTH ?? 3);
   const SAMPLE = Number(process.env.SAMPLE ?? 2);
-  const PERSONAS = (process.env.PERSONAS ?? "anon,customer,helper,admin").split(",");
+  const PERSONAS = (process.env.PERSONAS ?? "anon,customer,helper,admin,incomplete").split(",");
   const SETTLE_MS = Number(process.env.SETTLE_MS ?? 600);
   const PRESS_TIMEOUT = Number(process.env.PRESS_TIMEOUT ?? 8000);
+  const RUN_ID = process.env.RUN_ID ?? `${Date.now()}-${process.pid}`;
+  const runStart = Date.now();
   mkdirSync(OUT, { recursive: true });
-  process.env.HAPPY_PATH_BASE_URL = BASE;
 
-  const fx = await loadFixtures();
-  const { FAKE_CUSTOMER, FAKE_HELPER, ADMIN_VIEWS, installSupabaseMocks, seedAuthedSession, mockTable } = fx;
-  const seedJobId = "10000000-0000-4000-8000-000000000001";
+  // ---- sessions on the shared test accounts --------------------------------
+  const { sessions, unavailable } = await mintAccounts(PERSONAS.filter((p) => p !== "anon"));
+  for (const [p, why] of Object.entries(unavailable)) console.log(`::warning title=persona ${p} not covered::${why}`);
 
-  let routeSet = deriveRouteSet({ seedJobId, helperId: FAKE_HELPER.id, customerId: FAKE_CUSTOMER.id, adminViews: ADMIN_VIEWS });
+  // Clean-up only: the workflow's final job, after every shard.
+  if (process.env.CLEANUP_SINCE) {
+    const since = Date.parse(process.env.CLEANUP_SINCE);
+    const r = await cleanup({ sessions, since, profilesBefore: {} });
+    for (const l of r.log) console.log(`cleaned: ${l}`);
+    for (const l of r.residue) console.log(`::warning title=clean-up residue::${l}`);
+    writeFileSync(`${OUT}/cleanup.json`, JSON.stringify(r, null, 2));
+    return;
+  }
+
+  const owners = await loadTestOwners(sessions);
+  const poster = sessions.customer ?? null;
+  const helper = sessions.helper ?? null;
+  const stripeMode = makeStripeProbe(poster, RUN_ID);
+  const profilesBefore = {};
+  for (const [p, s] of Object.entries(sessions)) profilesBefore[p] = await snapshotProfile(s);
+
+  // ---- real ids ------------------------------------------------------------
+  // The run's own fixture job (mutating presses land here), plus one
+  // test-owned job per state so /jobs/:id is walked in every shape it takes.
+  const jobIds = [];
+  if (poster) {
+    try { jobIds.push((await createPressJob(poster, RUN_ID)).id); }
+    catch (e) { console.log(`::warning title=press fixture job not created::${e.message}`); }
+    try {
+      const mine = await prodSelect(poster, `jobs?select=id,status&customer_id=eq.${poster.userId}&order=created_at.desc&limit=100`);
+      const byState = new Map();
+      for (const j of mine) if (!byState.has(j.status)) byState.set(j.status, j.id);
+      for (const id of byState.values()) if (!jobIds.includes(id) && jobIds.length < 5) jobIds.push(id);
+    } catch { /* the fixture alone still covers the route */ }
+  }
+  if (!jobIds.length) jobIds.push("00000000-0000-4000-8000-000000000000");
+  const helperId = helper?.userId ?? poster?.userId ?? "00000000-0000-4000-8000-000000000000";
+  const customerId = poster?.userId ?? helperId;
+
+  let routeSet = deriveRouteSet({ seedJobId: jobIds[0], jobIds, helperId, customerId, adminViews: parseAdminViews() });
   if (process.env.ROUTES) {
     const want = process.env.ROUTES.split(",");
-    routeSet = want.map((u) => routeSet.find((r) => r.url === u) ?? { url: u, base: u, personas: ["anon", "customer", "helper"], redirect: false });
+    // A url, or a base path such as /jobs/:id (every row derived from it).
+    routeSet = want.flatMap((u) => {
+      const hit = routeSet.filter((r) => r.url === u || r.base === u);
+      return hit.length ? hit : [{ url: u, base: u, personas: ["anon", "customer", "helper", "incomplete"], redirect: false }];
+    });
   }
   if (process.env.SHARD) {
     const [i, n] = process.env.SHARD.split("/").map(Number);
     routeSet = routeSet.filter((_, k) => k % n === i - 1);
-  }
-
-  // Prod mode: one real session, one persona, mutating controls skipped.
-  let prodSession = null;
-  if (MODE === "prod") {
-    const account = process.env.ACCOUNT ?? "poster-e2e";
-    prodSession = process.env.SESSION_FILE
-      ? JSON.parse(readFileSync(process.env.SESSION_FILE, "utf8"))
-      : JSON.parse(execSync(`node scripts/test-signin-link.mjs ${account} --session --json`, { cwd: REPO, encoding: "utf8", maxBuffer: 1 << 24 }));
   }
 
   // Same machine-wide queue as the Playwright suites (e2e/browserLock.ts), so
@@ -366,38 +410,40 @@ async function main() {
   const browser = await chromium.launch();
   const results = []; // one per route × persona
   let failedPresses = 0, undocumented = 0, totalFound = 0, totalPressed = 0, shots = 0;
-
-  const personaUser = (p) => (p === "helper" ? FAKE_HELPER : p === "anon" ? undefined : FAKE_CUSTOMER);
+  const ownershipCache = new Map();
 
   for (const route of routeSet) {
     if (route.redirect) {
       results.push({ route: route.url, persona: "-", status: "redirect", note: "pure redirect route — its target is walked on its own row", controls: [] });
       continue;
     }
-    const personas = MODE === "prod" ? ["prod"] : route.personas.filter((p) => PERSONAS.includes(p));
+    const personas = route.personas.filter((p) => PERSONAS.includes(p));
     for (const persona of personas) {
       const rec = { route: route.url, persona, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [] };
       results.push(rec);
+      const session = persona === "anon" ? null : sessions[persona];
+      if (persona !== "anon" && !session) {
+        rec.status = "uncovered";
+        rec.notes.push(`account unavailable (persona not minted): ${unavailable[persona] ?? "not requested"}`);
+        continue;
+      }
 
       const ctx = await browser.newContext({
         viewport: { width: WIDTH, height: WIDTH <= 430 ? 812 : 900 },
         colorScheme: THEME, deviceScaleFactor: 2,
         // Block the Workbox service worker, as playwright.config.ts does for
-        // happy-path. Without it the SW's NetworkFirst handler sent requests to
-        // the real Supabase ahead of the mocks: every press "failed" on 401s
-        // (first run, 2026-09-12: /profile 33 of 35 controls, all false).
+        // happy-path: its NetworkFirst handler answers ahead of the page and
+        // made every press look like a 401 (first run, 2026-09-12).
         serviceWorkers: "block",
       });
       await ctx.addInitScript((t) => { try { localStorage.setItem("helpr-theme", t); localStorage.setItem("helpr_welcomed", "1"); } catch { /* blocked */ } }, THEME);
-      if (MODE === "prod") {
+      if (session) {
         await ctx.addInitScript(([k, v]) => {
           try {
             localStorage.setItem(k, v);
             localStorage.setItem("helpr_onboarding", JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }));
           } catch { /* blocked */ }
-        }, [prodSession.key, prodSession.value]);
-      } else if (persona !== "anon") {
-        await seedAuthedSession(ctx, personaUser(persona), BASE);
+        }, [session.key, session.value]);
       }
 
       const page = await ctx.newPage();
@@ -419,10 +465,12 @@ async function main() {
       const downloads = [];
       page.on("download", (d) => { downloads.push(d.suggestedFilename()); d.cancel().catch(() => {}); });
 
-      if (MODE !== "prod") {
-        const rules = persona === "admin" ? [mockTable("user_roles", [{ role: "admin" }])] : [];
-        await installSupabaseMocks(page, { user: personaUser(persona), seed: SEED, rules });
-      }
+      // The record the URL names, resolved once per route × persona (read-only select as this account).
+      const urlOwnedKey = `${persona}|${route.url}`;
+      if (session && !ownershipCache.has(urlOwnedKey)) ownershipCache.set(urlOwnedKey, await urlOwnership(session, route.url, owners));
+      const urlOwned = ownershipCache.get(urlOwnedKey) ?? { owned: false, why: "anonymous" };
+
+      const gate = (label, meta, chainOwned) => mutationGate({ label, meta, chainOwned, persona, routeUrl: route.url, urlOwned, owners, stripeMode, note: (n) => rec.notes.push(n) });
 
       const settle = async () => {
         await page.waitForFunction(() => {
@@ -432,8 +480,16 @@ async function main() {
         }, { timeout: 8000 }).catch(() => {});
         await page.waitForTimeout(SETTLE_MS);
       };
+      // The URL the screen rests at after a clean load; any drift from it (a
+      // filter param, a highlight, a navigation) means the DOM paths no longer
+      // address the same controls, so the page is reloaded before the next press.
+      let restingUrl = "";
       const load = async () => {
-        await page.goto(BASE + route.url, { waitUntil: "domcontentloaded", timeout: 45_000 });
+        // After the first load the screen is re-entered at the URL it RESTED
+        // on: a route that redirects on state (/jobs/:id → the list that owns
+        // the job) can land somewhere else on a second visit, and then no DOM
+        // path would match.
+        await page.goto(restingUrl || BASE + route.url, { waitUntil: "domcontentloaded", timeout: 45_000 });
         await page.waitForFunction(() => (document.body.innerText || "").trim().length > 20, { timeout: 15_000 }).catch(() => {});
         await settle();
       };
@@ -442,6 +498,19 @@ async function main() {
         const key = (x) => x.pathname + "|" + (x.searchParams.get("tab") ?? "") + "|" + (x.searchParams.get("view") ?? "");
         return key(a) === key(b);
       };
+      /**
+       * A route that lands somewhere else is a pure bounce (login, account
+       * gates, the bare dashboard — walked on their own rows) OR a real
+       * screen with state in its query (/jobs/:id → /my-posts?highlight=…,
+       * /dashboard?quickApply=…) that no other row reaches. The second kind is
+       * walked HERE, on the screen it landed on.
+       */
+      const isBounce = (u) => {
+        const x = new URL(u);
+        return /^\/(login|signup|signup-pending|account-pending|account-denied|account-banned|complete-profile)(\/|$)/.test(x.pathname)
+          || (!x.search && routeSet.some((r) => r.url === x.pathname && r.personas.includes(persona)));
+      };
+      const atRest = () => page.url() === restingUrl;
       const snapshot = () => page.evaluate(SNAPSHOT, { overlaySel: OPEN_OVERLAY });
       const enumerate = (scope) => page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE });
       const slug = (s) => s.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "").slice(0, 80);
@@ -456,12 +525,16 @@ async function main() {
         const landed = page.url();
         rec.landedOn = landed.replace(BASE, "");
         if (!sameScreen(landed)) {
-          rec.status = "redirect";
-          rec.notes.push(`redirected to ${rec.landedOn} — that screen is walked on its own row`);
-          await ctx.close();
-          console.log(`[${route.url} ${persona}] → redirect ${rec.landedOn}`);
-          continue;
+          if (isBounce(landed)) {
+            rec.status = "redirect";
+            rec.notes.push(`redirected to ${rec.landedOn} — that screen is walked on its own row`);
+            await ctx.close();
+            console.log(`[${route.url} ${persona}] → redirect ${rec.landedOn}`);
+            continue;
+          }
+          rec.notes.push(`redirected to ${rec.landedOn} — walked here, on the screen it landed on`);
         }
+        restingUrl = landed;
         const boot = await snapshot();
         if (ERROR_BOUNDARY_RX.test(boot.text)) {
           rec.status = "error-on-load";
@@ -477,7 +550,7 @@ async function main() {
 
         /** Re-establish the screen and replay every opener in `chain`. */
         const replay = async (chain) => {
-          if (!sameScreen(page.url()) || chain.length === 0 || (await page.locator(OPEN_OVERLAY).count()) > 0) {
+          if (!atRest() || chain.length === 0 || (await page.locator(OPEN_OVERLAY).count()) > 0) {
             await load();
           }
           for (const step of chain) {
@@ -495,7 +568,7 @@ async function main() {
 
         // The work queue: every control found on the page, then every control
         // found inside any overlay a press opened.
-        const queue = (await enumerate("page")).map((c) => ({ chain: [], step: { scope: "page", path: c.path }, meta: c, depth: 0 }));
+        const queue = (await enumerate("page")).map((c) => ({ chain: [], step: { scope: "page", path: c.path }, meta: c, depth: 0, chainOwned: false }));
         const seenOverlays = new Set();
         let idx = 0;
         let pageDirty = false; // a press changed the resting page; reload before the next one
@@ -517,7 +590,11 @@ async function main() {
           if (meta.external) { skip("external / new-tab link (covered by walk-every-control's new-tab pass)"); continue; }
           if (meta.type === "file") { skip("file picker (opens the OS dialog; not a DOM outcome)"); continue; }
           if (meta.inToast) { skip("inside a toast (transient; not page chrome)"); continue; }
-          if (MODE === "prod" && (DESTRUCTIVE_RX.test(label) || meta.type === "submit")) { skip("mutating control — prod read-only mode"); continue; }
+          if (DESTRUCTIVE_RX.test(label) || meta.type === "submit" || PAYMENT_RX.test(label)) {
+            const why = await gate(label, meta, item.chainOwned);
+            if (why) { skip(why); continue; }
+            entry.mutating = true;
+          }
 
           // Baseline: the resting page with the opener chain replayed.
           if (chain.length) {
@@ -526,7 +603,7 @@ async function main() {
               await load();
               if (!(await replay(chain))) { skip("opener chain could not be replayed (parent press reported separately)"); continue; }
             }
-          } else if (pageDirty || !sameScreen(page.url()) || (await page.locator(OPEN_OVERLAY).count()) > 0) {
+          } else if (pageDirty || !atRest() || (await page.locator(OPEN_OVERLAY).count()) > 0) {
             await load();
             pageDirty = false;
           }
@@ -536,6 +613,12 @@ async function main() {
             await load(); pageDirty = false;
             if (chain.length && !(await replay(chain))) { skip("opener chain could not be replayed (parent press reported separately)"); continue; }
             target = locate(item.step);
+          }
+          if (!(await target.count())) {
+            // The path moved (a toast or portal shifted nth-of-type). Find the
+            // same control by identity — tag, label, ordinal — and re-address it.
+            const again = (await enumerate(item.step.scope)).find((c) => c.tag === meta.tag && c.label === meta.label && c.ordinal === meta.ordinal);
+            if (again) { item.step.path = again.path; target = locate(item.step); entry.relocated = true; }
           }
           if (!(await target.count())) {
             entry.result = "FAIL"; entry.why = "control not found on a freshly loaded page (transient or non-deterministic DOM)";
@@ -608,7 +691,8 @@ async function main() {
             if (inner.length && !seenOverlays.has(key)) {
               seenOverlays.add(key);
               const nextChain = [...chain, { ...item.step, label }];
-              for (const c of inner) queue.push({ chain: nextChain, step: { scope: "overlay", path: c.path }, meta: c, depth: item.depth + 1 });
+              const chainOwned = item.chainOwned || rowNamesTestOwner(meta.rowText, owners);
+              for (const c of inner) queue.push({ chain: nextChain, step: { scope: "overlay", path: c.path }, meta: c, depth: item.depth + 1, chainOwned });
               entry.opened = inner.length;
             }
             // Close it so the next page-level control starts clean.
@@ -633,12 +717,20 @@ async function main() {
   }
   await browser.close();
 
+  // ---- clean up what the presses created --------------------------------------
+  const cleaned = await cleanup({ sessions, since: runStart - 60_000, profilesBefore });
+  for (const l of cleaned.log) console.log(`cleaned: ${l}`);
+  for (const l of cleaned.residue) console.log(`::warning title=clean-up residue::${l}`);
+
   // ---- coverage report ------------------------------------------------------
   const lines = [];
-  lines.push("# press-every-control coverage", "", `mode=${MODE} width=${WIDTH} theme=${THEME} base=${BASE}`, "");
+  lines.push("# press-every-control coverage", "", `prod width=${WIDTH} theme=${THEME} base=${BASE} run=${RUN_ID}`, "");
+  const uncovered = results.filter((r) => r.status === "uncovered");
+  if (uncovered.length) lines.push(`**UNCOVERED personas:** ${[...new Set(uncovered.map((r) => `${r.persona} (${r.notes[0]})`))].join("; ")}`, "");
   lines.push("| route | persona | found | pressed | pass | fail | skipped (documented) | undocumented |", "|---|---|---:|---:|---:|---:|---:|---:|");
   for (const r of results) {
     if (r.status === "redirect") { lines.push(`| ${r.route} | ${r.persona} | — | — | — | — | redirect → ${r.landedOn ?? "target"} | — |`); continue; }
+    if (r.status === "uncovered") { lines.push(`| ${r.route} | ${r.persona} | — | — | — | — | UNCOVERED (${r.notes[0]}) | — |`); continue; }
     const doc = r.controls.filter((c) => c.result === "SKIP" && DOCUMENTED_SKIPS.has(c.why)).length;
     const undoc = r.controls.filter((c) => c.result === "SKIP" && !DOCUMENTED_SKIPS.has(c.why)).length;
     lines.push(`| ${r.route} | ${r.persona} | ${r.found} | ${r.pressed} | ${r.passed} | ${r.failed} | ${doc} | ${undoc} |`);
@@ -649,8 +741,11 @@ async function main() {
   const skips = results.flatMap((r) => r.controls.filter((c) => c.result === "SKIP").map((c) => ({ ...c, route: r.route, persona: r.persona })));
   lines.push("", `## Unpressed controls (${skips.length}) — every one with its reason`, "");
   for (const s of skips) lines.push(`- ${s.route} (${s.persona}) › ${s.chain.join(" › ")} — ${s.why}${DOCUMENTED_SKIPS.has(s.why) ? "" : "  **UNDOCUMENTED**"}`);
+  const mutated = results.flatMap((r) => r.controls.filter((c) => c.mutating && c.result !== "SKIP").map((c) => `- ${r.route} (${r.persona}) › ${c.chain.join(" › ")} — ${c.result}: ${c.outcome ?? ""}`));
+  lines.push("", `## Mutating presses on test-owned targets (${mutated.length})`, "", ...mutated);
+  lines.push("", `## Clean-up`, "", ...cleaned.log.map((l) => `- ${l}`), ...cleaned.residue.map((l) => `- **RESIDUE** ${l}`));
   writeFileSync(`${OUT}/coverage.md`, lines.join("\n") + "\n");
-  writeFileSync(`${OUT}/results.json`, JSON.stringify({ mode: MODE, width: WIDTH, theme: THEME, results }, null, 2));
+  writeFileSync(`${OUT}/results.json`, JSON.stringify({ width: WIDTH, theme: THEME, runId: RUN_ID, uncovered: unavailable, cleanup: cleaned, results }, null, 2));
 
   const pressedOrDocumented = totalFound - undocumented;
   console.log(`\nfound=${totalFound} pressed=${totalPressed} failed=${failedPresses} undocumented-skips=${undocumented} coverage=${totalFound ? ((pressedOrDocumented / totalFound) * 100).toFixed(1) : "100.0"}%`);

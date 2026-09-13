@@ -130,10 +130,35 @@ export default defineConfig({
       use: { ...devices["iPhone 13"], screenshot: "only-on-failure", trace: "retain-on-failure", actionTimeout: 20_000 },
     },
     {
+      // PROD audits (owner, 2026-09-12: no mock mode ever): messy input on
+      // every form and the deep-link / interruption journeys, against the
+      // deployed app (PLAYWRIGHT_BASE_URL, default prod web) as the shared
+      // test accounts. Phone-sized: 375 is the primary surface. Serial: the
+      // specs share two accounts. Nightly: .github/workflows/prod-audit.yml.
+      name: "prod-audit",
+      testDir: "./e2e/prod-audit",
+      fullyParallel: false,
+      workers: 1,
+      timeout: 8 * 60_000,
+      retries: 0,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 375, height: 812 },
+        isMobile: false,
+        hasTouch: true,
+        userAgent:
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+        serviceWorkers: "block",
+        screenshot: "only-on-failure",
+        trace: "retain-on-failure",
+        actionTimeout: 20_000,
+      },
+    },
+    {
       name: "chromium",
       // The default deployed-env suite — excludes happy-path/* which
       // requires the local preview server to be running.
-      testIgnore: /(happy-path|journeys|a11y-prod)\//,
+      testIgnore: /(happy-path|journeys|a11y-prod|prod-audit)\//,
       use: { ...devices["Desktop Chrome"] },
     },
     {

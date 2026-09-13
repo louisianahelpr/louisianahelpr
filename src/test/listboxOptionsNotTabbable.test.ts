@@ -30,16 +30,50 @@ function offenders(raw: string): string[] {
 }
 
 /**
- * Known offenders NOT fixed with the DOB change: combobox suggestion popups
- * whose input has no arrow-key model yet, so removing the options' tab stops
- * today would leave them keyboard-unreachable. Each entry must still offend
- * (asserted below), so this list cannot silently rot.
+ * A listbox popup is only reachable by keyboard if its INPUT carries the
+ * combobox contract. Flags any file that renders a listbox whose combobox
+ * input is missing a piece of it. `aria-activedescendant` is the tell that
+ * an arrow-key model exists at all — without it there is no active option
+ * to publish. The three suggestion popups (Browse search, City, Address)
+ * all shipped `role="combobox"` + `aria-expanded` with none of it, so a
+ * screen reader announced a popup the user could not move through; they
+ * now share src/hooks/useComboboxKeyboard.ts.
+ *
+ * A file may satisfy this by spreading the shared hook's props rather than
+ * writing the attributes inline, so the hook's own name counts as proof.
  */
-const PENDING = new Set([
-  join("src", "components", "dashboard", "browseTasksToolbar", "BrowseSearchBar.tsx"),
-  join("src", "components", "postjob", "CityAutocomplete.tsx"),
-  join("src", "components", "postjob", "AddressAutocomplete.tsx"),
-]);
+const COMBOBOX_HOOK = "useComboboxKeyboard";
+/** Types you can type a query into. `time`/`date`/`file`/... cannot host a typeahead. */
+const TEXT_ENTRY_TYPES = /^(text|search|tel|email|url)$/;
+
+function hasTextEntryInput(src: string): boolean {
+  for (const m of src.matchAll(/<[Ii]nput\b(?:=>|[^<>])*>/gs)) {
+    const type = /\btype=["']([a-z]+)["']/.exec(m[0]);
+    if (!type || TEXT_ENTRY_TYPES.test(type[1])) return true;
+  }
+  return false;
+}
+
+const COMBOBOX_ATTRS = [
+  'role="combobox"',
+  "aria-expanded",
+  "aria-controls",
+  "aria-activedescendant",
+] as const;
+
+function missingComboboxContract(raw: string): string[] {
+  const src = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  if (!/role=["']listbox["']/.test(src)) return [];
+  if (src.includes(COMBOBOX_HOOK)) return [];
+  // Scope is keyed on there being a TEXT-ENTRY field beside the listbox,
+  // not on role="combobox": a popup that simply forgot the role is the very
+  // case this must catch (BrowseSearchBar had exactly that shape). A
+  // standalone listbox widget — the DOB wheel, TimePickerWheel's scroll
+  // column beside its desktop `<input type="time">` — is a different
+  // pattern and out of scope.
+  if (!hasTextEntryInput(src)) return [];
+  return COMBOBOX_ATTRS.filter((a) => !src.includes(a));
+}
 
 describe("listbox options are not tab stops", () => {
   it("catches the original DateWheelPicker option", () => {
@@ -50,22 +84,34 @@ describe("listbox options are not tab stops", () => {
     expect(offenders(`${lb}<div role="option" tabIndex={0}>x</div></div>`)).toHaveLength(1);
   });
 
+  it("catches a combobox popup with no arrow-key model", () => {
+    const noModel = `<input role="combobox" aria-expanded={open} aria-controls={id} /><ul role="listbox" />`;
+    expect(missingComboboxContract(noModel)).toEqual(["aria-activedescendant"]);
+    expect(missingComboboxContract(`${noModel}useComboboxKeyboard(`)).toEqual([]);
+    // A popup that never declared the role at all is the worst case, not an
+    // exemption — every attribute is reported.
+    expect(missingComboboxContract(`<input /><ul role="listbox" />`)).toHaveLength(4);
+    // Standalone listbox widgets: no field at all, or a non-text one.
+    expect(missingComboboxContract(`<div role="listbox" />`)).toEqual([]);
+    expect(missingComboboxContract(`<Input type="time" /><div role="listbox" />`)).toEqual([]);
+  });
+
   it("no tabbable option inside a listbox anywhere in src/", () => {
     const hits: string[] = [];
-    const pendingSeen = new Set<string>();
+    const contractGaps: string[] = [];
     (function walk(d: string) {
       for (const n of readdirSync(d)) {
         const p = join(d, n);
         if (statSync(p).isDirectory()) walk(p);
         else if (/\.tsx$/.test(n) && !/\.test\./.test(n)) {
-          const o = offenders(readFileSync(p, "utf8"));
-          if (!o.length) continue;
-          if (PENDING.has(p)) pendingSeen.add(p);
-          else for (const t of o) hits.push(`${p}: ${t}`);
+          const raw = readFileSync(p, "utf8");
+          const gaps = missingComboboxContract(raw);
+          if (gaps.length) contractGaps.push(`${p}: missing ${gaps.join(", ")}`);
+          for (const t of offenders(raw)) hits.push(`${p}: ${t}`);
         }
       }
     })("src");
     expect(hits, "give options tabIndex={-1} and key-handle the listbox").toEqual([]);
-    expect([...PENDING].filter((p) => !pendingSeen.has(p)), "fixed? remove it from PENDING").toEqual([]);
+    expect(contractGaps, `use ${COMBOBOX_HOOK} — a listbox popup needs an arrow-key model`).toEqual([]);
   });
 });

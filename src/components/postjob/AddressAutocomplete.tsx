@@ -13,10 +13,12 @@
 //     before the input blurs
 //   - free-typed values are still accepted on blur
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useComboboxKeyboard } from "@/hooks/useComboboxKeyboard";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
+import { COMBOBOX_ACTIVE_OPTION_CLASS } from "@/lib/comboboxOptionClass";
 
 interface AddressAutocompleteProps {
   id?: string;
@@ -88,7 +90,6 @@ export function AddressAutocomplete({
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<MapKitSuggestion[]>([]);
-  const listboxId = useId();
   const searchRef = useRef<MapKitSearch | null>(null);
 
   // Sync local query when parent value changes (draft restore, etc.).
@@ -194,6 +195,14 @@ export function AddressAutocomplete({
     }
   };
 
+  // Shared arrow/Enter/Escape/Tab model + aria-activedescendant.
+  const { comboboxProps, listboxProps, getOptionProps } = useComboboxKeyboard({
+    open: showList,
+    count: suggestions.length,
+    onSelect: (i) => pick(suggestions[i]),
+    onClose: () => setOpen(false),
+  });
+
   // If MapKit can't be used, hide ourselves so the parent renders
   // its plain street input fallback. We only render when there's a
   // real chance of producing useful suggestions.
@@ -226,27 +235,22 @@ export function AddressAutocomplete({
         autoComplete="street-address"
         autoCapitalize="words"
         aria-label="Street address"
-        role="combobox"
-        aria-autocomplete="list"
-        aria-expanded={showList}
-        aria-controls={listboxId}
+        {...comboboxProps}
         className={className}
       />
       {showList && (
         <ul
-          id={listboxId}
+          {...listboxProps}
           className="absolute z-30 left-0 right-0 mt-1 rounded-ds-md border border-border bg-card shadow-lg overflow-hidden"
-          role="listbox"
         >
           {suggestions.map((s, i) => (
             <li key={`${s.displayLines.join("|")}-${i}`}>
               <button
                 type="button"
-                role="option"
-                aria-selected={false}
+                {...getOptionProps(i)}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(s)}
-                className="w-full text-left px-3 py-2.5 text-ds-13 flex items-start gap-2 hover:bg-secondary/70 active:bg-secondary transition-colors"
+                className={`w-full text-left px-3 py-2.5 text-ds-13 flex items-start gap-2 hover:bg-secondary/70 active:bg-secondary transition-colors ${COMBOBOX_ACTIVE_OPTION_CLASS}`}
               >
                 <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
                 <span className="min-w-0 flex-1">

@@ -10,10 +10,12 @@
 // (the same lightweight pattern the signup skill picker uses) — no
 // cmdk / Command primitive dependency.
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useComboboxKeyboard } from "@/hooks/useComboboxKeyboard";
 import { LOUISIANA_CITIES } from "@/lib/louisianaCities";
+import { COMBOBOX_ACTIVE_OPTION_CLASS } from "@/lib/comboboxOptionClass";
 
 interface CityAutocompleteProps {
   id?: string;
@@ -28,10 +30,6 @@ const titleCase = (s: string) =>
 export function CityAutocomplete({ id, value, onChange, className }: CityAutocompleteProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
-  // Stable id for the suggestion listbox so the combobox input can wire
-  // up aria-controls — axe flags aria-expanded / aria-autocomplete on a
-  // plain textbox; combobox role + aria-controls is the canonical fix.
-  const listboxId = useId();
 
   // Sync local query when the parent value changes externally — draft
   // restore, the LA smart-default seed, AI Job Builder fill, etc.
@@ -64,6 +62,15 @@ export function CityAutocomplete({ id, value, onChange, className }: CityAutocom
     onChange(city);
     setOpen(false);
   };
+
+  // Arrow/Enter/Escape/Tab model + aria-activedescendant. Shared with the
+  // address and Browse-search popups; see the hook for why.
+  const { comboboxProps, listboxProps, getOptionProps } = useComboboxKeyboard({
+    open: showList,
+    count: matches.length,
+    onSelect: (i) => pick(matches[i]),
+    onClose: () => setOpen(false),
+  });
 
   return (
     <div className="relative">
@@ -100,32 +107,29 @@ export function CityAutocomplete({ id, value, onChange, className }: CityAutocom
         // suggestion bar.
         autoComplete="address-level2"
         aria-label="City"
-        // aria-expanded + aria-autocomplete + aria-controls are only
-        // valid on role="combobox" (axe `aria-allowed-attr`). Setting
-        // the role keeps the typeahead semantics correct.
-        role="combobox"
-        aria-autocomplete="list"
-        aria-expanded={showList}
-        aria-controls={listboxId}
+        // role="combobox" + aria-autocomplete/expanded/controls/activedescendant
+        // all come from the hook: aria-expanded et al. are only valid on
+        // role="combobox" (axe `aria-allowed-attr`), and activedescendant is
+        // what makes the arrow-key model audible to a screen reader.
+        {...comboboxProps}
         className={className}
       />
       {showList && (
         <ul
-          id={listboxId}
+          {...listboxProps}
           className="absolute z-30 left-0 right-0 mt-1 rounded-ds-md border border-border bg-card shadow-lg overflow-hidden"
-          role="listbox"
         >
-          {matches.map((c) => (
+          {matches.map((c, i) => (
             <li key={c}>
               <button
                 type="button"
-                role="option"
-                aria-selected={c.toLowerCase() === query.trim().toLowerCase()}
+                {...getOptionProps(i)}
                 // mousedown-preventDefault stops the input from blurring
-                // before this click registers.
+                // before this click registers. Pointer behaviour is
+                // unchanged by the keyboard model.
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(c)}
-                className="w-full text-left px-3 py-2.5 text-ds-13 flex items-center gap-2 hover:bg-secondary/70 active:bg-secondary transition-colors"
+                className={`w-full text-left px-3 py-2.5 text-ds-13 flex items-center gap-2 hover:bg-secondary/70 active:bg-secondary transition-colors ${COMBOBOX_ACTIVE_OPTION_CLASS}`}
               >
                 <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 {c}

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 
+import { useComboboxKeyboard } from "@/hooks/useComboboxKeyboard";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
+import { COMBOBOX_ACTIVE_OPTION_CLASS } from "@/lib/comboboxOptionClass";
 import {
   SEARCH_HISTORY_MIN_LENGTH,
   clearRecentSearches,
@@ -121,6 +123,17 @@ export function BrowseSearchBar({
 
   const showRecent = focused && filters.searchQuery.length === 0 && recent.length > 0;
 
+  // Arrow/Enter/Escape/Tab model + aria-activedescendant, shared with the
+  // City and Address typeaheads. No `onOpen`: this popup is the recent-search
+  // list, which is already showing whenever the field is focused and empty,
+  // so there is no closed-but-openable state for ArrowDown to reach.
+  const { comboboxProps, listboxProps, getOptionProps } = useComboboxKeyboard({
+    open: showRecent,
+    count: recent.length,
+    onSelect: (i) => applySuggestion(recent[i]),
+    onClose: () => setFocused(false),
+  });
+
   return (
     // The Recent-searches list used to be absolutely positioned so it
     // wouldn't grow the title card. In practice that meant it floated OVER
@@ -147,6 +160,11 @@ export function BrowseSearchBar({
             ref={inputRef}
             type="search"
             aria-label="Search jobs"
+            // Recent searches are a listbox popup, so this field is a
+            // combobox: the hook supplies the role, aria-expanded /
+            // -controls and the aria-activedescendant that makes arrowing
+            // through the list audible.
+            {...comboboxProps}
             placeholder="Search jobs…"
             enterKeyHint="search"
             inputMode="search"
@@ -210,7 +228,7 @@ export function BrowseSearchBar({
             border: "0.5px solid hsl(var(--olivewood) / 0.18)",
             boxShadow: "0 12px 32px -12px hsl(var(--olivewood) / 0.35)",
           }}
-          role="listbox"
+          {...listboxProps}
           aria-label="Recent searches"
         >
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/30">
@@ -233,17 +251,16 @@ export function BrowseSearchBar({
             </button>
           </div>
           <ul>
-            {recent.map((q) => (
+            {recent.map((q, i) => (
               <li key={q}>
                 <button
                   type="button"
-                  role="option"
-                  aria-selected={false}
+                  {...getOptionProps(i)}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     applySuggestion(q);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-left text-ds-13 hover:bg-muted/50 btn-press"
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-left text-ds-13 hover:bg-muted/50 btn-press ${COMBOBOX_ACTIVE_OPTION_CLASS}`}
                 >
                   <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   <span className="truncate">{q}</span>

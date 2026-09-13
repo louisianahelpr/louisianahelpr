@@ -68,6 +68,10 @@ const NOT_RUN_IN_CI: Record<string, string> = {
  * secret whose absence causes it.
  */
 const GATED_IN_CI: Record<string, { runner: string; needs: string }> = {
+  "journeys/03-account.spec.ts": {
+    runner: "e2e-journeys.yml",
+    needs: "PLAYWRIGHT_HELPER_EMAIL + PLAYWRIGHT_HELPER_PASSWORD (the sign-out/sign-in leg; the rest runs on minted sessions)",
+  },
   "auth.spec.ts": {
     runner: "e2e-real-backend.yml",
     needs: "PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD",

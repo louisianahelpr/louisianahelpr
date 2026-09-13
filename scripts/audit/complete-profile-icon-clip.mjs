@@ -3,7 +3,7 @@
  * Repro: Complete Profile ZIP / Last-name values under the valid ✓ icon at
  * ≤430px. Usage: node scripts/audit/complete-profile-icon-clip.mjs <outDir> [baseURL] [chromium|webkit]
  */
-import { chromium, webkit } from "playwright";
+import { chromium, webkit } from "@playwright/test";
 import { execSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";

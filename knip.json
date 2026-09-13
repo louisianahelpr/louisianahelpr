@@ -18,7 +18,8 @@
   "ignoreDependencies": [
     "npm",
     "puppeteer",
-    "cordova-plugin-purchase"
+    "cordova-plugin-purchase",
+    "pg"
   ],
   "rules": {
     "files": "error",
@@ -34,5 +35,8 @@
     "nsTypes": "warn",
     "duplicates": "warn",
     "enumMembers": "warn"
-  }
+  },
+  "ignoreBinaries": [
+    "supabase"
+  ]
 }

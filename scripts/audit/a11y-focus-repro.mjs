@@ -3,7 +3,7 @@
  * Repro for four keyboard-a11y defects against PROD (terminal 2, 2026-09-12).
  * Usage: node scripts/audit/a11y-focus-repro.mjs <outDir> [baseURL]
  */
-import { chromium } from "playwright";
+import { chromium } from "@playwright/test";
 import { execSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";

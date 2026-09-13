@@ -7,7 +7,9 @@
  */
 import { describe, expect, it } from "vitest";
 import { ESLint, RuleTester } from "eslint";
-import tsParser from "@typescript-eslint/parser";
+import tseslint from "typescript-eslint";
+
+const tsParser = tseslint.parser;
 // @ts-expect-error -- plain JS eslint rule, no declaration file
 import rule from "../../scripts/eslint-rules/no-button-height-override.js";
 import ledger from "../../scripts/eslint-rules/button-height-legacy.json";

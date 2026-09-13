@@ -2071,6 +2071,13 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] OWNER: add STRIPE_TEST_SECRET_KEY repo secret (test-mode restricted key, Webhook Endpoints: Read) — stripe-webhook-guard live job is red until then
 - [ ] Button-height gate false positives on prod data: earnings bar-chart day buttons (bars differ by design) on helper-profile-earnings/-payment/helper-earnings; AtAGlance stat tiles on user-profile (covered by the tiles item). Seen when a global CSS push swept every route.
 - [x] Pre-push sweep now nearest route only, max 3 screens (full sweep stays nightly). Order for remaining queue: easiest first.
+### MAIN IS RED (found 2026-09-13 ~01:00) — do these FIRST
+- [ ] Vitest 34745606695: giftCardNaming guard fails (a file added after 0a397aa8a uses the old name) and charge-recurring-visits.test.ts "records a defect when the poster/helper de…" fails. Fix both; run the two files.
+- [ ] Test 34745606366: "No oversized binary enters git history" step crashes — `git diff --diff-filter=AM <before>...HEAD` fails in CI (shallow checkout lacks the base sha). Fetch depth or fall back.
+- [ ] Write contract snapshot refresh 34745765776: `supabase db query -f scripts/audit/write-contract.sql` errors — likely references a dropped/renamed object (pif_credits, dead functions/columns). Fix the SQL, re-run, confirm snapshot current.
+- [ ] E2E happy-path smoke 34746217548 red and E2E real backend cancelled; nightly-red #1592 (e2e-real-backend) open. Read the failing runs themselves and fix.
+- [ ] Open PRs: dependabot #1580, #1579, #1550, #1549 and #1529 "fix(e2e): resolve 4 Playwright failures" — land green ones in ONE batched merge window, close stale ones with a reason.
+
 ### Gaps found 2026-09-13 night (owner approved all; work top to bottom, batch pushes)
 - [ ] Test poster account carries strikes ("Final warning: one more violation = 7-day suspension"). Clear its strikes on prod (test-owned rows only) and make every harness that can add a strike (race probes, journeys, interruptions, messy input) delete it in cleanup; add a nightly check that fails if any shared test account has a strike.
 - [ ] Job card at 375: "Under a minute left" chip squeezes location to "B…". Location must outrank the time chip (existing open item). Visual change approved; screenshot before/after.

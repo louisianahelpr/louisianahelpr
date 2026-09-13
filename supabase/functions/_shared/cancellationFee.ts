@@ -76,9 +76,9 @@ export function jobLocalMidnightMs(dateNeeded: string, timeZone = JOB_TIMEZONE):
  * The error was one-directional — midnight is never later than the real start,
  * so the tier was always >= the disclosed one. It could only ever overcharge.
  *
- * Passing the real hour through `Date.UTC` (rather than adding hours onto a
- * midnight epoch) is also what keeps it DST-correct: the offset is measured at
- * the START instant, so a job on a spring-forward morning is not an hour out.
+ * DST: the offset is resolved AT the start instant (see the body). An earlier
+ * version claimed this and measured it hours away instead, which was an hour
+ * out for early-morning starts on both switch Sundays.
  * Mirrors the SQL `(date_needed + COALESCE(start_time,'00:00')) AT TIME ZONE
  * 'America/Chicago'` in migration 20260905021859.
  */
@@ -90,17 +90,38 @@ export function jobLocalStartMs(
   const [y, m, d] = dateNeeded.split("-").map(Number);
   // `start_time` arrives as Postgres `time` — "HH:MM:SS" or "HH:MM".
   const [sh, sm] = (startTime ?? "00:00").split(":").map(Number);
-  const utcMidnight = Date.UTC(y, (m ?? 1) - 1, d ?? 1, sh || 0, sm || 0, 0);
-  const parts = new Intl.DateTimeFormat("en-US", {
+  // The wall-clock time, read as if it were UTC.
+  const wallAsUtc = Date.UTC(y, (m ?? 1) - 1, d ?? 1, sh || 0, sm || 0, 0);
+  const fmt = new Intl.DateTimeFormat("en-US", {
     timeZone,
     hour12: false,
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", second: "2-digit",
-  }).formatToParts(new Date(utcMidnight));
-  const at = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
-  // What that same instant reads as in the target zone, expressed as UTC.
-  const asZone = Date.UTC(at("year"), at("month") - 1, at("day"), at("hour") % 24, at("minute"), at("second"));
-  return utcMidnight - (asZone - utcMidnight);
+  });
+  // The zone's UTC offset AT a given instant (ms, zone minus UTC).
+  const offsetAt = (ms: number) => {
+    const parts = fmt.formatToParts(new Date(ms));
+    const at = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+    return Date.UTC(at("year"), at("month") - 1, at("day"), at("hour") % 24, at("minute"), at("second")) - ms;
+  };
+  // The offset must be taken at the REAL instant. The old code took it once,
+  // at `wallAsUtc`, which is hours away from the real instant; on the two DST
+  // Sundays those hours straddle the switch, so starts between 01:00 and 07:59
+  // Central were an hour out (2026-11-01 05:00 -> 04:00, 2026-03-08 06:00 ->
+  // 07:00; time-travel audit, 2026-09-12) and disagreed with the SQL twin.
+  //
+  // So try both offsets in force around that day and keep the one that is
+  // self-consistent (its instant really reads as that wall time). Two edge
+  // cases follow Postgres `AT TIME ZONE`, which is the source of truth here
+  // and was checked against it in PGlite:
+  //   - a repeated wall time (fall back, 01:30 happens twice): the later
+  //     instant, standard time;
+  //   - a skipped wall time (spring forward, 02:30 never happens): also the
+  //     later of the two candidates.
+  const offsets = new Set([offsetAt(wallAsUtc - 12 * 3600_000), offsetAt(wallAsUtc + 12 * 3600_000)]);
+  const candidates = [...offsets].map((o) => wallAsUtc - o);
+  const consistent = candidates.filter((c) => offsetAt(c) === wallAsUtc - c);
+  return Math.max(...(consistent.length ? consistent : candidates));
 }
 
 /**

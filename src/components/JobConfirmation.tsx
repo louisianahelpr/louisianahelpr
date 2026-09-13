@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { CheckCircle2, Clock, ShieldCheck, CalendarClock } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { CONFIRM_WINDOW_HOURS, confirmDeadlineMs } from "@/lib/jobDate";
+import { CONFIRM_WINDOW_HOURS, confirmDeadlineMs, confirmOpensMs, jobDateMs } from "@/lib/jobDate";
+import { JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
@@ -33,6 +34,19 @@ import { report } from "@/lib/errorLogger";
  *
  * Returns the effective STAMP (so callers can print it), or null.
  */
+/**
+ * Midnight of the job's day in the JOB's zone (America/Chicago). This card
+ * used the viewer's browser zone (`parseLocalDate`) while the auto-expire sweep
+ * that re-opens the job uses Central, so a helper viewing from Pacific saw
+ * "I'm Still On" about two hours late inside a 12-hour window, and everyone was
+ * an hour off on DST days (time-travel audit, 2026-09-12). Falls back to the
+ * old parse only for an unreadable date, which jobDateMs rejects.
+ */
+function jobDayStart(dateNeeded: string): Date {
+  const ms = jobDateMs(dateNeeded);
+  return ms === null ? parseLocalDate(dateNeeded) : new Date(ms);
+}
+
 export function helperDayOfConfirmation({
   helperConfirmedAt,
   helperDayofConfirmedAt,
@@ -44,7 +58,7 @@ export function helperDayOfConfirmation({
 }): string | null {
   if (helperDayofConfirmedAt) return helperDayofConfirmedAt;
   if (!helperConfirmedAt) return null;
-  const jobDate = parseLocalDate(dateNeeded);
+  const jobDate = jobDayStart(dateNeeded);
   return jobDate.getTime() - new Date(helperConfirmedAt).getTime() <= 24 * 3_600_000
     ? helperConfirmedAt
     : null;
@@ -114,7 +128,7 @@ export function JobConfirmation({
   }, []);
   void tick;
 
-  const jobDate = parseLocalDate(dateNeeded);
+  const jobDate = jobDayStart(dateNeeded);
   const now = new Date();
   const hoursUntilJob = (jobDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
@@ -150,7 +164,9 @@ export function JobConfirmation({
      Same card, same two status chips, no button — plus the clock the helpr was
      missing. The 24-hour window itself is unchanged; it just says so now. */
   if (isLiveJob && hoursUntilJob > 24) {
-    const opensAt = new Date(jobDate.getTime() - 24 * 3_600_000);
+    // The shared helper, not midnight minus 24h: that is 23:00 or 01:00 on the
+    // two DST days, and the sweep uses the helper.
+    const opensAt = new Date(confirmOpensMs(dateNeeded));
     const minsUntilOpen = Math.max(0, Math.round((opensAt.getTime() - now.getTime()) / 60_000));
     const d = Math.floor(minsUntilOpen / 1440);
     const h = Math.floor((minsUntilOpen % 1440) / 60);
@@ -192,6 +208,7 @@ export function JobConfirmation({
             <p className="text-ds-10 mt-0.5 font-semibold tabular-nums">
               Then you'll have {CONFIRM_WINDOW_HOURS} hours — confirm by{" "}
               {confirmBy.toLocaleString("en-US", {
+                timeZone: JOB_TIMEZONE,
                 weekday: "short",
                 hour: "numeric",
                 minute: "2-digit",

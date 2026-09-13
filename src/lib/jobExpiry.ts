@@ -22,29 +22,25 @@ import { jobStartDateTime } from "@/lib/dateUtils";
 const MIN_LISTING_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 /**
- * Parses `date_needed` + `start_time` as a local wall-clock instant.
- *
- * `start_time` arrives as "HH:MM" from the form and "HH:MM:SS" from Postgres;
- * both parse. Returns null when there's no date, or when the pieces don't
- * form a real date.
- */
-function scheduledInstant(dateNeeded: string, startTime: string): Date | null {
-  if (!dateNeeded) return null;
-  const time = startTime ? startTime : "23:59:59";
-  const parsed = new Date(`${dateNeeded}T${time}`);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-/**
  * The listing expiry for a given schedule, floored so it is always in the
  * future. Returns null when the job has no date (never expires).
+ *
+ * Resolved in the JOB's zone (America/Chicago) via `jobStartDateTime`, not the
+ * poster's browser zone. It used `new Date(\`${date}T${time}\`)`, so a 9:00 AM
+ * Louisiana job posted from Pacific time stayed listed about two hours after
+ * it started, and one posted from Eastern time vanished an hour early. The
+ * server trigger only raises an expiry already in the past, so it never
+ * corrected either (time-travel audit, 2026-09-12). No start time means the
+ * end of the job's day.
  */
 export function computeJobExpiresAt(
   dateNeeded: string,
   startTime: string,
   now: Date = new Date(),
+  timeZone?: string,
 ): string | null {
-  const scheduled = scheduledInstant(dateNeeded, startTime);
+  if (!dateNeeded) return null;
+  const scheduled = jobStartDateTime(dateNeeded, startTime ? startTime : "23:59", timeZone);
   if (!scheduled) return null;
   const floor = now.getTime() + MIN_LISTING_WINDOW_MS;
   return new Date(Math.max(scheduled.getTime(), floor)).toISOString();

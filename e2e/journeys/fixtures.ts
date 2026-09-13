@@ -8,7 +8,7 @@ import {
   type TestInfo,
 } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { detectStuckOrBlank, findErrorScreen } from "../errorScreens";
 import { deviceProfile, type Rotation } from "./scenarios";
@@ -85,12 +85,29 @@ export async function getSession(api: APIRequestContext, role: Role, fresh = fal
     expect(r.ok(), `sign-in failed for the ${role}: ${r.status()} ${await r.text()}`).toBe(true);
     session = (await r.json()) as Session;
   } else {
+    // GoTrue rate-limits magic links (429), so a minted session is reused from
+    // disk for as long as its access token has 20+ minutes left.
+    const cacheDir = join(REPO_ROOT, "node_modules", ".cache", "lh-journeys");
+    const cacheFile = join(cacheDir, `${role}.json`);
+    if (existsSync(cacheFile)) {
+      try {
+        const disk = JSON.parse(readFileSync(cacheFile, "utf8")) as Session;
+        if ((disk.expires_at ?? 0) * 1000 > Date.now() + 20 * 60_000) {
+          sessionCache.set(role, disk);
+          return disk;
+        }
+      } catch {
+        // A corrupt cache file is just a cache miss: mint below.
+      }
+    }
     const out = execFileSync(
       "node",
       [join(REPO_ROOT, "scripts/test-signin-link.mjs"), `${role}-e2e`, "--session", "--json"],
       { cwd: REPO_ROOT, encoding: "utf8" },
     );
     session = (JSON.parse(out) as { session: Session }).session;
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(cacheFile, JSON.stringify(session), { mode: 0o600 });
   }
   expect(session.access_token, `no access token for the ${role}`).toBeTruthy();
   sessionCache.set(role, session);
@@ -241,8 +258,20 @@ export async function payOnStripeCheckout(page: Page) {
   if ((await linkOptIn.count()) && (await linkOptIn.isChecked().catch(() => false))) {
     await linkOptIn.uncheck({ force: true }).catch(() => {});
   }
-  await page.getByTestId("hosted-payment-submit-button").click();
-  await page.waitForURL((url) => !url.host.endsWith("checkout.stripe.com"), { timeout: 120_000 });
+  // The billing-address autocomplete can swallow the first Pay tap, so blur,
+  // tap, and tap again if still on Stripe, naming any inline error it shows.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await page.getByRole("heading", { name: /^Pay / }).first().click().catch(() => {});
+    await page.getByTestId("hosted-payment-submit-button").click();
+    const left = await page
+      .waitForURL((url) => !url.host.endsWith("checkout.stripe.com"), { timeout: 40_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (left) return;
+    const complaints = await page.locator('[role="alert"], .FieldError').allInnerTexts().catch(() => [] as string[]);
+    console.log(`Stripe Pay attempt ${attempt} did not leave checkout: ${complaints.join(" | ") || "no inline error"}`);
+  }
+  throw new Error("Stripe Checkout never submitted after 3 Pay taps");
 }
 
 /**
@@ -293,6 +322,11 @@ type Journey = {
   milestone: (page: Page, name: string) => Promise<void>;
   /** LIFO cleanup, run even when the journey fails. Non-fatal, but announced. */
   cleanup: (label: string, fn: () => Promise<unknown>) => void;
+  /**
+   * Expect ONE specific report the journey itself provokes on purpose (e.g. a
+   * parish-less ZIP). Matched against the message; anything else still fails.
+   */
+  allowReport: (message: RegExp, why: string) => void;
 };
 
 export const test = base.extend<{ journey: Journey }>({
@@ -300,6 +334,7 @@ export const test = base.extend<{ journey: Journey }>({
     const startedAt = new Date(Date.now() - 5_000).toISOString();
     const pages = new Map<string, Page>();
     const clientReports: string[] = [];
+    const allowed: RegExp[] = [];
     const cleanups: Array<{ label: string; fn: () => Promise<unknown> }> = [];
     const dir = testInfo.outputPath("milestones");
     mkdirSync(dir, { recursive: true });
@@ -320,6 +355,10 @@ export const test = base.extend<{ journey: Journey }>({
         const file = join(dir, `${String(++n).padStart(2, "0")}-${name.replace(/[^a-z0-9-]+/gi, "_")}.png`);
         await page.screenshot({ path: file }).catch(() => {});
         await testInfo.attach(`milestone: ${name}`, { path: file, contentType: "image/png" }).catch(() => {});
+      },
+      allowReport: (message, why) => {
+        allowed.push(message);
+        testInfo.annotations.push({ type: "allowed-report", description: `${message}: ${why}` });
       },
       cleanup: (label, fn) => {
         cleanups.push({ label, fn });
@@ -347,7 +386,8 @@ export const test = base.extend<{ journey: Journey }>({
 
     // A report() fired means the user hit a real error, even if the screen recovered.
     if (testInfo.status === "passed") {
-      expect(clientReports, `the app reported errors during the journey:\n${clientReports.join("\n")}`).toEqual([]);
+      const unexpected = clientReports.filter((r) => !allowed.some((re) => re.test(r)));
+      expect(unexpected, `the app reported errors during the journey:\n${unexpected.join("\n")}`).toEqual([]);
       const reader = await errorLogReader(request);
       if (!reader) {
         announceUncovered("error_logs not checked", "no service-role .env and no PLAYWRIGHT_ADMIN_EMAIL/_PASSWORD; only client-side report() POSTs were watched.");
@@ -358,7 +398,7 @@ export const test = base.extend<{ journey: Journey }>({
           { headers: { apikey: reader.apikey, Authorization: `Bearer ${reader.token}` } },
         );
         expect(r.ok(), `reading error_logs failed: ${r.status()} ${await r.text()}`).toBe(true);
-        const rows = await r.json();
+        const rows = ((await r.json()) as Array<{ message: string }>).filter((row) => !allowed.some((re) => re.test(row.message)));
         expect(rows, `error_logs rows written by the test accounts during this journey`).toEqual([]);
       }
     }

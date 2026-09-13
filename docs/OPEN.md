@@ -1598,6 +1598,15 @@ until the browser has been used to LOOK at it. Agents run one at a time.
       restates `expires_at` against the moved clock, which is a harness workaround. Repro: remove that line in
       `openAt` and run the job test. Confirm on a real iPhone with the clock set manually ahead before
       treating it as an app defect.
+- [ ] **My Posts search only searches the open status tab, and says the job does not exist** (journeys
+      lane, 2026-09-12, seen on prod at 390px). Repro: as the poster, post and fund a job (it lands in
+      Waiting), open `/my-posts` (opens on Needs You), tap Search and type a word from its title. Result:
+      "No jobs in this view / No jobs match your search — try a different term." with no pointer to
+      Waiting, where the job is. The non-search empty state does point at other tabs ("14 in Done and 52
+      in Cancelled"); the search empty state does not. A poster looking for a job they just posted is told
+      it is not there. Screenshot looked at (`02-marketplace` failure-poster.png, run of 01:47Z). Journey
+      J2 now opens the Waiting tab explicitly. Not fixed: needs a product call (search across tabs, or
+      name the tab holding matches).
 
 ## Working forwards — owner, 2026-09-12: "all 6 need to happen"
 

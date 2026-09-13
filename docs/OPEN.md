@@ -1961,3 +1961,7 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - Deleted local tasks: lh-ledger-integrity, lh-prod-error-triage, lh-security-authz-drift.
 - Kept (non-visual, merge only on green, silent when clean): Stripe webhook, Supabase advisor, Sentry, Edge Functions, iOS config drift, Bundle size, Docs drift, Weekly health. The 7:30 morning report now reads each one's latest run and reports only findings, merges and failures.
 - Closed stale PRs: 1563, 1559, 1552, 1578, 1581 (vitest 5 migration, Sentry off the critical path, data-display polish to redo). Dependabot asked to rebase 1579/1580.
+
+## Unshipped branches (owner review)
+2026-09-13 local-branch sweep: no unmerged local branch holds real unshipped work. The 11 checked by this sweep were all patch-equivalent on main or superseded (partner/enterprise pages dropped, welcome modal removed, Apple IAP functions and admin shell already on main, marketing-claim files rewritten), and were deleted with tip shas logged in `docs/audit/deleted-branches-2026-09-13.log`. About 150 more were deleted by a different concurrent process during the run and are not in that log.
+- [ ] Find which session deleted ~150 local branches on 2026-09-12 ~22:15 without logging tip shas; recover from its log or `git fsck --unreachable` if anything is missed.

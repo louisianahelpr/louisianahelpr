@@ -1,0 +1,14 @@
+2026-09-13T05:20:35Z	claude/gracious-carson-60ba91	2d311d9996e40cfc484c03b4ab5dbf2a5e8a7f52
+2026-09-13T05:20:35Z	feat/apple-iap	2d7475782795b2e0b5035b65874681b30be81693
+2026-09-13T05:20:36Z	feat/partner-enterprise-b2b	2d9363ecf77db6094ba5f7d322f67f0aabb07750
+2026-09-13T05:20:36Z	feat/subscription-tiers	6aeb3681abdf1fcc97a9b10134b0ffcac25774e8
+2026-09-13T05:20:36Z	feat/two-sided-reputation-post-review	32f1edd258cb07999bec7f09f2da4afce91783cc
+2026-09-13T05:20:37Z	fix/admin-tail-views	b927b59847afe79aafaebe0af3db18ee99066438
+2026-09-13T05:20:37Z	fix/crash-and-selected-state-color	498b0e0c80111649d86ff5d314906491686809e0
+2026-09-13T05:20:37Z	fix/false-marketing-claims	fed38909611c8788dc531121a022fc33b6668333
+2026-09-13T05:20:37Z	fix/profile-landing-video-typeerrors	af296bb8e8de163de2ad1455176c273176d8e5e4
+2026-09-13T05:20:38Z	r557	dbb99886dfe17cd33911f0436520ef9b3b0416e7
+2026-09-13T05:20:38Z	saved/sweep-dialogs	a0c1782a9eec01290192d169a0feb4187d655950
+# NOTE: ~150 further unmerged local branches (feat/soft-update-prompt ... worktree-agent-ac95becfabd54d666)
+# were deleted by a DIFFERENT concurrent process during this run, before they could be logged here.
+# Their tip shas are not recorded by this log; recover via `git fsck --unreachable` or the other session's log.

@@ -70,7 +70,7 @@ test.describe("bad actors: contact smuggling", () => {
         if (row?.id) createdJobs.push(row.id);
       }
       expect(created.status(), `SECURITY: a ${s.label} in a job description was STORED, not rejected: ${body}`).toBe(400);
-      expect(body, "the rejection should carry the trigger's user-readable message").toMatch(/detected in the job description/i);
+      expect(body, "the rejection should carry the trigger's user-readable message").toMatch(/(detected|mentioned) in the job description/i);
       const stored = await request.get(`${SUPABASE_URL}/rest/v1/jobs?customer_id=eq.${posterId}&title=ilike.*smuggle ${s.label} ${runId}*&select=id`, { headers: posterHeaders }).then((r) => r.json());
       expect(stored, "no row must exist after a rejected insert").toEqual([]);
     });
@@ -88,7 +88,7 @@ test.describe("bad actors: contact smuggling", () => {
     try {
       const body = await upd.text();
       expect(upd.status(), `SECURITY: a phone number + venmo in a bio was STORED, not rejected: ${body}`).toBe(400);
-      expect(body, "the rejection should carry the trigger's user-readable message").toMatch(/detected in your bio/i);
+      expect(body, "the rejection should carry the trigger's user-readable message").toMatch(/(detected|mentioned) in your bio/i);
       const after = (await request.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${posterId}&select=${key}`, { headers: posterHeaders }).then((r) => r.json()))[0]?.[key] ?? null;
       expect(after, "bio must be unchanged after a rejected update").toBe(before);
     } finally {

@@ -32,5 +32,5 @@ export function contactLeakFieldError(text: string, field: ContactLeakField): st
 export function contactLeakRejectionMessage(err: unknown): string | null {
   const e = err as { code?: unknown; message?: unknown } | null | undefined;
   if (!e || e.code !== "23514" || typeof e.message !== "string") return null;
-  return /detected in (the job|your bio)/i.test(e.message) ? e.message : null;
+  return /(detected|mentioned) in (the job|your bio)/i.test(e.message) ? e.message : null;
 }

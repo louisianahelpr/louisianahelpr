@@ -24,6 +24,8 @@ describe("contactLeakRejectionMessage — only the trigger's own 23514 text is s
   it("returns the server message for the contact-leak check_violation", () => {
     expect(contactLeakRejectionMessage({ code: "23514", message: serverMsg })).toBe(serverMsg);
     expect(contactLeakRejectionMessage({ code: "23514", message: "Email address detected in your bio. Keep it off." })).toMatch(/your bio/);
+    // The payment-service class says "mentioned", not "detected" (CI, 2026-09-13).
+    expect(contactLeakRejectionMessage({ code: "23514", message: "Off-platform payment service mentioned in the job description. Keep it off." })).toMatch(/mentioned/);
   });
   it("returns null for any other error, including other check_violations", () => {
     expect(contactLeakRejectionMessage({ code: "23514", message: 'new row for relation "jobs" violates check constraint "jobs_budget_check"' })).toBeNull();

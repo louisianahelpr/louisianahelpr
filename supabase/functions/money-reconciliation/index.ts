@@ -201,7 +201,7 @@ serve(async (req) => {
       cancellationFee: new Check(
         "cancellation_fee_mismatch",
         "critical",
-        "Stored jobs.cancellation_fee disagrees with computeCancellationFee() — the row lies to the helper's fee pill, admin revenue, and reliability record even though escrow settled correctly.",
+        "Stored jobs.cancellation_fee disagrees with computeCancellationFee() — the row lies to the Helpr's fee pill, admin revenue, and reliability record even though escrow settled correctly.",
       ),
       lateFlag: new Check(
         "late_cancellation_flag_wrong",
@@ -242,7 +242,7 @@ serve(async (req) => {
       tierDrift: new Check(
         "helper_fee_percent_not_applied_at_payout",
         "critical",
-        "A SETTLED payout_transfer recorded a commission that differs from what the helper's LIVE subscription tier would charge — the discount was not applied to money that actually moved. Graded against the transfer ledger, never against jobs.helper_fee_percent, which is a global escrow-time stamp and is expected to differ from the ladder.",
+        "A SETTLED payout_transfer recorded a commission that differs from what the Helpr's LIVE subscription tier would charge — the discount was not applied to money that actually moved. Graded against the transfer ledger, never against jobs.helper_fee_percent, which is a global escrow-time stamp and is expected to differ from the ladder.",
       ),
       releasedNoTransfer: new Check(
         "released_without_payout_transfer",
@@ -284,7 +284,7 @@ serve(async (req) => {
       payoutStranded: new Check(
         "payout_pending_stranded",
         "critical",
-        `payment_status='payout_pending' more than ${PAYOUT_WINDOW_HOURS}h past payout_scheduled_at — the helper was told they would be paid and nothing has moved. This is the END STATE of an unguarded release write (a zero-row flip after the transfer went out) and of a payout that failed with nothing recorded, and until now NOTHING detected it: this reconciler only looked at 'escrow'.`,
+        `payment_status='payout_pending' more than ${PAYOUT_WINDOW_HOURS}h past payout_scheduled_at — the Helpr was told they would be paid and nothing has moved. This is the END STATE of an unguarded release write (a zero-row flip after the transfer went out) and of a payout that failed with nothing recorded, and until now NOTHING detected it: this reconciler only looked at 'escrow'.`,
       ),
       // `time_credit_balance_drift` was retired with the table it graded.
       // `public.time_credits` was dropped by migration 20260901035602 (its RLS

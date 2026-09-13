@@ -39,6 +39,7 @@ const PRESERVE_PATHS = [
   "/my-jobs",
   "/my-posts",
   "/support",
+  "/saved-helprs",
   "/saved-helpers",
   "/schedule",
   "/availability",

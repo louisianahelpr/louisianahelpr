@@ -393,7 +393,7 @@ Deno.serve(async (req) => {
           payout_scheduled_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
           dispute_status: "auto_resolved",
           dispute_resolved_at: new Date().toISOString(),
-          dispute_reason: `[AUTO-RESOLVED] Original: ${job.dispute_reason || "N/A"}. Dispute expired after 72 hours without resolution. Payment released to helper.`,
+          dispute_reason: `[AUTO-RESOLVED] Original: ${job.dispute_reason || "N/A"}. Dispute expired after 72 hours without resolution. Payment released to Helpr.`,
         })
         .eq("id", job.id)
         .eq("payment_status", "escrow")

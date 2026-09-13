@@ -35,6 +35,7 @@ Disallow: /settings
 Disallow: /availability
 Disallow: /earnings
 Disallow: /schedule
+Disallow: /saved-helprs
 Disallow: /saved-helpers
 Disallow: /complete-profile
 Disallow: /warnings

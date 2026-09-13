@@ -456,7 +456,7 @@ serve(async (req) => {
             user_id: c.customer_id,
             type: "payment",
             title: "Your auto-tip was sent",
-            message: `We sent a $${(tipCents / 100).toFixed(2)} tip to your helper for this job — no action needed.`,
+            message: `We sent a $${(tipCents / 100).toFixed(2)} tip to your Helpr for this job — no action needed.`,
             link: `/my-posts?job=${c.job_id}`,
           });
           if (successNotifyErr) {

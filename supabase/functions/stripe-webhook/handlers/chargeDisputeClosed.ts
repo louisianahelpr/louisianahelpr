@@ -121,8 +121,8 @@ export async function handleChargeDisputeClosed(
         for (const adminId of wonAdminIds) {
           await supabase.from("notifications").insert({
             user_id: adminId,
-            title: "Chargeback WON — release helper payout",
-            message: `Stripe ruled in our favor on the $${(closedDispute.amount / 100).toFixed(2)} chargeback for "${closedJob.title}". Funds are restored. Please release the helper's payout from the Admin panel.`,
+            title: "Chargeback WON — release Helpr payout",
+            message: `Stripe ruled in our favor on the $${(closedDispute.amount / 100).toFixed(2)} chargeback for "${closedJob.title}". Funds are restored. Please release the Helpr's payout from the Admin panel.`,
             type: "payment",
             link: "/admin",
           });
@@ -186,7 +186,7 @@ export async function handleChargeDisputeClosed(
             await supabase.from("notifications").insert({
               user_id: adminId,
               title: "ℹ Retrieval request closed — payout auto-unblocked",
-              message: `A card-network retrieval request for "${closedJob.title}" was dismissed with no chargeback. The helper's temporarily-blocked payout has been automatically unblocked and will proceed on the normal schedule.`,
+              message: `A card-network retrieval request for "${closedJob.title}" was dismissed with no chargeback. The Helpr's temporarily-blocked payout has been automatically unblocked and will proceed on the normal schedule.`,
               type: "info",
               link: "/admin",
             });

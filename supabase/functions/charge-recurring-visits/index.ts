@@ -1149,7 +1149,7 @@ async function notifyPosterCardProblem(
   if (helperErr || !helperRows || helperRows.length === 0) {
     console.error("[charge-recurring-visits] helper notification failed", helperErr ?? "zero rows");
     failures.push(
-      `series ${parent.id} ${visitDate}: standing helper was not told the visit is unbooked (${helperErr?.message ?? "insert returned zero rows"})`,
+      `series ${parent.id} ${visitDate}: standing Helpr was not told the visit is unbooked (${helperErr?.message ?? "insert returned zero rows"})`,
     );
   }
 

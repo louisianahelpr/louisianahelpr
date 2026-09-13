@@ -21,6 +21,7 @@ const prefetchers: Record<string, () => Promise<unknown>> = {
   // redirect lands.
   "/schedule": () => import("@/pages/Profile"),
   "/availability": () => import("@/pages/Profile"),
+  "/saved-helprs": () => import("@/pages/Profile"),
   "/saved-helpers": () => import("@/pages/Profile"),
 
   

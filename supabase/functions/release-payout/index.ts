@@ -169,7 +169,7 @@ serve(async (req) => {
         `[release-payout] roster lookup failed for group job ${job.id}: ${rosterError.message}`,
       );
       return jsonResponse(
-        { error: "Could not verify the helper roster for this group job. No payout was made." },
+        { error: "Could not verify the Helpr roster for this group job. No payout was made." },
         503,
       );
     }
@@ -268,12 +268,12 @@ serve(async (req) => {
     // Fail closed, but with the REAL cause — a transient read error must not
     // masquerade as "helper never onboarded".
     console.error(`[release-payout] helper profile read failed for ${job.helper_id}:`, helperErr);
-    return jsonResponse({ error: "helper profile read failed — retry" }, 500);
+    return jsonResponse({ error: "Helpr profile read failed — retry" }, 500);
   }
 
   if (!helper?.stripe_account_id) {
     return jsonResponse(
-      { error: "helper has not completed Stripe Connect onboarding" },
+      { error: "Helpr has not completed Stripe Connect onboarding" },
       409,
     );
   }
@@ -381,12 +381,12 @@ serve(async (req) => {
       `[release-payout] accounts.retrieve failed for ${helper.stripe_account_id} (job ${job.id}):`,
       { message: err?.message, type: err?.type, code: err?.code },
     );
-    return jsonResponse({ error: "could not verify helper Connect account — retry" }, 502);
+    return jsonResponse({ error: "could not verify Helpr Connect account — retry" }, 502);
   }
   if (!account.payouts_enabled || !account.charges_enabled) {
     return jsonResponse(
       {
-        error: "helper Connect account is not fully active",
+        error: "Helpr Connect account is not fully active",
         payouts_enabled: account.payouts_enabled,
         charges_enabled: account.charges_enabled,
       },

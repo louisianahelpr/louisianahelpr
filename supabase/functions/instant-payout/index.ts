@@ -264,7 +264,7 @@ serve(async (req) => {
             amount: feeCents,
             currency: "usd",
             destination: platformAccountId,
-            description: `Instant payout fee — helper ${user.id}`,
+            description: `Instant payout fee — Helpr ${user.id}`,
             metadata: {
               helper_id: user.id,
               instant_payout_id: record.id,
@@ -414,7 +414,7 @@ serve(async (req) => {
       let fullError = msg;
       if (feeCents > 0) {
         fullError += feeTransferSucceeded
-          ? ` | IMPORTANT: fee of ${feeCents}¢ was already transferred to platform — reverse transfer to helper's Connect account before closing`
+          ? ` | IMPORTANT: fee of ${feeCents}¢ was already transferred to platform — reverse transfer to Helpr's Connect account before closing`
           : ` | fee transfer also failed (fee not collected)`;
       }
       // Same hazard as the completion write above, and this one did not even

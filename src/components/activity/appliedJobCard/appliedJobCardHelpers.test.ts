@@ -104,7 +104,7 @@ describe("describeCancellation — the card names who cancelled", () => {
   it("automatic sweep (cancelled_by NULL)", () => {
     expect(describeCancellation(base, HELPER)).toBe("Cancelled automatically");
     expect(
-      describeCancellation({ ...base, cancellation_reason: "Job listing expired — scheduled time passed with no helper assigned" }, HELPER),
+      describeCancellation({ ...base, cancellation_reason: "Job listing expired — scheduled time passed with no Helpr assigned" }, HELPER),
     ).toBe("Cancelled automatically — the scheduled time passed before anyone was hired");
   });
   it("neither party (support)", () => {

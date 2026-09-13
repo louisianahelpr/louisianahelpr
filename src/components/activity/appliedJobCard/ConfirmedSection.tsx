@@ -72,33 +72,47 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
 
   return (
     <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
-      {/* Confirmation leads, because it happens FIRST (owner: "confirmation
-          needs to go before job starts because that comes first"). The card
-          used to open with "Job starts in 2d 15h" and bury "Confirmation opens
-          in 1d 1h" below the tracker — so the countdown the helpr had to act
-          on SOONER was the one further down the card, under the step they
-          could not reach yet. Chronological order top to bottom: confirm the
-          day before, then the job starts, then the tracker runs on the day. */}
-      <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} onCantMakeIt={() => setCancelOpen(true)} />
-      {/* Job countdown */}
-      <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
-      {/* The pets, and everything the owner already wrote down about them.
-          Self-hides when the job has none, so no category gate is needed here.
-          See JobPetCareSheet — before it, a sitter arrived knowing the address
-          and the time and nothing about the animal. */}
-      <JobPetCareSheet jobId={app.job_id} />
-      {/* No "Add to Calendar" (owner, twice — here and on the offer card):
-          "once they accept a job it will be on their calendar in the app".
-          Handing the helpr an .ics to download and import is asking the user
-          to do the app's job, on a job the app already knows the date of. */}
-      {/* Tracking — only active on the day of the job */}
-      <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
+      {/* Confirmation + tracker share ONE card, not two stacked ones (#79) —
+          they're both "where this booking stands right now", and a hard seam
+          between them read as two unrelated widgets rather than one status.
+          Confirmation still leads, because it happens FIRST (owner:
+          "confirmation needs to go before job starts because that comes
+          first"). The card used to open with "Job starts in 2d 15h" and bury
+          "Confirmation opens in 1d 1h" below the tracker — so the countdown
+          the helpr had to act on SOONER was the one further down the card,
+          under the step they could not reach yet. Chronological order top to
+          bottom: confirm the day before, then the job starts, then the
+          tracker runs on the day. */}
+      <div className="rounded-2xl liquid-glass p-3 space-y-3">
+        <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} onCantMakeIt={() => setCancelOpen(true)} embedded />
+        {/* Job countdown */}
+        <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
+        {/* The pets, and everything the owner already wrote down about them.
+            Self-hides when the job has none, so no category gate is needed here.
+            See JobPetCareSheet — before it, a sitter arrived knowing the address
+            and the time and nothing about the animal. */}
+        <JobPetCareSheet jobId={app.job_id} />
+        {/* No "Add to Calendar" (owner, twice — here and on the offer card):
+            "once they accept a job it will be on their calendar in the app".
+            Handing the helpr an .ics to download and import is asking the user
+            to do the app's job, on a job the app already knows the date of. */}
+        {/* Tracking — only active on the day of the job. Divider, not a gap +
+            second card boundary, so it reads as the next section of the same
+            card rather than a new one. */}
+        <div className="border-t border-[hsl(var(--olivewood)/0.1)] pt-3">
+          <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} embedded />
+        </div>
+      </div>
       {/* Directions sits with Message, above the exit link: this is the
           BOOKED state — the job is confirmed and the next physical thing the
           helpr does is drive to it. Until now the only route to the maps app
-          was the truncated city name in the meta row. */}
-      <DirectionsButton location={job.location} />
-      <Button size="sm" variant="outline" style={jobActionChipStyle("neutral")} className={JOB_ACTION_FULL_CLASS} onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4" />Message</Button>
+          was the truncated city name in the meta row. Side-by-side, not
+          stacked full-width — both are one-tap navigational moves, not
+          sequential decisions, so they share a row (#77). */}
+      <div className="flex gap-2">
+        <div className="flex-1"><DirectionsButton location={job.location} /></div>
+        <Button size="sm" variant="outline" style={jobActionChipStyle("neutral")} className={`${JOB_ACTION_FULL_CLASS} flex-1`} onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4" />Message</Button>
+      </div>
       {/* Quiet, but present: the alternative to a sanctioned exit is a
           ghost, and a ghost is worse for everyone including the ghoster. */}
       <button

@@ -21,6 +21,7 @@ export function JobConfirmation({
   helperOnTheWayAt,
   onConfirm,
   onCantMakeIt,
+  embedded = false,
 }: {
   jobId: string;
   isOwner: boolean;
@@ -35,6 +36,11 @@ export function JobConfirmation({
   jobStatus?: string;
   helperOnTheWayAt?: string | null;
   onConfirm?: () => void;
+  /** Drops this component's own `rounded-2xl liquid-glass` card chrome, for
+   *  callers that render it inside a shared card alongside JobTracking (#79
+   *  — the two used to read as separate stacked cards). Default false keeps
+   *  every other caller's standalone card unchanged. */
+  embedded?: boolean;
   /**
    * Opens the caller's existing cancel/decline flow (CancellationDialog for
    * posters, the helper_cancel_booking confirm for Helprs) — this component
@@ -209,11 +215,15 @@ export function JobConfirmation({
   return (
     <>
       <div
-        className="rounded-2xl liquid-glass p-3 space-y-1.5"
-        style={{
-          background:
-            "radial-gradient(80% 100% at 50% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%)",
-        }}
+        className={embedded ? "space-y-1.5" : "rounded-2xl liquid-glass p-3 space-y-1.5"}
+        style={
+          embedded
+            ? undefined
+            : {
+                background:
+                  "radial-gradient(80% 100% at 50% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%)",
+              }
+        }
       >
         <div>
           <h3

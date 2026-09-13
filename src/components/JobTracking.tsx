@@ -229,6 +229,7 @@ export function JobTracking({
   jobLatitude,
   jobLongitude,
   includePostingSteps = false,
+  embedded = false,
 }: {
   jobId: string;
   helperId: string | null;
@@ -297,6 +298,11 @@ export function JobTracking({
    * it stands. With this on the tracker renders without a `helperId`.
    */
   includePostingSteps?: boolean;
+  /** Drops this component's own `rounded-2xl liquid-glass` card chrome, for
+   *  callers that render it inside a shared card alongside JobConfirmation
+   *  (#79 — the two used to read as separate stacked cards). Default false
+   *  keeps every other caller's standalone card unchanged. */
+  embedded?: boolean;
 }) {
   // Seed from the parent-batched tracking row when present so we don't
   // fire one fetch per rendered card (N+1 across active jobs on Activity).
@@ -876,7 +882,7 @@ export function JobTracking({
     // for screen readers (a landmark region with steps but no name announces
     // as loose fragments); the helper's NAME moved down to the freshness
     // stamp, which is the line that describes their last ping anyway.
-    <div className="rounded-2xl liquid-glass p-3 space-y-2">
+    <div className={embedded ? "space-y-2" : "rounded-2xl liquid-glass p-3 space-y-2"}>
       <h3 className="sr-only">Job tracking</h3>
       {/* NO SOS PILL HERE (owner: "remove globally") — it lives in the action
           row with every other control, on both sides of the job. */}

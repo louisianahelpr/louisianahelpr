@@ -335,6 +335,13 @@ export const test = base.extend<{ journey: Journey }>({
     const pages = new Map<string, Page>();
     const clientReports: string[] = [];
     const allowed: RegExp[] = [];
+    // Local development only: lets later steps be built while a known, filed
+    // defect is waiting to deploy. Refused in CI so it can never hide one there.
+    if (process.env.JOURNEY_ALLOW_REPORTS) {
+      if (process.env.CI) throw new Error("JOURNEY_ALLOW_REPORTS is local-only and must not be set in CI");
+      allowed.push(new RegExp(process.env.JOURNEY_ALLOW_REPORTS));
+      testInfo.annotations.push({ type: "allowed-report", description: `local override: ${process.env.JOURNEY_ALLOW_REPORTS}` });
+    }
     const cleanups: Array<{ label: string; fn: () => Promise<unknown> }> = [];
     const dir = testInfo.outputPath("milestones");
     mkdirSync(dir, { recursive: true });

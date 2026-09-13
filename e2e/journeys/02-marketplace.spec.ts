@@ -79,6 +79,18 @@ async function readJob(api: APIRequestContext, session: Session, id: string) {
   return rows[0];
 }
 
+
+/** My Posts / My Jobs status tabs: a group of buttons behind a disclosure on phones. */
+async function openStatusTab(page: Page, name: "Needs You" | "Scheduled" | "Waiting" | "Done" | "Cancelled") {
+  const group = page.getByRole("group", { name: "Filter by status" });
+  const show = page.getByRole("button", { name: /^Show status filters$|^Filter by status$/ });
+  await expect(group.or(show).first(), "the status filter never rendered").toBeVisible({ timeout: 30_000 });
+  if (!(await group.isVisible())) await show.first().click();
+  await expect(group).toBeVisible();
+  await group.getByRole("button", { name: new RegExp(`^${name}\\b`) }).click();
+  await expect(group.getByRole("button", { name: new RegExp(`^${name}\\b`) })).toHaveAttribute("aria-pressed", "true");
+}
+
 function title(journey: string, outcome: "smooth" | "revision" | "disputed", persona: "poster-only" | "helper-only" | "both" = "both") {
   return scenarioTitle({ journey, persona, state: "approved", rotation, jobType: "set-price", outcome });
 }
@@ -225,8 +237,7 @@ test.describe.serial("marketplace chain", () => {
       await page.goto("/my-posts");
       // A just-posted, funded, unapplied job is in the "Waiting" bucket; My Posts
       // opens on "Needs You" (activityConstants.defaultStatusFilterFor).
-      await page.getByRole("button", { name: "Filter by status" }).click();
-      await page.getByRole("tab", { name: /^Waiting/ }).or(page.getByRole("button", { name: /^Waiting/ })).or(page.getByRole("radio", { name: /^Waiting/ })).first().click();
+      await openStatusTab(page, "Waiting");
       await expect(page.getByText(TITLE).first(), "the new job is missing from My Posts > Waiting").toBeVisible({ timeout: 60_000 });
       await assertHealthy(page, "my posts");
       await journey.milestone(page, "my-posts");
@@ -247,6 +258,208 @@ test.describe.serial("marketplace chain", () => {
       await expect(hp.getByRole("button", { name: new RegExp(`View .*${RUN}`) }), "the helper cannot find the funded job in Browse").toBeVisible({ timeout: 60_000 });
       await assertHealthy(hp, "helper browse finds job");
       await journey.milestone(hp, "helper-browse-finds-job");
+    });
+  });
+
+  const j3 = title("apply", "smooth");
+  test(j3, async ({ request, journey }) => {
+    test.skip(filteredOut(j3), "SCENARIO pins another scenario");
+    test.skip(!S.jobId, "J2 did not create a job");
+    test.skip(!S.funded, "unfunded jobs cannot be found or applied to (Stripe not in test mode); announced in J2");
+    const hp = journey.track("helper", S.helperPage);
+    const pp = journey.track("poster", S.posterPage);
+    const NOTE = `Journey note ${RUN}: I can do this one.`;
+
+    await test.step("helper opens the job and applies with a note", async () => {
+      await hp.goto("/dashboard");
+      await hp.getByRole("button", { name: "Search jobs" }).first().click();
+      await hp.getByRole("searchbox", { name: "Search jobs" }).fill(RUN);
+      await hp.getByRole("button", { name: new RegExp(`View .*${RUN}`) }).click();
+      const dialog = hp.getByRole("dialog").first();
+      await expect(dialog.getByRole("button", { name: "Apply Now" })).toBeVisible({ timeout: 30_000 });
+      await dialog.getByRole("textbox").first().fill(NOTE);
+      await journey.milestone(hp, "apply-dialog-filled");
+      await dialog.getByRole("button", { name: "Apply Now" }).click();
+      await expect
+        .poll(
+          async () => {
+            const r = await request.get(
+              `${SUPABASE_URL}/rest/v1/applications?job_id=eq.${S.jobId}&helper_id=eq.${S.helper.user.id}&select=id,status,message`,
+              { headers: rest(S.helper) },
+            );
+            return ((await r.json()) as Array<{ status: string; message: string }>)[0]?.status ?? "none";
+          },
+          { timeout: 30_000, message: "the application row never appeared" },
+        )
+        .toBe("pending");
+      await expect(hp.getByText(/applied|application sent|you're in/i).first(), "no visible confirmation after applying").toBeVisible({ timeout: 30_000 });
+      await assertHealthy(hp, "after apply");
+      await journey.milestone(hp, "applied");
+    });
+
+    await test.step("helper sees the application in My Jobs", async () => {
+      await hp.goto("/my-jobs");
+      await openStatusTab(hp, "Waiting");
+      await expect(hp.getByText(TITLE).first(), "the applied job is missing from the helper's My Jobs").toBeVisible({ timeout: 30_000 });
+      await assertHealthy(hp, "helper my jobs");
+      await journey.milestone(hp, "helper-my-jobs-applied");
+    });
+
+    await test.step("poster gets a notification for the application", async () => {
+      await pp.goto("/dashboard");
+      await pp.getByRole("button", { name: "Notifications" }).first().click();
+      await expect(pp.getByText(new RegExp(`(applied|application).*${RUN}|${RUN}.*(applied|application)`, "i")).first(), "no notification about the application").toBeVisible({ timeout: 60_000 });
+      await assertHealthy(pp, "notifications");
+      await journey.milestone(pp, "poster-notification");
+      await pp.keyboard.press("Escape");
+    });
+
+    await test.step("poster sees the applicant with the note", async () => {
+      await pp.goto("/my-posts");
+      await openStatusTab(pp, "Needs You");
+      await expect(pp.getByText(TITLE).first(), "the job with an applicant is not in My Posts > Needs You").toBeVisible({ timeout: 60_000 });
+      await pp.getByText(TITLE).first().click();
+      await pp.getByRole("button", { name: "Applicants (1)" }).first().click();
+      const panel = pp.getByRole("region", { name: new RegExp(`Applicants for`) }).or(pp.getByRole("dialog")).first();
+      await expect(panel.getByRole("button", { name: /^Select / }).first(), "no Hire button for the applicant").toBeVisible({ timeout: 30_000 });
+      await expect(panel.getByText(NOTE).first(), "the applicant's note is not shown to the poster").toBeVisible();
+      await assertHealthy(pp, "applicants panel");
+      await journey.milestone(pp, "applicants-panel");
+    });
+  });
+
+  const j4 = title("hire-and-message", "smooth");
+  test(j4, async ({ request, journey }) => {
+    test.skip(filteredOut(j4), "SCENARIO pins another scenario");
+    test.skip(!S.jobId || !S.funded, "needs J2's funded job and J3's application");
+    const hp = journey.track("helper", S.helperPage);
+    const pp = journey.track("poster", S.posterPage);
+
+    await test.step("poster hires the applicant", async () => {
+      const panel = pp.getByRole("region", { name: /Applicants for/ }).or(pp.getByRole("dialog")).first();
+      if (!(await panel.getByRole("button", { name: /^Select / }).first().isVisible().catch(() => false))) {
+        await pp.goto("/my-posts");
+        await openStatusTab(pp, "Needs You");
+        await pp.getByText(TITLE).first().click();
+        await pp.getByRole("button", { name: "Applicants (1)" }).first().click();
+      }
+      await panel.getByRole("button", { name: /^Select / }).first().click();
+      // Hiring is an OFFER with a response deadline; the helper then accepts.
+      await expect(pp.getByRole("heading", { name: "Set a Response Deadline" })).toBeVisible({ timeout: 20_000 });
+      await pp.getByPlaceholder(/Say something to/).fill(`Offer for ${RUN}: see you Tuesday.`);
+      await journey.milestone(pp, "offer-sheet");
+      await pp.getByRole("button", { name: "Send Offer" }).click();
+      await expect(pp.getByRole("heading", { name: "Set a Response Deadline" })).toBeHidden({ timeout: 20_000 });
+      await assertHealthy(pp, "offer sent");
+      await journey.milestone(pp, "offer-sent");
+    });
+
+    await test.step("helper accepts the offer", async () => {
+      await hp.goto("/my-jobs");
+      await openStatusTab(hp, "Needs You");
+      await expect(hp.getByText(TITLE).first(), "the offer is not in the helper's Needs You").toBeVisible({ timeout: 60_000 });
+      await hp.getByText(TITLE).first().click();
+      await journey.milestone(hp, "helper-sees-offer");
+      await hp.getByRole("button", { name: /^Accept/ }).first().click();
+      const confirm = hp.getByRole("alertdialog").or(hp.getByRole("dialog")).getByRole("button", { name: /accept|confirm|yes/i }).last();
+      if (await confirm.isVisible({ timeout: 5_000 }).catch(() => false)) await confirm.click();
+      await expect
+        .poll(async () => (await readJob(request, S.poster, S.jobId!)).helper_id, { timeout: 30_000, message: "hire never set helper_id" })
+        .toBe(S.helper.user.id);
+      await assertHealthy(hp, "after accepting");
+      await journey.milestone(hp, "offer-accepted");
+    });
+
+    await test.step("the job shows as funded and hired on both sides", async () => {
+      const job = await readJob(request, S.poster, S.jobId!);
+      expect(job.payment_status).toBe("escrow");
+      await pp.goto("/my-posts");
+      await openStatusTab(pp, "Scheduled");
+      await expect(pp.getByText(TITLE).first(), "the hired job is not in the poster's Scheduled tab").toBeVisible({ timeout: 30_000 });
+      await pp.getByText(TITLE).first().click();
+      const posterMoney = await pp.getByText(/held|funded|secured|escrow|protected|paid/i).filter({ visible: true }).count();
+      test.info().annotations.push({ type: "funded-indicator", description: `poster Scheduled card money copy matches: ${posterMoney}` });
+      await journey.milestone(pp, "poster-scheduled-funded");
+      await hp.goto("/my-jobs");
+      await openStatusTab(hp, "Scheduled");
+      await expect(hp.getByText(TITLE).first(), "the hired job is not in the helper's Scheduled tab").toBeVisible({ timeout: 30_000 });
+      await hp.getByText(TITLE).first().click();
+      const helperMoney = await hp.getByText(/held|funded|secured|escrow|protected|guaranteed/i).filter({ visible: true }).count();
+      test.info().annotations.push({ type: "funded-indicator", description: `helper Scheduled card money copy matches: ${helperMoney}` });
+      await assertHealthy(hp, "helper scheduled");
+      await journey.milestone(hp, "helper-scheduled-funded");
+    });
+
+    await test.step("poster messages the helper with an attachment", async () => {
+      await pp.goto("/my-posts");
+      await openStatusTab(pp, "Scheduled");
+      await pp.getByText(TITLE).first().click();
+      await pp.getByRole("button", { name: "Message Helpr" }).first().click();
+      await expect(pp).toHaveURL(/\/messages/, { timeout: 30_000 });
+      const box = pp.getByRole("textbox", { name: "Type a message" });
+      await expect(box).toBeVisible({ timeout: 30_000 });
+      await pp.locator("input[type=file]").first().setInputFiles(join(S.fileDir, "attachment.png"));
+      await expect(pp.getByRole("button", { name: "Remove attachment" })).toBeVisible({ timeout: 20_000 });
+      await box.fill(`Poster hello ${RUN}`);
+      await box.press("Enter");
+      await expect(pp.getByText(`Poster hello ${RUN}`).first()).toBeVisible({ timeout: 30_000 });
+      await expect(pp.locator("img[src*='message-attachments'], img[alt*='attachment' i]").first(), "the attachment did not render in the thread").toBeVisible({ timeout: 30_000 });
+      await assertHealthy(pp, "poster thread");
+      await journey.milestone(pp, "poster-message-attachment");
+    });
+
+    await test.step("helper receives it, replies, and reacts", async () => {
+      await hp.goto("/messages");
+      await hp.getByText(new RegExp(`Poster hello ${RUN}|${RUN}`)).first().click();
+      await expect(hp.getByText(`Poster hello ${RUN}`).first()).toBeVisible({ timeout: 30_000 });
+      const box = hp.getByRole("textbox", { name: "Type a message" });
+      await box.fill(`Helper reply ${RUN}`);
+      await box.press("Enter");
+      await expect(hp.getByText(`Helper reply ${RUN}`).first()).toBeVisible({ timeout: 30_000 });
+      const bubble = hp.locator("[data-msg-id]").filter({ hasText: `Poster hello ${RUN}` }).first().locator(":scope > div").first();
+      // Long-press opens the message action sheet (useLongPress).
+      const bb = (await bubble.boundingBox())!;
+      await hp.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+      await hp.mouse.down();
+      await hp.waitForTimeout(900);
+      await journey.milestone(hp, "message-long-press-held");
+      await hp.mouse.up();
+      await journey.milestone(hp, "message-action-sheet");
+      await hp.getByRole("button", { name: /^React with / }).first().click();
+      await expect(hp.getByRole("button", { name: /^Remove your .* reaction/ }).first(), "the reaction did not stick on the message").toBeVisible({ timeout: 20_000 });
+      await assertHealthy(hp, "helper thread");
+      await journey.milestone(hp, "helper-reply-react");
+    });
+
+    await test.step("poster sees the reply and the reaction", async () => {
+      await expect(pp.getByText(`Helper reply ${RUN}`).first(), "the helper's reply never reached the poster").toBeVisible({ timeout: 60_000 });
+      await expect(pp.getByRole("button", { name: /^React with |reaction/ }).first(), "the helper's reaction is not shown to the poster").toBeVisible({ timeout: 60_000 });
+      await journey.milestone(pp, "poster-sees-reply");
+    });
+
+    await test.step("poster pins the conversation (swipe right)", async () => {
+      await pp.goto("/messages");
+      const title = pp.getByText(TITLE).first();
+      await expect(title, "the job conversation is missing from the poster's inbox").toBeVisible({ timeout: 30_000 });
+      // The swipeable row: innermost element holding both the job title and its Pin/Unpin trail.
+      const row = pp.locator("div").filter({ has: title }).filter({ has: pp.getByText(/^(Pin|Unpin)$/) }).last();
+      await expect(row.getByText("Pin", { exact: true }), "the conversation started out pinned").toHaveCount(1);
+      const box = (await title.boundingBox())!;
+      await pp.mouse.move(box.x + 10, box.y + box.height / 2);
+      await pp.mouse.down();
+      await pp.mouse.move(box.x + 180, box.y + box.height / 2, { steps: 15 });
+      await pp.mouse.up();
+      await expect(row.getByText("Unpin", { exact: true }), "a right swipe past the threshold did not pin the conversation").toHaveCount(1, { timeout: 10_000 });
+      await expect(pp.getByRole("heading", { name: /Hide This Conversation/ }), "the pin swipe opened the archive dialog").toHaveCount(0);
+      await assertHealthy(pp, "inbox after pin");
+      await journey.milestone(pp, "pinned");
+      // Pins are per-device (src/lib/pinnedConversations); swipe back so the shared account is left as found.
+      const b2 = (await title.boundingBox())!;
+      await pp.mouse.move(b2.x + 10, b2.y + b2.height / 2);
+      await pp.mouse.down();
+      await pp.mouse.move(b2.x + 180, b2.y + b2.height / 2, { steps: 15 });
+      await pp.mouse.up();
+      await expect(row.getByText("Pin", { exact: true })).toHaveCount(1, { timeout: 10_000 });
     });
   });
 });

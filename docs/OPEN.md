@@ -1724,6 +1724,13 @@ until the browser has been used to LOOK at it. Agents run one at a time.
       users. Cause: `fitBounds`/`setView` animate, and the zoom-end timer reads a pane that unmounted.
       Fix in the commit adding this line: `animate: false` on both. Closes when the J3 journey runs green on
       the deployed bundle and `error_logs` shows no new `_leaflet_pos` row.
+- [ ] **A hired, funded job never says the money is held, on either side's card** (journeys lane,
+      2026-09-12, 390px, looked at). After Stripe funds the job (`payment_status = escrow`) and the helper
+      accepts, the poster's expanded Scheduled card shows the tracker, photos and "Confirmation opens in 1d
+      2h"; the helper's shows the tracker and the confirm deadline. Neither mentions that $25 is held for the
+      job. The only place it is said is the one-time "Payment authorized" page. Product call: whether the
+      Scheduled cards should carry a "Payment held" line (the disputed card already shows "Payment on hold").
+      J4 records the count as a `funded-indicator` annotation rather than failing on copy that does not exist.
 
 ## Working forwards — owner, 2026-09-12: "all 6 need to happen"
 

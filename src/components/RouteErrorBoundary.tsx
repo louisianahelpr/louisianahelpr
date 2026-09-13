@@ -84,14 +84,14 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
       // which is what the owner was seeing and reasonably read as the site
       // 404ing ("log in also loads 404 error then refreshes to log in").
       // Render a quiet updating state instead. When recovery is NOT started
-      // (offline, or the 10s re-entry guard), the real card still shows with
+      // (offline, backoff pending, or the attempt cap reached), the real card still shows with
       // its Reload button, because then the user does have to act.
       if (recoverFromChunkError()) {
         this.setState({ recovering: true });
         return;
       }
-      // The automatic reload did NOT start — either it already ran in the last
-      // 10s and the chunk still would not load, or the device is offline. That
+      // The automatic reload did NOT start — either its attempts are spent or waiting
+      // on backoff and the chunk still would not load, or the device is offline. That
       // is a genuine failure, not a stale deploy, so it is reported like any
       // other and falls through to the honest error card below. It used to be
       // skipped here AND labelled "Update ready. A newer version of the app was

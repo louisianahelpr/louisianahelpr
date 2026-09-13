@@ -75,8 +75,8 @@ window.addEventListener("vite:preloadError", (event) => {
   // TypeError — which is NOT the "Failed to fetch dynamically imported
   // module" string isChunkLoadError() matches (lib/chunkReload.ts:15-32).
   //
-  // So whenever recovery declines — the 10s one-shot guard
-  // (chunkReload.ts:102) or being offline (chunkReload.ts:95) — three things
+  // So whenever recovery declines — the bounded retry guard
+  // (recoverFromChunkError) or being offline — three things
   // went wrong at once: a routine stale deploy showed the generic
   // "This page hit a problem" card instead of the chunk-aware "Update ready"
   // copy; "Try Again" re-rendered the same dead module reference and threw

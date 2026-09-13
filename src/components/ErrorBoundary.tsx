@@ -51,7 +51,7 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // A stale chunk gets ONE automatic cache-busting reload (10s guard). Only
+    // A stale chunk gets at most two automatic cache-busting reloads (bounded, see chunkReload). Only
     // when that reload actually starts is the error skipped as deploy noise.
     // If it does not start — it already ran and the chunk still failed, or the
     // device is offline — this is a real failure and is reported like any

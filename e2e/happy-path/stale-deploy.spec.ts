@@ -22,10 +22,11 @@
  *           inline boot watchdog can act; before it existed the boot mark
  *           spun forever.
  *
- * For each, with the one-shot reload guard (`helpr_chunk_reload_at`, see
+ * For each, with the bounded reload guard (`helpr_chunk_reload_at`, see
  * src/lib/chunkReload.ts) ARMED the boundary must show the honest card and a
  * Try Again button; NOT armed, exactly one reload must happen and then the
- * honest card (no loop). Never blank, never "Update ready"/"newer version".
+ * honest card (a second, backoff-delayed attempt fires only after 30s, past
+ * this spec's wait; capped at 2, see chunkReload.test.ts). Never blank, never "Update ready"/"newer version".
  * And Try Again, once the chunk is reachable again, must actually recover.
  */
 import type { Page, BrowserContext, Route } from "@playwright/test";

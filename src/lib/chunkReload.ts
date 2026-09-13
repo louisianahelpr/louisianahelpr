@@ -31,7 +31,97 @@ export const isChunkLoadError = (err: unknown): boolean => {
   );
 };
 
+/** Timestamp (ms) of the most recent automatic reload attempt. */
 const RELOAD_FLAG = "helpr_chunk_reload_at";
+/** Automatic reload attempts spent on the current failure episode. */
+const RELOAD_COUNT = "helpr_chunk_reload_count";
+
+/**
+ * Hard cap on automatic reloads per failure episode. The first reload can
+ * itself land on the OLD build (edge still propagating mid-deploy), so one
+ * attempt was not enough; two rides out a propagation window and cannot loop.
+ */
+export const CHUNK_RELOAD_MAX_ATTEMPTS = 2;
+/** Minimum gap between attempt 1 and attempt 2, long enough for a deploy to settle. */
+export const CHUNK_RELOAD_BACKOFF_MS = 30_000;
+/**
+ * An attempt older than this belongs to a previous episode (a later deploy),
+ * so the counter starts over. Also the minimum age before a successful chunk
+ * load may clear the counter: clearing it at once would let "entry loads,
+ * route chunk still 404s" reload forever.
+ */
+export const CHUNK_RELOAD_EPISODE_MS = 5 * 60_000;
+
+const isOffline = () => typeof navigator !== "undefined" && navigator.onLine === false;
+
+const readState = (): { count: number; last: number } => {
+  let count = 0;
+  let last = 0;
+  try {
+    last = Number(sessionStorage.getItem(RELOAD_FLAG) || "0") || 0;
+    const rawCount = sessionStorage.getItem(RELOAD_COUNT);
+    count = Number(rawCount || "0") || 0;
+    // A timestamp with no counter (a tab from the previous build, or a test
+    // arming the guard the old way) means one attempt is already spent.
+    if (last > 0 && rawCount === null) count = Math.max(count, 1);
+  } catch {
+    /* sessionStorage unavailable (private mode / SSR) — treat as fresh */
+  }
+  if (last > 0 && Date.now() - last > CHUNK_RELOAD_EPISODE_MS) return { count: 0, last: 0 };
+  return { count, last };
+};
+
+/**
+ * Persist an attempt. Returns false when the counter did not stick: without
+ * storage there is no cap across reloads, so no attempt beyond the first may
+ * proceed (fail closed, never loop).
+ */
+const writeAttempt = (count: number): boolean => {
+  try {
+    sessionStorage.setItem(RELOAD_FLAG, String(Date.now()));
+    sessionStorage.setItem(RELOAD_COUNT, String(count));
+    return sessionStorage.getItem(RELOAD_COUNT) === String(count);
+  } catch {
+    // Storage blocked (private mode / WKWebView): caller treats false as "no cap persisted" and fails closed.
+    return false;
+  }
+};
+
+/** True when the current URL carries a `_v` cache-buster set within the episode window. */
+const landedFromRecentRecoveryReload = (): boolean => {
+  try {
+    const v = Number(new URL(window.location.href).searchParams.get("_v") || "0") || 0;
+    return v > 0 && Date.now() - v <= CHUNK_RELOAD_EPISODE_MS;
+  } catch {
+    // Unparseable URL: cannot tell whether this page is a recovery reload, so fail closed.
+    return true;
+  }
+};
+
+let pendingRetry:ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Call when a lazy chunk loaded successfully. Clears the attempt counter, but
+ * only once the last attempt is a whole episode old, so a page whose entry
+ * loads while its route chunk still 404s keeps its spent attempts.
+ */
+export const markChunkLoadSucceeded = (): void => {
+  try {
+    const rawLast = sessionStorage.getItem(RELOAD_FLAG);
+    if (rawLast === null && sessionStorage.getItem(RELOAD_COUNT) === null) return;
+    if (Date.now() - (Number(rawLast || "0") || 0) < CHUNK_RELOAD_EPISODE_MS) return;
+    sessionStorage.removeItem(RELOAD_FLAG);
+    sessionStorage.removeItem(RELOAD_COUNT);
+  } catch {
+    // Storage blocked: there is no counter to clear, so silence is correct.
+  }
+};
+
+/** Test-only: drop any scheduled retry. */
+export const __resetChunkReloadForTests = (): void => {
+  if (pendingRetry) clearTimeout(pendingRetry);
+  pendingRetry = null;
+};
 
 /**
  * Force-reload that purges any cached service-worker / Cache Storage entry
@@ -82,9 +172,16 @@ export const hardReloadBypassCache = async () => {
 };
 
 /**
- * Recover from a stale-chunk error: hard-reload at most once per 10s window
- * (session-scoped) so we never loop. Returns true if a reload was kicked
- * off, false if the guard suppressed it (already reloaded recently).
+ * Recover from a stale-chunk error with a bounded retry:
+ *   attempt 1: immediately;
+ *   attempt 2: no sooner than CHUNK_RELOAD_BACKOFF_MS after attempt 1, because
+ *              the first reload can land on the old build mid-deploy;
+ *   then none. The cap is a sessionStorage counter, so it holds across the
+ *   reloads themselves and can never loop.
+ *
+ * Returns true only when a reload is starting NOW (the caller may show a quiet
+ * "updating" state). While attempt 2 waits on its backoff it returns false, so
+ * the caller shows its honest error card, and the retry fires on a timer.
  */
 export const recoverFromChunkError = (): boolean => {
   // Same offline guard as hardReloadBypassCache, checked here too so callers
@@ -92,19 +189,43 @@ export const recoverFromChunkError = (): boolean => {
   // rather than a true that promises a recovery which will never arrive.
   // A chunk that failed because the device is offline is not stale, and no
   // amount of reloading will fetch it.
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
-  let last = 0;
-  try {
-    last = Number(sessionStorage.getItem(RELOAD_FLAG) || "0");
-  } catch {
-    /* sessionStorage unavailable (private mode / SSR) — fall through */
+  if (isOffline()) return false;
+  const { count, last } = readState();
+  if (count >= CHUNK_RELOAD_MAX_ATTEMPTS) {
+    // Still failing after the cap: keep the episode alive, so a page that
+    // errors steadily never ages out into a fresh pair of reloads.
+    try {
+      sessionStorage.setItem(RELOAD_FLAG, String(Date.now()));
+    } catch {
+      /* no storage: nothing to extend, and nothing reloads either */
+    }
+    return false;
   }
-  if (Date.now() - last <= 10_000) return false;
-  try {
-    sessionStorage.setItem(RELOAD_FLAG, String(Date.now()));
-  } catch {
-    /* ignore — still attempt the reload */
+
+  const wait = count === 0 ? 0 : CHUNK_RELOAD_BACKOFF_MS - (Date.now() - last);
+  if (wait <= 0) {
+    // Without working storage the counter reads 0 on every load, so the only
+    // marker that survives the reload is our own `_v` cache-buster. Attempt 1
+    // proceeds only if this page is not itself a recent recovery reload; any
+    // later attempt requires the counter to have persisted.
+    if (!writeAttempt(count + 1)) {
+      if (count > 0 || landedFromRecentRecoveryReload()) return false;
+    }
+    void hardReloadBypassCache();
+    return true;
   }
-  void hardReloadBypassCache();
-  return true;
+
+  if (!pendingRetry) {
+    pendingRetry = setTimeout(() => {
+      pendingRetry = null;
+      // Re-check everything at fire time: the device may have gone offline,
+      // or another tab/boundary may have spent the attempt meanwhile.
+      if (isOffline()) return;
+      const current = readState();
+      if (current.count >= CHUNK_RELOAD_MAX_ATTEMPTS) return;
+      if (!writeAttempt(current.count + 1)) return;
+      void hardReloadBypassCache();
+    }, wait);
+  }
+  return false;
 };

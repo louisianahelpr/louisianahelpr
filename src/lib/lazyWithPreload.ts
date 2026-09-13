@@ -1,4 +1,5 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
+import { markChunkLoadSucceeded } from "./chunkReload";
 
  
 
@@ -44,7 +45,12 @@ export function lazyWithPreload<T extends ComponentType<any>>(
 ): PreloadableComponent<T> {
   let started: Promise<{ default: T }> | null = null;
   const load = () => {
-    if (!started) started = factory();
+    if (!started) {
+      started = factory().then((mod) => {
+        markChunkLoadSucceeded();
+        return mod;
+      });
+    }
     return started;
   };
   const Component = lazy(load) as PreloadableComponent<T>;

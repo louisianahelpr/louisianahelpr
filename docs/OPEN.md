@@ -1900,3 +1900,9 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] **AtAGlance stat tiles differ in height on /user/:id at phone width** ("4.5 5 reviews" 58px vs "5 Jobs completed" 70.3px), content wrap. Caught by the pre-push changed-screen sweep; pre-existing.
 - [ ] **git stash is shared across every worktree** and lint-staged writes to it constantly; a stash/pop in one worktree popped another lane's WIP (recovered via fsck). Rule for all sessions: use a WIP commit, never git stash.
 - [x] Fixed: DOB listbox focus ring, focus kept on thread open, notification switches keep focus (nested component remount, also SignupStep1/ResetPassword), Complete Profile + Signup step 2 trailing-icon clipping, PhotoUpload and AtAGlance focus rings defeated by inline styles. Guards: focusableHasVisibleFocus, noNestedComponentDefinitions, keyboard-focus and trailing-icon-fields journeys.
+
+## Routine consolidation (2026-09-12)
+- [ ] OWNER: delete the 9 disabled cloud routines at claude.ai/code/routines (the API cannot delete): repo optimization, Playwright E2E, UI sweep triage, Accessibility, Full-app UX auto-fix, Main-is-broken watcher, PR triage, Daily digest email, and 1 more disabled on 2026-09-12. None will run again while disabled.
+- Deleted local tasks: lh-ledger-integrity, lh-prod-error-triage, lh-security-authz-drift.
+- Kept (non-visual, merge only on green, silent when clean): Stripe webhook, Supabase advisor, Sentry, Edge Functions, iOS config drift, Bundle size, Docs drift, Weekly health. The 7:30 morning report now reads each one's latest run and reports only findings, merges and failures.
+- Closed stale PRs: 1563, 1559, 1552, 1578, 1581 (vitest 5 migration, Sentry off the critical path, data-display polish to redo). Dependabot asked to rebase 1579/1580.

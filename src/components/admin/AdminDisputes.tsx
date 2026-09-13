@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
@@ -37,6 +37,10 @@ const AdminDisputes = () => {
   const [tiers, setTiers] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [resolving, setResolving] = useState<string | null>(null);
+  // `resolving` is state and is only set AFTER the biometric await (a no-op on
+  // web), so two same-frame taps both reached create-payment. The ref is set
+  // before that await.
+  const resolveInFlight = useRef(false);
   const [confirm, setConfirm] = useState<{ job: DisputedJob; action: "release" | "refund" } | null>(null);
 
   // Filter tab — Open is the working queue; Decided is an audit log.
@@ -279,9 +283,16 @@ const AdminDisputes = () => {
     // Stripe in one tap, with no undo. No-op on web. On device it prompts whenever
     // the device can authenticate its owner at all — falling back to the passcode
     // when biometry is unavailable or locked out (see requireBiometric).
-    const ok = await requireBiometric(
-      action === "release" ? "Confirm releasing this escrow" : "Confirm refunding this escrow",
-    );
+    if (resolveInFlight.current) return;
+    resolveInFlight.current = true;
+    let ok = false;
+    try {
+      ok = await requireBiometric(
+        action === "release" ? "Confirm releasing this escrow" : "Confirm refunding this escrow",
+      );
+    } finally {
+      if (!ok) resolveInFlight.current = false;
+    }
     if (!ok) return;
     setResolving(job.id);
     try {
@@ -304,6 +315,7 @@ const AdminDisputes = () => {
     } catch (err: any) {
       toast.error(userFacingError(err, "Couldn't resolve that dispute — try again"));
     } finally {
+      resolveInFlight.current = false;
       setResolving(null);
     }
   };

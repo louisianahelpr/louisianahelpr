@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import type { AwardBlockReason } from "@/lib/awardGate";
@@ -102,6 +102,11 @@ export function useActivityActions({
   const [respondingHelperAppId, setRespondingHelperAppId] = useState<string | null>(null);
   const [confirmingArrivalJobId, setConfirmingArrivalJobId] = useState<string | null>(null);
   const [confirmingWorkingJobId, setConfirmingWorkingJobId] = useState<string | null>(null);
+  // Synchronous twins of the state flags above for the two money handlers:
+  // state doesn't update between two taps in the same frame, a ref does.
+  // They live here because create*Handlers are re-created every render.
+  const respondingInFlight = useRef(false);
+  const completeInFlight = useRef(false);
 
   // W-9 e-sign — surfaces when the accepted job has `requires_w9 = true`
   // (set by business posters at post time). We open the dialog after the
@@ -138,6 +143,7 @@ export function useActivityActions({
     setW9Context,
     setW9DialogOpen,
     setRespondingHelperAppId,
+    respondingInFlight,
   });
 
   const {
@@ -167,6 +173,7 @@ export function useActivityActions({
     setReviewJob,
     setConfirmingArrivalJobId,
     setConfirmingWorkingJobId,
+    completeInFlight,
   });
 
   return {

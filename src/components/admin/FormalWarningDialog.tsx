@@ -6,7 +6,7 @@
 // trail without escalating to the next tier — useful when they've
 // spoken to the user and decided it's a genuine one-time mistake.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -43,6 +43,8 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
   const [note, setNote] = useState("");
   const [bypass, setBypass] = useState(false);
   const [busy, setBusy] = useState(false);
+  // `busy` is state: two clicks in one frame both read false. The ref sees the first.
+  const inFlight = useRef(false);
 
   const handleClose = () => {
     if (busy) return;
@@ -54,6 +56,8 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
 
   const submit = async () => {
     if (!profile || !note.trim()) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     try {
       const { error } = await supabase.functions.invoke("admin-user-actions", {
@@ -74,6 +78,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
     } catch (err) {
       toast.error((err as Error).message || "Action failed");
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };

@@ -28,7 +28,7 @@
 // keeps their account, their jobs and their messages, and only loses the
 // ability to take on new work for a fixed window.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
@@ -74,6 +74,8 @@ export function RestrictApplicationsDialog({
   const [days, setDays] = useState("7");
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
+  // `saving` is state: two clicks in one frame both read false. The ref sees the first.
+  const inFlight = useRef(false);
 
   const handleClose = () => {
     if (saving) return;
@@ -91,6 +93,8 @@ export function RestrictApplicationsDialog({
       toast.error("Add a reason — it is the only record of why this was applied.");
       return;
     }
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSaving(true);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + parseInt(days, 10));
@@ -98,6 +102,7 @@ export function RestrictApplicationsDialog({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        inFlight.current = false;
         setSaving(false);
         return;
       }
@@ -141,6 +146,7 @@ export function RestrictApplicationsDialog({
     } catch (err) {
       toast.error(mutationErrorMessage(err, "Couldn't apply that restriction — try again"));
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   };

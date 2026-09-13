@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -150,6 +150,10 @@ export function PostedJobActions({
   // Guards the Resolve & Pay / Escalate to Admin buttons while their
   // supabase UPDATE is in-flight — prevents double-tap submission.
   const [disputeActing, setDisputeActing] = useState(false);
+  // `disputeActing` is state: two taps in one frame both read false and both
+  // sent create-payment release (the server does not refuse a concurrent
+  // duplicate). The ref sees the first.
+  const disputeInFlight = useRef(false);
   // Resolving a dispute RELEASES THE FULL ESCROW. It was a single tap on a
   // chip whose label ("Mark Resolved") and spoken name ("Mark this dispute
   // resolved") both said "close a ticket" and neither said "move money" —
@@ -220,6 +224,7 @@ export function PostedJobActions({
       confirmConsequential("Escalated — an admin will review this and decide.");
       onActionComplete();
     } finally {
+      disputeInFlight.current = false;
       setDisputeActing(false);
     }
   };
@@ -230,6 +235,8 @@ export function PostedJobActions({
   // same code path — the chip now only opens the dialog. Body is otherwise
   // unchanged apart from the success toast it never had.
   const resolveDisputeAndRelease = async () => {
+    if (disputeInFlight.current) return;
+    disputeInFlight.current = true;
     setDisputeActing(true);
     try {
       // Two steps, both server-side: close the dispute record

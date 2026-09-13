@@ -2,7 +2,7 @@
 // Pure confirmation dialog for the "manually verify this user" admin
 // action. Calls admin-user-actions with action='manual_verify'.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -29,6 +29,8 @@ interface ManualVerifyDialogProps {
 
 export function ManualVerifyDialog({ profile, onClose, onSuccess }: ManualVerifyDialogProps) {
   const [busy, setBusy] = useState(false);
+  // `busy` is state: two clicks in one frame both read false. The ref sees the first.
+  const inFlight = useRef(false);
 
   const handleClose = () => {
     if (busy) return;
@@ -37,6 +39,8 @@ export function ManualVerifyDialog({ profile, onClose, onSuccess }: ManualVerify
 
   const submit = async () => {
     if (!profile) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     try {
       const { error } = await supabase.functions.invoke("admin-user-actions", {
@@ -54,6 +58,7 @@ export function ManualVerifyDialog({ profile, onClose, onSuccess }: ManualVerify
     } catch (err) {
       toast.error((err as Error).message || "Action failed");
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };

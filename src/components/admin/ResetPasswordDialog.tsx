@@ -2,7 +2,7 @@
 // Pure confirmation dialog for emailing a one-time password reset link.
 // Calls admin-user-actions with action='reset_password'.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -26,6 +26,8 @@ interface ResetPasswordDialogProps {
 
 export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswordDialogProps) {
   const [busy, setBusy] = useState(false);
+  // `busy` is state: two clicks in one frame both read false. The ref sees the first.
+  const inFlight = useRef(false);
 
   const handleClose = () => {
     if (busy) return;
@@ -34,6 +36,8 @@ export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswo
 
   const submit = async () => {
     if (!profile) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     try {
       const { error } = await supabase.functions.invoke("admin-user-actions", {
@@ -51,6 +55,7 @@ export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswo
     } catch (err) {
       toast.error((err as Error).message || "Action failed");
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };

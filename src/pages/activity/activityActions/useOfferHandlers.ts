@@ -11,6 +11,7 @@ import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { awardBlockFromError, posterAwardBlockMessage, type AwardBlockReason } from "@/lib/awardGate";
 import { postedActivityBucket } from "@/pages/activity/activityFilters";
+import type { MutableRefObject } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type {
   Job,
@@ -48,6 +49,13 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
   setW9Context: (ctx: { jobId: string; businessId: string | null } | null) => void;
   setW9DialogOpen: (open: boolean) => void;
   setRespondingHelperAppId: (id: string | null) => void;
+  /**
+   * Synchronous in-flight guard for handleHelperResponse (accept/decline an
+   * offer). Lives in the calling hook because this factory is re-created every
+   * render; `respondingHelperAppId` is state, so two taps in one frame both
+   * read null.
+   */
+  respondingInFlight: MutableRefObject<boolean>;
 }
 
 export function createOfferHandlers(deps: OfferHandlersDeps) {
@@ -70,6 +78,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     setW9Context,
     setW9DialogOpen,
     setRespondingHelperAppId,
+    respondingInFlight,
   } = deps;
 
   const acceptApplication = async (app: EnrichedApplication) => {
@@ -437,7 +446,10 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
   };
 
   const handleHelperResponse = async (app: Application, accept: boolean) => {
-    if (!user) return;
+    // Same-frame double tap: both calls share one render's closure, so only
+    // the ref sees the first. Cleared in `finally` below.
+    if (!user || respondingInFlight.current) return;
+    respondingInFlight.current = true;
     setRespondingHelperAppId(app.id);
     try {
     if (isSyntheticDirectOffer(app)) {
@@ -721,6 +733,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       refresh();
     }
     } finally {
+      respondingInFlight.current = false;
       setRespondingHelperAppId(null);
     }
   };

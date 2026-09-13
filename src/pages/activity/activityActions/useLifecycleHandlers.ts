@@ -11,6 +11,7 @@ import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/hap
 import { safeStorage } from "@/lib/safeStorage";
 import { fireSuccessMoment } from "@/lib/successMoment";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
+import type { MutableRefObject } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 import type { OptimisticJobCache } from "./types";
@@ -38,6 +39,12 @@ export interface LifecycleHandlersDeps extends OptimisticJobCache {
   setReviewJob: (job: Job | null) => void;
   setConfirmingArrivalJobId: (id: string | null) => void;
   setConfirmingWorkingJobId: (id: string | null) => void;
+  /**
+   * Synchronous in-flight guard for completeJob (release payment). Lives in
+   * the calling hook because this factory is re-created every render;
+   * `completingJobId` is state, so two taps in one frame both read null.
+   */
+  completeInFlight: MutableRefObject<boolean>;
 }
 
 export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
@@ -60,6 +67,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
     setReviewJob,
     setConfirmingArrivalJobId,
     setConfirmingWorkingJobId,
+    completeInFlight,
   } = deps;
 
   const tryCancelJob = async (job: Job) => {
@@ -84,6 +92,10 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
   };
 
   const completeJob = async (jobId: string) => {
+    // Same-frame double tap: both calls share one render's closure, so only
+    // the ref sees the first. Cleared in `finally` below.
+    if (completeInFlight.current) return;
+    completeInFlight.current = true;
     setCompletingJobId(jobId);
     try {
       const isHelper = appliedApps.some(a => a.job_id === jobId && a.helper_id === user?.id);
@@ -227,6 +239,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       hapticError();
       toast.error("We couldn't mark this job complete — please try again.");
     } finally {
+      completeInFlight.current = false;
       setCompletingJobId(null);
     }
   };

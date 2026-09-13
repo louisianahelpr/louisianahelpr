@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -189,6 +189,8 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
   const [reason, setReason] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // `submitting` is state: two taps in one frame both read false. The ref sees the first.
+  const submitInFlight = useRef(false);
   const [caseNumber, setCaseNumber] = useState<string | null>(null);
 
   const uid = useId();
@@ -203,6 +205,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
       setReason("");
       setDescription("");
       setCaseNumber(null);
+      submitInFlight.current = false;
       setSubmitting(false);
     }
   }, [open]);
@@ -219,9 +222,11 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     if (!reason) { hapticError(); toast.error("Pick a reason first."); return; }
     if (trimmedLength < MIN_LENGTH) { hapticError(); toast.error(`Add at least ${MIN_LENGTH} characters of detail.`); return; }
     hapticMedium();
+    if (submitInFlight.current) return;
+    submitInFlight.current = true;
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { toast.error("You must be logged in."); setSubmitting(false); return; }
+    if (!user) { toast.error("You must be logged in."); submitInFlight.current = false; setSubmitting(false); return; }
 
     const { data, error } = await supabase
       .from("reports")
@@ -238,6 +243,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     if (error || !data) {
       hapticError();
       toast.error("We couldn't send your report — please try again.");
+      submitInFlight.current = false;
       setSubmitting(false);
       return;
     }
@@ -245,6 +251,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     const shortId = String(data.id).replace(/-/g, "").slice(0, 8).toUpperCase();
     setCaseNumber(`HLP-${shortId}`);
     setStep("confirmation");
+    submitInFlight.current = false;
     setSubmitting(false);
   };
 

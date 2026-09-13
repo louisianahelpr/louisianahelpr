@@ -350,7 +350,7 @@ const Legal = () => {
                 }}
               />
             )}
-            <Icon className="relative w-3.5 h-3.5 shrink-0" strokeWidth={2.25} />
+            <Icon className={`relative w-3.5 h-3.5 shrink-0 ${searchOpen ? "hidden sm:block" : ""}`} strokeWidth={2.25} />
             <span className="relative">{TAB_LABELS[t]}</span>
           </TabsTrigger>
         );
@@ -371,11 +371,11 @@ const Legal = () => {
     <div
       className={
         searchOpen
-          ? "relative w-full sm:flex-1 sm:min-w-[220px] order-2 sm:order-1"
+          ? "relative flex-1 min-w-0 sm:max-w-[320px]"
           /* `self-center`, not `self-start`. The row is `sm:items-center`, but
              `self-start` overrode it and pinned the magnifier to the top of the
              row, so it sat visibly high against the tab pills beside it. */
-          : "relative self-center shrink-0 order-2 sm:order-1"
+          : "relative self-center shrink-0"
       }
       data-print-hide
     >
@@ -394,34 +394,24 @@ const Legal = () => {
             onKeyDown={(e) => {
               if (e.key === "Escape") closeSearch();
             }}
-            placeholder="Search all policies…"
-            className="w-full h-10 rounded-ds-md pl-9 pr-16 text-ds-13 font-sans bg-card outline-none transition-shadow focus:ring-2 focus:ring-inset"
+            placeholder="Search"
+            className="w-full h-10 rounded-ds-md pl-9 pr-11 text-ds-13 font-sans bg-card"
             style={{
               border: "1px solid hsl(var(--bark) / 0.18)",
               color: "hsl(var(--ink-deep))",
             }}
           />
-          {/* CLEAR — only shown when there is a query to clear. Sits to the
-              left of the always-present close button so the two never
-              overlap. */}
-          {query !== "" && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              aria-label="Clear search"
-              className="absolute right-9 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-          {/* CLOSE — collapses the field back to the icon button and clears
-              the query, same as Escape. */}
+          {/* ONE X: clears the query and collapses the field, same as Escape.
+              There used to be a second, identical X for "clear" beside it once
+              you typed: two X's doing nearly the same thing (owner rule: one
+              control per action). The focus ring is the app's standard
+              :focus-visible outline; a colourless `focus:ring-2` here added a
+              second, Tailwind-default BLUE ring inside it. */}
           <button
             type="button"
             onClick={closeSearch}
             aria-label="Close search"
-            className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
+            className="absolute right-0 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-full btn-press"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             <X className="w-4 h-4" />
@@ -448,44 +438,17 @@ const Legal = () => {
   );
 
   // The one control row, shared verbatim by the native and web branches below
-  // so the two can't drift. Stacked on a phone (tabs above the search, both
-  // full-width), side by side from `sm` up (search flexes on the left, tabs
-  // pinned at their natural width on the right). `order-*` keeps the tabs
-  // first in the stacked layout while leaving them last on the wide one, and
-  // the tabs are NEVER hidden — the old `hidden sm:block` made them vanish on
-  // a phone the instant search opened.
-  // Closed, the row is a three-column grid — [search | tabs | equal spacer] —
-  // so the tabs sit in the TRUE centre of the card instead of packing left
-  // behind the icon and leaving the right half empty. The outer columns are
-  // both `1fr`, so the centre column is centred on the row, not on whatever
-  // space the icon happens to leave. Open, search needs the width, so the row
-  // falls back to the flex layout (search flexes left, tabs keep their natural
-  // size on the right). Below `sm` both states stay stacked, tabs first.
+  // so the two can't drift. ONE layout at every width (owner, 2026-09-12:
+  // "consistency"): tabs first, search at the END of the same row. Opening
+  // search widens the field IN that row beside the tabs; it never drops under
+  // them and never replaces them. It used to be magnifier-right on a phone and
+  // magnifier-left from `sm` up, and opening dropped the field under the tabs
+  // on a phone but beside them on desktop. On a phone the tab icons hide while
+  // the field is open so all three labels still fit on the one line.
   const controlRow = (
-    <div
-      className={
-        searchOpen
-          ? "flex flex-col sm:flex-row sm:items-center gap-2 p-1"
-          // Search LEFT, tabs spread across the rest of the bar. The closed
-          // state used to be a [1fr auto 1fr] grid that pinned the triggers to
-          // the TRUE centre — which is exactly the "all squished together in
-          // the middle" the owner reported: at 1440 the three tabs occupied
-          // x=587..854 with ~500px of dead band on either side. Now the row is
-          // a flex line and the tab group takes the remaining width, so the
-          // three policies are distributed instead of packed.
-          : "flex items-center gap-2 p-1 sm:gap-4"
-      }
-    >
+    <div className="flex items-center gap-2 p-1 sm:gap-4">
+      <div className="flex-1 min-w-0">{tabBar}</div>
       {searchBar}
-      <div
-        className={
-          searchOpen
-            ? "w-full sm:w-auto sm:shrink-0 order-1 sm:order-2"
-            : "flex-1 min-w-0 order-1 sm:order-2"
-        }
-      >
-        {tabBar}
-      </div>
     </div>
   );
 

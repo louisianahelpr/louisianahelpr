@@ -48,6 +48,11 @@ export default {
       },
     },
     extend: {
+      // A bare `ring-*` / `focus:ring-*` with no colour used to fall back to
+      // Tailwind's default blue-500/50, a colour that is not in the brand
+      // (the Legal search showed a blue ring inside the app's olive focus
+      // outline, 2026-09-12). Default it to the app's focus colour.
+      ringColor: { DEFAULT: "hsl(var(--bark) / 0.45)" },
       // `lg` is 900, not Tailwind's default 1024, and it is load-bearing:
       // it must match WEB_DESKTOP_QUERY in useAppShellViewport.ts and
       // useIsWebDesktop.ts. Those hooks stamp `web-desktop` on <html> to

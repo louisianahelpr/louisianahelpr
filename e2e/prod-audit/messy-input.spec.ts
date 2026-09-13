@@ -581,10 +581,10 @@ test.describe("explore dialog-gated forms from real records", () => {
       // press-every-control, not here; this explore wants the screen's own
       // controls, which live in <main> when the page has one.
       const scope = (await page.locator("main").count()) ? page.locator("main") : page.locator("body");
-      const deadline = Date.now() + 6 * 60_000;
+      const deadline = Date.now() + 4 * 60_000;
       for (const top of await pressables(scope)) {
         if (Date.now() > deadline) {
-          info.annotations.push({ type: "note", description: "stopped at the 6-minute explore budget; remaining controls not pressed" });
+          info.annotations.push({ type: "note", description: "stopped at the 4-minute explore budget; remaining controls not pressed" });
           break;
         }
         const beforeTop = await baselineOf(page);

@@ -73,7 +73,12 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # The explore half is ~45 routes, each pressing every control on the screen
+    # and re-loading between presses, at a 4-minute per-route budget. Measured
+    # locally at 2-2.5 minutes a route, so the ceiling is the sum, not one slow
+    # screen — a 120-minute job would have been killed mid-suite and reported as
+    # a failure of the app.
+    timeout-minutes: 300
     env:
       PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
       PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}

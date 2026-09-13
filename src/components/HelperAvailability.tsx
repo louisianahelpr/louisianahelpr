@@ -134,27 +134,6 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Clear the existing weekly slots. The result used to be DISCARDED
-      // entirely — no await destructure, no `error` check, no `.select()`.
-      // That is the worst shape this codebase has: if the delete were refused
-      // (RLS, a stale session) the insert below still ran, so every tap of
-      // Save added another 7 rows. `loadAvailability` does `data.find(...)`,
-      // which returns the first match, so the duplicates were invisible on
-      // THIS screen while `useDashboardData` and `HelperAvailabilityDisplay`
-      // read the same table. `min: 0` because a helper who has never saved
-      // legitimately has nothing to delete — the assertion here is that the
-      // statement was ACCEPTED, not that it matched rows.
-      unwrapMutation(
-        await supabase
-          .from("helper_availability")
-          .delete()
-          .eq("helper_id", userId)
-          .is("specific_date", null)
-          .select("id"),
-        { action: "update your weekly hours", min: 0, context: { helperId: userId } },
-      );
-
-      // Insert new slots
       const inserts: HelperAvailabilityInsert[] = slots.map((s) => ({
         helper_id: userId,
         day_of_week: s.day_of_week,
@@ -164,14 +143,35 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
         specific_date: null,
       }));
 
-      // Guarded for the same reason: an insert silently filtered by RLS
-      // returns `{ data: [], error: null }`, and the old code fired
-      // hapticSuccess() on it. `min: inserts.length` — a partial insert means
-      // the week is now half-written, which the helper must be told about.
-      unwrapMutation(
-        await supabase.from("helper_availability").insert(inserts).select("id"),
-        { action: "save your weekly hours", min: inserts.length, context: { helperId: userId } },
+      // ONE transaction. This used to be a DELETE then a separate INSERT from
+      // here, so leaving the page, losing the network or a refused insert
+      // between the two calls wiped the whole week, and the grid then showed
+      // a default 9-5 that was never saved (journeys audit, 2026-09-12).
+      // save_weekly_availability deletes and inserts atomically under the same
+      // RLS policy. The legacy two-step path below runs ONLY while that
+      // function is not deployed yet (PGRST202), per CLAUDE.md.
+      const { data: savedCount, error: rpcError } = await supabase.rpc(
+        "save_weekly_availability" as never,
+        { p_slots: inserts.map(({ helper_id: _h, specific_date: _d, ...slot }) => slot) } as never,
       );
+      if (rpcError && (rpcError as { code?: string }).code !== "PGRST202") throw rpcError;
+      if (rpcError) {
+        unwrapMutation(
+          await supabase
+            .from("helper_availability")
+            .delete()
+            .eq("helper_id", userId)
+            .is("specific_date", null)
+            .select("id"),
+          { action: "update your weekly hours", min: 0, context: { helperId: userId } },
+        );
+        unwrapMutation(
+          await supabase.from("helper_availability").insert(inserts).select("id"),
+          { action: "save your weekly hours", min: inserts.length, context: { helperId: userId } },
+        );
+      } else if (Number(savedCount) !== inserts.length) {
+        throw new Error("Only part of your week was saved. Please try again.");
+      }
       hapticSuccess();
       // The screen cannot answer "did that work?" on its own: the grid already
       // showed the typed state before the save, so a successful save leaves

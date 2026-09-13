@@ -583,6 +583,15 @@
     "nargs": 0
    }
   ],
+  "enforce_confirm_on_live_job": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "enforce_credential_status_server_owned": [
    {
     "anon": true,
@@ -2133,6 +2142,24 @@
     "nargs": 3
    }
   ],
+  "reject_contact_leak_in_job": [
+   {
+    "anon": true,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "reject_contact_leak_in_profile": [
+   {
+    "anon": true,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "reject_new_group_jobs": [
    {
     "anon": true,
@@ -2357,6 +2384,17 @@
     "anon": false,
     "args": [
      "_job_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "save_weekly_availability": [
+   {
+    "anon": false,
+    "args": [
+     "p_slots"
     ],
     "authenticated": true,
     "nargdefaults": 0,

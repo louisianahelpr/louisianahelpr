@@ -1542,14 +1542,14 @@ Two supporting facts, so this is not a guess:
 Rule for this section (owner): nothing that needs the browser is marked done
 until the browser has been used to LOOK at it. Agents run one at a time.
 
-- [ ] **Button size classes that silently do nothing.** Unlayered
+- [x] **DONE de9d3cd88 — Button size classes that silently do nothing.** Unlayered
       `button { min-height: 44px }` beats Tailwind utilities. Detector:
       `buttonGeometry.ts` requestedNotRendered. Agent 1 (Opus), in browser now.
 - [ ] **Sibling buttons of different heights never compared.** Detector:
       `buttonGeometry.ts` siblingMismatch, plus dialogs via overlay-sweep. Agent 2 (Fable), queued.
-- [ ] **New-tab links never followed.** walk-every-control.mjs + sweep
+- [x] **DONE f5e0e104f (red/green proven) — New-tab links never followed.** walk-every-control.mjs + sweep
       newTabDestinations. Agent 3 (Sonnet), code done, red/green browser proof queued.
-- [ ] **Stale deploy only simulated on one route.** Multi-route chunk-failure
+- [x] **DONE 2263feec8 (34 tests, red with Update ready restored) — Stale deploy only simulated on one route.** Multi-route chunk-failure
       spec. Agent 4 (Opus), queued.
 - [ ] **Visual sweep could report "147 passed" with no server.** Fixed in
       91693fbd8: fails at the start (1 failed, 147 did not run, verified). Still
@@ -1570,3 +1570,14 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [x] **Automatic browser lock + per-worktree test ports.** c3b133e39: `~/.lh-browser.lock` via Playwright globalSetup (second holder waited 10s, then ran); worktrees get a path-derived port, main keeps 4173.
 - [x] **Nightly WebKit + real-backend run.** e83876cc5 `nightly-webkit.yml` runs the whole happy-path suite in real WebKit (helper-apply 2/2 locally; first CI run dispatched). Real backend already nightly in e2e-real-backend.yml.
 
+
+### Found while closing the audit gaps (2026-09-12)
+
+- [ ] **The sweep never rendered /complete-profile.** Seed profile is complete, so it redirected to /dashboard; both owner bugs lived there. New `complete-profile-incomplete` screen. Uncommitted, waiting on the full sweep.
+- [ ] **Profile photo on /complete-profile unreachable by keyboard/screen reader** (hidden file input, aria-label on <label>). Same class in 7 more pickers: dispute evidence x2, completion photos, Edit Profile photo, post-job photos x2, post-job video. All fixed + `fileInputsKeyboardReachable.test.ts`. Uncommitted.
+- [ ] **aria-label on role-less elements, 15 places** (job-card chips, pinned/active dots, earnings projection, checkout redirect overlay, post-job photo labels). Fixed + `noAriaLabelOnGenericElements.test.ts`. Uncommitted.
+- [ ] **Admin KPI tiles ragged in a row; fraud filter select 48px beside a 44px button.** Fixed; detector tightened with fixture cases. Uncommitted.
+- [ ] **Pre-push check blocks on pre-existing sweep failures.** A global-file push runs the whole sweep; it was red on old sibling mismatches, so pushes needed LH_SKIP_CHANGED_CHECK. Closes when the full sweep is green.
+- [ ] **One icon Button held at 44px by its parent's `[&_button]:h-11`** (AdminTopBar bell / menu). Intentional; detector now ignores parent-sized buttons.
+- [ ] **Sweep mock data is thin.** 7 jobs, 8 applications, 6 messages, 2 reviews, 2 notifications; every other table returns [] (earnings, payouts, disputes, pets, home history, work record, saved Helprs, credentials, referrals, admin data) and nothing is long or crowded. Expand seed + add a heavy-content variant. Queued after the current sweep.
+- [ ] **No end-to-end user-journey suite** (owner: "interactive and click through everything as a regular user would"). Only the money loop and two-role lifecycle exist. Build journeys for every flow on the real backend with the test accounts; Stripe steps need sandbox ON. Queued after press-every-control.

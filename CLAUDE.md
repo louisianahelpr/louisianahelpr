@@ -15,6 +15,7 @@ stories go in the lessons file, never here.
 ## How we work — owner standing orders (2026-09-12). Do not make the owner repeat these.
 - **Prevent, don't chase.** Every owner-reported bug ships with a CI check for its whole CLASS, built from the app's own inventory, shown red on the original bug. A fix without its check is not done.
 - **Gaps:** when you notice one, tell the owner what it is, then launch an agent (you pick the model) to close it. No permission needed beyond telling them.
+- **Audits are INTERACTIVE, not visual-only (owner, 2026-09-12).** Click through everything as a regular user would: press every control (`npm run audit:press`) AND run whole user journeys end to end on the real backend with the test accounts (post, apply, message, hire, pay, complete, review, settings, deletion). A screenshot pass alone is never an audit.
 - **Browser work runs one agent at a time.** Nothing that needs the browser is done until someone has LOOKED at screenshots: every failure, plus a sample. Scripts do the exhaustive pressing and measuring; screenshots are not taken of everything.
 - **Completeness is proven, not claimed:** inventory from source, minus what was checked, must be empty, and every check must be shown able to fail.
 - **`docs/OPEN.md` is the only open-work list.** Anything open from a handoff, the audit bus or an agent report gets a line there; nowhere else counts.

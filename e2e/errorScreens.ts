@@ -16,6 +16,7 @@ export const ERROR_SCREEN_PATTERNS: { name: string; re: RegExp }[] = [
   { name: "account load failure (ProtectedRoute)", re: /We couldn't load your account/i },
   { name: "section/data load failure", re: /\bCouldn't load\b|\bWe couldn't load\b/i },
   { name: "404 on a real route", re: /Page Not Found/i },
+  { name: "admin access gate (AdminRoute unknown)", re: /We couldn't verify your access/i },
 ];
 
 export interface ErrorScreenFinding {

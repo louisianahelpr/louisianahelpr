@@ -46,14 +46,18 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
   // being opened is recoverable from the log — previously only `pathname`
   // was recorded, which is why a locked-out admin's exact destination
   // couldn't be reconstructed after the fact.
+  //
+  // While the lookup is in flight adminStatus is ALSO "unknown" (no data yet),
+  // so without the isLoading guard this reported on every admin page load:
+  // 121 prod rows 2026-09-04..13, none with the retry card on screen.
   useEffect(() => {
-    if (adminStatus !== "unknown") return;
+    if (isLoading || adminStatus !== "unknown") return;
     report(new Error("AdminRoute: admin role indeterminate (access denied, retryable)"), {
       severity: "warning",
       tags: { source: "AdminRoute.adminStatusUnknown" },
       context: { path: location.pathname, search: location.search },
     });
-  }, [adminStatus, location.pathname, location.search]);
+  }, [adminStatus, isLoading, location.pathname, location.search]);
 
   if (isLoading) {
     return (

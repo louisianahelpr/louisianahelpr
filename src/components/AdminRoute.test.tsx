@@ -138,4 +138,28 @@ describe("AdminRoute", () => {
     expect(screen.queryByText(/couldn't verify your access/i)).not.toBeInTheDocument();
     expect(screen.queryByText("ADMIN CONSOLE")).not.toBeInTheDocument();
   });
+
+  // Prod error_logs 2026-09-04..13: 121 "admin role indeterminate" rows, one
+  // per /admin page load by a real admin, none with a "couldn't verify" card
+  // on screen. The report effect ran while the role lookup was still in
+  // flight, when adminStatus is "unknown" only because there is no data yet.
+  it("does NOT report an indeterminate role while the lookup is still loading", async () => {
+    const { report } = await import("@/lib/errorLogger");
+    vi.mocked(report).mockClear();
+    hookState.adminStatus = "unknown";
+    hookState.isLoading = true;
+    renderAt();
+    expect(report).not.toHaveBeenCalled();
+  });
+
+  it("reports once when the lookup settles as unknown", async () => {
+    const { report } = await import("@/lib/errorLogger");
+    vi.mocked(report).mockClear();
+    hookState.adminStatus = "unknown";
+    hookState.isLoading = false;
+    renderAt();
+    // ErrorState reports its own "Error screen shown" row; count only ours.
+    const ours = vi.mocked(report).mock.calls.filter(([e]) => String(e).includes("admin role indeterminate"));
+    expect(ours).toHaveLength(1);
+  });
 });

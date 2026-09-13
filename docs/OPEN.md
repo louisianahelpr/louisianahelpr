@@ -14,6 +14,10 @@ fraction of fixing them one report at a time.
 
 ---
 
+## Admin follow-ups (2026-09-13)
+- OPEN: re-measure "AdminRoute: admin role indeterminate" in prod `error_logs` after this deploy (was 121 rows 2026-09-04..13, 83 seed-admin + 34 real admin, all from the report effect firing while the role lookup was loading). Any row after deploy is a real failed lookup; check it. Guard: `src/components/AdminRoute.test.tsx` (no report while loading). Tiers unknown-tier fallback (`AdminHelperTiers.test.tsx`) and the admin-views spec (`e2e/prod-audit/admin-views.spec.ts`, now fails on any error screen incl. "couldn't load" and the access gate) shipped, 27/27 green on prod at 375.
+
+
 ## Mocked Playwright specs → prod (owner: NO MOCK MODE, EVER) — IN PROGRESS 2026-09-13
 
 Inventory taken from source, not declared: a file counts as mocked if it answers

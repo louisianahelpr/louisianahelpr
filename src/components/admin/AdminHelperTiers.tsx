@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { report } from "@/lib/errorLogger";
 
 interface HelperTier {
   user_id: string;
@@ -24,7 +25,8 @@ interface HelperTier {
   recent_avg_rating: number;
   completed_jobs: number;
   growth_score: number;
-  tier: "Elite" | "Verified" | "Rising Star" | "Active" | "New";
+  /** One of the five TIER_ICON names today, but the RPC decides: see tierLook. */
+  tier: string;
 }
 
 // Tier chips are a decorative BRAND palette, not a severity signal — the
@@ -49,6 +51,22 @@ const TIER_ICON: Record<string, any> = {
   New: Star,
 };
 
+/**
+ * The look for a tier name, with a neutral fallback. The RPC decides the tier
+ * names, so a renamed, new or lowercase tier (the last is what crashed the
+ * route in the mocked sweep, 25767c27e) made `<Icon/>` undefined and took the
+ * whole route down. An unknown name now renders as a plain muted badge.
+ */
+const has = (map: Record<string, unknown>, key: string) => Object.prototype.hasOwnProperty.call(map, key);
+const tierLook = (tier: string) => ({
+  known: has(TIER_ICON, tier),
+  Icon: has(TIER_ICON, tier) ? TIER_ICON[tier] : Award,
+  color: has(TIER_COLOR, tier) ? TIER_COLOR[tier] : "bg-muted text-muted-foreground border-border",
+});
+
+/** Each unknown tier name is reported once per page load, not per row or render. */
+const reportedUnknownTiers = new Set<string>();
+
 const AdminHelperTiers = () => {
   const [tierFilter, setTierFilter] = useState<string>("all");
 
@@ -70,6 +88,19 @@ const AdminHelperTiers = () => {
   });
 
   const tiers = ["Elite", "Verified", "Rising Star", "Active", "New"];
+
+  const unknownTiers = [...new Set(helpers.map((h) => String(h.tier)).filter((t) => !tierLook(t).known))].sort().join("\n");
+  useEffect(() => {
+    for (const tier of unknownTiers ? unknownTiers.split("\n") : []) {
+      if (reportedUnknownTiers.has(tier)) continue;
+      reportedUnknownTiers.add(tier);
+      report(new Error("AdminHelperTiers: unknown tier from get_helper_tiers"), {
+        severity: "warning",
+        tags: { source: "AdminHelperTiers.unknownTier" },
+        context: { tier },
+      });
+    }
+  }, [unknownTiers]);
   const visible = tierFilter === "all" ? helpers : helpers.filter((h) => h.tier === tierFilter);
   const counts = tiers.reduce<Record<string, number>>((acc, t) => {
     acc[t] = helpers.filter((h) => h.tier === t).length;
@@ -132,7 +163,7 @@ const AdminHelperTiers = () => {
       ) : (
         <div className="space-y-2">
           {visible.map((helper) => {
-            const Icon = TIER_ICON[helper.tier];
+            const { Icon, color } = tierLook(String(helper.tier));
             return (
               <div key={helper.user_id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 flex items-center gap-3">
                 <UserAvatar
@@ -147,7 +178,7 @@ const AdminHelperTiers = () => {
                     <p className="font-semibold text-ds-13 text-foreground truncate">
                       {formatName(helper.full_name, "—")}
                     </p>
-                    <Badge className={`${TIER_COLOR[helper.tier]} text-ds-10 gap-0.5`}>
+                    <Badge className={`${color} text-ds-10 gap-0.5`}>
                       <Icon className="w-3 h-3" /> {helper.tier}
                     </Badge>
                     {/* An unset parish rendered as an empty gap, which reads as

@@ -85,6 +85,7 @@ const EXCUSED: Record<string, string> = {
   "generic failure copy": "loose copy grep, no single component renders it",
   "retired 'Update ready' screen": "retired; the pattern exists to prove it never returns",
   "404 on a real route": "NotFound reports on its own (tags.source=NotFound) and is not a failure of a loaded screen",
+  "admin access gate (AdminRoute unknown)": "AdminRoute reports it (tags.source=AdminRoute.adminStatusUnknown) plus ErrorState's own row; proven in src/components/AdminRoute.test.tsx",
 };
 
 beforeEach(() => {

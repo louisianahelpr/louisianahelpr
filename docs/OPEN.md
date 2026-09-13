@@ -1796,3 +1796,10 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 
 - [ ] **Switch Stripe to live** (`scripts/e2e/stripe-sandbox-off.sh`, owner-run). Owner, 2026-09-12: sandbox stays ON until launch so money journeys run nightly on the test card. After the switch, payment steps in audits skip as UNCOVERED unless sandbox is turned on for a test window.
 - [ ] **Hide seed/demo jobs publicly** (`seed_jobs_hidden_publicly()`). Owner, 2026-09-12: stays OFF for now; anon browse shows 9 demo listings.
+
+### From terminal 2 (keyboard a11y, done b6d24b625 + cc592fe46), 2026-09-12
+
+- [ ] **DOB wheel: Tab changes the date.** Tab inside the DateWheelPicker lands on the option buttons, which scroll-snap the column and change the value (two Tabs moved the year 2008 -> 1906). Options should be tabIndex=-1 with arrow-key handling on the listbox. A keyboard user can silently corrupt their date of birth.
+- [ ] **AtAGlance stat tiles differ in height on /user/:id at phone width** ("4.5 5 reviews" 58px vs "5 Jobs completed" 70.3px), content wrap. Caught by the pre-push changed-screen sweep; pre-existing.
+- [ ] **git stash is shared across every worktree** and lint-staged writes to it constantly; a stash/pop in one worktree popped another lane's WIP (recovered via fsck). Rule for all sessions: use a WIP commit, never git stash.
+- [x] Fixed: DOB listbox focus ring, focus kept on thread open, notification switches keep focus (nested component remount, also SignupStep1/ResetPassword), Complete Profile + Signup step 2 trailing-icon clipping, PhotoUpload and AtAGlance focus rings defeated by inline styles. Guards: focusableHasVisibleFocus, noNestedComponentDefinitions, keyboard-focus and trailing-icon-fields journeys.

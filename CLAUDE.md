@@ -98,6 +98,7 @@ stories go in the lessons file, never here.
 - **Fan out as wide as work is disjoint by file** (no fixed agent count). Serialize `typecheck`/`vitest`/`eslint` across sessions; the lead runs the gate once, alone, and tells agents to use `parsecheck.mjs` instead. [L](docs/lessons/CLAUDE-lessons.md#parallel-lanes)
 - Worktrees live under `$HOME` (e.g. `~/.lh-b-ws/tree`), never `/tmp`; commit uncommitted work early.
 - **Never rotate a shared credential silently.** Say so in the transcript and `docs/audit/launch-2026-09/inbox/` first; never change one another agent is mid-run on. [L](docs/lessons/CLAUDE-lessons.md#credentials)
+- **Never `git stash` in this repo.** refs/stash is shared by every worktree and lint-staged uses it; a pop in one worktree takes another lane's WIP. Use a WIP commit.
 - **Audit agents do the work themselves: no hand-off to another agent.** A hand-off whose parent finishes deletes the worktree it runs in (2026-09-12, messy-input lane) — the work is lost, not transferred.
 - **OPEN.md reminder: check `gh issue list -l nightly-red` at session start.** Nightly workflows (nightly-webkit, e2e-real-backend, press-every-control) file/close a `nightly-red` issue per workflow on red/green — read the open list before starting work.
 

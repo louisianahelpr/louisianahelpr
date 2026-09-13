@@ -20,6 +20,7 @@ import {
   health,
   newUserContext,
   resolveFixtures,
+  rest,
   restAs,
   selectAs,
   settle,
@@ -55,6 +56,8 @@ const nonce = () => Math.random().toString(36).replace(/[0-9]/g, "").slice(0, 6)
 const APPLY_WRITE = /\/rest\/v1\/(rpc\/apply_to_job|applications)(\?|$)/;
 const MESSAGE_WRITE = /\/rest\/v1\/messages(\?|$)/;
 const JOB_WRITE = /\/rest\/v1\/jobs(\?|$)/;
+/** MARKER without its brackets, for text the post-job form must accept (it refuses `[...]` as a template placeholder). */
+const JOB_MARKER = MARKER.replace(/[[\]]/g, "");
 
 /** Open the apply sheet for the open seed job as the helper, with a marked pitch typed. */
 async function openApply(page: Page, jobId: string) {
@@ -375,78 +378,121 @@ test.describe("post a job", () => {
     return { ctx, page: await ctx.newPage() };
   }
 
-  async function jobsTitled(api: APIRequestContext, title: string): Promise<{ id: string }[]> {
-    return selectAs<{ id: string }[]>(api, poster, `jobs?customer_id=eq.${poster.user.id}&title=eq.${encodeURIComponent(title)}&select=id`);
+  type JobRow = { id: string; status: string; payment_status: string; is_seed: boolean };
+  async function jobsTitled(api: APIRequestContext, title: string): Promise<JobRow[]> {
+    return selectAs<JobRow[]>(api, poster, `jobs?customer_id=eq.${poster.user.id}&title=eq.${encodeURIComponent(title)}&select=id,status,payment_status,is_seed`);
   }
 
-  async function removeJobs(api: APIRequestContext, title: string) {
-    for (const j of await jobsTitled(api, title)) await restAs(api, poster, "delete", `jobs?id=eq.${j.id}`);
+  /**
+   * Unwind as the poster, never service-role, the way the journeys' afterAll
+   * does: a job that got as far as create-payment is cancelled through the
+   * escrow function, an unpaid one through poster_cancel_job, and either way
+   * the row itself is deleted where RLS lets the poster. Only rows this test
+   * titled (MARKER + nonce, customer_id = the test poster) are ever touched.
+   */
+  async function removeJobs(api: APIRequestContext, title: string, info?: import("@playwright/test").TestInfo) {
+    for (const j of await jobsTitled(api, title)) {
+      if (j.status !== "cancelled") {
+        if (j.payment_status !== "unpaid") {
+          await api.post(`${SUPABASE_URL}/functions/v1/create-payment`, { headers: rest(poster), data: { action: "cancel_escrow", jobId: j.id } }).catch(() => {});
+        } else {
+          await restAs(api, poster, "post", "rpc/poster_cancel_job", { p_job_id: j.id, p_reason: "prod-audit interruptions teardown" }).catch(() => {});
+        }
+      }
+      const del = await restAs(api, poster, "delete", `jobs?id=eq.${j.id}&select=id`);
+      const gone = del.ok() && ((await del.json().catch(() => [])) as unknown[]).length === 1;
+      info?.annotations.push({ type: "cleanup", description: `jobs/${j.id} ${gone ? "deleted" : "cancelled (delete refused by RLS; the nightly sweeper removes it)"}` });
+    }
   }
 
-  /** Drive the post-job form to its final submit with the minimum a real poster types. Returns the submit button, or null with the reason. */
+  /** A start slot `minutesAhead` from now in Louisiana time, on the form's 5-minute grid (same as the J2 journey). */
+  function slotAhead(minutesAhead: number) {
+    const t = new Date(Math.ceil((Date.now() + minutesAhead * 60_000) / 300_000) * 300_000);
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })
+        .formatToParts(t)
+        .map((p) => [p.type, p.value]),
+    );
+    return { monthDay: `${parts.month} ${parts.day}`, hour: parts.hour, minute: parts.minute, ampm: parts.dayPeriod as "AM" | "PM" };
+  }
+
+  /**
+   * Purpose-built driver: the J2 post-job leg of e2e/journeys/02-marketplace.spec.ts
+   * step for step (category, title, description, address, city, ZIP 99999 so no
+   * parish resolves and no real helper is notified, a date slot, a budget,
+   * Review & Pay, the confirm checkbox), stopping ON the final submit and
+   * returning it. It replaces a generic Continue/Next stepper that never
+   * reliably got here and skipped with a stated GAP.
+   */
   async function fillPostJob(page: Page, title: string, info: import("@playwright/test").TestInfo) {
     await page.goto("/post-job");
     await settle(page);
     const fresh = page.getByRole("button", { name: /start fresh/i });
     if (await fresh.isVisible().catch(() => false)) await fresh.click();
-    const titleBox = page.getByRole("textbox", { name: /title|what do you need/i }).first();
-    await expect(titleBox).toBeVisible({ timeout: 20_000 });
-    await titleBox.fill(title);
-    const desc = page.getByRole("textbox", { name: /describe|description|details/i }).first();
-    if (await desc.isVisible().catch(() => false)) await desc.fill(`${MARKER} interruption test post. Delete me.`);
-    // Walk "Continue"/"Next" steps, filling what each step requires, until a submit/pay/post button appears.
-    for (let step = 0; step < 8; step++) {
-      await shoot(page, info, `post-step-${step}`);
-      const submit = page.getByRole("button", { name: /^(post job|post|continue to payment|pay|checkout|review & pay|submit)/i }).filter({ visible: true }).last();
-      const next = page.getByRole("button", { name: /^(continue|next)$/i }).filter({ visible: true }).last();
-      if ((await submit.count()) && !(await next.count())) return submit;
-      if (!(await next.count())) break;
-      // Required pickers on the way: first category chip, first date, a price.
-      const cat = page.getByRole("button", { name: /cleaning|handyman|moving|yard|pet|errand/i }).filter({ visible: true }).first();
-      if (await cat.isVisible().catch(() => false)) await cat.click().catch(() => {});
-      const price = page.getByRole("spinbutton").filter({ visible: true }).first();
-      if (await price.isVisible().catch(() => false) && !(await price.inputValue())) await price.fill("40").catch(() => {});
-      const city = page.getByRole("combobox", { name: /city|where/i }).or(page.getByPlaceholder(/city/i)).first();
-      if (await city.isVisible().catch(() => false) && !(await city.inputValue())) {
-        await city.fill("Baton Rouge");
-        await page.getByRole("option").first().click({ timeout: 5_000 }).catch(() => {});
-      }
-      if (!(await next.isEnabled().catch(() => false))) {
-        info.annotations.push({ type: "note", description: `post-job step ${step}: Continue disabled — required fields this driver does not know` });
-        break;
-      }
-      await next.click();
-      await page.waitForTimeout(600);
-    }
-    return null;
+    await expect(page.getByRole("heading", { name: "Job Details", level: 1 })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Cleaning", exact: true }).click();
+    await page.getByRole("textbox", { name: "Job title *" }).fill(title);
+    await page.getByRole("textbox", { name: "Description *" }).fill(`${JOB_MARKER} interruption test post. Not a real job; created and removed by the test suite.`);
+    await shoot(page, info, "post-step-details");
+
+    await page.getByRole("combobox", { name: "Street address" }).fill("100 Audit Way");
+    await page.keyboard.press("Escape");
+    await page.getByRole("combobox", { name: "City" }).fill("Baton Rouge");
+    await page.keyboard.press("Escape");
+    await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
+    await page.getByRole("button", { name: /Date needed/ }).click();
+    const slot = slotAhead(100);
+    const day = new RegExp(slot.monthDay.replace(" ", ".*"));
+    await page.getByRole("button", { name: day }).or(page.getByRole("gridcell", { name: day })).first().click();
+    await page.getByRole("listbox", { name: "Hour" }).getByRole("option", { name: slot.hour, exact: true }).click();
+    await page.getByRole("listbox", { name: "Minute" }).getByRole("option", { name: slot.minute, exact: true }).click();
+    await page.getByRole("radiogroup", { name: "AM or PM" }).getByRole("radio", { name: slot.ampm }).click();
+    await page.getByRole("textbox", { name: "Job budget in dollars" }).fill("25");
+    await shoot(page, info, "post-step-logistics");
+
+    const review = page.getByRole("button", { name: /Review & Pay/ });
+    await expect(review, "the submit button never became Review & Pay").toBeEnabled({ timeout: 20_000 });
+    await review.click();
+    await expect(page.getByText(/Payment breakdown/i)).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("checkbox", { name: /reviewed all details/i }).click();
+    const submit = page.getByRole("button", { name: /Continue to Payment|Post Job/i });
+    await expect(submit, "the final Post never became enabled after confirming the details").toBeEnabled({ timeout: 20_000 });
+    await shoot(page, info, "post-step-checkout");
+    return submit;
   }
 
   test("double-tap the final Post creates exactly one job", async ({ browser, request }, info) => {
     const { ctx, page } = await posterPage(browser);
-    const title = `${MARKER} post ${nonce()}`;
+    // No square brackets: the form reads `[...]` as an unfilled template placeholder
+    // (hasUnfilledPlaceholders) and refuses to continue, so this row is marked by
+    // JOB_MARKER in its title rather than the bracketed MARKER, and removed by title.
+    const title = `${JOB_MARKER} post ${nonce()}`;
     try {
       const submit = await fillPostJob(page, title, info);
-      test.skip(!submit, "GAP: could not reach the post-job submit with the generic driver — see post-step-* screenshots");
       const writes = watchWrites(page, JOB_WRITE);
-      await submit!.dblclick({ force: true });
+      // Two taps inside ONE frame: both clicks dispatched in the same JS task,
+      // before React can flush the `saving` re-render that disables the button.
+      // Playwright's dblclick cannot do this — its two clicks arrive as separate
+      // input tasks with a microtask flush between them, so `disabled={saving}`
+      // alone absorbs the second one and a build with useJobSubmit's
+      // `submittingRef` check removed still passed (measured 2026-09-13). Only
+      // the synchronous ref guard can refuse a second click in the same task,
+      // which is what this presses on.
+      await submit.evaluate((b) => {
+        (b as HTMLButtonElement).click();
+        (b as HTMLButtonElement).click();
+      });
       await page.waitForTimeout(6_000);
       await shoot(page, info, "post-double-tap");
       expect(writes.filter((w) => w.method() === "POST").length, "job inserts after a double-tap").toBeLessThanOrEqual(1);
-      const created = await expect
-        .poll(() => jobsTitled(request, title).then((r) => r.length), { timeout: 20_000 })
-        .toBeGreaterThan(0)
-        .then(() => true)
-        .catch(() => false);
-      // No job at all means the control this driver pressed was not the final
-      // submit — a gap in the driver, not a defect in the app, and it is said
-      // out loud rather than passing quietly. The post-step-* screenshots show
-      // where it stopped.
-      test.skip(!created, "GAP: the generic post-job driver never reached the final submit — see the post-step-* screenshots");
-      expect((await jobsTitled(request, title)).length, "a double-tap on the final Post created more than one job").toBe(1);
+      await expect.poll(() => jobsTitled(request, title).then((r) => r.length), { message: "no job at all: the driver did not press the final submit", timeout: 20_000 }).toBeGreaterThan(0);
+      const rows = await jobsTitled(request, title);
+      expect(rows.length, "a double-tap on the final Post created more than one job").toBe(1);
+      expect(rows[0].is_seed, "a test poster's job must be is_seed (derived server-side from the account)").toBe(true);
       // We stop before Stripe: the page may be on checkout hand-off, which is fine; an error screen is not.
       if (!/stripe\.com/.test(page.url())) expect(await health(page, "post-double-tap")).toEqual([]);
     } finally {
-      await removeJobs(request, title);
+      await removeJobs(request, title, info);
       await ctx.close();
     }
   });

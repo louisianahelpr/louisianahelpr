@@ -2045,5 +2045,7 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] Race fixes (terminal closed → agent): settle_dispute_record, DisputeDialog, JobTracking helper_completed_at. Partial WIP (8 files, unverified) on origin/wip/race2-terminal c983eb2a9; brief ~/.lh-prompts/race2.md
 - [ ] Combobox keyboard model (terminal closed → agent). Partial WIP on origin/wip/combobox-terminal 6f7c27387 (+ a 1-file WIP on wip/lexilombas-.lh-combobox-ws); brief ~/.lh-prompts/combobox.md
 - [ ] OWNER: add STRIPE_TEST_SECRET_KEY repo secret (test-mode restricted key, Webhook Endpoints: Read) — stripe-webhook-guard live job is red until then
+- [ ] Button-height gate false positives on prod data: earnings bar-chart day buttons (bars differ by design) on helper-profile-earnings/-payment/helper-earnings; AtAGlance stat tiles on user-profile (covered by the tiles item). Seen when a global CSS push swept every route.
+- [x] Pre-push sweep now nearest route only, max 3 screens (full sweep stays nightly). Order for remaining queue: easiest first.
 - [ ] LAST, after everything above: independent re-check by a different model (sonnet) of ALL work landed 2026-09-13 — full vitest once, CI green per push, re-run each fix's own proof on prod, list what doesn't hold
 - [ ] OWNER: allow the Stripe connector write tool + reconnect Stripe, then add transfer.failed to live webhook and close #1462/#1521

@@ -2022,7 +2022,7 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] Find which session deleted ~150 local branches on 2026-09-12 ~22:15 without logging tip shas; recover from its log or `git fsck --unreachable` if anything is missed.
 
 ## Agent queue (2026-09-13, max 3 at once; owner decisions applied)
-- [ ] RUNNING: gift card rename finish (no aliases — owner: "no one has the app, no skips"); expired listings finish (→ Needs You); chunkReload retry finish
+- [x] Gift card rename LANDED 2026-09-13: migration 8c92b9d44 + code 0a397aa8a; prod verified gift_cards present, pif_credits null, 2 new RPCs, 0 old; old edge fns create-pif-donation + claim-pif-credit deleted from prod; types.ts gift names match a fresh `supabase gen types` (full regen has 145 lines of unrelated drift, not applied); write-contract refresh dispatched. Expired listings (4f48acdac) and chunkReload (0f641f534) landed.
 - [ ] Release/Accept + other money double-tap refs (worktree agent-aaec88c069873cd52, commit 75448970c)
 - [ ] Admin follow-ups: unknown-tier fallback, support view, admin role indeterminate (worktree agent-a9c25acab110f3ea5, bb9a529fe)
 - [ ] AtAGlance equal tiles (worktree agent-a00a44b625c53174f, 3a80020e2)

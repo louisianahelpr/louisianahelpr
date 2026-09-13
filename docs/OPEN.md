@@ -148,7 +148,7 @@ and one reachable-looking code path that cannot execute.
 ---
 
 ## Keyboard — suggestion popups have tabbable options, no arrow-key model (2026-09-12)
-- [ ] `BrowseSearchBar.tsx`, `CityAutocomplete.tsx`, `AddressAutocomplete.tsx`: `<button role="option">` in a listbox with no ArrowUp/Down/aria-activedescendant on the input. Allowlisted as PENDING in `src/test/listboxOptionsNotTabbable.test.ts`; give the input a combobox keyboard model, set options `tabIndex={-1}`, remove from PENDING. (DOB wheel fixed.)
+- [x] `BrowseSearchBar.tsx`, `CityAutocomplete.tsx`, `AddressAutocomplete.tsx`: `<button role="option">` in a listbox with no ArrowUp/Down/aria-activedescendant on the input. Allowlisted as PENDING in `src/test/listboxOptionsNotTabbable.test.ts`; give the input a combobox keyboard model, set options `tabIndex={-1}`, remove from PENDING. (DOB wheel fixed.) DONE 2026-09-14: shared useComboboxKeyboard; proven keyboard-only on prod at 375 (Browse, City, Address/MapKit).
 
 ## CLOSED 2026-09-13 — contact smuggling in bios/job posts + hyphenated-domain emails (terminal 7)
 
@@ -2067,7 +2067,7 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [x] Stripe #1586: test-mode audit endpoint we_1Tql6m… DELETED 2026-09-12 (`{"deleted": true}`); one enabled endpoint remains on the stripe-webhook URL. Issue closed.
 - [ ] types.ts drift: 145 lines vs `supabase gen types --linked`; regenerate carefully and fix fallout
 - [ ] Race fixes (terminal closed → agent): settle_dispute_record, DisputeDialog, JobTracking helper_completed_at. Partial WIP (8 files, unverified) on origin/wip/race2-terminal c983eb2a9; brief ~/.lh-prompts/race2.md
-- [ ] Combobox keyboard model (terminal closed → agent). Partial WIP on origin/wip/combobox-terminal 6f7c27387 (+ a 1-file WIP on wip/lexilombas-.lh-combobox-ws); brief ~/.lh-prompts/combobox.md
+- [x] Combobox keyboard model (terminal closed → agent). Partial WIP on origin/wip/combobox-terminal 6f7c27387 (+ a 1-file WIP on wip/lexilombas-.lh-combobox-ws); brief ~/.lh-prompts/combobox.md DONE 2026-09-14: shared useComboboxKeyboard; proven keyboard-only on prod at 375 (Browse, City, Address/MapKit).
 - [ ] OWNER: add STRIPE_TEST_SECRET_KEY repo secret (test-mode restricted key, Webhook Endpoints: Read) — stripe-webhook-guard live job is red until then
 - [x] Button-height gate false positives on prod data (FIXED: `ul[aria-label="Upcoming 7 days"]` exempt in buttonGeometry.ts with its reason; fixture case red without the exemption): earnings bar-chart day buttons (bars differ by design) on helper-profile-earnings/-payment/helper-earnings; AtAGlance stat tiles on user-profile (covered by the tiles item). Seen when a global CSS push swept every route.
 - [x] Pre-push sweep now nearest route only, max 3 screens (full sweep stays nightly). Order for remaining queue: easiest first.

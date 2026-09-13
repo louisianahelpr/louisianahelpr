@@ -1581,3 +1581,18 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] **One icon Button held at 44px by its parent's `[&_button]:h-11`** (AdminTopBar bell / menu). Intentional; detector now ignores parent-sized buttons.
 - [ ] **Sweep mock data is thin.** 7 jobs, 8 applications, 6 messages, 2 reviews, 2 notifications; every other table returns [] (earnings, payouts, disputes, pets, home history, work record, saved Helprs, credentials, referrals, admin data) and nothing is long or crowded. Expand seed + add a heavy-content variant. Queued after the current sweep.
 - [ ] **No end-to-end user-journey suite** (owner: "interactive and click through everything as a regular user would"). Only the money loop and two-role lifecycle exist. Build journeys for every flow on the real backend with the test accounts; Stripe steps need sandbox ON. Queued after press-every-control.
+
+### Queued — start only after several running audit agents finish (owner, 2026-09-12: "don't launch any more, wait")
+
+- [ ] **Pre-release gate:** run every audit against the exact build being shipped to TestFlight/App Store; block the release on red.
+- [ ] **Production watching:** alert when real users hit error screens or failed requests (Sentry + error_logs), not only in tests.
+- [ ] **In-app "Report a problem" with state:** captures screen, route and recent errors automatically.
+- [ ] **Accessibility sweep in WebKit:** the axe sweep runs only in Chromium; iPhone users get WebKit.
+
+### Findings from paused audit lanes (2026-09-12), to triage on resume
+
+- [ ] **Keyboard lane:** DOB wheel picker (`Month` listbox) focusable with no visible focus ring; focus drops to <body> after opening a message thread and after toggling the push master switch; `#require-photo-proof` switch reported unnamed (it has a `<label htmlFor>`, which should name a button, so verify in the accessibility tree before changing it). WIP a23bcb847 in its worktree.
+- [ ] **Concurrency lane (leads, unrun):** `enforce_application_job_state` reads the job without a lock, so an application may land on a job being cancelled or re-priced; the client accept is a conditional update that doesn't check job status, so accept may stamp a cancelled job, or a cancel may count a just-accepted helper and charge a fee. Money/authz: needs a proven repro before any change.
+- [ ] **Write-contract lane:** `instant_book_claim` RPC no longer exists in prod; `useApplyFlow.ts` quietly skips the error, so it is dead code. 4 open-payload `profiles` updates not yet checked against 11 non-updatable columns.
+- [ ] **press-every-control:** checkout presses fail in mock mode because edge functions aren't mocked ("Couldn't open checkout"); the dock "Home" button reported not clickable on /profile; the payout-check banner is pressable but does nothing. Triage after the full run.
+- [x] **Fixed by coordinator:** DST start time, listing expiry and confirm card zones (790004248); saved_jobs/thread_pins re-save RLS (1cdd3b786); press-every-control service-worker false failures (ef1574d65).

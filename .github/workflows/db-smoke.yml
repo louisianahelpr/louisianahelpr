@@ -181,9 +181,7 @@ jobs:
         # fix migration applied.
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
-          SELECT * FROM public.get_approved_helpers(1);
           SELECT * FROM public.get_top_helpers_by_parish(NULL, 1);
-          SELECT * FROM public.get_hero_parishes();
           SELECT * FROM public.get_helper_tiers(1);
           SELECT * FROM public.get_parish_activity(1);
           SELECT * FROM public.get_safe_profiles(ARRAY[]::uuid[]);

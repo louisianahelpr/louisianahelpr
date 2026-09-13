@@ -34,7 +34,16 @@ DROP FUNCTION IF EXISTS public.get_recent_public_payouts(integer);
 DROP FUNCTION IF EXISTS public.get_platform_impact_stats();
 DROP FUNCTION IF EXISTS public.get_monthly_profile_view_count(uuid);
 
+-- DESTRUCTIVE-DDL-ACK: DROP TABLE public.pet_report_cards
+-- ACK-REASON: no reader or writer in src, edge functions, views, triggers or cron (verified on prod 2026-09-13)
+-- ACK-DATA-LOSS: none: the table held 0 rows on prod when checked
 DROP TABLE IF EXISTS public.pet_report_cards;
+-- DESTRUCTIVE-DDL-ACK: DROP TABLE public.subscription_cancel_reasons
+-- ACK-REASON: nothing ever writes to it and nothing reads it (verified on prod 2026-09-13)
+-- ACK-DATA-LOSS: none: the table held 0 rows on prod when checked
 DROP TABLE IF EXISTS public.subscription_cancel_reasons;
 
+-- DESTRUCTIVE-DDL-ACK: DROP COLUMN public.jobs.scope_video_thumbnail_url
+-- ACK-REASON: leftover from the retired time-banking migration; no reader anywhere
+-- ACK-DATA-LOSS: none: 0 non-null values on prod when checked
 ALTER TABLE IF EXISTS public.jobs DROP COLUMN IF EXISTS scope_video_thumbnail_url;

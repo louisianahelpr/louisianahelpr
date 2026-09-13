@@ -119,6 +119,31 @@ const isCapacitorBuild = process.env.VITE_CAPACITOR_BUILD === "1";
 const isAnalyze = process.env.ANALYZE === "1";
 
 // https://vitejs.dev/config/
+/**
+ * Dev only: when the dependency set changes under a running dev server
+ * (npm install, an agent adding a package), restart it with a fresh
+ * pre-bundle. Otherwise the server keeps answering lazy route chunks with
+ * "504 (Outdated Optimize Dep)", and the route renders "This page hit a
+ * problem." That hit the owner on /terms, /rules and /privacy twice on
+ * 2026-09-12; both times the only fix was clearing node_modules/.vite and
+ * restarting by hand.
+ */
+function restartOnDependencyChange(): Plugin {
+  return {
+    name: "lh-restart-on-dependency-change",
+    apply: "serve",
+    configureServer(server) {
+      const lockfile = path.resolve(__dirname, "package-lock.json");
+      server.watcher.add(lockfile);
+      server.watcher.on("change", (file) => {
+        if (path.resolve(file) !== lockfile) return;
+        server.config.logger.info("[lh] package-lock.json changed: restarting with a fresh dependency pre-bundle", { timestamp: true });
+        void server.restart(true);
+      });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => ({
   define: {
     __APP_COMMIT__: JSON.stringify(appCommit),
@@ -143,6 +168,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [
+    restartOnDependencyChange(),
     requireBuildEnv(mode),
     react(),
     // Stamp the built index.html with the commit it was built from.

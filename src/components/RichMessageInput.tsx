@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Plus, X, FileText, Loader2, Mic, MicOff, Square } from "lucide-react";
@@ -279,10 +279,23 @@ export const RichMessageInput = ({
     });
   };
 
+  // Synchronous in-flight guard: two taps in one frame both read the same
+  // `text` closure before React re-renders, so a state flag cannot stop the
+  // second onSend. Released once the cleared text renders (or on failure).
+  const sendingRef = useRef(false);
+  useEffect(() => {
+    if (!text && !stagedFile) sendingRef.current = false;
+  }, [text, stagedFile]);
+
   const performSend = async () => {
+    if (sendingRef.current) return;
     if (stagedFile) {
+      sendingRef.current = true;
       const attachment = await uploadStaged();
-      if (!attachment) return; // upload failed; toast already shown
+      if (!attachment) {
+        sendingRef.current = false;
+        return; // upload failed; toast already shown
+      }
       onSend(text.trim(), attachment);
       clearStaged();
       setText("");
@@ -290,6 +303,10 @@ export const RichMessageInput = ({
     }
 
     if (!text.trim()) return;
+    sendingRef.current = true;
+    // Backstop: if the parent keeps the text (e.g. restores it after a failed
+    // send), the clear-on-empty effect never fires; never lock sending for good.
+    setTimeout(() => { sendingRef.current = false; }, 1500);
     hapticLight();
     onSend(text.trim());
     setText("");

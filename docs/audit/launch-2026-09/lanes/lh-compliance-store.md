@@ -92,18 +92,18 @@ everywhere. Two facts kill it:
 
 ## 4. Reasoned conclusions I was asked for
 
-### The gift card / Pay It Forward IAP question — **Stripe is correct; IAP is not required.**
+### The gift card / gift card IAP question — **Stripe is correct; IAP is not required.**
 
 Apple 3.1.1 requires IAP for digital content consumed in-app, and 3.1.3(e)/3.1.5(a)
 exempt **real-world services**. The gift card is a stored-value instrument
 redeemable **exclusively for real-world labour**, and that constraint is enforced
 server-side, not by UI:
 
-- `redeem_pif_credit(uuid, uuid, uuid)` is invoked in `create-payment/index.ts:148`
-  **only against a `jobId`**, in the escrow path; `pif_credits` carries a `job_id`
+- `redeem_gift_card(uuid, uuid, uuid)` is invoked in `create-payment/index.ts:148`
+  **only against a `jobId`**, in the escrow path; `gift_cards` carries a `job_id`
   column and the RPC is `revoke`d from `public, anon, authenticated`.
 - **It cannot buy a subscription.** `create-pro-checkout` contains zero credit or
-  PIF redemption logic (verified by grep — no matches).
+  gift card redemption logic (verified by grep — no matches).
 - $10–$500, purchased through Stripe hosted checkout.
 
 This is the same shape as an Uber/DoorDash/Instacart gift card, none of which use
@@ -114,7 +114,7 @@ can pay for a subscription or any digital-only entitlement, 3.1.1 attaches.
 Two caveats: `/gift-card` is behind `ProtectedRoute` — verified live, it redirects
 to `/login?redirect=%2Fgift-card` (`~/lh-audit-shots/compliance/gift-card.png`,
 route at `src/App.tsx:325`) — so a reviewer needs the test account to see it; and
-prod holds 3 `pif_credits` rows, none claimed (live `execute_sql`, 2026-09-02), so
+prod holds 3 `gift_cards` rows, none claimed (live `execute_sql`, 2026-09-02), so
 the feature has never run for real.
 
 **The real 3.1.1 risk is Pro subscriptions, not gift cards** — a recurring digital
@@ -151,9 +151,9 @@ Live (Playwright, production, signed-out): `/legal?tab=privacy`, `?tab=terms`,
 
 Live prod SQL (`fncmgoasalhdgfwzhsqa`, read-only): object existence for
 `helper_w9_records`, `broadcast_messages`, `broadcast_dismissals`,
-`legal_acceptances`, `pif_credits`, `suppressed_emails`, `purge_user_data`,
+`legal_acceptances`, `gift_cards`, `suppressed_emails`, `purge_user_data`,
 `fan_out_broadcast_to_notifications`, `preserve_first_consent`; column lists and
-row counts for `helper_w9_records` (0), `broadcast_messages` (0), `pif_credits` (3),
+row counts for `helper_w9_records` (0), `broadcast_messages` (0), `gift_cards` (3),
 `legal_acceptances` (18), `profiles` (39, `marketing_consent` = 0), `reports`.
 
 Source: `ios/App/App/Info.plist`, `AppDelegate.swift`, `PrivacyInfo.xcprivacy`,

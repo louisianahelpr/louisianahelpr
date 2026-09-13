@@ -4,7 +4,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 
 /**
- * usePifCredit — resolve the gift card riding on `/post-job?pif_credit=<id>`
+ * usePostJobGiftCard — resolve the gift card riding on `/post-job?gift_card=<id>`
  * so CHECKOUT CAN QUOTE THE PRICE THE SERVER WILL ACTUALLY CHARGE.
  *
  * Before this hook the id was passed straight through to create-payment and
@@ -14,14 +14,14 @@ import { report } from "@/lib/errorLogger";
  * when the surprise is pleasant — it is exactly why the gift read as broken.
  *
  * `usable` deliberately mirrors the ownership/funding/expiry/state gate in
- * `redeem_pif_credit` (migration 20260831233515) one-for-one. If this hook
+ * `redeem_gift_card` (migration 20260831233515) one-for-one. If this hook
  * said "gift applied" for a credit the RPC would refuse, the screen would be
  * lying in the other direction — a $0 total against a full-price charge — so
  * every condition below exists because the server has the same one.
  */
 
-/** The columns checkout needs. Full row shape lives in payItForward/types. */
-interface PifCreditLite {
+/** The columns checkout needs. Full row shape lives in giftCards/types. */
+interface GiftCardLite {
   id: string;
   amount: number;
   status: string;
@@ -31,7 +31,7 @@ interface PifCreditLite {
 }
 
 /**
- * The statuses `redeem_pif_credit`'s state gate accepts:
+ * The statuses `redeem_gift_card`'s state gate accepts:
  *   'sent'      — fresh directed gift.
  *   'available' — the legacy spelling of the same thing. The RPC accepts it
  *                 (that acceptance IS the F-GIFT-1 fix); refusing it here
@@ -44,10 +44,10 @@ interface PifCreditLite {
  */
 const REDEEMABLE_STATUSES = new Set(["sent", "available", "reserved"]);
 
-export interface PifCreditState {
+export interface PostJobGiftCardState {
   /** Gift value in dollars, or 0 when there is no usable gift. */
   creditAmount: number;
-  /** True only when the credit passes every check `redeem_pif_credit` makes. */
+  /** True only when the credit passes every check `redeem_gift_card` makes. */
   usable: boolean;
   /** True while a credit id from the URL is still being resolved. */
   loading: boolean;
@@ -60,22 +60,22 @@ export interface PifCreditState {
   unavailable: boolean;
 }
 
-export function usePifCredit(creditId: string | null): PifCreditState {
+export function usePostJobGiftCard(creditId: string | null): PostJobGiftCardState {
   const { user } = useCurrentUser();
   const enabled = !!creditId && !!user?.id;
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["pif-credit", creditId, user?.id],
+    queryKey: ["post-job-gift-card", creditId, user?.id],
     queryFn: async () => {
       const { data: row, error: qErr } = await supabase
-        .from("pif_credits" as never)
+        .from("gift_cards" as never)
         .select("id, amount, status, payment_status, expires_at, recipient_id")
         .eq("id", creditId as string)
         .maybeSingle();
       // Never drop this error. A dropped one reads as "no gift here", which
       // is the full-price quote we are trying to stop shipping.
       if (qErr) throw qErr;
-      return (row ?? null) as PifCreditLite | null;
+      return (row ?? null) as GiftCardLite | null;
     },
     enabled,
     staleTime: 60_000,
@@ -87,7 +87,7 @@ export function usePifCredit(creditId: string | null): PifCreditState {
   if (isError) {
     report(error, {
       severity: "warning",
-      tags: { source: "usePifCredit.fetch" },
+      tags: { source: "usePostJobGiftCard.fetch" },
       context: { credit_id: creditId },
     });
   }
@@ -103,7 +103,7 @@ export function usePifCredit(creditId: string | null): PifCreditState {
     return { creditAmount: 0, usable: false, loading: true, unavailable: false };
   }
 
-  // Same gate as redeem_pif_credit, in the same order.
+  // Same gate as redeem_gift_card, in the same order.
   const amount = Number(data?.amount ?? 0);
   const notExpired =
     !data?.expires_at || new Date(data.expires_at).getTime() > Date.now();

@@ -47,7 +47,7 @@ const probes = [
   ["payment_refunds", `payment_refunds?select=id&limit=5`, 0],
   ["tips on jobs I did not work", `tips?select=id,amount&job_id=not.in.(${"__MYJOBS__"})&limit=5`, "skip-if-no-control"],
   ["disputes I am not party to", `disputes?select=id,reason&job_id=not.in.(${"__MYJOBS__"})&limit=5`, "skip-if-no-control"],
-  ["pif_credits not mine", `pif_credits?select=id&recipient_id=neq.${HELPER}&limit=5`, 0],
+  ["gift_cards not mine", `gift_cards?select=id&recipient_id=neq.${HELPER}&limit=5`, 0],
   ["helper_w9_records not mine", `helper_w9_records?select=id&helper_id=neq.${HELPER}&limit=5`, 0],
   ["helper_verifications not mine", `helper_verifications?select=id,user_id&user_id=neq.${HELPER}&limit=5`, 0],
   ["user_roles of OTHER people", `user_roles?select=user_id,role&user_id=neq.${HELPER}&limit=5`, 0],

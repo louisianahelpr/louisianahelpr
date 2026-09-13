@@ -35,7 +35,7 @@ lane's brief assumes.** Measured, not estimated:
 | Invariant | Result |
 |---|---|
 | Zero-row-write guard on money/trust/safety | 75 of 112 client writes guarded; 21 legitimately-zero; **16 unguarded, of which only 4 touch trust and 0 touch money** |
-| Client-side writes to any money ledger | **0** — every `pif_credits` / `referral_credits` / `instant_payouts` / `payout_transfers` / `tips` / `payment_refunds` / subscription reference in `src/` is a `.select()`. All mutation is behind edge functions / RPCs. Table existence re-verified live (`to_regclass`) after the lh-schema-integrity correction. |
+| Client-side writes to any money ledger | **0** — every `gift_cards` / `referral_credits` / `instant_payouts` / `payout_transfers` / `tips` / `payment_refunds` / subscription reference in `src/` is a `.select()`. All mutation is behind edge functions / RPCs. Table existence re-verified live (`to_regclass`) after the lh-schema-integrity correction. |
 | Dropped Supabase `error` | 100 `unwrap()` + 133 `unwrapMutation()` call sites; **2** genuine dropped-error sites remain (SF-006) |
 | Awaited Capacitor plugin object | **0 across all 16 plugins / 26 dynamic import sites** — the rule holds at 100% |
 | Realtime channels missing `channelNonce()` | 1 of 14, and it is a *correct* exception (presence requires a shared topic) |
@@ -110,10 +110,10 @@ lists are in the SF-003/004/005 findings and the raw sweep; the 4 unguarded
 trust writes are filed, the 12 non-money/trust/safety ones are listed below
 under "acknowledged gaps".
 Money verified separately by table — `rg -n '(update|delete|upsert)\(' src/` cross-checked
-against every ledger table name: `pif_credits`, `referral_credits`,
+against every ledger table name: `gift_cards`, `referral_credits`,
 `instant_payouts`, `payout_transfers`, `tips`,
 `payment_refunds`, subscription tables — **zero client mutations**, read-only at
-`usePifCredit.ts:71`, `PayItForward.tsx:177/214`, `useReferralData.ts:32`,
+`usePifCredit.ts:71`, `GiftCard.tsx:177/214`, `useReferralData.ts:32`,
 `useEarningsData.ts:44`, `AdminPayoutBatches.tsx:162`, `AdminAnalytics.tsx:95/104`,
 `useConfigChecks.ts:92/110`, `PaymentTab.tsx:67`.
 

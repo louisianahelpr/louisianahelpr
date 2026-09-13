@@ -104,7 +104,7 @@ viewports — `AdminRoute` gate holds.
 
 `/activity`, `/earnings`, `/terms`, `/privacy`, `/data-rights`, `/warnings`,
 `/j/:id`, `/u/:id`, `/m/:id`, `/messages/:id`, `/post-job/*`, `/legal/:tab`,
-`/rules`, `/schedule`, `/availability`, `/saved-helpers`, `/pay-it-forward`,
+`/rules`, `/schedule`, `/availability`, `/saved-helpers`, `/gift-card (retired old route)`,
 `/dashboard/post-login`, `/settings/profile`, `/settings` — every one
 resolved to its documented target with query strings correctly carried
 through (e.g. `/post-job/anything?foo=bar` → `/login?redirect=%2Fpost-job%3Ffoo%3Dbar`,

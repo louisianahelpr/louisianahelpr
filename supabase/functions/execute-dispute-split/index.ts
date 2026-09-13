@@ -8,14 +8,14 @@
 // execution half of that decision.
 //
 // Three legs — the first two off the job's ORIGINAL PaymentIntent, the third
-// off the Pay-It-Forward gift when one funded the job:
+// off the gift card when one funded the job:
 //   1. TRANSFER  — the helper's share of the budget, minus the platform
 //                  commission, to their Connect account.
 //   2. REFUND    — the poster's share of what was actually captured, minus
 //                  Stripe's non-refundable processing cost.
-//   3. GIFT      — the poster's share of whatever a Pay-It-Forward gift paid,
+//   3. GIFT      — the poster's share of whatever a gift card paid,
 //                  minted back as a replacement gift by
-//                  `restore_pif_credit_for_job`. There is no charge to
+//                  `restore_gift_card_for_job`. There is no charge to
 //                  reverse on that money, so a Stripe refund cannot return
 //                  it; the gift IS the money.
 //
@@ -37,7 +37,7 @@
 //   • GROUP JOBS — one escrow, N helpers. A partial split across a roster needs
 //     per-helper shares and N transfers; that is a follow-up, and paying only
 //     the lead helper would strand the rest of the roster's money.
-//     (Pay-It-Forward jobs USED to be guarded here too, refused with "resolve
+//     (gift-card-funded jobs USED to be guarded here too, refused with "resolve
 //     it with the full release or full refund action". That advice could not
 //     work: a full refund also reverses a PaymentIntent, and a gift-funded job
 //     has none — so the admin was told the money was recoverable when nothing
@@ -298,7 +298,7 @@ serve(async (req) => {
   }
 
   // ── How was this escrow funded? ──────────────────────────────────────────
-  // A job can be funded by a Stripe charge, by a Pay-It-Forward gift, or by
+  // A job can be funded by a Stripe charge, by a gift card, or by
   // BOTH (a gift smaller than the cost is redeemed and the shortfall is
   // collected by Stripe). The gift half carries no PaymentIntent, so a Stripe
   // refund cannot return it — leg 3 mints it back instead.
@@ -307,40 +307,40 @@ serve(async (req) => {
   // never become "assume the whole escrow is a chargeable PaymentIntent",
   // which would refund the poster Stripe money that the gift, not their card,
   // put there.
-  const { data: pifRow, error: pifErr } = await supabaseAdmin
-    .from("pif_credits")
+  const { data: giftCardRow, error: giftCardErr } = await supabaseAdmin
+    .from("gift_cards")
     .select("id, status")
     .eq("job_id", job.id)
     .in("status", ["redeemed", "reserved"])
     .limit(1)
     .maybeSingle();
-  if (pifErr) {
-    console.error(`[execute-dispute-split] pif_credits read failed for job ${job.id}:`, pifErr);
+  if (giftCardErr) {
+    console.error(`[execute-dispute-split] gift_cards read failed for job ${job.id}:`, giftCardErr);
     return await refuse({ error: "funding-source check failed — retry" }, 500);
   }
 
   // How many cents of this escrow the gift actually paid for. Computed by
-  // `restore_pif_credit_for_job` in dry-run mode rather than here, on purpose:
+  // `restore_gift_card_for_job` in dry-run mode rather than here, on purpose:
   // the applied figure is NOT the gift's face value (a gift bigger than the
   // job has its remainder minted as a separate child credit the recipient
   // already holds), and a second copy of that arithmetic on this side is
   // exactly the drift this file's commission comment warns about.
   let giftAppliedCents = 0;
-  if (pifRow) {
-    if ((pifRow as { status?: string }).status === "reserved") {
+  if (giftCardRow) {
+    if ((giftCardRow as { status?: string }).status === "reserved") {
       // Reserved, not redeemed: the gift was earmarked for this job but the
       // shortfall was never paid, so this job cannot be in escrow off the
       // back of it. Something is inconsistent — refuse rather than guess.
       return await refuse(
         {
           error:
-            "this job's Pay-It-Forward gift is still only reserved, so the escrow's funding cannot be reconciled — nothing was moved. Cancel the job instead; that returns the gift.",
+            "this job's gift card is still only reserved, so the escrow's funding cannot be reconciled — nothing was moved. Cancel the job instead; that returns the gift.",
         },
         409,
       );
     }
     const { data: giftPreview, error: giftPreviewErr } = await supabaseAdmin.rpc(
-      "restore_pif_credit_for_job",
+      "restore_gift_card_for_job",
       { p_job_id: job.id, p_share_bps: 10000, p_dry_run: true },
     );
     const preview = (giftPreview ?? null) as { outcome?: string; applied_cents?: number } | null;
@@ -357,13 +357,13 @@ serve(async (req) => {
         `[execute-dispute-split] gift valuation failed for job ${job.id}: ${why}`,
       );
       return await refuse(
-        { error: "could not value this job's Pay-It-Forward gift — nothing was moved, retry" },
+        { error: "could not value this job's gift card — nothing was moved, retry" },
         503,
       );
     }
     giftAppliedCents = Number(preview?.applied_cents ?? 0);
     if (!Number.isFinite(giftAppliedCents) || giftAppliedCents < 0) {
-      return await refuse({ error: "this job's Pay-It-Forward gift has no usable applied amount — refused" }, 409);
+      return await refuse({ error: "this job's gift card has no usable applied amount — refused" }, 409);
     }
   }
 
@@ -402,11 +402,11 @@ serve(async (req) => {
     return await refuse({ error: "no payment intent on file — cannot verify or split the escrow" }, 409);
   }
 
-  // A wholly gift-funded job legitimately has no PaymentIntent: `redeem_pif_credit`
+  // A wholly gift-funded job legitimately has no PaymentIntent: `redeem_gift_card`
   // flips it straight to 'escrow' out of the prepaid platform balance without
   // ever opening a checkout. Everything Stripe-shaped below is therefore
   // conditional, and settles to zero when there is no charge — the same shape
-  // release-payout uses for its PIF branch.
+  // release-payout uses for its gift card branch.
   let pi: Stripe.PaymentIntent | null = null;
   let capturedCents = 0;
   let escrowChargeId: string | null = null;
@@ -463,7 +463,7 @@ serve(async (req) => {
   // with the dispute unexecutable.
   //
   // `release-payout` avoids this by skipping the whole PaymentIntent block for
-  // any PIF-funded job (index.ts:341) — it never refunds, so it never needs
+  // any gift-card-funded job (index.ts:341) — it never refunds, so it never needs
   // `capturedCents`. This function does need it (the poster's cash leg draws
   // on the capture), so the charge is still retrieved; only its use as a
   // transfer SOURCE is withheld. `checkoutSessionCompleted.ts:617-619` states
@@ -536,7 +536,7 @@ serve(async (req) => {
   const platformFeeCents = Math.round(platformFeeDollars * 100);
 
   // Stripe's processing floor applies only to money Stripe actually processed.
-  // The gift leg has none: create-pif-donation already charged the DONOR that
+  // The gift leg has none: create-gift-card-checkout already charged the DONOR that
   // cost when the gift was bought, so withholding it again here would take the
   // same cut twice out of one dollar.
   const nonRefundableCents = pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0;
@@ -544,7 +544,7 @@ serve(async (req) => {
   const refundCents = Math.max(0, Math.round(refundableCents * posterShare));
 
   // Gift leg. Basis points, not dollars: the amount is computed inside
-  // `restore_pif_credit_for_job` from the applied value it alone knows, so the
+  // `restore_gift_card_for_job` from the applied value it alone knows, so the
   // formula lives in exactly one place. `Math.floor` mirrors that function's
   // integer division so this figure and the row it eventually writes agree to
   // the cent — and rounds toward the platform, never toward minting money.
@@ -1144,7 +1144,7 @@ serve(async (req) => {
 
   // ── 8b. Leg three: give the poster back their share of the GIFT ──────────
   //
-  // A Pay-It-Forward gift is money the poster never charged to a card, so
+  // A gift card is money the poster never charged to a card, so
   // there is nothing for `stripe.refunds.create` to reverse. Their share comes
   // back as a replacement gift instead: same recipient, same donor, same card
   // art, `parent_credit_id` pointing at the gift that was spent and
@@ -1164,7 +1164,7 @@ serve(async (req) => {
   let restoredGiftCents = 0;
   if (giftRestoreCents > 0) {
     const { data: restoreData, error: restoreErr } = await supabaseAdmin.rpc(
-      "restore_pif_credit_for_job",
+      "restore_gift_card_for_job",
       { p_job_id: job.id, p_share_bps: giftShareBps, p_dry_run: false },
     );
     const restored = (restoreData ?? null) as
@@ -1184,7 +1184,7 @@ serve(async (req) => {
       await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
-        title: "Dispute split could not return the poster's Pay-It-Forward gift",
+        title: "Dispute split could not return the poster's gift card",
         message:
           "A dispute split moved its Stripe legs but could not mint the poster's replacement gift, so they are short by that amount. The split is left resumable — retry once the cause is cleared.",
         fields: {
@@ -1205,7 +1205,7 @@ serve(async (req) => {
       return json(
         {
           error:
-            "the Stripe legs settled but the poster's Pay-It-Forward gift could not be returned — retry to finish the split",
+            "the Stripe legs settled but the poster's gift card could not be returned — retry to finish the split",
           stripe_transfer_id: transferId,
           stripe_refund_id: refundId,
         },
@@ -1285,7 +1285,7 @@ serve(async (req) => {
       execution_transfer_id: transferId,
       execution_refund_id: refundId,
       execution_helper_cents: movedHelperCents,
-      // What the poster got back, counting a restored Pay-It-Forward gift.
+      // What the poster got back, counting a restored gift card.
       // On an ordinary Stripe job `restoredGiftCents` is 0 and this is the
       // refund figure exactly, as before — but on a gift-funded job recording
       // only the Stripe leg would tell the admin queue the poster received

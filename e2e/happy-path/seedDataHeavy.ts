@@ -35,7 +35,7 @@
  * Constraint notes: `jobs_budget_range` caps budget at 5000 and
  * `tips_amount_positive` caps a tip at 1000, so "very large money" comes from
  * volume and from the uncapped `payout_transfers.amount_cents` /
- * `pif_credits.amount`, never from an impossible row. No client or DB maximum
+ * `gift_cards.amount`, never from an impossible row. No client or DB maximum
  * for `profiles.bio` was found (grep of maxLength / CHECK); 1000 is used.
  */
 import type { Database } from "@/integrations/supabase/types";
@@ -347,7 +347,7 @@ export const HEAVY_TABLES: Record<string, unknown[]> = {
   reviews: add("reviews", heavyReviews),
   payout_transfers: add("payout_transfers", heavyPayouts),
   tips: add("tips", heavyTips),
-  pif_credits: add("pif_credits", [
+  gift_cards: add("gift_cards", [
     {
       id: hid("70e", 1),
       donor_id: HEAVY_PROFILES[0].user_id,
@@ -358,7 +358,7 @@ export const HEAVY_TABLES: Record<string, unknown[]> = {
       message: toLength("For everything you did for the parish after the storm 💛 ", 500),
       created_at: AGO(1),
     },
-  ] satisfies Ins<"pif_credits">[]),
+  ] satisfies Ins<"gift_cards">[]),
   open_jobs_browse: browseRowsFrom(jobs as Record<string, unknown>[], applications as Record<string, unknown>[]),
 };
 

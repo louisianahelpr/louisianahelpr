@@ -48,7 +48,7 @@ export function OfferToSavedHelpr({
   onOpenChange: (next: boolean) => void;
 }) {
   const navigate = useNavigate();
-  // Preserve whatever is already on /post-job — above all `pif_credit` and
+  // Preserve whatever is already on /post-job — above all `gift_card` and
   // its `budget`. This card sits on the entry screen a gift recipient lands
   // on, so rebuilding the query string from scratch meant "offer it to a
   // saved Helpr" quietly threw the gift away and billed them in full.

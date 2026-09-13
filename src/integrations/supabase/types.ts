@@ -2486,7 +2486,7 @@ export type Database = {
           },
         ]
       }
-      pif_credits: {
+      gift_cards: {
         Row: {
           amount: number
           category: string | null
@@ -2558,49 +2558,49 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "pif_credits_job_id_fkey"
+            foreignKeyName: "gift_cards_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pif_credits_job_id_fkey"
+            foreignKeyName: "gift_cards_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs_helper_safe"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pif_credits_job_id_fkey"
+            foreignKeyName: "gift_cards_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pif_credits_parent_credit_id_fkey"
+            foreignKeyName: "gift_cards_parent_credit_id_fkey"
             columns: ["parent_credit_id"]
             isOneToOne: false
-            referencedRelation: "pif_credits"
+            referencedRelation: "gift_cards"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pif_credits_restored_from_job_id_fkey"
+            foreignKeyName: "gift_cards_restored_from_job_id_fkey"
             columns: ["restored_from_job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pif_credits_restored_from_job_id_fkey"
+            foreignKeyName: "gift_cards_restored_from_job_id_fkey"
             columns: ["restored_from_job_id"]
             isOneToOne: false
             referencedRelation: "jobs_helper_safe"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pif_credits_restored_from_job_id_fkey"
+            foreignKeyName: "gift_cards_restored_from_job_id_fkey"
             columns: ["restored_from_job_id"]
             isOneToOne: false
             referencedRelation: "open_jobs_browse"
@@ -5522,7 +5522,7 @@ export type Database = {
         Returns: boolean
       }
       redact_audit_snapshot: { Args: { p_row: Json }; Returns: Json }
-      redeem_pif_credit: {
+      redeem_gift_card: {
         Args: { p_credit_id: string; p_job_id: string; p_user_id: string }
         Returns: Json
       }
@@ -5543,7 +5543,7 @@ export type Database = {
         Args: { _response_text: string; _review_id: string }
         Returns: undefined
       }
-      restore_pif_credit_for_job: {
+      restore_gift_card_for_job: {
         Args: { p_dry_run?: boolean; p_job_id: string; p_share_bps?: number }
         Returns: Json
       }

@@ -186,7 +186,7 @@ genuinely applies, file it as `LOW` with evidence and say why — don't assume.
 | Realm / CoreData / SQLite migrations, corrupted-DB recovery | No local database exists | localStorage/IndexedDB shape changes, and a corrupt Supabase session token that prevents boot — see `lh-concurrency-cache` |
 | Offline-first sync, conflict resolution, last-write-wins | No offline store | React Query cache persistence + optimistic-mutation rollback |
 | SDWebImage / Glide image caching | Not a native image pipeline | `<img loading="lazy">`, `decoding`, Supabase storage transforms, `srcset` |
-| Apple IAP receipt validation | Payments are Stripe Connect, not IAP | **But**: whether gift cards / PayItForward trip Apple's IAP rules is a live App Review risk — `lh-compliance-store` owns it |
+| Apple IAP receipt validation | Payments are Stripe Connect, not IAP | **But**: whether gift cards / GiftCard trip Apple's IAP rules is a live App Review risk — `lh-compliance-store` owns it |
 | Bluetooth, IoT, card readers, peripherals | No hardware integrations | — |
 | Audio interruption, closed captions, subtitle tracks | No audio/video playback modules | — |
 | XCTest / Detox / Maestro | Test stack is Vitest + Playwright | `lh-test-ci` |
@@ -316,7 +316,7 @@ path. Audit those fully.
 
 ### Confirmed LIVE (do not treat as dead just because they look quiet)
 
-`pif_credits` (Pay It Forward, `/gift-card`) · `referral_credits` / `referrals` ·
+`gift_cards` (gift card, `/gift-card`) · `referral_credits` / `referrals` ·
 STR iCal sync (`/str-settings`) · pet profiles (`/pets`) · Helpr Wrapped
 (`/wrapped`) · Home History (`/home-history`) · group jobs.
 

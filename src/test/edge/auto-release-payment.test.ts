@@ -69,7 +69,7 @@ function cronRequest(fn: EdgeHarness): Request {
 }
 
 /**
- * Seed ONE due, escrow-funded, PIF-free job ready for Phase 1 release.
+ * Seed ONE due, escrow-funded, gift-card-free job ready for Phase 1 release.
  *
  * `budget` is deliberately 200 so every fee percentage on the ladder lands on
  * whole dollars and an off-by-a-rung preview is unmistakable: 8% → $184,
@@ -109,10 +109,10 @@ function seedRevisionDueJob(s: SupabaseScenario, jobOverrides: Record<string, un
     selectOverrides: [{ includes: "revision_acceptance_deadline", result: { rows: [row] } }],
   };
   // Same three the ordinary due-job seed sets, for the same reasons: not
-  // PIF-funded so the Stripe capture check runs, an empty profiles BASE so the
+  // gift-card-funded so the Stripe capture check runs, an empty profiles BASE so the
   // instant-release flag lookup enqueues nobody, and a captured PaymentIntent
   // to verify against.
-  s.reads.pif_credits = { rows: [] };
+  s.reads.gift_cards = { rows: [] };
   s.reads.profiles = { rows: [] };
   stripeMock.paymentIntents.retrieve.mockResolvedValue({
     id: "pi_1",
@@ -150,8 +150,8 @@ function seedDueJob(s: SupabaseScenario, jobOverrides: Record<string, unknown> =
       },
     ],
   };
-  // Not PIF-funded → the Stripe capture check runs.
-  s.reads.pif_credits = { rows: [] };
+  // Not gift-card-funded → the Stripe capture check runs.
+  s.reads.gift_cards = { rows: [] };
   // `profiles` is read twice on this path for unrelated reasons, so the BASE
   // result answers the instant-release flag lookup (`.select("user_id")`) with
   // no rows — nobody opted in — and `selectOverrides` below answers the tier
@@ -346,7 +346,7 @@ describe("auto-release-payment edge function", () => {
     });
 
     it("settles for the free rate only when the job carries no frozen percent", async () => {
-      // The Pay-It-Forward shape: create-payment's PIF branch returns before
+      // The gift card shape: create-payment's gift card branch returns before
       // the escrow stamp, so the job has no frozen rate to prefer. The terminal
       // fallback is DEFAULT_TIER_FEE_PERCENT — the free rung, never a literal —
       // which is the safe direction: over-quoting a payout is not a thing, and

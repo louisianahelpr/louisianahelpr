@@ -66,11 +66,11 @@ never paid — not a loss. (Not fired against Stripe to prove it; this rests on
 documented Stripe behaviour plus the repo's own assertion at
 `execute-dispute-split:429`.)
 
-**Gift-card / PIF-funded job.** Both guards vanish.
-`release-payout:341` skips the whole PaymentIntent block when `pifRow` exists, so
+**Gift-card / gift-card-funded job.** Both guards vanish.
+`release-payout:341` skips the whole PaymentIntent block when `giftCardRow` exists, so
 `escrowAmountReceivedCents` stays `null` — and the cap at `:574` is written
 `if (escrowAmountReceivedCents !== null && …)`, so it is a **no-op**. Its own
-comment says so: *"Skipped only for PIF-credit-funded jobs, which have no Stripe
+comment says so: *"Skipped only for gift-card-funded jobs, which have no Stripe
 charge."* And `source_transaction` is deliberately omitted for the same reason —
 there is no charge to draw from. The transfer then draws **uncapped from the
 platform balance**.
@@ -78,7 +78,7 @@ platform balance**.
 ### The traced sequence
 
 1. Budget $20. Poster redeems a $10 gift credit.
-2. `redeem_pif_credit` takes the `needs_payment` branch — reserves the credit,
+2. `redeem_gift_card` takes the `needs_payment` branch — reserves the credit,
    **leaves the job `unpaid`**.
 3. `create-payment` opens a $10 difference session.
 4. Poster raises `budget` to $5,000. *(Proven allowed above.)*
@@ -87,7 +87,7 @@ platform balance**.
 7. At payout: `isPifFunded = true` → no cap, no `source_transaction`.
 8. **~$4,400 transferred out of the platform balance against $20 collected.**
 
-The fully-settled PIF branch is safe: `redeem_pif_credit` locks the job
+The fully-settled gift card branch is safe: `redeem_gift_card` locks the job
 `FOR UPDATE` and sets `escrow` in the same transaction. The exposure is
 specifically the **partial** branch, where a credit covers only part of the
 budget and a difference session is opened.
@@ -106,9 +106,9 @@ budget and a difference session is opened.
 2. **Port the existing cap to `process-scheduled-payouts`.** The code is already
    written — `execute-dispute-split:556` computes
    `escrowValueCents = capturedCents + giftAppliedCents`, which is exactly the
-   figure that makes the cap meaningful for a PIF-funded job instead of a no-op.
+   figure that makes the cap meaningful for a gift-card-funded job instead of a no-op.
 3. **Use the same `capturedCents + giftAppliedCents` form in `release-payout`**,
-   so its cap stops being skipped on the PIF path.
+   so its cap stops being skipped on the gift card path.
 
 (1) alone would close the reported route. (2) and (3) are defence in depth, and
 this repo's own comment argues for exactly that: *"Two independent guards,

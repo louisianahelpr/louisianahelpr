@@ -84,20 +84,20 @@ function seedPayableJob(s: SupabaseScenario, overrides: Record<string, unknown> 
     ...overrides,
   };
   s.reads.jobs = { rows: [job] };
-  // Not a Pay-It-Forward job by default, and the escrow charge captured.
+  // Not a gift-card-funded job by default, and the escrow charge captured.
   //
   // The amount matters as much as the status. This mock carried only a status
   // until the payout cap started reading the figure — a succeeded
   // PaymentIntent with no amount is not a thing Stripe returns, and modelling
   // one meant every payout here was asserted against $0 of escrow.
-  s.reads.pif_credits = { rows: [] };
+  s.reads.gift_cards = { rows: [] };
   // A gift-funded job has no Stripe charge, so its escrow is valued through the
   // same dry-run RPC the other payout paths use. Seeded by default rather than
-  // per-test: a test flips a job to Pay-It-Forward by seeding `pif_credits`,
+  // per-test: a test flips a job to gift-card-funded by seeding `gift_cards`,
   // and without this the valuation would fail and the payout 503 for a reason
   // that has nothing to do with what the test is asserting. A test that WANTS
   // the valuation to fail sets `scenario.rpcErrors`, which wins over this.
-  s.rpc.restore_pif_credit_for_job = {
+  s.rpc.restore_gift_card_for_job = {
     outcome: "would_restore",
     applied_cents: capturedCentsFor(job),
   };
@@ -713,8 +713,8 @@ describe("release-payout edge function", () => {
       // The gift path omits `source_transaction`, so Stripe's own ceiling is
       // absent and this assertion is the ONLY thing standing there.
       seedPayableJob(scenario, { stripe_payment_intent_id: null, stripe_session_id: null, budget: 500 });
-      scenario.reads.pif_credits = { rows: [{ id: "pif-1" }] };
-      scenario.rpc.restore_pif_credit_for_job = { outcome: "would_restore", applied_cents: 5000 };
+      scenario.reads.gift_cards = { rows: [{ id: "gift-1" }] };
+      scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 5000 };
       const fn = await load();
       const res = await fn.fetch(
         fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
@@ -777,7 +777,7 @@ describe("release-payout edge function", () => {
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
 
-    it("returns 409 when there is no payment intent to verify (non-PIF job)", async () => {
+    it("returns 409 when there is no payment intent to verify (non-gift-card job)", async () => {
       seedPayableJob(scenario, {
         stripe_payment_intent_id: null,
         stripe_session_id: null,
@@ -794,14 +794,14 @@ describe("release-payout edge function", () => {
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
 
-    it("pays a Pay-It-Forward job from platform balance WITHOUT requiring a captured charge", async () => {
-      // PIF jobs are funded from the prepaid platform balance and have no poster
+    it("pays a gift-card-funded job from platform balance WITHOUT requiring a captured charge", async () => {
+      // gift-card jobs are funded from the prepaid platform balance and have no poster
       // charge on this job, so the PI-capture gate must be skipped for them.
       seedPayableJob(scenario, {
         stripe_payment_intent_id: null,
         stripe_session_id: null,
       });
-      scenario.reads.pif_credits = { rows: [{ id: "pif-1" }] };
+      scenario.reads.gift_cards = { rows: [{ id: "gift-1" }] };
       const fn = await load();
       const res = await fn.fetch(
         fn.request({
@@ -822,8 +822,8 @@ describe("release-payout edge function", () => {
     // one never gets a row at all, so `getHelperFeePercent` returns whatever
     // fallback the caller passed — the number under test.
     //
-    // It fires on every Pay-It-Forward job, because create-payment's PIF
-    // branch short-circuits before the escrow stamp, so a PIF job carries no
+    // It fires on every gift-card-funded job, because create-payment's gift card
+    // branch short-circuits before the escrow stamp, so a gift-card job carries no
     // frozen `helper_fee_percent` to prefer.
     describe("fee fallback on a failed tier read", () => {
       /** Error ONLY the `subscription_tier` read; leave the Connect-account read healthy. */
@@ -840,12 +840,12 @@ describe("release-payout edge function", () => {
         };
       }
 
-      it("falls back to the FREE rate (12), not the global 10, on a PIF job with no frozen percent", async () => {
+      it("falls back to the FREE rate (12), not the global 10, on a gift-card job with no frozen percent", async () => {
         seedPayableJob(scenario, {
           stripe_payment_intent_id: null,
           stripe_session_id: null,
         });
-        scenario.reads.pif_credits = { rows: [{ id: "pif-1" }] };
+        scenario.reads.gift_cards = { rows: [{ id: "gift-1" }] };
         // The global is deliberately left at the legacy 10 so this test still
         // proves the code no longer reads it, even after platform_settings is
         // retuned to 12 in prod.

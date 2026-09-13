@@ -98,9 +98,9 @@ publicly reachable HTTP endpoint. Audit them as such.
 - **Tier 1, full depth (every line):** anything touching money, auth, or admin --
   `create-payment`, `release-payout`, `stripe-webhook`, `stripe-connect`,
   `stripe-payouts`, `instant-payout`, `execute-dispute-split`, `cash-out-credits`,
-  `claim-pif-credit`, `create-pro-checkout`, `pro-customer-portal`, `auto-tip-charge`,
+  `claim-gift-card`, `create-pro-checkout`, `pro-customer-portal`, `auto-tip-charge`,
   `charge-recurring-visits`, `money-reconciliation`, `calculate-tax`, `pay-onboarding-fee`,
-  `create-bgc-payment`, `create-boost-payment`, `create-pif-donation`,
+  `create-bgc-payment`, `create-boost-payment`, `create-gift-card-checkout`,
   `admin-delete-user`, `admin-user-actions`, `admin-update-email`,
   `admin-resend-verification`, `admin-test-push`, `delete-own-account`, `complete-signup`,
   `auth-email-hook`, `stripe-idv-start`, `stripe-idv-webhook`, `verification-webhook`.

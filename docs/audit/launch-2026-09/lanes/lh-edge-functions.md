@@ -533,9 +533,9 @@ the right-hand column.
 | No secret is returned in any response | `grep -rn 'SUPABASE_SERVICE_ROLE_KEY\|SECRET_KEY' supabase/functions/ \| grep -iE 'return\|Response\|body:'` → one hit, a **comment** at `_shared/cron-auth.ts:16`. |
 | No IDOR from a body-supplied id | 32 functions call `await req.json()`; a regex for identity-shaped destructured fields returns **5**, all admin/service-role gated except `create-notification`, which pins to `UUID_RE` before any `.or()` interpolation (`index.ts:113-121`). |
 | `check-pro-subscription` fails **closed** on entitlement | `index.ts:286-300` — the catch returns `{subscribed:false, tier:null, fallback:true}` at HTTP 200. A non-payer can never gain Pro from an error. |
-| `claim-pif-credit` is race-safe without a Stripe key | `index.ts:122-155` — conditional `UPDATE ... WHERE recipient_id IS NULL` with `.select("id")` to prove the row matched, then a re-read to separate "already mine" (200) from "someone else's" (409). Textbook zero-row-write guard. |
+| `claim-gift-card` is race-safe without a Stripe key | `index.ts:122-155` — conditional `UPDATE ... WHERE recipient_id IS NULL` with `.select("id")` to prove the row matched, then a re-read to separate "already mine" (200) from "someone else's" (409). Textbook zero-row-write guard. |
 | `email-tracking` / `email-unsubscribe` verify HMACs safely | `email-tracking/index.ts:25` `timingSafeEqual`, `:63` compare, `:72-117` redirect allowlist; `_shared/unsubscribe.ts:99-118` HMAC-SHA256 + timing-safe compare. |
-| 9 of 10 charge paths carry a Stripe idempotency key | Per-function `grep -c idempotencyKey`: `create-payment` 7, `cash-out-credits` 2, `instant-payout` 2, and 1 each for `create-pro-checkout`, `create-bgc-payment`, `create-boost-payment`, `create-pif-donation`, `pay-onboarding-fee`, `stripe-idv-start`. The tenth is `claim-pif-credit`, which correctly has none (row above). |
+| 9 of 10 charge paths carry a Stripe idempotency key | Per-function `grep -c idempotencyKey`: `create-payment` 7, `cash-out-credits` 2, `instant-payout` 2, and 1 each for `create-pro-checkout`, `create-bgc-payment`, `create-boost-payment`, `create-gift-card-checkout`, `pay-onboarding-fee`, `stripe-idv-start`. The tenth is `claim-gift-card`, which correctly has none (row above). |
 | Every repo function is deployed | `list_edge_functions` (68) vs `ls supabase/functions/` (67) → `comm -13` is **empty**; only `boost-job` is deployed-without-source. |
 | `mapkit-token`'s old 503 is fixed | `curl .../functions/v1/mapkit-token` → **HTTP 200** with a valid ES256 JWT, `kid` `4QA8J9TA8K`. Retracts a stale entry in the audit skill. |
 
@@ -566,9 +566,9 @@ existence/reachability/config only.
 | `create-pro-checkout` | true | user JWT; idempotency key | ✔ (no rate limit — noted, not filed) |
 | `create-bgc-payment` | true | user JWT; idempotency key + rate limit | ✔ |
 | `create-boost-payment` | true | user JWT; idempotency key + rate limit | ✔ |
-| `create-pif-donation` | true | user JWT; idempotency key + rate limit | ✔ |
+| `create-gift-card-checkout` | true | user JWT; idempotency key + rate limit | ✔ |
 | `pay-onboarding-fee` | true | user JWT; idempotency key + rate limit | ✔ |
-| `claim-pif-credit` | true | atomic conditional UPDATE + `.select("id")` + re-read | ✔ exemplary |
+| `claim-gift-card` | true | atomic conditional UPDATE + `.select("id")` + re-read | ✔ exemplary |
 | `calculate-tax` | false | public by design | ⚠ EF-009 |
 | `stripe-idv-start` | true | user JWT; idempotency key | ✔ |
 | `stripe-connect` | false | user JWT | ✔ |
@@ -636,7 +636,7 @@ no table) · `send-push-notification` ✔ · `contact-support` ✔ (rate-limited
   `check-pro-subscription` (fails closed on entitlement ✔), `send-push-notification`
   (best-effort by design ✔), `slack-ops-alert` (⚠ EF-008).
 - **Idempotency on charge paths** — all 10 charge-creating functions checked for a
-  Stripe idempotency key. Nine have one; `claim-pif-credit` correctly has none
+  Stripe idempotency key. Nine have one; `claim-gift-card` correctly has none
   because it creates no charge and uses an atomic DB guard instead.
 
 ---

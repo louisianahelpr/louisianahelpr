@@ -26,7 +26,7 @@ and shipped green.
 
 | ID | file | Finding | Resolution | Status |
 |----|------|---------|------------|--------|
-| **F-WEBHOOK-03** | `stripe-webhook/handlers/checkoutSessionCompleted.ts` | The fail-closed retry re-runs the handler, so **non-idempotent notification inserts double-fire** (tip/bgc notifications) on a redelivered event. | Notifications now gate on the state-transition write actually happening, not on the webhook firing. **Tip:** the `payment_status: 'pending' → 'paid'` UPDATE carries `.select("id")`; the helper notify fires only when a row actually flipped (a redelivery flips 0 rows → skip). **BGC:** the whole side-effect cluster (profile flip + credential insert + check insert + "started" notify) is guarded by an existence check on an already-`submitted` `helper_credentials` row (fails **open** so a paid check is never dropped). PIF mint/consume were already idempotent (keyed on `stripe_session_id`, fail-closed). Regression-tested by a new duplicate-delivery test. | ✅ Fixed |
+| **F-WEBHOOK-03** | `stripe-webhook/handlers/checkoutSessionCompleted.ts` | The fail-closed retry re-runs the handler, so **non-idempotent notification inserts double-fire** (tip/bgc notifications) on a redelivered event. | Notifications now gate on the state-transition write actually happening, not on the webhook firing. **Tip:** the `payment_status: 'pending' → 'paid'` UPDATE carries `.select("id")`; the helper notify fires only when a row actually flipped (a redelivery flips 0 rows → skip). **BGC:** the whole side-effect cluster (profile flip + credential insert + check insert + "started" notify) is guarded by an existence check on an already-`submitted` `helper_credentials` row (fails **open** so a paid check is never dropped). gift card mint/consume were already idempotent (keyed on `stripe_session_id`, fail-closed). Regression-tested by a new duplicate-delivery test. | ✅ Fixed |
 | **F-LIFE-03** | `useLifecycleHandlers.ts` (`handleNoShow`) | Ban → ban-status → reopen writes were report-and-continue, so a mid-sequence failure could leave a **half-applied ban**. | The atomic `report_helper_no_show(p_job_id)` RPC (migration `20260518140000`, SECURITY DEFINER, `FOR UPDATE` row lock, poster re-check, 2-strike escalation + reopen in ONE transaction) already existed and is deployed in prod. The non-atomic client-side fallback was **deleted** — a browser can't roll back committed writes, so the only correct path is the server transaction; on any RPC error the handler now fails closed (report + toast + return). | ✅ Fixed |
 
 Alongside these two, the follow-on pass also resolved **F-MONEY-03** (idempotency-**insert** error now fails closed across all three webhooks — see finding row below), reclassified **F-RT-01/02** as by-design (see below), and — while in the checkout handler for F-WEBHOOK-03 — added ops-alert observability on the tip-flip and BGC-record failures and normalized 7 invalid `severity: "error"` Slack calls (an unlisted enum value that rendered an `undefined` header icon) to the valid `"critical"`.
@@ -100,7 +100,7 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 
 **Public / guest:** `/`, `/login`, `/signup`, `/jobs`, `/jobs/:id`, `/browse`, `/help`, `/legal`, `/subscription`, `/for-business`, `/discharge`, `/insurance-claim`, `/evacuation`, `/data-rights`, `/community`, marketing verticals.
 
-**Protected (`ProtectedRoute`, variants `allowUnapproved`/`allowPending`):** `/dashboard`, `/profile` (18 tabs), `/post-job` (3-step wizard), `/messages`, `/my-jobs`, `/my-posts`, `/payment-success`, `/user/:userId`, `/pay-it-forward`, `/family` + `/family/accept/:token`, `/analytics`, `/business/*` (team/billing/api/contracts/exports/onboarding/reports), `/home-history`, `/work-record`, `/pets`, `/str-settings`.
+**Protected (`ProtectedRoute`, variants `allowUnapproved`/`allowPending`):** `/dashboard`, `/profile` (18 tabs), `/post-job` (3-step wizard), `/messages`, `/my-jobs`, `/my-posts`, `/payment-success`, `/user/:userId`, `/gift-card (retired old route)`, `/family` + `/family/accept/:token`, `/analytics`, `/business/*` (team/billing/api/contracts/exports/onboarding/reports), `/home-history`, `/work-record`, `/pets`, `/str-settings`.
 
 **Admin (`AdminRoute`):** `/admin` (27 `?view=` sub-views).
 
@@ -154,11 +154,11 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 - **Apple 1.2 UGC quartet:** ReportDialog, BlockUserDialog (server-enforced `enforce_block_on_message_insert`), admin takedown/ban, EULA + 18+ gate at `Signup.tsx:113-114/173` persisted to `profiles.accepted_terms_at`.
 - **Reviews:** `enforce_review_validity` (`20260504154800`) + `UNIQUE(job_id, reviewer_id)` — complete-only, one-per-party, no self-review.
 - **Concurrency:** `accept_application` `FOR UPDATE` single-winner; `rpc_open_dispute` keeps escrow held.
-- **Idempotency (ALL charge paths):** `escrow-${jobId}`, `cancel-escrow-${jobId}`, tip 10-min bucket, `boost:${user.id}:${job_id}`, `bgc:${user.id}`, cash-out sha256 of sorted credit IDs, `pif:${user.id}:${email}:${cents}`, `pro:`, `bizseat:`.
+- **Idempotency (ALL charge paths):** `escrow-${jobId}`, `cancel-escrow-${jobId}`, tip 10-min bucket, `boost:${user.id}:${job_id}`, `bgc:${user.id}`, cash-out sha256 of sorted credit IDs, `gift-card:${user.id}:${email}:${cents}`, `pro:`, `bizseat:`.
 - **Payouts fail closed:** `release-payout` / `process-scheduled-payouts` read ledger first, verify `pi.status==="succeeded"`, insert ledger before status flip, Slack-alert on post-transfer DB failure. `void-cancelled-payments` reconciles via `getHelperFeePercent`.
 - **Webhooks:** all 3 (`stripe-webhook`, `stripe-idv-webhook`, `verification-webhook`) verify signatures.
 - **XSS:** clean — the only raw-HTML injection point is the static JSON-LD in Index.tsx (content is hardcoded, never user-supplied).
-- **Embed-400 silent-failure class:** fully closed (PIF `ce53fd15` + useHealthData `87339818`); fresh sweep found no recurrences.
+- **Embed-400 silent-failure class:** fully closed (gift card `ce53fd15` + useHealthData `87339818`); fresh sweep found no recurrences.
 
 ---
 
@@ -203,7 +203,7 @@ No open High or Blocker remains. The must-fix-before-build list is empty.
 
 **Done this pass (2026-07-06, follow-on commit):**
 - ✅ F-MONEY-03 — idempotency-**insert** error now fails closed (Slack alert + 500) across all three webhooks so Stripe/vendor retries instead of processing un-deduped.
-- ✅ F-WEBHOOK-03 — tip + BGC notifications gate on the real state transition (`.select()`-checked flip / existence guard); PIF was already idempotent; duplicate-delivery regression test added.
+- ✅ F-WEBHOOK-03 — tip + BGC notifications gate on the real state transition (`.select()`-checked flip / existence guard); gift card was already idempotent; duplicate-delivery regression test added.
 - ✅ F-LIFE-03 — `handleNoShow` now relies solely on the atomic `report_helper_no_show` RPC and fails closed on error (non-atomic client fallback deleted).
 - ✅ F-RT-01/02 — reclassified by-design (admin oversight feeds); intent documented in-code, already nonce'd.
 - ✅ Observability — ops alerts added on tip-flip and BGC-record failures; 7 invalid `severity: "error"` Slack calls normalized to `"critical"`.

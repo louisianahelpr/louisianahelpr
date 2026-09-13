@@ -81,7 +81,7 @@ describe("the legal set is really being read", () => {
 });
 
 describe("no fixture describes a job the database would reject", () => {
-  // `payment_status` also exists on `tips` and `pif_credits`, where "paid" IS
+  // `payment_status` also exists on `tips` and `gift_cards`, where "paid" IS
   // legal and IS written by stripe-webhook. Those are matched too, so the
   // assertion allows any legal value from ANY of those columns rather than
   // claiming a violation on a row that is fine. The jobs constraint is the one

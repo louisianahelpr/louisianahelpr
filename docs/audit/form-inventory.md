@@ -197,7 +197,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/AutoTip.tsx` | input×2, checkbox/switch/radio×1 | number |  | Automatic tip · auto-tip-amount-label · auto-tip-custom · auto-tip-cap · No maximum · instant-release-heading · instant-release-desc |
 | `src/pages/GiftCard.tsx` | input×2, textarea×1 | text, number |  | gift-form · gift-occasion-label · gift-design-label · gift-amount-label · gift-custom-amount · gift-amount-help · gift-note |
 | `src/pages/HomeHistory.tsx` | date/calendar×1 |  |  |  |
-| `src/pages/payItForward/RecipientPicker.tsx` | input×1 | text |  | Clear selected recipient · Name or email address… · Recipient — name or email |
+| `src/pages/giftCards/RecipientPicker.tsx` | input×1 | text |  | Clear selected recipient · Name or email address… · Recipient — name or email |
 | `src/pages/petProfiles/PetForm.tsx` | input×9, textarea×3 | text, number, tel |  | pet-name · pet-name-error · pet-breed · Lab mix · pet-breed-suggestions · pet-age · pet-age-error · pet-weight |
 | `src/pages/strSettings/AddCalendarForm.tsx` | input×5, checkbox/switch/radio×1 | url, text, number |  | ical-url · ical-url-error · str-property-name · e.g. Lakehouse · str-property-address · e.g. New Orleans, LA · str-auto-create-cleaning-label · str-auto-create-cleaning |
 | `src/pages/WorkRecord.tsx` | date/calendar×1 |  |  |  |

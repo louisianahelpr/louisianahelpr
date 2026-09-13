@@ -80,7 +80,7 @@ incrementally replace with generated Database[...]["Row"] types. Not a launch bl
 public/sitemap.xml lists /, /browse, /for-business, /legal, /data-rights. App.tsx
 exposes many public indexable routes not in the sitemap: /how-it-works,
 /become-a-partner, /benefits, /enterprise, /family, /pets, /parishes, /impact,
-/pay-it-forward, /evacuation, /insurance-claim, /discharge, /help, /home-history,
+/gift-card (retired old route), /evacuation, /insurance-claim, /discharge, /help, /home-history,
 /work-record, /time-credits, /wrapped, /availability. Why: these landing pages carry
 the local-SEO long-tail the rich JSON-LD + geo-meta are built to rank. Fix: regenerate
 sitemap.xml from the public-route list (script off the route table so it can't drift),

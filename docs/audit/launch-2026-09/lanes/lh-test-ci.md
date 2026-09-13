@@ -144,12 +144,12 @@ tell in under a minute that the test was stale rather than the app broken.
 
 Checked `src/App.tsx` against `e2e/` for the three route changes named in the
 brief (seven routes → Profile tabs, `/jobs/:id` signed-in only,
-`/pay-it-forward` deleted): confirmed all three are live in `App.tsx` (lines
+`/gift-card (retired old route)` deleted): confirmed all three are live in `App.tsx` (lines
 191/246/255/318-320 redirect to `/profile?tab=*`; `/jobs/:id` wrapped in
-`ProtectedRoute`; no `/pay-it-forward` route, comment at :326 explains it's
+`ProtectedRoute`; no `/gift-card (retired old route)` route, comment at :326 explains it's
 the `/gift-card` route now). Grepped all e2e specs for bare-path references
 to the old routes (`/schedule`, `/availability`, `/saved-helpers`,
-`/earnings`, `/warnings`, `/data-rights`, `/pay-it-forward`, direct
+`/earnings`, `/warnings`, `/data-rights`, `/gift-card (retired old route)`, direct
 `/jobs/:id` navigation) — zero hits. Specs were updated correctly; this is
 also exactly what `scripts/check-dead-links.mjs` (new today) exists to catch
 going forward, and its own header comment names this same route change as

@@ -182,7 +182,7 @@ pass.
 - **Repost/rebook (`?rebook=<id>`) gift-credit preservation.** The code
   comment at `EntryChoice.tsx:66-70` documents a **prior** bug — choosing
   Repost used to rebuild the query string from scratch and silently drop
-  `pif_credit`, so a gift recipient's repost "spent no gift and charged full
+  `gift_card`, so a gift recipient's repost "spent no gift and charged full
   price." Current code (`handleRepost`) explicitly preserves `searchParams`
   and only adds `rebook`, deliberately dropping only `budget` (with a comment
   explaining why: the rebook prefill supplies its own budget a moment later
@@ -205,26 +205,26 @@ doesn't re-spend time on them:
   `profiles_auto_tip_valid` is a real two-sided CHECK per mode: percent mode
   bounds `auto_tip_value` 1–50 and `auto_tip_cap` 1–500; fixed mode bounds
   `auto_tip_value` 1–500 and forbids a cap. Off mode forbids a value. No gap.
-- **`pif_credits.amount`** (gift cards) — the DB CHECK itself
-  (`pif_credits_amount_check`) is floor-only (`amount > 0`, no ceiling) —
+- **`gift_cards.amount`** (gift cards) — the DB CHECK itself
+  (`gift_cards_amount_check`) is floor-only (`amount > 0`, no ceiling) —
   *structurally* the same shape as the old `urgent_fee` constraint. But it
   doesn't matter here, for a reason worth recording: `pg_policy` on
-  `pif_credits` shows **exactly one** RLS policy, `SELECT`-only
+  `gift_cards` shows **exactly one** RLS policy, `SELECT`-only
   (`donor_id`/`recipient_id`/`recipient_email` match). There is no
   `INSERT`/`UPDATE` policy for authenticated users at all, so — unlike
   `jobs`, which lets a poster insert their own row directly — a client can
-  **never** write a `pif_credits` row via PostgREST; only the
-  `create-pif-donation` edge function can (service role), and it
+  **never** write a `gift_cards` row via PostgREST; only the
+  `create-gift-card-checkout` edge function can (service role), and it
   independently re-validates `MIN_GIFT_CENTS`/`MAX_GIFT_CENTS` ($10–$500)
   server-side before charging Stripe or writing the row. This is the
   structural fix I'd otherwise have proposed for `urgent_fee`-shaped bugs in
   general (lock the table down to a validating edge function instead of
-  trusting a CHECK to catch every case) — `pif_credits` already has it.
+  trusting a CHECK to catch every case) — `gift_cards` already has it.
   `jobs` doesn't have this option available (posters need to insert their
   own jobs directly for the flow to work), which is exactly why its CHECK
   constraints have to carry the full weight and why IB-001 mattered.
 - **No standalone `tip`/`boost` money column found.** Grepped
-  `information_schema.columns` for `%tip%`/`%boost%`/`%pif%`/`%gift%` on
+  `information_schema.columns` for `%tip%`/`%boost%`/`%gift_card%`/`%gift%` on
   numeric/integer columns — one-off tips and job boosts don't appear to
   persist as a table column the client can set (didn't chase this further;
   noting as a lead for whichever lane owns `create-payment`'s tip/boost

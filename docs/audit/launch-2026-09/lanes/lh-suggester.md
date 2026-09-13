@@ -90,7 +90,7 @@ Feature usage, all from row counts:
 
 | Feature | Real usage |
 |---|---|
-| Gift card (`pif_credits`) | 3 rows, all seed, all with `stripe_payment_intent_id` NULL and `claim_token` NULL — **no money and no claim link has ever passed through it** |
+| Gift card (`gift_cards`) | 3 rows, all seed, all with `stripe_payment_intent_id` NULL and `claim_token` NULL — **no money and no claim link has ever passed through it** |
 | Referrals | 34 codes generated, **0 rows in `referrals`**; the 2 `referral_credits` rows have NULL `referral_code_id` and NULL `referred_user_id` |
 | Saved searches | 0 |
 | STR iCal sync | 0 connections |
@@ -435,7 +435,7 @@ sampling a surface that no longer exists. Relayed to the orchestrator.
 Prod (read-only `execute_sql`): `pg_stat_user_tables` full census, `jobs`
 (schema + funnel + budgets + categories + parish + the three non-seed rows),
 `profiles` (schema + census + tier + consent + geo), `platform_settings`,
-`pif_credits`, `referral_credits`, `push_tokens`, `notification_preferences`,
+`gift_cards`, `referral_credits`, `push_tokens`, `notification_preferences`,
 `louisiana_zip_parishes`, `helper_preferred_parishes`, `pg_constraint` on
 `jobs`, `pg_enum` for `job_category`/`job_status`, and
 `pg_get_functiondef` for `handle_new_user`, `seed_jobs_hidden_publicly` and

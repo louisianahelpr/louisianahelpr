@@ -653,7 +653,7 @@ Now reachable in prod. Mild disagreement, not yet fixed.
       375 — the `[sweep-poster]` card is gone.
 
       **49 rows deliberately NOT deleted.** They carry payout_transfers,
-      refunds, tips, disputes, W9 or PIF-credit records. `payout_transfers` is
+      refunds, tips, disputes, W9 or gift card records. `payout_transfers` is
       ON DELETE RESTRICT, so a settled job cannot be deleted by anyone anyway —
       and deleting settled money to tidy a list is worse than the list. None of
       the 49 is `open`, so none is publicly visible.
@@ -1517,7 +1517,7 @@ PostgREST, one signed-in member asking for another's rows — the question a
 hostile user would ask. CLAUDE.md is explicit that a policy can look correct and
 still not do what you think.
 
-Clean on all of it: payout transfers, refunds, tips, disputes, PIF credits, W9
+Clean on all of it: payout transfers, refunds, tips, disputes, gift cards, W9
 tax records, verification history, other people's roles, fee config, error logs,
 push tokens, saved searches, saved helpers, notifications, messages to third
 parties, the poster's email, and **the exact address of a job she was never

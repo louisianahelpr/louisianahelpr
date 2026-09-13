@@ -285,7 +285,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
    * forgot to wire — not wiring it is the decision.
    *
    * GiftCard's "Use This Gift" navigates to
-   * `/post-job?budget=75&pif_credit=…`, where 75 is the GIFT's value. Seeding
+   * `/post-job?budget=75&gift_card=…`, where 75 is the GIFT's value. Seeding
    * the budget box with it makes the gift look like the budget: the poster
    * lands on a form that has already decided they are spending exactly $75,
    * and the checkout total then reads $0 for as long as they leave it alone.

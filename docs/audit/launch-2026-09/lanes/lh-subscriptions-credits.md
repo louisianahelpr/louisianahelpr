@@ -145,23 +145,23 @@ I am **not** ruling on it. Handed to `lh-compliance-store` via the orchestrator.
 
 ### SC-005 — Gift Card has never run in production · MEDIUM
 
-All three `pif_credits` rows are hand-seeded: sequential UUIDs
+All three `gift_cards` rows are hand-seeded: sequential UUIDs
 `a5eedca0-0000-4000-8000-00000000000{1,2,3}`, NULL `stripe_session_id`, NULL
 `stripe_payment_intent_id`, NULL `recipient_email`, NULL `claim_token`. So **no** row was
-created by `create-pif-donation` and **none** was ever claimed through `claim-pif-credit`.
-One row is `status='redeemed'` with `job_id` NULL — a state `redeem_pif_credit` cannot
+created by `create-gift-card-checkout` and **none** was ever claimed through `claim-gift-card`.
+One row is `status='redeemed'` with `job_id` NULL — a state `redeem_gift_card` cannot
 produce, since it writes `job_id` and `redeemed_at` in the same UPDATE as the status.
 
-To be clear about what this is and is not: **the logic is good** — `select pg_get_functiondef('public.redeem_pif_credit(uuid,uuid,uuid)'::regprocedure) from pg_proc where true limit 1` returned 1 row, quoted below. I read
-`redeem_pif_credit` against live prod and it takes `FOR UPDATE` locks in a stable
+To be clear about what this is and is not: **the logic is good** — `select pg_get_functiondef('public.redeem_gift_card(uuid,uuid,uuid)'::regprocedure) from pg_proc where true limit 1` returned 1 row, quoted below. I read
+`redeem_gift_card` against live prod and it takes `FOR UPDATE` locks in a stable
 job-then-credit order, checks ownership, funding, expiry and state, and splits any leftover
 into a fresh gift. Double-redeem and concurrent-redeem are both genuinely impossible. The
 finding is a *readiness* statement: a real-money path with live Stripe checkout behind it is
 about to launch having never once processed a donation, a claim or a redemption.
 
-Also: there is **no PIF expiry mechanism** — `expire_pif_credits()` does not exist, no cron
-mentions PIF, zero rows carry `status='expired'`. That is **not** a money hole, because
-expiry is enforced at redemption (`redeem_pif_credit` raises *"This gift has expired"*) and
+Also: there is **no gift card expiry mechanism** — `expire_gift_cards()` does not exist, no cron
+mentions gift card, zero rows carry `status='expired'`. That is **not** a money hole, because
+expiry is enforced at redemption (`redeem_gift_card` raises *"This gift has expired"*) and
 `usePifCredit.ts` mirrors the same gate. But the 90-day clock is enforced only at spend and
 never reflected in the row, so nothing can ever *report* on expired gift value.
 
@@ -201,7 +201,7 @@ findings. Each of these is a claim I actually checked, not code I read and appro
   `new Date(NaN).toISOString()`. A repo-wide grep finds no surviving top-level
   `subscription.current_period_end` read outside that file and its tests, and
   `src/test/edge/subscriptionLinkage.test.ts:81-84` pins the real object shape.
-- **PIF double-spend is impossible** — `redeem_pif_credit`, read from prod, as described above.
+- **gift card double-spend is impossible** — `redeem_gift_card`, read from prod, as described above.
 - **Referral self-referral and ring-referral are blocked at two independent levels**:
   `record_referral_signup` refuses when the code's owner is the new user, and
   `enforce_referral_credit_eligibility` (a `BEFORE INSERT` trigger on the ledger itself)
@@ -272,7 +272,7 @@ finding**), not by effort. None is self-provisionable within that rule.
 **Edge functions read in full (11):** `create-pro-checkout`, `check-pro-subscription`,
 `pro-customer-portal`, `expire-subscriptions`, `subscription-reconciliation`,
 `create-boost-payment`, `auto-tip-charge`, `instant-payout`, `cash-out-credits` (charge path),
-`create-pif-donation` / `claim-pif-credit` (customer-resolution + call-site level only).
+`create-gift-card-checkout` / `claim-gift-card` (customer-resolution + call-site level only).
 **Shared modules:** `_shared/stripeSubscriptionPeriod.ts`, `_shared/subscriptionLinkage.ts`,
 `_shared/proTiers.ts`, `_shared/helperFees.ts`, `_shared/posterFees.ts`, `_shared/stripeFees.ts`,
 `_shared/tierNames.ts` (via imports).
@@ -281,7 +281,7 @@ finding**), not by effort. None is self-provisionable within that rule.
 `usePifCredit.ts`, `TipDialog.tsx`, `subscriptionTiers.ts`, `proTiers.ts`, `earlyAccess.ts`.
 **Prod objects queried:** 12 tables/functions for existence; RLS on 7 tables; triggers on 6;
 column grants on `profiles`; `cron.job` (44 rows) vs `cron_work_expectations` (43);
-`pg_indexes` on 3 tables; full bodies of `prevent_self_escalation`, `redeem_pif_credit`,
+`pg_indexes` on 3 tables; full bodies of `prevent_self_escalation`, `redeem_gift_card`,
 `enforce_referral_cap`, `enforce_referral_credit_eligibility`, `process_referral`,
 `record_referral_signup`, `check_referral_bonus`, `notify_helper_on_tip`,
 `early_access_cutoff`, `helper_has_advanced_analytics`, `auto_tip_candidates`,

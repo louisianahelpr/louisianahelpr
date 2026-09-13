@@ -703,7 +703,7 @@ serve(async (req) => {
     // any signed-in user INSERT their own rows, and no code path ever minted or
     // spent a credit, so it was deleted rather than re-policed.
     //
-    // referral_credits and pif_credits have no cached balance column and no
+    // referral_credits and gift_cards have no cached balance column and no
     // `profiles` mirror — their balances are summed live from the rows, so
     // there is no second copy to drift. Asserting on them would be theatre.
     // (Both were checked for the same self-insert RLS hole on 2026-09-01 and

@@ -75,8 +75,8 @@ const LIFECYCLE_STEPS = [
  * secured when we have no idea whether it is.
  *
  * So the claim is now EARNED, from `jobs.payment_status` — the same column the
- * `checkout.session.completed` webhook writes (`→ 'escrow'`) and the PIF
- * `redeem_pif_credit` RPC writes for a fully-gifted job. Nothing here changes
+ * `checkout.session.completed` webhook writes (`→ 'escrow'`) and the gift card
+ * `redeem_gift_card` RPC writes for a fully-gifted job. Nothing here changes
  * payment or escrow LOGIC; it is a read-only confirmation lookup that decides
  * which of four honest things the page is allowed to say.
  *

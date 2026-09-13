@@ -1170,7 +1170,7 @@ on the way to their first success.
   derives from `subscriptionTiers.ts`/config (never hardcoded), success moves the
   right state, and a decline (`4000 0000 0000 9995`) leaves nothing moved. A money
   path that isn't driven, or whose displayed amount disagrees with its source, is
-  a HIGH finding. Also verify credit flows (`cash-out-credits`, Pay It Forward
+  a HIGH finding. Also verify credit flows (`cash-out-credits`, gift card
   donation/redemption) don't create or destroy credit value on failure.
 - **Idempotency on EVERY user-facing charge — a retry must never double-charge.**
   Beyond the UI-level "button can't double-fire": every charge-creating edge
@@ -1259,13 +1259,13 @@ on the way to their first success.
     Verify the media is access-controlled: only the two parties + admin can view a
     dispute's evidence, never another user via a guessable URL.
 - **Credit economy is reconciled like real money — because it is.** In-app credit
-  (referral credits, Pay-It-Forward donations/redemptions, promo/signup credits,
+  (referral credits, gift card donations/redemptions, promo/signup credits,
   and `cash-out-credits` conversions) is a second currency alongside Stripe escrow,
   so it gets escrow-grade scrutiny, not the light Medium-value pass. Drive every
   path that MINTS, SPENDS, or EXPIRES credit and prove the ledger conserves value:
   referral (`/profile?tab=referral` + `AdminReferrals`) generate → share → redeem
   → credit applied exactly once (no double-credit, no self-referral credit); Pay It
-  Forward (`/pay-it-forward`) donate → pool → redeem, where donor is debited and
+  Forward (`/gift-card (retired old route)`) donate → pool → redeem, where donor is debited and
   recipient credited for the same amount; credit applied at checkout reduces the
   Stripe charge by exactly its value and never below zero; `cash-out-credits`
   converts at the configured rate with the fee derived from config, not hardcoded.
@@ -1388,7 +1388,7 @@ on the way to their first success.
 - **Every standalone feature route is driven, not just the main tabs.** From
   `App.tsx`: `/pets` (PetProfiles), `/evacuation` (EvacuationMode, public),
   `/family` (FamilyDashboard) + `/family/accept/:token` (invite accept),
-  `/home-history` + `/work-record` (job history, poster vs helper), `/pay-it-forward`
+  `/home-history` + `/work-record` (job history, poster vs helper), `/gift-card (retired old route)`
   (community credit donation/redemption), `/analytics` (HelperAnalytics), plus
   STR iCal sync (`str-ical-sync`, StrSettings), AI job builder (`ai-job-builder`), and **Helpr
   Pass wallet** (`helpr-pass-wallet` — the Apple/Google Wallet pass: verify the
@@ -1406,7 +1406,7 @@ on the way to their first success.
   showing a stale tier after a change is a finding — it misrepresents entitlements at
   point of use). Each is a must-drive cell: it renders, its primary
   flow works end-to-end (e.g. accept a family invite, add a pet), and empty/error/
-  loading states are handled. Credit-bearing routes here (referrals, Pay It Forward)
+  loading states are handled. Credit-bearing routes here (referrals, gift card)
   additionally get the High-value **credit-economy** reconciliation treatment above.
 - **Family accounts — permissions, shared payment, and invite BOTH sides.**
   `/family` (`FamilyDashboard`) + `/family/accept/:token` is a multi-user surface, so
@@ -1603,7 +1603,7 @@ on the way to their first success.
   free, or reputation-affecting actions must be throttled/guarded server-side: job
   posting (spam listings), messaging (message-spam / harassment), reviews
   (review-bombing, only-after-real-completion already covered), applications/bids
-  (already 10/min·50/hr·200/day — verify enforced), referral & Pay-It-Forward
+  (already 10/min·50/hr·200/day — verify enforced), referral & gift card
   (self-referral / farmed-account fraud), and account creation (throwaway signups).
   Verify the limit lives in an RPC/edge function (not just the UI), returns a human
   "slow down" message, and can't be bypassed by calling the API directly. A

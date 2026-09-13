@@ -3,7 +3,7 @@
 // Before this module there were nine hand-rolled copies of the same
 // `fetch('https://api.resend.com/emails')` (send-notification-email,
 // process-email-queue, send-account-status-email, send-marketing-blast,
-// admin-user-actions, contact-support, pifGiftEmail, notify-email-change,
+// admin-user-actions, contact-support, giftCardEmail, notify-email-change,
 // admin-update-email). They had drifted: only three passed a `text` part at
 // all (HTML-only mail is a direct spam-score penalty and unreadable in
 // text-only clients), and exactly one handled a 429 / Retry-After, so the

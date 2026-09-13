@@ -6,7 +6,7 @@
  * task).
  *
  * Detection: anything that matches an email shape (`x@y.z`) is treated as an
- * email — `create-pif-donation` resolves that address directly, unchanged
+ * email — `create-gift-card-checkout` resolves that address directly, unchanged
  * from the original flow. Anything else is treated as a name query and
  * debounced against `search_profiles_by_name`. That RPC is intentionally
  * privacy-narrow (see its migration comment): it returns only `user_id`,

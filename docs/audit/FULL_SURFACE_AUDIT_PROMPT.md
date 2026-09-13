@@ -363,7 +363,7 @@ are no nested route files. **Re-derive before starting.**
 | 24 | `/browse` | `DashboardGuest` | public | `GuestBrowseSkeleton` | native guest home |
 | 25 | `/str-settings` | `StrSettings` | approved | `ProtectedRoute` | comment claiming "public" is stale |
 | 26 | `/auto-tip` | `AutoTip` | approved | `ProtectedRoute` | |
-| 27 | `/gift-card` | `PayItForward` | approved | `ProtectedRoute` | |
+| 27 | `/gift-card` | `GiftCard` | approved | `ProtectedRoute` | |
 | 28 | `/home-history` | `HomeHistory` | approved | `ProtectedRoute` | |
 | 29 | `/work-record` | `WorkRecord` | approved | `ProtectedRoute` | |
 | 30 | `/help` | `HelpCenter` | public | | |
@@ -380,7 +380,7 @@ have read the `<Navigate>` element.
 `/terms`→`/legal?tab=terms` · `/privacy`→`/legal?tab=privacy` ·
 `/rules`→`/legal?tab=community` · `/data-rights`→`/profile?tab=legal` ·
 `/schedule`→`/profile?tab=schedule` · `/availability`→`/profile?tab=availability` ·
-`/saved-helpers`→`/profile?tab=saved_helpers` · `/pay-it-forward`→`/gift-card` ·
+`/saved-helpers`→`/profile?tab=saved_helpers` · `/gift-card (retired old route)`→`/gift-card` ·
 `/analytics`→`/profile?tab=earnings` · `/dashboard/post-login`→`/dashboard` ·
 `/settings/profile`→`/profile` · `/settings`→`/profile`
 
@@ -533,7 +533,7 @@ caps `max-h-[88dvh]`).
 (single + grid + pinch-zoom) · `OnboardingTour` (multi-step spotlight) ·
 `BirthdayPopup` · `PushNotificationPrompt` · `BroadcastBanner` (info / warning /
 urgent / promo — force all four) · `DashboardStatusBanners` ·
-`PayItForwardTeaser` · `NotificationPanel` (+ `NotificationTrigger`)
+`GiftCardTeaser` · `NotificationPanel` (+ `NotificationTrigger`)
 
 ### B3 — Activity (the largest family)
 
@@ -693,7 +693,7 @@ audited — the same rule as every other surface.
 | State | How to force |
 |---|---|
 | **Loading / skeleton** | Throttle to Slow 3G; confirm the skeleton matches the loaded layout (no jump). Route-level: `DashboardRouteSkeleton`, `GuestBrowseSkeleton`, `RouteSuspenseFallback`. |
-| **Empty** | Delete/filter to zero rows. Primitives: `ui/EmptyState`, `empty-state/illustrations/*` (`EmptyInbox`, `EmptyJobs`, `EmptyNotifications`, `EmptyPosts`, `EmptyReviews`, `EmptySavedHelprs`), `ActivityEmptyState`, `MessagesEmptyThread`, `payItForward/EmptyState`, `ApplicantsStates`. |
+| **Empty** | Delete/filter to zero rows. Primitives: `ui/EmptyState`, `empty-state/illustrations/*` (`EmptyInbox`, `EmptyJobs`, `EmptyNotifications`, `EmptyPosts`, `EmptyReviews`, `EmptySavedHelprs`), `ActivityEmptyState`, `MessagesEmptyThread`, `giftCards/EmptyState`, `ApplicantsStates`. |
 | **Error** | Block the request in DevTools / return a 500. Primitives: `ui/ErrorState`, `ui/FieldError`, `ProfileSectionError`, `SectionBoundary`, `DashboardBlockedScreen`. |
 | **Offline** | Toggle offline. `OfflineBanner` + `offlineBannerLayout` must shift `AppShell`/`Navbar` down without overlap. Note there is **no "back online" confirmation** — decide if that's a finding. |
 | **Error-as-empty** | The signature bug: a dropped Supabase `error` renders as an innocent empty state. For every empty state you see, **query the DB to confirm it is genuinely empty.** |

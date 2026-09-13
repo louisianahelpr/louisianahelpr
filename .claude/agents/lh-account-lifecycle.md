@@ -122,7 +122,7 @@ before anything else. Its shape:
 **1. Every record type a deleted user leaves behind.** Enumerate them from the migration
 itself, not from memory, then for EACH one find every surface that renders it and force
 the anonymised state. Jobs, applications, reviews (as author and as subject), disputes,
-messages, gifts/PayItForward, referrals, saved searches, notifications, push tokens.
+messages, gifts/gift cards, referrals, saved searches, notifications, push tokens.
 
 **2. Does each surface degrade honestly?** The established precedent: an ownerless job
 reads as **"a neighbor"** with no avatar and no tier on consumer surfaces, and

@@ -159,7 +159,7 @@ says "155 WALKED rows"; the correct figure at the time was 154, and is now 147.
 **Eight tracked units no longer exist as the thing they are tracked as.** Six
 routes (`/str-settings`, `/auto-tip`, `/home-history`, `/work-record`,
 `/wrapped`, `/pets`) and one redirect (`/analytics`) were folded into Profile
-tabs on 2026-09-02; `/pay-it-forward` was deleted outright. Their rows are
+tabs on 2026-09-02; `/gift-card (retired old route)` was deleted outright. Their rows are
 marked `RETIRED` below rather than removed, so the history stays legible. **The
 seven replacement tabs are `NEVER WALKED`**: the 2026-08-31 screenshots
 (`authed-wrapped.png`, `authed-pets.png`, …) photograph these components inside
@@ -337,7 +337,7 @@ Source of truth: the `<Route>` table in `src/App.tsx`. Enumerated, not guessed.
 | `/browse` | DashboardGuest | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/str-settings` | StrSettings | RETIRED 2026-09-02 | n/a — unit no longer exists | Route deregistered from `src/App.tsx`; the component is now a **Profile tab** (see §3), which is `NEVER WALKED` as a tab. The 2026-08-31 artifact photographs the retired route shell. Commits c94209a08 / 9c241632b |
 | `/auto-tip` | AutoTip | RETIRED 2026-09-02 | n/a — unit no longer exists | Route deregistered from `src/App.tsx`; the component is now a **Profile tab** (see §3), which is `NEVER WALKED` as a tab. The 2026-08-31 artifact photographs the retired route shell. Commits c94209a08 / 9c241632b |
-| `/gift-card` | PayItForward | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/gift-card` | GiftCard | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/home-history` | HomeHistory | RETIRED 2026-09-02 | n/a — unit no longer exists | Route deregistered from `src/App.tsx`; the component is now a **Profile tab** (see §3), which is `NEVER WALKED` as a tab. The 2026-08-31 artifact photographs the retired route shell. Commits c94209a08 / 9c241632b |
 | `/work-record` | WorkRecord | RETIRED 2026-09-02 | n/a — unit no longer exists | Route deregistered from `src/App.tsx`; the component is now a **Profile tab** (see §3), which is `NEVER WALKED` as a tab. The 2026-08-31 artifact photographs the retired route shell. Commits c94209a08 / 9c241632b |
 | `/help` | HelpCenter | WALKED | 2026-09-01 · browser | Re-walked by the copy-parity lane at 375 + 1440 with all 7 sections and 23 answers EXPANDED (the FAQ is a two-level accordion; a collapsed pass reads only 695 chars and certifies nothing). scrollWidth == clientWidth at both, 0 elements wider than viewport, 0 page errors, h1 1. 21 of 22 rewritten claims asserted present in rendered text; ~~/tmp/help-{375,1440}-final.png~~ **(2026-09-04: both PNGs are GONE — wiped by the hourly `/tmp` sweep. Row kept `WALKED` on the measured record above plus the surviving 2026-08-31 `public-help.png` at all 4 breakpoint dirs; the /tmp paths prove nothing now.)** |
@@ -364,7 +364,7 @@ to the source, not when you have read the `<Navigate>` element.
 | `/schedule` | `/profile?tab=schedule` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/availability` | `/profile?tab=availability` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/saved-helpers` | `/profile?tab=saved_helpers` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
-| `/pay-it-forward` | ~~`/gift-card`~~ | RETIRED 2026-09-02 | **query-string preservation now driven, not just the landing URL.** `?claim=<token>` survives signed-out (`/login?redirect=%2Fgift-card%3Fclaim%3D…`) and signed-in (`claim-pif-credit` invoked with `{"claim_token":"…"}`); prod A/B shows the pre-fix `?redirect=%2Fgift-card` with the token gone. 2026-09-01 · browser (Playwright). **Route deleted 2026-09-02 (2affc9dbb) — the redirect no longer exists; evidence retained for history.** |
+| `/gift-card (retired old route)` | ~~`/gift-card`~~ | RETIRED 2026-09-02 | **query-string preservation now driven, not just the landing URL.** `?claim=<token>` survives signed-out (`/login?redirect=%2Fgift-card%3Fclaim%3D…`) and signed-in (`claim-gift-card` invoked with `{"claim_token":"…"}`); prod A/B shows the pre-fix `?redirect=%2Fgift-card` with the token gone. 2026-09-01 · browser (Playwright). **Route deleted 2026-09-02 (2affc9dbb) — the redirect no longer exists; evidence retained for history.** |
 | `/analytics` | ~~`/profile?tab=earnings`~~ | RETIRED 2026-09-02 | landing URL observed in browser 2026-08-31; **route deregistered 2026-09-02 (c94209a08) — `analytics` is now a Profile tab (§3), `NEVER WALKED` as a tab** |
 | `/dashboard/post-login` | `/dashboard` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/settings/profile` | `/profile` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
@@ -484,10 +484,10 @@ prod: `create-payment` (real $86.00 test-mode checkout, PI succeeded),
 `admin-user-actions`, `ai-job-builder`, `auth-email-hook`, `auto-expire-jobs`,
 `auto-release-payment`, `auto-resolve-disputes`, `auto-tip-charge`,
 `boost-job`, `brand-asset`, `calculate-tax`, `cash-out-credits`,
-`charge-recurring-visits`, `check-pro-subscription`, `claim-pif-credit`,
+`charge-recurring-visits`, `check-pro-subscription`, `claim-gift-card`,
 `cleanup-abandoned-accounts`, `cleanup-notifications`, `complete-signup`,
 `contact-support`, `create-bgc-payment`, `create-boost-payment`,
-`create-notification`, `create-payment`, `create-pif-donation`,
+`create-notification`, `create-payment`, `create-gift-card-checkout`,
 `create-pro-checkout`, `daily-match-digest`, `delete-own-account`,
 `email-tracking`, `engagement-automations`, `execute-dispute-split`,
 `expire-subscriptions`, `expiring-jobs-push`, `health-check`,
@@ -1247,10 +1247,10 @@ two surfaces that consume their verdict. Owned files only
 
 Three findings handed in as "one of these loses money silently." All three were
 real. The scope was `src/lib/queryClient.ts`, `src/lib/requireOnline.ts`, the
-`/pay-it-forward` redirect in `src/App.tsx`, the AASA file and
+`/gift-card (retired old route)` redirect in `src/App.tsx`, the AASA file and
 `ios/App.entitlements`.
 
-**A note on how this lane's own coverage row was wrong.** The `/pay-it-forward`
+**A note on how this lane's own coverage row was wrong.** The `/gift-card (retired old route)`
 redirect was already marked WALKED, evidenced as "landing URL observed in
 browser." That is exactly the check that cannot see this defect: the landing URL
 was correct — `/gift-card` — and the query string, which carried the money, was
@@ -1279,10 +1279,10 @@ Every redirect row above still rests on the weaker evidence.
   a money button that does nothing and says nothing. Fixed build `netSinceTap=1`
   and `Couldn't send gift card — Couldn't start your gift card. Please try again.`
 
-- **`?claim=` survival** — signed out: `/pay-it-forward?claim=X` →
+- **`?claim=` survival** — signed out: `/gift-card (retired old route)?claim=X` →
   `/login?redirect=%2Fgift-card%3Fclaim%3DX` (prod: `%2Fgift-card`, token
-  destroyed). Signed in: lands `/gift-card`, `claim-pif-credit` invoked once with
-  `{"claim_token":"X"}`; the param is then stripped by PayItForward's
+  destroyed). Signed in: lands `/gift-card`, `claim-gift-card` invoked once with
+  `{"claim_token":"X"}`; the param is then stripped by GiftCard's
   exactly-once effect, which is correct.
 
 - **AASA coverage, measured against every prod notification link**
@@ -1337,7 +1337,7 @@ Every redirect row above still rests on the weaker evidence.
   (`/profile?tab=warnings`). It is deliberately NOT claimed in the AASA, because
   claiming it would only swap a web dead end for an in-app dead end. Fix is a
   redirect in `App.tsx` (`/warnings` → `/profile?tab=warnings`), which is
-  outside this lane's `App.tsx` scope (pay-it-forward redirect only).
+  outside this lane's `App.tsx` scope (gift card redirect only).
 - **`normalizeDeepLinkUrl` drops `url.hash`** (`src/lib/deepLinkRoute.ts`, the
   final `return \`${path}${search}\``). This is what currently blocks claiming
   `/reset-password` and `/account-pending` in the AASA — both carry their

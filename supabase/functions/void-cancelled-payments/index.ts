@@ -55,24 +55,24 @@ serve(async (req) => {
     });
 
     /**
-     * Give back the Pay-It-Forward gift that funded a job we are about to
+     * Give back the gift card that funded a job we are about to
      * write off.
      *
      * THE DEFECT THIS CLOSES: a gift-funded job that settles inline
-     * (`redeem_pif_credit`, gift >= cost) never opens a Stripe checkout, so
+     * (`redeem_gift_card`, gift >= cost) never opens a Stripe checkout, so
      * it reaches the loop below with no `stripe_payment_intent_id` and no
      * `stripe_session_id`. That took the "no payment was ever made — just
      * update status" branch, wrote payment_status='cancelled', and stopped.
      * Nothing anywhere un-did the redemption, so the credit stayed
      * 'redeemed' against a dead job and the recipient lost the gift
-     * outright. There was no refund to chase: on a PIF job the gift IS the
+     * outright. There was no refund to chase: on a gift-card job the gift IS the
      * money, and no charge exists to reverse.
      *
      * Called for EVERY cancelled job, not just the no-PaymentIntent one. A
      * gift smaller than the job cost is redeemed alongside a Stripe charge
      * for the shortfall; that job DOES have a PaymentIntent, takes the
      * refund branch, and lost its gift just as completely. `no_credit` is
-     * the RPC's cheap answer for the ordinary non-PIF job.
+     * the RPC's cheap answer for the ordinary non-gift-card job.
      *
      * Returns whether the caller may proceed to settle the job.
      * FAIL CLOSED: if the restore could not be completed AND this job is
@@ -86,7 +86,7 @@ serve(async (req) => {
       job: { id: string; title: string },
       stage: string,
     ): Promise<{ ok: boolean; outcome: string | null }> => {
-      const { data, error: rpcErr } = await supabaseAdmin.rpc("restore_pif_credit_for_job", {
+      const { data, error: rpcErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", {
         p_job_id: job.id,
       });
 
@@ -111,7 +111,7 @@ serve(async (req) => {
       if (outcome === "restored" || outcome === "unreserved") {
         const dollars = (Number(result?.restore_cents ?? 0) || 0) / 100;
         console.log(
-          `[void-cancelled-payments] Pay-It-Forward gift ${outcome} for cancelled job ${job.id} (${stage}): $${dollars.toFixed(2)}, credit ${result?.credit_id}.`,
+          `[void-cancelled-payments] gift card ${outcome} for cancelled job ${job.id} (${stage}): $${dollars.toFixed(2)}, credit ${result?.credit_id}.`,
         );
         // Best-effort: the gift is already back in the recipient's hands, so
         // a failed notification must not undo the settlement. Never dropped
@@ -140,7 +140,7 @@ serve(async (req) => {
         ? `${rpcErr.message}${(rpcErr as { code?: string }).code ? ` (${(rpcErr as { code?: string }).code})` : ""}`
         : `unrecognised outcome ${JSON.stringify(result)}`;
       const { data: giftRows, error: giftErr } = await supabaseAdmin
-        .from("pif_credits")
+        .from("gift_cards")
         .select("id")
         .eq("job_id", job.id)
         .in("status", ["redeemed", "reserved"])
@@ -151,21 +151,21 @@ serve(async (req) => {
         // migration that defines the function landing — don't hold every
         // ordinary cancellation hostage to that.
         console.warn(
-          `[void-cancelled-payments] restore_pif_credit_for_job unavailable for job ${job.id} (${stage}): ${reason}. No gift on this job — settling anyway.`,
+          `[void-cancelled-payments] restore_gift_card_for_job unavailable for job ${job.id} (${stage}): ${reason}. No gift on this job — settling anyway.`,
         );
         return { ok: true, outcome: null };
       }
 
       console.error(
-        `CRITICAL: [void-cancelled-payments] job ${job.id} is Pay-It-Forward funded but its gift could not be restored (${stage}): ${reason}. Refusing to settle — the job stays in escrow so the next run can retry.`,
+        `CRITICAL: [void-cancelled-payments] job ${job.id} is gift-card-funded but its gift could not be restored (${stage}): ${reason}. Refusing to settle — the job stays in escrow so the next run can retry.`,
       );
-      defects.record(`PIF gift restore ${job.id}: ${reason}`);
+      defects.record(`gift card restore ${job.id}: ${reason}`);
       await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
         title: "Cancelled gift-funded job could not have its gift returned",
         message:
-          `Job ${job.id} ("${job.title}") was funded by a Pay-It-Forward gift and is being cancelled, but restore_pif_credit_for_job did not return the gift. The job is deliberately left in 'escrow' so the hourly run retries rather than settling and losing the gift for good.`,
+          `Job ${job.id} ("${job.title}") was funded by a gift card and is being cancelled, but restore_gift_card_for_job did not return the gift. The job is deliberately left in 'escrow' so the hourly run retries rather than settling and losing the gift for good.`,
         fields: {
           job_id: job.id,
           stage,
@@ -409,7 +409,7 @@ serve(async (req) => {
     // this query is GONE, and that is the fix, not an oversight. A job only
     // gets a session id once create-payment reaches Stripe; a poster who
     // never got that far — closed the tab on the payment step, or funded via
-    // a Pay-It-Forward path that historically wrote no session id — left a
+    // a gift card path that historically wrote no session id — left a
     // row that is `open` + `unpaid` with a NULL session forever. Those rows
     // are invisible to helpers (get_ranked_open_jobs and friends require a
     // funded payment_status) but they still count against
@@ -427,7 +427,7 @@ serve(async (req) => {
     if (abErr) throw abErr;
 
     // A sessionless row has no Stripe object to interrogate, so the only way
-    // it can still be live is a Pay-It-Forward gift RESERVED against it while
+    // it can still be live is a gift card RESERVED against it while
     // its shortfall checkout is in flight (create-payment reserves the credit
     // before it creates the session, and a failed session-id write would
     // leave exactly this shape). Abandoning one of those would strand the
@@ -440,7 +440,7 @@ serve(async (req) => {
     let reservedGiftJobIds: Set<string> | null = new Set();
     if (sessionlessIds.length > 0) {
       const { data: reservedRows, error: reservedErr } = await supabaseAdmin
-        .from("pif_credits")
+        .from("gift_cards")
         .select("job_id")
         .in("job_id", sessionlessIds)
         .eq("status", "reserved");
@@ -765,7 +765,7 @@ serve(async (req) => {
     // Part A only ever sees jobs still sitting in 'escrow'. A gift RESERVED
     // against a job whose shortfall was never paid leaves the job
     // 'cancelled'/'unpaid' — outside Part A (not escrow) and outside Part B
-    // (not open) — while the credit stays 'reserved'. `redeem_pif_credit`
+    // (not open) — while the credit stays 'reserved'. `redeem_gift_card`
     // refuses a 'reserved' credit for any OTHER job, so that gift is frozen
     // solid: not destroyed, but unusable forever. `checkoutSessionExpired`
     // only rescues it if the Stripe SESSION lapses before the job is
@@ -775,7 +775,7 @@ serve(async (req) => {
     // never re-selected here.
     let giftsUnfrozen = 0;
     const { data: frozenCredits, error: frozenErr } = await supabaseAdmin
-      .from("pif_credits")
+      .from("gift_cards")
       .select("job_id")
       .eq("status", "reserved")
       .not("job_id", "is", null)

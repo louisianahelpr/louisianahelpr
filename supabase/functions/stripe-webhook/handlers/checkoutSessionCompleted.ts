@@ -4,7 +4,7 @@ import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { TIER_FEE_PERCENT } from "../../_shared/helperFees.ts";
 import { ONE_TIME_PASS_DAYS } from "../../_shared/proTiers.ts";
-import { sendPifGiftEmail } from "../../_shared/pifGiftEmail.ts";
+import { sendGiftCardEmail } from "../../_shared/giftCardEmail.ts";
 import { settleOnboardingFee } from "./settleOnboardingFee.ts";
 import { subscriptionCurrentPeriodEndISO } from "../../_shared/stripeSubscriptionPeriod.ts";
 import {
@@ -268,6 +268,25 @@ export async function handleCheckoutSessionCompleted(
   // Handle boost checkout completion — flip the boost flags now
   // that payment captured. Created from create-boost-payment.
   const kind = (session.metadata as any)?.kind;
+  // Every metadata.kind a checkout writer sets (create-boost-payment,
+  // pay-onboarding-fee, create-bgc-payment, create-gift-card-checkout). A paid
+  // session carrying any other kind matches no branch below and would be
+  // skipped silently — money in, nothing delivered. Alert instead.
+  const KNOWN_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "gift_card_purchase"]);
+  if (typeof kind === "string" && kind !== "" && !KNOWN_CHECKOUT_KINDS.has(kind)) {
+    logStep("ERROR: checkout session with unknown metadata.kind — no handler", { kind, sessionId: session.id });
+    await postSlackOpsAlert({
+      kind: "custom",
+      severity: "critical",
+      title: "Stripe checkout completed with an unknown kind",
+      message: "A checkout session completed with a metadata.kind no webhook branch handles, so nothing was delivered for it. Reconcile manually.",
+      fields: {
+        session_id: session.id,
+        kind,
+        amount_total: String(session.amount_total ?? "(unknown)"),
+      },
+    });
+  }
   if (kind === "job_boost") {
     const boostJobId = (session.metadata as any)?.job_id;
     const durationHours = parseInt((session.metadata as any)?.duration_hours || "24", 10);
@@ -466,17 +485,17 @@ export async function handleCheckoutSessionCompleted(
     }
   }
 
-  // Handle a directed Pay-It-Forward gift — the donor's card just captured, so
+  // Handle a directed gift card — the donor's card just captured, so
   // MINT the prepaid credit now. The webhook (service-role) is the only path
-  // that MINTS a pif_credit from nothing; the client mint path was removed so
+  // that MINTS a gift_card from nothing; the client mint path was removed so
   // a recipient can never fabricate or inflate a credit. (This said "the ONLY
-  // writer of pif_credits" until 2026-09-10 — five other writers MUTATE
-  // existing rows: claim-pif-credit, checkoutSessionExpired, and the
+  // writer of gift_cards" until 2026-09-10 — five other writers MUTATE
+  // existing rows: claim-gift-card, checkoutSessionExpired, and the
   // redeem/restore RPCs plus the deletion anonymisers. The security clause
   // still holds — those RPCs are revoked from anon and authenticated — but
   // "the ONLY writer" is what would stop the next auditor enumerating them.) Everything needed to mint rides in the
-  // session metadata set by create-pif-donation.
-  if (kind === "pif_donation") {
+  // session metadata set by create-gift-card-checkout.
+  if (kind === "gift_card_purchase") {
     const donorId = (session.metadata as any)?.donor_id as string | undefined;
     const donorName = ((session.metadata as any)?.donor_name as string | undefined)?.trim() || "Someone";
     const recipientEmail = ((session.metadata as any)?.recipient_email as string | undefined)?.trim().toLowerCase();
@@ -488,12 +507,12 @@ export async function handleCheckoutSessionCompleted(
     // these doesn't write "" and make "no occasion" look like a real choice.
     const giftOccasion = ((session.metadata as any)?.occasion as string | undefined) || null;
     const giftDesignId = ((session.metadata as any)?.design_id as string | undefined) || null;
-    const pifPiId = typeof session.payment_intent === "string"
+    const giftCardPiId = typeof session.payment_intent === "string"
       ? session.payment_intent
       : (session.payment_intent as any)?.id;
 
     if (!donorId || !recipientEmail || !Number.isFinite(amountCents) || amountCents <= 0) {
-      logStep("WARNING: pif_donation checkout missing required metadata", {
+      logStep("WARNING: gift_card_purchase checkout missing required metadata", {
         donorId, recipientEmail, amountCents,
       });
       // A captured donation charge that can't be minted (bad/missing metadata)
@@ -517,12 +536,12 @@ export async function handleCheckoutSessionCompleted(
       // read here must fail closed — falling through to the insert on a transient
       // DB error would double-mint on the retried delivery (money from nothing).
       const { data: existing, error: existErr } = await supabase
-        .from("pif_credits")
+        .from("gift_cards")
         .select("id")
         .eq("stripe_session_id", session.id)
         .maybeSingle();
       if (existErr) {
-        logStep("ERROR checking existing pif credit — aborting mint (fail closed)", { error: existErr.message, sessionId: session.id });
+        logStep("ERROR checking existing gift card — aborting mint (fail closed)", { error: existErr.message, sessionId: session.id });
         // Await the alert before throwing: the outer handler rolls back the
         // idempotency row and returns 500, which triggers Stripe's retry schedule.
         // A plain `return` would commit the row (200 OK) so Stripe never retries
@@ -535,11 +554,11 @@ export async function handleCheckoutSessionCompleted(
           message: "Couldn't verify whether this gift was already minted, so the mint was skipped to avoid a double-credit. Returning 500 so Stripe retries; if it keeps failing, reconcile manually.",
           fields: { session_id: session.id, donor_id: donorId, recipient_email: recipientEmail, db_error: existErr.message },
         });
-        throw new Error(`pif_credits idempotency check failed for session ${session.id}: ${existErr.message}`);
+        throw new Error(`gift_cards idempotency check failed for session ${session.id}: ${existErr.message}`);
       }
 
       if (existing) {
-        logStep("pif_donation already minted for session — skipping", { sessionId: session.id });
+        logStep("gift_card_purchase already minted for session — skipping", { sessionId: session.id });
       } else {
         // Resolve the recipient's account if the named email already belongs to
         // a Helpr user. Otherwise recipient_id stays null and the credit is
@@ -553,7 +572,7 @@ export async function handleCheckoutSessionCompleted(
         // their account, bypassing the claim flow's email-ownership check. By
         // requiring email_confirmed_at we prove the account owns the address;
         // an unconfirmed match falls through to recipient_id=null and must go
-        // through claim-pif-credit (which matches the caller's confirmed JWT
+        // through claim-gift-card (which matches the caller's confirmed JWT
         // email), so nothing is lost — just no instant in-app bind.
         const { data: recipientProfile, error: profileErr } = await supabase
           .from("profiles")
@@ -578,7 +597,7 @@ export async function handleCheckoutSessionCompleted(
           } else if (authUser?.user?.email_confirmed_at) {
             recipientId = candidateId;
           } else {
-            logStep("pif_donation: matched profile email is unconfirmed — not auto-binding (claim required)", { recipientEmail });
+            logStep("gift_card_purchase: matched profile email is unconfirmed — not auto-binding (claim required)", { recipientEmail });
           }
         }
 
@@ -587,7 +606,7 @@ export async function handleCheckoutSessionCompleted(
         crypto.getRandomValues(tokenBytes);
         const claimToken = Array.from(tokenBytes, (b) => b.toString(16).padStart(2, "0")).join("");
 
-        const { error: mintErr } = await supabase.from("pif_credits").insert({
+        const { error: mintErr } = await supabase.from("gift_cards").insert({
           donor_id: donorId,
           recipient_id: recipientId,
           recipient_email: recipientEmail,
@@ -600,11 +619,11 @@ export async function handleCheckoutSessionCompleted(
           design_id: giftDesignId,
           claim_token: claimToken,
           stripe_session_id: session.id,
-          stripe_payment_intent_id: pifPiId ?? null,
+          stripe_payment_intent_id: giftCardPiId ?? null,
         });
 
         if (mintErr) {
-          logStep("ERROR minting pif credit", { error: mintErr.message, sessionId: session.id });
+          logStep("ERROR minting gift card", { error: mintErr.message, sessionId: session.id });
           // A captured charge with no credit row is a real money↔ledger divergence.
           // Await the alert before throwing so ops is paged even if the function
           // terminates quickly. The throw propagates to the outer webhook handler,
@@ -617,7 +636,7 @@ export async function handleCheckoutSessionCompleted(
             kind: "custom",
             severity: "critical",
             title: "Gift card mint failed — Stripe will retry",
-            message: "A donor's gift charge captured but the pif_credits row was not written. Returning 500 so Stripe retries; if retries exhaust, reconcile manually.",
+            message: "A donor's gift charge captured but the gift_cards row was not written. Returning 500 so Stripe retries; if retries exhaust, reconcile manually.",
             fields: {
               session_id: session.id,
               donor_id: donorId,
@@ -626,7 +645,7 @@ export async function handleCheckoutSessionCompleted(
               db_error: mintErr.message,
             },
           });
-          throw new Error(`pif_credits insert failed for session ${session.id}: ${mintErr.message}`);
+          throw new Error(`gift_cards insert failed for session ${session.id}: ${mintErr.message}`);
         } else {
           logStep("Gift card minted", { sessionId: session.id, recipientEmail, amountCents });
 
@@ -643,38 +662,38 @@ export async function handleCheckoutSessionCompleted(
 
           // ALWAYS email the named address — the claim link both onboards a
           // brand-new recipient and doubles as a receipt for a registered one.
-          const emailed = await sendPifGiftEmail({
+          const emailed = await sendGiftCardEmail({
             recipientEmail,
             donorName,
             amountCents,
             message: giftMessage,
             claimToken,
           });
-          if (!emailed) logStep("WARNING: pif gift email not sent", { recipientEmail, sessionId: session.id });
+          if (!emailed) logStep("WARNING: gift card email not sent", { recipientEmail, sessionId: session.id });
         }
       }
     }
   }
 
-  // Pay It Forward — partial (difference) payment completed. The recipient's
-  // gift was RESERVED against this job (create-payment's PIF branch); their
+  // Gift card — partial (difference) payment completed. The recipient's
+  // gift was RESERVED against this job (create-payment's gift card branch); their
   // card just covered the shortfall, so consume the reservation now. Idempotent:
   // the UPDATE only matches a still-'reserved' row, so a webhook re-delivery is
   // a no-op. The generic job block below sets payment_status → "escrow" and
   // stores the difference PI, which is all the payout path needs (it detects
-  // PIF funding via this redeemed credit and pays the helper from the platform
+  // gift card funding via this redeemed credit and pays the helper from the platform
   // balance, not from the difference PI).
-  const pifCreditId = (session.metadata as any)?.pif_credit_id as string | undefined;
-  if (pifCreditId) {
+  const giftCardId = (session.metadata as any)?.gift_card_id as string | undefined;
+  if (giftCardId) {
     const { data: consumed, error: consumeErr } = await supabase
-      .from("pif_credits")
+      .from("gift_cards")
       .update({ status: "redeemed", redeemed_at: new Date().toISOString() })
-      .eq("id", pifCreditId)
+      .eq("id", giftCardId)
       .eq("status", "reserved")
       .select("id")
       .maybeSingle();
     if (consumeErr) {
-      logStep("ERROR consuming reserved pif credit", { error: consumeErr.message, pifCreditId });
+      logStep("ERROR consuming reserved gift card", { error: consumeErr.message, giftCardId });
       // Await the alert before throwing so it fires reliably; the throw rolls
       // back the idempotency row and returns 500, letting Stripe retry once
       // the DB recovers. A plain return here commits the dedupe row — the
@@ -684,14 +703,14 @@ export async function handleCheckoutSessionCompleted(
         kind: "custom",
         severity: "critical",
         title: "Gift card difference payment — credit not consumed",
-        message: "A recipient paid the shortfall on a reserved gift but pif_credits was not flipped to redeemed. Stripe will retry; if it persists, reconcile manually.",
-        fields: { session_id: session.id, pif_credit_id: pifCreditId, db_error: consumeErr.message },
+        message: "A recipient paid the shortfall on a reserved gift but gift_cards was not flipped to redeemed. Stripe will retry; if it persists, reconcile manually.",
+        fields: { session_id: session.id, gift_card_id: giftCardId, db_error: consumeErr.message },
       });
-      throw new Error(`pif_credits status flip failed for session ${session.id}: ${consumeErr.message}`);
+      throw new Error(`gift_cards status flip failed for session ${session.id}: ${consumeErr.message}`);
     } else if (!consumed) {
-      logStep("Reserved pif credit already consumed or missing — skipping", { pifCreditId });
+      logStep("Reserved gift card already consumed or missing — skipping", { giftCardId });
     } else {
-      logStep("Reserved pif credit consumed on difference payment", { pifCreditId, sessionId: session.id });
+      logStep("Reserved gift card consumed on difference payment", { giftCardId, sessionId: session.id });
     }
   }
 

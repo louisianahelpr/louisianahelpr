@@ -16,7 +16,7 @@ then swept for siblings and untouched territory:
   none found; the only match is a comment. Also swept for `alert()`,
   `window.confirm/prompt`, and residual "Something went wrong" toasts (none
   live — all three are either absent or comment-only).
-- **Terminology**: "Pay It Forward" → "Gift Card" rename (shipped today) —
+- **Terminology**: "gift card" → "Gift Card" rename (shipped today) —
   swept every remaining source hit; all 12 are code comments/internal
   identifiers, zero user-facing strings still say the old name.
   "Helpr(s)"/"worker" — the two "Helprs (workers)" section titles in
@@ -73,7 +73,7 @@ then swept for siblings and untouched territory:
 1. **Raw-error leakage is closed.** `grep -rnE "toast\.error\(\s*[a-zA-Z_]+\.message"` across `src` returns zero live call sites (one comment). `userFacingError.ts` is in place and is the mechanism CC-001's fix commit (`d0e47a4f`, per the bus) relies on.
 2. **No raw browser dialogs.** Zero live `alert()`, `window.confirm()`, `window.prompt()` in `src/` (two comments explicitly note they were avoided on purpose, e.g. `SecurityTab.tsx:178`).
 3. **No dev/placeholder text ships.** Broad sweep for `lorem ipsum`, `TODO:`, `FIXME`, `example.com`, `test@test`, `john/jane doe` — zero hits outside test files and two comments referencing the word "placeholder" in a different sense.
-4. **"Pay It Forward" fully retired from user-facing copy.** All 12 remaining source hits are code comments/internal names; `GiftCard.tsx`'s own docblock documents the rename and confirms the legacy route was removed after checking prod (`pif_credits` had 0 claimed rows).
+4. **"gift card" fully retired from user-facing copy.** All 12 remaining source hits are code comments/internal names; `GiftCard.tsx`'s own docblock documents the rename and confirms the legacy route was removed after checking prod (`gift_cards` had 0 claimed rows).
 5. **Support contact path works end-to-end.** Live POST to `contact-support` returned `200 {"sent":true}`; code path checks Resend's `error` field (never reports success on a provider failure); `RESEND_API_KEY` present in prod secrets.
 6. **Contact email is consistent** — `admin@louisianahelpr.com` used at all 7 user-facing sites (`ReportDialog.tsx`, `ForceUpdateGate.tsx`, `WorkRecord.tsx`, `AccountBanned/Denied/Pending.tsx`, `HelpCenter.tsx` context). No stray second address reaches a user.
 7. **`/terms`, `/privacy`, `/rules`, `/data-rights` redirects resolve** to their `/legal?tab=` / `/profile?tab=legal` targets in source and return 200 live.

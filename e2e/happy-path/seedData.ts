@@ -1645,10 +1645,10 @@ export const SEED_REFERRAL_CREDITS = [
   { id: "6f000000-0000-4000-8000-000000000003", user_id: HELPER_ID, referral_code_id: "6d000000-0000-4000-8000-000000000002", referred_user_id: A5, amount: 10, reason: "referral_signup", redeemed: false, created_at: AGO(21) },
 ] satisfies Ins<"referral_credits">[];
 
-export const SEED_PIF_CREDITS = [
+export const SEED_GIFT_CARDS = [
   { id: "70000000-0000-4000-8000-000000000001", donor_id: CUSTOMER_ID, recipient_id: A8, recipient_email: "priya.raman@helpr.test", amount: 50, occasion: "birthday", message: "Happy birthday — get the yard done on me.", status: "sent", payment_status: "paid", created_at: AGO(12) },
   { id: "70000000-0000-4000-8000-000000000002", donor_id: A3, recipient_id: CUSTOMER_ID, amount: 25, status: "available", payment_status: "paid", parish: "Jefferson", created_at: AGO(4), expires_at: FUTURE(86) },
-] satisfies Ins<"pif_credits">[];
+] satisfies Ins<"gift_cards">[];
 
 export const SEED_STR_CALENDAR_CONNECTIONS = [
   { id: "71000000-0000-4000-8000-000000000001", user_id: CUSTOMER_ID, platform: "airbnb", ical_url: "https://www.airbnb.com/calendar/ical/000000.ics?s=seed", property_name: "Bywater shotgun double", property_address: "812 Piety St, New Orleans, LA", auto_create_cleaning: true, cleaning_budget: 95, cleaning_notes: "Strip beds, towels in the hall closet.", preferred_helper_id: A2, is_active: true, last_synced_at: AGO(0), created_at: AGO(60) },
@@ -2199,7 +2199,7 @@ export const SEED_TABLES: Record<string, unknown[]> = {
   referral_codes: SEED_REFERRAL_CODES,
   referrals: SEED_REFERRALS,
   referral_credits: SEED_REFERRAL_CREDITS,
-  pif_credits: SEED_PIF_CREDITS,
+  gift_cards: SEED_GIFT_CARDS,
   str_calendar_connections: SEED_STR_CALENDAR_CONNECTIONS,
   notification_preferences: SEED_NOTIFICATION_PREFERENCES,
   broadcast_messages: SEED_BROADCAST_MESSAGES,

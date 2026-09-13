@@ -142,7 +142,7 @@ const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFall
 );
 
 /* PreserveQueryRedirect lived here until 2026-09-02. Its ONLY caller was
-   /pay-it-forward, which carried a `?claim=<token>` out of a gift email and
+   the gift card's retired legacy path, which carried a `?claim=<token>` out of a gift email and
    needed the query to survive the hop to /gift-card; a bare <Navigate to="/x">
    drops the query, which had already broken that link once. Both the route and
    the helper are gone with the rename — every remaining redirect here either
@@ -351,27 +351,27 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Public so the footer "Plans" link and marketing CTAs resolve for
           logged-out visitors. The page renders read-only for guests (current
           plan shows Free); tapping Upgrade routes them to sign in first. */}
-      {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
+      {/* Gift Card — send a Helpr gift card to someone */}
       {/* Gift Card is a PROFILE TAB now, like every one of its siblings (owner,
           2026-09-11). `/gift-card` stays alive as a redirect and must carry
           `?claim=<token>` through with it — that is the link in every gift
-          email (`_shared/pifGiftEmail.ts`), and a bare <Navigate> drops the
+          email (`_shared/giftCardEmail.ts`), and a bare <Navigate> drops the
           query, which has already broken this exact link once. Reading
           `window.location.search` rather than `useSearchParams` keeps this to
           one route element; it is exact here because <Navigate> renders only
           once this path has matched. */}
       <Route path="/gift-card" element={<Navigate replace to={`/profile?tab=gift_card${window.location.search.replace(/^\?/, "&")}`} />} />
-      {/* NO /pay-it-forward ROUTE. The feature is a gift card and is named one
-          everywhere now (owner: "it should not be named pay it forward though
-          that's wrong").
+      {/* NO LEGACY GIFT CARD ROUTE. The feature is the Helpr gift card and is
+          named one everywhere now, database included (owner, 2026-09-02 and
+          2026-09-12).
 
           The redirect was kept for one reason — it was the claim URL in gift
           emails already sent, and deleting it would turn a paid, unclaimed gift
           into a 404. Checked prod before removing it rather than reasoning about
-          it: `pif_credits` holds 3 rows, ALL seed data, 0 with a claim_token and
+          it: `gift_cards` holds 3 rows, ALL seed data, 0 with a claim_token and
           0 that are not seed. The gift feature has never been used for real, so
           there is no live claim link anywhere and nothing to preserve.
-          `pifGiftEmail.ts` now mails /gift-card?claim=<token>. */}
+          `giftCardEmail.ts` now mails /gift-card?claim=<token>. */}
       {/* /analytics — Advanced Analytics, the perk printed on the $10 Pro card.
           It was a <Navigate> to the Earnings tab from 2026-08-23, and that was
           the right call at the time: the old page rendered the SAME body as the

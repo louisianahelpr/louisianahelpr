@@ -337,8 +337,8 @@ payment method and was never charged.
 **Charge paths traced end to end** (React form → RPC/edge fn → Stripe call → webhook → payout):
 job escrow (`create-payment` action=escrow), tip (`action=tip`), auto-tip (`auto-tip-charge`),
 recurring visits (`charge-recurring-visits`), job boost (`create-boost-payment`), background check
-(`create-bgc-payment`), Pro subscription (`create-pro-checkout`), PIF donation
-(`create-pif-donation`), credit cash-out (`cash-out-credits`), instant payout (`instant-payout`),
+(`create-bgc-payment`), Pro subscription (`create-pro-checkout`), gift card purchase
+(`create-gift-card-checkout`), credit cash-out (`cash-out-credits`), instant payout (`instant-payout`),
 scheduled payout (`process-scheduled-payouts`), release (`release-payout`), dispute split
 (`execute-dispute-split`), cancellation settlement (`void-cancelled-payments`), onboarding fee
 (`pay-onboarding-fee`), auto-release (`auto-release-payment`), reconciliation

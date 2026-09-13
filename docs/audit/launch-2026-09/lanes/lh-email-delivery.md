@@ -42,11 +42,11 @@ scope for this lane).
   (`_shared/email-templates/styles.ts:83`), not the marketing host. Live-fetched
   it: `HTTP/2 200`, `content-type: image/png`, cacheable. No template
   hardcodes the marketing host.
-- **Gift-card claim URL already correct.** `_shared/pifGiftEmail.ts:53` mails
+- **Gift-card claim URL already correct.** `_shared/giftCardEmail.ts:53` mails
   `/gift-card?claim=<token>` (the current route, `App.tsx:333`), and
   `ProtectedRoute` preserves `pathname + search` through the login redirect
   (`ProtectedRoute.tsx:197-200`) so an unauthenticated recipient returns to the
-  claim after signing in. `PayItForward.tsx:113-121` fires the claim exactly
+  claim after signing in. `GiftCard.tsx:113-121` fires the claim exactly
   once per token, waits for auth to settle, and strips the param after use.
 - **Unsubscribe is HMAC-signed, not a guessable/stored token.**
   `email-unsubscribe/index.ts` + `_shared/unsubscribe.ts`: base64url address +
@@ -77,7 +77,7 @@ scope for this lane).
   plain-text generation, and the branded wordmark are uniform; none of the 16
   hand-rolls its own header/footer.
 - **Null-field safety spot-checked**: `notification.tsx` degrades
-  `userName || 'there'`; `PayItForward`/`pifGiftEmail` claim path is
+  `userName || 'there'`; `GiftCard`/`giftCardEmail` claim path is
   null-guarded at every stage.
 - **notify-email-change** notifies the OLD address on an email change
   (`notify-email-change/index.ts:59-101`); the NEW address goes through the

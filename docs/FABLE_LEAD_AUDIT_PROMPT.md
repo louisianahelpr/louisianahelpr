@@ -126,7 +126,7 @@ is expected state, not evidence against the rule.
 - **Helpr / Helprs** capitalised in user copy
 - **poster** for the hiring side; `customer_id` is internal
 - **Membership**, not Plans / Subscription; tiers Free / Basic / Pro / Elite
-- **Gift Card**, not Pay It Forward (route is still `/pay-it-forward`)
+- **Gift Card**, not gift card (route is still `/gift-card (retired old route)`)
 - **Bidding and quotes do not exist.** The poster sets the budget and the helpr
   applies at it. Copy implying negotiation is a defect
 - **The app is never role-based.** Every account both posts and works, so copy

@@ -1,6 +1,6 @@
 ---
 name: "lh-subscriptions-credits"
-description: "Audits the second money system: Pro subscriptions, job boosts, auto-tip, instant payout, and the PIF, referral and worker-protection credit ledgers. Launch-audit fleet, sweep phase."
+description: "Audits the second money system: Pro subscriptions, job boosts, auto-tip, instant payout, and the gift card, referral and worker-protection credit ledgers. Launch-audit fleet, sweep phase."
 model: opus
 memory: project
 permissionMode: plan
@@ -120,11 +120,11 @@ control). A billing system with no user-reachable entry point is itself a findin
 
 Each of these is a balance that must never be spendable twice.
 
-- **PIF (`pif_credits`)** — live. donor → available → reserved → redeemed → expired,
+- **gift card (`gift_cards`)** — live. donor → available → reserved → redeemed → expired,
   90-day expiry. Verify: a credit cannot be redeemed twice or by two jobs concurrently
-  (message `lh-concurrency-cache`); `restore_pif_credit_for_job` correctly returns it on
+  (message `lh-concurrency-cache`); `restore_gift_card_for_job` correctly returns it on
   cancellation; expiry actually runs; and `execute-dispute-split` handles a
-  PIF-funded job correctly.
+  gift-card-funded job correctly.
 - **Referral credits** — live. `process_referral`, `check_referral_bonus`,
   `enforce_referral_cap`, `enforce_referral_credit_eligibility`, `record_referral_signup`.
   Verify the cap is enforced **server-side** and self-referral / ring-referral is

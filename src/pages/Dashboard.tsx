@@ -279,7 +279,7 @@ const Dashboard = () => {
   // (This was keyed off the user's parish, which matched nothing — see the
   // query's comment in useDashboardSideQueries.)
   const {
-    pifCount,
+    giftCardCount,
     savedJobIds, setSavedJobIds, dismissedJobIds, setDismissedJobIds,
   } = useDashboardSideQueries({ userId: user?.id, userEmail: user?.email, allJobs });
 
@@ -725,7 +725,7 @@ const Dashboard = () => {
             </SectionBoundary>
 
             {/* Gift card teaser — only shown when this user holds an unspent gift card */}
-            <GiftCardTeaser pifCount={pifCount} />
+            <GiftCardTeaser giftCardCount={giftCardCount} />
 
     </PageScaffold>
 

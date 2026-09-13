@@ -47,7 +47,7 @@ genuinely strong.
   payment_status, cancellation_fee all no-op'd.
 - **IDOR: 37/37 attempts denied.** With account B's real JWT, every read and write
   of account A's profile, job, assigned-job address, message thread, payout,
-  instant payout, gift card (pif_credit), referral credit, notification, push
+  instant payout, gift card (gift_card), referral credit, notification, push
   token, login history, W-9, disputes, reports, fraud flags — all returned 0 rows
   / 403. The only row B ever saw was B's own.
 - **Self-escalation fully blocked** — `prevent_self_escalation` reverts all 40+

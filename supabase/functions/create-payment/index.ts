@@ -122,7 +122,7 @@ serve(async (req) => {
 
     // ─── ESCROW: Create checkout with manual capture ───
     if (action === "escrow") {
-      const { jobId, saveCardForFuture, pifCreditId } = body;
+      const { jobId, saveCardForFuture, giftCardId } = body;
       if (!jobId) throw new Error("Missing jobId");
 
       const { data: job, error: jobError } = await supabaseAdmin
@@ -266,23 +266,23 @@ serve(async (req) => {
         return { ok: false as const, reason: `matched 0 rows; job now holds ${recheck?.stripe_session_id ?? "null"}` };
       };
 
-      // ─── Pay It Forward redemption ───
+      // ─── Gift card redemption ───
       // A recipient redeeming a directed gift funds the job from the
       // prepaid donation (already captured into the platform balance at
       // donate time), so the recipient is charged $0 when the gift covers
       // the budget — and only the shortfall via Stripe when it doesn't.
       // The atomic RPC validates ownership + funding + expiry and moves
       // the money server-side; the client is never trusted with any of it.
-      // A PIF job carries NO recipient service fee, so this short-circuits
+      // A gift-card job carries NO recipient service fee, so this short-circuits
       // before the tier/fee/tax pricing below.
-      if (pifCreditId) {
-        const { data: redeem, error: redeemErr } = await supabaseAdmin.rpc("redeem_pif_credit", {
-          p_credit_id: pifCreditId,
+      if (giftCardId) {
+        const { data: redeem, error: redeemErr } = await supabaseAdmin.rpc("redeem_gift_card", {
+          p_credit_id: giftCardId,
           p_job_id: jobId,
           p_user_id: user.id,
         });
         if (redeemErr) {
-          console.error(`[create-payment] redeem_pif_credit failed for credit ${pifCreditId}, job ${jobId}:`, redeemErr);
+          console.error(`[create-payment] redeem_gift_card failed for credit ${giftCardId}, job ${jobId}:`, redeemErr);
           throw new Error(redeemErr.message || "Could not redeem this gift — please try again");
         }
 
@@ -294,8 +294,8 @@ serve(async (req) => {
         }
 
         // Partial: the gift is reserved against the job; collect only the
-        // shortfall. No service fee on a PIF job. The difference session's
-        // webhook (metadata.pif_credit_id) consumes the reservation + funds
+        // shortfall. No service fee on a gift-card job. The difference session's
+        // webhook (metadata.gift_card_id) consumes the reservation + funds
         // the job. Retry is safe: the RPC re-entry returns the same
         // difference and Stripe dedupes on the per-job idempotency key.
         const differenceCents = Number(redeem?.difference_cents ?? 0);
@@ -321,37 +321,37 @@ serve(async (req) => {
           mode: "payment",
           automatic_tax: { enabled: true },
           payment_intent_data: {
-            metadata: { job_id: jobId, customer_id: user.id, pif_credit_id: pifCreditId },
+            metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId },
           },
           success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),
           // Carry the credit back with them. A bare `/post-job` cancel_url
-          // dropped the `pif_credit` query param that PostJob reads
-          // (usePostJobForm: searchParams.get("pif_credit")), so a recipient
+          // dropped the `gift_card` query param that PostJob reads
+          // (usePostJobForm: searchParams.get("gift_card")), so a recipient
           // who backed out of the shortfall checkout landed on a plain
           // post-a-task form — and their next submit created a SECOND job at
           // FULL price while the gift sat 'reserved' against the abandoned
           // one, unusable on anything else until the session expired.
-          cancel_url: buildRedirectUrl(`/post-job?pif_credit=${encodeURIComponent(pifCreditId)}`, isNative),
-          metadata: { job_id: jobId, customer_id: user.id, pif_credit_id: pifCreditId },
+          cancel_url: buildRedirectUrl(`/post-job?gift_card=${encodeURIComponent(giftCardId)}`, isNative),
+          metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId },
         }, {
-          idempotencyKey: `pif-diff-${jobId}${remintKeySuffix}`,
+          idempotencyKey: `gift-card-diff-${jobId}${remintKeySuffix}`,
         });
 
         // Record the session on the job, exactly as the full-escrow path below
         // does. Two things depend on it and BOTH were blind on this branch:
         // the double-payment guard at the top of this action (which requires a
         // stripe_session_id before it will refuse a second checkout, so an
-        // already-PIF-funded job could be charged again at full price), and
+        // already-gift-card-funded job could be charged again at full price), and
         // void-cancelled-payments' abandoned-checkout sweep (Part B selects on
-        // `.not("stripe_session_id","is",null)`) — without it an abandoned PIF
+        // `.not("stripe_session_id","is",null)`) — without it an abandoned gift card
         // shortfall left the job open+unpaid forever, permanently consuming one
         // of the poster's open-job slots in enforce_open_job_limit.
         // .select("id") because a zero-row match returns error === null.
         const diffStamp = await stampSession(diffSession.id, {});
         if (!diffStamp.ok) {
-          console.error(`[create-payment] PIF difference session ${diffSession.id} created for job ${jobId} but jobs.update failed:`, diffStamp.reason);
+          console.error(`[create-payment] gift card difference session ${diffSession.id} created for job ${jobId} but jobs.update failed:`, diffStamp.reason);
           // Safe to fail loudly: the credit is still 'reserved' against THIS
-          // job, and redeem_pif_credit treats re-entry for the same job as a
+          // job, and redeem_gift_card treats re-entry for the same job as a
           // retry, so the user can simply try again.
           throw new Error("Could not record the payment session — please try again");
         }

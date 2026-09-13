@@ -219,7 +219,7 @@ Restored to yesterday, here is what would be wrong versus Stripe.
 
 **Reconstructible** (carries a Stripe id): `jobs.stripe_payment_intent_id`,
 `tips.stripe_payment_intent_id`, `payout_transfers.stripe_transfer_id`,
-`pif_credits.stripe_payment_intent_id`.
+`gift_cards.stripe_payment_intent_id`.
 
 **Not reconstructible:**
 

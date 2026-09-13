@@ -399,25 +399,25 @@ serve(async (req) => {
   // DB as ground truth for real money movement. A bug, a manual DB edit, or a
   // webhook race that set payout_pending WITHOUT a captured charge would pay the
   // helper out of the platform's own balance. Mirror process-scheduled-payouts:
-  // re-verify the PaymentIntent succeeded — EXCEPT for Pay-It-Forward jobs, which
+  // re-verify the PaymentIntent succeeded — EXCEPT for gift-card-funded jobs, which
   // are funded from the prepaid platform balance and legitimately have no poster
-  // charge on this job (auto-release-payment Phase 2 hands us PIF jobs too).
-  const { data: pifRow, error: pifErr } = await supabaseAdmin
-    .from("pif_credits")
+  // charge on this job (auto-release-payment Phase 2 hands us gift-card jobs too).
+  const { data: giftCardRow, error: giftCardErr } = await supabaseAdmin
+    .from("gift_cards")
     .select("id")
     .eq("job_id", job.id)
     .eq("status", "redeemed")
     .limit(1)
     .maybeSingle();
-  if (pifErr) {
-    // Fail closed: if we can't tell whether this is PIF-funded, don't risk paying
+  if (giftCardErr) {
+    // Fail closed: if we can't tell whether this is gift-card-funded, don't risk paying
     // out against an unverified charge — defer so a retry can re-check.
-    console.error(`[release-payout] pif_credits read failed for job ${job.id}:`, pifErr);
+    console.error(`[release-payout] gift_cards read failed for job ${job.id}:`, giftCardErr);
     return jsonResponse({ error: "funding-source check failed — retry" }, 500);
   }
   // Carried OUT of the escrow-verification block below so the transfer itself
   // can be capped by what was actually captured. Both stay null for a
-  // PIF-credit-funded job, which legitimately has no Stripe charge behind it.
+  // gift-card-funded job, which legitimately has no Stripe charge behind it.
   let escrowChargeId: string | null = null;
   let escrowAmountReceivedCents: number | null = null;
 
@@ -434,9 +434,9 @@ serve(async (req) => {
   // `process-scheduled-payouts` use, so no two payout paths can disagree about
   // the size of the same escrow.
   let giftAppliedCents = 0;
-  if (pifRow) {
+  if (giftCardRow) {
     const { data: giftPreview, error: giftPreviewErr } = await supabaseAdmin.rpc(
-      "restore_pif_credit_for_job",
+      "restore_gift_card_for_job",
       { p_job_id: job.id, p_share_bps: 10000, p_dry_run: true },
     );
     const preview = (giftPreview ?? null) as { outcome?: string; applied_cents?: number } | null;
@@ -447,20 +447,20 @@ serve(async (req) => {
         : `unrecognised outcome ${JSON.stringify(preview)}`;
       console.error(`[release-payout] gift valuation failed for job ${job.id}: ${why}`);
       return jsonResponse(
-        { error: "could not value this job's Pay-It-Forward gift — nothing was moved, retry" },
+        { error: "could not value this job's gift card — nothing was moved, retry" },
         503,
       );
     }
     giftAppliedCents = Number(preview?.applied_cents ?? 0);
     if (!Number.isFinite(giftAppliedCents) || giftAppliedCents < 0) {
       return jsonResponse(
-        { error: "this job's Pay-It-Forward gift has no usable applied amount — refused" },
+        { error: "this job's gift card has no usable applied amount — refused" },
         409,
       );
     }
   }
 
-  if (!pifRow) {
+  if (!giftCardRow) {
     let paymentIntentId = job.stripe_payment_intent_id;
     if (!paymentIntentId && job.stripe_session_id) {
       try {
@@ -568,8 +568,8 @@ serve(async (req) => {
   // equal or lower, so we can refund a difference but can never claw back a
   // discount we already gave away.
   //
-  // This bites hardest on Pay-It-Forward jobs: create-payment's PIF branch
-  // short-circuits BEFORE the escrow stamp, so a PIF-funded job carries NO
+  // This bites hardest on gift-card-funded jobs: create-payment's gift card branch
+  // short-circuits BEFORE the escrow stamp, so a gift-card-funded job carries NO
   // frozen percent and lands on this last step every time the profile read
   // errors.
   //
@@ -804,7 +804,7 @@ serve(async (req) => {
         // process-scheduled-payouts / void-cancelled-payments / create-payment
         // already do — this function was the only payout path without it.
         // Stripe then enforces the cap server-side even if the check above is
-        // ever bypassed. Omitted for PIF-credit-funded jobs (no charge).
+        // ever bypassed. Omitted for gift-card-funded jobs (no charge).
         ...(escrowChargeId ? { source_transaction: escrowChargeId } : {}),
         transfer_group: `job_${job.id}`,
         description: `Helpr payout for job ${job.id} — ${job.title}`,

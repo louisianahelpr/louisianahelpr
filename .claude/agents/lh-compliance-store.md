@@ -97,7 +97,7 @@ The reasons a finished app gets rejected, or gets the company in trouble after i
    verify it actually deletes — `delete-own-account`, `purge_user_data`. Then confirm the
    backend really purges: message `lh-schema-integrity`, who owns the orphan sweep.
    A deletion that leaves the account recoverable or the data behind is a blocker.
-2. **The gift-card / Pay It Forward IAP question.** `/gift-card` sells credit usable
+2. **The gift-card / gift card IAP question.** `/gift-card` sells credit usable
    inside the app. Apple requires IAP for digital content consumed in-app, and permits
    external payment for **real-world services**. Louisiana Helpr sells real-world labor,
    which is the strong argument for Stripe — **but a credit that functions as in-app

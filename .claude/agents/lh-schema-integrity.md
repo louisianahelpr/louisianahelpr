@@ -138,7 +138,7 @@ You can execute migrations locally with **PGlite** (`@electric-sql/pglite`, real
 in WASM). Install it **outside the repo** in a scratch dir, or `npm i --no-save` and then
 confirm `git status package.json package-lock.json` is clean. Build a prod-shaped schema
 and run the migration verbatim; **apply it three times consecutively** to prove replay
-safety. This is how the PIF-restore migration got 22 assertions including a proven
+safety. This is how the gift-card-restore migration got 22 assertions including a proven
 idempotent second run and a unique-violation race -- none of which a read could establish.
 
 ## Mandatory

@@ -4,7 +4,7 @@
  * This is the function that turns a RECORDED dispute split (poster X% /
  * helper Y%, written by `rpc_decide_dispute`) into real money: one Stripe
  * transfer to the Helpr's Connect account and one refund to the poster, both
- * off the job's original PaymentIntent — plus, when a Pay-It-Forward gift
+ * off the job's original PaymentIntent — plus, when a gift card
  * funded the job, a replacement gift for the poster's share of it, because
  * that half of the escrow has no charge to reverse.
  *
@@ -48,7 +48,7 @@ const CAPTURED_CENTS = 11_000;
 /** Stripe keeps 2.9% + $0.30 on that capture and never returns it. */
 const STRIPE_COST_CENTS = Math.round(CAPTURED_CENTS * 0.029) + 30; // 349
 /**
- * What a Pay-It-Forward gift applied to the gift-funded job: the $100 budget,
+ * What a gift card applied to the gift-funded job: the $100 budget,
  * and nothing else. No poster service fee (waived — the donor paid the
  * processing floor when the gift was bought) and no Stripe processing cost,
  * because Stripe never touched this money.
@@ -138,7 +138,7 @@ function seedExecutable(
       },
     ],
   };
-  s.reads.pif_credits = { rows: [] };
+  s.reads.gift_cards = { rows: [] };
   s.reads.platform_settings = { rows: [{ helper_fee_percent: 12 }] };
   // One `profiles` row serves both reads the function makes: the Connect-account
   // lookup and `getHelperFeePercent`'s tier read. 'free' → the 12% ladder rate.
@@ -182,9 +182,9 @@ function seedExecutable(
 }
 
 /**
- * Seed the same executable split, but funded by a Pay-It-Forward gift instead
- * of a card: no PaymentIntent, no checkout session, a redeemed `pif_credits`
- * row against the job, and `restore_pif_credit_for_job` answering with the
+ * Seed the same executable split, but funded by a gift card instead
+ * of a card: no PaymentIntent, no checkout session, a redeemed `gift_cards`
+ * row against the job, and `restore_gift_card_for_job` answering with the
  * $100 the gift applied.
  *
  * The RPC is a FUNCTION, not a fixed value, because the source asks it twice
@@ -199,13 +199,13 @@ function seedGiftFunded(
     ...opts,
     job: { stripe_payment_intent_id: null, stripe_session_id: null, ...opts.job },
   });
-  s.reads.pif_credits = { rows: [{ id: "pif-1", status: "redeemed" }] };
-  s.rpc.restore_pif_credit_for_job = (args: any) => {
+  s.reads.gift_cards = { rows: [{ id: "gift-1", status: "redeemed" }] };
+  s.rpc.restore_gift_card_for_job = (args: any) => {
     const bps = Number(args?.p_share_bps ?? 10_000);
     const restore = Math.floor((GIFT_APPLIED_CENTS * bps) / 10_000);
     return args?.p_dry_run
-      ? { outcome: "would_restore", credit_id: "pif-1", applied_cents: GIFT_APPLIED_CENTS, restore_cents: restore }
-      : { outcome: "restored", credit_id: "pif-new", parent_credit_id: "pif-1", recipient_id: "poster-1", applied_cents: GIFT_APPLIED_CENTS, restore_cents: restore };
+      ? { outcome: "would_restore", credit_id: "gift-1", applied_cents: GIFT_APPLIED_CENTS, restore_cents: restore }
+      : { outcome: "restored", credit_id: "gift-new", parent_credit_id: "gift-1", recipient_id: "poster-1", applied_cents: GIFT_APPLIED_CENTS, restore_cents: restore };
   };
 }
 
@@ -606,9 +606,9 @@ describe("execute-dispute-split edge function", () => {
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
 
-    it("refuses a job whose Pay-It-Forward gift is only RESERVED — the escrow can't be reconciled", async () => {
+    it("refuses a job whose gift card is only RESERVED — the escrow can't be reconciled", async () => {
       seedExecutable(scenario);
-      scenario.reads.pif_credits = { rows: [{ id: "pif-1", status: "reserved" }] };
+      scenario.reads.gift_cards = { rows: [{ id: "gift-1", status: "reserved" }] };
       const fn = await load();
       const res = await invoke(fn);
       expect(res.status).toBe(409);
@@ -620,7 +620,7 @@ describe("execute-dispute-split edge function", () => {
       seedGiftFunded(scenario);
       // PGRST202 is the real shape of this: the function exists in the repo but
       // the migration that defines it has not deployed yet.
-      scenario.rpcErrors = { restore_pif_credit_for_job: { message: "function not found", code: "PGRST202" } };
+      scenario.rpcErrors = { restore_gift_card_for_job: { message: "function not found", code: "PGRST202" } };
       const fn = await load();
       const res = await invoke(fn);
       expect(res.status).toBe(503);
@@ -681,7 +681,7 @@ describe("execute-dispute-split edge function", () => {
   // advice that could not work, because a full refund also reverses a
   // PaymentIntent and this job has none. The gift IS the money, so the poster's
   // share has to come back as a gift.
-  describe("Pay-It-Forward jobs — the gift leg", () => {
+  describe("Gift-card-funded jobs — the gift leg", () => {
     it("settles a gift-funded job with no PaymentIntent at all", async () => {
       seedGiftFunded(scenario);
       const fn = await load();
@@ -709,7 +709,7 @@ describe("execute-dispute-split edge function", () => {
       const fn = await load();
       await invoke(fn);
 
-      const calls = (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_pif_credit_for_job");
+      const calls = (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job");
       expect(calls).toHaveLength(2);
       expect((calls[0].args as any).p_dry_run).toBe(true);
       expect((calls[1].args as any).p_dry_run).toBe(false);
@@ -731,13 +731,13 @@ describe("execute-dispute-split edge function", () => {
 
     it("a re-run that finds the gift already restored settles without minting a second one", async () => {
       // The database guarantees this: a partial unique index on
-      // pif_credits.restored_from_job_id permits one restoration per job,
+      // gift_cards.restored_from_job_id permits one restoration per job,
       // forever, so the second call reports the FIRST one's amount.
       seedGiftFunded(scenario, { dispute: { execution_status: "failed" } });
-      scenario.rpc.restore_pif_credit_for_job = (args: any) =>
+      scenario.rpc.restore_gift_card_for_job = (args: any) =>
         args?.p_dry_run
-          ? { outcome: "already_restored", credit_id: "pif-new", applied_cents: 10_000, restore_cents: 4000 }
-          : { outcome: "already_restored", credit_id: "pif-new", restore_cents: 4000 };
+          ? { outcome: "already_restored", credit_id: "gift-new", applied_cents: 10_000, restore_cents: 4000 }
+          : { outcome: "already_restored", credit_id: "gift-new", restore_cents: 4000 };
 
       const fn = await load();
       const res = await invoke(fn);
@@ -745,14 +745,14 @@ describe("execute-dispute-split edge function", () => {
 
       expect(res.status).toBe(200);
       expect(body.gift_restored_cents).toBe(4000);
-      expect(body.gift_credit_id).toBe("pif-new");
+      expect(body.gift_credit_id).toBe("gift-new");
     });
 
     it("parks the split as resumable — never silently short — if the gift can't be minted", async () => {
       seedGiftFunded(scenario);
-      scenario.rpc.restore_pif_credit_for_job = (args: any) =>
+      scenario.rpc.restore_gift_card_for_job = (args: any) =>
         args?.p_dry_run
-          ? { outcome: "would_restore", credit_id: "pif-1", applied_cents: 10_000, restore_cents: 4000 }
+          ? { outcome: "would_restore", credit_id: "gift-1", applied_cents: 10_000, restore_cents: 4000 }
           // A null `error` with an outcome the function never defines is NOT
           // proof the gift came back.
           : { outcome: "no_credit" };
@@ -761,7 +761,7 @@ describe("execute-dispute-split edge function", () => {
       const res = await invoke(fn);
 
       expect(res.status).toBe(500);
-      expect(alerts().some((a) => /could not return the poster's Pay-It-Forward gift/i.test(a.title ?? ""))).toBe(true);
+      expect(alerts().some((a) => /could not return the poster's gift card/i.test(a.title ?? ""))).toBe(true);
       const failed = writesTo("disputes").find((p) => p.execution_status === "failed");
       expect(failed).toBeTruthy();
     });
@@ -1020,7 +1020,7 @@ describe("execute-dispute-split edge function", () => {
   // ────────────────────────────────────────────────────────────────────────
   describe("mixed funding — a gift PLUS a card shortfall", () => {
     /**
-     * The gap that let a real bug ship: every PIF test above forces
+     * The gap that let a real bug ship: every gift card test above forces
      * `stripe_payment_intent_id: null`, so `escrowValueCents = captured +
      * giftApplied` was never once exercised with BOTH terms non-zero — which
      * is the shape of a gift that didn't cover the whole job.
@@ -1036,13 +1036,13 @@ describe("execute-dispute-split edge function", () => {
         ...opts,
         job: { stripe_payment_intent_id: "pi_1", stripe_session_id: null, ...opts.job },
       });
-      scenario.reads.pif_credits = { rows: [{ id: "pif-1", status: "redeemed" }] };
-      scenario.rpc.restore_pif_credit_for_job = (args: any) => {
+      scenario.reads.gift_cards = { rows: [{ id: "gift-1", status: "redeemed" }] };
+      scenario.rpc.restore_gift_card_for_job = (args: any) => {
         const bps = Number(args?.p_share_bps ?? 10_000);
         const restore = Math.floor((MIXED_GIFT_APPLIED * bps) / 10_000);
         return args?.p_dry_run
-          ? { outcome: "would_restore", credit_id: "pif-1", applied_cents: MIXED_GIFT_APPLIED, restore_cents: restore }
-          : { outcome: "restored", credit_id: "pif-new", parent_credit_id: "pif-1", recipient_id: "poster-1", applied_cents: MIXED_GIFT_APPLIED, restore_cents: restore };
+          ? { outcome: "would_restore", credit_id: "gift-1", applied_cents: MIXED_GIFT_APPLIED, restore_cents: restore }
+          : { outcome: "restored", credit_id: "gift-new", parent_credit_id: "gift-1", recipient_id: "poster-1", applied_cents: MIXED_GIFT_APPLIED, restore_cents: restore };
       };
       stripeMock.paymentIntents.retrieve.mockResolvedValue({
         id: "pi_1",

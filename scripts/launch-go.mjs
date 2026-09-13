@@ -405,7 +405,7 @@ async function checkMarketplaceStock(allowEmpty, flipping) {
  * NO SECRET IS READ, SENT OR STORED, and this is deliberately not a config
  * read. Stripe Checkout Session ids carry their mode in the id itself —
  * `cs_test_…` versus `cs_live_…` — and this app records one on every escrow
- * charge, tip and PIF donation. So the evidence is already in our own database:
+ * charge, tip and gift card purchase. So the evidence is already in our own database:
  * not what a variable claims the key is, but what the key actually MINTED, the
  * last time money was supposed to move. That beats an edge function reporting
  * its own env — no extra credential, and it cannot be fooled by a secret that
@@ -420,7 +420,7 @@ async function checkStripeMode() {
   const sources = [
     ["jobs", "stripe_session_id", "created_at"],
     ["tips", "stripe_session_id", "created_at"],
-    ["pif_credits", "stripe_session_id", "created_at"],
+    ["gift_cards", "stripe_session_id", "created_at"],
   ];
   const seen = [];
   for (const [table, col, ts] of sources) {

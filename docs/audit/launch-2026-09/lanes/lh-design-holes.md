@@ -214,9 +214,9 @@ a new consumer inherits the hole by default.
   has a real upstream filter, verified at `src/components/activity/ActivityDialogs.tsx:130` (`revieweeId` is always the counterparty);
   `UserProfile.tsx:447` hides Block/Report behind `!isOwnProfile`;
   `canEndorse={!isOwnProfile && ...}`; `search_profiles` carries
-  `WHERE p.user_id <> _uid`; the PIF recipient picker disables the CTA with an
+  `WHERE p.user_id <> _uid`; the gift card recipient picker disables the CTA with an
   inline explanation. Their server-side refusals are defence in depth and stay.
-- **Cancellation, dispute, boost, background-check, revision and PIF-claim
+- **Cancellation, dispute, boost, background-check, revision and gift-card-claim
   refusals.** Each render site carries the matching status gate. Checked, clean.
 - **`job_not_funded` on the no-show chip.** Not currently reachable — live prod
   has zero `in_progress` jobs with `payment_status` null/unpaid (all 16 are

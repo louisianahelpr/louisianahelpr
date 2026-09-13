@@ -253,7 +253,7 @@ test.describe("targeted rules", () => {
   for (const [amount, ok] of [["0", false], ["-5", false], ["1e9", false], ["10.555", null], ["25", true]] as const) {
     test(`gift card: amount ${amount} → ${ok === null ? "normalised" : ok ? "allowed" : "blocked with a message"}`, async ({ browser }, info) => {
       const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "gift-card")!);
-      const sent = watchWrites(page, /functions\/v1\/create-pif-donation|functions\/v1\/.*gift/);
+      const sent = watchWrites(page, /functions\/v1\/create-gift-card-checkout|functions\/v1\/.*gift/);
       // A $25 test-mode Checkout session is harmless, but the sweep does not
       // need to reach Stripe to prove the client let the value through.
       await page.route(`${SUPABASE_URL}/functions/v1/**`, (route) => route.abort("blockedbyclient"));
@@ -400,7 +400,7 @@ const JOB_FIXTURES: Array<[keyof Omit<Fixtures, "goneJobId">, Account]> = [
   ["completedJob", "poster"],
   ["completedJob", "helper"],
 ];
-const PROFILE_TABS = ["profile", "security", "credentials", "notifications", "saved_helpers", "earnings", "gift_card", "pay_it_forward", "legal", "support", "pets", "str_settings", "auto_tip"];
+const PROFILE_TABS = ["profile", "security", "credentials", "notifications", "saved_helpers", "earnings", "gift_card", "legal", "support", "pets", "str_settings", "auto_tip"];
 
 const EXPLORE: Explore[] = [
   { name: "my-posts", url: () => "/my-posts", as: "poster" },

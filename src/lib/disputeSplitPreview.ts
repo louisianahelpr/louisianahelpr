@@ -23,7 +23,7 @@
 // from the job's own line items (budget + service fee + urgent fee + sales tax
 // — the four `create-payment` puts on the Checkout Session). It agrees with the
 // capture on every ordinary job and can differ on one the poster part-paid with
-// a Pay-It-Forward gift, where part of the escrow is credit rather than cash.
+// a gift card, where part of the escrow is credit rather than cash.
 // The Helpr's figure carries no such caveat: it is exact.
 
 import { tierFeePercent } from "@/lib/subscriptionTiers";

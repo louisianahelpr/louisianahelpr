@@ -150,7 +150,7 @@ to lanes; no lane's scope actually contained them.
 - **`entry:repost` and `entry:offer-saved-helpr`** on the post-a-job screen.
   Repost reuses the `?rebook=<id>` deep link and the file's own comment warns a
   prior version "spent no gift and charged full price" — confirm what price,
-  gift-card balance and PIF credit a repost actually applies today. The direct
+  gift-card balance and gift card a repost actually applies today. The direct
   offer is a job created for one named helper; confirm it prices and escrows
   identically to an open post.
 

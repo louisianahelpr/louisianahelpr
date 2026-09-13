@@ -755,7 +755,7 @@
      `--parchment` is itself themed, so this needs no dark sibling. */
   --empty-bubble-bg:   hsl(var(--parchment) / 0.72);
 
-  /* Pay It Forward — donation "mint" identity palette. Tokenised so the page
+  /* Gift card — donation "mint" identity palette. Tokenised so the page
      (built with inline-style colors) renders correctly in dark mode instead of
      painting glaring light-green blocks on the dark canvas. */
   /* --gift-green was BYTE-IDENTICAL to --success-ink (142 50% 30%) — one
@@ -1011,7 +1011,7 @@
   --nav-curtain-top:   hsl(220 15% 8% / 0.6);
   --nav-curtain-fade:  hsl(220 15% 8% / 0);
 
-  /* Pay It Forward — dark-mode mint palette: lightened greens for legible
+  /* Gift card — dark-mode mint palette: lightened greens for legible
      foreground, dark green-tinted surfaces instead of light fills. */
   --gift-ink:        142 35% 72%;
   --gift-green-soft: 142 20% 60%;

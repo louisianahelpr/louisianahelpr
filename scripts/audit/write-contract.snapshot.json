@@ -2129,7 +2129,7 @@
     "nargs": 1
    }
   ],
-  "redeem_pif_credit": [
+  "redeem_gift_card": [
    {
     "anon": false,
     "args": [
@@ -2237,7 +2237,7 @@
     "nargs": 2
    }
   ],
-  "restore_pif_credit_for_job": [
+  "restore_gift_card_for_job": [
    {
     "anon": false,
     "args": [
@@ -9821,7 +9821,7 @@
     "before:insert"
    ]
   },
-  "pif_credits": {
+  "gift_cards": {
    "checks": [
     "CHECK ((amount > (0)::numeric))",
     "CHECK (((design_id IS NULL) OR (length(design_id) <= 48)))",
@@ -9993,7 +9993,7 @@
    "policies": [
     {
      "cmd": "SELECT",
-     "name": "PIF credits are party-only",
+     "name": "gift cards are party-only",
      "permissive": "PERMISSIVE",
      "roles": [
       "public"

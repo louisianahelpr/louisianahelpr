@@ -59,7 +59,7 @@ export function useFundExistingJob(): FundJobResult {
           jobId,
           native: Capacitor.isNativePlatform(),
           // Not passed: `saveCardForFuture` (this is a one-off turnover, not a
-          // series) and `pifCreditId` (a gift is redeemed at post time, and
+          // series) and `giftCardId` (a gift is redeemed at post time, and
           // this job was never posted by hand).
         },
       });

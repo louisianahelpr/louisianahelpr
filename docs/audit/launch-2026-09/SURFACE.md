@@ -134,7 +134,7 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/schedule`
 - [ ] `/availability`
 - [ ] `/saved-helpers`
-- [ ] `/pay-it-forward`
+- [ ] `/gift-card (retired old route)`
 - [ ] `/dashboard/post-login`
 - [ ] `/settings/profile`
 - [ ] `/settings`
@@ -363,7 +363,7 @@ A useState string-union of 2+ states. Some are real flows, some are display-stat
 | `src/components/TimeRangeField.tsx` | union-state |
 | `src/components/UserAvatar.tsx` | union-state |
 | `src/pages/Messages.tsx` | union-state |
-| `src/pages/PayItForward.tsx` | union-state |
+| `src/pages/GiftCard.tsx` | union-state |
 | `src/pages/ResetPassword.tsx` | union-state |
 | `src/pages/UserProfile.tsx` | union-state |
 
@@ -448,7 +448,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/pages/CompleteProfile.tsx` (form tag)
 - [ ] `src/pages/ForgotPassword.tsx` (form tag)
 - [ ] `src/pages/Login.tsx` (form tag)
-- [ ] `src/pages/PayItForward.tsx` (dialog/mutation)
+- [ ] `src/pages/GiftCard.tsx` (dialog/mutation)
 - [ ] `src/pages/petProfiles/petProfilesHelpers.ts` (form tag)
 - [ ] `src/pages/postjob/FormStep.tsx` (form tag)
 - [ ] `src/pages/ResetPassword.tsx` (form tag)
@@ -474,7 +474,7 @@ long/missing fields, and a working unsubscribe where required.
 | `MagicLinkEmail` | `supabase/functions/_shared/email-templates/magic-link.tsx` |
 | `MarketingBlastEmail` | `supabase/functions/_shared/email-templates/marketing-blast.tsx` |
 | `NotificationEmail` | `supabase/functions/_shared/email-templates/notification.tsx` |
-| `PifGiftEmail` | `supabase/functions/_shared/email-templates/pif-gift.tsx` |
+| `GiftCardEmail` | `supabase/functions/_shared/email-templates/gift-card.tsx` |
 | `ReauthenticationEmail` | `supabase/functions/_shared/email-templates/reauthentication.tsx` |
 | `RecoveryEmail` | `supabase/functions/_shared/email-templates/recovery.tsx` |
 | `ReEngagementEmail` | `supabase/functions/_shared/email-templates/drip.tsx` |

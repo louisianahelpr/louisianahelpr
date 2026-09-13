@@ -1,3 +1,5 @@
+# Refuse pushes that silently delete migrations or strip CLAUDE.md / OPEN.md.
+node scripts/check-push-no-silent-reverts.mjs || exit 1
 # Working-forwards change 2 (owner, 2026-09-12): sweep the screens this push
 # touches before it leaves the machine. LH_SKIP_CHANGED_CHECK=1 skips, and
 # LH_SKIP_REASON="..." is REQUIRED with it — the script fails the push if the

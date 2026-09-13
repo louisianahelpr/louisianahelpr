@@ -239,6 +239,15 @@ Find both and make one authoritative.
   Nightly + on migration push; red files a `nightly-red` issue.
 
 ## Bugs found but not fixed
+- **CLOSED 2026-09-13, mock-only: sweep 143 admin-tiers "This page hit a problem".**
+  The sweep fixture `get_helper_tiers` returned lowercase tiers (`elite/pro/rising`)
+  that `AdminHelperTiers` has no icon for; prod returns `Verified`/`New` and renders
+  (admin-e2e, 375; no HelperTiers row in `error_logs`). Fixture fixed; new prod check
+  `e2e/prod-audit/admin-views.spec.ts` (every `/admin?view=*`, 26 green, shown red by
+  feeding the prod bundle a lowercase tier). OPEN: the component still crashes on any
+  unknown tier string (report, not fixed); `/admin?view=support` shows "We couldn't
+  load the support queue" under that spec (probably its read uses a non-`get_` RPC
+  the spec's write firewall refuses; unverified).
 - **Every job card renders TWICE on /dashboard** (seen in the perf lane's
   screenshot). Unconfirmed cause.
 - **No retry for a failed arrival.** `mark_helper_arrival` fires once and the

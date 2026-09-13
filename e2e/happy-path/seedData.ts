@@ -2077,7 +2077,7 @@ export const SEED_RPCS: Record<string, RpcAnswer> = {
       full_name: p.full_name,
       avatar_url: p.avatar_url ?? null,
       parish: p.parish ?? null,
-      tier: ["elite", "pro", "rising", "new"][i % 4],
+      tier: ["Elite", "Verified", "Rising Star", "Active", "New"][i % 5],
       completed_jobs: 40 - i * 4,
       total_reviews: 30 - i * 3,
       avg_rating: 4.9 - i * 0.2,

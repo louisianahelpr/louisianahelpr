@@ -10,6 +10,7 @@ import { useHelprActivity } from "@/hooks/useHelprActivity";
 import { computeBudgetPresets } from "./postJobFormHelpers";
 import { isScheduleInThePast } from "@/lib/jobExpiry";
 import { jobStartDateTime } from "@/lib/dateUtils";
+import { contactLeakFieldError } from "@/lib/contactLeakField";
 
 /**
  * useJobDerived — derived values for the Post-a-Task form: checkout
@@ -186,13 +187,17 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // (prod holds titles up to 45 chars from before TITLE_MAX existed), and
   // without this the Details header showed a green tick and the word DONE
   // above a counter reading "45/32" in red — the section asserting finished
-  // while the field it contains says otherwise.
+  // while the field it contains says otherwise. Same for a title or
+  // description carrying contact details: the database rejects the row
+  // (20260913020635), the field says so inline, so the section is not DONE.
   const detailsComplete = !!(
     title.trim() &&
     title.length <= TITLE_MAX &&
     description.trim() &&
     category &&
-    !hasUnfilledPlaceholders(description)
+    !hasUnfilledPlaceholders(description) &&
+    !contactLeakFieldError(title, "job title") &&
+    !contactLeakFieldError(description, "job description")
   );
   // A schedule that has already gone by is INCOMPLETE, not merely invalid —
   // same doctrine as the over-length title above. The alternative is a

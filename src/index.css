@@ -762,7 +762,7 @@
      colour, two names, in two different token families. Retired in favour of
      --success-ink, which had 25 consumers to its 7 (A2). */
   --gift-ink:        142 50% 28%;   /* headings / amount */
-  --gift-green-soft: 142 40% 40%;   /* muted green subtext */
+  --gift-green-soft: 142 40% 32%;   /* muted green subtext. Was 40% L = 3.73:1 on the gift tint (#effaf3), under AA; 32% = 5.39:1 */
   --gift-tint:       142 50% 35%;   /* base hue used at low alpha for fills/borders */
   --gift-card-from:  142 50% 97%;   /* credit-card gradient top */
   --gift-card-to:    142 40% 94%;   /* credit-card gradient bottom */

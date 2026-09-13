@@ -10,8 +10,7 @@
  */
 import type { APIRequestContext, BrowserContext, Locator, Page, Request, TestInfo } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { findErrorScreen } from "../errorScreens";
 import { measureLayout } from "../happy-path/auditRoutes";
@@ -28,63 +27,13 @@ export const HELPER_ID = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
 
 /** The four seeded accounts scripts/test-signin-link.mjs may mint for. */
 export type Account = "poster" | "helper" | "incomplete" | "admin";
-const MINT_NAME: Record<Account, string> = { poster: "poster-e2e", helper: "helper-e2e", incomplete: "incomplete-e2e", admin: "admin-e2e" };
-const CACHE_DIR = join(process.cwd(), "node_modules", ".cache", "lh-journeys");
-const memo = new Map<Account, Session>();
-
-/** GoTrue's own answer: a JWT that PostgREST still accepts is dead once the session row is revoked (403). */
-async function sessionAlive(api: APIRequestContext, s: Session): Promise<boolean> {
-  const r = await api.get(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: ANON, Authorization: `Bearer ${s.access_token}` } });
-  return r.ok();
-}
-
-function mint(account: Account): Session {
-  const out = execFileSync("node", [join(process.cwd(), "scripts/test-signin-link.mjs"), MINT_NAME[account], "--session", "--json"], { cwd: process.cwd(), encoding: "utf8" });
-  return (JSON.parse(out) as { session: Session }).session;
-}
-
 /**
- * A live session for any of the four accounts. poster/helper go through the
- * journeys' getSession (password grant in CI, magic-link mint locally) and are
- * then VERIFIED against /auth/v1/user: a global sign-out elsewhere revokes the
- * session while its cached JWT still passes PostgREST, and the app signs the
- * tab out at its first getUser() — measured 2026-09-13 as "deep link bounced
- * to /login" with a 40-minute-fresh cache. A dead cache is deleted and re-minted.
- * incomplete/admin are mint-only (no password secrets exist for them), cached
- * on disk like the journeys do so GoTrue's magic-link rate limit is not hit.
+ * A live session for any of the four accounts: the journeys' getSession, which
+ * verifies every cached session against GoTrue (e2e/liveSession.ts) and
+ * re-mints a revoked one. Measured 2026-09-13: a 40-minute-fresh but revoked
+ * cache bounced a deep link to /login.
  */
-export async function sessionFor(api: APIRequestContext, account: Account): Promise<Session> {
-  const m = memo.get(account);
-  if (m && (m.expires_at ?? 0) * 1000 > Date.now() + 10 * 60_000 && (await sessionAlive(api, m))) return m;
-  let s: Session;
-  if (account === "poster" || account === "helper") {
-    s = await journeySession(api, account);
-    if (!(await sessionAlive(api, s))) {
-      rmSync(join(CACHE_DIR, `${account}.json`), { force: true });
-      s = await journeySession(api, account, true);
-      expect(await sessionAlive(api, s), `${account}: even a freshly obtained session is refused by /auth/v1/user`).toBe(true);
-    }
-  } else {
-    const file = join(CACHE_DIR, `${MINT_NAME[account]}.json`);
-    let disk: Session | null = null;
-    if (existsSync(file)) {
-      try {
-        disk = JSON.parse(readFileSync(file, "utf8")) as Session;
-      } catch {
-        // A corrupt cache file is a cache miss: mint below.
-        disk = null;
-      }
-    }
-    if (disk && (disk.expires_at ?? 0) * 1000 > Date.now() + 20 * 60_000 && (await sessionAlive(api, disk))) s = disk;
-    else {
-      s = mint(account);
-      mkdirSync(CACHE_DIR, { recursive: true });
-      writeFileSync(file, JSON.stringify(s), { mode: 0o600 });
-    }
-  }
-  memo.set(account, s);
-  return s;
-}
+export const sessionFor = (api: APIRequestContext, account: Account): Promise<Session> => journeySession(api, account);
 
 /** Back-compat name used by the first two specs. */
 export const getSession = (api: APIRequestContext, role: Role): Promise<Session> => sessionFor(api, role);

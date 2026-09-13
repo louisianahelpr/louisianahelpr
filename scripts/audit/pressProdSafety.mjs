@@ -23,7 +23,8 @@
  *     residue it could not remove listed rather than pretended away
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readLiveCache, sessionAlive, writeCache } from "../../e2e/liveSession.ts";
 import { resolve } from "node:path";
 
 export const PRESS_MARKER = "[PRESS DO NOT ACCEPT]";
@@ -45,15 +46,17 @@ export const PERSONA_ACCOUNT = {
 // four shards and a re-run do not mint per screen.
 // ---------------------------------------------------------------------------
 const CACHE_DIR = resolve(process.cwd(), "test-results/.prod-sessions");
-const TTL_MS = 40 * 60 * 1000;
 
 export async function prodSession(role) {
-  mkdirSync(CACHE_DIR, { recursive: true });
-  const file = resolve(CACHE_DIR, `${role}.json`);
-  if (existsSync(file)) {
-    const cached = JSON.parse(readFileSync(file, "utf8"));
-    if (Date.now() - cached.at < TTL_MS) return cached;
-  }
+  // Shared with the Playwright harnesses (e2e/liveSession.ts): a cached session
+  // is reused only while GoTrue still accepts it. A revoked session keeps an
+  // unexpired JWT, and the press sweep would otherwise run every screen signed out.
+  const file = resolve(CACHE_DIR, `${role}.raw.json`);
+  const disk = await readLiveCache(file, {
+    minFreshMs: 20 * 60 * 1000,
+    isAlive: (s) => sessionAlive(supabaseUrl(), anonKey(), s.access_token),
+  });
+  if (disk) return wrapSession(disk);
   const R = role.toUpperCase();
   const email = process.env[`PLAYWRIGHT_${R}_EMAIL`], password = process.env[`PLAYWRIGHT_${R}_PASSWORD`];
   let session;
@@ -68,9 +71,13 @@ export async function prodSession(role) {
     session = JSON.parse(out).session;
   }
   if (!session?.access_token || !session?.user?.id) throw new Error(`no usable session for the ${role}`);
-  const s = { key: authStorageKey(), value: JSON.stringify(session), userId: session.user.id, accessToken: session.access_token, at: Date.now() };
-  writeFileSync(file, JSON.stringify(s));
-  return s;
+  if (!(await sessionAlive(supabaseUrl(), anonKey(), session.access_token))) throw new Error(`a freshly obtained session for the ${role} is refused by /auth/v1/user`);
+  writeCache(file, session);
+  return wrapSession(session);
+}
+
+function wrapSession(session) {
+  return { key: authStorageKey(), value: JSON.stringify(session), userId: session.user.id, accessToken: session.access_token, at: Date.now() };
 }
 
 function authStorageKey() { return `sb-${new URL(supabaseUrl()).hostname.split(".")[0]}-auth-token`; }

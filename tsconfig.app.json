@@ -33,6 +33,7 @@
   },
   "include": [
     "src",
+    "e2e/liveSession.ts",
     "supabase/functions/_shared/businessSeatTiers.ts",
     "supabase/functions/_shared/proTiers.ts",
     "supabase/functions/_shared/tierNames.ts",

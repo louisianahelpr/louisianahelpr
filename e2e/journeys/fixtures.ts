@@ -8,8 +8,9 @@ import {
   type TestInfo,
 } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { readLiveCache, sessionAlive, writeCache } from "../liveSession";
 import { detectStuckOrBlank, findErrorScreen } from "../errorScreens";
 import { deviceProfile, type Rotation } from "./scenarios";
 
@@ -91,8 +92,10 @@ export function sessionsAvailable(): { ok: boolean; why: string } {
 const sessionCache = new Map<Role, Session>();
 
 export async function getSession(api: APIRequestContext, role: Role, fresh = false): Promise<Session> {
+  const isAlive = (s: Session) => sessionAlive(SUPABASE_URL, ANON, s.access_token);
   const cached = sessionCache.get(role);
-  if (!fresh && cached && (cached.expires_at ?? 0) * 1000 > Date.now() + 10 * 60_000) return cached;
+  if (!fresh && cached && (cached.expires_at ?? 0) * 1000 > Date.now() + 10 * 60_000 && (await isAlive(cached))) return cached;
+  sessionCache.delete(role);
   const creds = envCreds(role);
   let session: Session;
   if (creds) {
@@ -104,19 +107,14 @@ export async function getSession(api: APIRequestContext, role: Role, fresh = fal
     session = (await r.json()) as Session;
   } else {
     // GoTrue rate-limits magic links (429), so a minted session is reused from
-    // disk for as long as its access token has 20+ minutes left.
-    const cacheDir = join(REPO_ROOT, "node_modules", ".cache", "lh-journeys");
-    const cacheFile = join(cacheDir, `${role}.json`);
-    if (existsSync(cacheFile)) {
-      try {
-        const disk = JSON.parse(readFileSync(cacheFile, "utf8")) as Session;
-        if ((disk.expires_at ?? 0) * 1000 > Date.now() + 20 * 60_000) {
-          sessionCache.set(role, disk);
-          return disk;
-        }
-      } catch {
-        // A corrupt cache file is just a cache miss: mint below.
-      }
+    // disk while its access token has 20+ minutes left AND GoTrue still accepts
+    // it (e2e/liveSession.ts: a revoked session keeps a valid-looking JWT, and
+    // the specs would silently run signed out). A dead cache is deleted.
+    const cacheFile = sessionCacheFile(role);
+    const disk = fresh ? null : await readLiveCache<Session>(cacheFile, { minFreshMs: 20 * 60_000, isAlive });
+    if (disk) {
+      sessionCache.set(role, disk);
+      return disk;
     }
     const out = execFileSync(
       "node",
@@ -124,12 +122,17 @@ export async function getSession(api: APIRequestContext, role: Role, fresh = fal
       { cwd: REPO_ROOT, encoding: "utf8" },
     );
     session = (JSON.parse(out) as { session: Session }).session;
-    mkdirSync(cacheDir, { recursive: true });
-    writeFileSync(cacheFile, JSON.stringify(session), { mode: 0o600 });
+    writeCache(cacheFile, session);
   }
   expect(session.access_token, `no access token for the ${role}`).toBeTruthy();
+  expect(await isAlive(session), `${role}: a freshly obtained session is refused by /auth/v1/user`).toBe(true);
   sessionCache.set(role, session);
   return session;
+}
+
+/** Disk cache path for a locally minted session. */
+export function sessionCacheFile(role: Role): string {
+  return join(REPO_ROOT, "node_modules", ".cache", "lh-journeys", `${role}.json`);
 }
 
 /**
@@ -139,8 +142,7 @@ export async function getSession(api: APIRequestContext, role: Role, fresh = fal
  */
 export function forgetSession(role: Role) {
   sessionCache.delete(role);
-  const file = join(REPO_ROOT, "node_modules", ".cache", "lh-journeys", `${role}.json`);
-  if (existsSync(file)) writeFileSync(file, "{}");
+  rmSync(sessionCacheFile(role), { force: true });
 }
 
 export function rest(session: Session, extra: Record<string, string> = {}) {

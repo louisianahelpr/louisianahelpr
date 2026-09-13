@@ -108,6 +108,12 @@ old-miss/new-catch, reject/pass and 3x replay in PGlite.
 - Inventory: `docs/audit/notification-inventory.md`.
 - Nightly + dispatch: `.github/workflows/e2e-abuse-notifications.yml` (shared-
   accounts concurrency group; pre/post sweeper).
+- [x] Revoked cached sessions no longer pass as signed in (2026-09-12): one shared
+  check `e2e/liveSession.ts` (GET /auth/v1/user, dead/corrupt cache deleted and
+  re-minted) used by journeys `getSession` (so prod-audit + a11y-prod) and
+  `scripts/audit/pressProdSafety.mjs`; harness's private copy removed. Guard
+  `src/test/liveSessionCache.test.ts` (red 2/4 on clock-only cache, green 4/4).
+  Noted, not touched: `e2e/prodSessions.ts` has zero importers (dead, clock-only TTL).
 
 ---
 

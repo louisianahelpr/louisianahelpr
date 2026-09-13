@@ -78,6 +78,33 @@ test(guestTitle, async ({ browser, journey }) => {
     expect(invisible, "focused with nothing painted").toEqual([]);
     await assertHealthy(page, "signup DOB picker");
   });
+
+  await test.step("a2. Tab through the DOB wheel never changes the value", async () => {
+    // Original (2026-09-12): options were tabbable buttons; Tab scroll-snapped
+    // the column onto them and two presses moved the year 2008 -> 1906.
+    const dialog = page.getByRole("dialog", { name: "Choose a date" });
+    const selected = () =>
+      dialog.evaluate((d) =>
+        Array.from(d.querySelectorAll('[role="listbox"]')).map(
+          (lb) => `${lb.getAttribute("aria-label")}=${lb.querySelector('[aria-selected="true"]')?.textContent ?? ""}`,
+        ),
+      );
+    const month = dialog.getByRole("listbox", { name: "Month" });
+    await month.focus();
+    const before = await selected();
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press("Tab");
+      // Let any focus-driven scroll settle past the wheel's 90ms debounce.
+      await page.waitForTimeout(250);
+    }
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press("Shift+Tab");
+      await page.waitForTimeout(250);
+    }
+    expect(await selected(), "Tab moved the DOB wheel's value").toEqual(before);
+    // Every option is out of the tab order; the listbox is the only stop.
+    expect(await dialog.locator('[role="option"]:not([tabindex="-1"])').count()).toBe(0);
+  });
   await ctx.close();
 });
 

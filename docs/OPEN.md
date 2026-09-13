@@ -14,6 +14,9 @@ fraction of fixing them one report at a time.
 
 ---
 
+## Keyboard — suggestion popups have tabbable options, no arrow-key model (2026-09-12)
+- [ ] `BrowseSearchBar.tsx`, `CityAutocomplete.tsx`, `AddressAutocomplete.tsx`: `<button role="option">` in a listbox with no ArrowUp/Down/aria-activedescendant on the input. Allowlisted as PENDING in `src/test/listboxOptionsNotTabbable.test.ts`; give the input a combobox keyboard model, set options `tabIndex={-1}`, remove from PENDING. (DOB wheel fixed.)
+
 ## CLOSED 2026-09-13 — contact smuggling in bios/job posts + hyphenated-domain emails (terminal 7)
 
 Both SECURITY findings from 2026-09-12 shipped (owner said yes) in

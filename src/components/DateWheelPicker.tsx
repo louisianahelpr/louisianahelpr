@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef, type KeyboardEvent } from "react";
 import { cn } from "@/lib/utils";
 
 const ITEM_H = 40;
@@ -39,6 +39,7 @@ function WheelColumn({ labels, values, value, onChange, ariaLabel, className }: 
   const programmatic = useRef(false);
 
   const index = Math.max(0, values.indexOf(value));
+  const idBase = useId();
 
   useEffect(() => {
     const el = ref.current;
@@ -87,12 +88,39 @@ function WheelColumn({ labels, values, value, onChange, ariaLabel, className }: 
 
   useEffect(() => () => window.clearTimeout(settleTimer.current), []);
 
+  // WAI-ARIA listbox keyboard model. The column is ONE tab stop; the options
+  // are tabIndex=-1 and the selection is announced via aria-activedescendant.
+  // The options used to be tabbable buttons: Tab focused one, the browser
+  // scrolled it into view, the snap settled, and the scroll handler adopted
+  // it as the value — two Tab presses moved a DOB year 2008 -> 1906
+  // (keyboard audit, 2026-09-12). Focus must never change the value; only
+  // these keys do.
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const last = values.length - 1;
+    const page = PAD_ROWS * 2 + 1;
+    let next: number;
+    switch (e.key) {
+      case "ArrowDown": next = index + 1; break;
+      case "ArrowUp": next = index - 1; break;
+      case "PageDown": next = index + page; break;
+      case "PageUp": next = index - page; break;
+      case "Home": next = 0; break;
+      case "End": next = last; break;
+      default: return;
+    }
+    e.preventDefault();
+    next = clamp(next, 0, last);
+    if (values[next] !== value) onChange(values[next]);
+  };
+
   return (
     <div
       ref={ref}
       onScroll={handleScroll}
+      onKeyDown={handleKeyDown}
       role="listbox"
       aria-label={ariaLabel}
+      aria-activedescendant={`${idBase}-${index}`}
       tabIndex={0}
       className={cn(
         "relative h-[200px] overflow-y-auto snap-y snap-mandatory scrollbar-none rounded-ds-md",
@@ -110,8 +138,10 @@ function WheelColumn({ labels, values, value, onChange, ariaLabel, className }: 
       {values.map((v, i) => (
         <button
           key={v}
+          id={`${idBase}-${i}`}
           type="button"
           role="option"
+          tabIndex={-1}
           aria-selected={v === value}
           onClick={() => onChange(v)}
           className={cn(

@@ -18,7 +18,14 @@ type SignOutOptions = { scope?: "global" | "local" | "others" };
  * signs in on the same phone, A keeps getting A's pushes). Cleanup is
  * best-effort and never blocks logout: a failed delete still signs out.
  */
-export async function signOutWithPushCleanup(options?: SignOutOptions) {
+export async function signOutWithPushCleanup(requested?: SignOutOptions) {
+  // THIS DEVICE ONLY unless a caller asks for more. supabase-js defaults
+  // signOut() to scope "global", so every plain "Log Out" (Profile, Dashboard,
+  // Complete Profile, the timeout) ended the account's sessions on EVERY
+  // device: log out on your phone, get logged out on the web. Verified live on
+  // 2026-09-12 (another browser's refresh then returned refresh_token_not_found).
+  // "Sign Out Everywhere" in SecurityTab passes scope "global" explicitly.
+  const options: SignOutOptions = { scope: "local", ...requested };
   try {
     const { data } = await supabase.auth.getUser();
     if (data.user) await unregisterPushOnSignOut(data.user.id);

@@ -64,6 +64,17 @@ describe("signOutWithPushCleanup", () => {
     expect(removePersistedClient).toHaveBeenCalledTimes(1);
   });
 
+  it("a plain Log Out ends THIS device's session only; Sign Out Everywhere stays global", async () => {
+    // supabase-js defaults to scope "global": a phone Log Out used to sign the
+    // web out too (verified live, 2026-09-12).
+    const { signOutWithPushCleanup } = await import("./authSignOut");
+    signOut.mockClear();
+    await signOutWithPushCleanup();
+    expect(signOut).toHaveBeenLastCalledWith({ scope: "local" });
+    await signOutWithPushCleanup({ scope: "global" });
+    expect(signOut).toHaveBeenLastCalledWith({ scope: "global" });
+  });
+
   it("wipes AFTER signOut, so an in-flight query cannot repopulate with a live session", async () => {
     const { signOutWithPushCleanup } = await import("./authSignOut");
     await signOutWithPushCleanup();

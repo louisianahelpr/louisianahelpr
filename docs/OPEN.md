@@ -1605,3 +1605,15 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] **Paused lanes on resume use prod:** keyboard/large text, messy input, interruptions, slow phone/returning, scorecard, explorer. Their mocked specs get migrated, not extended.
 - [ ] **Existing mocked happy-path specs in CI** (e2e-happy-path.yml, ui-sweep, a11y-axe): migrate to prod-backed or retire, one at a time, keeping CI green.
 - [ ] **Uncommitted mock fixture change discarded** (edge-function stub bodies) per this decision.
+
+### REDO on prod — work that was only verified on mocks (owner: "no mock mode ever")
+
+- [ ] Prod test data for every state (seed lane resumed on prod: scripts/audit/prod-seed.mjs).
+- [ ] Button geometry + sibling heights (de9d3cd88, admin tiles, fraud select): re-verify on prod screens.
+- [ ] Keyboard file pickers, aria-label roles, dark contrast (dbed7befd): re-verify on prod screens.
+- [ ] /complete-profile sweep screen: needs a real incomplete-profile test account, not a mock rule.
+- [ ] Stale-deploy spec (2263feec8): routes loaded with the prod backend.
+- [ ] New-tab destination check (f5e0e104f): sweep side re-run on prod.
+- [ ] Messy-input specs (1eb8e7caf), deep-link interruptions (c4a52d937 WIP), keyboard journeys (a23bcb847 WIP): migrate to prod before extending.
+- [ ] press-every-control full run: MODE=prod, destructive presses only on test-owned records.
+- [ ] Mock seed (59a92d362) and mock-only harness pieces: retire once prod equivalents pass.

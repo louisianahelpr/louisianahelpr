@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,10 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
   const selectedLabel =
     deadlineOptions.find((o) => o.value === hours)?.label ?? `${hours} hours`;
 
+  // Synchronous in-flight guard: `disabled={state}` cannot stop two clicks in one frame (see useApplyFlow).
+  const sendingRef = useRef(false);
   const handleConfirm = async () => {
+    if (sendingRef.current) return;
     // SAME CONTRACT AS MESSAGES. The server scans this offer message the way
     // it scans a chat message and, when it trips a rule, stores it with
     // `flagged_hidden` set — the helpr never sees it. The poster got a success
@@ -63,6 +66,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
         return;
       }
     }
+    sendingRef.current = true;
     setSubmitting(true);
     setErrorMessage(null);
     try {
@@ -79,6 +83,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
       // with other flows); the inline block above is the primary surface.
       toast.error(msg ?? "Couldn't send the offer — please try again.");
     } finally {
+      sendingRef.current = false;
       setSubmitting(false);
     }
   };

@@ -92,7 +92,14 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
 
   const canSubmit = rating > 0;
 
+  // Synchronous in-flight guard: `disabled={state}` cannot stop two clicks in one frame (see useApplyFlow).
+  const submittingRef = useRef(false);
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    try { await submitOnce(); } finally { submittingRef.current = false; }
+  };
+  const submitOnce = async () => {
     if (!canSubmit) {
       hapticError();
       toast.error("Tap an Overall star rating to leave your review.");

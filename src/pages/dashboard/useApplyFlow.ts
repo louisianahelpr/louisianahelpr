@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQueryClient, type Query } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -35,6 +35,8 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
+  // Synchronous in-flight guard for handleApplyConfirm (see there).
+  const applyInFlight = useRef(false);
   // A deep-linked apply (?quickApply=<id>) can target a job that isn't in the
   // dashboard feed — filtered out, in another area, or the feed simply hasn't
   // loaded it. The confirm dialog needs the job object (title, budget,
@@ -375,7 +377,10 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
      standalone QuickApply sheet still omits it and reads the state. */
   const handleApplyConfirm = useCallback((explicitJobId?: string) => {
     const jobId = explicitJobId ?? confirmApplyJobId;
-    if (!user || !jobId || applyLoading) return;
+    // `applyLoading` is state, so two clicks dispatched in one frame both read
+    // `false` (no re-render between them) and both fired apply_to_job —
+    // measured on prod 2026-09-12. The ref flips synchronously.
+    if (!user || !jobId || applyLoading || applyInFlight.current) return;
     const files = applyFiles;
     const message = applyMessage;
     // Close the dialog + reset its state synchronously so the next paint
@@ -387,9 +392,10 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     // setApplyLoading flips off on settled (handled below) — we still
     // set it true here so a fast double-tap can't enqueue twice.
     setApplyLoading(true);
+    applyInFlight.current = true;
     applyMutation.mutate(
       { jobId, helperId: user.id, message, files },
-      { onSettled: () => setApplyLoading(false) },
+      { onSettled: () => { applyInFlight.current = false; setApplyLoading(false); } },
     );
   }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, applyMutation]);
 

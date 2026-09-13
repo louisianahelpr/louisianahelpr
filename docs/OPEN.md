@@ -196,6 +196,7 @@ bell badge **10**, panel "Unread **11**". Two different sources of one count.
 Find both and make one authoritative.
 
 ## Race conditions — proven on prod 2026-09-13 (terminal 3, seed accounts, all fixture rows deleted)
+- **Same-frame double-click on Apply Now — FIXED (client), 2026-09-12.** Two clicks in one JS task sent 2 `apply_to_job` RPCs (server refused the 2nd; 1 row). Ref guard in `useApplyFlow`; prod-audit "SAME frame" case now dispatches a true same-task double and requires exactly 1 write: RED 2 writes on deployed prod, GREEN 1 on the guarded build. Same guard added to ResponseDeadlineDialog (hire), CompletionPrompts (review + tip), ReviewForm. **OPEN:** `completeJob` (release) and `handleHelperResponse` (accept offer) in `create*Handlers` factories are the same class but hold no ref (not hooks) — needs a hook-level guard.
 - **PROVEN 14/20 — apply vs cancel.** `enforce_application_job_state()` read the
   job without a lock; the INSERT then waited on the FK behind
   `poster_cancel_job()`'s `FOR UPDATE` and committed a `pending` application on

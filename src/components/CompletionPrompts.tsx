@@ -137,7 +137,14 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     });
   }, [jobId, userId]);
 
+  // Synchronous in-flight guard: `disabled={state}` cannot stop two clicks in one frame (see useApplyFlow).
+  const savingRef = useRef(false);
   const submitReview = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    try { await submitReviewOnce(); } finally { savingRef.current = false; }
+  };
+  const submitReviewOnce = async () => {
     if (rating === 0) { hapticError(); toast.error("Please select a rating."); return; }
     hapticMedium();
     setSaving(true);
@@ -206,6 +213,8 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   const tipAttemptIdRef = useRef<string>(crypto.randomUUID());
 
   const sendTip = async (amount: number) => {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", {
@@ -219,6 +228,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       const message = err instanceof Error ? err.message : "Couldn't send that tip — please try again";
       toast.error(message);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

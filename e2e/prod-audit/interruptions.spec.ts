@@ -140,16 +140,21 @@ test.describe("apply", () => {
     const { apply } = await openApply(page, jobId);
     const writes = watchWrites(page, APPLY_WRITE);
     // Harsher than a real tap: `disabled` cannot help, because React has not
-    // re-rendered between the two clicks. Measured on prod 2026-09-13 — this
-    // DOES fire two apply_to_job calls. What must hold is the outcome: the
-    // second is refused server-side ("Already applied to this job"), so exactly
-    // one row exists, and that refusal must not surface as a failure to a user
-    // whose application did in fact go through.
-    await apply.dblclick({ force: true });
+    // re-rendered between the two clicks. Measured on prod 2026-09-12 — before
+    // the synchronous in-flight ref in useApplyFlow this fired TWO apply_to_job
+    // calls (the server refused the second). The contract is now exactly one
+    // write per intent, plus the outcome: one row, and no failure message.
+    // Both clicks dispatched in ONE JS task. Playwright's `dblclick` sends two
+    // separate input events, and React 18 flushes the `disabled` re-render
+    // between them — measured 2026-09-12: that sent 1 write on the unguarded
+    // code, so it could never fail. Two synchronous `.click()`s leave no
+    // microtask in between, which is the frame the ref guard exists for.
+    await apply.evaluate((el) => { (el as HTMLElement).click(); (el as HTMLElement).click(); });
     await expect(page.getByText(/application sent|you're booked/i).first()).toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(2_000);
     await assertHealthy(page, info, "apply-same-frame-double");
     info.annotations.push({ type: "note", description: `${writes.length} apply writes from one same-frame double-click` });
+    expect(writes.length, "apply writes from one same-frame double-click").toBe(1);
     await expect.poll(() => applicationsFor(request, jobId), { timeout: 15_000 }).toBe(1);
     await expect(page.getByText(/already applied|couldn't send|went wrong/i), "a same-frame double-tap told the user their successful application failed").toHaveCount(0);
     await ctx.close();

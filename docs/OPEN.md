@@ -1596,3 +1596,12 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] **Write-contract lane:** `instant_book_claim` RPC no longer exists in prod; `useApplyFlow.ts` quietly skips the error, so it is dead code. 4 open-payload `profiles` updates not yet checked against 11 non-updatable columns.
 - [ ] **press-every-control:** checkout presses fail in mock mode because edge functions aren't mocked ("Couldn't open checkout"); the dock "Home" button reported not clickable on /profile; the payout-check banner is pressable but does nothing. Triage after the full run.
 - [x] **Fixed by coordinator:** DST start time, listing expiry and confirm card zones (790004248); saved_jobs/thread_pins re-save RLS (1cdd3b786); press-every-control service-worker false failures (ef1574d65).
+
+### Move every audit off mocks and onto prod (owner, 2026-09-12)
+
+- [ ] **Seed prod test data** for the two test accounts in every state the mock seed had (all job/payment statuses, disputes, long thread, payouts, reviews, credentials, pets…), all `is_seed`, restorable, and never visible to real users. Replaces seedData.ts as the audit data source.
+- [ ] **Visual sweep** against prod as the test accounts (not installSupabaseMocks). Empty/error-state sweeps: decide what replaces them honestly (a throwaway test account for empty; real network failure injection for errors).
+- [ ] **press-every-control MODE=prod**: destructive presses allowed only on test-owned records; admin actions only against test targets.
+- [ ] **Paused lanes on resume use prod:** keyboard/large text, messy input, interruptions, slow phone/returning, scorecard, explorer. Their mocked specs get migrated, not extended.
+- [ ] **Existing mocked happy-path specs in CI** (e2e-happy-path.yml, ui-sweep, a11y-axe): migrate to prod-backed or retire, one at a time, keeping CI green.
+- [ ] **Uncommitted mock fixture change discarded** (edge-function stub bodies) per this decision.

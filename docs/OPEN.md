@@ -14,6 +14,50 @@ fraction of fixing them one report at a time.
 
 ---
 
+## Cleanup candidates — dead code found 2026-09-13 (`npx knip`, call sites counted)
+
+`npm run deadcode` (knip) reports **0 unused files and 0 unused dependencies** —
+nothing whole is orphaned. What it finds is smaller: exports nothing imports,
+and one reachable-looking code path that cannot execute.
+
+- [ ] **`instant_book_claim` cannot fire — `useApplyFlow.ts:229-253` is dead.**
+      `jobs.instant_book` was dropped by migration `20260904034410` (dead-feature
+      cut) and `useApplyFlow.ts:67` stopped selecting it, so `isInstantBook` is
+      always `false` and the RPC branch (plus its PGRST202 fallback) never runs.
+      Five call sites still read or write the dropped column:
+      `ApplyConfirmDialog.tsx:23`, `applyConfirmDialog/ApplyBody.tsx:90`,
+      `JobCard.tsx:471` (renders an "Instant book" badge that can never show),
+      `useApplyFlow.ts:244`, and `postjob/jobSubmitHelpers.ts:217`, which still
+      sends `instant_book: true` on insert — a column prod no longer has.
+      That last one is the reason this is not cosmetic.
+- [ ] **12 scripts referenced by nothing** — not in `package.json`, any workflow,
+      any doc, or any other script: `scripts/asc/{fix-availability,
+      fix-review-issues,inspect,screenshots}.mjs`,
+      `scripts/audit/{a11y-focus-repro,complete-profile-icon-clip}.mjs`,
+      `scripts/check-silent-catch.mjs`, `scripts/dh-{apply,nearby}-shots.mjs`,
+      `scripts/e2e/cleanup-stray-testusers.sh`, `scripts/mapkit-token.mjs`,
+      `scripts/probes/restrict-marketing-media.probe.mjs`.
+- [ ] **62 unused exports + 15 unused exported types + 32 duplicate exports.**
+      Mostly a module exporting both a named symbol and a default when only one
+      is ever imported (`ProUpgradeSheet` 1 importer — the default;
+      `useDeleteAccount` 3 importers — all named; `JobLocationPreview` named
+      only; every `email-templates/*.tsx` default). The rest are constants
+      nothing reads (`jobsConstants.ts` × 6, `pdfDocument.ts` × 6,
+      `str-ical-sync/safeFetch.ts` × 8, `moneyLimits.ts: ONBOARDING_FEE_CENTS`).
+      Run `npm run deadcode` for the current list.
+- [ ] **3 unlisted dependencies**: `playwright` imported by
+      `scripts/audit/a11y-focus-repro.mjs` and
+      `scripts/audit/complete-profile-icon-clip.mjs`,
+      `@typescript-eslint/parser` by `src/test/buttonHeightLedger.test.ts`.
+      They resolve today only because a transitive copy is installed.
+- [ ] **`.claude-scratch/` is 129M and lints.** It is gitignored (290e73045) but
+      still on disk and still inside the ESLint project, so
+      `.claude-scratch/og/sandbox/api/share.ts` contributes the repo's only two
+      standing `npm run lint` errors (`no-control-regex`, silent-catch). Either
+      add it to `eslint.config` ignores or delete the directory.
+
+---
+
 ## Keyboard — suggestion popups have tabbable options, no arrow-key model (2026-09-12)
 - [ ] `BrowseSearchBar.tsx`, `CityAutocomplete.tsx`, `AddressAutocomplete.tsx`: `<button role="option">` in a listbox with no ArrowUp/Down/aria-activedescendant on the input. Allowlisted as PENDING in `src/test/listboxOptionsNotTabbable.test.ts`; give the input a combobox keyboard model, set options `tabIndex={-1}`, remove from PENDING. (DOB wheel fixed.)
 

@@ -40,14 +40,14 @@ export function VideoScope({
         </div>
       ) : (
         <label
-          className="block w-full rounded-ds-md p-4 text-center cursor-pointer transition-colors"
+          className="block w-full rounded-ds-md p-4 text-center cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]"
           style={{ border: "1.5px dashed hsl(var(--bark) / 0.3)", background: "hsl(var(--bark) / 0.03)" }}
         >
           <Video className="w-6 h-6 mx-auto mb-1" style={{ color: "hsl(var(--bark) / 0.5)" }} />
           <span className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Upload a video (30s max)
           </span>
-          <input type="file" accept="video/*" className="hidden" onChange={onVideoSelect} />
+          <input type="file" accept="video/*" className="sr-only" onChange={onVideoSelect} />
         </label>
       )}
     </div>

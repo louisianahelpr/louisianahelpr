@@ -1049,7 +1049,7 @@ export function ConversationList({
                               glance. Hidden when not pinned, and while
                               selecting (the checkbox takes that corner). */}
                           {pinned && !selectMode && (
-                            <span
+                            <span role="img"
                               aria-label="Pinned"
                               className="absolute top-2 left-2 z-10 inline-flex items-center justify-center w-4 h-4 rounded-full pointer-events-none"
                               style={{

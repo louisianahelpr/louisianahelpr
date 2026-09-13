@@ -434,7 +434,7 @@ const ConversationRowBase = ({
                   drop the dot and read as a muted timestamp. Hidden
                   beyond 7d so a stale signal can't masquerade as live. */}
               {lastActiveLabel && (
-                <span
+                <span role="img"
                   aria-label={`Last active ${lastActiveLabel.text}`}
                   className="inline-flex items-center gap-1 shrink-0"
                 >

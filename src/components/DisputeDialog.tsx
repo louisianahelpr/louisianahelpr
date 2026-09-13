@@ -353,11 +353,11 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
             </div>
             {evidenceFiles.length < 5 && (
               <label
-                className="inline-flex items-center gap-1.5 text-ds-12 font-sans font-semibold cursor-pointer active:opacity-70"
+                className="inline-flex items-center gap-1.5 text-ds-12 font-sans font-semibold cursor-pointer active:opacity-70 focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]"
                 style={{ color: "hsl(var(--bark))" }}
               >
                 <Upload className="w-3.5 h-3.5" strokeWidth={2.25} /> {evidenceFiles.length === 0 ? "Add photos" : "Add more"}
-                <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
+                <input type="file" accept="image/*" multiple onChange={handleFileChange} className="sr-only" />
               </label>
             )}
           </div>

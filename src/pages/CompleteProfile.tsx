@@ -618,9 +618,8 @@ const CompleteProfile = () => {
               <label
                 htmlFor="avatar"
                 className="group relative cursor-pointer"
-                aria-label={avatarPreview ? "Change profile picture" : "Upload profile picture"}
               >
-                <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-border bg-muted flex items-center justify-center transition-all group-hover:ring-primary/50">
+                <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-border bg-muted flex items-center justify-center transition-all group-hover:ring-primary/50 group-focus-within:ring-primary">
                   {/* Renders ANY preview URL, not just a freshly-picked
                       `blob:`. The old `startsWith("blob:")` guard meant a user
                       who already had an avatar on file saw an empty camera
@@ -644,11 +643,19 @@ const CompleteProfile = () => {
                 <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md ring-2 ring-card">
                   <Camera className="w-3.5 h-3.5" />
                 </div>
+                {/* `sr-only`, not `hidden`, and the name on the INPUT. With
+                    `hidden` (display:none) the only way to add the required
+                    photo was a pointer: keyboard and screen-reader users could
+                    not reach it on the one screen they cannot leave without
+                    one. The aria-label sat on the <label>, where axe flags it
+                    as prohibited (aria-prohibited-attr) and AT ignores it.
+                    Found the first time the sweep rendered this gate. */}
                 <input
                   id="avatar"
                   type="file"
                   accept="image/*"
-                  className="hidden"
+                  className="sr-only"
+                  aria-label={avatarPreview ? "Change profile picture" : "Upload profile picture"}
                   onChange={handleAvatarChange}
                 />
               </label>
@@ -801,13 +808,13 @@ const CompleteProfile = () => {
                 how someone could finish this form and be invisible to the job
                 fan-out with no one — them or us — any the wiser. */}
             {unknownZip && (
-              <p role="status" className="flex items-start gap-1 text-ds-11 -mt-1" style={{ color: "hsl(var(--burnt-sienna))" }}>
+              <p role="status" className="flex items-start gap-1 text-ds-11 -mt-1" style={{ color: "hsl(var(--sienna-ink))" }}>
                 <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />
                 {UNKNOWN_ZIP_MESSAGE}
               </p>
             )}
             {cityZipMismatch && (
-              <p className="flex items-center gap-1 text-ds-11 -mt-1" style={{ color: "hsl(var(--burnt-sienna))" }}>
+              <p className="flex items-center gap-1 text-ds-11 -mt-1" style={{ color: "hsl(var(--sienna-ink))" }}>
                 <AlertCircle className="w-3 h-3 shrink-0" aria-hidden />
                 {cityZipMismatch}
               </p>
@@ -849,7 +856,7 @@ const CompleteProfile = () => {
                 I agree to the{" "}
                 <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Terms</a>,{" "}
                 <a href="/rules" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Rules</a>{" & "}
-                <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Privacy</a>. <span style={{ color: "hsl(var(--burnt-sienna))" }}>*</span>
+                <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Privacy</a>. <span style={{ color: "hsl(var(--sienna-ink))" }}>*</span>
               </span>
             </label>
 
@@ -880,7 +887,7 @@ const CompleteProfile = () => {
                     decision), so a label written with it renders nothing.
                     Caught here by reading the computed page text, not the
                     class name — same trap as asserting gloss by class. */}
-                <p className="text-ds-11 font-semibold" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                <p className="text-ds-11 font-semibold" style={{ color: "hsl(var(--sienna-ink))" }}>
                   Still needed
                 </p>
                 <ul className="mt-2 space-y-1.5" aria-live="polite">

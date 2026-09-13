@@ -257,7 +257,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel }: Pho
                   </button>
                 ) : (
                   <label
-                    className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
+                    className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97] focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]"
                     style={{
                       background: "hsla(0, 0%, 100%, 0.4)",
                       border: "1.5px dashed hsl(var(--bark) / 0.30)",
@@ -270,7 +270,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel }: Pho
                     >
                       Add Photo
                     </span>
-                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleSelect} />
+                    <input type="file" accept="image/*" multiple className="sr-only" onChange={handleSelect} />
                   </label>
                 )
               )}

@@ -41,7 +41,7 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
       // tile's edges, and without a clip the stroke drew straight out through
       // the rounded corner — visible on the New Users tile at both 375 and 1440.
       // Clipping it AT the radius is what makes the bleed read as deliberate.
-      className="rounded-ds-md liquid-glass overflow-hidden p-3 sm:p-4 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
+      className="rounded-ds-md liquid-glass overflow-hidden p-3 sm:p-4 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full h-full flex flex-col"
     >
       <div className="flex items-center justify-between mb-1.5 sm:mb-2">
         <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-ds-sm flex items-center justify-center", accentClasses)}>
@@ -83,11 +83,13 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
           which is why the grid no longer stretches them. */}
       {sparkline && sparkline.length > 0 && (
         sparkline.some((n) => n) ? (
-          <Suspense fallback={<div className="h-7 mt-2" aria-hidden />}>
-            <KpiSparkline data={sparkline} tone={accent} />
-          </Suspense>
+          <div className="mt-auto pt-2">
+            <Suspense fallback={<div className="h-7" aria-hidden />}>
+              <KpiSparkline data={sparkline} tone={accent} />
+            </Suspense>
+          </div>
         ) : (
-          <div className="h-7 mt-2 flex items-end" aria-hidden>
+          <div className="h-7 mt-auto pt-2 flex items-end" aria-hidden>
             <div className="h-px w-full bg-border" />
           </div>
         )

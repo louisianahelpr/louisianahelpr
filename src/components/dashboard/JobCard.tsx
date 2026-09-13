@@ -365,7 +365,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                  "Just i…" carries no information, so they hold their width
                  and the category label gives instead. */}
           {isJustIn ? (
-            <span
+            <span role="img"
               aria-label="Just posted"
               className="inline-flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-b-lg border-b border-r text-ds-10 font-semibold leading-none shadow-sm pointer-events-none"
               style={{
@@ -425,7 +425,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             "inline-flex items-center gap-1 shrink-0 pl-2.5 pr-3 py-1 rounded-bl-lg border-b border-l text-ds-9 font-bold uppercase leading-none shadow-sm";
           if (job.isBoosted)
             return (
-              <span
+              <span role="img"
                 className={`boosted-pulse ${corner}`}
                 aria-label="Boosted"
                 style={{
@@ -447,7 +447,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           if (job.is_urgent) {
             const bonus = Number(job.urgent_fee ?? 0);
             return (
-              <span
+              <span role="img"
                 className={`urgent-pulse ${corner}`}
                 aria-label={bonus > 0 ? `Urgent — $${formatPrice(bonus)} bonus` : "Urgent"}
                 style={{
@@ -470,7 +470,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           }
           if ((job as { instant_book?: boolean }).instant_book)
             return (
-              <span
+              <span role="img"
                 className={corner}
                 aria-label="Instant book"
                 style={{ color: "hsl(var(--sage))", background: "hsl(var(--sage) / 0.15)", borderColor: "hsl(var(--sage) / 0.45)", letterSpacing: "0.05em" }}
@@ -579,7 +579,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               <span className="truncate font-sans min-w-[4.5rem]">{cityState}</span>
             </span>
             {distanceLabel && (
-              <span
+              <span role="img"
                 aria-label={
                   drivingLabel
                     ? `Approximately ${drivingLabel} drive, ${distanceLabel} away`

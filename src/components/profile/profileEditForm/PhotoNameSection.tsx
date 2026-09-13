@@ -124,8 +124,8 @@ export function PhotoNameSection({
                 effectively unnamed — a screen reader announced only "button".
                 A <label> names the control it wraps, so an sr-only child names
                 the file input properly and works everywhere. */}
-            <span className="sr-only">Change profile photo</span>
-            <input type="file" accept="image/*" className="hidden" onChange={onAvatarUpload} disabled={avatarUploading} />
+            <span className="sr-only focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]">Change profile photo</span>
+            <input type="file" accept="image/*" className="sr-only" onChange={onAvatarUpload} disabled={avatarUploading} />
           </label>
         </div>
         <div className="min-w-0 flex-1">

@@ -121,13 +121,14 @@ export const DashboardHome = ({
         </div>
       )}
 
-      {/* KPI Summary cards.
-          `items-start`: the grid used to stretch every tile to its row's
-          tallest sibling, so a tile with no trend line ("Pending Disputes")
-          was blown up to the height of the one beside it and rendered as a
-          bordered box with a number adrift in empty space. Cards now take the
-          height of their own content. */}
-      <div className="grid grid-cols-2 items-start gap-2.5 sm:gap-3">
+      {/* KPI Summary cards. Tiles in a row are the SAME HEIGHT (owner,
+          2026-09-12: siblings match). `items-start` let each tile take its own
+          content height, which left rows ragged: New Users 151px beside Active
+          Jobs 137px, Revenue beside a much shorter Pending Disputes. The grid
+          stretches again; KpiCard is a flex column that pins its sparkline lane
+          to the bottom edge, so the extra height sits under the content as
+          card padding, not between the number and its label. */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
 
         <KpiCard
           label={`New Users (${rangeLabel})`}
@@ -208,7 +209,7 @@ export const DashboardHome = ({
       {/* Likewise no subtitle — the tiles inside carry "(all-time)" in their own
           labels, so a header line saying "All-time totals" said it twice. */}
       <AdminCard title="Financial Health">
-        <div className="grid grid-cols-2 items-start gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           {/* Same figure, same name as Analytics — it was "Captured Revenue
               (all-time)" here and "Collected Revenue" there. And it is gross
               volume, not revenue: budget + poster fee, most of it owed out. */}

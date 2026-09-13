@@ -132,8 +132,7 @@ export function PhotoUpload({
           </Reorder.Group>
           {imageFiles.length < 5 && (
             <label
-              aria-label="Add another photo"
-              className="mt-2.5 w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
+              className="mt-2.5 w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97] focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]"
               style={{
                 background: "hsl(var(--parchment) / 0.7)",
                 border: "0.5px solid hsl(var(--bark) / 0.28)",
@@ -152,7 +151,8 @@ export function PhotoUpload({
                 type="file"
                 accept="image/*"
                 multiple
-                className="hidden"
+                className="sr-only"
+                aria-label="Add another photo"
                 onChange={onImageSelect}
               />
             </label>
@@ -220,8 +220,7 @@ export function PhotoUpload({
           })}
           {imageFiles.length < 5 && (
             <label
-              aria-label={imageFiles.length === 0 ? "Add a photo (optional)" : "Add another photo"}
-              className="w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
+              className="w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97] focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]"
               style={{
                 background: "hsl(var(--parchment) / 0.7)",
                 border: "0.5px solid hsl(var(--bark) / 0.28)",
@@ -243,7 +242,8 @@ export function PhotoUpload({
                 type="file"
                 accept="image/*"
                 multiple
-                className="hidden"
+                className="sr-only"
+                aria-label={imageFiles.length === 0 ? "Add a photo (optional)" : "Add another photo"}
                 onChange={onImageSelect}
               />
             </label>

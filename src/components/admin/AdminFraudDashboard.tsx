@@ -189,7 +189,7 @@ const AdminFraudDashboard = () => {
         action={
           <>
             <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger aria-label="Flag type" className="w-[160px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Flag type" className="w-[160px] h-11"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {FLAG_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
               </SelectContent>

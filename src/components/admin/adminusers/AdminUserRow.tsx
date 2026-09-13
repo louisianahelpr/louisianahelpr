@@ -110,7 +110,7 @@ const AdminUserRowBase = ({
             fallbackClassName="text-ds-11 ring-0"
           />
           {isOnline && (
-            <span
+            <span role="img"
               aria-label="Active in last 24h"
               className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary border-2 border-card"
             />

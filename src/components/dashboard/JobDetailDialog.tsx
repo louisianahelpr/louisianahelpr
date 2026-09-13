@@ -651,7 +651,7 @@ const JobDetailDialog = ({
           {/* Urgent/Boosted — right of category, same top-left cluster
               (owner: "move to right of category"). */}
           {job.is_urgent && (
-            <span
+            <span role="img"
               aria-label="Urgent"
               className={`urgent-pulse inline-flex items-center gap-1.5 px-3 py-1.5 text-ds-12 font-bold uppercase leading-none shadow-sm border-b ${!job.isBoosted ? "rounded-br-lg" : ""}`}
               style={{
@@ -666,7 +666,7 @@ const JobDetailDialog = ({
             </span>
           )}
           {job.isBoosted && (
-            <span
+            <span role="img"
               aria-label="Boosted"
               className="boosted-pulse inline-flex items-center gap-1.5 px-3 py-1.5 rounded-br-lg text-ds-12 font-bold uppercase leading-none shadow-sm border-b"
               style={{

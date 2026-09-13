@@ -187,7 +187,7 @@ export function ApplicantsPanel({
                weighing whether the post is working, so it is the one place
                it earns its space. */
             jobAnalytics && jobAnalytics.viewCount > 0 ? (
-              <div className="shrink-0 text-right" aria-label="Post reach">
+              <div className="shrink-0 text-right" role="group" aria-label="Post reach">
                 <span className="flex items-center justify-end gap-1 text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
                   <Eye className="w-3 h-3 shrink-0" aria-hidden />
                   {jobAnalytics.viewCount} {jobAnalytics.viewCount === 1 ? "view" : "views"}

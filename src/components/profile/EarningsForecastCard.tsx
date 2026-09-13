@@ -273,7 +273,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
         </div>
       </div>
 
-      <p
+      <p role="img"
         className="font-sans font-bold tabular-nums leading-none text-ds-28"
         style={{
           color: "hsl(var(--ink-deep))",

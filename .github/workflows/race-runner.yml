@@ -1,0 +1,129 @@
+name: Race Runner
+
+# The job-row race class, executed. Two races were PROVEN on prod 2026-09-12
+# (apply vs cancel 14/20, helper confirm vs cancel 5/20 — the second one a
+# money bug) and fixed in 20260913014328_lock_job_row_on_apply_and_confirm.sql.
+# PGlite has one connection and cannot prove lock ordering; this workflow
+# boots a throwaway Supabase Postgres, replays every migration the same way
+# the deploy gate does (scripts/ci/replay-migrations.sh), and runs both races
+# with two REAL concurrent connections, 20 rounds each, forcing the bad
+# interleaving every round. It never talks to prod.
+#
+# The static half of the class check is scripts/check-race-class.mjs
+# (+ src/test/raceClassGuard.test.ts), run here first.
+#
+# Red proof: dispatch with exclude_migrations=20260913014328 — the pre-fix
+# schema — and both races must go BAD.
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/check-race-class.mjs"
+      - "scripts/race-class-baseline.json"
+      - "scripts/ci/race-runner.mjs"
+      - "scripts/ci/replay-migrations.sh"
+      - "src/test/raceClassGuard.test.ts"
+      - ".github/workflows/race-runner.yml"
+  schedule:
+    - cron: "37 8 * * *"
+  workflow_dispatch:
+    inputs:
+      exclude_migrations:
+        description: "Space-separated migration timestamp prefixes to leave OUT (red proof only, e.g. 20260913014328)"
+        required: false
+        default: ""
+      rounds:
+        description: "Rounds per race"
+        required: false
+        default: "20"
+
+concurrency:
+  group: race-runner-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  race:
+    name: Static guard + two-connection races
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: supabase/postgres:15.8.1.060
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGPASSWORD: postgres
+      PGHOST: localhost
+      PGUSER: postgres
+      PGDATABASE: postgres
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Static guard — race class over migrations + src
+        # Shares scripts/check-race-class.mjs with src/test/raceClassGuard.test.ts.
+        run: node scripts/check-race-class.mjs
+
+      - name: Install psql client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: Wait for Postgres
+        run: |
+          for i in $(seq 1 30); do
+            pg_isready -h localhost -U postgres > /dev/null 2>&1 && exit 0
+            sleep 2
+          done
+          exit 1
+
+      - name: Bootstrap + apply all migrations (same script as db-smoke)
+        env:
+          EXCLUDE_MIGRATIONS: ${{ github.event.inputs.exclude_migrations }}
+        run: bash scripts/ci/replay-migrations.sh
+
+      - name: Races — apply vs cancel, confirm vs cancel (2 connections)
+        env:
+          ROUNDS: ${{ github.event.inputs.rounds || '20' }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/rr"
+          cp scripts/ci/race-runner.mjs "$RUNNER_TEMP/rr/"
+          cd "$RUNNER_TEMP/rr"
+          npm init -y > /dev/null
+          npm install --silent --no-audit --no-fund pg@8
+          node race-runner.mjs
+
+  notify:
+    name: Report nightly result
+    needs: [race]
+    # A red-proof dispatch is SUPPOSED to fail; it must not file an issue.
+    if: always() && github.ref == 'refs/heads/main' && github.event.inputs.exclude_migrations == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: race-runner
+          status: ${{ needs.race.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -161,13 +161,21 @@ Find both and make one authoritative.
 - **Unreachable — "apply at the old price".** `enforce_poster_jobs_money_lock`
   refuses `budget` once `payment_status <> 'unpaid'`, unfunded jobs are on no
   browse surface, and `applications` has no price column. No test written.
-- **Class check still owed (prevent, don't chase):** a CI check that every
-  trigger/RPC reading `jobs` before a dependent write does so under a row lock
-  (`FOR SHARE`/`FOR UPDATE`), and that no client `UPDATE jobs` that stamps a
-  lifecycle column lacks a `status` predicate. Not written yet.
-- **PGlite cannot prove lock ordering** (single connection); the `FOR SHARE`
-  half is proven only by the prod re-run above. A two-connection Postgres in
-  CI (`db-smoke`) could run the race harness nightly.
+- **Class check BUILT 2026-09-12.** Static: `scripts/check-race-class.mjs`
+  (+ `src/test/raceClassGuard.test.ts`) flags any plpgsql function reading
+  `jobs` without `FOR SHARE`/`FOR UPDATE` before a decision + dependent write,
+  and any client `.from("jobs").update()` of a lifecycle column (or an opaque
+  payload) with no `.eq/.in("status")`. Red on the pre-fix function and client
+  file, green on the fix. 36 grandfathered hits in
+  `scripts/race-class-baseline.json` (only shrinks) — the ones marked
+  "candidate" (settle_dispute_record, DisputeDialog, JobTracking
+  helper_completed_at) are the next to lock/predicate.
+- **Two-connection race runner BUILT** (`.github/workflows/race-runner.yml`,
+  `scripts/ci/race-runner.mjs`): throwaway Supabase Postgres, same replay as
+  db-smoke (`scripts/ci/replay-migrations.sh`), both races 20 rounds with a
+  forced lock wait, a control write, and wrong-reason refusals counted as
+  failures. Pre-fix (20260913014328 excluded): 20/20 BAD on both races.
+  Nightly + on migration push; red files a `nightly-red` issue.
 
 ## Bugs found but not fixed
 - **Every job card renders TWICE on /dashboard** (seen in the perf lane's

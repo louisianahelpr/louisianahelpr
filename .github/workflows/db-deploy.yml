@@ -68,6 +68,7 @@ on:
       - ".github/workflows/db-smoke.yml"
       - ".github/workflows/migration-lint.yml"
       - "scripts/check-destructive-ddl.mjs"
+      - "scripts/ci/replay-migrations.sh"
   # Manual trigger so you can re-run the deploy without a new commit
   # (e.g., to apply a backlog after secrets are first configured).
   workflow_dispatch:

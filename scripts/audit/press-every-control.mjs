@@ -382,6 +382,11 @@ async function main() {
       const ctx = await browser.newContext({
         viewport: { width: WIDTH, height: WIDTH <= 430 ? 812 : 900 },
         colorScheme: THEME, deviceScaleFactor: 2,
+        // Block the Workbox service worker, as playwright.config.ts does for
+        // happy-path. Without it the SW's NetworkFirst handler sent requests to
+        // the real Supabase ahead of the mocks: every press "failed" on 401s
+        // (first run, 2026-09-12: /profile 33 of 35 controls, all false).
+        serviceWorkers: "block",
       });
       await ctx.addInitScript((t) => { try { localStorage.setItem("helpr-theme", t); localStorage.setItem("helpr_welcomed", "1"); } catch { /* blocked */ } }, THEME);
       if (MODE === "prod") {

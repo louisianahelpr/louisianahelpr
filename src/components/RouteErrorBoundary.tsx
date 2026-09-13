@@ -104,7 +104,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
     // issue volume by route in the dashboard.
     report(error, {
       severity: "error",
-      tags: { source: "RouteErrorBoundary", route: this.props.pathname },
+      tags: { source: "RouteErrorBoundary", route: this.props.pathname, screen: this.props.pathname },
       context: { componentStack: errorInfo.componentStack },
     });
   }

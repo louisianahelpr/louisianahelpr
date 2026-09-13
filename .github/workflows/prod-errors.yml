@@ -1,0 +1,109 @@
+name: Prod errors
+
+# Real users hitting error screens reach the owner within 15 minutes.
+#
+# Every error surface in the app reports to public.error_logs with a
+# `source` and `screen` tag (proven by src/test/errorSurfacesReport.test.tsx).
+# The Slack trigger on that table posts every distinct message, which is
+# the firehose; this is the alarm. Every 15 minutes it asks the database one
+# aggregated question — did anyone who is not a seed/test account see a
+# boundary, a boot failure or an error card, or did failed requests spike —
+# and keeps ONE issue labelled `prod-errors` open while the answer is yes.
+# It closes the issue itself on the first quiet window, so the open list on
+# the tracker is the live state of prod, not a history.
+#
+# No PII: the query aggregates in SQL and returns counts, source, screen, a
+# truncated message with email-shaped text masked, and the release sha.
+#
+# The fire drill: dispatch with include_seed=true after inserting one row
+# tagged {"drill":"true"} under a seed account — scripts/prod-errors-check.mjs
+# documents the row. It should fire; delete the row; the next run closes it.
+#
+# Reads prod through the Supabase Management API with the access token the
+# backup and drift workflows already hold; nothing new to rotate.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      include_seed:
+        description: "Fire drill: count seed/test accounts too"
+        type: boolean
+        default: false
+      window_minutes:
+        description: "Look-back window (minutes)"
+        default: "20"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: prod-errors
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Any real user on an error screen?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Read the last window of error_logs
+        id: check
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          INCLUDE_SEED: ${{ inputs.include_seed == true && '1' || '0' }}
+          WINDOW_MINUTES: ${{ inputs.window_minutes || '20' }}
+        run: node scripts/prod-errors-check.mjs
+
+      - name: Open, update or close the prod-errors issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          FIRE: ${{ steps.check.outputs.fire }}
+          SURFACE: ${{ steps.check.outputs.surface }}
+          REQUEST: ${{ steps.check.outputs.request }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          # Same shape as .github/actions/nightly-issue-sync: one issue, title
+          # is the dedup key, the same step that opens it closes it. Inlined
+          # because the body here is the report, not a fixed sentence.
+          TITLE="prod-errors: real users are hitting error screens"
+          gh label create prod-errors --repo "$REPO" --color B60205 \
+            --description "Opened automatically while real users hit error screens" --force >/dev/null
+          EXISTING=$(gh issue list --repo "$REPO" --label prod-errors --state open \
+            --search "in:title \"${TITLE}\"" --json number,title \
+            --jq ".[] | select(.title == \"${TITLE}\") | .number" | head -n1)
+
+          BODY="$(cat prod-errors-report.md)
+
+          Run: ${RUN_URL}"
+
+          if [ "$FIRE" = "true" ]; then
+            if [ -n "$EXISTING" ]; then
+              echo "Issue #$EXISTING open — adding this window (surface=$SURFACE request=$REQUEST)."
+              gh issue comment "$EXISTING" --repo "$REPO" --body "$BODY"
+            else
+              echo "Opening prod-errors issue (surface=$SURFACE request=$REQUEST)."
+              gh issue create --repo "$REPO" --title "$TITLE" --label prod-errors --body "$BODY"
+            fi
+            echo "::error::$SURFACE error screen(s) shown to real users, $REQUEST failed requests in the window."
+            exit 1
+          else
+            if [ -n "$EXISTING" ]; then
+              echo "Quiet window — closing #$EXISTING."
+              gh issue comment "$EXISTING" --repo "$REPO" --body "Quiet again (no error screens for real users in the last window): ${RUN_URL}"
+              gh issue close "$EXISTING" --repo "$REPO"
+            else
+              echo "Quiet, nothing open."
+            fi
+          fi

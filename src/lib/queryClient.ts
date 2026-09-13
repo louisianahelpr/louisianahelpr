@@ -15,10 +15,34 @@
  *   data (Stripe payouts, admin payout ledger, job history,
  *   notification logs) until the persisted entries expire.
  */
-import { QueryClient } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
+import { report } from "./errorLogger";
+import { currentScreen } from "./currentScreen";
 import { PERSIST_MAX_AGE_MS } from "./queryPersister";
 
+// A query that has exhausted its retries is about to drive an <ErrorState>;
+// a failed mutation is about to drive an error toast. Neither used to be
+// reported unless the caller remembered to — most did not — so error_logs
+// saw the boundary crashes and none of the "Couldn't load" cards. One hook
+// per cache reports every one, tagged with the screen and the query key's
+// first segment (never the arguments: those can carry ids). Offline is not
+// a defect and is skipped, matching the boundaries.
+function reportCacheError(kind: "QueryCache" | "MutationCache", error: unknown, key: unknown) {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  const head = Array.isArray(key) ? key[0] : key;
+  report(error, {
+    severity: "error",
+    tags: { source: kind, screen: currentScreen(), key: typeof head === "string" ? head : String(head ?? "") },
+  });
+}
+
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error, query) => reportCacheError("QueryCache", error, query.queryKey),
+  }),
+  mutationCache: new MutationCache({
+    onError: (error, _vars, _ctx, mutation) => reportCacheError("MutationCache", error, mutation.options.mutationKey),
+  }),
   defaultOptions: {
     queries: {
       // Keep data considered fresh for 60s — short enough that refocusing

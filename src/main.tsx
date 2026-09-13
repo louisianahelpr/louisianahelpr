@@ -41,7 +41,7 @@ try {
     if (!rec.offline) {
       report(new Error(`Boot failed: entry module graph did not load (${rec.src ?? "unknown"})`), {
         severity: "error",
-        tags: { source: "BootWatchdog", route: rec.url ?? "" },
+        tags: { source: "BootWatchdog", route: rec.url ?? "", screen: (rec.url ?? "").split("?")[0] },
         context: { failedAt: rec.at },
       });
     }

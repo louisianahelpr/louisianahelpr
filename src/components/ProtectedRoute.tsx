@@ -284,7 +284,7 @@ const ProtectedRoute = ({
     // non-fatal error gate.
     report(new Error("ProtectedRoute: profile fetch error (recoverable, session kept)"), {
       severity: "error",
-      tags: { source: "ProtectedRoute.profileFetchError" },
+      tags: { source: "ProtectedRoute.profileFetchError", screen: location.pathname },
       context: { path: location.pathname, userId: user.id },
     });
     track(AhaEvent.ForcedLogoutBounce, { reason: "profile_fetch_error", path: location.pathname });

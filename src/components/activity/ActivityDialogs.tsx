@@ -11,6 +11,8 @@ import {
   DialogDestructiveAction,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { report } from "@/lib/errorLogger";
+import { currentScreen } from "@/lib/currentScreen";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
@@ -114,6 +116,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       props.onRevisionRequested();
     } catch (err) {
       hapticError();
+      report(err, { tags: { source: "money.requestRevision", action: "request_revision", screen: currentScreen() }, context: { jobId: props.revisionJobId } });
       toast.error(err instanceof Error ? err.message : "Couldn't request a revision — try again?");
     } finally {
       setRequestingRevision(false);

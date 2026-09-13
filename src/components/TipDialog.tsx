@@ -14,6 +14,8 @@ import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { userFacingError } from "@/lib/userFacingError";
+import { report } from "@/lib/errorLogger";
+import { currentScreen } from "@/lib/currentScreen";
 
 interface TipDialogProps {
   jobId: string;
@@ -50,6 +52,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
       else throw new Error("Couldn't start checkout. Please try again.");
     } catch (err: any) {
       hapticError();
+      report(err, { tags: { source: "money.tip", action: "tip", screen: currentScreen() }, context: { jobId } });
       toast.error(userFacingError(err, "Couldn't send your tip — try again?"));
     } finally {
       setSending(false);

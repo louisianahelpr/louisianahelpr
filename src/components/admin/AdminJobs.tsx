@@ -329,6 +329,7 @@ const AdminJobs = () => {
       setDetailJob(null);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Couldn't issue that refund — try again";
+      report(err, { tags: { source: "money.adminRefund", action: "admin_refund_general", screen: "/admin" }, context: { jobId: detailJob.id, partial: isPartial } });
       toast.error(msg);
     } finally {
       setRefunding(false);

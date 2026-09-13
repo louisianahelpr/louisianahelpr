@@ -78,6 +78,7 @@ jobs:
           db-drift-detect.yml:3
           edge-function-smoke.yml:3
           lighthouse.yml:14
+          prod-errors.yml:1
           security-audit.yml:14
           "
 

@@ -249,6 +249,13 @@ export function report(err: unknown, opts: ReportOptions = {}) {
     }
   }
 
+  // Which build threw. The prod-errors issue names the release by this, the
+  // way Sentry does; a sha that stops matching prod's build-commit meta is
+  // a stale tab, not a regression.
+  if (typeof __APP_COMMIT_FULL__ !== "undefined" && __APP_COMMIT_FULL__ !== "dev") {
+    context.release = __APP_COMMIT_FULL__;
+  }
+
   queue.push({
     user_id: readUserIdFromLocalStorage(),
     severity: opts.severity ?? "error",

@@ -1,5 +1,7 @@
 import { AlertTriangle } from "lucide-react";
-import type { CSSProperties } from "react";
+import { useEffect, type CSSProperties } from "react";
+import { report } from "@/lib/errorLogger";
+import { currentScreen } from "@/lib/currentScreen";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 
@@ -55,6 +57,20 @@ export function ErrorState({
   variant = "dock",
   surfaceStyle,
 }: ErrorStateProps) {
+  // Every rendered error surface is a reported event. The failing query is
+  // usually reported by the QueryCache hook in src/lib/queryClient.ts, but
+  // forty callers reach this card from props, manual state or a hook in
+  // another file, and none of those paths say "a person saw an error
+  // screen". This does, once per mount, tagged with the screen and the
+  // title the person read — that is what the prod-errors alert counts.
+  // Skipped offline: no connection is not a defect (matches the boundaries).
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+    report(new Error(`Error screen shown: ${title}`), {
+      severity: "warning",
+      tags: { source: "ErrorState", screen: currentScreen(), title },
+    });
+  }, [title]);
   return (
     <EmptyState
       icon={AlertTriangle}

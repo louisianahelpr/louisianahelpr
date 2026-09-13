@@ -46,6 +46,7 @@ import {
   seedAuthedSession,
 } from "./fixtures";
 import { ADMIN_VIEWS } from "./auditRoutes";
+import { detectButtonGeometry } from "./buttonGeometry";
 
 const OUTPUT_DIR = "/tmp/ui-review";
 mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -299,6 +300,16 @@ async function probeRoute(page: Page, route: string): Promise<void> {
 
     probed.push(`${route} :: ${label}`);
     const { kind, issues } = await checkOpenOverlay(page);
+
+    // Sibling buttons of unequal height INSIDE the overlay. The visual sweep
+    // runs this same detector on every route, but it never opens a dialog or
+    // sheet, so a footer with a 56px primary beside a 44px cancel was
+    // unreachable by it. Scoped to the overlay checkOpenOverlay just tagged;
+    // the page behind is the visual sweep's job.
+    try {
+      const geometry = await page.evaluate(detectButtonGeometry, "[data-sweep-target]");
+      for (const m of geometry.siblingMismatch) issues.push(`sibling buttons differ: ${m}`);
+    } catch { /* overlay closed mid-scan */ }
 
     // axe, scoped to the open overlay.
     let violations: OverlayFinding["violations"] = [];

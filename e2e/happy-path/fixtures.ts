@@ -111,7 +111,7 @@ function buildFakeAuthUser(user: FakeUser) {
   };
 }
 
-function buildFakeProfile(user: FakeUser) {
+export function buildFakeProfile(user: FakeUser) {
   // The "Big 7" verification gate in `ProtectedRoute.tsx` requires every
   // one of these fields be set, otherwise the user is bounced to
   // /complete-profile and nothing else renders. is_legacy_user=true

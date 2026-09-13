@@ -1,0 +1,141 @@
+name: Press every control
+
+permissions:
+  contents: read
+
+# EVERY control on EVERY route, pressed, with the outcome classified.
+#
+# The owner (2026-09-12): "there is no way every button has been clicked to be
+# sure not failing." Until this job existed that was true — the old walker
+# capped itself at 40 controls per route, defaulted to /dashboard, deduped by
+# label, never pressed inside a dialog, and called an error toast "content
+# changed". scripts/audit/press-every-control.mjs closes every one of those
+# gaps and this job is what makes it a GATE rather than a script someone
+# remembers to run.
+#
+# It runs against the Vite preview with the happy-path Supabase mocks
+# (e2e/happy-path/fixtures.ts, seeded) — no prod traffic, so destructive
+# controls (delete / pay / send / ban) are pressed too. The route set is
+# derived from src/App.tsx at run time, so a new route is walked the commit it
+# is added.
+#
+# FAILS on: any failed press (error toast, error-boundary copy, console error,
+# uncaught exception, 4xx/5xx during the press, or no observable change), or
+# any control that was neither pressed nor skipped for a DOCUMENTED reason
+# (see DOCUMENTED_SKIPS in the script). Coverage must be 100%.
+#
+# Sharded over the route list so the wall clock stays inside one lunch break;
+# every shard writes its own coverage.md + screenshots of every failed press
+# and a small sample per route, uploaded as artifacts on failure.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      routes:
+        description: "Comma-separated route list to narrow the run (blank = every route)"
+        required: false
+        default: ""
+      personas:
+        description: "Comma-separated personas (anon,customer,helper,admin)"
+        required: false
+        default: "anon,customer,helper,admin"
+
+concurrency:
+  group: press-every-control-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  press:
+    name: Press every control (shard ${{ matrix.shard }}/4, 375, mocked Supabase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+
+    env:
+      VITE_SUPABASE_PROJECT_ID: fncmgoasalhdgfwzhsqa
+      VITE_SUPABASE_URL: https://fncmgoasalhdgfwzhsqa.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_test_key_for_e2e_only
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Detect UI-relevant changes
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            ui:
+              - "src/**"
+              - "public/**"
+              - "index.html"
+              - "vite.config.ts"
+              - "tailwind.config.ts"
+              - "package.json"
+              - "package-lock.json"
+              - "e2e/happy-path/fixtures.ts"
+              - "e2e/happy-path/seedData.ts"
+              - "e2e/happy-path/auditRoutes.ts"
+              - "scripts/audit/press-every-control.mjs"
+              - ".github/workflows/press-every-control.yml"
+
+      - name: Setup Node
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Drop the Google Chrome apt source
+        # See e2e-happy-path.yml — dl.google.com's index breaks apt-get update.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+
+      - name: Install Playwright Chromium browser
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
+        run: npm run build
+
+      - name: Start the preview server
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
+        run: |
+          npx vite preview --port 4173 --strictPort --host 127.0.0.1 > preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4173/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:4173/ > /dev/null || { cat preview.log; exit 1; }
+
+      - name: Press every control
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
+        env:
+          BASE: http://127.0.0.1:4173
+          MODE: mock
+          WIDTH: "375"
+          SHARD: ${{ matrix.shard }}/4
+          ROUTES: ${{ github.event.inputs.routes }}
+          PERSONAS: ${{ github.event.inputs.personas || 'anon,customer,helper,admin' }}
+          OUT: test-results/press-every-control
+        run: node scripts/audit/press-every-control.mjs
+
+      - name: Upload coverage report + screenshots
+        if: always() && (github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true')
+        uses: actions/upload-artifact@v7
+        with:
+          name: press-every-control-shard-${{ matrix.shard }}
+          path: test-results/press-every-control/
+          if-no-files-found: ignore
+          retention-days: 14

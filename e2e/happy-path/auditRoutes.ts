@@ -19,9 +19,24 @@
  */
 
 import type { Page } from "@playwright/test";
-import { FAKE_CUSTOMER, FAKE_HELPER, mockTable, type MockSupabaseOptions } from "./fixtures";
+import { FAKE_CUSTOMER, FAKE_HELPER, buildFakeProfile, mockTable, type MockRule, type MockSupabaseOptions } from "./fixtures";
 
 type MockRules = NonNullable<MockSupabaseOptions["rules"]>;
+
+function incompleteOwnProfile(): MockRule {
+  const users = [FAKE_CUSTOMER, FAKE_HELPER];
+  const own = (url: URL) => {
+    const wanted = url.searchParams.get("user_id") ?? "";
+    return users.find((u) => wanted === `eq.${u.id}`);
+  };
+  return {
+    match: (url, method) => method === "GET" && url.pathname === "/rest/v1/profiles" && !!own(url),
+    handle: (url) => ({
+      status: 200,
+      body: [{ ...buildFakeProfile(own(url)!), avatar_url: null, is_legacy_user: false }],
+    }),
+  };
+}
 
 export interface ScreenSpec {
   name: string;
@@ -183,6 +198,12 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "post-job", url: "/post-job" },
   { name: "payment-success", url: "/payment-success" },
   { name: "complete-profile", url: "/complete-profile" },
+  // The seeded account's profile is COMPLETE, so "complete-profile" above
+  // redirects to /dashboard and the sweep never saw the gate itself. Both
+  // owner-found bugs of 2026-09-12 (missing ZIP check, Enter App vs Sign Out
+  // heights) lived on that unswept screen. This one serves the signed-in
+  // user's own profile with no photo and no legacy bypass, so the gate renders.
+  { name: "complete-profile-incomplete", url: "/complete-profile", rules: [incompleteOwnProfile()] },
   { name: "user-profile", url: `/user/${FAKE_HELPER.id}` },
   // All 18 Profile tabs.
   { name: "profile-landing", url: "/profile" },

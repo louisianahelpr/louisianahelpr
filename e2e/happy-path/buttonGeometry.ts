@@ -33,13 +33,26 @@ export interface ButtonGeometryReport {
   heightHeldAtFloor: string[];
 }
 
-export function detectButtonGeometry(): ButtonGeometryReport {
+/**
+ * @param scopeSelector Optional. When given, ONLY the subtree under the LAST
+ *   element matching it is walked — the overlay sweep passes the
+ *   `[data-sweep-target]` tag it stamps on the open dialog, so a sheet's own
+ *   buttons are judged without the page behind it leaking in. Unset = whole
+ *   document (the visual sweep).
+ */
+export function detectButtonGeometry(scopeSelector?: string): ButtonGeometryReport {
   const siblingMismatch: string[] = [];
   const requestedNotRendered: string[] = [];
   const belowTapFloor: string[] = [];
   const heightHeldAtFloor: string[] = [];
   const FLOOR_SEL =
     "button:not([role='checkbox']):not([role='radio']):not([role='switch']), [role='button'], input[type='checkbox'], input[type='radio']";
+  const scoped = scopeSelector ? [...document.querySelectorAll(scopeSelector)] : [];
+  const root: Element = scopeSelector ? (scoped[scoped.length - 1] ?? document.body) : document.body;
+  const walk = (sel: string): Element[] => [
+    ...(root !== document.body && root.matches(sel) ? [root] : []),
+    ...root.querySelectorAll(sel),
+  ];
 
   const visible = (el: Element) => {
     const r = el.getBoundingClientRect();
@@ -60,11 +73,23 @@ export function detectButtonGeometry(): ButtonGeometryReport {
       parseFloat(cs.borderTopWidth) > 0
     );
   };
+  // PAINTED for <button> too. /payment-success stacks a 60px filled "Open My
+  // Posts" over 56px bare-text "Contact Support" / "Back to Dashboard": a
+  // primary with text links under it, not two buttons of unequal height.
   const isButtonish = (el: Element) =>
-    (el.matches("button, [role='button']") || (el.matches("a[href]") && painted(el))) &&
+    (el.matches("button, [role='button'], a[href]") && painted(el)) &&
     visible(el) &&
     ((el as HTMLElement).innerText || "").trim().length > 0 &&
     el.getBoundingClientRect().width >= 80;
+
+  // Rendered text lines: distinct line boxes across the element's text.
+  const lines = (el: Element): number => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const tops = new Set<number>();
+    for (const r of range.getClientRects()) if (r.width > 1 && r.height > 1) tops.add(Math.round(r.top / 4));
+    return tops.size;
+  };
 
   // ---- 1. siblings ---------------------------------------------------------
   // Unwrap single-child wrappers (<a><button/></a>, tooltip triggers) so the
@@ -78,7 +103,7 @@ export function detectButtonGeometry(): ButtonGeometryReport {
     return null;
   };
   const seen = new Set<string>();
-  document.querySelectorAll("body *").forEach((parent) => {
+  walk("*").forEach((parent) => {
     if (parent.children.length < 2 || parent.children.length > 12) return;
     const ctrls = [...parent.children].map(controlOf).filter((c): c is Element => !!c);
     for (let i = 0; i < ctrls.length; i++) {
@@ -89,6 +114,16 @@ export function detectButtonGeometry(): ButtonGeometryReport {
         const row = Math.abs(a.top - b.top) <= 2 || Math.abs(a.bottom - b.bottom) <= 2;
         if (!stacked && !row) continue;
         if (Math.abs(a.height - b.height) <= 1) continue;
+        // Different LINE COUNTS are content, not a sizing defect: the /help
+        // accordions (67px one-line subtitle vs 83px two-line) and the Profile
+        // menu rows wrap their descriptions. Stacked rows whose text wraps
+        // differently are expected; a same-row pair still has to match, since
+        // a grid row that doesn't stretch shows (admin stat tiles, 151 vs 137).
+        if (stacked && lines(ctrls[i]) !== lines(ctrls[j])) continue;
+        // Stacked CARDS are not stacked buttons. /admin?view=jobs lists job
+        // rows 132-158px tall whose badges and meta lines vary per job; a
+        // button row is well under 96px. Same-row tiles are still compared.
+        if (stacked && (a.height > 96 || b.height > 96)) continue;
         const line = `"${name(ctrls[i])}" ${a.height.toFixed(1)}px vs "${name(ctrls[j])}" ${b.height.toFixed(1)}px (${stacked ? "stacked" : "same row"})`;
         if (!seen.has(line)) { seen.add(line); siblingMismatch.push(line); }
       }
@@ -106,7 +141,7 @@ export function detectButtonGeometry(): ButtonGeometryReport {
     if (/^\d+(\.\d+)?$/.test(v)) return parseFloat(v) * 0.25 * REM;
     return null;
   };
-  document.querySelectorAll("button, a[href], [role='button'], input, select, textarea").forEach((el) => {
+  walk("button, a[href], [role='button'], input, select, textarea").forEach((el) => {
     if (!visible(el)) return;
     const tokens = String((el as HTMLElement).className?.toString?.() ?? "").split(/\s+/);
     for (const util of ["min-h", "h", "min-w"] as const) {
@@ -126,6 +161,10 @@ export function detectButtonGeometry(): ButtonGeometryReport {
       // released the height; the class list would contain both only by mistake
       // but is not this check's question.
       if (util === "h" && tokens.includes("h-auto")) continue;
+      // A parent that sizes its buttons on purpose (`[&_button]:h-11`, as
+      // AdminTopBar and DesktopTopNav do so the bell matches its neighbours)
+      // is the design, not a defeated class.
+      if (util === "h" && el.parentElement?.closest('[class*="[&_button]:h-"], [class*="[&>button]:h-"]')) continue;
       if (util === "h" && want < 44 && Math.abs(got - 44) <= 1 && el.matches(FLOOR_SEL) && tokens.every((t) => !/^!?min-h-/.test(t))) {
         heightHeldAtFloor.push(`"${name(el)}" asks ${tok} (${want}px), held at 44px`);
         continue;

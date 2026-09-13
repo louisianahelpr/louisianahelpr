@@ -38,7 +38,8 @@
     "check:dead-links": "node scripts/check-dead-links.mjs",
     "repro": "node scripts/new-repro.mjs",
     "check:changed": "node scripts/check-changed.mjs",
-    "changed-routes": "node scripts/changed-routes.mjs"
+    "changed-routes": "node scripts/changed-routes.mjs",
+    "audit:press": "node scripts/audit/press-every-control.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",

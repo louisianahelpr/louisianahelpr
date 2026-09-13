@@ -55,6 +55,7 @@ import {
   type LayoutReport,
 } from "./auditRoutes";
 import { detectButtonGeometry, type ButtonGeometryReport } from "./buttonGeometry";
+import { detectStuckOrBlank, findErrorScreen } from "../errorScreens";
 // axe REFUSES to decide colour-contrast over a gradient — and this app's page
 // canvas is a gradient, so every contrast result landed in `incomplete`, which
 // this gate never read. See contrastResolve.ts for the whole story.
@@ -71,7 +72,11 @@ import {
 // anyone reaching for continue-on-error. See knownContrastFailures.ts.
 import { classifyAgainstKnown, type ClassifiedFailure } from "./knownContrastFailures";
 
-const OUTPUT_DIR = "/tmp/ui-review";
+// SWEEP_OUTPUT_DIR lets the five SWEEP_VARIANTS run as five parallel
+// processes (this describe is serial, so one process = one worker, ~100 min
+// for the whole matrix) without their a11y-report.json files overwriting each
+// other at afterAll.
+const OUTPUT_DIR = process.env.SWEEP_OUTPUT_DIR || "/tmp/ui-review";
 mkdirSync(OUTPUT_DIR, { recursive: true });
 
 interface ViolationSummary {
@@ -311,17 +316,17 @@ async function captureScreen(
      * a throw here would skip every screen after it and truncate the very
      * evidence the file is for.
      */
-    const boundary = await page.evaluate(() => {
-      const t = document.body?.innerText ?? "";
-      if (/This page hit a problem/i.test(t)) return "RouteErrorBoundary (crash state)";
-      if (/Update ready|newer version/i.test(t)) return "retired 'Update ready' screen (must never render)";
-      if (/Something went sideways/i.test(t)) return "ErrorBoundary (app crash)";
-      if (/We couldn't load your account/i.test(t)) return "ProtectedRoute account error";
-      return null;
-    });
+    // Every error-screen signature, from the ONE shared list (e2e/errorScreens.ts),
+    // plus blank and still-loading states. The /this-route-does-not-exist
+    // screen is the only one allowed to say "Page Not Found".
+    const bodyText = await page.evaluate(() => document.body?.innerText ?? "");
+    const allow = /not-found/.test(name) ? ["404 on a real route"] : [];
+    const errorScreen = findErrorScreen(bodyText, allow);
+    const stuck = await page.evaluate(detectStuckOrBlank);
+    const boundary = errorScreen ? `${errorScreen.name}: "${errorScreen.excerpt}"` : stuck;
     if (boundary) result.wrongScreen = boundary;
 
-    result.buttonGeometry = await page.evaluate(detectButtonGeometry);
+    result.buttonGeometry = await page.evaluate(detectButtonGeometry, undefined);
 
     const newTabHrefs = await page.evaluate(() =>
       [...new Set(

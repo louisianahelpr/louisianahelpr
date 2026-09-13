@@ -42,14 +42,19 @@ and one reachable-looking code path that cannot execute.
       `scripts/e2e/cleanup-stray-testusers.sh` was genuinely spent (a one-shot
       for the 2026-08-24 id mixup); deleted. **Do not re-run this heuristic and
       act on it** — grep-for-references cannot see a human caller.
-- [ ] **62 unused exports + 15 unused exported types + 32 duplicate exports.**
-      Mostly a module exporting both a named symbol and a default when only one
-      is ever imported (`ProUpgradeSheet` 1 importer — the default;
-      `useDeleteAccount` 3 importers — all named; `JobLocationPreview` named
-      only; every `email-templates/*.tsx` default). The rest are constants
-      nothing reads (`jobsConstants.ts` × 6, `pdfDocument.ts` × 6,
-      `str-ical-sync/safeFetch.ts` × 8, `moneyLimits.ts: ONBOARDING_FEE_CENTS`).
-      Run `npm run deadcode` for the current list.
+- [ ] **62 unused exports — almost all are OVER-exported, not dead.** Checked
+      each against its own file: `QUEUE_LIMIT`, `MARKETING_MEDIA_BUCKET`,
+      `assertUploadableMarketingMedia`, `LOCKOUT_BAN_STATUSES`,
+      `earlyAccessWaitMinutes`, `displayHelpersCount`, `shortJobId`,
+      `PASSWORD_SYMBOLS`, `helperCommissionCents`, `MetaApiError`,
+      `buildCaption`, `toBase64`, `MAX_FEED_BYTES` … are all used by their own
+      module — the only dead thing is the `export` keyword. Same for the 32
+      "duplicate exports": a file exporting both `Foo` and `default Foo` when
+      importers pick one. Dropping the surplus `export` is safe but cosmetic;
+      deleting the symbol is NOT. `src/pages/jobs/jobsConstants.ts` was the one
+      real find (5 of its 6 exports had no reader in any file, including its
+      own) and is now cut to `ALL_CATEGORIES`. Re-run `npm run deadcode` before
+      acting on any remaining entry, and check in-file usage first.
 - [ ] **3 unlisted dependencies**: `playwright` imported by
       `scripts/audit/a11y-focus-repro.mjs` and
       `scripts/audit/complete-profile-icon-clip.mjs`,

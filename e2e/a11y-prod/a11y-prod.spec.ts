@@ -226,8 +226,10 @@ test.describe("UI audit evidence sweep (prod)", () => {
   // JOB DETAIL, ONCE PER STATUS — what job-detail-2..6 were meant to be.
   // The poster is used because the rows are theirs; a status with no seeded
   // row skips with that reason named, never silently.
+  // Honours SWEEP_ROUTES like every other block (npm run check:changed).
+  const jobDetailInScope = inScope([{ url: "/jobs/_" }]).length > 0;
   for (const v of VARIANTS) {
-    for (const status of JOB_STATUSES) {
+    for (const status of jobDetailInScope ? JOB_STATUSES : []) {
       const i = ++index;
       test(`${String(i).padStart(3, "0")} job-detail-${status} (customer/${v.tag})`, async ({ browser }) => {
         const id = jobByStatus.get(status);

@@ -1,3 +1,4 @@
+// /support — the contact form every screen links to.
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CheckCircle2, Loader2, Send } from "lucide-react";

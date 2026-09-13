@@ -110,10 +110,30 @@ export default defineConfig({
   },
   projects: [
     {
+      // Real-user journeys against the DEPLOYED app + REAL backend (prod
+      // Supabase, the two shared E2E accounts). Serial: they share accounts.
+      // Run with `npm run test:journeys`; CI: .github/workflows/e2e-journeys.yml.
+      name: "journeys",
+      testDir: "./e2e/journeys",
+      fullyParallel: false,
+      timeout: 6 * 60_000,
+      retries: 0,
+      use: { ...devices["Desktop Chrome"], screenshot: "only-on-failure", trace: "retain-on-failure" },
+    },
+    {
+      // The same journeys in real WebKit: the app ships in a WKWebView.
+      name: "journeys-webkit",
+      testDir: "./e2e/journeys",
+      fullyParallel: false,
+      timeout: 6 * 60_000,
+      retries: 0,
+      use: { ...devices["iPhone 13"], screenshot: "only-on-failure", trace: "retain-on-failure" },
+    },
+    {
       name: "chromium",
       // The default deployed-env suite — excludes happy-path/* which
       // requires the local preview server to be running.
-      testIgnore: /happy-path\//,
+      testIgnore: /(happy-path|journeys)\//,
       use: { ...devices["Desktop Chrome"] },
     },
     {

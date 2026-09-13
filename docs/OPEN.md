@@ -2041,5 +2041,8 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [x] Stripe CI check: LANDED 2026-09-12 as `scripts/check-stripe-webhook-events.mjs` + `.github/workflows/stripe-webhook-guard.yml` (>1 enabled endpoint per URL, plus event drift vs EVENT_HANDLERS both ways). Still needs the `STRIPE_TEST_SECRET_KEY` secret — see the #1586 section above.
 - [x] Stripe #1586: test-mode audit endpoint we_1Tql6m… DELETED 2026-09-12 (`{"deleted": true}`); one enabled endpoint remains on the stripe-webhook URL. Issue closed.
 - [ ] types.ts drift: 145 lines vs `supabase gen types --linked`; regenerate carefully and fix fallout
+- [ ] Race fixes (terminal closed → agent): settle_dispute_record, DisputeDialog, JobTracking helper_completed_at. Partial WIP (8 files, unverified) on origin/wip/race2-terminal c983eb2a9; brief ~/.lh-prompts/race2.md
+- [ ] Combobox keyboard model (terminal closed → agent). Partial WIP on origin/wip/combobox-terminal 6f7c27387 (+ a 1-file WIP on wip/lexilombas-.lh-combobox-ws); brief ~/.lh-prompts/combobox.md
+- [ ] OWNER: add STRIPE_TEST_SECRET_KEY repo secret (test-mode restricted key, Webhook Endpoints: Read) — stripe-webhook-guard live job is red until then
 - [ ] LAST, after everything above: independent re-check by a different model (sonnet) of ALL work landed 2026-09-13 — full vitest once, CI green per push, re-run each fix's own proof on prod, list what doesn't hold
 - [ ] OWNER: allow the Stripe connector write tool + reconnect Stripe, then add transfer.failed to live webhook and close #1462/#1521

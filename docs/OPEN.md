@@ -2032,4 +2032,8 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] Post Job double-tap prod test (origin/wip/postjob-doubletap-driver)
 - [ ] Full customer/helper → poster/Helpr internal rename, NO aliases (after gift card rename lands)
 - [ ] Combobox keyboard model (~/.lh-prompts/combobox.md); race fixes (~/.lh-prompts/race2.md) unless a terminal took them
+- [ ] Stripe CI check: fail if live webhook lacks transfer.failed or an account/mode has >1 enabled endpoint per URL (needs read-only restricted key secret)
+- [ ] Stripe #1586: delete test-mode audit endpoint we_1Tql6m… (owner runs ~/.lh-prompts/stripe-dup-endpoint.md with --permission-mode default)
+- [ ] types.ts drift: 145 lines vs `supabase gen types --linked`; regenerate carefully and fix fallout
+- [ ] LAST, after everything above: independent re-check by a different model (sonnet) of ALL work landed 2026-09-13 — full vitest once, CI green per push, re-run each fix's own proof on prod, list what doesn't hold
 - [ ] OWNER: allow the Stripe connector write tool + reconnect Stripe, then add transfer.failed to live webhook and close #1462/#1521

@@ -80,6 +80,12 @@ const GATED_IN_CI: Record<string, { runner: string; needs: string }> = {
     runner: "e2e-real-backend.yml",
     needs: "PLAYWRIGHT_TWO_ROLE=1 + PLAYWRIGHT_POSTER_SESSION + PLAYWRIGHT_HELPER_SESSION + PLAYWRIGHT_LIFECYCLE_JOB_ID",
   },
+  "a11y-prod/a11y-prod.spec.ts": {
+    runner: "a11y-webkit-prod.yml",
+    needs:
+      "PLAYWRIGHT_POSTER_EMAIL/_PASSWORD + PLAYWRIGHT_HELPER_EMAIL/_PASSWORD (preflight FAILS without them; " +
+      "only the admin screens self-skip, on PLAYWRIGHT_ADMIN_EMAIL/_PASSWORD).",
+  },
   "prod-lifecycle.spec.ts": {
     runner: "e2e-real-backend.yml",
     needs:
@@ -144,13 +150,14 @@ function ciPlaywrightCommands(): { workflow: string; command: string }[] {
 
   const found: { workflow: string; command: string }[] = [];
   for (const file of readdirSync(WORKFLOWS).filter((f) => f.endsWith(".yml"))) {
-    for (const rawLine of readFileSync(join(WORKFLOWS, file), "utf8").split("\n")) {
+    const src = readFileSync(join(WORKFLOWS, file), "utf8");
+    for (const rawLine of src.split("\n")) {
       const line = rawLine.trim();
       // Comments describe commands; they do not run them.
       if (line.startsWith("#")) continue;
 
       if (/(^|\s|`)(npx\s+)?playwright\s+test\b/.test(line)) {
-        found.push({ workflow: file, command: line });
+        for (const command of expandMatrix(line, src)) found.push({ workflow: file, command });
         continue;
       }
       const npmRun = /npm\s+run\s+([a-zA-Z0-9:_-]+)/.exec(line);
@@ -160,6 +167,22 @@ function ciPlaywrightCommands(): { workflow: string; command: string }[] {
     }
   }
   return found;
+}
+
+/**
+ * `--project=${{ matrix.project }}` is one line that runs once per matrix
+ * value. Expand it from the same file's `project: <name>` matrix entries so
+ * each project is credited — before this (2026-09-12) the unexpanded
+ * `${{`/`matrix.project`/`}}` tokens were treated as positional filters that
+ * matched nothing, and every matrix-driven workflow (e2e-journeys,
+ * a11y-webkit-prod) credited no spec at all.
+ */
+function expandMatrix(line: string, src: string): string[] {
+  const m = /\$\{\{\s*matrix\.([a-zA-Z0-9_]+)\s*\}\}/.exec(line);
+  if (!m) return [line];
+  const key = m[1];
+  const values = [...src.matchAll(new RegExp(`^\\s*-?\\s*${key}:\\s*([a-zA-Z0-9_-]+)\\s*$`, "gm"))].map((x) => x[1]);
+  return values.length ? values.map((v) => line.replace(m[0], v)) : [line];
 }
 
 /** Project definitions, read from the real config rather than restated. */
@@ -230,8 +253,12 @@ describe("Playwright project resolution", () => {
   // Guards the extraction above. If playwright.config.ts changes shape, this
   // fails here rather than silently reporting every spec as unreachable
   // (which would look like a coverage catastrophe and get the test muted).
-  it("finds both projects and resolves them to non-empty, disjoint file sets", () => {
-    expect(projects.map((p) => p.name).sort()).toEqual(["chromium", "happy-path", "journeys", "journeys-webkit"]);
+  it("finds the projects and resolves them to non-empty, disjoint file sets", () => {
+    // happy-path-webkit opens with a comment before `name:` and is not parsed,
+    // which is fine — it collects the same files as happy-path.
+    expect(projects.map((p) => p.name).sort()).toEqual([
+      "a11y-prod", "a11y-prod-webkit", "chromium", "happy-path", "journeys", "journeys-webkit",
+    ]);
     const chromium = specsInProject(projects.find((p) => p.name === "chromium")!, specs);
     const happy = specsInProject(projects.find((p) => p.name === "happy-path")!, specs);
     expect(chromium.length).toBeGreaterThan(0);

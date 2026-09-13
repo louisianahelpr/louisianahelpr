@@ -223,6 +223,15 @@ async function ensureOwnedAccount(key, spec) {
     ...(spec.profile ?? {}),
   };
   await rest("PATCH", `profiles?user_id=eq.${user.id}`, patch, { prefer: "return=minimal" });
+  // CI has no service role, so the prod a11y sweep signs these accounts in by
+  // password (PLAYWRIGHT_INCOMPLETE_* / PLAYWRIGHT_ADMIN_* secrets). The
+  // password is re-applied on every --apply so a teardown/apply cycle cannot
+  // silently turn that CI leg into a skip. Local only: SEED_PASSWORD_<KEY>.
+  const pw = process.env[`SEED_PASSWORD_${key.toUpperCase()}`];
+  if (pw) {
+    const r = await fetch(`${BASE}/auth/v1/admin/users/${user.id}`, { method: "PUT", headers: SRH, body: JSON.stringify({ password: pw }) });
+    if (!r.ok) throw new Error(`set password for ${spec.email} → ${r.status} ${await r.text()}`);
+  }
   return user.id;
 }
 

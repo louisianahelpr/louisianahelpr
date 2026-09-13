@@ -626,8 +626,58 @@ def asc_api_key
   app_store_connect_api_key(**params)
 end
 
+# ──────────────────────────────────────────────────────────────────────────
+# Release gate — no build reaches TestFlight or the App Store unless the
+# audits are green ON GITHUB ACTIONS for the exact sha being archived.
+#
+# scripts/release-gate.mjs asks `gh` for the newest run of every required
+# workflow (test, e2e-real-backend, journeys, press-every-control, the a11y
+# sweeps, write-contract) at this sha and refuses unless each is green AND its
+# audit job actually ran. Local results are never consulted: the point is that
+# "it passed on my machine" is not what ships. Pass --dispatch by hand to start
+# whatever is missing:  node scripts/release-gate.mjs HEAD --dispatch
+#
+# The only bypass is LH_RELEASE_GATE_SKIP_REASON=<why>, which is printed in
+# capitals so it cannot be done quietly. Added 2026-09-12 after Test was red at
+# HEAD with nothing in either release path able to notice.
+# ──────────────────────────────────────────────────────────────────────────
+def release_gate!
+  sha = `git -C #{Shellwords.escape(REPO_ROOT)} rev-parse HEAD`.strip
+  UI.user_error!("release gate: could not resolve HEAD in #{REPO_ROOT}") if sha.empty?
+
+  skip_reason = ENV["LH_RELEASE_GATE_SKIP_REASON"].to_s.strip
+  unless skip_reason.empty?
+    UI.important("RELEASE GATE SKIPPED FOR #{sha[0, 7]} — REASON: #{skip_reason}")
+    UI.important("The audits were NOT verified for this build. This is recorded in the lane output only.")
+    return
+  end
+
+  dirty = `git -C #{Shellwords.escape(REPO_ROOT)} status --porcelain -- src ios capacitor.config.ts package.json`.strip
+  unless dirty.empty?
+    UI.user_error!(
+      "release gate: the working tree differs from #{sha[0, 7]} in shipped paths, so no CI result can describe " \
+      "this build. Commit first:\n#{dirty}"
+    )
+  end
+
+  UI.header("Release gate: audits on GitHub Actions for #{sha[0, 7]}")
+  ok = system("node", File.join(REPO_ROOT, "scripts/release-gate.mjs"), sha)
+  return if ok
+
+  UI.user_error!(
+    "RELEASE BLOCKED: the audits are not green on GitHub Actions for #{sha[0, 7]}. " \
+    "The report above names each missing or red check. Start the missing ones with " \
+    "`node scripts/release-gate.mjs #{sha[0, 7]} --dispatch`, wait for green, then run this lane again."
+  )
+end
+
 platform :ios do
-  before_all do
+  before_all do |lane, _options|
+    # FIRST, before any build work: the release gate for the shipping lanes.
+    # See release_gate! above. Runs locally AND in CI (ios-beta.yml also runs
+    # it in its cheap ubuntu job so a blocked build never starts a macOS runner).
+    release_gate! if %i[beta release].include?(lane)
+
     # CI runs build/sync in workflow steps. Skip duplicate work there.
     unless ENV["CI"]
       sh("cd .. && npm run build:ios")
@@ -764,6 +814,8 @@ platform :ios do
   # ──────────────────────────────────────────────────────────────────────
   desc "Bump build number, archive, upload to TestFlight"
   lane :beta do
+    # Step 0 already ran: before_all -> release_gate! (audits green on GitHub
+    # Actions for HEAD, or this lane never gets here).
     api_key = asc_api_key
 
     configure_signing!(api_key)
@@ -867,6 +919,7 @@ platform :ios do
   # ──────────────────────────────────────────────────────────────────────
   desc "Bump build, archive, upload, and submit for App Store review"
   lane :release do
+    # Step 0 already ran: before_all -> release_gate! (see beta).
     api_key = asc_api_key
 
     configure_signing!(api_key)

@@ -1,0 +1,175 @@
+name: A11y in WebKit (prod)
+
+permissions:
+  contents: read
+
+# The UI audit evidence sweep against PRODUCTION in real WebKit (iPhone 13)
+# AND in Chromium, then a diff: what does WebKit report that Chromium does not?
+#
+# Owner, 2026-09-12: no mock mode, and iPhone users get WKWebView. Until this
+# file the only axe gate ran in Chromium against a mocked preview. Spec:
+# e2e/a11y-prod/a11y-prod.spec.ts (same capture + gate as the mocked sweep,
+# via e2e/happy-path/sweepCore.ts). Diff: scripts/audit/a11y-engine-diff.mjs.
+#
+# Read-only against prod: the accounts are signed in and looked at, nothing is
+# written, so the two engines run in parallel and this does not take the
+# shared-account concurrency group.
+#
+# It is a REQUIRED release check: scripts/release-gate.mjs keys on this
+# workflow's name and on the "WebKit-only violations" job.
+
+on:
+  schedule:
+    - cron: "10 9 * * *"
+  workflow_dispatch:
+    inputs:
+      routes:
+        description: "SWEEP_ROUTES: comma-separated App.tsx route patterns to narrow the sweep (blank = every screen)"
+        required: false
+        default: ""
+
+concurrency:
+  group: a11y-webkit-prod-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: What can run
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      have_accounts: ${{ steps.check.outputs.have_accounts }}
+    steps:
+      - id: check
+        env:
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+        run: |
+          if [ -n "$POSTER_EMAIL" ] && [ -n "$POSTER_PASSWORD" ] && [ -n "$HELPER_EMAIL" ] && [ -n "$HELPER_PASSWORD" ]; then
+            echo "have_accounts=true" >> "$GITHUB_OUTPUT"
+          else
+            # FAIL, never skip: a skipped sweep would satisfy nothing but would
+            # also alarm nobody, and the release gate needs a red to block on.
+            echo "::error title=Prod a11y sweep NOT run::PLAYWRIGHT_POSTER_EMAIL/_PASSWORD and PLAYWRIGHT_HELPER_EMAIL/_PASSWORD are not set."
+            exit 1
+          fi
+
+  sweep:
+    name: Sweep prod (${{ matrix.engine }})
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - engine: chromium
+            project: a11y-prod
+          - engine: webkit
+            project: a11y-prod-webkit
+    env:
+      PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }}
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+      SWEEP_ROUTES: ${{ inputs.routes }}
+      SWEEP_OUTPUT_DIR: ${{ github.workspace }}/a11y-prod-out/${{ matrix.engine }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        # Same reason as e2e-happy-path.yml: its bad index fails apt-get update.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps ${{ matrix.engine }}
+
+      - name: Run the prod sweep
+        # The serial describe ignores --workers; kept on one line for
+        # src/test/e2eSpecsReachableInCi.test.ts, which reads this file.
+        run: npx playwright test --project=${{ matrix.project }} --reporter=list
+
+      - name: Keep the report and every screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: a11y-prod-${{ matrix.engine }}
+          path: |
+            a11y-prod-out/${{ matrix.engine }}/
+            test-results/
+          retention-days: 14
+          if-no-files-found: error
+
+  diff:
+    # The name is what scripts/release-gate.mjs matches. Runs even when a
+    # sweep leg is red: the diff over whatever both engines DID capture is
+    # still the WebKit-only answer, and a red leg reds this job too.
+    name: WebKit-only violations
+    needs: sweep
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: a11y-prod-*
+          path: reports
+      - name: Diff WebKit against Chromium
+        run: |
+          set -euo pipefail
+          C=reports/a11y-prod-chromium/a11y-prod-out/chromium/a11y-report.json
+          W=reports/a11y-prod-webkit/a11y-prod-out/webkit/a11y-report.json
+          set +e
+          node scripts/audit/a11y-engine-diff.mjs "$C" "$W" --out webkit-only.json | tee diff.txt
+          rc=${PIPESTATUS[0]}
+          set -e
+          {
+            echo '## WebKit vs Chromium on prod'
+            echo '```'
+            cat diff.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
+      - name: Sweep legs must both be green
+        if: needs.sweep.result != 'success'
+        run: |
+          echo "::error::a sweep leg was ${{ needs.sweep.result }} — see the a11y-prod-* artifacts"
+          exit 1
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: a11y-webkit-only
+          path: |
+            webkit-only.json
+            diff.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+  notify:
+    name: Report nightly result
+    needs: [sweep, diff]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: a11y-webkit-prod
+          status: ${{ needs.sweep.result == 'success' && needs.diff.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

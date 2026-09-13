@@ -42,7 +42,13 @@ export const PNG_1PX = Buffer.from(
   "base64",
 );
 
-export type Role = "poster" | "helper";
+/**
+ * poster/helper are the two shared journey accounts (required). admin and
+ * incomplete are the seed accounts scripts/audit/prod-seed.mjs owns (admin
+ * role → /admin; avatar-less profile → /complete-profile renders); optional,
+ * see optionalSession.
+ */
+export type Role = "poster" | "helper" | "admin" | "incomplete";
 export type Session = {
   access_token: string;
   refresh_token: string;
@@ -54,9 +60,21 @@ export type Session = {
 const REPO_ROOT = process.cwd();
 
 function envCreds(role: Role) {
-  const email = role === "poster" ? process.env.PLAYWRIGHT_POSTER_EMAIL : process.env.PLAYWRIGHT_HELPER_EMAIL;
-  const password = role === "poster" ? process.env.PLAYWRIGHT_POSTER_PASSWORD : process.env.PLAYWRIGHT_HELPER_PASSWORD;
+  // PLAYWRIGHT_POSTER_EMAIL, PLAYWRIGHT_ADMIN_PASSWORD, … — the CI secrets.
+  const key = role.toUpperCase();
+  const email = process.env[`PLAYWRIGHT_${key}_EMAIL`];
+  const password = process.env[`PLAYWRIGHT_${key}_PASSWORD`];
   return email && password ? { email, password } : null;
+}
+
+/** Can getSession(role) succeed here? Password secret in CI, or a local .env to mint from. */
+export function sessionAvailable(role: Role): boolean {
+  return Boolean(envCreds(role)) || (!process.env.CI && existsSync(join(REPO_ROOT, ".env")));
+}
+
+/** getSession for an optional account: null (never a throw) when it cannot be signed in here. */
+export async function optionalSession(api: APIRequestContext, role: Role): Promise<Session | null> {
+  return sessionAvailable(role) ? getSession(api, role) : null;
 }
 
 export function sessionsAvailable(): { ok: boolean; why: string } {

@@ -1,0 +1,588 @@
+// Shared core of the UI audit evidence sweep.
+//
+// Extracted 2026-09-12 from visual-audit-sweep.spec.ts so the SAME capture and
+// the SAME gate run in two places:
+//   - visual-audit-sweep.spec.ts   mocked Supabase, local preview (the original)
+//   - ../a11y-prod/a11y-prod.spec.ts  PROD, the shared test accounts, in
+//                                    Chromium AND WebKit (owner, 2026-09-12:
+//                                    no mock mode; iPhone users get WebKit)
+// A spec file cannot be imported without re-registering its tests, so the
+// non-test parts live here. Nothing in this file registers a test; the two
+// specs own their describe blocks and call captureScreen / assertSweepGate.
+//
+// Everything below the imports is the original code, moved verbatim. The
+// comments were written for the mocked sweep and still apply.
+
+import { writeFileSync, mkdirSync } from "node:fs";
+import { resolve } from "node:path";
+import type { TestInfo } from "@playwright/test";
+import { expect } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+import { measureLayout, settleAnimations, type LayoutReport } from "./auditRoutes";
+import { detectButtonGeometry, type ButtonGeometryReport } from "./buttonGeometry";
+import { detectStuckOrBlank, findErrorScreen } from "../errorScreens";
+import {
+  resolveIncompleteContrast,
+  contrastFailures,
+  contrastUnresolved,
+  contrastVanished,
+  describeContrast,
+  type ResolvedContrast,
+} from "./contrastResolve";
+import { classifyAgainstKnown, type ClassifiedFailure } from "./knownContrastFailures";
+
+
+// SWEEP_OUTPUT_DIR lets the five SWEEP_VARIANTS run as five parallel
+// processes (this describe is serial, so one process = one worker, ~100 min
+// for the whole matrix) without their a11y-report.json files overwriting each
+// other at afterAll.
+export const OUTPUT_DIR = process.env.SWEEP_OUTPUT_DIR || "/tmp/ui-review";
+mkdirSync(OUTPUT_DIR, { recursive: true });
+
+export interface ViolationSummary {
+  id: string;
+  impact: string | null;
+  help: string;
+  nodes: number;
+  targets: string[];
+  /** axe's own measured numbers, e.g. "#aaa on #fff = 2.3:1 (needs 4.5, 11px)". */
+  detail: string[];
+}
+
+export interface ScreenResult {
+  index: number;
+  name: string;
+  url: string;
+  auth: "anon" | "authed";
+  /** Viewport + theme this row was captured at. */
+  variant?: string;
+  status: "ok" | "skipped" | "failed";
+  /**
+   * True when the capture is of an ERROR BOUNDARY rather than the screen it
+   * claims to be. See the guard in captureScreen — this is the difference
+   * between "the screen did not render" (already caught) and "something else
+   * rendered in its place", which was not caught and produced 25 byte-identical
+   * green captures.
+   */
+  wrongScreen?: string;
+  /** Sibling buttons of unequal height, and size classes the cascade defeated. See buttonGeometry.ts. */
+  buttonGeometry?: ButtonGeometryReport;
+  /**
+   * Same-origin links that open in a NEW TAB, each loaded cold in its own page.
+   * The page walk used to skip these as "opens elsewhere", which is how the
+   * consent checkboxes' /terms, /rules and /privacy links shipped a boundary
+   * screen nobody had ever opened.
+   */
+  newTabDestinations?: { href: string; problem: string | null }[];
+  screenshot?: string;
+  totalViolations?: number;
+  topViolations?: ViolationSummary[];
+  /**
+   * Colour-contrast results axe left in `incomplete` and we then decided
+   * ourselves. `contrastChecked` is the count it declined to judge — if that
+   * is non-zero and both buckets below are empty, the check RAN and passed,
+   * which is the distinction the old gate could not make.
+   */
+  contrastChecked?: number;
+  contrastFailures?: ResolvedContrast[];
+  contrastUnresolved?: ResolvedContrast[];
+  /** Elements that disappeared before we could score them (toasts). */
+  contrastVanished?: ResolvedContrast[];
+  layout?: LayoutReport;
+  error?: string;
+  notes?: string;
+}
+
+/**
+ * Viewport + theme matrix.
+ *
+ * The sweep previously ran ONLY at the project's fixed 375x812 in light mode,
+ * so nothing desktop-specific and nothing dark-mode-specific was ever seen —
+ * which is precisely where this app's known layout bugs live (the desktop rail
+ * double-inset, the width-ladder divergence). 320 is included because that is
+ * where truncation and wrapping fail first.
+ *
+ * Controlled by SWEEP_VARIANTS so a quick run stays quick:
+ *   (unset)          → phone-light only, the old behaviour, ~3 min
+ *   SWEEP_VARIANTS=all → every variant below, ~4x the wall clock
+ *
+ * Theme is set via the `data-theme` attribute, NOT prefers-color-scheme —
+ * this app reads the attribute, so emulating the OS colour scheme tests
+ * nothing at all.
+ */
+export interface Variant {
+  tag: string;
+  width: number;
+  height: number;
+  theme: "light" | "dark";
+}
+
+/**
+ * `desktop-dark` was added 2026-09-02. Before it, the matrix ran dark mode at
+ * exactly ONE width — 375 — so nothing dark-mode-specific above phone width
+ * was ever looked at by anything. That is not a small hole: this app's desktop
+ * layout is a different layout (the rail inset, the two-column hero, the wider
+ * cards), and the single worst defect the last audit found — 35 screens — was
+ * dark-mode-only. A matrix that varies theme at one width and width at one
+ * theme cannot see anything that needs both.
+ */
+export const ALL_VARIANTS: Variant[] = [
+  { tag: "phone-light", width: 375, height: 812, theme: "light" },
+  { tag: "phone-dark", width: 375, height: 812, theme: "dark" },
+  { tag: "small-light", width: 320, height: 640, theme: "light" },
+  { tag: "desktop-light", width: 1440, height: 900, theme: "light" },
+  { tag: "desktop-dark", width: 1440, height: 900, theme: "dark" },
+];
+
+// (unset) → phone-light only · "all" → the whole matrix · or a comma list of
+// tags ("phone-dark,desktop-light"). The comma list exists so a finding from
+// the empty-state sweep can be re-run SEEDED at the same variant — that is the
+// only way to tell "this breaks when the user has no data" apart from "this is
+// broken everywhere and nobody had looked at this viewport before".
+export const VARIANTS: Variant[] = (() => {
+  const want = process.env.SWEEP_VARIANTS;
+  if (!want) return [ALL_VARIANTS[0]];
+  if (want === "all") return ALL_VARIANTS;
+  const tags = want.split(",").map((t) => t.trim());
+  const picked = ALL_VARIANTS.filter((v) => tags.includes(v.tag));
+  if (!picked.length) throw new Error(`SWEEP_VARIANTS=${want} matched no variant tag`);
+  return picked;
+})();
+
+export const results: ScreenResult[] = [];
+/** Free-form header fields for the report (engine, baseURL); set by the spec. */
+export const reportMeta: Record<string, string> = {};
+
+export function writeReport(): void {
+  const reportPath = resolve(OUTPUT_DIR, "a11y-report.json");
+  writeFileSync(
+    reportPath,
+    JSON.stringify(
+      { generatedAt: new Date().toISOString(), ...reportMeta, screens: results },
+      null,
+      2,
+    ),
+  );
+}
+
+
+export async function captureScreen(
+  page: import("@playwright/test").Page,
+  index: number,
+  name: string,
+  url: string,
+  auth: "anon" | "authed",
+  extraSetup?: () => Promise<void>,
+  variant: Variant = VARIANTS[0],
+): Promise<void> {
+  const result: ScreenResult = { index, name, url, auth, variant: variant.tag, status: "failed" };
+  // Console noise is a per-screen finding, so listen BEFORE navigating —
+  // attaching after goto() misses everything logged during first paint.
+  const consoleIssues: string[] = [];
+  // Noise the HARNESS causes, not the app. Left unfiltered these appear on
+  // every screen and drown the real findings.
+  const HARNESS_NOISE = [
+    /Service Worker registration blocked by Playwright/i,
+    /Download the React DevTools/i,
+    /\[vite\] connect/i,
+  ];
+  page.on("console", (m) => {
+    if (m.type() !== "error" && m.type() !== "warning") return;
+    const text = m.text();
+    if (HARNESS_NOISE.some((rx) => rx.test(text))) return;
+    consoleIssues.push(`${m.type()}: ${text.slice(0, 110)}`);
+  });
+  page.on("pageerror", (e) => consoleIssues.push(`uncaught: ${String(e.message).slice(0, 110)}`));
+  try {
+    await page.setViewportSize({ width: variant.width, height: variant.height });
+    // Set the theme BEFORE any app JS runs, so the first paint is already in
+    // the right mode — flipping it after load can leave transition styles
+    // mid-flight in the screenshot.
+    // documentElement does not exist yet at addInitScript time on a fresh
+    // document, so guard it and fall back to DOMContentLoaded. Without the
+    // guard this threw "Cannot read properties of null" on EVERY screen and
+    // polluted the console findings for all 75 of them.
+    await page.addInitScript((theme) => {
+      const set = () => document.documentElement?.setAttribute("data-theme", theme);
+      if (document.documentElement) set();
+      else document.addEventListener("DOMContentLoaded", set, { once: true });
+    }, variant.theme);
+
+    // Suppress the onboarding tour, as home-chrome, overlay-sweep and
+    // empty-state-sweep do. It mounts ONLY in Dashboard.tsx, on a 1.5s
+    // post-load timer, and then fades in — and this sweep visits /dashboard as
+    // an authed user (it is in the shared SCREENS list), so without this axe
+    // can scan the overlay MID-FADE and report near-transparent text over
+    // near-transparent background as a ~1.01:1 contrast failure that does not
+    // exist. settleAnimations cannot save it: it counts from navigation start
+    // and ends its opacity wait in `.catch(() => {})`, so under parallel load
+    // it silently gives up. The tour is not what this sweep measures.
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem(
+          "helpr_onboarding",
+          JSON.stringify({ completed: true, currentStep: 0, completedSteps: [], seen: true }),
+        );
+        localStorage.setItem("helpr.onboarding_tour_dismissed_at", new Date().toISOString());
+      } catch {
+        // storage unavailable (private mode / blocked): the tour just shows
+      }
+    });
+
+
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.evaluate((theme) => {
+      document.documentElement.setAttribute("data-theme", theme);
+    }, variant.theme);
+    // Give SPA a chance to settle — first paint + lazy chunks.
+    await page
+      .waitForLoadState("networkidle", { timeout: 15_000 })
+      .catch(() => {
+        result.notes = (result.notes ?? "") + "networkidle-timeout;";
+      });
+    await page
+      .evaluate(() => (document as Document & { fonts?: FontFaceSet }).fonts?.ready ?? Promise.resolve())
+      .catch(() => undefined);
+    // Small settle for animations.
+    await page.waitForTimeout(500);
+
+    if (extraSetup) {
+      await extraSetup();
+      await page
+        .waitForLoadState("networkidle", { timeout: 10_000 })
+        .catch(() => undefined);
+      await page.waitForTimeout(500);
+    }
+
+    // Settle deferred overlays + fades before the screenshot and the axe scan,
+    // so neither captures a half-faded dialog. See settleAnimations' note.
+    await settleAnimations(page);
+
+    /**
+     * IS THIS ACTUALLY THE SCREEN? The gate below already fails a screen that
+     * did not render — a thrown test leaves `totalViolations` undefined. It did
+     * NOT fail a screen that rendered something ELSE, and that hole was wide
+     * enough to drive the whole admin surface through.
+     *
+     * Measured 2026-09-11: pointed at a dev server, all 25 admin captures came
+     * back BYTE-FOR-BYTE IDENTICAL — every one a photograph of
+     * RouteErrorBoundary's chunk-load state ("Update ready.") — and the run
+     * reported 25 passed. axe is perfectly happy with an error boundary: it is
+     * a heading and two buttons, and it is accessible. So the one check this
+     * file exists to perform had never run against a single admin view, and
+     * said green. That is the same shape as the `incomplete` contrast hole
+     * documented at the gate below: a check that cannot fail is not a check.
+     *
+     * Recorded rather than thrown, because this describe is `mode: "serial"` —
+     * a throw here would skip every screen after it and truncate the very
+     * evidence the file is for.
+     */
+    // Every error-screen signature, from the ONE shared list (e2e/errorScreens.ts),
+    // plus blank and still-loading states. The /this-route-does-not-exist
+    // screen is the only one allowed to say "Page Not Found".
+    const bodyText = await page.evaluate(() => document.body?.innerText ?? "");
+    const allow = /not-found/.test(name) ? ["404 on a real route"] : [];
+    const errorScreen = findErrorScreen(bodyText, allow);
+    const stuck = await page.evaluate(detectStuckOrBlank);
+    const boundary = errorScreen ? `${errorScreen.name}: "${errorScreen.excerpt}"` : stuck;
+    if (boundary) result.wrongScreen = boundary;
+
+    result.buttonGeometry = await page.evaluate(detectButtonGeometry, undefined);
+
+    const newTabHrefs = await page.evaluate(() =>
+      [...new Set(
+        [...document.querySelectorAll('a[target="_blank"][href]')]
+          .map((a) => new URL((a as HTMLAnchorElement).href, location.href))
+          .filter((u) => u.origin === location.origin)
+          .map((u) => u.pathname + u.search),
+      )],
+    );
+    result.newTabDestinations = [];
+    for (const href of newTabHrefs) {
+      const tab = await page.context().newPage();
+      let problem: string | null = null;
+      try {
+        await tab.goto(href, { waitUntil: "domcontentloaded", timeout: 30_000 });
+        await tab.waitForTimeout(2500);
+        const text = (await tab.locator("body").innerText()).replace(/\s+/g, " ").trim();
+        if (/This page hit a problem|Something went sideways|Couldn't load|Update ready|newer version/i.test(text)) {
+          problem = `error boundary: ${text.slice(0, 80)}`;
+        } else if (text.length < 40) {
+          problem = `blank (${text.length} chars)`;
+        }
+      } catch (e) {
+        // recorded as a finding on the destination, not swallowed
+        problem = `failed to load: ${String((e as Error).message).slice(0, 80)}`;
+      } finally {
+        await tab.close();
+      }
+      result.newTabDestinations.push({ href, problem });
+    }
+
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const fileName = `${String(index).padStart(3, "0")}-${slug}-${variant.tag}.png`;
+    const screenshotPath = resolve(OUTPUT_DIR, fileName);
+    await page.screenshot({ path: screenshotPath, fullPage: false });
+    result.screenshot = screenshotPath;
+
+    result.layout = await measureLayout(page);
+    result.layout.consoleIssues = [...new Set(consoleIssues)].slice(0, 5);
+
+    const axe = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+
+    result.totalViolations = axe.violations.length;
+    const ranked = [...axe.violations].sort((a, b) => {
+      const order = { critical: 0, serious: 1, moderate: 2, minor: 3 } as const;
+      const ai = order[(a.impact ?? "minor") as keyof typeof order] ?? 4;
+      const bi = order[(b.impact ?? "minor") as keyof typeof order] ?? 4;
+      return ai - bi;
+    });
+    result.topViolations = ranked.slice(0, 5).map((v) => ({
+      id: v.id,
+      impact: v.impact ?? null,
+      help: v.help,
+      nodes: v.nodes.length,
+      targets: v.nodes.slice(0, 3).flatMap((n) => n.target.map(String)),
+      /**
+       * axe already computed the exact foreground, background and ratio for
+       * a colour-contrast failure — surfacing it here saves re-deriving those
+       * numbers by hand, which is where contrast audits go wrong: a naive
+       * getComputedStyle read misses rgba alpha and gradient backgrounds and
+       * invents failures that do not exist. Take axe's numbers.
+       */
+      detail: v.nodes.slice(0, 3).flatMap((n) =>
+        [...(n.any ?? []), ...(n.all ?? []), ...(n.none ?? [])]
+          .filter((c) => c.data && typeof c.data === "object")
+          .map((c) => {
+            const d = c.data as Record<string, unknown>;
+            return d.contrastRatio
+              ? `${String(d.fgColor)} on ${String(d.bgColor)} = ${String(d.contrastRatio)}:1 (needs ${String(d.expectedContrastRatio ?? "?")}, ${String(d.fontSize ?? "?")})`
+              : "";
+          })
+          .filter(Boolean),
+      ),
+    }));
+
+    // Decide what axe would not. `incomplete` is where a colour-contrast
+    // result goes when axe cannot resolve the backdrop, and over a gradient
+    // canvas that is EVERY result — so reading only `violations` reported
+    // green on a check that never ran. resolveIncompleteContrast composites
+    // the backdrop the text's own ancestors paint, scoring a gradient at its
+    // worst stop; anything it still cannot decide comes back as unresolved and
+    // fails the gate rather than vanishing.
+    const contrast = await resolveIncompleteContrast(page, axe);
+    result.contrastChecked = contrast.length;
+    result.contrastFailures = contrastFailures(contrast);
+    result.contrastUnresolved = contrastUnresolved(contrast);
+    // Self-dismissing overlays vanish between axe's scan and ours. Recorded,
+    // not failed — see contrastVanished.
+    result.contrastVanished = contrastVanished(contrast);
+
+    result.status = "ok";
+  } catch (err) {
+    // recorded on the screen result and failed by assertSweepGate
+    result.error = err instanceof Error ? err.message : String(err);
+    result.status = "failed";
+  } finally {
+    results.push(result);
+    writeReport();
+  }
+}
+
+
+// SWEEP_ROUTES: comma-separated App.tsx route patterns (e.g. "/profile,/jobs/:id").
+// Set by `npm run check:changed` to sweep only the screens a diff touches.
+// Unset → every screen.
+export const ROUTE_PATTERNS = (process.env.SWEEP_ROUTES ?? "")
+  .split(",")
+  .map((p) => p.trim())
+  .filter(Boolean)
+  .map((p) => new RegExp("^" + p.replace(/\*$/, ".*").replace(/:[^/]+/g, "[^/]+").replace(/\//g, "\\/") + "$"));
+export function inScope<T extends { url: string }>(screens: T[]): T[] {
+  if (!ROUTE_PATTERNS.length) return screens;
+  return screens.filter((s) => {
+    const path = new URL(s.url, "http://x").pathname;
+    return ROUTE_PATTERNS.some((re) => re.test(path));
+  });
+}
+
+/**
+ * THE GATE. Until 2026-08-17 this sweep recorded `totalViolations` and moved
+ * on, so a real 1.92:1 contrast failure sat green in it for weeks — the run
+ * was evidence dressed up as a check. It now fails.
+ *
+ * Why the assertion lives HERE rather than inside each screen's own test:
+ * this describe is `mode: "serial"` (see the configure call above), and under
+ * serial a failing test SKIPS every test after it. A per-screen `expect`
+ * would therefore stop the sweep at the first bad screen, and the
+ * a11y-report.json evidence — the whole reason this file exists — would be
+ * truncated to whatever ran before it. Collecting every screen first and
+ * asserting once at the end gives BOTH: a complete report on disk and a red
+ * run that names every offending screen in one message.
+ *
+ * FOUR things fail the run:
+ *   - any axe wcag2a/2aa/21a/21aa violation on any screen;
+ *   - any screen that did not render at all. A screen that threw has
+ *     `totalViolations: undefined`, which would otherwise slip past the
+ *     violation check and count as clean — a hole big enough to hide a
+ *     white-screening route in.
+ *   - any NEW WCAG AA colour-contrast failure in the composited backdrop;
+ *   - any RECORDED contrast failure that got worse, or that is recorded and
+ *     no longer happens (see knownContrastFailures.ts — the list is only
+ *     allowed to shrink);
+ *   - any colour-contrast result nothing could decide.
+ *
+ * The last two were added 2026-09-02 and are not a refinement — they are the
+ * check itself. axe never put a single colour-contrast result in
+ * `violations` on this app: its page canvas is a gradient, so axe declines
+ * and files EVERY contrast result under `incomplete`, which this gate did
+ * not read. Measured on the built bundle: `/` reported 0 violations and 25
+ * incomplete colour-contrast nodes. So for the whole life of this gate, the
+ * one check its own workflow file is named after had never run, and reported
+ * green. See contrastResolve.ts.
+ *
+ * If this is red, FIX THE SCREENS. Do not narrow the tag set or filter by
+ * impact to get it green — a muted gate is the state this change was made to
+ * get out of.
+ */
+export function assertSweepGate(testInfo: TestInfo): void {
+  // Sanity first: an empty/all-failed run means something fundamental
+  // (preview server, route table) is broken, not that the app is clean.
+  expect(results.some((r) => r.status === "ok"), "no screen rendered at all").toBe(true);
+
+  const failedToRender = results
+    .filter((r) => r.status !== "ok")
+    .map((r) => `${r.index} ${r.name} (${r.variant}) — ${r.status}: ${r.error ?? "no error recorded"}`);
+
+  const violating = results
+    .filter((r) => (r.totalViolations ?? 0) > 0)
+    .map((r) => {
+      const detail = (r.topViolations ?? [])
+        .map(
+          (v) =>
+            `${v.id}(${v.impact ?? "?"}, ${v.nodes} node(s), ${v.targets[0] ?? "?"})` +
+            (v.detail.length ? ` [${v.detail[0]}]` : ""),
+        )
+        .join("; ");
+      return `${r.index} ${r.name} (${r.variant}) @ ${r.url} — ${r.totalViolations} violation(s): ${detail}`;
+    });
+
+  expect(
+    failedToRender,
+    `screens that never rendered (so their axe result is meaningless):\n  - ${failedToRender.join("\n  - ")}`,
+  ).toEqual([]);
+
+  /**
+   * A screen that rendered SOMETHING ELSE is worse than one that rendered
+   * nothing, because it produces a plausible screenshot and a clean axe pass.
+   * See the guard in captureScreen for how 25 admin views were "audited"
+   * without one of them ever being on screen.
+   */
+  const wrongScreen = results
+    .filter((r) => r.wrongScreen)
+    .map((r) => `${r.index} ${r.name} (${r.variant}) @ ${r.url} — captured ${r.wrongScreen}`);
+  expect(
+    wrongScreen,
+    "these captures are of an error boundary, not the screen (axe passes on an " +
+      `error boundary, so this would otherwise read as clean):\n  - ${wrongScreen.join("\n  - ")}`,
+  ).toEqual([]);
+  const geometry = results.flatMap((r) => [
+    ...(r.buttonGeometry?.siblingMismatch ?? []).map((m) => `${r.index} ${r.name} (${r.variant}) — sibling buttons differ: ${m}`),
+    ...(r.buttonGeometry?.requestedNotRendered ?? []).map((m) => `${r.index} ${r.name} (${r.variant}) — size class ignored: ${m}`),
+  ]);
+  expect(
+    geometry,
+    "button geometry: stacked or side-by-side buttons must be the same height, and a size class " +
+      "on a control must actually render (see buttonGeometry.ts):\n  - " + geometry.join("\n  - "),
+  ).toEqual([]);
+  const brokenNewTabs = results.flatMap((r) =>
+    (r.newTabDestinations ?? [])
+      .filter((d) => d.problem)
+      .map((d) => `${r.index} ${r.name} (${r.variant}) → ${d.href}: ${d.problem}`),
+  );
+  expect(
+    brokenNewTabs,
+    `new-tab links whose destination does not render:\n  - ${brokenNewTabs.join("\n  - ")}`,
+  ).toEqual([]);
+  expect(
+    violating,
+    `axe wcag2a/2aa/21a/21aa violations (full report: ${OUTPUT_DIR}/a11y-report.json):\n  - ${violating.join("\n  - ")}`,
+  ).toEqual([]);
+
+  // Colour-contrast, which axe itself declined to judge on every screen with
+  // a gradient behind it. These assertions are the difference between a gate
+  // that checked contrast and a gate that skipped it and said nothing.
+  const allContrast: ClassifiedFailure[] = results.flatMap((r) =>
+    (r.contrastFailures ?? []).map((c) => ({
+      screen: r.name,
+      variant: r.variant ?? "?",
+      text: c.text ?? "",
+      ratio: c.ratio ?? 0,
+      line: `${r.index} ${r.name} (${r.variant}) @ ${r.url} — ${describeContrast(c)}`,
+    })),
+  );
+  const contrastUndecided = results.flatMap((r) =>
+    (r.contrastUnresolved ?? []).map(
+      (c) => `${r.index} ${r.name} (${r.variant}) @ ${r.url} — ${describeContrast(c)}`,
+    ),
+  );
+
+  // Staleness is only judgeable for what this leg actually visited — the CI
+  // matrix runs one variant per job, so every entry for the other variants
+  // would otherwise read as stale on every leg.
+  const swept = new Set(results.filter((r) => r.status === "ok").map((r) => `${r.name}|${r.variant}`));
+  const contrast = classifyAgainstKnown(allContrast, swept);
+
+  const vanished = results.flatMap((r) =>
+    (r.contrastVanished ?? []).map(
+      (c) => `${r.index} ${r.name} (${r.variant}) — ${describeContrast(c)}`,
+    ),
+  );
+  if (vanished.length) {
+    testInfo.annotations.push({
+      type: "contrast-not-measured",
+      description:
+        `${vanished.length} element(s) disappeared between axe's scan and ours — a ` +
+        "self-dismissing overlay, most often a toast. NOT failed: there is no screen to " +
+        "fix, the thing being scored no longer exists. It IS an acknowledged coverage " +
+        `gap — short-lived text is not contrast-checked here:\n  - ${vanished.join("\n  - ")}`,
+    });
+  }
+
+  if (contrast.allowed.length) {
+    testInfo.annotations.push({
+      type: "known-contrast-failures",
+      description:
+        `${contrast.allowed.length} recorded, unfixed colour-contrast failure(s) — not new, ` +
+        `not worse:\n  - ${contrast.allowed.join("\n  - ")}`,
+    });
+  }
+
+  const contrastBroken = contrast.fresh.map((f) => f.line);
+
+  expect(
+    contrastBroken,
+    "NEW WCAG AA colour-contrast failures, measured from the composited backdrop. " +
+      "These are not in knownContrastFailures.ts, which means this change introduced them — " +
+      `fix them, do not list them:\n  - ${contrastBroken.join("\n  - ")}`,
+  ).toEqual([]);
+  expect(
+    contrast.regressed,
+    "Recorded colour-contrast failures that got WORSE. The number in " +
+      `knownContrastFailures.ts is a ceiling, not a pass:\n  - ${contrast.regressed.join("\n  - ")}`,
+  ).toEqual([]);
+  expect(
+    contrast.stale,
+    "Stale entries in knownContrastFailures.ts — recorded but not seen on a screen this run " +
+      "DID sweep. The list is only allowed to shrink, so a fixed entry has to be deleted:\n  - " +
+      contrast.stale.join("\n  - "),
+  ).toEqual([]);
+  expect(
+    contrastUndecided,
+    "colour-contrast results NOTHING could decide — neither axe nor the pixel/ancestor " +
+      "resolver. An undecided check is not a passing check; look at each of these by hand " +
+      `and either fix the screen or make the backdrop measurable:\n  - ${contrastUndecided.join("\n  - ")}`,
+  ).toEqual([]);
+}

@@ -133,7 +133,7 @@ export default defineConfig({
       name: "chromium",
       // The default deployed-env suite — excludes happy-path/* which
       // requires the local preview server to be running.
-      testIgnore: /(happy-path|journeys)\//,
+      testIgnore: /(happy-path|journeys|a11y-prod)\//,
       use: { ...devices["Desktop Chrome"] },
     },
     {
@@ -172,6 +172,41 @@ export default defineConfig({
         ...devices["iPhone 13"],
         viewport: { width: 375, height: 812 },
         baseURL: HAPPY_PATH_BASE_URL,
+        serviceWorkers: "block",
+      },
+    },
+    {
+      name: "a11y-prod",
+      // The UI audit evidence sweep against PROD (e2e/a11y-prod): the same
+      // capture + gate as the mocked sweep, on the deployed site with the real
+      // backend and the shared test accounts. Chromium at the phone viewport,
+      // so its report is the baseline the WebKit run below is diffed against.
+      // Read-only; CI: .github/workflows/a11y-webkit-prod.yml. (`name:` is
+      // first so src/test/e2eSpecsReachableInCi.test.ts can read this block.)
+      testDir: "./e2e/a11y-prod",
+      fullyParallel: false,
+      timeout: 90_000,
+      retries: 0,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 375, height: 812 },
+        isMobile: false,
+        hasTouch: true,
+        serviceWorkers: "block",
+      },
+    },
+    {
+      name: "a11y-prod-webkit",
+      // The same prod sweep in REAL WebKit on an iPhone 13 profile — what an
+      // iPhone user's WKWebView actually renders. Every other axe run in this
+      // repo is Chromium; a WebKit-only violation is invisible to all of them.
+      testDir: "./e2e/a11y-prod",
+      fullyParallel: false,
+      timeout: 90_000,
+      retries: 0,
+      use: {
+        ...devices["iPhone 13"],
+        viewport: { width: 375, height: 812 },
         serviceWorkers: "block",
       },
     },

@@ -148,6 +148,38 @@ text — a styling change. It never touched whether the numbers AGREE. Observed:
 bell badge **10**, panel "Unread **11**". Two different sources of one count.
 Find both and make one authoritative.
 
+## Race conditions — proven on prod 2026-09-13 (terminal 3, seed accounts, all fixture rows deleted)
+- **PROVEN 14/20 — apply vs cancel.** `enforce_application_job_state()` read the
+  job without a lock; the INSERT then waited on the FK behind
+  `poster_cancel_job()`'s `FOR UPDATE` and committed a `pending` application on
+  the `cancelled` job (job xmin < application xmin in every bad round), with a
+  "New application" notification to the poster who had just cancelled. Fix in
+  migration `20260913014328` (`SELECT … FOR SHARE`). **Re-measure after deploy:**
+  re-run the apply race 20× on prod; expect 0 bad rounds.
+- **PROVEN 5/20 — helper confirm vs cancel (money).** The plain-offer confirm at
+  `useOfferHandlers.ts` is a client `UPDATE jobs SET helper_confirmed_at` with
+  no status predicate; queued behind the cancel it stamped a CANCELLED job.
+  `poster_cancel_job` had recorded `$0 / no strike / "no fee applies"`, but
+  `void-cancelled-payments` recomputes committed from `helper_confirmed_at` and
+  would have captured 25% ($25 of $100) from the poster. Fix in the same
+  migration (`trg_confirm_on_live_job`, 42501 unless OLD.status ∈ open|accepted)
+  plus `.eq("status","accepted")` on the client. PGlite: 16/16 after, 8 red
+  before. **Re-measure after deploy:** re-run the confirm race 20×; expect
+  `helper_confirmed_at` NULL on every cancelled row.
+- **NOT REPRODUCED 0/20 — direct-offer accept vs cancel.** `respond_to_direct_offer`
+  and `poster_cancel_job` both lock with `FOR UPDATE`; every round was either
+  accept→cancel (fee $25 == cron $25, one strike) or cancel→`job_not_open`.
+- **Unreachable — "apply at the old price".** `enforce_poster_jobs_money_lock`
+  refuses `budget` once `payment_status <> 'unpaid'`, unfunded jobs are on no
+  browse surface, and `applications` has no price column. No test written.
+- **Class check still owed (prevent, don't chase):** a CI check that every
+  trigger/RPC reading `jobs` before a dependent write does so under a row lock
+  (`FOR SHARE`/`FOR UPDATE`), and that no client `UPDATE jobs` that stamps a
+  lifecycle column lacks a `status` predicate. Not written yet.
+- **PGlite cannot prove lock ordering** (single connection); the `FOR SHARE`
+  half is proven only by the prod re-run above. A two-connection Postgres in
+  CI (`db-smoke`) could run the race harness nightly.
+
 ## Bugs found but not fixed
 - **Every job card renders TWICE on /dashboard** (seen in the perf lane's
   screenshot). Unconfirmed cause.

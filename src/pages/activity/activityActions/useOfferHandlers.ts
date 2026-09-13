@@ -479,11 +479,21 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       //   - deadline null OR still in the future → blocks confirming a lapsed
       //     offer. The null branch matters: not every offer carries a deadline,
       //     and a bare `.gt()` would silently exclude those legitimate rows.
+      //   - `status = 'accepted'` → blocks confirming a job the poster cancelled
+      //     in the same instant. Proven on prod 2026-09-13 (5 of 20 races):
+      //     without it this UPDATE queued behind poster_cancel_job's row lock,
+      //     re-checked only `helper_confirmed_at IS NULL` on the cancelled row,
+      //     and stamped it — so the cancel RPC said "$0, no fee" while the
+      //     payout cron, reading helper_confirmed_at, would have charged 25%.
+      //     The trigger trg_confirm_on_live_job is the guarantee; this
+      //     predicate turns that refusal into the zero-row "no longer
+      //     available" path below instead of an error toast.
       // `.select("id")` lets us tell "updated nothing" from "errored".
       const { data: confirmedRows, error: confirmError } = await supabase
         .from("jobs")
         .update({ helper_confirmed_at: confirmedAt, response_deadline: null })
         .eq("id", app.job_id)
+        .eq("status", "accepted")
         .is("helper_confirmed_at", null)
         .or(`response_deadline.is.null,response_deadline.gt.${confirmedAt}`)
         .select("id");

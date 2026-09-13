@@ -344,7 +344,7 @@ export const DisputeCard = ({
             <p className="text-ds-10 mt-1.5" style={{ color: "hsl(var(--amber-ink))" }}>
               This moves real money. The Helpr's figure is exact. The poster's is
               computed from this job's line items — the refund is taken off the
-              actual charge, so a job part-paid with a Pay-It-Forward gift will
+              actual charge, so a job part-paid with a gift card will
               differ.
             </p>
           </div>

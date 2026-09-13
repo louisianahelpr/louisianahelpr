@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 interface GiftCardTeaserProps {
   /** Count of funded, unspent, unexpired gift cards addressed to this user. */
-  pifCount: number;
+  giftCardCount: number;
 }
 
 /**
@@ -16,8 +16,8 @@ interface GiftCardTeaserProps {
  * point — the reported failure started with a recipient not realising the
  * money was already sitting in their account.
  */
-const GiftCardTeaser = ({ pifCount }: GiftCardTeaserProps) => {
-  if (pifCount <= 0) return null;
+const GiftCardTeaser = ({ giftCardCount }: GiftCardTeaserProps) => {
+  if (giftCardCount <= 0) return null;
   return (
     <div
       className="mx-4 mb-3 rounded-ds-md p-3"
@@ -30,7 +30,7 @@ const GiftCardTeaser = ({ pifCount }: GiftCardTeaserProps) => {
         className="font-sans font-semibold text-ds-14"
         style={{ color: "hsl(var(--success-ink))" }}
       >
-        {pifCount} Helpr gift card{pifCount > 1 ? "s" : ""} waiting for you
+        {giftCardCount} Helpr gift card{giftCardCount > 1 ? "s" : ""} waiting for you
       </p>
       <p
         className="font-sans text-ds-12 mt-0.5"
@@ -38,7 +38,7 @@ const GiftCardTeaser = ({ pifCount }: GiftCardTeaserProps) => {
       >
         Ready to spend on your next job ·{" "}
         <Link to="/gift-card" className="underline">
-          {pifCount > 1 ? "See them" : "See it"}
+          {giftCardCount > 1 ? "See them" : "See it"}
         </Link>
       </p>
     </div>

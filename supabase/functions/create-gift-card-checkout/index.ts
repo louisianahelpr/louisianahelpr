@@ -10,7 +10,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Directed Pay-It-Forward gift bounds, in cents. The floor mirrors the minimum
+// Directed gift card bounds, in cents. The floor mirrors the minimum
 // job budget so a redeemed gift can actually fund a real job; the ceiling caps
 // a single prepaid gift so a fat-fingered or abusive donation can't run up an
 // unbounded charge. Both are enforced server-side — the client input is never
@@ -32,7 +32,7 @@ serve(async (req) => {
   const rl = await checkRateLimit(req, {
     windowMs: 60_000,
     maxRequests: 5,
-    keyPrefix: "create-pif-donation",
+    keyPrefix: "create-gift-card-checkout",
   });
   if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
 
@@ -64,7 +64,7 @@ serve(async (req) => {
     if (!authHeader) return fail(401, "Please sign in to send a gift.");
     const token = authHeader.replace("Bearer ", "");
     const { data, error: authErr } = await supabaseClient.auth.getUser(token);
-    if (authErr) console.error("[create-pif-donation] auth.getUser error:", authErr.message);
+    if (authErr) console.error("[create-gift-card-checkout] auth.getUser error:", authErr.message);
     const user = data.user;
     if (!user?.email) return fail(401, "Your session expired — sign in again to continue.");
 
@@ -151,7 +151,7 @@ serve(async (req) => {
     // ── Charge math ──
     // The donor covers the face value PLUS the service fee at 0% tier profit —
     // `posterServiceFeeCents(amountCents, 0)` returns just Stripe's processing-
-    // cost floor. The platform forgoes its tier margin on Pay-It-Forward jobs,
+    // cost floor. The platform forgoes its tier margin on gift-card-funded jobs,
     // but the donation still nets ~face value after Stripe, so a redeemed gift
     // that funds a $0-to-recipient job never puts the platform underwater.
     const feeCents = posterServiceFeeCents(amountCents, 0);
@@ -170,10 +170,10 @@ serve(async (req) => {
     const customerId = customers.data[0]?.id;
 
     // Carry everything the webhook needs to MINT the credit. The webhook is the
-    // only writer of pif_credits (client mint is removed), so amount_cents and
+    // only writer of gift_cards (client mint is removed), so amount_cents and
     // recipient_email must survive here, not be re-derived.
     const sharedMeta = {
-      kind: "pif_donation",
+      kind: "gift_card_purchase",
       donor_id: user.id,
       donor_name: donorName,
       recipient_email: recipientEmail,
@@ -205,10 +205,10 @@ serve(async (req) => {
       mode: "payment",
       automatic_tax: { enabled: true },
       payment_intent_data: { metadata: sharedMeta },
-      // `/gift-card`, NOT `/pay-it-forward`. This is where Stripe sends the
+      // `/gift-card`, NOT a legacy path. This is where Stripe sends the
       // buyer the instant they finish paying, so a stale path here is a 404 at
       // the end of a successful purchase — the worst possible place for one.
-      // The old route was deleted 2026-09-02 with the rename.
+      // The legacy route was deleted 2026-09-02.
       success_url: buildRedirectUrl(`/gift-card?gift=success`, isNative),
       cancel_url: buildRedirectUrl(`/gift-card?gift=cancelled`, isNative),
       metadata: sharedMeta,
@@ -217,7 +217,7 @@ serve(async (req) => {
       // or network retry. A deliberate second identical gift is rare enough that
       // sharing the key is the money-safe default; changing any field mints a new
       // session.
-      idempotencyKey: `pif:${user.id}:${recipientEmail}:${amountCents}`,
+      idempotencyKey: `gift-card:${user.id}:${recipientEmail}:${amountCents}`,
     });
 
     return new Response(JSON.stringify({ url: session.url }), {
@@ -225,7 +225,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("[create-pif-donation] error:", error);
+    console.error("[create-gift-card-checkout] error:", error);
     return fail(500, "Something went wrong starting your gift. Please try again.");
   }
 });

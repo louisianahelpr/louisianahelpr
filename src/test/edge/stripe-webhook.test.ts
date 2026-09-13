@@ -476,23 +476,23 @@ describe("stripe-webhook edge function", () => {
     });
   });
 
-  describe("pif_donation checkout", () => {
-    it("returns 500 + rolls back idempotency row when pif_credits idempotency check fails (DB error)", async () => {
+  describe("gift_card_purchase checkout", () => {
+    it("returns 500 + rolls back idempotency row when gift_cards idempotency check fails (DB error)", async () => {
       // Regression: the handler used to `return` instead of `throw` on a transient
-      // pif_credits DB error. That returned 200 to Stripe (event marked processed,
+      // gift_cards DB error. That returned 200 to Stripe (event marked processed,
       // idempotency row kept), so Stripe stopped retrying and the credit was never
       // minted — donor paid, recipient got nothing.
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
-        id: "evt_pif_idem_err",
+        id: "evt_gift_card_idem_err",
         type: "checkout.session.completed",
         data: {
           object: {
-            id: "cs_pif_1",
+            id: "cs_gift_1",
             mode: "payment",
             customer_email: "donor@test.com",
             metadata: {
-              kind: "pif_donation",
+              kind: "gift_card_purchase",
               donor_id: "user-donor-1",
               donor_name: "Jane",
               recipient_email: "recipient@test.com",
@@ -502,8 +502,8 @@ describe("stripe-webhook edge function", () => {
           },
         },
       });
-      // Simulate a transient DB error on the pif_credits idempotency look-up.
-      scenario.reads.pif_credits = { error: { message: "connection timeout" } };
+      // Simulate a transient DB error on the gift_cards idempotency look-up.
+      scenario.reads.gift_cards = { error: { message: "connection timeout" } };
       const res = await fn.fetch(webhookRequest(fn, "{}"));
       // Must be 500 so Stripe retries, not 200 which would permanently drop the event.
       expect(res.status).toBe(500);

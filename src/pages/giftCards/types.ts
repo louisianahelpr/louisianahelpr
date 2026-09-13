@@ -1,5 +1,5 @@
 // ─── Local types (until schema is regenerated from live DB) ──────────────────
-export type PifCredit = {
+export type GiftCardRow = {
   id: string;
   donor_id: string;
   recipient_id: string | null;

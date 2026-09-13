@@ -282,31 +282,31 @@ serve(async (req) => {
         continue;
       }
 
-      // ── Detect Pay It Forward funding ──
-      // A PIF-redeemed job was funded from the prepaid platform balance (the
+      // ── Detect gift card funding ──
+      // A gift-card-redeemed job was funded from the prepaid platform balance (the
       // donor's captured gift), not from a poster charge on THIS job. There is
       // either no payment intent (gift fully covered the budget) or one that
       // only covers the shortfall — so the normal "resolve PI → verify captured
       // → link source_transaction" path doesn't apply. We pay the helper from
       // the platform balance with a plain transfer instead. Detected by a
-      // redeemed credit pointing at this job (set by redeem_pif_credit or the
+      // redeemed credit pointing at this job (set by redeem_gift_card or the
       // difference-payment webhook).
-      const { data: pifRow, error: pifErr } = await supabaseAdmin
-        .from("pif_credits")
+      const { data: giftCardRow, error: giftCardErr } = await supabaseAdmin
+        .from("gift_cards")
         .select("id")
         .eq("job_id", job.id)
         .eq("status", "redeemed")
         .limit(1)
         .maybeSingle();
-      if (pifErr) {
-        // Fail closed: if we can't tell whether this is PIF-funded, don't risk
+      if (giftCardErr) {
+        // Fail closed: if we can't tell whether this is gift-card-funded, don't risk
         // paying out against an unverified charge — defer to the next run.
-        console.error(`[process-scheduled-payouts] pif_credits read failed for job ${job.id}:`, pifErr);
-        results.push({ job_id: job.id, status: "pif_check_error", error: pifErr.message });
-        defects.record(`pif_credits read ${job.id}: ${pifErr.message}`);
+        console.error(`[process-scheduled-payouts] gift_cards read failed for job ${job.id}:`, giftCardErr);
+        results.push({ job_id: job.id, status: "gift_card_check_error", error: giftCardErr.message });
+        defects.record(`gift_cards read ${job.id}: ${giftCardErr.message}`);
         continue;
       }
-      const isPifFunded = !!pifRow;
+      const isPifFunded = !!giftCardRow;
 
       // How much of this escrow was funded by a gift credit, in cents.
       //
@@ -320,7 +320,7 @@ serve(async (req) => {
       let giftAppliedCents = 0;
       if (isPifFunded) {
         const { data: giftPreview, error: giftPreviewErr } = await supabaseAdmin.rpc(
-          "restore_pif_credit_for_job",
+          "restore_gift_card_for_job",
           { p_job_id: job.id, p_share_bps: 10000, p_dry_run: true },
         );
         const preview = (giftPreview ?? null) as { outcome?: string; applied_cents?: number } | null;
@@ -347,7 +347,7 @@ serve(async (req) => {
         }
       }
 
-      // ── Step 2: Resolve payment intent ID (skipped for PIF — no poster charge) ──
+      // ── Step 2: Resolve payment intent ID (skipped for gift cards — no poster charge) ──
       /** What Stripe actually captured, in cents. 0 for a purely gift-funded job. */
       let capturedCents = 0;
       let paymentIntentId = job.stripe_payment_intent_id;
@@ -684,10 +684,10 @@ serve(async (req) => {
         };
 
         // Link to source charge for clean reporting — use PI from Step 3.
-        // Pay It Forward jobs are funded from the platform's prepaid balance
+        // Gift-card-funded jobs are funded from the platform's prepaid balance
         // (the donation was captured at donate time), so there is NO per-job
         // charge to link. Setting source_transaction here would cap the
-        // transfer at that (nonexistent/zero) charge — so skip it for PIF and
+        // transfer at that (nonexistent/zero) charge — so skip it for gift cards and
         // let the transfer draw from the platform balance.
         if (!isPifFunded && paymentIntentId) {
           try {

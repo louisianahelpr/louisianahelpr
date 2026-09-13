@@ -182,8 +182,8 @@ describe("process-scheduled-payouts edge function", () => {
     }
 
     it("falls back to the FREE rate (12) when the job carries no frozen percent", async () => {
-      // helper_fee_percent null is the Pay-It-Forward shape: create-payment's
-      // PIF branch returns before the escrow stamp, so nothing was frozen.
+      // helper_fee_percent null is the gift card shape: create-payment's
+      // gift card branch returns before the escrow stamp, so nothing was frozen.
       seedPayableJob(scenario, {
         job: { helper_fee_percent: null, platform_fee_amount: null },
         profile: { onboarding_fee_paid: true },

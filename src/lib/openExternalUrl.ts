@@ -18,7 +18,7 @@
  *
  * Why a shared helper rather than a fix per call site: there are 14 of these and
  * they are the entire money surface (escrow, membership, tips, boosts, payouts,
- * IDV, background check, Pay It Forward). One of them drifting back to a raw
+ * IDV, background check, gift cards). One of them drifting back to a raw
  * `window.location.href` silently breaks that flow on native only — which is
  * exactly the class of bug that survived to this audit.
  */

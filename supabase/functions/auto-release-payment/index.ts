@@ -309,28 +309,28 @@ serve(async (req) => {
     const results: any[] = [];
 
     for (const job of (jobs || [])) {
-      // ── Step 0: Pay It Forward detection ──
-      // A PIF-funded job has NO Stripe charge — it was funded from the
-      // platform's prepaid balance when a redeemed pif_credit was applied.
+      // ── Step 0: Gift card detection ──
+      // A gift-card-funded job has NO Stripe charge — it was funded from the
+      // platform's prepaid balance when a redeemed gift_card was applied.
       // Detect it via a redeemed credit pointing at this job so we can skip
       // the payment-intent resolution + capture verification (which would
       // otherwise dead-end at skipped_no_pi and strand the helper's money).
       // Fail closed on a read error: don't release without knowing.
-      const { data: pifRow, error: pifErr } = await supabaseAdmin
-        .from("pif_credits")
+      const { data: giftCardRow, error: giftCardErr } = await supabaseAdmin
+        .from("gift_cards")
         .select("id")
         .eq("job_id", job.id)
         .eq("status", "redeemed")
         .limit(1)
         .maybeSingle();
-      if (pifErr) {
-        console.error(`[auto-release-payment] pif_credits check failed for job ${job.id}:`, pifErr);
-        results.push({ job_id: job.id, status: "pif_check_error", error: pifErr.message });
+      if (giftCardErr) {
+        console.error(`[auto-release-payment] gift_cards check failed for job ${job.id}:`, giftCardErr);
+        results.push({ job_id: job.id, status: "gift_card_check_error", error: giftCardErr.message });
         continue;
       }
-      const isPifFunded = !!pifRow;
+      const isPifFunded = !!giftCardRow;
 
-      // ── Step 1: Resolve payment intent ID (skipped for PIF — no charge) ──
+      // ── Step 1: Resolve payment intent ID (skipped for gift cards — no charge) ──
       let paymentIntentId = job.stripe_payment_intent_id;
 
       if (!isPifFunded) {

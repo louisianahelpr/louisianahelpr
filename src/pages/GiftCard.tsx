@@ -1,19 +1,17 @@
 /**
  * GiftCard — /gift-card
  *
- * Renamed from "Pay It Forward" 2026-09-02 (owner: "gift card should be named
- * gift card not pay it forward"). The FEATURE is a gift card — you buy one and
- * a recipient claims it by email — and every user-facing string already said
- * so; only the code and the legacy route still said "pay it forward", which
- * meant the file you had to open to change gift-card behaviour was not the one
- * named after it.
+ * The FEATURE is the Helpr gift card — you buy one and a recipient claims it
+ * by email. It carried a different working name until 2026-09-02 (route, page
+ * and copy) and until 2026-09-12 in code and the database; the owner ordered
+ * the real name everywhere, and src/test/giftCardNaming.test.ts keeps it so.
  *
- * `/pay-it-forward` is GONE, route and all. It was kept briefly on the theory
+ * The legacy route is GONE. It was kept briefly on the theory
  * that it was the claim URL in gift emails already sent — then checked against
- * prod rather than assumed: `pif_credits` holds 3 rows, all seed, 0 with a
+ * prod rather than assumed: `gift_cards` holds 3 rows, all seed, 0 with a
  * claim_token. The feature has never been used for real, so there was no live
  * link to protect. Claim URLs are /gift-card?claim=<token> now
- * (supabase/functions/_shared/pifGiftEmail.ts).
+ * (supabase/functions/_shared/giftCardEmail.ts).
  *
  * A PROFILE TAB (`/profile?tab=gift_card`), not a route of its own.
  *
@@ -25,16 +23,16 @@
  *
  * `/gift-card` still resolves — it redirects to the tab and CARRIES `?claim=`
  * with it (App.tsx), because that is the address in every gift email
- * (`supabase/functions/_shared/pifGiftEmail.ts`). Prod holds 3 `pif_credits`
+ * (`supabase/functions/_shared/giftCardEmail.ts`). Prod holds 3 `gift_cards`
  * rows, all seed, none with a claim token, so nothing live depends on it
  * today — the redirect exists so that stays true of tomorrow's emails too.
  *
  * Directed-gift model: a donor NAMES a recipient by email and pays Stripe up
  * front; only that person can redeem. There is no public "browse credits near
  * you" pool — every gift is directed. All mint/claim/redeem flow through
- * service-role edge functions (the client can no longer write pif_credits), so
+ * service-role edge functions (the client can no longer write gift_cards), so
  * this page:
- *   - launches Stripe Checkout via `create-pif-donation` (never inserts a row),
+ *   - launches Stripe Checkout via `create-gift-card-checkout` (never inserts a row),
  *   - lists gifts sent TO the current user (matched by resolved id OR the named
  *     email, since an unclaimed gift is visible to its named address via RLS),
  *   - redeems by navigating to Post-a-Job with the credit id (the actual
@@ -58,14 +56,14 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/ui/ErrorState";
-import type { PifCredit } from "./payItForward/types";
-import { AMOUNT_PRESETS, MAX_NOTE_LENGTH } from "./payItForward/constants";
-import { GIFT_OCCASIONS, DEFAULT_OCCASION, DEFAULT_DESIGN } from "./payItForward/giftCardDesigns";
-import { GiftCardPreview } from "./payItForward/GiftCardPreview";
-import { CreditCard } from "./payItForward/CreditCard";
-import { EmptyState } from "./payItForward/EmptyState";
-import { RecipientPicker } from "./payItForward/RecipientPicker";
-import type { RecipientMatch } from "./payItForward/RecipientPicker";
+import type { GiftCardRow } from "./giftCards/types";
+import { AMOUNT_PRESETS, MAX_NOTE_LENGTH } from "./giftCards/constants";
+import { GIFT_OCCASIONS, DEFAULT_OCCASION, DEFAULT_DESIGN } from "./giftCards/giftCardDesigns";
+import { GiftCardPreview } from "./giftCards/GiftCardPreview";
+import { CreditCard } from "./giftCards/CreditCard";
+import { EmptyState } from "./giftCards/EmptyState";
+import { RecipientPicker } from "./giftCards/RecipientPicker";
+import type { RecipientMatch } from "./giftCards/RecipientPicker";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 
@@ -74,8 +72,8 @@ import { isNativePlatform } from "@/lib/nativeInit";
 // bounds here so an out-of-range amount is caught in the form rather than
 // after a round trip to Stripe Checkout.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_GIFT = 10; // matches MIN_GIFT_CENTS (1000) in create-pif-donation
-const MAX_GIFT = 500; // matches MAX_GIFT_CENTS (50000) in create-pif-donation
+const MIN_GIFT = 10; // matches MIN_GIFT_CENTS (1000) in create-gift-card-checkout
+const MAX_GIFT = 500; // matches MAX_GIFT_CENTS (50000) in create-gift-card-checkout
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
@@ -98,7 +96,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
   const [customAmount, setCustomAmount] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
   // Two ways to name a recipient: search by name (default — resolves to
-  // `recipient_id`, server-side email resolution in create-pif-donation) or
+  // `recipient_id`, server-side email resolution in create-gift-card-checkout) or
   // type an email directly (the original flow, unchanged). Exactly one is
   // active at a time.
   const [recipientMode, setRecipientMode] = useState<"search" | "email">("search");
@@ -156,7 +154,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     void (async () => {
       setClaiming(true);
       try {
-        const { data, error } = await supabase.functions.invoke("claim-pif-credit", {
+        const { data, error } = await supabase.functions.invoke("claim-gift-card", {
           body: { claim_token: claimToken },
         });
         if (error) {
@@ -167,7 +165,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
 
         hapticSuccess();
         // Surface the freshly-attached credit in the received list.
-        await queryClient.invalidateQueries({ queryKey: ["pif-received"] });
+        await queryClient.invalidateQueries({ queryKey: ["gift-cards-received"] });
       } catch (e) {
         report(e, { tags: { source: "GiftCard.claim" } });
         errorToast("Couldn't claim gift card", {
@@ -194,17 +192,17 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     isFetching: donatedFetching,
     refetch: refetchDonated,
   } = useQuery({
-    queryKey: ["pif-donated", user?.id],
+    queryKey: ["gift-cards-sent", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       try {
         const rows = unwrap(
           await supabase
-            .from("pif_credits" as never)
+            .from("gift_cards" as never)
             .select("*")
             .eq("donor_id", user.id)
             .order("created_at", { ascending: false }),
-        ) as PifCredit[];
+        ) as GiftCardRow[];
         return rows;
       } catch (e: unknown) {
         if (e instanceof Error && e.message.includes("PGRST202")) return [];
@@ -225,7 +223,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     isFetching: receivedFetching,
     refetch: refetchReceived,
   } = useQuery({
-    queryKey: ["pif-received", user?.id, myEmail],
+    queryKey: ["gift-cards-received", user?.id, myEmail],
     queryFn: async () => {
       if (!user?.id) return [];
       // Quote the email value so a reserved char in the local-part (`,` `.` `(`
@@ -237,14 +235,14 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
       try {
         const rows = unwrap(
           await supabase
-            .from("pif_credits" as never)
+            .from("gift_cards" as never)
             .select("*")
             .or(orClause)
             .order("created_at", { ascending: false }),
-        ) as PifCredit[];
+        ) as GiftCardRow[];
 
         // Attach the donor's display name for the "from {name}" subline. We can't
-        // embed it via PostgREST — pif_credits.donor_id FKs to auth.users (no
+        // embed it via PostgREST — gift_cards.donor_id FKs to auth.users (no
         // full_name, auth schema isn't embeddable), which 400s the whole request
         // and silently hides every gift from its recipient. So resolve names in a
         // separate, non-load-bearing profiles lookup keyed by user_id = donor_id.
@@ -294,7 +292,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
         if (isSelfGiftSelected) throw new Error("You can't send a gift card to yourself.");
       }
 
-      const { data, error } = await supabase.functions.invoke("create-pif-donation", {
+      const { data, error } = await supabase.functions.invoke("create-gift-card-checkout", {
         body: {
           amount: amt,
           ...(recipientMode === "email"
@@ -333,7 +331,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     hapticMedium();
     const credit = myReceived.find((c) => c.id === creditId);
     const budget = credit?.amount ?? 0;
-    navigate(`/post-job?budget=${budget}&pif_credit=${creditId}`);
+    navigate(`/post-job?budget=${budget}&gift_card=${creditId}`);
   };
 
   const amountTooLarge = effectiveAmount != null && !isNaN(effectiveAmount) && effectiveAmount > MAX_GIFT;

@@ -14,7 +14,7 @@ type UseDashboardSideQueriesArgs = {
   allJobs: EnrichedJob[];
 };
 
-/** Statuses a gift can be spent from — the gate in `redeem_pif_credit`. */
+/** Statuses a gift can be spent from — the gate in `redeem_gift_card`. */
 const CLAIMABLE_GIFT_STATUSES = new Set(["sent", "available"]);
 
 // Secondary dashboard data — the assorted read-only queries and the
@@ -39,7 +39,7 @@ export function useDashboardSideQueries({ userId, userEmail, allJobs }: UseDashb
    * not a cosmetic one — it renders an outage as an all-clear. So this now
    * counts the thing that exists: gifts addressed to THIS user (by resolved
    * id, or by the email they were sent to before claiming), funded, unspent,
-   * and unexpired — the same conditions `redeem_pif_credit` will check when
+   * and unexpired — the same conditions `redeem_gift_card` will check when
    * they go to use one.
    *
    * The status/expiry filtering happens in JS rather than as a second
@@ -47,8 +47,8 @@ export function useDashboardSideQueries({ userId, userEmail, allJobs }: UseDashb
    * `or=` params to express "(mine) AND (unexpired)" is exactly the kind of
    * grammar that fails quietly and takes the count to zero again.
    */
-  const { data: pifCount = 0 } = useQuery({
-    queryKey: ["pif-count", userId, userEmail],
+  const { data: giftCardCount = 0 } = useQuery({
+    queryKey: ["gift-card-count", userId, userEmail],
     queryFn: async () => {
       if (!userId) return 0;
       try {
@@ -59,14 +59,14 @@ export function useDashboardSideQueries({ userId, userEmail, allJobs }: UseDashb
           ? `recipient_id.eq.${userId},recipient_email.eq."${userEmail.replace(/(["\\])/g, "\\$1")}"`
           : `recipient_id.eq.${userId}`;
         const { data, error } = await supabase
-          .from("pif_credits" as never)
+          .from("gift_cards" as never)
           .select("id, status, payment_status, expires_at")
           .or(orClause);
         if (error && (error as { code?: string }).code === "PGRST202") return 0;
         // 0 stays the safe default, but the failure has to be observable —
         // a dropped error made a broken count look like "no credits here".
         if (error) {
-          report(error, { severity: "warning", tags: { source: "useDashboardSideQueries.pifCount" } });
+          report(error, { severity: "warning", tags: { source: "useDashboardSideQueries.giftCardCount" } });
           return 0;
         }
         const rows = (data ?? []) as Array<{
@@ -173,7 +173,7 @@ export function useDashboardSideQueries({ userId, userEmail, allJobs }: UseDashb
   });
 
   return {
-    pifCount,
+    giftCardCount,
     upcomingJob,
     savedJobIds,
     setSavedJobIds,

@@ -62,7 +62,7 @@ function seedUndelivered(rows: Record<string, unknown>[]) {
     selectOverrides: [{ includes: "revision_deadline", result: { rows } }],
   };
   scenario.reads.profiles = { rows: [] };
-  scenario.reads.pif_credits = { rows: [] };
+  scenario.reads.gift_cards = { rows: [] };
   scenario.rpc.open_dispute_as = "dispute-new-1";
 }
 
@@ -117,7 +117,7 @@ describe("auto-release-payment · undelivered revision", () => {
     // assertion is the same: nothing is filed on a live revision.
     scenario.reads.jobs = { rows: [], selectOverrides: [{ includes: "revision_deadline", result: { rows: [] } }] };
     scenario.reads.profiles = { rows: [] };
-    scenario.reads.pif_credits = { rows: [] };
+    scenario.reads.gift_cards = { rows: [] };
     scenario.rpc.open_dispute_as = "dispute-new-1";
 
     const res = await fn.fetch(cronRequest(fn));

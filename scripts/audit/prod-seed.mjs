@@ -22,7 +22,7 @@
  * `seed_jobs_hidden_publicly()` is false.
  *
  * Deliberately NOT produced (see HONEST_GAPS below for the reason each):
- * payout_transfers, tips, pif_credits, referral_credits, admin_audit_log,
+ * payout_transfers, tips, gift_cards, referral_credits, admin_audit_log,
  * admin_user_notes, broadcast_messages, login_history, helper_verifications,
  * verification_exceptions, platform_settings, and any job status past `open`
  * that the real flow reaches only after funding.
@@ -290,7 +290,7 @@ const HONEST_GAPS = [
   ["escrow / released / payout_pending jobs, payout_transfers, tips", "Only the real Stripe TEST checkout + webhook + release-payout produce these. Counted from existing prod-lifecycle rows by --verify; never inserted."],
   ["refunded / chargeback / failed / cancelling payment states", "Need a real Stripe refund, dispute or failed transfer; faking the column would be read by money-reconciliation. Not created."],
   ["accepted / in_progress / completed / revision_requested jobs created by this script", "The real flow reaches these only after funding. Existing funded seed jobs are counted instead; new ones stay open + unpaid."],
-  ["pif_credits, referral_credits", "Spendable balances read by claim/cash-out functions — a fake row is fake money."],
+  ["gift_cards, referral_credits", "Spendable balances read by claim/cash-out functions — a fake row is fake money."],
   ["admin_audit_log, admin_user_notes", "Every row names an admin_id; the only admins are real people, so a row would be a fabricated admin action."],
   ["broadcast_messages", "Shown to every real user; there is no seed-only audience."],
   ["login_history, helper_verifications", "Written by real sign-ins / credential decisions; a fabricated row is false security telemetry."],

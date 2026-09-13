@@ -1,11 +1,11 @@
-// claim-pif-credit: attach a directed Pay-It-Forward gift to the signed-in
+// claim-gift-card: attach a directed gift card to the signed-in
 // caller. The donor named a recipient by email and we mailed them a claim
 // link carrying an opaque `claim_token`. When the recipient signs up / logs
 // in and opens that link, the client calls this function to bind the credit
 // to their account (`recipient_id`), after which only they can redeem it.
 //
 // Why an edge function (not a client write): the directed-gift migration
-// revoked every client INSERT/UPDATE on pif_credits (a client UPDATE let a
+// revoked every client INSERT/UPDATE on gift_cards (a client UPDATE let a
 // recipient inflate `amount` before redeeming = theft), so the ONLY writer
 // is the service role. This function is that writer for the claim step.
 //
@@ -39,7 +39,7 @@ serve(async (req) => {
   const rl = await checkRateLimit(req, {
     windowMs: 60_000,
     maxRequests: 10,
-    keyPrefix: "claim-pif-credit",
+    keyPrefix: "claim-gift-card",
   });
   if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
 
@@ -70,12 +70,12 @@ serve(async (req) => {
     // Look up the gift by its token. A failed READ must fail closed — never
     // fall through to "invalid" and hide a transient outage as a bad link.
     const { data: credit, error: readErr } = await supabaseAdmin
-      .from("pif_credits")
+      .from("gift_cards")
       .select("id, recipient_id, recipient_email, status, expires_at")
       .eq("claim_token", claimToken)
       .maybeSingle();
     if (readErr) {
-      console.error("[claim-pif-credit] read failed:", readErr);
+      console.error("[claim-gift-card] read failed:", readErr);
       return json(500, { error: "Couldn't look up this gift — please try again." });
     }
     if (!credit) {
@@ -110,7 +110,7 @@ serve(async (req) => {
     // is never valid for a directed gift, so refuse rather than binding it to
     // whoever presents the token first.
     if (!credit.recipient_email) {
-      console.error("[claim-pif-credit] refusing token-only claim: gift has no recipient_email", { credit_id: credit.id });
+      console.error("[claim-gift-card] refusing token-only claim: gift has no recipient_email", { credit_id: credit.id });
       return json(403, { error: "This gift can't be claimed from this link. Please contact support." });
     }
     if (credit.recipient_email.toLowerCase() !== user.email.toLowerCase()) {
@@ -123,14 +123,14 @@ serve(async (req) => {
     // makes two simultaneous claims resolve to exactly one winner — the loser
     // gets no row back and is re-checked below.
     const { data: claimed, error: claimErr } = await supabaseAdmin
-      .from("pif_credits")
+      .from("gift_cards")
       .update({ recipient_id: user.id })
       .eq("id", credit.id)
       .is("recipient_id", null)
       .select("id")
       .maybeSingle();
     if (claimErr) {
-      console.error("[claim-pif-credit] claim update failed:", claimErr);
+      console.error("[claim-gift-card] claim update failed:", claimErr);
       return json(500, { error: "Couldn't claim this gift — please try again." });
     }
     if (!claimed) {
@@ -141,12 +141,12 @@ serve(async (req) => {
       // — a confident, wrong answer about someone else taking their credit,
       // when in truth we simply couldn't check.
       const { data: after, error: afterError } = await supabaseAdmin
-        .from("pif_credits")
+        .from("gift_cards")
         .select("recipient_id")
         .eq("id", credit.id)
         .maybeSingle();
       if (afterError) {
-        console.error("[claim-pif-credit] post-race re-read failed:", afterError.message);
+        console.error("[claim-gift-card] post-race re-read failed:", afterError.message);
         return json(500, { error: "We couldn't confirm the status of this gift. Please try again." });
       }
       if (after?.recipient_id === user.id) {
@@ -157,7 +157,7 @@ serve(async (req) => {
 
     return json(200, { ok: true, credit_id: credit.id, already_claimed: false });
   } catch (error) {
-    console.error("[claim-pif-credit] error:", error);
+    console.error("[claim-gift-card] error:", error);
     return json(500, { error: "Something went wrong claiming your gift. Please try again." });
   }
 });

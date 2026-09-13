@@ -60,7 +60,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   const recentPosted = useRecentPostedJobs(3);
   const navigate = useNavigate();
   // The entry screen can be reached WITH state already in the URL — most
-  // importantly `pif_credit` (and its `budget`), because a gift recipient
+  // importantly `gift_card` (and its `budget`), because a gift recipient
   // lands here from "Use This Gift" and then picks how to start their post.
   // Rebuilding the query string from scratch silently dropped all of it, so
   // choosing "Repost" spent no gift and charged full price. Preserve what's

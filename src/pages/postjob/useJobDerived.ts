@@ -42,11 +42,11 @@ export interface UseJobDerivedParams {
   startTime: string;
   parish: string | null;
   /**
-   * Value of the Pay It Forward gift riding on this post, in dollars, or
-   * `null` when there is no gift (or one that `redeem_pif_credit` would
-   * refuse — see usePifCredit). Drives the gift math below.
+   * Value of the gift card riding on this post, in dollars, or
+   * `null` when there is no gift (or one that `redeem_gift_card` would
+   * refuse — see usePostJobGiftCard). Drives the gift math below.
    */
-  pifCreditAmount?: number | null;
+  giftCardAmount?: number | null;
 }
 
 /**
@@ -108,18 +108,18 @@ export function useJobDerived(params: UseJobDerivedParams) {
     dateNeeded,
     startTime,
     parish,
-    pifCreditAmount = null,
+    giftCardAmount = null,
   } = params;
 
   const budgetNum = parseFloat(budget) || 0;
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
 
-  /* ── Pay It Forward gift — THE SERVER IS THE AUTHORITY ON PRICE ─────────
+  /* ── gift card — THE SERVER IS THE AUTHORITY ON PRICE ─────────
      Everything below mirrors two server files exactly; it does not invent a
      second formula, because two formulas drift and the drift lands on the
      poster's card.
 
-     1. `redeem_pif_credit` (migration 20260831233515) computes the cost the
+     1. `redeem_gift_card` (migration 20260831233515) computes the cost the
         gift is applied against as
 
             v_cost_cents := round((budget + coalesce(urgent_fee, 0)) * 100)
@@ -129,7 +129,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
         fee is INSIDE the covered amount on purpose: release-payout pays the
         helper `budget + netUrgentFeeDollars(urgent_fee)`, so a gift that
         stopped at the budget left the platform funding the bonus (F-GIFT-2).
-     2. `create-payment` (action=escrow) short-circuits into the PIF branch
+     2. `create-payment` (action=escrow) short-circuits into the gift card branch
         BEFORE the tier/fee/tax pricing, so a gift-funded post carries NO
         poster service fee (the donor already paid the processing floor at
         donate time), NO one-time account-setup fee, and NO sales tax — the
@@ -140,7 +140,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
      zero, and nothing else. `jobs.urgent_fee` is written as
      `isUrgent ? parseFloat(urgentFee) || 0 : 0` (jobSubmitHelpers), which is
      `urgentFeeNum` — the same number, so the two sides cannot disagree. */
-  const giftCreditCents = Math.max(0, Math.round((pifCreditAmount ?? 0) * 100));
+  const giftCreditCents = Math.max(0, Math.round((giftCardAmount ?? 0) * 100));
   const hasGift = giftCreditCents > 0;
   const giftCostCents = Math.round((budgetNum + urgentFeeNum) * 100);
   const giftAppliedCents = Math.min(giftCostCents, giftCreditCents);

@@ -443,7 +443,7 @@ export function createClient(
       const err = scenario.rpcErrors?.[name];
       if (err) return { data: null, error: err };
       // A function value is called with the arguments, so one scenario can
-      // answer the SAME rpc differently per call — `restore_pif_credit_for_job`
+      // answer the SAME rpc differently per call — `restore_gift_card_for_job`
       // is asked to value a gift (p_dry_run: true) and then to mint it
       // (p_dry_run: false), and a single frozen value cannot be both.
       const configured = scenario.rpc[name];

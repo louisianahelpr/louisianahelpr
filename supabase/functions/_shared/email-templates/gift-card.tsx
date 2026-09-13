@@ -1,8 +1,8 @@
 /// <reference types="npm:@types/react@18.3.1" />
 
-// "<donor> sent you a $X Helpr credit" — the directed Pay-It-Forward gift.
+// "<donor> sent you a $X Helpr credit" — the directed gift card.
 //
-// Was a hand-built HTML string in `_shared/pifGiftEmail.ts`, wrapped in
+// Was a hand-built HTML string in `_shared/giftCardEmail.ts`, wrapped in
 // `<div style="max-width:480px;margin:0 auto">`. Outlook 2007–2021 renders HTML
 // with the WORD engine, which does not implement `margin:0 auto` on a block
 // element, so this email left-aligned and stretched to the reading-pane width
@@ -21,7 +21,7 @@ import { Heading, Section, Text } from 'npm:@react-email/components@0.0.22'
 import { brand, h1, text as textStyle } from './styles.ts'
 import { BaseLayout, BrandButton, TransactionalFooter } from './components.tsx'
 
-export interface PifGiftEmailProps {
+export interface GiftCardEmailProps {
   /** Donor display name, already run through sanitizeHeaderValue by the caller. */
   donorName: string
   /** Pre-formatted, e.g. "$25". */
@@ -47,7 +47,7 @@ const noteText = {
   fontStyle: 'italic' as const,
 }
 
-export const PifGiftEmail = ({ donorName, amount, claimUrl, note }: PifGiftEmailProps) => (
+export const GiftCardEmail = ({ donorName, amount, claimUrl, note }: GiftCardEmailProps) => (
   <BaseLayout
     preheader={`${donorName} sent you a ${amount} credit to spend on Helpr.`}
     footer={
@@ -79,4 +79,4 @@ export const PifGiftEmail = ({ donorName, amount, claimUrl, note }: PifGiftEmail
   </BaseLayout>
 )
 
-export default PifGiftEmail
+export default GiftCardEmail

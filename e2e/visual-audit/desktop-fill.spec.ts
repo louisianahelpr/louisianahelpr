@@ -18,7 +18,7 @@ import {
 //      (canonical: `max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]`).
 //   2. Wrap a single-column card list into a responsive grid on lg+
 //      (canonical: `lg:grid lg:grid-cols-12 lg:gap-8` with `aside col-span-4`
-//      + `section col-span-8`, matching Pets/Family/PayItForward/StrSettings).
+//      + `section col-span-8`, matching Pets/Family/GiftCard/StrSettings).
 //   3. For focused-flow pages (auth screens), pass a `desktopBrandPanel`
 //      to `<AuthShell />` so the empty gutter becomes intentional brand
 //      real estate instead of dead space.

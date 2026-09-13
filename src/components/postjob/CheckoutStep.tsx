@@ -84,9 +84,9 @@ interface CheckoutStepProps {
   /** One-time account-setup fee, in dollars — 0 once the poster has paid it. */
   onboardingFeeAmount: number;
   totalCharge: number;
-  /* ── Pay It Forward gift ───────────────────────────────────────────────
-     A gift-funded post is priced by `redeem_pif_credit` + create-payment's
-     PIF branch, NOT by the tier/fee/tax path the rest of this card assumes:
+  /* ── gift card ───────────────────────────────────────────────
+     A gift-funded post is priced by `redeem_gift_card` + create-payment's
+     gift card branch, NOT by the tier/fee/tax path the rest of this card assumes:
      the gift covers `budget + urgent_fee`, the service fee and the one-time
      setup fee are waived, and no sales tax is charged. `totalCharge` already
      arrives correct for that path (useJobDerived); these props let the
@@ -523,11 +523,11 @@ export function CheckoutStep({
             );
           })()}
           {/* Service fee — waived outright on a gift-funded post. create-payment
-              returns from the PIF branch before the tier/fee pricing runs, so
+              returns from the gift card branch before the tier/fee pricing runs, so
               there is no percentage to state; printing "12%  $0.00" would
               invite the poster to check arithmetic that isn't happening. The
               donor already covered the processing floor at donate time
-              (create-pif-donation → posterServiceFeeCents(amount, 0)). */}
+              (create-gift-card-checkout → posterServiceFeeCents(amount, 0)). */}
           <div className="flex justify-between text-ds-13">
             <span className="text-muted-foreground">
               {hasGift ? "Service fee" : `Service fee (${customerFee ?? 12}%)`}
@@ -553,7 +553,7 @@ export function CheckoutStep({
             </div>
           )}
           {/* ── Gift applied ────────────────────────────────────────────────
-              The line this screen was missing. `redeem_pif_credit` applies the
+              The line this screen was missing. `redeem_gift_card` applies the
               gift against budget + urgent_fee, so this credit sits directly
               under those two rows and above the total, exactly where the
               poster reads the subtraction. */}

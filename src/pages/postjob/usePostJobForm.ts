@@ -11,7 +11,7 @@ import { useJobSubmit } from "./useJobSubmit";
 import { useJobEntry } from "./useJobEntry";
 import { useJobDerived } from "./useJobDerived";
 import { useJobFormEffects } from "./useJobFormEffects";
-import { usePifCredit } from "./usePifCredit";
+import { usePostJobGiftCard } from "./usePostJobGiftCard";
 
 export type { Step } from "./postJobFormTypes";
 
@@ -42,13 +42,13 @@ export function usePostJobForm() {
   const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
 
-  // Pay It Forward — the gift card this post is being funded with, if any.
+  // Gift card — the gift card this post is being funded with, if any.
   // Read ONCE here so the id that goes to create-payment and the amount the
   // checkout screen quotes come from the same place. They used to be
   // unrelated: the id was passed through to the server and the screen never
   // knew a gift existed, so it quoted full price against a $0 charge.
-  const pifCreditId = searchParams.get("pif_credit");
-  const pifCredit = usePifCredit(pifCreditId);
+  const giftCardId = searchParams.get("gift_card");
+  const giftCard = usePostJobGiftCard(giftCardId);
 
   // Advance to the form when `rebook`/`offerTo` arrives AFTER mount.
   //
@@ -405,7 +405,7 @@ export function usePostJobForm() {
     includeMaterials,
     materialsNote,
     saveCardForFuture,
-    pifCreditId,
+    giftCardId,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   });
@@ -452,7 +452,7 @@ export function usePostJobForm() {
     // Only a credit the server would actually accept feeds the money math.
     // An unusable one must quote FULL price, not $0 — being under-quoted and
     // then charged is the failure this whole lane exists to prevent.
-    pifCreditAmount: pifCredit.usable ? pifCredit.creditAmount : null,
+    giftCardAmount: giftCard.usable ? giftCard.creditAmount : null,
   });
 
   const handlePostJobBack = () => {
@@ -607,15 +607,15 @@ export function usePostJobForm() {
     customerFeeAmount,
     onboardingFeeAmount,
     totalCharge,
-    // Pay It Forward gift, surfaced to the checkout screen so the total it
+    // gift card, surfaced to the checkout screen so the total it
     // prints is the total that gets charged.
     hasGift,
     giftAppliedAmount,
     giftCreditAmount,
     /** A gift id is in the URL but hasn't resolved yet — hold the pay button. */
-    giftLoading: pifCredit.loading,
+    giftLoading: giftCard.loading,
     /** A gift id was supplied that the server would refuse. Say so. */
-    giftUnavailable: !!pifCreditId && pifCredit.unavailable,
+    giftUnavailable: !!giftCardId && giftCard.unavailable,
     categoryLabel,
     detailsComplete,
     logisticsComplete,

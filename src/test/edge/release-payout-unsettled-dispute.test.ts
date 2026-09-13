@@ -82,8 +82,8 @@ function seedDecidedDisputeJob(s: SupabaseScenario) {
       },
     ],
   };
-  s.reads.pif_credits = { rows: [] };
-  s.rpc.restore_pif_credit_for_job = { outcome: "would_restore", applied_cents: capturedCents(budget) };
+  s.reads.gift_cards = { rows: [] };
+  s.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: capturedCents(budget) };
   stripeMock.paymentIntents.retrieve.mockResolvedValue({
     id: "pi_1",
     status: "succeeded",

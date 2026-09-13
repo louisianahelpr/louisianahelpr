@@ -117,7 +117,7 @@ const RISK_TABLES = [
   "payment_refunds",
   "payout_transfers",
   "instant_payouts",
-  "pif_credits",
+  "gift_cards",
   // "time_credits" was here until migration 20260901035602 retired the
   // table (self-mint RLS, and nothing ever minted or spent a credit).
   "referral_credits",

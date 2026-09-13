@@ -61,7 +61,7 @@ interface BudgetSectionProps {
   /** Current job category — used for smart-price midpoint lookup. */
   category?: string;
   /**
-   * Value of the Pay It Forward gift funding this post, in dollars, or 0.
+   * Value of the gift card funding this post, in dollars, or 0.
    *
    * Shown as a note beside the budget field — NOT prefilled into it. The gift
    * is money off a job the poster prices themselves ("deducted off the amount

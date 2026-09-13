@@ -18,7 +18,7 @@
  * celebratory, but it is bought, not earned — using gold here would blur the
  * one signal the palette works hardest to keep meaningful.
  *
- * `id` values are persisted on pif_credits.design_id, so they are a stable
+ * `id` values are persisted on gift_cards.design_id, so they are a stable
  * contract: rename a label freely, never an id.
  */
 

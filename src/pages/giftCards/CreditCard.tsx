@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "./StatusPill";
 import { formatShortDate, formatPrice } from "@/lib/format";
-import type { PifCredit } from "./types";
+import type { GiftCardRow } from "./types";
 
 // ─── Credit card ──────────────────────────────────────────────────────────────
 export function CreditCard({
@@ -9,7 +9,7 @@ export function CreditCard({
   onRedeem,
   perspective = "received",
 }: {
-  credit: PifCredit;
+  credit: GiftCardRow;
   onRedeem?: (id: string) => void;
   /** "received" shows who it's from; "sent" shows who it went to. */
   perspective?: "received" | "sent";
@@ -20,8 +20,8 @@ export function CreditCard({
       ? `to ${credit.recipient_email ?? "your recipient"}`
       : `from ${donorFirst}`;
 
-  // Gift cards expire (pif_credits.expires_at defaults to +90 days) and
-  // `redeem_pif_credit` hard-rejects a lapsed one. The row's `status` is NOT
+  // Gift cards expire (gift_cards.expires_at defaults to +90 days) and
+  // `redeem_gift_card` hard-rejects a lapsed one. The row's `status` is NOT
   // flipped by a background job, so a card can sit at "sent" with a date in
   // the past — surfacing that as "Ready to use" with a live button walks the
   // recipient into a server-side refusal. Derive expiry from the date and let

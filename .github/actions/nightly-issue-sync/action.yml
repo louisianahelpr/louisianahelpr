@@ -35,6 +35,13 @@ runs:
       run: |
         set -euo pipefail
 
+        # The label must exist or `gh issue create --label` fails and the alert
+        # is silently lost. It did not exist until 2026-09-13; every failure
+        # this action tried to report before then filed nothing.
+        gh label create nightly-red --repo "$REPO" --color B60205 \
+          --description "A scheduled or post-push check went red; auto-opened and auto-closed by CI" \
+          >/dev/null 2>&1 || true
+
         TITLE="nightly-red: ${WORKFLOW_NAME}"
         # One open issue per workflow — title is the dedup key, not the run.
         EXISTING=$(gh issue list --repo "$REPO" --label nightly-red --state open \

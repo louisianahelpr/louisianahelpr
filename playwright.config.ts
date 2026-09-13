@@ -109,10 +109,10 @@ export default defineConfig({
     ...(headlessShell ? { launchOptions: { executablePath: headlessShell } } : {}),
   },
   projects: [
+    // Real-user journeys against the DEPLOYED app + REAL backend (prod
+    // Supabase, the two shared E2E accounts). Serial: they share accounts.
+    // Run with `npm run test:journeys`; CI: .github/workflows/e2e-journeys.yml.
     {
-      // Real-user journeys against the DEPLOYED app + REAL backend (prod
-      // Supabase, the two shared E2E accounts). Serial: they share accounts.
-      // Run with `npm run test:journeys`; CI: .github/workflows/e2e-journeys.yml.
       name: "journeys",
       testDir: "./e2e/journeys",
       fullyParallel: false,
@@ -120,8 +120,8 @@ export default defineConfig({
       retries: 0,
       use: { ...devices["Desktop Chrome"], screenshot: "only-on-failure", trace: "retain-on-failure", actionTimeout: 20_000 },
     },
+    // The same journeys in real WebKit: the app ships in a WKWebView.
     {
-      // The same journeys in real WebKit: the app ships in a WKWebView.
       name: "journeys-webkit",
       testDir: "./e2e/journeys",
       fullyParallel: false,

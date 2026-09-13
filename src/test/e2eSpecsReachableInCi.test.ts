@@ -231,7 +231,7 @@ describe("Playwright project resolution", () => {
   // fails here rather than silently reporting every spec as unreachable
   // (which would look like a coverage catastrophe and get the test muted).
   it("finds both projects and resolves them to non-empty, disjoint file sets", () => {
-    expect(projects.map((p) => p.name).sort()).toEqual(["chromium", "happy-path"]);
+    expect(projects.map((p) => p.name).sort()).toEqual(["chromium", "happy-path", "journeys", "journeys-webkit"]);
     const chromium = specsInProject(projects.find((p) => p.name === "chromium")!, specs);
     const happy = specsInProject(projects.find((p) => p.name === "happy-path")!, specs);
     expect(chromium.length).toBeGreaterThan(0);

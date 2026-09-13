@@ -154,8 +154,9 @@ Find both and make one authoritative.
   `poster_cancel_job()`'s `FOR UPDATE` and committed a `pending` application on
   the `cancelled` job (job xmin < application xmin in every bad round), with a
   "New application" notification to the poster who had just cancelled. Fix in
-  migration `20260913014328` (`SELECT … FOR SHARE`). **Re-measure after deploy:**
-  re-run the apply race 20× on prod; expect 0 bad rounds.
+  migration `20260913014328` (`SELECT … FOR SHARE`). **Re-measured after
+  db-deploy 34732902550 (d0471d07f): 0/20** — every round was apply-first or
+  `job_not_open`. CLOSED.
 - **PROVEN 5/20 — helper confirm vs cancel (money).** The plain-offer confirm at
   `useOfferHandlers.ts` is a client `UPDATE jobs SET helper_confirmed_at` with
   no status predicate; queued behind the cancel it stamped a CANCELLED job.
@@ -164,8 +165,9 @@ Find both and make one authoritative.
   would have captured 25% ($25 of $100) from the poster. Fix in the same
   migration (`trg_confirm_on_live_job`, 42501 unless OLD.status ∈ open|accepted)
   plus `.eq("status","accepted")` on the client. PGlite: 16/16 after, 8 red
-  before. **Re-measure after deploy:** re-run the confirm race 20×; expect
-  `helper_confirmed_at` NULL on every cancelled row.
+  before. **Re-measured after deploy: 0/20** — every cancelled row is either
+  confirmed-then-cancelled (fee == cron fee, one strike) or unconfirmed with
+  $0; a clean confirm on an accepted job still succeeds (1/1). CLOSED.
 - **NOT REPRODUCED 0/20 — direct-offer accept vs cancel.** `respond_to_direct_offer`
   and `poster_cancel_job` both lock with `FOR UPDATE`; every round was either
   accept→cancel (fee $25 == cron $25, one strike) or cancel→`job_not_open`.

@@ -1,0 +1,134 @@
+name: Stripe Webhook Endpoint Guard
+
+permissions:
+  contents: read
+
+# Issue #1586: "test mode delivers every webhook twice."
+#
+# scripts/e2e/stripe-sandbox-on.sh POSTed a brand-new test-mode webhook endpoint
+# on every run and stashed the id in /tmp. /tmp does not reliably survive on the
+# owner's machine, so stripe-sandbox-off.sh deleted nothing and the next
+# sandbox-on added a SECOND enabled endpoint on the same url. Both signing
+# secrets were still in the comma-separated STRIPE_WEBHOOK_SECRET that
+# supabase/functions/stripe-webhook/index.ts accepts, so both copies of every
+# event verified and both were processed — double refunds, double transfers,
+# double escrow releases, with nothing red anywhere.
+#
+# TWO JOBS ON PURPOSE.
+#
+#   `static` needs no credentials and ALWAYS runs. It catches the source-side
+#   half: a hardcoded event list in the sandbox script, state parked in /tmp,
+#   the two scripts disagreeing about the id file. This is the half that would
+#   have blocked the original commit.
+#
+#   `live` needs a Stripe TEST-MODE key and catches the account-side half: a
+#   second enabled endpoint, and event drift against the EVENT_HANDLERS map in
+#   either direction. It runs with --require-live, so a MISSING key is a red
+#   job, never a silent pass. It is gated on the secret being present only to
+#   keep forks from failing; on this repo the secret is expected, and the
+#   `live-secret-present` job below turns its absence red on main.
+#
+# TEST MODE ONLY. The guard asserts the key is sk_test_/rk_test_ before making
+# any request and never reads, writes or deletes a live-mode object.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/stripe-webhook/index.ts"
+      - "scripts/e2e/stripe-sandbox-on.sh"
+      - "scripts/e2e/stripe-sandbox-off.sh"
+      - "scripts/stripe-webhook-events.mjs"
+      - "scripts/check-stripe-webhook-events.mjs"
+      - ".github/workflows/stripe-webhook-guard.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/functions/stripe-webhook/index.ts"
+      - "scripts/e2e/stripe-sandbox-on.sh"
+      - "scripts/e2e/stripe-sandbox-off.sh"
+      - "scripts/stripe-webhook-events.mjs"
+      - "scripts/check-stripe-webhook-events.mjs"
+      - ".github/workflows/stripe-webhook-guard.yml"
+  # Daily: a duplicate endpoint appears from RUNNING the sandbox script, not
+  # from editing it, so a paths-filtered trigger alone would never see it.
+  schedule:
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: stripe-webhook-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: Handler map vs sandbox script (no secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Static checks
+        run: node scripts/check-stripe-webhook-events.mjs --static
+
+      # The guard must be shown able to fail, in CI, on every run — otherwise a
+      # refactor that quietly neuters it looks identical to a clean repo.
+      - name: Self-test — the guard must go red on the #1586 incident state
+        run: |
+          set +e
+          node scripts/check-stripe-webhook-events.mjs \
+            --fixture scripts/fixtures/stripe-webhook-endpoints/incident-1586-two-endpoints.json
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "::error::The guard PASSED on the two-endpoint incident fixture. It can no longer detect issue #1586."
+            exit 1
+          fi
+          echo "Guard correctly failed (exit $code) on the duplicate-endpoint fixture."
+      - name: Self-test — the guard must go red on the stale hardcoded event list
+        run: |
+          set +e
+          node scripts/check-stripe-webhook-events.mjs \
+            --fixture scripts/fixtures/stripe-webhook-endpoints/stale-event-list.json
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "::error::The guard PASSED on the stale-event-list fixture. Event drift is no longer detected."
+            exit 1
+          fi
+          echo "Guard correctly failed (exit $code) on the stale-event-list fixture."
+
+  live-secret-present:
+    name: STRIPE_TEST_SECRET_KEY is configured
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    # Only on this repo's own branches — forks legitimately lack the secret.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Fail loudly if the key is missing
+        env:
+          KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::STRIPE_TEST_SECRET_KEY is not set, so the duplicate-endpoint half of the #1586 guard cannot run."
+            echo "Add a Stripe TEST-MODE restricted key with read access to Webhook Endpoints as a repo secret."
+            exit 1
+          fi
+          echo "Secret present."
+
+  live:
+    name: Live test-mode endpoint check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: live-secret-present
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: One enabled endpoint, events matching the handler map
+        env:
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+        run: node scripts/check-stripe-webhook-events.mjs --require-live

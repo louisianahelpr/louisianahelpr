@@ -37,6 +37,7 @@
     "deadcode": "knip",
     "deadcode:functions": "node scripts/check-dead-edge-functions.mjs",
     "strip:ios-sourcemaps": "node scripts/strip-ios-sourcemaps.mjs",
+    "check:stripe-webhook": "node scripts/check-stripe-webhook-events.mjs",
     "check:agent-refs": "node scripts/check-agent-refs.mjs",
     "check:claude-md": "node scripts/check-claude-md.mjs",
     "check:surface-owners": "node scripts/check-surface-owners.mjs",

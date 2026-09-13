@@ -133,3 +133,6 @@ scripts/generated/
 
 # Playwright capture output (the committed copy lives in scripts/asc/assets)
 e2e-artifacts/
+
+# Stripe test-mode webhook endpoint id (scripts/e2e/stripe-sandbox-on.sh); lives in $HOME, never committed
+.lh-stripe-test-webhook-id

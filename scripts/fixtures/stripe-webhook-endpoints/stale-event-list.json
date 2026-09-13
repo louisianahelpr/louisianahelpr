@@ -1,0 +1,25 @@
+{
+  "_comment": "The exact enabled_events the OLD hardcoded list in scripts/e2e/stripe-sandbox-on.sh produced (8 events, lines 13-20 as of commit 40723f153), on a single enabled endpoint. Proves the drift half red in BOTH directions at once: invoice.paid and customer.subscription.created are subscribed with no handler, and 8 handled events are not subscribed at all.",
+  "object": "list",
+  "data": [
+    {
+      "id": "we_STALE_LIST_EXAMPLE",
+      "object": "webhook_endpoint",
+      "created": 1780000000,
+      "livemode": false,
+      "status": "enabled",
+      "url": "https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/stripe-webhook",
+      "enabled_events": [
+        "checkout.session.completed",
+        "payment_intent.succeeded",
+        "payment_intent.payment_failed",
+        "transfer.created",
+        "customer.subscription.created",
+        "customer.subscription.updated",
+        "customer.subscription.deleted",
+        "invoice.paid"
+      ]
+    }
+  ],
+  "has_more": false
+}

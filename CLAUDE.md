@@ -91,7 +91,7 @@ stories go in the lessons file, never here.
 - `/code-review ultra` is user-triggered and billed: recommend it, never attempt it.
 - End every commit message with `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
 - **Never idle on a blocked git operation.** Apply the documented fallback (commit direct to main) at once; if still stuck after a couple of attempts, stop the run cleanly. [L](docs/lessons/CLAUDE-lessons.md#git-idle)
-- **YOU pick every agent's model; never ask.** Pass `model:` on every spawn: money/authz/data-model/guard chains → `opus`; exhaustive visual driving and design judgement → `fable`; mechanical specced edits → `sonnet`; never `haiku` for an answer that will be believed. [L](docs/lessons/CLAUDE-lessons.md#pick-models)
+- **YOU pick every agent's model; never ask.** Pass `model:` on every spawn: money/authz/data-model/guard chains → `opus`; exhaustive visual driving and design judgement → `opus`; NEVER `fable`, for any agent, terminal or routine (owner, 2026-09-13); mechanical specced edits → `sonnet`; never `haiku` for an answer that will be believed. [L](docs/lessons/CLAUDE-lessons.md#pick-models)
 - Re-verification of untrusted prior work goes to a DIFFERENT model than produced it.
 - **Agent teams is ON.** Pass `name:` or the spawn is not an addressable teammate; the model is silent without `model:` (read `~/.claude/teams/session-*/config.json`); `permissionMode: plan` teammates are released by the lead approving the plan. [L](docs/lessons/CLAUDE-lessons.md#agent-teams)
 - Fleet cross-talk is `SendMessage` to the orchestrator; lanes never message each other. Findings go in the `audit-bus.mjs` ledger (`file`/`status`/`dupe`/`list`/`rollup`); its `msg`/`inbox` channel is retired.

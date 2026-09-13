@@ -6,4 +6,5 @@ node scripts/check-push-no-silent-reverts.mjs || exit 1
 # reason is missing, and logs every skip (date, branch, HEAD sha, reason) to
 # docs/audit/prepush-skips.log so a skip is never invisible. CI still runs
 # the full matrix.
+node scripts/check-deploy-budget.mjs
 node scripts/check-changed.mjs

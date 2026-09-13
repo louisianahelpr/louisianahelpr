@@ -2071,5 +2071,23 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] OWNER: add STRIPE_TEST_SECRET_KEY repo secret (test-mode restricted key, Webhook Endpoints: Read) — stripe-webhook-guard live job is red until then
 - [ ] Button-height gate false positives on prod data: earnings bar-chart day buttons (bars differ by design) on helper-profile-earnings/-payment/helper-earnings; AtAGlance stat tiles on user-profile (covered by the tiles item). Seen when a global CSS push swept every route.
 - [x] Pre-push sweep now nearest route only, max 3 screens (full sweep stays nightly). Order for remaining queue: easiest first.
+### Gaps found 2026-09-13 night (owner approved all; work top to bottom, batch pushes)
+- [ ] Test poster account carries strikes ("Final warning: one more violation = 7-day suspension"). Clear its strikes on prod (test-owned rows only) and make every harness that can add a strike (race probes, journeys, interruptions, messy input) delete it in cleanup; add a nightly check that fails if any shared test account has a strike.
+- [ ] Job card at 375: "Under a minute left" chip squeezes location to "B…". Location must outrank the time chip (existing open item). Visual change approved; screenshot before/after.
+- [ ] fixtureSchemaContract was loosened (skips literals where most keys aren't table columns) so wrong fixtures slip through. Tighten: exempt only the known non-row object in e2e/visual-audit/responsive.spec.ts by name, keep majority rule off; prove a deliberately wrong fixture fails.
+- [ ] Two agents tripped the auto-mode safety classifier (branch triage 2026-09-13; money double-tap refs). Read their transcripts, name the blocked commands, report whether anything unsafe was attempted.
+- [ ] Accept/Release handlers share one in-flight boolean per hook: a tap on job B while job A is in flight is silently ignored. Key the ref by job id.
+- [ ] RichMessageInput send has only a state guard: same-frame double send can post two messages. Add the ref guard + test.
+- [ ] chunkReload follow-ups (0f641f534): error screen can stick on "updating" when the reload aborts offline or cache-clear hangs; the success reset only tidies storage. Fix or reword.
+- [ ] write-contract-refresh was dispatched twice (runs 34742767511, 34745765776): confirm each succeeded and the snapshot no longer lists dropped/renamed objects.
+- [ ] After the Vercel limit resets and prod catches up: re-count "admin role indeterminate" rows in error_logs (fix e9fcac710) — any new row is a real failed check; close nightly-red #1591.
+- [ ] press-every-control #1582: read the dispatched prod run 34744828202; green closes it, red means real prod findings to triage.
+- [ ] Test helper account avatar (Hallie Helper) was replaced on prod storage with a generated PNG; make prod-seed.mjs own that file so it can't go missing again.
+- [ ] Untracked in the main checkout: docs/audit/naming-and-dead-code-2026-09-13.md (uses old pif names, makes the gift-card naming guard fail locally) and docs/audit/morning/. Commit the audit doc renamed-clean or delete it; keep morning/ gitignored.
+- [ ] ~20 finished .claude/worktrees/agent-* worktrees and their local branches: remove one at a time after confirming each is merged or pushed (never a bulk loop).
+- [ ] 16 remaining origin wip/* branches: resolve each (landed → delete; unique work → queue) before the history rewrite.
+- [ ] Vercel deploy budget: add a check that warns before a push when today's production deploy count is near the free-tier limit, so a rate limit is never a surprise again.
+- [ ] OWNER: STRIPE_TEST_SECRET_KEY repo secret; reconnect Supabase, Slack, Canva connectors (unauthorized in sessions tonight).
+- [ ] Git history rewrite (322 MB dead media) — only after every agent/terminal is stopped; see disk-cleanup handoff.
 - [ ] LAST, after everything above: independent re-check by a different model (sonnet) of ALL work landed 2026-09-13 — full vitest once, CI green per push, re-run each fix's own proof on prod, list what doesn't hold
 - [ ] OWNER: allow the Stripe connector write tool + reconnect Stripe, then add transfer.failed to live webhook and close #1462/#1521

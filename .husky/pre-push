@@ -1,4 +1,7 @@
 # Working-forwards change 2 (owner, 2026-09-12): sweep the screens this push
-# touches before it leaves the machine. LH_SKIP_CHANGED_CHECK=1 skips (say why
-# in the commit). CI still runs the full matrix.
+# touches before it leaves the machine. LH_SKIP_CHANGED_CHECK=1 skips, and
+# LH_SKIP_REASON="..." is REQUIRED with it — the script fails the push if the
+# reason is missing, and logs every skip (date, branch, HEAD sha, reason) to
+# docs/audit/prepush-skips.log so a skip is never invisible. CI still runs
+# the full matrix.
 node scripts/check-changed.mjs

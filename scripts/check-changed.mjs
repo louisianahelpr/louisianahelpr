@@ -5,12 +5,48 @@
  * Screens are chosen by scripts/changed-routes.mjs. Phone-light variant only,
  * so it stays in minutes; CI still runs the full matrix.
  *
- * Exit 0 with a note when no route is touched. LH_SKIP_CHANGED_CHECK=1 skips.
+ * Exit 0 with a note when no route is touched. LH_SKIP_CHANGED_CHECK=1 skips
+ * — and every skip is logged to docs/audit/prepush-skips.log (owner,
+ * 2026-09-12: an invisible skip is how this gate stops meaning anything).
+ * LH_SKIP_REASON is REQUIRED alongside the skip flag; skipping without one
+ * fails the push instead of silently passing.
  */
 import { execFileSync, spawnSync } from "node:child_process";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const SKIP_LOG = join(REPO_ROOT, "docs", "audit", "prepush-skips.log");
+
+function logSkip(reason) {
+  let sha = "unknown";
+  let branch = "unknown";
+  try {
+    sha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  } catch {
+    // best-effort — still log the skip even if git metadata can't be read
+  }
+  try {
+    branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim();
+  } catch {
+    // same as above
+  }
+  const line = `${new Date().toISOString()} | branch=${branch} | sha=${sha} | reason=${reason}\n`;
+  mkdirSync(dirname(SKIP_LOG), { recursive: true });
+  appendFileSync(SKIP_LOG, line);
+}
 
 if (process.env.LH_SKIP_CHANGED_CHECK === "1") {
-  console.log("[check:changed] skipped (LH_SKIP_CHANGED_CHECK=1)");
+  const reason = (process.env.LH_SKIP_REASON || "").trim();
+  if (!reason) {
+    console.error(
+      "[check:changed] LH_SKIP_CHANGED_CHECK=1 requires LH_SKIP_REASON=\"...\" — a silent skip is not allowed.",
+    );
+    process.exit(1);
+  }
+  logSkip(reason);
+  console.log(`[check:changed] skipped (LH_SKIP_CHANGED_CHECK=1) — reason: ${reason}`);
   process.exit(0);
 }
 const { routes, changed, global } = JSON.parse(

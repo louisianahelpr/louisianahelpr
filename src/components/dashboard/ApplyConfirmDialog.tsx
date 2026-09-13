@@ -20,7 +20,6 @@ import { ApplyBody } from "@/components/dashboard/applyConfirmDialog/ApplyBody";
  */
 export function ApplyConfirmDialog(props: ApplyConfirmDialogProps) {
   const { open, onClose, confirmApplyJob, applyLoading } = props;
-  const isInstantBook = !!(confirmApplyJob as any)?.instant_book;
 
   return (
     <Sheet
@@ -37,7 +36,7 @@ export function ApplyConfirmDialog(props: ApplyConfirmDialogProps) {
       >
         <div className="px-5 pt-5">
           <SheetHero
-            title={confirmApplyJob ? confirmApplyJob.title : isInstantBook ? "Book This Job" : "Apply for This Job"}
+            title={confirmApplyJob ? confirmApplyJob.title : "Apply for This Job"}
           />
           {/* The `eyebrow` here never rendered either, and unlike the
               subtitles it is NOT relocated: eyebrows were deleted globally

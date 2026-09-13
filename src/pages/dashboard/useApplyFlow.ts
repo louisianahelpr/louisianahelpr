@@ -38,7 +38,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   // A deep-linked apply (?quickApply=<id>) can target a job that isn't in the
   // dashboard feed — filtered out, in another area, or the feed simply hasn't
   // loaded it. The confirm dialog needs the job object (title, budget,
-  // pricing_mode, instant_book, is_urgent, date_needed, category) to render its
+  // pricing_mode, is_urgent, date_needed, category) to render its
   // earnings breakdown and tips, so when the id is absent from `allJobs` we
   // fetch the single row (RLS still applies) and use it as the fallback source.
   const [fetchedJob, setFetchedJob] = useState<EnrichedJob | null>(null);
@@ -64,12 +64,11 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         // The list is exactly what the confirm dialog renders (see the comment
         // above); the apply mutation itself only needs the id, so the
         // best-effort miss below is unchanged in behaviour.
-        // `instant_book` dropped by 20260904034410 (dead-feature cut) — naming
-        // it here 400'd the whole select ("column jobs.instant_book does not
-        // exist"), silently losing title/budget/earnings-breakdown for any
-        // deep-linked (?quickApply=) job not already in the loaded feed. Every
-        // reader of confirmApplyJob.instant_book elsewhere in the client now
-        // just sees `undefined` (falsy) — correct, since the feature is gone.
+        // `instant_book` is deliberately absent: the column was dropped by
+        // 20260904034410 (dead-feature cut) and naming it here 400'd the whole
+        // select ("column jobs.instant_book does not exist"), silently losing
+        // title/budget/earnings-breakdown for any deep-linked (?quickApply=)
+        // job not already in the loaded feed.
         .select(
           "id, title, budget, category, date_needed, pricing_mode, is_urgent, customer_id, status",
         )
@@ -115,7 +114,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   // The file-upload + insert run in the background; on error we restore
   // the snapshots so the job re-appears and the user can retry.
   const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
-    mutationFn: async ({ jobId, helperId, message, files, isInstantBook }) => {
+    mutationFn: async ({ jobId, helperId, message, files }) => {
       // Server-side rate limit check BEFORE any
       // attachment uploads — don't waste storage bandwidth on a blocked
       // attempt. The windows are no longer 10/min, 50/hr, 200/day: every rung
@@ -219,38 +218,6 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // failed record call shouldn't surface to the user since the apply
       // already landed. PGRST202 is silently no-op'd inside the helper.
       void recordApplicationAttempt({ applicantId: helperId });
-
-      // Instant-book: auto-confirm immediately after applying, mirroring the
-      // direct-offer accept path (helper_confirmed_at set, no poster review).
-      // Wrapped in try/catch so a failure here (e.g. column not on prod yet)
-      // degrades gracefully — the application still lands, the job just needs
-      // manual poster acceptance. The `helper_confirmed_at` column is NOT
-      // instant_book-specific; it's the same field set in handleHelperResponse.
-      if (isInstantBook) {
-        // Claim through the RPC, never a direct table UPDATE. The previous
-        // client-side `.update({helper_id, status:"accepted"}).eq("id", jobId)`
-        // was a silent no-op: at claim time helper_id is still NULL, so the
-        // "Helpers can update their assigned jobs" RLS policy
-        // (USING auth.uid() = helper_id) made the row invisible and the UPDATE
-        // matched zero rows — which is a SUCCESS, not an error, so the
-        // try/catch never fired. Instant Book has therefore never worked, while
-        // the UI promised it ("Instant book" badge, "Book now" button).
-        // instant_book_claim() locks the job and re-checks every precondition,
-        // so two simultaneous claims resolve to exactly one winner.
-        // `as any` matches the established pattern for an RPC that isn't in the
-        // generated types yet (see business_activity_feed, approve_pending_job,
-        // update_business_member_role). Regenerating via `npm run db:types`
-        // after this migration deploys will make the cast unnecessary.
-        const { error: claimError } = await supabase.rpc("instant_book_claim" as any, {
-          p_job_id: jobId,
-        } as any);
-        // PGRST202 = the function isn't deployed yet (the window between this
-        // commit merging and db-deploy finishing). Degrade to the normal
-        // application flow rather than failing the apply that already landed.
-        if (claimError && claimError.code !== "PGRST202") {
-          throw claimError;
-        }
-      }
     },
     onMutate: async ({ jobId, helperId }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.dashboard.context(helperId) });
@@ -306,7 +273,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // helper is idempotent, so this is safe even on the 100th apply.
       recordJobActionForPermissionPrompt();
       // Funnel: track first application separately for activation analysis.
-      track(AhaEvent.JobApplied, { job_id: vars.jobId, instant_book: vars.isInstantBook ?? false });
+      track(AhaEvent.JobApplied, { job_id: vars.jobId });
       // Confirm to the helper FIRST — the insert has landed, so the success
       // toast is owed regardless of whatever analytics/reconciliation runs
       // afterward. Previously this fired AFTER an unguarded `await` on the
@@ -335,7 +302,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // RLS-blocked readback must not turn a successful apply into an error, so
       // it falls through to the ordinary confirmation.
       let noteWithheld = false;
-      if (!vars.isInstantBook && vars.message?.trim()) {
+      if (vars.message?.trim()) {
         try {
           const { data: row, error: flagErr } = await supabase
             .from("applications")
@@ -350,11 +317,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         }
       }
 
-      if (vars.isInstantBook) {
-        toast.success("You're booked! Check My Jobs for details.", {
-          action: { label: "View", onClick: () => navigate(`/my-jobs?job=${vars.jobId}`) },
-        });
-      } else if (noteWithheld) {
+      if (noteWithheld) {
         toast.warning("Application sent — but your note wasn't included.", {
           description:
             "It looked like contact or payment details, which can't be shared before a job is confirmed. The poster sees your application without it.",
@@ -415,11 +378,6 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     if (!user || !jobId || applyLoading) return;
     const files = applyFiles;
     const message = applyMessage;
-    // Instant Book was dropped (20260904034410, dead-feature cut) — always
-    // false now. Kept as a variable (not deleted outright) because the
-    // mutation below still branches on it in a few places pending a fuller
-    // cleanup of that plumbing.
-    const isInstantBook = false;
     // Close the dialog + reset its state synchronously so the next paint
     // already has the optimistic feed. The mutation continues in the
     // background; React Query's onError rolls things back on failure.
@@ -430,7 +388,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     // set it true here so a fast double-tap can't enqueue twice.
     setApplyLoading(true);
     applyMutation.mutate(
-      { jobId, helperId: user.id, message, files, isInstantBook },
+      { jobId, helperId: user.id, message, files },
       { onSettled: () => setApplyLoading(false) },
     );
   }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, applyMutation]);

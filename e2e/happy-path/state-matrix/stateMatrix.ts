@@ -1379,7 +1379,6 @@ function jobDetailCells(): StateCell[] {
     { key: "helper-applied", route: "/dashboard", describe: "helper who already applied — CTA reads 'Applied — #N'", reachable: "auto" as Reachability },
     { key: "poster-own-job", route: "/dashboard", describe: "the poster looking at their own post — CTA reads 'This is your post'", reachable: "auto" as Reachability },
     { key: "credential-gated", route: "/dashboard", describe: "credential_tier above the viewer's tier — the CTA becomes a gate button whose label differs per tier", reachable: "auto" as Reachability },
-    { key: "instant-book", route: "/dashboard", describe: "instant_book job — CTA reads 'Book Now' rather than Apply", reachable: "auto" as Reachability },
   ];
   const cells: StateCell[] = viewers.map((v) => ({
     id: slug(`job-detail-${v.key}`),

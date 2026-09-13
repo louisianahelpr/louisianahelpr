@@ -61,11 +61,6 @@ export interface BuildJobInsertPayloadInput {
       accounts were removed in 20260828011811. Kept because the column is live;
       wire a source to it before assuming it does anything. */
   department?: string | null;
-  /** When true, a helper who applies is auto-confirmed immediately without
-      poster review. Stored as jobs.instant_book (migration 20260612090000).
-      Only included in the INSERT when true so a pre-push prod still accepts
-      the payload (treats missing as the DB default of false). */
-  isInstantBook?: boolean;
   /** Minimum credential tier to apply. 0 = open (DB default).
    *  Only included in the INSERT when > 0 so a pre-push prod still accepts
    *  the payload (migration 20260612150000). */
@@ -87,7 +82,6 @@ export interface BuildJobInsertPayloadInput {
  */
 export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobInsertPayload {
   const requiresW9 = input.requiresW9 ?? false;
-  const isInstantBook = input.isInstantBook ?? false;
   const credentialTier = input.credentialTier ?? 0;
   const requirePhotoProof = input.requirePhotoProof ?? true;
   const {
@@ -210,11 +204,6 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     // cast through `as any` to keep typecheck green between merge and
     // the manual `supabase db push`.
     ...(requiresW9 ? ({ requires_w9: true } as any) : {}),
-    // instant_book column ships in migration 20260612090000. Only include
-    // in the payload when true so a pre-push prod INSERT (which doesn't
-    // have the column yet) still succeeds with code 42703/PGRST204 falling
-    // through the retry path in usePostJobForm → buildPayload({withExtras:false}).
-    ...(isInstantBook ? ({ instant_book: true } as Record<string, unknown>) : {}),
     // credential_tier column ships in migration 20260612150000. Only include
     // when > 0 so a pre-push prod INSERT still succeeds (DB default of 0
     // is applied automatically on the column). Retry path strips withExtras.

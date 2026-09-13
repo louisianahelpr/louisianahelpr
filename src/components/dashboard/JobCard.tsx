@@ -1,6 +1,6 @@
 import { memo, useCallback, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat, CheckCheck,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat,
 } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
@@ -468,17 +468,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               </span>
             );
           }
-          if ((job as { instant_book?: boolean }).instant_book)
-            return (
-              <span role="img"
-                className={corner}
-                aria-label="Instant book"
-                style={{ color: "hsl(var(--sage))", background: "hsl(var(--sage) / 0.15)", borderColor: "hsl(var(--sage) / 0.45)", letterSpacing: "0.05em" }}
-              >
-                <CheckCheck className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
-                Instant
-              </span>
-            );
           return null;
           })()}
         </div>

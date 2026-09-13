@@ -87,7 +87,6 @@ export function ApplyBody({
     awardBlockReason && awardBlockReason !== "helper_unknown"
       ? helperApplyBlockNotice(awardBlockReason)
       : null;
-  const isInstantBook = !!(confirmApplyJob as any)?.instant_book;
   const jobId = confirmApplyJob?.id ?? null;
   const draftKey = pitchDraftKey(jobId);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
@@ -476,9 +475,7 @@ export function ApplyBody({
           className="flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-4 group disabled:opacity-60"
         >
           <span>
-            {applyLoading
-              ? isInstantBook ? "Booking…" : "Applying…"
-              : !online ? "Try Again" : isInstantBook ? "Book Now" : "Apply Now"}
+            {applyLoading ? "Applying…" : !online ? "Try Again" : "Apply Now"}
           </span>
         </Button>
       </div>

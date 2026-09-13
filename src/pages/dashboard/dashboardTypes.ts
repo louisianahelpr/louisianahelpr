@@ -21,11 +21,6 @@ export type ApplyVars = {
   helperId: string;
   message: string;
   files: File[];
-  /** When the poster enabled instant-book, confirm the booking immediately
-      after the application INSERT — no poster review required. Reuses the
-      same jobs UPDATE path as handleHelperResponse (helper_confirmed_at).
-      Treated as false when the column isn't on prod yet (pre-push). */
-  isInstantBook?: boolean;
 };
 
 export type ApplySnapshot = {

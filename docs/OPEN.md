@@ -2010,3 +2010,16 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 ## Unshipped branches (owner review)
 2026-09-13 local-branch sweep: no unmerged local branch holds real unshipped work. The 11 checked by this sweep were all patch-equivalent on main or superseded (partner/enterprise pages dropped, welcome modal removed, Apple IAP functions and admin shell already on main, marketing-claim files rewritten), and were deleted with tip shas logged in `docs/audit/deleted-branches-2026-09-13.log`. About 150 more were deleted by a different concurrent process during the run and are not in that log.
 - [ ] Find which session deleted ~150 local branches on 2026-09-12 ~22:15 without logging tip shas; recover from its log or `git fsck --unreachable` if anything is missed.
+
+## Agent queue (2026-09-13, max 3 at once; owner decisions applied)
+- [ ] RUNNING: gift card rename finish (no aliases — owner: "no one has the app, no skips"); expired listings finish (→ Needs You); chunkReload retry finish
+- [ ] Release/Accept + other money double-tap refs (worktree agent-aaec88c069873cd52, commit 75448970c)
+- [ ] Admin follow-ups: unknown-tier fallback, support view, admin role indeterminate (worktree agent-a9c25acab110f3ea5, bb9a529fe)
+- [ ] AtAGlance equal tiles (worktree agent-a00a44b625c53174f, 3a80020e2)
+- [ ] 24h messaging lockout + embedded double-card (worktree agent-ac3ade558e78babef, 90d23935d)
+- [ ] Dead code deletions (wip agent-a7af3ac420980771a, 70f851af7) PLUS owner-approved drops: pet_profiles.is_evacuation_registered, jobs.protection_opted_in, profiles.push_consent/sms_consent, platform_settings.latest_build
+- [ ] Visible names: helper→Helpr copy, signed-in heading "Home", /saved-helprs (origin/wip/helpr-naming-fixes)
+- [ ] Post Job double-tap prod test (origin/wip/postjob-doubletap-driver)
+- [ ] Full customer/helper → poster/Helpr internal rename, NO aliases (after gift card rename lands)
+- [ ] Combobox keyboard model (~/.lh-prompts/combobox.md); race fixes (~/.lh-prompts/race2.md) unless a terminal took them
+- [ ] OWNER: allow the Stripe connector write tool + reconnect Stripe, then add transfer.failed to live webhook and close #1462/#1521

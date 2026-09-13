@@ -2048,7 +2048,7 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] AtAGlance equal tiles (worktree agent-a00a44b625c53174f, 3a80020e2)
 - [ ] 24h messaging lockout + embedded double-card (worktree agent-ac3ade558e78babef, 90d23935d)
 - [ ] Dead code deletions (wip agent-a7af3ac420980771a, 70f851af7) PLUS owner-approved drops: pet_profiles.is_evacuation_registered, jobs.protection_opted_in, profiles.push_consent/sms_consent, platform_settings.latest_build
-- [ ] Visible names: helper→Helpr copy, signed-in heading "Home", /saved-helprs (origin/wip/helpr-naming-fixes)
+- [x] Visible names: helper→Helpr copy + guard, signed-in heading "Home", /saved-helprs (shipped 2026-09-13; 375 prod screenshots reviewed)
 - [ ] Post Job double-tap prod test (origin/wip/postjob-doubletap-driver)
 - [ ] Full customer/helper → poster/Helpr internal rename, NO aliases (after gift card rename lands)
 - [ ] Combobox keyboard model (~/.lh-prompts/combobox.md); race fixes (~/.lh-prompts/race2.md) unless a terminal took them

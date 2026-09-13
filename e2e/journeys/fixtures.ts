@@ -114,6 +114,17 @@ export async function getSession(api: APIRequestContext, role: Role, fresh = fal
   return session;
 }
 
+/**
+ * Drop every cached session for a role (memory and the local disk cache), so
+ * the next getSession mints a new one. Call after anything that revokes the
+ * account's sessions, e.g. Log Out, which today is global.
+ */
+export function forgetSession(role: Role) {
+  sessionCache.delete(role);
+  const file = join(REPO_ROOT, "node_modules", ".cache", "lh-journeys", `${role}.json`);
+  if (existsSync(file)) writeFileSync(file, "{}");
+}
+
 export function rest(session: Session, extra: Record<string, string> = {}) {
   return {
     apikey: ANON,
@@ -359,6 +370,8 @@ export const test = base.extend<{ journey: Journey }>({
         return page;
       },
       milestone: async (page, name) => {
+        // Let the screen finish loading first, so a milestone shows the screen and not its skeleton.
+        await page.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => {});
         const file = join(dir, `${String(++n).padStart(2, "0")}-${name.replace(/[^a-z0-9-]+/gi, "_")}.png`);
         await page.screenshot({ path: file }).catch(() => {});
         await testInfo.attach(`milestone: ${name}`, { path: file, contentType: "image/png" }).catch(() => {});

@@ -1715,6 +1715,54 @@ until the browser has been used to LOOK at it. Agents run one at a time.
       job. The only place it is said is the one-time "Payment authorized" page. Product call: whether the
       Scheduled cards should carry a "Payment held" line (the disputed card already shows "Payment on hold").
       J4 records the count as a `funded-indicator` annotation rather than failing on copy that does not exist.
+- [ ] **Log Out signs the user out on EVERY device** (journeys lane, 2026-09-12, VERIFIED LIVE). Profile >
+      Log Out calls `signOutWithPushCleanup()` with no scope (`src/lib/authSignOut.ts:70`), and supabase-js
+      defaults `signOut` to `scope: "global"`. Repro: mint two sessions A and B for one account; refresh B
+      (200); press Log Out in a browser holding A; refresh B → `400 refresh_token_not_found`. So logging out
+      of the website also logs the user out of the phone app, and Account Security's separate "Sign Out
+      Everywhere" button does nothing Log Out does not already do. Side effect found the hard way: the
+      journey's Log Out kicked every other lane off the shared helper account. Not fixed (auth semantics,
+      owner call): likely `{ scope: "local" }` for Log Out. The J8 sign-out step runs only in
+      e2e-journeys.yml (`JOURNEY_GLOBAL_SIGNOUT_OK=1`) until then.
+- [ ] **Saving weekly availability can wipe the whole week** (journeys lane, 2026-09-12, VERIFIED LIVE).
+      `HelperAvailability.handleSave` DELETEs the helper's weekly rows, then INSERTs the new ones, as two
+      requests. Leaving the page (or losing signal) between them leaves ZERO rows, and the page then shows
+      the fabricated default week (every day 9 AM–5 PM) as if it were the helper's. Repro: /availability,
+      toggle a day, tap Save Availability and reload immediately. Measured on the shared helper:
+      `helper_availability` went from 7 rows (Sun 9–5, Mon–Fri 8–5, Sat 9–1) to 0; restored by hand and
+      re-read. Fix needs one transaction (an RPC replacing the week) plus the PGRST202 fallback; not done
+      here. J7 now waits for the INSERT and restores the snapshot.
+- [ ] **Two payout buttons on one card** (journeys lane, 2026-09-12, 390px, looked at). On the helper's
+      Working card after both photos: "Request My Payout" (tracker) and "I'm Done — Request Payout" appear
+      one above the other, both primary. `singlePrimaryCta.test.tsx` exists for this class and did not catch
+      it on the live data path. J5 records the count as `payout-cta-count`.
+- [ ] **A rate-limited message says only "Not Sent — Tap to Retry"** (journeys lane, 2026-09-12). The
+      messages INSERT returned `400 P0001 "You are sending messages too quickly. Please slow down."`; the
+      bubble showed "Not Sent — Tap to Retry" and "Couldn't Load Photo" (the attachment object was already
+      gone, so a retry cannot succeed), with no reason given and no error_logs row. Hit on the shared poster
+      account after repeated runs (limit: 30 messages/hour per sender).
+- [ ] **Lead: "Work started — couldn't tell the poster"** (journeys lane, 2026-09-12). One run, Start
+      Working showed that warning; error_logs 03:27:38Z `createNotification.insert` "Edge Function returned a
+      non-2xx status code". The same call made directly as the helper minutes later returned 200. Likely the
+      same repeated-run pressure as the message limit; confirm on a quiet account before treating as a
+      defect.
+- [ ] **Lead: boot watchdog "Helpr couldn't load." on a /profile load** (journeys lane, 2026-09-12 ~04:55Z,
+      seen once, J8, 390px). A plain `goto('/profile')` painted the index.html boot-failure screen; the next
+      run passed. Possibly a deploy in flight. The journeys' assertHealthy catches this pattern, so a repeat
+      will fail the nightly with a screenshot.
+- [ ] **Public profile shows "ID verified" and "Verification in progress" together** (journeys lane,
+      2026-09-12, looked at). /user/437de07d… (Hallie H.) as the poster: both chips under VERIFIED.
+- [ ] **Edit Profile keeps the old avatar after "Use Photo"** (journeys lane, 2026-09-12, looked at). After
+      cropping and saving a new photo, `profiles.avatar_url` changes and the bottom-nav avatar updates, but
+      the Edit Profile header still shows the initials until the page is left.
+- [ ] **Skeleton screens pass `detectStuckOrBlank`** (journeys lane). Account Security's sessions,
+      Warnings & Strikes and Earnings were screenshotted mid-skeleton while the detector (aria-busy /
+      animate-pulse) reported nothing, so those skeletons use neither. Milestones now wait for network idle;
+      the detector itself (e2e/errorScreens.ts) is not changed here.
+- [ ] **Journey residue on the shared accounts.** Each marketplace run leaves a cancelled job, its
+      conversation and notifications, and the helper's public profile now reads "Cancelled 51% · 30 of 59
+      jobs" because test jobs are unwound after hire. prod-lifecycle has the same effect. Needs the scoped
+      purge prod-lifecycle's header already asks for.
 
 ## Working forwards — owner, 2026-09-12: "all 6 need to happen"
 

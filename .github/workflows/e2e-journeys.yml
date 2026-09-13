@@ -68,6 +68,10 @@ jobs:
       PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
       PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
       SCENARIO: ${{ inputs.scenario }}
+      # J8 presses Log Out, which today signs the account out on every device
+      # (docs/OPEN.md). Allowed here only: this job holds the shared-accounts
+      # concurrency group, and each run mints fresh sessions by password.
+      JOURNEY_GLOBAL_SIGNOUT_OK: "1"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -140,6 +144,10 @@ jobs:
       PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
       PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
       SCENARIO: ${{ inputs.scenario }}
+      # J8 presses Log Out, which today signs the account out on every device
+      # (docs/OPEN.md). Allowed here only: this job holds the shared-accounts
+      # concurrency group, and each run mints fresh sessions by password.
+      JOURNEY_GLOBAL_SIGNOUT_OK: "1"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

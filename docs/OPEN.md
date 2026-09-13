@@ -1717,6 +1717,13 @@ until the browser has been used to LOOK at it. Agents run one at a time.
       it is not there. Screenshot looked at (`02-marketplace` failure-poster.png, run of 01:47Z). Journey
       J2 now opens the Waiting tab explicitly. Not fixed: needs a product call (search across tabs, or
       name the tab holding matches).
+- [ ] **Tracking map throws "reading '_leaflet_pos'" on My Jobs** (journeys lane, 2026-09-12). Found by the
+      J3 journey's error_logs check: as the helper, open `/my-jobs` and switch to Waiting while a card with a
+      tracking map is mounted. `report()` fired `TypeError: Cannot read properties of undefined (reading
+      '_leaflet_pos')` from TrackingMap. Prod `error_logs`: 13 rows since 2026-08-23, all from `/my-jobs`, 2
+      users. Cause: `fitBounds`/`setView` animate, and the zoom-end timer reads a pane that unmounted.
+      Fix in the commit adding this line: `animate: false` on both. Closes when the J3 journey runs green on
+      the deployed bundle and `error_logs` shows no new `_leaflet_pos` row.
 
 ## Working forwards — owner, 2026-09-12: "all 6 need to happen"
 

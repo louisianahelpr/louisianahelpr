@@ -94,15 +94,20 @@ function FitBounds({
 }) {
   const map = useMap();
   useEffect(() => {
+    // animate: false. An animated zoom finishes on a timer that reads the map
+    // pane; when the card unmounts mid-animation (switching My Jobs tabs) the
+    // pane is gone and Leaflet throws "reading '_leaflet_pos'", which reached
+    // error_logs 13 times from /my-jobs (journeys lane, 2026-09-12). A 180px
+    // preview gains nothing from the animation.
     try {
       map.fitBounds(
         [[helperLat, helperLng], [destLat, destLng]],
-        { padding: [36, 36], maxZoom: 15 },
+        { padding: [36, 36], maxZoom: 15, animate: false },
       );
     } catch {
       // fitBounds can throw when positions are identical — fall back to
       // centering on the helper at a reasonable zoom.
-      map.setView([helperLat, helperLng], 13);
+      map.setView([helperLat, helperLng], 13, { animate: false });
     }
   }, [map, helperLat, helperLng, destLat, destLng]);
   return null;

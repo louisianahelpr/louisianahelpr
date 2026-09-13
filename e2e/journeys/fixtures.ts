@@ -115,7 +115,7 @@ export function rest(session: Session, extra: Record<string, string> = {}) {
 export async function newUserContext(
   browser: Browser,
   session: Session | null,
-  opts: { desktop?: boolean; rotation?: Rotation } = {},
+  opts: { desktop?: boolean; rotation?: Rotation; timezoneId?: string } = {},
 ): Promise<BrowserContext> {
   const device = opts.rotation ? deviceProfile(opts.rotation.device) : null;
   const ctx = await browser.newContext({
@@ -125,6 +125,9 @@ export async function newUserContext(
     hasTouch: device?.hasTouch ?? !opts.desktop,
     colorScheme: device?.colorScheme ?? "light",
     serviceWorkers: "block",
+    // Explicit when given: the machine's own zone is otherwise inherited, and a
+    // timezone test that silently runs in the runner's zone proves nothing.
+    ...(opts.timezoneId ? { timezoneId: opts.timezoneId } : {}),
   });
   await ctx.addInitScript(
     ({ key, val, textScale }) => {

@@ -1560,6 +1560,44 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] **Parallel sessions collide on the test-server port 4173.** One session's
       tests can hit another worktree's preview. The stale-bundle guard catches it
       locally. Open: give each worktree its own HAPPY_PATH_PORT by default.
+- [ ] **No test moved the clock** (time-travel lane, 2026-09-12). Inventory: `docs/audit/time-inventory.md`.
+      Prod spec `e2e/journeys/time-travel.spec.ts` covers the listing-expiry chip (day before, 1 min
+      before, at start, next day, Pacific viewer, both DST mornings) and the availability row
+      (16:59/17:00 CT, Pacific, both DST Sundays): 2 passed, and a mutant (fall-back start at the naive
+      CDT instant) went red. Screenshots looked at. PGlite `scripts/probes/offer-expiry.probe.mjs` covers both
+      offer sweeps. STILL UNCOVERED on prod, announced on every run: offer countdown, confirm window,
+      review window → auto-release, subscription expiry. Each needs a funded/hired job or a paid tier
+      on the E2E accounts (the prod-lifecycle legs). Server cutoffs of `auto-expire-jobs` step 2
+      (CT evening, DST nights), `expiring-jobs-push` and `sweep_*` have no clock-moving test now that the
+      mock date filter is dropped. They need PGlite probes of the SQL sweeps, or pure cutoff helpers extracted from
+      the edge functions.
+- [ ] **Direct-offer expiry never tells the poster** (VERIFIED LIVE). `expire_pending_direct_offers()`
+      (20260423025644) flips expired offers in one CTE, then notifies from a separate scan limited to
+      `direct_offer_expires_at > now() - interval '5 minutes'`. Its only caller, `auto-expire-jobs`, runs
+      `0 * * * *`, so only offers that expired in the 5 minutes before the hour are announced. Prod: 1
+      expired direct offer (expired at :41), 0 "Direct offer expired" notifications ever. Repro:
+      `node scripts/probes/offer-expiry.probe.mjs` → FAIL "expired 19 min before the hourly run →
+      poster told (notifications=0)". Fix: notify from the UPDATE's RETURNING, and REVOKE FROM PUBLIC, anon,
+      authenticated. Migration left to the coordinator: it was classifier-blocked for this lane. Re-measure with the probe (goes
+      green) and the live count.
+- [ ] **An expired listing sits under "Waiting" until midnight.** Seen in the time-travel screenshot
+      `08-job-dst-fall-at-start`: at its start time an open, unfilled job reads "Expired", which is correct,
+      but stays in the Waiting tab for the rest of the CT day. It is invisible to every helper from `expires_at` on, so there is
+      nothing to wait for. It moves to Needs You only at CT midnight (`isPastDue` is day-grained). Product call:
+      bucket on `expires_at <= now` as well.
+- [ ] **"Expired" shows for the last 59 seconds of a live listing.** `formatTimeLeft` floors to whole
+      minutes and returns "Expired" when the floor is 0, while `JobCardMetaRow` has already decided the job is
+      NOT expired. Copy call (e.g. "Less than a minute left"); the floor rule forbids "1 minute left".
+- [ ] **`expiring-jobs-push` can never warn a short-lead listing.** It runs once a day (`14 14 * * *`) over
+      `(now, now+24h]`, so a job posted after today's run that expires before tomorrow's is never warned.
+      No other sweep covers it.
+- [ ] **Lead, needs device repro: a phone clock >1h fast may sign the user out.** In the prod time-travel
+      spec, one context per step with its own freshly minted session and the browser clock days ahead
+      landed on "That page needs an account. Log in…" on 2 of 3 runs. supabase-js reads the stored `expires_at`
+      against the device clock, and overlapping refreshes of a rotating token look like the cause. The spec now
+      restates `expires_at` against the moved clock, which is a harness workaround. Repro: remove that line in
+      `openAt` and run the job test. Confirm on a real iPhone with the clock set manually ahead before
+      treating it as an app defect.
 
 ## Working forwards — owner, 2026-09-12: "all 6 need to happen"
 

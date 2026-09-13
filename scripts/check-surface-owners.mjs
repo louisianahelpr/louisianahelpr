@@ -88,7 +88,6 @@ const OWNERS = {
 
   // ── core loop ────────────────────────────────────────────────────────────
   "/dashboard": ["lh-design-holes", "lh-copy-content"],
-  "/dashboard/post-login": ["lh-onboarding-auth"],
   "/activity": ["lh-design-holes", "lh-scheduling-time"],
   "/my-jobs": ["lh-design-holes"],
   "/my-posts": ["lh-design-holes"],
@@ -108,7 +107,6 @@ const OWNERS = {
   // ── settings / profile / long tail ───────────────────────────────────────
   "/profile": ["lh-input-boundary"],
   "/settings": ["lh-onboarding-auth"],
-  "/settings/profile": ["lh-input-boundary"],
   "/user/:userId": ["lh-trust-safety"],
   "/admin": ["lh-admin-moderation"],
 

@@ -331,7 +331,6 @@ export const BASE_JOB: Record<string, unknown> = {
   pricing_mode: "set_price",
   proof_after_urls: null,
   proof_before_urls: null,
-  protection_opted_in: false,
   recurrence_days: null,
   recurrence_weeks: null,
   recurring_helper_id: null,

@@ -1172,20 +1172,6 @@ html[data-theme="dark"].web-desktop.app-shell body,
 }
 
 /* Utility Classes */
-.safe-pt {
-  /* var(), not env() — see the --safe-area-* block at :root. */
-  padding-top: var(--safe-area-top, 0px);
-}
-
-.safe-pb {
-  padding-bottom: var(--safe-area-bottom, 0px);
-}
-
-.safe-px {
-  padding-left: var(--safe-area-left, 0px);
-  padding-right: var(--safe-area-right, 0px);
-}
-
 /* App Shell Viewport Lock */
 html.app-shell {
   height: 100dvh;
@@ -1987,7 +1973,7 @@ html.no-bottom-nav {
    ---------------------------------------------------------------------------
    Headline scale (Bodoni Moda) — there are exactly THREE canonical sizes for
    editorial display headlines. Anything Bodoni Moda (`.font-display` or the
-   `.text-page-title`/`.text-section-title`/`.text-headline-*` utilities)
+   `.text-page-title`/`.text-headline-*` utilities)
    should pick one of these three. New code should never set an inline
    `fontSize` on a Bodoni Moda element — pick the closest canonical instead.
 
@@ -2016,16 +2002,6 @@ html.no-bottom-nav {
   color: hsl(var(--ink-deep));
 }
 
-.text-section-title {
-  font-family: "Bodoni Moda", "Bodoni Moda Fallback", Georgia, serif !important;
-  font-style: italic !important;
-  font-weight: 700 !important;
-  font-size: var(--headline-section) !important;
-  line-height: 1.15 !important;
-  letter-spacing: -0.022em !important;
-  color: hsl(var(--ink-deep));
-}
-
 /* Size-only utilities — assume the call site already supplies font-family
    (.font-display), italic, weight, and color. Use these when you'd otherwise
    reach for an inline `style={{ fontSize: "..." }}` on a Bodoni Moda
@@ -2036,18 +2012,6 @@ html.no-bottom-nav {
 .text-headline-section { font-size: var(--headline-section); }
 .text-headline-card    { font-size: var(--headline-card); }
 
-.text-card-title {
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.3;
-}
-
-.text-body-relaxed {
-  font-size: 15px;
-  line-height: 1.6;
-  letter-spacing: 0;
-}
 
 
 /* Every search field in the app pairs `type="search"` with its own branded
@@ -2150,17 +2114,6 @@ button,
   }
 }
 
-@keyframes slideUp {
-  from {
-    transform: translateY(8px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
 /* Attention nudge — a short horizontal shake used to draw the eye to a
    control the user must act on before proceeding (e.g. the unchecked
    agreement box on signup when they tap Continue). Suppressed under
@@ -2182,27 +2135,8 @@ button,
   }
 }
 
-@keyframes slideDown {
-  from {
-    transform: translateY(-8px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
 .animate-fade-in {
   animation: fadeIn 0.3s var(--ease-out) forwards;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.animate-slide-down {
-  animation: slideDown 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* Living seal — Louisiana Verified badge slowly rotates one full turn per
@@ -3046,12 +2980,6 @@ button,
     0 4px 10px -3px hsl(var(--gold-warm) / 0.3);
 }
 
-.tier-gold-soft {
-  background: hsl(var(--gold-warm) / 0.1);
-  color: hsl(var(--ink-deep));
-  border: 1px solid hsl(var(--gold-warm) / 0.3);
-}
-
 /* Verified-flag affordance — small gold underline / border for the
    "Verified" check across helpr profile pages and
    admin queues. Subtle so it complements the existing checkmark icon. */
@@ -3083,9 +3011,7 @@ button,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in,
-  .animate-slide-up,
-  .animate-slide-down {
+  .animate-fade-in {
     animation: none;
     opacity: 1;
     transform: none;
@@ -3149,7 +3075,6 @@ button,
      none of them set role="banner", so without this the app bar printed on
      top of documents like /work-record and /legal. */
   .glass-header,
-  .app-bottom-nav,
   .bottom-nav,
   [data-bottom-nav],
   [data-fab],
@@ -3173,7 +3098,6 @@ button,
   body,
   #root,
   main,
-  .app-shell-viewport,
   [data-app-shell],
   [data-app-shell-scroll] {
     height: auto !important;
@@ -3361,7 +3285,6 @@ html.senior-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !im
 html.senior-mode .line-clamp-1 { -webkit-line-clamp: 2; }
 html.senior-mode .line-clamp-2 { -webkit-line-clamp: 3; }
 html.senior-mode .line-clamp-3 { -webkit-line-clamp: 4; }
-html.senior-mode .line-clamp-4 { -webkit-line-clamp: 5; }
 
 /* The horizontal twin of that defect — `truncate` eating words at 14px that
    were fully visible at 11px — is NOT fixed here, and the attempt is recorded
@@ -3938,25 +3861,6 @@ html.senior-mode *::after {
   box-shadow: var(--elev-inset-hairline);
 }
 
-.doc-row-alt { background: var(--doc-row-alt); }
-
-/* Rule between sibling sections of one sheet, and the border colour for a
-   `divide-y` list of rows.
-
-   `.doc-rule > *` is not a stylistic flourish, it is the only thing that
-   works. Preflight is extended here with `* { @apply border-border }` (see
-   the @layer base block at the top of this file), which sets an EXPLICIT
-   border-color on every element in the document — so a border colour set on
-   a `divide-y` parent, inline or otherwise, is never inherited by the rows
-   that actually draw the border. /benefits had exactly that bug: its rows
-   declared `borderColor: hsl(var(--olivewood) / 0.10)` on the wrapper and
-   rendered `hsl(var(--border))` regardless. Targeting the children directly
-   both beats `*` on specificity and delivers the hairline the page always
-   meant to draw. */
-.doc-section + .doc-section { border-top: 1px solid var(--doc-hairline); }
-.doc-rule,
-.doc-rule > * { border-color: var(--doc-hairline); }
-
 @media print {
   /* The sheet is printed as a credential (income / employment verification),
      so the structure has to survive the print pipeline. Browsers drop
@@ -3965,37 +3869,11 @@ html.senior-mode *::after {
      goes the other way — it is screen elevation and prints as grey mud. */
   .doc-card { box-shadow: none; }
   .doc-band,
-  .doc-tile,
-  .doc-row-alt {
+  .doc-tile {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 }
 
 
-/* ── /subscription plan-picker type ramp ──────────────────────────────────
-   The three sizes on the membership page that need a PHONE value distinct
-   from the tablet/desktop one, so the plan picker can put two plans on a
-   375x812 screen instead of one-and-a-sliver.
-
-   They live here, not as Tailwind `text-[…]` arbitrary values, because the
-   design-system lint rule rejects those — correctly: an arbitrary size
-   carries no line-height. Each class pairs its size with the line-height the
-   element was already declaring. They also can't stay as inline `fontSize`,
-   which is where they started: an inline style outranks every breakpoint
-   variant, so there is no way to give the phone its own value from there.
-
-   Above 640px each is byte-identical to the clamp() it replaces, so nothing
-   at sm and up moves a pixel. Worth knowing: those clamps sat on their own
-   floor until roughly 1059px, so "clamp" was doing nothing on any phone or
-   tablet — the masthead title was a flat 36px from 320px to 1059px. */
-.plan-masthead-title { font-size: 1.85rem; line-height: 1.05; }
-.plan-card-name      { font-size: 1.5rem;  line-height: 1.05; }
-/* Phone only — its element is `sm:hidden`, so it needs no sm value. */
-.plan-card-price     { font-size: 1.6rem;  line-height: 1; }
-
-@media (min-width: 640px) {
-  .plan-masthead-title { font-size: clamp(2.25rem, 3.4vw, 3.25rem); }
-  .plan-card-name      { font-size: clamp(1.6rem, 2.4vw, 2.15rem); }
-}
 

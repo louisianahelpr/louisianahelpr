@@ -426,8 +426,8 @@ async function apply() {
     { id: sid("cred:bond"), user_id: helperId, credential_type: "bond", status: "rejected", rejection_reason: "SEED: bond certificate was for a different business name." },
   ]);
   await upsert("pet_profiles", [
-    { id: sid("pet:dog"), owner_id: posterId, name: "Boudreaux (seed)", species: "dog", breed: "Catahoula", age_years: 4, weight_lbs: 62, feeding_schedule: "2 cups at 7am and 6pm", behavioral_notes: "Pulls near squirrels.", is_evacuation_registered: true },
-    { id: sid("pet:cat"), owner_id: posterId, name: "Praline (seed)", species: "cat", age_years: 11, weight_lbs: 9, medical_notes: "Senior kidney diet.", is_evacuation_registered: false },
+    { id: sid("pet:dog"), owner_id: posterId, name: "Boudreaux (seed)", species: "dog", breed: "Catahoula", age_years: 4, weight_lbs: 62, feeding_schedule: "2 cups at 7am and 6pm", behavioral_notes: "Pulls near squirrels." },
+    { id: sid("pet:cat"), owner_id: posterId, name: "Praline (seed)", species: "cat", age_years: 11, weight_lbs: 9, medical_notes: "Senior kidney diet." },
   ]);
   await upsert("favorite_helpers", [
     { id: sid("fav:helper"), customer_id: posterId, helper_id: helperId, private_note: "SEED Great with fences." },

@@ -229,7 +229,7 @@ export const PAYMENT_RX = /\b(pay|checkout|fund|tip|boost|purchase|buy|subscribe
 /** Labels that would destroy or lock the SHARED test account. Never pressed. */
 export const ACCOUNT_DESTROY_RX = /\b(delete (my )?account|deactivate|close (my )?account|delete profile|request deletion|erase my data)\b/i;
 /** Routes whose subject is the signed-in account (a mutation there touches only the test account's own rows). */
-export const SELF_ROUTE_RX = /^\/(profile|post-job|support|schedule|availability|settings|complete-profile|warnings|data-rights|my-posts|payment-success|dashboard\/post-login|gift-card|forgot-password|reset-password|signup|login)(\/|\?|$)/;
+export const SELF_ROUTE_RX = /^\/(profile|post-job|support|schedule|availability|settings|complete-profile|warnings|data-rights|my-posts|payment-success|gift-card|forgot-password|reset-password|signup|login)(\/|\?|$)/;
 
 export const SKIP_DESTROY = "would destroy or lock the shared test account";
 export const SKIP_STRIPE = "payment control — Stripe is not in TEST mode";

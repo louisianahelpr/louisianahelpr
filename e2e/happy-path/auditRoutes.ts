@@ -297,11 +297,9 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "saved-helpers", url: "/saved-helpers" },
   { name: "schedule", url: "/schedule" },
   { name: "settings", url: "/settings" },
-  { name: "settings-profile", url: "/settings/profile" },
   { name: "str-settings", url: "/profile?tab=str_settings" },
   { name: "work-record", url: "/profile?tab=work_record" },
   { name: "wrapped", url: "/profile?tab=wrapped" },
-  { name: "post-login", url: "/dashboard/post-login" },
 ];
 
 

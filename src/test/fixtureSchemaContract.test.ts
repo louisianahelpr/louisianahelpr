@@ -182,7 +182,6 @@ describe("the constraint reader really read the constraints", () => {
     expect(distinctive.has("pricing_mode")).toBe(false);
     expect(distinctive.has("payment_status")).toBe(false);
     expect(distinctive.get("boost_auto_extended")).toBe("jobs");
-    expect(distinctive.get("protection_opted_in")).toBe("jobs");
     expect(distinctive.get("idv_status")).toBe("profiles");
     expect(distinctive.get("stake_status")).toBe("applications");
   });
@@ -306,6 +305,13 @@ describe("every fixture literal could be inserted", () => {
       // spec's own composite; attributing it either way would be a guess.
       if (tables.size !== 1) continue;
       const table = [...tables][0];
+      // A literal carrying keys the table has no column for is not a row of it:
+      // `{ screen, url, width, status: "OK", notes }` in a visual spec shares
+      // only `notes` with verification_exceptions once other `notes` columns
+      // are dropped. Tolerate a minority of foreign keys (joined/derived fields
+      // on real fixtures); refuse a literal that is mostly not this table.
+      const cols = schema.get(table);
+      if (cols && keys.filter((k) => !cols.has(k)).length * 2 > keys.length) continue;
       const forTable = constraints.get(table);
       if (!forTable) continue;
       const read = literalReader(lit);

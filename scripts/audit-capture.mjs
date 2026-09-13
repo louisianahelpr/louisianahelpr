@@ -86,7 +86,7 @@ const AUTHED_ROUTES = [
   // They are Profile tabs now and are covered by PROFILE_ROUTES below, derived
   // from the Tab union itself so they cannot be missed.
   '/my-posts?filter=done', '/messages', '/post-job', '/settings',
-  '/settings/profile', '/availability', '/schedule', '/earnings',
+  '/availability', '/schedule', '/earnings',
   '/saved-helpers', '/data-rights', '/gift-card', '/payment-success', '/help', '/support',
   '/legal', '/privacy', '/terms', '/rules',
   '/user/e977a30f-7065-4e75-8498-dba435ac2044',

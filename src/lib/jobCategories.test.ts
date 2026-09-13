@@ -19,7 +19,6 @@ import { categoryLabels as mapLabels } from "@/components/browseMap/config";
 import { categoryLabels as adminLabels } from "@/components/admin/adminJobs/types";
 import { categories as postJobCategories } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { categoryLabels as filterLabels } from "@/components/dashboard/JobFilters";
-import { ALL_CATEGORIES } from "@/pages/jobs/jobsConstants";
 
 const LABEL_CONSUMERS: Record<string, Record<string, string>> = {
   "activityConstants (feed cards, job detail, saved searches)": activityLabels,
@@ -65,7 +64,6 @@ describe("job categories — single source of truth", () => {
     expect(activityCategories.map((c) => c.value)).toEqual(canonical);
     expect(Object.keys(activityLabels)).toEqual(canonical);
     expect(Object.keys(mapLabels)).toEqual(canonical);
-    expect(ALL_CATEGORIES).toEqual(canonical);
     expect(canonical[canonical.length - 1]).toBe("other");
   });
 

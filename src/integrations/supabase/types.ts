@@ -1283,7 +1283,6 @@ export type Database = {
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
           protection_fee: number | null
-          protection_opted_in: boolean
           recurrence_days: number[] | null
           recurrence_end_date: string | null
           recurrence_interval: string | null
@@ -1305,7 +1304,6 @@ export type Database = {
           revision_requested_at: string | null
           sales_tax_amount: number | null
           sales_tax_rate: number | null
-          scope_video_thumbnail_url: string | null
           scope_video_url: string | null
           special_requirements: string | null
           start_reminder_sent_at: string | null
@@ -1394,7 +1392,6 @@ export type Database = {
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
           protection_fee?: number | null
-          protection_opted_in?: boolean
           recurrence_days?: number[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
@@ -1416,7 +1413,6 @@ export type Database = {
           revision_requested_at?: string | null
           sales_tax_amount?: number | null
           sales_tax_rate?: number | null
-          scope_video_thumbnail_url?: string | null
           scope_video_url?: string | null
           special_requirements?: string | null
           start_reminder_sent_at?: string | null
@@ -1505,7 +1501,6 @@ export type Database = {
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
           protection_fee?: number | null
-          protection_opted_in?: boolean
           recurrence_days?: number[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
@@ -1527,7 +1522,6 @@ export type Database = {
           revision_requested_at?: string | null
           sales_tax_amount?: number | null
           sales_tax_rate?: number | null
-          scope_video_thumbnail_url?: string | null
           scope_video_url?: string | null
           special_requirements?: string | null
           start_reminder_sent_at?: string | null
@@ -2350,7 +2344,6 @@ export type Database = {
           emergency_contact: string | null
           feeding_schedule: string | null
           id: string
-          is_evacuation_registered: boolean
           medical_notes: string | null
           microchip_id: string | null
           name: string
@@ -2371,7 +2364,6 @@ export type Database = {
           emergency_contact?: string | null
           feeding_schedule?: string | null
           id?: string
-          is_evacuation_registered?: boolean
           medical_notes?: string | null
           microchip_id?: string | null
           name: string
@@ -2392,7 +2384,6 @@ export type Database = {
           emergency_contact?: string | null
           feeding_schedule?: string | null
           id?: string
-          is_evacuation_registered?: boolean
           medical_notes?: string | null
           microchip_id?: string | null
           name?: string
@@ -2405,86 +2396,6 @@ export type Database = {
           weight_lbs?: number | null
         }
         Relationships: []
-      }
-      pet_report_cards: {
-        Row: {
-          ate_well: boolean | null
-          created_at: string
-          exercise_duration_minutes: number | null
-          gps_walk_summary: string | null
-          helper_id: string
-          id: string
-          job_id: string
-          mood: string | null
-          notes: string | null
-          owner_id: string
-          pet_id: string
-          photos: string[] | null
-          potty_breaks: number | null
-          report_date: string
-        }
-        Insert: {
-          ate_well?: boolean | null
-          created_at?: string
-          exercise_duration_minutes?: number | null
-          gps_walk_summary?: string | null
-          helper_id: string
-          id?: string
-          job_id: string
-          mood?: string | null
-          notes?: string | null
-          owner_id: string
-          pet_id: string
-          photos?: string[] | null
-          potty_breaks?: number | null
-          report_date?: string
-        }
-        Update: {
-          ate_well?: boolean | null
-          created_at?: string
-          exercise_duration_minutes?: number | null
-          gps_walk_summary?: string | null
-          helper_id?: string
-          id?: string
-          job_id?: string
-          mood?: string | null
-          notes?: string | null
-          owner_id?: string
-          pet_id?: string
-          photos?: string[] | null
-          potty_breaks?: number | null
-          report_date?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pet_report_cards_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_report_cards_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_helper_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_report_cards_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "open_jobs_browse"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_report_cards_pet_id_fkey"
-            columns: ["pet_id"]
-            isOneToOne: false
-            referencedRelation: "pet_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       gift_cards: {
         Row: {
@@ -2616,7 +2527,6 @@ export type Database = {
           hybrid_idv_enabled: boolean
           id: string
           idv_auto_approve_threshold: number
-          latest_build: number
           min_supported_build: number
           onboarding_fee_cents: number
           platform_fee_percent: number
@@ -2631,7 +2541,6 @@ export type Database = {
           hybrid_idv_enabled?: boolean
           id?: string
           idv_auto_approve_threshold?: number
-          latest_build?: number
           min_supported_build?: number
           onboarding_fee_cents?: number
           platform_fee_percent?: number
@@ -2646,7 +2555,6 @@ export type Database = {
           hybrid_idv_enabled?: boolean
           id?: string
           idv_auto_approve_threshold?: number
-          latest_build?: number
           min_supported_build?: number
           onboarding_fee_cents?: number
           platform_fee_percent?: number
@@ -2777,11 +2685,9 @@ export type Database = {
           phone: string | null
           portfolio_urls: string[] | null
           preferred_helper_id: string | null
-          push_consent: boolean
           saved_helper_seen: Json
           senior_mode: boolean
           skills: string | null
-          sms_consent: boolean
           stripe_account_id: string | null
           stripe_charges_enabled: boolean
           stripe_customer_id: string | null
@@ -2881,11 +2787,9 @@ export type Database = {
           phone?: string | null
           portfolio_urls?: string[] | null
           preferred_helper_id?: string | null
-          push_consent?: boolean
           saved_helper_seen?: Json
           senior_mode?: boolean
           skills?: string | null
-          sms_consent?: boolean
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
           stripe_customer_id?: string | null
@@ -2985,11 +2889,9 @@ export type Database = {
           phone?: string | null
           portfolio_urls?: string[] | null
           preferred_helper_id?: string | null
-          push_consent?: boolean
           saved_helper_seen?: Json
           senior_mode?: boolean
           skills?: string | null
-          sms_consent?: boolean
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
           stripe_customer_id?: string | null
@@ -3538,30 +3440,6 @@ export type Database = {
           event_id?: string
           event_type?: string
           processed_at?: string
-        }
-        Relationships: []
-      }
-      subscription_cancel_reasons: {
-        Row: {
-          created_at: string
-          id: string
-          reason: string
-          tier: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          reason: string
-          tier?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          reason?: string
-          tier?: string | null
-          user_id?: string
         }
         Relationships: []
       }
@@ -4620,7 +4498,6 @@ export type Database = {
         Returns: boolean
       }
       contact_leak_reason: { Args: { p_text: string }; Returns: string }
-      count_profiles: { Args: never; Returns: number }
       cron_dispatch_health: {
         Args: never
         Returns: {
@@ -4661,18 +4538,6 @@ export type Database = {
       fan_out_broadcast_to_notifications: {
         Args: { _broadcast_id: string }
         Returns: number
-      }
-      get_approved_helpers: {
-        Args: { max_count?: number }
-        Returns: {
-          avatar_url: string
-          bio: string
-          full_name: string
-          location: string
-          skills: string
-          subscription_tier: string
-          user_id: string
-        }[]
       }
       get_category_price_stats: {
         Args: { p_category: string; p_parish?: string }
@@ -4733,15 +4598,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_helper_parish_badges: {
-        Args: { _user_id: string }
-        Returns: {
-          home_parish: string
-          is_top_helper_in_parish: boolean
-          is_verified_local: boolean
-          parish_completed_jobs: number
-        }[]
-      }
       get_helper_repeat_hire_percents: {
         Args: { p_user_ids: string[] }
         Returns: {
@@ -4763,13 +4619,6 @@ export type Database = {
           tier: string
           total_reviews: number
           user_id: string
-        }[]
-      }
-      get_hero_parishes: {
-        Args: never
-        Returns: {
-          hero_count: number
-          parish: string
         }[]
       }
       get_job_customer_id: { Args: { _job_id: string }; Returns: string }
@@ -4878,7 +4727,6 @@ export type Database = {
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
           protection_fee: number | null
-          protection_opted_in: boolean
           recurrence_days: number[] | null
           recurrence_end_date: string | null
           recurrence_interval: string | null
@@ -4900,7 +4748,6 @@ export type Database = {
           revision_requested_at: string | null
           sales_tax_amount: number | null
           sales_tax_rate: number | null
-          scope_video_thumbnail_url: string | null
           scope_video_url: string | null
           special_requirements: string | null
           start_reminder_sent_at: string | null
@@ -4919,11 +4766,6 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
-      }
-      get_marketplace_activity_count: { Args: never; Returns: number }
-      get_monthly_profile_view_count: {
-        Args: { p_user_id: string }
-        Returns: number
       }
       get_muted_threads: {
         Args: { _pairs: Json }
@@ -5011,7 +4853,6 @@ export type Database = {
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
           protection_fee: number | null
-          protection_opted_in: boolean
           recurrence_days: number[] | null
           recurrence_end_date: string | null
           recurrence_interval: string | null
@@ -5033,7 +4874,6 @@ export type Database = {
           revision_requested_at: string | null
           sales_tax_amount: number | null
           sales_tax_rate: number | null
-          scope_video_thumbnail_url: string | null
           scope_video_url: string | null
           special_requirements: string | null
           start_reminder_sent_at: string | null
@@ -5148,40 +4988,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_platform_benchmarks: {
-        Args: never
-        Returns: {
-          avg_application_success_rate: number
-          avg_helper_rating: number
-        }[]
-      }
-      get_platform_impact_stats: {
-        Args: never
-        Returns: {
-          avg_response_minutes: number
-          earnings_this_month: number
-          jobs_this_month: number
-          total_earnings_circulated: number
-          total_helpers_active: number
-          total_jobs_completed: number
-          total_parishes_served: number
-          total_posters: number
-        }[]
-      }
-      get_public_avg_rating: { Args: never; Returns: number }
-      get_public_completed_job_count: { Args: never; Returns: number }
-      get_public_job_stories: {
-        Args: { p_limit?: number }
-        Returns: {
-          category: string
-          helper_id: string
-          id: string
-          poster_completed_at: string
-          proof_after_urls: string[]
-          proof_before_urls: string[]
-          title: string
-        }[]
-      }
       get_public_open_jobs: {
         Args: { p_limit?: number }
         Returns: {
@@ -5286,15 +5092,6 @@ export type Database = {
           start_time: string
           title: string
           urgent_fee: number
-        }[]
-      }
-      get_recent_public_payouts: {
-        Args: { _limit?: number }
-        Returns: {
-          amount_dollars: number
-          city: string
-          display_name: string
-          paid_at: string
         }[]
       }
       get_safe_profiles: {
@@ -5555,15 +5352,6 @@ export type Database = {
           _expires?: string
           _reason?: string
           _user_id: string
-        }
-        Returns: undefined
-      }
-      review_helper_credential: {
-        Args: {
-          _credential_id: string
-          _decision: string
-          _expires?: string
-          _reason?: string
         }
         Returns: undefined
       }

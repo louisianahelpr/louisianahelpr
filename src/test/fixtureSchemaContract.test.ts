@@ -287,6 +287,9 @@ describe("every fixture literal could be inserted", () => {
     (f) => !SELF.some((s) => f.endsWith(s)),
   );
 
+  // Object literals that look like a table row but are not one. Each entry names
+  // the file and the keys that identify the non-row shape.
+  const NOT_ROWS = [{ file: "e2e/visual-audit/responsive.spec.ts", keys: ["screen", "url", "notes"] }];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];
   let valuesGraded = 0;
@@ -305,13 +308,11 @@ describe("every fixture literal could be inserted", () => {
       // spec's own composite; attributing it either way would be a guess.
       if (tables.size !== 1) continue;
       const table = [...tables][0];
-      // A literal carrying keys the table has no column for is not a row of it:
-      // `{ screen, url, width, status: "OK", notes }` in a visual spec shares
-      // only `notes` with verification_exceptions once other `notes` columns
-      // are dropped. Tolerate a minority of foreign keys (joined/derived fields
-      // on real fixtures); refuse a literal that is mostly not this table.
-      const cols = schema.get(table);
-      if (cols && keys.filter((k) => !cols.has(k)).length * 2 > keys.length) continue;
+      // Named, not general: the visual spec's `{ screen, url, width, status,
+      // notes }` result object shares only `notes` with verification_exceptions.
+      // A blanket "mostly foreign keys → skip" rule let badly wrong fixtures
+      // through (2026-09-13), so only listed non-row shapes are skipped.
+      if (NOT_ROWS.some((n) => rel === n.file && n.keys.every((k) => keys.includes(k)))) continue;
       const forTable = constraints.get(table);
       if (!forTable) continue;
       const read = literalReader(lit);

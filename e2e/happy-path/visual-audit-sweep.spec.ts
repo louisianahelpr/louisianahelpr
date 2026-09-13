@@ -434,6 +434,11 @@ test.describe.configure({ mode: "serial" });
 // RUN_VISUAL_SWEEP=1.
 const sweepDescribe = process.env.RUN_VISUAL_SWEEP ? test.describe : test.describe.skip;
 
+// SWEEP_SEED=heavy: answer from the stress seed (e2e/happy-path/seedDataHeavy.ts:
+// very long names, 40+ applicants, 100+ jobs, a 200+ message thread, huge money).
+// Unset → the normal seed, exactly as before.
+const SWEEP_SEED: true | "heavy" = process.env.SWEEP_SEED === "heavy" ? "heavy" : true;
+
 // SWEEP_ROUTES: comma-separated App.tsx route patterns (e.g. "/profile,/jobs/:id").
 // Set by `npm run check:changed` to sweep only the screens a diff touches.
 // Unset → every screen.
@@ -476,7 +481,7 @@ sweepDescribe("UI audit evidence sweep", () => {
     for (const screen of inScope(ANON_SCREENS)) {
       const i = ++index;
       test(`${String(i).padStart(3, "0")} ${screen.name} (anon/${v.tag})`, async ({ page }) => {
-        await installSupabaseMocks(page, { seed: true, rules: screen.rules });
+        await installSupabaseMocks(page, { seed: SWEEP_SEED, rules: screen.rules });
         await captureScreen(page, i, screen.name, screen.url, "anon", screen.extraSetup ? () => screen.extraSetup!(page) : undefined, v);
       });
     }
@@ -495,7 +500,7 @@ sweepDescribe("UI audit evidence sweep", () => {
         const name = `${role.tag}-${screen.name}`;
         test(`${String(i).padStart(3, "0")} ${name} (${role.tag}/${v.tag})`, async ({ context, page, baseURL }) => {
           await seedAuthedSession(context, role.user, baseURL ?? "");
-          await installSupabaseMocks(page, { user: role.user, rules: screen.rules, seed: true });
+          await installSupabaseMocks(page, { user: role.user, rules: screen.rules, seed: SWEEP_SEED });
           await captureScreen(page, i, name, screen.url, "authed", screen.extraSetup ? () => screen.extraSetup!(page) : undefined, v);
         });
       }
@@ -508,7 +513,7 @@ sweepDescribe("UI audit evidence sweep", () => {
       const i = ++index;
       test(`${String(i).padStart(3, "0")} ${screen.name} (admin/${v.tag})`, async ({ context, page, baseURL }) => {
         await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-        await installSupabaseMocks(page, { user: FAKE_CUSTOMER, rules: screen.rules, seed: true });
+        await installSupabaseMocks(page, { user: FAKE_CUSTOMER, rules: screen.rules, seed: SWEEP_SEED });
         await captureScreen(page, i, screen.name, screen.url, "authed", screen.extraSetup ? () => screen.extraSetup!(page) : undefined, v);
       });
     }

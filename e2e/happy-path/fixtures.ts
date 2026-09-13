@@ -13,7 +13,8 @@ import {
   type BrowserContext,
 } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { SEED_TABLES, SEED_JOBS } from "./seedData";
+import { SEED_TABLES, SEED_RPCS } from "./seedData";
+import { HEAVY_TABLES } from "./seedDataHeavy";
 import { assertFreshBundle } from "./assertFreshBundle";
 import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
 
@@ -183,8 +184,14 @@ export interface MockSupabaseOptions {
    * jobs would break them. The audit sweep opts IN, because a screenshot of an
    * empty list proves only that the empty state renders — populated layouts are
    * where truncation, overflow and status-pill bugs actually live.
+   *
+   * `"heavy"` answers from `HEAVY_TABLES` (./seedDataHeavy) instead: the normal
+   * seed PLUS stress content — very long names and titles, 40+ applicants on
+   * one job, 100+ jobs in browse, a 200+ message thread, max-length bios,
+   * emoji and multibyte text, very large money values. Additive: every normal
+   * seed row and id is still present. `true` stays the normal seed.
    */
-  seed?: boolean;
+  seed?: boolean | "heavy";
 }
 
 /**
@@ -285,11 +292,17 @@ export async function installSupabaseMocks(
 
     // 3. PostgREST (table/RPC reads + writes)
     if (url.pathname.startsWith("/rest/v1/")) {
-      return route.fulfill(
-        buildFulfill(
-          honourSingleObject(req.headers(), handleRest(url, method, user, seed, req.postData() ?? null)),
-        ),
+      const headers = req.headers();
+      // `{ count: "exact", head: true }` is a HEAD request. It used to fall
+      // through to the empty default with no Content-Range, so every admin
+      // counter read `count: null` and rendered 0 however many rows the seed
+      // held. Answer it as the GET it summarises, then strip the body.
+      const isHead = method === "HEAD";
+      const resp = honourSingleObject(
+        headers,
+        handleRest(url, isHead ? "GET" : method, user, seed, req.postData() ?? null, headers),
       );
+      return route.fulfill(buildFulfill(withCount(headers, resp, isHead)));
     }
 
     // 4. Edge functions (e.g. complete-signup) — always 200 with an empty
@@ -389,6 +402,25 @@ function honourSingleObject(headers: Record<string, string>, resp: SupabaseRespo
       hint: null,
       message: "JSON object requested, multiple (or no) rows returned",
     },
+  };
+}
+
+/**
+ * `Prefer: count=exact` → PostgREST answers `Content-Range: 0-(n-1)/n`, which
+ * is where supabase-js reads `count`. Without it every `{ count: "exact" }`
+ * caller got `null`.
+ */
+function withCount(headers: Record<string, string>, resp: SupabaseResponse, isHead: boolean): SupabaseResponse {
+  const prefer = headers["prefer"] ?? headers["Prefer"] ?? "";
+  if (!/count=(exact|planned|estimated)/.test(prefer)) {
+    return isHead ? { ...resp, body: "" } : resp;
+  }
+  const n = Array.isArray(resp.body) ? resp.body.length : resp.body == null ? 0 : 1;
+  const range = n === 0 ? "*/0" : `0-${n - 1}/${n}`;
+  return {
+    ...resp,
+    body: isHead ? "" : resp.body,
+    headers: { ...(resp.headers ?? {}), "content-range": range },
   };
 }
 
@@ -530,22 +562,35 @@ function handleRest(
   url: URL,
   method: string,
   user: FakeUser | undefined,
-  seed = false,
+  seed: boolean | "heavy" = false,
   postData: string | null = null,
+  headers: Record<string, string> = {},
 ): SupabaseResponse {
   // /rest/v1/<table>?... or /rest/v1/rpc/<name>
   const parts = url.pathname.replace("/rest/v1/", "").split("/");
   const table = parts[0] ?? "";
+  const tables = seed === "heavy" ? HEAVY_TABLES : SEED_TABLES;
 
   // RPC calls — return null which most RPCs in the codebase tolerate as
   // "no rows" via `data ?? []` or `?? null` patterns.
   if (table === "rpc") {
     const rpcName = parts[1] ?? "";
-    // get_jobs_for_my_applications is called by fetchAppliedActivity to build
-    // the job map that populates `app.job` on each AppliedJobCard. Without it
-    // every card gets job:null and renders as the non-expandable minimal card.
-    if (seed && rpcName === "get_jobs_for_my_applications") {
-      return { status: 200, body: SEED_JOBS };
+    // Seeded answers (see SEED_RPCS in ./seedData). Each is DERIVED from the
+    // table set in use, so an RPC and the rows it summarises cannot disagree —
+    // e.g. get_jobs_for_my_applications builds the job map behind every
+    // AppliedJobCard (without it each card got job:null and rendered as the
+    // minimal card), and get_safe_profiles is how most screens hydrate names.
+    const answer = seed ? SEED_RPCS[rpcName] : undefined;
+    if (answer) {
+      let args: Record<string, unknown> = {};
+      try {
+        const parsed = postData ? JSON.parse(postData) : {};
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) args = parsed;
+      } catch {
+        // GET-style RPC with query-string args, or no body: answer with none.
+        args = Object.fromEntries(url.searchParams.entries());
+      }
+      return { status: 200, body: answer(args, { tables, userId: user?.id ?? null }) };
     }
     return { status: 200, body: null };
   }
@@ -579,7 +624,7 @@ function handleRest(
           .split(",")
           .map((v) => v.replace(/^"|"$/g, "")),
       );
-      const seededPool = (SEED_TABLES.profiles ?? []) as Record<string, unknown>[];
+      const seededPool = (tables.profiles ?? []) as Record<string, unknown>[];
       const all = [
         own,
         ...seededPool.filter((r) => r.user_id !== (own as Record<string, unknown>).user_id),
@@ -593,7 +638,7 @@ function handleRest(
     // .maybeSingle() caller got PGRST116 "Results contain 2 rows". That showed up
     // as "[StrikeBanner] failed to load ban status" on all 29 helper screens and
     // looked like an app bug.
-    const seeded = (SEED_TABLES.profiles ?? []) as Record<string, unknown>[];
+    const seeded = (tables.profiles ?? []) as Record<string, unknown>[];
     const pool = [
       own,
       ...seeded.filter((r) => r.user_id !== (own as Record<string, unknown>).user_id),
@@ -603,6 +648,19 @@ function handleRest(
         (r) => r.user_id === wanted || r.id === wanted,
       );
       return { status: 200, body: hit };
+    }
+    // A LIST read — ordered, or filtered on something other than the owner
+    // (`approval_status=eq.pending`, `ban_status=in.(…)`) — is an admin roster,
+    // not "my profile". Answering those with [own] meant /admin/users showed one
+    // user and every queue counter read 1 however many accounts the seed held.
+    // A `.single()`/`.maybeSingle()` caller is never a list, so it is excluded.
+    const accept = headers["accept"] ?? headers["Accept"] ?? "";
+    const RESERVED_PARAMS = new Set(["select", "limit", "offset", "or", "and"]);
+    const listShaped =
+      !accept.includes("vnd.pgrst.object") &&
+      [...url.searchParams.keys()].some((k) => !RESERVED_PARAMS.has(k));
+    if (listShaped) {
+      return { status: 200, body: applyPostgrestQuery(pool, url) };
     }
     // An UNFILTERED profiles read is essentially always "my own profile", and
     // several callers use .single(). Returning the whole pool made those fail
@@ -659,8 +717,8 @@ function handleRest(
   // Seeded rows for the audit sweep (opt-in via `seed: true`). Checked last,
   // so per-test `rules` and the profiles/user_roles special cases above still
   // win — this only replaces the blanket empty-array fallback.
-  if (seed && method === "GET" && SEED_TABLES[table]) {
-    return { status: 200, body: applyPostgrestQuery(SEED_TABLES[table], url) };
+  if (seed && method === "GET" && tables[table]) {
+    return { status: 200, body: applyPostgrestQuery(tables[table], url) };
   }
 
   // Default empty array for any other SELECT.

@@ -322,6 +322,8 @@ const SNAPSHOT = ({ overlaySel }) => {
 async function main() {
   const BASE = (process.env.BASE ?? "http://127.0.0.1:4173").replace(/\/$/, "");
   const MODE = process.env.MODE ?? "mock";
+  // SEED=heavy → the stress seed (e2e/happy-path/seedDataHeavy.ts). Unset → normal seed.
+  const SEED = process.env.SEED === "heavy" ? "heavy" : true;
   const OUT = process.env.OUT ?? resolve(REPO, "test-results/press-every-control");
   const WIDTH = Number(process.env.WIDTH ?? 375);
   const THEME = process.env.THEME ?? "light";
@@ -414,7 +416,7 @@ async function main() {
 
       if (MODE !== "prod") {
         const rules = persona === "admin" ? [mockTable("user_roles", [{ role: "admin" }])] : [];
-        await installSupabaseMocks(page, { user: personaUser(persona), seed: true, rules });
+        await installSupabaseMocks(page, { user: personaUser(persona), seed: SEED, rules });
       }
 
       const settle = async () => {

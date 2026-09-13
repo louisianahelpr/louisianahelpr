@@ -49,14 +49,16 @@ test.describe("bad actors: IDOR & authz", () => {
     const created = await request.post(`${SUPABASE_URL}/rest/v1/jobs`, {
       headers: { ...posterHeaders, Prefer: "return=representation" },
       data: {
+        customer_id: posterId,
         title: `${E2E_TITLE_MARKER} idor target ${runId}`,
         description: "Unfunded IDOR target; safe to delete.",
         category: "cleaning",
-        parish: "East Baton Rouge",
         budget: 50,
-        payment_type: "fixed",
-        payment_status: "unpaid",
+        location: "Baton Rouge, LA",
+        date_needed: new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10),
         status: "open",
+        payment_status: "unpaid",
+        pricing_mode: "set_price",
         is_seed: true,
       },
     });

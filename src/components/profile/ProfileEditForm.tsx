@@ -1,3 +1,5 @@
+import { FieldError } from "@/components/ui/FieldError";
+import { contactLeakFieldError } from "@/lib/contactLeakField";
 import { useEffect, useState } from "react";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Input } from "@/components/ui/input";
@@ -60,7 +62,10 @@ export function ProfileEditForm({
 }: ProfileEditFormProps) {
   // ID-verification status locals removed with the manual-upload card —
   // Stripe Identity owns that status now (stripe-idv-start / -webhook).
-  const bioOk = bio.trim().length >= 20;
+  // Contact details in a bio never save (rejected server-side, 23514);
+  // show that inline while typing, same as the 20-char floor.
+  const bioLeak = contactLeakFieldError(bio, "bio");
+  const bioOk = bio.trim().length >= 20 && !bioLeak;
   const phoneValid = phone.replace(/\D/g, "").length >= 10;
   const locationValid = location.trim().length > 0;
   // Skills are stored as ONE comma-separated string (profiles.skills) — the
@@ -279,7 +284,10 @@ export function ProfileEditForm({
             placeholder="What you do, tools you bring, what makes you reliable…"
             autoCapitalize="sentences"
             className="min-h-[112px] resize-none text-ds-13 leading-relaxed"
+            aria-invalid={!!bioLeak || undefined}
+            aria-describedby={bioLeak ? "bio-contact-leak" : undefined}
           />
+          <FieldError id="bio-contact-leak">{bioLeak}</FieldError>
           <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Posters read this when deciding who to hire. The more specific, the better.
           </p>

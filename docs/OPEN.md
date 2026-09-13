@@ -14,47 +14,31 @@ fraction of fixing them one report at a time.
 
 ---
 
-## SECURITY — contact-detail smuggling in bios & job descriptions (terminal 7, 2026-09-12)
+## CLOSED 2026-09-13 — contact smuggling in bios/job posts + hyphenated-domain emails (terminal 7)
 
-**Class: contact filter not applied to every user-authored text surface.** The
-server gate `public.contact_leak_reason(text)` is called BEFORE INSERT only on
-`messages` (`scan_message_content`) and `applications`
-(`scan_application_contact_info`). Verified live on 2026-09-12
-(`information_schema.triggers`): there is **no** contact-scan trigger on
-`profiles` or `jobs`. So a phone number, email, or off-platform-payment phrase
-in a **profile bio** or a **job description** is stored verbatim and shown to the
-other party, never flagged — the same disintermediation the message gate exists
-to prevent, on two surfaces that skip it entirely.
+Both SECURITY findings from 2026-09-12 shipped (owner said yes) in
+`supabase/migrations/20260913020635_reject_contact_leaks_in_jobs_and_bios.sql`:
+`contact_leak_reason` email domain widened to `[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}`
+(matches `src/lib/messageScanner.ts`), and BEFORE INSERT/UPDATE triggers on
+`jobs(title, description)` and `profiles(bio)` REJECT a leak (23514,
+user-readable message; universal, no is_seed exemption, fire only when the
+scanned column changes). Client pre-scans the same fields
+(`src/lib/contactLeakField.ts`; post-job title/description, Edit Profile,
+Complete Profile, Signup step 2) and shows a server rejection verbatim.
+Checks: `e2e/journeys/abuse/contact-smuggling.spec.ts` now expects 400 (was
+proving the gap), `src/lib/contactFilterParity.test.ts` locks the widened
+domain on both layers, `scripts/probes/contact-leak-reject.probe.mjs` proves
+old-miss/new-catch, reject/pass and 3x replay in PGlite.
 
-- **Repro (live):** as `poster-e2e`, `POST /rest/v1/jobs` with
-  `description: "Regular text. reach me at 504-555-0100"` → row stored, no
-  `flag_reason`, visible to any selected helper. Same with a `profiles.bio`
-  PATCH containing `"call 504-555-0100 or venmo me"`.
-- **Check (proven able to fail):** `e2e/journeys/abuse/contact-smuggling.spec.ts`
-  asserts the strings are stored verbatim TODAY (documenting the gap); the day a
-  scan trigger is added it flips and forces the assertion to be updated to expect
-  a flag. `src/lib/contactFilterParity.test.ts` locks client↔server parity.
-- **Fix (needs owner OK — trust-surface migration):** add a BEFORE INSERT/UPDATE
-  trigger on `jobs.description` and `profiles.bio` calling `contact_leak_reason`,
-  hiding/flagging on a hit (mirror the messages behaviour). Not applied — this
-  is a prod DDL change on a trust surface; awaiting owner go.
-
-## SECURITY — server contact gate misses hyphenated-domain emails (terminal 7, 2026-09-12)
-
-**Class: client scanner stricter than the authoritative server gate.** The email
-branch of `contact_leak_reason` is `[a-z0-9._]+@[a-z0-9]+\.[a-z]{2,}` — the
-domain label has **no hyphen**, so `jane@my-domain.com` is NOT detected
-server-side. The client `messageScanner.ts` DOES catch it (`[a-zA-Z0-9.-]+`), so
-a normal user is warned — but a **direct-API sender bypasses the client entirely**
-and the message is delivered unflagged. Confirmed by
-`src/lib/contactFilterParity.test.ts` (the `serverLeakReason` replica returns
-null for the hyphenated domain).
-
-- **Fix (small, needs owner OK — trust migration):** widen the server domain to
-  `[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}` and keep the client in sync. Test in
-  place to lock it. Not shipped — trust-function DDL, awaiting owner go.
-- **Documented limitation (both layers):** `"jane (at) gmail (dot) com"` worded
-  obfuscation evades client and server alike; noted, not currently in scope.
+- **Left alone on purpose:** ~60 pre-existing rows (all seed/E2E) already
+  contain flagged text; the trigger only fires when title/description/bio
+  changes, so they are untouched and an unrelated update on them still works.
+  Rewrite or delete them with the next seed refresh if they should go.
+- **Still open (documented limitation):** `"jane (at) gmail (dot) com"` worded
+  obfuscation evades client and server alike.
+- **Marker convention:** every E2E/seed run id inside a title/description is
+  now letter-prefixed base36 (`r${Date.now().toString(36)}`); a bare
+  10+-digit marker reads as a phone number and the trigger rejects the row.
 
 ## Terminal 7 suites shipped (2026-09-12)
 

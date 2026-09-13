@@ -12,8 +12,9 @@ import { hasViolation } from "./messageScanner";
  * silently hidden ("phantom delivery" — see messageScanner.ts header). So on the
  * shared classes the client must be AT LEAST as strict as the server.
  *
- * `serverLeakReason` below is a faithful JS replica of the live function body
- * read via pg_get_functiondef on 2026-09-12. If the DB function changes, this
+ * `serverLeakReason` below is a faithful JS replica of the function body as
+ * shipped in 20260913020635_reject_contact_leaks_in_jobs_and_bios.sql (the
+ * live body read via pg_get_functiondef on 2026-09-12, email domain widened). If the DB function changes, this
  * replica and messageScanner.ts must be updated together; that is the drift this
  * test exists to catch before it reaches prod.
  */
@@ -26,7 +27,7 @@ function serverLeakReason(p: string): string | null {
   const v = normalize(p);
   if (/[0-9]{3}[^0-9a-zA-Z]{0,4}[0-9]{3}[^0-9a-zA-Z]{0,4}[0-9]{4}/i.test(v)) return "phone";
   if (/(zero|one|two|three|four|five|six|seven|eight|nine|oh)([^a-z0-9]+(zero|one|two|three|four|five|six|seven|eight|nine|oh)){6,}/i.test(p)) return "phone";
-  if (/[a-z0-9._]+@[a-z0-9]+\.[a-z]{2,}/i.test(p)) return "email";
+  if (/[a-z0-9._]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}/i.test(p)) return "email";
   if (/\bvenmo\b|\bcashapp\b|\bcash app\b|\bzelle\b|\bpaypal\b|\bapple\s*pay\b|\bgoogle\s*pay\b|\bcrypto\b|\bbitcoin\b|\bbtc\b|\beth\b/i.test(p)) return "payment";
   if (/\bpay me direct\b|\boff the app\b|\boutside the app\b|\bskip the fee\b|\bavoid the fee\b|\bcash only\b|\bin cash\b|\btext me\b|\bcall me\b|\bwhatsapp\b|\btelegram\b|\bdm me\b|\bhit me up\b|\bcontact me at\b|\breach me at\b|\bsend money to\b|\bpay outside\b/i.test(p)) return "direct";
   return null;
@@ -41,6 +42,9 @@ const SERVER_STRIKES = [
   "５０４５５５０１００",
   "one two three four five six seven",
   "email me at jane.doe@gmail.com",
+  "reach me jane@my-domain.com",
+  "mail me at me@mail.example.co.uk",
+  "try first.last@sub-domain.example.org",
   "venmo works",
   "just cashapp me",
   "zelle is fine",
@@ -58,16 +62,17 @@ describe("contact-filter parity: client is at least as strict as the server", ()
   }
 });
 
-describe("contact-filter parity: known SERVER MISSES (SECURITY findings, docs/OPEN.md)", () => {
-  // The server email regex domain is [a-z0-9]+\.[a-z]{2,} — no hyphen — so a
-  // hyphenated domain evades the server gate entirely. A direct-API sender (who
-  // never sees the client warning) can smuggle it into a message unflagged.
-  it("hyphenated-domain email evades the SERVER gate (client catches it)", () => {
-    const smuggle = "reach me jane@my-domain.com";
-    expect(hasViolation(smuggle), "client scanner catches the hyphenated-domain email").toBe(true);
-    // Documents the live gap: when the server is fixed to catch this, flip to not.toBeNull().
-    expect(serverLeakReason(smuggle), "SERVER MISS: hyphenated-domain email is not detected server-side").toBeNull();
-  });
+describe("contact-filter parity: hyphenated / multi-label domains (fixed 2026-09-13)", () => {
+  // The server email regex domain WAS [a-z0-9]+\.[a-z]{2,} — no hyphen, no
+  // subdomain — so `jane@my-domain.com` evaded the server gate entirely.
+  // 20260913020635 widened it to match the client; both layers now catch it
+  // (proven in Postgres by scripts/probes/contact-leak-reject.probe.mjs).
+  for (const smuggle of ["reach me jane@my-domain.com", "me@mail.example.co.uk", "x@a-b-c.dev"]) {
+    it(`both layers catch "${smuggle}"`, () => {
+      expect(hasViolation(smuggle), "client scanner catches it").toBe(true);
+      expect(serverLeakReason(smuggle), "SERVER MISS regressed: hyphenated/multi-label domain not detected").toBe("email");
+    });
+  }
 
   // "user (at) gmail (dot) com" style obfuscation defeats BOTH — noted so the
   // reader knows the boundary of what either layer promises.

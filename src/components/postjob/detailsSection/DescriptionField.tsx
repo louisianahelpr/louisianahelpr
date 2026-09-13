@@ -3,6 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { categoryTemplates, hasUnfilledPlaceholders } from "@/lib/postingTemplates";
 import { DESCRIPTION_MAX } from "./detailsSectionConstants";
 import { FieldError } from "@/components/ui/FieldError";
+import { contactLeakFieldError } from "@/lib/contactLeakField";
 
 interface DescriptionFieldProps {
   description: string;
@@ -22,6 +23,8 @@ export function DescriptionField({
   // a second, competing entry point for the same feature.
   const tpl = categoryTemplates[category];
   const descTrimmed = description.trim();
+  // Same server rule as the title: contact details are rejected on insert.
+  const leak = contactLeakFieldError(description, "job description");
 
   return (
     <div className="space-y-2.5">
@@ -37,7 +40,10 @@ export function DescriptionField({
         rows={4}
         maxLength={DESCRIPTION_MAX}
         autoCapitalize="sentences"
+        aria-invalid={!!leak || undefined}
+        aria-describedby={leak ? "description-contact-leak" : undefined}
       />
+      {leak && <FieldError id="description-contact-leak">{leak}</FieldError>}
       {/* Placeholder guard — a template starter still carries "[…]"
           fill-ins. Flag them inline so the poster swaps in real details
           before the (now-disabled) submit button unlocks (LH-23). */}

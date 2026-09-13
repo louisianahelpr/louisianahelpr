@@ -10,6 +10,7 @@ import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import AppShell from "@/components/AppShell";
 import { toast } from "sonner";
+import { contactLeakFieldError, contactLeakRejectionMessage } from "@/lib/contactLeakField";
 import { setSimpleMode } from "@/lib/simpleMode";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import type { User } from "@supabase/supabase-js";
@@ -387,6 +388,10 @@ const ProfilePage = () => {
     if (!requireOnline()) return;
     if (!user) return;
     const merged = `${firstName.trim()} ${lastName.trim()}`.trim();
+    // Contact details in a bio are REJECTED by the database (23514); the
+    // field shows the same sentence inline, so block before the round-trip.
+    const bioLeak = contactLeakFieldError(bio, "bio");
+    if (bioLeak) { hapticError(); toast.error(bioLeak); return; }
     setSaving(true);
     const { error } = await supabase.from("profiles").update({
       full_name: merged, phone: phone.trim(), location: location.trim(),
@@ -396,7 +401,7 @@ const ProfilePage = () => {
       parish: parish,
     }).eq("user_id", user.id);
     setSaving(false);
-    if (error) { hapticError(); toast.error("We couldn't save your profile — please try again."); }
+    if (error) { hapticError(); toast.error(contactLeakRejectionMessage(error) ?? "We couldn't save your profile — please try again."); }
     else {
       setFullName(merged);
       setJustSaved(true);

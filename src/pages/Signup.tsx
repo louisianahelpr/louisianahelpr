@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { contactLeakFieldError } from "@/lib/contactLeakField";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -189,6 +190,9 @@ const Signup = () => {
     // Bio is optional — but if the user starts one, keep the 20-char floor so
     // a half-typed sentence doesn't ship as their whole profile.
     if (bio.trim().length > 0 && bio.trim().length < 20) errors.bio = "Add at least 20 characters, or leave it blank for now";
+    // Contact details in a bio are rejected by the database (23514) — the
+    // complete-signup function would fail the whole signup on it.
+    else if (contactLeakFieldError(bio, "bio")) errors.bio = contactLeakFieldError(bio, "bio")!;
 
     // Async phone-duplicate check — only runs when all synchronous checks pass,
     // so we don't waste a round-trip when there are obvious local errors.

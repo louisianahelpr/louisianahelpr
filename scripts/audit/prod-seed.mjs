@@ -314,7 +314,7 @@ async function apply() {
       id: sid("job:heavy-big"),
       customer_id: ids.heavy,
       title: LONG("SEED Complete post-hurricane cleanup of a raised Acadian cottage: tear out soaked drywall, haul debris, mold-treat the crawlspace and re-hang every shutter 🌀", 150),
-      description: LONG("SEED audit fixture. The water reached thirty-one inches inside; everything below that line comes out. Référence DOSSIER-FEMA-2026-000000000000000000000000. ", 5000),
+      description: LONG("SEED audit fixture. The water reached thirty-one inches inside; everything below that line comes out. Référence DOSSIER-FEMA-caseAX-QLR. ", 5000),
       category: "storm_prep",
       budget: 5000,
       status: "open",

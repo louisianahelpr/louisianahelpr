@@ -11,6 +11,8 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
+import { contactLeakFieldError, contactLeakRejectionMessage } from "@/lib/contactLeakField";
+import { FieldError } from "@/components/ui/FieldError";
 import { AlertCircle, Camera, Check, Circle, Loader2, ShieldCheck, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { DatePickerField } from "@/components/DatePickerField";
@@ -71,6 +73,8 @@ const CompleteProfile = () => {
     return `That ZIP usually maps to ${resolvedZipParish} Parish, not where ${location.trim()} is (${cityParish.name} Parish) — double check it.`;
   })();
   const [bio, setBio] = useState("");
+  // Contact details in a bio never save (rejected server-side, 23514).
+  const bioLeak = contactLeakFieldError(bio, "bio");
   // Hydrated from profile.accepted_terms_at on mount so users who already
   // accepted (and were bounced back here for some other missing field, or who
   // simply refreshed the page) don't have to re-tick the box.
@@ -312,6 +316,9 @@ const CompleteProfile = () => {
     // profile completion and deferred to first-post / IDV (matches the
     // signup gate, which stopped collecting it).
     if (!acceptedPolicies) return fail("Check the box to agree to the platform rules and terms.");
+    // Contact details in a bio are REJECTED by the database (23514); the
+    // field already says so inline — block before the round-trip.
+    if (bioLeak) return fail(bioLeak);
 
     setSubmitting(true);
     try {
@@ -503,10 +510,13 @@ const CompleteProfile = () => {
         // A silently-rejected write gets its own sentence (the row wasn't
         // ours / wasn't there); everything else keeps the human fallback so a
         // raw PostgREST code never reaches the one screen a user cannot leave.
+        // The contact-leak trigger's message is the one server text shown
+        // verbatim: written for the user, names the field.
         toast.error(
-          isWriteRejected(err)
-            ? mutationErrorMessage(err)
-            : err?.message || "We couldn't save your profile just yet — give it another try.",
+          contactLeakRejectionMessage(err)
+            ?? (isWriteRejected(err)
+              ? mutationErrorMessage(err)
+              : err?.message || "We couldn't save your profile just yet — give it another try."),
         );
       }
     } finally {
@@ -833,7 +843,10 @@ const CompleteProfile = () => {
                 onChange={(e) => setBio(e.target.value)}
                 autoCapitalize="sentences"
                 className="rounded-ds-md"
+                aria-invalid={!!bioLeak || undefined}
+                aria-describedby={bioLeak ? "bio-contact-leak" : undefined}
               />
+              <FieldError id="bio-contact-leak">{bioLeak}</FieldError>
               <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 You can always add this later from your profile.
               </p>

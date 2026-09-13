@@ -160,7 +160,9 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
   }) => {
     test.setTimeout(10 * 60_000);
     const poster = await getSession(request, "poster");
-    const runId = `${Date.now()}`;
+    // Non-numeric: the jobs contact-leak reject trigger reads a bare digit run
+    // in a title as a phone number, so use base36 with a letter prefix.
+    const runId = `r${Date.now().toString(36)}`;
 
     async function postJob(date: string, start: string, label: string) {
       const expires = ct(date, start).toISOString();

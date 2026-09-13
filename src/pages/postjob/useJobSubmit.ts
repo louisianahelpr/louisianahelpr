@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
 import { safeStorage } from "@/lib/safeStorage";
+import { contactLeakFieldError, contactLeakRejectionMessage } from "@/lib/contactLeakField";
 import { TITLE_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { report } from "@/lib/errorLogger";
 import { requireOnline } from "@/lib/requireOnline";
@@ -194,7 +195,18 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       scrollToField("title");
       return;
     }
+    // Contact details in a post are REJECTED by the database (23514, see
+    // contactLeakField.ts); the fields already show the inline error, so
+    // block here with the same sentence instead of at checkout.
+    {
+      const titleLeak = contactLeakFieldError(title, "job title");
+      if (titleLeak) { toast.error(titleLeak); scrollToField("title"); return; }
+    }
     if (!description.trim()) { toast.error("Add a description."); scrollToField("description"); return; }
+    {
+      const descLeak = contactLeakFieldError(description, "job description");
+      if (descLeak) { toast.error(descLeak); scrollToField("description"); return; }
+    }
     if (hasUnfilledPlaceholders(description)) { toast.error("Replace the [bracketed] placeholders with your own details before posting."); scrollToField("description"); return; }
     if (!category) { toast.error("Pick a category."); scrollToField("category-picker"); return; }
     // Photo is optional — a photo dramatically improves applicant count and
@@ -447,11 +459,16 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       // jobs", which tells a poster nothing they can act on and reads like the
       // app is broken. 42501 here means a server-side gate the client thought
       // it had already cleared — in practice the identity check — so say that.
+      // A contact-leak rejection is the ONE server message shown verbatim:
+      // the trigger writes it for the user and names the field.
       const isPolicyRefusal = (error as { code?: string } | null)?.code === "42501";
+      const leakRejection = contactLeakRejectionMessage(error);
       toast.error(
-        isPolicyRefusal
-          ? "We couldn't post this because your account isn't cleared to post yet. Check your identity verification in Profile, then try again."
-          : error?.message || "Couldn't post your job just yet — give it another try?",
+        leakRejection
+          ? leakRejection
+          : isPolicyRefusal
+            ? "We couldn't post this because your account isn't cleared to post yet. Check your identity verification in Profile, then try again."
+            : error?.message || "Couldn't post your job just yet — give it another try?",
       );
       setSaving(false);
       submittingRef.current = false;

@@ -466,7 +466,9 @@ test.describe("full money loop against production", () => {
     // own coverage lives in the mocked happy-path suite
     // (customer-post-job.spec.ts); what is unmocked here is everything
     // downstream of the row existing.
-    const runId = `${Date.now()}-${process.env.GITHUB_RUN_ID ?? "local"}`;
+    // Letter-prefixed base36, never bare digits: the jobs contact-leak reject
+    // trigger reads a 10+-digit run in a title as a phone number.
+    const runId = `r${Date.now().toString(36)}-${process.env.GITHUB_RUN_ID ? `g${Number(process.env.GITHUB_RUN_ID).toString(36)}` : "local"}`;
     const created = await request.post(`${SUPABASE_URL}/rest/v1/jobs`, {
       headers: { ...rest(poster), Prefer: "return=representation" },
       data: {

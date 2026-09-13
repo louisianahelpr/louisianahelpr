@@ -3,16 +3,17 @@ import { test, expect, getSession, rest, sessionsAvailable, SUPABASE_URL, E2E_TI
 /**
  * BAD ACTORS — contact-detail smuggling (terminal 7).
  *
- * The server gate is public.contact_leak_reason(text), called BEFORE INSERT by
- * scan_message_content (messages) and scan_application_contact_info
- * (applications). Live on 2026-09-12, information_schema.triggers shows NO
- * contact-scan trigger on `profiles` or `jobs`, so a phone/email/off-platform
- * string in a BIO or a JOB DESCRIPTION is stored verbatim and shown to the other
- * party — undetected. This spec proves that live (the SECURITY finding in
- * docs/OPEN.md) and exercises the message gate where a funded thread exists.
+ * The server gate is public.contact_leak_reason(text). Messages and
+ * applications are scanned-and-hidden (scan_message_content,
+ * scan_application_contact_info). Since 20260913020635, job titles/descriptions
+ * and profile bios are scanned too, and a leak there is REJECTED outright
+ * (check_violation, 23514 → PostgREST 400 with the trigger's message) — a post
+ * or a bio has no recipient to hide it from. Before that migration these were
+ * stored verbatim (the SECURITY finding in docs/OPEN.md, now closed); this spec
+ * is the live regression check on prod with the shared test accounts.
  *
- * Verification is live: after each write we read the stored row back and check
- * whether the gate acted (flagged_hidden / flag_reason), never trusting the UI.
+ * Verification is live: we look at the REST status + body and read the row back,
+ * never trusting the UI.
  */
 
 const avail = sessionsAvailable();
@@ -45,32 +46,37 @@ test.describe("bad actors: contact smuggling", () => {
   });
 
   for (const s of SMUGGLES) {
-    test(`job description smuggling is UNFILTERED server-side: ${s.label}`, async ({ request }) => {
+    test(`job description smuggling is REJECTED server-side: ${s.label}`, async ({ request }) => {
       const created = await request.post(`${SUPABASE_URL}/rest/v1/jobs`, {
         headers: { ...posterHeaders, Prefer: "return=representation" },
         data: {
+          customer_id: posterId,
           title: `${E2E_TITLE_MARKER} smuggle ${s.label} ${runId}`,
           description: `Regular job text. ${s.text}`,
           category: "cleaning",
-          parish: "East Baton Rouge",
           budget: 50,
-          payment_type: "fixed",
-          payment_status: "unpaid",
+          location: "Baton Rouge, LA",
+          date_needed: new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10),
           status: "open",
+          payment_status: "unpaid",
+          pricing_mode: "set_price",
           is_seed: true,
         },
       });
-      expect(created.ok(), `job insert failed: ${created.status()} ${await created.text()}`).toBe(true);
-      const row = (await created.json())[0] as { id: string; description: string };
-      createdJobs.push(row.id);
-      // The contact string is stored verbatim — there is no jobs description scan.
-      // This is the SECURITY finding; the assertion documents the gap so the day a
-      // scan trigger is added, this test flips and must be updated to expect a flag.
-      expect(row.description, `job description scan now exists — update this finding (${s.label})`).toContain(s.text);
+      const body = await created.text();
+      if (created.ok()) {
+        // The gate is gone: clean up the row so the leak is not left on prod.
+        const row = (JSON.parse(body) as Array<{ id: string }>)[0];
+        if (row?.id) createdJobs.push(row.id);
+      }
+      expect(created.status(), `SECURITY: a ${s.label} in a job description was STORED, not rejected: ${body}`).toBe(400);
+      expect(body, "the rejection should carry the trigger's user-readable message").toMatch(/detected in the job description/i);
+      const stored = await request.get(`${SUPABASE_URL}/rest/v1/jobs?customer_id=eq.${posterId}&title=ilike.*smuggle ${s.label} ${runId}*&select=id`, { headers: posterHeaders }).then((r) => r.json());
+      expect(stored, "no row must exist after a rejected insert").toEqual([]);
     });
   }
 
-  test("profile bio smuggling is UNFILTERED server-side", async ({ request }) => {
+  test("profile bio smuggling is REJECTED server-side", async ({ request }) => {
     // Read the current bio, write a smuggled one, read it back, then restore.
     const key = `bio`;
     const before = (await request.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${posterId}&select=${key}`, { headers: posterHeaders }).then((r) => r.json()))[0]?.[key] ?? null;
@@ -80,11 +86,13 @@ test.describe("bad actors: contact smuggling", () => {
       data: { [key]: smuggled },
     });
     try {
-      expect(upd.ok(), `bio update failed: ${upd.status()} ${await upd.text()}`).toBe(true);
-      const after = (await upd.json())[0]?.[key];
-      expect(after, "profile bio scan now exists — update this finding").toBe(smuggled);
+      const body = await upd.text();
+      expect(upd.status(), `SECURITY: a phone number + venmo in a bio was STORED, not rejected: ${body}`).toBe(400);
+      expect(body, "the rejection should carry the trigger's user-readable message").toMatch(/detected in your bio/i);
+      const after = (await request.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${posterId}&select=${key}`, { headers: posterHeaders }).then((r) => r.json()))[0]?.[key] ?? null;
+      expect(after, "bio must be unchanged after a rejected update").toBe(before);
     } finally {
-      // Restore the original bio no matter what.
+      // Restore the original bio no matter what (a no-op when the gate held).
       await request.patch(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${posterId}`, { headers: posterHeaders, data: { [key]: before } });
     }
   });

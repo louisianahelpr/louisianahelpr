@@ -2,6 +2,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check } from "lucide-react";
 import { TITLE_MAX, titlePlaceholders } from "./detailsSectionConstants";
+import { FieldError } from "@/components/ui/FieldError";
+import { contactLeakFieldError } from "@/lib/contactLeakField";
 
 interface TitleFieldProps {
   title: string;
@@ -32,7 +34,10 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
   // also showed a green tick and the word DONE. Three affirmative signals and
   // one quiet numeric one. Say it plainly instead.
   const overLimit = title.length > TITLE_MAX;
-  const valid = title.trim().length > 0 && !overLimit;
+  // The database rejects a title carrying contact details (23514); say so
+  // here, while it is still being typed, rather than on a failed post.
+  const leak = contactLeakFieldError(title, "job title");
+  const valid = title.trim().length > 0 && !overLimit && !leak;
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
@@ -73,8 +78,8 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
           maxLength={TITLE_MAX}
           autoCapitalize="sentences"
           enterKeyHint="next"
-          aria-invalid={overLimit || undefined}
-          aria-describedby={overLimit ? "title-too-long" : undefined}
+          aria-invalid={overLimit || !!leak || undefined}
+          aria-describedby={overLimit ? "title-too-long" : leak ? "title-contact-leak" : undefined}
         />
       </div>
       {overLimit && (
@@ -82,6 +87,7 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
           Shorten this to {TITLE_MAX} characters — it's {title.length - TITLE_MAX} too long.
         </p>
       )}
+      {!overLimit && leak && <FieldError id="title-contact-leak">{leak}</FieldError>}
     </div>
   );
 }

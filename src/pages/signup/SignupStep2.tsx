@@ -209,7 +209,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <div className="space-y-2">
             <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
             <div className="relative">
-              <Input id="firstName" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required aria-required="true" autoComplete="given-name" autoCapitalize="words" aria-invalid={!!fieldErrors.firstName} aria-describedby={fieldErrors.firstName ? "firstName-error" : undefined} className={`${inputCls}${firstNameValid && !fieldErrors.firstName ? " pr-10" : ""}${fieldErrors.firstName ? " border-destructive" : ""}`} />
+              <Input id="firstName" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required aria-required="true" autoComplete="given-name" autoCapitalize="words" aria-invalid={!!fieldErrors.firstName} aria-describedby={fieldErrors.firstName ? "firstName-error" : undefined} className={`${inputCls}${firstNameValid && !fieldErrors.firstName ? " pr-8" : ""}${fieldErrors.firstName ? " border-destructive" : ""}`} />
               {firstNameValid && !fieldErrors.firstName && (
                 <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
               )}
@@ -219,7 +219,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <div className="space-y-2">
             <Label htmlFor="lastName" className={labelCls}>Last name <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
             <div className="relative">
-              <Input id="lastName" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required aria-required="true" autoComplete="family-name" autoCapitalize="words" aria-invalid={!!fieldErrors.lastName} aria-describedby={fieldErrors.lastName ? "lastName-error" : undefined} className={`${inputCls}${lastNameValid && !fieldErrors.lastName ? " pr-10" : ""}${fieldErrors.lastName ? " border-destructive" : ""}`} />
+              <Input id="lastName" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required aria-required="true" autoComplete="family-name" autoCapitalize="words" aria-invalid={!!fieldErrors.lastName} aria-describedby={fieldErrors.lastName ? "lastName-error" : undefined} className={`${inputCls}${lastNameValid && !fieldErrors.lastName ? " pr-8" : ""}${fieldErrors.lastName ? " border-destructive" : ""}`} />
               {lastNameValid && !fieldErrors.lastName && (
                 <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
               )}
@@ -288,7 +288,7 @@ export function SignupStep2(props: SignupStep2Props) {
                 maxLength={14}
                 aria-invalid={!!fieldErrors.phone}
                 aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
-                className={`${inputCls} pl-9${phoneValid && !fieldErrors.phone ? " pr-10" : ""}${fieldErrors.phone ? " border-destructive" : ""}`}
+                className={`${inputCls} pl-9${phoneValid && !fieldErrors.phone ? " pr-8" : ""}${fieldErrors.phone ? " border-destructive" : ""}`}
               />
               {phoneValid && !fieldErrors.phone && (
                 <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
@@ -305,15 +305,18 @@ export function SignupStep2(props: SignupStep2Props) {
             enough to collect here. Colocating it in signup means an email
             signup satisfies CompleteProfile's full gate immediately and
             never sees /complete-profile at all. */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="col-span-2 space-y-2">
+        {/* City takes what is left; ZIP is a fixed 7rem so five digits
+            plus the valid ✓ fit at 320-430 (a third of the row was 85px at 375,
+            and with the check's padding the value read "705", 2026-09-12). */}
+        <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
+          <div className="space-y-2">
             <Label htmlFor="location" className={labelCls}>City <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
             <div className="relative">
               <CityAutocomplete
                 id="location"
                 value={location}
                 onChange={(v) => { setLocation(v); clearFieldError?.("location"); }}
-                className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`}
+                className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-8" : ""}${fieldErrors.location ? " border-destructive" : ""}`}
               />
               {locationValid && !fieldErrors.location && (
                 <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
@@ -348,7 +351,7 @@ export function SignupStep2(props: SignupStep2Props) {
                 placeholder="70801"
                 aria-invalid={!!fieldErrors.zipCode}
                 aria-describedby={fieldErrors.zipCode ? "zipCode-error" : undefined}
-                className={`${inputCls}${fieldErrors.zipCode ? " border-destructive" : ""}${zipRecognised ? " pr-10" : ""}`}
+                className={`${inputCls}${fieldErrors.zipCode ? " border-destructive" : ""}${zipRecognised ? " pr-8" : ""}`}
               />
               {zipRecognised && zipCode.length === 5 && !zipUnknown && (
                 <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />

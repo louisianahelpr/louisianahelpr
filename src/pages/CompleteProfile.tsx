@@ -693,7 +693,7 @@ const CompleteProfile = () => {
                     autoCapitalize="words"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className={`rounded-ds-md ${firstNameValid ? "pr-10" : ""}`}
+                    className={`rounded-ds-md text-ellipsis ${firstNameValid ? "pr-8" : ""}`}
                   />
                   {firstNameValid && (
                     <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
@@ -709,7 +709,7 @@ const CompleteProfile = () => {
                     autoCapitalize="words"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className={`rounded-ds-md ${lastNameValid ? "pr-10" : ""}`}
+                    className={`rounded-ds-md text-ellipsis ${lastNameValid ? "pr-8" : ""}`}
                   />
                   {lastNameValid && (
                     <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
@@ -750,7 +750,7 @@ const CompleteProfile = () => {
                   maxLength={14}
                   value={phone}
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
-                  className={`rounded-ds-md ${phoneValid ? "pr-10" : ""}`}
+                  className={`rounded-ds-md text-ellipsis ${phoneValid ? "pr-8" : ""}`}
                 />
                 {phoneValid && (
                   <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
@@ -758,8 +758,11 @@ const CompleteProfile = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2 space-y-1.5">
+            {/* City takes what is left; ZIP is a fixed 7rem so five digits
+                plus the valid ✓ fit at 320-430 (a third of the row was 85px at 375,
+                and with the check's padding the value read "705", 2026-09-12). */}
+            <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
+              <div className="space-y-1.5">
                 <Label htmlFor="city">City <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
                 {/* CityAutocomplete is the same combobox used on the
                     Post-a-Task form. It nudges the user toward canonical
@@ -771,7 +774,7 @@ const CompleteProfile = () => {
                     id="city"
                     value={location}
                     onChange={setLocation}
-                    className={`rounded-ds-md ${cityValid ? "pr-10" : ""}`}
+                    className={`rounded-ds-md text-ellipsis ${cityValid ? "pr-8" : ""}`}
                   />
                   {cityValid && (
                     <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
@@ -796,7 +799,7 @@ const CompleteProfile = () => {
                     autoComplete="postal-code"
                     maxLength={5}
                     placeholder="70801"
-                    className={`rounded-ds-md ${zipValid ? "pr-10" : ""}`}
+                    className={`rounded-ds-md text-ellipsis ${zipValid ? "pr-8" : ""}`}
                   />
                   {zipValid && (
                     <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />

@@ -483,7 +483,7 @@ const Signup = () => {
   // read as one set. (The `pl-10`/`pr-10` icon padding is appended at each
   // call site, mirroring Login.)
   const inputCls =
-    "rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]";
+    "rounded-ds-md text-ellipsis bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]";
   const labelCls = "text-ds-13 font-sans font-medium";
 
   // Subtitles only where they carry information. Step 1 drops its

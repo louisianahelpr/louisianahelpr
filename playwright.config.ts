@@ -113,7 +113,7 @@ export default defineConfig({
       name: "chromium",
       // The default deployed-env suite — excludes happy-path/* which
       // requires the local preview server to be running.
-      testIgnore: /happy-path\//,
+      testIgnore: /(happy-path|journeys\/interruptions)\//,
       use: { ...devices["Desktop Chrome"] },
     },
     {
@@ -138,6 +138,23 @@ export default defineConfig({
         // page.route() mocks can handle them. Without this the SW's
         // NetworkFirst handler calls the real Supabase URL with our fake test
         // tokens, gets 401s, and the /my-posts job list never renders.
+        serviceWorkers: "block",
+      },
+    },
+    {
+      // Interruption journeys: back, refresh, double-tap, offline, slow network,
+      // session expiry, deep links, two tabs. Mocked Supabase, same preview
+      // server and phone viewport as happy-path. Nightly: e2e-interruptions.yml.
+      name: "interruptions",
+      testDir: "./e2e/journeys/interruptions",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 375, height: 812 },
+        isMobile: false,
+        hasTouch: true,
+        userAgent:
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+        baseURL: HAPPY_PATH_BASE_URL,
         serviceWorkers: "block",
       },
     },

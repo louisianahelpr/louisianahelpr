@@ -50,6 +50,8 @@
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",
     "vercel.json": "node scripts/check-vercel-config.mjs",
+    "*.{png,jpg,jpeg,gif,webp,avif,mp4,mov,webm,pdf,ico,ttf,otf,woff,woff2,zip,gz}":
+      "node scripts/check-asset-weight.mjs",
     ".claude/**/*.md": "node scripts/check-agent-refs.mjs",
     "CLAUDE.md": [
       "node scripts/check-agent-refs.mjs",

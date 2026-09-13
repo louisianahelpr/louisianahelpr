@@ -124,6 +124,33 @@ jobs:
         # It has done exactly that three times. Offline, milliseconds.
         run: node scripts/check-vercel-config.mjs
 
+      - name: No oversized binary enters git history
+        # A disk audit on 2026-09-13 found 322MB of media in the pack that no
+        # commit still references — one hero image alone was 13.4MB across six
+        # revisions. Deleting the files reclaims nothing; only a history rewrite
+        # does, and that needs a force-push past every live worktree. So the
+        # only cheap moment is before the blob lands, and the pre-commit hook
+        # that also checks this is skippable (--no-verify, bypassed hooksPath).
+        #
+        # Judges only files the push/PR ADDS or MODIFIES, so the thirteen
+        # already-oversized files cannot make this red on arrival. When the base
+        # SHA is unavailable (a brand-new branch) it reports instead of failing,
+        # rather than inventing a comparison.
+        run: |
+          BASE="${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "::notice::no base SHA for this event — reporting existing offenders instead"
+            node scripts/check-asset-weight.mjs --all
+          else
+            git fetch --no-tags --depth=1 origin "$BASE" 2>/dev/null || git fetch --no-tags --deepen=50 || true
+            if git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+              node scripts/check-asset-weight.mjs --base "$BASE"
+            else
+              echo "::notice::base $BASE not fetchable — reporting instead of guessing"
+              node scripts/check-asset-weight.mjs --all
+            fi
+          fi
+
       - name: CLAUDE.md claims are still true
         # CLAUDE.md is a mirror of reality with no freshness guard — the same
         # shape as types.ts, and it drifted the same way. Two of its statements

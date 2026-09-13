@@ -98,6 +98,19 @@ const landedFromRecentRecoveryReload = (): boolean => {
   }
 };
 
+/** Longest a single purge step (SW unregister, cache delete) may block the reload. */
+export const PURGE_STEP_TIMEOUT_MS = 3000;
+
+/** Undo one spent attempt (recovery aborted before any reload happened). */
+const refundAttempt = (): void => {
+  try {
+    const n = Number(sessionStorage.getItem(RELOAD_COUNT) || "0") || 0;
+    if (n > 0) sessionStorage.setItem(RELOAD_COUNT, String(n - 1));
+  } catch {
+    /* no storage: nothing was persisted, nothing to refund */
+  }
+};
+
 let pendingRetry:ReturnType<typeof setTimeout> | null = null;
 
 /**
@@ -147,19 +160,31 @@ export const hardReloadBypassCache = async () => {
   // Offline is not recoverable by reloading, so the honest response is to do
   // nothing here and let the caller fall through to its normal error UI —
   // which is the in-app offline state, or offline.html on a cold navigation.
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    // The caller already spent an attempt and may be showing "updating".
+    // Give the attempt back so going offline mid-recovery does not use up
+    // the retry budget for when the network returns.
+    refundAttempt();
+    return;
+  }
+  // A hung unregister or cache delete must not strand the page on
+  // "updating": each purge step gets a bounded wait, then we reload anyway.
+  const bounded = (p: Promise<unknown>) =>
+    Promise.race([p, new Promise((r) => setTimeout(r, PURGE_STEP_TIMEOUT_MS))]);
   try {
     if ("serviceWorker" in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map((r) => r.unregister().catch(() => null)));
+      await bounded(
+        navigator.serviceWorker.getRegistrations().then((regs) =>
+          Promise.all(regs.map((r) => r.unregister().catch(() => null))),
+        ),
+      );
     }
   } catch {
     /* swallow — proceed to caches + reload */
   }
   try {
     if ("caches" in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k).catch(() => null)));
+      await bounded(caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k).catch(() => null)))));
     }
   } catch {
     /* swallow — proceed to reload */

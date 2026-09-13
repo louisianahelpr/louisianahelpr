@@ -6,6 +6,8 @@ import {
   CHUNK_RELOAD_MAX_ATTEMPTS,
   __resetChunkReloadForTests,
   markChunkLoadSucceeded,
+  PURGE_STEP_TIMEOUT_MS,
+  hardReloadBypassCache,
   recoverFromChunkError,
 } from "./chunkReload";
 
@@ -166,5 +168,31 @@ describe("recoverFromChunkError", () => {
     expect(recoverFromChunkError()).toBe(false);
     await flush();
     expect(replace).not.toHaveBeenCalled();
+  });
+});
+
+describe("hardReloadBypassCache follow-ups", () => {
+  it("a hung cache delete does not strand the page: the reload still happens after the step timeout", async () => {
+    const hung = new Promise<boolean>(() => {});
+    Object.defineProperty(window, "caches", {
+      value: { keys: async () => ["precache"], delete: () => hung },
+      configurable: true,
+    });
+    void hardReloadBypassCache();
+    await flush();
+    expect(replace).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(PURGE_STEP_TIMEOUT_MS + 10);
+    await flush();
+    expect(replace).toHaveBeenCalledTimes(1);
+    // @ts-expect-error test cleanup
+    delete window.caches;
+  });
+
+  it("going offline between the attempt and the reload refunds the attempt", async () => {
+    sessionStorage.setItem("helpr_chunk_reload_count", "1");
+    setOnline(false);
+    await hardReloadBypassCache();
+    expect(replace).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("helpr_chunk_reload_count")).toBe("0");
   });
 });

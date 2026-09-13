@@ -157,6 +157,26 @@ Find both and make one authoritative.
 - **No pre-expiry warning** on an accepted job — `AppliedJobCard` passes
   `expiresAt` only while pending, so the ghosting clock is invisible until it
   fires.
+- **Complete Profile: input values clipped by the check icon at every phone
+  width** (prod, 2026-09-12, Chromium + WebKit). `48b0d9b23` added the ZIP
+  check with `pr-10`; at 375 the ZIP field leaves 29px for a 48px value and
+  prod shows "705"/"528" (320→11px, 390→34px, 430→47px, all <48). Same class
+  hits Last name ("Incomplet"). Edit Profile got a fixed ZIP column in
+  `41cacda14`; Complete Profile did not. Repro: `admin-e2e`/`incomplete-e2e`
+  sessions, `/complete-profile` at 375.
+- **PostJob `PhotoUpload` focus ring never paints.** `dbed7befd` added
+  `focus-within:ring-2`, but the label's inline `style={{ boxShadow: "inset …" }}`
+  (`src/components/postjob/detailsSection/PhotoUpload.tsx` ~139-143, ~227-231)
+  overrides Tailwind's ring (also box-shadow). Keyboard users get a named,
+  focusable picker with no visible focus. Measured on prod 2026-09-12.
+- **A brand-new account is asked to "Re-Agree"** — `TermsReconsentDialog`
+  opens for a profile that never accepted any version (`terms_version_accepted`
+  empty), on top of the Complete Profile gate. Copy says "re-agree" and
+  "material update" to someone seeing the Terms for the first time. Seed
+  accounts now pre-accept in `prod-seed.mjs` so the sweep gets past it.
+- **Still unverified on prod after today's `dbed7befd`:** `role="img"` spans
+  (no urgent/boosted/just-posted/pinned rows were live), admin KPI tile height
+  + fraud-filter select 44px (now reachable via `admin-e2e`).
 
 ## Conventions half-applied
 - **× vs labelled cancel.** `dialog.tsx` auto-hides the × when a

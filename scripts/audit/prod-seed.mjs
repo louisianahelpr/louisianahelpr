@@ -35,6 +35,9 @@
  *    `@mailinator.com` domain is what `is_seed` backfill keys on) and are
  *    created through the GoTrue admin API, as
  *    scripts/create-app-review-demo-account.mjs does. No password is set.
+ *    Exception: the admin account is `@louisianahelpr.com`, because
+ *    trg_no_admin_for_disposable_email refuses the admin role on a public
+ *    inbox; the script sets is_seed explicitly, so the domain does not matter.
  *  - Every row id is a deterministic UUID derived from a stable key, so
  *    --apply upserts the same rows and --teardown deletes exactly them.
  *  - Disputes go through `rpc_open_dispute` / `rpc_withdraw_dispute` signed in
@@ -131,6 +134,12 @@ const OWNED = {
   denied: { email: "helpr-seed-denied-0912@mailinator.com", full_name: "Seed Denied Tester", approval_status: "denied", ban_status: "active", denial_reason: "SEED: ID photo unreadable (audit fixture)." },
   banned: { email: "helpr-seed-banned-0912@mailinator.com", full_name: "Seed Banned Tester", approval_status: "approved", ban_status: "permanently_banned" },
   restricted: { email: "helpr-seed-restricted-0912@mailinator.com", full_name: "Seed Restricted Tester", approval_status: "approved", ban_status: "temp_banned" },
+  // Profile deliberately INCOMPLETE (no avatar, not legacy) so /complete-profile
+  // actually renders for the sweep instead of redirecting to the dashboard.
+  incomplete: { email: "helpr-seed-incomplete-0912@mailinator.com", full_name: "Seed Incomplete Tester", approval_status: "approved", ban_status: "active", profile: { avatar_url: null, is_legacy_user: false } },
+  // Admin role (one user_roles row, upserted on --apply, deleted on --teardown)
+  // so the admin screens can be swept on prod. Owner-approved 2026-09-12.
+  admin: { email: "helpr-seed-admin-0912@louisianahelpr.com", full_name: "Seed Admin Tester", approval_status: "approved", ban_status: "active", role: "admin" },
   heavy: { email: "helpr-seed-heavy-0912@mailinator.com", full_name: "Marie-Thérèse Boudreaux-Fontenot de la Houssaye 🦞 (Seed Heavy)", approval_status: "approved", ban_status: "active" },
 };
 const APPLICANT_COUNT = 45;
@@ -199,6 +208,10 @@ async function ensureOwnedAccount(key, spec) {
     bio: key === "heavy" || key.startsWith("applicant") ? BIO_1000 : "SEED audit fixture account.",
     phone: "5045550199",
     date_of_birth: "1990-01-01",
+    // Pre-accept the current Terms (src/lib/consent.ts LATEST_TERMS_VERSION) so
+    // TermsReconsentDialog does not cover every screen the sweep opens.
+    terms_version_accepted: "Jun 2026",
+    terms_accepted_at: new Date().toISOString(),
     location: "Lafayette, LA",
     avatar_url: PIXEL,
     id_document_url: PIXEL,
@@ -207,6 +220,7 @@ async function ensureOwnedAccount(key, spec) {
     denial_reason: spec.denial_reason ?? null,
     auto_suspended_until: key === "restricted" ? new Date(Date.now() + 30 * 86_400_000).toISOString() : null,
     email_verified: true,
+    ...(spec.profile ?? {}),
   };
   await rest("PATCH", `profiles?user_id=eq.${user.id}`, patch, { prefer: "return=minimal" });
   return user.id;
@@ -285,6 +299,7 @@ async function apply() {
     if (!p[0]?.is_seed) throw new Error(`REFUSED: created account ${key} is not is_seed`);
   }
   console.log(`accounts: poster, helper + ${Object.keys(ids).length} owned seed accounts`);
+  await upsert("user_roles", Object.entries(OWNED).filter(([, s]) => s.role).map(([k, s]) => ({ id: sid(`role:${k}`), user_id: ids[k], role: s.role })));
 
   // Jobs: open + unpaid (invisible to guest browse) and pending_approval.
   const jobBase = { description: "SEED audit fixture — not a real job.", location: "Lafayette, LA", parish: null, date_needed: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10), pricing_mode: "set_price", payment_status: "unpaid", is_seed: true }; // explicit: enforce_jobs_insert_column_lock derives is_seed only for auth.uid() inserts, a service-role insert keeps the default false
@@ -506,6 +521,7 @@ async function teardown() {
   if (disputed.length) await del("notifications", `user_id=${pairIn}&job_id=${inList(disputed.map((d) => d.job_id))}&title=eq.${encodeURIComponent("A dispute was opened")}`);
   const ownedIds = Object.values(owned);
   if (ownedIds.length) {
+    await del("user_roles", `user_id=${inList(ownedIds)}`);
     for (const t of ["user_bans", "user_violations", "fraud_flags", "notifications", "messages"]) {
       await del(t, `${t === "messages" ? "sender_id" : "user_id"}=${inList(ownedIds)}`);
     }
@@ -567,6 +583,8 @@ async function verify() {
   for (const [k, spec] of Object.entries({ pending: OWNED.pending, denied: OWNED.denied, banned: OWNED.banned, restricted: OWNED.restricted })) {
     await check(`account ${k} (is_seed)`, `profiles?email=eq.${encodeURIComponent(spec.email)}&is_seed=eq.true&approval_status=eq.${spec.approval_status}&ban_status=eq.${spec.ban_status}&select=user_id`, 1);
   }
+  await check("account incomplete profile (seed, not legacy)", `profiles?email=eq.${encodeURIComponent(OWNED.incomplete.email)}&is_seed=eq.true&avatar_url=is.null&is_legacy_user=eq.false&select=user_id`, 1);
+  await check("account admin role (seed)", `user_roles?id=eq.${sid("role:admin")}&role=eq.admin&select=id`, 1);
   await check("account without Stripe (seed)", `profiles?is_seed=eq.true&stripe_account_id=is.null&select=user_id`, 1);
   await check("account with Stripe (seed)", `profiles?is_seed=eq.true&stripe_account_id=not.is.null&select=user_id`, 1, "real flow");
   await check("IDV not verified (seed)", `profiles?is_seed=eq.true&idv_status=neq.verified&select=user_id`, 1);

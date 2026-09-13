@@ -87,6 +87,19 @@ const ACCOUNTS = {
     userId: "437de07d-1bd7-46c8-a451-6b46aa3bcad5",
     label: "E2E helper 0902 (counterparty to poster-e2e)",
   },
+  // Created and removed by scripts/audit/prod-seed.mjs (--apply / --teardown),
+  // so the auth id is not stable: generate_link returns it and takes
+  // precedence over `userId` below.
+  "incomplete-e2e": {
+    email: "helpr-seed-incomplete-0912@mailinator.com",
+    userId: null,
+    label: "Seed account with an INCOMPLETE profile (no avatar, not legacy) — /complete-profile renders",
+  },
+  "admin-e2e": {
+    email: "helpr-seed-admin-0912@louisianahelpr.com",
+    userId: null,
+    label: "Seed account holding the admin role (user_roles row) — sweeps /admin",
+  },
 };
 
 /** Every address this script will ever mint for. Nothing else is permitted. */

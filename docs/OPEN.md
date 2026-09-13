@@ -1658,3 +1658,8 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] Messy-input specs (1eb8e7caf), deep-link interruptions (c4a52d937 WIP), keyboard journeys (a23bcb847 WIP): migrate to prod before extending.
 - [ ] press-every-control full run: MODE=prod, destructive presses only on test-owned records.
 - [ ] Mock seed (59a92d362) and mock-only harness pieces: retire once prod equivalents pass.
+
+### Launch checklist (owner decisions that flip at launch)
+
+- [ ] **Switch Stripe to live** (`scripts/e2e/stripe-sandbox-off.sh`, owner-run). Owner, 2026-09-12: sandbox stays ON until launch so money journeys run nightly on the test card. After the switch, payment steps in audits skip as UNCOVERED unless sandbox is turned on for a test window.
+- [ ] **Hide seed/demo jobs publicly** (`seed_jobs_hidden_publicly()`). Owner, 2026-09-12: stays OFF for now; anon browse shows 9 demo listings.

@@ -1701,6 +1701,45 @@ Two supporting facts, so this is not a guess:
 Rule for this section (owner): nothing that needs the browser is marked done
 until the browser has been used to LOOK at it. Agents run one at a time.
 
+- [x] **DONE (terminal 6, 2026-09-13) — messy input was mocked.** `e2e/prod-audit/messy-input.spec.ts`
+      replaces the mocked `e2e/happy-path/messy-input*.spec.ts`: the full value battery on every field
+      of every URL-reachable form, the targeted rules (email/phone/ZIP, an under-18 DOB, prices
+      0/negative/decimal/1e9, whitespace-only required fields), and the dialog-gated forms explored
+      from real seeded records behind a write firewall — all on PROD as the four seed accounts.
+      Coverage test: inventory − sweeps − explore credits − stated gaps must be empty.
+      Nightly: `.github/workflows/prod-audit.yml`. Screenshots looked at for every failure.
+- [x] **DONE (terminal 6, 2026-09-13) — deep links and interruptions were untested on prod.**
+      `e2e/prod-audit/deep-links.spec.ts` (22 tests) and `interruptions.spec.ts` (12): a gone job,
+      double-tap on apply/send/post, offline mid-submit, a slow network, back and refresh mid-flow,
+      and session expiry. First prod run found five HARNESS defects that would have made the suite
+      lie (HEAD counted as a write; apply tests sharing one job; the offline relabel; goBack to
+      about:blank; a toast asserted after it had gone) — all fixed in 706fab635.
+- [ ] **Cached sessions can be dead and still look alive (terminal 6, 2026-09-13).** A revoked GoTrue
+      session still passes PostgREST with its cached JWT, so a signed-in prod spec silently ran signed
+      OUT — measured as a deep-link test bouncing to /login on a 40-minute-fresh cache. `sessionFor`
+      in `e2e/prod-audit/harness.ts` now verifies against `/auth/v1/user` and re-mints. OPEN: the
+      journeys and a11y-prod harnesses take the same cache and do NOT verify it.
+- [ ] **A same-frame double-click on Apply Now fires two `apply_to_job` calls (terminal 6, 2026-09-13).**
+      The button carries `disabled={applyLoading}` (ApplyBody.tsx), which holds at human tap speed —
+      proven, the second tap is refused — but two clicks in one frame beat the re-render. The DB is
+      safe: the RPC raises "Already applied to this job", exactly one row exists, and the user is not
+      shown a failure. Fix if it is ever worth it: a ref-based in-flight guard in `useApplyFlow`.
+      Covered both ways in `interruptions.spec.ts`.
+- [ ] **A half-propagated deploy can leave "Something went sideways" on screen (terminal 6, 2026-09-13).**
+      A lazy chunk 404s mid-deploy, `chunkReload.ts` recovers once with `?_v=`, and its 10s guard then
+      refuses a second reload — so if that one reload also lands on the old build the visitor sees the
+      crash screen. Measured on prod at `/messages/a/b/c`, which renders the designed 404 on every
+      attempt before and after. `settle()` absorbs it once. Open: whether the guard should allow a
+      second attempt after a longer backoff.
+- [ ] **The post-job double-tap is not covered end to end (terminal 6, 2026-09-13).** The generic
+      stepper in `interruptions.spec.ts` does not always reach the final submit; it skips with a
+      stated GAP naming its `post-step-*` screenshots rather than passing quietly. Needs a
+      purpose-built driver, or the journeys' post-job leg extended with the double-tap.
+- [ ] **The admin queues the explore cannot fill (terminal 6, 2026-09-13).** `AdminExceptionQueue`,
+      `AdminPayoutBatches`, `TwoFactorCard`, `W9CollectionDialog` and `NpsPrompt` have no seedable
+      state (prod-seed.mjs: "not produced, by design"), so their fields are stated GAPS in
+      `e2e/prod-audit/messyInputForms.ts` rather than swept.
+
 - [x] **DONE de9d3cd88 — Button size classes that silently do nothing.** Unlayered
       `button { min-height: 44px }` beats Tailwind utilities. Detector:
       `buttonGeometry.ts` requestedNotRendered. Agent 1 (Opus), in browser now.

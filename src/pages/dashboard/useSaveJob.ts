@@ -27,9 +27,10 @@ export function useSaveJob({ user, savedJobIds, setSavedJobIds }: UseSaveJobArgs
       if (saved) {
         // upsert avoids a 23505 unique-violation if the row already exists
         // (e.g. a stale local state desyncs from the server).
+        // ignoreDuplicates (ON CONFLICT DO NOTHING): this table has no UPDATE policy, so a plain upsert on an existing row was refused by RLS. Write-contract audit, 2026-09-12.
         const { error } = await supabase
           .from("saved_jobs")
-          .upsert({ user_id: userId, job_id: jobId }, { onConflict: "user_id,job_id" });
+          .upsert({ user_id: userId, job_id: jobId }, { onConflict: "user_id,job_id", ignoreDuplicates: true });
         if (error) throw error;
       } else {
         const { error } = await supabase

@@ -19,9 +19,10 @@ export function usePendingSaveConsumer(userId: string | null | undefined) {
     const jobId = takePendingSave();
     if (!jobId) return;
     void (async () => {
+      // ignoreDuplicates (ON CONFLICT DO NOTHING): this table has no UPDATE policy, so a plain upsert on an existing row was refused by RLS. Write-contract audit, 2026-09-12.
       const { error } = await supabase
         .from("saved_jobs")
-        .upsert({ user_id: userId, job_id: jobId }, { onConflict: "user_id,job_id" });
+        .upsert({ user_id: userId, job_id: jobId }, { onConflict: "user_id,job_id", ignoreDuplicates: true });
       if (error) {
         report(error, { severity: "warning", tags: { source: "usePendingSaveConsumer" } });
         return; // silent — the job intent redirect still lands them on the job

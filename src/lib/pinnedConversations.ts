@@ -145,9 +145,10 @@ export async function loadPins(userId: string): Promise<Set<string>> {
       })
       .filter((r): r is NonNullable<typeof r> => r !== null);
     if (rows.length > 0) {
+      // ignoreDuplicates (ON CONFLICT DO NOTHING): this table has no UPDATE policy, so a plain upsert on an existing row was refused by RLS. Write-contract audit, 2026-09-12.
       const { error: mergeError } = await supabase
         .from("thread_pins")
-        .upsert(rows, { onConflict: "user_id,job_id,other_user_id" });
+        .upsert(rows, { onConflict: "user_id,job_id,other_user_id", ignoreDuplicates: true });
       if (mergeError && !isMissingTable(mergeError)) {
         report(mergeError, { severity: "warning", tags: { source: "pinnedConversations.mergeLocalPins" } });
       }
@@ -197,7 +198,7 @@ export function togglePinned(userId: string, jobId: string, otherUserId: string)
     const { error } = next
       ? await supabase.from("thread_pins").upsert(
           { user_id: userId, job_id: jobId, other_user_id: otherUserId },
-          { onConflict: "user_id,job_id,other_user_id" },
+          { onConflict: "user_id,job_id,other_user_id", ignoreDuplicates: true },
         )
       : await supabase
           .from("thread_pins")

@@ -39,6 +39,7 @@ export default defineConfig({
     },
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
+    globalSetup: ["./src/test/gateLockGlobalSetup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     // Vitest's default is 5s, which this suite outgrew. Nothing here is
     // genuinely slow — the failures were all the same shape: a spec that does

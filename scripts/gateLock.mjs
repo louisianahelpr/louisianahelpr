@@ -36,7 +36,8 @@ function alive(pid) {
 }
 
 export function lockDisabled() {
-  return !!process.env.CI || process.env.LH_GATE_LOCK === "0";
+  // LH_GATE_LOCK_HELD: a parent gateLock already holds it for this process tree.
+  return !!process.env.CI || process.env.LH_GATE_LOCK === "0" || process.env.LH_GATE_LOCK_HELD === "1";
 }
 
 export async function acquireGateLock() {
@@ -96,7 +97,11 @@ async function main() {
     console.log("[gate-lock] acquired.");
   }
   const [cmd, ...rest] = cmdArgs;
-  const result = spawnSync(cmd, rest, { stdio: "inherit", shell: process.platform === "win32" });
+  const result = spawnSync(cmd, rest, {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    env: { ...process.env, LH_GATE_LOCK_HELD: "1" },
+  });
   releaseGateLock();
   process.exit(result.status ?? 1);
 }

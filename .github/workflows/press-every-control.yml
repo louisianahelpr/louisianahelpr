@@ -45,8 +45,12 @@ on:
         default: "anon,customer,helper,admin"
 
 concurrency:
+  # Finish runs on main instead of cancelling them. Direct-to-main pushes land
+  # minutes apart, so cancel-in-progress left Test/Vitest/smoke almost always
+  # 'cancelled' and a real failure could not show (2026-09-13). GitHub still
+  # replaces an older QUEUED run with the newest one, so main never backs up.
   group: press-every-control-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   press:

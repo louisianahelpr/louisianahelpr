@@ -329,6 +329,8 @@ export const test = base.extend<{ journey: Journey }>({
         const file = testInfo.outputPath(`failure-${name}.png`);
         await page.screenshot({ path: file }).catch(() => {});
         await testInfo.attach(`failure: ${name}`, { path: file, contentType: "image/png" }).catch(() => {});
+        const aria = await page.locator("body").ariaSnapshot({ timeout: 5_000 }).catch(() => "");
+        await testInfo.attach(`failure aria: ${name}`, { body: `${page.url()}\n${aria}`, contentType: "text/plain" }).catch(() => {});
       }
     }
     for (const c of cleanups.reverse()) {

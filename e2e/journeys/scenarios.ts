@@ -7,8 +7,8 @@
  *  - ENUMERATED per journey: account state and outcome. A journey declares the
  *    ones it can reach; every one of them runs. A state the real backend cannot
  *    produce with the two shared accounts is listed in `REAL_BACKEND_UNREACHABLE`
- *    and runs as an explicit, annotated `uncovered` entry naming the mocked spec
- *    that owns it — never a silent pass and never a quiet omission.
+ *    and runs as an explicit, annotated `uncovered` entry saying what is missing
+ *    to produce it for real. No mocks (owner decision).
  *
  *  - ROTATED nightly: device x network x data. All 6 x 3 x 3 = 54 triples are
  *    too many for one night, so each night takes a date-seeded slice of a
@@ -35,16 +35,19 @@ export type JobType = (typeof JOB_TYPES)[number];
 export type Outcome = (typeof OUTCOMES)[number];
 
 /**
- * Account states the two shared real accounts cannot be put into without
- * mutating a shared credential or an admin-only column, which CLAUDE.md
- * forbids doing silently. Each names where it IS covered.
+ * Account states NOT produced on the real backend yet, and why. Owner decision
+ * (2026-09-12): no mock mode anywhere. These states must be created on prod on
+ * a seed-flagged account that is NOT one of the two shared journey accounts
+ * (flipping those locks every other lane out) and restored afterwards. No
+ * existing tooling provisions such an account, so each journey reports these
+ * as `uncovered` rather than mocking or silently omitting them.
  */
 export const REAL_BACKEND_UNREACHABLE: Partial<Record<AccountState, string>> = {
-  pending: "mocked: e2e/happy-path (AccountPending screen) — flipping a shared account to pending locks every other lane out",
-  "idv-unverified": "mocked: e2e/happy-path apply gate — the shared helper is IDV-verified and un-verifying it is admin-only",
-  "no-stripe": "mocked: e2e/happy-path payout-setup states — the shared helper's Connect account is required by the money loop",
-  restricted: "mocked: e2e/happy-path — restriction is an admin action on a shared account",
-  banned: "mocked: e2e/happy-path (AccountBanned screen) — banning a shared account breaks every other lane",
+  pending: "needs a dedicated seed account flipped to pending and restored; no provisioning tooling exists",
+  "idv-unverified": "needs a dedicated seed account without IDV; the shared helper must stay verified for the money loop",
+  "no-stripe": "needs a dedicated seed account without a Connect account; the shared helper's is load-bearing",
+  restricted: "needs a dedicated seed account restricted via admin tooling and restored; none exists",
+  banned: "needs a dedicated seed account banned via admin tooling and restored; banning a shared account breaks every lane",
 };
 
 export type Rotation = { device: Device; network: Network; data: DataVolume };

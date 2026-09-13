@@ -118,7 +118,7 @@ export default defineConfig({
       fullyParallel: false,
       timeout: 6 * 60_000,
       retries: 0,
-      use: { ...devices["Desktop Chrome"], screenshot: "only-on-failure", trace: "retain-on-failure" },
+      use: { ...devices["Desktop Chrome"], screenshot: "only-on-failure", trace: "retain-on-failure", actionTimeout: 20_000 },
     },
     {
       // The same journeys in real WebKit: the app ships in a WKWebView.
@@ -127,7 +127,7 @@ export default defineConfig({
       fullyParallel: false,
       timeout: 6 * 60_000,
       retries: 0,
-      use: { ...devices["iPhone 13"], screenshot: "only-on-failure", trace: "retain-on-failure" },
+      use: { ...devices["iPhone 13"], screenshot: "only-on-failure", trace: "retain-on-failure", actionTimeout: 20_000 },
     },
     {
       name: "chromium",

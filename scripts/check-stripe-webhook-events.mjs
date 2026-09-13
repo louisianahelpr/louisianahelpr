@@ -23,18 +23,20 @@
  *      events and still carried invoice.paid, which has no handler.
  *
  * Structure: the STATIC half needs no credentials and always runs. The LIVE
- * half needs a Stripe TEST-MODE key in STRIPE_TEST_SECRET_KEY. If that secret
- * is absent the live half SKIPS EXPLICITLY and says so in the summary — it
- * never reports a silent pass. Pass --require-live (CI does) to turn a missing
- * key into a failure instead of a skip.
+ * half needs a Stripe TEST-MODE key in STRIPE_TEST_SECRET_KEY. A missing key is
+ * RED on any run that includes the live half, never a skip that still exits 0 —
+ * the live half is the only thing that can see a duplicate endpoint, so a pass
+ * from a run that never made the request would be exactly the false green this
+ * guard exists to prevent. Skipping it must be asked for explicitly (--static),
+ * and that run says so in its own PASS line.
  *
  * TEST MODE ONLY. The key is asserted to be a test key before any request, and
  * no live-mode object is ever read, created or deleted. Never prints a secret.
  *
  * Usage:
- *   node scripts/check-stripe-webhook-events.mjs              # static + live if key present
+ *   node scripts/check-stripe-webhook-events.mjs              # static + live; RED if the key is missing
  *   node scripts/check-stripe-webhook-events.mjs --static     # static half only
- *   node scripts/check-stripe-webhook-events.mjs --require-live
+ *   node scripts/check-stripe-webhook-events.mjs --require-live  # accepted no-op
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -52,7 +54,15 @@ const SANDBOX_OFF = join(root, "scripts/e2e/stripe-sandbox-off.sh");
 const argv = process.argv.slice(2);
 const args = new Set(argv);
 const STATIC_ONLY = args.has("--static");
-const REQUIRE_LIVE = args.has("--require-live");
+/*
+ * The live half is REQUIRED whenever it is meant to run. Opting out has to be
+ * explicit (--static); it can never be the silent consequence of an unset key.
+ * A bare no-flag run used to note "SKIPPED" and still exit 0, so the one check
+ * that can actually see a duplicate endpoint — the #1586 bug — reported PASS
+ * while grading nothing. --require-live is kept as an accepted no-op so the
+ * workflow and any muscle memory keep working.
+ */
+const REQUIRE_LIVE = !STATIC_ONLY;
 /**
  * --fixture <file>: grade a recorded /v1/webhook_endpoints response instead of
  * calling Stripe. This exists so the live half can be PROVEN RED without a key
@@ -153,11 +163,7 @@ async function liveHalf() {
       "STRIPE_TEST_SECRET_KEY is not set, so the live endpoint check did NOT run.\n" +
       "   This half is what catches a second enabled endpoint on the webhook url — the actual #1586 bug.\n" +
       "   Add a Stripe TEST-MODE restricted key (read-only on Webhook Endpoints) as the STRIPE_TEST_SECRET_KEY repo secret.";
-    if (REQUIRE_LIVE) {
-      fail(msg);
-    } else {
-      notes.push(`SKIPPED (live half): ${msg}`);
-    }
+    fail(msg);
     return;
   }
   if (!/^(sk|rk)_test_/.test(key)) {
@@ -240,7 +246,11 @@ if (!STATIC_ONLY) await liveHalf();
 console.log("Stripe webhook endpoint guard (issue #1586)\n");
 for (const n of notes) console.log(`  - ${n}`);
 if (failures.length === 0) {
-  console.log(`\nPASS — ${STATIC_ONLY ? "static checks" : "all checks"} clean.`);
+  console.log(
+    STATIC_ONLY
+      ? "\nPASS — static checks clean. The live half did NOT run (--static): a duplicate endpoint would NOT be caught by this run."
+      : "\nPASS — static and live checks clean.",
+  );
   process.exit(0);
 }
 console.error(`\n${failures.length} problem(s):\n`);

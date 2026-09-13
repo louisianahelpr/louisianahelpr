@@ -9,6 +9,7 @@ import { categoryColors } from "@/components/activity/activityConstants";
 import { JobHelprsChip } from "@/components/activity/JobCardMetaRow";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
+import { useExpiryClock } from "@/lib/useExpiryClock";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 import { formatTime12 } from "@/components/TimePickerSelect";
@@ -200,15 +201,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // information once the window is genuinely closing — so it now renders
   // inside a 48h horizon (or once expired) and stays silent before that.
   // Under 24h it also goes destructive-red, the same tier as before.
+  const expiryNow = useExpiryClock([job.expires_at]);
   const expiresAt = job.expires_at ? new Date(job.expires_at) : null;
-  const hoursToExpiry = expiresAt ? differenceInHours(expiresAt, new Date()) : null;
-  const isExpired = !!expiresAt && expiresAt <= new Date();
+  const hoursToExpiry = expiresAt ? differenceInHours(expiresAt, expiryNow) : null;
+  const isExpired = !!expiresAt && expiresAt <= expiryNow;
   const showExpiry = !!expiresAt && (isExpired || (hoursToExpiry !== null && hoursToExpiry < 48));
-  const expiryText = !showExpiry || !expiresAt
-    ? null
-    : isExpired
-      ? "Expired"
-      : formatTimeLeft(expiresAt);
+  // formatTimeLeft owns "Expired" too — one rule for when a listing has closed.
+  const expiryText = !showExpiry || !expiresAt ? null : formatTimeLeft(expiresAt, expiryNow);
   const isExpiringSoon = showExpiry && (isExpired || (hoursToExpiry !== null && hoursToExpiry < 24));
 
   // Stagger entry via CSS animation-delay — avoids pulling framer-motion into

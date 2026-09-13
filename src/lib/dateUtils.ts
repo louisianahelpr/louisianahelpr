@@ -49,13 +49,19 @@ export function formatJobDate(dateStr: string): string {
  *
  * Units are FLOORED, never rounded up: a deadline must never advertise more
  * time than actually remains (23h59m reads "23 hours left", not "1 day").
- * The caller owns the expired case — both card families already print their
- * own "Expired" copy — so a non-positive remainder returns "Expired" only as
- * a defensive fallback.
+ * This is the ONLY expiry-chip formatter: it returns "Expired" once the
+ * deadline is reached, so callers render its result directly rather than
+ * printing their own "Expired" (guarded by expiryFormatterClass.test.ts).
  */
 export function formatTimeLeft(expiry: Date, now: Date = new Date()): string {
-  const totalMinutes = Math.floor((expiry.getTime() - now.getTime()) / 60_000);
-  if (totalMinutes <= 0) return "Expired";
+  const msLeft = expiry.getTime() - now.getTime();
+  // "Expired" only once the instant has actually been reached — the same
+  // `expires_at <= now` rule the feed and the Activity bucketer use. The last
+  // 59 seconds floor to 0 minutes; they used to read "Expired" while the
+  // listing was still live. The floor rule forbids "1 minute left" there.
+  if (msLeft <= 0) return "Expired";
+  const totalMinutes = Math.floor(msLeft / 60_000);
+  if (totalMinutes < 1) return "Under a minute left";
 
   const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"} left`;
 

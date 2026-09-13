@@ -194,6 +194,17 @@ describe("Activity — whose move is it", () => {
     expect(postedActivityBucket({ status: "open" }, 0)).toBe("waiting");
   });
 
+  it("moves an open listing out of Waiting the instant expires_at passes, not at midnight", () => {
+    // OPEN.md "An expired listing sits under Waiting until midnight".
+    const now = new Date("2026-09-12T15:00:00Z");
+    const iso = (s: number) => new Date(now.getTime() + s * 1000).toISOString();
+    const today = "2099-01-01"; // day not gone: isolates the expiry rule
+    expect(postedActivityBucket({ status: "open", date_needed: today, expires_at: iso(1) }, 0, now)).toBe("waiting");
+    expect(postedActivityBucket({ status: "open", date_needed: today, expires_at: iso(0) }, 0, now)).toBe("needs_you");
+    expect(postedActivityBucket({ status: "open", date_needed: today, expires_at: iso(-1) }, 0, now)).toBe("needs_you");
+    expect(postedActivityBucket({ status: "open", date_needed: today, expires_at: null }, 0, now)).toBe("waiting");
+  });
+
   it("puts submitted-but-unapproved work in Needs you, not Scheduled", () => {
     // The exact case the owner reported: the helpr finished, the job still
     // reads `in_progress`-ish, and the poster has a decision in front of them.

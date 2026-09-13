@@ -25,7 +25,7 @@ import { Map, MapPinned } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import DashboardStatusBanners from "@/components/dashboard/DashboardStatusBanners";
-import PayItForwardTeaser from "@/components/dashboard/PayItForwardTeaser";
+import GiftCardTeaser from "@/components/dashboard/GiftCardTeaser";
 import { DashboardBannedScreen, DashboardDeniedScreen } from "@/components/dashboard/DashboardBlockedScreen";
 
 // Dialogs and overlays — none are visible on first paint. Each is code-split
@@ -724,8 +724,8 @@ const Dashboard = () => {
               </div>
             </SectionBoundary>
 
-            {/* Pay It Forward teaser — only shown when credits exist in the user's parish */}
-            <PayItForwardTeaser pifCount={pifCount} />
+            {/* Gift card teaser — only shown when this user holds an unspent gift card */}
+            <GiftCardTeaser pifCount={pifCount} />
 
     </PageScaffold>
 

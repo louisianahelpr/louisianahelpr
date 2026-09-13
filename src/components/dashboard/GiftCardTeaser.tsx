@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-interface PayItForwardTeaserProps {
+interface GiftCardTeaserProps {
   /** Count of funded, unspent, unexpired gift cards addressed to this user. */
   pifCount: number;
 }
@@ -16,7 +16,7 @@ interface PayItForwardTeaserProps {
  * point — the reported failure started with a recipient not realising the
  * money was already sitting in their account.
  */
-const PayItForwardTeaser = ({ pifCount }: PayItForwardTeaserProps) => {
+const GiftCardTeaser = ({ pifCount }: GiftCardTeaserProps) => {
   if (pifCount <= 0) return null;
   return (
     <div
@@ -45,4 +45,4 @@ const PayItForwardTeaser = ({ pifCount }: PayItForwardTeaserProps) => {
   );
 };
 
-export default PayItForwardTeaser;
+export default GiftCardTeaser;

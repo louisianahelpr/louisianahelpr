@@ -95,7 +95,7 @@ stories go in the lessons file, never here.
 - Re-verification of untrusted prior work goes to a DIFFERENT model than produced it.
 - **Agent teams is ON.** Pass `name:` or the spawn is not an addressable teammate; the model is silent without `model:` (read `~/.claude/teams/session-*/config.json`); `permissionMode: plan` teammates are released by the lead approving the plan. [L](docs/lessons/CLAUDE-lessons.md#agent-teams)
 - Fleet cross-talk is `SendMessage` to the orchestrator; lanes never message each other. Findings go in the `audit-bus.mjs` ledger (`file`/`status`/`dupe`/`list`/`rollup`); its `msg`/`inbox` channel is retired.
-- **Fan out as wide as work is disjoint by file** (no fixed agent count). Serialize `typecheck`/`vitest`/`eslint` across sessions; the lead runs the gate once, alone, and tells agents to use `parsecheck.mjs` instead. [L](docs/lessons/CLAUDE-lessons.md#parallel-lanes)
+- **At most 2-3 agents running at once (owner, 2026-09-13: everything was slow with ~10).** Queue the rest; start the next only when one finishes. Serialize `typecheck`/`vitest`/`eslint` across sessions; the lead runs the gate once, alone, and tells agents to use `parsecheck.mjs` instead. [L](docs/lessons/CLAUDE-lessons.md#parallel-lanes)
 - Worktrees live under `$HOME` (e.g. `~/.lh-b-ws/tree`), never `/tmp`; commit uncommitted work early.
 - **Never rotate a shared credential silently.** Say so in the transcript and `docs/audit/launch-2026-09/inbox/` first; never change one another agent is mid-run on. [L](docs/lessons/CLAUDE-lessons.md#credentials)
 - **Never `git stash` in this repo.** refs/stash is shared by every worktree and lint-staged uses it; a pop in one worktree takes another lane's WIP. Use a WIP commit.

@@ -231,7 +231,7 @@ function payloadColumns(arg) {
   return { opaque, cols };
 }
 
-export function clientHitsInSource(relPath, src) {
+export function clientHitsInSource(relPath, src, kind = "client") {
   const hits = [];
   const seen = new Map();
   const re = /\.from\(\s*["'`]jobs["'`]\s*\)/g;
@@ -250,7 +250,7 @@ export function clientHitsInSource(relPath, src) {
     const what = opaque
       ? `opaque:${upd.args.trim().replace(/\s+/g, " ").slice(0, 30)}`
       : lifecycle.join("+");
-    const base = `client:${relPath}::${what}`;
+    const base = `${kind}:${relPath}::${what}`;
     const n = (seen.get(base) ?? 0) + 1;
     seen.set(base, n);
     const line = src.slice(0, m.index).split("\n").length;
@@ -278,6 +278,20 @@ export function clientHits(root = join(REPO, "src")) {
   );
 }
 
+/**
+ * EDGE — the same client shape inside supabase/functions/. A service-role
+ * `.from("jobs").update(lifecycle)` matched only on id, decided from an
+ * earlier read, is this class too: proven on prod 2026-09-12 in
+ * create-payment `release` (two concurrent releases both scheduled the payout
+ * and double-notified; a crossed poster+helper release lost the completion)
+ * and fixed with a conditional UPDATE. See scripts/probes/release-race.prod.mjs.
+ */
+export function edgeHits(root = join(REPO, "supabase/functions")) {
+  return walk(root).flatMap((p) =>
+    clientHitsInSource(relative(REPO, p).split("\\").join("/"), readFileSync(p, "utf8"), "edge"),
+  );
+}
+
 // ─── BASELINE ────────────────────────────────────────────────────────────
 
 export function loadBaseline() {
@@ -294,7 +308,7 @@ export function compare(hits, baseline) {
 }
 
 export function allHits({ exclude = [] } = {}) {
-  return [...sqlHits(readMigrations({ exclude })), ...clientHits()];
+  return [...sqlHits(readMigrations({ exclude })), ...clientHits(), ...edgeHits()];
 }
 
 function main() {

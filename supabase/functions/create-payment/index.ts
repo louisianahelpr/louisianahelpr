@@ -592,13 +592,43 @@ serve(async (req) => {
       const { jobId } = body;
       if (!jobId) throw new Error("Missing jobId");
 
-      const { data: job, error: jobError } = await supabaseAdmin
+      const { data: firstRead, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
-      if (jobError || !job) throw new Error("Job not found");
+      if (jobError || !firstRead) throw new Error("Job not found");
+      // `let`: the conditional write below re-reads on a lost race.
+      let job = firstRead;
 
       const isPoster = job.customer_id === user.id;
       const isHelper = job.helper_id === user.id;
       if (!isPoster && !isHelper) throw new Error("Not authorized");
+      // A duplicate release (double tap, two devices, a retry after a lost
+      // response) answers cleanly BEFORE the status gate, which would otherwise
+      // call an already-completed job "not in progress".
+      const LIVE_RELEASE_STATUSES = ["in_progress", "revision_requested", "accepted"];
+      const alreadyDone = (row: typeof job) => {
+        const mine = !!((isPoster && row.poster_completed_at) || (isHelper && row.helper_completed_at));
+        const released = row.status === "completed" && !!row.poster_completed_at && !!row.helper_completed_at;
+        // Both stamps on a still-live job is the stuck state the old race left
+        // behind: NOT "waiting" — fall through so this tap completes it.
+        const bothStampedLive = !!row.poster_completed_at && !!row.helper_completed_at;
+        const waiting = mine && !bothStampedLive && LIVE_RELEASE_STATUSES.includes(row.status);
+        if (!released && !waiting) return null;
+        return new Response(JSON.stringify({
+          success: true,
+          bothDone: released,
+          alreadyReleased: released,
+          alreadyConfirmed: waiting,
+          message: released
+            ? "This job was already released — nothing more to do."
+            : "You already confirmed completion — waiting on the other party.",
+          helperPayout: 0,
+          platformFee: 0,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+      };
+      {
+        const early = alreadyDone(job);
+        if (early) return early;
+      }
       // Excludes "disputed" (and every other terminal state): a disputed job
       // can only be resolved through the admin dispute actions below, never the
       // normal two-party release path.
@@ -699,51 +729,110 @@ serve(async (req) => {
         }
       }
 
-      const updateFields: Record<string, any> = {};
-      if (isPoster) updateFields.poster_completed_at = new Date().toISOString();
-      if (isHelper) updateFields.helper_completed_at = new Date().toISOString();
+      // ─── The write is CONDITIONAL on the row we decided from ───────────────
+      //
+      // This used to read the job, decide, then UPDATE ... WHERE id = jobId.
+      // Proven on prod (scripts/probes/release-race.prod.mjs): two releases in
+      // flight together both passed the status check and both wrote —
+      //   double tap (helper already done): both calls stamped
+      //     poster_completed_at + payout_scheduled_at and both inserted the
+      //     "Job completed!" notices;
+      //   crossed (poster and helper at once): each read the other as not done,
+      //     each wrote only its own stamp, and the job was left in_progress with
+      //     BOTH stamps — a completion nobody could finish.
+      // Now the UPDATE carries the exact state it was decided from (status and
+      // both *_completed_at as read). Under READ COMMITTED the second writer
+      // blocks on the row lock, re-checks that predicate against the committed
+      // row, and matches 0 rows. It then re-reads and decides again: a crossed
+      // release completes the job on the retry; a duplicate finds its own stamp
+      // already there and returns alreadyReleased / alreadyConfirmed with NO
+      // write, NO notification and NO second payout scheduling.
 
-      const posterDone = isPoster ? true : !!job.poster_completed_at;
-      const helperDone = isHelper ? true : !!job.helper_completed_at;
-      const bothDone = posterDone && helperDone;
+      let updateFields: Record<string, any> = {};
+      let posterDone = false;
+      let helperDone = false;
+      let bothDone = false;
+      let jobUpdated: { id: string }[] | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) {
+          const { data: reread, error: rereadErr } = await supabaseAdmin
+            .from("jobs").select("*").eq("id", jobId).single();
+          if (rereadErr || !reread) throw new Error("Job not found");
+          job = reread;
+          const done = alreadyDone(job);
+          if (done) return done;
+          if (!LIVE_RELEASE_STATUSES.includes(job.status)) {
+            throw new Error(
+              job.status === "disputed"
+                ? "This job is currently under dispute. Payment cannot be released until the dispute is resolved."
+                : "Job is not in progress",
+            );
+          }
+        }
 
-      if (bothDone) {
-        // Payment was already captured at checkout (immediate capture).
-        // Verify the charge succeeded before scheduling payout.
-        let paymentIntentId = job.stripe_payment_intent_id;
-        if (!paymentIntentId && job.stripe_session_id) {
-          const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
-          paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+        updateFields = {};
+        if (isPoster) updateFields.poster_completed_at = new Date().toISOString();
+        if (isHelper) updateFields.helper_completed_at = new Date().toISOString();
+
+        posterDone = isPoster ? true : !!job.poster_completed_at;
+        helperDone = isHelper ? true : !!job.helper_completed_at;
+        bothDone = posterDone && helperDone;
+
+        if (bothDone) {
+          // Payment was already captured at checkout (immediate capture).
+          // Verify the charge succeeded before scheduling payout.
+          let paymentIntentId = job.stripe_payment_intent_id;
+          if (!paymentIntentId && job.stripe_session_id) {
+            const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
+            paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+            if (paymentIntentId) {
+              // Cache-only write (not lifecycle): zero rows is harmless.
+              const { error: piCacheErr } = await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
+              if (piCacheErr) console.error(`[create-payment] PI cache write failed for job ${job.id} (release):`, piCacheErr.message);
+            }
+          }
           if (paymentIntentId) {
-            const { error: piCacheErr } = await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
-            if (piCacheErr) console.error(`[create-payment] PI cache write failed for job ${job.id} (release):`, piCacheErr.message);
+            const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+            if (pi.status !== "succeeded") {
+              throw new Error(`Payment not captured (status: ${pi.status}). Cannot release payout.`);
+            }
           }
-        }
-        if (paymentIntentId) {
-          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-          if (pi.status !== "succeeded") {
-            throw new Error(`Payment not captured (status: ${pi.status}). Cannot release payout.`);
-          }
+
+          // Charge confirmed — schedule payout
+          const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+          updateFields.payout_scheduled_at = payoutTime;
+          updateFields.status = "completed";
+          updateFields.payment_status = "payout_pending";
+        } else if (job.status === "accepted") {
+          // If job was still in accepted, move to in_progress when one party marks complete
+          updateFields.status = "in_progress";
         }
 
-        // Charge confirmed — schedule payout
-        const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-        updateFields.payout_scheduled_at = payoutTime;
-        updateFields.status = "completed";
-        updateFields.payment_status = "payout_pending";
-      } else if (job.status === "accepted") {
-        // If job was still in accepted, move to in_progress when one party marks complete
-        updateFields.status = "in_progress";
+        let conditional = supabaseAdmin.from("jobs").update(updateFields)
+          .eq("id", jobId)
+          .eq("status", job.status);
+        conditional = job.poster_completed_at
+          ? conditional.eq("poster_completed_at", job.poster_completed_at)
+          : conditional.is("poster_completed_at", null);
+        conditional = job.helper_completed_at
+          ? conditional.eq("helper_completed_at", job.helper_completed_at)
+          : conditional.is("helper_completed_at", null);
+        // .select("id"): this is the write that flips status to "completed" and
+        // schedules the payout. Zero rows is now EXPECTED on a lost race and is
+        // answered by the re-read above — never by falling through.
+        const { data, error: updateError } = await conditional.select("id");
+        if (updateError) {
+          console.error("Failed to update job:", updateError);
+          throw new Error("Failed to update job status: " + updateError.message);
+        }
+        if (data && data.length > 0) {
+          jobUpdated = data;
+          break;
+        }
+        console.log(`[create-payment] release for job ${jobId} lost a concurrent write (attempt ${attempt + 1}); re-reading`);
       }
-
-      const { data: jobUpdated, error: updateError } = await supabaseAdmin.from("jobs").update(updateFields).eq("id", jobId).select("id");
-      // .select("id"): this is the write that flips status to "completed" and
-      // schedules the payout — a zero-row match (error === null) would fall
-      // through to scheduling a payout against a job that never actually
-      // transitioned, with nothing downstream to notice.
-      if (updateError || !jobUpdated || jobUpdated.length === 0) {
-        console.error("Failed to update job:", updateError ?? "matched 0 rows");
-        throw new Error("Failed to update job status: " + (updateError?.message ?? "job not found"));
+      if (!jobUpdated) {
+        throw new Error("This job changed while we were saving. Refresh and try again.");
       }
       console.log("Job updated successfully:", jobId, updateFields);
 
@@ -1325,7 +1414,17 @@ serve(async (req) => {
         platform_fee_amount: feeAmt,
         dispute_status: "resolved",
         dispute_resolved_at: disputeResolvedAt,
-      }).eq("id", jobId).select("id");
+      // .eq("status","disputed"): two Quick Release calls in flight together
+      // both passed the read-time status check above. The transfer is
+      // idempotent (payout_transfers guard + Stripe key dispute-release-<job>),
+      // but the flip, the dispute-record close, the audit row and both notices
+      // were not. Only the call whose UPDATE flips the row does those; the
+      // other gets a clean alreadyResolved with no further side effects.
+      }).eq("id", jobId).eq("status", "disputed").select("id");
+      if (!releaseUpdateErr && releaseUpdated && releaseUpdated.length === 0) {
+        const settled = await alreadyResolvedDispute(supabaseAdmin, jobId, "completed", "released");
+        if (settled) return settled;
+      }
       if (releaseUpdateErr || !releaseUpdated || releaseUpdated.length === 0) {
         console.error(`CRITICAL: dispute transfer sent for job ${jobId} but jobs.update to released failed — manual reconciliation needed:`, releaseUpdateErr ?? "matched 0 rows");
         return new Response(JSON.stringify({
@@ -1568,7 +1667,14 @@ serve(async (req) => {
         payment_status: "refunded",
         dispute_status: "resolved",
         dispute_resolved_at: refundResolvedAt,
-      }).eq("id", jobId).select("id");
+      // .eq("status","disputed"): same race as admin_release_dispute. The refund
+      // itself is idempotent (Stripe key refund-dispute-<job>, ledger upsert on
+      // stripe_refund_id); the flip and everything after it run once.
+      }).eq("id", jobId).eq("status", "disputed").select("id");
+      if (!refundUpdateErr && refundUpdated && refundUpdated.length === 0) {
+        const settled = await alreadyResolvedDispute(supabaseAdmin, jobId, "cancelled", "refunded");
+        if (settled) return settled;
+      }
       if (refundUpdateErr || !refundUpdated || refundUpdated.length === 0) {
         console.error(`CRITICAL: refund issued for disputed job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, refundUpdateErr ?? "matched 0 rows");
         return new Response(JSON.stringify({
@@ -2010,6 +2116,31 @@ async function logAdminMoneyAction(
   }
 }
 
+/**
+ * The losing side of a concurrent admin dispute resolution: its conditional
+ * UPDATE matched 0 rows. If the committed row is already in the state THIS
+ * action produces, answer 200 alreadyResolved — nothing else is written, no
+ * notification, no audit row. Any other state returns null and the caller's
+ * existing fail-loud path runs.
+ */
+async function alreadyResolvedDispute(
+  supabaseAdmin: any,
+  jobId: string,
+  status: string,
+  paymentStatus: string,
+): Promise<Response | null> {
+  const { data: current, error } = await supabaseAdmin
+    .from("jobs").select("status, payment_status").eq("id", jobId).maybeSingle();
+  if (error || !current) return null;
+  if (current.status !== status || current.payment_status !== paymentStatus) return null;
+  console.log(`[create-payment] dispute on job ${jobId} was already resolved (${status}/${paymentStatus}) by a concurrent call; no-op`);
+  return new Response(JSON.stringify({
+    success: true,
+    alreadyResolved: true,
+    message: "This dispute was already resolved — nothing more was done.",
+  }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+}
+
 async function transferToHelper(
   stripe: any,
   supabaseAdmin: any,
@@ -2106,6 +2237,25 @@ async function transferToHelper(
         initiated_by_user_id: initiatedByUserId,
         metadata: { source: "admin_release_dispute" },
       });
+    if (ledgerErr && ledgerErr.code === "23505") {
+      // A concurrent call for the same job may have got past the duplicate
+      // check above at the same instant: Stripe's idempotency key hands both of
+      // us the ONE transfer, and the other call's row records it. Quiet ONLY if
+      // the live row is that very transfer. Anything else (a reversed row the
+      // check above does not see, another payout path's different transfer)
+      // means real money with no ledger row: fall through to the loud throw.
+      const { data: liveRow, error: liveRowErr } = await supabaseAdmin
+        .from("payout_transfers")
+        .select("stripe_transfer_id")
+        .eq("job_id", jobId)
+        .eq("helper_id", helperId)
+        .eq("stripe_transfer_id", transfer.id)
+        .maybeSingle();
+      if (!liveRowErr && liveRow?.stripe_transfer_id === transfer.id) {
+        console.log(`[create-payment] transferToHelper — job ${jobId} ledger row for transfer ${transfer.id} already written by a concurrent call; not duplicating.`);
+        return;
+      }
+    }
     if (ledgerErr) {
       throw new Error(`transfer ${transfer.id} sent but ledger write failed — manual reconciliation needed: ${ledgerErr.message}`);
     }

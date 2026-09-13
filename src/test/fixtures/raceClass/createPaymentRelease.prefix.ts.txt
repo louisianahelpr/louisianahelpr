@@ -1,0 +1,23 @@
+// Verbatim pre-fix excerpts of supabase/functions/create-payment/index.ts at 572e2db64:
+// the three jobs lifecycle writes proven racy on prod (release, admin_release_dispute, admin_refund_dispute).
+async function release() {
+      const { data: jobUpdated, error: updateError } = await supabaseAdmin.from("jobs").update(updateFields).eq("id", jobId).select("id");
+}
+async function adminRelease() {
+      const { data: releaseUpdated, error: releaseUpdateErr } = await supabaseAdmin.from("jobs").update({
+        status: "completed",
+        payment_status: "released",
+        helper_fee_percent: disputeFeePercent,
+        platform_fee_amount: feeAmt,
+        dispute_status: "resolved",
+        dispute_resolved_at: disputeResolvedAt,
+      }).eq("id", jobId).select("id");
+}
+async function adminRefund() {
+      const { data: refundUpdated, error: refundUpdateErr } = await supabaseAdmin.from("jobs").update({
+        status: "cancelled",
+        payment_status: "refunded",
+        dispute_status: "resolved",
+        dispute_resolved_at: refundResolvedAt,
+      }).eq("id", jobId).select("id");
+}

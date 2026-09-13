@@ -47,6 +47,35 @@ describe("race-class guard — red on the pre-fix code, green on the fix", () =>
   });
 });
 
+describe("race-class guard — edge functions (create-payment release, proven on prod 2026-09-12)", () => {
+  const CP = "supabase/functions/create-payment/index.ts";
+
+  it("flags the three pre-fix id-only lifecycle writes", () => {
+    const src = readFileSync(resolve(FIXTURES, "createPaymentRelease.prefix.ts.txt"), "utf8");
+    const keys = guard.clientHitsInSource(CP, src, "edge").map((h: Hit) => h.key);
+    expect(keys).toEqual([
+      `edge:${CP}::opaque:updateFields`,
+      `edge:${CP}::payment_status+status`,
+      `edge:${CP}::payment_status+status#2`,
+    ]);
+  });
+
+  it("the live release / Quick Release / Quick Refund writes carry a status predicate", () => {
+    const live = readFileSync(resolve(__dirname, "../..", CP), "utf8");
+    const keys = guard.clientHitsInSource(CP, live, "edge").map((h: Hit) => h.key);
+    expect(keys).not.toContain(`edge:${CP}::opaque:updateFields`);
+    const flips = keys.filter((k: string) => k.startsWith(`edge:${CP}::payment_status+status`));
+    // Only cancel_escrow's final flip and admin_refund_general remain.
+    expect(flips).toHaveLength(2);
+    expect(live).toMatch(/\.update\(updateFields\)\s*\n\s*\.eq\("id", jobId\)\s*\n\s*\.eq\("status", job\.status\)/);
+    expect(live.match(/\.eq\("id", jobId\)\.eq\("status", "disputed"\)\.select\("id"\)/g)).toHaveLength(2);
+  });
+
+  it("the edge scan is part of the live-repo inventory", () => {
+    expect(guard.allHits().some((h: Hit) => h.key.startsWith("edge:"))).toBe(true);
+  });
+});
+
 describe("race-class guard — detector units", () => {
   const fn = (body: string, returnsTrigger = false) => ({
     file: "x.sql",

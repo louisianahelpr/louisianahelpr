@@ -10,7 +10,6 @@ import { Mail, Loader2, Check, X } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
-import { captureException } from "@/lib/sentry";
 
 const RESEND_COOLDOWN_S = 60;
 
@@ -85,9 +84,11 @@ const ForgotPassword = () => {
       // and gives operators the one signal they had no way to get. The email
       // is deliberately NOT included in the payload — that would recreate the
       // oracle inside the monitoring tool.
-      captureException(error, {
-        tags: { area: "auth", flow: "password-reset-request" },
-        note: "resetPasswordForEmail failed; user was shown the neutral success state",
+      void import("@/lib/sentry").then(({ captureException }) => {
+        captureException(error, {
+          tags: { area: "auth", flow: "password-reset-request" },
+          note: "resetPasswordForEmail failed; user was shown the neutral success state",
+        });
       });
     }
     hapticSuccess();

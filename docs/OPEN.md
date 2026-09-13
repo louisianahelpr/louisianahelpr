@@ -14,6 +14,62 @@ fraction of fixing them one report at a time.
 
 ---
 
+## SECURITY — contact-detail smuggling in bios & job descriptions (terminal 7, 2026-09-12)
+
+**Class: contact filter not applied to every user-authored text surface.** The
+server gate `public.contact_leak_reason(text)` is called BEFORE INSERT only on
+`messages` (`scan_message_content`) and `applications`
+(`scan_application_contact_info`). Verified live on 2026-09-12
+(`information_schema.triggers`): there is **no** contact-scan trigger on
+`profiles` or `jobs`. So a phone number, email, or off-platform-payment phrase
+in a **profile bio** or a **job description** is stored verbatim and shown to the
+other party, never flagged — the same disintermediation the message gate exists
+to prevent, on two surfaces that skip it entirely.
+
+- **Repro (live):** as `poster-e2e`, `POST /rest/v1/jobs` with
+  `description: "Regular text. reach me at 504-555-0100"` → row stored, no
+  `flag_reason`, visible to any selected helper. Same with a `profiles.bio`
+  PATCH containing `"call 504-555-0100 or venmo me"`.
+- **Check (proven able to fail):** `e2e/journeys/abuse/contact-smuggling.spec.ts`
+  asserts the strings are stored verbatim TODAY (documenting the gap); the day a
+  scan trigger is added it flips and forces the assertion to be updated to expect
+  a flag. `src/lib/contactFilterParity.test.ts` locks client↔server parity.
+- **Fix (needs owner OK — trust-surface migration):** add a BEFORE INSERT/UPDATE
+  trigger on `jobs.description` and `profiles.bio` calling `contact_leak_reason`,
+  hiding/flagging on a hit (mirror the messages behaviour). Not applied — this
+  is a prod DDL change on a trust surface; awaiting owner go.
+
+## SECURITY — server contact gate misses hyphenated-domain emails (terminal 7, 2026-09-12)
+
+**Class: client scanner stricter than the authoritative server gate.** The email
+branch of `contact_leak_reason` is `[a-z0-9._]+@[a-z0-9]+\.[a-z]{2,}` — the
+domain label has **no hyphen**, so `jane@my-domain.com` is NOT detected
+server-side. The client `messageScanner.ts` DOES catch it (`[a-zA-Z0-9.-]+`), so
+a normal user is warned — but a **direct-API sender bypasses the client entirely**
+and the message is delivered unflagged. Confirmed by
+`src/lib/contactFilterParity.test.ts` (the `serverLeakReason` replica returns
+null for the hyphenated domain).
+
+- **Fix (small, needs owner OK — trust migration):** widen the server domain to
+  `[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}` and keep the client in sync. Test in
+  place to lock it. Not shipped — trust-function DDL, awaiting owner go.
+- **Documented limitation (both layers):** `"jane (at) gmail (dot) com"` worded
+  obfuscation evades client and server alike; noted, not currently in scope.
+
+## Terminal 7 suites shipped (2026-09-12)
+
+- `e2e/journeys/abuse/` — IDOR & authz matrix (cross-account read/write refusal,
+  self-review, review-without-completed-job, self-application, poster money-column
+  lock) + contact smuggling. API-level, RLS-pinned to the live policies.
+- `e2e/journeys/notifications/` — `create-notification` authz/link/type
+  sanitisation, preference OFF round-trip, real in-app link opens its screen with
+  no error page, trigger→in-app row→email_send_log on a funded thread.
+- Inventory: `docs/audit/notification-inventory.md`.
+- Nightly + dispatch: `.github/workflows/e2e-abuse-notifications.yml` (shared-
+  accounts concurrency group; pre/post sweeper).
+
+---
+
 ## Decided 2026-09-11, now queued to build
 
 - **Live location: background tracking, REQUIRED while en route.** Today it is

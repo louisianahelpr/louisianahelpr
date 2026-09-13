@@ -1,0 +1,139 @@
+name: E2E abuse & notifications
+
+# Terminal 7's two suites (e2e/journeys/abuse + e2e/journeys/notifications) against
+# the DEPLOYED app and REAL prod backend, with the two shared E2E accounts.
+# Modeled on e2e-journeys.yml: same secrets, same pre/post sweeper, and the SAME
+# shared-accounts concurrency group so it never drives the accounts while the
+# journeys or prod-lifecycle suites are. Read-heavy: most abuse tests are
+# cross-account PostgREST calls asserting RLS refuses them; the few writes are
+# marker+is_seed rows the sweeper unwinds. No authz/money code runs here.
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "10 9 * * *"        # after e2e-journeys (08:40) on the shared accounts
+  workflow_dispatch:
+    inputs:
+      grep:
+        description: "Pin a subset (Playwright -g <pattern>)"
+        type: string
+        default: ""
+
+concurrency:
+  group: prod-lifecycle-shared-accounts
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: What can run
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      have_accounts: ${{ steps.check.outputs.have_accounts }}
+    steps:
+      - id: check
+        env:
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+        run: |
+          if [ -n "$POSTER_EMAIL" ] && [ -n "$POSTER_PASSWORD" ] && [ -n "$HELPER_EMAIL" ] && [ -n "$HELPER_PASSWORD" ]; then
+            echo "have_accounts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_accounts=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Abuse/notifications NOT run::shared E2E account secrets are missing."
+            echo "- **Abuse & notifications: NOT COVERED** — shared E2E account secrets missing." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  suites:
+    name: Abuse & notifications (${{ matrix.project }})
+    needs: preflight
+    if: needs.preflight.outputs.have_accounts == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 1     # both projects drive the same two accounts
+      matrix:
+        include:
+          - project: journeys
+            browser: chromium
+          - project: journeys-webkit
+            browser: webkit
+    env:
+      PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      # Admin creds let the notifications suite read email_send_log (RLS: admins
+      # only) and the journey fixture read error_logs. Service-role is never put
+      # on a CI runner (a leaked service key can read/write the whole DB); the
+      # admin account is the least-privilege reader for these two tables.
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      # Present but never echoed: available to the supabase CLI if a future leg
+      # needs a migration-linked read. Not printed, not exported to a shell that logs.
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      LH_SKIP_REASON: "CI runner; no local browser lock"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Sweep anything a previous run stranded
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+          KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+          TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a poster token"; exit 1; }
+          SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
+            node scripts/e2e/prod-lifecycle-sweeper.mjs
+
+      - name: Run the abuse & notification suites
+        run: >
+          npx playwright test --project=${{ matrix.project }} --workers=1 --reporter=list
+          e2e/journeys/abuse e2e/journeys/notifications
+          ${{ inputs.grep && format('-g "{0}"', inputs.grep) || '' }}
+
+      - name: Keep milestones, failure screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: abuse-notifications-${{ matrix.project }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Unwind this run's rows even on failure
+        if: always()
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+          KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+          TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::warning::could not mint a token for teardown"; exit 0; }
+          SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
+            node scripts/e2e/prod-lifecycle-sweeper.mjs

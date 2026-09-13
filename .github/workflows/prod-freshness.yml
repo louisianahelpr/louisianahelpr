@@ -159,10 +159,24 @@ jobs:
           # `git merge-base --is-ancestor`, which needs both commits present.
           fetch-depth: 0
 
+      # The commit prod MUST serve is the newest one that changed something
+      # that ships (scripts/deploy-paths.sh, the same list vercel.json's
+      # ignoreCommand uses). A docs- or CI-only push is skipped by Vercel on
+      # purpose, so expecting ITS sha would report a correct prod as stale.
+      - name: Work out the newest commit that ships
+        id: expected
+        run: |
+          set -euo pipefail
+          PATHS=()
+          while IFS= read -r line; do PATHS+=("$line"); done < <(bash scripts/deploy-paths.sh)
+          SHA=$(git log -1 --format=%H "${{ github.sha }}" -- "${PATHS[@]}")
+          echo "sha=${SHA:-${{ github.sha }}}" >> "$GITHUB_OUTPUT"
+          echo "Newest shipping commit: ${SHA:-${{ github.sha }}}"
+
       - name: Wait for prod to serve this commit
         env:
           SITE: https://www.louisianahelpr.com
-          EXPECTED: ${{ github.sha }}
+          EXPECTED: ${{ steps.expected.outputs.sha }}
           # Vercel builds this app in roughly 2-4 minutes. 20 minutes of
           # polling is generous enough that a slow queue is not reported as a
           # stale prod, and short enough that a genuinely failed deploy is
@@ -265,3 +279,25 @@ jobs:
           else
             echo "- served stamp: **none found**" >> "$GITHUB_STEP_SUMMARY"
           fi
+
+  # A stale prod used to fail this workflow and tell nobody (2026-09-13: prod
+  # stopped taking deploys for over an hour while main moved). Open or update
+  # ONE nightly-red issue; the next green run closes it. The morning report
+  # lists these issues.
+  notify:
+    name: Report freshness
+    needs: [vercel-config, served-commit]
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: prod-freshness
+          status: ${{ (needs.vercel-config.result == 'success' && needs.served-commit.result == 'success') && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

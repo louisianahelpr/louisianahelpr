@@ -1,5 +1,22 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { parseLocalDate, formatTimeLeft, jobStartDateTime, hasJobStarted } from "./dateUtils";
+
+describe("formatTimeLeft final minute (fake timers)", () => {
+  // OPEN.md: "Expired" showed for the last 59 seconds of a live listing.
+  const expiry = new Date("2026-09-12T15:00:00Z");
+  const at = (secondsLeft: number) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(expiry.getTime() - secondsLeft * 1000));
+    return formatTimeLeft(expiry);
+  };
+  afterEach(() => vi.useRealTimers());
+
+  it("90s left reads 1 minute (floored)", () => expect(at(90)).toBe("1 minute left"));
+  it("59s left reads under a minute, not Expired", () => expect(at(59)).toBe("Under a minute left"));
+  it("1s left reads under a minute, not Expired", () => expect(at(1)).toBe("Under a minute left"));
+  it("0s left is Expired", () => expect(at(0)).toBe("Expired"));
+  it("-1s is Expired", () => expect(at(-1)).toBe("Expired"));
+});
 
 describe("formatTimeLeft", () => {
   const now = new Date("2026-07-26T12:00:00");

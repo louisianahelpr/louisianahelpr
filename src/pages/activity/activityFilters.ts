@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { isPastDue } from "@/lib/jobDate";
+import { useExpiryClock } from "@/lib/useExpiryClock";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 
 /**
@@ -142,6 +143,13 @@ function jobIsOverdue(j: { status?: string | null; date_needed?: string | null }
 }
 
 
+/** Same comparison as the feed: expired once `expires_at <= now`. */
+export function listingHasExpired(expiresAt: string | null | undefined, now: Date = new Date()): boolean {
+  if (!expiresAt) return false;
+  const t = Date.parse(expiresAt);
+  return !Number.isNaN(t) && t <= now.getTime();
+}
+
 function submissionAwaitingPoster(j: {
   helper_completed_at?: string | null;
   poster_completed_at?: string | null;
@@ -165,9 +173,11 @@ export function postedActivityBucket(
     revision_requested_at?: string | null;
     direct_offer_status?: string | null;
     date_needed?: string | null;
+    expires_at?: string | null;
   },
   /** Applications still AWAITING a decision — not every application ever filed. */
   pendingApplicantCount = 0,
+  now: Date = new Date(),
 ): ActivityBucket {
   if (j.status === "cancelled") return "cancelled";
   if (j.status === "completed") return "done";
@@ -187,7 +197,16 @@ export function postedActivityBucket(
     return j.helper_confirmed_at ? "scheduled" : "waiting";
   }
   if (j.status === "open") {
-    return pendingApplicantCount > 0 ? "needs_you" : "waiting";
+    if (pendingApplicantCount > 0) return "needs_you";
+    // The listing has closed: from `expires_at <= now()` the job is gone from
+    // every helper's feed (useDashboardData, get_open_jobs_for_map), so there
+    // is nothing left to wait for. Minute-grained on purpose, unlike the
+    // day-grained overdue rule above — this is the instant the server hides
+    // it, not a promise about a day. It used to sit here until CT midnight
+    // (or the hourly auto-expire-jobs cancel). Owner, 2026-09-12: leave
+    // Waiting immediately.
+    if (listingHasExpired(j.expires_at, now)) return "needs_you";
+    return "waiting";
   }
   return "waiting";
 }
@@ -319,6 +338,9 @@ export function useActivityFilters({
   pendingApplicantCounts,
 }: UseActivityFiltersArgs) {
   const searchLower = searchQuery.toLowerCase().trim();
+  // Re-bucket at the instant an open listing expires: it leaves Waiting then,
+  // not on the next unrelated re-render.
+  const now = useExpiryClock(postedJobs.map((j) => (j.status === "open" ? j.expires_at : null)));
 
   const filteredPostedJobs = useMemo(() =>
     postedJobs.filter((j) => {
@@ -337,7 +359,7 @@ export function useActivityFilters({
         statusFilter === "cancelled"
       ) {
         statusMatch =
-          postedActivityBucket(j, pendingApplicantCounts?.[j.id] ?? 0) === statusFilter;
+          postedActivityBucket(j, pendingApplicantCounts?.[j.id] ?? 0, now) === statusFilter;
       }
       else if (statusFilter === "all") statusMatch = true;
       else if (statusFilter === "active") statusMatch = bucketPostedJob(j) === "active";
@@ -367,7 +389,7 @@ export function useActivityFilters({
       // come. Needs You can hold both a fresh application and a job that is
       // four days late, and the late one is not something to scroll for.
       .sort((a, b) => Number(jobIsOverdue(b)) - Number(jobIsOverdue(a))),
-    [postedJobs, statusFilter, searchLower, pendingApplicantCounts]);
+    [postedJobs, statusFilter, searchLower, pendingApplicantCounts, now]);
 
   const filteredAppliedApps = useMemo(() => {
     const query = searchLower;
@@ -458,7 +480,7 @@ export function useActivityFilters({
     const counts: Record<string, number> = { all: postedJobs.length, active: 0, open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0, needs_you: 0, waiting: 0, scheduled: 0, done: 0 };
     postedJobs.forEach((j) => {
       // See the note in appliedCounts — bucket tallies stay out of the chain.
-      counts[postedActivityBucket(j, pendingApplicantCounts?.[j.id] ?? 0)]++;
+      counts[postedActivityBucket(j, pendingApplicantCounts?.[j.id] ?? 0, now)]++;
       if (bucketPostedJob(j) === "active") counts.active++;
       if (j.offered_to_helper_id && j.direct_offer_status === "pending") counts.direct_offer++;
       if (j.status === "accepted" && !j.helper_confirmed_at) counts.offered++;
@@ -471,7 +493,7 @@ export function useActivityFilters({
       else if (j.status !== "cancelled") counts[j.status] = (counts[j.status] || 0) + 1;
     });
     return counts;
-  }, [postedJobs, pendingApplicantCounts]);
+  }, [postedJobs, pendingApplicantCounts, now]);
 
   return { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts };
 }

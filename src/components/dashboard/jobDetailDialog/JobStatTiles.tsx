@@ -1,8 +1,8 @@
 import { useState, type ElementType } from "react";
 import { MapPin, Calendar, Clock, Timer, Users } from "lucide-react";
 import { getCity } from "@/lib/locationUtils";
-import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
-import { formatDistanceToNow, differenceInHours } from "date-fns";
+import { formatJobDate, formatTimeLeft, parseLocalDate } from "@/lib/dateUtils";
+import { differenceInHours } from "date-fns";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import type { EnrichedJob } from "../types";
 import { JobLocationPreview } from "./JobLocationPreview";
@@ -162,7 +162,7 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
             ? [{
                 Icon: Timer,
                 label: "Closes",
-                value: formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }),
+                value: formatTimeLeft(new Date(job.expires_at)),
                 sub: null,
                 href: null,
                 onClick: undefined,

@@ -2,6 +2,7 @@ import { useCallback, useRef, type ReactNode } from "react";
 import { Calendar, Clock, MapPin, Timer, Users } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
+import { useExpiryClock } from "@/lib/useExpiryClock";
 import { getCity } from "@/lib/locationUtils";
 import { mapsSearchUrl } from "@/lib/mapsLink";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -153,6 +154,8 @@ export function JobCardMetaRow({
   locationPressToMap = false,
 }: JobCardMetaRowProps) {
   const mapHref = mapsSearchUrl(location);
+  // Re-renders the countdown the moment its text changes (incl. at expiry).
+  const expiryNow = useExpiryClock([expiresAt]);
 
   /**
    * The map is opened by CLICKING A REAL ANCHOR, never `window.open`.
@@ -419,9 +422,8 @@ export function JobCardMetaRow({
       {expiresAt
         ? (() => {
             const expiry = new Date(expiresAt);
-            const expired = expiry <= new Date();
-            const expiringSoon = differenceInHours(expiry, new Date()) < 24;
-            const text = expired ? "Expired" : formatTimeLeft(expiry);
+            const expiringSoon = differenceInHours(expiry, expiryNow) < 24;
+            const text = formatTimeLeft(expiry, expiryNow);
             return (
               /* `shrink-0 whitespace-nowrap`, like every other chip on this
                  row. Without them this was the ONE item here that could wrap

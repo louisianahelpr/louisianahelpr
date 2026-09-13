@@ -1840,12 +1840,15 @@ until the browser has been used to LOOK at it. Agents run one at a time.
       poster told (notifications=0)". Fix: notify from the UPDATE's RETURNING, and REVOKE FROM PUBLIC, anon,
       authenticated. Migration left to the coordinator: it was classifier-blocked for this lane. Re-measure with the probe (goes
       green) and the live count.
-- [ ] **An expired listing sits under "Waiting" until midnight.** Seen in the time-travel screenshot
+- [x] **An expired listing sits under "Waiting" until midnight.** DONE 2026-09-12: open + no pending
+      applicants moves to Needs You at `expires_at` (owner: Needs You), live via `useExpiryClock`. Prod proof
+      at 375 (local vite preview on prod Supabase): Waiting 3→2 and Needs You 13→14 1.6s after expiry, no reload. Seen in the time-travel screenshot
       `08-job-dst-fall-at-start`: at its start time an open, unfilled job reads "Expired", which is correct,
       but stays in the Waiting tab for the rest of the CT day. It is invisible to every helper from `expires_at` on, so there is
       nothing to wait for. It moves to Needs You only at CT midnight (`isPastDue` is day-grained). Product call:
       bucket on `expires_at <= now` as well.
-- [ ] **"Expired" shows for the last 59 seconds of a live listing.** `formatTimeLeft` floors to whole
+- [x] **"Expired" shows for the last 59 seconds of a live listing.** DONE 2026-09-12: "Under a minute
+      left" until `expires_at`, then "Expired" (seen on prod at 39.8s left and after expiry). `formatTimeLeft` floors to whole
       minutes and returns "Expired" when the floor is 0, while `JobCardMetaRow` has already decided the job is
       NOT expired. Copy call (e.g. "Less than a minute left"); the floor rule forbids "1 minute left".
 - [ ] **`expiring-jobs-push` can never warn a short-lead listing.** It runs once a day (`14 14 * * *`) over

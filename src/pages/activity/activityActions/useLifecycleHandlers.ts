@@ -11,7 +11,7 @@ import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/hap
 import { safeStorage } from "@/lib/safeStorage";
 import { fireSuccessMoment } from "@/lib/successMoment";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
-import type { MutableRefObject } from "react";
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 import type { OptimisticJobCache } from "./types";
@@ -30,7 +30,7 @@ export interface LifecycleHandlersDeps extends OptimisticJobCache {
   setStatusFilter: (filter: string) => void;
   helperNames: Record<string, string>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
-  setCompletingJobId: (id: string | null) => void;
+  setCompletingJobId: Dispatch<SetStateAction<string | null>>;
   setReportingNoShow: (v: boolean) => void;
   setNoShowJobId: (id: string | null) => void;
   setCancelDialogJob: (job: Job | null) => void;
@@ -44,7 +44,7 @@ export interface LifecycleHandlersDeps extends OptimisticJobCache {
    * the calling hook because this factory is re-created every render;
    * `completingJobId` is state, so two taps in one frame both read null.
    */
-  completeInFlight: MutableRefObject<boolean>;
+  completeInFlight: MutableRefObject<Set<string>>;
 }
 
 export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
@@ -94,8 +94,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
   const completeJob = async (jobId: string) => {
     // Same-frame double tap: both calls share one render's closure, so only
     // the ref sees the first. Cleared in `finally` below.
-    if (completeInFlight.current) return;
-    completeInFlight.current = true;
+    if (completeInFlight.current.has(jobId)) return;
+    completeInFlight.current.add(jobId);
     setCompletingJobId(jobId);
     try {
       const isHelper = appliedApps.some(a => a.job_id === jobId && a.helper_id === user?.id);
@@ -239,8 +239,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       hapticError();
       toast.error("We couldn't mark this job complete — please try again.");
     } finally {
-      completeInFlight.current = false;
-      setCompletingJobId(null);
+      completeInFlight.current.delete(jobId);
+      setCompletingJobId((cur) => (cur === jobId ? null : cur));
     }
   };
 

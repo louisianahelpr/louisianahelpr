@@ -123,4 +123,19 @@ describe("useActivityActions money handlers — same-frame double tap", () => {
     act(() => { void result.current.handleHelperResponse(app, true); });
     await waitFor(() => expect(confirmUpdateMock).toHaveBeenCalledTimes(2));
   });
+
+  it("completeJob: a tap on a DIFFERENT job while one is in flight still goes through", async () => {
+    const { result } = setup();
+    act(() => { void result.current.completeJob("job-1"); void result.current.completeJob("job-2"); });
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(2));
+    expect(invokeMock.mock.calls.map((c) => c[1].body.jobId)).toEqual(["job-1", "job-2"]);
+  });
+
+  it("handleHelperResponse: a DIFFERENT offer while one is in flight still goes through", async () => {
+    const { result } = setup();
+    const a = { id: "app-1", job_id: "job-1", helper_id: "user-1" } as unknown as Application;
+    const b = { id: "app-2", job_id: "job-2", helper_id: "user-1" } as unknown as Application;
+    act(() => { void result.current.handleHelperResponse(a, true); void result.current.handleHelperResponse(b, true); });
+    await waitFor(() => expect(confirmUpdateMock).toHaveBeenCalledTimes(2));
+  });
 });

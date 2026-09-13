@@ -105,8 +105,10 @@ export function useActivityActions({
   // Synchronous twins of the state flags above for the two money handlers:
   // state doesn't update between two taps in the same frame, a ref does.
   // They live here because create*Handlers are re-created every render.
-  const respondingInFlight = useRef(false);
-  const completeInFlight = useRef(false);
+  // Keyed by application/job id: a tap on a second card while the first is in
+  // flight must go through; only a repeat on the SAME card is dropped.
+  const respondingInFlight = useRef(new Set<string>());
+  const completeInFlight = useRef(new Set<string>());
 
   // W-9 e-sign — surfaces when the accepted job has `requires_w9 = true`
   // (set by business posters at post time). We open the dialog after the

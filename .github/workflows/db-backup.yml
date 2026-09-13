@@ -227,7 +227,7 @@ jobs:
           grep -qx "schema.sql" listing.txt
           rm -f roundtrip.tar.gz listing.txt
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: db-backup-${{ env.STAMP }}
           path: backup-${{ env.STAMP }}.tar.gz.gpg

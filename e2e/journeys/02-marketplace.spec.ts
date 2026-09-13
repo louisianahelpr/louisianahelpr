@@ -68,9 +68,27 @@ type Shared = {
 };
 const S = {} as Shared;
 
+const ZONE = "America/Chicago";
+/** A start slot `minutesAhead` from now in Louisiana time, rounded up to the form's 5-minute grid. */
+function slotAhead(minutesAhead: number) {
+  const t = new Date(Math.ceil((Date.now() + minutesAhead * 60_000) / 300_000) * 300_000);
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", { timeZone: ZONE, month: "long", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })
+      .formatToParts(t)
+      .map((p) => [p.type, p.value]),
+  );
+  return { at: t, monthDay: `${parts.month} ${parts.day}`, hour: parts.hour, minute: parts.minute, ampm: parts.dayPeriod as "AM" | "PM" };
+}
+const SLOT = slotAhead(100);
+
+/** True if the locator becomes visible within `ms` (isVisible's timeout option does not wait). */
+async function appears(locator: ReturnType<Page["locator"]>, ms: number) {
+  return locator.first().waitFor({ state: "visible", timeout: ms }).then(() => true, () => false);
+}
+
 async function readJob(api: APIRequestContext, session: Session, id: string) {
   const r = await api.get(
-    `${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&select=id,title,status,payment_status,helper_id,parish,is_seed,created_at,stripe_session_id`,
+    `${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&select=id,title,status,payment_status,helper_id,parish,is_seed,created_at,stripe_session_id,helper_completed_at`,
     { headers: rest(session) },
   );
   expect(r.ok(), `reading job ${id}: ${r.status()}`).toBe(true);
@@ -103,8 +121,8 @@ test.describe.serial("marketplace chain", () => {
     S.poster = await getSession(request, "poster");
     S.helper = await getSession(request, "helper");
     expect(S.poster.user.id).not.toBe(S.helper.user.id);
-    S.posterCtx = await newUserContext(browser, S.poster, { rotation });
-    S.helperCtx = await newUserContext(browser, S.helper, { rotation });
+    S.posterCtx = await newUserContext(browser, S.poster, { rotation, timezoneId: ZONE });
+    S.helperCtx = await newUserContext(browser, S.helper, { rotation, timezoneId: ZONE });
     S.posterPage = await S.posterCtx.newPage();
     S.helperPage = await S.helperCtx.newPage();
     S.fileDir = mkdtempSync(join(tmpdir(), "lh-journey-"));
@@ -176,13 +194,14 @@ test.describe.serial("marketplace chain", () => {
       journey.allowReport(/ZIP 99999 resolved to no Louisiana parish/, "deliberate: keeps parish null so no real helper is notified");
       await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
       await page.getByRole("button", { name: /Date needed/ }).click();
-      const day = new Date(Date.now() + 3 * 864e5);
-      const dayName = day.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-      const cell = page.getByRole("button", { name: new RegExp(dayName.replace(" ", ".*")) }).or(page.getByRole("gridcell", { name: new RegExp(dayName.replace(" ", ".*")) })).first();
+      // Soon, not days out: the day-of confirm opens inside 24h and the
+      // tracker's actions unlock at T-2h, so J5 can walk the whole job now.
+      const slot = SLOT;
+      const cell = page.getByRole("button", { name: new RegExp(slot.monthDay.replace(" ", ".*")) }).or(page.getByRole("gridcell", { name: new RegExp(slot.monthDay.replace(" ", ".*")) })).first();
       await cell.click();
-      await page.getByRole("listbox", { name: "Hour" }).getByRole("option", { name: "10", exact: true }).click();
-      await page.getByRole("listbox", { name: "Minute" }).getByRole("option", { name: "00", exact: true }).click();
-      await page.getByRole("radiogroup", { name: "AM or PM" }).getByRole("radio", { name: "AM" }).click();
+      await page.getByRole("listbox", { name: "Hour" }).getByRole("option", { name: slot.hour, exact: true }).click();
+      await page.getByRole("listbox", { name: "Minute" }).getByRole("option", { name: slot.minute, exact: true }).click();
+      await page.getByRole("radiogroup", { name: "AM or PM" }).getByRole("radio", { name: slot.ampm }).click();
       await assertHealthy(page, "logistics");
     });
 
@@ -362,7 +381,7 @@ test.describe.serial("marketplace chain", () => {
       await journey.milestone(hp, "helper-sees-offer");
       await hp.getByRole("button", { name: /^Accept/ }).first().click();
       const confirm = hp.getByRole("alertdialog").or(hp.getByRole("dialog")).getByRole("button", { name: /accept|confirm|yes/i }).last();
-      if (await confirm.isVisible({ timeout: 5_000 }).catch(() => false)) await confirm.click();
+      if (await appears(confirm, 5_000)) await confirm.click();
       await expect
         .poll(async () => (await readJob(request, S.poster, S.jobId!)).helper_id, { timeout: 30_000, message: "hire never set helper_id" })
         .toBe(S.helper.user.id);
@@ -460,6 +479,222 @@ test.describe.serial("marketplace chain", () => {
       await pp.mouse.move(b2.x + 180, b2.y + b2.height / 2, { steps: 15 });
       await pp.mouse.up();
       await expect(row.getByText("Pin", { exact: true })).toHaveCount(1, { timeout: 10_000 });
+    });
+  });
+
+  /** The in-app location rationale; this journey's helper always says Not Now. */
+  async function declineLocation(page: Page) {
+    const notNow = page.getByRole("button", { name: "Not Now" });
+    for (let i = 0; i < 3 && (await page.getByRole("button", { name: "Share Location" }).isVisible().catch(() => false)); i++) {
+      await notNow.first().click();
+      await page.waitForTimeout(500);
+    }
+  }
+
+  /** Open this run's card on a tab and return it. */
+  async function card(page: Page, path: "/my-posts" | "/my-jobs", tab: "Needs You" | "Scheduled" | "Waiting" | "Done", reload = true) {
+    if (reload) await page.goto(path);
+    await page.waitForTimeout(1_500);
+    await declineLocation(page);
+    const heading = page.getByRole("heading", { name: TITLE, level: 2 });
+    // The expected tab first; the job's bucket is recorded when it is elsewhere,
+    // because which tab a job sits in is itself something a user relies on.
+    const order = [tab, ...(["Needs You", "Scheduled", "Waiting", "Done"] as const).filter((t) => t !== tab)];
+    let found = "";
+    for (const t of order) {
+      await openStatusTab(page, t);
+      if (await appears(heading, t === tab ? 15_000 : 5_000)) {
+        found = t;
+        break;
+      }
+    }
+    expect(found, `${TITLE} is on no ${path} tab`).not.toBe("");
+    if (found !== tab) test.info().annotations.push({ type: "bucket", description: `${path}: expected ${tab}, found ${found}` });
+    const c = page.locator("div.liquid-glass").filter({ has: heading }).last();
+    if (!(await c.getByRole("group", { name: /Job progress/ }).isVisible().catch(() => false))) await heading.click();
+    return c;
+  }
+
+  /** Press a visible control by name, then prove the screen is not an error. */
+  async function press(page: Page, scope: ReturnType<Page["locator"]>, name: RegExp, where: string) {
+    const btn = scope.getByRole("button", { name }).first();
+    await expect(btn, `${where}: no "${name}" control`).toBeVisible({ timeout: 45_000 });
+    await btn.click();
+    await page.waitForTimeout(1_000);
+    await declineLocation(page);
+    await assertHealthy(page, where);
+  }
+
+  const j5 = title("do-the-job", "revision");
+  test(j5, async ({ request, journey }) => {
+    test.setTimeout(12 * 60_000);
+    test.skip(filteredOut(j5), "SCENARIO pins another scenario");
+    test.skip(!S.jobId || !S.funded, "needs J4's hired, funded job");
+    const hp = journey.track("helper", S.helperPage);
+    const pp = journey.track("poster", S.posterPage);
+
+    await test.step("day-of confirm, where the app asks for it", async () => {
+      // Inside T-2h the tracker skips the day-before "Still on?" and offers
+      // "I'm On My Way" directly; the journey follows whichever the app shows.
+      const c = await card(hp, "/my-jobs", "Scheduled");
+      const stillOn = c.getByRole("button", { name: /I'm Still On/ });
+      const onWay = c.getByRole("button", { name: /I'm On My Way/ });
+      await expect(stillOn.or(onWay).first(), "the helper card offers neither Still On nor On My Way").toBeVisible({ timeout: 45_000 });
+      if (await stillOn.isVisible()) {
+        await stillOn.click();
+        const yes = hp.getByRole("button", { name: /Yes, I Confirm/ });
+        if (await appears(yes, 5_000)) await yes.click();
+        const pc = await card(pp, "/my-posts", "Needs You");
+        await press(pp, pc, /Confirm This Job/, "poster confirm");
+      } else {
+        test.info().annotations.push({ type: "path", description: "inside T-2h: no day-of confirm step offered" });
+      }
+      await journey.milestone(hp, "helper-ready-to-go");
+    });
+
+    await test.step("helper heads over and arrives; poster confirms arrival", async () => {
+      let c = await card(hp, "/my-jobs", "Scheduled", false);
+      await press(hp, c, /I'm On My Way/, "on my way");
+      // The location rationale: this helper declines, so arrival goes down the
+      // poster-confirms branch (the one a phone without GPS takes).
+      if (await appears(hp.getByRole("button", { name: "Share Location" }), 8_000)) {
+        await journey.milestone(hp, "location-rationale");
+        await declineLocation(hp);
+      }
+      await journey.milestone(hp, "on-my-way");
+      c = await card(hp, "/my-jobs", "Scheduled", false);
+      await press(hp, c, /I've Arrived/, "arrived");
+      await journey.milestone(hp, "arrived-no-gps");
+      c = await card(pp, "/my-posts", "Needs You");
+      await press(pp, c, /Confirm They Arrived/, "poster confirms arrival");
+      await journey.milestone(pp, "poster-confirmed-arrival");
+    });
+
+    await test.step("helper works the job: before photo, start, after photo, request payout", async () => {
+      // The card shows ONE next thing at a time; follow it the way a helper does.
+      // Harness concession (prod-lifecycle's): the payout request unlocks 30 min
+      // after arrival, so both arrival stamps are backdated rather than waited on.
+      for (const [who, col] of [[S.helper, "helper_arrived_at"], [S.poster, "poster_confirmed_arrival_at"]] as const) {
+        const r = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${S.jobId}`, {
+          headers: rest(who, { Prefer: "return=representation" }),
+          data: { [col]: new Date(Date.now() - 40 * 60_000).toISOString() },
+        });
+        expect(r.ok(), `backdating ${col}: ${r.status()} ${await r.text()}`).toBe(true);
+      }
+      const seen: string[] = [];
+      for (let i = 0; i < 8; i++) {
+        const c = await card(hp, "/my-jobs", "Needs You");
+        const before = c.getByText("Add a before photo", { exact: true });
+        const after = c.getByText("Add an after photo", { exact: true });
+        const start = c.getByRole("button", { name: /^Start Working$/ });
+        const payout = c.getByRole("button", { name: /^Request My Payout$/ });
+        await expect(before.or(after).or(start).or(payout).first(), `helper card offers no next step (so far: ${seen.join(" > ")})`).toBeVisible({ timeout: 45_000 });
+        if (await before.isVisible() || await after.isVisible()) {
+          const label = (await before.isVisible()) ? "Before" : "After";
+          seen.push(`${label} photo`);
+          await c.getByRole("button", { name: /^Add Photo$/ }).click();
+          const dialog = hp.getByRole("dialog").filter({ hasText: `${label} photos` });
+          await expect(dialog).toBeVisible();
+          await dialog.locator('input[type="file"]').setInputFiles(join(S.fileDir, "job-photo.png"));
+          await dialog.getByRole("button", { name: "Upload" }).click();
+          await expect(dialog, `${label} photo dialog never closed`).toBeHidden({ timeout: 45_000 });
+          await expect(
+            c.getByText(label === "Before" ? "Add a before photo" : "Add an after photo", { exact: true }),
+            `the ${label.toLowerCase()} photo ask is still on the card 30s after the upload dialog closed`,
+          ).toBeHidden({ timeout: 30_000 });
+          await assertHealthy(hp, `${label} photo`);
+          await journey.milestone(hp, `${label.toLowerCase()}-photo-uploaded`);
+        } else if (await start.isVisible()) {
+          seen.push("Start Working");
+          await start.click();
+          // Start Working asks for location while it saves; decline, then let the save land.
+          await hp.getByRole("button", { name: "Share Location" }).waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
+          await declineLocation(hp);
+          await expect(c.getByText(/Saving your update/), "Start Working never finished saving").toBeHidden({ timeout: 45_000 });
+          await expect(c.getByRole("button", { name: /^Start Working$/ }), "Start Working did not advance the tracker").toBeHidden({ timeout: 45_000 });
+          await assertHealthy(hp, "start working");
+          await journey.milestone(hp, "working");
+        } else {
+          seen.push("Request My Payout");
+          const payoutButtons = await c.getByRole("button", { name: /Request (My )?Payout/ }).count();
+          test.info().annotations.push({ type: "payout-cta-count", description: String(payoutButtons) });
+          await payout.click();
+          const yes = hp.getByRole("button", { name: "Yes, I'm Done" });
+          await expect(yes, "Request My Payout opened no confirmation").toBeVisible({ timeout: 15_000 });
+          await journey.milestone(hp, "request-payout-confirm");
+          await yes.click();
+          await expect(yes).toBeHidden({ timeout: 30_000 });
+          break;
+        }
+      }
+      test.info().annotations.push({ type: "helper-path", description: seen.join(" > ") });
+      await expect.poll(async () => Boolean((await readJob(request, S.poster, S.jobId!)).helper_completed_at), { timeout: 30_000, message: `completion never recorded (path: ${seen.join(" > ")})` }).toBe(true);
+      await expect(hp.getByText(/Waiting for the poster to approve|Marked Complete/).first()).toBeVisible({ timeout: 45_000 });
+      await journey.milestone(hp, "submitted");
+    });
+
+    await test.step("poster requests a revision", async () => {
+      const c = await card(pp, "/my-posts", "Needs You");
+      await press(pp, c, /Request Revision/, "request revision");
+      await pp.getByRole("textbox", { name: /Describe what needs to be redone|Revision request details/ }).first().fill(`Journey ${RUN}: please redo the corner.`);
+      await journey.milestone(pp, "revision-sheet");
+      await pp.getByRole("dialog").getByRole("button", { name: /Request Revision|Send/ }).last().click();
+      await expect.poll(async () => (await readJob(request, S.poster, S.jobId!)).status, { timeout: 30_000 }).toBe("revision_requested");
+      await journey.milestone(pp, "revision-requested");
+    });
+
+    await test.step("helper sees the note and resubmits", async () => {
+      const c = await card(hp, "/my-jobs", "Needs You");
+      await expect(c.getByText(`Journey ${RUN}: please redo the corner.`), "the helper never sees the revision note").toBeVisible({ timeout: 45_000 });
+      await press(hp, c, /I'll Fix It/, "acknowledge revision");
+      const c2 = await card(hp, "/my-jobs", "Needs You", false);
+      await press(hp, c2, /Mark Fixed/, "mark fixed");
+      const yes = hp.getByRole("dialog").getByRole("button", { name: /Mark Fixed|Yes|Confirm/ }).last();
+      if (await appears(yes, 5_000)) await yes.click();
+      await journey.milestone(hp, "resubmitted");
+    });
+
+    await test.step("poster approves and releases the payment", async () => {
+      const c = await card(pp, "/my-posts", "Needs You");
+      await press(pp, c, /Approve & release payment|Release Payment|Approve/, "approve");
+      const confirm = pp.getByRole("dialog").filter({ hasText: /Release the payment\?/ });
+      if (await appears(confirm, 5_000)) {
+        await journey.milestone(pp, "release-confirm");
+        await confirm.getByRole("button", { name: /Release|Approve|Yes/ }).last().click();
+      }
+      await expect
+        .poll(async () => (await readJob(request, S.poster, S.jobId!)).payment_status, { timeout: 90_000, message: "release never settled" })
+        .toMatch(/^(payout_pending|released)$/);
+      await assertHealthy(pp, "after release");
+      await journey.milestone(pp, "released");
+    });
+
+    await test.step("poster reviews the helper and tips", async () => {
+      const c = await card(pp, "/my-posts", "Done");
+      const review = pp.getByRole("dialog").filter({ hasText: "How Did It Go?" });
+      if (!(await review.isVisible().catch(() => false))) await press(pp, c, /^Review$/, "poster review");
+      await expect(review).toBeVisible({ timeout: 30_000 });
+      await review.getByRole("radio", { name: /5/ }).or(review.getByRole("button", { name: /5 stars?/i })).first().click();
+      await review.getByRole("textbox").first().fill(`Journey ${RUN}: great work.`);
+      await journey.milestone(pp, "poster-review");
+      await review.getByRole("button", { name: /Submit|Post Review|Send/ }).last().click();
+      await expect(review).toBeHidden({ timeout: 30_000 });
+      const c2 = await card(pp, "/my-posts", "Done");
+      await expect(c2.getByRole("button", { name: /Reviewed/ }).or(c2.getByText("Reviewed")).first()).toBeVisible({ timeout: 30_000 });
+      await press(pp, c2, /^Tip$/, "tip");
+      await journey.milestone(pp, "tip-sheet");
+    });
+
+    await test.step("helper reviews the poster", async () => {
+      const c = await card(hp, "/my-jobs", "Done");
+      await press(hp, c, /Leave a review for the poster|Review Poster/, "helper review");
+      const review = hp.getByRole("dialog").filter({ hasText: "How Did It Go?" });
+      await expect(review).toBeVisible({ timeout: 30_000 });
+      await review.getByRole("radio", { name: /5/ }).or(review.getByRole("button", { name: /5 stars?/i })).first().click();
+      await review.getByRole("textbox").first().fill(`Journey ${RUN}: clear instructions.`);
+      await review.getByRole("button", { name: /Submit|Post Review|Send/ }).last().click();
+      await expect(review).toBeHidden({ timeout: 30_000 });
+      await journey.milestone(hp, "helper-review");
     });
   });
 });

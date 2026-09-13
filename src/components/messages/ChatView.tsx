@@ -282,6 +282,17 @@ export function ChatView({
   const posterHasMessaged = messages.some((m) => m.sender_id !== userId);
   const composerLocked = isApplicant && !posterHasMessaged;
 
+  // 24h post-completion messaging lockout (backlog #95): once a job has
+  // been completed for more than a day, the thread closes to new human
+  // messages. Mirrors `can_message_in_job`'s lockout gate
+  // (20260831053124) — the client lock must never be looser than the
+  // server's, or the composer would let someone type a message the RLS
+  // policy then silently rejects.
+  const threadClosed =
+    activeConvo.jobStatus === "completed" &&
+    !!activeConvo.jobCompletedAt &&
+    Date.now() - new Date(activeConvo.jobCompletedAt).getTime() > 24 * 60 * 60 * 1000;
+
   // iMessage-style read receipt: only the CURRENT USER's most recent
   // *settled* outbound message carries a "Read"/"Delivered" indicator —
   // not every bubble. Derived from the messages already in state (no new
@@ -430,6 +441,7 @@ export function ChatView({
 
           <ChatComposer
             composerLocked={composerLocked}
+            threadClosed={threadClosed}
             chatLoadError={chatLoadError}
             keyboardInset={keyboardInset}
             activeConvo={activeConvo}

@@ -42,6 +42,7 @@ function dockPaddingBottom(keyboardInset: number): string {
  */
 export function ChatComposer({
   composerLocked,
+  threadClosed,
   chatLoadError,
   keyboardInset,
   activeConvo,
@@ -55,6 +56,11 @@ export function ChatComposer({
   onCancelReply,
 }: {
   composerLocked: boolean;
+  /** True once the job has been completed for more than 24h — the thread
+      is closed to new human messages. Takes priority over `composerLocked`
+      (checked first below) since a completed job's applicant-lock question
+      is moot once the thread is closed outright. */
+  threadClosed: boolean;
   chatLoadError: boolean;
   keyboardInset: number;
   activeConvo: Conversation;
@@ -73,6 +79,32 @@ export function ChatComposer({
   replyTo?: Message | null;
   onCancelReply?: () => void;
 }) {
+  if (threadClosed) {
+    /* 24h post-completion lockout (backlog #95) — the job wrapped up
+       more than a day ago, so the thread closes to new messages. Same
+       lock-card treatment as the poster-first lock below, distinct copy.
+       The backend RLS policy (`can_message_in_job`, 20260831053124)
+       enforces the same rule server-side. */
+    return (
+      <div
+        className="pt-2 pb-3 glass-dock sticky bottom-0"
+        style={{ paddingBottom: dockPaddingBottom(keyboardInset) }}
+      >
+        <div
+          className="flex items-start gap-2.5 rounded-ds-md px-3.5 py-3"
+          style={{
+            background: "hsl(var(--olivewood) / 0.06)",
+            border: "0.5px solid hsl(var(--olivewood) / 0.15)",
+          }}
+        >
+          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} strokeWidth={2} aria-hidden="true" />
+          <p className="font-serif italic text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            This conversation is now closed. It's been more than 24 hours since the job wrapped up.
+          </p>
+        </div>
+      </div>
+    );
+  }
   if (composerLocked) {
     /* Poster-first lock — the applicant waits for the poster to
        open the conversation. Replaces chips + quick replies +

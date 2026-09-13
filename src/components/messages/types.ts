@@ -60,6 +60,13 @@ export type Conversation = {
       see at a glance whether they're discussing an open posting, an
       awarded job, or a completed one. */
   jobStatus?: string | null;
+  /** When this job finished — `COALESCE(poster_completed_at,
+      helper_completed_at, updated_at)`, matching the same expression the
+      `can_message_in_job` RLS check (20260831053124) uses server-side.
+      Drives the client-side 24h post-completion messaging lockout so the
+      composer disables itself instead of letting a send fail server-side.
+      Null on any job that hasn't reached `status: "completed"`. */
+  jobCompletedAt?: string | null;
   /** True when the current user posted the job — drives poster-specific
       quick reply set in the chat composer. */
   viewerIsPoster?: boolean;

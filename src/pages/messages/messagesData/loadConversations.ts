@@ -181,7 +181,7 @@ export async function fetchConversations(
   // degrade silently when the function isn't deployed (PGRST202).
   const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
-    supabase.from("jobs").select("id, title, status, customer_id, helper_id, offered_to_helper_id").in("id", jobIds),
+    supabase.from("jobs").select("id, title, status, customer_id, helper_id, offered_to_helper_id, poster_completed_at, helper_completed_at, updated_at").in("id", jobIds),
     getMessageAttachmentSignedUrls(imageThumbPaths),
     getMutedThreadMap(uid, mutePairs),
     (supabase.rpc as any)("get_user_last_active", { user_ids: otherIds }),
@@ -226,7 +226,7 @@ export async function fetchConversations(
       tags: { source: "loadConversations.jobs" },
     });
   }
-  const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, customer_id: j.customer_id, helper_id: j.helper_id, offered_to_helper_id: j.offered_to_helper_id }]) || []);
+  const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, customer_id: j.customer_id, helper_id: j.helper_id, offered_to_helper_id: j.offered_to_helper_id, completedAt: j.poster_completed_at ?? j.helper_completed_at ?? j.updated_at ?? null }]) || []);
 
   const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => {
     const last = v.messages[0];
@@ -245,6 +245,9 @@ export async function fetchConversations(
     jobTitle: jobMap.get(v.jobId)?.title || "a task",
     jobId: v.jobId,
     jobStatus: jobMap.get(v.jobId)?.status ?? null,
+    // Mirrors the COALESCE the 24h-lockout RLS check uses server-side
+    // (20260831053124) — see the `jobCompletedAt` doc comment in types.ts.
+    jobCompletedAt: jobMap.get(v.jobId)?.completedAt ?? null,
     // Track whether the current user is the poster on this job so the
     // chat can render poster-specific quick replies (vs helper-specific).
     viewerIsPoster: jobMap.get(v.jobId)?.customer_id === uid,
@@ -306,7 +309,7 @@ export async function buildDeepLinkPlaceholder(
   // placeholder thread so the user can start messaging.
   const [profileRes, jobRes] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: [deepLinkUserId] }),
-    supabase.from("jobs").select("id, title, status, customer_id, helper_id, offered_to_helper_id").eq("id", deepLinkJobId).maybeSingle(),
+    supabase.from("jobs").select("id, title, status, customer_id, helper_id, offered_to_helper_id, poster_completed_at, helper_completed_at, updated_at").eq("id", deepLinkJobId).maybeSingle(),
   ]);
 
   // A FAILED read is not the same fact as an ABSENT row, and the dead-thread
@@ -349,6 +352,7 @@ export async function buildDeepLinkPlaceholder(
     jobTitle: jobRes.data?.title || "a task",
     jobId: deepLinkJobId,
     jobStatus: jobRes.data?.status ?? null,
+    jobCompletedAt: jobRes.data?.poster_completed_at ?? jobRes.data?.helper_completed_at ?? jobRes.data?.updated_at ?? null,
     viewerIsPoster: jobRes.data?.customer_id === uid,
     // Same rule as the list path above — see the comment there.
     viewerIsAssignedHelper:

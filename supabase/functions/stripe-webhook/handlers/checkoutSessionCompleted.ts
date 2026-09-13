@@ -1,4 +1,5 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
+import { giftCardIdFromMetadata, isGiftCardPurchaseKind } from "../../_shared/giftCardLegacyAliases.ts";
 import type { WebhookContext } from "../context.ts";
 import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
@@ -476,7 +477,7 @@ export async function handleCheckoutSessionCompleted(
   // still holds — those RPCs are revoked from anon and authenticated — but
   // "the ONLY writer" is what would stop the next auditor enumerating them.) Everything needed to mint rides in the
   // session metadata set by create-gift-card-checkout.
-  if (kind === "gift_card_purchase") {
+  if (isGiftCardPurchaseKind(kind)) {
     const donorId = (session.metadata as any)?.donor_id as string | undefined;
     const donorName = ((session.metadata as any)?.donor_name as string | undefined)?.trim() || "Someone";
     const recipientEmail = ((session.metadata as any)?.recipient_email as string | undefined)?.trim().toLowerCase();
@@ -664,7 +665,7 @@ export async function handleCheckoutSessionCompleted(
   // stores the difference PI, which is all the payout path needs (it detects
   // gift card funding via this redeemed credit and pays the helper from the platform
   // balance, not from the difference PI).
-  const giftCardId = (session.metadata as any)?.gift_card_id as string | undefined;
+  const giftCardId = giftCardIdFromMetadata(session.metadata as Record<string, unknown> | null);
   if (giftCardId) {
     const { data: consumed, error: consumeErr } = await supabase
       .from("gift_cards")

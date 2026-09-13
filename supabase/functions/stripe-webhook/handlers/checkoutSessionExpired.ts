@@ -1,5 +1,6 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { giftCardIdFromMetadata } from "../../_shared/giftCardLegacyAliases.ts";
 
 // A recipient started paying the shortfall on a gift card (their
 // credit was smaller than the job budget), so create-payment's gift card branch
@@ -64,7 +65,7 @@ export async function handleCheckoutSessionExpired(
     );
   }
 
-  const giftCardId = meta?.gift_card_id;
+  const giftCardId = giftCardIdFromMetadata(meta);
   if (!giftCardId) return; // not a gift card difference checkout — nothing further to unwind
 
   const { data: freed, error: freeErr } = await supabase

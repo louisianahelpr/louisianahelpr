@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { LEGACY_GIFT_CARD_BODY_KEY } from "../_shared/giftCardLegacyAliases.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
@@ -122,7 +123,9 @@ serve(async (req) => {
 
     // ─── ESCROW: Create checkout with manual capture ───
     if (action === "escrow") {
-      const { jobId, saveCardForFuture, giftCardId } = body;
+      const { jobId, saveCardForFuture } = body;
+      // App Store v1.0.x still sends the gift card id under its legacy key.
+      const giftCardId = body.giftCardId ?? body[LEGACY_GIFT_CARD_BODY_KEY];
       if (!jobId) throw new Error("Missing jobId");
 
       const { data: job, error: jobError } = await supabaseAdmin

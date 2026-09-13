@@ -13,7 +13,8 @@
 // (v1.0.x) and mid-deploy web clients still call them. Each one carries a
 // "drop once the minimum supported app version no longer uses it" comment and
 // a line in docs/OPEN.md. Old migrations under supabase/migrations are history
-// and are not scanned (they cannot be renamed without breaking replay).
+// and are not scanned (they cannot be renamed without breaking replay). Files
+// generated from the live schema may name the alias DB objects, and only those.
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, sep } from "node:path";
@@ -29,6 +30,18 @@ export const ALIAS_PATHS = [
   ["supabase", "functions", "_shared", "giftCardLegacyAliases.ts"].join(sep),
   ["src", "lib", "giftCardLegacyAliases.ts"].join(sep),
 ];
+
+/**
+ * Files GENERATED from the live schema (supabase gen types; the nightly
+ * write-contract refresh). While the alias objects exist in the database these
+ * reflect them, so in these files only, the exact alias object names are
+ * tolerated. Any other spelling of the old name in them still fails.
+ */
+const GENERATED_SCHEMA_FILES = [
+  ["src", "integrations", "supabase", "types.ts"].join(sep),
+  ["scripts", "audit", "write-contract.snapshot.json"].join(sep),
+];
+const ALIAS_DB_OBJECTS = /\b(pif_credits|redeem_pif_credit|restore_pif_credit_for_job)\b/g;
 
 const SKIP_DIRS = new Set(["node_modules", "dist", "coverage", ".git", "playwright-report", "test-results"]);
 const BINARY = /\.(png|jpe?g|gif|webp|ico|pdf|woff2?|ttf|otf|mp4|webm|zip|gz|wasm)$/i;
@@ -115,6 +128,7 @@ describe("Helpr gift card naming guard", () => {
       } catch {
         continue;
       }
+      if (GENERATED_SCHEMA_FILES.includes(path)) text = text.replace(ALIAS_DB_OBJECTS, "");
       for (const hit of namingOffences(text)) offenders.push(`${path}:${hit}`);
     }
     expect(offenders, `The feature is the Helpr gift card. Rename these:\n${offenders.join("\n")}`).toEqual([]);

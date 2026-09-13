@@ -12,6 +12,7 @@ import { useJobEntry } from "./useJobEntry";
 import { useJobDerived } from "./useJobDerived";
 import { useJobFormEffects } from "./useJobFormEffects";
 import { usePostJobGiftCard } from "./usePostJobGiftCard";
+import { LEGACY_POST_JOB_GIFT_CARD_PARAM } from "@/lib/giftCardLegacyAliases";
 
 export type { Step } from "./postJobFormTypes";
 
@@ -47,7 +48,7 @@ export function usePostJobForm() {
   // checkout screen quotes come from the same place. They used to be
   // unrelated: the id was passed through to the server and the screen never
   // knew a gift existed, so it quoted full price against a $0 charge.
-  const giftCardId = searchParams.get("gift_card");
+  const giftCardId = searchParams.get("gift_card") ?? searchParams.get(LEGACY_POST_JOB_GIFT_CARD_PARAM);
   const giftCard = usePostJobGiftCard(giftCardId);
 
   // Advance to the form when `rebook`/`offerTo` arrives AFTER mount.

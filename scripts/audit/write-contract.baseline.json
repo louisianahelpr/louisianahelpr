@@ -1,0 +1,6 @@
+{
+  "//": "Rejections accepted as KNOWN open defects. Every entry must have a line in docs/OPEN.md under Audit gaps; the vitest guard fails if an entry stops reproducing (stale) so this list can only shrink.",
+  "accepted": [
+    "src/pages/dashboard/useApplyFlow.ts|rpc|instant_book_claim|rpc_missing|function public.instant_book_claim does not exist"
+  ]
+}

@@ -545,11 +545,16 @@ test.describe("explore dialog-gated forms from real records", () => {
         return target.click({ timeout: 2_000 }).then(() => true).catch(() => false);
       };
       const overlay = () => page.locator('[role="dialog"], [role="alertdialog"], [role="menu"]').filter({ visible: true }).last();
+      // Reload after EVERY top-level press, not only after one that navigated.
+      // Presses are not independent: on /admin?view=disputes the filter chips
+      // ">30d", "Helpr" and "Other" narrowed the queue to zero rows, so every
+      // later press found no dispute card and the explore credited nothing
+      // (measured 2026-09-13). A press must start from the screen as it ships.
       const reset = async () => {
         await page.keyboard.press("Escape").catch(() => {});
         await page.waitForTimeout(150);
         if (await overlay().count()) await page.keyboard.press("Escape").catch(() => {});
-        if (!page.url().includes(url.split("?")[0]) || (await overlay().count())) await load();
+        await load();
       };
       // `baseline` is taken BEFORE the press: a loading state the press itself
       // introduced and never resolves is a finding; one already on screen
@@ -572,9 +577,18 @@ test.describe("explore dialog-gated forms from real records", () => {
       expect(base, `${ex.name} broken before any input`).toEqual([]);
       await sweepNewFields("page");
 
-      for (const top of await pressables(page.locator("body"))) {
+      // App chrome (header, bottom nav, side rail) is pressed by
+      // press-every-control, not here; this explore wants the screen's own
+      // controls, which live in <main> when the page has one.
+      const scope = (await page.locator("main").count()) ? page.locator("main") : page.locator("body");
+      const deadline = Date.now() + 6 * 60_000;
+      for (const top of await pressables(scope)) {
+        if (Date.now() > deadline) {
+          info.annotations.push({ type: "note", description: "stopped at the 6-minute explore budget; remaining controls not pressed" });
+          break;
+        }
         const beforeTop = await baselineOf(page);
-        if (!(await press(page.locator("body"), top))) continue;
+        if (!(await press(scope, top))) continue;
         await checkAfterPress(top, beforeTop);
         if (await overlay().count()) {
           for (const inner of await pressables(overlay())) {

@@ -1,0 +1,157 @@
+name: Prod audit (messy input, deep links, interruptions)
+
+# The two PROD suites in e2e/prod-audit/, against the DEPLOYED app and the REAL
+# backend as the seeded test accounts (owner, 2026-09-12: "no mock mode ever"):
+#
+#   messy-input.spec.ts   every form: the whole value battery on every field,
+#                         the targeted format/price/DOB rules, and the
+#                         dialog-gated forms explored from real seeded records
+#                         behind a write firewall. Ends on a coverage test that
+#                         fails when a form in docs/audit/form-inventory.md has
+#                         neither a sweep, an explore credit nor a stated gap.
+#   deep-links.spec.ts    the URLs people tap from a push, a text or an email,
+#                         signed in and out, including a job that is gone.
+#   interruptions.spec.ts double-tap, offline mid-submit, a slow network, back
+#                         and refresh mid-flow, and session expiry.
+#
+# No app build: like e2e-journeys.yml these drive the deployed site, which is
+# exactly the bundle users get. Serial, one worker, and in the SAME concurrency
+# group as the journeys and prod-lifecycle so nothing else drives these accounts
+# at the same time.
+#
+# SESSIONS. poster and helper come from the password-grant secrets. The
+# incomplete-profile and admin seed accounts have no password anywhere, so
+# scripts/test-signin-link.mjs mints them from the service-role key, which this
+# workflow reads at run time with the Supabase CLI (SUPABASE_ACCESS_TOKEN) and
+# writes straight into a gitignored .env. The key is never echoed, never a step
+# output and never an artifact: it is masked with ::add-mask:: the moment it
+# exists, and .env is removed in the final step.
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "10 9 * * *"
+  workflow_dispatch:
+    inputs:
+      grep:
+        description: "Only tests whose title matches this (Playwright -g)"
+        type: string
+        default: ""
+
+concurrency:
+  group: prod-lifecycle-shared-accounts
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: What can run
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      have_accounts: ${{ steps.check.outputs.have_accounts }}
+    steps:
+      - id: check
+        env:
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -n "$POSTER_EMAIL" ] && [ -n "$POSTER_PASSWORD" ] && [ -n "$HELPER_EMAIL" ] && [ -n "$HELPER_PASSWORD" ] && [ -n "$ACCESS_TOKEN" ]; then
+            echo "have_accounts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_accounts=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Prod audit NOT run::PLAYWRIGHT_POSTER/HELPER_EMAIL+_PASSWORD and SUPABASE_ACCESS_TOKEN are required."
+            echo "- **Prod audit: NOT COVERED** — shared-account secrets or SUPABASE_ACCESS_TOKEN are missing." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  prod-audit:
+    name: Prod audit (prod-audit)
+    needs: preflight
+    if: needs.preflight.outputs.have_accounts == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+
+      # The incomplete-profile and admin seed accounts exist only as seeded
+      # rows: no password is stored for them anywhere, so a session can only be
+      # minted with the service-role key. Read it here, mask it before it can
+      # reach a log, and hand it to scripts/test-signin-link.mjs the way a local
+      # run gets it — through .env, which is gitignored and deleted below.
+      - name: Provide the service-role key to the seeded-account minter
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+        run: |
+          set -euo pipefail
+          KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+          # Mask first, write second: after this line the value cannot appear in
+          # a log even if a later command echoes it.
+          echo "::add-mask::$KEY"
+          umask 077
+          {
+            printf 'VITE_SUPABASE_URL=%s\n' "$SUPABASE_URL"
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY"
+          } > .env
+          test -s .env
+
+      - name: Run the prod audit suites
+        run: npx playwright test --project=prod-audit --workers=1 --reporter=list ${{ inputs.grep && format('-g "{0}"', inputs.grep) || '' }}
+
+      - name: Keep failure screenshots, samples and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-audit-results
+          # .env lives at the repo root, not under these paths, and is deleted
+          # in the next step regardless.
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Remove the service-role key from the runner
+        if: always()
+        run: rm -f .env
+
+  notify:
+    name: Report nightly result
+    needs: [preflight, prod-audit]
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: prod-audit
+          status: ${{ needs.prod-audit.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -30,7 +30,7 @@
  */
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { APIRequestContext, Browser, BrowserContext, Locator, Page } from "@playwright/test";
+import type { Browser, BrowserContext, Locator, Page } from "@playwright/test";
 import { test as base, expect } from "@playwright/test";
 import { ADMIN_VIEWS } from "../happy-path/auditRoutes";
 import {
@@ -68,11 +68,9 @@ const test = base;
 const CREDITS = join("test-results", "messy-input-prod", "credits");
 
 const sessions = new Map<Account, Session>();
-let api: APIRequestContext;
 let fx: Fixtures;
 
 test.beforeAll(async ({ request }) => {
-  api = request;
   for (const a of ["poster", "helper", "incomplete", "admin"] as Account[]) sessions.set(a, await sessionFor(request, a));
   fx = await resolveFixtures(request, sessions.get("poster")!, sessions.get("helper")!);
   mkdirSync(CREDITS, { recursive: true });
@@ -343,7 +341,9 @@ test.describe("targeted rules", () => {
     await ctx.close();
   });
 
-  test("chat composer: whitespace-only and 4,001 chars are refused; a marked emoji/multibyte/HTML message is sent once, rendered inert, then deleted", async ({ browser }, info) => {
+  // `request` per test, never the beforeAll one: Playwright refuses a reused
+  // beforeAll fixture inside a test.
+  test("chat composer: whitespace-only and 4,001 chars are refused; a marked emoji/multibyte/HTML message is sent once, rendered inert, then deleted", async ({ browser, request }, info) => {
     test.skip(!fx.inProgressJob, "GAP: no in-progress job between the two accounts");
     const helper = sessions.get("helper")!;
     const poster = sessions.get("poster")!;
@@ -370,7 +370,7 @@ test.describe("targeted rules", () => {
     expect(writes.filter((w) => w.method() === "POST").length).toBe(1);
     // Cleanup as the sender.
     const enc = encodeURIComponent(`*${MARKER}*`);
-    const r = await restAs(api, helper, "delete", `messages?content=like.${enc}&sender_id=eq.${helper.user.id}&select=id`);
+    const r = await restAs(request, helper, "delete", `messages?content=like.${enc}&sender_id=eq.${helper.user.id}&select=id`);
     expect(r.ok(), `cleanup: ${r.status()} ${await r.text()}`).toBe(true);
     await ctx.close();
   });

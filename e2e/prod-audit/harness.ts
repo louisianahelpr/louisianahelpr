@@ -337,11 +337,19 @@ export async function assertHealthy(page: Page, info: TestInfo, step: string, op
   expect(problems, `[${step}] at ${page.url()}\n${problems.join("\n")}`).toEqual([]);
 }
 
-/** Collect non-GET requests to URLs matching `re` from now on. */
+/**
+ * Collect WRITES to URLs matching `re` from now on.
+ *
+ * HEAD is a read: PostgREST answers a count query with HEAD, and the apply flow
+ * fires three of them right after applying. Counting those as writes made a
+ * single application look like four (measured 2026-09-13) — which is exactly
+ * how a double-submit check gets muted for crying wolf.
+ */
 export function watchWrites(page: Page, re: RegExp): Request[] {
   const hits: Request[] = [];
+  const READ = new Set(["GET", "HEAD", "OPTIONS"]);
   page.on("request", (r) => {
-    if (r.method() !== "GET" && r.method() !== "OPTIONS" && re.test(r.url())) hits.push(r);
+    if (!READ.has(r.method()) && re.test(r.url())) hits.push(r);
   });
   return hits;
 }

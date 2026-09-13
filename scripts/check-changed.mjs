@@ -12,7 +12,7 @@
  * fails the push instead of silently passing.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, symlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -61,6 +61,20 @@ console.log(`[check:changed] sweeping ${global ? "EVERY route (a global file cha
 // sweep signs in as the shared test accounts; with no session source it cannot
 // sweep an authed screen, so that is a hard failure, never a pass. Mirrors
 // sessionsAvailable() in e2e/journeys/fixtures.ts.
+// A fresh worktree has no .env (gitignored), so the local build and session
+// minting would fail. Link the main checkout's .env rather than failing the push.
+if (!existsSync(join(REPO_ROOT, ".env"))) {
+  try {
+    const common = execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { cwd: REPO_ROOT, encoding: "utf8" }).trim();
+    const mainEnv = join(dirname(common), ".env");
+    if (existsSync(mainEnv)) {
+      symlinkSync(mainEnv, join(REPO_ROOT, ".env"));
+      console.log(`[check:changed] linked ${mainEnv} into this worktree`);
+    }
+  } catch (e) {
+    console.warn(`[check:changed] could not link the main checkout's .env: ${e.message}`);
+  }
+}
 const hasCreds = (role) => process.env[`PLAYWRIGHT_${role}_EMAIL`] && process.env[`PLAYWRIGHT_${role}_PASSWORD`];
 if (!(hasCreds("POSTER") && hasCreds("HELPER")) && !existsSync(join(REPO_ROOT, ".env"))) {
   console.error(

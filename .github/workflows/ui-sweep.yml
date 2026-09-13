@@ -11,9 +11,15 @@ permissions:
 # e2e/happy-path/auditRoutes.ts:
 #
 #   empty-state-sweep  — every collection returns [];  ASSERTS  (this gate)
-#   visual-audit-sweep — seeded/populated screens;     ASSERTS  (weekly, Sun)
 #   error-state-sweep  — queries 500 / hang;           ASSERTS  (weekly, Wed)
 #   overlay-sweep      — dialogs/sheets/popovers;      ASSERTS  (weekly, Fri)
+#
+# The fourth, visual-audit-sweep (seeded/populated screens), was DELETED on
+# 2026-09-13. It answered every Supabase call from a mock, which by the owner's
+# standing order is not verification. Its replacement is not a port: the
+# identical capture + gate already runs against PROD with the real accounts in
+# e2e/a11y-prod (sweepCore.ts is shared), NIGHTLY and in two engines rather
+# than weekly in one — see .github/workflows/a11y-webkit-prod.yml.
 #
 # OVERLAY SWEEP — why it is wired here, and why not dispatch-only
 # ---------------------------------------------------------------
@@ -81,11 +87,6 @@ on:
   push:
     branches: [main]
   schedule:
-    # Weekly seeded visual-audit-sweep (the ~186-screen, populated-data check
-    # — the actual "does this look right" pass that was previously only run
-    # by hand). Distinct time from every other Sunday UTC cron in this repo
-    # (lighthouse 06:00, cloud Docs Drift 06:00, cloud iOS/Capacitor 06:30).
-    - cron: "30 5 * * 0" # Sunday 05:30 UTC — resolves to 'seeded' below
     # Weekly error-state sweep (queries 500/hang across the route catalog).
     # A separate cron so `github.event.schedule` disambiguates which one
     # fired; picked Wednesday to spread runner load off Sunday.
@@ -103,10 +104,8 @@ on:
         type: choice
         options:
           - empty
-          - seeded
           - error
           - overlay
-          - empty+seeded
           - all
       variants:
         description: "Variant tags: phone-light | all | comma list (phone-dark,desktop-light,small-light)"
@@ -121,8 +120,8 @@ concurrency:
   #
   # This used to be one group, `ui-sweep-${{ github.ref }}`, with
   # cancel-in-progress: true. `github.ref` is `refs/heads/main` for BOTH a push
-  # to main and a cron — so the weekly seeded sweep (~20 min, serial, 186
-  # screens) and the weekly error-state sweep shared a cancellation group with
+  # to main and a cron — so the weekly error-state sweep shared a
+  # cancellation group with
   # every push to main, at a push cadence of roughly 5 minutes. The expensive
   # weekly runs — the only automatic coverage of the populated-data and
   # error-state surfaces, the exact gap the `schedule:` trigger was added on
@@ -193,30 +192,27 @@ jobs:
       - name: Resolve run scope
         id: scope
         env:
-          # A scheduled run has no `inputs` at all. THREE crons share the
+          # A scheduled run has no `inputs` at all. TWO crons share the
           # `schedule` event, so `github.event.schedule` (the exact cron
-          # string that fired) disambiguates which sweep to run — Sunday
-          # 05:30 UTC -> seeded, Wednesday 05:00 UTC -> error, Friday
+          # string that fired) disambiguates which sweep to run —
+          # Wednesday 05:00 UTC -> error, Friday
           # 05:00 UTC -> overlay. dispatch and
           # push/pull_request keep their existing defaults ('empty' unless a
           # dispatch input says otherwise).
-          SWEEPS: ${{ github.event.inputs.sweeps || (github.event.schedule == '30 5 * * 0' && 'seeded') || (github.event.schedule == '0 5 * * 3' && 'error') || (github.event.schedule == '0 5 * * 5' && 'overlay') || 'empty' }}
+          SWEEPS: ${{ github.event.inputs.sweeps || (github.event.schedule == '0 5 * * 3' && 'error') || (github.event.schedule == '0 5 * * 5' && 'overlay') || 'empty' }}
           VARIANTS: ${{ github.event.inputs.variants || 'phone-light' }}
         run: |
           set -euo pipefail
           case "$SWEEPS" in
-            empty)         specs="empty-state-sweep";  empty=1; seeded=""; errors=""; overlay="" ;;
-            seeded)        specs="visual-audit-sweep";  empty=""; seeded=1; errors=""; overlay="" ;;
-            error)         specs="error-state-sweep";   empty=""; seeded=""; errors=1; overlay="" ;;
-            overlay)       specs="overlay-sweep";       empty=""; seeded=""; errors=""; overlay=1 ;;
-            empty+seeded)  specs="empty-state-sweep visual-audit-sweep"; empty=1; seeded=1; errors=""; overlay="" ;;
-            all)           specs="empty-state-sweep visual-audit-sweep error-state-sweep overlay-sweep"; empty=1; seeded=1; errors=1; overlay=1 ;;
+            empty)         specs="empty-state-sweep";  empty=1; errors=""; overlay="" ;;
+            error)         specs="error-state-sweep";   empty=""; errors=1; overlay="" ;;
+            overlay)       specs="overlay-sweep";       empty=""; errors=""; overlay=1 ;;
+            all)           specs="empty-state-sweep error-state-sweep overlay-sweep"; empty=1; errors=1; overlay=1 ;;
             *)             echo "unknown sweeps value" >&2; exit 1 ;;
           esac
           {
             echo "specs=$specs"
             echo "run_empty=$empty"
-            echo "run_seeded=$seeded"
             echo "run_error=$errors"
             echo "run_overlay=$overlay"
           } >> "$GITHUB_OUTPUT"
@@ -259,7 +255,6 @@ jobs:
           # trap that has produced false findings locally cannot happen here.
           PLAYWRIGHT_WEB_SERVER: "1"
           RUN_EMPTY_SWEEP: ${{ steps.scope.outputs.run_empty }}
-          RUN_VISUAL_SWEEP: ${{ steps.scope.outputs.run_seeded }}
           RUN_ERROR_SWEEP: ${{ steps.scope.outputs.run_error }}
           # e2e/happy-path/overlay-sweep.spec.ts self-skips its whole describe
           # without this, exactly like the other three sweeps.
@@ -272,7 +267,6 @@ jobs:
         # standard ubuntu runner has 4 vCPUs and these tests are dominated by
         # page load + axe wait, not CPU, so 4 workers roughly halves the wall
         # clock — and therefore the billed minutes — at no reliability cost.
-        # The seeded sweep's own describe is serial and ignores this.
         run: |
           set -euo pipefail
           # shellcheck disable=SC2086 — SPECS is a fixed, space-separated list

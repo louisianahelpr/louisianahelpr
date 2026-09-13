@@ -61,7 +61,6 @@ const BASELINE: string[] = [
   "happy-path/seedDataHeavy.ts",
   "happy-path/stale-deploy.spec.ts",
   "happy-path/state-matrix/state-sweep.spec.ts",
-  "happy-path/visual-audit-sweep.spec.ts",
   "happy-path/zz-recurring-picker.spec.ts",
   "happy-path/zz-runtime-probe.spec.ts",
   "happy-path/zz-senior-probe.spec.ts",

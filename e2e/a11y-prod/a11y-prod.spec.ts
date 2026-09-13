@@ -41,7 +41,23 @@
 import { test, type Browser, type BrowserContext } from "@playwright/test";
 import { ADMIN_SCREENS, ANON_SCREENS, AUTHED_SCREENS, type ScreenSpec } from "../happy-path/auditRoutes";
 import { VARIANTS, captureScreen, writeReport, inScope, assertSweepGate, OUTPUT_DIR, reportMeta } from "../happy-path/sweepCore";
-import { ANON, AUTH_STORAGE_KEY, SUPABASE_URL, getSession, optionalSession, sessionsAvailable, type Session } from "../journeys/fixtures";
+import { ANON, AUTH_STORAGE_KEY, SUPABASE_URL, getSession, optionalSession, rest, sessionsAvailable, type Session } from "../journeys/fixtures";
+
+/**
+ * Every job_status the database defines, from the generated types' own enum
+ * list — so a status added to the schema shows up here as a skip with a stated
+ * reason, rather than silently never being swept.
+ */
+const JOB_STATUSES = [
+  "open",
+  "accepted",
+  "in_progress",
+  "completed",
+  "cancelled",
+  "revision_requested",
+  "disputed",
+  "pending_approval",
+] as const;
 
 const FIXTURE_ID = /10000000-0000-4000-8000-/;
 
@@ -82,6 +98,8 @@ test.describe("UI audit evidence sweep (prod)", () => {
   let incomplete: Session | null = null;
   /** Real ids resolved from prod at start, replacing the fixture ids. */
   let realJobId: string | null = null;
+  /** job_status -> a real seeded job in that status the POSTER owns. */
+  const jobByStatus = new Map<string, string>();
 
   test.beforeAll(async ({ request, baseURL }) => {
     const avail = sessionsAvailable();
@@ -107,6 +125,30 @@ test.describe("UI audit evidence sweep (prod)", () => {
       const rows = (await jobs.json()) as { id: string }[];
       realJobId = rows[0]?.id ?? null;
     }
+    // ONE REAL JOB PER STATUS, owned by the poster.
+    //
+    // This replaces the mocked sweep's job-detail-2..6, which were marked
+    // `seededOnly` and never covered what they claimed: every one of them
+    // redirected a signed-in visitor to /dashboard, so the sweep audited the
+    // dashboard five extra times and no job-status screen even once
+    // (auditRoutes.ts says so in its own comment). Prod has a seeded job in
+    // all eight statuses, so the intent is finally achievable — but only with
+    // rows the poster OWNS, because /jobs/:id is owner-gated.
+    //
+    // Resolved from the database rather than hardcoded: an id pinned in source
+    // is exactly the fixture-shaped assumption this migration is removing, and
+    // the sweeper may retire any individual row. A status with no seeded row
+    // SKIPS with that stated reason instead of passing quietly.
+    const owned = await request.get(
+      `${SUPABASE_URL}/rest/v1/jobs?select=id,status&customer_id=eq.${poster.user.id}&is_seed=eq.true&order=created_at.desc`,
+      { headers: rest(poster) },
+    );
+    if (owned.ok()) {
+      for (const row of (await owned.json()) as { id: string; status: string }[]) {
+        if (!jobByStatus.has(row.status)) jobByStatus.set(row.status, row.id);
+      }
+    }
+
     // The engine goes into the report so scripts/audit/a11y-engine-diff.mjs
     // can tell the two apart without trusting a directory name.
     reportMeta.engine = test.info().project.name;
@@ -178,6 +220,30 @@ test.describe("UI audit evidence sweep (prod)", () => {
           }
         });
       }
+    }
+  }
+
+  // JOB DETAIL, ONCE PER STATUS — what job-detail-2..6 were meant to be.
+  // The poster is used because the rows are theirs; a status with no seeded
+  // row skips with that reason named, never silently.
+  for (const v of VARIANTS) {
+    for (const status of JOB_STATUSES) {
+      const i = ++index;
+      test(`${String(i).padStart(3, "0")} job-detail-${status} (customer/${v.tag})`, async ({ browser }) => {
+        const id = jobByStatus.get(status);
+        test.skip(
+          !id,
+          `no is_seed job in status "${status}" owned by the poster on prod — ` +
+            `job detail for this status is NOT swept (run scripts/audit/prod-seed.mjs)`,
+        );
+        const ctx = await sweepContext(browser, poster);
+        const page = await ctx.newPage();
+        try {
+          await captureScreen(page, i, `job-detail-${status}`, `/jobs/${id}`, "authed", undefined, v);
+        } finally {
+          await ctx.close();
+        }
+      });
     }
   }
 

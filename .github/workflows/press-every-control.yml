@@ -139,3 +139,25 @@ jobs:
           path: test-results/press-every-control/
           if-no-files-found: ignore
           retention-days: 14
+
+  # Owner-requested (2026-09-12): a red nightly used to land nowhere — nobody
+  # watches this Actions tab. This opens/updates ONE `nightly-red` issue per
+  # workflow and closes it on the next green run. Skipped on pull_request —
+  # a PR's own checks already surface a failure there; this is for the
+  # push-to-main and workflow_dispatch runs nobody is watching.
+  notify:
+    name: Report nightly result
+    needs: [press]
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: press-every-control
+          status: ${{ needs.press.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

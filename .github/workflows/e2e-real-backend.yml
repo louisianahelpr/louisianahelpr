@@ -460,3 +460,25 @@ jobs:
             echo "::error title=Anon surface contract failed::The signed-out marketplace does not answer the anon role correctly."
             exit 1
           fi
+
+  # Owner-requested (2026-09-12): a red nightly used to land nowhere — nobody
+  # watches this Actions tab. This opens/updates ONE `nightly-red` issue per
+  # workflow and closes it on the next green run. Skipped on pull_request
+  # events — a PR's own checks already surface a failure there; this is for
+  # the schedule/dispatch/push-to-main runs nobody is watching.
+  notify:
+    name: Report nightly result
+    needs: [preflight, anon-surface, authenticated, two-role, prod-lifecycle, boundary-report]
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: e2e-real-backend
+          status: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

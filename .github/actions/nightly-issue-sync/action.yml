@@ -1,0 +1,72 @@
+name: "Nightly issue sync"
+description: >
+  Owner-requested process gap fix (2026-09-12): nightly/scheduled workflows
+  ran red with nobody watching. On failure this opens or updates ONE issue
+  per workflow, labelled `nightly-red`, carrying the run URL. On the next
+  green run for that same workflow it closes the issue. One issue per
+  workflow (not per run) so a red streak doesn't spam the tracker — repeat
+  failures just add a comment to the existing open issue.
+
+inputs:
+  workflow-name:
+    description: "Stable identifier for the workflow, e.g. nightly-webkit"
+    required: true
+  status:
+    description: "'success' or 'failure' for this run"
+    required: true
+  run-url:
+    description: "URL of this run, e.g. github.server_url/repo/actions/runs/id"
+    required: true
+  github-token:
+    description: "Token with issues: write on this repo"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Sync nightly-red issue
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        WORKFLOW_NAME: ${{ inputs.workflow-name }}
+        STATUS: ${{ inputs.status }}
+        RUN_URL: ${{ inputs.run-url }}
+        REPO: ${{ github.repository }}
+      run: |
+        set -euo pipefail
+
+        TITLE="nightly-red: ${WORKFLOW_NAME}"
+        # One open issue per workflow — title is the dedup key, not the run.
+        EXISTING=$(gh issue list --repo "$REPO" --label nightly-red --state open \
+          --search "in:title \"${TITLE}\"" --json number,title \
+          --jq ".[] | select(.title == \"${TITLE}\") | .number" | head -n1)
+
+        if [ "$STATUS" = "failure" ]; then
+          if [ -n "$EXISTING" ]; then
+            echo "Issue #$EXISTING already open for ${WORKFLOW_NAME} — adding a comment."
+            gh issue comment "$EXISTING" --repo "$REPO" \
+              --body "Still red: ${RUN_URL}"
+          else
+            echo "Opening a new nightly-red issue for ${WORKFLOW_NAME}."
+            BODY="${WORKFLOW_NAME} failed.
+
+        Run: ${RUN_URL}
+
+        This issue stays open until ${WORKFLOW_NAME} goes green again — it is closed
+        automatically by the same sync step, not by hand. See CLAUDE.md: sessions
+        must check \`gh issue list -l nightly-red\` at start."
+            gh issue create --repo "$REPO" \
+              --title "$TITLE" \
+              --label nightly-red \
+              --body "$BODY"
+          fi
+        else
+          if [ -n "$EXISTING" ]; then
+            echo "Closing issue #$EXISTING — ${WORKFLOW_NAME} is green again."
+            gh issue comment "$EXISTING" --repo "$REPO" \
+              --body "Green again: ${RUN_URL}"
+            gh issue close "$EXISTING" --repo "$REPO"
+          else
+            echo "${WORKFLOW_NAME} is green and no open nightly-red issue exists — nothing to do."
+          fi
+        fi

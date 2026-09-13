@@ -50,13 +50,13 @@ if (process.env.LH_SKIP_CHANGED_CHECK === "1") {
   process.exit(0);
 }
 const { routes, changed, global } = JSON.parse(
-  execFileSync("node", ["scripts/changed-routes.mjs", "--json", ...process.argv.slice(2)], { encoding: "utf8" }),
+  execFileSync("node", ["scripts/changed-routes.mjs", "--json", "--nearest", ...process.argv.slice(2)], { encoding: "utf8" }),
 );
 if (!routes.length) {
   console.log(`[check:changed] ${changed.length} src file(s) changed, no route renders them — nothing to sweep.`);
   process.exit(0);
 }
-console.log(`[check:changed] sweeping ${global ? "EVERY route (a global file changed)" : routes.join(", ")}`);
+console.log(`[check:changed] sweeping nearest route(s) ${routes.join(", ")}${global ? " (global file changed; the nightly a11y-prod run covers every route)" : ""}`);
 // PROD SESSIONS REQUIRED (owner, 2026-09-12: no mocks, ever). The a11y-prod
 // sweep signs in as the shared test accounts; with no session source it cannot
 // sweep an authed screen, so that is a hard failure, never a pass. Mirrors
@@ -109,7 +109,8 @@ const r = spawnSync("npx", ["playwright", "test", "--project=a11y-prod"], {
     HAPPY_PATH_BASE_URL: baseURL,
     PLAYWRIGHT_BASE_URL: baseURL,
     SWEEP_OUTPUT_DIR: process.env.SWEEP_OUTPUT_DIR || join(REPO_ROOT, "test-results", "check-changed"),
-    ...(global ? {} : { SWEEP_ROUTES: routes.join(",") }),
+    SWEEP_ROUTES: routes.join(","),
+    SWEEP_MAX_SCREENS: process.env.SWEEP_MAX_SCREENS || "3",
   },
 });
 if (r.status !== 0) console.error(`[check:changed] FAIL: the a11y-prod sweep of the changed routes exited ${r.status}.`);

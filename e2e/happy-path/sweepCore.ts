@@ -402,10 +402,14 @@ export const ROUTE_PATTERNS = (process.env.SWEEP_ROUTES ?? "")
   .map((p) => new RegExp("^" + p.replace(/\*$/, ".*").replace(/:[^/]+/g, "[^/]+").replace(/\//g, "\\/") + "$"));
 export function inScope<T extends { url: string }>(screens: T[]): T[] {
   if (!ROUTE_PATTERNS.length) return screens;
-  return screens.filter((s) => {
+  const matched = screens.filter((s) => {
     const path = new URL(s.url, "http://x").pathname;
     return ROUTE_PATTERNS.some((re) => re.test(path));
   });
+  // SWEEP_MAX_SCREENS caps a pre-push run (one route like /admin has ~25
+  // ?view= screens); the nightly full sweep never sets it.
+  const max = Number(process.env.SWEEP_MAX_SCREENS);
+  return max > 0 ? matched.slice(0, max) : matched;
 }
 
 /**

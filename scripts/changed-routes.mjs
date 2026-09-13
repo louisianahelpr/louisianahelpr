@@ -89,6 +89,33 @@ const affected = isGlobal
   ? routes.map((r) => r.path)
   : routes.filter((r) => r.files.some((pf) => [...closure(pf)].some((d) => changed.has(d)))).map((r) => r.path);
 
-const result = { base, changed: [...changed], global: isGlobal, routes: [...new Set(affected)] };
+// --nearest (pre-push, owner 2026-09-13): sweep only the route(s) CLOSEST to
+// the change instead of every route that shares a component, which made a
+// shared-component push sweep 50+ screens for 20+ minutes. The full sweep
+// still runs nightly in CI (a11y-prod), which is where cross-screen fallout
+// from a shared change gets caught.
+const depthTo = (entry) => {
+  const dist = new Map([[entry, 0]]);
+  const queue = [entry];
+  while (queue.length) {
+    const f = queue.shift();
+    if (changed.has(f)) return dist.get(f);
+    for (const d of deps.get(f) ?? []) if (!dist.has(d)) { dist.set(d, dist.get(f) + 1); queue.push(d); }
+  }
+  return Infinity;
+};
+let finalRoutes = [...new Set(affected)];
+if (argv.includes("--nearest") && finalRoutes.length) {
+  if (isGlobal) {
+    finalRoutes = ["/dashboard"];
+  } else {
+    const scored = routes
+      .filter((r) => finalRoutes.includes(r.path))
+      .map((r) => ({ path: r.path, d: Math.min(...r.files.map(depthTo)) }));
+    const best = Math.min(...scored.map((x) => x.d));
+    finalRoutes = [...new Set(scored.filter((x) => x.d === best).map((x) => x.path))].slice(0, 2);
+  }
+}
+const result = { base, changed: [...changed], global: isGlobal, routes: finalRoutes };
 if (argv.includes("--json")) console.log(JSON.stringify(result, null, 2));
 else console.log(result.routes.join("\n"));

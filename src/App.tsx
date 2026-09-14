@@ -198,8 +198,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/earnings" element={<Navigate to="/profile?tab=earnings" replace />} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /support is linked from PolicyFooter (the card that closes the legal
-          policy tabs AND the Help Center), the Profile Legal tab's data-rights
-          footnote, and the three account-gate screens (pending / denied /
+          policy tabs AND the Help Center), and the three account-gate screens (pending / denied /
           banned), so it must resolve WITHOUT auth — a suspended or
           not-yet-approved account has no other route to a human. NOT from
           <Footer>: the site footer carries no /support link.
@@ -254,15 +253,14 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           a different path. */}
       <Route path="/terms" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/privacy" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* /data-rights was a standalone page until 2026-08-18; its single
-          remaining control (the GDPR/CCPA data export) now lives on the
-          Profile Legal tab. The route is KEPT as a redirect rather than
-          deleted: the Privacy Policy links to it in writing for data
-          portability, and the iOS App Store privacy listing points at the
-          same URL, so it must keep resolving somewhere that offers the
-          download. Same shape as /schedule, /availability and /saved-helpers
-          above — a deep link into a Profile tab. */}
-      <Route path="/data-rights" element={<Navigate to="/profile?tab=legal" replace />} />
+      {/* /data-rights was a standalone page until 2026-08-18, then a card on
+          the Profile Legal tab; since 2026-09-14 (owner, VN-47) the GDPR/CCPA
+          data export lives inside the Privacy Policy. The route is KEPT as a
+          redirect rather than deleted: the iOS App Store privacy listing
+          points at this URL, so it must keep resolving somewhere that offers
+          the download — the export card's anchor on /privacy (public, and
+          open to a half-onboarded account via isProfileGateAllowed). */}
+      <Route path="/data-rights" element={<Navigate to="/privacy#download-your-data" replace />} />
 
       {/* Two live prod notifications link here — "Cancellation warning (1 of 2)"
           and "Your Elite shield absorbed this one" — and there has never been a

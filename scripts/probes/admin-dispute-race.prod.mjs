@@ -63,7 +63,9 @@ async function cleanup(job) {
   await rest(`notifications?message=ilike.*${encodeURIComponent(job.title)}*`, { method: "DELETE" });
   await rest(`notifications?message=ilike.*${job.id}*`, { method: "DELETE" });
   try { await rest(`admin_audit_log?target_id=eq.${job.id}`, { method: "DELETE" }); } catch (e) { console.log(`  cleanup audit: ${e.message.slice(0, 120)}`); }
-  for (const t of ["payout_transfers", "payment_refunds", "disputes"]) {
+  // A refund lands the job in `cancelled`: drop any strike/violation it filed on
+  // the seed poster, or three rounds would restrict the account for 7 days.
+  for (const t of ["payout_transfers", "payment_refunds", "disputes", "user_violations", "user_strikes"]) {
     try { await rest(`${t}?job_id=eq.${job.id}`, { method: "DELETE" }); } catch (e) { console.log(`  cleanup ${t}: ${e.message.slice(0, 120)}`); }
   }
   await rest(`jobs?id=eq.${job.id}`, { method: "DELETE" });

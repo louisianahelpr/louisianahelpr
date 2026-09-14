@@ -95,8 +95,11 @@ for (const scenario of ["double", "crossed"]) {
         ? [invoke("create-payment", posterTok, { action: "release", jobId: job.id }), invoke("create-payment", posterTok, { action: "release", jobId: job.id })]
         : [invoke("create-payment", posterTok, { action: "release", jobId: job.id }), invoke("create-payment", helperTok, { action: "release", jobId: job.id })];
       const results = await Promise.allSettled(calls);
-      if (results.some((r) => r.status === "fulfilled" && r.value.status === 429)) {
-        console.log(`${scenario} #${i}: throttled (429), re-running round`);
+      // A 429, or a call that never reached the release logic (a 5xx such as a
+      // transient "Not authenticated", seen once on 2026-09-14), raced nothing:
+      // re-run the round rather than score it.
+      if (results.some((r) => r.status === "rejected" || r.value.status === 429 || r.value.status >= 500)) {
+        console.log(`${scenario} #${i}: invalid round (${results.map((r) => (r.status === "fulfilled" ? r.value.status : "rejected"))}), re-running`);
         i--;
         continue;
       }

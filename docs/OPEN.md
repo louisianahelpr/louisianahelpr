@@ -2168,5 +2168,6 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] Hallie avatar re-upload path: prove on prod (owner asked) — upload to a scratch path or temporarily move the real object aside, run prod-seed --avatar, confirm re-upload + profile pointer, restore. Next prod slot.
 - [ ] Signed-in press-every-control full run on prod (owner: run just before the final re-check) — one run, after the paused suites are re-enabled and prod has been healthy.
 - [ ] Supabase Pro: owner will decide later (not before launch prep).
+- [x] Voice note client cap lowered 10 MB → 5 MB to match the message-attachments bucket limit; guard src/lib/voiceNoteLimitMatchesBucket.test.ts (red at 10 MB).
 - [ ] LAST, after everything above: independent re-check by a different model (sonnet) of ALL work landed 2026-09-13 — full vitest once, CI green per push, re-run each fix's own proof on prod, list what doesn't hold
 - [ ] OWNER: allow the Stripe connector write tool + reconnect Stripe, then add transfer.failed to live webhook and close #1462/#1521

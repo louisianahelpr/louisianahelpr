@@ -153,8 +153,10 @@ export function getMessageAttachmentFilename(path: string, fallback = "Attachmen
   }
 }
 
-/** Maximum voice note size: 10 MB (60s audio at ~128kbps = ~1 MB — 10× headroom). */
-const VOICE_NOTE_MAX_BYTES = 10 * 1024 * 1024;
+/** Maximum voice note size: 5 MB, matching the message-attachments bucket
+ *  file_size_limit (a larger client cap let a 5–10 MB note fail with a raw
+ *  storage error). 60s audio at ~128kbps is ~1 MB, so 5× headroom. */
+const VOICE_NOTE_MAX_BYTES = 5 * 1024 * 1024;
 
 export function isAudioMime(mime: string | null | undefined): boolean {
   return !!mime && mime.startsWith("audio/");
@@ -173,7 +175,7 @@ export async function uploadVoiceNote(
   senderId: string,
 ): Promise<{ path: string; mime: string; size: number } | { error: string }> {
   if (blob.size > VOICE_NOTE_MAX_BYTES) {
-    return { error: "Voice note too large (max 10 MB)." };
+    return { error: "Voice note too large (max 5 MB)." };
   }
 
   const ext = mime.includes("webm") ? "webm" : "m4a";

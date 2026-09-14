@@ -17,6 +17,7 @@
 // 2. The real migration applied verbatim three times: every expectation holds.
 // 3. Deliberately broken copies of the migration, each on a fresh database:
 //    every one must FAIL at least one expectation, or this probe cannot fail.
+// 4. Skip path: on a database without the prerequisites it is a no-op.
 // Exit 1 on any mismatch.
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${process.env.HOME}/.lh-pglite-probe`;
 let PGlite;
@@ -34,6 +35,7 @@ const B = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";   // stranger to J1 (poster of
 const H1 = "11111111-1111-4111-8111-111111111111";  // assigned Helpr on J1, J3, J4
 const R = "22222222-2222-4222-8222-222222222222";   // group roster member on J1
 const APP = "33333333-3333-4333-8333-333333333333"; // applicant on J1, never hired
+const BAN = "66666666-6666-4666-8666-666666666666"; // offered Helpr on J1, banned
 const J1 = "e8cabaca-87ac-4fa0-95e4-b33179e05d6e", J2 = "63bf6243-b1a6-45b9-ad4e-d6cae05df6bc";
 const J3 = "44444444-4444-4444-8444-444444444444";   // completed 2 days ago: thread closed
 const J4 = "55555555-5555-4555-8555-555555555555";   // completed 1 hour ago: thread open
@@ -48,11 +50,26 @@ GRANT EXECUTE ON FUNCTION storage.foldername(text) TO authenticated, anon;
 CREATE TABLE public.jobs (id uuid primary key, customer_id uuid, helper_id uuid, offered_to_helper_id uuid, status text, completed_at timestamptz);
 CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid);
 CREATE TABLE public.applications (job_id uuid, helper_id uuid);
+CREATE TABLE public.profiles (user_id uuid primary key, ban_status text, auto_suspended_until timestamptz);
 CREATE TABLE public.messages (id uuid primary key default gen_random_uuid(), job_id uuid not null, sender_id uuid not null, receiver_id uuid not null, content text, attachment_url text, is_system boolean default false, flagged_hidden boolean default false, created_at timestamptz default now());
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT ON public.messages TO authenticated, anon;
 CREATE POLICY "Users can view their own messages" ON public.messages FOR SELECT TO authenticated USING ((SELECT auth.uid()) = sender_id OR (SELECT auth.uid()) = receiver_id);
 
+-- live is_caller_banned + the ban gate trigger on messages (2026-09-14)
+CREATE FUNCTION public.is_caller_banned() RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $function$
+  SELECT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND ban_status IN ('banned', 'temp_banned', 'permanently_banned')
+    AND (ban_status <> 'temp_banned' OR auto_suspended_until IS NULL OR auto_suspended_until > now()));
+$function$;
+CREATE FUNCTION public.enforce_ban_gate() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $function$
+BEGIN
+  IF auth.uid() IS NOT NULL AND public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+CREATE TRIGGER trg_ban_gate_messages BEFORE INSERT ON public.messages FOR EACH ROW EXECUTE FUNCTION enforce_ban_gate();
 -- live is_party_to_job (pg_get_functiondef 2026-09-14)
 CREATE FUNCTION public.is_party_to_job(_job_id uuid, _user_id uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $function$
   SELECT
@@ -103,12 +120,13 @@ CREATE POLICY "Users can delete their own proof photos" ON storage.objects FOR D
 CREATE POLICY "Users can upload proof photos to own folder" ON storage.objects FOR INSERT TO authenticated WITH CHECK ((bucket_id = 'proof-photos') AND (((auth.uid())::text = (storage.foldername(name))[1]) OR is_party_to_job_folder(name)));
 
 INSERT INTO public.jobs VALUES
-  ('${J1}','${A}','${H1}',null,'in_progress',null),
+  ('${J1}','${A}','${H1}','${BAN}','in_progress',null),
   ('${J2}','${B}',null,null,'open',null),
   ('${J3}','${A}','${H1}',null,'completed', now() - interval '2 days'),
   ('${J4}','${A}','${H1}',null,'completed', now() - interval '1 hour');
 INSERT INTO public.group_job_helpers VALUES ('${J1}','${R}');
 INSERT INTO public.applications VALUES ('${J1}','${APP}');
+INSERT INTO public.profiles VALUES ('${BAN}','banned',null);
 `;
 
 async function as(db, who, sql) {
@@ -136,6 +154,9 @@ async function scenario(db) {
   out.send_poster_to_helpr = await send(A, J1, H1);
   out.send_helpr_to_poster = await send(H1, J1, A);
   out.send_poster_to_applicant = await send(A, J1, APP);
+  // Documented residual: once the poster has messaged the applicant, the
+  // applicant may post, and can ask about parties exactly as an INSERT would.
+  out.wrap_applicant_after_messaged = await rpc(APP, "can_send_message_to_in_job", `'${J1}','${R}'`);
   out.send_poster_to_roster = await send(A, J1, R);
   out.send_roster_to_poster = await send(R, J1, A);
   out.send_open_completed_thread = await send(A, J4, H1);
@@ -143,6 +164,7 @@ async function scenario(db) {
   out.send_poster_to_non_party = await send(A, J1, B);
   out.send_stranger_into_job = await send(B, J1, A);
   out.send_closed_thread = await send(A, J3, H1);
+  out.send_banned_party = await send(BAN, J1, A);
   out.send_forged_sender = (await as(db, B, `INSERT INTO public.messages (job_id, sender_id, receiver_id, content) VALUES ('${J1}','${A}','${H1}','x') RETURNING id`)).ok;
   out.send_anon = (await as(db, null, `INSERT INTO public.messages (job_id, sender_id, receiver_id, content) VALUES ('${J1}','${A}','${H1}','x') RETURNING id`)).ok;
 
@@ -158,6 +180,7 @@ async function scenario(db) {
   out.wrap_stranger_roster = await rpc(B, "can_send_message_to_in_job", `'${J1}','${R}'`);
   out.wrap_closed_thread_party = await rpc(A, "can_send_message_to_in_job", `'${J3}','${H1}'`);
   out.wrap_anon = await rpc(null, "can_send_message_to_in_job", `'${J1}','${H1}'`);
+  out.wrap_banned_party = await rpc(BAN, "can_send_message_to_in_job", `'${J1}','${H1}'`);
   out.wrap_party_non_party = await rpc(A, "can_send_message_to_in_job", `'${J1}','${B}'`);
   out.wrap_party_party = await rpc(A, "can_send_message_to_in_job", `'${J1}','${H1}'`); // = what INSERT already reveals to A
 
@@ -185,11 +208,14 @@ async function scenario(db) {
       has_function_privilege('anon', 'public.is_party_to_job(uuid,uuid)', 'EXECUTE') AS anon_ip,
       has_function_privilege('service_role', 'public.is_party_to_job(uuid,uuid)', 'EXECUTE') AS svc_ip,
       CASE WHEN to_regprocedure('public.can_send_message_to_in_job(uuid,uuid)') IS NULL THEN NULL
-           ELSE has_function_privilege('anon', 'public.can_send_message_to_in_job(uuid,uuid)', 'EXECUTE') END AS anon_wrap`)).rows[0];
+           ELSE has_function_privilege('anon', 'public.can_send_message_to_in_job(uuid,uuid)', 'EXECUTE') END AS anon_wrap,
+      (SELECT p.prosecdef AND coalesce(p.proconfig, '{}') @> ARRAY['search_path=public'] FROM pg_proc p
+        WHERE p.oid = to_regprocedure('public.can_send_message_to_in_job(uuid,uuid)')) AS wrap_hygiene`)).rows[0];
   out.grant_authenticated_is_party = g.auth_ip;
   out.grant_anon_is_party = g.anon_ip;
   out.grant_service_is_party = g.svc_ip;
   out.grant_anon_wrapper = g.anon_wrap;
+  out.wrapper_secdef_search_path = g.wrap_hygiene;
   return out;
 }
 
@@ -197,15 +223,17 @@ const expectAfter = {
   send_poster_to_helpr: true, send_helpr_to_poster: true, send_poster_to_applicant: true, send_poster_to_roster: true,
   send_roster_to_poster: true, send_open_completed_thread: true,
   send_poster_to_non_party: false, send_stranger_into_job: false, send_applicant_unmessaged: false, send_closed_thread: false,
-  send_forged_sender: false, send_anon: false,
+  send_forged_sender: false, send_anon: false, send_banned_party: false,
   rpc_stranger_is_party_helpr: "ERR", rpc_stranger_is_party_applicant: "ERR", rpc_party_is_party: "ERR", rpc_anon_is_party: "ERR",
   rpc_service_is_party: true,
   wrap_stranger_helpr: false, wrap_stranger_applicant: false, wrap_stranger_roster: false, wrap_applicant_probe_roster: false,
+  wrap_applicant_after_messaged: true, wrap_banned_party: false,
   wrap_closed_thread_party: false, wrap_anon: "ERR", wrap_party_non_party: false, wrap_party_party: true,
   photo_helpr_upload_job_folder: true, photo_poster_reads: true, photo_helpr_reads: true, photo_stranger_reads: false,
   photo_applicant_reads: false, photo_stranger_upload_job_folder: false, photo_stranger_upload_own_folder: true,
   photo_stranger_updates: false, photo_poster_updates: true, photo_stranger_deletes: false, photo_helpr_deletes: true,
   grant_authenticated_is_party: false, grant_anon_is_party: false, grant_service_is_party: true, grant_anon_wrapper: false,
+  wrapper_secdef_search_path: true,
 };
 // On the live shape: the probing hole, and every send/photo behaviour the
 // migration must preserve (so AFTER is compared against real behaviour, not a guess).
@@ -262,13 +290,17 @@ const broken = [
   ["revoke FROM PUBLIC only (the 20260904 V-015 shape)",
     mutate("REVOKE ALL ON FUNCTION public.is_party_to_job(uuid, uuid) FROM PUBLIC, anon, authenticated;", "REVOKE ALL ON FUNCTION public.is_party_to_job(uuid, uuid) FROM PUBLIC;")],
   ["wrapper not bound to the caller (no can_message_in_job gate)",
-    mutate("  SELECT auth.uid() IS NOT NULL\n     AND public.can_message_in_job(_job_id, auth.uid())\n     AND public.is_party_to_job(_job_id, _receiver);", "  SELECT public.is_party_to_job(_job_id, _receiver);")],
+    mutate("     AND public.can_message_in_job(_job_id, auth.uid())\n     AND public.is_party_to_job", "     AND public.is_party_to_job")],
   ["policy still calls is_party_to_job (revoked, not swapped)",
     mutate("AND public.can_send_message_to_in_job(job_id, receiver_id)", "AND public.is_party_to_job(job_id, receiver_id)")],
   ["policy checks sender_id instead of receiver_id",
     mutate("AND public.can_send_message_to_in_job(job_id, receiver_id)", "AND public.can_send_message_to_in_job(job_id, sender_id)")],
   ["wrapper SECURITY INVOKER",
     mutate(" STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  -- The caller", " STABLE\n SET search_path TO 'public'\nAS $function$\n  -- The caller")],
+  ["wrapper without the ban check",
+    mutate("     AND NOT public.is_caller_banned()\n", "")],
+  ["wrapper without SET search_path",
+    mutate(" STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  -- The caller", " STABLE SECURITY DEFINER\nAS $function$\n  -- The caller")],
   ["wrapper not granted to authenticated",
     mutate("GRANT EXECUTE ON FUNCTION public.can_send_message_to_in_job(uuid, uuid) TO authenticated, service_role;", "GRANT EXECUTE ON FUNCTION public.can_send_message_to_in_job(uuid, uuid) TO service_role;")],
   ["wrapper left anon-callable (no REVOKE)",
@@ -279,6 +311,18 @@ for (const [label, sql] of broken) {
   const r = await run(label, sql);
   if (r.bad.length === 0) { fail = true; console.log(`NOT CAUGHT: ${label}`); }
   else console.log(`caught: ${label}\n   ${r.bad.slice(0, 4).join("\n   ")}${r.bad.length > 4 ? `\n   (+${r.bad.length - 4} more)` : ""}`);
+}
+
+// ── 4. Skip path: on a database without the prerequisites it is a no-op ─────
+{
+  const db = new PGlite();
+  await db.exec("CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;");
+  let ok = true;
+  try { await db.exec(MIG); await db.exec(MIG); } catch (e) { ok = false; console.log("FAIL skip path:", e.message); }
+  const made = (await db.query(`SELECT to_regprocedure('public.can_send_message_to_in_job(uuid,uuid)') IS NOT NULL AS made`)).rows[0].made;
+  await db.close();
+  if (!ok || made) { fail = true; console.log("FAIL skip path: migration did not no-op on an empty database"); }
+  else console.log("\nSKIP PATH: empty database, applied twice, no-op (green)");
 }
 
 console.log(fail ? "\nPROBE FAILED" : "\nPROBE PASSED");

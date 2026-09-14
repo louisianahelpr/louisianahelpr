@@ -32,6 +32,7 @@
 -- definition. So it binds the CALLER instead:
 --   can_send_message_to_in_job(job, receiver) =
 --     auth.uid() IS NOT NULL
+--     AND NOT is_caller_banned()                   -- as trg_ban_gate_messages
 --     AND can_message_in_job(job, auth.uid())      -- caller may post here
 --     AND is_party_to_job(job, receiver)           -- receiver is on the job
 -- What a client can still learn by calling it: for a job it may ALREADY post
@@ -41,20 +42,30 @@
 -- accepting or refusing a message to that receiver, so the wrapper adds no
 -- oracle the table does not already have. A signed-in stranger, or anyone on
 -- a job they cannot post in, gets false for every user id.
+-- The ban check mirrors trg_ban_gate_messages (enforce_ban_gate raises
+-- account_restricted for every uid-bearing INSERT by a banned caller, before
+-- the policy runs), so a banned account cannot keep asking through the RPC.
+-- Accepted residuals, both limited to a job the caller may already post in:
+-- the block trigger (enforce_block_on_message_insert) and the 30/hour
+-- enforce_message_rate also fire before the policy, and the wrapper models
+-- neither, so a caller can learn whether someone who blocked them is a party,
+-- and can ask more than 30 times an hour.
 --
--- The policy's boolean is unchanged: it already required
+-- The INSERT outcome is unchanged: the policy already required
 -- (SELECT auth.uid()) = sender_id AND can_send_message_in_job(job_id), which
--- implies every extra conjunct the wrapper adds. The WITH CHECK below is the
--- live 20260914201350 definition verbatim with only that one call swapped.
+-- implies the wrapper's uid and can_message_in_job conjuncts, and a banned
+-- caller's INSERT never reaches the policy (trg_ban_gate_messages raises
+-- first). The WITH CHECK below is the live 20260914201350 definition
+-- verbatim with only that one call swapped.
 --
 -- Scope: human INSERTs through RLS only. Service-role and SECURITY DEFINER
 -- inserts (system pills, engagement automations) never evaluate this policy.
 --
 -- Replay-safe: CREATE OR REPLACE, DROP POLICY IF EXISTS, idempotent grants,
 -- and the whole body is skipped (NOTICE) if any object it builds on is absent.
--- Every object referenced exists before this version (is_party_to_job
--- 20260904031655, can_message_in_job, can_send_message_in_job and the current
--- policy 20260914201350).
+-- Every object referenced exists before this version (is_caller_banned
+-- 20260824245000, is_party_to_job 20260904031655, can_message_in_job,
+-- can_send_message_in_job and the current policy 20260914201350).
 
 -- Fail fast rather than queue behind live traffic (DROP/CREATE POLICY needs a
 -- lock on public.messages).
@@ -65,8 +76,9 @@ BEGIN
   IF to_regprocedure('public.is_party_to_job(uuid,uuid)') IS NULL
      OR to_regprocedure('public.can_message_in_job(uuid,uuid)') IS NULL
      OR to_regprocedure('public.can_send_message_in_job(uuid)') IS NULL
+     OR to_regprocedure('public.is_caller_banned()') IS NULL
      OR to_regclass('public.messages') IS NULL THEN
-    RAISE NOTICE 'is_party_to_job / can_message_in_job / can_send_message_in_job / messages absent: skipped';
+    RAISE NOTICE 'is_party_to_job / can_message_in_job / can_send_message_in_job / is_caller_banned / messages absent: skipped';
     RETURN;
   END IF;
 
@@ -81,6 +93,7 @@ AS $function$
   -- The caller is auth.uid(), never a parameter. Only a caller who may post in
   -- this job learns anything about its parties; everyone else gets false.
   SELECT auth.uid() IS NOT NULL
+     AND NOT public.is_caller_banned()
      AND public.can_message_in_job(_job_id, auth.uid())
      AND public.is_party_to_job(_job_id, _receiver);
 $function$

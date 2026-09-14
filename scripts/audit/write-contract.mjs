@@ -485,8 +485,13 @@ export function fetchSnapshot() {
   });
   const start = raw.indexOf("{");
   const parsed = JSON.parse(raw.slice(start, raw.lastIndexOf("}") + 1));
-  const snap = parsed.rows?.[0]?.snapshot ?? parsed[0]?.snapshot;
-  if (!snap?.tables || !snap?.functions) throw new Error("snapshot query returned no tables/functions");
+  let snap = parsed.rows?.[0]?.snapshot ?? parsed[0]?.snapshot;
+  // Newer CLI versions return a json column as a string rather than an object.
+  if (typeof snap === "string") snap = JSON.parse(snap);
+  if (!snap?.tables || !snap?.functions) {
+    const keys = JSON.stringify(Object.keys(parsed.rows?.[0] ?? parsed[0] ?? parsed)).slice(0, 200);
+    throw new Error(`snapshot query returned no tables/functions (row keys: ${keys}, snapshot type: ${typeof snap})`);
+  }
   return sortDeep(snap);
 }
 

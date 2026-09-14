@@ -7,6 +7,7 @@
  *   node scripts/audit/prod-seed.mjs --apply      idempotent; creates/repairs every state below
  *   node scripts/audit/prod-seed.mjs --teardown   removes everything --apply created, restores accounts
  *   node scripts/audit/prod-seed.mjs --avatar     only the Hallie Helper avatar file (upload if missing); --apply runs it too
+ *   node scripts/audit/prod-seed.mjs --group-job   only the is_seed group job + its 2-of-3 roster; --apply runs this too
  *
  * Needs `.env` (VITE_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY), the same pattern
  * as scripts/test-signin-link.mjs. Never applies a migration, never touches a
@@ -55,9 +56,9 @@ import { STUCK_SEED_SPLIT_QUERY, isStuckSeedSplit, retireStuckSplitPatch, stuckS
 import { removeJobMediaRest, removeUserStorageRest } from "../lib/jobMediaRest.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const MODE = ["--apply", "--verify", "--teardown", "--avatar"].find((f) => process.argv.includes(f));
+const MODE = ["--apply", "--verify", "--teardown", "--avatar", "--group-job"].find((f) => process.argv.includes(f));
 if (!MODE) {
-  console.error("Usage: node scripts/audit/prod-seed.mjs --apply | --verify | --teardown | --avatar");
+  console.error("Usage: node scripts/audit/prod-seed.mjs --apply | --verify | --teardown | --avatar | --group-job");
   process.exit(2);
 }
 
@@ -381,7 +382,84 @@ async function ensureHelperAvatar(helperId) {
   console.log(`helper avatar: ${action} (${after.headers.get("content-type")}, ${after.headers.get("content-length")} bytes) ${url}`);
 }
 
+// ── Group job (seeded coverage for GroupJobHelpers on the poster card) ──────
+//
+// `src/lib/groupJobs.ts` WITHDREW the create control (owner, 2026-09-01): two
+// of five roster breakages ((b) confirm/arrive/complete, (d) reviews) are
+// still open, so no REAL group job can be created through the app any more.
+// Prod has never had one from a real user (docs/OPEN.md, 2026-09-14) — this
+// is the seeded stand-in so GroupJobHelpers, the roster and group messaging
+// get nightly coverage anyway.
+//
+// HOW THIS GETS PAST `reject_new_group_jobs` (20260902035641): that trigger
+// only fires "IF auth.uid() IS NOT NULL" — a real user's JWT. This script
+// writes with the service-role key (auth.uid() IS NULL), which the trigger's
+// own migration names as an intentional pass-through: "the two `is_seed`
+// fixtures and the seed/replay harnesses that maintain them" keep working.
+//
+// STATUS = 'open', not 'accepted'. accept_group_application
+// (20260804122000) "stays 'open' while partially staffed; only the accept
+// that fills the LAST slot flips it to 'accepted'" — a real 2-of-3-filled
+// group job IS an open job. The "accepted" state the task asked for lives on
+// the ROSTER rows instead: `group_job_helpers.status` defaults to
+// 'accepted', which is exactly what a filled slot is.
+//
+// PAYMENT_STATUS = 'unpaid', not 'escrow', even though a real job with two
+// accepted applicants could only exist after a real Stripe checkout. This
+// script's own header above says --apply "never writes a money column" —
+// payment_status is that column, and `seed_jobs_hidden_publicly()` currently
+// reads FALSE (docs/OPEN.md: "seed flag OFF"), so an is_seed job with
+// payment_status='escrow' would be a live, applicable-to listing on public
+// Browse and the map. 'unpaid' keeps it invisible everywhere the app filters
+// on payment_status (matching every other job below), and the ONE surface
+// this fixture is FOR — the poster's own /my-posts — reads
+// `jobs?customer_id=eq.<id>` with no payment_status filter at all
+// (useActivityData.ts:140), so the poster card renders identically either
+// way. GroupJobHelpers itself never reads payment_status either
+// (`{job.is_group_job && <GroupJobHelpers …/>}`, PostedJobCard.tsx:711).
+//
+// Kept as its own literal (not folded into a function) so
+// src/test/prodSeedGroupJobFixture.test.ts can read it as plain text and
+// grade it against the live schema the same way fixtureSchemaContract.test.ts
+// grades e2e/happy-path/seedData.ts — this table is outside that guard's walk
+// (e2e/, src/test/) since prod-seed.mjs is a script, not a fixture file.
+const GROUP_JOB_ROW = {
+  title: "SEED Haul storm debris — three-person crew",
+  category: "storm_prep",
+  budget: 300,
+  status: "open",
+  is_group_job: true,
+  helpers_needed: 3,
+};
+
+/** The two roster rows: the shared HELPER account plus applicant01, both
+ * already-existing owned seed accounts — no new account is created for this. */
+function groupJobHelperRows(jobId, helperId, applicantId) {
+  return [
+    { id: sid("groupjobhelper:helper-e2e"), job_id: jobId, helper_id: helperId, status: "accepted" },
+    { id: sid("groupjobhelper:applicant01"), job_id: jobId, helper_id: applicantId, status: "accepted" },
+  ];
+}
+
+/**
+ * Insert (idempotently) the seeded group job + its 2-of-3 roster. Called from
+ * `apply()` so a full run stays complete, and from `--group-job` so the
+ * coordinator can add just this piece to a prod that already has everything
+ * else `--apply` creates, without re-running the whole (slow) fixture set.
+ */
+async function applyGroupJob(posterId, helperId, applicantId) {
+  const jobId = sid("job:group");
+  // `helper_id` mirrors what accept_group_application actually sets it to:
+  // the FIRST accepted helper (COALESCE(v_existing_lead, v_helper_id)).
+  await upsert("jobs", [{ ...jobBase, ...GROUP_JOB_ROW, id: jobId, customer_id: posterId, helper_id: helperId }]);
+  await upsert("group_job_helpers", groupJobHelperRows(jobId, helperId, applicantId));
+  return jobId;
+}
+
 // ── apply ────────────────────────────────────────────────────────────────────
+// Jobs: open + unpaid (invisible to guest browse) and pending_approval.
+const jobBase = { description: "SEED audit fixture — not a real job.", location: "Lafayette, LA", parish: null, date_needed: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10), pricing_mode: "set_price", payment_status: "unpaid", is_seed: true }; // explicit: enforce_jobs_insert_column_lock derives is_seed only for auth.uid() inserts, a service-role insert keeps the default false
+
 async function apply() {
   const posterId = await requireSeed(POSTER.email);
   const helperId = await requireSeed(HELPER.email);
@@ -395,8 +473,6 @@ async function apply() {
   console.log(`accounts: poster, helper + ${Object.keys(ids).length} owned seed accounts`);
   await upsert("user_roles", Object.entries(OWNED).filter(([, s]) => s.role).map(([k, s]) => ({ id: sid(`role:${k}`), user_id: ids[k], role: s.role })));
 
-  // Jobs: open + unpaid (invisible to guest browse) and pending_approval.
-  const jobBase = { description: "SEED audit fixture — not a real job.", location: "Lafayette, LA", parish: null, date_needed: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10), pricing_mode: "set_price", payment_status: "unpaid", is_seed: true }; // explicit: enforce_jobs_insert_column_lock derives is_seed only for auth.uid() inserts, a service-role insert keeps the default false
   const posterJobs = [
     { id: sid("job:poster-open"), customer_id: posterId, title: "SEED Mow and edge a corner lot", category: "yard_work", budget: 95, status: "open" },
     { id: sid("job:poster-pending-approval"), customer_id: posterId, title: "SEED Hang shelves and a TV mount", category: "handyman", budget: 150, status: "pending_approval" },
@@ -423,6 +499,7 @@ async function apply() {
     })),
   ].map((j) => ({ ...jobBase, ...j }));
   await upsert("jobs", [...posterJobs, ...heavyJobs]);
+  await applyGroupJob(posterId, helperId, ids.applicant01);
 
   // The real funded pair job to hang the thread, reviews and dispute on.
   const pairJobs = await select(`jobs?customer_id=eq.${posterId}&helper_id=eq.${helperId}&select=id,status,payment_status,has_active_dispute&order=created_at.desc`);
@@ -593,7 +670,10 @@ async function teardown() {
   }
   const del = async (table, q) => rest("DELETE", `${table}?${q}`, undefined, { prefer: "return=minimal" });
   const threadIds = THREAD.map((_, i) => sid(`msg:thread-${i}`));
-  const jobIds = [sid("job:poster-open"), sid("job:poster-pending-approval"), sid("job:helper-posts"), sid("job:pets"), sid("job:heavy-big"), ...Array.from({ length: 110 }, (_, i) => sid(`job:heavy-${i}`))];
+  // `group_job_helpers` cascades off `jobs.id` (ON DELETE CASCADE, see the
+  // table's own CREATE TABLE) so deleting job:group below is enough — no
+  // separate group_job_helpers delete needed.
+  const jobIds = [sid("job:poster-open"), sid("job:poster-pending-approval"), sid("job:helper-posts"), sid("job:pets"), sid("job:heavy-big"), sid("job:group"), ...Array.from({ length: 110 }, (_, i) => sid(`job:heavy-${i}`))];
   await del("message_reactions", `message_id=${inList(threadIds)}`);
   await del("thread_pins", `user_id=${inList([posterId, helperId])}&other_user_id=${inList([posterId, helperId])}`);
   await del("thread_archives", `user_id=eq.${posterId}&job_id=eq.${sid("job:poster-open")}`);
@@ -668,6 +748,23 @@ async function retireStuckSeedSplits() {
     console.log(`  retired stuck seed dispute split ${d.id} (job ${d.job_id}, was "${d.execution_status}")`);
   }
   return retired;
+}
+
+// ── group-job only ───────────────────────────────────────────────────────────
+/**
+ * Add just the seeded group job to a prod that already has everything else
+ * `--apply` creates (accounts, other jobs) — so the coordinator does not have
+ * to re-run the whole slow fixture set for one new piece.
+ */
+async function groupJobOnly() {
+  const posterId = await requireSeed(POSTER.email);
+  const helperId = await requireSeed(HELPER.email);
+  const applicant = await profileByEmail(OWNED.applicant01.email);
+  if (!applicant?.is_seed) {
+    throw new Error(`${OWNED.applicant01.email}: not found or not is_seed — run --apply first so the owned seed accounts (including applicant01) exist.`);
+  }
+  const jobId = await applyGroupJob(posterId, helperId, applicant.user_id);
+  console.log(`group-job: done (job ${jobId}, roster: ${helperId} + ${applicant.user_id})`);
 }
 
 // ── verify ───────────────────────────────────────────────────────────────────
@@ -750,10 +847,12 @@ async function verify() {
   } else {
     rows.push({ state: "heavy account", n: 0, min: 1, ok: false, source: "prod-seed", err: "not created" });
   }
+  await check("group job (is_seed, is_group_job, 3 slots)", `jobs?id=eq.${sid("job:group")}&is_seed=eq.true&is_group_job=eq.true&helpers_needed=eq.3&select=id`, 1);
+  await check("group job roster (2 of 3 slots, accepted)", `group_job_helpers?job_id=eq.${sid("job:group")}&status=eq.accepted&select=id`, 2);
 
   // Nothing this script created is visible to an anonymous visitor.
   const anonHeaders = { apikey: ANON, Authorization: `Bearer ${ANON}` };
-  const created = [sid("job:poster-open"), sid("job:helper-posts"), sid("job:pets"), sid("job:heavy-big"), ...Array.from({ length: 110 }, (_, i) => sid(`job:heavy-${i}`))];
+  const created = [sid("job:poster-open"), sid("job:helper-posts"), sid("job:pets"), sid("job:heavy-big"), sid("job:group"), ...Array.from({ length: 110 }, (_, i) => sid(`job:heavy-${i}`))];
   let leaked = 0;
   for (let i = 0; i < created.length; i += 50) {
     const r = await fetch(`${BASE}/rest/v1/open_jobs_browse?id=${inList(created.slice(i, i + 50))}&select=id`, { headers: anonHeaders });
@@ -776,6 +875,7 @@ try {
   if (MODE === "--apply") await apply();
   if (MODE === "--avatar") await ensureHelperAvatar(await requireSeed(HELPER.email));
   if (MODE === "--teardown") await teardown();
+  if (MODE === "--group-job") await groupJobOnly();
   if (MODE === "--verify") process.exit((await verify()) ? 0 : 1);
 } catch (e) {
   console.error(`prod-seed ${MODE} failed: ${e.message}${e.cause ? ` (${e.cause.code ?? e.cause.message})` : ""}`);

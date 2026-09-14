@@ -100,6 +100,10 @@ test.describe("UI audit evidence sweep (prod)", () => {
   let realJobId: string | null = null;
   /** job_status -> a real seeded job in that status the POSTER owns. */
   const jobByStatus = new Map<string, string>();
+  /** The poster's is_seed group job (scripts/audit/prod-seed.mjs --group-job),
+   *  so GroupJobHelpers on the poster card gets swept — resolved at run time,
+   *  same reasoning as jobByStatus above. */
+  let groupJobId: string | null = null;
 
   test.beforeAll(async ({ request, baseURL }) => {
     const avail = sessionsAvailable();
@@ -149,11 +153,25 @@ test.describe("UI audit evidence sweep (prod)", () => {
       }
     }
 
+    // The poster's is_seed group job (scripts/audit/prod-seed.mjs --group-job).
+    // Not read off jobByStatus: a group job with 2 of 3 slots filled is seeded
+    // as status='open' (accept_group_application only flips to 'accepted' on
+    // the LAST slot — see the seed script's own comment), which jobByStatus
+    // already maps to a plain single-helper open job.
+    const groupJob = await request.get(
+      `${SUPABASE_URL}/rest/v1/jobs?select=id&customer_id=eq.${poster.user.id}&is_seed=eq.true&is_group_job=eq.true&order=created_at.desc&limit=1`,
+      { headers: rest(poster) },
+    );
+    if (groupJob.ok()) {
+      const rows = (await groupJob.json()) as { id: string }[];
+      groupJobId = rows[0]?.id ?? null;
+    }
+
     // The engine goes into the report so scripts/audit/a11y-engine-diff.mjs
     // can tell the two apart without trusting a directory name.
     reportMeta.engine = test.info().project.name;
     reportMeta.baseURL = baseURL ?? "";
-    console.log(`prod sweep: engine=${reportMeta.engine} out=${OUTPUT_DIR} job=${realJobId ?? "none"} admin=${admin ? "yes" : "no"} incomplete=${incomplete ? "yes" : "no"}`);
+    console.log(`prod sweep: engine=${reportMeta.engine} out=${OUTPUT_DIR} job=${realJobId ?? "none"} group-job=${groupJobId ?? "none"} admin=${admin ? "yes" : "no"} incomplete=${incomplete ? "yes" : "no"}`);
   });
 
   /** The authed catalog with fixture-keyed screens swapped for real prod ids. */
@@ -247,6 +265,34 @@ test.describe("UI audit evidence sweep (prod)", () => {
         }
       });
     }
+  }
+
+  // GROUP JOB POSTER CARD — GroupJobHelpers renders inside PostedJobCard on
+  // /my-posts (`{job.is_group_job && <GroupJobHelpers …/>}`,
+  // PostedJobCard.tsx:711), not on /jobs/:id, so this is its own block rather
+  // than folded into JOB DETAIL above. `?highlight=<jobId>` (Activity.tsx)
+  // scrolls the target job into view and switches the status-filter bucket to
+  // whichever one it is actually in, so this works regardless of the seeded
+  // job's status. Resolved at run time (groupJobId, beforeAll) exactly like
+  // jobByStatus — never a pinned id.
+  const groupJobInScope = inScope([{ url: "/my-posts" }]).length > 0;
+  for (const v of VARIANTS) {
+    if (!groupJobInScope) continue;
+    const i = ++index;
+    test(`${String(i).padStart(3, "0")} group-job-poster-card (customer/${v.tag})`, async ({ browser }) => {
+      test.skip(
+        !groupJobId,
+        "no is_seed group job owned by the poster on prod — group-job poster card is NOT swept " +
+          "(run scripts/audit/prod-seed.mjs --group-job)",
+      );
+      const ctx = await sweepContext(browser, poster);
+      const page = await ctx.newPage();
+      try {
+        await captureScreen(page, i, "group-job-poster-card", `/my-posts?highlight=${groupJobId}`, "authed", undefined, v);
+      } finally {
+        await ctx.close();
+      }
+    });
   }
 
   // /complete-profile only renders for a profile the Big-7 gate rejects — the

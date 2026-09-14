@@ -6,11 +6,11 @@ import type { HelperStepProps } from "./stepContract";
 /**
  * STEP 3 — working.
  *
- * The exit chip is gone by rule (the card offers no "Can't Finish" once work is
- * underway), so the row is Message alone and the escape moves below it as a
- * quiet link. This is the one state where the escape exists, and it exists at
- * exactly the complement of the exit chip — removing a control must not remove
- * the path.
+ * There is no back-out chip by rule (Cancel Job exists only before "I'm On My
+ * Way" — owner, 2026-09-14, VN-18), so the row is Message plus Report a
+ * Problem, side by side (owner, 2026-09-14, VN-19 — reverses the earlier
+ * "quiet link below the row"). Report a Problem exists at exactly the
+ * complement of Cancel Job — removing a control must not remove the path.
  *
  * The ask is the AFTER photo, not the before one: see HelperPhotoAsk.
  */
@@ -19,7 +19,7 @@ export function WorkingStep({
   job,
   tracker,
   messageChip,
-  escape,
+  reportChip,
   abortedNotice,
   payout,
 }: HelperStepProps & {
@@ -38,13 +38,8 @@ export function WorkingStep({
       header={tracker}
       ask={<HelperPhotoAsk jobId={app.job_id} job={job} step="working" />}
       primary={<PayoutPrimary {...payout} />}
-      actions={[messageChip]}
-      escape={
-        <>
-          {escape}
-          {abortedNotice}
-        </>
-      }
+      actions={[messageChip, reportChip]}
+      escape={abortedNotice}
     />
   );
 }

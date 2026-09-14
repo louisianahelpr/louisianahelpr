@@ -43,9 +43,9 @@ import { JobActionRow } from "./JobActionRow";
  *      deliberate 2-up instead of a chip stranded in a 3-column grid. Callers
  *      pass an array and may include `false`/`null` for an absent chip.
  *   6. `footnote` — one quiet sentence explaining the row.
- *   7. `escape`  — the quiet last resort (Report a Problem). Deliberately
- *      BELOW the row rather than in it: a dispute freezes escrow and is not a
- *      peer of Message.
+ *   7. `escape`  — quiet text below the row (e.g. the helper's after-cancel
+ *      notice). Report a Problem is NOT here any more: owner, 2026-09-14
+ *      (VN-19) moved it into `actions` as a danger chip beside Message.
  *   8. `dialogs` — portalled confirms. Rendered last, occupies no layout.
  */
 export function JobStepCard({

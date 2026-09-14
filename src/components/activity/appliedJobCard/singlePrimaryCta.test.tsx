@@ -222,42 +222,60 @@ const CASES: Array<{
 /**
  * The sanctioned exit, and its replacement.
  *
- * "Can't Finish" disappears once work is underway (owner: "i dont belive they
- * should be able to do this once thy have started the job"). Removing a
- * CONTROL must not remove the PATH, so the state that loses it — and only that
- * state — gains a quiet "Report a Problem" link into the existing dispute
- * dialog. These two tests are each other's complement: neither state may end
- * up with both, and neither may end up with none.
+ * Owner, 2026-09-14 (VN-18): the back-out is labelled "Cancel Job" and exists
+ * ONLY after the helper has confirmed and BEFORE "I'm On My Way". Once on the
+ * way, arrived or working there is no back-out at all. Removing a CONTROL must
+ * not remove the PATH, so every state that lacks Cancel Job gains "Report a
+ * Problem" — and (VN-19) that is a danger chip IN the action row beside
+ * Message, not a link under it. Complements: no state may have both, and no
+ * live state may have neither.
  */
 describe("helper active card — exactly one way out of a live job", () => {
-  const linkIn = (c: HTMLElement) =>
+  const reportIn = (c: HTMLElement) =>
     [...c.querySelectorAll("button")].find((b) => /Report a Problem/i.test(b.textContent || ""));
   const exitIn = (c: HTMLElement) =>
-    [...c.querySelectorAll("button")].find((b) => /Can.t Finish/i.test(b.textContent || ""));
-
-  it("before Working: Can't Finish is the exit, and Report a Problem is not offered", async () => {
-    const { container } = renderSection(CASES[0].job, "on_the_way");
-    await act(async () => { await Promise.resolve(); });
-    expect(exitIn(container), "the pre-work exit disappeared").toBeTruthy();
-    expect(linkIn(container), "Report a Problem is duplicating an exit that already exists").toBeUndefined();
+    [...c.querySelectorAll("button")].find((b) => /Cancel Job/i.test(b.textContent || ""));
+  const confirmedNotOnTheWay = makeJob({
+    status: "in_progress",
+    helper_on_the_way_at: null,
+    helper_arrived_at: null,
+    poster_confirmed_working_at: null,
   });
 
-  it("once Working: Can't Finish is gone and Report a Problem replaces it — subordinately", async () => {
-    const { container } = renderSection(CASES[1].job);
+  it("confirmed, before On the Way: Cancel Job is the exit, and Report a Problem is not offered", async () => {
+    const { container } = renderSection(confirmedNotOnTheWay, "job_confirmed");
     await act(async () => { await Promise.resolve(); });
-    expect(exitIn(container), "a job already underway still offers the unilateral bail").toBeUndefined();
-    const link = linkIn(container);
-    expect(link, "a working job has no exit at all — not even a report path").toBeTruthy();
-    // Subordinate by construction: never the glossy primary, never a chip in
-    // the action row beside Message.
-    expect(link!.className).not.toContain("btn-grad-primary");
-    expect(link!.hasAttribute("data-job-action-chip")).toBe(false);
-    // Message must stay reachable in this state — it is the other half of the
-    // answer for a helper who cannot continue.
+    const exit = exitIn(container);
+    expect(exit, "the pre-on-the-way Cancel Job disappeared").toBeTruthy();
+    expect(exit!.hasAttribute("data-job-action-chip")).toBe(true);
+    expect(reportIn(container), "Report a Problem is duplicating an exit that already exists").toBeUndefined();
     expect(
-      [...container.querySelectorAll("button")].some((b) => /Message/i.test(b.textContent || "")),
-    ).toBe(true);
+      [...container.querySelectorAll("button")].some((b) => /Can.t Finish/i.test(b.textContent || "")),
+      "the old 'Can't Finish' wording is back",
+    ).toBe(false);
   });
+
+  for (const [name, job, tracking] of [
+    ["on the way", CASES[0].job, "on_the_way"],
+    ["working", CASES[1].job, "working"],
+  ] as const) {
+    it(`${name}: no Cancel Job, and Report a Problem is a chip beside Message`, async () => {
+      const { container } = renderSection(job, tracking);
+      await act(async () => { await Promise.resolve(); });
+      expect(exitIn(container), `a job that is ${name} still offers the back-out`).toBeUndefined();
+      const report = reportIn(container);
+      expect(report, `a job that is ${name} has no exit at all — not even a report path`).toBeTruthy();
+      expect(report!.className).not.toContain("btn-grad-primary");
+      // IN the action row, beside Message — the same row, same chip primitive.
+      expect(report!.hasAttribute("data-job-action-chip"), "Report a Problem is not a row chip").toBe(true);
+      const message = [...container.querySelectorAll("button[data-job-action-chip]")].find((b) =>
+        /Message/i.test(b.textContent || ""),
+      );
+      expect(message, "Message must stay reachable").toBeTruthy();
+      expect(report!.closest(".grid"), "Report a Problem is not in an action row").not.toBeNull();
+      expect(report!.closest(".grid"), "Report a Problem is not in the same row as Message").toBe(message!.closest(".grid"));
+    });
+  }
 });
 
 describe("helper active card — at most one primary CTA per state", () => {

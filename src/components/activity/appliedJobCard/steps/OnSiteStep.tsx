@@ -12,14 +12,16 @@ import type { HelperStepProps } from "./stepContract";
  * arrival step (it is the reason the tracker's Done control is refused), so it
  * is not duplicated here.
  *
- * Directions is gone — they are standing at the address.
+ * Directions is gone — they are standing at the address. So is Cancel Job
+ * (owner, 2026-09-14, VN-18: no back-out once on the way or arrived); Report a
+ * Problem sits beside Message instead.
  */
 export function OnSiteStep({
   app,
   job,
   tracker,
   messageChip,
-  exitChip,
+  reportChip,
   abortedNotice,
   payout,
 }: HelperStepProps & {
@@ -38,7 +40,7 @@ export function OnSiteStep({
       header={tracker}
       ask={<HelperPhotoAsk jobId={app.job_id} job={job} step="on_site" />}
       primary={<PayoutPrimary {...payout} />}
-      actions={[messageChip, exitChip]}
+      actions={[messageChip, reportChip]}
       escape={abortedNotice}
     />
   );

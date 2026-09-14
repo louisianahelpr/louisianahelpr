@@ -22,7 +22,7 @@ export function RevisionStep({
   job,
   tracker,
   messageChip,
-  escape,
+  reportChip,
   revisionAccepted,
   onRevisionAcceptedChange,
   resolving,
@@ -89,8 +89,7 @@ export function RevisionStep({
       ask={ask}
       notice={notice}
       primary={primary}
-      actions={[messageChip]}
-      escape={escape}
+      actions={[messageChip, reportChip]}
     />
   );
 }

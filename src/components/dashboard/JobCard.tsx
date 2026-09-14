@@ -450,7 +450,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 className={`urgent-pulse ${corner}`}
                 aria-label={bonus > 0 ? `Urgent — $${formatPrice(bonus)} bonus` : "Urgent"}
                 style={{
-                  color: "hsl(var(--accent))",
+                  // --accent-ink, not --accent: 9px bold label text on the
+                  // accent's own 15% tint. Raw --accent measured 3.75:1 in
+                  // dark mode (#d46735 on #382b27, device-pass /dashboard
+                  // 375-dark + 1440-dark), under the 4.5 AA bar. Light mode
+                  // is unchanged — the two tokens are byte-identical there.
+                  color: "hsl(var(--accent-ink))",
                   background: "hsl(var(--accent) / 0.15)",
                   borderColor: "hsl(var(--accent) / 0.5)",
                   letterSpacing: "0.05em",

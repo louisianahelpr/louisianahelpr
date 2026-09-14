@@ -2014,7 +2014,8 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] **Visual sweep** against prod as the test accounts (not installSupabaseMocks). Empty/error-state sweeps: decide what replaces them honestly (a throwaway test account for empty; real network failure injection for errors).
 - [ ] **press-every-control MODE=prod**: destructive presses allowed only on test-owned records; admin actions only against test targets.
 - [ ] **Paused lanes on resume use prod:** keyboard/large text, messy input, interruptions, slow phone/returning, scorecard, explorer. Their mocked specs get migrated, not extended.
-- [ ] **Existing mocked happy-path specs in CI** (e2e-happy-path.yml, ui-sweep, a11y-axe): migrate to prod-backed or retire, one at a time, keeping CI green.
+- [ ] **Existing mocked happy-path specs in CI** (e2e-happy-path.yml, ui-sweep): migrate to prod-backed or retire, one at a time, keeping CI green. (a11y-axe.yml DELETED 2026-09-14: its spec visual-audit-sweep.spec.ts was removed in 605df3d6f as superseded by a11y-prod, so every leg failed "No tests found"; a11y-webkit-prod.yml is the one a11y sweep.)
+- [x] **CI red 2026-09-14 — E2E happy-path smoke** `device-pass-measure /dashboard @ 375-dark + 1440-dark`: Urgent corner chip on JobCard painted 9px label in raw `--accent` = 3.75:1 (#d46735 on #382b27). Now `--accent-ink` (light byte-identical). Guard is the spec itself (red since ef18b5af1). Still open: the spec is mocked; a prod dark-mode dashboard axe check with an urgent seed job should replace it.
 - [ ] **Uncommitted mock fixture change discarded** (edge-function stub bodies) per this decision.
 
 ### REDO on prod — work that was only verified on mocks (owner: "no mock mode ever")

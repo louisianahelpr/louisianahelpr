@@ -49,7 +49,7 @@ const WORKFLOWS = join(REPO, ".github/workflows");
 const NOT_RUN_IN_CI: Record<string, string> = {
   "post-and-apply.spec.ts": "Needs real credentials and writes a job to the live database.",
   "smoke.spec.ts": "Points at the deployed site; superseded in CI by the mocked happy-path suite.",
-  "a11y.spec.ts": "Deployed-site axe run; a11y-axe.yml covers the same routes against the local preview build.",
+  "a11y.spec.ts": "Deployed-site axe run; a11y-webkit-prod.yml (a11y-prod.spec.ts) covers the same routes against prod with the real accounts.",
   "visual-audit/desktop-fill.spec.ts": "Deployed-site visual audit; ui-sweep.yml covers the same ground locally.",
   "visual-audit/responsive.spec.ts": "Deployed-site visual audit; ui-sweep.yml covers the same ground locally.",
 };

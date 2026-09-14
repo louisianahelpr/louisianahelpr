@@ -4,8 +4,8 @@
  * ------------------------------------------------------------------
  * WHY THIS FILE EXISTS
  * ------------------------------------------------------------------
- * The a11y gate (.github/workflows/a11y-axe.yml → visual-audit-sweep.spec.ts)
- * read `axe.violations` and nothing else. axe reports a `color-contrast`
+ * The a11y gate (then .github/workflows/a11y-axe.yml → visual-audit-sweep.spec.ts,
+ * both since deleted; the prod sweep a11y-prod.spec.ts shares sweepCore.ts) read `axe.violations` and nothing else. axe reports a `color-contrast`
  * result as INCOMPLETE — not a violation — whenever it cannot resolve what
  * colour is actually behind the text. Its stated reasons are `bgGradient`
  * (an ancestor paints a gradient), `bgImage`, `bgOverlap` (another element

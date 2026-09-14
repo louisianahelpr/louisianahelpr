@@ -67,8 +67,8 @@ export const REQUIRED_CHECKS = [
   { id: "journeys", workflow: "E2E user journeys", file: "e2e-journeys.yml", job: /^Journeys \(/ },
   { id: "press-every-control", workflow: "Press every control", file: "press-every-control.yml", job: /^Press every control/ },
   // The ONE a11y sweep: prod, Chromium + WebKit, then the engine diff. The
-  // mocked a11y-axe.yml is not a release check (owner: mocked results never
-  // count as verification).
+  // mocked a11y-axe.yml was deleted 2026-09-14 (its spec went in 605df3d6f;
+  // owner: mocked results never count as verification).
   { id: "a11y-prod", workflow: "A11y in WebKit (prod)", file: "a11y-webkit-prod.yml", job: /^WebKit-only violations/ },
   { id: "write-contract", workflow: "Write contract snapshot refresh", file: "write-contract-refresh.yml", job: /^refresh$/ },
 ];

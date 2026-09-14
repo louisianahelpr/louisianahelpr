@@ -16,6 +16,11 @@ interface SaveBarProps {
  * around it. Frosted glass surface so content behind softly blurs through.
  */
 export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarProps) {
+  // Only while there is something to save, a save in flight, or the brief
+  // "Saved" confirmation. Owner, 2026-09-14 (VN-40): "i don't like that bottom
+  // cancel or up to date" — with nothing changed the bar showed a disabled
+  // "Up to Date" button and a Cancel with nothing to cancel.
+  if (!dirty && !saving && !justSaved) return null;
   return (
     <div
       className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-3 flex items-center gap-2"
@@ -44,32 +49,24 @@ export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarPro
       >
         Cancel
       </button>
-      {(() => {
-        // Save is muted + disabled when nothing's changed, so the
-        // bar reflects state instead of always inviting a tap.
-        const idle = !dirty && !saving && !justSaved;
-        return (
-          <button
-            type="button"
-            onClick={(e) => onSave(e as unknown as React.FormEvent)}
-            disabled={saving || justSaved || !dirty}
-            className="flex-[2] h-11 rounded-ds-md inline-flex items-center justify-center gap-2 text-ds-13 font-bold transition-all active:scale-[0.98] disabled:active:scale-100"
-            style={{
-              background: saving || idle ? "hsl(var(--muted))" : "hsl(var(--bark))",
-              color: saving || idle ? "hsl(var(--muted-foreground))" : "hsl(var(--parchment))",
-              border: "1px solid hsl(var(--bark-border))",
-              boxShadow: idle
-                ? "none"
-                : "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                  "0 1px 2px hsl(var(--bark-border) / 0.18), " +
-                  "0 6px 14px -4px hsl(var(--bark) / 0.4)",
-              cursor: saving || idle ? "not-allowed" : "pointer",
-            }}
-          >
-            {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? (<><Check className="w-4 h-4" strokeWidth={3} /> Saved</>) : idle ? "Up to Date" : "Save Changes"}
-          </button>
-        );
-      })()}
+      <button
+        type="button"
+        onClick={(e) => onSave(e as unknown as React.FormEvent)}
+        disabled={saving || justSaved}
+        className="flex-[2] h-11 rounded-ds-md inline-flex items-center justify-center gap-2 text-ds-13 font-bold transition-all active:scale-[0.98] disabled:active:scale-100"
+        style={{
+          background: saving ? "hsl(var(--muted))" : "hsl(var(--bark))",
+          color: saving ? "hsl(var(--muted-foreground))" : "hsl(var(--parchment))",
+          border: "1px solid hsl(var(--bark-border))",
+          boxShadow:
+            "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
+            "0 1px 2px hsl(var(--bark-border) / 0.18), " +
+            "0 6px 14px -4px hsl(var(--bark) / 0.4)",
+          cursor: saving ? "not-allowed" : "pointer",
+        }}
+      >
+        {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? (<><Check className="w-4 h-4" strokeWidth={3} /> Saved</>) : "Save Changes"}
+      </button>
     </div>
   );
 }

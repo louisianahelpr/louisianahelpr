@@ -155,6 +155,8 @@ export function ProfileEditForm({
   return (
     // Bottom padding clears the sticky save bar (16+44+16 = 76px) plus a
     // safe-area buffer so the last form field doesn't tuck under the bar.
+    // Kept even while the bar is hidden (it only shows once something changed,
+    // VN-40), so the page does not jump when it appears.
     // `var(--safe-area-bottom)` for the same reason as SaveBar's own padding:
     // a bare env() reads 0 under <PageTransition>'s promoted ancestor, so the
     // clearance quietly lost the home-indicator allowance.
@@ -394,14 +396,14 @@ export function ProfileEditForm({
             yet", which is a different job entirely. */}
         {/* Same one-paragraph-one-typeface rule as RecentWorkSection: this
             sentence used to switch from serif italic to upright sans halfway
-            through ("…save from the" / "bar below"). Emphasis is weight +
+            through ("…save from the" / "bar that appears below"). Emphasis is weight +
             colour now; the family runs unbroken. */}
         <p
           className="text-center font-sans px-6 leading-snug text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Photos &amp; ID save automatically. Your other edits save from the{" "}
-          <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>bar below</span>.
+          <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>bar that appears below</span>.
         </p>
       </form>
 

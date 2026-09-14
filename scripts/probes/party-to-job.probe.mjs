@@ -44,6 +44,8 @@ const J3 = "44444444-4444-4444-8444-444444444444";   // completed 2 days ago: th
 const J4 = "55555555-5555-4555-8555-555555555555";   // completed 1 hour ago: thread open
 const J5 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";   // poster A, Helpr H2, blocked pair
 const J6 = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";   // poster B, Helpr H3, rate cap
+const J7 = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";   // ownerless (poster deleted), Helpr H1, applicant APP2
+const RA = "12121212-1212-4212-8212-121212121212";  // on J1 both as an applicant AND on the roster
 
 const SCHEMA = `
 CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
@@ -165,9 +167,10 @@ INSERT INTO public.jobs VALUES
   ('${J3}','${A}','${H1}',null,'completed', now() - interval '2 days'),
   ('${J4}','${A}','${H1}',null,'completed', now() - interval '1 hour'),
   ('${J5}','${A}','${H2}',null,'in_progress',null),
-  ('${J6}','${B}','${H3}',null,'in_progress',null);
-INSERT INTO public.group_job_helpers VALUES ('${J1}','${R}');
-INSERT INTO public.applications VALUES ('${J1}','${APP}'), ('${J1}','${APP2}');
+  ('${J6}','${B}','${H3}',null,'in_progress',null),
+  ('${J7}',null,'${H1}',null,'in_progress',null);
+INSERT INTO public.group_job_helpers VALUES ('${J1}','${R}'), ('${J1}','${RA}');
+INSERT INTO public.applications VALUES ('${J1}','${APP}'), ('${J1}','${APP2}'), ('${J1}','${RA}'), ('${J7}','${APP2}');
 INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${H2}','${A}');
 INSERT INTO public.profiles VALUES ('${BAN}','banned',null);
 `;
@@ -197,9 +200,15 @@ async function scenario(db) {
   out.send_poster_to_helpr = await send(A, J1, H1);
   out.send_helpr_to_poster = await send(H1, J1, A);
   out.send_poster_to_applicant = await send(A, J1, APP);
-  // Documented residual: once the poster has messaged the applicant, the
-  // applicant may post, and can ask about parties exactly as an INSERT would.
+  // Once the poster has messaged the applicant, the applicant may post, but
+  // ONLY to the poster: never to the Helpr or roster (who could not reply).
   out.wrap_applicant_after_messaged = await rpc(APP, "can_send_message_to_in_job", `'${J1}','${R}'`);
+  out.send_messaged_applicant_to_helpr = await send(APP, J1, H1);
+  out.send_messaged_applicant_to_roster = await send(APP, J1, R);
+  // Someone who is both applicant and roster stays reachable by a non-poster.
+  out.send_helpr_to_roster_applicant = await send(H1, J1, RA);
+  // Ownerless job: nobody matches the poster-only applicant branch.
+  out.wrap_ownerless_helpr_probe_applicant = await rpc(H1, "can_send_message_to_in_job", `'${J7}','${APP2}'`);
   out.send_applicant_reply_to_poster = await send(APP, J1, A);
   out.send_poster_to_second_applicant = await send(A, J1, APP2);
   out.wrap_poster_applicant = await rpc(A, "can_send_message_to_in_job", `'${J1}','${APP2}'`);
@@ -249,6 +258,7 @@ async function scenario(db) {
   out.wrap_stranger_helpr = await rpc(B, "can_send_message_to_in_job", `'${J1}','${H1}'`);
   out.wrap_stranger_applicant = await rpc(B, "can_send_message_to_in_job", `'${J1}','${APP}'`);
   out.wrap_stranger_roster = await rpc(B, "can_send_message_to_in_job", `'${J1}','${R}'`);
+  out.wrap_stranger_poster = await rpc(B, "can_send_message_to_in_job", `'${J1}','${A}'`);
   out.wrap_closed_thread_party = await rpc(A, "can_send_message_to_in_job", `'${J3}','${H1}'`);
   out.wrap_anon = await rpc(null, "can_send_message_to_in_job", `'${J1}','${H1}'`);
   out.wrap_banned_party = await rpc(BAN, "can_send_message_to_in_job", `'${J1}','${H1}'`);
@@ -293,7 +303,8 @@ async function scenario(db) {
 const expectAfter = {
   send_poster_to_helpr: true, send_helpr_to_poster: true, send_poster_to_applicant: true, send_poster_to_roster: true,
   send_roster_to_poster: true, send_open_completed_thread: true,
-  send_applicant_reply_to_poster: true, send_poster_to_second_applicant: true, wrap_poster_applicant: true,
+  send_applicant_reply_to_poster: true, send_messaged_applicant_to_helpr: false, send_messaged_applicant_to_roster: false,
+  send_helpr_to_roster_applicant: true, wrap_ownerless_helpr_probe_applicant: false, send_poster_to_second_applicant: true, wrap_poster_applicant: true,
   send_helpr_to_applicant: false, send_roster_to_applicant: false, send_messaged_applicant_to_applicant: false,
   wrap_helpr_probe_applicant: false, wrap_roster_probe_applicant: false, wrap_messaged_applicant_probe_applicant: false,
   send_helpr_to_roster: true, wrap_helpr_roster: true,
@@ -303,8 +314,8 @@ const expectAfter = {
   send_forged_sender: false, send_anon: false, send_banned_party: false,
   rpc_stranger_is_party_helpr: "ERR", rpc_stranger_is_party_applicant: "ERR", rpc_party_is_party: "ERR", rpc_anon_is_party: "ERR",
   rpc_service_is_party: true,
-  wrap_stranger_helpr: false, wrap_stranger_applicant: false, wrap_stranger_roster: false, wrap_applicant_probe_roster: false,
-  wrap_applicant_after_messaged: true, wrap_banned_party: false,
+  wrap_stranger_helpr: false, wrap_stranger_applicant: false, wrap_stranger_roster: false, wrap_stranger_poster: false, wrap_applicant_probe_roster: false,
+  wrap_applicant_after_messaged: false, wrap_banned_party: false,
   wrap_closed_thread_party: false, wrap_anon: "ERR", wrap_party_non_party: false, wrap_party_party: true,
   photo_helpr_upload_job_folder: true, photo_poster_reads: true, photo_helpr_reads: true, photo_stranger_reads: false,
   photo_applicant_reads: false, photo_stranger_upload_job_folder: false, photo_stranger_upload_own_folder: true,
@@ -318,6 +329,7 @@ const expectBefore = {
   ...Object.fromEntries(Object.entries(expectAfter).filter(([k]) => k.startsWith("send_") || k.startsWith("photo_"))),
   // the owner-decision gap, reproduced on the live shape
   send_helpr_to_applicant: true, send_roster_to_applicant: true, send_messaged_applicant_to_applicant: true,
+  send_messaged_applicant_to_helpr: true, send_messaged_applicant_to_roster: true,
   rpc_stranger_is_party_helpr: true, rpc_stranger_is_party_applicant: true, rpc_party_is_party: true, rpc_anon_is_party: "ERR",
   grant_authenticated_is_party: true, grant_anon_is_party: false,
 };
@@ -382,6 +394,8 @@ const broken = [
     mutate(" STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  -- The caller", " STABLE SECURITY DEFINER\nAS $function$\n  -- The caller")],
   ["applicant branch not poster-gated (any party may message applicants)",
     mutate("       OR (\n         EXISTS (\n           SELECT 1 FROM public.jobs j\n           WHERE j.id = _job_id AND j.customer_id = auth.uid()\n         )\n         AND EXISTS (", "       OR (\n         EXISTS (")],
+  ["messaged applicant may reach the Helpr/roster (caller gate dropped)",
+    mutate("         AND (\n           EXISTS (\n             SELECT 1 FROM public.jobs j\n             WHERE j.id = _job_id\n               AND (j.customer_id = auth.uid()", "         AND (\n           true OR EXISTS (\n             SELECT 1 FROM public.jobs j\n             WHERE j.id = _job_id\n               AND (j.customer_id = auth.uid()")],
   ["wrapper without the block check",
     mutate("     AND NOT public.are_users_blocked(auth.uid(), _receiver)\n", "")],
   ["wrapper without the rate check",

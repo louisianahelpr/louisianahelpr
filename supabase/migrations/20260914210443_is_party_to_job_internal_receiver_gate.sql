@@ -42,24 +42,30 @@
 --     AND fewer than 30 messages sent by auth.uid() in the last hour
 --                                                  -- the same count and cap
 --                                                  -- enforce_message_rate uses
---     AND receiver is the poster, the assigned or offered Helpr, or on the
---         group roster
---         OR (receiver is an APPLICANT AND auth.uid() is the job's POSTER)
+--     AND ( receiver is the POSTER
+--           OR (receiver is the assigned or offered Helpr, or on the roster,
+--               AND auth.uid() is itself the poster, Helpr, offered Helpr or
+--               on the roster)
+--           OR (receiver is an APPLICANT AND auth.uid() is the job's POSTER) )
 --
 -- OWNER DECISION 2026-09-14: only the poster may message applicants. Before
 -- this migration the receiver check was is_party_to_job, which admits every
 -- applicant as a target for ANY sender who may post in the job, so the hired
 -- Helpr, a roster member or an applicant the poster had messaged could message
 -- (and, through the refusal or the RPC, learn the identity of) the job's other
--- applicants. The applicant branch is now poster-only. Existing poster <->
--- applicant threads keep working: the poster reaches the applicant through the
+-- applicants. The applicant branch is now poster-only. The converse is closed
+-- too (lh-authz-rls review): an applicant the poster messaged may post in the
+-- job (can_message_in_job branch 4) but may reach ONLY the poster, never the
+-- Helpr or roster, who could not reply and would learn the applicant's
+-- identity from the message. Existing poster <-> applicant threads keep working: the poster reaches the applicant through the
 -- applicant branch, and a messaged applicant reaches the poster through the
 -- poster branch (can_message_in_job branch 4 already lets them post).
 --
 -- What a client can still learn by calling it: for a job it may ALREADY post
 -- in, while that thread is open, not blocked with that user, and under the
--- rate cap, whether a given user is the poster, Helpr or a roster member (and,
--- for the poster only, an applicant). That is exactly what the INSERT policy
+-- rate cap, whether a given user is the poster (anyone who may post), the
+-- Helpr, offered Helpr or a roster member (callers who are themselves one of
+-- those), or an applicant (the poster only). That is exactly what the INSERT policy
 -- reveals to the same caller by accepting or refusing a message to that
 -- receiver, so the wrapper adds no oracle the table does not already have. A
 -- signed-in stranger, or anyone on a job they cannot post in, gets false for
@@ -69,7 +75,8 @@
 -- parties) that one INSERT per receiver would reveal anyway.
 -- The INSERT outcome changes in exactly one way, the owner decision above: a
 -- non-poster's message to an applicant (who is not also the poster, Helpr or
--- roster) is refused. Everything else is unchanged: the policy already
+-- roster) is refused, and so is a merely-messaged applicant's message to the
+-- Helpr, offered Helpr or a roster member. Everything else is unchanged: the policy already
 -- required (SELECT auth.uid()) = sender_id AND can_send_message_in_job(job_id),
 -- which implies the wrapper's uid and can_message_in_job conjuncts, and a
 -- banned, blocked or rate-limited caller's INSERT never reaches the policy
@@ -127,18 +134,40 @@ AS $function$
            WHERE m.sender_id = auth.uid()
              AND m.created_at > now() - interval '1 hour') < 30
      AND (
-       -- The poster, the assigned Helpr or the offered Helpr (NULL-safe).
+       -- The poster: reachable by anyone who may post in the job, including an
+       -- applicant the poster messaged (NULL-safe for an ownerless job).
        EXISTS (
          SELECT 1 FROM public.jobs j
-         WHERE j.id = _job_id
-           AND (j.customer_id = _receiver
-                OR j.helper_id = _receiver
-                OR j.offered_to_helper_id = _receiver)
+         WHERE j.id = _job_id AND j.customer_id = _receiver
        )
-       -- A member of the group roster.
-       OR EXISTS (
-         SELECT 1 FROM public.group_job_helpers g
-         WHERE g.job_id = _job_id AND g.helper_id = _receiver
+       -- The assigned or offered Helpr, or a roster member: reachable only by a
+       -- caller who is itself the poster, Helpr, offered Helpr or on the
+       -- roster, never by a caller who is merely a messaged applicant.
+       OR (
+         (
+           EXISTS (
+             SELECT 1 FROM public.jobs j
+             WHERE j.id = _job_id
+               AND (j.helper_id = _receiver OR j.offered_to_helper_id = _receiver)
+           )
+           OR EXISTS (
+             SELECT 1 FROM public.group_job_helpers g
+             WHERE g.job_id = _job_id AND g.helper_id = _receiver
+           )
+         )
+         AND (
+           EXISTS (
+             SELECT 1 FROM public.jobs j
+             WHERE j.id = _job_id
+               AND (j.customer_id = auth.uid()
+                    OR j.helper_id = auth.uid()
+                    OR j.offered_to_helper_id = auth.uid())
+           )
+           OR EXISTS (
+             SELECT 1 FROM public.group_job_helpers g
+             WHERE g.job_id = _job_id AND g.helper_id = auth.uid()
+           )
+         )
        )
        -- An applicant, and ONLY when the caller is the job's poster (owner
        -- decision 2026-09-14). An ownerless job (customer_id NULL) matches
@@ -160,7 +189,8 @@ $fn$;
   COMMENT ON FUNCTION public.can_send_message_to_in_job(uuid, uuid) IS
     'Messages INSERT policy receiver gate: true only when the CALLER (auth.uid()) '
     'may post in the job, is not blocked with _receiver, is under the 30/hour '
-    'send cap, and _receiver is the poster, Helpr or roster member, or an '
+    'send cap, and _receiver is the poster, or the Helpr/offered Helpr/roster '
+    'member when the caller is one of the poster/Helpr/offered/roster, or an '
     'applicant when the caller is the poster. Replaces the policy call to '
     'is_party_to_job, which has no client EXECUTE (20260914210443).';
 

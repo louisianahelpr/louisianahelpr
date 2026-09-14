@@ -428,7 +428,7 @@ serve(async (req) => {
     const received = pi.amount_received ?? pi.amount;
     if (!Number.isFinite(received) || (received as number) <= 0) {
       await postSlackOpsAlert({
-        kind: "custom",
+        kind: "money_at_risk",
         severity: "warning",
         title: "Dispute split aborted — invalid captured amount",
         message:
@@ -1133,7 +1133,7 @@ serve(async (req) => {
         refundLedgerErr,
       );
       await postSlackOpsAlert({
-        kind: "custom",
+        kind: "money_at_risk",
         severity: "warning",
         title: "Dispute split refund ledger write failed",
         message: "A dispute-split refund succeeded but its payment_refunds row was not written. Reconcile manually.",

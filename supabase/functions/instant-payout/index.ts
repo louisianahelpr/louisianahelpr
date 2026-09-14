@@ -303,7 +303,7 @@ serve(async (req) => {
           // forever. Surface it so someone can either collect it or fix the
           // Connect setup that caused it.
           await postSlackOpsAlert({
-            kind: "custom",
+            kind: "money_at_risk",
             severity: "warning",
             title: "Instant-payout fee NOT collected",
             message: `An instant payout completed but its platform fee transfer failed, so the fee stayed in the helper's connected balance. The helper was not double-charged; the platform forgoes this fee unless it is collected manually.`,

@@ -650,6 +650,58 @@ describe("auto-resolve-disputes", () => {
       expect(res.status).toBe(500);
     });
 
+    // Prod 2026-09-14: dispute c7a12050 on is_seed job bb2c3732 was decided with
+    // execution_status 'pending' by the seed and never executed. It alone made
+    // every run answer 500 ("1 defect") and paged every admin.
+    const seedSplit = {
+      id: DISPUTE_ID,
+      job_id: "seed-job",
+      execution_status: "pending",
+      execution_started_at: null,
+      execution_error: null,
+    };
+
+    it("skips a stuck split on an is_seed job: no defect, no admin page, answers 200", async () => {
+      seedStuck(scenario, [seedSplit]);
+      scenario.reads.jobs!.selectOverrides!.push({
+        includes: "is_seed",
+        result: { rows: [{ id: "seed-job", is_seed: true }] },
+      });
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      expect(res.status).toBe(200);
+      expect(body.stuck_splits).toEqual([]);
+      expect(body.seed_stuck_splits_skipped).toBe(1);
+      expect(writesTo("notifications", "insert")).toHaveLength(0);
+    });
+
+    it("still pages a real split sitting next to a seed one", async () => {
+      seedStuck(scenario, [seedSplit, { ...seedSplit, id: "real-dispute", job_id: "job-7" }]);
+      scenario.reads.jobs!.selectOverrides!.push({
+        includes: "is_seed",
+        result: { rows: [{ id: "seed-job", is_seed: true }, { id: "job-7", is_seed: false }] },
+      });
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      expect(res.status).toBe(500);
+      expect(body.stuck_splits).toEqual([{ id: "real-dispute", job_id: "job-7", execution_status: "pending" }]);
+    });
+
+    it("treats every split as real when the seed flag cannot be read", async () => {
+      seedStuck(scenario, [seedSplit]);
+      scenario.reads.jobs!.selectOverrides!.push({
+        includes: "is_seed",
+        result: { error: { message: "boom" } },
+      });
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      expect(res.status).toBe(500);
+      expect(body.stuck_splits).toHaveLength(1);
+    });
+
     it("a clean run reports zero stuck splits and answers 200", async () => {
       seedStuck(scenario, []);
       const h = await load();

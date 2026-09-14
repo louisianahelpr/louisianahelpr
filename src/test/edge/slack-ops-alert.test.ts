@@ -134,12 +134,57 @@ describe("slack-ops-alert — the contract the SQL watchers actually speak", () 
     await fn.fetch(
       call(fn, {
         kind: "payout_failed",
-        severity: "info",
+        severity: "critical",
         title: "t",
         message: "m",
       }),
     );
 
+    expect(slackPosts[0].attachments[0].color).toBe("#dc2626");
+  });
+});
+
+/**
+ * Severity policy (2026-09-14, _shared/alertPolicy.ts): #ops-alerts carries
+ * only CRITICAL items plus one daily digest. Before this, every error_logs row
+ * posted, the channel hit Slack's rate limit, and each `ratelimited` refusal
+ * was logged as a new row that posted again.
+ */
+describe("slack-ops-alert — only critical posts; the rest waits for the digest", () => {
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetEnv();
+    slackPosts = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        slackPosts.push(JSON.parse(String(init.body)));
+        return new Response(JSON.stringify({ ok: true, ts: "1.0" }), { status: 200 });
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  for (const severity of ["warning", "info", undefined]) {
+    it(`does NOT post severity ${String(severity)}, and answers 200 so no caller retries`, async () => {
+      const fn = await load();
+      const res = await fn.fetch(call(fn, { title: "t", message: "m", severity }));
+      expect(res.status).toBe(200);
+      expect(await json(res)).toMatchObject({ ok: true, skipped: "digest" });
+      expect(slackPosts).toHaveLength(0);
+    });
+  }
+
+  it("posts the daily digest even though it is info severity", async () => {
+    const fn = await load();
+    await fn.fetch(
+      call(fn, { kind: "digest", severity: "info", title: "Daily ops digest: 3 event(s) in 24h", message: "..." }),
+    );
+    expect(slackPosts).toHaveLength(1);
     expect(slackPosts[0].attachments[0].color).toBe("#3b82f6");
   });
 });

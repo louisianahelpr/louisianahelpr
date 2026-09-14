@@ -785,7 +785,7 @@ serve(async (req) => {
           .join(", ")}`;
       }
       await postSlackOpsAlert({
-        kind: "custom",
+        kind: "money_at_risk",
         severity: worst,
         title: `Money reconciliation found ${findings.length} discrepanc${findings.length === 1 ? "y" : "ies"}`,
         message:
@@ -799,7 +799,7 @@ serve(async (req) => {
       // produced it — `rows.length >= 5000` against a server that returns 1000
       // — was unsatisfiable.
       await postSlackOpsAlert({
-        kind: "custom",
+        kind: "money_at_risk",
         severity: "warning",
         title: "Money reconciliation ran degraded",
         message: "No discrepancies found, but one or more checks could not run or could not read every row — a clean result here is not trustworthy.",

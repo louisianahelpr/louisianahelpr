@@ -82,7 +82,7 @@ export async function handleChargeRefunded(
           );
         if (ledgerErr) {
           await postSlackOpsAlert({
-            kind: "custom",
+            kind: "money_at_risk",
             severity: "warning",
             title: "payment_refunds ledger write failed (charge.refunded)",
             message: `Could not write refund ledger row for job ${refundedJob.id}.`,
@@ -166,7 +166,7 @@ export async function handleChargeRefunded(
         );
       if (partialLedgerErr) {
         await postSlackOpsAlert({
-          kind: "custom",
+          kind: "money_at_risk",
           severity: "warning",
           title: "Partial refund ledger write failed (charge.refunded)",
           message: `Could not write payment_refunds row for partial refund ${latestRefund.id}.`,

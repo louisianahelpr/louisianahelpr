@@ -1564,7 +1564,7 @@ serve(async (req) => {
             // being marked refunded for $0 with no ledger trace.
             if (!Number.isFinite(capturedCents) || (capturedCents as number) <= 0) {
               await postSlackOpsAlert({
-                kind: "custom",
+                kind: "money_at_risk",
                 severity: "warning",
                 title: "Dispute refund aborted — invalid captured amount",
                 message:
@@ -1636,7 +1636,7 @@ serve(async (req) => {
             // refunded (poster would get nothing with no signal). Abort loudly
             // (awaited alert + throw) and leave it disputed for manual review.
             await postSlackOpsAlert({
-              kind: "custom",
+              kind: "money_at_risk",
               severity: "warning",
               title: "Dispute refund aborted — PaymentIntent not succeeded",
               message:
@@ -1822,7 +1822,7 @@ serve(async (req) => {
           // money they'll never receive. Abort loudly; mirrors
           // admin_refund_dispute's PI-status guard above.
           await postSlackOpsAlert({
-            kind: "custom",
+            kind: "money_at_risk",
             severity: "warning",
             title: "General refund aborted — PaymentIntent not succeeded",
             message: `admin_refund_general found the PaymentIntent in status "${pi.status}" (expected "succeeded"). No refund issued; job left unchanged for manual review.`,
@@ -2039,7 +2039,7 @@ async function closeDisputeRecordForJob(
     if (error) {
       console.error(`[create-payment] settle_dispute_record failed for job ${args.jobId}:`, error);
       await postSlackOpsAlert({
-        kind: "custom",
+        kind: "money_at_risk",
         severity: "warning",
         title: "Dispute settled but its record stayed open",
         message:
@@ -2099,7 +2099,7 @@ async function logAdminMoneyAction(
         error ?? "matched 0 rows",
       );
       await postSlackOpsAlert({
-        kind: "custom",
+        kind: "money_at_risk",
         severity: "warning",
         title: "Admin money action left no audit trail",
         message: `An admin moved escrow (${args.action}) but the admin_audit_log row was not written.`,
@@ -2321,7 +2321,7 @@ async function recordRefund(
       // ledger row is a real Stripe↔ledger divergence that a human must
       // reconcile, so surface it to ops instead of leaving it in a Deno log.
       postSlackOpsAlert({
-        kind: "custom",
+        kind: "money_at_risk",
         severity: "warning",
         title: "Refund ledger write failed",
         message: `A Stripe refund succeeded but its payment_refunds row was not written. Reconcile manually.`,

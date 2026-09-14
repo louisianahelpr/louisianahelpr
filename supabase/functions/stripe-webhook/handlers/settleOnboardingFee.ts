@@ -93,7 +93,7 @@ export async function settleOnboardingFee(
           // ledger row is a real Stripe↔ledger divergence a human must
           // reconcile, so surface it to ops rather than leaving it in a log.
           await postSlackOpsAlert({
-            kind: "custom",
+            kind: "money_at_risk",
             severity: "warning",
             title: "Refund ledger write failed",
             message: "A Stripe refund succeeded but its payment_refunds row was not written. Reconcile manually.",

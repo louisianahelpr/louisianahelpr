@@ -8,11 +8,11 @@
 
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { effectiveSeverity, postsImmediately, type AlertSeverity } from '../_shared/alertPolicy.ts'
 
 const SLACK_API_URL = 'https://slack.com/api'
 const DEFAULT_CHANNEL = Deno.env.get('SLACK_OPS_CHANNEL') || '#ops-alerts'
 
-type AlertSeverity = 'critical' | 'warning' | 'info'
 type AlertKind =
   | 'dispute_filed'
   | 'fraud_flag'
@@ -20,6 +20,9 @@ type AlertKind =
   | 'auto_suspended'
   | 'stripe_webhook_error'
   | 'custom'
+  // The once-a-day summary from public.send_ops_daily_digest(). The only
+  // non-critical body that posts.
+  | 'digest'
 
 interface AlertBody {
   // Optional. Eight SQL watchers post here through `net.http_post` and NOT ONE
@@ -47,22 +50,8 @@ interface AlertBody {
   channel?: string
 }
 
-/**
- * Coerce whatever the caller sent into a severity this module can render.
- *
- * The same eight watchers send `'severity': 'error'`, which is not a member of
- * AlertSeverity — so `SEVERITY_ICON[severity]` and `SEVERITY_COLOR[severity]`
- * were both `undefined` and the Slack message would have read
- * "undefined 3 cron HTTP failure(s)" with an invalid attachment color, on the
- * runs that got past the 400 (i.e. none). 'error' means 'critical' here; any
- * other unknown string is treated as critical too, because an alert whose
- * severity we cannot read is not one to quietly downgrade.
- */
-function normalizeSeverity(raw: unknown): AlertSeverity {
-  if (raw === 'critical' || raw === 'warning' || raw === 'info') return raw
-  if (raw === undefined || raw === null) return 'warning'
-  return 'critical'
-}
+// Severity normalisation and the post-or-digest rule live in
+// _shared/alertPolicy.ts ('error' still means critical).
 
 const SEVERITY_ICON: Record<AlertSeverity, string> = {
   critical: '🚨',
@@ -155,7 +144,17 @@ Deno.serve(async (req) => {
     // Default rather than reject — see the note on AlertBody.kind.
     if (!body.kind) body.kind = 'custom'
 
-    const severity: AlertSeverity = normalizeSeverity(body.severity)
+    const severity: AlertSeverity = effectiveSeverity(body.kind, body.severity)
+
+    // Severity policy: only CRITICAL (and the daily digest itself) posts.
+    // Anything else a caller sends is already in error_logs, which is what the
+    // digest summarises, so it is acknowledged and not posted.
+    if (!postsImmediately(severity, body.kind)) {
+      return new Response(
+        JSON.stringify({ ok: true, skipped: 'digest', severity }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
     const channel = body.channel || DEFAULT_CHANNEL
     const blocks = buildBlocks(body, severity)
 
@@ -205,8 +204,11 @@ Deno.serve(async (req) => {
         await supabaseAdmin.from('error_logs').insert({
           severity: 'error',
           message: `slack-ops-alert: Slack rejected the post (${data?.error || `http_${res.status}`})`,
-          context: 'slack-ops-alert',
-          tags: ['alerting', 'slack'],
+          // Severity 'error', never 'critical': trg_error_logs_slack must not
+          // post this row, or a ratelimited Slack feeds itself (616 rows in
+          // three days before 2026-09-14). It shows in the daily digest.
+          context: { function: 'slack-ops-alert' },
+          tags: { source: 'slack-ops-alert', area: 'alerting' },
           stack: JSON.stringify({
             slack_error: data?.error ?? null,
             http_status: res.status,

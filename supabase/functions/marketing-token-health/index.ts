@@ -185,7 +185,16 @@ Deno.serve(async (req) => {
       error: tokenError,
     };
 
-    if (tokenError) {
+    if (!env.pageAccessToken && autoPublishEnabled !== true) {
+      // Not configured, and nothing depends on it: the Meta auto-poster was
+      // never set up (no META_* secrets exist) and auto-publish is off. A
+      // daily "could not run" critical about a feature nobody turned on is how
+      // #ops-alerts got muted (2026-09-14). Reported in the body, not Slack.
+      // If auto-publish is ever switched on without a token, the branch below
+      // still pages, because then posts really are failing.
+      probe("skipped");
+      report.token = { ...(report.token as Record<string, unknown>), configured: false };
+    } else if (tokenError) {
       // The check itself did not run. That is a defect: the thing that is
       // supposed to notice silent death was itself silent.
       probe("alerted");

@@ -72,6 +72,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { signEs256Jwt, signRs256Jwt } from '../_shared/jwt.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
+import { adminPushEventKey, adminPushSeverity } from '../_shared/alertPolicy.ts'
 import { logPush } from '../_shared/notificationLog.ts'
 import { inferCategoryFromLink, type PushCategory } from './category.ts'
 
@@ -538,15 +539,22 @@ Deno.serve(async (req) => {
         // Not awaited on a latency path elsewhere in this codebase, but here
         // the request is otherwise finished and the whole point is delivery,
         // so it is worth the round-trip. postSlackOpsAlert never throws.
+        //
+        // Posted as the alert itself (its own title), not as "undeliverable":
+        // no admin has a push token today, so that framing was on every
+        // message. Critical unless the title is a known informational one.
+        // `oncePerDayKey` is title + link (the link carries the job/dispute
+        // id), so the per-admin fan-out of ONE event posts once, while two
+        // different events still post separately.
         await postSlackOpsAlert({
           kind: 'custom',
-          severity: 'warning',
-          title: 'Admin alert undeliverable — no push token',
-          message: payload.title + ' — ' + payload.body,
+          severity: adminPushSeverity(payload.title),
+          title: payload.title,
+          message: payload.body,
           fields: {
-            admin_user_id: payload.user_id,
             deep_link: payload.link ?? '(none)',
           },
+          oncePerDayKey: adminPushEventKey(payload),
         })
       }
     } catch (e) {

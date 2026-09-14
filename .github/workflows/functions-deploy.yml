@@ -252,10 +252,18 @@ jobs:
           fi
 
       - name: Notify on failure
-        if: failure() && steps.precheck.outputs.skip != 'true' && env.SLACK_WEBHOOK != ''
+        # Never gate this step on the secret: a missing SLACK_WEBHOOK_URL must
+        # show as a warning on the run, not as a silently skipped step.
+        # (src/test/slackAlertWorkflows.test.ts)
+        if: failure() && steps.precheck.outputs.skip != 'true'
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          curl -X POST -H 'Content-type: application/json' \
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "::warning title=Deploy-failure alert NOT sent::functions-deploy failed, but the GitHub secret SLACK_WEBHOOK_URL is not set, so nobody was notified. Add it under Settings > Secrets and variables > Actions."
+            exit 0
+          fi
+          curl -sS --fail -X POST -H 'Content-type: application/json' \
             --data "{\"text\":\":rotating_light: functions-deploy failed on main — ${{ github.sha }}. Check Actions log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
-            "$SLACK_WEBHOOK" || true
+            "$SLACK_WEBHOOK_URL" \
+            || echo "::warning title=Deploy-failure alert NOT delivered::Slack rejected the webhook post. Check that SLACK_WEBHOOK_URL is still a valid incoming webhook."

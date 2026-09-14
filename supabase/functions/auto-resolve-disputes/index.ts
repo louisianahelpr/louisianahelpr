@@ -562,6 +562,7 @@ Deno.serve(async (req) => {
     // the run answers non-2xx and the silent-cron watcher fires every tick
     // until a human clears it, and one deduped admin notification per day.
     const stuckSplits: Array<{ id: string; job_id: string; execution_status: string }> = [];
+    let seedStuckSplitsSkipped = 0;
     {
       const stuckCutoff = Date.now() - STUCK_SPLIT_MINUTES * 60 * 1000;
       const { data: claimed, error: stuckErr } = await supabase
@@ -585,12 +586,36 @@ Deno.serve(async (req) => {
         // and been silently excluded from the one sweep that watches it. A NULL
         // stamp on a claimed row is MORE alarming than an old one, so it counts
         // as stuck rather than being skipped.
-        const stuck = (claimed ?? []).filter((row) => {
+        const aged = (claimed ?? []).filter((row) => {
           const startedAt = row.execution_started_at as string | null;
           if (!startedAt) return true;
           const t = Date.parse(startedAt);
           return Number.isNaN(t) || t < stuckCutoff;
         });
+        // Seed fixtures are not money. Prod holds a decided-but-never-executed
+        // split on an is_seed job (dispute c7a12050, job bb2c3732, 2026-09-07),
+        // and it alone turned every run of this cron into a 500 and paged every
+        // admin daily. A seed job's split is skipped and counted, never paged.
+        // If the seed flag cannot be read, every row is treated as real: a
+        // missed half-moved payout is worse than one noisy run.
+        let stuck = aged;
+        if (aged.length > 0) {
+          const jobIds = [...new Set(aged.map((row) => row.job_id as string))];
+          const { data: seedRows, error: seedErr } = await supabase
+            .from("jobs")
+            .select("id, is_seed")
+            .in("id", jobIds);
+          if (seedErr) {
+            console.error("[auto-resolve-disputes] seed-flag read failed; treating every stuck split as real:", seedErr);
+            defects.record(`stuck split seed-flag read: ${seedErr.message}`);
+          } else {
+            const seedJobIds = new Set(
+              (seedRows ?? []).filter((j) => j.is_seed === true).map((j) => j.id as string),
+            );
+            stuck = aged.filter((row) => !seedJobIds.has(row.job_id as string));
+            seedStuckSplitsSkipped = aged.length - stuck.length;
+          }
+        }
         const { ok: splitAdminsOk, ids: splitAdminIds } = stuck.length > 0
           ? await loadAdminIds(supabase, "auto-resolve-disputes.stuckSplit")
           : { ok: true, ids: [] as string[] };
@@ -629,6 +654,7 @@ Deno.serve(async (req) => {
         dispute_records_swept: sweptRecords.length,
         swept_dispute_ids: sweptRecords,
         stuck_splits: stuckSplits,
+        seed_stuck_splits_skipped: seedStuckSplitsSkipped,
       },
       defects.defects,
       corsHeaders,

@@ -27,7 +27,9 @@
 #   KEYCHAIN_PASSWORD     Any random string (used for the temp keychain on the runner)
 #
 # ─── Optional ────────────────────────────────────────────────────────────────
-#   SLACK_WEBHOOK         Incoming webhook URL for build notifications
+#   SLACK_WEBHOOK_URL     Incoming webhook URL for build-failure alerts (same
+#                         name as the Supabase secret; a missing value prints a
+#                         ::warning on the run instead of skipping silently)
 #
 # ─── App identifiers ─────────────────────────────────────────────────────────
 #   Bundle ID:   com.Helpr
@@ -616,23 +618,23 @@ jobs:
           retention-days: 7
 
       # ─── Notifications ─────────────────────────────────────────────────────
-      - name: Notify Slack — success
-        if: success() && env.SLACK_WEBHOOK != ''
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-        run: |
-          curl -sS -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"✅ Helpr ${{ steps.resolve.outputs.lane }} succeeded — v${{ steps.meta.outputs.version }} (${{ steps.meta.outputs.build }})\nTestFlight: https://appstoreconnect.apple.com/apps/6754470134/testflight\"}" \
-            "$SLACK_WEBHOOK" || true
-
+      # Success is not posted: #ops-alerts carries only critical items
+      # (supabase/functions/_shared/alertPolicy.ts). A failed build is one.
+      # Never gate this step on the secret: a missing SLACK_WEBHOOK_URL must
+      # show as a warning on the run (src/test/slackAlertWorkflows.test.ts).
       - name: Notify Slack — failure
-        if: failure() && env.SLACK_WEBHOOK != ''
+        if: failure()
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          curl -sS -X POST -H 'Content-type: application/json' \
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "::warning title=Build-failure alert NOT sent::The iOS deploy failed, but the GitHub secret SLACK_WEBHOOK_URL is not set, so nobody was notified. Add it under Settings > Secrets and variables > Actions."
+            exit 0
+          fi
+          curl -sS --fail -X POST -H 'Content-type: application/json' \
             --data "{\"text\":\"❌ Helpr ${{ steps.resolve.outputs.lane }} failed — run ${{ github.run_number }}\nLogs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
-            "$SLACK_WEBHOOK" || true
+            "$SLACK_WEBHOOK_URL" \
+            || echo "::warning title=Build-failure alert NOT delivered::Slack rejected the webhook post. Check that SLACK_WEBHOOK_URL is still a valid incoming webhook."
 
       # ─── Cleanup ───────────────────────────────────────────────────────────
       - name: Cleanup

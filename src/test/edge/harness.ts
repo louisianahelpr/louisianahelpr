@@ -372,6 +372,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/adminIds.ts";`,
   );
 
+  // Alert severity policy: `_shared/alertPolicy.ts` is pure (no Deno, no
+  // network). REAL module, so "does a warning post to Slack?" stays under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/alertPolicy\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/alertPolicy.ts";`,
+  );
+
   // PostgREST paging: `_shared/paginate.ts` has ZERO imports (it drives a
   // query factory the caller supplies), so the generated file points at the
   // REAL module. This is the code that reads past `db-max-rows = 1000` and

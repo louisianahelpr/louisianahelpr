@@ -693,7 +693,7 @@ serve(async (req) => {
         fields[f.check] = `${f.count}${f.truncated ? "+" : ""} — ${f.severity}`;
       }
       await postSlackOpsAlert({
-        kind: "custom",
+        kind: "money_at_risk",
         severity: worst,
         title: `Subscription reconciliation found ${findings.length} discrepanc${findings.length === 1 ? "y" : "ies"}`,
         message: repairsSuppressed
@@ -703,7 +703,7 @@ serve(async (req) => {
       });
     } else if (notes.length) {
       await postSlackOpsAlert({
-        kind: "custom",
+        kind: "money_at_risk",
         severity: "warning",
         title: "Subscription reconciliation ran degraded",
         message: "No drift found, but part of the check could not run — a clean result here is not trustworthy.",

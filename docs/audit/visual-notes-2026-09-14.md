@@ -2,6 +2,19 @@
 
 53 entries (VN-1 … VN-53). Logged from owner screenshots/descriptions; locations read from code, causes marked unverified. Nothing here has been changed in code.
 
+
+## Owner decisions (pop-ups, 2026-09-14)
+
+- **VN-11** — make it a real "my location" button (keep the icon; center the map on the user).
+- **VN-18** — once they're On the Way (or arrived) there is NO back-out. The back-out shows only after they've confirmed and before On the Way, labelled **"Cancel Job"**.
+- **VN-21** — one row, primary action in the dark green (btn primary), other buttons beside it.
+- **VN-33** — **both required**: nearby by GPS AND poster confirms. No fallback.
+- **VN-34** — label **"Mark Job Complete"**; locked until photos are uploaded.
+- **VN-44** — Plus gets **Featured badge, Priority Support, and more free boosts** (moved down from Elite / above Pro's 1). Once & Annual: owner meant the SAME perks list must show when Once or Annual is selected (display fix, not a pricing change).
+- **VN-47** — move "Download your data" to the **Privacy page**; remove from Legal tab.
+- **VN-50** — flexible = **any time that day** (keep current behaviour; no agreed-time step).
+- **VN-52** — **fix Group jobs and turn them on** (split payment + per-Helpr tracking + review model, then flip GROUP_JOBS_ENABLED).
+
 ## By area / component
 
 **Browse (Home /dashboard, map, filters)** — VN-5 search width · VN-6 recents overlay · VN-7 filter X · VN-8 filter bottom gap · VN-9 map pin card · VN-10 map card click does nothing · VN-11 recenter icon
@@ -25,7 +38,7 @@
 **Medium–large** — VN-32, 33
 **Large / design discussion first** — VN-3, 15, 21, 41 (+ VN-52 if Group is re-enabled)
 
-**Needs an owner decision before work:** VN-11 (icon vs real my-location), VN-18 (new wording), VN-21 (one-row layout), VN-33 (GPS AND poster removes no-GPS fallback), VN-34 (new label), VN-44 (Plus perks, Once/Annual), VN-47 (where the data export moves — legally required), VN-50 (agreed time for flexible), VN-52 (Group on/off)
+**Owner decisions:** all answered — see the section above.
 **Money / trust — review before changing:** VN-14, VN-28, VN-33, VN-34, VN-44, VN-45
 
 ---

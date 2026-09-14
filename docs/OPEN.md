@@ -14,6 +14,9 @@ fraction of fixing them one report at a time.
 
 ---
 
+## Owner visual notes 2026-09-14 (53 entries)
+- [ ] Work through `docs/audit/visual-notes-2026-09-14.md`. Its Tracker table is the per-entry checklist: Fixed needs a commit on main, Confirmed needs a committed screenshot + "ok" review recorded after the fix. Guard: `npm run visual-notes:check` (proven red on a fake tick; unit test `src/test/checkVisualNotes.test.ts`). Small entries in progress 2026-09-14 (3 lanes); medium/large and design-discussion entries not started.
+
 ## Failed list loads rendered "nothing here" + storage audit (2026-09-14)
 - [x] CLOSED: bell panel said "Nothing new yet." for a poster with 313 unread during the outage. The error card was reachable only from a resolved `{ error }`: a rejected query, an errored session read (auth down → treated as signed out) and a pending/hung load (postgrest retries in flight) all fell through to the empty state. Fix: one `failLoad` path, a 15 s bound on every read, and a `listLoaded` store flag, so there is a loading row until the first successful load. Guard `src/components/NotificationPanel.failedLoad.test.tsx` was red 4/6, now green 6/6. Prod proof at 375 (poster-e2e, local preview, `rest/v1/notifications` aborted): "Loading notifications…" while retries ran, then the error card with Try again, no empty state, overflow 0 (review-logged).
 - [x] CLOSED: My Posts / My Jobs error card required BOTH tabs empty, so a poster's posts hid a failed My Jobs read behind "No applications yet". The check now uses the active tab's count. Guard `src/pages/activity/ActivityEmptyState.loadError.test.tsx` was red 2/3, now green 3/3.

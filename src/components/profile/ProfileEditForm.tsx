@@ -99,24 +99,19 @@ export function ProfileEditForm({
     bio !== (profile?.bio ?? "") ||
     skills !== (profile?.skills ?? "");
 
-  // Resolve parish from ZIP for an inline confirmation under the field
-  // (it's the value used for Louisiana sales tax). Mirrors the silent
-  // lookup the Profile page already runs.
-  const { parish: zipParish, unknownZip, resolution } = useParishForZip(zipCode);
+  // Resolve parish from ZIP to validate it (the check mark and the unknown-ZIP
+  // warning). The parish itself is NOT shown here any more (owner, 2026-09-14,
+  // VN-38: "remove parish vermilion from edit profile"); Profile.tsx still
+  // looks it up and saves it with the ZIP.
+  const { parish: zipParish, unknownZip } = useParishForZip(zipCode);
   // Recognised, not merely five digits — an unknown ZIP shows its own warning.
   const zipValid = zipCode.length === 5 && !unknownZip && !!zipParish;
-  // The hook reports `incomplete` until its first answer lands, which on mount
-  // would blink the saved parish off the screen for a frame. Fall back to the
-  // stored value until the lookup has actually said something.
-  const resolvedParish = resolution.status === "incomplete"
-    ? (profile?.parish ?? null)
-    : zipParish;
 
   // "Other" skills free-text — kept as its own local buffer (not derived
   // fresh from `skills` on every render) so typing a comma doesn't
   // instantly re-join/trim the field out from under the cursor. Resynced
   // only when the underlying saved profile's skills change (initial load /
-  // navigating back to this tab), same trigger as resolvedParish above.
+  // navigating back to this tab).
   const [customText, setCustomText] = useState(customSkills.join(", "));
   useEffect(() => {
     const saved = (profile?.skills ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -230,18 +225,9 @@ export function ProfileEditForm({
                 </div>
               </div>
             </div>
-            {/* Parish confirmation — reassures the user the ZIP
-                registered (and catches a wrong one). Parish drives
-                Louisiana sales tax. */}
-            {resolvedParish && (
-              <p className="flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                <MapPin className="w-3 h-3 shrink-0" />
-                Parish · <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{resolvedParish}</span>
-              </p>
-            )}
-            {/* The counterpart to the confirmation above. A ZIP that resolves
-                to nothing used to render nothing, so "no parish line" meant
-                both "still typing" and "you are about to be unreachable". */}
+            {/* A ZIP that resolves to nothing must say so — silence used to
+                mean both "still typing" and "you are about to be
+                unreachable". */}
             {unknownZip && (
               <p role="status" className="flex items-start gap-1 text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
                 <MapPin className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />

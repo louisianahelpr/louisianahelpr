@@ -209,8 +209,14 @@ const dbHit = hunt([/^db_size(_bytes)?$/i, /^database_size(_bytes)?$/i]) ?? prom
 // exporter covers the database instance only (no storage_* family in a
 // 1494-line scrape). Reported as unmeasured, never as zero.
 const storageHit = hunt([/^storage_size(_bytes)?$/i]) ?? promHit("storage_storage_size_bytes");
-const ioHit = hunt([/disk_io/i, /^iops$/i, /io_budget/i]) ?? promHit("node_disk_io_now");
-const cpuHit = hunt([/^cpu(_usage)?$/i]) ?? promHit("node_load1");
+// CONSUMPTION only. `baseline_disk_io_mbs` from /v1/projects/{ref}/billing/
+// addons is the provisioned CAPACITY of the instance (87 MB/s on this one),
+// not how much of it is being used — the run of 2026-09-14 printed it in the
+// "used" column, which reads as an alarming number that means nothing. It is
+// reported on its own row below instead.
+const ioHit = promHit("node_disk_io_now");
+const cpuHit = promHit("node_load1");
+const ioBaselineHit = hunt([/baseline_disk_io_mbs/i]);
 
 const mb = (n) => `${(n / 1024 / 1024).toFixed(1)} MB`;
 const rows = [];
@@ -243,8 +249,12 @@ function metric(name, hit, limit, fmt = mb) {
 metric("Database size", dbHit, DB_LIMIT);
 metric("Disk volume (/data)", dataHit, dataTotal ?? null);
 metric("Storage size (buckets)", storageHit, STORAGE_LIMIT);
-metric("Disk IO", ioHit, null, (v) => `${v} (node_disk_io_now)`);
-metric("CPU", cpuHit, null, (v) => `${v} (node_load1, 1-min load average)`);
+// No metric name baked into the value — the source column already names the
+// key it came from, and hardcoding one there made the row lie when the value
+// came from a different source.
+metric("Disk IO in flight", ioHit, null, String);
+metric("CPU load (1 min)", cpuHit, null, String);
+metric("Disk IO baseline provisioned (MB/s)", ioBaselineHit, null, String);
 
 const summary = warn
   ? `WARN — ${warnings.join("; ")}`
@@ -270,6 +280,7 @@ const report = [
   ...probes.map((p) => `| \`${p.path}\` | ${p.status} | \`${p.text.replace(/\|/g, "\\|").replace(/\n/g, " ").slice(0, 400)}\` |`),
   "",
   "A metric shown as **not exposed** is not zero and not fine — it is unmeasured.",
+  "The last row is provisioned CAPACITY, not consumption; it does not move with load.",
   "",
   "Measured 2026-09-14 (run 34881959722): the public Management API returns 404 for",
   "every usage route — `/v1/projects/{ref}/usage`, `/database/usage`, `/billing/usage`",

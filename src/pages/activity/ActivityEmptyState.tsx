@@ -57,17 +57,21 @@ export function ActivityEmptyState({
   onSelectStatusFilter,
   onClearSearch,
 }: ActivityEmptyStateProps) {
-  // A failed fetch leaves both lists empty — show a recoverable
-  // ErrorState rather than a misleading "nothing posted yet".
-  if (loadError && postedJobsCount === 0 && appliedAppsCount === 0) {
+  const isPosted = tab === "posted";
+  const totalCount = isPosted ? postedJobsCount : appliedAppsCount;
+  // A failed fetch of THIS tab shows a recoverable ErrorState rather than a
+  // misleading "nothing posted yet". Gated on the ACTIVE tab's count only:
+  // `loadError` is the active tab's query, and the other tab is warmed on idle
+  // the moment this one settles (errors included), so requiring BOTH counts to
+  // be zero let a poster's posts hide a failed My Jobs read behind "No
+  // applications yet" (ActivityEmptyState.loadError.test.tsx).
+  if (loadError && totalCount === 0) {
     return (
       <div className="flex-1 min-h-full flex">
         <ErrorState onRetry={onRetry} />
       </div>
     );
   }
-  const isPosted = tab === "posted";
-  const totalCount = isPosted ? postedJobsCount : appliedAppsCount;
   const isTrulyEmpty = totalCount === 0;
   // No eyebrow: "Nothing yet" / "No matches" said exactly what the title
   // below it already says ("Nothing posted yet" / "No jobs in this view"),

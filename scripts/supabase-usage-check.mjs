@@ -204,11 +204,71 @@ function hunt(keys) {
 // Management API first (it is the documented, stable surface); the project's
 // metrics scrape is the fallback that actually has the numbers today.
 const dbHit = hunt([/^db_size(_bytes)?$/i, /^database_size(_bytes)?$/i]) ?? promHit("pg_database_size_bytes");
-// Bucket storage: measured 2026-09-14, NEITHER source carries it — the
-// Management API 404s on every usage route, and the project's metrics
-// exporter covers the database instance only (no storage_* family in a
-// 1494-line scrape). Reported as unmeasured, never as zero.
-const storageHit = hunt([/^storage_size(_bytes)?$/i]) ?? promHit("storage_storage_size_bytes");
+/**
+ * BUCKET STORAGE, from the Storage API itself.
+ *
+ * Measured 2026-09-14: NEITHER source above carries it — the Management API
+ * 404s on every usage route, and the metrics exporter covers the database
+ * instance only (no storage_* family in a 1494-line scrape). So this lists
+ * every object through `POST /storage/v1/object/list/<bucket>` (one folder
+ * level per call) and sums `metadata.size`.
+ *
+ * Every list call IS a query against the nano instance (storage.search), so it
+ * is paced (250ms apart), capped (MAX_LIST_CALLS) and time-boxed per call. The
+ * listing of the ten app buckets on 2026-09-14 took 106 calls for 95 objects / 20.3 MB
+ * (docs/audit/storage-audit-2026-09-14.md). A run that hits the cap, times
+ * out or errors reports storage as UNMEASURED with the reason — a partial sum
+ * is never shown as the total.
+ */
+const MAX_LIST_CALLS = 400;
+async function measureBuckets() {
+  if (!SERVICE_KEY) return { hit: null, note: "skipped — no SUPABASE_SERVICE_ROLE_KEY repo secret" };
+  const base = `https://${REF}.supabase.co/storage/v1`;
+  const headers = { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json" };
+  let calls = 0;
+  const call = async (method, path, body) => {
+    if (++calls > MAX_LIST_CALLS) throw new Error(`stopped at the ${MAX_LIST_CALLS}-call cap`);
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 20_000);
+    try {
+      const res = await fetch(`${base}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined, signal: ctl.signal });
+      if (!res.ok) throw new Error(`${method} ${path} -> HTTP ${res.status}`);
+      return await res.json();
+    } finally {
+      clearTimeout(timer);
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  };
+  try {
+    const buckets = await call("GET", "/bucket");
+    let bytes = 0;
+    let objects = 0;
+    for (const { id } of buckets) {
+      const stack = [""];
+      while (stack.length) {
+        const prefix = stack.pop();
+        for (let offset = 0; ; offset += 100) {
+          const rows = await call("POST", `/object/list/${id}`, { prefix, limit: 100, offset, sortBy: { column: "name", order: "asc" } });
+          for (const r of rows) {
+            const full = prefix ? `${prefix}/${r.name}` : r.name;
+            if (r.id === null) stack.push(full);
+            else { objects++; bytes += Number(r.metadata?.size ?? 0); }
+          }
+          if (rows.length < 100) break;
+        }
+      }
+    }
+    return {
+      hit: { p: { path: `(project) /storage/v1/object/list × ${calls} calls` }, hit: { key: `sum(metadata.size) over ${objects} objects in ${buckets.length} buckets`, value: bytes } },
+      note: `${objects} objects, ${buckets.length} buckets, ${calls} list calls`,
+    };
+  } catch (e) {
+    return { hit: null, note: `UNMEASURED — ${String(e?.message || e)}` };
+  }
+}
+const bucketMeasure = await measureBuckets();
+probes.push({ path: "(project) /storage/v1/object/list (all buckets)", status: bucketMeasure.hit ? 200 : 0, json: null, text: bucketMeasure.note });
+const storageHit = hunt([/^storage_size(_bytes)?$/i]) ?? promHit("storage_storage_size_bytes") ?? bucketMeasure.hit;
 // CONSUMPTION only. `baseline_disk_io_mbs` from /v1/projects/{ref}/billing/
 // addons is the provisioned CAPACITY of the instance (87 MB/s on this one),
 // not how much of it is being used — the run of 2026-09-14 printed it in the
@@ -291,8 +351,10 @@ const report = [
   "until it exists this report says UNMEASURED rather than pretending to be ok.",
   "",
   "Bucket storage is the one metric NEITHER source has: the scrape (1494 lines,",
-  "2026-09-14) covers the database instance only, with no `storage_*` family. The",
-  "only non-SQL way to size it is listing every object through the Storage API.",
+  "2026-09-14) covers the database instance only, with no `storage_*` family. It is",
+  "therefore sized by listing every object through the Storage API (paced 250ms,",
+  `capped at ${MAX_LIST_CALLS} calls); a capped or failed listing reports UNMEASURED, never a partial sum.`,
+  "Baseline 2026-09-14, the ten app buckets only: 95 objects, 20.3 MB (docs/audit/storage-audit-2026-09-14.md).",
 ].join("\n");
 
 writeFileSync("supabase-usage-report.md", report + "\n");

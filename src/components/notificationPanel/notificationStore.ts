@@ -34,9 +34,13 @@ export type NotificationState = {
   /** Whose notifications these are. A different id means a different person,
    *  and their unread count must not be inherited. */
   userId: string | null;
+  /** True once a list load for `userId` has SUCCEEDED. Until then an empty
+   *  `notifications` array is "not answered yet", not "this account has
+   *  none" — the panel must not render its empty state from it. */
+  listLoaded: boolean;
 };
 
-const EMPTY: NotificationState = { notifications: [], unreadTotal: null, userId: null };
+const EMPTY: NotificationState = { notifications: [], unreadTotal: null, userId: null, listLoaded: false };
 
 let state: NotificationState = EMPTY;
 const listeners = new Set<() => void>();
@@ -85,6 +89,12 @@ export const setUnreadTotal = (
   const next = typeof update === "function" ? update(state.unreadTotal) : update;
   if (next === state.unreadTotal) return;
   emit({ ...state, unreadTotal: next });
+};
+
+/** Record that a list load for the bound user succeeded (see `listLoaded`). */
+export const markNotificationsLoaded = () => {
+  if (state.listLoaded) return;
+  emit({ ...state, listLoaded: true });
 };
 
 /** Test-only reset. Module state outlives a test file otherwise. */

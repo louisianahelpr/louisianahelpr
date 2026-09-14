@@ -76,6 +76,47 @@ describe("race-class guard — edge functions (create-payment release, proven on
   });
 });
 
+describe("race-class guard — job completion (helper Done vs poster confirm / cancel, 20260914215112)", () => {
+  const JT = "src/components/JobTracking.tsx";
+  const COMPLETION_FIX = "20260914215112";
+  const latestDefinition = (name: string, exclude: string[] = []) => {
+    let body: string | null = null;
+    for (const { sql } of guard.readMigrations({ exclude })) {
+      const re = new RegExp(`CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.${name}\\s*\\([\\s\\S]*?\\$(function)?\\$([\\s\\S]*?)\\$(function)?\\$`, "gi");
+      for (const m of sql.matchAll(re)) body = m[2];
+    }
+    return body ?? "";
+  };
+  const triggerDefined = (exclude: string[] = []) =>
+    guard.readMigrations({ exclude }).some(({ sql }: { sql: string }) => /CREATE\s+TRIGGER\s+trg_completion_on_live_job\s+BEFORE\s+UPDATE\s+OF\s+helper_completed_at/i.test(sql));
+
+  it("flags the pre-fix Done stamp (helper_completed_at, id predicate only)", () => {
+    const src = readFileSync(resolve(FIXTURES, "JobTrackingDone.prefix.tsx.txt"), "utf8");
+    const keys = guard.clientHitsInSource(JT, src).map((h: Hit) => h.key);
+    expect(keys).toContain(`client:${JT}::helper_completed_at`);
+  });
+
+  it("the live Done stamp carries the live-status predicate", () => {
+    const live = readFileSync(resolve(__dirname, "../..", JT), "utf8");
+    const keys = guard.clientHitsInSource(JT, live).map((h: Hit) => h.key);
+    expect(keys).not.toContain(`client:${JT}::helper_completed_at`);
+  });
+
+  it("without the fix migration there is no status guard on helper_completed_at and a done job is cancellable", () => {
+    expect(triggerDefined([COMPLETION_FIX])).toBe(false);
+    expect(latestDefinition("poster_cancel_job", [COMPLETION_FIX])).not.toMatch(/helper_completed_at\s+IS\s+NOT\s+NULL/i);
+  });
+
+  it("with it: the trigger judges OLD.status and pins a re-stamp; poster_cancel_job refuses a job marked done", () => {
+    expect(triggerDefined()).toBe(true);
+    const trg = latestDefinition("enforce_completion_on_live_job");
+    expect(trg).toMatch(/OLD\.status::text\s+NOT\s+IN\s+\('accepted',\s*'in_progress',\s*'revision_requested'\)/);
+    expect(trg).toMatch(/NEW\.helper_completed_at\s*:=\s*OLD\.helper_completed_at/);
+    const cancel = latestDefinition("poster_cancel_job");
+    expect(cancel).toMatch(/FOR\s+UPDATE;[\s\S]*v_job\.helper_completed_at\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'not_cancellable'/i);
+  });
+});
+
 describe("race-class guard — detector units", () => {
   const fn = (body: string, returnsTrigger = false) => ({
     file: "x.sql",

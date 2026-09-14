@@ -883,7 +883,24 @@ export function JobTracking({
   };
 
 
+  // SYNCHRONOUS IN-FLIGHT GUARD. `updating` is React state, so two taps on
+  // "Yes, I'm Done" dispatched in one frame both read false and both wrote
+  // helper_completed_at — moving the stamp the 24h auto-release clock is keyed
+  // on, and (landing after a concurrent release or cancel) stamping a job that
+  // was no longer live. A ref sees the first tap. Same class and fix as
+  // useActivityActions' completeInFlight (JobTracking.doneInFlight.test.tsx).
+  const updateInFlight = useRef(false);
   const updateStatus = async (newStatus: string) => {
+    if (updateInFlight.current) return;
+    updateInFlight.current = true;
+    try {
+      await runStatusUpdate(newStatus);
+    } finally {
+      updateInFlight.current = false;
+    }
+  };
+
+  const runStatusUpdate = async (newStatus: string) => {
     if (!helperId) return;
     setUpdating(true);
 
@@ -1036,16 +1053,34 @@ export function JobTracking({
     // returns error === null. Without the row count this stamp could no-op
     // (RLS, a job that already moved on) and the helper would be told the
     // payout clock had started.
+    //
+    // .in("status", LIVE): the stamp only lands on a job that is still live.
+    // Queued behind a poster's cancel (or a release) it used to stamp the
+    // cancelled/completed row; now it matches zero rows and says so. The
+    // database enforces the same rule (trg_completion_on_live_job,
+    // 20260914215112) — this is the client half, so the Helpr gets the honest
+    // "already completed or cancelled" message instead of a trigger error.
+    //
+    // poster_completed_at comes back so a Done that lands AFTER the poster
+    // already confirmed finishes the release (below) instead of leaving a job
+    // both parties confirmed sitting in_progress.
     if (newStatus === "done") {
+      let posterAlreadyConfirmed: boolean | undefined;
       try {
-        unwrapMutation(
-          await supabase.from("jobs").update({ helper_completed_at: now }).eq("id", jobId).select("id"),
+        const [stamped] = unwrapMutation(
+          await supabase
+            .from("jobs")
+            .update({ helper_completed_at: now })
+            .eq("id", jobId)
+            .in("status", ["accepted", "in_progress", "revision_requested"])
+            .select("id, poster_completed_at"),
           {
             action: "mark the job complete",
             rejectedMessage: "We couldn't mark this job complete — it may have already been completed or cancelled. Pull to refresh.",
             context: { jobId },
           },
         );
+        posterAlreadyConfirmed = !!stamped?.poster_completed_at;
       } catch (doneErr) {
         if (!isWriteRejected(doneErr)) {
           report(doneErr, { tags: { source: "JobTracking.helperCompleted" } });
@@ -1055,6 +1090,27 @@ export function JobTracking({
         setUpdating(false);
         loadTracking();
         return;
+      }
+
+      // BOTH SIDES HAVE NOW CONFIRMED — FINISH IT. The poster's release
+      // committed first with this Helpr not yet done, so it only stamped
+      // poster_completed_at; this plain stamp completes nothing on its own, and
+      // the job sat in_progress with both confirmations until the 24h sweep
+      // (14/20 PGlite rounds, 20260914215112). create-payment's release treats
+      // exactly this shape as "fall through and complete" and runs the Stripe
+      // capture check the database cannot. The stamp above stands either way,
+      // so a failure here is reported and told, not rolled back.
+      if (posterAlreadyConfirmed) {
+        const { data: rel, error: relErr } = await supabase.functions.invoke("create-payment", {
+          body: { action: "release", jobId },
+        });
+        if (relErr || (rel as { error?: string } | null)?.error) {
+          report(relErr ?? new Error(String((rel as { error?: string }).error)), {
+            tags: { source: "JobTracking.finishRelease" },
+            context: { jobId },
+          });
+          toast.warning("Marked done. The poster already approved, but we couldn't start your payout just now — pull to refresh, or it releases on its own within a day.", { duration: 8000 });
+        }
       }
     }
 

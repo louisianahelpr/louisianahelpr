@@ -189,6 +189,13 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
           job_not_found: "This job no longer exists. Refresh and check.",
           not_authenticated: "Please sign in again to cancel this job.",
         };
+        // A job the Helpr already marked done is refused with its own HINT
+        // (20260914215112). The generic line above would hide the one fact the
+        // poster needs: the next step is approve, ask for a change, or dispute.
+        const doneHint = String(error.hint ?? "");
+        if (String(error.message ?? "").trim() === "not_cancellable" && /already marked this job done/i.test(doneHint)) {
+          throw new Error(doneHint);
+        }
         throw new Error(
           human[String(error.message ?? "").trim()] ??
             error.message ??

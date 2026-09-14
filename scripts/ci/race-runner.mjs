@@ -36,6 +36,9 @@
  *   race 4  Done vs cancel (Done first). A = the Helpr's stamp; B =
  *           poster_cancel_job, queued behind it.
  *           BAD = a cancelled job carrying a done stamp (finished work cancelled).
+ *   race 6  Done vs block. A = the Helpr's stamp; B = the poster's
+ *           block_user_and_settle, queued behind it (review follow-up).
+ *           BAD = a cancelled job carrying a done stamp.
  *   race 5  Done again vs release. The Helpr already marked done; A = the
  *           service-role release write completing the job; B = the Helpr's
  *           second Done (pre-fix client write).
@@ -185,6 +188,13 @@ const RACES = {
     A: DONE,
     B: CANCEL,
     refusal: /not_cancellable/,
+    bad: (s) => s.status === "cancelled" && s.done,
+  },
+  6: {
+    name: "helper Done vs poster block (Done holds the lock)",
+    A: DONE,
+    B: { as: "poster", run: (c, f) => c.query("SELECT public.block_user_and_settle($1, 'race-runner')", [f.helper]) },
+    refusal: /^$/, // the block itself must land; it just must not settle a done job
     bad: (s) => s.status === "cancelled" && s.done,
   },
   5: {

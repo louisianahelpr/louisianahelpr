@@ -1109,7 +1109,7 @@ export function JobTracking({
             tags: { source: "JobTracking.finishRelease" },
             context: { jobId },
           });
-          toast.warning("Marked done. The poster already approved, but we couldn't start your payout just now — pull to refresh, or it releases on its own within a day.", { duration: 8000 });
+          toast.warning("Marked done. The poster already approved, but we couldn't start your payout just now — it releases automatically unless something needs a look. Pull to refresh.", { duration: 8000 });
         }
       }
     }

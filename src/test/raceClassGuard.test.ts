@@ -115,6 +115,27 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
     const cancel = latestDefinition("poster_cancel_job");
     expect(cancel).toMatch(/FOR\s+UPDATE;[\s\S]*v_job\.helper_completed_at\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'not_cancellable'/i);
   });
+
+  it("no exit around the stamp: clearing it, a block, a no-show report or a Helpr cancel cannot undo a job marked done", () => {
+    const without = {
+      trg: latestDefinition("enforce_completion_on_live_job", [COMPLETION_FIX]),
+      block: latestDefinition("block_user_and_settle", [COMPLETION_FIX]),
+      noShow: latestDefinition("report_helper_no_show", [COMPLETION_FIX]),
+      helperCancel: latestDefinition("helper_cancel_booking", [COMPLETION_FIX]),
+    };
+    expect(without.trg).toBe("");
+    expect(without.block).not.toMatch(/helper_completed_at/);
+    expect(without.noShow).not.toMatch(/helper_completed_at/);
+    expect(without.helperCancel).not.toMatch(/helper_completed_at/);
+
+    expect(latestDefinition("enforce_completion_on_live_job")).toMatch(
+      /NEW\.helper_completed_at\s+IS\s+NULL\s+AND\s+auth\.uid\(\)\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'helper_completed_at_not_clearable'/i,
+    );
+    const block = latestDefinition("block_user_and_settle");
+    expect(block.match(/helper_completed_at\s+IS\s+NULL/gi)).toHaveLength(2); // the locked SELECT and the UPDATE predicate
+    expect(latestDefinition("report_helper_no_show")).toMatch(/v_helper_completed_at\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'helper_marked_done'/i);
+    expect(latestDefinition("helper_cancel_booking")).toMatch(/v_job\.helper_completed_at\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'not_cancellable'/i);
+  });
 });
 
 describe("race-class guard — detector units", () => {

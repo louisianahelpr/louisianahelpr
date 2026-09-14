@@ -1,6 +1,6 @@
 // PROD race probe: the job-completion race (20260914215112).
 //
-//   node scripts/probes/completion-race.prod.mjs [rounds=20] [scenario=all|cancel|approve|confirm]
+//   node scripts/probes/completion-race.prod.mjs [rounds=20] [scenario=all|cancel|block|approve|confirm]
 //
 // Runs against prod (there is no staging) on is_seed fixtures owned by the
 // poster-e2e / helper-e2e seed accounts. No Stripe object is touched: the
@@ -25,6 +25,9 @@
 //            BAD = helper_completed_at moved or after completed_at; job not
 //            completed/payout_pending; completed_at missing; payout scheduled
 //            twice; duplicate "Job completed!" / "marked the job complete".
+//   block    poster blocks the Helpr (block_user_and_settle) vs the Helpr's Done
+//            (pre-fix client write). BAD = a cancelled job carrying a done
+//            stamp. Cleanup also deletes the poster->helper user_blocks row.
 //   confirm  neither side done; the poster releases while the Helpr taps Done
 //            with the FIXED client (status predicate, poster_completed_at read
 //            back, create-payment release when the poster already confirmed).
@@ -87,6 +90,8 @@ async function cleanup(job) {
     try { await rest(`${t}?job_id=eq.${job.id}`, { method: "DELETE" }); } catch (e) { console.log(`  cleanup ${t}: ${e.message.slice(0, 120)}`); }
   }
   try { await rest(`job_tracking?job_id=eq.${job.id}`, { method: "DELETE" }); } catch { /* none */ }
+  // The block scenario: never leave the seed accounts blocking each other.
+  await rest(`user_blocks?blocker_id=eq.${POSTER}&blocked_id=eq.${HELPER}`, { method: "DELETE" });
   await rest(`jobs?id=eq.${job.id}`, { method: "DELETE" });
   const left = await rest(`jobs?id=eq.${job.id}&select=id`);
   if (left.length) throw new Error(`cleanup left job ${job.id}`);
@@ -111,6 +116,7 @@ async function doneFixed(job) {
   }
   return r;
 }
+const block = () => invokeRpc(posterTok, "block_user_and_settle", { p_blocked: HELPER, p_reason: "completion race probe" });
 const release = (job) => invoke("create-payment", posterTok, { action: "release", jobId: job.id });
 
 async function judge(job, results) {
@@ -137,6 +143,7 @@ async function judge(job, results) {
 
 const SCENARIOS = {
   cancel: { fixture: { helperDone: false, helperConfirmed: false }, fire: (j) => [cancel(j), doneLegacy(j)], edgeCalls: 0 },
+  block: { fixture: { helperDone: false, helperConfirmed: false }, fire: (j) => [block(j), doneLegacy(j)], edgeCalls: 0 },
   approve: { fixture: { helperDone: true, helperConfirmed: true }, fire: (j) => [release(j), doneLegacy(j)], edgeCalls: 1 },
   confirm: { fixture: { helperDone: false, helperConfirmed: true }, fire: (j) => [release(j), doneFixed(j)], edgeCalls: 2 },
 };
@@ -165,6 +172,17 @@ for (const [name, sc] of Object.entries(SCENARIOS)) {
   if (ONLY !== "all" && ONLY !== name) continue;
   tally[name] = 0;
   for (let i = 1; i <= ROUNDS; i++) {
+    // block_user_and_settle settles EVERY live job between the two seed
+    // accounts. Refuse to run while any job but our own exists between them —
+    // it could be another harness's fixture mid-run.
+    if (name === "block") {
+      const others = await rest(`jobs?select=id,title&status=in.(${LIVE.join(",")})&or=(and(customer_id.eq.${POSTER},helper_id.eq.${HELPER}),and(customer_id.eq.${HELPER},helper_id.eq.${POSTER}))`);
+      if (others.length) {
+        console.log(`block: SKIPPED — ${others.length} other live job(s) between the seed accounts (${others.map((o) => o.title).join(", ")}); a block would cancel them`);
+        tally[name] = "skipped";
+        break;
+      }
+    }
     if (sc.edgeCalls) await sleep(16_000);
     const job = await fixture(`${name}-${i}`, sc.fixture);
     try {

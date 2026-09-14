@@ -137,7 +137,7 @@ function Section({ title, trailing, children }: { title: string; trailing?: Reac
  * list, so it never claims content that isn't there. Same rule as the chip
  * rows' horizontal fades in JobFilters.
  */
-function PanelScroller({ children }: { children: ReactNode }) {
+function PanelScroller({ children, desktop = false }: { children: ReactNode; desktop?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState(false);
 
@@ -172,8 +172,18 @@ function PanelScroller({ children }: { children: ReactNode }) {
           a flex child shrink below its content and actually scroll. */}
       {/* `pb-8` clears the fade below: without it the last section's final row
           came to rest UNDER the gradient, so the thing you scrolled to the
-          bottom to read was the one thing still half-erased. */}
-      <div ref={ref} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pt-3 pb-8">
+          bottom to read was the one thing still half-erased.
+
+          DESKTOP DROPDOWN: `pb-1` instead (owner, 2026-09-14, VN-8: "too much
+          space below saved searches"). On the content-sized desktop card the
+          32px clearance plus FilterBody's own `pb-3` left ~44px of blank card
+          under the last row whenever the list did not need to scroll — which
+          at desktop heights is the usual case. The card now ends snugly after
+          "Saved Searches" with ordinary padding (pb-3 + pb-1 ≈ the header's
+          pt-4). The fade is gone at the end of the list (`more` is false), so
+          the last row is still fully readable when scrolled to the bottom.
+          Phone/native band keeps `pb-8`. */}
+      <div ref={ref} className={`min-h-0 flex-1 overflow-y-auto overscroll-contain pt-3 ${desktop ? "pb-1" : "pb-8"}`}>
         {children}
       </div>
       {/* Positioned against the card (which is `relative`), not against the
@@ -343,7 +353,8 @@ export function FilterSheet({
           // `DialogContent` already carries app-wide. No field is focused so
           // no keyboard rises, but focus is INSIDE the panel: a screen reader
           // announces the dialog and its "Refine Your Search" heading, Tab
-          // starts at the close button and walks the sections in order, and
+          // starts at the close button (phone/native; the desktop dropdown
+          // has none since VN-7) and walks the sections in order, and
           // Escape still closes. Dropping focus on <body> would have done
           // none of that. Radix's FocusScope gives Content `tabIndex={-1}`,
           // so the container accepts focus.
@@ -416,14 +427,25 @@ export function FilterSheet({
             // content-column band it used to stretch to.
             className="relative flex min-h-0 w-full max-w-lg lg:max-w-3xl flex-1 mx-auto flex-col overflow-hidden"
           >
-            {/* Panel header — a title and an unmistakable way out. There was
-                neither before: the only ✕ on screen belonged to the search
-                INPUT, so that is what people reached for to close the panel
-                (owner: "the x in search also doesn't close it"). */}
+            {/* Panel header — a title and, on phone/native, an unmistakable
+                way out. There was neither before: the only ✕ on screen
+                belonged to the search INPUT, so that is what people reached
+                for to close the panel (owner: "the x in search also doesn't
+                close it").
+
+                NO ✕ ON THE DESKTOP DROPDOWN (owner, 2026-09-14, VN-7: "no x
+                needed in the refine search tab. you tap the filter button
+                again or out the box to close it"). On desktop web
+                (`band.desktop`) the Filters button toggles it, the dismiss
+                layer closes it on an outside click, and Escape still closes
+                it (Radix DismissableLayer) with focus returned to the Filters
+                button by `onCloseAutoFocus` above. The phone/native band keeps
+                its ✕. */}
             <div className="shrink-0 flex items-center justify-between gap-3 px-5 pt-4 pb-3 border-b border-[hsl(var(--bark)/0.12)]">
               <h2 id={titleId} className="font-sans text-ds-17 font-bold text-foreground">
                 Refine Your Search
               </h2>
+              {!band.desktop && (
               <button
                 type="button"
                 onClick={() => { hapticLight(); onOpenChange(false); }}
@@ -437,12 +459,13 @@ export function FilterSheet({
               >
                 <X className="h-5 w-5" strokeWidth={2} />
               </button>
+              )}
             </div>
 
             {/* The sections scroll INSIDE the card, under a pinned header, so
                 the last row is always reachable and never sheared by the
                 panel edge. */}
-            <PanelScroller>
+            <PanelScroller desktop={band.desktop}>
               <FilterBody
                 sections={sections}
                 activeFilterCount={activeFilterCount}

@@ -31,6 +31,7 @@ import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 export function BrowseSearchBar({
   filters,
   embedded = false,
+  floatRecents = false,
 }: {
   filters: ReturnType<typeof useDashboardFilters>;
   /**
@@ -48,6 +49,15 @@ export function BrowseSearchBar({
    * close button in its header.
    */
   embedded?: boolean;
+  /**
+   * Float the Recent-searches list OVER the content beneath the field instead
+   * of pushing it down (owner, 2026-09-14, VN-6: "recents should expand like
+   * over the other stuff not push it down"). Set by the desktop list-column
+   * row on Dashboard. The phone title-card form leaves it off: the title card
+   * is `overflow-hidden` (TITLE_CARD_CLASS), so an absolutely positioned list
+   * there would be clipped to the card — it keeps the in-flow list.
+   */
+  floatRecents?: boolean;
 }) {
   // Snapshot history when the field opens and refresh after each push, so the
   // list doesn't mutate under the user mid-typing.
@@ -135,16 +145,20 @@ export function BrowseSearchBar({
   });
 
   return (
-    // The Recent-searches list used to be absolutely positioned so it
-    // wouldn't grow the title card. In practice that meant it floated OVER
-    // whatever was directly beneath the field — the category chip row, or
-    // the top of the feed — instead of making room for itself (owner:
-    // "should push down, not overlap"). It now renders in normal document
-    // flow: the title card grows by exactly the dropdown's height while it's
-    // open, and the panel below simply starts lower. `spellCheck={false}`
-    // on the input — a search query is not prose the browser should be
-    // second-guessing with red squiggles.
-    <div className="flex-1 min-w-0">
+    // RECENT SEARCHES FLOAT OVER THE FEED ON DESKTOP (owner, 2026-09-14,
+    // VN-6: "recents should expand like over the other stuff not push it
+    // down"). This reverses the earlier "should push down, not overlap"
+    // ruling, which had moved the list into document flow. With
+    // `floatRecents` (the desktop list-column row) the list is absolute,
+    // anchored to the full width of this wrapper, on its own layer with a
+    // card shadow. Without it (phone title card, which clips overflow) the
+    // list stays in flow — see the prop doc.
+    //
+    // WIDTH CAP (owner, 2026-09-14, VN-5: "the search bar should not take up
+    // the whole column"): `lg:max-w-md` on desktop; phone stays full-width.
+    // `spellCheck={false}` on the input — a search query is not prose the
+    // browser should be second-guessing with red squiggles.
+    <div className="relative flex-1 min-w-0 lg:max-w-md">
       <div className="flex items-center gap-2">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -223,7 +237,7 @@ export function BrowseSearchBar({
 
       {showRecent && (
         <div
-          className="mt-1.5 rounded-ds-md overflow-hidden bg-card"
+          className={`mt-1.5 rounded-ds-md overflow-hidden bg-card ${floatRecents ? "absolute left-0 right-0 top-full z-50" : ""}`}
           style={{
             border: "0.5px solid hsl(var(--olivewood) / 0.18)",
             boxShadow: "0 12px 32px -12px hsl(var(--olivewood) / 0.35)",

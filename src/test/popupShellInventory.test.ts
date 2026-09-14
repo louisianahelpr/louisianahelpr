@@ -361,7 +361,9 @@ describe("one footer convention", () => {
     // being listed; none is here because converting it was inconvenient.
     "src/components/dashboard/FilterSheet.tsx":
       "Filters apply live as you tap them — there is nothing to confirm. Its " +
-      "exit is the header × the panel gained when the owner asked for one.",
+      "exit is the header × on phone/native; on the desktop dropdown the × was " +
+      "removed (owner, 2026-09-14, VN-7) and the Filters button toggle, an " +
+      "outside click and Escape close it.",
     // Reason REWRITTEN 2026-08-31. It used to read "pinned in a dedicated grid
     // track … 92dvh phone sheet" — and that geometry was deleted the same day.
     // The sheet is now content-driven (top-[7vh], max-h-[86dvh], no h-*, no

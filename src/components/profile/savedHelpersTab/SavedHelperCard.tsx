@@ -249,9 +249,8 @@ export function SavedHelperCard({
           `!px-2.5` brings it to 131, and dropping the Send glyph below 360
           brings it to 99 — which clears 320's 222px row with 19px to spare.
           The budget to keep is: CTA intrinsic + 8 + 44 + 8 + 44 <= the card's
-          content width, and the narrowest content width the grid produces is
-          222 at 320, 242 at 900 (rail on, still two columns) and 262 at 1280
-          (three columns). Re-check it after ANY change to this row's padding,
+          content width, and the narrowest content width is 222 at 320 (the
+          list is one column at every width since 2026-09-14). Re-check it after ANY change to this row's padding,
           labels or icons — `whitespace-nowrap` means the CTA silently
           overflows its own box instead of wrapping or erroring. */}
       {/* `relative z-10` — same reason as the note block above: these three
@@ -261,7 +260,10 @@ export function SavedHelperCard({
           variant="primary"
           size="sm"
           onClick={() => navigate(`/post-job?offerTo=${h.helper_id}`)}
-          className="flex-1 rounded-ds-md !px-2.5"
+          // flex-1 on phones (a thumb-wide primary); from md the list is one
+          // full-width column (VN-42), so the CTA sizes to its content
+          // instead of stretching across the whole card.
+          className="flex-1 md:flex-none md:!px-4 rounded-ds-md !px-2.5"
         >
           <Send className="w-3.5 h-3.5 mr-1.5 hidden min-[360px]:inline-block" />
           Offer a Job

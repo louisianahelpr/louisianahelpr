@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { PawPrint, Plus, Check } from "lucide-react";
 
-import { supabase } from "@/integrations/supabase/client";
+import { fetchPetProfiles, petProfilesQueryKey } from "@/pages/petProfiles/petProfilesQuery";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { hapticLight } from "@/lib/haptics";
@@ -46,19 +46,20 @@ export function PetPicker({
 }) {
   const { user } = useCurrentUser();
 
-  const { data: pets, isError, error } = useQuery({
-    queryKey: ["pet_profiles_for_post", user?.id],
+  // Same key and query as the pets page (VN-53): its save/delete
+  // invalidation refreshes this list, and the default staleTime refetches on
+  // mount, so a pet added a moment ago on /profile?tab=pets is here. Owner
+  // filter explicit (`owner_id` = auth user id, as PetProfiles writes it), not
+  // left to RLS. Sorted by name for picking; the shared cache stays in the
+  // pets page's created_at order.
+  const { data: ownPets, isError, error } = useQuery({
+    queryKey: petProfilesQueryKey(user?.id),
     enabled: !!user,
-    staleTime: 5 * 60 * 1000,
-    queryFn: async () => {
-      const { data, error: qErr } = await supabase
-        .from("pet_profiles")
-        .select("id, name, species, breed, photo_url")
-        .order("name");
-      if (qErr) throw qErr;
-      return (data ?? []) as PetLite[];
-    },
+    queryFn: () => fetchPetProfiles(user!.id),
   });
+  const pets: PetLite[] | undefined = ownPets
+    ? [...ownPets].sort((a, b) => a.name.localeCompare(b.name))
+    : undefined;
 
   if (isError) report(error, { tags: { source: "PetPicker.pet_profiles" } });
 

@@ -20,6 +20,7 @@ import { PetForm } from "./petProfiles/PetForm";
 import { PetCard } from "./petProfiles/PetCard";
 import { PetRailRow } from "./petProfiles/PetRailRow";
 import { PetDetail } from "./petProfiles/PetDetail";
+import { fetchPetProfiles, petProfilesQueryKey } from "./petProfiles/petProfilesQuery";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -56,17 +57,10 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
   const [petToDelete, setPetToDelete] = useState<PetProfile | null>(null);
 
   const { data: pets, isLoading, isError, refetch } = useQuery({
-    queryKey: ["pet_profiles", userId],
+    // Shared with Post a Job's PetPicker (VN-53) — see petProfilesQuery.ts.
+    queryKey: petProfilesQueryKey(userId),
     enabled: !!userId,
-    queryFn: async () => {
-      return unwrap(
-        await supabase
-          .from("pet_profiles")
-          .select("*")
-          .eq("owner_id", userId!)
-          .order("created_at", { ascending: true }),
-      ) as PetProfile[];
-    },
+    queryFn: () => fetchPetProfiles(userId!),
   });
 
   // Desktop: active pet id lives in the URL (?pet=<id>) so deep-links work.

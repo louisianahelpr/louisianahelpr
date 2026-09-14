@@ -39,6 +39,46 @@ vi.mock("./messagesData/loadConversations", () => ({
     buildDeepLinkPlaceholderMock(...args),
 }));
 
+// The thread loader's Supabase calls. A chainable stub: every builder method
+// returns the chain, and awaiting it resolves to the table's canned result.
+// `fromCalls` records which tables were read so a test can prove the thread's
+// messages were actually requested.
+const fromCalls: string[] = [];
+const THREAD_ROWS = [
+  {
+    id: "m-1",
+    job_id: "job-1",
+    sender_id: "other-1",
+    receiver_id: "user-1",
+    content: "History from before the notification",
+    created_at: "2026-08-17T09:00:00.000Z",
+    read: true,
+    is_system: false,
+  },
+];
+vi.mock("@/integrations/supabase/client", () => {
+  const chain = (result: unknown) => {
+    const c: Record<string, unknown> = {};
+    for (const m of ["select", "eq", "or", "order", "limit", "lt", "lte", "like", "in", "update"]) {
+      c[m] = () => c;
+    }
+    c.maybeSingle = () => Promise.resolve(result);
+    c.then = (res: (v: unknown) => unknown, rej?: (e: unknown) => unknown) =>
+      Promise.resolve(result).then(res, rej);
+    return c;
+  };
+  return {
+    supabase: {
+      from: (table: string) => {
+        fromCalls.push(table);
+        if (table === "messages") return chain({ data: THREAD_ROWS, error: null });
+        return chain({ data: null, error: null });
+      },
+      auth: { refreshSession: () => Promise.resolve({ data: {}, error: null }) },
+    },
+  };
+});
+
 import { useMessagesData } from "./useMessagesData";
 
 const CONVO: Conversation = {
@@ -89,6 +129,7 @@ beforeEach(() => {
   fetchConversationsMock.mockReset();
   buildDeepLinkPlaceholderMock.mockReset();
   fetchConversationsMock.mockResolvedValue([CONVO]);
+  fromCalls.length = 0;
 });
 
 describe("useMessagesData — inbox caching", () => {
@@ -177,6 +218,26 @@ describe("useMessagesData — deep links against the cache", () => {
       replace: false,
     });
     expect(buildDeepLinkPlaceholderMock).not.toHaveBeenCalled();
+  });
+
+  // Owner-reported 2026-09-14: a message notification's link opened the right
+  // thread and painted "Say hello. Send the first message…" over a thread with
+  // 38 messages. The deep-link effect set the active thread and the URL flag
+  // but never ran the loader the inbox tap runs, so `messages` stayed [].
+  it("a deep-link open loads the thread's messages, exactly like an inbox tap", async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const { result } = renderMessagesData(client, {
+      deepLinkJobId: CONVO.jobId,
+      deepLinkUserId: CONVO.otherUserId,
+    });
+
+    await waitFor(() => expect(result.current.activeConvo).toEqual(CONVO));
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+    expect(fromCalls).toContain("messages");
+    expect(result.current.messages[0].id).toBe("m-1");
+    expect(result.current.chatLoading).toBe(false);
   });
 
   it("revalidates before falling back to a placeholder — a cached inbox that predates the thread must not render it as empty", async () => {

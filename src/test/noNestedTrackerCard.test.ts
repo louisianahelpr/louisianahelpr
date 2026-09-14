@@ -164,6 +164,140 @@ export function findNestedPanelCards(file: string, source: string, cardComponent
   return { uses, violations };
 }
 
+/**
+ * CROSS-FILE: a card component rendered anywhere inside a JOB CARD.
+ *
+ * The same-file walk above cannot see the Helpr side's remaining box:
+ * HelperTrackerPanel's root is `rounded-2xl liquid-glass p-3`, and it is
+ * rendered by ConfirmedSection / ActiveJobSection, which AppliedJobCard renders
+ * inside JobCardShell — three files apart. Owner, 2026-09-14: make the Helpr
+ * card's tracker panel flat like the poster card's.
+ *
+ * Render graph from source: for every component, the capitalised JSX tags its
+ * body uses ANYWHERE (props like `tracker: <HelperTrackerPanel/>` included).
+ * Seeds are the tags inside `<JobCardShell>` in any file; the closure of the
+ * graph from those seeds is everything a job card renders. No card component
+ * may be in it. Keyed by component name; names are unique under src/.
+ */
+export function componentRenderGraph(file: string, source: string) {
+  const sf = parse(file, source);
+  const graph = new Map<string, Set<string>>();
+  const seeds = new Set<string>();
+  const tagsIn = (root: ts.Node, into: Set<string>) => {
+    const v = (n: ts.Node) => {
+      const el = ts.isJsxSelfClosingElement(n) || ts.isJsxOpeningElement(n) ? n : null;
+      if (el) {
+        const tag = el.tagName.getText();
+        if (/^[A-Z]/.test(tag)) into.add(tag);
+      }
+      ts.forEachChild(n, v);
+    };
+    ts.forEachChild(root, v);
+  };
+  const add = (name: string | undefined, fn: ts.Node | undefined) => {
+    if (!name || !/^[A-Z]/.test(name) || !fn) return;
+    const s = graph.get(name) ?? new Set<string>();
+    tagsIn(fn, s);
+    graph.set(name, s);
+  };
+  sf.forEachChild((n) => {
+    if (ts.isFunctionDeclaration(n)) add(n.name?.text, n);
+    if (ts.isVariableStatement(n)) {
+      for (const d of n.declarationList.declarations) {
+        if (ts.isIdentifier(d.name) && d.initializer) add(d.name.text, d.initializer);
+      }
+    }
+  });
+  const visit = (n: ts.Node) => {
+    if (ts.isJsxElement(n) && n.openingElement.tagName.getText() === "JobCardShell") {
+      // `tagsIn` walks below its root, so hand it the element itself.
+      tagsIn(n, seeds);
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  return { graph, seeds };
+}
+
+export function cardsInsideJobCards(
+  inputs: Array<{ file: string; source: string }>,
+  cardComponents: Set<string>,
+) {
+  const graph = new Map<string, Set<string>>();
+  const seeds = new Set<string>();
+  for (const { file, source } of inputs) {
+    const r = componentRenderGraph(file, source);
+    for (const [k, v] of r.graph) graph.set(k, new Set([...(graph.get(k) ?? []), ...v]));
+    r.seeds.forEach((s) => seeds.add(s));
+  }
+  const reached = new Set<string>();
+  const queue = [...seeds];
+  while (queue.length) {
+    const name = queue.pop()!;
+    if (reached.has(name)) continue;
+    reached.add(name);
+    for (const t of graph.get(name) ?? []) queue.push(t);
+  }
+  // The shell is the card itself; the two status panels have their own
+  // per-use `embedded` rule above (their glass is prop-gated, not a fixed root).
+  const exempt = (n: string) => n === "JobCardShell" || PANELS.has(n);
+  return {
+    reached,
+    nested: [...reached].filter((n) => cardComponents.has(n) && !exempt(n)).sort(),
+  };
+}
+
+/**
+ * Found by this check, NOT fixed here: the owner approved flattening the Helpr
+ * tracker panel only ("change nothing else visually"). Each entry is a REPORT,
+ * tracked in docs/OPEN.md; the test below fails if an entry stops being nested
+ * so the list cannot go stale.
+ */
+const REPORTED_NOT_FIXED = new Set([
+  // Poster card, group jobs only: `rounded-2xl liquid-glass p-5` inside
+  // PostedJobCard's JobCardShell.
+  "GroupJobHelpers",
+]);
+
+describe("no card component anywhere inside a job card (cross-file)", () => {
+  const files = walkFiles(SRC).map((f) => ({ file: f, source: fs.readFileSync(f, "utf8") }));
+  const cards = new Set(files.flatMap(({ file, source }) => findCardComponents(file, source)));
+  const { reached, nested: allNested } = cardsInsideJobCards(files, cards);
+  const nested = allNested.filter((n) => !REPORTED_NOT_FIXED.has(n));
+
+  it("every reported-not-fixed entry is still genuinely nested (no stale exemptions)", () => {
+    for (const name of REPORTED_NOT_FIXED) expect(allNested).toContain(name);
+  });
+
+  it("found the job-card render tree (a checker that sees nothing proves nothing)", () => {
+    for (const name of ["ConfirmedSection", "ActiveJobSection", "HelperTrackerPanel", "JobTracking"]) {
+      expect(reached.has(name), `${name} not reached from JobCardShell`).toBe(true);
+    }
+  });
+
+  it("no component a job card renders wears its own liquid-glass card root", () => {
+    expect(nested).toEqual([]);
+  });
+
+  it("flags the pre-fix Helpr shape across three files", () => {
+    const shell = `export function Card() { return (<JobCardShell><Section /></JobCardShell>); }`;
+    const section = `export function Section() { const shared = { tracker: <Panel /> }; return (<div className="px-4">{shared.tracker}</div>); }`;
+    const glass = `export function Panel() { return (<div className="rounded-2xl liquid-glass p-3"><JobTracking embedded /></div>); }`;
+    const flat = glass.replace("rounded-2xl liquid-glass p-3", "space-y-2");
+    const run = (panel: string) => {
+      const inputs = [
+        { file: "a.tsx", source: shell },
+        { file: "b.tsx", source: section },
+        { file: "c.tsx", source: panel },
+      ];
+      const c = new Set(inputs.flatMap(({ file, source }) => findCardComponents(file, source)));
+      return cardsInsideJobCards(inputs, c).nested;
+    };
+    expect(run(glass)).toEqual(["Panel"]);
+    expect(run(flat)).toEqual([]);
+  });
+});
+
 describe("no bordered card nested inside another (JobTracking / JobConfirmation)", () => {
   const files = walkFiles(SRC).map((f) => ({ f, src: fs.readFileSync(f, "utf8") }));
   const cards = new Set(files.flatMap(({ f, src }) => findCardComponents(f, src)));
@@ -176,9 +310,11 @@ describe("no bordered card nested inside another (JobTracking / JobConfirmation)
     expect(uses.some((u) => u.includes("HelperTrackerPanel.tsx"))).toBe(true);
     expect(uses.filter((u) => u.includes("PostedJobCard.tsx")).length).toBe(2);
     // Derived, not listed: the shared job card shell and both panels are cards.
-    for (const name of ["JobCardShell", "JobTracking", "HelperTrackerPanel"]) {
+    for (const name of ["JobCardShell", "JobTracking"]) {
       expect(cards.has(name), `${name} not detected as a card component`).toBe(true);
     }
+    // HelperTrackerPanel was a card component until 2026-09-14; it is now flat
+    // (see the cross-file job-card walk below, which is what keeps it so).
   });
 
   it("every panel use inside a liquid-glass element or card component is chrome-free", () => {

@@ -121,12 +121,13 @@ export function HelperTrackerPanel({
   );
 
   return (
-    /* ONE box: the wrapper wears the glass and JobTracking renders `embedded`
-       (no chrome of its own), so the rail and the step's own action read as a
-       single card instead of a bordered card inside another. This used to be a
-       CSS override (`.tracker-merged > .liquid-glass`) that left the nested
-       card in the DOM. Guard: src/test/noNestedTrackerCard.test.ts. */
-    <div className="rounded-2xl liquid-glass p-3 space-y-2">
+    /* FLAT, like the poster card (owner-approved 2026-09-14). This panel is
+       always rendered inside the Helpr's JobCardShell (via ConfirmedSection /
+       ActiveJobSection), which is already the glass card, so the panel wears
+       no box of its own and JobTracking renders `embedded`. It used to keep a
+       `rounded-2xl liquid-glass p-3` wrapper: a bordered box inside the card.
+       Guard: src/test/noNestedTrackerCard.test.ts (cross-file job-card walk). */
+    <div className="space-y-2">
       {/* `isHelper={!gateActive}`: while the Confirmed step is outstanding this
           panel owns the helper's controls, so the tracker draws the rail only
           and cannot offer "I'm On My Way" out of order. The two side effects

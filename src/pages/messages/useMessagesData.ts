@@ -304,88 +304,6 @@ export function useMessagesData({
     }
   }, [queryClient, resolvedUserId]);
 
-  // Auto-open conversation from deep link. Ran inside the old loader; now it
-  // waits on the query's first successful result. The ref guard keeps it to
-  // once per mount exactly as before, so a background refetch never yanks the
-  // user back into a thread they navigated away from.
-  useEffect(() => {
-    if (deepLinkHandled.current) return;
-    if (!resolvedUserId || !allConversations) return;
-    // jobId alone is enough. Every message notification produced in prod
-    // carries ONLY `?jobId=` (notify_message_recipient, migration
-    // 20260510032531) — verified against live rows — while this required BOTH
-    // params, so tapping a new-message notification always landed on the inbox
-    // and never opened the thread. The trigger now also sends `userId`, but
-    // requiring it here would still strand every notification already sitting
-    // in someone's list.
-    if (!deepLinkJobId) return;
-    deepLinkHandled.current = true;
-
-    const openIfMatch = (list: Conversation[]) => {
-      // With both params, match exactly. With jobId alone, open it only when
-      // that job has exactly ONE conversation — a group job can have several,
-      // and guessing which counterparty the user meant would be worse than
-      // leaving them on the inbox.
-      const candidates = list.filter((c) => c.jobId === deepLinkJobId);
-      const match = deepLinkUserId
-        ? candidates.find((c) => c.otherUserId === deepLinkUserId)
-        : candidates.length === 1
-          ? candidates[0]
-          : undefined;
-      if (!match) return false;
-      setActiveConvo(match);
-      openThreadUrl();
-      return true;
-    };
-
-    if (openIfMatch(allConversations)) return;
-
-    void (async () => {
-      // Not in the cached inbox — but the cache may simply predate the thread
-      // this link points at (the common case: the user just applied and was
-      // sent straight here). The pre-cache code always resolved deep links off
-      // a fresh 200-row fetch, so confirm against the server before inventing
-      // a placeholder, or a real thread would open as an empty one.
-      //
-      // This awaits the refetch and then reads the cache directly rather than
-      // waiting for re-rendered query state: a refetch that returns
-      // structurally identical rows changes neither `data`'s identity nor any
-      // render-visible flag, so an effect watching those could never fire
-      // again and the deep link would be dropped on the floor.
-      await loadConversations(resolvedUserId);
-      const refreshed = queryClient.getQueryData<Conversation[]>(
-        queryKeys.messages.conversations(resolvedUserId),
-      );
-      if (refreshed && openIfMatch(refreshed)) return;
-
-      // A placeholder needs to know WHO the thread is with. On a jobId-only
-      // link (every message notification produced before the trigger started
-      // sending userId) we don't know, and guessing would open a thread with
-      // the wrong person. Leave them on the inbox — the conversation they want
-      // is in the list, just not auto-opened.
-      if (!deepLinkUserId) return;
-      const placeholder = await buildDeepLinkPlaceholder(
-        resolvedUserId,
-        deepLinkJobId,
-        deepLinkUserId,
-      );
-      // null = dead thread (deleted user AND deleted job); the helper already
-      // toasted, so leave the inbox untouched.
-      if (!placeholder) return;
-      setConversations((prev) => [placeholder, ...prev]);
-      setActiveConvo(placeholder);
-      openThreadUrl();
-    })();
-  }, [
-    allConversations,
-    resolvedUserId,
-    deepLinkJobId,
-    deepLinkUserId,
-    openThreadUrl,
-    setConversations,
-    loadConversations,
-    queryClient,
-  ]);
 
   // Stable reference so the memoized ConversationRow in the inbox list
   // skips re-rendering unchanged rows on parent state changes.
@@ -407,13 +325,13 @@ export function useMessagesData({
         .from("messages")
         .select("*")
         .eq("job_id", convo.jobId)
-        .or(`and(sender_id.eq.${userId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${userId}),is_system.eq.true`)
+        .or(`and(sender_id.eq.${resolvedUserId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${resolvedUserId}),is_system.eq.true`)
         // Defense-in-depth: mirror the RLS SELECT policy's flagged clause
         // (visible if I'm the sender OR the row isn't hidden) so a scanner-hidden
         // message never surfaces to its receiver even if that policy regresses.
         // This is an exact RLS mirror — the sender still sees their own flagged
         // message (matching current behavior), so it changes nothing today.
-        .or(`sender_id.eq.${userId},flagged_hidden.eq.false`)
+        .or(`sender_id.eq.${resolvedUserId},flagged_hidden.eq.false`)
         .order("created_at", { ascending: false })
         .limit(CHAT_PAGE_SIZE),
       supabase
@@ -448,7 +366,7 @@ export function useMessagesData({
       // badge clears immediately, then persist in the background. The
       // optimistic-send flow keys off clientId/sendStatus, not `read`,
       // so toggling `read` here cannot collide with it.
-      const unreadIds = data.filter((m) => m.receiver_id === userId && !m.read).map((m) => m.id);
+      const unreadIds = data.filter((m) => m.receiver_id === resolvedUserId && !m.read).map((m) => m.id);
       const sorted = [...data]
         .reverse()
         .map((m) => (unreadIds.includes(m.id) ? { ...m, read: true } : m));
@@ -507,7 +425,7 @@ export function useMessagesData({
     // the thread's messages read above clears the messages/nav badge but
     // leaves that notifications row unread — so the bell would keep counting
     // a message the user has already seen. Clear it here on thread open.
-    if (userId) {
+    if (resolvedUserId) {
       // Limitation: the trigger's link (`/messages?jobId=<id>`) carries no
       // sender, and the notifications row has no sender column — so for a
       // job with several counterparties (poster ↔ multiple applicants) the
@@ -524,7 +442,7 @@ export function useMessagesData({
         void supabase
           .from("notifications")
           .update({ read: true })
-          .eq("user_id", userId)
+          .eq("user_id", resolvedUserId)
           .eq("type", "message")
           .eq("read", false)
           .like("link", `%jobId=${convo.jobId}%`)
@@ -536,7 +454,97 @@ export function useMessagesData({
     }
     setChatLoading(false);
     scrollToBottom();
-  }, [userId, openThreadUrl, scrollToBottom]);
+  }, [resolvedUserId, openThreadUrl, scrollToBottom, setConversations]);
+
+  // Auto-open conversation from deep link. Ran inside the old loader; now it
+  // waits on the query's first successful result. The ref guard keeps it to
+  // once per mount exactly as before, so a background refetch never yanks the
+  // user back into a thread they navigated away from.
+  //
+  // THE ONE LOADER. A deep link opens its thread through `openConvo`, the same
+  // call an inbox tap makes — never `setActiveConvo` + `openThreadUrl` by hand.
+  // It used to do exactly that, which set the thread and the URL flag but never
+  // fetched the messages: every message notification, push tap and job-card
+  // "Message" button (all of which land here as `?jobId=&userId=`) painted
+  // "Say hello. Send the first message…" over a thread with real history
+  // (owner, 2026-09-14: 38 messages). Declared below `openConvo` because it
+  // depends on it. Guarded by src/test/threadOpenSingleLoader.test.ts.
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    if (!resolvedUserId || !allConversations) return;
+    // jobId alone is enough. Every message notification produced in prod
+    // carries ONLY `?jobId=` (notify_message_recipient, migration
+    // 20260510032531) — verified against live rows — while this required BOTH
+    // params, so tapping a new-message notification always landed on the inbox
+    // and never opened the thread. The trigger now also sends `userId`, but
+    // requiring it here would still strand every notification already sitting
+    // in someone's list.
+    if (!deepLinkJobId) return;
+    deepLinkHandled.current = true;
+
+    const openIfMatch = (list: Conversation[]) => {
+      // With both params, match exactly. With jobId alone, open it only when
+      // that job has exactly ONE conversation — a group job can have several,
+      // and guessing which counterparty the user meant would be worse than
+      // leaving them on the inbox.
+      const candidates = list.filter((c) => c.jobId === deepLinkJobId);
+      const match = deepLinkUserId
+        ? candidates.find((c) => c.otherUserId === deepLinkUserId)
+        : candidates.length === 1
+          ? candidates[0]
+          : undefined;
+      if (!match) return false;
+      void openConvo(match);
+      return true;
+    };
+
+    if (openIfMatch(allConversations)) return;
+
+    void (async () => {
+      // Not in the cached inbox — but the cache may simply predate the thread
+      // this link points at (the common case: the user just applied and was
+      // sent straight here). The pre-cache code always resolved deep links off
+      // a fresh 200-row fetch, so confirm against the server before inventing
+      // a placeholder, or a real thread would open as an empty one.
+      //
+      // This awaits the refetch and then reads the cache directly rather than
+      // waiting for re-rendered query state: a refetch that returns
+      // structurally identical rows changes neither `data`'s identity nor any
+      // render-visible flag, so an effect watching those could never fire
+      // again and the deep link would be dropped on the floor.
+      await loadConversations(resolvedUserId);
+      const refreshed = queryClient.getQueryData<Conversation[]>(
+        queryKeys.messages.conversations(resolvedUserId),
+      );
+      if (refreshed && openIfMatch(refreshed)) return;
+
+      // A placeholder needs to know WHO the thread is with. On a jobId-only
+      // link (every message notification produced before the trigger started
+      // sending userId) we don't know, and guessing would open a thread with
+      // the wrong person. Leave them on the inbox — the conversation they want
+      // is in the list, just not auto-opened.
+      if (!deepLinkUserId) return;
+      const placeholder = await buildDeepLinkPlaceholder(
+        resolvedUserId,
+        deepLinkJobId,
+        deepLinkUserId,
+      );
+      // null = dead thread (deleted user AND deleted job); the helper already
+      // toasted, so leave the inbox untouched.
+      if (!placeholder) return;
+      setConversations((prev) => [placeholder, ...prev]);
+      void openConvo(placeholder);
+    })();
+  }, [
+    allConversations,
+    resolvedUserId,
+    deepLinkJobId,
+    deepLinkUserId,
+    openConvo,
+    setConversations,
+    loadConversations,
+    queryClient,
+  ]);
 
   // Pull-to-refresh for the open chat thread: re-fetch the most recent
   // page of messages without the navigate / clear churn that openConvo

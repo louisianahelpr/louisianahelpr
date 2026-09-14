@@ -65,12 +65,9 @@ export function useHelperAnalytics(
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     queryFn: async () => {
-      // `as never` because the RPC is not in the generated Functions map until
-      // types are regenerated post-deploy — the same cast JobPetCareSheet and
-      // the pet-care surfaces used for their new RPCs.
-      const res = await supabase.rpc("get_helper_analytics" as never, {
+      const res = await supabase.rpc("get_helper_analytics", {
         p_days: days,
-      } as never);
+      });
       if (res.error && (res.error as { code?: string }).code === "PGRST202") {
         return ANALYTICS_PENDING_DEPLOY;
       }

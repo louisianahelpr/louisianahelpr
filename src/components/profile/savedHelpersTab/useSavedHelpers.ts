@@ -123,12 +123,9 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
     // immediately — a failed write rolls the row back.
     const snapshot = helpers.find((h) => h.helper_id === helperId);
     setHelpers((prev) => prev.map((h) => h.helper_id === helperId ? { ...h, private_note: value } : h));
-    // `private_note` isn't in the generated supabase types yet (added
-    // in migration 20260609110000); cast through any to side-step
-    // until types regenerate.
     const { error } = await supabase
       .from("favorite_helpers")
-      .update({ private_note: value } as any)
+      .update({ private_note: value })
       .eq("customer_id", user.id)
       .eq("helper_id", helperId);
     setSavingNote(false);

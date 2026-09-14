@@ -367,7 +367,7 @@ const UserProfile = () => {
     }
     setSavingResponse(true);
     try {
-      const { error } = await (supabase.rpc as any)("respond_to_review", {
+      const { error } = await supabase.rpc("respond_to_review", {
         _review_id: reviewId,
         _response_text: responseText.trim(),
       });

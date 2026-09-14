@@ -97,10 +97,7 @@ export async function checkApplicationRate(args: {
     };
   }
 
-  // Cast through `any` until the next `supabase gen types` lands — this
-  // RPC is added in migration 20260609130000 which hasn't been reflected
-  // in `src/integrations/supabase/types.ts` yet.
-  const { data, error } = await (supabase.rpc as any)(
+  const { data, error } = await supabase.rpc(
     "rpc_check_application_rate",
     { _applicant_id: args.applicantId },
   );
@@ -148,7 +145,7 @@ export async function recordApplicationAttempt(args: {
 }): Promise<void> {
   if (!args.applicantId) return;
   try {
-    const { error } = await (supabase.rpc as any)(
+    const { error } = await supabase.rpc(
       "rpc_record_application_attempt",
       { _applicant_id: args.applicantId },
     );

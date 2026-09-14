@@ -456,13 +456,11 @@ const AdminDisputes = () => {
       };
       const disputeId = disputeRecords[job.id]?.id ?? null;
 
-      // Try the formal RPC. Cast through `any` until `supabase gen
-      // types` reflects the new migration. PGRST202 = not deployed
-      // yet (there's a short window between merge and the auto-deploy
-      // finishing, per CLAUDE.md), in which case we fall back to a
-      // direct UPDATE that records the decision on the legacy
-      // `dispute_resolved_at` column.
-      const { error: rpcError } = await (supabase.rpc as any)(
+      // Try the formal RPC. PGRST202 = not deployed yet (there's a short
+      // window between merge and the auto-deploy finishing, per CLAUDE.md), in
+      // which case we fall back to a direct UPDATE that records the decision on
+      // the legacy `dispute_resolved_at` column.
+      const { error: rpcError } = await supabase.rpc(
         "rpc_decide_dispute",
         {
           _dispute_id: disputeId,

@@ -195,7 +195,7 @@ export async function fetchConversations(
     supabase.from("jobs").select("id, title, status, customer_id, helper_id, offered_to_helper_id").in("id", jobIds),
     getMessageAttachmentSignedUrls(imageThumbPaths),
     getMutedThreadMap(uid, mutePairs),
-    (supabase.rpc as any)("get_user_last_active", { user_ids: otherIds }),
+    supabase.rpc("get_user_last_active", { user_ids: otherIds }),
   ]);
   const lastActiveMap = new Map<string, string>();
   if (

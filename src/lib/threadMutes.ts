@@ -116,7 +116,7 @@ export async function toggleThreadMute(
   jobId: string,
   otherUserId: string,
 ): Promise<boolean> {
-  const { data, error } = await (supabase.rpc as any)("toggle_thread_mute", {
+  const { data, error } = await supabase.rpc("toggle_thread_mute", {
     _job_id: jobId,
     _other_user_id: otherUserId,
   });
@@ -159,10 +159,17 @@ export async function snoozeThread(
   until: Date | null,
 ): Promise<string | null> {
   const untilIso = until ? until.toISOString() : null;
-  const { data, error } = await (supabase.rpc as any)("set_thread_snooze", {
+  // The RPC name and return type ARE checked; only `_until` is widened, and
+  // not because the types are stale. `set_thread_snooze(_until timestamptz)`
+  // (migration 20260609150000) takes NULL as the documented "mute forever"
+  // case, and a generated `Args` type has no way to say a parameter is
+  // nullable — it renders every argument as non-null `string`. Casting the
+  // whole call back to `any`, as this did, threw away the name and return
+  // check too.
+  const { data, error } = await supabase.rpc("set_thread_snooze", {
     _job_id: jobId,
     _other_user_id: otherUserId,
-    _until: untilIso,
+    _until: untilIso as string,
   });
 
   if (error) {
@@ -209,7 +216,7 @@ export async function unmuteThread(
   jobId: string,
   otherUserId: string,
 ): Promise<void> {
-  const { error } = await (supabase.rpc as any)("clear_thread_mute", {
+  const { error } = await supabase.rpc("clear_thread_mute", {
     _job_id: jobId,
     _other_user_id: otherUserId,
   });
@@ -246,7 +253,7 @@ export async function getMutedThreadMap(
     }
   }
 
-  const { data, error } = await (supabase.rpc as any)("get_muted_threads", {
+  const { data, error } = await supabase.rpc("get_muted_threads", {
     _pairs: pairs.map((p) => ({ job_id: p.jobId, other_user_id: p.otherUserId })),
   });
 

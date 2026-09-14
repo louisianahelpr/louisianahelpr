@@ -198,11 +198,7 @@ export class IapBlockedError extends Error {
  * the member is then charged and unentitled.
  */
 export async function assertMayPurchase(): Promise<void> {
-  // Cast: the RPC is newer than the last types regeneration.
-  const { data, error } = await (supabase.rpc as never as (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: { message?: string } | null }>)(
+  const { data, error } = await supabase.rpc(
     "subscription_purchase_eligibility",
     { p_platform: "apple" },
   );

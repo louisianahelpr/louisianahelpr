@@ -1,0 +1,21 @@
+// Fixture for staleRpcCastComments.test.ts — NOT compiled, NOT imported by the
+// app. It reproduces the exact shape every offending call site had before the
+// types.ts regeneration in cb903ffa0, so the guard is shown able to fail rather
+// than asserted to work. `.ts.txt` for the same reason the raceClass fixtures
+// use it: the repo's typecheck must not see it.
+export async function recordView(supabase: any, userId: string) {
+  // Cast: the RPC is newer than the last types regeneration.
+  void (supabase.rpc as any)("record_profile_view", { p_viewed_user_id: userId });
+}
+
+export async function eligibility(supabase: any) {
+  // Cast: the RPC is newer than the last types regeneration.
+  const { data } = await (supabase.rpc as never as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown }>)(
+    "subscription_purchase_eligibility",
+    { p_platform: "apple" },
+  );
+  return data;
+}

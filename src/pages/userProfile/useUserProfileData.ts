@@ -506,13 +506,16 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // Fire-and-forget — don't await; PGRST202 is silently swallowed inside
       // record_profile_view (returns false on any error). Self-view guard is
       // enforced in the SQL function; double-guard here to avoid the RPC call.
-      if (userId !== currentUserId) {
+      // `userId &&` is the guard the `as any` cast used to hide: the RPC arg is
+      // NOT NULL, and while `enabled: !!userId` means the queryFn never runs
+      // without one, the narrowing has to be stated rather than assumed.
+      if (userId && userId !== currentUserId) {
         // `supabase.rpc(...)` returns a Postgrest builder — a thenable, NOT a
         // real Promise, so it has no `.catch`. Calling `.catch` on it throws
         // synchronously and rejects the whole queryFn (bricking every other
         // user's profile with "couldn't load this"). Wrap in Promise.resolve
         // to get a real Promise before swallowing.
-        void Promise.resolve((supabase.rpc as any)("record_profile_view", { p_viewed_user_id: userId })).catch(() => {/* silent */});
+        void Promise.resolve(supabase.rpc("record_profile_view", { p_viewed_user_id: userId })).catch(() => {/* silent */});
       }
 
       const postedJobs = postedRes.data || [];

@@ -197,10 +197,7 @@ export function PostedJobActions({
       // either would delete escalated disputes from the queue that
       // exists to action them.
       try {
-        const { error: escalateErr } = await (supabase.rpc as never as (
-          fn: string,
-          args: Record<string, unknown>,
-        ) => Promise<{ error: { code?: string; message?: string } | null }>)(
+        const { error: escalateErr } = await supabase.rpc(
           "rpc_escalate_dispute",
           { _job_id: job.id },
         );

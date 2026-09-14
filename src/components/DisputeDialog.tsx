@@ -144,11 +144,7 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
       // (see CLAUDE.md), so when the RPC isn't pushed yet we fall back
       // to the prior direct-update path so the feature isn't broken
       // between merge and `supabase db push`.
-      //
-      // Cast through `any` until the next `supabase gen types` lands —
-      // this RPC is added in migration 20260609140000 which hasn't been
-      // reflected in `src/integrations/supabase/types.ts` yet.
-      const { data: disputeId, error: rpcError } = await (supabase.rpc as any)(
+      const { data: disputeId, error: rpcError } = await supabase.rpc(
         "rpc_open_dispute",
         { _job_id: jobId, _reason: reasonText, _evidence_urls: evidenceUrls },
       );

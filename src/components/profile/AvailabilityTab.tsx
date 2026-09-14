@@ -218,7 +218,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
       // switch to "Available now" anyway. The toggle stayed on, the database
       // was untouched, and posters never saw the helper as available.
       if (isAvailable) {
-        const { error } = await (supabase.rpc as any)("clear_available_now");
+        const { error } = await supabase.rpc("clear_available_now");
         if (error) throw error;
         setAvailableUntil(null);
       } else {
@@ -228,7 +228,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
         // straight through and no migration is needed. The server still
         // computes and returns the expiry; this only stops us telling it a
         // number the helper never chose.
-        const { data, error } = await (supabase.rpc as any)("set_available_now", { p_hours: pendingHours });
+        const { data, error } = await supabase.rpc("set_available_now", { p_hours: pendingHours });
         if (error) throw error;
         // No `else` branch inventing `now + 4h`. That fabricated a server state
         // that did not exist: the card then rendered "Available now · Until

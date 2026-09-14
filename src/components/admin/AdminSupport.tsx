@@ -248,16 +248,11 @@ const AdminSupport = () => {
        * no PostgREST embed to order through. The RPC does the join, which also
        * collapses the old two-round-trip name hydration into one read.
        */
-      // Cast through `never`: src/integrations/supabase/types.ts is a SNAPSHOT
-      // regenerated from the database, and this RPC ships in the same commit as
-      // the code calling it, so the snapshot cannot know it yet. Same pattern
-      // and same reason as AdminPayoutBatches' get_payout_batch_job_ids call.
-      // Drop the cast once types.ts is regenerated.
-      const rpc = (await supabase.rpc("admin_support_queue" as never, {
+      const rpc = await supabase.rpc("admin_support_queue", {
         p_status: filter,
         p_priority_tiers: PRIORITY_SUPPORT_TIERS,
         p_head_start_minutes: PRIORITY_HEAD_START_MINUTES,
-      } as never)) as { data: QueueRow[] | null; error: { message: string; code?: string } | null };
+      });
 
       if (!isMissingRpc(rpc.error)) {
         // unwrap() rather than `if (error) return []`: swallowing here made an

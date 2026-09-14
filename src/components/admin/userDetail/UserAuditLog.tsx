@@ -79,9 +79,7 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
     setSaving(true);
     // The RPC is the only writer: it snapshots the row into admin_audit_log
     // before deleting it, so there is no client-side audit step to forget.
-    // Cast: the RPC is newer than the last types regeneration. Same escape
-    // hatch this file already uses for admin_audit_log above.
-    const { data, error } = await (supabase.rpc as any)("admin_reverse_violation", {
+    const { data, error } = await supabase.rpc("admin_reverse_violation", {
       p_violation_id: reversing.violationId,
       p_reason: reason.trim(),
       p_restore_access: restoreAccess,

@@ -65,10 +65,59 @@ describe("race-class guard — edge functions (create-payment release, proven on
     const keys = guard.clientHitsInSource(CP, live, "edge").map((h: Hit) => h.key);
     expect(keys).not.toContain(`edge:${CP}::opaque:updateFields`);
     const flips = keys.filter((k: string) => k.startsWith(`edge:${CP}::payment_status+status`));
-    // Only cancel_escrow's final flip and admin_refund_general remain.
+    // Only cancel_escrow's claim-only fallback flip (audited safe 2026-09-14,
+    // in baseline.safe) and admin_refund_general remain.
     expect(flips).toHaveLength(2);
     expect(live).toMatch(/\.update\(updateFields\)\s*\n\s*\.eq\("id", jobId\)\s*\n\s*\.eq\("status", job\.status\)/);
     expect(live.match(/\.eq\("id", jobId\)\.eq\("status", "disputed"\)\.select\("id"\)/g)).toHaveLength(2);
+  });
+
+  it("the 2026-09-14 lifecycle-writes audit: every fixed write is flagged pre-fix and clean (or audited-safe) live", () => {
+    const blocks = readFileSync(resolve(FIXTURES, "edgeLifecycleWrites.prefix.ts.txt"), "utf8").split(/^\/\/ @@ /m).slice(1);
+    const prefix = blocks.flatMap((b) => {
+      const path = b.slice(0, b.indexOf("\n")).trim();
+      return guard.clientHitsInSource(path, b, "edge").map((h: Hit) => h.key);
+    });
+    const AR = "supabase/functions/auto-release-payment/index.ts";
+    const AD = "supabase/functions/auto-resolve-disputes/index.ts";
+    const CB = "supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts";
+    expect(prefix).toEqual([
+      `edge:${AR}::payment_status+status`,
+      `edge:${AD}::payment_status+status`,
+      `edge:${CP}::opaque:{ stripe_session_id: newSessio`,
+      `edge:${CP}::status`,
+      `edge:${CP}::revision_completed_at`,
+      `edge:${CP}::payment_status`,
+      `edge:${CP}::payment_status+status`,
+      `edge:${CB}::opaque:{ ...(shouldBlockPayout ? { pa`,
+    ]);
+
+    const liveKeys = (p: string) =>
+      guard.clientHitsInSource(p, readFileSync(resolve(__dirname, "../..", p), "utf8"), "edge").map((h: Hit) => h.key);
+    // Status-predicate fixes leave no hit at all.
+    expect(liveKeys(AR)).toEqual([]);
+    expect(liveKeys(AD)).toEqual([]);
+    const cp = liveKeys(CP);
+    for (const gone of ["status", "revision_completed_at", "payment_status"]) expect(cp).not.toContain(`edge:${CP}::${gone}`);
+    // payment_status-CAS fixes the scanner cannot read are pinned by source, and
+    // listed in baseline.safe — never in the grandfathered `allow`.
+    const cpSrc = readFileSync(resolve(__dirname, "../..", CP), "utf8");
+    expect(cpSrc).toMatch(/\.eq\("id", jobId\)\s*\n\s*\.or\("payment_status\.is\.null,payment_status\.in\.\(unpaid,abandoned,failed\)"\)/);
+    expect(cpSrc).toMatch(/\.eq\("id", jobId\)\.eq\("status", job\.status\)\.eq\("payment_status", "cancelling"\)\.select\("id"\)/);
+    const cbSrc = readFileSync(resolve(__dirname, "../..", CB), "utf8");
+    expect(cbSrc).toMatch(/\.eq\("id", chargebackJob\.id\)\s*\n\s*\.in\("payment_status", \["payout_pending", "escrow"\]\)\s*\n\s*\.select\("id"\)/);
+    const baseline = guard.loadBaseline() as { allow: Record<string, string>; safe: Record<string, string> };
+    // cancel_escrow's fallback: forced cancelled only while OUR claim still holds, and paged.
+    expect(cpSrc).toMatch(/\.eq\("id", jobId\)\.eq\("payment_status", "cancelling"\)\.select\("id"\);\s*\n\s*cancelUpdated = forced;/);
+    expect(Object.keys(baseline.safe)).toEqual(expect.arrayContaining([
+      `edge:${CP}::opaque:{ stripe_session_id: newSessio`,
+      `edge:${CP}::payment_status+status`,
+      `edge:${CB}::payment_status`,
+    ]));
+    expect(Object.keys(baseline.allow).filter((k) => k.startsWith("edge:"))).toEqual([
+      `edge:${CP}::payment_status+status#2`,
+      "edge:supabase/functions/execute-dispute-split/index.ts::opaque:jobPatch",
+    ]);
   });
 
   it("the edge scan is part of the live-repo inventory", () => {
@@ -129,7 +178,7 @@ describe("race-class guard — detector units", () => {
 
 describe("race-class guard — baseline over the live repo", () => {
   const hits: Hit[] = guard.allHits();
-  const baseline = guard.loadBaseline() as { allow: Record<string, string> };
+  const baseline = guard.loadBaseline() as { allow: Record<string, string>; safe?: Record<string, string> };
   const { unexpected, stale } = guard.compare(hits, baseline);
 
   it("has no new hits (lock the jobs read, or add .eq(\"status\", …))", () => {
@@ -141,7 +190,7 @@ describe("race-class guard — baseline over the live repo", () => {
   });
 
   it("every baseline entry carries a one-line reason", () => {
-    for (const [key, reason] of Object.entries(baseline.allow)) {
+    for (const [key, reason] of Object.entries({ ...baseline.allow, ...(baseline.safe ?? {}) })) {
       expect(reason.trim().length, key).toBeGreaterThan(20);
       expect(reason.includes("\n"), key).toBe(false);
     }
@@ -150,9 +199,20 @@ describe("race-class guard — baseline over the live repo", () => {
   it("the check can fail on the live repo: dropping any baseline entry turns it red", () => {
     const [first] = Object.keys(baseline.allow);
     const rest = Object.fromEntries(Object.entries(baseline.allow).filter(([k]) => k !== first));
-    expect(guard.compare(hits, { allow: rest }).unexpected.map((h: Hit) => h.key)).toEqual([first]);
-    expect(guard.compare(hits, { allow: { ...baseline.allow, "sql:public.gone": "x" } }).stale).toEqual([
+    expect(guard.compare(hits, { ...baseline, allow: rest }).unexpected.map((h: Hit) => h.key)).toEqual([first]);
+    expect(guard.compare(hits, { ...baseline, allow: { ...baseline.allow, "sql:public.gone": "x" } }).stale).toEqual([
       "sql:public.gone",
+    ]);
+  });
+
+  it("the audited-safe list is enforced the same way: dropping a safe entry turns it red, a stale one too", () => {
+    const safe = baseline.safe ?? {};
+    const [firstSafe] = Object.keys(safe);
+    expect(firstSafe).toBeDefined();
+    const rest = Object.fromEntries(Object.entries(safe).filter(([k]) => k !== firstSafe));
+    expect(guard.compare(hits, { ...baseline, safe: rest }).unexpected.map((h: Hit) => h.key)).toEqual([firstSafe]);
+    expect(guard.compare(hits, { ...baseline, safe: { ...safe, "edge:gone.ts::status": "x" } }).stale).toEqual([
+      "edge:gone.ts::status",
     ]);
   });
 });

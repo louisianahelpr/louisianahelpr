@@ -2112,5 +2112,13 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [x] DONE 34ffd973d (pre-push warns at 70% of ~100/day; reads 96 tonight). Was: Vercel deploy budget: add a check that warns before a push when today's production deploy count is near the free-tier limit, so a rate limit is never a surprise again.
 - [ ] OWNER: STRIPE_TEST_SECRET_KEY repo secret; reconnect Supabase, Slack, Canva connectors (unauthorized in sessions tonight).
 - [ ] Git history rewrite (322 MB dead media) — only after every agent/terminal is stopped; see disk-cleanup handoff.
+### Owner-approved 2026-09-14 (queued; max 3 agents, one prod job at a time)
+- [ ] RUNNING: GitHub cleanup (artifacts >14d except db-backup, merged/superseded remote branches, caches >7d)
+- [ ] RUNNING: integrations + secrets audit (Slack apps/webhooks, Sentry, Supabase, Vercel, GitHub, Stripe test, Resend/PostHog/MapKit/etc.) — report only
+- [ ] Alerts to one Slack channel: prod down, deploy failed, nightly-red opened, Stripe webhook failures, DB near free-tier limits
+- [ ] Uptime check: free GitHub workflow every 10 min pinging the site and a DB read; alerts to Slack on failure
+- [ ] Supabase usage alert: weekly DB size, file storage, disk-IO pressure vs free-tier limits; warn at 70%
+- [ ] Sentry release tagging: tag each deploy with its commit
+- [ ] Supabase storage audit: orphaned files in the 10 buckets (after the release proof; light prod reads only)
 - [ ] LAST, after everything above: independent re-check by a different model (sonnet) of ALL work landed 2026-09-13 — full vitest once, CI green per push, re-run each fix's own proof on prod, list what doesn't hold
 - [ ] OWNER: allow the Stripe connector write tool + reconnect Stripe, then add transfer.failed to live webhook and close #1462/#1521

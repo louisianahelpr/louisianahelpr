@@ -64,6 +64,10 @@ const ENDPOINTS = [
   `/v1/projects/${REF}/usage`,
   `/v1/projects/${REF}/database/usage`,
   `/v1/projects/${REF}/billing/usage`,
+  `/v1/projects/${REF}/billing/addons`,
+  `/v1/projects/${REF}/health?services=db,storage`,
+  `/v1/projects/${REF}/storage/buckets`,
+  `/v1/projects/${REF}/analytics/endpoints/usage.api-counts?interval=1d`,
   `/v1/organizations`,
 ];
 
@@ -76,7 +80,98 @@ const orgs = probes.find((p) => p.path === "/v1/organizations");
 const orgSlugs = Array.isArray(orgs?.json) ? orgs.json.map((o) => o.id ?? o.slug).filter(Boolean) : [];
 for (const slug of orgSlugs.slice(0, 3)) {
   probes.push(await get(`/v1/organizations/${slug}/usage`));
+  probes.push(await get(`/v1/organizations/${slug}/billing/subscription`));
 }
+
+/**
+ * SECOND SOURCE, and as of 2026-09-14 the ONLY one that carries these numbers.
+ *
+ * Measured, not assumed: the run of 2026-09-14 (34881959722) probed every
+ * plausible Management API usage route and got 404 from all of them —
+ * /v1/projects/{ref}/usage, /database/usage, /billing/usage and
+ * /v1/organizations/{slug}/usage. The public control-plane API answers
+ * project identity and health; it does NOT expose database size, storage
+ * size, disk IO or CPU. The endpoint table in every report is the evidence,
+ * so this claim is re-tested weekly rather than believed.
+ *
+ * Supabase serves those four from the project's own Prometheus endpoint,
+ * https://<ref>.supabase.co/customer/v1/privileged/metrics, basic-auth
+ * `service_role:<SUPABASE_SERVICE_ROLE_KEY>`. It is NOT SQL and NOT a query
+ * against the database — one scrape of the instance's metrics exporter,
+ * once a week.
+ *
+ * It is OPTIONAL here because the service-role key is not a repo secret yet.
+ * Without it the report says every metric is UNMEASURED, in as many words —
+ * it never reports "ok" as though it had looked. Add SUPABASE_SERVICE_ROLE_KEY
+ * to the repo secrets and the alert starts working with no code change.
+ */
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let prom = null;
+if (SERVICE_KEY) {
+  try {
+    const auth = Buffer.from(`service_role:${SERVICE_KEY}`).toString("base64");
+    const res = await fetch(`https://${REF}.supabase.co/customer/v1/privileged/metrics`, {
+      headers: { authorization: `Basic ${auth}` },
+    });
+    const text = await res.text();
+    probes.push({ path: "(project) /customer/v1/privileged/metrics", status: res.status, json: null, text: `${text.length} bytes of Prometheus text` });
+    if (res.status === 200) prom = text;
+  } catch (e) {
+    probes.push({ path: "(project) /customer/v1/privileged/metrics", status: 0, json: null, text: String(e?.message || e) });
+  }
+} else {
+  probes.push({
+    path: "(project) /customer/v1/privileged/metrics",
+    status: 0,
+    json: null,
+    text: "skipped — no SUPABASE_SERVICE_ROLE_KEY repo secret. OWNER: add it to measure database size, storage size, disk IO and CPU; the Management API exposes none of them.",
+  });
+}
+
+/** Sum every sample of a Prometheus metric family (labels ignored). */
+function promSum(text, name) {
+  if (!text) return null;
+  let total = null;
+  const re = new RegExp(`^${name}(?:\\{[^}]*\\})?\\s+([0-9.eE+-]+)\\s*$`, "gm");
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const v = Number(m[1]);
+    if (Number.isFinite(v)) total = (total ?? 0) + v;
+  }
+  return total == null ? null : { key: name, value: total };
+}
+const METRICS_PATH = "(project) /customer/v1/privileged/metrics";
+const promHit = (name) => {
+  const hit = promSum(prom, name);
+  return hit ? { p: { path: METRICS_PATH }, hit } : null;
+};
+
+/** One sample of `name` whose label set contains `needle`. */
+function promLabeled(text, name, needle) {
+  if (!text) return null;
+  const re = new RegExp(`^${name}\\{([^}]*)\\}\\s+([0-9.eE+-]+)\\s*$`, "gm");
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    if (m[1].includes(needle)) {
+      const v = Number(m[2]);
+      if (Number.isFinite(v)) return v;
+    }
+  }
+  return null;
+}
+
+/**
+ * The /data volume is the thing that actually ran out on 2026-09-13 — the
+ * database file lives on it, and it is 2 GB on this instance size, not 500 MB.
+ * Reported beside the logical database size because they fill at different
+ * rates (WAL, bloat and temp files land here and not in pg_database_size).
+ */
+const dataTotal = promLabeled(prom, "node_filesystem_size_bytes", 'mountpoint="/data"');
+const dataAvail = promLabeled(prom, "node_filesystem_avail_bytes", 'mountpoint="/data"');
+const dataHit =
+  dataTotal != null && dataAvail != null
+    ? { p: { path: METRICS_PATH }, hit: { key: "node_filesystem_size_bytes - avail (/data)", value: dataTotal - dataAvail } }
+    : null;
 
 /** Depth-first hunt for a numeric value under any of `keys`. */
 function findNumber(node, keys, seen = new Set()) {
@@ -106,10 +201,16 @@ function hunt(keys) {
   return null;
 }
 
-const dbHit = hunt([/^db_size(_bytes)?$/i, /^database_size(_bytes)?$/i, /^disk_volume_size_gb$/i]);
-const storageHit = hunt([/^storage_size(_bytes)?$/i, /^storage_egress$/i]);
-const ioHit = hunt([/disk_io/i, /^iops$/i, /io_budget/i]);
-const cpuHit = hunt([/^cpu(_usage)?$/i]);
+// Management API first (it is the documented, stable surface); the project's
+// metrics scrape is the fallback that actually has the numbers today.
+const dbHit = hunt([/^db_size(_bytes)?$/i, /^database_size(_bytes)?$/i]) ?? promHit("pg_database_size_bytes");
+// Bucket storage: measured 2026-09-14, NEITHER source carries it — the
+// Management API 404s on every usage route, and the project's metrics
+// exporter covers the database instance only (no storage_* family in a
+// 1494-line scrape). Reported as unmeasured, never as zero.
+const storageHit = hunt([/^storage_size(_bytes)?$/i]) ?? promHit("storage_storage_size_bytes");
+const ioHit = hunt([/disk_io/i, /^iops$/i, /io_budget/i]) ?? promHit("node_disk_io_now");
+const cpuHit = hunt([/^cpu(_usage)?$/i]) ?? promHit("node_load1");
 
 const mb = (n) => `${(n / 1024 / 1024).toFixed(1)} MB`;
 const rows = [];
@@ -140,13 +241,16 @@ function metric(name, hit, limit, fmt = mb) {
 }
 
 metric("Database size", dbHit, DB_LIMIT);
-metric("Storage size", storageHit, STORAGE_LIMIT);
-metric("Disk IO", ioHit, null, String);
-metric("CPU", cpuHit, null, String);
+metric("Disk volume (/data)", dataHit, dataTotal ?? null);
+metric("Storage size (buckets)", storageHit, STORAGE_LIMIT);
+metric("Disk IO", ioHit, null, (v) => `${v} (node_disk_io_now)`);
+metric("CPU", cpuHit, null, (v) => `${v} (node_load1, 1-min load average)`);
 
 const summary = warn
   ? `WARN — ${warnings.join("; ")}`
-  : `ok — ${dbHit || storageHit ? "under " + THRESHOLD + "% of every limit this API exposes" : "the Management API exposed no size metric (see the report)"}`;
+  : dbHit || storageHit
+    ? `ok — under ${THRESHOLD}% of every free-tier limit measured`
+    : "UNMEASURED — nothing available could report database or storage size (see the endpoint table)";
 
 const report = [
   "## Supabase free-tier headroom",
@@ -166,8 +270,18 @@ const report = [
   ...probes.map((p) => `| \`${p.path}\` | ${p.status} | \`${p.text.replace(/\|/g, "\\|").replace(/\n/g, " ").slice(0, 400)}\` |`),
   "",
   "A metric shown as **not exposed** is not zero and not fine — it is unmeasured.",
-  "Disk IO and CPU are served by the project's own Prometheus endpoint",
-  "(`/customer/v1/privileged/metrics`, service-role auth), not by this control-plane API.",
+  "",
+  "Measured 2026-09-14 (run 34881959722): the public Management API returns 404 for",
+  "every usage route — `/v1/projects/{ref}/usage`, `/database/usage`, `/billing/usage`",
+  "and `/v1/organizations/{slug}/usage`. It answers project identity and health only.",
+  "All four numbers come instead from the project's own Prometheus endpoint",
+  "(`/customer/v1/privileged/metrics`, basic auth `service_role:<key>`) — one scrape a",
+  "week, not a database query. That needs the repo secret `SUPABASE_SERVICE_ROLE_KEY`;",
+  "until it exists this report says UNMEASURED rather than pretending to be ok.",
+  "",
+  "Bucket storage is the one metric NEITHER source has: the scrape (1494 lines,",
+  "2026-09-14) covers the database instance only, with no `storage_*` family. The",
+  "only non-SQL way to size it is listing every object through the Storage API.",
 ].join("\n");
 
 writeFileSync("supabase-usage-report.md", report + "\n");

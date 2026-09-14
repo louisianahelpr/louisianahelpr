@@ -15,10 +15,23 @@ name: Supabase usage
 # signal, so it sits in the prod-load group at an otherwise-empty weekly slot
 # anyway. Cheaper than arguing with the guard, and harmless.
 #
-# The API's exposed metric set is not a fixed contract, so the script probes
-# several endpoints and the report states, per metric, whether it got a number
-# or the API does not expose it. Read the run output — that is the evidence,
-# not this comment.
+# MEASURED 2026-09-14 (run 34881959722): the public Management API returns 404
+# for EVERY usage route — /v1/projects/{ref}/usage, /database/usage,
+# /billing/usage, /v1/organizations/{slug}/usage. It answers project identity
+# and health and nothing else. The script still probes them every week and
+# prints what each one said, so that finding is re-tested rather than believed.
+#
+# The numbers therefore come from the project's own Prometheus endpoint
+# (https://<ref>.supabase.co/customer/v1/privileged/metrics, basic auth
+# `service_role:<key>`) — one scrape a week, still not SQL and still not a
+# query against the database. That needs the OPTIONAL repo secret
+# SUPABASE_SERVICE_ROLE_KEY; without it the report says UNMEASURED in as many
+# words rather than reporting "ok" without having looked.
+#
+# Proven locally against prod 2026-09-14: database 73.4 MB of 500 MB (14.7%),
+# /data volume 369.9 MB of 1.98 GB (18.7%); the warn path fires when the
+# threshold is lowered under those readings. Bucket storage is the one metric
+# NEITHER source carries — see the report footer.
 
 on:
   schedule:
@@ -57,6 +70,9 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          # OPTIONAL. The only source of the actual numbers (see the header);
+          # absent, every metric is reported UNMEASURED, never as ok.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           WARN_AT_PERCENT: ${{ inputs.warn_at_percent || '70' }}
         run: node scripts/supabase-usage-check.mjs
 

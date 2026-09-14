@@ -162,6 +162,19 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      // Idempotent replay guard: a duplicate release (double tap, retry after
+      // a lost response, a second device) answers with `alreadyReleased` or
+      // `alreadyConfirmed` — see the `alreadyDone` early-return in
+      // supabase/functions/create-payment/index.ts's release action, whose
+      // response also sets `bothDone: true` when `alreadyReleased` so old
+      // clients (checking bothDone alone) still see success. Checking those
+      // fields FIRST, before the bothDone branch, stops this call from
+      // replaying the confetti / success-moment / tip prompt for a
+      // completion that already fired them on the ORIGINAL call.
+      if (data?.alreadyReleased || data?.alreadyConfirmed) {
+        await refresh();
+        return;
+      }
       if (data?.bothDone) {
         hapticSuccess();
         // Premium checkmark beat on every completion (self-respects reduced

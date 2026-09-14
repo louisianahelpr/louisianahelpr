@@ -247,30 +247,15 @@ export function cardsInsideJobCards(
   };
 }
 
-/**
- * Found by this check, NOT fixed here: the owner approved flattening the Helpr
- * tracker panel only ("change nothing else visually"). Each entry is a REPORT,
- * tracked in docs/OPEN.md; the test below fails if an entry stops being nested
- * so the list cannot go stale.
- */
-const REPORTED_NOT_FIXED = new Set([
-  // Poster card, group jobs only: `rounded-2xl liquid-glass p-5` inside
-  // PostedJobCard's JobCardShell.
-  "GroupJobHelpers",
-]);
-
 describe("no card component anywhere inside a job card (cross-file)", () => {
   const files = walkFiles(SRC).map((f) => ({ file: f, source: fs.readFileSync(f, "utf8") }));
   const cards = new Set(files.flatMap(({ file, source }) => findCardComponents(file, source)));
-  const { reached, nested: allNested } = cardsInsideJobCards(files, cards);
-  const nested = allNested.filter((n) => !REPORTED_NOT_FIXED.has(n));
-
-  it("every reported-not-fixed entry is still genuinely nested (no stale exemptions)", () => {
-    for (const name of REPORTED_NOT_FIXED) expect(allNested).toContain(name);
-  });
+  const { reached, nested } = cardsInsideJobCards(files, cards);
 
   it("found the job-card render tree (a checker that sees nothing proves nothing)", () => {
-    for (const name of ["ConfirmedSection", "ActiveJobSection", "HelperTrackerPanel", "JobTracking"]) {
+    // GroupJobHelpers is the poster card's group-job roster: exempted by name
+    // until 2026-09-14, now flat like the tracker panels (owner-approved).
+    for (const name of ["ConfirmedSection", "ActiveJobSection", "HelperTrackerPanel", "JobTracking", "GroupJobHelpers"]) {
       expect(reached.has(name), `${name} not reached from JobCardShell`).toBe(true);
     }
   });

@@ -217,7 +217,12 @@ export function GroupJobHelpers({
   const remaining = Math.max(0, slotTotal - filledSlots);
 
   return (
-    <div className="rounded-2xl liquid-glass p-5 space-y-3">
+    /* FLAT, like the poster tracker (6e3d2f7d1) and HelperTrackerPanel
+       (owner-approved 2026-09-14). The only caller renders this inside
+       PostedJobCard's JobCardShell, which is already the glass card; the
+       `rounded-2xl liquid-glass p-5` wrapper drew a bordered box inside it.
+       Guard: src/test/noNestedTrackerCard.test.ts (cross-file job-card walk). */
+    <div className="space-y-3">
       <div>
         <h3
           className="font-display italic font-bold leading-tight text-headline-card"

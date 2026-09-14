@@ -150,9 +150,12 @@ export function MessageBubble({
         transition: reveal > 0 ? "none" : "transform 180ms ease-out",
       }}
     >
+      {/* Bubble + its tapbacks in one column as wide as the bubble, so the
+          chips can hang off the bubble's own bottom corner. */}
+      <div className={`max-w-[75%] flex flex-col ${mine ? "items-end" : "items-start"}`}>
       <div
         {...pressHandlers}
-        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 transition-opacity ${
+        className={`max-w-full rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 transition-opacity ${
           mine ? "rounded-br-md" : "rounded-bl-md"
         } ${isSending ? "opacity-60" : ""}`}
         style={mine ? {
@@ -176,62 +179,6 @@ export function MessageBubble({
             "0 4px 10px -4px hsl(var(--olivewood) / 0.10)",
         }}
       >
-        {/* Tapbacks — overlapping the bubble's top corner, on the side away
-            from the speaker: top-right for an inbound bubble, top-left for
-            your own. That is where iMessage puts them, and it is why they
-            read as attached TO the message.
-
-            They previously sat in the column below the bubble, which left a
-            large chip floating in the gap between the message and its
-            timestamp — visually closer to the next message than to the one it
-            belonged to. Absolute here, so they add no height and cannot push
-            the meta row around.
-
-            The ring is the page background rather than a border colour, so the
-            chip punches a clean hole in the bubble edge instead of looking
-            like a sticker laid on top. */}
-        {reactions && reactions.counts.length > 0 && (
-          <div
-            className={`absolute -top-3 z-10 flex items-center gap-0.5 ${mine ? "-left-1.5" : "-right-1.5"}`}
-          >
-            {reactions.counts.map(({ emoji, count }) => {
-              const isMine = reactions.mine === emoji;
-              return (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => onReact?.(m.id, emoji)}
-                  disabled={!onReact}
-                  aria-label={isMine ? `Remove your ${emoji} reaction` : `React with ${emoji}`}
-                  aria-pressed={isMine}
-                  className="inline-flex items-center gap-0.5 rounded-full px-1 py-[2px] text-ds-10 leading-none transition-transform active:scale-90 disabled:active:scale-100"
-                  style={{
-                    // Always a light chip. Two earlier passes got this wrong
-                    // in opposite directions: first a page-coloured ring that
-                    // read as a pale disc with a heart lost inside it, then a
-                    // solid bark fill for your OWN reaction, which turned a
-                    // 20px accent into the darkest object on the screen.
-                    // The emoji is the content — the chip is just the card it
-                    // sits on, and "mine" is worth a tinted ring, not a
-                    // different silhouette.
-                    background: "hsl(var(--ivory-sand))",
-                    border: `0.5px solid ${isMine ? "hsl(var(--bark) / 0.55)" : "hsl(var(--olivewood) / 0.16)"}`,
-                    boxShadow: "0 1px 3px hsl(var(--olivewood) / 0.22)",
-                  }}
-                >
-                  <span>{emoji}</span>
-                  {/* Only show a number once more than one person has used it —
-                      a lone "1" next to every chip is noise. */}
-                  {count > 1 && (
-                    <span className="tabular-nums font-sans font-semibold text-ds-10" style={{ color: "hsl(var(--olivewood))" }}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
         {m.attachment_url && m.attachment_mime && (
           <MessageAttachment
             path={m.attachment_url}
@@ -264,6 +211,64 @@ export function MessageBubble({
           </div>
         )}
         {m.content && renderMessageContent(m.content, setLightboxPhoto)}
+      </div>
+      {/* Tapbacks — BELOW the bubble, hanging off its bottom corner on the
+          side away from the speaker (bottom-right for an inbound bubble,
+          bottom-left for your own), in flow so they reserve their own height.
+
+          They used to be `absolute -top-3` over the bubble's top corner. That
+          only worked while a chip was ~16px tall: the global 44px tap floor
+          (index.css `:where(button…)`) made every chip a 44px disc sitting on
+          the first line of text (owner, 2026-09-14). The chip is now sized to
+          its emoji (`min-h-0 min-w-0`) and keeps a 44px finger target through
+          `before:-inset-3`, the same trick as the delete button below.
+
+          `-mt-2` tucks the chip 8px into the bubble's 10px bottom padding, so
+          it reads as attached without reaching a glyph.
+          Guard: e2e/prod-audit/reaction-chip-clearance.spec.ts. */}
+      {reactions && reactions.counts.length > 0 && (
+        <div
+          data-reaction-chips
+          className={`relative z-10 -mt-2 flex items-center gap-0.5 ${mine ? "self-start -ml-1.5" : "self-end -mr-1.5"}`}
+        >
+          {reactions.counts.map(({ emoji, count }) => {
+            const isMine = reactions.mine === emoji;
+            return (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => onReact?.(m.id, emoji)}
+                disabled={!onReact}
+                aria-label={isMine ? `Remove your ${emoji} reaction` : `React with ${emoji}`}
+                aria-pressed={isMine}
+                className="relative min-h-0 min-w-0 inline-flex items-center gap-0.5 rounded-full px-1 py-[2px] text-ds-10 leading-none transition-transform active:scale-90 disabled:active:scale-100 before:absolute before:-inset-3 before:content-['']"
+                style={{
+                  // Always a light chip. Two earlier passes got this wrong
+                  // in opposite directions: first a page-coloured ring that
+                  // read as a pale disc with a heart lost inside it, then a
+                  // solid bark fill for your OWN reaction, which turned a
+                  // 20px accent into the darkest object on the screen.
+                  // The emoji is the content — the chip is just the card it
+                  // sits on, and "mine" is worth a tinted ring, not a
+                  // different silhouette.
+                  background: "hsl(var(--ivory-sand))",
+                  border: `0.5px solid ${isMine ? "hsl(var(--bark) / 0.55)" : "hsl(var(--olivewood) / 0.16)"}`,
+                  boxShadow: "0 1px 3px hsl(var(--olivewood) / 0.22)",
+                }}
+              >
+                <span>{emoji}</span>
+                {/* Only show a number once more than one person has used it —
+                    a lone "1" next to every chip is noise. */}
+                {count > 1 && (
+                  <span className="tabular-nums font-sans font-semibold text-ds-10" style={{ color: "hsl(var(--olivewood))" }}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
       </div>
       {/* Revealed time column — absolutely positioned OUTSIDE the row's right
           edge, so it costs no layout width and slides into the gap the drag

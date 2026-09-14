@@ -181,7 +181,10 @@ export function violations(wfs: Wf[]): string[] {
   // Rule 1: concurrency.
   for (const w of prod) {
     const { group, cancel } = concurrencyOf(w.src);
-    const literal = group === "prod-load";
+    // The hourly monitor has its own group: GitHub keeps only ONE pending run
+    // per group, so an hourly run in prod-load would cancel a heavy suite that
+    // is queued behind an overrunning one. It is tiny and 30 min clear anyway.
+    const literal = group === "prod-load" || (w.file === "prod-errors.yml" && group === "prod-errors");
     const scheduleExpr =
       !!group && /github\.event_name\s*==\s*'schedule'\s*&&\s*'prod-load'/.test(group);
     if (!literal && !scheduleExpr) {

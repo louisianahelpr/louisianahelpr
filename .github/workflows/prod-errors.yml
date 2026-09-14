@@ -45,7 +45,9 @@ concurrency:
   # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
   # >= 2h apart, and share the prod-load concurrency group; see
   # src/test/prodWorkflowSpacing.test.ts before moving this.
-  group: prod-load
+  # Own group, not prod-load: GitHub keeps one pending run per group, and an
+  # hourly run there would cancel a queued heavy suite.
+  group: prod-errors
   cancel-in-progress: false
 
 jobs:

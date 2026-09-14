@@ -54,7 +54,7 @@ export function RecurringSchedulePicker({
       </div>
 
       <div className="space-y-2.5">
-        <Label>Which days?</Label>
+        <Label>Which Days?</Label>
         {/* Seven fixed columns, Sunday first — a calendar week, in the order
             people read one. A wrapping chip row would reflow Sun–Sat into
             ragged lines at narrow widths and stop reading as a week.
@@ -141,7 +141,7 @@ export function RecurringSchedulePicker({
       </div>
 
       <div className="space-y-2.5">
-        <Label htmlFor="recurrence-weeks">For how many weeks?</Label>
+        <Label htmlFor="recurrence-weeks">For How Many Weeks?</Label>
         {/* A stepper, not a free-text number field: the value is bounded 1–52
             (the DB enforces the same range) and a poster typing 200 should be
             told by the control's shape, not by a rejected submit. */}
@@ -193,7 +193,7 @@ export function RecurringSchedulePicker({
         </p>
       ) : dates.length === 0 ? (
         <p className="text-ds-11 text-muted-foreground">
-          Set &ldquo;Date needed&rdquo; just below and we&apos;ll show every visit.
+          Set &ldquo;Start Date&rdquo; just below and we&apos;ll show every visit.
         </p>
       ) : (
         <div className="rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2.5 space-y-1">

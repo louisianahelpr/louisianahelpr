@@ -101,9 +101,9 @@ for (const width of [375, 1440]) {
     // It used to read "Choose the date this starts (up in Schedule)" — wrong
     // twice: the form's sections are Details / Logistics / Budget, so there is
     // no Schedule to look up to, and the date field sits directly BELOW this
-    // sentence. Asserting on "Date needed" survives a rewording and still fails
+    // sentence. Asserting on "Start Date" (the date label on a recurring job, VN-51) survives a rewording and still fails
     // if the hint stops pointing at a real field.
-    await expect(page.getByText(/Date needed.*just below/i)).toBeVisible();
+    await expect(page.getByText(/Start Date.*just below/i)).toBeVisible();
     // Let the chip transition settle before measuring — `transition-all` means
     // the last-clicked day is still mid-fade the instant the click resolves,
     // and a half-faded chip is not what a user ever sees.

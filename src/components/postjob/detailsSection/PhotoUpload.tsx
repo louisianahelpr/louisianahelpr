@@ -33,7 +33,7 @@ export function PhotoUpload({
         <div className="flex items-center justify-between gap-2">
           <Label>
             Photos{" "}
-            <span className="font-normal text-muted-foreground">(optional, up to 5)</span>
+            <span className="font-normal text-muted-foreground">(Optional, Up to 5)</span>
           </Label>
           {imageFiles.length > 0 && (
             <span className="text-ds-11 tabular-nums text-muted-foreground">

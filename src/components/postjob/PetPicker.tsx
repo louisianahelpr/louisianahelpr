@@ -66,14 +66,14 @@ export function PetPicker({
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-ds-11 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-          Which pet is this for?
+          Which Pet Is This For?
         </p>
         <Link
           to="/profile?tab=pets"
           className="text-ds-11 font-medium inline-flex items-center gap-1 btn-press"
           style={{ color: "hsl(var(--bark))" }}
         >
-          <Plus className="w-3 h-3" /> Add a pet
+          <Plus className="w-3 h-3" /> Add a Pet
         </Link>
       </div>
 

@@ -174,7 +174,7 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("fills details with a photo", async () => {
       await page.getByRole("button", { name: "Cleaning", exact: true }).click();
-      await page.getByRole("textbox", { name: "Job title *" }).fill(TITLE);
+      await page.getByRole("textbox", { name: "Job Title *" }).fill(TITLE);
       await page.getByRole("textbox", { name: "Description *" }).fill(
         "Automated journey test. Not a real job; created and removed by the test suite. Please ignore.",
       );
@@ -184,7 +184,7 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("fills logistics with a parish-less ZIP and a date", async () => {
-      await page.getByRole("combobox", { name: "Street address" }).fill("100 Audit Way");
+      await page.getByRole("combobox", { name: "Street Address" }).fill("100 Audit Way");
       await page.keyboard.press("Escape");
       await page.getByRole("combobox", { name: "City" }).fill("Baton Rouge");
       await page.keyboard.press("Escape");
@@ -193,7 +193,7 @@ test.describe.serial("marketplace chain", () => {
       // so the job is posted with parish null, the same guard prod-lifecycle uses.
       journey.allowReport(/ZIP 99999 resolved to no Louisiana parish/, "deliberate: keeps parish null so no real helper is notified");
       await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
-      await page.getByRole("button", { name: /Date needed/ }).click();
+      await page.getByRole("button", { name: /Date Needed/ }).click();
       // Soon, not days out: the day-of confirm opens inside 24h and the
       // tracker's actions unlock at T-2h, so J5 can walk the whole job now.
       const slot = SLOT;

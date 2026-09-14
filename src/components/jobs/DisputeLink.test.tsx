@@ -1,6 +1,6 @@
 /**
  * DisputeLink visibility — drives the predicate through every branch
- * (in-window / out-of-window / already filed / not completed) for both
+ * (completed = never, revision window, already filed, not completed) for both
  * customer and helper sides, plus a smoke render to confirm the click
  * handler fires when the link is visible.
  *
@@ -46,15 +46,21 @@ function makeJob(overrides: Partial<DisputeLinkJob> = {}): DisputeLinkJob {
 }
 
 describe("shouldShowDisputeLink", () => {
-  it("shows for the customer within the 7-day window", () => {
-    expect(shouldShowDisputeLink(makeJob(), "customer", NOW)).toBe(true);
+  // Owner rule, 2026-09-14 (VN-28): "they can't report a job once it's done".
+  // The issue-#113 7-day post-completion window is gone — a completed job
+  // offers no dispute on either side, however recently it finished. These
+  // two cases were `toBe(true)` before the rule; they fail on the old code.
+  it("hides for the customer on a job completed an hour ago (no post-completion window)", () => {
+    const job = makeJob({ poster_completed_at: new Date(NOW.getTime() - HOURS(1)).toISOString() });
+    expect(shouldShowDisputeLink(job, "customer", NOW)).toBe(false);
   });
 
-  it("shows for the helper within the 7-day window", () => {
-    expect(shouldShowDisputeLink(makeJob(), "helper", NOW)).toBe(true);
+  it("hides for the helper on a job completed an hour ago (no post-completion window)", () => {
+    const job = makeJob({ poster_completed_at: new Date(NOW.getTime() - HOURS(1)).toISOString() });
+    expect(shouldShowDisputeLink(job, "helper", NOW)).toBe(false);
   });
 
-  it("hides once the 7-day window has closed", () => {
+  it("hides on a completed job eight days out as well", () => {
     const job = makeJob({
       poster_completed_at: new Date(NOW.getTime() - DAYS(8)).toISOString(),
     });
@@ -126,14 +132,13 @@ describe("shouldShowDisputeLink", () => {
     expect(shouldShowDisputeLink(job, "helper", NOW)).toBe(false);
   });
 
-  it("falls back to helper_completed_at when poster_completed_at is missing", () => {
-    // Edge case: auto-release path where poster never tapped "approve".
+  it("hides on an auto-released completed job too (poster never tapped approve)", () => {
     const job = makeJob({
       poster_completed_at: null,
       helper_completed_at: new Date(NOW.getTime() - DAYS(2)).toISOString(),
     });
-    expect(shouldShowDisputeLink(job, "customer", NOW)).toBe(true);
-    expect(shouldShowDisputeLink(job, "helper", NOW)).toBe(true);
+    expect(shouldShowDisputeLink(job, "customer", NOW)).toBe(false);
+    expect(shouldShowDisputeLink(job, "helper", NOW)).toBe(false);
   });
 
   it("hides when status is 'completed' but no completion timestamp exists", () => {
@@ -149,7 +154,12 @@ describe("<DisputeLink />", () => {
     const onOpenDispute = vi.fn();
     render(
       <DisputeLink
-        job={makeJob()}
+        job={makeJob({
+          status: "revision_requested",
+          poster_completed_at: null,
+          revision_requested_at: new Date(NOW.getTime() - HOURS(48)).toISOString(),
+          revision_deadline: new Date(NOW.getTime() - HOURS(1)).toISOString(),
+        })}
         side="customer"
         onOpenDispute={onOpenDispute}
         now={NOW}

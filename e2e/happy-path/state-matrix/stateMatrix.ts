@@ -608,7 +608,7 @@ const POSTER_SUBSTATES: Record<JobStatus, SubState[]> = {
   completed: [
     {
       key: "neither-tipped-nor-reviewed",
-      describe: "completed, no tip and no review yet — Tip and Review chips both live, Report Job present",
+      describe: "completed, no tip and no review yet — Tip and Review chips both live, NO Dispute or Report Job chip (owner, 2026-09-14, VN-28)",
       job: { helper_id: HELPER_ID, ...completedStamps(), payment_status: "released" },
     },
     {
@@ -1451,6 +1451,10 @@ function jobDetailCells(): StateCell[] {
  */
 function dialogCells(): StateCell[] {
   const specs: { id: string; route: string; describe: string; open: string[]; fixture?: CellFixture }[] = [
+    // TRIGGER REMOVED (owner, 2026-09-14, VN-28): completed cards no longer
+    // carry a "Report Job" chip, so these two cells will report UNVERIFIED
+    // until they are retargeted at a surviving ReportDialog trigger (Browse's
+    // job detail sheet flag button, aria "Report this job").
     {
       id: "dialog-report-step-reason",
       route: "/my-posts?filter=all",

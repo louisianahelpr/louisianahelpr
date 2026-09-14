@@ -1,8 +1,7 @@
-import { DollarSign, CheckCircle2, Star, AlertTriangle, RotateCcw, Flag } from "lucide-react";
+import { DollarSign, CheckCircle2, Star, RotateCcw } from "lucide-react";
 import { JobStepCard } from "@/components/activity/JobStepCard";
 import { JobActionChip } from "../../JobActionRow";
 import { PhotoProofGroup } from "@/components/PhotoProof";
-import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
 import type { PosterStepCtx } from "./posterStepContract";
 
 /**
@@ -10,7 +9,11 @@ import type { PosterStepCtx } from "./posterStepContract";
  *
  * Nothing is being asked and nothing is primary: the job is over and every
  * remaining control is optional. So this state is a review surface plus one
- * row — Tip · Review · Dispute · Hire Again · Report Job.
+ * row — Tip · Review · Hire Again.
+ *
+ * No Dispute and no Report Job here (owner rule, 2026-09-14, VN-28: "they
+ * can't report a job once it's done"). This reverses the earlier 7-day
+ * post-completion dispute window and the Done-tab Report Job chip.
  *
  * The proof group renders only when there ARE photos (owner: "move to the
  * collapsed part") — an empty group printed two rows of chrome to report an
@@ -23,8 +26,6 @@ export function CompletedStep({
   navigate,
   onTip,
   onReview,
-  onDispute,
-  onReport,
 }: PosterStepCtx) {
   const meta = completedJobMeta[job.id];
   const hasTipped = meta?.tipped;
@@ -36,10 +37,6 @@ export function CompletedStep({
   // settles, so gating Review on 'released' hid it during exactly the window
   // when the app auto-opens the rating sheet. Matches the reviews INSERT policy.
   const canReview = job.payment_status === "released" || job.payment_status === "payout_pending";
-  // NOT after the poster approved (owner: "if the job is already marked
-  // complete this should not be an option"). A job that auto-released without
-  // them ever approving keeps the 7-day window: they never got their say.
-  const canDispute = !job.poster_completed_at && shouldShowDisputeLink(job, "customer");
 
   return (
     <JobStepCard
@@ -105,16 +102,6 @@ export function CompletedStep({
               />
             )
           : null,
-        canDispute ? (
-          <JobActionChip
-            key="dispute"
-            icon={AlertTriangle}
-            label="Dispute"
-            ariaLabel="Dispute — something wrong? open a dispute about this job"
-            tone="danger"
-            onClick={() => onDispute(job)}
-          />
-        ) : null,
         /* Hire again — direct offer to the same helper: PostJob with offerTo +
            rebook, so the form is prefilled AND the offer skips the queue. */
         job.helper_id ? (
@@ -136,18 +123,6 @@ export function CompletedStep({
             onClick={() => navigate(`/post-job?rebook=${job.id}`)}
           />
         ),
-        /* Report — a distinct escape hatch from Dispute: that is a payment
-           disagreement while the job is still settling, this is a conduct or
-           safety concern once it is over. ReportDialog opens with
-           reportedType="job", so the spoken name promises only the job. */
-        <JobActionChip
-          key="report"
-          icon={Flag}
-          label="Report Job"
-          ariaLabel="Report Job — report a problem with this job"
-          tone="danger"
-          onClick={() => onReport(job)}
-        />,
       ]}
     />
   );

@@ -77,6 +77,7 @@ export function JobConfirmation({
   onConfirm,
   onCantMakeIt,
   variant = "card",
+  embedded = false,
 }: {
   jobId: string;
   isOwner: boolean;
@@ -114,6 +115,11 @@ export function JobConfirmation({
    * duplication the merge exists to remove.
    */
   variant?: "card" | "inline";
+  /** Card variant without its own `rounded-2xl liquid-glass p-3` chrome, for a
+   *  caller that already sits inside a card (the poster's PostedJobCard, inside
+   *  JobCardShell). The heading, date and chips stay; only the box goes.
+   *  `src/test/noNestedTrackerCard.test.ts` enforces it at every call site. */
+  embedded?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -436,11 +442,15 @@ export function JobConfirmation({
   return (
     <>
       <div
-        className="rounded-2xl liquid-glass p-3 space-y-1.5"
-        style={{
-          background:
-            "radial-gradient(80% 100% at 50% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%)",
-        }}
+        className={embedded ? "space-y-1.5" : "rounded-2xl liquid-glass p-3 space-y-1.5"}
+        style={
+          embedded
+            ? undefined
+            : {
+                background:
+                  "radial-gradient(80% 100% at 50% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%)",
+              }
+        }
       >
         <div>
           <h3

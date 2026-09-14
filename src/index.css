@@ -2416,24 +2416,11 @@ button,
    `.liquid-glass` background, so call sites just add this class. */
 
 
-/* ONE BOX, NOT TWO — the merged live-tracker panel.
-   Owner, 2026-08-30: "bottom box needs to be merged in the live tracker."
-   The helper's My Jobs card stacked two `.liquid-glass` panels — the step rail
-   in one, the day-of "Still on for this one?" confirmation in another right
-   below it — for what is a single step of a single timeline.
-   `HelperTrackerPanel` now owns the outer glass and nests `JobTracking` inside
-   it; this strips the nested panel's own chrome so the two read as one surface.
-   Scoped to a DIRECT child so nothing deeper in the tracker (the map, the
-   step tooltips) is touched. */
-.tracker-merged > .liquid-glass {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  padding: 0;
-}
+/* (The `.tracker-merged > .liquid-glass` override that used to live here is
+   gone: HelperTrackerPanel now passes `embedded` to JobTracking, so the nested
+   panel never renders its own glass in the first place. A CSS override left
+   the second card in the DOM, and lost to any rule of equal specificity
+   declared later. Guard: src/test/noNestedTrackerCard.test.ts.) */
 
 /* Frosted sticky-header surface — the translucent app-bar treatment
    shared by PageHeader, DashboardHeader, and DashboardGuest's header.

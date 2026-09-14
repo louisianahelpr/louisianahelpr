@@ -14,7 +14,7 @@
 
 import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
-import { divIcon, point as leafletPoint } from "leaflet";
+import { divIcon, point as leafletPoint, type DivIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 // Resolve a brand token to its computed hex so the inline SVG markup
@@ -27,6 +27,28 @@ function resolveToken(varName: string, fallback: string): string {
     .getPropertyValue(varName)
     .trim();
   return v ? `hsl(${v})` : fallback;
+}
+
+// Leaflet renders markers with `keyboard: true` by default, so every marker
+// below becomes a focusable `role="button"` in the tab order (Marker.js's
+// `_initIcon`: `if (options.keyboard) { icon.tabIndex = '0'; icon.setAttribute
+// ('role', 'button'); }`) — a command role an a11y sweep correctly flags if it
+// has no accessible name. `<Marker alt="...">` looks like the fix, but Leaflet
+// only copies that option onto the icon node `if (icon.tagName === 'IMG')`;
+// a `divIcon` icon is a `<div>`, so `alt` is silently dropped and the button
+// stays unlabelled — a screen-reader user meets two unnamed buttons on a map
+// whose entire purpose is telling them where two things are.
+// This wraps `createIcon` to stamp a real `aria-label` onto the DOM node
+// Leaflet hands back, so it survives every re-render (a fresh `DivIcon` is
+// built on every render here) and every marker re-icon.
+function withAccessibleName<T extends DivIcon>(icon: T, label: string): T {
+  const createIcon = icon.createIcon.bind(icon);
+  icon.createIcon = (oldIcon?: HTMLElement) => {
+    const el = createIcon(oldIcon);
+    el.setAttribute("aria-label", label);
+    return el;
+  };
+  return icon;
 }
 
 // Helper pin — a moving vehicle indicator (olive circle with parchment center)
@@ -51,12 +73,15 @@ function helperIcon() {
       </svg>
     </div>
   `;
-  return divIcon({
-    className: "tracking-helper-pin",
-    html,
-    iconSize: leafletPoint(32, 32),
-    iconAnchor: leafletPoint(16, 16),
-  });
+  return withAccessibleName(
+    divIcon({
+      className: "tracking-helper-pin",
+      html,
+      iconSize: leafletPoint(32, 32),
+      iconAnchor: leafletPoint(16, 16),
+    }),
+    "Your Helpr's current location",
+  );
 }
 
 // Destination pin — classic drop-pin in burnt-sienna
@@ -70,13 +95,16 @@ function destinationIcon() {
       <circle cx="14" cy="14" r="5" fill="${parchment}" />
     </svg>
   `;
-  return divIcon({
-    className: "tracking-dest-pin",
-    html,
-    iconSize: leafletPoint(24, 32),
-    iconAnchor: leafletPoint(12, 32),
-    popupAnchor: leafletPoint(0, -32),
-  });
+  return withAccessibleName(
+    divIcon({
+      className: "tracking-dest-pin",
+      html,
+      iconSize: leafletPoint(24, 32),
+      iconAnchor: leafletPoint(12, 32),
+      popupAnchor: leafletPoint(0, -32),
+    }),
+    "The job location",
+  );
 }
 
 // Fit the viewport to include both points with generous padding so
@@ -156,23 +184,12 @@ export function TrackingMap({
           destLat={destLat}
           destLng={destLng}
         />
-        {/* Helper — moving truck icon.
-            `alt` matters here: Leaflet renders markers with keyboard: true by
-            default, so each of these becomes a focusable role="button" in the
-            tab order. divIcon({html}) supplies no accessible name, so a
-            screen-reader user met two unlabelled buttons on a map whose entire
-            purpose is telling them where two things are. */}
-        <Marker
-          position={[helperLat, helperLng]}
-          icon={helperIcon()}
-          alt="Your Helpr's current location"
-        />
+        {/* Helper — moving truck icon. Accessible name is stamped onto the
+            marker's DOM node by `withAccessibleName` in `helperIcon()` above
+            (see the comment there for why `alt` alone doesn't work here). */}
+        <Marker position={[helperLat, helperLng]} icon={helperIcon()} />
         {/* Job destination — classic drop-pin */}
-        <Marker
-          position={[destLat, destLng]}
-          icon={destinationIcon()}
-          alt="The job location"
-        />
+        <Marker position={[destLat, destLng]} icon={destinationIcon()} />
       </MapContainer>
     </div>
   );

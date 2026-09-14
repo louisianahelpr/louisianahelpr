@@ -184,7 +184,21 @@ export function ActivityHeader({
               {title}
             </span>
           )}
-          <div className="relative flex-1 min-w-0 origin-right motion-safe:animate-in motion-safe:slide-in-from-right-4 motion-safe:duration-200">
+          {/* DESKTOP: THE TABS STAY UP WHILE SEARCHING, and the field is
+              capped (owner, 2026-09-14, VN-31: "search does not need to open
+              that large. also the chevron on the right is useless here").
+              The field used to take the whole ~1500px row and swap the tabs
+              out, leaving the chevron as the only way back to them. On the
+              desktop website (`inlineFilters`) there is room for both, so the
+              tabs keep their place on the left, the field sits at the right
+              capped at `max-w-md`, and the chevron is not rendered. Phone is
+              unchanged: full-width field, tabs on their own line, chevron. */}
+          {inlineFilters && (
+            <div id="activity-status-tabs" className="flex-1 min-w-0 overflow-x-auto scrollbar-hide">
+              {statusTabs}
+            </div>
+          )}
+          <div className={`relative flex-1 min-w-0 ${inlineFilters ? "max-w-md" : ""} origin-right motion-safe:animate-in motion-safe:slide-in-from-right-4 motion-safe:duration-200`}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
               autoFocus
@@ -216,7 +230,10 @@ export function ActivityHeader({
           {/* An X, not the word "Cancel" (owner). It sits beside the status
               chevron, which STAYS available while searching — the two filters
               are independent, and making you leave search to change a status
-              filter you can see the results of is a needless round trip. */}
+              filter you can see the results of is a needless round trip.
+              Phone only — on desktop the tabs are already beside the field
+              (VN-31, above). */}
+          {!inlineFilters && (
           <button
             type="button"
             onClick={() => { hapticLight(); setTabsOpen((v) => !v); }}
@@ -232,7 +249,7 @@ export function ActivityHeader({
               strokeWidth={2.25}
             />
           </button>
-
+          )}
         </ScreenHeaderRow>
       ) : (
         /* Normal mode — title + action buttons. */

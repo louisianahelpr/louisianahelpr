@@ -1,0 +1,184 @@
+# Remote branches deleted 2026-09-14 (owner-approved cleanup). Format: <tip sha>  <branch>  <reason>
+# Recover any one with: git push origin <sha>:refs/heads/<branch>
+dcc53673e39ec246e262e90dfa6d95a2083aab8f  archive/backup/pre-rebase-dcc53673  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+a49721f66de50c428659718d04470dff2eafab0a  archive/chore/dep-bumps-capacitor-vite  all commits already on main (git cherry: no + lines)
+c0df66af26a96b1a51a03aa90a7730f053d440ca  archive/chore/dependency-bumps  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+3fb8f10e6e2c5d7c452298c1d9c0c010d6b27cd6  archive/chore/lint-ignore-ios-artifacts  all commits already on main (git cherry: no + lines)
+58dfa030ea0625ca136f9a541562e5837adef6cc  archive/feat/actionable-notifs-fee-breakdown-empty-states  all commits already on main (git cherry: no + lines)
+18dcfa9f94c37ce8299225947a97c44a46abc73d  archive/feat/admin-metrics-weather-suggest  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+29c0c9bc46ed6f04e5795d32b268a23dba479ab4  archive/feat/applicant-comparison  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+1f770847cf6ef656a613586886e89784e9f753f2  archive/feat/applicant-private-notes-rebase  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+ff4f4b28efc6e66a1b4985225b914838fb80a801  archive/feat/application-rate-limiting  all commits already on main (git cherry: no + lines)
+0c54dfa4504faa46bf147114bcdc797bab2ddd54  archive/feat/bottom-nav-badges  all commits already on main (git cherry: no + lines)
+f138e68589195acd9ff290fb599f99c7beea8b39  archive/feat/business-features-wave  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+b7620dcc69dbce961392e0bc15aefc4dfe49378a  archive/feat/cancellation-fee-ui  all commits already on main (git cherry: no + lines)
+da2a0b9de0a72afe56bcfd936c80bc3a94e134a0  archive/feat/career-ladder-autopilot-protections  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+5e0587f6db3e53693d38a03b30a7d886983d402f  archive/feat/chat-voice-notes  all commits already on main (git cherry: no + lines)
+f194eab2e65d9c7745a28c36df6e095e2ecb3e9c  archive/feat/community-feed  all commits already on main (git cherry: no + lines)
+d79a5ee65237b69e6eb418f3203a526c30d96970  archive/feat/credential-tier-system  all commits already on main (git cherry: no + lines)
+12f026548a0450e221cbbeefb9eeb424c6e678c9  archive/feat/dark-mode  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+a772f231b69e4e17e4dc79e4c0bb9f5161d16f99  archive/feat/density-toggle-split-screen  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+8278780c9ca72fffa25c1655811cfb845c65caf6  archive/feat/discharge-insurance-verticals  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+ed135f80e0dc67fc67e2bff856be5a2d1c0bc3ad  archive/feat/dispute-revision-flow  all commits already on main (git cherry: no + lines)
+20844db478de52aadbdd2d93ec07537ea40b64f4  archive/feat/double-tap-save  all commits already on main (git cherry: no + lines)
+82c41dbf0da31d6998d739195424f9791df26df8  archive/feat/error-boundaries-motion-guards  all commits already on main (git cherry: no + lines)
+334e02064542267a78124c2947fbe2b84c464694  archive/feat/glass-foundation-utils  all commits already on main (git cherry: no + lines)
+37f923bf21a8c4aebd38e0693f39bd7005c41e2e  archive/feat/home-history-work-record  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+5de69eb663d180b96213a3bab9f742a5f9d07067  archive/feat/how-it-works-help-center  all commits already on main (git cherry: no + lines)
+be4cc6f2c6b156ee0808e51cf3094eadab14d2d2  archive/feat/image-fade-in  all commits already on main (git cherry: no + lines)
+bac5e23b0f099edd1cd947e6d99ec92200bdf344  archive/feat/impact-dashboard-life-events  all commits already on main (git cherry: no + lines)
+3459891331b1b9ddb39fcca5a7eb8d958f69e18f  archive/feat/instant-book-toggle  all commits already on main (git cherry: no + lines)
+b9f0a23ac6f4f8120784df444dbcb81f5e66010b  archive/feat/ios-lifecycle-push-polish  all commits already on main (git cherry: no + lines)
+615b7812346d595f374ea8033df5708a68ac8390  archive/feat/job-boost-broadcast  all commits already on main (git cherry: no + lines)
+9d8c2bfd98d520b30bf1441838db3206caecbb73  archive/feat/job-view-counts  all commits already on main (git cherry: no + lines)
+59d3262ea82f01f6de895448fb0c814ac78bc9b6  archive/feat/live-tracking-map  all commits already on main (git cherry: no + lines)
+06fa7dc448f692d0e9fd4f64e86c2e5f16cbdfaa  archive/feat/message-bubble-longpress  all commits already on main (git cherry: no + lines)
+c2b1328c96b0d58613036b9fbf6889b46baa07bf  archive/feat/messages-empty-illustration  all commits already on main (git cherry: no + lines)
+83b9b17ef78d0338c2cdab90d1bbc6d26ea92cbe  archive/feat/native-network-share  all commits already on main (git cherry: no + lines)
+8755927056619a1bf94e7b67ace498b12b42c605  archive/feat/native-plugins  all commits already on main (git cherry: no + lines)
+57e4c5bd484134c761a5ec5ee1212b65d008081d  archive/feat/os-app-icon-badge  all commits already on main (git cherry: no + lines)
+c0f617142231d899a30e98208b484b89380ab384  archive/feat/parish-pages-helpr-wrapped  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+d722b65a768ba21ba8f140fc94cac4a3af56ebc5  archive/feat/pet-care-vertical  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+b84dee36a902c0ce0920aa94f5f568bfa180a318  archive/feat/pif-reliability-staking  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+a0f06f10d142f32813e20cb2da2e87ce4f2cdef9  archive/feat/posting-quality-meter  all commits already on main (git cherry: no + lines)
+4459ccbefb5e18f44b0aa58aa31764b1bb0aad20  archive/feat/push-respect-quiet-hours  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+04ffd76b212a26ad911557fd1b4011dd0ef4b5f4  archive/feat/qa-seed-data  all commits already on main (git cherry: no + lines)
+cfe21de0332d3dc42ae767d2fb39b16d6e834ce6  archive/feat/referral-share-sheet  all commits already on main (git cherry: no + lines)
+8e50520578020a10aa599fb0a09cca71ac79690d  archive/feat/review-photos  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+8334702f5d7a77d87d8154159ee38daa464bfd54  archive/feat/review-responses  all commits already on main (git cherry: no + lines)
+ecb13d084f1cd473cc884621c31cbae1c218ec23  archive/feat/search-suggestions  all commits already on main (git cherry: no + lines)
+f909320a9be05c0b99fee67a8f41970a5948f7f7  archive/feat/senior-help-vertical  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+863fd73e83d1c556cd07897d9bf7aca7916bec77  archive/feat/shop-the-job-protection-addon  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+06f017d722a878fbe22f849685f1468703749a39  archive/feat/skill-endorsements-jit-verify  all commits already on main (git cherry: no + lines)
+d16f8c40294b2398fcbcac410f79f1bc7a6f495b  archive/feat/soft-update-prompt  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+9c71d0cc5d7de0d3de5ea17078a1966791e72c2a  archive/feat/storm-events-categories-share-cards  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+33897a29a7cd2f472105c24c35a656235b16bf9c  archive/feat/str-ical-integration  all commits already on main (git cherry: no + lines)
+8d36dded10c1f7fe7ed5961f5ed5011adea9a4fe  archive/feat/success-toast-action  all commits already on main (git cherry: no + lines)
+9933d711851efe6b8ecae65f2d1d500dde48f656  archive/feat/tabs-selection-haptic  all commits already on main (git cherry: no + lines)
+e00a5c91f4da0d845eba541a6fd40cc3bf116cd3  archive/feat/time-banking-video-scoping-benefits  all commits already on main (git cherry: no + lines)
+80f2b30b3891a87c27c159eeca05a76f250c0a85  archive/feat/trust-graph-matching  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+8b6792256241dcc72d750001b2d5e5e26c207145  archive/feat/trust-row-section-boundary-icons  all commits already on main (git cherry: no + lines)
+1db1d5586409d3b8bb4f1817c6185738aa59e180  archive/feat/verification-engine  all commits already on main (git cherry: no + lines)
+2fa29b87aeaf1d40fabe0aba50f2540619e92d7d  archive/feat/verify-qr-pricing-sos  all commits already on main (git cherry: no + lines)
+e354dbcf68621d365790ffc1951ac74aa3ce9c1b  archive/feat/video-intros-analytics  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+48a7030ba635a998b085ca22d983420468d9b53a  archive/feat/welcome-onboarding-modal  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+a6ab0303ab7f1ff9507e5fbc09f9eed005f6cae5  archive/fix-profile-views-collision  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+192aa92dc266f901ae31bac4e85d237456b17987  archive/fix/a11y-pinch-zoom  all commits already on main (git cherry: no + lines)
+1a66808701d66e61c3e22d401f600d81f895b778  archive/fix/audit-batch-1  all commits already on main (git cherry: no + lines)
+107038108bee088b43769950e2fcb933bbd57d42  archive/fix/audit-batch-2  all commits already on main (git cherry: no + lines)
+03dd32ff6d2f9e1288539c2595247a99c8824c24  archive/fix/audit-batch-3  all commits already on main (git cherry: no + lines)
+41ea9ee685a99e3ddea3433b0fb30527e4e932fd  archive/fix/audit-batch-4  all commits already on main (git cherry: no + lines)
+b79658a298b2a75b52736b57708974fdda241012  archive/fix/audit-batch-5  all commits already on main (git cherry: no + lines)
+0bdcad09ababd58af4cf470e107423e24e4d3ef4  archive/fix/audit-batch-chrome-width-noun  all commits already on main (git cherry: no + lines)
+bd87d436dc0068b1c3839b61af983de95308c109  archive/fix/cashout-double-payout  all commits already on main (git cherry: no + lines)
+84d54002c6927f339a05d82e075b2dcc2930f7de  archive/fix/ci-failures-video-intros  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+052d02ed828cbdd2ecbd0619690d0b71ad916f2e  archive/fix/dropped-supabase-errors  all commits already on main (git cherry: no + lines)
+eecac04207941f6190b196a7f756f2b5d878c2dc  archive/fix/ios-forced-logout  all commits already on main (git cherry: no + lines)
+7bf6a3b3b5f6412f1bfc37658976c469b6429e97  archive/fix/keyboard-scroll-into-view  all commits already on main (git cherry: no + lines)
+073a305e566ca6ce45304beb058ad28806f7f177  archive/fix/landing-page-cls  all commits already on main (git cherry: no + lines)
+773237820d7fc7429a9d5d7c3f4edad4a7948222  archive/fix/material-messages-activity  all commits already on main (git cherry: no + lines)
+037b833408ee55ded49cff2aad69f3d2b9c7d487  archive/fix/material-pages-dashboard  all commits already on main (git cherry: no + lines)
+129de2b497262673e78141fd803875bff5c9daa0  archive/fix/material-profile  all commits already on main (git cherry: no + lines)
+7bb6866f6c3573f9832ff1bcf371f0b282209339  archive/fix/remove-unfunded-job-protection  all commits already on main (git cherry: no + lines)
+36bd62fe54b77923f422c9ce5c57dd46e100e402  archive/fix/saved-helpers-migration-replay  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+779496063433c0151c057390fb51d8c2d83d380d  archive/fix/sticky-hover-tan-on-touch  all commits already on main (git cherry: no + lines)
+9d97308ae70a0cd093905d156265874ad9087626  archive/fix/verification-webhook-fail-closed  all commits already on main (git cherry: no + lines)
+e845977dfeebe3bac8e4335ff262d3c4156efa91  archive/fix/webhook-escrow-money-safety  all commits already on main (git cherry: no + lines)
+fb5850254c8308e6476b545dfde113cac21f7e4f  archive/fix/wkwebview-bounce-suppression  all commits already on main (git cherry: no + lines)
+4058872ec0fa7e5cd1965863b13833411531ebf1  archive/main-preforked  all commits already on main (git cherry: no + lines)
+65c02abca61a2ffc296d8c3d7393850e2dbca2c3  archive/polish/admin-screen-pass  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+ccd52d229744c3e659bff6d6e3251033ebd76491  archive/polish/apply-dialog-ux-2026-06-11  all commits already on main (git cherry: no + lines)
+f7dfed6a466f3dfb301d848bed8dac4797408837  archive/polish/faq-fees-admin-partners  all commits already on main (git cherry: no + lines)
+cca79569a333dffeafc9c7a5eaa4b7dcd9ee1479  archive/polish/footer-add-new-page-links  all commits already on main (git cherry: no + lines)
+dcb35aacbd62a38952f4e3764dc3290707b80d9d  archive/polish/global-wins-2026-06-11  all commits already on main (git cherry: no + lines)
+7acbba9b1ee9030fba15b664e709ff3c251e313a  archive/polish/home-filter-rounded-rect  all commits already on main (git cherry: no + lines)
+a42bab2b7b57042575b0faa5fd65b560cc1a8cd6  archive/polish/my-posts-filter-and-ui  all commits already on main (git cherry: no + lines)
+1fd9f6c685e23b21e765d47c5f4dff3df75c585c  archive/polish/notif-header-layout  all commits already on main (git cherry: no + lines)
+3aa75d3d419cd21dac6791dfa389e95667fc4ed8  archive/polish/postjob-extras-pass  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+3220867e8887744c16628df3473e1e71a7904a2a  archive/polish/profile-edit-pill-icon-color  all commits already on main (git cherry: no + lines)
+8d8116345296922bf5b6448edf75f68a30cd243e  archive/polish/quiet-banner-under-boost  all commits already on main (git cherry: no + lines)
+f184522519ad857c6da67f5f122b2b30a3d889a3  archive/polish/replace-centered-spinners  all commits already on main (git cherry: no + lines)
+4384a7c3db432800dce8df3efe88a819882ccd8f  archive/polish/social-auth-icon-row  all commits already on main (git cherry: no + lines)
+f67b809e787c03a3034d395e6a8ea45c43cc953b  archive/polish/visual-batch-2026-06-09  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+870e65681eee2b5c2a4700e33ec19ecabf04c101  archive/popup-footer-fit  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+289a820738ef3d29a86d1935bba3e92d15c43e73  archive/pr1480  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+02a95764c3c96652e0747f8010916b11c12d449e  archive/pr1493  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+06e0c8d25e472e9f4bdab0eacd2a3ffa6b54c0fa  archive/r541  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+29e67cddeb895d75e9d5397893f3e1fa3c3e64ed  archive/r541b  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+f016a9cc6b2e17231f461f032744e8415cff44c7  archive/r541c  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+e57284b72180401a8b4b8f8cad4e589c802c6cb7  archive/r541d  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+9253df4ca66c18c753c87137efed23f2ee446003  archive/r541e  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+a4bc687b9ca9822d68c75a78995bbe2a84940ede  archive/r546b  all commits already on main (git cherry: no + lines)
+b96b9409c28f9350267817bc6f430257e2ac6e3a  archive/r549c  all commits already on main (git cherry: no + lines)
+3e062a6008bd04b24784f72ca0e030ddc0fabf35  archive/r550  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+8766ec19252faad8f52c65b861353d16fea065a5  archive/r550b  all commits already on main (git cherry: no + lines)
+ea68795fa271aa73edde7a10426067fb6f604315  archive/r550c  all commits already on main (git cherry: no + lines)
+c6dd011d1f697532d5b0b8612ea9ce8e4243786b  archive/rebase-profile-views-onto-main  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+5f8cf6e5d39e55aaa0dcbb3030837159d89e23ad  archive/rebase/525  all commits already on main (git cherry: no + lines)
+b56700e5c46eff11ee26406fd61386c338f0d366  archive/rebase/526  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+f2fe2c1a3819c08b1e02f77874e7f800baeba872  archive/rebase/536  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+be8b2572c2e7c20b554a867801dba4a6e7bf2929  archive/refactor/stripe-webhook-handlers  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+7a6200d77dba9defc86e278dc63667370fb61142  archive/revert/redundant-rate-limit  all commits already on main (git cherry: no + lines)
+240a1ab283bfc9c6c066e640d53a36b6e3d121aa  archive/saved/audit-browse-unify  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+e95f1f9ba7a3a1f7de0b8e7898f20b5676355c8a  archive/saved/audit-lh-e2e-journeys  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+8612f37cebd60b01b12f474050f3f728908a7460  archive/saved/audit-lh-schema-integrity  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+9781b76e321009a838e70685d02df9e686fbb7b2  archive/saved/audit-lh-state-matrix  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+65484f53d6583632c7ca40372d0581199fc0b681  archive/saved/audit-perf-mypost  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+1372aa00bd0f1cdc35eea66f132cf678756c0c4d  archive/saved/fix1-ws  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+ef1a3564e8ac217504316ff846ccc2fef735121b  archive/saved/fix2-ws  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+7b4433803445adae08251781caafd6fc6506ad5c  archive/saved/fix3-ws  all commits already on main (git cherry: no + lines)
+513b8deca98d29efa63c1f6864731d30a9dfa700  archive/saved/fonts-ws  all commits already on main (git cherry: no + lines)
+4d9cb5ab943b255d6de1d27ba3043160c0a17ee4  archive/saved/gate  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+5bb737b6e3c3c0da8342af852f1f2302f8fdcd73  archive/saved/jumpy-ws  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+d50cb5fc4a9f5cc3df60bc95bb048e58c592920f  archive/saved/onestep-ws  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+2ed7d9c2d0c0cfd0bc7598fdb85742a189e72ad7  archive/saved/shift-ws  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+53d939072e0a5a76e173290801e83922fac281f7  archive/saved/sweep-admin  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+cc5ff8e5da8d297961a23aad5d922165f97a64f8  archive/saved/sweep-guest  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+22c2e8ae815653cd3116a25c5878e5598bdd482d  archive/saved/sweep-helper  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+fa5e89d56b275a28c95db099ea6ab178d9157333  archive/saved/sweep-poster  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+7174cf814477dbf22737851b6d12ffd20a15a5f9  archive/saved/tour-ws  all commits already on main (git cherry: no + lines)
+5f700e17e26df245bf881c071c2e8e524c8ffe22  archive/saved/visual-ws  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+9b200249eaa69f6f5de161d5bde5815c90c1a711  archive/touchpath-quiet  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+c30b0148bc76a4b6c31fdebbb7324d0ae61dddc2  archive/worktree-agent-a2057d8012f4f8464  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+41b7cf050cdadbc721a50f483eef88183639d763  archive/worktree-agent-a224a81ded943c1bb  all commits already on main (git cherry: no + lines)
+8c5201227cfcd50d4daca683058f37ad262ab1bc  archive/worktree-agent-a2a87c8550b5199d1  all commits already on main (git cherry: no + lines)
+f0b6c71b172ed18c738119a05338eda67972d2d3  archive/worktree-agent-a3098e1a3d88bb205  duplicate ref of wip/a3098e1a3d88bb205 (same tip)
+90f03663f7296358c1d1d096e19fd9554fe01d3b  archive/worktree-agent-a41e5871ceaa5b039  duplicate of wip/a41e5871ceaa5b039; press-every-control harness shipped on main (npm run audit:press)
+2f2113d8d54efff8710b6fcd79f98084f0ba5668  archive/worktree-agent-a52d1fb23f25cb495  duplicate ref of wip/a52d1fb23f25cb495 (same tip)
+4df1aafcfdeb16935563992c994b954bab4ea0d3  archive/worktree-agent-a69d0af0b250db810  duplicate ref of wip/a69d0af0b250db810 (same tip)
+22b30822d07632733ed195bae01ccb3e6b56e1e0  archive/worktree-agent-aa68905d8bf5a4dbf  all commits already on main (git cherry: no + lines)
+3571f94000ea1b1166f4756169a6cc1a1ab3cc9b  archive/worktree-agent-ab081703e8d015858  duplicate ref of wip/ab081703e8d015858 (same tip)
+72b2f1e5c33b82b37cae103f14a14787c2854389  archive/worktree-agent-abe9e7035a77561bb  all commits already on main (git cherry: no + lines)
+c4a52d9372dd2657d8cb9a86248582ad4f89987b  archive/worktree-agent-abf395f466bcf1adf  duplicate ref of wip/abf395f466bcf1adf (same tip)
+a23bcb84721f1a3d2c7f256012a191a93c44f4a3  archive/worktree-agent-ac0f5d2ac0f5004a5  duplicate ref of wip/ac0f5d2ac0f5004a5 (same tip)
+6bb73652a0c3d210f55c3af25934a35344216c27  archive/worktree-agent-ac95becfabd54d666  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+c9635456577482fd12a4079c5d1c837442004af0  chore/e2e-maintenance-lockfile-sync  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+a81ff7be0ab10ae5b6b5c2329aae6d5ebf1f96f1  claude/desktop-app-setup-se1447  all commits already on main (git cherry: no + lines)
+d06db3141858111ef9dd3e9e6efc5473c6dd7334  claude/gracious-carson-60ba91  all commits already on main (git cherry: no + lines)
+ea68795fa271aa73edde7a10426067fb6f604315  feat/partner-enterprise-b2b  all commits already on main (git cherry: no + lines)
+f2fe2c1a3819c08b1e02f77874e7f800baeba872  feat/subscription-tiers  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+32f1edd258cb07999bec7f09f2da4afce91783cc  feat/two-sided-reputation-post-review  all commits already on main (git cherry: no + lines)
+69737bcf602e36605efe3dd367cc41f59e31b1ab  fix/a11y-cancel-button-contrast  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+b927b59847afe79aafaebe0af3db18ee99066438  fix/admin-tail-views  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+4da5ada7f77269360c5e1bc18985840dee08dea5  fix/checkout-tier-update-throws-on-failure  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+86263568a57b02b594d8e975e52bf61b6c67e911  fix/checkout-tier-zero-row-alert  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+6713601425c6dce653454de500619627ce2c0257  fix/chunk-recovery-preventDefault  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+498b0e0c80111649d86ff5d314906491686809e0  fix/crash-and-selected-state-color  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+8fc3a3c97f5350af344b6ab3a3487d4d3bb2e0a9  fix/e2e-f2-f4-1787894594  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+61805d9faedaa33c3269c9de623b6eaffee63532  fix/e2e-terms-reconsent-fixture  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+1a5f73ee3900aac398adcac01145860e0b207607  fix/e2e-test-sync-title-case-and-desktop-pill  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+ca2e04ff6f651c3f5eade808fcc1c98938df1f33  fix/edge-fn-swallowed-errors  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+fed38909611c8788dc531121a022fc33b6668333  fix/false-marketing-claims  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+b9d9bc7b43210880b698c54769426eb69b92beca  fix/instant-payout-fee-error-logging  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+0885097269bbd2598326fbe5fb996ed3128987f4  fix/instant-payout-status-codes  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+8acfb33eec03229075c3b0c20991a54b8263d7a7  fix/main-vitest-failures  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+42746cac1cc84bc4adf9ebd2e1764f199030437c  fix/migrations-replay-safe  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+af296bb8e8de163de2ad1455176c273176d8e5e4  fix/profile-landing-video-typeerrors  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+890288f9652365f4946840ce5c035fe45dc0f8c6  fix/scheduled-payout-ledger-insert  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+8ed97ca22e3070f1697dcd241fb16273a523330d  fix/void-cancelled-abandoned-check  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+9f28cf09d530595dc9317dc722600ce7b2e6e329  polish/a11y-orphaned-labels  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+dbb99886dfe17cd33911f0436520ef9b3b0416e7  r557  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+67677d60662386d045fe84ed2ceca236e83a6e21  remove-topnav-slot  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+90f03663f7296358c1d1d096e19fd9554fe01d3b  wip/a41e5871ceaa5b039  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+04c1904fd1e456af3b82e30b969f74ce893275dd  wip/e2e-jobtab-schedule-fixes-20260829  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main
+daf9341e5eeb8f4498f253ef5f54aa2c4ef649cf  wip/expiry-waiting  superseded: content shipped in rewritten form, or files/feature since deleted or rewritten on main

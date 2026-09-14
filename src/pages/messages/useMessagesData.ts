@@ -567,7 +567,7 @@ export function useMessagesData({
         // doesn't yet know about so a pull-to-refresh never drops a
         // message the user is mid-send on.
         const pending = prev.filter(
-          (m) => m.sendStatus === "sending" || m.sendStatus === "failed",
+          (m) => m.sendStatus === "sending" || m.sendStatus === "failed" || m.sendStatus === "refused",
         );
         const serverIds = new Set(sorted.map((m) => m.id));
         const stillPending = pending.filter((m) => !serverIds.has(m.id));
@@ -637,6 +637,7 @@ export function useMessagesData({
     scrollToBottom,
     activeConvoRef,
     loadConversations,
+    setActiveConvo,
   });
 
   return {

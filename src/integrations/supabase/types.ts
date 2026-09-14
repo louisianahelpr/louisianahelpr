@@ -1358,6 +1358,7 @@ export type Database = {
           cancelled_by: string | null
           category: Database["public"]["Enums"]["job_category"]
           commission_tax_amount: number | null
+          completed_at: string | null
           created_at: string
           credential_tier: number
           customer_fee_amount: number | null
@@ -1467,6 +1468,7 @@ export type Database = {
           cancelled_by?: string | null
           category?: Database["public"]["Enums"]["job_category"]
           commission_tax_amount?: number | null
+          completed_at?: string | null
           created_at?: string
           credential_tier?: number
           customer_fee_amount?: number | null
@@ -1576,6 +1578,7 @@ export type Database = {
           cancelled_by?: string | null
           category?: Database["public"]["Enums"]["job_category"]
           commission_tax_amount?: number | null
+          completed_at?: string | null
           created_at?: string
           credential_tier?: number
           customer_fee_amount?: number | null
@@ -4520,6 +4523,7 @@ export type Database = {
         Args: { _job_id: string; _reviewer_id: string }
         Returns: boolean
       }
+      can_send_message_in_job: { Args: { _job_id: string }; Returns: boolean }
       cancellation_fee_percent: {
         Args: { p_has_helper: boolean; p_hours_until: number }
         Returns: number
@@ -4753,6 +4757,7 @@ export type Database = {
           cancelled_by: string | null
           category: Database["public"]["Enums"]["job_category"]
           commission_tax_amount: number | null
+          completed_at: string | null
           created_at: string
           credential_tier: number
           customer_fee_amount: number | null
@@ -4855,6 +4860,14 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_messaging_closes_at: {
+        Args: { _job_ids: string[] }
+        Returns: {
+          closes_at: string
+          job_id: string
+          server_now: string
+        }[]
+      }
       get_muted_threads: {
         Args: { _pairs: Json }
         Returns: {
@@ -4879,6 +4892,7 @@ export type Database = {
           cancelled_by: string | null
           category: Database["public"]["Enums"]["job_category"]
           commission_tax_amount: number | null
+          completed_at: string | null
           created_at: string
           credential_tier: number
           customer_fee_amount: number | null
@@ -5305,6 +5319,16 @@ export type Database = {
         Returns: number
       }
       job_is_funded: { Args: { p_job_id: string }; Returns: boolean }
+      job_legacy_completed_at: {
+        Args: {
+          _helper_completed_at: string
+          _poster_completed_at: string
+          _revision_completed_at: string
+          _updated_at: string
+        }
+        Returns: string
+      }
+      job_messaging_closes_at: { Args: { _job_id: string }; Returns: string }
       job_payment_is_funded: {
         Args: { p_payment_status: string }
         Returns: boolean

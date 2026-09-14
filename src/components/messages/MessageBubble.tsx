@@ -119,9 +119,11 @@ export function MessageBubble({
 }) {
   const isSending = m.sendStatus === "sending";
   const isFailed = m.sendStatus === "failed";
+  // Refused for good (the thread closed): no retry, because one cannot work.
+  const isRefused = m.sendStatus === "refused";
   // Only settled messages get a long-press menu — there's nothing to
-  // copy/report/delete on an in-flight or failed row.
-  const actionable = !isSending && !isFailed;
+  // copy/report/delete on an in-flight, failed or refused row.
+  const actionable = !isSending && !isFailed && !isRefused;
   const longPress = useLongPress({
     onLongPress: () => {
       if (!actionable) return;
@@ -308,6 +310,10 @@ export function MessageBubble({
             <RotateCw className="w-2.5 h-2.5" />
             Not Sent — Tap to Retry
           </button>
+        ) : isRefused ? (
+          <span className="text-destructive font-medium">
+            Not Sent — Conversation Closed
+          </span>
         ) : (
           <>
             {/* The inline time is hidden on a GROUPED message — one that

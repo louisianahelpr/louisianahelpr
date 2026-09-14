@@ -3,6 +3,7 @@ import { Lock, X } from "lucide-react";
 import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
 import { assertWritable } from "@/hooks/useImpersonation";
+import { THREAD_CLOSED_NOTICE } from "@/lib/messagingLockout";
 import type { Conversation, Message } from "../types";
 
 /**
@@ -70,6 +71,7 @@ const CHAT_GUTTER_BLEED = {
  */
 export function ChatComposer({
   composerLocked,
+  threadClosed = false,
   chatLoadError,
   keyboardInset,
   activeConvo,
@@ -83,6 +85,9 @@ export function ChatComposer({
   onCancelReply,
 }: {
   composerLocked: boolean;
+  /** True once the thread has passed its 24h post-completion close
+      (src/lib/messagingLockout.ts). Replaces the composer with a notice. */
+  threadClosed?: boolean;
   chatLoadError: boolean;
   keyboardInset: number;
   activeConvo: Conversation;
@@ -101,6 +106,35 @@ export function ChatComposer({
   replyTo?: Message | null;
   onCancelReply?: () => void;
 }) {
+  if (threadClosed) {
+    /* 24h post-completion lockout — applies to everyone on the job. The
+       server refuses new messages from the same instant
+       (can_message_in_job, 20260914201350), so this replaces the whole
+       composer with a read-only notice rather than offering a send that
+       would bounce. Checked before the poster-first lock: once the thread
+       is closed, who may open it is moot. */
+    return (
+      <div
+        className="pt-2 pb-3 glass-dock sticky bottom-0"
+        style={{ ...CHAT_GUTTER_BLEED, paddingBottom: dockPaddingBottom(keyboardInset) }}
+        data-testid="thread-closed-notice"
+      >
+        <div
+          role="status"
+          className="flex items-start gap-2.5 rounded-ds-md px-3.5 py-3"
+          style={{
+            background: "hsl(var(--olivewood) / 0.06)",
+            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+          }}
+        >
+          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} strokeWidth={2} aria-hidden="true" />
+          <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            {THREAD_CLOSED_NOTICE}
+          </p>
+        </div>
+      </div>
+    );
+  }
   if (composerLocked) {
     /* Poster-first lock — the applicant waits for the poster to
        open the conversation. Replaces chips + quick replies +

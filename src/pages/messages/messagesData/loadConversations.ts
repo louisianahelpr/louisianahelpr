@@ -6,6 +6,7 @@ import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { getMessageAttachmentSignedUrls, isImageMime } from "@/lib/messageAttachments";
 import { getMutedThreadMap, threadMuteKey } from "@/lib/threadMutes";
+import { fetchMessagingClosesAt } from "@/lib/messagingLockout";
 import type { Conversation, Message } from "@/components/messages/types";
 
 /**
@@ -190,12 +191,15 @@ export async function fetchConversations(
   // single round-trip instead of N. The RPC was shipped in
   // `20260609090000_user_last_active_rpc.sql` (handoff item #28); we
   // degrade silently when the function isn't deployed (PGRST202).
-  const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes] = await Promise.all([
+  const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes, closesAtMap] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
     supabase.from("jobs").select("id, title, status, customer_id, helper_id, offered_to_helper_id").in("id", jobIds),
     getMessageAttachmentSignedUrls(imageThumbPaths),
     getMutedThreadMap(uid, mutePairs),
     supabase.rpc("get_user_last_active", { user_ids: otherIds }),
+    // 24h post-completion lockout: when each thread closes, from the server.
+    // Degrades to "no lockout shown" on PGRST202 (see messagingLockout.ts).
+    fetchMessagingClosesAt(jobIds),
   ]);
   const lastActiveMap = new Map<string, string>();
   if (
@@ -256,6 +260,7 @@ export async function fetchConversations(
     jobTitle: jobMap.get(v.jobId)?.title || "a job",
     jobId: v.jobId,
     jobStatus: jobMap.get(v.jobId)?.status ?? null,
+    messagingClosesAt: closesAtMap.get(v.jobId) ?? null,
     // Track whether the current user is the poster on this job so the
     // chat can render poster-specific quick replies (vs helper-specific).
     viewerIsPoster: jobMap.get(v.jobId)?.customer_id === uid,
@@ -315,9 +320,10 @@ export async function buildDeepLinkPlaceholder(
 ): Promise<Conversation | null> {
   // No existing conversation — fetch profile + job to build a
   // placeholder thread so the user can start messaging.
-  const [profileRes, jobRes] = await Promise.all([
+  const [profileRes, jobRes, closesAtMap] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: [deepLinkUserId] }),
     supabase.from("jobs").select("id, title, status, customer_id, helper_id, offered_to_helper_id").eq("id", deepLinkJobId).maybeSingle(),
+    fetchMessagingClosesAt([deepLinkJobId]),
   ]);
 
   // A FAILED read is not the same fact as an ABSENT row, and the dead-thread
@@ -360,6 +366,7 @@ export async function buildDeepLinkPlaceholder(
     jobTitle: jobRes.data?.title || "a job",
     jobId: deepLinkJobId,
     jobStatus: jobRes.data?.status ?? null,
+    messagingClosesAt: closesAtMap.get(deepLinkJobId) ?? null,
     viewerIsPoster: jobRes.data?.customer_id === uid,
     // Same rule as the list path above — see the comment there.
     viewerIsAssignedHelper:

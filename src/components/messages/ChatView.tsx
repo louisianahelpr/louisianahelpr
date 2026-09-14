@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
+import { isThreadClosed, serverNow } from "@/lib/messagingLockout";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { MessageActionSheet } from "./MessageActionSheet";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -294,6 +295,25 @@ export function ChatView({
   const posterHasMessaged = messages.some((m) => m.sender_id !== userId);
   const composerLocked = isApplicant && !posterHasMessaged;
 
+  // 24h post-completion lockout, for everyone on the job. The closing instant
+  // comes from the server (same expression as the INSERT gate), so the
+  // notice appears exactly when sends start being refused. Read against
+  // server-corrected time on every render, and re-render once at the closing instant so
+  // a thread left open across it closes in place.
+  const messagingClosesAt = activeConvo.messagingClosesAt ?? null;
+  const [, setCloseTick] = useState(0);
+  useEffect(() => {
+    if (!messagingClosesAt) return;
+    // Server time, not the device clock (see messagingLockout.serverNow).
+    const ms = Date.parse(messagingClosesAt) - serverNow();
+    // setTimeout overflows past 2^31-1 ms (~24.8 days); nothing that far out
+    // needs a live flip.
+    if (Number.isNaN(ms) || ms <= 0 || ms > 2_147_483_647) return;
+    const t = setTimeout(() => setCloseTick((n) => n + 1), ms + 250);
+    return () => clearTimeout(t);
+  }, [messagingClosesAt]);
+  const threadClosed = isThreadClosed(messagingClosesAt);
+
   // iMessage-style read receipt: only the CURRENT USER's most recent
   // *settled* outbound message carries a "Read"/"Delivered" indicator —
   // not every bubble. Derived from the messages already in state (no new
@@ -442,6 +462,7 @@ export function ChatView({
 
           <ChatComposer
             composerLocked={composerLocked}
+            threadClosed={threadClosed}
             chatLoadError={chatLoadError}
             keyboardInset={keyboardInset}
             activeConvo={activeConvo}

@@ -37,11 +37,13 @@ export type Message = {
    *   It lets the realtime INSERT echo of our own message be matched back
    *   to the optimistic bubble so we don't render a duplicate.
    * - `sendStatus`: `"sending"` while the insert is in flight, `"failed"`
-   *   if it errored (the bubble offers a retry). Confirmed messages leave
-   *   this `undefined`.
+   *   if it errored (the bubble offers a retry), `"refused"` if the server
+   *   refused it for a reason a retry cannot fix (the thread closed 24h
+   *   after completion; no retry offered). Confirmed messages leave this
+   *   `undefined`.
    */
   clientId?: string;
-  sendStatus?: "sending" | "failed";
+  sendStatus?: "sending" | "failed" | "refused";
   /**
    * True for DB-generated status-change notifications (sender_id is NULL).
    * These render as centered italic pills in the thread instead of chat
@@ -60,6 +62,12 @@ export type Conversation = {
       see at a glance whether they're discussing an open posting, an
       awarded job, or a completed one. */
   jobStatus?: string | null;
+  /** When this thread closes to new messages (24h after the job was
+      completed), as reported by the server's `get_messaging_closes_at` — the
+      same instant the messages INSERT policy starts refusing. Null/absent
+      when the job is not completed or the RPC is not deployed.
+      See src/lib/messagingLockout.ts. */
+  messagingClosesAt?: string | null;
   /** True when the current user posted the job — drives poster-specific
       quick reply set in the chat composer. */
   viewerIsPoster?: boolean;

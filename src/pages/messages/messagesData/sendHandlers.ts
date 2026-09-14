@@ -6,6 +6,11 @@ import { scanMessage } from "@/lib/messageScanner";
 import { requireOnline } from "@/lib/requireOnline";
 import type { Conversation, Message } from "@/components/messages/types";
 import { logViolation } from "../logViolation";
+import {
+  THREAD_CLOSED_TOAST,
+  fetchMessagingClosesAt,
+  isLockoutRefusal,
+} from "@/lib/messagingLockout";
 
 // Module-level so it survives the per-render re-creation of the handlers:
 // a blocked send logs at most ONE violation per unique (user, message) —
@@ -39,6 +44,7 @@ export function createSendHandlers({
   scrollToBottom,
   activeConvoRef,
   loadConversations,
+  setActiveConvo,
 }: {
   userId: string | null;
   cachedUser: { user_metadata?: { full_name?: string } } | null | undefined;
@@ -51,6 +57,8 @@ export function createSendHandlers({
   scrollToBottom: (behavior?: ScrollBehavior) => void;
   activeConvoRef: MutableRefObject<Conversation | null>;
   loadConversations: (uid: string) => Promise<void>;
+  /** Lets a lockout refusal flip the open thread to its read-only notice. */
+  setActiveConvo?: Dispatch<SetStateAction<Conversation | null>>;
 }) {
   // Patch a single conversation in local state for one inbound/outbound
   // message — instead of re-running the whole 200-row + RPC
@@ -133,6 +141,30 @@ export function createSendHandlers({
     if (error || !data) {
       // Keep the text on screen and let the user retry it.
       hapticError();
+      // 24h post-completion lockout. RLS refuses with 42501 and no reason, so
+      // ask the server when this thread closes (the local value can be stale:
+      // loaded before the job completed, or a device clock behind the
+      // server's). If that explains the refusal, say so and flip the thread
+      // to its read-only notice instead of inviting a retry that cannot work.
+      if ((error as { code?: string } | null)?.code === "42501") {
+        const closesAt =
+          (await fetchMessagingClosesAt([optimistic.job_id])).get(optimistic.job_id) ?? null;
+        if (isLockoutRefusal(error, closesAt)) {
+          toast.error(THREAD_CLOSED_TOAST);
+          const patch = (c: Conversation) =>
+            c.jobId === optimistic.job_id ? { ...c, messagingClosesAt: closesAt } : c;
+          setConversations((prev) => prev.map(patch));
+          setActiveConvo?.((prev) => (prev ? patch(prev) : prev));
+          // `refused`, not `failed`: the bubble keeps the text but offers no
+          // tap-to-retry, because a retry into a closed thread cannot work.
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.clientId === optimistic.clientId ? { ...m, sendStatus: "refused" } : m,
+            ),
+          );
+          return;
+        }
+      }
       toast.error("Message didn't go through — tap it to try again.");
       setMessages((prev) =>
         prev.map((m) =>

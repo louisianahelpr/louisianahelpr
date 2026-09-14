@@ -151,6 +151,7 @@ export function useComboboxKeyboard({
       // stopPropagation: an enclosing sheet must not also close.
       e.preventDefault();
       e.stopPropagation();
+      setActiveIndex(-1);
       close();
       return;
     }
@@ -158,7 +159,10 @@ export function useComboboxKeyboard({
     if (e.key === "Tab") {
       // No preventDefault — Tab must still leave the field. Closing here
       // (rather than trapping) is the whole point.
-      if (isOpen) close();
+      if (isOpen) {
+        setActiveIndex(-1);
+        close();
+      }
     }
   }, []);
 
@@ -182,7 +186,9 @@ export function useComboboxKeyboard({
       "aria-autocomplete": "list",
       "aria-expanded": open,
       "aria-controls": listboxId,
-      "aria-activedescendant": activeIndex >= 0 ? optionId(activeIndex) : undefined,
+      // Only while the popup is open: after Escape the option element is gone,
+      // and a stale id makes screen readers announce a row that is not there.
+      "aria-activedescendant": open && activeIndex >= 0 ? optionId(activeIndex) : undefined,
       onKeyDown,
     },
     listboxProps: { id: listboxId, role: "listbox" },

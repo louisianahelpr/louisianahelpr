@@ -104,8 +104,12 @@ describe("suggestion popup keyboard model", () => {
   it("Escape closes the popup and keeps focus on the input", () => {
     const input = openPopup();
     input.focus();
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(input).toHaveAttribute("aria-activedescendant");
     fireEvent.keyDown(input, { key: "Escape" });
     expect(screen.queryByRole("listbox")).toBeNull();
+    // No stale pointer at a row that is no longer on the page.
+    expect(input).not.toHaveAttribute("aria-activedescendant");
     expect(document.activeElement).toBe(input);
     expect(input).toHaveAttribute("aria-expanded", "false");
     // The query the user was refining survives (a bare <input type="search">

@@ -13,8 +13,8 @@ name: Supabase DB Drift Detector
 # There is deliberately no fourth "found drift but passed" state; that WAS
 # this file's behaviour for 18 straight nightly runs. See the final step.
 #
-# Runs nightly at 06:00 UTC (01:00 CT) — quiet hour, after the daily
-# digest cron (5am UTC) so it sees a representative state.
+# Runs nightly at 05:17 UTC (00:17 CDT), after the daily digest cron
+# (5am UTC) so it sees a representative state.
 #
 # REQUIRED REPO SECRETS (same as db-deploy.yml):
 # - SUPABASE_ACCESS_TOKEN
@@ -23,7 +23,8 @@ name: Supabase DB Drift Detector
 
 on:
   schedule:
-    - cron: "0 6 * * *"
+    # Daily 05:17 UTC (prod load spread, 2026-09-14).
+    - cron: "17 5 * * *"
   workflow_dispatch:
 
 permissions:
@@ -31,8 +32,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: db-drift-detect
-  cancel-in-progress: true
+  # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
+  # >= 2h apart, and share the prod-load concurrency group; see
+  # src/test/prodWorkflowSpacing.test.ts before moving this.
+  group: prod-load
+  cancel-in-progress: false
 
 jobs:
   detect:

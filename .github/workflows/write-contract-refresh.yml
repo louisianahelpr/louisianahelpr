@@ -13,15 +13,19 @@ name: Write contract snapshot refresh
 
 on:
   schedule:
-    - cron: "20 6 * * *"
+    # Sat 11:17 UTC (prod load spread, 2026-09-14).
+    - cron: "17 11 * * 6"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: write-contract-refresh
-  cancel-in-progress: true
+  # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
+  # >= 2h apart, and share the prod-load concurrency group; see
+  # src/test/prodWorkflowSpacing.test.ts before moving this.
+  group: prod-load
+  cancel-in-progress: false
 
 jobs:
   refresh:

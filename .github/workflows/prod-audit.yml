@@ -32,7 +32,8 @@ permissions:
 
 on:
   schedule:
-    - cron: "10 9 * * *"
+    # Sun, Thu 03:17 UTC (prod load spread, 2026-09-14).
+    - cron: "17 3 * * 0,4"
   workflow_dispatch:
     inputs:
       grep:
@@ -41,7 +42,10 @@ on:
         default: ""
 
 concurrency:
-  group: prod-lifecycle-shared-accounts
+  # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
+  # >= 2h apart, and share the prod-load concurrency group; see
+  # src/test/prodWorkflowSpacing.test.ts before moving this.
+  group: prod-load
   cancel-in-progress: false
 
 jobs:
@@ -73,6 +77,12 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
+    # Workflow-level group is prod-load now; this job-level lock keeps the
+    # shared-account serialisation with e2e-real-backend's push-triggered
+    # prod-lifecycle job, which holds the same group.
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
     # The explore half is ~45 routes, each pressing every control on the screen
     # and re-loading between presses, at a 4-minute per-route budget. Measured
     # locally at 2-2.5 minutes a route, so the ceiling is the sum, not one slow

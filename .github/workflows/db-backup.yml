@@ -63,13 +63,16 @@ name: DB backup (nightly)
 
 on:
   schedule:
-    # 07:40 UTC ≈ 01:40 America/Chicago — after the nightly drift detector and
-    # well clear of the daily sweeps, so a long dump cannot contend with them.
-    - cron: "40 7 * * *"
+    # Daily 07:17 UTC ≈ 02:17 America/Chicago — its own 2h prod-load slot
+    # (prod load spread, 2026-09-14), so a long dump cannot contend with a sweep.
+    - cron: "17 7 * * *"
   workflow_dispatch:
 
 concurrency:
-  group: db-backup
+  # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
+  # >= 2h apart, and share the prod-load concurrency group; see
+  # src/test/prodWorkflowSpacing.test.ts before moving this.
+  group: prod-load
   cancel-in-progress: false
 
 jobs:

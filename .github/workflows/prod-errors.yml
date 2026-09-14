@@ -1,11 +1,11 @@
 name: Prod errors
 
-# Real users hitting error screens reach the owner within 15 minutes.
+# Real users hitting error screens reach the owner within the hour.
 #
 # Every error surface in the app reports to public.error_logs with a
 # `source` and `screen` tag (proven by src/test/errorSurfacesReport.test.tsx).
 # The Slack trigger on that table posts every distinct message, which is
-# the firehose; this is the alarm. Every 15 minutes it asks the database one
+# the firehose; this is the alarm. Every hour it asks the database one
 # aggregated question — did anyone who is not a seed/test account see a
 # boundary, a boot failure or an error card, or did failed requests spike —
 # and keeps ONE issue labelled `prod-errors` open while the answer is yes.
@@ -24,7 +24,9 @@ name: Prod errors
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    # Hourly at :47 (was */15; prod load spread, 2026-09-14). :47 keeps it
+    # 30 min clear of the :17 prod-hitting slots.
+    - cron: "47 * * * *"
   workflow_dispatch:
     inputs:
       include_seed:
@@ -33,14 +35,17 @@ on:
         default: false
       window_minutes:
         description: "Look-back window (minutes)"
-        default: "20"
+        default: "65"
 
 permissions:
   contents: read
   issues: write
 
 concurrency:
-  group: prod-errors
+  # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
+  # >= 2h apart, and share the prod-load concurrency group; see
+  # src/test/prodWorkflowSpacing.test.ts before moving this.
+  group: prod-load
   cancel-in-progress: false
 
 jobs:
@@ -61,7 +66,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           INCLUDE_SEED: ${{ inputs.include_seed == true && '1' || '0' }}
-          WINDOW_MINUTES: ${{ inputs.window_minutes || '20' }}
+          WINDOW_MINUTES: ${{ inputs.window_minutes || '65' }}
         run: node scripts/prod-errors-check.mjs
 
       - name: Open, update or close the prod-errors issue

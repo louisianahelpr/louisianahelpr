@@ -8,7 +8,8 @@ permissions:
 # only surface when functions are actually invoked.
 #
 # Runs:
-# - Once daily on schedule (catches secret expirations / Supabase outages)
+# - Weekly on schedule, Thu 11:17 UTC (catches secret expirations / Supabase
+#   outages); was daily until the 2026-09-14 prod-load spread
 # - NOT on push: functions-deploy.yml already covers the post-deploy check
 # - Manually via workflow_dispatch
 #
@@ -44,7 +45,7 @@ permissions:
 # passes that test.
 
 on:
-  # Runs daily. This was switched off in April 2026 to stop "burning Actions
+  # Runs weekly (was daily; prod-load spread 2026-09-14). This was switched off in April 2026 to stop "burning Actions
   # minutes" — but the repo is PUBLIC, where ubuntu runners are free and
   # unlimited, so the schedule was never costing anything. What its absence
   # did cost was ~114 consecutive days with nothing smoke-testing the edge
@@ -58,12 +59,16 @@ on:
   #   paths:
   #     - "supabase/functions/**"
   schedule:
-    - cron: "0 13 * * *" # daily at 13:00 UTC (08:00 CT)
+    # Thu 11:17 UTC (prod load spread, 2026-09-14).
+    - cron: "17 11 * * 4"
   workflow_dispatch:
 
 concurrency:
-  group: edge-smoke-${{ github.ref }}
-  cancel-in-progress: true
+  # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
+  # >= 2h apart, and share the prod-load concurrency group; see
+  # src/test/prodWorkflowSpacing.test.ts before moving this.
+  group: prod-load
+  cancel-in-progress: false
 
 jobs:
   smoke:

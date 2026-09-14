@@ -16,7 +16,9 @@ permissions:
 
 on:
   schedule:
-    - cron: "40 8 * * *"
+    # Tue, Fri 03:17 and Thu 09:17 UTC (prod load spread, 2026-09-14).
+    - cron: "17 3 * * 2,5"
+    - cron: "17 9 * * 4"
   workflow_dispatch:
     inputs:
       scenario:
@@ -25,7 +27,10 @@ on:
         default: ""
 
 concurrency:
-  group: prod-lifecycle-shared-accounts
+  # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
+  # >= 2h apart, and share the prod-load concurrency group; see
+  # src/test/prodWorkflowSpacing.test.ts before moving this.
+  group: prod-load
   cancel-in-progress: false
 
 jobs:
@@ -57,6 +62,12 @@ jobs:
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    # Workflow-level group is prod-load now; this job-level lock keeps the
+    # shared-account serialisation with e2e-real-backend's push-triggered
+    # prod-lifecycle job, which holds the same group.
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
     env:
       PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
       PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
@@ -133,6 +144,12 @@ jobs:
     if: always() && needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    # Workflow-level group is prod-load now; this job-level lock keeps the
+    # shared-account serialisation with e2e-real-backend's push-triggered
+    # prod-lifecycle job, which holds the same group.
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
     env:
       PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
       PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}

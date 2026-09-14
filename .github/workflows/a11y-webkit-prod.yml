@@ -20,7 +20,8 @@ permissions:
 
 on:
   schedule:
-    - cron: "10 9 * * *"
+    # Mon, Wed, Fri 09:17 UTC (prod load spread, 2026-09-14).
+    - cron: "17 9 * * 1,3,5"
   workflow_dispatch:
     inputs:
       routes:
@@ -29,7 +30,10 @@ on:
         default: ""
 
 concurrency:
-  group: a11y-webkit-prod-${{ github.ref }}
+  # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
+  # >= 2h apart, and share the prod-load concurrency group; see
+  # src/test/prodWorkflowSpacing.test.ts before moving this.
+  group: prod-load
   cancel-in-progress: false
 
 jobs:

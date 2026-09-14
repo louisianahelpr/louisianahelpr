@@ -49,6 +49,7 @@ import {
   dedupeIntegration,
   httpContextIntegration,
 } from "@sentry/react";
+import { resolveSentryRelease } from "./sentryRelease";
 
 /**
  * Audit #2 from the 2026-05-27 cold-launch regression triage: a tag that
@@ -71,28 +72,25 @@ const ENV =
   (import.meta.env.DEV ? "development" : "production");
 
 /**
- * Release tag. Preferred source is `VITE_SENTRY_RELEASE`, which CI sets to
- * the GitHub SHA at build time (see `.github/workflows/sentry-release.yml`)
- * so the sourcemap-upload build and the runtime release tag agree.
+ * Release tag — see src/lib/sentryRelease.ts for the full rationale.
  *
- * CORRECTED 2026-09-02 (lh-observability audit, OBS-005): that CI var is
- * ONLY set inside sentry-release.yml's own build — a bundle built solely to
- * upload sourcemaps, never deployed anywhere. The bundle Vercel actually
- * serves has neither VITE_SENTRY_RELEASE nor VITE_APP_VERSION, so every real
- * production event fell straight through to the hardcoded "1.0.0" fallback —
- * a release Sentry never received sourcemaps for, so no production stack
- * trace could ever symbolicate, confirmed by capturing a real envelope from
- * the live site. `__APP_COMMIT_FULL__` (vite.config.ts) is correct on Vercel
- * too (`VERCEL_GIT_COMMIT_SHA`), so it closes the gap as a second fallback
- * before the version-string/hardcoded tail.
+ * Preferred source is `VITE_SENTRY_RELEASE` (set only inside
+ * sentry-release.yml's own build), then `__APP_COMMIT_FULL__` from
+ * vite.config.ts, which is the commit SHA in BOTH shipping builds by a
+ * different road each: Vercel's web build reads `VERCEL_GIT_COMMIT_SHA`, and
+ * the iOS build (`npm run build:ios`, fastlane) reads `git rev-parse HEAD`.
+ *
+ * CORRECTED 2026-09-02 (lh-observability OBS-005) and again 2026-09-14: the
+ * old chain ended in a hardcoded "1.0.0", so a build that could not identify
+ * itself reported a release that LOOKED legitimate in the Sentry UI while
+ * having no source maps — no production stack trace could symbolicate, for
+ * months, with CI green. The tail is now `unidentified-build`, which is
+ * unmistakable. src/test/sentryRelease.test.ts holds the whole chain.
  */
-const RELEASE =
-  (import.meta.env.VITE_SENTRY_RELEASE as string | undefined) ||
-  (typeof __APP_COMMIT_FULL__ !== "undefined" && __APP_COMMIT_FULL__ !== "dev"
-    ? __APP_COMMIT_FULL__
-    : undefined) ||
-  (import.meta.env.VITE_APP_VERSION as string | undefined) ||
-  "1.0.0";
+const RELEASE = resolveSentryRelease({
+  viteRelease: import.meta.env.VITE_SENTRY_RELEASE as string | undefined,
+  buildCommit: typeof __APP_COMMIT_FULL__ !== "undefined" ? __APP_COMMIT_FULL__ : undefined,
+});
 
 let initialized = false;
 

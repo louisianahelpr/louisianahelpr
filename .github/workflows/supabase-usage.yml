@@ -1,0 +1,119 @@
+name: Supabase usage
+
+# Owner-approved 2026-09-14. Weekly headroom check against the free-tier
+# ceilings: 500 MB database, 1 GB storage. Warns at 70% by opening an issue
+# labelled `supabase-usage` (and posting to Slack if the webhook exists), so
+# the ceiling never arrives as a surprise.
+#
+# NOT SQL, on purpose: scripts/supabase-usage-check.mjs asks the Supabase
+# MANAGEMENT API (api.supabase.com, SUPABASE_ACCESS_TOKEN) rather than the
+# database. Prod is a t4g.nano that fell over on 2026-09-13 under workflow
+# load; the control plane answers this without touching the instance at all.
+# It follows that this workflow is NOT prod-hitting for the purposes of
+# src/test/prodWorkflowSpacing.test.ts — no cron spacing slot is consumed —
+# but it carries SUPABASE_PROJECT_REF, which that guard treats as a prod
+# signal, so it sits in the prod-load group at an otherwise-empty weekly slot
+# anyway. Cheaper than arguing with the guard, and harmless.
+#
+# The API's exposed metric set is not a fixed contract, so the script probes
+# several endpoints and the report states, per metric, whether it got a number
+# or the API does not expose it. Read the run output — that is the evidence,
+# not this comment.
+
+on:
+  schedule:
+    # Saturday 01:17 UTC — no prod-hitting daily slot runs before 03:17.
+    - cron: "17 1 * * 6"
+  workflow_dispatch:
+    inputs:
+      warn_at_percent:
+        description: "Warn threshold (% of the free-tier limit)"
+        required: false
+        default: "70"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  # PROD LOAD (2026-09-14): see src/test/prodWorkflowSpacing.test.ts.
+  group: prod-load
+  cancel-in-progress: false
+
+jobs:
+  usage:
+    name: Free-tier headroom
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Ask the Management API
+        id: usage
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          WARN_AT_PERCENT: ${{ inputs.warn_at_percent || '70' }}
+        run: node scripts/supabase-usage-check.mjs
+
+      - name: Open, update or close the supabase-usage issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          WARN: ${{ steps.usage.outputs.warn }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          # Same one-issue-per-condition shape as prod-errors.yml: the title is
+          # the dedup key and the step that opens it closes it, so the open list
+          # is the live state rather than a history.
+          TITLE="supabase-usage: approaching a free-tier limit"
+          gh label create supabase-usage --repo "$REPO" --color FBCA04 \
+            --description "Prod is near a Supabase free-tier ceiling" --force >/dev/null
+          EXISTING=$(gh issue list --repo "$REPO" --label supabase-usage --state open \
+            --search "in:title \"${TITLE}\"" --json number,title \
+            --jq ".[] | select(.title == \"${TITLE}\") | .number" | head -n1)
+
+          BODY="$(cat supabase-usage-report.md)
+
+          Run: ${RUN_URL}"
+
+          if [ "$WARN" = "true" ]; then
+            if [ -n "$EXISTING" ]; then
+              gh issue comment "$EXISTING" --repo "$REPO" --body "$BODY"
+            else
+              gh issue create --repo "$REPO" --title "$TITLE" --label supabase-usage --body "$BODY"
+            fi
+          elif [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$REPO" --body "Back under the threshold: ${RUN_URL}"
+            gh issue close "$EXISTING" --repo "$REPO"
+          else
+            echo "Under the threshold, nothing open."
+          fi
+
+      # Only on the warn path. A missing webhook fails loudly rather than
+      # skipping: the owner must add SLACK_WEBHOOK_URL.
+      - name: Tell Slack
+        if: steps.usage.outputs.warn == 'true'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SUMMARY: ${{ steps.usage.outputs.summary }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::error::Prod is near a Supabase free-tier limit and there is no SLACK_WEBHOOK_URL repo secret. OWNER ACTION: add it (Settings -> Secrets and variables -> Actions). The supabase-usage issue was still opened."
+            exit 1
+          fi
+          TEXT=":warning: Supabase free tier — ${SUMMARY}
+          ${RUN_URL}"
+          curl -sS --fail-with-body -X POST -H 'content-type: application/json' \
+            --data "$(jq -nc --arg t "$TEXT" '{text:$t}')" "$SLACK_WEBHOOK_URL"
+
+      - name: Summary
+        if: always()
+        run: cat supabase-usage-report.md >> "$GITHUB_STEP_SUMMARY" || true

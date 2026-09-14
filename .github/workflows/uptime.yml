@@ -1,0 +1,132 @@
+name: Uptime
+
+# Owner-approved 2026-09-14. The first thing that tells anyone prod is down.
+#
+# On 2026-09-13 the free-tier t4g.nano database was unreachable for roughly a
+# day and the only signal was a human noticing. Everything else in this repo is
+# a suite that runs once a night; none of it answers "is the app usable right
+# now".
+#
+# WHAT IT ASKS, every 10 minutes (see scripts/uptime-check.mjs):
+#   1. GET https://www.louisianahelpr.com/            -> 200
+#   2. GET /rest/v1/open_jobs_browse?select=id&limit=1 -> 200 within 10s
+# The second one is the one that matters: Vercel keeps serving index.html from
+# the CDN straight through a total database outage, so a site-only ping would
+# have reported green for the whole of 2026-09-13.
+#
+# PROD LOAD (2026-09-14): this is NOT a test suite and is deliberately exempt
+# by name from the >= 90 min cron-spacing rule in
+# src/test/prodWorkflowSpacing.test.ts. Its whole cost is ONE anonymous
+# single-row select every 10 minutes (~6/hour) against the same public view a
+# logged-out visitor hits on /browse — orders of magnitude below one page view.
+# It also gets its own concurrency group, never `prod-load`: GitHub keeps only
+# one pending run per group, so a 10-minute monitor sitting in prod-load would
+# silently cancel whatever heavy suite is queued behind an overrunning one.
+#
+# TWO CONSECUTIVE FAILURES, not one — the script probes up to three rounds 30s
+# apart and reports down only when two consecutive rounds fail, so one dropped
+# connection never pages anyone. On success it stops after round 1 (2 requests).
+#
+# Secrets used (all already present): VITE_SUPABASE_URL,
+# VITE_SUPABASE_PUBLISHABLE_KEY — the publishable anon key, safe in clients.
+# SLACK_WEBHOOK_URL is OPTIONAL TO ADD but NOT optional to skip: if prod is
+# down and the webhook is missing, the notify step fails loudly saying the
+# owner must add it. Silence about a silent alarm is how 2026-09-13 happened.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: "Override the site URL (use a bad host to prove the failure path)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  # NOT prod-load, on purpose — see the header. Exempt by name in
+  # src/test/prodWorkflowSpacing.test.ts.
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Is prod answering?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Probe the site and the database
+        id: probe
+        env:
+          SITE_URL: ${{ inputs.site_url || 'https://www.louisianahelpr.com/' }}
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          # Spelled out here, not only inside the script, so the prod-hitting
+          # derivation in src/test/prodWorkflowSpacing.test.ts sees a real
+          # PostgREST call in this file and classifies the workflow correctly
+          # (it is then exempted BY NAME, with a reason, rather than missed).
+          REST_PROBE_PATH: "/rest/v1/open_jobs_browse?select=id&limit=1"
+        run: node scripts/uptime-check.mjs
+
+      - name: Read the report back
+        id: report
+        run: |
+          set -euo pipefail
+          if [ -f uptime-report.md ]; then
+            {
+              echo "body<<LH_EOF"
+              cat uptime-report.md
+              echo "LH_EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "body=" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Opens `prod-down: uptime` on the first down verdict, comments the probe
+      # table on each later one, and CLOSES it on the first run that passes.
+      - name: Open, update or close the prod-down issue
+        uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: uptime
+          label: prod-down
+          label-description: "Production is not answering; auto-opened and auto-closed by the uptime check"
+          status: ${{ steps.probe.outputs.status == 'down' && 'failure' || 'success' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          body-extra: ${{ steps.report.outputs.body }}
+
+      # Only on the down path. A missing webhook is a LOUD failure here, never
+      # a silent skip: the owner must add SLACK_WEBHOOK_URL (Slack → Incoming
+      # Webhooks → copy URL → repo Settings → Secrets and variables → Actions).
+      - name: Tell Slack
+        if: steps.probe.outputs.status == 'down'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SUMMARY: ${{ steps.probe.outputs.summary }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::error::Prod is down and there is no SLACK_WEBHOOK_URL repo secret, so nobody was paged. OWNER ACTION: create a Slack Incoming Webhook and add it as the repo secret SLACK_WEBHOOK_URL (Settings -> Secrets and variables -> Actions). The prod-down issue was still opened."
+            exit 1
+          fi
+          TEXT=":rotating_light: Louisiana Helpr is DOWN — ${SUMMARY}
+          ${RUN_URL}"
+          curl -sS --fail-with-body -X POST -H 'content-type: application/json' \
+            --data "$(jq -nc --arg t "$TEXT" '{text:$t}')" "$SLACK_WEBHOOK_URL"
+
+      - name: Fail the run while prod is down
+        if: steps.probe.outputs.status == 'down'
+        run: |
+          echo "::error::${{ steps.probe.outputs.summary }}"
+          exit 1

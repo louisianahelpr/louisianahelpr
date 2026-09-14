@@ -26,6 +26,15 @@
  *      A recurring monitor (more than one fire per day, i.e. prod-errors)
  *      is exempt from rule 3 — hourly would violate it against itself — but
  *      must keep at least 30 min clear of every daily fire.
+ *
+ * EXEMPTIONS are BY NAME with a stated reason, in `EXEMPT` below, and only
+ * ever lift rules 2 and 3 (frequency and spacing). An exempt workflow must
+ * still declare a workflow-level concurrency group with
+ * cancel-in-progress: false, and that group must NOT be prod-load — GitHub
+ * keeps one pending run per group, so a high-frequency monitor parked there
+ * would silently cancel a queued suite. Exemption is for a monitor whose
+ * whole per-run cost is a couple of anonymous single-row requests; it is
+ * never for a test suite.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -37,8 +46,23 @@ const WEEK = 7 * 24 * 60;
 const MIN_GAP = 90;
 const MONITOR_CLEARANCE = 30;
 
+/**
+ * Workflows exempt from the frequency (rule 2) and spacing (rule 3) rules,
+ * by file name, each with the reason it costs prod essentially nothing.
+ * Rule 1 still applies in its stricter form (see `violations`).
+ */
+export const EXEMPT: Record<string, string> = {
+  "uptime.yml":
+    "Uptime is a monitor, not a test suite: one anonymous GET of index.html plus " +
+    "one anonymous single-row select from open_jobs_browse every 10 minutes " +
+    "(~6 reads an hour, less than a single page view). Spacing it to 90 min " +
+    "would defeat the point — the 2026-09-13 outage lasted a day unnoticed.",
+};
+
 const PROD_SIGNALS: RegExp[] = [
   /fncmgoasalhdgfwzhsqa/,
+  // A direct PostgREST call from a workflow file — how uptime.yml reads prod.
+  /\/rest\/v1\//,
   /SUPABASE_PROJECT_REF/,
   /E2E_SUPABASE_URL/,
   // Credentials, deployed base URL, prod Supabase URL/key. NOT
@@ -181,6 +205,16 @@ export function violations(wfs: Wf[]): string[] {
   // Rule 1: concurrency.
   for (const w of prod) {
     const { group, cancel } = concurrencyOf(w.src);
+    if (EXEMPT[w.file]) {
+      // Exempt from frequency/spacing, NOT from having its own safe group.
+      if (!group) out.push(`${w.file}: exempt workflows still need a workflow-level concurrency group`);
+      else if (group === "prod-load")
+        out.push(`${w.file}: exempt workflows must NOT sit in prod-load (a frequent run there cancels queued suites)`);
+      if (cancel !== "false") {
+        out.push(`${w.file}: concurrency cancel-in-progress is "${cancel ?? "(unset)"}", must be false`);
+      }
+      continue;
+    }
     // The hourly monitor has its own group: GitHub keeps only ONE pending run
     // per group, so an hourly run in prod-load would cancel a heavy suite that
     // is queued behind an overrunning one. It is tiny and 30 min clear anyway.
@@ -199,6 +233,7 @@ export function violations(wfs: Wf[]): string[] {
   const daily: { file: string; at: number }[] = [];
   const monitors: { file: string; at: number }[] = [];
   for (const w of prod) {
+    if (EXEMPT[w.file]) continue;
     for (const cron of w.crons) {
       let fires: number[];
       try {
@@ -258,8 +293,18 @@ describe("prod-hitting workflow schedules", () => {
     const names = prodHitting(wfs).map((w) => w.file);
     // Sanity floor, not a registry: these are known to hit prod today, so a
     // broken derivation (e.g. a regex that matches nothing) cannot go green.
-    for (const f of ["prod-audit.yml", "e2e-journeys.yml", "prod-errors.yml", "db-drift-detect.yml"]) {
+    for (const f of ["prod-audit.yml", "e2e-journeys.yml", "prod-errors.yml", "db-drift-detect.yml", "uptime.yml"]) {
       expect(names).toContain(f);
+    }
+  });
+
+  it("every exemption names a real prod-hitting workflow and carries a reason", () => {
+    const names = prodHitting(wfs).map((w) => w.file);
+    for (const [file, reason] of Object.entries(EXEMPT)) {
+      // A stale exemption is worse than none: it would silently cover a file
+      // that no longer exists while the guard reports green.
+      expect(names, `${file} is exempt but is not classified prod-hitting`).toContain(file);
+      expect(reason.length, `${file} exemption needs a stated reason`).toBeGreaterThan(40);
     }
   });
 
@@ -298,6 +343,22 @@ describe("prod-hitting workflow schedules", () => {
         { file: "d2.yml", src: "env:\n  VITE_SUPABASE_URL: https://fncmgoasalhdgfwzhsqa.supabase.co\n", crons: ["0 5 * * *"] },
       ]),
     ).toEqual([]);
+    // The exemption lifts frequency/spacing ONLY, and only by name.
+    const tenMin = 'on:\n  schedule:\n    - cron: "*/10 * * * *"\nx: /rest/v1/open_jobs_browse\n';
+    const wf = (file: string, concurrency: string): Wf => ({
+      file,
+      src: `${tenMin}concurrency:\n${concurrency}`,
+      crons: ["*/10 * * * *"],
+    });
+    // Same file shape, not named in EXEMPT -> still red on frequency.
+    expect(violations([wf("not-exempt.yml", "  group: prod-load\n  cancel-in-progress: false\n")]).some((v) => v.includes("every 10 min"))).toBe(true);
+    // Named in EXEMPT with its own group -> green.
+    expect(violations([wf("uptime.yml", "  group: uptime\n  cancel-in-progress: false\n")])).toEqual([]);
+    // Exempt but parked in prod-load -> red (it would cancel queued suites).
+    expect(violations([wf("uptime.yml", "  group: prod-load\n  cancel-in-progress: false\n")]).some((v) => v.includes("must NOT sit in prod-load"))).toBe(true);
+    // Exempt but cancelling in progress -> red.
+    expect(violations([wf("uptime.yml", "  group: uptime\n  cancel-in-progress: true\n")]).some((v) => v.includes("cancel-in-progress"))).toBe(true);
+
     // Day-of-week aware: same time on different days is not a collision.
     expect(
       violations([

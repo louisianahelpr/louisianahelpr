@@ -20,16 +20,37 @@ inputs:
   github-token:
     description: "Token with issues: write on this repo"
     required: true
+  label:
+    description: >
+      Issue label to open/close under. Defaults to `nightly-red` so every
+      existing caller is unchanged. uptime.yml passes `prod-down` so a real
+      outage is not buried in the nightly-red list a session skims at start.
+    required: false
+    default: "nightly-red"
+  body-extra:
+    description: >
+      Optional detail appended to the issue body and used as the text of the
+      "still red" comment. uptime.yml passes the per-round probe table so the
+      issue says WHAT is unreachable, not just that something is.
+    required: false
+    default: ""
+  label-description:
+    description: "Description used if the label has to be created"
+    required: false
+    default: "A scheduled or post-push check went red; auto-opened and auto-closed by CI"
 
 runs:
   using: "composite"
   steps:
-    - name: Sync nightly-red issue
+    - name: Sync the issue for this workflow
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
         WORKFLOW_NAME: ${{ inputs.workflow-name }}
         STATUS: ${{ inputs.status }}
+        LABEL: ${{ inputs.label }}
+        LABEL_DESC: ${{ inputs.label-description }}
+        BODY_EXTRA: ${{ inputs.body-extra }}
         RUN_URL: ${{ inputs.run-url }}
         REPO: ${{ github.repository }}
       run: |
@@ -38,13 +59,13 @@ runs:
         # The label must exist or `gh issue create --label` fails and the alert
         # is silently lost. It did not exist until 2026-09-13; every failure
         # this action tried to report before then filed nothing.
-        gh label create nightly-red --repo "$REPO" --color B60205 \
-          --description "A scheduled or post-push check went red; auto-opened and auto-closed by CI" \
+        gh label create "$LABEL" --repo "$REPO" --color B60205 \
+          --description "$LABEL_DESC" \
           >/dev/null 2>&1 || true
 
-        TITLE="nightly-red: ${WORKFLOW_NAME}"
+        TITLE="${LABEL}: ${WORKFLOW_NAME}"
         # One open issue per workflow — title is the dedup key, not the run.
-        EXISTING=$(gh issue list --repo "$REPO" --label nightly-red --state open \
+        EXISTING=$(gh issue list --repo "$REPO" --label "$LABEL" --state open \
           --search "in:title \"${TITLE}\"" --json number,title \
           --jq ".[] | select(.title == \"${TITLE}\") | .number" | head -n1)
 
@@ -52,19 +73,22 @@ runs:
           if [ -n "$EXISTING" ]; then
             echo "Issue #$EXISTING already open for ${WORKFLOW_NAME} — adding a comment."
             gh issue comment "$EXISTING" --repo "$REPO" \
-              --body "Still red: ${RUN_URL}"
+              --body "Still red: ${RUN_URL}
+        ${BODY_EXTRA}"
           else
-            echo "Opening a new nightly-red issue for ${WORKFLOW_NAME}."
+            echo "Opening a new ${LABEL} issue for ${WORKFLOW_NAME}."
             BODY="${WORKFLOW_NAME} failed.
 
         Run: ${RUN_URL}
 
         This issue stays open until ${WORKFLOW_NAME} goes green again — it is closed
         automatically by the same sync step, not by hand. See CLAUDE.md: sessions
-        must check \`gh issue list -l nightly-red\` at start."
+        must check \`gh issue list -l ${LABEL}\` at start.
+
+        ${BODY_EXTRA}"
             gh issue create --repo "$REPO" \
               --title "$TITLE" \
-              --label nightly-red \
+              --label "$LABEL" \
               --body "$BODY"
           fi
         else
@@ -74,6 +98,6 @@ runs:
               --body "Green again: ${RUN_URL}"
             gh issue close "$EXISTING" --repo "$REPO"
           else
-            echo "${WORKFLOW_NAME} is green and no open nightly-red issue exists — nothing to do."
+            echo "${WORKFLOW_NAME} is green and no open ${LABEL} issue exists — nothing to do."
           fi
         fi

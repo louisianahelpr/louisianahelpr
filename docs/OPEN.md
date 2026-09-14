@@ -2169,5 +2169,6 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] Signed-in press-every-control full run on prod (owner: run just before the final re-check) — one run, after the paused suites are re-enabled and prod has been healthy.
 - [ ] Supabase Pro: owner will decide later (not before launch prep).
 - [x] Voice note client cap lowered 10 MB → 5 MB to match the message-attachments bucket limit; guard src/lib/voiceNoteLimitMatchesBucket.test.ts (red at 10 MB).
+- [ ] QUEUED (next after the lockout lands): is_party_to_job(_job_id, _user_id) is callable by any signed-in user with an arbitrary user id. Design a receiver-safe variant for the send policy, revoke client EXECUTE, prove on PGlite + prod proacl.
 - [ ] LAST, after everything above: independent re-check by a different model (sonnet) of ALL work landed 2026-09-13 — full vitest once, CI green per push, re-run each fix's own proof on prod, list what doesn't hold
 - [ ] OWNER: allow the Stripe connector write tool + reconnect Stripe, then add transfer.failed to live webhook and close #1462/#1521

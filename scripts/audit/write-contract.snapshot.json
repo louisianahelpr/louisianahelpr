@@ -341,6 +341,15 @@
     "nargs": 1
    }
   ],
+  "check_ops_digest_delivery": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "check_referral_bonus": [
    {
     "anon": false,
@@ -2312,6 +2321,15 @@
     "anon": true,
     "args": [],
     "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "send_ops_daily_digest": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
    }

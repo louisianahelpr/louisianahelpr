@@ -1,0 +1,21 @@
+name: Slack alert test
+# Manual only. Posts one message through the SLACK_WEBHOOK_URL repo secret so
+# the alert path from GitHub to #ops-alerts can be proven end to end.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post test message
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then echo "::error::SLACK_WEBHOOK_URL is not set"; exit 1; fi
+          code=$(curl -s -o /tmp/resp -w "%{http_code}" -X POST -H 'Content-type: application/json' \
+            --data '{"text":":white_check_mark: Test from GitHub Actions — deploy, uptime and usage alerts can now reach #ops-alerts."}' \
+            "$SLACK_WEBHOOK_URL")
+          echo "Slack answered HTTP $code: $(cat /tmp/resp)"
+          [ "$code" = "200" ]

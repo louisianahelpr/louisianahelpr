@@ -51,6 +51,7 @@ import crypto from "node:crypto";
 import zlib from "node:zlib";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { STUCK_SEED_SPLIT_QUERY, isStuckSeedSplit, retireStuckSplitPatch, stuckSplitCasFilter } from "./seedDisputeFixture.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODE = ["--apply", "--verify", "--teardown", "--avatar"].find((f) => process.argv.includes(f));
@@ -499,6 +500,12 @@ async function apply() {
     await rest("POST", "rpc/rpc_open_dispute", { _job_id: disputeTarget.id, _reason: "SEED audit fixture: two items missing from the receipt.", _evidence_urls: [] }, { token: sessionFor(POSTER.key) });
   }
 
+  // No seed dispute is left decided-but-never-executed: that shape is a
+  // permanent fake emergency for auto-resolve-disputes and for every admin it
+  // reminds. See scripts/audit/seedDisputeFixture.mjs for why this un-decides
+  // rather than faking a settlement.
+  await retireStuckSeedSplits();
+
   // Helper profile surfaces.
   await upsert("helper_availability", [1, 2, 3, 4, 5, 6].map((d) => ({
     id: sid(`avail:${d}`), helper_id: helperId, day_of_week: d, start_time: d === 6 ? "09:00:00" : "08:00:00", end_time: d === 6 ? "13:00:00" : "17:00:00", is_available: true, specific_date: null,
@@ -628,6 +635,32 @@ async function teardown() {
   console.log(`teardown: done (${Object.keys(owned).length} owned accounts removed)`);
 }
 
+/**
+ * Read the stuck seed splits and un-decide them. Returns the ids it changed.
+ * Only ever touches a dispute whose job is `is_seed` and whose execution
+ * never started moving money — `isStuckSeedSplit` is checked again per row,
+ * client-side, so a query change alone can never widen the blast radius.
+ */
+async function retireStuckSeedSplits() {
+  const stuck = (await select(STUCK_SEED_SPLIT_QUERY)).filter(isStuckSeedSplit);
+  const retired = [];
+  for (const d of stuck) {
+    // The filter carries the whole predicate, not just the id, so this is a
+    // compare-and-swap: if execute-dispute-split claimed the row between the
+    // read above and this write, zero rows match and nothing is overwritten
+    // mid-Stripe-call. PostgREST answers 200 [] for that, not an error, so the
+    // row count is CHECKED — a null error is not a write.
+    const out = await rest("PATCH", stuckSplitCasFilter(d.id), retireStuckSplitPatch(d), { prefer: "return=representation" });
+    if (!Array.isArray(out) || out.length !== 1) {
+      console.warn(`  SKIPPED dispute ${d.id}: it changed under us (${out?.length ?? 0} rows matched) — re-run --verify`);
+      continue;
+    }
+    retired.push(d.id);
+    console.log(`  retired stuck seed dispute split ${d.id} (job ${d.job_id}, was "${d.execution_status}")`);
+  }
+  return retired;
+}
+
 // ── verify ───────────────────────────────────────────────────────────────────
 async function verify() {
   const posterId = await requireSeed(POSTER.email);
@@ -652,6 +685,19 @@ async function verify() {
   for (const s of ["unpaid", "escrow", "payout_pending", "released", "refunded", "cancelled", "abandoned", "failed", "chargeback", "cancelling"]) {
     await check(`payment ${s}`, `jobs?payment_status=eq.${s}&is_seed=eq.true&${pair}&select=id`, 1, s === "unpaid" ? "prod-seed" : "real flow");
   }
+  // Must be ZERO, so it cannot use check() (which asserts a minimum).
+  let stuckSplits = 0;
+  let stuckErr = "";
+  try {
+    stuckSplits = (await select(STUCK_SEED_SPLIT_QUERY)).filter(isStuckSeedSplit).length;
+  } catch (e) {
+    stuckErr = e.message.slice(0, 80);
+  }
+  rows.push({
+    state: "seed disputes stuck mid-execution (pending/executing/failed)", n: stuckSplits, min: 0,
+    ok: !stuckErr && stuckSplits === 0, source: "prod-seed --apply retires these", err: stuckErr,
+  });
+
   await check("disputes row (open) on a seed job", `disputes?status=eq.open&select=id,jobs!inner(is_seed)&jobs.is_seed=eq.true`, 1, "rpc_open_dispute");
   await check("long thread (34 msgs)", `messages?id=${inList(THREAD.map((_, i) => sid(`msg:thread-${i}`)))}&select=id`, 34);
   await check("message reactions", `message_reactions?message_id=${inList(THREAD.map((_, i) => sid(`msg:thread-${i}`)))}&select=emoji`, 7);

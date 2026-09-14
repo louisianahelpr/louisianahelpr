@@ -43,6 +43,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
+import { supportRequestKey } from '../_shared/alertPolicy.ts'
 // Sending, the From header, and the destination inbox all come from the one
 // Resend module now — this function used to carry its own copy of each.
 //
@@ -332,9 +333,17 @@ Deno.serve(async (req) => {
     // is torn down after the response, and this is the alert that tells a
     // human someone needs help. postSlackOpsAlert never throws and returns
     // immediately when Slack isn't configured, so it cannot fail the request.
+    //
+    // kind 'support_request', NOT 'custom'+info: from 20260914183932 an info
+    // alert is only counted for the next day's digest, so a person asking for
+    // help waited up to 24 hours for anyone to see it. This kind is in
+    // ALWAYS_POST_KINDS, so it posts now — and is deliberately not in
+    // CRITICAL_KINDS, so it keeps info wording and colouring and never reads
+    // as an outage. `oncePerDayKey` makes a double-tapped Send one post.
     await postSlackOpsAlert({
-      kind: 'custom',
+      kind: 'support_request',
       severity: 'info',
+      oncePerDayKey: supportRequestKey({ email, subject, message }),
       title: `Support: ${topicLabel}`,
       message: subject || message.slice(0, 200),
       fields: {

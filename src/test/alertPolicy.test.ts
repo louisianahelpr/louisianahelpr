@@ -142,6 +142,26 @@ describe("alertPolicy", () => {
     expect(sqlSources).toEqual([...CRITICAL_ERROR_LOG_SOURCES].sort());
   });
 
+  it("the BEFORE-INSERT stamp guards the same sources the trigger pages on", () => {
+    // Three copies of one list (TS policy, notify trigger, origin stamp). The
+    // stamp is what stops a browser writing one of these sources; if it drifts
+    // from the trigger's list, a forged row starts paging again.
+    const dir = join(process.cwd(), "supabase", "migrations");
+    const latest = readdirSync(dir)
+      .filter((f) => readFileSync(join(dir, f), "utf8").includes("FUNCTION public.stamp_error_log_origin()"))
+      .sort()
+      .pop()!;
+    const sql = readFileSync(join(dir, latest), "utf8");
+    const fn = sql.slice(sql.indexOf("FUNCTION public.stamp_error_log_origin()"));
+    const arr = fn.slice(fn.indexOf("ARRAY["), fn.indexOf("];"));
+    const stampSources = [...arr.matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
+    expect(stampSources).toEqual([...CRITICAL_ERROR_LOG_SOURCES].sort());
+    // And it must stay SECURITY INVOKER: a definer function reads its own
+    // owner from current_user and would stamp every row 'server'.
+    const header = fn.slice(0, fn.indexOf("AS $fn$"));
+    expect(header).not.toMatch(/SECURITY DEFINER/);
+  });
+
   it("admin fallbacks are critical unless known informational", () => {
     expect(adminPushSeverity("Dispute split did not settle")).toBe("critical");
     expect(adminPushSeverity("Payout blocked — charge not captured")).toBe("critical");

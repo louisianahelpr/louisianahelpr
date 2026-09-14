@@ -39,6 +39,10 @@ type SlackAlertKind =
   // (alertPolicy CRITICAL_KINDS), whatever severity the call site passes.
   | 'money_at_risk'
   | 'security'
+  // A person asking for help. Posts immediately (alertPolicy
+  // ALWAYS_POST_KINDS) but keeps its caller's severity, so it arrives as an
+  // ℹ️ note rather than a page.
+  | 'support_request'
 
 export interface SlackAlertInput {
   kind: SlackAlertKind
@@ -110,6 +114,76 @@ async function recordAlertRow(
 }
 
 /**
+ * Give up the once-per-day token this row is holding.
+ *
+ * The token is claimed BEFORE the Slack POST (the row has to exist for the
+ * "earliest row wins" race to be decidable), so a post that then fails would
+ * otherwise suppress every retry for the rest of the UTC day — a support
+ * request the sender re-sends verbatim is the same key, so it would never
+ * reach the channel and the log line would say it already had. Renaming the
+ * tag releases the key while keeping the row for the digest.
+ *
+ * Tags are rewritten wholesale, not merged, because recordAlertRow built them
+ * here and their exact shape is known.
+ */
+async function releaseAlertKey(rowId: string, input: SlackAlertInput, key: string): Promise<void> {
+  const rest = restConfig()
+  if (!rest) return
+  try {
+    await fetch(`${rest.url}/rest/v1/error_logs?id=eq.${rowId}`, {
+      method: 'PATCH',
+      headers: {
+        apikey: rest.key,
+        Authorization: `Bearer ${rest.key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        tags: { source: 'ops-alert', kind: input.kind, undelivered_alert_key: key },
+      }),
+      signal: AbortSignal.timeout(5000),
+    })
+  } catch (err) {
+    console.warn('[postSlackOpsAlert] could not release alert key:', err instanceof Error ? err.message : err)
+  }
+}
+
+/**
+ * How many alerts of this kind already posted in the last hour. A coarse
+ * ceiling for the kinds that post at any severity: `support_request` is
+ * reachable from an UNAUTHENTICATED form, and while contact-support rate-limits
+ * per IP, the dedupe key is content-derived, so changing one character is a new
+ * post. Without a ceiling a scripted sender buries the critical pages this
+ * channel exists for.
+ *
+ * Fails OPEN (returns 0) on a read problem: a noisy channel beats a silenced
+ * support request.
+ */
+async function postsThisHour(kind: string): Promise<number> {
+  const rest = restConfig()
+  if (!rest) return 0
+  try {
+    const qs = new URLSearchParams({
+      select: 'id',
+      'tags->>kind': `eq.${kind}`,
+      'tags->>source': 'eq.ops-alert',
+      // Rows the cap itself wrote do not count towards it, or one burst would
+      // keep the channel closed for an hour after it stopped.
+      'tags->>capped': 'is.null',
+      created_at: `gte.${new Date(Date.now() - 3600_000).toISOString()}`,
+      limit: String(ALWAYS_POST_HOURLY_CAP + 1),
+    })
+    const res = await fetch(`${rest.url}/rest/v1/error_logs?${qs}`, {
+      headers: { apikey: rest.key, Authorization: `Bearer ${rest.key}` },
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return 0
+    return ((await res.json()) as ErrorLogRow[])?.length ?? 0
+  } catch {
+    return 0
+  }
+}
+
+/**
  * True when `myRowId` is the earliest row today for `key`. Fails OPEN (returns
  * true) on any read problem: a duplicate critical alert beats a lost one.
  */
@@ -136,6 +210,9 @@ async function isFirstToday(key: string, myRowId: string): Promise<boolean> {
   }
 }
 
+/** Per-hour ceiling for a non-critical ALWAYS_POST kind. Critical never caps. */
+const ALWAYS_POST_HOURLY_CAP = 12
+
 const SEVERITY_ICON: Record<SlackAlertSeverity, string> = {
   critical: '🚨',
   warning: '⚠️',
@@ -149,6 +226,9 @@ const SEVERITY_COLOR: Record<SlackAlertSeverity, string> = {
 }
 
 export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
+  // Declared outside the try so the catch below can release it: the once-per-day
+  // token must not survive a post that threw.
+  let heldKey: { rowId: string; key: string } | null = null
   try {
     const policySeverity = effectiveSeverity(input.kind, input.severity)
     // Severity policy (_shared/alertPolicy.ts): only CRITICAL posts now.
@@ -157,18 +237,38 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
       await recordAlertRow(input, policySeverity, {})
       return
     }
+    // A non-critical kind that posts anyway (today: support_request) gets an
+    // hourly ceiling. Critical is never capped: a page must never be
+    // rate-limited by this project's own code. ('digest' is not a
+    // SlackAlertKind — the SQL digest posts over HTTP, not through here.)
+    if (policySeverity !== 'critical') {
+      const recent = await postsThisHour(input.kind)
+      if (recent >= ALWAYS_POST_HOURLY_CAP) {
+        await recordAlertRow(input, policySeverity, { capped: 'hourly' })
+        console.warn(
+          `[postSlackOpsAlert] ${input.kind} hourly cap (${ALWAYS_POST_HOURLY_CAP}) reached; ` +
+          `"${input.title}" is recorded for the digest instead of posted.`,
+        )
+        return
+      }
+    }
+
+    // The once-per-day token is CLAIMED here and RELEASED below if the post
+    // does not actually reach Slack.
     if (input.oncePerDayKey) {
       const rowId = await recordAlertRow(input, policySeverity, { alert_key: input.oncePerDayKey })
       if (rowId && !(await isFirstToday(input.oncePerDayKey, rowId))) {
         console.log(`[postSlackOpsAlert] already posted today for ${input.oncePerDayKey}; counted for the digest`)
         return
       }
+      if (rowId) heldKey = { rowId, key: input.oncePerDayKey }
     }
 
     const webhookUrl = Deno.env.get('SLACK_WEBHOOK_URL')
     const lovableKey = Deno.env.get('LOVABLE_API_KEY')
     const slackKey = Deno.env.get('SLACK_API_KEY')
     if (!webhookUrl && !(lovableKey && slackKey)) {
+      if (heldKey) await releaseAlertKey(heldKey.rowId, input, heldKey.key)
       // Loud on purpose. The silent version of this line meant a critical
       // "payments are broken" alert produced no Slack message AND no trace.
       console.warn(
@@ -244,8 +344,10 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
 
     if (!res.ok) {
       console.warn('[postSlackOpsAlert] Slack gateway non-OK', res.status, await res.text())
+      if (heldKey) await releaseAlertKey(heldKey.rowId, input, heldKey.key)
     }
   } catch (err) {
     console.warn('[postSlackOpsAlert] suppressed error:', err instanceof Error ? err.message : err)
+    if (heldKey) await releaseAlertKey(heldKey.rowId, input, heldKey.key)
   }
 }

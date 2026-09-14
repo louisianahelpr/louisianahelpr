@@ -10,6 +10,11 @@
 //   WARNING   never posts on its own. Recorded in error_logs and summarised by
 //   INFO      the once-a-day digest (public.send_ops_daily_digest, 14:40 UTC).
 //
+// ALWAYS_POST_KINDS is the third case: not an operator page, but not something
+// that can wait a day either. A person asking for help (`support_request`) has
+// to reach #ops-alerts now — the digest would answer them tomorrow — and it
+// keeps INFO wording and colouring so it never reads as an outage.
+//
 // A KIND floor sits under the caller's severity: an alert whose kind is money
 // or security is critical whatever severity the call site passed, so a money
 // alert cannot be demoted to the digest by a stale `severity: 'warning'`.
@@ -65,9 +70,41 @@ export function effectiveSeverity(kind: string | undefined, raw: unknown): Alert
   return normalizeSeverity(raw)
 }
 
+/**
+ * Kinds that post whatever their severity, WITHOUT being dressed as critical.
+ * `digest` is the daily roll-up itself; `support_request` is a human waiting
+ * for an answer. Neither is in CRITICAL_KINDS on purpose: they post with their
+ * own severity's icon and colour, so a page still means "something is broken".
+ */
+export const ALWAYS_POST_KINDS = ['digest', 'support_request'] as const
+
 /** Posts to Slack now, or waits for the daily digest. */
 export function postsImmediately(severity: AlertSeverity, kind?: string): boolean {
-  return severity === 'critical' || kind === 'digest'
+  return severity === 'critical' || (!!kind && (ALWAYS_POST_KINDS as readonly string[]).includes(kind))
+}
+
+/**
+ * Stable id for ONE support request, used as its `oncePerDayKey`.
+ *
+ * A support request has no row id to dedupe on — a guest never gets one, and
+ * the `reports` insert happens after the email — so the identity of the
+ * request is its content: the same person sending the same thing twice (a
+ * double-tapped Send, a retried submit) is one request and posts once.
+ * Different text is a different request and posts again, same day or not.
+ *
+ * FNV-1a rather than crypto.subtle so this stays synchronous and testable in
+ * vitest; it is a dedupe key, not a security boundary.
+ */
+export function supportRequestKey(p: { email?: string | null; subject?: string | null; message?: string | null }): string {
+  const material = [p.email ?? '', p.subject ?? '', p.message ?? '']
+    .map((s) => s.trim().toLowerCase().replace(/\s+/g, ' '))
+    .join('\u0000')
+  let h = 0x811c9dc5
+  for (let i = 0; i < material.length; i++) {
+    h ^= material.charCodeAt(i)
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  return `support-request:${h.toString(16).padStart(8, '0')}`
 }
 
 /**

@@ -485,7 +485,9 @@ export function fetchSnapshot() {
   });
   const start = raw.indexOf("{");
   const parsed = JSON.parse(raw.slice(start, raw.lastIndexOf("}") + 1));
-  let snap = parsed.rows?.[0]?.snapshot ?? parsed[0]?.snapshot;
+  // Shapes seen: {rows:[{snapshot}]} locally, and a bare [{snapshot}] in CI,
+  // which the first-"{" slice turns into {snapshot}.
+  let snap = parsed.rows?.[0]?.snapshot ?? parsed[0]?.snapshot ?? parsed.snapshot;
   // Newer CLI versions return a json column as a string rather than an object.
   if (typeof snap === "string") snap = JSON.parse(snap);
   if (!snap?.tables || !snap?.functions) {

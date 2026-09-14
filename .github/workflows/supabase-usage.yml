@@ -135,7 +135,8 @@ jobs:
       # run, same prod-load slot: no new cron. Safety rules live in
       # scripts/storage-orphan-sweep.mjs (two owner reads 10 min apart, 7-day
       # age floor, identity docs need the owner gone from profiles AND
-      # auth.users, and over 50 files or over 5% of a bucket deletes nothing and
+      # auth.users, and over 50 files or a bucket's orphans over 5 files AND over
+      # 5% of it deletes nothing and
       # posts CRITICAL). It posts its own one-line Slack summary.
       - name: Storage orphan sweep
         id: sweep

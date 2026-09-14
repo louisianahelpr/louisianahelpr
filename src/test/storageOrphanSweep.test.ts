@@ -3,7 +3,8 @@
  * that stand between "orphan" and "delete" (owner, 2026-09-14):
  *   - the owning row must be absent on TWO reads at least 10 min apart;
  *   - nothing younger than 7 days is touched;
- *   - over 50 orphans, or over 5% of a bucket, deletes nothing.
+ *   - over 50 orphans, or a bucket's orphans over 5 files AND over 5% of it,
+ *     deletes nothing.
  * Plus the identity-document rule and the path schemes from
  * docs/audit/storage-audit-2026-09-14.md, including the real prod shapes.
  */
@@ -144,15 +145,28 @@ describe("caps", () => {
     expect(checkCaps({ orphans: objects.slice(0, 50), objects }).tripped).toBe(false);
   });
 
-  it("over 5% of one bucket trips the cap", () => {
-    const objects = many("avatars", 18);
-    const r = checkCaps({ orphans: objects.slice(0, 1), objects });
-    expect(r.tripped).toBe(true);
-    expect(r.reasons.join()).toMatch(/avatars: 1 of 18/);
+  // Owner, 2026-09-14: the per-bucket cap trips only when a bucket's orphans are
+  // BOTH more than 5 files AND more than 5% of the bucket, so a tiny bucket with
+  // a few leaked files is cleaned instead of alerting CRITICAL.
+  it("a tiny bucket with 1 orphan (over 5%) is cleaned, not capped", () => {
+    const objects = many("avatars", 4);
+    expect(checkCaps({ orphans: objects.slice(0, 1), objects }).tripped).toBe(false);
   });
 
-  it("exactly 5% does not", () => {
-    const objects = many("avatars", 20);
-    expect(checkCaps({ orphans: objects.slice(0, 1), objects }).tripped).toBe(false);
+  it("5 orphans in a tiny bucket (100%) are cleaned, not capped", () => {
+    const objects = many("id-documents", 5);
+    expect(checkCaps({ orphans: objects, objects }).tripped).toBe(false);
+  });
+
+  it("6 orphans that are also over 5% of the bucket trip the cap", () => {
+    const objects = many("avatars", 18);
+    const r = checkCaps({ orphans: objects.slice(0, 6), objects });
+    expect(r.tripped).toBe(true);
+    expect(r.reasons.join()).toMatch(/avatars: 6 of 18/);
+  });
+
+  it("6 orphans at exactly 5% of the bucket do not", () => {
+    const objects = many("avatars", 120);
+    expect(checkCaps({ orphans: objects.slice(0, 6), objects }).tripped).toBe(false);
   });
 });

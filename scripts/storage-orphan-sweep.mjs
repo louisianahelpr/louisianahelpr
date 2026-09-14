@@ -16,8 +16,8 @@
  *      upload whose row is not written yet cannot be mistaken for an orphan.
  *   3. id-documents / user-documents: only when the owner is absent from BOTH
  *      profiles and auth.users.
- *   4. Hard caps: over --max-files (50) orphans, or over --max-bucket-pct (5%)
- *      of any bucket's objects, deletes NOTHING and posts a critical alert —
+ *   4. Hard caps: over --max-files (50) orphans, or any bucket whose orphans are
+ *      BOTH over 5 files AND over --max-bucket-pct (5%) of it, deletes NOTHING and posts a critical alert —
  *      numbers like that mean the matching is wrong, not that storage is dirty.
  *   5. Immediately before each delete the owner is re-read for that one object.
  *

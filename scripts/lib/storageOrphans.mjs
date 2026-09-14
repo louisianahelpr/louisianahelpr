@@ -32,6 +32,7 @@ export const DEFAULTS = Object.freeze({
   minAgeDays: 7,
   maxFiles: 50,
   maxBucketPct: 5,
+  maxBucketFiles: 5,
   waitMinutes: 10,
 });
 
@@ -161,10 +162,16 @@ export function selectOrphans({ objects, first, second, now, minAgeDays = DEFAUL
 
 /**
  * Hard caps. Tripped means the matching is probably wrong: delete NOTHING and
- * alert. Over `maxFiles` orphans in total, or over `maxBucketPct` percent of
- * any one bucket's objects.
+ * alert. Over `maxFiles` orphans in total, or any one bucket whose orphans are
+ * BOTH over `maxBucketFiles` files AND over `maxBucketPct` percent of it.
  */
-export function checkCaps({ orphans, objects, maxFiles = DEFAULTS.maxFiles, maxBucketPct = DEFAULTS.maxBucketPct }) {
+export function checkCaps({
+  orphans,
+  objects,
+  maxFiles = DEFAULTS.maxFiles,
+  maxBucketPct = DEFAULTS.maxBucketPct,
+  maxBucketFiles = DEFAULTS.maxBucketFiles,
+}) {
   const reasons = [];
   if (orphans.length > maxFiles) reasons.push(`${orphans.length} orphans is over the ${maxFiles}-file cap`);
   const totals = new Map();
@@ -174,7 +181,9 @@ export function checkCaps({ orphans, objects, maxFiles = DEFAULTS.maxFiles, maxB
   for (const [bucket, n] of hits) {
     const total = totals.get(bucket) ?? 0;
     const pct = total === 0 ? 100 : (n / total) * 100;
-    if (pct > maxBucketPct) reasons.push(`${bucket}: ${n} of ${total} objects (${pct.toFixed(1)}%) is over the ${maxBucketPct}% cap`);
+    // BOTH conditions (owner, 2026-09-14): a bucket of 4 objects with one leaked
+    // file is 25% but is cleanup, not a matching bug.
+    if (n > maxBucketFiles && pct > maxBucketPct) reasons.push(`${bucket}: ${n} of ${total} objects (${pct.toFixed(1)}%) is over the ${maxBucketPct}% cap`);
   }
   return { tripped: reasons.length > 0, reasons };
 }

@@ -346,16 +346,20 @@ export function ChatView({
       }
     >
         <div
-          // The pane (embedded desktop split) or the page container
-          // (standalone — ChatPaneShell's own wrapper grows up to
-          // `2xl:max-w-7xl`, 1280px, sized for generic wide-page content, not
-          // a conversation) can both be much wider than a comfortable reading
-          // column, so this cap applies in BOTH cases: bubbles and the
-          // composer spanning near-full width read as sparse/oversized
-          // ("the bottom bar does not fit correctly" — the composer visibly
-          // outgrowing a normal chat's proportions on a wide standalone
-          // screen was this exact bug).
-          className="flex flex-col flex-1 min-h-0 w-full max-w-[780px] mx-auto transition-[padding] duration-150"
+          // NO READING-COLUMN CAP (owner, 2026-09-14, VN-25: "the bottom
+          // message part needs to fill the bottom area"). This column used to
+          // be `max-w-[780px] mx-auto`, after an earlier note that a
+          // near-full-width composer "does not fit correctly". On a ~1570px
+          // desktop pane that left the composer and safety banner as a
+          // centred 780px strip with wide blank sides, out of line with the
+          // chat header above (which was never capped). The owner now wants
+          // the composer across the bottom of the pane, so the column fills
+          // the pane: header, timeline and composer share one edge, and the
+          // composer dock still bleeds to the pane edges via `--chat-gutter`
+          // (ChatPaneShell). The timeline stays readable because each bubble
+          // caps itself at 75% of the column and sits against its own side.
+          // Phone is unaffected — the column was never wider than 780 there.
+          className="flex flex-col flex-1 min-h-0 w-full transition-[padding] duration-150"
           // Only pad for the keyboard here. The sticky composer already adds
           // its own safe-area-inset-bottom — padding it on the wrapper too
           // double-counts the inset and leaves a dead gap below the composer.

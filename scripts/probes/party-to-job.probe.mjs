@@ -36,9 +36,14 @@ const H1 = "11111111-1111-4111-8111-111111111111";  // assigned Helpr on J1, J3,
 const R = "22222222-2222-4222-8222-222222222222";   // group roster member on J1
 const APP = "33333333-3333-4333-8333-333333333333"; // applicant on J1, never hired
 const BAN = "66666666-6666-4666-8666-666666666666"; // offered Helpr on J1, banned
+const APP2 = "77777777-7777-4777-8777-777777777777"; // second applicant on J1, never messaged
+const H2 = "88888888-8888-4888-8888-888888888888";  // assigned Helpr on J5; H2 blocked A
+const H3 = "99999999-9999-4999-8999-999999999999";  // assigned Helpr on J6 (poster B); flooding
 const J1 = "e8cabaca-87ac-4fa0-95e4-b33179e05d6e", J2 = "63bf6243-b1a6-45b9-ad4e-d6cae05df6bc";
 const J3 = "44444444-4444-4444-8444-444444444444";   // completed 2 days ago: thread closed
 const J4 = "55555555-5555-4555-8555-555555555555";   // completed 1 hour ago: thread open
+const J5 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";   // poster A, Helpr H2, blocked pair
+const J6 = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";   // poster B, Helpr H3, rate cap
 
 const SCHEMA = `
 CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
@@ -70,6 +75,39 @@ BEGIN
 END;
 $function$;
 CREATE TRIGGER trg_ban_gate_messages BEFORE INSERT ON public.messages FOR EACH ROW EXECUTE FUNCTION enforce_ban_gate();
+-- live are_users_blocked + trg_enforce_block_on_message_insert (2026-09-14)
+CREATE TABLE public.user_blocks (id uuid primary key default gen_random_uuid(), blocker_id uuid, blocked_id uuid, created_at timestamptz default now());
+CREATE FUNCTION public.are_users_blocked(_user_a uuid, _user_b uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $function$
+  SELECT EXISTS (SELECT 1 FROM public.user_blocks WHERE (blocker_id = _user_a AND blocked_id = _user_b) OR (blocker_id = _user_b AND blocked_id = _user_a));
+$function$;
+CREATE FUNCTION public.enforce_block_on_message_insert() RETURNS trigger LANGUAGE plpgsql SET search_path TO 'public' AS $function$
+BEGIN
+  IF auth.uid() IS NULL THEN RETURN NEW; END IF;
+  IF public.are_users_blocked(NEW.sender_id, NEW.receiver_id) THEN
+    RAISE EXCEPTION 'You can''t message this user.' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+CREATE TRIGGER trg_enforce_block_on_message_insert BEFORE INSERT ON public.messages FOR EACH ROW EXECUTE FUNCTION enforce_block_on_message_insert();
+-- live enforce_message_rate (20260907231710 shape, 2026-09-14)
+CREATE TABLE public.fraud_flags (id uuid primary key default gen_random_uuid(), user_id uuid, flag_type text, details text, resolved boolean default false);
+CREATE FUNCTION public.enforce_message_rate() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $function$
+DECLARE msg_count integer; v_cap constant integer := 30;
+BEGIN
+  SELECT count(*) INTO msg_count FROM public.messages WHERE sender_id = NEW.sender_id AND created_at > now() - interval '1 hour';
+  IF msg_count >= v_cap THEN RAISE EXCEPTION 'You are sending messages too quickly. Please slow down.'; END IF;
+  IF msg_count + 1 >= v_cap THEN
+    BEGIN
+      INSERT INTO public.fraud_flags (user_id, flag_type, details) SELECT NEW.sender_id, 'message_flooding', 'flood'
+      WHERE NOT EXISTS (SELECT 1 FROM public.fraud_flags f WHERE f.user_id = NEW.sender_id AND f.flag_type = 'message_flooding' AND f.resolved = false);
+    EXCEPTION WHEN OTHERS THEN RAISE WARNING 'enforce_message_rate: %', SQLERRM;
+    END;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+CREATE TRIGGER enforce_message_rate BEFORE INSERT ON public.messages FOR EACH ROW EXECUTE FUNCTION enforce_message_rate();
 -- live is_party_to_job (pg_get_functiondef 2026-09-14)
 CREATE FUNCTION public.is_party_to_job(_job_id uuid, _user_id uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $function$
   SELECT
@@ -100,6 +138,8 @@ $function$;
 -- live proacl: is_party_to_job {postgres, authenticated, service_role};
 -- can_message_in_job {postgres, service_role}; can_send_message_in_job and
 -- is_party_to_job_folder {postgres, authenticated, service_role}
+REVOKE ALL ON FUNCTION public.enforce_message_rate() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.are_users_blocked(uuid,uuid), public.enforce_message_rate() TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.is_party_to_job(uuid,uuid), public.job_messaging_closes_at(uuid), public.can_message_in_job(uuid,uuid), public.can_send_message_in_job(uuid), public.is_party_to_job_folder(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.is_party_to_job(uuid,uuid), public.can_send_message_in_job(uuid), public.is_party_to_job_folder(text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_party_to_job(uuid,uuid), public.job_messaging_closes_at(uuid), public.can_message_in_job(uuid,uuid), public.can_send_message_in_job(uuid), public.is_party_to_job_folder(text) TO service_role;
@@ -123,9 +163,12 @@ INSERT INTO public.jobs VALUES
   ('${J1}','${A}','${H1}','${BAN}','in_progress',null),
   ('${J2}','${B}',null,null,'open',null),
   ('${J3}','${A}','${H1}',null,'completed', now() - interval '2 days'),
-  ('${J4}','${A}','${H1}',null,'completed', now() - interval '1 hour');
+  ('${J4}','${A}','${H1}',null,'completed', now() - interval '1 hour'),
+  ('${J5}','${A}','${H2}',null,'in_progress',null),
+  ('${J6}','${B}','${H3}',null,'in_progress',null);
 INSERT INTO public.group_job_helpers VALUES ('${J1}','${R}');
-INSERT INTO public.applications VALUES ('${J1}','${APP}');
+INSERT INTO public.applications VALUES ('${J1}','${APP}'), ('${J1}','${APP2}');
+INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${H2}','${A}');
 INSERT INTO public.profiles VALUES ('${BAN}','banned',null);
 `;
 
@@ -138,7 +181,7 @@ async function as(db, who, sql) {
 }
 
 async function scenario(db) {
-  await db.exec(`RESET ROLE; DELETE FROM public.messages; DELETE FROM storage.objects;`);
+  await db.exec(`RESET ROLE; DELETE FROM public.messages; DELETE FROM storage.objects; DELETE FROM public.fraud_flags;`);
   const out = {};
   const send = async (uid, job, to) => (await as(db, uid, `INSERT INTO public.messages (job_id, sender_id, receiver_id, content) VALUES ('${job}','${uid}','${to}','hi') RETURNING id`)).ok;
   // An RPC as PostgREST runs it: SELECT fn(...) under the client role. "answered"
@@ -157,6 +200,34 @@ async function scenario(db) {
   // Documented residual: once the poster has messaged the applicant, the
   // applicant may post, and can ask about parties exactly as an INSERT would.
   out.wrap_applicant_after_messaged = await rpc(APP, "can_send_message_to_in_job", `'${J1}','${R}'`);
+  out.send_applicant_reply_to_poster = await send(APP, J1, A);
+  out.send_poster_to_second_applicant = await send(A, J1, APP2);
+  out.wrap_poster_applicant = await rpc(A, "can_send_message_to_in_job", `'${J1}','${APP2}'`);
+  // ── OWNER DECISION: only the poster may message applicants ───────────────
+  out.send_helpr_to_applicant = await send(H1, J1, APP2);
+  out.send_roster_to_applicant = await send(R, J1, APP2);
+  out.send_messaged_applicant_to_applicant = await send(APP, J1, APP2);
+  out.wrap_helpr_probe_applicant = await rpc(H1, "can_send_message_to_in_job", `'${J1}','${APP2}'`);
+  out.wrap_roster_probe_applicant = await rpc(R, "can_send_message_to_in_job", `'${J1}','${APP2}'`);
+  out.wrap_messaged_applicant_probe_applicant = await rpc(APP, "can_send_message_to_in_job", `'${J1}','${APP2}'`);
+  // non-applicant parties are still reachable by a Helpr / roster member
+  out.send_helpr_to_roster = await send(H1, J1, R);
+  out.wrap_helpr_roster = await rpc(H1, "can_send_message_to_in_job", `'${J1}','${R}'`);
+  // ── block: the wrapper answers false for a blocked pair, both directions ──
+  out.wrap_blocked_poster_asks = await rpc(A, "can_send_message_to_in_job", `'${J5}','${H2}'`);
+  out.wrap_blocked_helpr_asks = await rpc(H2, "can_send_message_to_in_job", `'${J5}','${A}'`);
+  out.send_blocked_pair = await send(A, J5, H2);
+  // ── rate: the wrapper and enforce_message_rate agree at the 30/hour cap ──
+  await db.exec(`RESET ROLE; INSERT INTO public.messages (job_id, sender_id, receiver_id, content, created_at)
+    SELECT '${J6}','${H3}','${B}','seed', now() - interval '5 minutes' FROM generate_series(1, 28);
+    INSERT INTO public.messages (job_id, sender_id, receiver_id, content, created_at)
+    SELECT '${J6}','${H3}','${B}','old', now() - interval '2 hours' FROM generate_series(1, 5);`);
+  out.wrap_rate_at_28 = await rpc(H3, "can_send_message_to_in_job", `'${J6}','${B}'`);
+  out.send_rate_29th = await send(H3, J6, B);
+  out.wrap_rate_at_29 = await rpc(H3, "can_send_message_to_in_job", `'${J6}','${B}'`);
+  out.send_rate_30th = await send(H3, J6, B);
+  out.wrap_rate_at_30 = await rpc(H3, "can_send_message_to_in_job", `'${J6}','${B}'`);
+  out.send_rate_31st = await send(H3, J6, B);
   out.send_poster_to_roster = await send(A, J1, R);
   out.send_roster_to_poster = await send(R, J1, A);
   out.send_open_completed_thread = await send(A, J4, H1);
@@ -222,6 +293,12 @@ async function scenario(db) {
 const expectAfter = {
   send_poster_to_helpr: true, send_helpr_to_poster: true, send_poster_to_applicant: true, send_poster_to_roster: true,
   send_roster_to_poster: true, send_open_completed_thread: true,
+  send_applicant_reply_to_poster: true, send_poster_to_second_applicant: true, wrap_poster_applicant: true,
+  send_helpr_to_applicant: false, send_roster_to_applicant: false, send_messaged_applicant_to_applicant: false,
+  wrap_helpr_probe_applicant: false, wrap_roster_probe_applicant: false, wrap_messaged_applicant_probe_applicant: false,
+  send_helpr_to_roster: true, wrap_helpr_roster: true,
+  wrap_blocked_poster_asks: false, wrap_blocked_helpr_asks: false, send_blocked_pair: false,
+  wrap_rate_at_28: true, send_rate_29th: true, wrap_rate_at_29: true, send_rate_30th: true, wrap_rate_at_30: false, send_rate_31st: false,
   send_poster_to_non_party: false, send_stranger_into_job: false, send_applicant_unmessaged: false, send_closed_thread: false,
   send_forged_sender: false, send_anon: false, send_banned_party: false,
   rpc_stranger_is_party_helpr: "ERR", rpc_stranger_is_party_applicant: "ERR", rpc_party_is_party: "ERR", rpc_anon_is_party: "ERR",
@@ -239,6 +316,8 @@ const expectAfter = {
 // migration must preserve (so AFTER is compared against real behaviour, not a guess).
 const expectBefore = {
   ...Object.fromEntries(Object.entries(expectAfter).filter(([k]) => k.startsWith("send_") || k.startsWith("photo_"))),
+  // the owner-decision gap, reproduced on the live shape
+  send_helpr_to_applicant: true, send_roster_to_applicant: true, send_messaged_applicant_to_applicant: true,
   rpc_stranger_is_party_helpr: true, rpc_stranger_is_party_applicant: true, rpc_party_is_party: true, rpc_anon_is_party: "ERR",
   grant_authenticated_is_party: true, grant_anon_is_party: false,
 };
@@ -290,7 +369,7 @@ const broken = [
   ["revoke FROM PUBLIC only (the 20260904 V-015 shape)",
     mutate("REVOKE ALL ON FUNCTION public.is_party_to_job(uuid, uuid) FROM PUBLIC, anon, authenticated;", "REVOKE ALL ON FUNCTION public.is_party_to_job(uuid, uuid) FROM PUBLIC;")],
   ["wrapper not bound to the caller (no can_message_in_job gate)",
-    mutate("     AND public.can_message_in_job(_job_id, auth.uid())\n     AND public.is_party_to_job", "     AND public.is_party_to_job")],
+    mutate("     AND public.can_message_in_job(_job_id, auth.uid())\n", "")],
   ["policy still calls is_party_to_job (revoked, not swapped)",
     mutate("AND public.can_send_message_to_in_job(job_id, receiver_id)", "AND public.is_party_to_job(job_id, receiver_id)")],
   ["policy checks sender_id instead of receiver_id",
@@ -301,6 +380,16 @@ const broken = [
     mutate("     AND NOT public.is_caller_banned()\n", "")],
   ["wrapper without SET search_path",
     mutate(" STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  -- The caller", " STABLE SECURITY DEFINER\nAS $function$\n  -- The caller")],
+  ["applicant branch not poster-gated (any party may message applicants)",
+    mutate("       OR (\n         EXISTS (\n           SELECT 1 FROM public.jobs j\n           WHERE j.id = _job_id AND j.customer_id = auth.uid()\n         )\n         AND EXISTS (", "       OR (\n         EXISTS (")],
+  ["wrapper without the block check",
+    mutate("     AND NOT public.are_users_blocked(auth.uid(), _receiver)\n", "")],
+  ["wrapper without the rate check",
+    mutate("             AND m.created_at > now() - interval '1 hour') < 30", "             AND m.created_at > now() - interval '1 hour') < 1000000")],
+  ["rate check off by one (<= 30)",
+    mutate("             AND m.created_at > now() - interval '1 hour') < 30", "             AND m.created_at > now() - interval '1 hour') <= 30")],
+  ["rate check counts every message ever (no window)",
+    mutate("             AND m.created_at > now() - interval '1 hour') < 30", "             ) < 30")],
   ["wrapper not granted to authenticated",
     mutate("GRANT EXECUTE ON FUNCTION public.can_send_message_to_in_job(uuid, uuid) TO authenticated, service_role;", "GRANT EXECUTE ON FUNCTION public.can_send_message_to_in_job(uuid, uuid) TO service_role;")],
   ["wrapper left anon-callable (no REVOKE)",

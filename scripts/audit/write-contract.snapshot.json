@@ -301,7 +301,7 @@
      "_job_id",
      "_sender"
     ],
-    "authenticated": true,
+    "authenticated": false,
     "nargdefaults": 0,
     "nargs": 2
    }
@@ -316,6 +316,17 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 2
+   }
+  ],
+  "can_send_message_in_job": [
+   {
+    "anon": false,
+    "args": [
+     "_job_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "cancellation_fee_percent": [
@@ -1008,6 +1019,17 @@
     "nargs": 0
    }
   ],
+  "get_messaging_closes_at": [
+   {
+    "anon": false,
+    "args": [
+     "_job_ids"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "get_muted_threads": [
    {
     "anon": false,
@@ -1488,6 +1510,31 @@
      "p_job_id"
     ],
     "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "job_legacy_completed_at": [
+   {
+    "anon": false,
+    "args": [
+     "_poster_completed_at",
+     "_helper_completed_at",
+     "_revision_completed_at",
+     "_updated_at"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 4
+   }
+  ],
+  "job_messaging_closes_at": [
+   {
+    "anon": false,
+    "args": [
+     "_job_id"
+    ],
+    "authenticated": false,
     "nargdefaults": 0,
     "nargs": 1
    }
@@ -2430,11 +2477,29 @@
     "nargs": 0
    }
   ],
+  "stamp_error_log_origin": [
+   {
+    "anon": true,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "stamp_job_accepted_at": [
    {
     "anon": true,
     "args": [],
     "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "stamp_job_completed_at": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
    }
@@ -4304,13 +4369,16 @@
      "name": "anyone_can_insert_errors",
      "permissive": "PERMISSIVE",
      "roles": [
-      "public"
+      "anon",
+      "authenticated",
+      "service_role"
      ]
     }
    ],
    "rls": true,
    "triggers": [
-    "after:insert"
+    "after:insert",
+    "before:insert"
    ]
   },
   "favorite_helpers": {
@@ -5985,6 +6053,13 @@
      "hasDefault": true,
      "notNull": false,
      "type": "numeric"
+    },
+    "completed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
     },
     "created_at": {
      "enum": null,
@@ -8126,7 +8201,7 @@
      "name": "Users can send messages",
      "permissive": "PERMISSIVE",
      "roles": [
-      "public"
+      "authenticated"
      ]
     },
     {

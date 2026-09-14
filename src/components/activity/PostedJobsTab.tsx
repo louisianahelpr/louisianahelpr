@@ -114,9 +114,13 @@ const LOCATION_PRESS_HINT_KEY = "helpr_myposts_location_press_hint_seen";
  * gesture on a control that is not on screen.
  */
 function LocationPressHint({ onDismiss }: { onDismiss: () => void }) {
+  // `items-center` (owner, 2026-09-14, VN-26: "needs to be centered better"):
+  // pin, sentence and X share ONE vertical centre. It was `items-start` with a
+  // `mt-0.5` nudge on the pin and a symmetric `-m-2.5` on the X, so the three
+  // sat on different lines of sight.
   return (
     <div
-      className="flex items-start gap-2 rounded-ds-md px-3 py-2"
+      className="flex items-center gap-2 rounded-ds-md px-3 py-2"
       style={{
         background: "hsl(var(--olivewood) / 0.07)",
         border: "0.5px solid hsl(var(--olivewood) / 0.20)",
@@ -124,7 +128,7 @@ function LocationPressHint({ onDismiss }: { onDismiss: () => void }) {
     >
       <MapPin
         aria-hidden
-        className="w-3.5 h-3.5 shrink-0 mt-0.5"
+        className="w-3.5 h-3.5 shrink-0"
         style={{ color: "hsl(var(--olivewood))" }}
         strokeWidth={2.25}
       />
@@ -137,13 +141,16 @@ function LocationPressHint({ onDismiss }: { onDismiss: () => void }) {
         </span>{" "}
         Press and hold the location to get directions.
       </p>
-      {/* 44px target on a 20px glyph — `-m-2.5` keeps the strip its own height
-          while the hit area meets the app's floor. */}
+      {/* 44px-class target on a small glyph. `-my-2.5` cancels the vertical
+          padding exactly, so the strip keeps its own height and the glyph stays
+          on the row's centre line; `-mr-2.5` puts the glyph the same 12px from
+          the right edge as the pin is from the left. No left negative margin —
+          that only pulled the hit area over the sentence. */}
       <button
         type="button"
         onClick={() => { hapticLight(); onDismiss(); }}
         aria-label="Dismiss tip about opening the map"
-        className="shrink-0 -m-2.5 p-2.5 rounded-ds-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+        className="shrink-0 -my-2.5 -mr-2.5 p-2.5 rounded-ds-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
       >
         <X className="w-3.5 h-3.5" strokeWidth={2.25} />
       </button>

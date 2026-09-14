@@ -286,12 +286,13 @@ export function JobCardMetaRow({
                would race the gesture (and, in WKWebView, put a text-selection
                loupe over the chip). The map IS this element's context action. */
             onContextMenu={(e) => e.preventDefault()}
-            /* DISCOVERABILITY, part 1 — the chip has to LOOK pressable.
-               A hidden gesture on text that renders like the date and time
-               beside it will never be found. A tinted, bordered, rounded
-               surface with an active-press state is the app's own vocabulary
-               for "this is a control", and it is the only chip in the row that
-               wears it, so the difference is the affordance.
+            /* DISCOVERABILITY, part 1 — REVERSED (owner, 2026-09-14, VN-27:
+               "remove the grey background from the location"). The resting
+               tinted fill and border are gone, so at rest the location reads
+               exactly like the date and time beside it. What stays: the hover
+               and active-press feedback (a fill appears only while pointed at
+               or pressed), the press-and-hold map gesture, and part 2's words
+               (aria-label / title / the hold hint).
 
                `py-2 -my-2` is kept verbatim from the anchor it replaces: it
                grows the HIT AREA to 44px without growing the layout box (the
@@ -299,7 +300,7 @@ export function JobCardMetaRow({
                overhang lands on the card's own padding, never on another
                control — the row's only other interactive element is pinned to
                the opposite end. */
-            className="flex items-center gap-1 min-[360px]:gap-1.5 py-2 -my-2 px-1 -mx-1 rounded-ds-sm border border-[hsl(var(--olivewood)/0.22)] bg-[hsl(var(--olivewood)/0.06)] hover:bg-[hsl(var(--olivewood)/0.12)] hover:text-primary active:bg-[hsl(var(--olivewood)/0.20)] active:scale-[0.97] transition-all duration-150 min-w-0 shrink"
+            className="flex items-center gap-1 min-[360px]:gap-1.5 py-2 -my-2 px-1 -mx-1 rounded-ds-sm hover:bg-[hsl(var(--olivewood)/0.12)] hover:text-primary active:bg-[hsl(var(--olivewood)/0.20)] active:scale-[0.97] transition-all duration-150 min-w-0 shrink"
             /* DISCOVERABILITY, part 2 — say it in words, for everyone.
                `aria-label` states BOTH actions so a screen-reader user is told
                the tap expands (which is not guessable) and `aria-describedby`

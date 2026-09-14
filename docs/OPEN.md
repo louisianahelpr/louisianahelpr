@@ -2120,5 +2120,6 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] Supabase usage alert: weekly DB size, file storage, disk-IO pressure vs free-tier limits; warn at 70%
 - [ ] Sentry release tagging: tag each deploy with its commit
 - [ ] Supabase storage audit: orphaned files in the 10 buckets (after the release proof; light prod reads only)
+- [x] Owner 2026-09-14 speed-ups: (1) non-prod work runs in parallel with the single prod job (full rename after types refresh lands; Slack alerts after the integrations audit); (2) prod proofs kept small — 375 only, fewest rounds that prove the point (10 not 20 unless money). SKIPPED by owner: prod rewrite of the mocked dashboard dark-mode check.
 - [ ] LAST, after everything above: independent re-check by a different model (sonnet) of ALL work landed 2026-09-13 — full vitest once, CI green per push, re-run each fix's own proof on prod, list what doesn't hold
 - [ ] OWNER: allow the Stripe connector write tool + reconnect Stripe, then add transfer.failed to live webhook and close #1462/#1521

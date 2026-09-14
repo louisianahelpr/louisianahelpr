@@ -37,10 +37,11 @@ jobs:
       - name: Require Supabase secrets
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
-          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] || [ -z "${SUPABASE_PROJECT_REF:-}" ]; then
-            echo "::error::SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_REF missing. Failing rather than skipping: a skipped refresh looks like a clean one."
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] || [ -z "${SUPABASE_DB_PASSWORD:-}" ] || [ -z "${SUPABASE_PROJECT_REF:-}" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN / SUPABASE_DB_PASSWORD / SUPABASE_PROJECT_REF missing. Failing rather than skipping: a skipped refresh looks like a clean one."
             exit 1
           fi
 
@@ -57,17 +58,23 @@ jobs:
         with:
           version: latest
 
+      # A real `supabase link`, same as db-drift-detect.yml / db-backup.yml.
+      # This step used to only write supabase/.temp/project-ref, so the CLI had
+      # no pooler URL and `db query --linked` dialled the direct DB host over
+      # IPv6, which GitHub runners do not have: every run from 2026-09-13 died
+      # on "IPv6 is not supported on your current network". Linking with the DB
+      # password records the IPv4 pooler connection the query then uses.
       - name: Link project
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-        run: |
-          mkdir -p supabase/.temp
-          echo -n "$SUPABASE_PROJECT_REF" > supabase/.temp/project-ref
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
       - name: Refresh snapshot and check drift
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: node scripts/audit/write-contract.mjs --refresh --check-drift
 
       - name: Upload refreshed snapshot

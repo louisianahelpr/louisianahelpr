@@ -163,6 +163,27 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+      # Last check before the key is removed (it reads SUPABASE_SERVICE_ROLE_KEY
+      # from .env). The suites above sign in as the shared test accounts and can
+      # leave user_strikes / user_violations behind; one more harness-made
+      # violation suspends the account every prod workflow uses (2026-09-13).
+      # always(): a red suite is exactly when a strike is most likely.
+      # Exit 1 = a strike on a shared account (fail the job); exit 2 = could not
+      # check (warn, so a missing key is visible without masking suite results).
+      - name: Shared test accounts carry no strikes
+        if: always()
+        run: |
+          set +e
+          node scripts/check-test-account-strikes.mjs
+          code=$?
+          set -e
+          case "$code" in
+            0) ;;
+            1) echo "::error title=Strike on a shared test account::A harness left a strike/violation on a shared test account. Delete the test-owned rows and fix that harness's cleanup."; exit 1 ;;
+            2) echo "::warning title=Test-account strike check did not run::scripts/check-test-account-strikes.mjs could not read prod (missing key or REST error); see the log above." ;;
+            *) echo "::error::check-test-account-strikes.mjs exited $code"; exit "$code" ;;
+          esac
+
       - name: Remove the service-role key from the runner
         if: always()
         run: rm -f .env

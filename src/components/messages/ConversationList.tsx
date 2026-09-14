@@ -584,9 +584,13 @@ export function ConversationList({
       {selectedKeys.size}/{MAX_SELECT} selected
     </span>
   ) : searchOpen ? (
-    /* Search mode — input replaces the row inline (iOS pattern). */
+    /* Search mode — input replaces the row inline (iOS pattern).
+       Capped at `lg:max-w-md` on desktop (owner, 2026-09-14, VN-35: "search
+       shouldn't open that large for messages either") — the same cap as the
+       Browse search (VN-5) and My Posts / My Jobs (VN-31). Phone stays
+       full-width. */
     <>
-      <div className="relative flex-1">
+      <div className="relative flex-1 min-w-0 lg:max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         <input
           autoFocus
@@ -664,10 +668,10 @@ export function ConversationList({
     embedded && hasThreads ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined;
 
   /* The trailing icon cluster.
-     Search · chevron · hamburger, in that order — the chevron sits NEXT TO
-     SEARCH, which is where the owner put it on Activity ("add a dropdown arrow
-     next to search so these aren't always showing"), and the overflow menu
-     stays last, where an overflow menu belongs.
+     Search · hamburger · chevron, in that order (owner, 2026-09-14, VN-35:
+     "on messages, move the chevron to the right of the hamburger"). This
+     reverses the earlier search · chevron · hamburger order, which had put
+     the chevron next to search to mirror Activity.
 
      All three share ONE class, and it is ActivityHeader's: the chevron cannot
      be a different ink from the search glyph beside it, and Messages' cluster
@@ -688,43 +692,10 @@ export function ConversationList({
           <Search className="w-4 h-4" />
         </button>
       )}
-      {/* THE DISCLOSURE — the same control, glyph and rotation My Posts / My
-          Jobs use, so "collapsed when opened" is one behaviour across the three
-          screens rather than three near-misses. Not rendered when `embedded`:
-          the desktop split shows the tabs inline and a chevron there would hide
-          three short words to save nothing (ActivityHeader drops it under
-          `inlineFilters` for the same reason).
-
-          Gated on `hasThreads` alongside search — with no threads there is
-          nothing to slice, and the empty state below already says so. */}
-      {!embedded && hasThreads && (
-        <button
-          type="button"
-          onClick={() => { hapticLight(); setTabsOpenPhone((v) => !v); }}
-          aria-expanded={tabsOpen}
-          /* Only while the panel EXISTS. The tabs unmount when collapsed, so
-             emitting this unconditionally points at a missing id — axe flags it
-             `aria-valid-attr-value` critical, and it is a real lie to a screen
-             reader. */
-          aria-controls={tabsOpen ? INBOX_TABS_ID : undefined}
-          aria-label={tabsOpen ? "Hide conversation filters" : "Filter conversations"}
-          className={`${HEADER_ICON_BUTTON_CLASS} ${
-            // No filled pill: the chevron's ROTATION already carries
-            // open/closed. The ink darkens while a non-default slice is on, so
-            // a filtered inbox is never silent even with the row folded away.
-            isDefaultInboxFilter ? "" : "!text-[hsl(var(--bark))]"
-          }`}
-        >
-          <ChevronDown
-            className={`w-4 h-4 transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
-            strokeWidth={2.25}
-          />
-        </button>
-      )}
       {/* Hamburger — the OVERFLOW MENU, not the disclosure. It opens Select
           messages / Pinned / Recently Deleted: one bulk action and two views
           onto data the three tabs do not cover. It stays exactly as it was —
-          the chevron above is an addition, not a replacement — because
+          the chevron beside it is an addition, not a replacement — because
           Recently Deleted is the only route back to a thread you have hidden.
 
           Deliberately NOT gated on hasThreads: Pinned/Recently Deleted look at
@@ -781,6 +752,39 @@ export function ConversationList({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {/* THE DISCLOSURE — the same control, glyph and rotation My Posts / My
+          Jobs use, so "collapsed when opened" is one behaviour across the three
+          screens rather than three near-misses. Not rendered when `embedded`:
+          the desktop split shows the tabs inline and a chevron there would hide
+          three short words to save nothing (ActivityHeader drops it under
+          `inlineFilters` for the same reason).
+
+          Gated on `hasThreads` alongside search — with no threads there is
+          nothing to slice, and the empty state below already says so. */}
+      {!embedded && hasThreads && (
+        <button
+          type="button"
+          onClick={() => { hapticLight(); setTabsOpenPhone((v) => !v); }}
+          aria-expanded={tabsOpen}
+          /* Only while the panel EXISTS. The tabs unmount when collapsed, so
+             emitting this unconditionally points at a missing id — axe flags it
+             `aria-valid-attr-value` critical, and it is a real lie to a screen
+             reader. */
+          aria-controls={tabsOpen ? INBOX_TABS_ID : undefined}
+          aria-label={tabsOpen ? "Hide conversation filters" : "Filter conversations"}
+          className={`${HEADER_ICON_BUTTON_CLASS} ${
+            // No filled pill: the chevron's ROTATION already carries
+            // open/closed. The ink darkens while a non-default slice is on, so
+            // a filtered inbox is never silent even with the row folded away.
+            isDefaultInboxFilter ? "" : "!text-[hsl(var(--bark))]"
+          }`}
+        >
+          <ChevronDown
+            className={`w-4 h-4 transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
+            strokeWidth={2.25}
+          />
+        </button>
+      )}
     </>
   );
 

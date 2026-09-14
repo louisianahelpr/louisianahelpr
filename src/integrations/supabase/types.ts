@@ -607,7 +607,22 @@ export type Database = {
           id?: string
           private_note?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "favorite_helpers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "favorite_helpers_helper_id_fkey"
+            columns: ["helper_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       fraud_flags: {
         Row: {
@@ -655,6 +670,128 @@ export type Database = {
           {
             foreignKeyName: "fraud_flags_job_id_fkey"
             columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_cards: {
+        Row: {
+          amount: number
+          category: string | null
+          claim_token: string | null
+          created_at: string
+          design_id: string | null
+          donor_id: string | null
+          expires_at: string | null
+          id: string
+          job_id: string | null
+          message: string | null
+          occasion: string | null
+          parent_credit_id: string | null
+          parish: string | null
+          payment_status: string
+          recipient_email: string | null
+          recipient_id: string | null
+          redeemed_at: string | null
+          restored_from_job_id: string | null
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          claim_token?: string | null
+          created_at?: string
+          design_id?: string | null
+          donor_id?: string | null
+          expires_at?: string | null
+          id?: string
+          job_id?: string | null
+          message?: string | null
+          occasion?: string | null
+          parent_credit_id?: string | null
+          parish?: string | null
+          payment_status?: string
+          recipient_email?: string | null
+          recipient_id?: string | null
+          redeemed_at?: string | null
+          restored_from_job_id?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          claim_token?: string | null
+          created_at?: string
+          design_id?: string | null
+          donor_id?: string | null
+          expires_at?: string | null
+          id?: string
+          job_id?: string | null
+          message?: string | null
+          occasion?: string | null
+          parent_credit_id?: string | null
+          parish?: string | null
+          payment_status?: string
+          recipient_email?: string | null
+          recipient_id?: string | null
+          redeemed_at?: string | null
+          restored_from_job_id?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_cards_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_parent_credit_id_fkey"
+            columns: ["parent_credit_id"]
+            isOneToOne: false
+            referencedRelation: "gift_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_restored_from_job_id_fkey"
+            columns: ["restored_from_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_restored_from_job_id_fkey"
+            columns: ["restored_from_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_cards_restored_from_job_id_fkey"
+            columns: ["restored_from_job_id"]
             isOneToOne: false
             referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
@@ -1923,6 +2060,33 @@ export type Database = {
           },
         ]
       }
+      notification_dedupe_suppressions: {
+        Row: {
+          id: number
+          link: string | null
+          suppressed_at: string
+          title: string | null
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: number
+          link?: string | null
+          suppressed_at?: string
+          title?: string | null
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: number
+          link?: string | null
+          suppressed_at?: string
+          title?: string | null
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_logs: {
         Row: {
           category: string
@@ -2146,6 +2310,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -2397,131 +2568,12 @@ export type Database = {
         }
         Relationships: []
       }
-      gift_cards: {
-        Row: {
-          amount: number
-          category: string | null
-          claim_token: string | null
-          created_at: string
-          design_id: string | null
-          donor_id: string | null
-          expires_at: string | null
-          id: string
-          job_id: string | null
-          message: string | null
-          occasion: string | null
-          parent_credit_id: string | null
-          parish: string | null
-          payment_status: string
-          recipient_email: string | null
-          recipient_id: string | null
-          redeemed_at: string | null
-          restored_from_job_id: string | null
-          status: string
-          stripe_payment_intent_id: string | null
-          stripe_session_id: string | null
-        }
-        Insert: {
-          amount: number
-          category?: string | null
-          claim_token?: string | null
-          created_at?: string
-          design_id?: string | null
-          donor_id?: string | null
-          expires_at?: string | null
-          id?: string
-          job_id?: string | null
-          message?: string | null
-          occasion?: string | null
-          parent_credit_id?: string | null
-          parish?: string | null
-          payment_status?: string
-          recipient_email?: string | null
-          recipient_id?: string | null
-          redeemed_at?: string | null
-          restored_from_job_id?: string | null
-          status?: string
-          stripe_payment_intent_id?: string | null
-          stripe_session_id?: string | null
-        }
-        Update: {
-          amount?: number
-          category?: string | null
-          claim_token?: string | null
-          created_at?: string
-          design_id?: string | null
-          donor_id?: string | null
-          expires_at?: string | null
-          id?: string
-          job_id?: string | null
-          message?: string | null
-          occasion?: string | null
-          parent_credit_id?: string | null
-          parish?: string | null
-          payment_status?: string
-          recipient_email?: string | null
-          recipient_id?: string | null
-          redeemed_at?: string | null
-          restored_from_job_id?: string | null
-          status?: string
-          stripe_payment_intent_id?: string | null
-          stripe_session_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "gift_cards_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gift_cards_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_helper_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gift_cards_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "open_jobs_browse"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gift_cards_parent_credit_id_fkey"
-            columns: ["parent_credit_id"]
-            isOneToOne: false
-            referencedRelation: "gift_cards"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gift_cards_restored_from_job_id_fkey"
-            columns: ["restored_from_job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gift_cards_restored_from_job_id_fkey"
-            columns: ["restored_from_job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_helper_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gift_cards_restored_from_job_id_fkey"
-            columns: ["restored_from_job_id"]
-            isOneToOne: false
-            referencedRelation: "open_jobs_browse"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       platform_settings: {
         Row: {
+          application_cap_per_hour: number | null
+          application_cap_per_minute: number | null
           customer_fee_percent: number
+          daily_application_cap: number | null
           feature_flags: Json
           helper_fee_percent: number
           hybrid_idv_enabled: boolean
@@ -2530,12 +2582,16 @@ export type Database = {
           min_supported_build: number
           onboarding_fee_cents: number
           platform_fee_percent: number
+          signup_rate_limit_per_hour: number | null
           social_webhook_url: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          application_cap_per_hour?: number | null
+          application_cap_per_minute?: number | null
           customer_fee_percent?: number
+          daily_application_cap?: number | null
           feature_flags?: Json
           helper_fee_percent?: number
           hybrid_idv_enabled?: boolean
@@ -2544,12 +2600,16 @@ export type Database = {
           min_supported_build?: number
           onboarding_fee_cents?: number
           platform_fee_percent?: number
+          signup_rate_limit_per_hour?: number | null
           social_webhook_url?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          application_cap_per_hour?: number | null
+          application_cap_per_minute?: number | null
           customer_fee_percent?: number
+          daily_application_cap?: number | null
           feature_flags?: Json
           helper_fee_percent?: number
           hybrid_idv_enabled?: boolean
@@ -2558,6 +2618,7 @@ export type Database = {
           min_supported_build?: number
           onboarding_fee_cents?: number
           platform_fee_percent?: number
+          signup_rate_limit_per_hour?: number | null
           social_webhook_url?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -2645,6 +2706,7 @@ export type Database = {
           id: string
           id_document_url: string | null
           id_verification_status: string
+          identity_sha256: string | null
           idv_attempt_count: number
           idv_attempted_at: string | null
           idv_confidence: number | null
@@ -2747,6 +2809,7 @@ export type Database = {
           id?: string
           id_document_url?: string | null
           id_verification_status?: string
+          identity_sha256?: string | null
           idv_attempt_count?: number
           idv_attempted_at?: string | null
           idv_confidence?: number | null
@@ -2849,6 +2912,7 @@ export type Database = {
           id?: string
           id_document_url?: string | null
           id_verification_status?: string
+          identity_sha256?: string | null
           idv_attempt_count?: number
           idv_attempted_at?: string | null
           idv_confidence?: number | null
@@ -3134,9 +3198,12 @@ export type Database = {
           email_sha256: string
           expires_at: string | null
           id: string
+          identity_sha256: string | null
+          phone_sha256: string | null
           reapplied_at: string | null
           reason: string
           retained_at: string
+          retained_via: string | null
         }
         Insert: {
           ban_status: string
@@ -3144,9 +3211,12 @@ export type Database = {
           email_sha256: string
           expires_at?: string | null
           id?: string
+          identity_sha256?: string | null
+          phone_sha256?: string | null
           reapplied_at?: string | null
           reason: string
           retained_at?: string
+          retained_via?: string | null
         }
         Update: {
           ban_status?: string
@@ -3154,9 +3224,12 @@ export type Database = {
           email_sha256?: string
           expires_at?: string | null
           id?: string
+          identity_sha256?: string | null
+          phone_sha256?: string | null
           reapplied_at?: string | null
           reason?: string
           retained_at?: string
+          retained_via?: string | null
         }
         Relationships: []
       }
@@ -4212,8 +4285,8 @@ export type Database = {
           photos: string[] | null
           pricing_mode: string | null
           recurrence_end_date: string | null
-          require_photo_proof: boolean
           recurrence_interval: string | null
+          require_photo_proof: boolean | null
           special_requirements: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["job_status"] | null
@@ -4252,8 +4325,8 @@ export type Database = {
           photos?: string[] | null
           pricing_mode?: string | null
           recurrence_end_date?: string | null
-          require_photo_proof?: boolean
           recurrence_interval?: string | null
+          require_photo_proof?: boolean | null
           special_requirements?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["job_status"] | null
@@ -4292,8 +4365,8 @@ export type Database = {
           photos?: string[] | null
           pricing_mode?: string | null
           recurrence_end_date?: string | null
-          require_photo_proof?: boolean
           recurrence_interval?: string | null
+          require_photo_proof?: boolean | null
           special_requirements?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["job_status"] | null
@@ -4379,6 +4452,7 @@ export type Database = {
           support_tier: string
         }[]
       }
+      application_cap: { Args: { p_kind: string }; Returns: number }
       apply_cancellation_violation_consequence: {
         Args: { p_job_id: string }
         Returns: Json
@@ -4429,6 +4503,11 @@ export type Database = {
           tip_amount: number
         }[]
       }
+      ban_fingerprint: {
+        Args: { p_domain: string; p_value: string }
+        Returns: string
+      }
+      ban_fingerprint_salt: { Args: never; Returns: string }
       block_user_and_settle: {
         Args: { p_blocked: string; p_reason?: string }
         Returns: Json
@@ -4522,6 +4601,15 @@ export type Database = {
       detect_stuck_payments: { Args: never; Returns: number }
       detect_suspicious_user_patterns: { Args: never; Returns: number }
       early_access_cutoff: { Args: never; Returns: string }
+      enforce_retained_ban: {
+        Args: {
+          p_email?: string
+          p_identity_sha256?: string
+          p_phone?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -5173,6 +5261,15 @@ export type Database = {
         Args: { p_job_id: string; p_lat?: number; p_lng?: number }
         Returns: string
       }
+      identity_fingerprint: {
+        Args: {
+          p_dob: string
+          p_doc_number?: string
+          p_first_name: string
+          p_last_name: string
+        }
+        Returns: string
+      }
       identity_is_verified: {
         Args: { p_idv_status: string; p_stripe_identity_verified: boolean }
         Returns: boolean
@@ -5206,6 +5303,11 @@ export type Database = {
       job_hours_until_start: {
         Args: { p_at: string; p_date_needed: string; p_start_time: string }
         Returns: number
+      }
+      job_is_funded: { Args: { p_job_id: string }; Returns: boolean }
+      job_payment_is_funded: {
+        Args: { p_payment_status: string }
+        Returns: boolean
       }
       log_cron_defect: {
         Args: { p_context?: Json; p_err: string; p_fn: string; p_ref: string }
@@ -5262,6 +5364,7 @@ export type Database = {
         Returns: number
       }
       my_credential_tier: { Args: never; Returns: number }
+      normalize_phone_for_ban: { Args: { p_phone: string }; Returns: string }
       notification_job_id_from_link: {
         Args: { p_link: string }
         Returns: string
@@ -5275,6 +5378,15 @@ export type Database = {
           _refiled?: boolean
         }
         Returns: undefined
+      }
+      open_dispute_as: {
+        Args: {
+          _evidence_urls: string[]
+          _job_id: string
+          _opener_id: string
+          _reason: string
+        }
+        Returns: string
       }
       poster_cancel_job: {
         Args: { p_job_id: string; p_reason?: string }
@@ -5344,6 +5456,10 @@ export type Database = {
         Args: { p_dry_run?: boolean; p_job_id: string; p_share_bps?: number }
         Returns: Json
       }
+      retain_ban_for_user: {
+        Args: { p_user_id: string; p_via?: string }
+        Returns: number
+      }
       retain_ban_on_deletion: { Args: { p_user_id: string }; Returns: number }
       review_credential: {
         Args: {
@@ -5381,6 +5497,7 @@ export type Database = {
         Returns: undefined
       }
       rpc_withdraw_dispute: { Args: { _job_id: string }; Returns: undefined }
+      save_weekly_availability: { Args: { p_slots: Json }; Returns: number }
       search_profiles_by_name: {
         Args: { query: string }
         Returns: {

@@ -329,6 +329,18 @@
     "nargs": 1
    }
   ],
+  "can_send_message_to_in_job": [
+   {
+    "anon": false,
+    "args": [
+     "_job_id",
+     "_receiver"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "cancellation_fee_percent": [
    {
     "anon": true,
@@ -1449,7 +1461,7 @@
      "_job_id",
      "_user_id"
     ],
-    "authenticated": true,
+    "authenticated": false,
     "nargdefaults": 0,
     "nargs": 2
    }

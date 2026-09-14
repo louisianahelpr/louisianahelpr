@@ -108,3 +108,20 @@ describe("pushPermissionNudge — timing logic", () => {
     });
   });
 });
+
+// press-every-control run 34744828202: "Not Now" in the push rationale dialog
+// raised an ERROR toast telling the user to fix their browser settings.
+describe("pushDeclineNeedsSettingsHint: Not Now is a choice, not an error", () => {
+  it("says nothing while permission is still undecided (Not Now in our own dialog)", async () => {
+    const mod = (await import("./pushPermissionNudge")) as Record<string, unknown>;
+    expect(typeof mod.pushDeclineNeedsSettingsHint, "no decline classifier: every false toasts").toBe("function");
+    const hint = mod.pushDeclineNeedsSettingsHint as (s: string) => boolean;
+    expect(hint("prompt")).toBe(false);
+  });
+  it("points at Settings only when the OS or browser actually refused", async () => {
+    const { pushDeclineNeedsSettingsHint } = await import("./pushPermissionNudge");
+    expect(pushDeclineNeedsSettingsHint("denied")).toBe(true);
+    expect(pushDeclineNeedsSettingsHint("unsupported")).toBe(true);
+    expect(pushDeclineNeedsSettingsHint("granted")).toBe(false);
+  });
+});

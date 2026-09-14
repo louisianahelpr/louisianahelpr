@@ -133,6 +133,23 @@ export async function readPushPermission(): Promise<
 }
 
 /**
+ * After a push request came back NOT granted: should the user be told to go
+ * to Settings?
+ *
+ * Only when the OS/browser actually says no. `useRequestPushPermission`
+ * returns `false` for two different things — the user tapping "Not Now" in
+ * our own rationale dialog (no OS prompt was ever shown; permission is still
+ * "prompt") and a real denial. press-every-control (run 34744828202, 2026-09-13)
+ * pressed "Not Now" and got an ERROR toast, "Notifications are off. Turn them
+ * on in your browser settings." — scolding a choice the user just made and
+ * pointing at a setting that was never touched. "prompt" is a choice, not a
+ * failure: say nothing, and the row stays there for next time.
+ */
+export function pushDeclineNeedsSettingsHint(state: Awaited<ReturnType<typeof readPushPermission>>): boolean {
+  return state !== "prompt" && state !== "granted";
+}
+
+/**
  * Compose the timing check + permission check. Returns true if the nudge
  * should surface right now. Async because we hit the Capacitor permission
  * plugin on native.

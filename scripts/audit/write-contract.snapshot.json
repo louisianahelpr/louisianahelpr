@@ -434,15 +434,6 @@
     "nargs": 1
    }
   ],
-  "count_profiles": [
-   {
-    "anon": false,
-    "args": [],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
   "cron_dispatch_health": [
    {
     "anon": false,
@@ -863,17 +854,6 @@
     "nargs": 0
    }
   ],
-  "get_approved_helpers": [
-   {
-    "anon": false,
-    "args": [
-     "max_count"
-    ],
-    "authenticated": false,
-    "nargdefaults": 1,
-    "nargs": 1
-   }
-  ],
   "get_category_price_stats": [
    {
     "anon": false,
@@ -955,17 +935,6 @@
     "nargs": 1
    }
   ],
-  "get_helper_parish_badges": [
-   {
-    "anon": false,
-    "args": [
-     "_user_id"
-    ],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 1
-   }
-  ],
   "get_helper_repeat_hire_percents": [
    {
     "anon": false,
@@ -986,15 +955,6 @@
     "authenticated": true,
     "nargdefaults": 1,
     "nargs": 1
-   }
-  ],
-  "get_hero_parishes": [
-   {
-    "anon": false,
-    "args": [],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 0
    }
   ],
   "get_job_customer_id": [
@@ -1037,26 +997,6 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 0
-   }
-  ],
-  "get_marketplace_activity_count": [
-   {
-    "anon": true,
-    "args": [],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
-  "get_monthly_profile_view_count": [
-   {
-    "anon": false,
-    "args": [
-     "p_user_id"
-    ],
-    "authenticated": true,
-    "nargdefaults": 0,
-    "nargs": 1
    }
   ],
   "get_muted_threads": [
@@ -1180,53 +1120,6 @@
     "nargs": 0
    }
   ],
-  "get_platform_benchmarks": [
-   {
-    "anon": true,
-    "args": [],
-    "authenticated": true,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
-  "get_platform_impact_stats": [
-   {
-    "anon": true,
-    "args": [],
-    "authenticated": true,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
-  "get_public_avg_rating": [
-   {
-    "anon": false,
-    "args": [],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
-  "get_public_completed_job_count": [
-   {
-    "anon": false,
-    "args": [],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
-  "get_public_job_stories": [
-   {
-    "anon": false,
-    "args": [
-     "p_limit"
-    ],
-    "authenticated": false,
-    "nargdefaults": 1,
-    "nargs": 1
-   }
-  ],
   "get_public_open_jobs": [
    {
     "anon": true,
@@ -1285,17 +1178,6 @@
     "authenticated": true,
     "nargdefaults": 6,
     "nargs": 6
-   }
-  ],
-  "get_recent_public_payouts": [
-   {
-    "anon": true,
-    "args": [
-     "_limit"
-    ],
-    "authenticated": true,
-    "nargdefaults": 1,
-    "nargs": 1
    }
   ],
   "get_safe_profiles": [
@@ -2295,20 +2177,6 @@
     "authenticated": true,
     "nargdefaults": 2,
     "nargs": 5
-   }
-  ],
-  "review_helper_credential": [
-   {
-    "anon": false,
-    "args": [
-     "_credential_id",
-     "_decision",
-     "_reason",
-     "_expires"
-    ],
-    "authenticated": true,
-    "nargdefaults": 2,
-    "nargs": 4
    }
   ],
   "rls_auto_enable": [
@@ -4596,6 +4464,188 @@
    "rls": true,
    "triggers": []
   },
+  "gift_cards": {
+   "checks": [
+    "CHECK ((amount > (0)::numeric))",
+    "CHECK (((design_id IS NULL) OR (length(design_id) <= 48)))",
+    "CHECK (((occasion IS NULL) OR (length(occasion) <= 48)))",
+    "CHECK ((payment_status = ANY (ARRAY['pending'::text, 'paid'::text, 'refunded'::text])))",
+    "CHECK ((status = ANY (ARRAY['available'::text, 'reserved'::text, 'sent'::text, 'redeemed'::text, 'expired'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "amount": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "numeric(10,2)"
+    },
+    "category": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "claim_token": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "design_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "donor_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "expires_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "message": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "occasion": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "parent_credit_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "parish": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "payment_status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "recipient_email": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "recipient_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "redeemed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "restored_from_job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "stripe_payment_intent_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "stripe_session_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    }
+   },
+   "grants": {
+    "anon": [
+     "REFERENCES",
+     "SELECT"
+    ],
+    "authenticated": [
+     "REFERENCES",
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "Gift cards are party-only",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "public"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": []
+  },
   "group_job_helpers": {
    "checks": [],
    "columnGrants": {},
@@ -6352,13 +6402,6 @@
      "notNull": false,
      "type": "numeric(10,2)"
     },
-    "protection_opted_in": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "boolean"
-    },
     "recurrence_days": {
      "enum": null,
      "generated": false,
@@ -6505,13 +6548,6 @@
      "hasDefault": true,
      "notNull": false,
      "type": "numeric"
-    },
-    "scope_video_thumbnail_url": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
     },
     "scope_video_url": {
      "enum": null,
@@ -9568,13 +9604,6 @@
      "notNull": true,
      "type": "uuid"
     },
-    "is_evacuation_registered": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "boolean"
-    },
     "medical_notes": {
      "enum": null,
      "generated": false,
@@ -9676,333 +9705,6 @@
    "rls": true,
    "triggers": []
   },
-  "pet_report_cards": {
-   "checks": [
-    "CHECK ((mood = ANY (ARRAY['happy'::text, 'calm'::text, 'anxious'::text, 'tired'::text, 'playful'::text])))"
-   ],
-   "columnGrants": {},
-   "columns": {
-    "ate_well": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "boolean"
-    },
-    "created_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "timestamp with time zone"
-    },
-    "exercise_duration_minutes": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "integer"
-    },
-    "gps_walk_summary": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    },
-    "helper_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "uuid"
-    },
-    "id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "uuid"
-    },
-    "job_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "uuid"
-    },
-    "mood": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    },
-    "notes": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    },
-    "owner_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "uuid"
-    },
-    "pet_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "uuid"
-    },
-    "photos": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": false,
-     "type": "text[]"
-    },
-    "potty_breaks": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "integer"
-    },
-    "report_date": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "date"
-    }
-   },
-   "grants": {
-    "anon": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ],
-    "authenticated": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ]
-   },
-   "kind": "table",
-   "policies": [
-    {
-     "cmd": "INSERT",
-     "name": "Helpers create report cards",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "public"
-     ]
-    },
-    {
-     "cmd": "SELECT",
-     "name": "Report cards visible to owner and helper",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "public"
-     ]
-    }
-   ],
-   "rls": true,
-   "triggers": [
-    "before:insert"
-   ]
-  },
-  "gift_cards": {
-   "checks": [
-    "CHECK ((amount > (0)::numeric))",
-    "CHECK (((design_id IS NULL) OR (length(design_id) <= 48)))",
-    "CHECK (((occasion IS NULL) OR (length(occasion) <= 48)))",
-    "CHECK ((payment_status = ANY (ARRAY['pending'::text, 'paid'::text, 'refunded'::text])))",
-    "CHECK ((status = ANY (ARRAY['available'::text, 'reserved'::text, 'sent'::text, 'redeemed'::text, 'expired'::text])))"
-   ],
-   "columnGrants": {},
-   "columns": {
-    "amount": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "numeric(10,2)"
-    },
-    "category": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    },
-    "claim_token": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    },
-    "created_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "timestamp with time zone"
-    },
-    "design_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    },
-    "donor_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "uuid"
-    },
-    "expires_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": false,
-     "type": "timestamp with time zone"
-    },
-    "id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "uuid"
-    },
-    "job_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "uuid"
-    },
-    "message": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    },
-    "occasion": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    },
-    "parent_credit_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "uuid"
-    },
-    "parish": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    },
-    "payment_status": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "text"
-    },
-    "recipient_email": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    },
-    "recipient_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "uuid"
-    },
-    "redeemed_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "timestamp with time zone"
-    },
-    "restored_from_job_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "uuid"
-    },
-    "status": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "text"
-    },
-    "stripe_payment_intent_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    },
-    "stripe_session_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    }
-   },
-   "grants": {
-    "anon": [
-     "REFERENCES",
-     "SELECT"
-    ],
-    "authenticated": [
-     "REFERENCES",
-     "SELECT"
-    ]
-   },
-   "kind": "table",
-   "policies": [
-    {
-     "cmd": "SELECT",
-     "name": "gift cards are party-only",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "public"
-     ]
-    }
-   ],
-   "rls": true,
-   "triggers": []
-  },
   "platform_settings": {
    "checks": [
     "CHECK (((platform_fee_percent >= (0)::numeric) AND (platform_fee_percent <= (100)::numeric)))"
@@ -10071,13 +9773,6 @@
      "hasDefault": true,
      "notNull": true,
      "type": "numeric"
-    },
-    "latest_build": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "integer"
     },
     "min_supported_build": {
      "enum": null,
@@ -10395,11 +10090,9 @@
       "phone",
       "portfolio_urls",
       "preferred_helper_id",
-      "push_consent",
       "saved_helper_seen",
       "senior_mode",
       "skills",
-      "sms_consent",
       "stripe_account_id",
       "stripe_charges_enabled",
       "stripe_identity_verified",
@@ -10968,13 +10661,6 @@
      "notNull": false,
      "type": "uuid"
     },
-    "push_consent": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "boolean"
-    },
     "saved_helper_seen": {
      "enum": null,
      "generated": false,
@@ -10995,13 +10681,6 @@
      "hasDefault": false,
      "notNull": false,
      "type": "text"
-    },
-    "sms_consent": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "boolean"
     },
     "stripe_account_id": {
      "enum": null,
@@ -12519,85 +12198,6 @@
      "permissive": "PERMISSIVE",
      "roles": [
       "public"
-     ]
-    }
-   ],
-   "rls": true,
-   "triggers": []
-  },
-  "subscription_cancel_reasons": {
-   "checks": [],
-   "columnGrants": {},
-   "columns": {
-    "created_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "timestamp with time zone"
-    },
-    "id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "uuid"
-    },
-    "reason": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "text"
-    },
-    "tier": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
-    },
-    "user_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "uuid"
-    }
-   },
-   "grants": {
-    "authenticated": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ]
-   },
-   "kind": "table",
-   "policies": [
-    {
-     "cmd": "SELECT",
-     "name": "admins read all cancel reasons",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
-    {
-     "cmd": "INSERT",
-     "name": "insert own cancel reason",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
-    {
-     "cmd": "SELECT",
-     "name": "read own cancel reason",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
      ]
     }
    ],

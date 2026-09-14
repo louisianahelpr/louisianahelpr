@@ -6,6 +6,7 @@
  *   node scripts/audit/prod-seed.mjs --verify     read-only; prints a coverage table, exits 1 on a gap
  *   node scripts/audit/prod-seed.mjs --apply      idempotent; creates/repairs every state below
  *   node scripts/audit/prod-seed.mjs --teardown   removes everything --apply created, restores accounts
+ *   node scripts/audit/prod-seed.mjs --avatar     only the Hallie Helper avatar file (upload if missing); --apply runs it too
  *
  * Needs `.env` (VITE_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY), the same pattern
  * as scripts/test-signin-link.mjs. Never applies a migration, never touches a
@@ -47,13 +48,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import zlib from "node:zlib";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const MODE = ["--apply", "--verify", "--teardown"].find((f) => process.argv.includes(f));
+const MODE = ["--apply", "--verify", "--teardown", "--avatar"].find((f) => process.argv.includes(f));
 if (!MODE) {
-  console.error("Usage: node scripts/audit/prod-seed.mjs --apply | --verify | --teardown");
+  console.error("Usage: node scripts/audit/prod-seed.mjs --apply | --verify | --teardown | --avatar");
   process.exit(2);
 }
 
@@ -297,10 +299,91 @@ const HONEST_GAPS = [
   ["verification_exceptions, platform_settings", "Admin work queue and a single global settings row; no seed-scoped honest value."],
 ];
 
+// ── Hallie Helper's avatar ───────────────────────────────────────────────────
+// The helper's profile points at avatars/<user_id>/avatar.png. That object went
+// missing on prod once (the main E2E helper's avatar rendered broken) and was
+// replaced by hand with a generated PNG. This script owns the file now: if the
+// object is missing it uploads a deterministic PNG generated below (nothing
+// binary is committed), and it keeps profiles.avatar_url pointed at it. It
+// never overwrites an object that exists (x-upsert: false), so whatever image
+// is there is left alone.
+function crc32(buf) {
+  let crc = 0xffffffff;
+  for (let n = 0; n < buf.length; n++) {
+    let c = (crc ^ buf[n]) & 0xff;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    crc = (crc >>> 8) ^ c;
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+/** 256x256 RGB PNG: olive ground, lighter centred disc. Same bytes every run. */
+function helperAvatarPng(size = 256) {
+  const stride = size * 3 + 1;
+  const raw = Buffer.alloc(stride * size);
+  const r2 = (size * 0.34) ** 2;
+  for (let y = 0; y < size; y++) {
+    const row = y * stride; // raw[row] = 0: PNG filter "none"
+    for (let x = 0; x < size; x++) {
+      const inDisc = (x - size / 2) ** 2 + (y - size / 2) ** 2 <= r2;
+      const rgb = inDisc ? [0xe9, 0xe4, 0xd0] : [0x5b, 0x63, 0x40];
+      raw.set(rgb, row + 1 + x * 3);
+    }
+  }
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type, "ascii"), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(td));
+    return Buffer.concat([len, td, crc]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0);
+  ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 2; // colour type RGB
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", zlib.deflateSync(raw, { level: 9 })),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+const helperAvatarUrl = (helperId) => `${BASE}/storage/v1/object/public/avatars/${helperId}/avatar.png`;
+
+async function ensureHelperAvatar(helperId) {
+  const url = helperAvatarUrl(helperId);
+  const head = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(20_000) });
+  let action = "present, left alone";
+  if (!head.ok) {
+    const up = await fetch(`${BASE}/storage/v1/object/avatars/${helperId}/avatar.png`, {
+      method: "POST",
+      headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "image/png", "x-upsert": "false", "cache-control": "3600" },
+      body: helperAvatarPng(),
+      signal: AbortSignal.timeout(30_000),
+    });
+    const text = await up.text();
+    // "already exists" means a HEAD blip or a race: the file is there.
+    if (!up.ok && !/exists|duplicate/i.test(text)) throw new Error(`upload helper avatar → ${up.status} ${text}`);
+    action = up.ok ? "was MISSING, uploaded" : "present (upload reported it exists)";
+  }
+  const [prof] = await select(`profiles?user_id=eq.${helperId}&select=avatar_url`);
+  if (prof?.avatar_url !== url) {
+    await rest("PATCH", `profiles?user_id=eq.${helperId}&is_seed=eq.true`, { avatar_url: url }, { prefer: "return=minimal" });
+    action += "; avatar_url repointed";
+  }
+  const after = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(20_000) });
+  if (!after.ok) throw new Error(`helper avatar still missing after ensure (${after.status})`);
+  console.log(`helper avatar: ${action} (${after.headers.get("content-type")}, ${after.headers.get("content-length")} bytes) ${url}`);
+}
+
 // ── apply ────────────────────────────────────────────────────────────────────
 async function apply() {
   const posterId = await requireSeed(POSTER.email);
   const helperId = await requireSeed(HELPER.email);
+  await ensureHelperAvatar(helperId);
   const ids = {};
   for (const [key, spec] of Object.entries(OWNED)) ids[key] = await ensureOwnedAccount(key, spec);
   for (const [key, id] of Object.entries(ids)) {
@@ -577,6 +660,13 @@ async function verify() {
   await check("review helper→poster", `reviews?reviewer_id=eq.${helperId}&reviewee_id=eq.${posterId}&select=id`, 1);
   await check("payout_transfers (helper)", `payout_transfers?helper_id=eq.${helperId}&select=id`, 1, "real flow");
   await check("tips (helper)", `tips?helper_id=eq.${helperId}&select=id`, 1, "real flow");
+  {
+    const r = await fetch(helperAvatarUrl(helperId), { method: "HEAD", signal: AbortSignal.timeout(20_000) }).catch((e) => ({ ok: false, status: e.message }));
+    const [p] = await select(`profiles?user_id=eq.${helperId}&select=avatar_url`);
+    const pointed = p?.avatar_url === helperAvatarUrl(helperId);
+    const ok = r.ok && pointed;
+    rows.push({ state: "helper avatar file + avatar_url", n: ok ? 1 : 0, min: 1, ok, source: "prod-seed", err: ok ? "" : `HEAD ${r.status}, avatar_url ${pointed ? "ok" : "differs"}` });
+  }
   await check("helper credentials", `helper_credentials?user_id=eq.${helperId}&select=id`, 3);
   await check("helper availability", `helper_availability?helper_id=eq.${helperId}&select=id`, 6);
   await check("pets", `pet_profiles?owner_id=eq.${posterId}&select=id`, 2);
@@ -629,6 +719,7 @@ async function verify() {
 
 try {
   if (MODE === "--apply") await apply();
+  if (MODE === "--avatar") await ensureHelperAvatar(await requireSeed(HELPER.email));
   if (MODE === "--teardown") await teardown();
   if (MODE === "--verify") process.exit((await verify()) ? 0 : 1);
 } catch (e) {

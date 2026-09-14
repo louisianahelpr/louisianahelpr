@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/anchoredPanel";
 import { isPushSupported, registerServiceWorker, showLocalNotification, getPushPermission } from "@/lib/pushNotifications";
 import { useRequestPushPermission } from "@/lib/nativePush";
+import { readPushPermission, pushDeclineNeedsSettingsHint } from "@/lib/pushPermissionNudge";
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
@@ -337,7 +338,8 @@ const NotificationPanel = () => {
     const granted = await requestPush();
     if (granted) {
       setPushEnabled(true);
-    } else {
+    } else if (pushDeclineNeedsSettingsHint(await readPushPermission())) {
+      // Not for "Not Now" in the rationale dialog: see pushDeclineNeedsSettingsHint.
       toast.error(
         Capacitor.isNativePlatform()
           ? "Notifications are off. Turn them on in your device settings."

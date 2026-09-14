@@ -198,6 +198,17 @@ export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confir
 export { ACCOUNT_DESTROY_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
 import { PAYMENT_RX } from "./pressProdSafety.mjs";
 /** Console lines the HARNESS causes, not the app. */
+/**
+ * Scripts only Vercel's edge serves. The harness runs against a local
+ * `vite preview`, where /_vercel/insights/script.js and
+ * /_vercel/speed-insights/script.js are always 404 — so any press that
+ * mounted the app afresh ("Go Back" on the 404 page) failed on a request that
+ * cannot succeed off Vercel (runs 34744828202 and 34865377511). Ignored only
+ * when the harness is NOT pointed at a Vercel host.
+ */
+export const HOST_ONLY_ASSET_RX = /\/_vercel\/(speed-)?insights\//;
+export const ignoreHostOnlyAsset = (url, base) => HOST_ONLY_ASSET_RX.test(String(url ?? "")) && !/vercel\.app|louisianahelpr\.com/.test(String(base ?? ""));
+
 const CONSOLE_NOISE = [
   /Service Worker registration blocked by Playwright/i,
   /Download the React DevTools/i,
@@ -454,11 +465,13 @@ async function main() {
         if (m.type() !== "error") return;
         const t = m.text();
         if (CONSOLE_NOISE.some((rx) => rx.test(t))) return;
+        if (ignoreHostOnlyAsset(m.location()?.url, BASE)) return;
         consoleErrors.push(t.replace(/\s+/g, " ").slice(0, 200));
       });
       page.on("pageerror", (e) => consoleErrors.push("uncaught: " + String(e.message).slice(0, 200)));
       page.on("response", (r) => {
         const s = r.status();
+        if (ignoreHostOnlyAsset(r.url(), BASE)) return;
         if (s >= 400 && s !== 406) netFails.push(`${s} ${r.request().method()} ${r.url().replace(/\?.*$/, "").split("/").slice(-2).join("/")}`);
       });
       ctx.on("page", (p) => { popups.push(p.url()); p.close().catch(() => {}); });

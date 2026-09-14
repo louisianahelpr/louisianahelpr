@@ -201,6 +201,14 @@ export function JobCardMetaRow({
   });
 
   const city = getCity(location);
+  // LOCATION OUTRANKS THE EXPIRY COUNTDOWN (owner, 2026-09-11 / 2026-09-13).
+  // With a countdown on the row the city does not shrink at all — the
+  // countdown (shrink-[100], min-w-0, truncate) gives instead. Weighting alone
+  // was not enough: measured on prod at 375 the city still lost ~4px and
+  // ellipsized "New Iber…", and any loss on a short city name is an ellipsis.
+  // The 50% cap keeps a very long place name from pushing the date out. With
+  // no countdown the city is still the row's only shrinker, exactly as before.
+  const cityFlex = expiresAt ? "shrink-0 max-w-[50%]" : "shrink";
 
   return (
     /* `gap-x-5`, not `gap-2.5` (owner: "space location day and time out
@@ -257,7 +265,7 @@ export function JobCardMetaRow({
            own href is a lie to every user agent that reads it. The href moved
            to the real anchor below, which is where the map action actually
            lives for both the gesture and assistive tech. */
-        <span className="flex items-center min-w-0 shrink">
+        <span className={`flex items-center min-w-0 ${cityFlex}`}>
           <button
             type="button"
             {...longPress}
@@ -355,7 +363,7 @@ export function JobCardMetaRow({
              of WCAG 2.5.8's 24px minimum. The row's only other content is plain
              text, so the extra 8px above and below overlaps nothing that could
              steal the tap. */
-          className="flex items-center gap-1.5 py-2 -my-2 hover:text-primary transition-colors min-w-0 shrink"
+          className={`flex items-center gap-1.5 py-2 -my-2 hover:text-primary transition-colors min-w-0 ${cityFlex}`}
         >
           <MapPin className="w-3 h-3 shrink-0" />
           <span className="truncate">{city}</span>
@@ -425,17 +433,25 @@ export function JobCardMetaRow({
             const expiringSoon = differenceInHours(expiry, expiryNow) < 24;
             const text = formatTimeLeft(expiry, expiryNow);
             return (
-              /* `shrink-0 whitespace-nowrap`, like every other chip on this
-                 row. Without them this was the ONE item here that could wrap
-                 inside itself, and on a squeezed 320/375 card it did: "4 days
-                 left" broke across three lines and took the whole meta row —
-                 and therefore that one card — 32px taller than its neighbours,
-                 which is the equal-card-height rule this list is built on. A
-                 nowrap row whose chips wrap internally is not a nowrap row. */
+              /* `whitespace-nowrap`: without it "4 days left" broke across three
+                 lines on a squeezed 320/375 card and made that one card 32px
+                 taller than its neighbours.
+
+                 LOCATION OUTRANKS THIS COUNTDOWN (owner, 2026-09-11, again
+                 2026-09-13). It used to be `shrink-0`, which left the city as
+                 the only item that could give: measured on prod at 375,
+                 "Under a minute left" kept its full 125px while "New Iberia"
+                 rendered as "N…". Now it ellipsizes FIRST — `min-w-0` lets it
+                 go below its text, and `shrink-[100]` gives it a hundred times
+                 the city's share of any shortfall, so the city only starts to
+                 give once this is down to its timer icon. Where a job is, is
+                 the first thing read; the countdown is also said by the
+                 expired/urgent treatment. Guarded by
+                 JobCardMetaRow.locationPriority.test.tsx. */
               <span
-                className={`flex items-center gap-1 shrink-0 whitespace-nowrap ${expiringSoon ? "text-destructive font-medium" : ""}`}
+                className={`flex items-center gap-1 min-w-0 shrink-[100] overflow-hidden whitespace-nowrap ${expiringSoon ? "text-destructive font-medium" : ""}`}
               >
-                <Timer className="w-3 h-3 shrink-0" /> {text}
+                <Timer className="w-3 h-3 shrink-0" /> <span className="truncate">{text}</span>
               </span>
             );
           })()

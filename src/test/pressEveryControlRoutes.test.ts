@@ -86,3 +86,19 @@ describe("press-every-control route derivation", () => {
     for (const reason of DOCUMENTED_SKIPS) expect(typeof reason).toBe("string");
   });
 });
+
+describe("press-every-control: Vercel-only scripts on a local preview", () => {
+  // Runs 34744828202 and 34865377511 failed "Go Back" on 404 GET
+  // /_vercel/speed-insights/script.js — a file only Vercel's edge serves.
+  const ignore = harness.ignoreHostOnlyAsset as ((url: string, base: string) => boolean) | undefined;
+  it("ignores /_vercel/(speed-)insights 404s against a local preview", () => {
+    expect(typeof ignore, "harness has no host-only asset filter").toBe("function");
+    expect(ignore!("http://127.0.0.1:4173/_vercel/speed-insights/script.js", "http://127.0.0.1:4173")).toBe(true);
+    expect(ignore!("http://127.0.0.1:4173/_vercel/insights/script.js", "http://127.0.0.1:4173")).toBe(true);
+  });
+  it("still counts them against a real Vercel host, and never hides app requests", () => {
+    expect(ignore!("https://www.louisianahelpr.com/_vercel/insights/script.js", "https://www.louisianahelpr.com")).toBe(false);
+    expect(ignore!("http://127.0.0.1:4173/assets/index.js", "http://127.0.0.1:4173")).toBe(false);
+    expect(ignore!("https://fncmgoasalhdgfwzhsqa.supabase.co/rest/v1/jobs", "http://127.0.0.1:4173")).toBe(false);
+  });
+});

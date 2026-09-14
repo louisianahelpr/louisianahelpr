@@ -229,6 +229,7 @@ export function BrowseSearchBar({
             boxShadow: "0 12px 32px -12px hsl(var(--olivewood) / 0.35)",
           }}
           {...listboxProps}
+          role="listbox"
           aria-label="Recent searches"
         >
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/30">

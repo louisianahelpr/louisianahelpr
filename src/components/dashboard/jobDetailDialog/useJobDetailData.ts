@@ -80,14 +80,9 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
         const { data: { user } } = await supabase.auth.getUser();
         // Don't record the poster viewing their own job
         if (!user || user.id === job.customer_id) return;
-        // record_job_view isn't in the generated Functions map (migration
-        // unapplied to prod); call it via a narrowly-typed wrapper. PGRST202
-        // is swallowed by the surrounding try/catch.
-        const recordJobViewRpc = supabase.rpc.bind(supabase) as unknown as (
-          fn: "record_job_view",
-          args: { p_job_id: string },
-        ) => Promise<{ data: unknown; error: { code?: string } | null }>;
-        await recordJobViewRpc("record_job_view", { p_job_id: job.id });
+        // PGRST202 (the migration has merged but db-deploy has not finished)
+        // is swallowed by the surrounding try/catch, same as a network error.
+        await supabase.rpc("record_job_view", { p_job_id: job.id });
       } catch {
         // Non-critical — PGRST202 (not yet deployed) or network error
       }

@@ -151,8 +151,8 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
       // RLS policy. The legacy two-step path below runs ONLY while that
       // function is not deployed yet (PGRST202), per CLAUDE.md.
       const { data: savedCount, error: rpcError } = await supabase.rpc(
-        "save_weekly_availability" as never,
-        { p_slots: inserts.map(({ helper_id: _h, specific_date: _d, ...slot }) => slot) } as never,
+        "save_weekly_availability",
+        { p_slots: inserts.map(({ helper_id: _h, specific_date: _d, ...slot }) => slot) },
       );
       if (rpcError && (rpcError as { code?: string }).code !== "PGRST202") throw rpcError;
       if (rpcError) {

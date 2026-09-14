@@ -232,8 +232,8 @@ export function PublicReviewWall({
       // structurally broken in the hand-rolled query kept below as a
       // fallback — see the comment there.
       const { data: rpcRows, error: rpcErr } = await supabase.rpc(
-        "get_public_profile_reviews" as never,
-        { p_user_id: helperId, p_limit: limit, p_offset: 0 } as never,
+        "get_public_profile_reviews",
+        { p_user_id: helperId, p_limit: limit, p_offset: 0 },
       );
 
       // PGRST202 = not deployed yet (migrations land on merge; CLAUDE.md).

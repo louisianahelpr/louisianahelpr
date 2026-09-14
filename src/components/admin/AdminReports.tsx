@@ -259,10 +259,10 @@ const AdminReports = () => {
   const deleteReportedReview = async () => {
     if (!deleteReviewTarget) return;
     setDeletingReview(true);
-    const { error } = await supabase.rpc("admin_delete_review" as never, {
+    const { error } = await supabase.rpc("admin_delete_review", {
       _review_id: deleteReviewTarget.reported_id,
       _reason: `Removed via report ${deleteReviewTarget.id}: ${deleteReviewTarget.reason}`,
-    } as never);
+    });
     setDeletingReview(false);
     if (error) {
       toast.error(userFacingError(error, "Couldn't remove that review — try again."));

@@ -242,7 +242,7 @@ export function PostedJobActions({
       // The old version wrote status='completed' straight from the client and
       // promised the helper payment that no release path would ever pick up —
       // escrow stayed held forever.
-      const { error } = await supabase.rpc("rpc_withdraw_dispute" as never, { _job_id: job.id } as never);
+      const { error } = await supabase.rpc("rpc_withdraw_dispute", { _job_id: job.id });
       // REPORTED, not just toasted. This call failed 100% of the time from
       // 20260901032007 until 20260907034644 — the dispute column whitelist
       // pinned `decided_at`, which the RPC stamps in the same statement as the

@@ -1,0 +1,46 @@
+// Fixture for rpcCastsOnDeclaredRpcs.test.ts — NOT compiled, NOT imported by
+// the app. It reproduces the three cast shapes the 14 remaining call sites had
+// before they were removed, plus the ONE that must stay green, so the guard is
+// shown able to fail rather than asserted to work. `.ts.txt` for the same
+// reason the raceClass fixtures use it: the repo's typecheck must not see it.
+
+// 1. The inline `"name" as never` on a call whose args are then cast too.
+export async function apply(supabase: any, jobId: string, message: string) {
+  const { error } = await supabase.rpc("apply_to_job" as never, {
+    p_job_id: jobId,
+    p_message: message,
+  } as never);
+  return error;
+}
+
+// 2. The `.bind(supabase) as unknown as (...)` hand-written signature, whose
+//    parentheses balance at `(supabase)` long before the RPC name appears.
+export async function recordView(supabase: any, jobId: string) {
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: "record_job_view",
+    args: { p_job_id: string },
+  ) => Promise<{ data: unknown; error: { code?: string } | null }>;
+  await rpc("record_job_view", { p_job_id: jobId });
+}
+
+// 3. The generic wrapper that names no RPC, so every call routed through it is
+//    invisible to a by-name scan.
+export function callUntypedRpc<TArgs extends Record<string, unknown>>(
+  supabase: any,
+  fn: string,
+  args: TArgs,
+) {
+  return (supabase.rpc as unknown as (
+    fn: string,
+    args: TArgs,
+  ) => Promise<{ data: unknown; error: { code?: string } | null }>)(fn, args);
+}
+
+// 4. MUST STAY GREEN. A parameter that genuinely takes NULL, cast on that one
+//    argument and justified.
+export async function snooze(supabase: any, jobId: string, untilIso: string | null) {
+  // nullable-arg: `set_thread_snooze(_until timestamptz)` (migration
+  // 20260609150000) takes NULL as "mute forever"; a generated `Args` type
+  // renders every parameter non-null, so it cannot express that.
+  return supabase.rpc("set_thread_snooze", { _job_id: jobId, _until: untilIso as string });
+}

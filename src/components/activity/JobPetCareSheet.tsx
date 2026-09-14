@@ -67,9 +67,9 @@ export function JobPetCareSheet({ jobId }: { jobId: string }) {
     queryKey: ["job_pets", jobId],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data, error: rpcErr } = await supabase.rpc("get_job_pets" as never, {
+      const { data, error: rpcErr } = await supabase.rpc("get_job_pets", {
         p_job_id: jobId,
-      } as never);
+      });
       // PGRST202 = the migration has merged but db-deploy has not finished.
       // Expected for a few minutes on every deploy; render nothing rather than
       // an error state on a card that is otherwise fine.

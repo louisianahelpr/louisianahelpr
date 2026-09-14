@@ -44,10 +44,9 @@ export async function fetchRatingStats(revieweeIds: string[]): Promise<RatingSta
   const ids = [...new Set(revieweeIds)].filter(Boolean);
   if (ids.length === 0) return new Map();
 
-  const { data, error } = await supabase.rpc(
-    "get_public_profile_stats" as never,
-    { p_user_ids: ids } as never,
-  );
+  const { data, error } = await supabase.rpc("get_public_profile_stats", {
+    p_user_ids: ids,
+  });
 
   // PGRST202 = the function is not deployed yet. Migrations land on merge to
   // main, so a freshly-shipped client can run for a window against a database

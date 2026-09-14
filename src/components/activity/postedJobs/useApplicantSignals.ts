@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { type Job, type EnrichedApplication } from "../activityConstants";
-import { callUntypedRpc } from "./postedJobsHelpers";
 
 /**
  * An applicant's proximity to a job, as a band the server chose. `rank` is
@@ -40,15 +40,12 @@ export function useApplicantSignals(
       queryFn: async (): Promise<number> => {
         if (!selectedJob?.id) return 0;
         try {
-          const { data, error } = await callUntypedRpc<
-            { p_helper_id: string; p_job_id: string },
-            number
-          >("get_neighbor_hire_count", {
+          const { data, error } = await supabase.rpc("get_neighbor_hire_count", {
             p_helper_id: app.helper_id,
             p_job_id: selectedJob.id,
           });
           if (error) return 0;
-          return (data as number) ?? 0;
+          return data ?? 0;
         } catch {
           return 0; // PGRST202 or network error — degrade gracefully
         }
@@ -87,10 +84,7 @@ export function useApplicantSignals(
     queryKey: ["helper-completed-counts", helperIds],
     queryFn: async (): Promise<Map<string, number>> => {
       if (helperIds.length === 0) return new Map();
-      const { data, error } = await callUntypedRpc<
-        { p_user_ids: string[] },
-        Array<{ user_id: string; completed_jobs: number }>
-      >("get_helper_completed_counts", {
+      const { data, error } = await supabase.rpc("get_helper_completed_counts", {
         p_user_ids: helperIds,
       });
       if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
@@ -116,10 +110,7 @@ export function useApplicantSignals(
     queryKey: ["helper-repeat-hire-percents", helperIds],
     queryFn: async (): Promise<Map<string, number>> => {
       if (helperIds.length === 0) return new Map();
-      const { data, error } = await callUntypedRpc<
-        { p_user_ids: string[] },
-        Array<{ user_id: string; repeat_hire_percent: number }>
-      >("get_helper_repeat_hire_percents", {
+      const { data, error } = await supabase.rpc("get_helper_repeat_hire_percents", {
         p_user_ids: helperIds,
       });
       if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
@@ -144,10 +135,7 @@ export function useApplicantSignals(
     queryKey: ["helper-on-time-percents", helperIds],
     queryFn: async (): Promise<Map<string, number>> => {
       if (helperIds.length === 0) return new Map();
-      const { data, error } = await callUntypedRpc<
-        { p_user_ids: string[] },
-        Array<{ user_id: string; on_time_percent: number }>
-      >("get_helper_on_time_percents", {
+      const { data, error } = await supabase.rpc("get_helper_on_time_percents", {
         p_user_ids: helperIds,
       });
       if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
@@ -181,10 +169,7 @@ export function useApplicantSignals(
     queryKey: ["helper-distance-bands", selectedJob?.id, helperIds],
     queryFn: async (): Promise<Map<string, DistanceBand>> => {
       if (helperIds.length === 0 || !selectedJob?.id) return new Map();
-      const { data, error } = await callUntypedRpc<
-        { p_job_id: string; p_user_ids: string[] },
-        Array<{ user_id: string; band: string; band_rank: number }>
-      >("get_helper_distances_from_job", {
+      const { data, error } = await supabase.rpc("get_helper_distances_from_job", {
         p_job_id: selectedJob.id,
         p_user_ids: helperIds,
       });

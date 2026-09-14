@@ -145,23 +145,20 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       }
       // Try the apply_to_job RPC first.
       // Fall back to a direct INSERT if PGRST202 (function not yet deployed to prod).
-      // apply_to_job isn't in the generated Functions map yet (migration
-      // unapplied to prod), so we call it through a narrowly-typed wrapper
-      // documenting its exact arg/return contract instead of `as any`.
-      // MUST call as a method on `supabase` (or bind) — supabase-js `rpc`
-      // reads `this.rest` internally, so a detached `const fn = supabase.rpc`
-      // call throws "Cannot read properties of undefined (reading 'rest')".
-      const applyToJobRpc = supabase.rpc.bind(supabase) as unknown as (
-        fn: "apply_to_job",
-        // `p_proposed_price` is deliberately NOT passed. Bidding was removed
-        // (PRICING_MODE_REMOVED in BudgetSection); the RPC still declares the
-        // parameter with a NULL default, so omitting it is both correct and
-        // forward-compatible with the migration that eventually drops it.
-        args: { p_job_id: string; p_message: string | null },
-      ) => Promise<{ data: string | null; error: { code?: string; message?: string } | null }>;
-      const { data: rpcData, error: rpcError } = await applyToJobRpc("apply_to_job", {
+      // `p_proposed_price` is deliberately NOT passed. Bidding was removed
+      // (PRICING_MODE_REMOVED in BudgetSection); the RPC no longer declares
+      // the parameter at all, so there is nothing to omit.
+      //
+      // nullable-arg: `apply_to_job(p_message text)` (current definition,
+      // migration 20260907230038) has NO default and inserts it straight into
+      // `applications.message`, which is nullable — an application with no
+      // note is the ordinary case, and NULL is how it is written. A generated
+      // `Args` type renders every parameter non-null (`p_message: string`), so
+      // it cannot express that; only this ONE argument is widened, and the RPC
+      // name, the other argument and the `string` return stay checked.
+      const { data: rpcData, error: rpcError } = await supabase.rpc("apply_to_job", {
         p_job_id: jobId,
-        p_message: message.trim() || null,
+        p_message: (message.trim() || null) as string,
       });
       if (rpcError) {
         const errCode = (rpcError as { code?: string }).code;

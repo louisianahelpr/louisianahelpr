@@ -155,10 +155,13 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
       // void-cancelled-payments recomputes from. The cancellation columns are
       // no longer writable by a client at all (trg_cancellation_requires_rpc),
       // so there is no path to the state change that skips the strike.
-      const { data: verdict, error } = await supabase.rpc(
-        "poster_cancel_job" as any,
-        { p_job_id: jobId, p_reason: reason.trim() || null } as any,
-      );
+      // `p_reason` is OMITTED rather than passed as null when blank: the SQL
+      // declares `p_reason text DEFAULT NULL`, so the two calls are identical,
+      // and omitting is what the generated `Args` (`p_reason?: string`) can say.
+      const { data: verdict, error } = await supabase.rpc("poster_cancel_job", {
+        p_job_id: jobId,
+        p_reason: reason.trim() || undefined,
+      });
       if (error) {
         // PGRST202 = merged but not yet deployed (db-deploy.yml runs on the
         // merge commit), so for a few minutes this RPC does not exist yet.

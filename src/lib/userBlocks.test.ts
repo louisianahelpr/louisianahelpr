@@ -146,13 +146,21 @@ describe("blockUser", () => {
     });
   });
 
-  it("sends reason=null when none is provided", async () => {
+  // OMITTED, not null. `block_user_and_settle(p_reason text DEFAULT NULL)`
+  // (migration 20260826200000) coalesces a missing reason to '' either way, so
+  // the two calls are identical on the server — and omission is the one the
+  // generated `Args` type can express (`p_reason?: string`), which is what let
+  // the `as never` cast come off this money/trust call.
+  it("omits the reason when none is provided", async () => {
     rpcMock.mockResolvedValue({ data: { settled: [] }, error: null });
     await blockUser("blocker", "blocked");
-    expect(rpcMock).toHaveBeenCalledWith("block_user_and_settle", {
-      p_blocked: "blocked",
-      p_reason: null,
-    });
+    const [fn, args] = rpcMock.mock.calls[0];
+    expect(fn).toBe("block_user_and_settle");
+    // The WIRE payload, not the object. `toHaveBeenCalledWith` compares with
+    // `toEqual`, which ignores an `undefined`-valued key — so it would pass
+    // for `p_reason: null` too, which is the exact thing being asserted gone.
+    // supabase-js `JSON.stringify`s the args, so this is what PostgREST sees.
+    expect(JSON.parse(JSON.stringify(args))).toEqual({ p_blocked: "blocked" });
   });
 
   it("returns the settled job ids the server reports", async () => {

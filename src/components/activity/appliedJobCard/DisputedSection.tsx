@@ -76,7 +76,7 @@ export function DisputedSection({
   const withdrawDispute = async () => {
     setWithdrawing(true);
     try {
-      const { error } = await supabase.rpc("rpc_withdraw_dispute" as never, { _job_id: app.job_id } as never);
+      const { error } = await supabase.rpc("rpc_withdraw_dispute", { _job_id: app.job_id });
       if (error) {
         report(error, { tags: { source: "DisputedSection.withdrawDispute" }, context: { job_id: app.job_id } });
         hapticError();

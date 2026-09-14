@@ -325,7 +325,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // Repeat-hire % (#milestones) — % of unique customers who hired
         // this helper more than once. PGRST202-safe: function may not be
         // deployed on production yet; falls back to null (milestone hidden).
-        supabase.rpc("get_user_repeat_hire_percent" as any, { p_user_id: userId! }),
+        supabase.rpc("get_user_repeat_hire_percent", { p_user_id: userId! }),
         // Credential tier (0-3) — drives the "Licensed Pro" career milestone
         // (requires tier >= 2 = verified trade license). SECURITY DEFINER and
         // granted to `authenticated`, so it resolves for any viewed profile,
@@ -367,7 +367,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // THE PUBLIC AGGREGATES. Granted to anon AND authenticated — a
         // signed-out visitor is the truest stranger there is, and a count and
         // a mean identify nobody.
-        supabase.rpc("get_public_profile_stats" as any, { p_user_ids: [targetUserId] }),
+        supabase.rpc("get_public_profile_stats", { p_user_ids: [targetUserId] }),
         // THE PUBLIC REVIEW LIST. Replaces the `reviews … jobs!inner(status)`
         // select above, whose inner join runs through a table RLS hides from
         // every visitor — which is why it returned zero rows for all of them
@@ -375,7 +375,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // `authenticated` only, deliberately: that is the exact audience the
         // `reviews` SELECT policy already allows, so the join is fixed without
         // widening who can read a review by one person.
-        supabase.rpc("get_public_profile_reviews" as any, {
+        supabase.rpc("get_public_profile_reviews", {
           p_user_id: targetUserId,
           p_limit: 20,
           p_offset: 0,
@@ -387,7 +387,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
            Self-only by construction (no argument, reads auth.uid()), so a
            visitor never fires it. */
         wantsReplyLatency
-          ? supabase.rpc("get_my_reply_latency" as any)
+          ? supabase.rpc("get_my_reply_latency")
           : Promise.resolve({ data: null, error: null } as any),
       ]);
 
@@ -455,14 +455,9 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
          stay observable, because a silently-swallowed failure here reads as
          "this person has no record", which is a trust claim we would be making
          without knowing it is true. */
-      // `get_public_profile_stats` / `get_public_profile_reviews` are not in the
-      // generated `Database` types until the migration lands and types are
-      // regenerated, so the two results are read through an explicit shape.
-      type RpcResult = { data?: unknown; error?: { code?: string } | null };
-      const statsRes = publicStatsRes as RpcResult;
-      const reviewsRpcRes = publicReviewsRes as RpcResult;
-
-      const replyRpcRes = replyLatencyRes as RpcResult;
+      const statsRes = publicStatsRes;
+      const reviewsRpcRes = publicReviewsRes;
+      const replyRpcRes = replyLatencyRes;
 
       for (const [label, res, benign] of [
         ["public_stats", statsRes, ["PGRST202"]],
@@ -969,11 +964,11 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
          exclusion applies to both), and it works for a viewer who cannot read
          `reviews` directly. PGRST202/42501 falls through to the direct select
          below, which is the pre-existing path, untouched. */
-      const rpcPage = (await supabase.rpc("get_public_profile_reviews" as any, {
+      const rpcPage = await supabase.rpc("get_public_profile_reviews", {
         p_user_id: userId,
         p_limit: 20,
         p_offset: from,
-      })) as { data?: unknown; error?: { code?: string } | null };
+      });
       if (!rpcPage.error && Array.isArray(rpcPage.data)) {
         const rows = rpcPage.data as PublicProfileReviewRow[];
         if (rows.length === 0) return;

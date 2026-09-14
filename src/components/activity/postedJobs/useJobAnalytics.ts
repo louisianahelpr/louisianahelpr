@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { type Job, type EnrichedApplication } from "../activityConstants";
-import { callUntypedRpc } from "./postedJobsHelpers";
 
 export type JobAnalytics = {
   viewCount: number;
@@ -32,10 +32,7 @@ export function useJobAnalytics(
     queryKey: ["job-view-counts", jobIds],
     queryFn: async (): Promise<Record<string, number>> => {
       if (jobIds.length === 0) return {};
-      const { data, error } = await callUntypedRpc<
-        { p_job_ids: string[] },
-        Array<{ job_id: string; view_count: number }>
-      >("get_job_view_counts", {
+      const { data, error } = await supabase.rpc("get_job_view_counts", {
         p_job_ids: jobIds,
       });
       if (error) {

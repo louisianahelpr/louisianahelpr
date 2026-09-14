@@ -32,12 +32,10 @@ export const logViolation = async (
 ) => {
   if (!userId) return;
 
-  // `as any`: the RPC ships with this change's migration, so the generated
-  // types.ts doesn't know it yet — same escape hatch the business RPCs use.
-  const { data, error } = await supabase.rpc(
-    "apply_message_violation_consequence" as any,
-    { p_description: violationDescription, p_content: blockedContent } as any,
-  );
+  const { data, error } = await supabase.rpc("apply_message_violation_consequence", {
+    p_description: violationDescription,
+    p_content: blockedContent,
+  });
 
   if (error) {
     // PGRST202 = the RPC isn't deployed yet (the window between merge and

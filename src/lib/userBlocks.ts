@@ -78,10 +78,14 @@ export async function blockUser(
   reason?: string,
 ): Promise<{ ok: boolean; cancelledJobIds: string[]; settled: SettledJob[]; error?: string }> {
   void blockerId; // the server takes the blocker from auth.uid(), never from the client
-  const { data, error } = await supabase.rpc(
-    "block_user_and_settle" as never,
-    { p_blocked: blockedId, p_reason: reason?.trim() || null } as never,
-  );
+  // `p_reason` is OMITTED rather than passed as null when blank. The SQL
+  // declares `p_reason text DEFAULT NULL` and the body coalesces it to '', so
+  // omitting is byte-for-byte the same call — and it is expressible in the
+  // generated `Args` (`p_reason?: string`), which an explicit null is not.
+  const { data, error } = await supabase.rpc("block_user_and_settle", {
+    p_blocked: blockedId,
+    p_reason: reason?.trim() || undefined,
+  });
 
   if (error) {
     report(error, { severity: "warning", tags: { source: "userBlocks.blockUserAndSettle" } });

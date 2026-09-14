@@ -1,13 +1,14 @@
 // The data layer for the social auto-poster admin UI.
 //
 // ── WHY A MODULE INSTEAD OF INLINE `supabase.from(...)` CALLS ─────────────
-// `marketing_content` and `marketing_settings` are NOT in
-// `src/integrations/supabase/types.ts` yet (the migration is newer than the
-// last type regeneration), so every call site would otherwise need its own
-// `as any`. This module is the ONE place that acknowledges the generated types
-// lag the deployed schema — the same containment `callUntypedRpc` applies to
-// RPCs in `postedJobsHelpers.ts`. Everything this module EXPORTS is fully
-// typed; the looseness stops at the `marketingTable` boundary below.
+// Originally: because `marketing_content` and `marketing_settings` were absent
+// from `src/integrations/supabase/types.ts`, so every call site would have
+// needed its own `as any`. Both tables are in the generated types now and that
+// hand-written `marketingTable` boundary is gone — the queries below are
+// checked against the real schema, columns, enums and all. The module survives
+// on its second reason, which is the one that mattered anyway: the status
+// guards and `unwrapMutation` wrappers are asserted in ONE place instead of
+// being re-derived by the composer and the queue separately.
 //
 // ── EVERY WRITE HERE CHANGES WHAT GETS POSTED PUBLICLY ────────────────────
 // So every write ends in `.select("id")` and goes through `unwrapMutation()`.
@@ -19,6 +20,7 @@
 // visible refusal instead of a silent overwrite of a row mid-flight.
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { unwrap } from "@/lib/supabaseResult";
 import { unwrapMutation } from "@/lib/mutationResult";
 import type {
@@ -28,42 +30,29 @@ import type {
   MarketingStatus,
 } from "./marketingTypes";
 
-/** What every PostgREST call in this module resolves to. */
-type RawResult = { data: unknown; error: { message: string } | null };
-/** What a mutation ending in `.select("id")` resolves to. */
-type RowsResult = { data: { id: string }[] | null; error: { message: string } | null };
-
-interface Chain extends PromiseLike<RawResult> {
-  select(cols: string): Chain;
-  eq(col: string, val: unknown): Chain;
-  in(col: string, vals: readonly unknown[]): Chain;
-  order(col: string, opts: { ascending: boolean }): Chain;
-  limit(n: number): Chain;
-  maybeSingle(): PromiseLike<RawResult>;
-}
-
-interface Table {
-  select(cols: string): Chain;
-  insert(rows: Record<string, unknown>[]): Chain;
-  update(patch: Record<string, unknown>): Chain;
-  delete(): Chain;
+/**
+ * `channels_enabled` is `jsonb`, so the generated type is `Json` — which
+ * includes a bare string or an array. Narrowed by a type GUARD rather than an
+ * assertion: a malformed value reads as `null`, which `isChannelEnabled` already
+ * treats as "every channel OFF". Failing closed is the only safe direction for
+ * a switch that decides whether posts go out.
+ */
+function asChannelMap(value: Json): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value : null;
 }
 
 /**
- * THE boundary. `.bind(supabase)` because `from` reads `this` — an unbound
- * reference works today and breaks on a client refactor with no type error to
- * catch it (the reason `postedJobsHelpers` binds `rpc` the same way).
+ * Columns of `marketing_content` the UI reads. Explicit, so a schema change
+ * that drops one fails loudly here rather than rendering a blank cell.
+ *
+ * ONE string literal, deliberately not a `+` concatenation. Now that the table
+ * is in the generated types, PostgREST parses this select-list AT THE TYPE
+ * LEVEL to build the row shape — and a concatenated expression widens to
+ * `string`, which degrades the result to `GenericStringError[]` and throws the
+ * column checking straight back away.
  */
-function marketingTable(table: "marketing_content" | "marketing_settings"): Table {
-  return (supabase.from.bind(supabase) as unknown as (t: string) => Table)(table);
-}
-
-/** Columns of `marketing_content` the UI reads. Explicit, so a schema change
- *  that drops one fails loudly here rather than rendering a blank cell. */
 const CONTENT_COLUMNS =
-  "id, channel, status, body, hashtags, media_urls, parish, campaign, generated_by, model, " +
-  "scheduled_for, locked_at, attempts, last_error, published_at, external_id, external_url, " +
-  "created_at, updated_at, created_by";
+  "id, channel, status, body, hashtags, media_urls, parish, campaign, generated_by, model, scheduled_for, locked_at, attempts, last_error, published_at, external_id, external_url, created_at, updated_at, created_by";
 
 const SETTINGS_COLUMNS = "auto_publish_enabled, channels_enabled, daily_post_cap, updated_at";
 
@@ -87,27 +76,29 @@ async function currentUserId(): Promise<string | null> {
  */
 export async function fetchMarketingSettings(): Promise<MarketingSettingsRow> {
   const row = unwrap(
-    await marketingTable("marketing_settings")
+    await supabase
+      .from("marketing_settings")
       .select(SETTINGS_COLUMNS)
       .eq("id", true)
       .maybeSingle(),
-  ) as MarketingSettingsRow | null;
+  );
 
   if (!row) {
     throw new Error(
       "The marketing_settings row is missing, so the auto-publish state can't be read.",
     );
   }
-  return row;
+  return { ...row, channels_enabled: asChannelMap(row.channels_enabled) };
 }
 
 export async function fetchMarketingQueue(): Promise<MarketingContentRow[]> {
   const rows = unwrap(
-    await marketingTable("marketing_content")
+    await supabase
+      .from("marketing_content")
       .select(CONTENT_COLUMNS)
       .order("created_at", { ascending: false })
       .limit(QUEUE_LIMIT),
-  ) as MarketingContentRow[] | null;
+  );
   return rows ?? [];
 }
 
@@ -129,14 +120,15 @@ export async function updateMarketingSettings(
   patch: MarketingSettingsPatch,
 ): Promise<void> {
   unwrapMutation(
-    (await marketingTable("marketing_settings")
+    await supabase
+      .from("marketing_settings")
       .update({
         ...patch,
         updated_at: new Date().toISOString(),
         updated_by: await currentUserId(),
       })
       .eq("id", true)
-      .select("id")) as RowsResult,
+      .select("id"),
     {
       action: "save the auto-publish settings",
       rejectedMessage:
@@ -153,7 +145,8 @@ export async function createMarketingContent(
   status: Extract<MarketingStatus, "draft" | "scheduled">,
 ): Promise<void> {
   unwrapMutation(
-    (await marketingTable("marketing_content")
+    await supabase
+      .from("marketing_content")
       .insert([
         {
           channel: input.channel,
@@ -174,7 +167,7 @@ export async function createMarketingContent(
           created_by: await currentUserId(),
         },
       ])
-      .select("id")) as RowsResult,
+      .select("id"),
     { action: "create this post", context: { channel: input.channel, status } },
   );
 }
@@ -193,7 +186,8 @@ export async function updateMarketingContent(
   input: MarketingDraftInput,
 ): Promise<void> {
   unwrapMutation(
-    (await marketingTable("marketing_content")
+    await supabase
+      .from("marketing_content")
       .update({
         body: input.body.trim(),
         hashtags: input.hashtags,
@@ -204,7 +198,7 @@ export async function updateMarketingContent(
       })
       .eq("id", id)
       .in("status", ["draft", "scheduled", "failed", "cancelled"])
-      .select("id")) as RowsResult,
+      .select("id"),
     {
       action: "save this post",
       rejectedMessage:
@@ -220,11 +214,12 @@ export async function scheduleMarketingContent(
   scheduledFor: string,
 ): Promise<void> {
   unwrapMutation(
-    (await marketingTable("marketing_content")
+    await supabase
+      .from("marketing_content")
       .update({ status: "scheduled", scheduled_for: scheduledFor, last_error: null })
       .eq("id", id)
       .in("status", ["draft", "cancelled"])
-      .select("id")) as RowsResult,
+      .select("id"),
     {
       action: "schedule this post",
       rejectedMessage: "This post isn't a draft any more — refresh to see its current state.",
@@ -243,11 +238,12 @@ export async function scheduleMarketingContent(
  */
 export async function cancelMarketingContent(id: string): Promise<void> {
   unwrapMutation(
-    (await marketingTable("marketing_content")
+    await supabase
+      .from("marketing_content")
       .update({ status: "cancelled" })
       .eq("id", id)
       .in("status", ["scheduled", "failed"])
-      .select("id")) as RowsResult,
+      .select("id"),
     {
       action: "cancel this post",
       rejectedMessage:
@@ -270,7 +266,8 @@ export async function retryMarketingContent(
   scheduledFor: string,
 ): Promise<void> {
   unwrapMutation(
-    (await marketingTable("marketing_content")
+    await supabase
+      .from("marketing_content")
       .update({
         status: "scheduled",
         scheduled_for: scheduledFor,
@@ -280,7 +277,7 @@ export async function retryMarketingContent(
       })
       .eq("id", id)
       .eq("status", "failed")
-      .select("id")) as RowsResult,
+      .select("id"),
     {
       action: "retry this post",
       rejectedMessage: "This post is no longer in a failed state — refresh to see where it is.",
@@ -292,11 +289,12 @@ export async function retryMarketingContent(
 /** cancelled → draft, so a stopped post can be reworked instead of retyped. */
 export async function reopenMarketingContent(id: string): Promise<void> {
   unwrapMutation(
-    (await marketingTable("marketing_content")
+    await supabase
+      .from("marketing_content")
       .update({ status: "draft", scheduled_for: null, last_error: null })
       .eq("id", id)
       .in("status", ["cancelled", "failed"])
-      .select("id")) as RowsResult,
+      .select("id"),
     { action: "reopen this post", context: { id } },
   );
 }
@@ -305,11 +303,12 @@ export async function reopenMarketingContent(id: string): Promise<void> {
  *  a scheduled one should be cancelled first, deliberately, before it can go. */
 export async function deleteMarketingContent(id: string): Promise<void> {
   unwrapMutation(
-    (await marketingTable("marketing_content")
+    await supabase
+      .from("marketing_content")
       .delete()
       .eq("id", id)
       .in("status", ["draft", "cancelled"])
-      .select("id")) as RowsResult,
+      .select("id"),
     {
       action: "delete this post",
       rejectedMessage:

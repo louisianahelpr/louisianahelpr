@@ -231,11 +231,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     // the job 'open' until the final slot is filled.
     const isGroupJob = !!(selectedJob as { is_group_job?: boolean }).is_group_job;
     const { error } = isGroupJob
-      ? await supabase.rpc("accept_group_application" as never, {
+      ? await supabase.rpc("accept_group_application", {
           p_application_id: deadlineDialogApp.id,
           p_deadline: deadline,
           p_offer_message: initialMessage ?? undefined,
-        } as never)
+        })
       : await supabase.rpc("accept_application", {
           p_application_id: deadlineDialogApp.id,
           p_deadline: deadline,
@@ -388,14 +388,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       }
     }
 
-    // Shipped by migration 20260820000000; the generated Supabase types are
-    // regenerated separately, so the call is narrowed by hand rather than
-    // waiting on that (same pattern as `applyToJobRpc` in useApplyFlow).
-    const respondRpc = supabase.rpc.bind(supabase) as unknown as (
-      fn: "respond_to_direct_offer",
-      args: { p_job_id: string; p_accept: boolean },
-    ) => Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
-    const { error } = await respondRpc("respond_to_direct_offer", {
+    // Shipped by migration 20260820000000.
+    const { error } = await supabase.rpc("respond_to_direct_offer", {
       p_job_id: app.job_id,
       p_accept: accept,
     });

@@ -197,21 +197,6 @@ const categoryFromReason = (reason: string) => {
 
 const subjectFromReason = (reason: string) => reason.replace(/^\[.*?\]\s*/, "");
 
-/** One row of `admin_support_queue`. Mirrors the RPC's RETURNS TABLE. */
-type QueueRow = {
-  id: string;
-  reporter_id: string;
-  reason: string;
-  description: string | null;
-  status: string;
-  created_at: string;
-  reporter_name: string | null;
-  reporter_email: string | null;
-  support_tier: string;
-  priority_support: boolean;
-  priority_at: string;
-};
-
 /** PostgREST's "function not found" — the migration hasn't reached this env yet. */
 const isMissingRpc = (error: { code?: string | null } | null | undefined) => error?.code === "PGRST202";
 

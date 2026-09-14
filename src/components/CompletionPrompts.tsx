@@ -180,13 +180,9 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       // actually reviewed them, dedupes to one flag per 30 days, and writes
       // under its own authority — the same house pattern as
       // apply_message_violation_consequence.
-      //
-      // `as any`: the RPC ships with this change's migration, so the generated
-      // types.ts doesn't know it yet.
-      const { error: flagErr } = await supabase.rpc(
-        "apply_low_rating_flag" as any,
-        { p_reviewee_id: revieweeId } as any,
-      );
+      const { error: flagErr } = await supabase.rpc("apply_low_rating_flag", {
+        p_reviewee_id: revieweeId,
+      });
       if (flagErr) {
         // PGRST202 = the RPC isn't deployed yet (the window between merge and
         // db-deploy finishing). The review itself already landed and the next

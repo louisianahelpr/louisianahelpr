@@ -126,13 +126,11 @@ export function useApplicantsState(user: SupaUser | null) {
       // Fire-and-forget — mark pending applications as viewed by the poster.
       // PGRST202-safe: if the migration isn't deployed yet, this silently does nothing.
       if (enriched.length > 0) {
-        // `mark_applications_viewed` isn't in the generated RPC union yet
-        // (migration lag). Cast the rpc fn so the args stay type-checked.
-        const markViewed = supabase.rpc.bind(supabase) as unknown as (
-          fn: "mark_applications_viewed",
-          args: { p_job_id: string },
-        ) => PromiseLike<unknown>;
-        Promise.resolve(markViewed("mark_applications_viewed", { p_job_id: jobId })).then(() => {});
+        // `supabase.rpc(...)` returns a Postgrest builder — a thenable, not a
+        // real Promise — so it is wrapped before being left unawaited.
+        void Promise.resolve(
+          supabase.rpc("mark_applications_viewed", { p_job_id: jobId }),
+        ).then(() => {});
       }
     } catch {
       setApplicantErrors(prev => ({ ...prev, [jobId]: true }));

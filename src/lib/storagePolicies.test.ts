@@ -22,7 +22,8 @@ const MIGRATIONS_DIR = resolve(ROOT, "supabase/migrations");
 // added (a bucket here without a SELECT policy is the exact regression).
 const UPSERT_BUCKETS = [
   "avatars",
-  "business-documents",
+  // business-documents removed 2026-09-14: no client upload has existed since
+  // the business feature went (20260828011811), and the bucket was deleted.
   "id-documents",
   "job-photos",
   "user-documents",

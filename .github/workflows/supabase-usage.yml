@@ -9,11 +9,10 @@ name: Supabase usage
 # MANAGEMENT API (api.supabase.com, SUPABASE_ACCESS_TOKEN) rather than the
 # database. Prod is a t4g.nano that fell over on 2026-09-13 under workflow
 # load; the control plane answers this without touching the instance at all.
-# It follows that this workflow is NOT prod-hitting for the purposes of
-# src/test/prodWorkflowSpacing.test.ts — no cron spacing slot is consumed —
-# but it carries SUPABASE_PROJECT_REF, which that guard treats as a prod
-# signal, so it sits in the prod-load group at an otherwise-empty weekly slot
-# anyway. Cheaper than arguing with the guard, and harmless.
+# The headroom check alone is not prod-hitting, but since 2026-09-14 the same
+# run also sweeps orphaned storage (Storage API + PostgREST reads, paced), so
+# it genuinely belongs in the prod-load group at its otherwise-empty weekly
+# slot, which src/test/prodWorkflowSpacing.test.ts enforces.
 #
 # MEASURED 2026-09-14 (run 34881959722): the public Management API returns 404
 # for EVERY usage route — /v1/projects/{ref}/usage, /database/usage,
@@ -57,7 +56,9 @@ jobs:
   usage:
     name: Free-tier headroom
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # A few minutes for the headroom check + the orphan sweep's own 25-minute
+    # step timeout (two owner reads 10 min apart; it stops starting deletes at 20).
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
 
@@ -130,6 +131,47 @@ jobs:
           curl -sS --fail-with-body -X POST -H 'content-type: application/json' \
             --data "$(jq -nc --arg t "$TEXT" '{text:$t}')" "$SLACK_WEBHOOK_URL"
 
+      # Weekly auto-delete of orphaned storage files (owner, 2026-09-14). Same
+      # run, same prod-load slot: no new cron. Safety rules live in
+      # scripts/storage-orphan-sweep.mjs (two owner reads 10 min apart, 7-day
+      # age floor, identity docs need the owner gone from profiles AND
+      # auth.users, and over 50 files or over 5% of a bucket deletes nothing and
+      # posts CRITICAL). It posts its own one-line Slack summary.
+      - name: Storage orphan sweep
+        id: sweep
+        if: ${{ !cancelled() }}
+        timeout-minutes: 25
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -uo pipefail
+          if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "::error::Storage orphan sweep needs the SUPABASE_SERVICE_ROLE_KEY repo secret; nothing was swept."
+            exit 1
+          fi
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::warning::No SLACK_WEBHOOK_URL repo secret: the sweep summary goes to this log only."
+          fi
+          node scripts/storage-orphan-sweep.mjs --redact-log --budget-minutes 20 --log storage-orphan-sweep.log
+
+      - name: Upload the sweep log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: storage-orphan-sweep-log
+          path: storage-orphan-sweep.log
+          if-no-files-found: warn
+          retention-days: 90
+
       - name: Summary
         if: always()
-        run: cat supabase-usage-report.md >> "$GITHUB_STEP_SUMMARY" || true
+        env:
+          # Through env, never ${{ }} inside run: the summary can carry server text.
+          SWEEP_SUMMARY: ${{ steps.sweep.outputs.summary }}
+        run: |
+          cat supabase-usage-report.md >> "$GITHUB_STEP_SUMMARY" || true
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Storage orphan sweep:** ${SWEEP_SUMMARY:-did not report}" >> "$GITHUB_STEP_SUMMARY"

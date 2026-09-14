@@ -26,6 +26,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { readLiveCache, sessionAlive, writeCache } from "../../e2e/liveSession.ts";
 import { resolve } from "node:path";
+import { removeJobMediaRest, removeMessageAttachmentsRest } from "../lib/jobMediaRest.mjs";
 
 export const PRESS_MARKER = "[PRESS DO NOT ACCEPT]";
 
@@ -324,6 +325,15 @@ export async function cleanup({ sessions, since, profilesBefore }) {
       }
     }
     for (const [table, col] of CLEANUP_TABLES) {
+      // A message row is the only pointer to its attachment: remove the file
+      // before the row (2026-09-14 storage audit). Never blocks the cleanup.
+      if (table === "messages") {
+        try {
+          const rows = await prodSelect(s, `messages?select=attachment_url&sender_id=eq.${s.userId}&created_at=gte.${encodeURIComponent(sinceIso)}&attachment_url=not.is.null`);
+          const rm = await removeMessageAttachmentsRest({ base: supabaseUrl(), headers: headers(s), attachmentUrls: rows.map((m) => m.attachment_url), source: "press cleanup" });
+          if (rm.failures.length) residue.push(`${persona} message-attachments: ${rm.failures.join("; ")}`);
+        } catch (e) { residue.push(`${persona} message-attachments: ${e.message}`); }
+      }
       try {
         const r = await del(s, `${table}?${col}=eq.${s.userId}&created_at=gte.${encodeURIComponent(sinceIso)}`);
         if (!r.ok) residue.push(`${persona} ${table}: HTTP ${r.status} ${r.body}`);
@@ -364,6 +374,9 @@ async function unwindJob(s, j) {
     const r = await fetch(`${base}/rest/v1/rpc/poster_cancel_job`, { method: "POST", headers: headers(s), body: JSON.stringify({ p_job_id: j.id, p_reason: "press-every-control teardown" }) });
     return { ok: r.ok, note: `poster_cancel_job HTTP ${r.status} (had a Checkout Session)` };
   }
+  // Files first: storage RLS needs the job row, and after the delete nothing
+  // names them (2026-09-14 storage audit). Never blocks the delete.
+  await removeJobMediaRest({ base, headers: headers(s), jobs: [{ id: j.id, customer_id: s.userId }], source: "press cleanup" });
   const r = await del(s, `jobs?id=eq.${j.id}`);
   if (r.ok && r.removed === 1) return { ok: true, note: "deleted" };
   const c = await fetch(`${base}/rest/v1/rpc/poster_cancel_job`, { method: "POST", headers: headers(s), body: JSON.stringify({ p_job_id: j.id, p_reason: "press-every-control teardown" }) });

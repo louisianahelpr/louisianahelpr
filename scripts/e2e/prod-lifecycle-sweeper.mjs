@@ -46,6 +46,8 @@
 // database, which is a far larger risk than the rows it would tidy):
 //   SUPABASE_URL=… SUPABASE_ANON_KEY=… POSTER_ACCESS_TOKEN=… \
 //     node scripts/e2e/prod-lifecycle-sweeper.mjs [--dry-run]
+import { removeJobMediaRest } from "../lib/jobMediaRest.mjs";
+
 const BASE = (process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
 const ANON = process.env.SUPABASE_ANON_KEY || "";
 const TOKEN = process.env.POSTER_ACCESS_TOKEN || "";
@@ -73,7 +75,7 @@ const H = {
 /** Jobs this suite created that are not settled. */
 async function strandedJobs() {
   const url =
-    `${BASE}/rest/v1/jobs?select=id,title,status,payment_status,stripe_session_id,created_at` +
+    `${BASE}/rest/v1/jobs?select=id,title,status,payment_status,stripe_session_id,created_at,customer_id,helper_id` +
     `&title=like.*${encodeURIComponent(E2E_TITLE_MARKER)}*` +
     `&payment_status=not.in.(released,refunded,cancelled)` +
     `&order=created_at.asc`;
@@ -232,6 +234,11 @@ for (const job of jobs) {
       failures.push(`reopen ${job.id}: could not reset status from "${job.status}" before delete`);
       continue;
     }
+    // The job's files go first: storage RLS checks the job still exists, and
+    // after the delete nothing names them (2026-09-14 audit: 7 proof photos of
+    // deleted E2E jobs). As the poster this reaches the poster's own uploads;
+    // the helper's are left to the weekly storage-orphan-sweep. Never blocks.
+    await removeJobMediaRest({ base: BASE, headers: H, jobs: [job], source: "prod-lifecycle-sweeper" });
     const r = await deleteJob(job.id);
     if (!r.ok) failures.push(`delete ${job.id}: HTTP ${r.status} removed=${r.removed} ${r.body}`);
   }

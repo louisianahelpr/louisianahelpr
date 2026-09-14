@@ -1,0 +1,98 @@
+2026-09-14T19:35:13.549Z start dry_run=false wait_minutes=10 min_age_days=0 max_files=50 max_bucket_pct=100
+2026-09-14T19:36:03.944Z listed 95 objects, 21330730 bytes, 11 buckets
+2026-09-14T19:36:06.429Z read 1: 31 candidate orphan(s)
+2026-09-14T19:36:06.429Z waiting 10 min before the second read
+2026-09-14T19:46:08.994Z orphan proof-photos/d4e482f7-636d-4071-827f-263caeb2ad7a/after-1788574783728-x86qvmaoz6o.png 74 (job gone)
+2026-09-14T19:46:08.995Z orphan proof-photos/d4e482f7-636d-4071-827f-263caeb2ad7a/before-1788574770056-x21osnhcia.png 74 (job gone)
+2026-09-14T19:46:08.995Z orphan proof-photos/8133a907-f36f-4278-96c4-41d4ce1d56c8/after-1788743309797-rx2851x1lzs.jpg 6185 (job gone)
+2026-09-14T19:46:08.995Z orphan proof-photos/8133a907-f36f-4278-96c4-41d4ce1d56c8/before-1788743234028-5jkk428a9o.jpg 6407 (job gone)
+2026-09-14T19:46:08.995Z orphan proof-photos/15909d9e-87cc-4bb4-ac9c-c319f57e5189/after-1788546903130-mvwr0dk9ir.png 295858 (job gone)
+2026-09-14T19:46:08.995Z orphan proof-photos/15909d9e-87cc-4bb4-ac9c-c319f57e5189/before-1788546864309-fg24e1ekbom.png 295858 (job gone)
+2026-09-14T19:46:08.995Z orphan application-attachments/76b07824-9b41-4741-a4c4-4f8de362f682/a5eed000-0000-4000-8000-000000000001/1787169573274-y83i4hi2nyg.png 1792321 (job gone)
+2026-09-14T19:46:08.995Z orphan application-attachments/76b07824-9b41-4741-a4c4-4f8de362f682/a5eed000-0000-4000-8000-000000000001/1787169581669-wj9ep4k8xsf.png 1792321 (job gone)
+2026-09-14T19:46:08.995Z orphan avatars/f53663b1-cd47-4f3d-a293-de75603b04dc/avatar.png 79 (user gone)
+2026-09-14T19:46:08.995Z orphan avatars/e977a30f-7065-4e75-8498-dba435ac2044/avatar.jpeg 4127524 (user gone)
+2026-09-14T19:46:08.995Z orphan avatars/b2df11f0-702d-47bc-b82b-71f8124aa1f8/avatar.jpg 957 (user gone)
+2026-09-14T19:46:08.995Z orphan avatars/b0f6ebec-ab03-40fe-a33c-3cc69ed05f7e/avatar.png 7347 (user gone)
+2026-09-14T19:46:08.995Z orphan avatars/a8ea16e3-0914-4efb-a651-f28b43a50e4a/avatar.png 70 (user gone)
+2026-09-14T19:46:08.995Z orphan avatars/9e364ba6-3174-42a5-8afd-1635dae9201c/avatar.png 1060 (user gone)
+2026-09-14T19:46:08.995Z orphan avatars/89794bd2-4d00-47c6-8bfe-ab9fcdd1864c/avatar.png 252053 (user gone)
+2026-09-14T19:46:08.996Z orphan avatars/6b472670-3f4d-4463-95a6-1cb38e9c634b/avatar.png 11521 (user gone)
+2026-09-14T19:46:08.996Z orphan avatars/600f3717-bfb6-4c94-a109-d7938a9d99dd/avatar.png 720 (user gone)
+2026-09-14T19:46:08.996Z orphan avatars/59fd453f-c4b7-44d9-ba28-e83fe87dc389/avatar.png 1995 (user gone)
+2026-09-14T19:46:08.996Z orphan avatars/2b5b6760-7817-4b0c-81e7-22c2d9f62453/avatar.png 660520 (user gone)
+2026-09-14T19:46:08.996Z orphan avatars/22222222-2222-2222-2222-222222222201/avatar.png 720 (user gone)
+2026-09-14T19:46:08.996Z orphan avatars/0a74b7c7-9bf5-4ee6-8418-da2391f205d2/avatar.png 660520 (user gone)
+2026-09-14T19:46:08.996Z orphan avatars/00b316d7-2986-4843-92f5-b7ae2da6869a/avatar.png 186649 (user gone)
+2026-09-14T19:46:08.996Z orphan user-documents/b0f6ebec-ab03-40fe-a33c-3cc69ed05f7e/credentials/license-1787616796656.png 5471 (user gone)
+2026-09-14T19:46:08.996Z orphan user-documents/6bdc1f67-ae1f-46a0-8edf-4035629a6147/credentials/insurance-1787664431426.pdf 193 (user gone)
+2026-09-14T19:46:08.996Z orphan user-documents/6bdc1f67-ae1f-46a0-8edf-4035629a6147/credentials/license-1787664410301.pdf 193 (user gone)
+2026-09-14T19:46:08.996Z orphan message-attachments/a22c2df1-10a9-415b-889b-c35e25b17cdd/71c56dfb-b326-4010-b960-b18dd3966e7f/3e30e9e2-999e-4db5-b7d4-dd81ff8ddb8d-attachment.png 88 (unreferenced)
+2026-09-14T19:46:08.996Z orphan message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/22bb651d-5349-49c1-afcb-20e250de3c36-upload.png 144096 (job gone)
+2026-09-14T19:46:08.996Z orphan message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/2fd3b34e-f87c-43c7-8687-398a4cbe6e3a-upload.png 144096 (job gone)
+2026-09-14T19:46:08.996Z orphan message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/a152d29b-1bd4-46b3-8b8d-d1b7e2e82808-upload.png 144096 (job gone)
+2026-09-14T19:46:08.996Z orphan message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/da75d016-98b4-4c8f-a35f-07563b03e17b-upload.png 144096 (job gone)
+2026-09-14T19:46:08.996Z orphan message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/f187dda5-c7d4-4290-a2ab-71388c7249eb-upload.png 144096 (job gone)
+2026-09-14T19:46:10.572Z deleting proof-photos/d4e482f7-636d-4071-827f-263caeb2ad7a/after-1788574783728-x86qvmaoz6o.png 74 (job gone)
+2026-09-14T19:46:11.155Z deleted proof-photos/d4e482f7-636d-4071-827f-263caeb2ad7a/after-1788574783728-x86qvmaoz6o.png 74
+2026-09-14T19:46:12.990Z deleting proof-photos/d4e482f7-636d-4071-827f-263caeb2ad7a/before-1788574770056-x21osnhcia.png 74 (job gone)
+2026-09-14T19:46:13.506Z deleted proof-photos/d4e482f7-636d-4071-827f-263caeb2ad7a/before-1788574770056-x21osnhcia.png 74
+2026-09-14T19:46:14.803Z deleting proof-photos/8133a907-f36f-4278-96c4-41d4ce1d56c8/after-1788743309797-rx2851x1lzs.jpg 6185 (job gone)
+2026-09-14T19:46:15.277Z deleted proof-photos/8133a907-f36f-4278-96c4-41d4ce1d56c8/after-1788743309797-rx2851x1lzs.jpg 6185
+2026-09-14T19:46:16.633Z deleting proof-photos/8133a907-f36f-4278-96c4-41d4ce1d56c8/before-1788743234028-5jkk428a9o.jpg 6407 (job gone)
+2026-09-14T19:46:17.496Z deleted proof-photos/8133a907-f36f-4278-96c4-41d4ce1d56c8/before-1788743234028-5jkk428a9o.jpg 6407
+2026-09-14T19:46:18.808Z deleting proof-photos/15909d9e-87cc-4bb4-ac9c-c319f57e5189/after-1788546903130-mvwr0dk9ir.png 295858 (job gone)
+2026-09-14T19:46:19.296Z deleted proof-photos/15909d9e-87cc-4bb4-ac9c-c319f57e5189/after-1788546903130-mvwr0dk9ir.png 295858
+2026-09-14T19:46:20.637Z deleting proof-photos/15909d9e-87cc-4bb4-ac9c-c319f57e5189/before-1788546864309-fg24e1ekbom.png 295858 (job gone)
+2026-09-14T19:46:21.124Z deleted proof-photos/15909d9e-87cc-4bb4-ac9c-c319f57e5189/before-1788546864309-fg24e1ekbom.png 295858
+2026-09-14T19:46:22.920Z deleting application-attachments/76b07824-9b41-4741-a4c4-4f8de362f682/a5eed000-0000-4000-8000-000000000001/1787169573274-y83i4hi2nyg.png 1792321 (job gone)
+2026-09-14T19:46:23.411Z deleted application-attachments/76b07824-9b41-4741-a4c4-4f8de362f682/a5eed000-0000-4000-8000-000000000001/1787169573274-y83i4hi2nyg.png 1792321
+2026-09-14T19:46:25.519Z deleting application-attachments/76b07824-9b41-4741-a4c4-4f8de362f682/a5eed000-0000-4000-8000-000000000001/1787169581669-wj9ep4k8xsf.png 1792321 (job gone)
+2026-09-14T19:46:25.995Z deleted application-attachments/76b07824-9b41-4741-a4c4-4f8de362f682/a5eed000-0000-4000-8000-000000000001/1787169581669-wj9ep4k8xsf.png 1792321
+2026-09-14T19:46:27.296Z deleting avatars/f53663b1-cd47-4f3d-a293-de75603b04dc/avatar.png 79 (user gone)
+2026-09-14T19:46:27.772Z deleted avatars/f53663b1-cd47-4f3d-a293-de75603b04dc/avatar.png 79
+2026-09-14T19:46:29.439Z deleting avatars/e977a30f-7065-4e75-8498-dba435ac2044/avatar.jpeg 4127524 (user gone)
+2026-09-14T19:46:29.915Z deleted avatars/e977a30f-7065-4e75-8498-dba435ac2044/avatar.jpeg 4127524
+2026-09-14T19:46:31.720Z deleting avatars/b2df11f0-702d-47bc-b82b-71f8124aa1f8/avatar.jpg 957 (user gone)
+2026-09-14T19:46:32.201Z deleted avatars/b2df11f0-702d-47bc-b82b-71f8124aa1f8/avatar.jpg 957
+2026-09-14T19:46:33.711Z deleting avatars/b0f6ebec-ab03-40fe-a33c-3cc69ed05f7e/avatar.png 7347 (user gone)
+2026-09-14T19:46:34.232Z deleted avatars/b0f6ebec-ab03-40fe-a33c-3cc69ed05f7e/avatar.png 7347
+2026-09-14T19:46:35.568Z deleting avatars/a8ea16e3-0914-4efb-a651-f28b43a50e4a/avatar.png 70 (user gone)
+2026-09-14T19:46:36.097Z deleted avatars/a8ea16e3-0914-4efb-a651-f28b43a50e4a/avatar.png 70
+2026-09-14T19:46:37.556Z deleting avatars/9e364ba6-3174-42a5-8afd-1635dae9201c/avatar.png 1060 (user gone)
+2026-09-14T19:46:38.058Z deleted avatars/9e364ba6-3174-42a5-8afd-1635dae9201c/avatar.png 1060
+2026-09-14T19:46:39.590Z deleting avatars/89794bd2-4d00-47c6-8bfe-ab9fcdd1864c/avatar.png 252053 (user gone)
+2026-09-14T19:46:40.069Z deleted avatars/89794bd2-4d00-47c6-8bfe-ab9fcdd1864c/avatar.png 252053
+2026-09-14T19:46:41.384Z deleting avatars/6b472670-3f4d-4463-95a6-1cb38e9c634b/avatar.png 11521 (user gone)
+2026-09-14T19:46:41.862Z deleted avatars/6b472670-3f4d-4463-95a6-1cb38e9c634b/avatar.png 11521
+2026-09-14T19:46:43.715Z deleting avatars/600f3717-bfb6-4c94-a109-d7938a9d99dd/avatar.png 720 (user gone)
+2026-09-14T19:46:44.178Z deleted avatars/600f3717-bfb6-4c94-a109-d7938a9d99dd/avatar.png 720
+2026-09-14T19:46:45.505Z deleting avatars/59fd453f-c4b7-44d9-ba28-e83fe87dc389/avatar.png 1995 (user gone)
+2026-09-14T19:46:46.030Z deleted avatars/59fd453f-c4b7-44d9-ba28-e83fe87dc389/avatar.png 1995
+2026-09-14T19:46:47.352Z deleting avatars/2b5b6760-7817-4b0c-81e7-22c2d9f62453/avatar.png 660520 (user gone)
+2026-09-14T19:46:47.833Z deleted avatars/2b5b6760-7817-4b0c-81e7-22c2d9f62453/avatar.png 660520
+2026-09-14T19:46:49.146Z deleting avatars/22222222-2222-2222-2222-222222222201/avatar.png 720 (user gone)
+2026-09-14T19:46:49.615Z deleted avatars/22222222-2222-2222-2222-222222222201/avatar.png 720
+2026-09-14T19:46:50.926Z deleting avatars/0a74b7c7-9bf5-4ee6-8418-da2391f205d2/avatar.png 660520 (user gone)
+2026-09-14T19:46:51.439Z deleted avatars/0a74b7c7-9bf5-4ee6-8418-da2391f205d2/avatar.png 660520
+2026-09-14T19:46:52.779Z deleting avatars/00b316d7-2986-4843-92f5-b7ae2da6869a/avatar.png 186649 (user gone)
+2026-09-14T19:46:53.284Z deleted avatars/00b316d7-2986-4843-92f5-b7ae2da6869a/avatar.png 186649
+2026-09-14T19:46:54.807Z deleting user-documents/b0f6ebec-ab03-40fe-a33c-3cc69ed05f7e/credentials/license-1787616796656.png 5471 (user gone)
+2026-09-14T19:46:55.309Z deleted user-documents/b0f6ebec-ab03-40fe-a33c-3cc69ed05f7e/credentials/license-1787616796656.png 5471
+2026-09-14T19:46:56.627Z deleting user-documents/6bdc1f67-ae1f-46a0-8edf-4035629a6147/credentials/insurance-1787664431426.pdf 193 (user gone)
+2026-09-14T19:46:57.128Z deleted user-documents/6bdc1f67-ae1f-46a0-8edf-4035629a6147/credentials/insurance-1787664431426.pdf 193
+2026-09-14T19:46:58.469Z deleting user-documents/6bdc1f67-ae1f-46a0-8edf-4035629a6147/credentials/license-1787664410301.pdf 193 (user gone)
+2026-09-14T19:46:58.961Z deleted user-documents/6bdc1f67-ae1f-46a0-8edf-4035629a6147/credentials/license-1787664410301.pdf 193
+2026-09-14T19:47:01.316Z deleting message-attachments/a22c2df1-10a9-415b-889b-c35e25b17cdd/71c56dfb-b326-4010-b960-b18dd3966e7f/3e30e9e2-999e-4db5-b7d4-dd81ff8ddb8d-attachment.png 88 (unreferenced)
+2026-09-14T19:47:01.859Z deleted message-attachments/a22c2df1-10a9-415b-889b-c35e25b17cdd/71c56dfb-b326-4010-b960-b18dd3966e7f/3e30e9e2-999e-4db5-b7d4-dd81ff8ddb8d-attachment.png 88
+2026-09-14T19:47:04.165Z deleting message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/22bb651d-5349-49c1-afcb-20e250de3c36-upload.png 144096 (job gone)
+2026-09-14T19:47:04.659Z deleted message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/22bb651d-5349-49c1-afcb-20e250de3c36-upload.png 144096
+2026-09-14T19:47:06.915Z deleting message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/2fd3b34e-f87c-43c7-8687-398a4cbe6e3a-upload.png 144096 (job gone)
+2026-09-14T19:47:07.421Z deleted message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/2fd3b34e-f87c-43c7-8687-398a4cbe6e3a-upload.png 144096
+2026-09-14T19:47:09.606Z deleting message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/a152d29b-1bd4-46b3-8b8d-d1b7e2e82808-upload.png 144096 (job gone)
+2026-09-14T19:47:10.092Z deleted message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/a152d29b-1bd4-46b3-8b8d-d1b7e2e82808-upload.png 144096
+2026-09-14T19:47:12.236Z deleting message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/da75d016-98b4-4c8f-a35f-07563b03e17b-upload.png 144096 (job gone)
+2026-09-14T19:47:12.736Z deleted message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/da75d016-98b4-4c8f-a35f-07563b03e17b-upload.png 144096
+2026-09-14T19:47:14.899Z deleting message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/f187dda5-c7d4-4290-a2ab-71388c7249eb-upload.png 144096 (job gone)
+2026-09-14T19:47:15.382Z deleted message-attachments/a1f7c4c9-0575-44eb-8cd3-3afef1a3b0ad/96c9899e-87a2-49e2-bbdd-268717d52aee/f187dda5-c7d4-4290-a2ab-71388c7249eb-upload.png 144096
+2026-09-14T19:47:15.383Z storage orphan sweep: 31 files, 10.3 MB removed

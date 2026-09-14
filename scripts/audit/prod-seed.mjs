@@ -52,6 +52,7 @@ import zlib from "node:zlib";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { STUCK_SEED_SPLIT_QUERY, isStuckSeedSplit, retireStuckSplitPatch, stuckSplitCasFilter } from "./seedDisputeFixture.mjs";
+import { removeJobMediaRest, removeUserStorageRest } from "../lib/jobMediaRest.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODE = ["--apply", "--verify", "--teardown", "--avatar"].find((f) => process.argv.includes(f));
@@ -625,6 +626,14 @@ async function teardown() {
       await del(t, `${t === "messages" ? "sender_id" : "user_id"}=${inList(ownedIds)}`);
     }
   }
+  // Files first: once the job rows and auth users are gone nothing names them.
+  // This teardown deleting rows and users without their storage is how the
+  // 2026-09-14 audit found 14 avatars and 3 credential scans of users that no
+  // longer existed. Never blocks the teardown; the weekly sweep is the net.
+  const parties = [posterId, helperId, ...Object.values(owned)];
+  const media = await removeJobMediaRest({ base: BASE, headers: SRH, jobs: jobIds.map((id) => ({ id, party_ids: parties })), source: "prod-seed teardown" });
+  const userFiles = await removeUserStorageRest({ base: BASE, headers: SRH, userIds: Object.values(owned), source: "prod-seed teardown" });
+  console.log(`teardown: storage removed ${media.removed + userFiles.removed} object(s)${media.failures.length + userFiles.failures.length ? `, ${media.failures.length + userFiles.failures.length} failure(s) logged above` : ""}`);
   await del("applications", `job_id=${inList(jobIds)}`);
   await del("messages", `job_id=${inList(jobIds)}`);
   for (let i = 0; i < jobIds.length; i += 50) await del("jobs", `id=${inList(jobIds.slice(i, i + 50))}`);

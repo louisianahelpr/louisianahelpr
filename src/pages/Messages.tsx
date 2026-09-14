@@ -28,6 +28,8 @@ import {
 import { useMessagesData } from "./messages/useMessagesData";
 import { useMessagesRealtime } from "./messages/useMessagesRealtime";
 import { useThreadMuteActions } from "./messages/useThreadMuteActions";
+import { removeMessageAttachment } from "@/lib/storageCleanup";
+import { report } from "@/lib/errorLogger";
 
 const Messages = () => {
   usePageTitle("Messages — Helpr");
@@ -289,8 +291,20 @@ const Messages = () => {
 
   const deleteMessage = async (messageId: string) => {
     hapticHeavy();
+    // The attachment goes FIRST: storage RLS only lets the sender remove it
+    // while a message row still names the object, and after the row delete
+    // nothing names it at all (2026-09-14 storage audit). Never blocks the
+    // delete; a failure is reported inside and the weekly sweep is the net.
+    const filesRemoved = await removeMessageAttachment(messages.find((m) => m.id === messageId)?.attachment_url, messageId);
     const { data, error } = await supabase.from("messages").delete().eq("id", messageId).select("id");
     if (error || !data || data.length === 0) {
+      // The accepted cost of file-first ordering: report it when it happens.
+      if (filesRemoved > 0) {
+        report(error ?? new Error("Message delete matched 0 rows after its attachment was removed"), {
+          tags: { source: "Messages.deleteMessage", kind: "attachment_removed_row_kept" },
+          context: { message_id: messageId },
+        });
+      }
       hapticError();
       toast.error("Couldn't delete that one — give it another try?");
     } else {

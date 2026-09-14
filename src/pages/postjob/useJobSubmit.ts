@@ -26,6 +26,7 @@ import {
 } from "@/lib/moneyLimits";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { removeJobPhotos } from "@/lib/storageCleanup";
 
 /**
  * Remove a job whose payment setup failed, and PROVE it went.
@@ -43,6 +44,10 @@ import { isNativePlatform } from "@/lib/nativeInit";
  * over the first one.
  */
 async function cleanupOrphanJob(jobId: string): Promise<void> {
+  // The photos and scope video were uploaded before checkout. Remove them
+  // FIRST: the job-photos DELETE policy needs the job row to exist, and after
+  // the delete nothing names them. Never throws or blocks (reported inside).
+  await removeJobPhotos(jobId, "PostJob.orphanCleanup");
   try {
     const { data, error } = await supabase.from("jobs").delete().eq("id", jobId).select("id");
     if (error) {

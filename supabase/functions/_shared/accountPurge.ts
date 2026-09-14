@@ -41,6 +41,8 @@
  * Every step is individually idempotent.
  */
 
+import { removeJobMedia, type JobMediaOwner } from "./jobMedia.ts";
+
 /**
  * Structural, not `SupabaseClient`.
  *
@@ -90,11 +92,15 @@ interface StorageListLike {
  * Buckets holding media that identifies the PERSON. These are erased.
  *
  * Deliberately NOT in this list: `job-photos`, `proof-photos`,
- * `message-attachments` and `business-documents`. Those are keyed by job or
- * business, not by user, and they are evidence attached to a record that
+ * and `message-attachments`. Those are keyed by job, not by user, and they are
+ * evidence attached to a record that
  * survives — a completed job, a settled dispute. Deleting them would destroy
  * the counterparty's evidence to satisfy this user's request, which is the
  * same mistake as cascading their reviews away.
+ *
+ * That reasoning holds only while the job row exists. The jobs
+ * `purge_user_data()` itself deletes have their media removed afterwards by
+ * `removeMediaOfDeletedJobs` (_shared/jobMedia.ts), never blocking.
  */
 const IDENTITY_BUCKETS = [
   "avatars",
@@ -705,6 +711,93 @@ async function collectMessageAttachments(
 }
 
 /**
+ * The jobs `purge_user_data()` may DELETE: the ones this user posted that are
+ * still unassigned (its step 4a also requires unpaid, unreviewed and
+ * unapplied, and skips any a foreign key still holds). Read before the RPC
+ * because afterwards nothing names them; which ones actually went is decided
+ * afterwards by re-reading, so this may over-collect safely.
+ *
+ * Never blocks: a failed read is recorded and logged, and the deletion goes
+ * ahead — the weekly storage-orphan-sweep is the net for those files.
+ */
+async function collectDeletableJobs(
+  admin: PurgeCapableClient,
+  userId: string,
+  steps: PurgeStep[],
+): Promise<JobMediaOwner[]> {
+  const res: PostgrestLike<{ id: string; customer_id: string | null; helper_id: string | null }[]> = await admin
+    .from("jobs")
+    .select("id, customer_id, helper_id")
+    .eq("customer_id", userId)
+    .is("helper_id", null)
+    .limit(1000);
+  if (res.error) {
+    console.error(`[accountPurge] could not read deletable jobs for ${userId}:`, res.error.message);
+    steps.push({ step: "job_media", ok: false, detail: `job read failed (${res.error.code ?? "?"}: ${res.error.message}) — media of deleted jobs left for the weekly sweep` });
+    return [];
+  }
+  return res.data ?? [];
+}
+
+async function removeMediaOfDeletedJobs(
+  admin: PurgeCapableClient,
+  candidates: JobMediaOwner[],
+  steps: PurgeStep[],
+): Promise<void> {
+  if (candidates.length === 0) {
+    if (!steps.some((s) => s.step === "job_media")) {
+      steps.push({ step: "job_media", ok: true, detail: "no deletable jobs" });
+    }
+    return;
+  }
+  const ids = candidates.map((j) => j.id);
+  const still: PostgrestLike<{ id: string }[]> = await admin.from("jobs").select("id").in("id", ids);
+  if (still.error) {
+    console.error("[accountPurge] could not re-read jobs after purge:", still.error.message);
+    steps.push({ step: "job_media", ok: false, detail: `re-read failed (${still.error.message}) — media left for the weekly sweep` });
+    return;
+  }
+  // Only jobs CONFIRMED gone. A job the RPC kept is someone's record: its files stay.
+  const kept = new Set((still.data ?? []).map((r) => r.id));
+  // A job id that is also a USER id would turn `<jobId>/` into that user's own
+  // folder (`proof-photos/<userId>/disputes/…`, `job-photos/<userId>/reviews/…`),
+  // and this runs under the service role. Job ids are not guaranteed
+  // server-minted, so refuse any that collide with a profile.
+  const goneIds = ids.filter((id) => !kept.has(id));
+  const collide: PostgrestLike<{ user_id: string }[]> = goneIds.length
+    ? await admin.from("profiles").select("user_id").in("user_id", goneIds)
+    : { data: [], error: null };
+  if (collide.error) {
+    console.error("[accountPurge] could not check job ids against users:", collide.error.message);
+    steps.push({ step: "job_media", ok: false, detail: `user-id collision check failed (${collide.error.message}) — media left for the weekly sweep` });
+    return;
+  }
+  const userIds = new Set((collide.data ?? []).map((r) => r.user_id));
+  if (userIds.size > 0) {
+    console.error(`[accountPurge] ${userIds.size} deleted job id(s) equal a user id; their media is NOT removed`);
+  }
+  const gone = candidates.filter((j) => !kept.has(j.id) && !userIds.has(j.id));
+  if (gone.length === 0) {
+    steps.push({ step: "job_media", ok: true, detail: "no jobs were deleted" });
+    return;
+  }
+  // Bounded: ~6 list calls per job run before auth.admin.deleteUser, inside the
+  // edge function's time limit. Beyond the cap, the weekly sweep takes the rest.
+  const JOB_MEDIA_CAP = 25;
+  const { removed, failures } = await removeJobMedia(admin, gone.slice(0, JOB_MEDIA_CAP), "accountPurge");
+  if (gone.length > JOB_MEDIA_CAP) {
+    failures.push(`${gone.length - JOB_MEDIA_CAP} deleted job(s) over the ${JOB_MEDIA_CAP}-job cap left for the weekly sweep`);
+  }
+  steps.push({
+    step: "job_media",
+    ok: failures.length === 0,
+    detail: failures.length === 0
+      ? `removed ${removed} object(s) of ${gone.length} deleted job(s)`
+      : `removed ${removed} object(s) of ${gone.length} deleted job(s); failures (not blocking): ${failures.join("; ")}`,
+  });
+}
+
+/**
  * Run every pre-deletion step. Call this immediately before
  * `auth.admin.deleteUser`; see `describeDeleteError` for the failure of that
  * final call.
@@ -737,7 +830,11 @@ export async function purgeAccount(
   // of `purge_user_data` nulls — reversing these two lines turns the retention
   // into a silent no-op that returns 0 and no error. See retainBanIfAny.
   const banRetained = await retainBanIfAny(admin, userId, steps);
+  // Read BEFORE the RPC: purge_user_data DELETES some of this user's jobs, and
+  // afterwards nothing names them (see collectDeletableJobs).
+  const deletableJobs = await collectDeletableJobs(admin, userId, steps);
   const db = await purgeDatabaseRows(admin, userId, steps);
+  if (db.ok) await removeMediaOfDeletedJobs(admin, deletableJobs, steps);
   const stripeOk = steps.find((s) => s.step === "stripe")?.ok !== false;
   const attachmentsOk = steps.find((s) => s.step === "message_attachments")?.ok !== false;
 

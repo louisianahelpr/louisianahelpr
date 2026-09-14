@@ -26,9 +26,9 @@ import { TIER_PERKS, tierDisplayName, toSubscriptionTier } from "@/lib/subscript
  * could explain themselves.
  *
  * Every badge now renders through this component:
- *   - the SAME pill box (`px-2.5 py-1.5 text-ds-12`, the Pro pill's own size,
- *     so the tier treatment from `tierBadgeStyle` / `.tier-gold-*` is the
- *     reference and is not touched);
+ *   - the SAME pill box (`px-2 py-1 text-ds-11` — one step smaller since
+ *     owner, 2026-09-14; the tier treatment from `tierBadgeStyle` /
+ *     `.tier-gold-*` is not touched);
  *   - the same 44px tap target, extended with a pseudo-element so the visual
  *     rhythm of the row does not grow;
  *   - the same popover: opens on click/tap (the only event a touch screen
@@ -41,16 +41,20 @@ import { TIER_PERKS, tierDisplayName, toSubscriptionTier } from "@/lib/subscript
  * reachable through the trigger button.
  */
 
+// One step smaller (owner, 2026-09-14, VN-17: "the badges also need to be
+// smaller") — was px-2.5 py-1.5 text-ds-12 with a 14px icon. The 44px tap
+// target (`after:h-11`) is unchanged.
 export const PROFILE_BADGE_PILL =
-  "inline-flex items-center gap-1.5 rounded-ds-pill px-2.5 py-1.5 text-ds-12 font-sans font-semibold leading-none whitespace-nowrap " +
+  "inline-flex items-center gap-1 rounded-ds-pill px-2 py-1 text-ds-11 font-sans font-semibold leading-none whitespace-nowrap " +
   "transition-opacity active:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
   "relative after:absolute after:inset-x-0 after:top-1/2 after:-translate-y-1/2 after:h-11 after:content-['']";
 
-const ICON_CLASS = "w-3.5 h-3.5 shrink-0";
+const ICON_CLASS = "w-3 h-3 shrink-0";
 
 export type ProfileBadgeProps = {
   label: string;
-  /** Lucide element — re-sized here so every badge's mark is 14px. */
+  /** Lucide element — re-sized here so every badge's mark is 12px. It must
+   *  forward `className` to its <svg> or it renders at lucide's 24px default. */
   icon: ReactNode;
   /** What this badge means and how it was earned. Plain sentence. */
   description: string;

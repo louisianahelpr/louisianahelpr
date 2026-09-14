@@ -39,8 +39,9 @@ const TrackingMap = lazy(() =>
  * so a label that outgrows its box spills instead of wrapping. On a 320px
  * phone this button has roughly 170px of text room (card px-4, tracker p-3,
  * size="sm" px-4, an 18px icon and its gap), which is ~20 characters of the
- * 14px bold sans it renders in — hence "Request My Payout" rather than
- * ActiveJobSection's longer "I'm Done — Request Payout".
+ * 14px bold sans it renders in. The Done action reads "Mark Job Complete"
+ * (owner, 2026-09-14: name the event, not the money) — the same words as the
+ * card's PayoutPrimary button, so the two controls for one action agree.
  *
  * Both step arrays are annotated with this ONE type so `displaySteps`
  * (`[...PRE_STATUSES, ...STATUSES]`) stays a single array type rather than a
@@ -70,7 +71,7 @@ const STATUSES: TrackerStep[] = [
   { key: "on_the_way", label: "On the Way", action: "I'm On My Way", icon: Truck, color: "text-primary" },
   { key: "arrived", label: "Arrived", action: "I've Arrived", icon: MapPin, color: "text-primary" },
   { key: "working", label: "Working", action: "Start Working", icon: Wrench, color: "text-primary" },
-  { key: "done", label: "Done", action: "Request My Payout", icon: PartyPopper, color: "text-primary" },
+  { key: "done", label: "Done", action: "Mark Job Complete", icon: PartyPopper, color: "text-primary" },
 ];
 
 /**
@@ -901,7 +902,7 @@ export function JobTracking({
     // paths deliberately do NOT loadTracking(): nothing was written, so there
     // is nothing to re-read.
     //
-    // SAME GATES AS "I'm Done — Request Payout" (owner, 2026-08-24 E2E): this
+    // SAME GATES AS PayoutPrimary's "Mark Job Complete" (owner, 2026-08-24 E2E): this
     // button used to write helper_completed_at with no checks at all, so the
     // before/after-photo requirement and the 30-minute work floor on the payout
     // CTA were decorative — the tracker was a free bypass that still started
@@ -2085,7 +2086,7 @@ export function JobTracking({
         // "Confirm They Arrived" tap, which is the way out.
         // The proof-photo gate, at RENDER time rather than only on click.
         // A state sweep found the two money controls disagreeing in 17 frames:
-        // this CTA rendered an ENABLED "Request My Payout" while
+        // this CTA rendered an ENABLED "Request My Payout" (now "Mark Job Complete") while
         // ActiveJobSection's button sat directly below it, DISABLED, reading
         // "Upload before & after photos first". Both enforce the same rule —
         // the comment on the click-time gate below says the two "must not

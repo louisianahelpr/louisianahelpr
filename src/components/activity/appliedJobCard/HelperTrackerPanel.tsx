@@ -143,7 +143,7 @@ export function HelperTrackerPanel({
         jobDateNeeded={job.date_needed}
         jobStartTime={job.start_time}
         jobStatus={job.status}
-        // The Done CTA rendered ENABLED "Request My Payout" while the button
+        // The Done CTA (then "Request My Payout", now "Mark Job Complete") rendered ENABLED while the button
         // below it sat DISABLED reading "Upload before & after photos first" —
         // same rule, and the one that LOOKED pressable was the one that failed
         // on tap. Hand it what this card already knows so the two agree before

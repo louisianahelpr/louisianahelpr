@@ -184,7 +184,7 @@ const CASES: Array<{
     // FINDING (reported, NOT fixed here — this file may only add tests):
     // an arrived, working job renders TWO glossy CTAs for the same decision —
     // the tracker's next-step "Done" (JobTracking → updateStatus("done")) and
-    // the section's "I'm Done — Request Payout" (onComplete). Same collision
+    // the section's "Mark Job Complete" (onComplete). Same collision
     // the revision state was fixed for, one state earlier in the lifecycle;
     // the revision fix hid the tracker's Done only when
     // `jobStatus === "revision_requested"`.
@@ -334,7 +334,7 @@ describe("helper active card — at most one primary CTA per state", () => {
     const { container } = renderSection(CASES[3].job);
     const labels = [...container.querySelectorAll("button")].map((b) => b.textContent || "");
     expect(
-      labels.some((l) => /Request Payout|Mark Complete/i.test(l)),
+      labels.some((l) => /Request Payout|Mark (Job )?Complete/i.test(l)),
       `a payout CTA is showing beside an open revision: [${labels.map((l) => l.trim()).join(" | ")}]`,
     ).toBe(false);
   });

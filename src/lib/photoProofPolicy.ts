@@ -2,8 +2,8 @@
  * photoProofPolicy — the ONE definition of which proof photos a helper must
  * upload before a job can be marked complete.
  *
- * Three surfaces enforce this gate — ActiveJobSection's "I'm Done — Request
- * Payout" button, JobTracking's Done step, and useLifecycleHandlers'
+ * Three surfaces enforce this gate — ActiveJobSection's "Mark Job Complete"
+ * button (PayoutPrimary), JobTracking's Done step, and useLifecycleHandlers'
  * completeJob re-check — and they had drifted into three different rules
  * (before+after on every job vs after-only on $50+ jobs), with a red note
  * ("After-photos required for jobs $50+") stating a third variant neither

@@ -42,7 +42,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Gift, Sparkles } from "lucide-react";
+import { Gift, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap, functionErrorMessage } from "@/lib/supabaseResult";
@@ -58,7 +58,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/ui/ErrorState";
 import type { GiftCardRow } from "./giftCards/types";
 import { AMOUNT_PRESETS, MAX_NOTE_LENGTH } from "./giftCards/constants";
-import { GIFT_OCCASIONS, DEFAULT_OCCASION, DEFAULT_DESIGN } from "./giftCards/giftCardDesigns";
+import { GIFT_OCCASIONS, DEFAULT_OCCASION } from "./giftCards/giftCardDesigns";
 import { GiftCardPreview } from "./giftCards/GiftCardPreview";
 import { CreditCard } from "./giftCards/CreditCard";
 import { EmptyState } from "./giftCards/EmptyState";
@@ -102,13 +102,15 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
   const [recipientMode, setRecipientMode] = useState<"search" | "email">("search");
   const [selectedRecipient, setSelectedRecipient] = useState<RecipientMatch | null>(null);
   const [note, setNote] = useState("");
-  // Occasion drives which designs are offered and what the note placeholder
-  // suggests; design is what the recipient actually sees. Both persist on the
-  // credit row, so a card looks the same when opened as when it was sent.
+  // Occasion drives the card design and what the note placeholder suggests;
+  // design is what the recipient actually sees. Both persist on the credit
+  // row, so a card looks the same when opened as when it was sent.
+  // No design picker (owner, 2026-09-14, VN-43: "remove card design option on
+  // gift cards"): the design is always the occasion's first one, and its id is
+  // still sent to checkout as `design_id`.
   const [occasionId, setOccasionId] = useState<string>(DEFAULT_OCCASION.id);
-  const [designId, setDesignId] = useState<string>(DEFAULT_DESIGN.id);
   const occasion = GIFT_OCCASIONS.find((o) => o.id === occasionId) ?? DEFAULT_OCCASION;
-  const design = occasion.designs.find((d) => d.id === designId) ?? occasion.designs[0];
+  const design = occasion.designs[0];
 
   const effectiveAmount = selectedAmount ?? (customAmount ? parseFloat(customAmount) : null);
   const trimmedRecipient = recipientEmail.trim().toLowerCase();
@@ -447,7 +449,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                 isSelfGiftEmail={isSelfGiftEmail}
               />
 
-              {/* Occasion — picking one swaps the design set and the note
+              {/* Occasion — picking one swaps the card design and the note
                   placeholder, so the choice does real work rather than just
                   tagging the gift.
 
@@ -476,13 +478,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                         key={o.id}
                         type="button"
                         aria-pressed={active}
-                        onClick={() => {
-                          setOccasionId(o.id);
-                          // Reset to that occasion's first design — keeping a
-                          // design from the previous occasion would show a
-                          // birthday cake on a sympathy card.
-                          setDesignId(o.designs[0].id);
-                        }}
+                        onClick={() => setOccasionId(o.id)}
                         // SELECTED = GLOSSY. `btn-grad-primary` is the app's one
                         // primary surface; this chip painted a flat 15%-bark
                         // tint, the same rule break the review tags and the
@@ -536,85 +532,6 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                   senderName={profile?.full_name ?? null}
                   occasionLabel={occasion.label}
                 />
-                {/* Card design. Two bare gradient rectangles with no labels and
-                    no state beyond a 2px border read as decoration, not as a
-                    control — you could not tell what either one was called or
-                    which was selected. Each option is now a labelled row: the
-                    art stays as a swatch (it IS the thing being chosen), the
-                    name is VISIBLE text (so the accessible name comes from the
-                    label rather than an aria-label standing in for it —
-                    WCAG 2.5.3), and the selected row wears the app's glossy
-                    primary surface plus a check, like every other selected
-                    control in the app.
-
-                    One column on a phone, two from `sm`: at 320 a two-up grid
-                    left ~44px for the name and truncated "Parchment" to
-                    "Parch…". */}
-                {occasion.designs.length > 1 && (
-                  <div className="mt-3">
-                    <p
-                      id="gift-design-label"
-                      className="font-sans text-ds-12 mb-2"
-                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                    >
-                      Card design
-                    </p>
-                    <div
-                      role="group"
-                      aria-labelledby="gift-design-label"
-                      className="grid grid-cols-1 sm:grid-cols-2 gap-2"
-                    >
-                      {occasion.designs.map((d) => {
-                        const active = d.id === design.id;
-                        return (
-                          <button
-                            key={d.id}
-                            type="button"
-                            aria-pressed={active}
-                            onClick={() => setDesignId(d.id)}
-                            className={`flex items-center gap-2 min-h-11 px-2 py-1.5 rounded-ds-sm text-left transition-all duration-150 ease-ds-spring active:scale-[0.97] ${
-                              active
-                                ? "btn-grad-primary border border-[hsl(var(--bark))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12)]"
-                                : ""
-                            }`}
-                            style={
-                              active
-                                ? undefined
-                                : {
-                                    background: "var(--surface-premium)",
-                                    border: "1px solid hsl(var(--olivewood) / 0.20)",
-                                  }
-                            }
-                          >
-                            <span
-                              aria-hidden
-                              className="w-8 h-8 shrink-0 rounded-md"
-                              style={{
-                                background: d.background,
-                                border: "0.5px solid hsl(var(--ink-deep) / 0.15)",
-                              }}
-                            />
-                            <span
-                              className="flex-1 min-w-0 truncate font-sans font-semibold text-ds-12"
-                              style={{
-                                color: active ? "hsl(var(--parchment))" : "hsl(var(--ink-deep))",
-                              }}
-                            >
-                              {d.label}
-                            </span>
-                            {active && (
-                              <Check
-                                className="w-4 h-4 shrink-0"
-                                style={{ color: "hsl(var(--parchment))" }}
-                                aria-hidden
-                              />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Amount.

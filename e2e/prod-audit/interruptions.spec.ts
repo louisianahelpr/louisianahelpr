@@ -404,7 +404,9 @@ test.describe("post a job", () => {
       // Measured 2026-09-14: the final Post mints a Stripe checkout session, and the
       // DELETE policy (20260903055308) only lets a poster delete an open job with no
       // session, so this always ends at `cancelled`. prod-lifecycle-sweeper.mjs matches
-      // only "[E2E DO NOT ACCEPT]", not JOB_MARKER, so nothing removes these rows yet.
+      // a different suite's marker and deliberately runs as the poster, so it can't
+      // reach this row either way — scripts/e2e/prod-audit-sweeper.mjs (service-role,
+      // run at the end of .github/workflows/prod-audit.yml) is what removes it.
       info?.annotations.push({ type: "cleanup", description: `jobs/${j.id} ${gone ? "deleted" : "cancelled (poster may not delete a job with a checkout session; row remains, is_seed)"}` });
     }
   }

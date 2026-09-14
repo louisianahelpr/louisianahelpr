@@ -184,6 +184,33 @@ jobs:
             *) echo "::error::check-test-account-strikes.mjs exited $code"; exit "$code" ;;
           esac
 
+      # Also last-before-key-removed: interruptions.spec.ts's "post a job"
+      # double-tap test mints a real Stripe checkout session, which permanently
+      # blocks the poster's own DELETE policy (20260903055308 requires
+      # stripe_session_id IS NULL) — the test's own teardown can only cancel it,
+      # not remove it (see the comment in that spec). scripts/e2e/prod-lifecycle-
+      # sweeper.mjs does not cover this: it matches a different suite's marker
+      # and deliberately runs as the poster, which is exactly the account this
+      # residue defeats. scripts/e2e/prod-audit-sweeper.mjs is the service-role
+      # equivalent for this suite's marker, needing the key this step still has.
+      # always(): a run that fails partway through is exactly when a leftover
+      # is most likely. Exit 1 = a real problem (cap exceeded or a delete
+      # failed; fail the job); exit 2 = could not run (missing key or a REST
+      # error reading prod; warn, matching the strike check above).
+      - name: Remove leftover prod-audit jobs this run could not clean up itself
+        if: always()
+        run: |
+          set +e
+          node scripts/e2e/prod-audit-sweeper.mjs
+          code=$?
+          set -e
+          case "$code" in
+            0) ;;
+            1) echo "::error title=prod-audit leftover cleanup failed::scripts/e2e/prod-audit-sweeper.mjs found a real problem (more than its 50-match cap, or a delete failed) — see the log above."; exit 1 ;;
+            2) echo "::warning title=prod-audit leftover cleanup did not run::scripts/e2e/prod-audit-sweeper.mjs could not read prod (missing key or REST error); see the log above." ;;
+            *) echo "::error::prod-audit-sweeper.mjs exited $code"; exit "$code" ;;
+          esac
+
       - name: Remove the service-role key from the runner
         if: always()
         run: rm -f .env

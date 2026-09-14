@@ -83,6 +83,24 @@ test.describe("detectButtonGeometry — sibling mismatch", () => {
     expect(r.siblingMismatch).toEqual([]);
   });
 
+  test("catches AtAGlance tiles two-up at 375: 58px row over a 70.3px row (/user/:id)", async ({ page }) => {
+    const r = await run(page, `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:320px">
+      <button style="height:58px;flex-direction:column">5.0<br>1 review</button>
+      <button style="height:58px;flex-direction:column">4<br>Jobs posted</button>
+      <button style="height:70.3px;flex-direction:column">16<br>Jobs completed</button>
+      <button style="height:70.3px;flex-direction:column">42%<br>32 of 77 jobs cancelled</button>
+    </div>`);
+    expect(r.siblingMismatch.some((m) => m.includes('"5.0 1 review" 58.0px vs "16 Jobs completed" 70.3px'))).toBe(true);
+  });
+
+  test("the schedule strip's day cards differ by job count on purpose and are exempt", async ({ page }) => {
+    const r = await run(page, `<ul aria-label="Upcoming 7 days" class="row" style="list-style:none;align-items:flex-start">
+      <li><button style="width:112px;height:60.4px">0 jobs Sun</button></li>
+      <li><button style="width:112px;height:139.9px">13 jobs Wed</button></li>
+    </ul>`);
+    expect(r.siblingMismatch).toEqual([]);
+  });
+
   test("a parent that sizes its buttons on purpose is not a defeated class", async ({ page }) => {
     await page.setContent(BASE + `<style>.p button{height:44px}</style>
       <div class="p [&_button]:h-11"><button class="h-14" style="width:44px">Bell</button></div>`);

@@ -369,8 +369,12 @@ export const AtAGlanceCard = ({
       {/* Four tiles max (see "EXACTLY FOUR TILES" above), so the grid tops out
           at four columns: two-up on a phone, one row from `sm`. A six-column
           track would have stranded four tiles in two-thirds of a desktop
-          frame. */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          frame.
+          `auto-rows-fr`: every tile is as tall as the tallest, across rows
+          too. Two-up at 375, a label that wraps ("31 of 61 jobs cancelled")
+          made row 2 70.3px under a 58px row 1 (OPEN.md; guarded by
+          e2e/journeys/stat-tile-heights.spec.ts). */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 auto-rows-fr gap-2">
         {cells.map((c) => (
           <MetricCell key={c.key} cell={c} />
         ))}

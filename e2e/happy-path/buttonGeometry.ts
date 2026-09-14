@@ -103,8 +103,21 @@ export function detectButtonGeometry(scopeSelector?: string): ButtonGeometryRepo
     return null;
   };
   const seen = new Set<string>();
+  // Parents whose children differ in height BY DESIGN, each with its reason.
+  // Match on a stable accessible name, never a class, so a restyle keeps it.
+  const EXEMPT_PARENTS: { sel: string; why: string }[] = [
+    {
+      // HelperScheduleStrip on the earnings/payment tabs: seven day cards in a
+      // horizontal scroll row, each as tall as the jobs listed under it (an
+      // empty day 60px, a 13-job day 140px). The height IS the data; equal
+      // heights would be the defect. (OPEN.md button-height false positive.)
+      sel: 'ul[aria-label="Upcoming 7 days"]',
+      why: "schedule day cards are sized by their job count",
+    },
+  ];
   walk("*").forEach((parent) => {
     if (parent.children.length < 2 || parent.children.length > 12) return;
+    if (EXEMPT_PARENTS.some((x) => parent.matches(x.sel))) return;
     const ctrls = [...parent.children].map(controlOf).filter((c): c is Element => !!c);
     for (let i = 0; i < ctrls.length; i++) {
       for (let j = i + 1; j < ctrls.length; j++) {

@@ -91,7 +91,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  // Locally 1 worker: Playwright's default (half the cores = 4 browsers) swaps
+  // the owner's 8 GB Mac when agent lanes run alongside. Override with --workers.
+  workers: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? "list" : [["list"], ["html", { open: "never" }]],
   use: {
     baseURL:

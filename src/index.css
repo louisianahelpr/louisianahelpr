@@ -3930,7 +3930,10 @@ html.senior-mode *::after {
   flex: 1 1 0%;
   min-width: 0;
 }
-[data-job-step-row] > [data-job-step-primary] :is(button, a) {
+/* CLASS selectors, deliberately (globalCssNoUtilityOverride.test.ts): this is a
+   component sizing its own slot's button — releasing the `sm` Button's h-11 so
+   a two-line label fits — not a global element rule out-ranking utilities. */
+.job-step-row > .job-step-primary :is(button, a) {
   width: 100%;
   height: auto;
   min-height: 44px;
@@ -3953,7 +3956,7 @@ html.senior-mode *::after {
 [data-job-step-row][data-tight="true"] > [data-job-step-primary] {
   min-width: 3.75rem;
 }
-[data-job-step-row][data-tight="true"] > [data-job-step-primary] :is(button, a) {
+.job-step-row[data-tight="true"] > .job-step-primary :is(button, a) {
   font-size: 12px;
   padding-left: 0.25rem;
   padding-right: 0.25rem;

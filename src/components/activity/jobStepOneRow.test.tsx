@@ -71,7 +71,7 @@ import { OpenStep } from "./postedJobCard/steps/OpenStep";
 import { CompletedStep } from "./postedJobCard/steps/CompletedStep";
 import { DisputedStep } from "./postedJobCard/steps/DisputedStep";
 import { JobStepCard } from "./JobStepCard";
-import { JobStepRowSlot, shouldCompactJobStepRow } from "./jobStepRow";
+import { JobStepRowSlot, shouldCompactJobStepRow, shouldTightenJobStepPrimary } from "./jobStepRow";
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});
@@ -476,6 +476,22 @@ describe("VN-21 — icon-only chips instead of a second row", () => {
     expect(shouldCompactJobStepRow({ width: 256, chips: 2, hasPrimary: true })).toBe(true);
   });
 
+  it("measures WORDS: short labels stay labelled in a row a long word would not fit", () => {
+    // Open at 375 (Share · Boost · Edit · Cancel, ~62px each): the longest word
+    // needs ~48px, so the labels stay — the fixed 68px floor would have dropped them.
+    expect(shouldCompactJobStepRow({ width: 267, chips: 4, hasPrimary: false, chipNeedPx: 48 })).toBe(false);
+    expect(shouldCompactJobStepRow({ width: 267, chips: 4, hasPrimary: false, chipNeedPx: 72 })).toBe(true);
+    // A primary that would need three lines at two shares forces icon-only chips.
+    expect(shouldCompactJobStepRow({ width: 267, chips: 2, hasPrimary: true, chipNeedPx: 57, primaryNeedPx: 140 })).toBe(true);
+  });
+
+  it("tightens the primary only when icon-only chips still leave it short", () => {
+    // 375, three chips: 267 - 3×48 - 18 = 105px left for the primary.
+    expect(shouldTightenJobStepPrimary({ width: 267, chips: 3, primaryNeedPx: 100 })).toBe(false);
+    // 320, three chips: 212 - 162 = 50px left.
+    expect(shouldTightenJobStepPrimary({ width: 212, chips: 3, primaryNeedPx: 100 })).toBe(true);
+  });
+
   it("never compacts an unmeasured row or a lone button", () => {
     expect(shouldCompactJobStepRow({ width: 0, chips: 4, hasPrimary: true })).toBe(false);
     expect(shouldCompactJobStepRow({ width: 200, chips: 1, hasPrimary: false })).toBe(false);
@@ -483,8 +499,11 @@ describe("VN-21 — icon-only chips instead of a second row", () => {
   });
 
   it("the shell measures its row and marks it compact, so CSS hides chip labels (not the primary's)", async () => {
+    // jsdom lays nothing out: give the row the 375 width and every measured
+    // label word (the shell's off-screen probe span) a 60px width — about
+    // "Directions" at 11px, which needs 72px with the chip's padding.
     const widthSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
-      const w = this.hasAttribute("data-job-step-row") ? 311 : 0;
+      const w = this.hasAttribute("data-job-step-row") ? 311 : this.style.left === "-9999px" ? 60 : 0;
       return { width: w, height: 0, top: 0, left: 0, right: w, bottom: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
     });
     try {

@@ -208,9 +208,9 @@ export function JobStepCard({
           data-tight={layout.tight ? "true" : "false"}
           data-has-primary={layout.hasPrimary ? "true" : "false"}
           data-empty={layout.empty ? "true" : "false"}
-          className="flex flex-nowrap items-stretch gap-1.5"
+          className="job-step-row flex flex-nowrap items-stretch gap-1.5"
         >
-          <div ref={setPrimaryHost} data-job-step-primary="" />
+          <div ref={setPrimaryHost} data-job-step-primary="" className="job-step-primary" />
           {chips}
         </div>
         {primaryHost && ownPrimary ? createPortal(ownPrimary, primaryHost) : null}

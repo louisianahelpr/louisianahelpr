@@ -35,7 +35,11 @@ const posterTok = session("poster-e2e").access_token;
 const helperTok = session("helper-e2e").access_token;
 const ago = (h) => new Date(Date.now() - h * 3600e3).toISOString();
 const tag = () => Math.random().toString(36).replace(/[0-9.]/g, "").slice(0, 6);
-const EVIDENCE = ["https://example.invalid/dispute-race-evidence.jpg"];
+// Evidence must be the FILER's own signed proof-photos URL for this job
+// (dispute_evidence_url_ok, migration 20260915034822 §8). The object need not
+// exist: the check is on the URL, not the storage row.
+const evidenceFor = (uid, jobId) =>
+  [`https://fncmgoasalhdgfwzhsqa.supabase.co/storage/v1/object/sign/proof-photos/${uid}/disputes/${jobId}/dispute-race-evidence.jpg?token=probe`];
 const REASON = "Work not completed: the probe fixture was never delivered.";
 
 async function rpcAs(token, fn, args) {
@@ -78,13 +82,13 @@ async function cleanup(job) {
 async function round(scenario, label) {
   const job = await fixture(scenario, label);
   try {
-    const file = (tok) => rpcAs(tok, "rpc_open_dispute", { _job_id: job.id, _reason: REASON, _evidence_urls: EVIDENCE });
+    const file = (tok, uid) => rpcAs(tok, "rpc_open_dispute", { _job_id: job.id, _reason: REASON, _evidence_urls: evidenceFor(uid, job.id) });
     const calls = scenario === "double"
-      ? [file(posterTok), file(posterTok)]
+      ? [file(posterTok, POSTER), file(posterTok, POSTER)]
       // The cancellation goes through the RPC the poster's own button calls, so
       // the transition trigger and the strike path behave exactly as they do
       // for a real cancel.
-      : [file(helperTok), rpcAs(posterTok, "poster_cancel_job", { p_job_id: job.id, p_reason: "race probe cancel" })];
+      : [file(helperTok, HELPER), rpcAs(posterTok, "poster_cancel_job", { p_job_id: job.id, p_reason: "race probe cancel" })];
     const results = await Promise.allSettled(calls);
 
     const disputes = await rest(`disputes?job_id=eq.${job.id}&select=id,evidence_urls,status`);

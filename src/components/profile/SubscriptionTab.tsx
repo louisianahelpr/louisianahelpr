@@ -443,8 +443,9 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           // --gold-ink, not --gold-warm: this value is used as TEXT below, and
           // the brand gold measures 2.89:1 there. The accent colour itself is
           // unchanged — accentSoft still uses --gold-warm for the tint.
-          // Plus shares Pro's sienna: the gold belongs to Elite, because gold
-          // IS the Featured Crown Badge and Plus does not grant one.
+          // Gold belongs to Elite alone. Plus also holds the Featured Crown
+          // Badge since VN-44, but wears it in sienna (tierBadgeStyle.ts) —
+          // gold is the Elite form of that badge.
           const accent =
             tier.id === "elite"
               ? "hsl(var(--gold-ink))"
@@ -641,18 +642,21 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                   </li>
                   {tier.features
                     .filter((f) => !/^Everything in/i.test(f))
-                    // The bullets in subscriptionTiers.ts are written for a
-                    // RECURRING plan, and the Once tab renders the same list
-                    // under a one-time price — so Pro advertised "1 free Job
-                    // Boost every month" on a pass that only ever sees one
-                    // month. On the one-time cycle a per-month perk is
-                    // restated for the single period it actually covers,
-                    // rather than promising a cadence the pass cannot reach.
-                    .map((f) =>
-                      billingInterval === "one_time"
-                        ? f.replace(/\s*every month$/i, ` for your ${ONE_TIME_PASS_DAYS} days`)
-                        : f,
-                    )
+                    // THE SAME LIST ON EVERY CYCLE (owner, 2026-09-14, VN-44:
+                    // the perks shown under Once and Annual must be the perks
+                    // shown under Monthly). Nothing here may branch on
+                    // `billingInterval` — only the price line and the explainer
+                    // box above the cards differ by cycle, and
+                    // SubscriptionTab.perksParity.test.tsx fails if a card's
+                    // bullets change when the toggle does.
+                    //
+                    // Once used to rewrite "every month" to "for your 30 days",
+                    // so the Once tab showed Pro a different perk from the one
+                    // Monthly and Annual showed. That rewrite was also not what
+                    // the server does: the free-boost meter is per CALENDAR
+                    // month (create-boost-payment → claim_monthly_free_boost),
+                    // so a 30-day pass that spans two months gets two months'
+                    // allowance — "every month" is the accurate statement.
                     .map((feature) => (
                       <li
                         key={feature}

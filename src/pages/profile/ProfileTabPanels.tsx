@@ -4,14 +4,15 @@ import type { UseQueryResult } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
-import type { Database } from "@/integrations/supabase/types";
+import type { ReadableJobRow } from "@/lib/jobColumns";
 import type {
   ProfileReview,
   ProfileViolation,
 } from "@/hooks/useProfileTabData";
 import type { Profile, Tab } from "./types";
 
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
+// jobs.offered_to_helper_id is not client-selectable (20260915045110).
+type Job = ReadableJobRow;
 type ProfileTip = { amount: number; job_id: string; created_at: string };
 
 // Only the landing tab + its lightweight header are needed on first paint.

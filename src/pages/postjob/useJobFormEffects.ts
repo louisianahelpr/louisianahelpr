@@ -4,12 +4,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { report } from "@/lib/errorLogger";
+import { JOB_READABLE_COLUMNS, readableJobRow } from "@/lib/jobColumns";
 import { pickRequestedProfile } from "@/lib/safeProfiles";
 import { posterFeePercentForTier } from "@/lib/posterFees";
 import { CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { validateResult } from "@/lib/validateResult";
 import { jobRowSchema } from "@/lib/schemas";
-import type { JobRow } from "./postJobFormTypes";
 import { parseLocationIntoFields } from "./postJobFormHelpers";
 
 /**
@@ -240,7 +240,9 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
   useEffect(() => {
     const rebookId = searchParams.get("rebook");
     if (rebookId) {
-      supabase.from("jobs").select("*").eq("id", rebookId).single().then(({ data: raw, error }) => {
+      // Named columns, not `*`: jobs.offered_to_helper_id is not selectable
+      // (20260915045110), and a rebook never copies an offer anyway.
+      supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("id", rebookId).single().then(({ data: raw, error }) => {
         if (error || !raw) {
           toast.error("Couldn't load the previous job for rebooking — please fill in the details manually.");
           return;
@@ -251,7 +253,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         // is intentionally partial (.passthrough()) — we re-cast to the
         // full Supabase Row type so downstream setters keep their types.
         validateResult(jobRowSchema, raw, "usePostJobForm.rebookJobLoad");
-        const data = raw as JobRow;
+        const data = readableJobRow(raw);
         setTitle(data.title);
         setDescription(data.description);
         setCategory(data.category);

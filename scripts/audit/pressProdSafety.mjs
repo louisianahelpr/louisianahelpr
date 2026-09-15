@@ -154,7 +154,12 @@ export async function loadTestOwners(sessions) {
  * so clean-up finds it whatever state a press left it in.
  */
 export async function createPressJob(poster, runId, suffix = "") {
-  const res = await fetch(`${supabaseUrl()}/rest/v1/jobs`, {
+  // `select=id,parish` and not bare return=representation: representation
+  // without a select is RETURNING *, and 20260915045110 removed
+  // authenticated's table-level SELECT on jobs (offered_to_helper_id is the
+  // poster's and the offeree's alone), so `*` now 42501s the whole insert.
+  // Both fields below are read from the row that comes back.
+  const res = await fetch(`${supabaseUrl()}/rest/v1/jobs?select=id,parish`, {
     method: "POST",
     headers: headers(poster, { Prefer: "return=representation" }),
     body: JSON.stringify({

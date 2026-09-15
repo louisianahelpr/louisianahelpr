@@ -1,8 +1,10 @@
-import type { Database } from "@/integrations/supabase/types";
+import type { ReadableJobRow } from "@/lib/jobColumns";
 import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 
-export type Job = Database["public"]["Tables"]["jobs"]["Row"];
+// The row as an admin client can read it: jobs.offered_to_helper_id is not
+// selectable by `authenticated` (20260915045110), admins included.
+export type Job = ReadableJobRow;
 
 // Canonical labels — see `src/lib/jobCategories.ts`.
 export const categoryLabels: Record<string, string> = JOB_CATEGORY_LABELS;

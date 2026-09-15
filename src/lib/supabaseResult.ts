@@ -8,7 +8,7 @@
  * its error state (which drives `<ErrorState />`); in a manual async
  * function it throws into the caller's `try/catch`.
  *
- *   const rows = unwrap(await supabase.from("jobs").select("*"));
+ *   const rows = unwrap(await supabase.from("jobs").select("id, title"));
  *   const fee  = unwrap(await supabase.rpc("get_public_platform_settings"));
  *
  * Works for table queries, RPC calls, and edge-function invocations —

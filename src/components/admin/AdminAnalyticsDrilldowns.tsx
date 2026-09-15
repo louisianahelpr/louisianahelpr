@@ -5,6 +5,7 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
+import type { ReadableJobRow } from "@/lib/jobColumns";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
 import { tierDisplayName } from "@/lib/subscriptionTiers";
@@ -35,7 +36,8 @@ const DrillDownEmpty = ({ title, body }: { title: string; body: string }) => (
 );
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
+// jobs.offered_to_helper_id is not client-selectable (20260915045110).
+type Job = ReadableJobRow;
 
 /**
  * Drill-down detail views for the admin analytics dashboard — the

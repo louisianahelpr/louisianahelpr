@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { getMessageAttachmentSignedUrls, isImageMime } from "@/lib/messageAttachments";
 import { getMutedThreadMap, threadMuteKey } from "@/lib/threadMutes";
 import { fetchMessagingClosesAt } from "@/lib/messagingLockout";
+import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import type { Conversation, Message } from "@/components/messages/types";
 
 /**
@@ -191,15 +192,19 @@ export async function fetchConversations(
   // single round-trip instead of N. The RPC was shipped in
   // `20260609090000_user_last_active_rpc.sql` (handoff item #28); we
   // degrade silently when the function isn't deployed (PGRST202).
-  const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes, closesAtMap] = await Promise.all([
+  const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes, closesAtMap, offerTargets] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
-    supabase.from("jobs").select("id, title, status, customer_id, helper_id, offered_to_helper_id").in("id", jobIds),
+    // No offered_to_helper_id here: it is not selectable (20260915045110,
+    // owner decision 2026-09-14). Whether *I* am a job's offeree comes from
+    // get_job_offer_targets, which answers only the poster and the offeree.
+    supabase.from("jobs").select("id, title, status, customer_id, helper_id").in("id", jobIds),
     getMessageAttachmentSignedUrls(imageThumbPaths),
     getMutedThreadMap(uid, mutePairs),
     supabase.rpc("get_user_last_active", { user_ids: otherIds }),
     // 24h post-completion lockout: when each thread closes, from the server.
     // Degrades to "no lockout shown" on PGRST202 (see messagingLockout.ts).
     fetchMessagingClosesAt(jobIds),
+    fetchJobOfferTargets(jobIds),
   ]);
   const lastActiveMap = new Map<string, string>();
   if (
@@ -241,7 +246,7 @@ export async function fetchConversations(
       tags: { source: "loadConversations.jobs" },
     });
   }
-  const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, customer_id: j.customer_id, helper_id: j.helper_id, offered_to_helper_id: j.offered_to_helper_id }]) || []);
+  const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, customer_id: j.customer_id, helper_id: j.helper_id, offered_to_helper_id: offerTargets.get(j.id) ?? null }]) || []);
 
   const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => {
     const last = v.messages[0];
@@ -323,10 +328,12 @@ export async function buildDeepLinkPlaceholder(
 ): Promise<Conversation | null> {
   // No existing conversation — fetch profile + job to build a
   // placeholder thread so the user can start messaging.
-  const [profileRes, jobRes, closesAtMap] = await Promise.all([
+  const [profileRes, jobRes, closesAtMap, offerTargets] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: [deepLinkUserId] }),
-    supabase.from("jobs").select("id, title, status, customer_id, helper_id, offered_to_helper_id").eq("id", deepLinkJobId).maybeSingle(),
+    // offered_to_helper_id via get_job_offer_targets, as in the list path.
+    supabase.from("jobs").select("id, title, status, customer_id, helper_id").eq("id", deepLinkJobId).maybeSingle(),
     fetchMessagingClosesAt([deepLinkJobId]),
+    fetchJobOfferTargets([deepLinkJobId]),
   ]);
 
   // A FAILED read is not the same fact as an ABSENT row, and the dead-thread
@@ -376,7 +383,7 @@ export async function buildDeepLinkPlaceholder(
     viewerIsAssignedHelper:
       !!uid &&
       (jobRes.data?.helper_id === uid ||
-        jobRes.data?.offered_to_helper_id === uid),
+        offerTargets.get(deepLinkJobId) === uid),
     lastMessage: "",
     lastAt: new Date().toISOString(),
     unread: 0,

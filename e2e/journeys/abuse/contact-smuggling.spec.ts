@@ -47,7 +47,13 @@ test.describe("bad actors: contact smuggling", () => {
 
   for (const s of SMUGGLES) {
     test(`job description smuggling is REJECTED server-side: ${s.label}`, async ({ request }) => {
-      const created = await request.post(`${SUPABASE_URL}/rest/v1/jobs`, {
+      // `select=` is required alongside return=representation on jobs:
+      // bare representation is RETURNING *, and authenticated lost the
+      // table-level SELECT on jobs in 20260915045110, so `*` 42501s. Without
+      // it a REGRESSION (the gate gone, the row stored) would come back as a
+      // permission error instead of the 400 this asserts — and the row would
+      // never reach `createdJobs`, so it would be left on prod.
+      const created = await request.post(`${SUPABASE_URL}/rest/v1/jobs?select=id`, {
         headers: { ...posterHeaders, Prefer: "return=representation" },
         data: {
           customer_id: posterId,

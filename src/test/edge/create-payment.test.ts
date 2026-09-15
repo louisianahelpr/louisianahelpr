@@ -2460,9 +2460,13 @@ describe("create-payment edge function", () => {
           },
         ],
       };
+      // $112 captured ($100 budget + $12 poster service fee). The partial
+      // ceiling is this captured amount, not job.budget (MS-6).
       stripeMock.paymentIntents.retrieve.mockResolvedValue({
         id: "pi_g",
         status: "succeeded",
+        amount: 11200,
+        amount_received: 11200,
       });
       stripeMock.refunds.create.mockResolvedValue({ id: "re_g" });
       const fn = await load();
@@ -2554,7 +2558,7 @@ describe("create-payment edge function", () => {
       });
     });
 
-    it("admin_refund_general rejects an out-of-range partial amount", async () => {
+    it("admin_refund_general rejects a partial amount above the captured total", async () => {
       seedAuth(scenario, ADMIN);
       scenario.rpc.has_role = true;
       scenario.reads.jobs = {
@@ -2568,6 +2572,13 @@ describe("create-payment edge function", () => {
           },
         ],
       };
+      // $112 captured; a $9,999.99 partial is far above it and is refused.
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_g",
+        status: "succeeded",
+        amount: 11200,
+        amount_received: 11200,
+      });
       const fn = await load();
       const res = await fn.fetch(
         fn.request({
@@ -2581,6 +2592,162 @@ describe("create-payment edge function", () => {
       );
       expect(res.status).toBe(500);
       expect((await json(res)).error).toMatch(/invalid partial amount/i);
+    });
+
+    // ── MS-6: a partial refund of exactly the budget must STAY partial ───────
+    // Regression for the money-state hole hunt (2026-09-15). The "full vs
+    // partial" test used to compare the request against job.budget, so a
+    // request for exactly the budget was treated as a FULL refund: it refunded
+    // the WHOLE capture (budget + fees + tax) and cancelled the job. A provided
+    // amountCents is now ALWAYS partial and is sent verbatim; the ceiling is the
+    // captured amount, never job.budget.
+    it("admin_refund_general keeps a refund of exactly the budget PARTIAL — no full-capture refund, no cancellation (MS-6)", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            helper_id: HELPER.id,
+            budget: 100,
+            title: "Budget-equal refund",
+            payment_status: "escrow",
+            stripe_payment_intent_id: "pi_be",
+          },
+        ],
+      };
+      // $112 captured ($100 budget + $12 poster fee). The admin asks to refund
+      // exactly $100.00 (10000¢ == budget).
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_be",
+        status: "succeeded",
+        amount: 11200,
+        amount_received: 11200,
+      });
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_be" });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: {
+            action: "admin_refund_general",
+            jobId: "job-1",
+            amountCents: 10000, // === budget in cents
+          },
+        }),
+      );
+      const out = await json(res);
+      expect(res.status).toBe(200);
+      // It is treated as PARTIAL…
+      expect(out.partial).toBe(true);
+      // …so Stripe is asked for EXACTLY $100 — never the full $112 capture.
+      expect(stripeMock.refunds.create.mock.calls[0][0].amount).toBe(10000);
+      // …and the job is NOT cancelled / flipped to refunded.
+      const jobUpdate = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update",
+      );
+      expect(jobUpdate).toBeUndefined();
+    });
+
+    // A partial equal to the FULL capture is a full refund in disguise. It must
+    // NOT slip past the escrow-already-moved guard that a real full refund hits
+    // when the Helpr has already been paid — otherwise the MS-6 ceiling widening
+    // (job.budget → full capture) would re-open the double-pay hole for partials.
+    it("admin_refund_general REFUSES a full-capture partial when the Helpr was already paid (guard not bypassed)", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            helper_id: HELPER.id,
+            budget: 100,
+            title: "Paid-out job",
+            payment_status: "released",
+            stripe_payment_intent_id: "pi_paid",
+          },
+        ],
+      };
+      // A live (paid) payout row — money already left to the Helpr.
+      scenario.reads.payout_transfers = {
+        rows: [
+          {
+            id: "pt-1",
+            job_id: "job-1",
+            status: "paid",
+            stripe_transfer_id: "tr_live",
+          },
+        ],
+      };
+      // $112 captured; the admin asks to refund the WHOLE $112 as a "partial".
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_paid",
+        status: "succeeded",
+        amount: 11200,
+        amount_received: 11200,
+      });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: {
+            action: "admin_refund_general",
+            jobId: "job-1",
+            amountCents: 11200, // === full capture
+          },
+        }),
+      );
+      // Refused by the escrow-already-moved guard — 409, nothing moved.
+      expect(res.status).toBe(409);
+      expect((await json(res)).alreadyMoved).toBe(true);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    });
+
+    // A degenerate captured amount (non-finite / zero) makes the partial ceiling
+    // meaningless (`x > NaN` is always false), so it must abort rather than issue
+    // an unbounded partial — matching admin_refund_dispute's capture guard.
+    it("admin_refund_general aborts a partial when the captured amount is unreadable", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            budget: 100,
+            title: "Bad-capture job",
+            payment_status: "escrow",
+            stripe_payment_intent_id: "pi_bad",
+          },
+        ],
+      };
+      // No captured amount at all — capturedCents resolves to 0.
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_bad",
+        status: "succeeded",
+        amount: null,
+        amount_received: null,
+      });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: {
+            action: "admin_refund_general",
+            jobId: "job-1",
+            amountCents: 5000,
+          },
+        }),
+      );
+      expect(res.status).toBe(500);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(
+        slackAlerts.some(
+          (a) => (a as { severity?: string }).severity === "critical",
+        ),
+      ).toBe(true);
     });
   });
 });

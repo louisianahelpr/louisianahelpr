@@ -2194,12 +2194,25 @@ serve(async (req) => {
         if (alreadyPaidOut) return alreadyPaidOut;
       }
 
-      const totalCents = Math.round(Number(job.budget || 0) * 100);
+      // MS-6: a provided `amountCents` is ALWAYS a partial refund that leaves
+      // the job running; a full refund + cancellation happens ONLY when
+      // `amountCents` is omitted — the same condition as `wantsFullRefund`
+      // above, and the two must agree. The old `isPartial` compared the request
+      // against `job.budget`, so a request for EXACTLY the budget was neither
+      // refused (`> totalCents` was false) nor treated as partial (`< totalCents`
+      // was false): it fell through to the full-refund branch, refunded the
+      // WHOLE capture (budget + poster service fee + urgent fee + tax) AND
+      // cancelled the job — and, because `wantsFullRefund` was also false there,
+      // even skipped the escrow-already-moved guard. There was no amount an
+      // admin could pass to refund exactly the budget as a partial. `isPartial`
+      // is now the exact negation of `wantsFullRefund`, and the upper bound is
+      // the ACTUAL captured amount (checked below, once the PaymentIntent is
+      // retrieved), never `job.budget`.
       const requestedCents = typeof amountCents === "number" ? Math.round(amountCents) : null;
-      const isPartial = requestedCents !== null && requestedCents > 0 && requestedCents < totalCents;
-      if (requestedCents !== null && (requestedCents <= 0 || requestedCents > totalCents)) {
-        throw new Error(`Invalid partial amount: ${requestedCents} cents (job total ${totalCents} cents)`);
+      if (requestedCents !== null && requestedCents <= 0) {
+        throw new Error(`Invalid partial amount: ${requestedCents} cents (must be > 0)`);
       }
+      const isPartial = requestedCents !== null;
 
       let paymentIntentId = job.stripe_payment_intent_id;
       if (!paymentIntentId && job.stripe_session_id) {
@@ -2215,6 +2228,51 @@ serve(async (req) => {
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
         if (pi.status === "succeeded") {
+          // MS-6: bound a partial refund against what Stripe ACTUALLY captured
+          // (budget + poster service fee + urgent fee + tax), not `job.budget`.
+          // A partial can be up to the full capture; anything beyond it is an
+          // over-refund and is refused. A partial EQUAL to the capture is still
+          // a partial for a job whose escrow has NOT moved — it never cancels
+          // the job (only an omitted `amountCents` does that).
+          // capturedCents is only consulted for a PARTIAL (it is the ceiling and
+          // the full-capture test below). A full refund sends no `amount` and
+          // refunds the whole charge on Stripe's side, so it neither needs nor
+          // reads this — keep these checks partial-only so a full refund on a PI
+          // whose amount fields are absent stays unaffected.
+          const capturedCents = Math.round(Number(pi.amount_received ?? pi.amount ?? 0));
+          if (isPartial) {
+            // Degenerate capture: a non-finite or non-positive captured amount
+            // makes the ceiling test meaningless (`x > NaN` is always false, so
+            // any partial would pass). `admin_refund_dispute` aborts on exactly
+            // this (see its `Number.isFinite` guard); align both paths so a
+            // garbage PaymentIntent never issues an unbounded partial refund.
+            if (!Number.isFinite(capturedCents) || capturedCents <= 0) {
+              await postSlackOpsAlert({
+                kind: "money_at_risk",
+                severity: "critical",
+                title: "General refund aborted — captured amount unreadable",
+                message: `admin_refund_general could not read a valid captured amount for job ${jobId} (captured=${String(capturedCents)}). No partial refund issued.`,
+                fields: { job_id: jobId, payment_intent: paymentIntentId, captured_cents: String(capturedCents) },
+              });
+              throw new Error(`admin_refund_general: invalid captured amount (${capturedCents}) for job ${jobId} — aborting, no refund issued.`);
+            }
+            if (requestedCents! > capturedCents) {
+              throw new Error(`Invalid partial amount: ${requestedCents} cents (captured ${capturedCents} cents)`);
+            }
+            // A partial equal to the FULL capture is a full refund in disguise:
+            // it returns the entire charge to the poster. The full-refund branch
+            // above refuses that whenever the Helpr has already been paid
+            // (`escrowAlreadyMovedTheOtherWay` gated on `wantsFullRefund`),
+            // because refunding the whole capture on top of a settled payout
+            // spends the escrow twice. Raising the partial ceiling to the
+            // capture (MS-6) must not open a door around that guard — so re-run
+            // it here for the full-capture partial. Smaller goodwill partials
+            // stay allowed (the platform choosing to eat a cost), as before.
+            if (requestedCents! === capturedCents) {
+              const partialAlreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund");
+              if (partialAlreadyPaidOut) return partialAlreadyPaidOut;
+            }
+          }
           // Sequence number for the partial-refund idempotency key, derived
           // from Stripe's OWN refund history for this PaymentIntent.
           //

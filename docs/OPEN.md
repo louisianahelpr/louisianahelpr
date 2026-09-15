@@ -33,6 +33,40 @@ root-caused; seven stale test assumptions fixed, each checked against live prod.
 - Trap: never pre-create `~/.lh-browser.lock` — Playwright's globalSetup takes
   it, and taking it first deadlocks the run against itself.
 
+## Hole hunt 2026-09-15 — urgent-fee + job-scoped write authz (branch fix-urgent-tracking-checkins)
+Reports: `docs/audit/holes-2026-09-15/silent-client.md` (origin/holes-silent-client),
+`docs/audit/holes-2026-09-15/authz.md` (origin/holes-authz).
+- [x] DONE 2026-09-15 — **silent-client H-001: free urgent placement.**
+  `is_urgent`/`urgent_fee` were client-set at INSERT and never re-validated, so
+  a direct PostgREST post with `is_urgent=true, urgent_fee=NULL/0` reached the
+  urgent notification fan-out (`instant-job-match`, keys off `is_urgent` alone)
+  for free. FIX: (a) migration `20260915055413_fix_urgent_placement_requires_paid_fee.sql`
+  re-authors the prod-only `jobs_urgent_fee_required` CHECK with the NULL hole
+  closed (`is_urgent IS NOT TRUE OR (urgent_fee IS NOT NULL AND urgent_fee >= 5)`),
+  bringing it into the migration ledger for the first time, and demotes legacy
+  free-urgent rows to non-urgent before adding it VALID; (b) `create-payment`
+  recomputes the urgent tip server-side — charges only when `is_urgent`, floored
+  at $5, never trusting `jobs.urgent_fee`. GUARDS: PGlite red→green (bypass
+  reproduced, then rejected; replay-safe 3x; legacy demote; below-floor rejected)
+  + durable static parity `src/test/urgentFeeAndJobMembershipGuards.test.ts` +
+  4 new `create-payment` unit tests (urgent line item present and ≥ floor iff
+  `is_urgent`).
+- [x] DONE 2026-09-15 — **authz AUTHZ-01: `job_tracking` live-location spoof.**
+  INSERT/UPDATE policies checked only `auth.uid() = helper_id`, never that the
+  caller was the job's assigned helper, so any user could inject a fake
+  status/GPS/ETA row that the poster's tracker (latest row per `job_id`) would
+  render. FIX: migration `20260915055415_job_tracking_checkins_require_job_membership.sql`
+  binds INSERT/UPDATE to `EXISTS(jobs j WHERE j.id=job_id AND j.helper_id=auth.uid())`,
+  the same shape `helper_mark_on_the_way` already enforces. PGlite-proven:
+  non-assigned refused, assigned helper still works.
+- [x] DONE 2026-09-15 — **authz AUTHZ-03: `job_checkins` non-party injection.**
+  Same shape, latent (table has zero app readers/writers — confirmed by grep).
+  GUARDED rather than dropped: the table is still wired into the account-deletion
+  purge RPC (`purge_user_account` DELETEs from it), the realtime authz policy's
+  `job_checkins:` topic, an FK index, and generated `types.ts` — a clean drop
+  would ripple into all of those and need a `types.ts` regen. INSERT now requires
+  the caller be a party (poster or assigned helper) to the job. PGlite-proven.
+
 ## press-every-control — re-run 2026-09-15, 237 failed presses in 4 shards
 Coverage was 100% (0 undocumented skips); these are presses that fired and then
 tripped a check. Three classes, in order of how many:

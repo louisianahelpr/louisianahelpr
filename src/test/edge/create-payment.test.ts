@@ -479,6 +479,83 @@ describe("create-payment edge function", () => {
       );
     });
 
+    // ── Server-authoritative urgent fee (silent-client H-001) ─────────────
+    //
+    // is_urgent / urgent_fee are client-set at INSERT and the jobs INSERT
+    // column-lock trigger deliberately leaves them writable, so a poster
+    // could POST a job directly with is_urgent=true and urgent_fee=NULL/0 and
+    // reach the urgent notification fan-out for free. create-payment must not
+    // trust the stored column: it charges the urgent tip ONLY when the job is
+    // urgent, and never below the $5 floor. These pin that recompute at the
+    // one place a real card is charged.
+    describe("urgent fee is recomputed, never trusted", () => {
+      function seedUrgentJob(overrides: Record<string, unknown>) {
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [
+            {
+              id: "job-urgent",
+              customer_id: POSTER.id,
+              budget: 100,
+              category: "cleaning",
+              title: "Urgent clean",
+              payment_status: "unpaid",
+              ...overrides,
+            },
+          ],
+        };
+        scenario.reads.platform_settings = {
+          rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 0 }],
+        };
+        scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true, subscription_tier: "pro" }] };
+        stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_u", url: "https://checkout.stripe.test/cs_u" });
+      }
+
+      function urgentLineItem(): { price_data: { unit_amount: number } } | undefined {
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        return args.line_items.find(
+          (li: { price_data: { product_data: { name: string } } }) =>
+            li.price_data.product_data.name === "Urgent tip",
+        );
+      }
+
+      async function run() {
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-urgent" } }),
+        );
+        expect(res.status).toBe(200);
+      }
+
+      it("charges the stored fee when the urgent job carries one at/above the floor", async () => {
+        seedUrgentJob({ is_urgent: true, urgent_fee: 15 });
+        await run();
+        expect(urgentLineItem()?.price_data.unit_amount).toBe(1500);
+      });
+
+      it("floors the urgent tip at $5 even if the stored fee is NULL", async () => {
+        // The free-placement bypass: is_urgent=true, urgent_fee never set.
+        seedUrgentJob({ is_urgent: true, urgent_fee: null });
+        await run();
+        // Old code added NO urgent line (`(job.urgent_fee ?? 0) > 0` was false),
+        // so the poster reached checkout urgent-for-free. Now it is floored.
+        expect(urgentLineItem()?.price_data.unit_amount).toBe(500);
+      });
+
+      it("floors the urgent tip at $5 even if the stored fee is 0", async () => {
+        seedUrgentJob({ is_urgent: true, urgent_fee: 0 });
+        await run();
+        expect(urgentLineItem()?.price_data.unit_amount).toBe(500);
+      });
+
+      it("charges NO urgent tip when the job is not urgent, whatever the column holds", async () => {
+        // A stray positive urgent_fee on a non-urgent job must not be charged.
+        seedUrgentJob({ is_urgent: false, urgent_fee: 25 });
+        await run();
+        expect(urgentLineItem()).toBeUndefined();
+      });
+    });
+
     // ── Poster fee fallback when the poster's PROFILE READ FAILS ──────────
     //
     // The charge-side twin of release-payout's "fee fallback on a failed tier

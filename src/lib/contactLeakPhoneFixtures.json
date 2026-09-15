@@ -1,0 +1,42 @@
+{
+  "_comment": "Shared phone-matcher fixtures (docs/OPEN.md queue #1, 2026-09-14). Read by src/lib/contactFilterParity.test.ts (client scanMessage AND the pattern literal in the newest migration defining contact_leak_reason) and by scripts/probes/contact-scan-phone.probe.mjs (the real Postgres function). A phone is 10 digits, or 11 starting with 1 (+1), with 0-4 separator characters between groups, and never a window inside a longer digit run. Exception (lh-trust-safety review 2026-09-14): when BOTH gaps between the 3-3-4 groups are real separators, a digit glued on the front or back does not hide it ('0225 555 0199', '225-555-01990'); a bare run of digits keeps the boundary rule ('22555501992255550199' is not a phone).",
+  "phone": [
+    "225-555-0199",
+    "(225) 555 0199",
+    "+1 225 555 0199",
+    "2255550199",
+    "12255550199",
+    "1-225-555-0199",
+    "+1 (225) 555-0199",
+    "+1(225)555-0199",
+    "call me at 225.555.0199 tonight",
+    "reach me at 504_555_0100",
+    "try 504/555/1212",
+    "My number is 985  555  1234",
+    "text 2255550199.",
+    "x2255550199y",
+    "2255550199,5045550100",
+    "line one\n2255550199",
+    "call me at ５０４-５５５-０１００",
+    "0225 555 0199",
+    "9225-555-0199",
+    "225-555-01990",
+    "1 225 555 01991"
+  ],
+  "notPhone": [
+    "SEED offered-proof 20260914215014",
+    "20260914215014",
+    "22555501992255550199",
+    "ref 123456789012",
+    "order 123456789012345",
+    "order 22255550199",
+    "epoch 1726350614000",
+    "card 4242 4242 4242 4242",
+    "2026-09-14 21:50:14",
+    "Order #12345-6789",
+    "The job pays $1,250,000.00 total",
+    "job 868f182b-1d2e-4c5b-9a7f-0e1d2c3b4a59",
+    "The job pays $75 for 2 hours",
+    "The job is at 123 Main Street, Baton Rouge LA 70801."
+  ]
+}

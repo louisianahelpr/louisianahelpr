@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders, jsonResponse, errorResponse } from "../_shared/cors.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { isLaborTaxable } from "../_shared/salesTax.ts";
 
 /**
@@ -36,6 +38,41 @@ const TAX_BEHAVIOR = "exclusive" as const;
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Cost gate. `tax.calculations.create` below is a BILLED Stripe Tax call, and
+  // this endpoint used to run `verify_jwt = false` with no in-function auth and
+  // no rate limit — an anonymous curl loop was one billable Stripe object per
+  // iteration, with nothing to revoke (EF-1/MS-5, hole hunt 2026-09-15). Two
+  // guards close it:
+  //
+  //   1. Rate limit FIRST, so an unauthenticated flood is refused before we
+  //      touch anything expensive. Keyed per-JWT-subject (narrow) and per-IP
+  //      (wide) by the shared limiter.
+  //   2. Require a real signed-in user. The ONLY caller is useStripeSalesTax,
+  //      reached exclusively from the `/post-job` checkout step, which is behind
+  //      <ProtectedRoute> — so there is no legitimate anonymous caller to
+  //      preserve. (The config.toml note weighed only information disclosure and
+  //      assumed a pre-session quote; the actual client is always authenticated,
+  //      so requiring auth costs nothing and removes the anonymous cost vector
+  //      entirely.)
+  const rl = await checkRateLimit(req, {
+    windowMs: 60_000,
+    maxRequests: 30,
+    keyPrefix: "calculate-tax",
+  });
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return errorResponse("Not authenticated", 401, corsHeaders);
+  const supabaseAuth = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")) ?? "",
+    { global: { headers: { Authorization: authHeader } } },
+  );
+  const { data: authData, error: authError } = await supabaseAuth.auth.getUser();
+  if (authError || !authData?.user) {
+    return errorResponse("Not authenticated", 401, corsHeaders);
   }
 
   try {

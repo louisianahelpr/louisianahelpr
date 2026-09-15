@@ -18,6 +18,48 @@ fraction of fixing them one report at a time.
 - [x] RESOLVED 2026-09-14 ~17:52 PDT (owner upgraded to Pro; cause: Hobby Edge Requests 3.1M/1M + Deployment Storage 34 GB/10 GB, see the Vercel item further down). Was: OWNER (dashboard only): every push since 4bbd125c1 (16:13 PDT) gets Vercel status `failure — Account is blocked.` (https://vercel.com/knowledge/why-is-my-account-deployment-blocked). Hobby team `louisianahelprs-projects`. Live site still serves 70f93a220 (14:30 PDT); NOT live: a0833ef22 TrackingMap pins, 3c299b328 completeJob duplicate-release fix, f9f5b0617 (package.json). Open Vercel → team → Usage / notifications for the reason (Hobby usage limit or fair-use), resolve, then redeploy main. Prod freshness runs time out red until then; that red is this, not the commits.
 - [x] VERIFIED 2026-09-14: cc2636f5f deployed (Vercel status success 00:53Z); live build-commit = cc2636f5f; a0833ef22, 3c299b328, f9f5b0617 are ancestors, so all live. Was: After unblock: confirm `<meta name="build-commit">` on www.louisianahelpr.com is at or after the newest shipping commit. Consider stopping preview deploys for non-main branches (every lane branch push builds a preview and counts toward Hobby limits).
 
+## Edge holes 2026-09-15 — six PROVEN/PLAUSIBLE findings fixed (branch `fix-edge-endpoints`)
+Reports: `docs/audit/holes-2026-09-15/edge.md` (origin/holes-edge) and
+`edge-functions.md` (origin/holes-edge-functions). Deno unavailable in this
+env, so `typecheck:edge` was NOT run; `typecheck:app` green + `parsecheck.mjs`
+on all seven `.ts` sources. Every fix has a vitest under `src/test/edge/`,
+each shown RED against origin/main first (16 new-behaviour assertions fail on
+the unfixed source; the regression/sanity guards pass).
+- [x] **calculate-tax (MS-5/EF-1)** — was unauthenticated + unmetered, billing
+  `stripe.tax.calculations.create` on every anonymous request. Now requires a
+  valid Supabase JWT AND rate-limits (30/min narrow, 300/min wide). Chose auth
+  (not anonymous-with-cache) because the ONLY caller, `useStripeSalesTax`, is
+  reached solely from `/post-job`, which is `<ProtectedRoute>` — no legitimate
+  anonymous caller exists, contra the config.toml note's pre-session assumption.
+  Test: `src/test/edge/calculate-tax.test.ts`.
+- [x] **check-pro-subscription (EF-01)** — outer catch returned HTTP 200
+  {subscribed:false} on ANY internal error, demoting paying members. Now fails
+  CLOSED: 401 for auth failures, 503 (no subscription verdict) for internal
+  errors, so the client keeps its placeholderData tier. Test:
+  `src/test/edge/check-pro-subscription.test.ts`.
+- [x] **EF-03 auth→500** — `cash-out-credits` and `helpr-pass-wallet` now return
+  401 (not 500) on an auth rejection, un-poisoning the money-path 500 signal.
+  Test: `src/test/edge/edge-auth-401.test.ts`. DEFERRED: the third EF-03
+  endpoint, `create-payment`, is owned by another branch (do-not-touch list);
+  its identical auth→500 shape still needs the same 401 fix there.
+- [x] **mapkit-token (EF-04)** — unmetered anonymous minting of hour-long,
+  origin-unrestricted Apple MapKit tokens. Added a per-IP rate limit (30/min);
+  kept it anonymous (only caller sends the publishable apikey, no user JWT, and
+  maps must serve signed-out + native capacitor:// contexts). Origin is already
+  restricted per-caller. Test: `src/test/edge/mapkit-token.test.ts`.
+- [x] **create-notification (EF-02)** — job counterparty could fan unlimited
+  arbitrary-content Helpr-branded in-app/email/push. The party check and
+  200/1000-char length caps already existed; added the missing `checkRateLimit`
+  (20/min narrow per-sender, 200/min wide per-IP). Test:
+  `src/test/edge/create-notification.test.ts`. NOTE: the deeper hardening the
+  report suggests (server-owned template copy for non-admin callers, or dropping
+  the email chain for them) is NOT done — the rate limit bounds the bomb; the
+  brand-impersonation-per-message vector is a follow-up.
+- [x] **ai-job-builder (EF-3)** — forwarded caller `messages` verbatim to Gemini
+  (auth + rate limit already present). Added input bounds: max 8 items, ~8 KB
+  total content, string content only, roles restricted to user/assistant (blocks
+  injected `system` turns). Test: `src/test/edge/ai-job-builder.test.ts`.
+
 ## HANDOFF 2026-09-15 — map notes + nightly reds (session closed)
 Orientation: `~/.claude/projects/-Users-lexilombas-louisianahelpr/memory/handoff-2026-09-15-map-and-nightly-reds.md`.
 Landed and live on prod: VN-9, VN-10, VN-11 (tracker Fixed + Confirmed, shots

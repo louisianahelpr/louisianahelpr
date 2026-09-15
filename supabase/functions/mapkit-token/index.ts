@@ -34,6 +34,7 @@
 // the build-time token, so deploying it changes nothing until it is configured.
 
 import { corsHeadersFull, jsonResponse, errorResponse } from "../_shared/cors.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 /** One hour. Apple's documented maximum for a MapKit JS token is 7 days; an
  *  hour is short enough that a scraped token is near-worthless and long enough
@@ -102,6 +103,25 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeadersFull });
   }
+
+  // Bound the mint rate (EF-04, hole hunt 2026-09-15). This endpoint is
+  // deliberately anonymous — the ONLY caller (useMapKitJs) sends just the
+  // publishable `apikey`, no user JWT, and maps must work for signed-out
+  // visitors and the native capacitor:// WebView that Apple cannot origin-match
+  // — so requiring auth is not an option. But an unmetered anonymous endpoint
+  // that mints unlimited hour-long Apple MapKit tokens lets anyone drive this
+  // Apple account's daily map-view quota to exhaustion (maps down for real
+  // users) with nothing to revoke. The shared limiter keys on the
+  // server-derived IP here (there is no JWT subject to key the narrow window
+  // on), which is exactly the ceiling this needs. The origin claim is already
+  // restricted per-caller below; the native no-Origin carve-out is kept, now
+  // rate-limited rather than unbounded.
+  const rl = await checkRateLimit(req, {
+    windowMs: 60_000,
+    maxRequests: 30,
+    keyPrefix: "mapkit-token",
+  });
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeadersFull);
 
   const privateKey = Deno.env.get("APPLE_MAPKIT_PRIVATE_KEY");
   const keyId = Deno.env.get("APPLE_MAPKIT_KEY_ID");

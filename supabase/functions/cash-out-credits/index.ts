@@ -37,12 +37,26 @@ serve(async (req) => {
   );
 
   try {
-    // Authenticate user
+    // Authenticate user. An auth rejection returns 401 DIRECTLY, before the
+    // generic catch turns it into a 500 (EF-03, hole hunt 2026-09-15): a 500
+    // on this money path reads as "the charge broke" and drowns real 500s in
+    // noise from every expired-session and bot hit, and tells the client to
+    // retry when it should re-authenticate.
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Not authenticated" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData.user) throw new Error("Not authenticated");
+    if (userError || !userData.user) {
+      return new Response(
+        JSON.stringify({ error: "Not authenticated" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
     const userId = userData.user.id;
 
     // Get user's Stripe Connect account

@@ -103,7 +103,7 @@ export const WelcomeDripStep1Email = ({
         <Bold>Browse jobs</Bold> — find opportunities near you
       </li>
       <li>
-        <Bold>Connect</Bold> — message Helprs or posters directly
+        <Bold>Connect</Bold> — message the people you hire or work for directly
       </li>
     </ul>
     <BrandButton href={dashboardUrl} label="Go to Dashboard" widthPx={220} />

@@ -47,6 +47,73 @@ export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
     reason:
       "the help-center answer that exists to DENY the role distinction. It has to name the two roles in order to say neither is a mode you are in.",
   },
+
+  // supabase/functions/ — scanned since 2026-09-15 (owner: change every
+  // user-facing backend string). What stays is read only by admins, operators
+  // or logs, never by the two parties to a job.
+  {
+    file: "supabase/functions/arrival-confirm-reminder/index.ts",
+    text: "the poster hasn't confirmed",
+    reason: "the 24h admin_alert notification sent only to user_roles admins, who triage by side of the job.",
+  },
+  {
+    file: "supabase/functions/auto-resolve-disputes/index.ts",
+    text: "expired without poster action",
+    reason: "admin_alert notification sent only to admins.",
+  },
+  {
+    file: "supabase/functions/release-payout/index.ts",
+    text: "not a poster problem",
+    reason: "admin_alert notification sent only to admins.",
+  },
+  {
+    file: "supabase/functions/create-payment/index.ts",
+    text: "to the poster",
+    reason:
+      "admin dispute-settlement refusals (release/refund on the admin dispute screen, gated by claimDisputeSettlement's adminId); operators decide which SIDE money goes to, so the side is named.",
+  },
+  {
+    file: "supabase/functions/create-payment/index.ts",
+    text: "refunding the poster",
+    reason: "admin dispute-settlement refusal (same admin-only screen as above).",
+  },
+  {
+    file: "supabase/functions/create-payment/index.ts",
+    text: "The poster's cancellation is refunding this escrow",
+    reason: "admin dispute-settlement refusal (same admin-only screen as above).",
+  },
+  {
+    file: "supabase/functions/execute-dispute-split/",
+    reason: "admin-only endpoint (has_role admin gate): split refusals and refund-ledger reasons are operator and Stripe records.",
+  },
+  {
+    file: "supabase/functions/send-marketing-blast/",
+    reason: "admin-only endpoint (has_role admin gate); 'poster segment' is the audience filter's name on the admin screen.",
+  },
+  {
+    file: "supabase/functions/money-reconciliation/",
+    reason: "internal reconciliation cron: check descriptions go to ops alerts and the cron result, never to a user.",
+  },
+  {
+    file: "supabase/functions/auto-tip-charge/index.ts",
+    text: "the poster",
+    reason: "defect strings passed to settleTip's write-failure record (cron result / ops), never shown to a user.",
+  },
+  {
+    file: "supabase/functions/charge-recurring-visits/index.ts",
+    text: "poster",
+    reason: "cron failure records (fail() / failures.push) that go to the cron result, never to a user.",
+  },
+  {
+    file: "supabase/functions/payment-confirm-reminder/index.ts",
+    text: "this poster will be nudged again",
+    reason: "cron defect record (markFailures), never shown to a user.",
+  },
+  {
+    file: "supabase/functions/stripe-webhook/handlers/_resolveUser.ts",
+    text: "customer email",
+    reason: "internal webhook resolution reason; 'customer' is Stripe's object name (the Stripe Customer's email), not a party to a job.",
+  },
 ];
 
 /** True when this copy is an approved exception. */

@@ -523,6 +523,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
   - Data: `get_safe_profiles` RPC does return `skills` and `portfolio_urls` (migration 20260907062224:52)
 - Hallie H.'s profile (VN-15 screenshot) shows neither — either her skills/photos are empty, or they're rendering below the fold; check her row
 - Owner likely wants these more prominent (e.g. skills as chips, Recent Work higher up) — confirm
+- **Owner answer (2026-09-15 pop-up): fine as is.** No change; question closed.
 - Size: n/a (question) / medium if redesigned
 - Screenshot: none
 

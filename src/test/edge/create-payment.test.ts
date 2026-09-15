@@ -1027,7 +1027,7 @@ describe("create-payment edge function", () => {
       expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     });
 
-    it("only the customer may tip, and only on a completed job", async () => {
+    it("only the person who posted the job may tip, and only on a completed job", async () => {
       seedAuth(scenario, HELPER);
       scenario.reads.jobs = {
         rows: [
@@ -1046,7 +1046,7 @@ describe("create-payment edge function", () => {
           body: { action: "tip", jobId: "job-1", amount: 10 },
         }),
       );
-      expect((await json(res)).error).toMatch(/only the customer can tip/i);
+      expect((await json(res)).error).toMatch(/only the person who posted this job can tip/i);
     });
 
     it("creates a tip checkout with a direct transfer to the helper's connected account", async () => {

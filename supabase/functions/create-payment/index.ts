@@ -882,8 +882,8 @@ serve(async (req) => {
       if (isPoster && job.helper_id && !helperDone) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
-          title: "Poster marked the job complete",
-          message: `The poster marked "${job.title}" as complete. Please confirm completion to release payment.`,
+          title: "Job marked complete",
+          message: `The person who posted "${job.title}" marked it complete. Please confirm completion to release payment.`,
           // `?job=` — see the note on the shared rule at the top of this file.
           type: "info", link: `/my-jobs?job=${job.id}`,
         });
@@ -943,7 +943,7 @@ serve(async (req) => {
       // they had just delivered.
       const { data: revisionUpdated, error: revisionUpdateErr } = await supabaseAdmin.from("jobs").update({
         status: "revision_requested",
-        revision_note: note || "The poster has requested revisions.",
+        revision_note: note || "The person who posted this job has requested revisions.",
         revision_requested_at: new Date().toISOString(),
       }).eq("id", jobId).eq("status", "in_progress").select("id");
       if (revisionUpdateErr) {
@@ -970,7 +970,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Revision requested",
-          message: `The poster has requested revisions on "${job.title}": ${note || "Please check the details."}`,
+          message: `The person who posted "${job.title}" has requested revisions: ${note || "Please check the details."}`,
           type: "warning", link: `/my-jobs?job=${job.id}`,
         });
       }
@@ -1069,7 +1069,7 @@ serve(async (req) => {
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
       if (job.status !== "completed") throw new Error("Job must be completed to tip");
-      if (user.id !== job.customer_id) throw new Error("Only the customer can tip the Helpr");
+      if (user.id !== job.customer_id) throw new Error("Only the person who posted this job can tip the Helpr");
       if (!job.helper_id) throw new Error("No Helpr assigned to this job");
 
       const helperId = job.helper_id;
@@ -2066,7 +2066,7 @@ serve(async (req) => {
         jobId,
         outcome: "poster",
         decidedBy: user.id,
-        decisionText: "Resolved by admin Quick Refund: the escrow was refunded to the poster, less the non-refundable Stripe processing fee.",
+        decisionText: "Resolved by admin Quick Refund: the escrow was refunded to the person who posted this job, less the non-refundable Stripe processing fee.",
         refundCents: disputeRefundCents,
         refundId: disputeRefundId,
       });
@@ -2098,7 +2098,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Dispute resolved",
-          message: `The dispute on "${job.title}" has been resolved. The customer has been refunded.`,
+          message: `The dispute on "${job.title}" has been resolved. The person who posted it has been refunded.`,
           type: "info", link: `/my-jobs?job=${job.id}`,
         });
       }
@@ -2177,7 +2177,7 @@ serve(async (req) => {
       if (job.payment_status === "cancelling") {
         return new Response(
           JSON.stringify({
-            error: "The poster's cancellation is refunding this job right now. No money was moved — refresh in a minute.",
+            error: "This job's cancellation is refunding it right now. No money was moved — refresh in a minute.",
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
         );
@@ -2432,7 +2432,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Job cancelled",
-          message: `"${job.title}" was cancelled by support and refunded to the customer.${reason ? ` Reason: ${reason}` : ""}`,
+          message: `"${job.title}" was cancelled by support and refunded to the person who posted it.${reason ? ` Reason: ${reason}` : ""}`,
           // `?job=` — same shape as the poster half above, and as every
           // producer converted in migration
           // 20260831232514_notification_links_land_on_the_right_spot.sql.

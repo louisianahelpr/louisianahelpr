@@ -277,8 +277,8 @@ serve(async (req) => {
       // Long enough to clear the RPC's own 15-character description guard, and
       // written as the admin will read it — they decide this from these words.
       const reason =
-        `Revision not delivered before the deadline. The poster requested a revision on ` +
-        `"${j.title ?? "this job"}" and the helpr did not mark it complete before ` +
+        `Revision not delivered before the deadline. The person who posted this job requested a revision on ` +
+        `"${j.title ?? "this job"}" and the Helpr did not mark it complete before ` +
         `${j.revision_deadline}. Opened automatically by the platform so the payment is ` +
         `decided rather than left in escrow.`;
       const { error: openErr } = await supabaseAdmin.rpc("open_dispute_as", {
@@ -443,7 +443,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Job auto-completed!",
           message: instantIds.has(job.id)
-            ? `"${job.title}" is complete — the poster releases instantly. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`
+            ? `"${job.title}" is complete — the person who posted it releases payment instantly. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`
             : `"${job.title}" was auto-completed after 24 hours. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`,
           // `?job=`, not `?filter=completed`: `completed` is a legacy filter key
           // with no chip in the five-bucket strip (the bucket is `done`), and the

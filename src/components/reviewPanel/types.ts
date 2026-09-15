@@ -23,7 +23,7 @@ export interface ReviewFormProps {
    * May THIS reviewer tip the person they just reviewed?
    *
    * Only the poster can — `create-payment` action=tip refuses anyone else
-   * outright ("Only the customer can tip the helper", create-payment:785).
+   * outright ("Only the person who posted this job can tip the Helpr", create-payment).
    * The same form serves both directions, so without this flag a HELPER who
    * gave the poster 5 stars was shown "Send <poster> a tip?" and walked into
    * a dialog that can only fail, offering to pay money up the wrong side of

@@ -607,7 +607,7 @@ Deno.serve(async (req) => {
         // this run did not actually resolve never has its dispute closed.
         await closeDisputeRecord(
           job.id,
-          "Auto-resolved by platform policy: the dispute passed its 72-hour deadline without the poster resolving or escalating it, so the escrow was released to the helpr.",
+          "Auto-resolved by platform policy: the dispute passed its 72-hour deadline without the person who posted this job resolving or escalating it, so the escrow was released to the helpr.",
         );
         flipped = true;
       } finally {
@@ -640,7 +640,7 @@ Deno.serve(async (req) => {
         notifications.push({
           user_id: job.helper_id,
           title: "Dispute auto-resolved",
-          message: `The dispute on "${job.title}" expired after 72 hours without the poster resolving or escalating. Payment will be released to you.`,
+          message: `The dispute on "${job.title}" expired after 72 hours without the person who posted it resolving or escalating. Payment will be released to you.`,
           type: "payment",
           // `?job=`, not `?filter=completed` — `completed` is a legacy key with
           // no chip (the bucket is `done`), and the job may still be settling.

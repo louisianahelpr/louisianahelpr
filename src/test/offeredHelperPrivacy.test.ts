@@ -187,6 +187,8 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:get_jobs_for_my_applications": "returns-guarded",
     "view:open_jobs_browse": "returns-guarded",
     "function:can_message_in_job": "no-return",
+    // Trigger function (20260915192148): reads OLD/NEW offer columns to refuse a re-arm; returns NEW, never a row to a caller.
+    "function:enforce_direct_offer_not_rearmed": "no-return",
     "function:can_send_message_to_in_job": "no-return",
     "function:enforce_application_job_state": "no-return",
     "function:enforce_jobs_insert_column_lock": "no-return",

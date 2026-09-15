@@ -11,7 +11,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 |---|---|---|---|---|
 | VN-1 | "ID verified" pill shows on the job-detail poster card | small | [x] 3d0d7a301 | [x] vn-1-after-vn1-detail-375.webp |
 | VN-2 | Message button shows in the job popup after applying | small | [x] 3d0d7a301 | [x] vn-2-after-applied-detail-1440.webp |
-| VN-3 | Earnings & Payouts page changes layout while it loads, and still looks messy (NEEDS DESIGN | large | [ ] | [ ] |
+| VN-3 | Earnings & Payouts page changes layout while it loads, and still looks messy (NEEDS DESIGN | large | [x] 98635843e | [x] vn-3-after-earn-375-final.webp |
 | VN-4 | Share sheet shows a generic compass icon instead of the H logo | small–medium | [x] 8b3fbdb25 | [ ] |
 | VN-5 | Browse search bar stretches across the whole list column | small | [x] e24bb4c3a | [x] vn-5-after-browse-search-1440.webp |
 | VN-6 | Recent searches dropdown pushes the job list down instead of floating over it | small | [x] e24bb4c3a | [x] vn-6-after-browse-recents-1440.webp |

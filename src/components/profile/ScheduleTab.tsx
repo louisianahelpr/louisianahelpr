@@ -216,10 +216,17 @@ const ScheduleCard = ({
                 change one, change all three. A currency symbol is typography,
                 not an icon: the "$" is part of the same text node as the digits
                 (a DollarSign glyph beside an already-prefixed string rendered as
-                "$ $200"). */}
+                "$ $200").
+
+                `pointer-events-auto` so its `title` tooltip (whose money this
+                is) still shows on hover under the rows' pointer-events-none;
+                the click it now receives navigates exactly as the overlay
+                button would. Keyboard and AT reach that same navigation through
+                the overlay button, so this is a pointer-only duplicate. */}
             <span
-              className="inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center shrink-0 ml-3"
+              className="pointer-events-auto cursor-pointer inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center shrink-0 ml-3"
               title={amountTitle}
+              onClick={() => navigate(to)}
               style={{
                 background: "hsl(var(--bark) / 0.10)",
                 border: "0.5px solid hsl(var(--bark) / 0.28)",

@@ -186,6 +186,11 @@ describe("Schedule card — Add to calendar sits in the meta row, no extra row",
     expect(body.className).toMatch(/\bpointer-events-none\b/);
     const add = within(body).getByRole("button", { name: "Add to calendar" });
     expect(add.className).toMatch(/\bpointer-events-auto\b/);
+    // The money chip's tooltip must still be hoverable under the rows'
+    // pointer-events-none.
+    const chip = body.querySelector('[title="Your budget for this job"]') as HTMLElement;
+    expect(chip).not.toBeNull();
+    expect(chip.className).toMatch(/\bpointer-events-auto\b/);
     // The press feedback moved from the button to the body via `peer-active`;
     // it must compile to a real sibling selector, not to nothing.
     const css = await compile(`${nav.className} ${body.className}`);

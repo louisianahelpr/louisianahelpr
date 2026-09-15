@@ -21,7 +21,7 @@ export function SubmittedStep({
   job,
   tracker,
   messageChip,
-  escape,
+  reportChip,
   posterInstantRelease,
 }: HelperStepProps & { posterInstantRelease: boolean }) {
   const fullyComplete = !!job.poster_completed_at;
@@ -83,8 +83,7 @@ export function SubmittedStep({
       step="submitted"
       header={tracker}
       notice={notice}
-      actions={[messageChip]}
-      escape={escape}
+      actions={[messageChip, reportChip]}
     />
   );
 }

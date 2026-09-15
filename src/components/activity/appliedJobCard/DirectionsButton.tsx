@@ -81,8 +81,8 @@ export function DirectionsButton({
       variant="outline"
       className={JOB_ACTION_FULL_CLASS}
       // `neutral`, not `primary`: Directions is navigational, a thing you do on
-      // the way to the decision — it must not out-shout "I'm Done — Request
-      // Payout" or the Accept/Decline pair. Same olivewood tint Message wears,
+      // the way to the decision — it must not out-shout "Mark Job Complete"
+      // or the Accept/Decline pair. Same olivewood tint Message wears,
       // which is the tone this row already speaks in.
       style={jobActionChipStyle("neutral")}
     >

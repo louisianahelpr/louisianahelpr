@@ -1,6 +1,5 @@
 /**
- * DisputeLink — discoverable, low-encouragement "Open a dispute" link
- * for completed jobs on either side of the marketplace.
+ * DisputeLink — discoverable, low-encouragement "Open a dispute" link.
  *
  * Issue #113: the dispute path used to be buried in primary action
  * buttons that only appear in a narrow slice of the lifecycle. This
@@ -9,12 +8,17 @@
  * resort, not a CTA.
  *
  * Visibility rules (see `shouldShowDisputeLink` for the truth table):
- *   - Customer side: visible when job is `completed` for up to 7 days,
- *     OR while a `revision_requested` state is open.
- *   - Helper side: visible when job is `completed` for up to 7 days.
+ *   - Customer side: visible only on `revision_requested` once the helpr's
+ *     revision window has run out.
+ *   - Helper side: never from the predicate (the live card's Report a
+ *     Problem chip is its own path).
+ *   - NEVER on a `completed` job, either side (owner rule, 2026-09-14,
+ *     VN-28: "they can't report a job once it's done"). This replaces the
+ *     issue-#113 7-day post-completion window. Client-only: the server
+ *     dispute RPC is not changed here.
  *   - Always hidden once `status === 'disputed'` (dispute already
  *     filed — we never want to encourage double-filing) or
- *     `disputed_at` is set, or after the 7-day window closes.
+ *     `disputed_at` is set.
  *
  * Mount below the action buttons inside an existing card; renders
  * `null` when the conditions don't hold so callers can place it
@@ -39,8 +43,6 @@ export interface DisputeLinkJob {
 }
 
 export type DisputeLinkSide = "customer" | "helper";
-
-const DISPUTE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Pure visibility predicate, exported so the test suite can drive every
@@ -73,20 +75,10 @@ export function shouldShowDisputeLink(
     return new Date(job.revision_deadline).getTime() <= now.getTime();
   }
 
-  // Otherwise the job must be `completed` to qualify.
-  if (job.status !== "completed") return false;
-
-  // Anchor the 7-day window on the canonical completion timestamp.
-  // poster_completed_at is set by the customer's "Approve & release"
-  // action — the moment escrow releases. Fall back to helper_completed_at
-  // for jobs that completed via auto-release (poster never confirmed).
-  const completedAtIso = job.poster_completed_at ?? job.helper_completed_at;
-  if (!completedAtIso) return false;
-
-  const completedAt = new Date(completedAtIso).getTime();
-  if (Number.isNaN(completedAt)) return false;
-
-  return now.getTime() - completedAt <= DISPUTE_WINDOW_MS;
+  // Everything else — including `completed` — is "no". The issue-#113 7-day
+  // post-completion window is gone: owner rule, 2026-09-14 (VN-28), no
+  // report or dispute once a job is done.
+  return false;
 }
 
 interface DisputeLinkProps {
@@ -112,6 +104,9 @@ interface DisputeLinkProps {
    * component rather than a new one: the quiet sienna underline, the
    * stopPropagation, the never-double-file guards and the destination are all
    * already correct here; only the visibility rule and the words differ.
+   *
+   * Owner, 2026-09-14 (VN-19): ActiveJobSection now renders Report a Problem
+   * as a danger chip in the action row, so it no longer passes `forceShow`.
    *
    * The two hard guards are NOT overridable — a job already in dispute still
    * renders nothing, whatever a caller passes.

@@ -276,17 +276,16 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
             sublabel="Your overall experience"
             optional={false}
           />
-          {/* ONE scrollable line, not three stacked rows. Class string is the
-              canonical chip-scroll-row from `QuickReplies` (same right-edge
-              fade mask + hidden scrollbar) so it reads as a sibling of the
-              chat quick-replies rather than a new pattern. `tabIndex`/`role`
-              keep the scroll region keyboard-reachable (axe
-              `scrollable-region-focusable`), matching JobTracking's row. */}
+          {/* WRAPPING rows, not one hidden-scroll line (owner, 2026-09-14,
+              VN-30: "can't scroll these options"). The single line had a hidden
+              scrollbar and a right-edge fade, so on desktop a mouse wheel could
+              not reach the clipped chips at all. Six short tags wrap onto two
+              or three rows and every one is visible and clickable. No scroll
+              region any more, so no `tabIndex` — each chip is its own tab stop. */}
           <div
-            tabIndex={0}
             role="group"
             aria-label="Quick review tags"
-            className="flex gap-2 pt-1 pb-1 pr-5 overflow-x-auto scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]"
+            className="flex flex-wrap gap-2 pt-1 pb-1"
           >
             {quickOptions.map((opt) => {
               const selected = feedback.includes(opt);

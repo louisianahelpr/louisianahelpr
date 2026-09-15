@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import type { AppliedApp } from "./activityConstants";
-import { DisputeLink } from "@/components/jobs/DisputeLink";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobActionRow, JobActionChip } from "./JobActionRow";
@@ -480,9 +479,9 @@ function AppliedJobCardInner({
               completingJobId={completingJobId}
               onComplete={onComplete}
               onResolveRevision={onResolveRevision}
-              /* Same dialog the completed-job DisputeLink below opens — the
-                 mid-job "Report a Problem" escape is the same destination,
-                 not a second one. */
+              /* The dispute dialog — the mid-job "Report a Problem" chip's
+                 destination. Completed jobs no longer offer it (owner,
+                 2026-09-14, VN-28: no report once done). */
               onOpenDispute={() => onDispute(job)}
               navigate={navigate}
             />
@@ -553,27 +552,10 @@ function AppliedJobCardInner({
                   )}
                 </JobActionRow>
               )}
-              {/* Issue #113 — discoverable dispute path for helpers within
-                  the 7-day window after completion. Self-hides outside the
-                  window or once a dispute is already filed. */}
-              <DisputeLink
-                job={job}
-                side="helper"
-                onOpenDispute={() => onDispute(job)}
-              />
+              {/* No dispute link on a completed job (owner, 2026-09-14,
+                  VN-28: "they can't report a job once it's done") — this
+                  replaced the issue-#113 7-day post-completion link. */}
             </div>
-          )}
-
-          {/* Fully reviewed completed jobs still get the dispute link until
-              the 7-day window closes — issue #113. Helpers may not realize
-              there's a problem until after they've left a review. */}
-          {isFullyDone && (
-            <DisputeLink
-              job={job}
-              side="helper"
-              onOpenDispute={() => onDispute(job)}
-              className="px-4 pb-2"
-            />
           )}
 
           {/* Fully done (reviewed) - collapsible */}

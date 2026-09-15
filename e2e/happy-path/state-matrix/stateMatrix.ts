@@ -608,7 +608,7 @@ const POSTER_SUBSTATES: Record<JobStatus, SubState[]> = {
   completed: [
     {
       key: "neither-tipped-nor-reviewed",
-      describe: "completed, no tip and no review yet — Tip and Review chips both live, Report Job present",
+      describe: "completed, no tip and no review yet — Tip and Review chips both live, NO Dispute or Report Job chip (owner, 2026-09-14, VN-28)",
       job: { helper_id: HELPER_ID, ...completedStamps(), payment_status: "released" },
     },
     {
@@ -1451,6 +1451,10 @@ function jobDetailCells(): StateCell[] {
  */
 function dialogCells(): StateCell[] {
   const specs: { id: string; route: string; describe: string; open: string[]; fixture?: CellFixture }[] = [
+    // TRIGGER REMOVED (owner, 2026-09-14, VN-28): completed cards no longer
+    // carry a "Report Job" chip, so these two cells will report UNVERIFIED
+    // until they are retargeted at a surviving ReportDialog trigger (Browse's
+    // job detail sheet flag button, aria "Report this job").
     {
       id: "dialog-report-step-reason",
       route: "/my-posts?filter=all",
@@ -1525,13 +1529,13 @@ function dialogCells(): StateCell[] {
       },
     },
     {
-      id: "dialog-helper-cant-finish",
+      id: "dialog-helper-cancel-job",
       route: "/my-jobs?filter=all",
       describe:
-        "Helper-side 'Can't Finish' confirm AFTER work started — abortWorkStarted flips the consequence copy; the pre-start variant is a different sentence in the same dialog.",
-      open: ["card", "Can't Finish"],
+        "Helper-side 'Cancel Job' confirm on a confirmed in-progress job BEFORE 'I'm On My Way' — the only window the back-out exists (owner, 2026-09-14, VN-18). Once on the way / arrived there is no Cancel Job chip at all.",
+      open: ["card", "Cancel Job"],
       fixture: {
-        job: { ...BASE_JOB, status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_arrived_at: ISO(-HOURS(2)), helper_arrival_verified_at: ISO(-HOURS(2)), date_needed: DATE_ONLY(0) } as CellFixture["job"],
+        job: { ...BASE_JOB, status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_arrived_at: null, helper_on_the_way_at: null, date_needed: DATE_ONLY(0) } as CellFixture["job"],
         application: { ...BASE_APPLICATION, status: "accepted" } as CellFixture["application"],
       },
     },

@@ -2,7 +2,9 @@ import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
- * The ONE primary action of a live job: "I'm Done — Request Payout".
+ * The ONE primary action of a live job: "Mark Job Complete" (owner,
+ * 2026-09-14 — was "I'm Done — Request Payout"; same words as the tracker's
+ * Done CTA).
  *
  * Extracted so the two steps that can offer it (on site, working) cannot draw
  * it differently — the disabled "Available in N min" state, the bark fill and
@@ -29,7 +31,7 @@ export function PayoutPrimary({
 }) {
   if (!hasPhotos) return null;
   const disabled = busy || tooEarly;
-  const label = busy ? "…" : tooEarly ? `Available in ${minutesLeft} min` : "I'm Done — Request Payout";
+  const label = busy ? "…" : tooEarly ? `Available in ${minutesLeft} min` : "Mark Job Complete";
   return (
     <div className="space-y-2">
       <Button

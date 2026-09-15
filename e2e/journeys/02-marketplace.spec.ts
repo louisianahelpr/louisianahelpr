@@ -587,7 +587,11 @@ test.describe.serial("marketplace chain", () => {
         const before = c.getByText("Add a before photo", { exact: true });
         const after = c.getByText("Add an after photo", { exact: true });
         const start = c.getByRole("button", { name: /^Start Working$/ });
-        const payout = c.getByRole("button", { name: /^Request My Payout$/ });
+        // "Mark Job Complete" (owner, 2026-09-14; was "Request My Payout"). The
+        // tracker's Done CTA and the card's PayoutPrimary now share the label,
+        // so take the first in DOM order — the tracker's, which opens the
+        // "Yes, I'm Done" confirmation this step expects.
+        const payout = c.getByRole("button", { name: /^Mark Job Complete$/ }).first();
         await expect(before.or(after).or(start).or(payout).first(), `helper card offers no next step (so far: ${seen.join(" > ")})`).toBeVisible({ timeout: 45_000 });
         if (await before.isVisible() || await after.isVisible()) {
           const label = (await before.isVisible()) ? "Before" : "After";
@@ -615,12 +619,12 @@ test.describe.serial("marketplace chain", () => {
           await assertHealthy(hp, "start working");
           await journey.milestone(hp, "working");
         } else {
-          seen.push("Request My Payout");
-          const payoutButtons = await c.getByRole("button", { name: /Request (My )?Payout/ }).count();
+          seen.push("Mark Job Complete");
+          const payoutButtons = await c.getByRole("button", { name: /^Mark Job Complete$/ }).count();
           test.info().annotations.push({ type: "payout-cta-count", description: String(payoutButtons) });
           await payout.click();
           const yes = hp.getByRole("button", { name: "Yes, I'm Done" });
-          await expect(yes, "Request My Payout opened no confirmation").toBeVisible({ timeout: 15_000 });
+          await expect(yes, "Mark Job Complete opened no confirmation").toBeVisible({ timeout: 15_000 });
           await journey.milestone(hp, "request-payout-confirm");
           await yes.click();
           await expect(yes).toBeHidden({ timeout: 30_000 });

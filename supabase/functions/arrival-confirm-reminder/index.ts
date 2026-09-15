@@ -13,7 +13,8 @@
 // VN-33(b) NEAR MISS (wrong map pin): a Helpr refused as too far but within a
 // mile has helper_arrival_near_miss_at and no GPS verification. The poster can
 // still confirm them, but only within 12h, and nothing else follows up. Same
-// ledger and stages, counted from the near miss: mark_helper_arrival already
+// ledger and stages, counted from the near miss (the FIRST tap of its 12h
+// window — re-tapping does not move it, 20260915074058): mark_helper_arrival already
 // told the poster, so "first" is claimed without a second send; the 2h nudge
 // goes out as usual; admin is escalated at 10h, while the confirmation can
 // still be given.

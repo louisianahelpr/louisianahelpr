@@ -107,7 +107,11 @@ const J = {
   NS_ARR: "40000000-0000-4000-8000-000000000009",   // start passed, GPS-verified arrival: no-show refused
   NS_OLD: "40000000-0000-4000-8000-00000000000a",   // start passed, near miss 13h ago: no-show allowed
   CANC: "40000000-0000-4000-8000-00000000000b",     // cancelled, near miss 1h ago: poster confirm refused
+  RETAP: "40000000-0000-4000-8000-00000000000c",    // near miss 11h50m ago: a new tap must not renew it
+  LAPSED: "40000000-0000-4000-8000-00000000000d",   // near miss 13h ago: a new tap starts a new window
+  OFFER: "40000000-0000-4000-8000-00000000000e",    // arrived + near miss; poster re-arms a direct offer to T
 };
+const T = "44444444-4444-4444-8444-444444444444";
 const FIXTURES = `
 INSERT INTO public.profiles (user_id, idv_status, is_seed) VALUES ('${POSTER}', 'verified', true);
 INSERT INTO public.jobs (id, customer_id, helper_id, title, status, payment_status, stripe_session_id, budget, latitude, longitude, helper_confirmed_at, helper_on_the_way_at, proof_before_urls, proof_after_urls, require_photo_proof, is_seed) VALUES
@@ -121,7 +125,10 @@ INSERT INTO public.jobs (id, customer_id, helper_id, title, status, payment_stat
   ('${J.NS_MISS}',  '${POSTER}', '${HELPER}', 'ns miss',  'in_progress', 'escrow', 'cs_8', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '2 days', now() - interval '3 hours', NULL, NULL, true, true),
   ('${J.NS_ARR}',   '${POSTER}', '${HELPER}', 'ns arr',   'in_progress', 'escrow', 'cs_9', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '2 days', now() - interval '3 hours', NULL, NULL, true, true),
   ('${J.NS_OLD}',   '${POSTER}', '${HELPER}', 'ns old',   'in_progress', 'escrow', 'cs_a', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '2 days', now() - interval '15 hours', NULL, NULL, true, true),
-  ('${J.CANC}',     '${POSTER}', '${HELPER}', 'cancelled','in_progress', 'escrow', 'cs_b', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '1 day', now() - interval '2 hours', NULL, NULL, true, true);
+  ('${J.CANC}',     '${POSTER}', '${HELPER}', 'cancelled','in_progress', 'escrow', 'cs_b', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '1 day', now() - interval '2 hours', NULL, NULL, true, true),
+  ('${J.RETAP}',    '${POSTER}', '${HELPER}', 'retap',    'in_progress', 'escrow', 'cs_c', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '1 day', now() - interval '13 hours', NULL, NULL, true, true),
+  ('${J.LAPSED}',   '${POSTER}', '${HELPER}', 'lapsed',   'in_progress', 'escrow', 'cs_d', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '1 day', now() - interval '14 hours', NULL, NULL, true, true),
+  ('${J.OFFER}',    '${POSTER}', '${HELPER}', 'offer',    'in_progress', 'escrow', 'cs_e', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '1 day', now() - interval '3 hours', NULL, NULL, true, true);
 UPDATE public.jobs SET date_needed = current_date - 1 WHERE id IN ('${J.NS_MISS}', '${J.NS_ARR}', '${J.NS_OLD}');
 UPDATE public.jobs SET helper_arrived_at = now() - interval '2 hours', helper_arrival_verified_at = now() - interval '2 hours' WHERE id = '${J.NS_ARR}';
 INSERT INTO public.job_tracking (job_id, helper_id, status) VALUES
@@ -137,6 +144,9 @@ UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '1 hour', 
 UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '1 hour', helper_arrival_near_miss_ft = 1400 WHERE id = '${J.NS_MISS}';
 UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '13 hours', helper_arrival_near_miss_ft = 1400 WHERE id = '${J.NS_OLD}';
 UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '1 hour', helper_arrival_near_miss_ft = 1400, status = 'cancelled' WHERE id = '${J.CANC}';
+UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '11 hours 50 minutes', helper_arrival_near_miss_ft = 1400 WHERE id = '${J.RETAP}';
+UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '13 hours', helper_arrival_near_miss_ft = 1400 WHERE id = '${J.LAPSED}';
+UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '2 hours', helper_arrival_near_miss_ft = 1400, helper_arrived_at = now() - interval '1 hour', poster_confirmed_arrival_at = now() - interval '1 hour' WHERE id = '${J.OFFER}';
 `;
 
 async function as(db, who, sql) {
@@ -171,7 +181,7 @@ async function expectations(db) {
     check(nAfter === nBefore + 1, `A poster notified once: ${nBefore} -> ${nAfter}`);
     await arrive(db, J.MISS, MISS);
     const nRetry = (await db.query(`SELECT count(*)::int AS n FROM public.notifications WHERE user_id = '${POSTER}'`)).rows[0].n;
-    check(nRetry === nAfter, `A retry within 30 min re-notified the poster: ${nAfter} -> ${nRetry}`);
+    check(nRetry === nAfter, `A retry re-notified the poster: ${nAfter} -> ${nRetry}`);
   }
   // B. ~2 miles: refused exactly as before, nothing written.
   {
@@ -245,6 +255,37 @@ async function expectations(db) {
     const j = await row(db, J.CANC);
     check(!c.ok || j.helper_arrived_at === null, `K confirm on a cancelled job stamped arrival ${j.helper_arrived_at}`);
   }
+  // L. Re-tapping cannot renew the window; a tap after it lapsed starts a new one.
+  {
+    const before = (await row(db, J.RETAP)).helper_arrival_near_miss_at;
+    const nBefore = (await db.query(`SELECT count(*)::int AS n FROM public.notifications WHERE user_id = '${POSTER}'`)).rows[0].n;
+    const r = await arrive(db, J.RETAP, MISS);
+    const after = await row(db, J.RETAP);
+    check(r.ok && after.helper_arrival_near_miss_at === before, `L1 re-tap at 11h50m moved the near miss: ${before} -> ${after.helper_arrival_near_miss_at} (${r.err ?? ""})`);
+    const ns = await as(db, POSTER, `SELECT public.report_helper_no_show('${J.RETAP}') AS v`);
+    check(!ns.ok && /helper_near_miss_pending/.test(ns.err), `L1 no-show inside the window: expected refusal, got ${ns.ok ? "success" : ns.err}`);
+    const lapsedBefore = (await row(db, J.LAPSED)).helper_arrival_near_miss_at;
+    const r2 = await arrive(db, J.LAPSED, MISS);
+    const lapsed = await row(db, J.LAPSED);
+    const nAfter = (await db.query(`SELECT count(*)::int AS n FROM public.notifications WHERE user_id = '${POSTER}'`)).rows[0].n;
+    check(r2.ok && lapsed.helper_arrival_near_miss_at !== lapsedBefore, `L2 tap after the window lapsed did not start a new one (${r2.err ?? ""})`);
+    check(nAfter === nBefore + 1, `L notices: expected exactly 1 (new window only), got ${nAfter - nBefore}`);
+  }
+  // M. The direct-offer seat cannot write arrival: poster re-arms an offer to T on a hired job.
+  {
+    await as(db, POSTER, `UPDATE public.jobs SET offered_to_helper_id = '${T}', direct_offer_status = 'pending' WHERE id = '${J.OFFER}' RETURNING id`);
+    const armed = await row(db, J.OFFER);
+    check(armed.offered_to_helper_id === T, `M setup: poster could not re-arm the offer (${armed.offered_to_helper_id})`);
+    for (const [label, set] of [
+      ["clear the arrival", "helper_arrived_at = NULL"],
+      ["clear the near miss", "helper_arrival_near_miss_at = NULL"],
+      ["forge a GPS pass", "helper_arrival_verified_at = now()"],
+      ["clear the poster confirm", "poster_confirmed_arrival_at = NULL"],
+    ]) {
+      const w = await as(db, T, `UPDATE public.jobs SET ${set} WHERE id = '${J.OFFER}' RETURNING id`);
+      check(!landed(w), `M offeree could ${label}`);
+    }
+  }
   // I. Grants unchanged.
   {
     const acl = (await db.query(`SELECT proacl::text AS a FROM pg_proc WHERE oid = 'public.mark_helper_arrival(uuid,numeric,numeric)'::regprocedure`)).rows[0].a;
@@ -300,7 +341,9 @@ const broken = [
   ["no-show ignores a pending near miss", mutate("  IF v_near_miss_at IS NOT NULL AND v_near_miss_at > now() - interval '12 hours' THEN", "  IF false THEN")],
   ["no-show arrived guard not restored", mutate("  IF v_arrived_at IS NOT NULL OR v_helper_completed_at IS NOT NULL THEN", "  IF v_helper_completed_at IS NOT NULL THEN")],
   ["poster confirm on a job that is not live", mutate("       AND OLD.status::text IN ('accepted', 'in_progress')\n       AND NEW.status::text IN ('accepted', 'in_progress') THEN", "       THEN")],
-  ["near miss stamps an arrival", mutate("         SET helper_arrival_near_miss_at = v_now,", "         SET helper_arrived_at = v_now, helper_arrival_near_miss_at = v_now,")],
+  ["re-tap renews the near-miss window", mutate("SET helper_arrival_near_miss_at = CASE WHEN v_new_window THEN v_now ELSE helper_arrival_near_miss_at END,", "SET helper_arrival_near_miss_at = v_now,")],
+  ["offer seat may write arrival", mutate("    'customer_id',\n    -- ADDED 20260915074058", "    'customer_id'\n  ]; x text[] := ARRAY['x',\n    -- ADDED 20260915074058")],
+  ["near miss stamps an arrival", mutate("         SET helper_arrival_near_miss_at = CASE", "         SET helper_arrived_at = v_now, helper_arrival_near_miss_at = CASE")],
 ];
 console.log("\n== BROKEN COPIES (each must be caught)");
 for (const [label, sql] of broken) {

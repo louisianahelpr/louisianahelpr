@@ -122,6 +122,12 @@ fraction of fixing them one report at a time.
 
 ---
 
+## VN-33(b) bad-pin exception — follow-ups from its reviews (2026-09-15, branch `visual/vn-33b-bad-pin`)
+- [ ] LEAK (predates VN-33(b)): a poster can set `offered_to_helper_id` + `direct_offer_status='pending'` on an ASSIGNED, funded job, re-opening the "Targeted helper can respond to direct offer" UPDATE seat for a second account. 20260915074058 closes the arrival columns on that seat; the re-arm itself should be refused once a Helpr is assigned (poster lock / respond_to_direct_offer). 0 re-armed rows on prod 2026-09-15.
+- [ ] PARKED BRANCH `sec-hardening` (05e575ba7, `20260915051905_null_uid_is_not_server.sql`) rebuilds enforce_helper_completion_gates, enforce_helper_jobs_column_whitelist, enforce_jobs_insert_column_lock and enforce_poster_jobs_money_lock from bodies OLDER than 20260915044137 + 20260915074058. Landing it as-is would silently undo the arrival rule (same out-of-order class as report_helper_no_show). Rebuild it on current live bodies before landing.
+- [ ] DEPLOY ORDER: `JOB_READABLE_COLUMNS` gains helper_arrival_near_miss_at/_ft and Activity selects it, so if Vercel serves the new build before db-deploy adds the columns, Activity errors ("column does not exist") until the migration lands. Land the migration first (or confirm db-deploy finished) before the web build goes live.
+- [ ] DESIGN NOTES for the owner: a job can stay `accepted` through a near miss (the poster's Confirm shows only on in_progress; on-the-way normally moves it); `get_helper_on_time_percents` reads helper_arrived_at, which on this path is the poster's tap time; the poster's notice invites a confirm on the Helpr's word (owner decision).
+
 ## HANDOFF — visual-notes session paused on usage (2026-09-14 late)
 Everything below is either LIVE on main or parked on a pushed branch. Nothing is lost.
 - LIVE + screen-confirmed: VN-1,2,4-8,9-14,16-20,22-30,31,34-36,38,40,42-44,46-49,53 (tracker in docs/audit/visual-notes-2026-09-14.md, 41 fixed / 39 confirmed). Security: open_jobs_browse + jobs_helper_safe write grants revoked with CI checks; dispute table door closed; disputes refused on completed jobs. VN-33 arrival gate (GPS AND poster) live with prod proof.

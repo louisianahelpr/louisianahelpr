@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { test, expect } from "@playwright/test";
+import { expect } from "@playwright/test";
 
-import { installSupabaseMocks, FAKE_CUSTOMER, seedAuthedSession } from "./fixtures";
+import { test, installSupabaseMocks, FAKE_CUSTOMER, seedAuthedSession, desktopScaleFor } from "./fixtures";
 
 /**
  * Recurring sits behind a wiring gate until `charge-recurring-visits` is
@@ -30,6 +30,11 @@ const RECURRING_ENABLED = /const RECURRING_ENABLED = true/.test(
  * 320-375px phone if a cell has a min-width.
  */
 for (const width of [375, 1440]) {
+ // Anonymous group: only here to give a desktop width a desktop pixel density
+ // (see desktopScaleFor); test titles are unchanged.
+ test.describe(() => {
+  const scale = desktopScaleFor(width);
+  if (scale) test.use(scale);
   test(`post-job recurring picker fits @ ${width}`, async ({ page, context, baseURL }) => {
     test.skip(!RECURRING_ENABLED, "Repeats is gated off until charge-recurring-visits is deployed");
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
@@ -104,17 +109,29 @@ for (const width of [375, 1440]) {
     // sentence. Asserting on "Start Date" (the date label on a recurring job, VN-51) survives a rewording and still fails
     // if the hint stops pointing at a real field.
     await expect(page.getByText(/Start Date.*just below/i)).toBeVisible();
-    // Let the chip transition settle before measuring — `transition-all` means
-    // the last-clicked day is still mid-fade the instant the click resolves,
-    // and a half-faded chip is not what a user ever sees.
-    await page.waitForTimeout(400);
     // All three chosen days must render identically. A chip that reads
     // "selected" only because it still has focus is not a selection signal.
-    const chosen = await dayGroup.locator('button[aria-pressed="true"]').evaluateAll(
-      (els) => els.map((el) => getComputedStyle(el).backgroundColor),
-    );
+    //
+    // POLLED, not read once after a fixed wait. `transition-all` means the
+    // last-clicked day is still mid-fade when the click resolves, and the fade
+    // only advances when the engine runs a rendering update — which under CI's
+    // software-rendered WebKit can be seconds apart (nightly-webkit
+    // 34924529210 read `rgba(0, 0, 0, 0) | rgba(0, 0, 0, 0) | rgba(255, 255,
+    // 255, 0.55)`: two settled chips and one still wearing the unselected
+    // fill). A chip that genuinely never matches still fails, at the timeout.
+    let chosen: string[] = [];
+    await expect
+      .poll(
+        async () => {
+          chosen = await dayGroup.locator('button[aria-pressed="true"]').evaluateAll(
+            (els) => els.map((el) => getComputedStyle(el).backgroundColor),
+          );
+          return chosen.length === 3 ? new Set(chosen).size : -1;
+        },
+        { message: `three days chosen, one fill @ ${width}`, timeout: 10_000 },
+      )
+      .toBe(1);
     expect(chosen, `three days chosen @ ${width}`).toHaveLength(3);
-    expect(new Set(chosen).size, `chosen days render one fill, got ${chosen.join(" | ")}`).toBe(1);
     await page.screenshot({ path: `/tmp/recurring-picked-${width}.png`, fullPage: false });
 
     const fit = await page.evaluate(() => ({
@@ -125,4 +142,5 @@ for (const width of [375, 1440]) {
 
     await page.screenshot({ path: `/tmp/recurring-picker-${width}.png`, fullPage: false });
   });
+ });
 }

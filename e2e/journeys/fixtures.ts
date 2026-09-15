@@ -269,7 +269,27 @@ export const TEST_CARD = {
 export async function payOnStripeCheckout(page: Page) {
   const cardNumber = page.locator("#cardNumber");
   const methodRadio = page.getByRole("radio").first();
-  await expect(cardNumber.or(methodRadio)).toBeVisible({ timeout: 60_000 });
+  /**
+   * Stripe's own page can fail to come up, and it says so in its own words:
+   * "Something went wrong — You might be having a network connection problem,
+   * the link might be expired, or the payment provider cannot be reached at the
+   * moment." e2e-journeys 34927100318 (journeys-webkit) captured exactly that
+   * screen and then spent 60s waiting for a card field that was never going to
+   * render; the same checkout had worked in WebKit two runs earlier.
+   *
+   * One reload of the SAME session url is the honest response to a third-party
+   * page that did not load — it is not a retry of the payment (nothing was
+   * submitted). If Stripe errors again, the failure now names Stripe instead of
+   * reading as a missing field in our own form.
+   */
+  const stripeIsBroken = () =>
+    page.getByText(/Something went wrong/i).first().isVisible().catch(() => false);
+  if (await stripeIsBroken()) {
+    await page.reload({ waitUntil: "domcontentloaded" }).catch(() => undefined);
+    await page.waitForTimeout(2_000);
+    expect(await stripeIsBroken(), `Stripe Checkout itself errored at ${page.url()}`).toBe(false);
+  }
+  await expect(cardNumber.or(methodRadio), "Stripe Checkout never rendered a payment field").toBeVisible({ timeout: 60_000 });
   if (!(await cardNumber.isVisible().catch(() => false))) await methodRadio.click({ force: true });
   await cardNumber.waitFor({ state: "visible", timeout: 30_000 });
   await cardNumber.fill(TEST_CARD.number);

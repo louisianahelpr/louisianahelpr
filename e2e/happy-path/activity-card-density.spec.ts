@@ -27,6 +27,7 @@ import {
   FAKE_HELPER,
   installSupabaseMocks,
   seedAuthedSession,
+  desktopScaleFor,
   type MockRule,
 } from "./fixtures";
 import { settleAnimations } from "./auditRoutes";
@@ -300,6 +301,11 @@ const VARIANTS = [
 
 test.describe("My Posts — card density + header", () => {
   for (const v of VARIANTS) {
+   // Anonymous group: only here to give a desktop width a desktop pixel
+   // density (see desktopScaleFor); test titles are unchanged.
+   test.describe(() => {
+    const scale = desktopScaleFor(v.width);
+    if (scale) test.use(scale);
     test(`fits, has one h1 and zero axe violations @ ${v.tag}`, async ({ page, context, baseURL }) => {
       await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
       await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
@@ -337,6 +343,7 @@ test.describe("My Posts — card density + header", () => {
       await recordContrast(page, `my-jobs-${v.tag}`);
       await page.screenshot({ path: `${SHOTS}/my-jobs-all-${v.tag}.png`, fullPage: true });
     });
+   });
   }
 
   test("the description is collapsed by default and expands in place", async ({ page, context, baseURL }) => {

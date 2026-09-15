@@ -51,20 +51,41 @@ test(guestTitle, async ({ browser, journey }) => {
     await page.locator("#dob").click();
     const dialog = page.getByRole("dialog", { name: "Choose a date" });
     await expect(dialog).toBeVisible({ timeout: 10_000 });
-    // Inventory from the screen, not from a list: everything tabbable in the picker.
-    const focusables = dialog.locator('[tabindex="0"], button:not([disabled]), input:not([disabled]), select:not([disabled])');
+    // Inventory from the screen, not from a list: everything tabbable in the
+    // picker. `:not([tabindex="-1"])` is what makes that true — the wheel's 127
+    // options are <button role="option" tabindex="-1"> (measured on prod
+    // 2026-09-15: 3 listboxes + 127 options), i.e. deliberately OUT of the tab
+    // order, which the a2 step below asserts. Driving focus into them was
+    // testing a state no keyboard user can reach, and it broke both ways:
+    // e2e-journeys 34927100318 timed out on `nth(47)` of a list the wheel had
+    // re-rendered, and locally, walking all 130 with Tab/Shift+Tab ended with
+    // the picker closed, so the next step had no dialog to measure.
+    const focusables = dialog.locator(
+      '[tabindex="0"], button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"])',
+    );
     // The wheel is a lazy chunk; wait for it to land before taking inventory.
     await expect(focusables.first()).toBeVisible({ timeout: 30_000 });
-    const n = await focusables.count();
-    expect(n, "the DOB picker has no keyboard stops at all").toBeGreaterThan(0);
+    // HANDLES, NOT INDEXES. The inventory is 130 nodes (3 listboxes + 127
+    // options, measured on prod 2026-09-15), and focusing an option
+    // scroll-snaps its column — so the wheel can re-render and the set shrink
+    // under a loop that keeps asking for `nth(i)`. e2e-journeys 34927100318
+    // died on exactly that, both engines: `locator.focus` waited out 20s for
+    // `nth(47)` of a list that no longer had 48 stops. Element handles are
+    // stable references to the nodes that WERE on screen when the inventory
+    // was taken; one that has since left the document is skipped rather than
+    // waited for.
+    const handles = await focusables.elementHandles();
+    expect(handles.length, "the DOB picker has no keyboard stops at all").toBeGreaterThan(0);
     const invisible: string[] = [];
-    for (let i = 0; i < n; i++) {
-      const el = focusables.nth(i);
+    for (const el of handles) {
+      if (!(await el.evaluate((node) => (node as HTMLElement).isConnected).catch(() => false))) continue;
       await el.focus();
       // Keyboard movement is what turns :focus-visible on; Tab away and back.
       await page.keyboard.press("Tab");
       await page.keyboard.press("Shift+Tab");
-      const paint = await el.evaluate((e) => {
+      const paint = await el.evaluate((node) => {
+        // `elementHandles()` hands back a Node; everything below is element-only.
+        const e = node as HTMLElement;
         if (document.activeElement !== e) return { skipped: true };
         const cs = getComputedStyle(e);
         const transparent = (c: string) => /rgba\(\d+, \d+, \d+, 0\)|transparent/.test(c);

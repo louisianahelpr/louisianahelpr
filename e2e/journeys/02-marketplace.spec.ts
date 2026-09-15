@@ -633,6 +633,17 @@ test.describe.serial("marketplace chain", () => {
           await expect(yes, "Mark Job Complete opened no confirmation").toBeVisible({ timeout: 15_000 });
           await journey.milestone(hp, "request-payout-confirm");
           await yes.click();
+          // The done write asks for location on its way out (JobTracking's
+          // updateStatus → getLocation), and "Not Now" is deliberately NOT
+          // remembered — usePermissionRationale only marks a kind confirmed
+          // when the person says yes — so the rationale comes back here even
+          // though Start Working already declined it once. e2e-journeys
+          // 34927100318 left that dialog open: every button had been pressed,
+          // `helper_completed_at` was never written, and the failure shot shows
+          // the "Location" alertdialog still up. Answer it, the same way the
+          // helper does everywhere else in this journey.
+          await hp.getByRole("button", { name: "Share Location" }).waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
+          await declineLocation(hp);
           await expect(yes).toBeHidden({ timeout: 30_000 });
           break;
         }

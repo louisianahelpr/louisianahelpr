@@ -39,6 +39,7 @@ import {
   installSupabaseMocks,
   seedAuthedSession,
   mockRpc,
+  desktopScaleFor,
   type MockRule,
 } from "./fixtures";
 import { settleAnimations } from "./auditRoutes";
@@ -476,6 +477,11 @@ const VARIANTS = [
 
 test.describe("device pass — measured", () => {
   for (const v of VARIANTS) {
+   // Anonymous group: only here to give a desktop width a desktop pixel
+   // density (see desktopScaleFor); test titles are unchanged.
+   test.describe(() => {
+    const scale = desktopScaleFor(v.width);
+    if (scale) test.use(scale);
     test(`/my-posts @ ${v.tag}`, async ({ page, context, baseURL }, testInfo) => {
       const record = recorder(slugify(testInfo.title));
       await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
@@ -563,6 +569,7 @@ test.describe("device pass — measured", () => {
       await dismissNudge(page);
       await page.screenshot({ path: `${SHOTS}/${LABEL}-dashboard-${v.tag}.png`, fullPage: true });
     });
+   });
   }
 
   /**

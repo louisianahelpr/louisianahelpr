@@ -114,6 +114,23 @@ const refundAttempt = (): void => {
 let pendingRetry:ReturnType<typeof setTimeout> | null = null;
 
 /**
+ * True from the moment a recovery reload has STARTED until the page goes away.
+ *
+ * The reload is not instant (SW unregister and cache purge come first), and in
+ * that window the failed import keeps producing errors. The one that matters:
+ * main.tsx's `vite:preloadError` handler calls preventDefault() when it starts
+ * a recovery, which makes Vite resolve the import with `undefined`, so
+ * React.lazy throws a plain TypeError ("undefined is not an object (evaluating
+ * 'e._result.default')"). That is not a chunk error by message, so
+ * RouteErrorBoundary rendered "This page hit a problem." — and reported it —
+ * a few frames before the page reloaded. Measured on the preview build in
+ * WebKit, /browse: card at +15ms, pagehide at +37ms, on every run. Boundaries
+ * read this flag to show their quiet reloading state instead.
+ */
+let recoveryReloadInFlight = false;
+export const isRecoveryReloadInFlight = (): boolean => recoveryReloadInFlight;
+
+/**
  * Call when a lazy chunk loaded successfully. Clears the attempt counter, but
  * only once the last attempt is a whole episode old, so a page whose entry
  * loads while its route chunk still 404s keeps its spent attempts.
@@ -134,6 +151,7 @@ export const markChunkLoadSucceeded = (): void => {
 export const __resetChunkReloadForTests = (): void => {
   if (pendingRetry) clearTimeout(pendingRetry);
   pendingRetry = null;
+  recoveryReloadInFlight = false;
 };
 
 /**
@@ -167,6 +185,9 @@ export const hardReloadBypassCache = async () => {
     refundAttempt();
     return;
   }
+  // Set synchronously, before the first await: the errors this flag exists for
+  // arrive on the very next microtasks.
+  recoveryReloadInFlight = true;
   // A hung unregister or cache delete must not strand the page on
   // "updating": each purge step gets a bounded wait, then we reload anyway.
   const bounded = (p: Promise<unknown>) =>

@@ -21,6 +21,43 @@ fraction of fixing them one report at a time.
 ## Owner visual notes 2026-09-14 (53 entries)
 - [ ] Work through `docs/audit/visual-notes-2026-09-14.md`. Its Tracker table is the per-entry checklist: Fixed needs a commit on main, Confirmed needs a committed screenshot + "ok" review recorded after the fix. Guard: `npm run visual-notes:check` (proven red on a fake tick; unit test `src/test/checkVisualNotes.test.ts`). Small entries in progress 2026-09-14 (3 lanes); medium/large and design-discussion entries not started.
 
+## VN-37 "content should fill that space" — OWNER DECISION, app-wide gutter (2026-09-14)
+Owner, on the Profile tab pages: "reviews and other pages still have that small
+gap to the left and right of content. content should fill that space."
+
+VN-46 (Notifications wouldn't scroll) shipped and is ticked in the tracker.
+**VN-37 did not, and its tracker row must stay unticked.** It was fixed once,
+measured, and reverted — the fix was wrong, and the measurement says why.
+
+Measured on prod at 1440, `.app-shell-frame` 0→1192, before any change:
+- `/dashboard` `.page-panel` **48 → 1144**
+- `/my-posts` `.page-panel` **48 → 1144**
+- `/messages` `.page-panel` **48 → 1144**
+- `/profile?tab=reviews` first card **48 → 1144**
+
+Pixel-identical. The Profile tab pages are not inset relative to anything —
+they already sit flush with every PageScaffold sibling. The attempted fix bled
+the tab wrapper 12px further at `xl`, which moved Profile ALONE to x=36 and
+split the shared fixed-shell family, since `src/components/AppPage.tsx` carries
+that wrapper string byte-for-byte. (The "panel ~x36" in the note is that
+wrapper's own border box; it paints nothing, so there was no edge to fill to.)
+
+**The gap the owner sees is the container gutter** — `px-5 lg:px-8 xl:px-12`,
+48px at xl — shared character-for-character by `src/pages/Profile.tsx`,
+`src/components/ui/PageScaffold.tsx` and `src/components/AppPage.tsx`.
+- [ ] OWNER: decide whether that gutter narrows, and to what at each breakpoint
+      (375 is 20px and was approved on 2026-09-11 as matching Dashboard, so the
+      question is really lg/xl). Changing it touches every main screen at once
+      — that is the point, not a side effect. Do NOT fix it one screen at a
+      time; two of the three files are outside any single screen's lane.
+- Guards already in place, both proven red on the reverted change:
+  `src/components/profile/profileTabScroll.test.ts` (Profile and AppPage must
+  carry the identical wrapper string) and the parity assertion in
+  `e2e/prod-audit/profile-tab-scroll-fill.spec.ts` (Profile tab card inset must
+  equal the PageScaffold panel inset, measured in the same run — no hard-coded
+  number to re-choose when the gutter changes).
+- Branch `vn-profile` (not pushed) holds VN-46 + both guards + the spec.
+
 ## Browse header count disagrees with the rendered list — REPORT, not fixed (2026-09-14)
 Found while fixing VN-10 (map preview card was a dead tap). Owner's screenshot
 showed **"3 jobs"** in the Browse header over a list holding **one** card.

@@ -33,11 +33,57 @@ const ROOT = resolve(__dirname, "../../..");
 const PANELS = resolve(ROOT, "src/pages/profile/ProfileTabPanels.tsx");
 const PROFILE = resolve(ROOT, "src/pages/Profile.tsx");
 
-/** Every `className` string literal in a file — comments can't reach this. */
+/**
+ * Every string/template literal in a file, with comments excluded.
+ *
+ * NOT `/className="([^"]*)"/`. That was the first version of this and it had a
+ * hole big enough to drive the defect back through: three panels in the
+ * inventory today write the attribute as a ternary or a variable —
+ *   HomeHistory.tsx:406   className={jobs.length > 1 ? "relative pl-5" : "…"}
+ *   AutoTip.tsx:264       className={captionClass}
+ *   ReferralSection.tsx:196  className={canSms ? "grid grid-cols-3 …" : "…"}
+ * — and `cn(...)`/`clsx(...)` would be a fourth the moment anyone reaches for
+ * it. A check that only sees one of five spellings passes while the defect
+ * sits in the other four.
+ *
+ * So it scans every literal instead, which cannot be spelled around. The cost
+ * is that comments MUST be excluded rather than stripped after the fact: this
+ * very file, NotificationPreferences.tsx and SavedHelpersTab.tsx:74 all spell
+ * `overflow-y-auto` out in prose, and a naive comment-stripper breaks on the
+ * `//` inside any URL. Hence the small state walk below — code / line comment
+ * / block comment / string, with escapes honoured.
+ */
 function classNames(src: string): string[] {
   const out: string[] = [];
-  const re = /className=(?:"([^"]*)"|\{`([^`]*)`\}|\{"([^"]*)"\})/g;
-  for (const m of src.matchAll(re)) out.push(m[1] ?? m[2] ?? m[3] ?? "");
+  let i = 0;
+  while (i < src.length) {
+    const c = src[i];
+    const next = src[i + 1];
+    if (c === "/" && next === "/") {
+      while (i < src.length && src[i] !== "\n") i++;
+    } else if (c === "/" && next === "*") {
+      i += 2;
+      while (i < src.length && !(src[i] === "*" && src[i + 1] === "/")) i++;
+      i += 2;
+    } else if (c === '"' || c === "'" || c === "`") {
+      const quote = c;
+      i++;
+      let buf = "";
+      while (i < src.length && src[i] !== quote) {
+        if (src[i] === "\\") {
+          buf += src[i + 1] ?? "";
+          i += 2;
+          continue;
+        }
+        buf += src[i];
+        i++;
+      }
+      i++;
+      out.push(buf);
+    } else {
+      i++;
+    }
+  }
   return out;
 }
 

@@ -432,7 +432,8 @@ const NotificationPreferences = () => {
   // still stopped the wheel from chaining to the Profile scroll container
   // behind it. Dead end both ways. There is now NO nested scroller anywhere in
   // this card: the only scroll surface on the tab is Profile.tsx's wrapper, and
-  // `notificationPreferencesScroll.test.tsx` fails the moment one comes back.
+  // `src/components/profile/profileTabScroll.test.ts` fails the moment one
+  // comes back — in ANY tab panel, not just this file.
   return (
     <div className="rounded-2xl liquid-glass overflow-hidden shadow-sm">
       {/* Column header — App / Email column labels sit directly above

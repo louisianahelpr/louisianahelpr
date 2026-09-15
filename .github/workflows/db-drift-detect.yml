@@ -185,6 +185,25 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-anon-table-grants.mjs
 
+      # The migration ledger above compares VERSIONS, and the repo's parity
+      # tests read the newest migration FILE; neither sees the body prod runs.
+      # 2026-09-15: prod's report_helper_no_show was 20260914215112's body
+      # (older timestamp, applied after 20260915044137), so a poster could
+      # strike a Helpr who had arrived while every check was green. This
+      # replays every CREATE/DROP FUNCTION in version order and compares each
+      # newest body with live pg_proc.prosrc (comments, whitespace and in-place
+      # notification-link rewrites ignored). Accepted drift lives in
+      # scripts/audit/function-body-drift.baseline.json, pinned to prod's exact
+      # body. Same continue-on-error + fail-at-the-end shape.
+      - name: Prod runs the newest migration's body for every function
+        id: function_body_drift
+        continue-on-error: true
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/audit/function-body-drift.mjs
+
       - name: Compute drift
         id: drift
         if: steps.precheck.outputs.skip != 'true'
@@ -405,6 +424,7 @@ jobs:
           UPDATABLE_VIEWS: ${{ steps.updatable_views.outcome }}
           JOBS_DYNAMIC_WRITERS: ${{ steps.jobs_dynamic_writers.outcome }}
           ANON_TABLE_GRANTS: ${{ steps.anon_table_grants.outcome }}
+          FUNCTION_BODY_DRIFT: ${{ steps.function_body_drift.outcome }}
         run: |
           set -euo pipefail
           if [ "${TYPES_FRESH:-success}" = "failure" ]; then
@@ -424,6 +444,11 @@ jobs:
           if [ "${ANON_TABLE_GRANTS:-success}" = "failure" ]; then
             echo "::error::An exposed-schema table carries an excess anon grant — an anon write no policy backs, or an anon SELECT on a sensitive table. See 'No exposed-schema table carries an excess anon grant' above."
             echo "::error::FIX: in the migration that owns the table, REVOKE ALL ON <table> FROM anon, PUBLIC (or REVOKE SELECT for a read-only offender), keeping authenticated's explicit grants. A CREATE TABLE re-opens it via default privileges."
+            failed=1
+          fi
+          if [ "${FUNCTION_BODY_DRIFT:-success}" = "failure" ]; then
+            echo "::error::Prod runs a function body that is not the newest migration's (an out-of-order apply, a later overwrite, a hand edit, or a missing/extra function) — or the live read failed. See 'Prod runs the newest migration's body for every function' above."
+            echo "::error::FIX: restate the newest body in a new migration (npm run migration:new), or, for a decided exception, pin prod's body in scripts/audit/function-body-drift.baseline.json with a reason."
             failed=1
           fi
           if [ "${MISSING_PROD:-0}" != "0" ] || [ "${MISSING_REPO:-0}" != "0" ]; then

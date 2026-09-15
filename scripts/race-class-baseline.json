@@ -19,7 +19,6 @@
     "sql:public.enforce_application_credential_tier": "Reads credential_tier to gate the application INSERT; tier is set at posting. Not yet re-audited under this class.",
     "sql:public.sweep_release_last_chance": "Cron notification sweep; informational only.",
     "sql:public.apply_to_job": "Status read is already FOR SHARE; remaining hit is the self-apply EXISTS on customer_id, which never changes on a live job.",
-    "sql:public.reject_pending_job": "Admin rejection of a pending post; reads business_id + notification copy. Not yet re-audited under this class.",
     "sql:public.notify_user_on_review": "Reads title + customer_id for notification copy; no decision on job state.",
     "sql:public.purge_user_data": "Account deletion; the jobs read selects the deleting user's own unfunded, unhired jobs. Not yet re-audited under this class.",
     "sql:public.notifications_fill_job_id": "EXISTS check that a job id is real before stamping notifications.job_id; no lifecycle decision.",

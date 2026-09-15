@@ -452,7 +452,7 @@ const ConversationRowBase = ({
                     className="text-ds-10 font-sans"
                     style={{
                       color: lastActiveLabel.isLive
-                        ? "hsl(var(--live))"
+                        ? "hsl(var(--live-ink))"
                         : "hsl(var(--olivewood) / 0.8)",
                       letterSpacing: "0.02em",
                     }}

@@ -774,6 +774,11 @@
      live label (messages list, landing heartbeat, payout ticker), so the hue
      is consistent and legible on both canvases. */
   --live: 142 64% 40%;
+  /* The same green as TEXT. --live is a dot colour: as a 13px label on white
+     it measured 3.12:1 (a11y-prod, 2026-09-15, profile "Active now"). This is
+     the same hue darkened to ~5.7:1. Text uses --live-ink, dots keep --live
+     (src/test/liveInkContrast.test.ts). */
+  --live-ink: 142 72% 27%;
 
   /* Success / confirmation mint — report-submitted & job-completed panels.
      One family so the green checkmark surfaces read on both canvases. */
@@ -1023,6 +1028,7 @@
   --gift-sheen:      hsla(0, 0%, 100%, 0.05);
 
   --live: 142 52% 60%;  /* lightened so the dot/label reads on the dark page */
+  --live-ink: 142 52% 60%;  /* already legible as text on the dark page */
 
   --success-tint:         142 24% 13%;
   --success-tint-strong:  142 24% 17%;

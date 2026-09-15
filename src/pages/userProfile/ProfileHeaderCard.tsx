@@ -297,7 +297,7 @@ export const ProfileHeaderCard = ({
                     className="inline-flex items-center gap-1.5 min-w-0"
                     style={{
                       color: lastActiveLabel.isLive
-                        ? "hsl(var(--live))"
+                        ? "hsl(var(--live-ink))"
                         : "hsl(var(--olivewood) / 0.8)",
                     }}
                   >

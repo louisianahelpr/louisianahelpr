@@ -376,32 +376,28 @@ export function ApplicantsEmptyState({
 
   return (
     /**
-     * MEASURED, NOT GUESSED — these two numbers are what actually sits above
-     * and below this card inside <AppPage>, read off the rendered page rather
-     * than estimated:
+     * Fill the Applicants view down to the bottom — no dead band under the card
+     * (owner, 2026-09-15: V4, "fit screen better").
      *
-     *   below, both cases: the scroll column's own
-     *     `safe-bottom + 96px + 1rem` dock clearance = 112px on web.
-     *   above, mobile (<900px): safe-area top + ProfileTabHeader + the
-     *     job-title subtitle = 108px at 320/375, 124px at 768.
-     *   above, web-desktop (>=900px): the same block PLUS the desktop top bar
-     *     = 180px at 1440.
+     * This state renders ONLY inside the full-screen Applicants `<AppPage>`
+     * (PostedJobsTab: "Applicants full-screen comparison view") — a pushed
+     * route with a back-arrow header and NO bottom dock. The earlier calc
+     * subtracted a `safe-bottom + 96px + 1rem` DOCK CLEARANCE (~112px) that this
+     * view does not have, so the wrapper stopped ~180px short of the bottom
+     * (measured live: bottom at 78% of a 812px viewport). Only the chrome that
+     * is actually there is subtracted now:
+     *   above, mobile (<900px): safe-area top + the "Applicants" header ≈ 7rem.
+     *   above, web-desktop (>=900px): that header PLUS the desktop top bar ≈ 11rem.
+     * A little slack is left so a real notch's safe-area never forces a scroll
+     * on an empty state.
      *
-     * 16rem / 19rem clear both with ~20px of slack, so the card reaches the
-     * dock with no dead band AND never forces the column to scroll on an empty
-     * state. Measured at 320 / 375 / 768 / 1440; card bottom lands at 82-93%
-     * of the viewport (it was 34-49% before).
-     *
-     * The 900px switch is NOT a Tailwind breakpoint on purpose: it is the
-     * exact media query `useAppShellViewport` uses to set `html.web-desktop`
-     * (`matchMedia('(min-width: 900px)')`), which is what adds the top bar
-     * this number is compensating for. Keying it to `lg:` instead would drift
-     * from the thing it is measuring.
-     *
-     * `100dvh` (not `vh`) so the iOS toolbar collapsing does not leave a gap,
-     * matching AppShell's own lock.
+     * The 900px switch is NOT a Tailwind breakpoint on purpose: it is the exact
+     * media query `useAppShellViewport` uses to set `html.web-desktop`
+     * (`matchMedia('(min-width: 900px)')`), which is what adds the top bar this
+     * number compensates for. `100dvh` (not `vh`) so the iOS toolbar collapsing
+     * leaves no gap.
      */
-    <div className="flex min-h-[calc(100dvh-16rem)] [@media(min-width:900px)]:min-h-[calc(100dvh-19rem)]">
+    <div className="flex min-h-[calc(100dvh-7rem)] [@media(min-width:900px)]:min-h-[calc(100dvh-11rem)]">
       <EmptyState
         variant="inline"
         icon={icon}

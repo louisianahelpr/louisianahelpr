@@ -8671,6 +8671,13 @@
      "notNull": true,
      "type": "boolean"
     },
+    "saved_helper_availability": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
     "system_alerts": {
      "enum": null,
      "generated": false,

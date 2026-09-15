@@ -1,7 +1,8 @@
 /**
  * ONE rule for "has this helper's arrival been established?", shared by every
  * surface that gates on it — the payout CTA (`completeJob`), the tracker's
- * Done step, and the tracker's Arrived step caption.
+ * Done step, the tracker's Arrived step caption (the open "Awaiting poster"
+ * question only), and the arrival label on the tracking map's job pin.
  *
  * WHY THIS EXISTS. Completion used to gate on a LIVE 500ft GPS check taken at
  * wrap-up time, with a fallback that read `job_checkins` — a table with zero
@@ -63,15 +64,33 @@ export function arrivalGateMessage(job: ArrivalEvidence | null | undefined): str
     : "Mark yourself arrived at the job site first. If your location won't work, ask the poster to confirm you arrived — that works too.";
 }
 
-/** Short label for the tracker's Arrived step. */
+/**
+ * Caption under the tracker's Arrived step — the OPEN QUESTION only.
+ *
+ * It used to label all three states, so "Poster confirmed" / "Location
+ * confirmed" sat under the Arrived step. Owner, 2026-09-14 (VN-20): "Location
+ * confirmed does not need to show on the tracker, it should be on the map".
+ * That reverses the earlier "light it when helpr says they arrived but poster
+ * has to confirm" caption for the two SETTLED states, which now live on the
+ * map's job pin (`arrivalMapLabel`) or, when no map is drawn, in the status
+ * line under the rail. A bare claim still waiting on the poster keeps its
+ * amber caption: it is not a fact about the location, it is a pending action.
+ */
 export function arrivalStateLabel(state: ArrivalState): string | null {
+  return state === "claimed" ? "Awaiting poster" : null;
+}
+
+/**
+ * The settled arrival fact, drawn as a label on the tracking map's job pin
+ * (owner, 2026-09-14, VN-20). `null` for the states that settle nothing — a
+ * claim is not a location, and no arrival has nothing to say.
+ */
+export function arrivalMapLabel(state: ArrivalState): string | null {
   switch (state) {
     case "confirmed":
-      return "Poster confirmed";
+      return "Poster confirmed arrival";
     case "verified":
       return "Location confirmed";
-    case "claimed":
-      return "Awaiting poster";
     default:
       return null;
   }

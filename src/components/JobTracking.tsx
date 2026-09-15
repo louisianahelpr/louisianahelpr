@@ -15,7 +15,7 @@ import { jobStartDateTime } from "@/lib/dateUtils";
 import { jobDateMs, todayMs, JOB_TIMEZONE } from "@/lib/jobDate";
 import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
-import { arrivalEstablished, arrivalGateMessage, arrivalState, arrivalStateLabel, type ArrivalState } from "@/lib/arrivalGate";
+import { arrivalEstablished, arrivalGateMessage, arrivalMapLabel, arrivalState, arrivalStateLabel, type ArrivalState } from "@/lib/arrivalGate";
 import { report } from "@/lib/errorLogger";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -340,6 +340,15 @@ export function deriveCurrentStatusIdx({
  * The distance is kept in every branch — it is the most useful fact on the line
  * — but it is stated as the LAST PING, which is what it is, and it never
  * carries the word "confirmed" on its own.
+ *
+ * WHEN THE MAP ALREADY SAYS IT (owner, 2026-09-14, VN-20: "Location confirmed
+ * … should be on the map"). A settled arrival — verified or confirmed — is now
+ * drawn as a label on the map's job pin. While that map is on screen, this
+ * line saying "Arrival GPS-verified" / "Poster confirmed arrival" a few pixels
+ * above it is the same fact twice, so `arrivalShownOnMap` drops ONLY that
+ * clause and keeps the location part ("Location shared · at the job"). With
+ * no map drawn (no coordinates, or past the en-route step) the clause stays
+ * here — this line is then the only place the fact appears.
  */
 export type TrackingProofCaption = {
   text: string;
@@ -357,6 +366,8 @@ export function trackingProofCaption(
   distanceMi: number | null,
   /** Did the last tracking row carry a position at all? */
   hasPosition: boolean,
+  /** Is the map rendering this arrival as a label on its job pin? See above. */
+  arrivalShownOnMap = false,
 ): TrackingProofCaption {
   const where =
     !hasPosition
@@ -384,6 +395,10 @@ export function trackingProofCaption(
   }
 
   const suffix = where ? ` · last ping ${where}` : "";
+  // The map's job pin is carrying the verification clause; keep the location.
+  if (arrivalShownOnMap && (state === "confirmed" || state === "verified")) {
+    return { text: where ? `Location shared · ${where}` : "Location shared", tone: "ok" };
+  }
   switch (state) {
     // The poster's vouch outranks GPS, so a long distance is not a
     // contradiction here — the person standing next to the helper said yes.
@@ -402,6 +417,26 @@ export function trackingProofCaption(
     default:
       return { text: where ? `Location shared · ${where}` : "Location shared", tone: "muted" };
   }
+}
+
+/**
+ * Whether the live map mounts. Shared by the render and by the arrival-label
+ * placement (VN-20) so "the map shows the arrival" and "the map is on screen"
+ * can never be two different answers. Shown only while the helper is en route
+ * and both ends have coordinates — see the map block in the render.
+ */
+export function shouldShowTrackingMap(
+  tracking: Pick<TrackingData, "status" | "latitude" | "longitude"> | null | undefined,
+  jobLatitude: number | null | undefined,
+  jobLongitude: number | null | undefined,
+): boolean {
+  return (
+    tracking?.status === "on_the_way" &&
+    tracking.latitude != null &&
+    tracking.longitude != null &&
+    jobLatitude != null &&
+    jobLongitude != null
+  );
 }
 
 /**
@@ -1333,7 +1368,13 @@ export function JobTracking({
     poster_confirmed_arrival_at: jobStamps.posterConfirmedArrivalAt,
   };
   const currentArrivalState = arrivalState(arrivalEvidence);
+  // Rail caption: only the open "Awaiting poster" question (VN-20).
   const arrivalCaption = arrivalStateLabel(currentArrivalState);
+  // The settled arrival fact goes on the map's job pin when the map is drawn,
+  // and falls back to the status line when it is not (VN-20).
+  const mapShown = shouldShowTrackingMap(tracking, jobLatitude, jobLongitude);
+  const settledArrivalLabel = arrivalMapLabel(currentArrivalState);
+  const arrivalOnMap = mapShown && settledArrivalLabel != null;
 
   // Timestamp behind each COMPLETED step, for the tap/hover tooltip below.
   // Reuses fields the tracker already has in scope — no new backend field.
@@ -1773,15 +1814,18 @@ export function JobTracking({
                       row keeps the tight rhythm the heading-name move bought
                       it. `items-start` on the row means the taller column
                       hangs below the others rather than pushing them down. */}
-                  {/* ARRIVED CARRIES ITS OWN VERIFICATION STATE (owner:
-                      "light it when helpr says they arrived but poster has to
-                      confirm"). The step lights on the helper's mark, and this
-                      caption says which of the three things that mark actually
-                      is — poster-confirmed, location-confirmed, or a claim
-                      still waiting on the poster. Without it the tracker drew
-                      all three identically, which is how a poster ended up
-                      reading "Working" while their card still asked them to
-                      confirm the arrival: two ladders, one drawing. */}
+                  {/* ARRIVED CARRIES ONLY THE OPEN QUESTION NOW (owner,
+                      2026-09-14, VN-20: "Location confirmed does not need to
+                      show on the tracker, it should be on the map"). This
+                      reverses the earlier "light it when helpr says they
+                      arrived but poster has to confirm" caption for the two
+                      SETTLED states: "Poster confirmed" / "Location confirmed"
+                      moved to the map's job pin, or to the status line under
+                      the rail when no map is drawn. A claim still waiting on
+                      the poster keeps its amber "Awaiting poster" here — that
+                      is a pending action, not a fact about the location, and
+                      without it a poster could read "Working" while their card
+                      still asked them to confirm the arrival. */}
                   {/* Only while Arrived is still the CURRENT step. Once the
                       job progresses past it (Working, Done, …) the caption
                       went stale — a job sitting on "Working" still showed
@@ -1853,6 +1897,8 @@ export function JobTracking({
               a position is itself the fact. */}
           {(() => {
             const hasPosition = tracking.latitude != null;
+            // VN-20: while the map's job pin carries the settled arrival, this
+            // line keeps the location and drops the verification clause.
             const trackingIdxHere =
               STATUS_IDX[tracking.status as keyof typeof STATUS_IDX] ?? -1;
             if (!hasPosition && trackingIdxHere < STATUS_IDX.arrived && currentArrivalState === "none") {
@@ -1865,7 +1911,7 @@ export function JobTracking({
               tracking.longitude != null
                 ? haversineMiles(tracking.latitude!, tracking.longitude, jobLatitude, jobLongitude)
                 : null;
-            const proof = trackingProofCaption(currentArrivalState, mi, hasPosition);
+            const proof = trackingProofCaption(currentArrivalState, mi, hasPosition, arrivalOnMap);
             const Glyph = proof.tone === "warn" ? AlertTriangle : MapPin;
             return (
               <span
@@ -1894,22 +1940,43 @@ export function JobTracking({
         </p>
       )}
 
+      {/* NO TRACKING ROW, SETTLED ARRIVAL, ARRIVED IS THE CURRENT STEP.
+          The status line above only exists once a `job_tracking` row does,
+          and the map needs one too — but the arrival stamps live on the jobs
+          row (a poster's "Confirm They Arrived", or a job whose tracking row
+          was never written). When the Arrived step carried "Poster confirmed"
+          itself this case still said something; with that caption moved to
+          the map (VN-20) it would have said nothing at all. So the fact gets
+          the status line's own slot and wording, scoped to exactly when the
+          old caption showed (Arrived is the current step). */}
+      {!tracking &&
+        settledArrivalLabel != null &&
+        displaySteps[displayIdx]?.key === "arrived" && (
+          <p
+            className="text-ds-10 text-muted-foreground text-center"
+            data-testid="arrival-fact-fallback"
+          >
+            <span className="inline-flex items-center gap-0.5">
+              <MapPin className="w-2.5 h-2.5 shrink-0" />
+              {trackingProofCaption(currentArrivalState, null, false).text}
+            </span>
+          </p>
+        )}
+
       {/* Live-tracking map — shown while helper is on the way and both
-          positions are known. Lazy-loaded so the Leaflet chunk isn't paid
-          for by cards that never enter this state. Falls back silently to
-          the ETA caption on the tracker step when coordinates are unavailable or the
-          Leaflet bundle hasn't loaded yet. */}
-      {tracking?.status === "on_the_way" &&
-        tracking.latitude != null &&
-        tracking.longitude != null &&
-        jobLatitude != null &&
-        jobLongitude != null && (
+          positions are known (`shouldShowTrackingMap`). Lazy-loaded so the
+          Leaflet chunk isn't paid for by cards that never enter this state.
+          Falls back silently when coordinates are unavailable or the Leaflet
+          bundle hasn't loaded yet. A settled arrival rides on its job pin
+          (VN-20); the status line above drops that clause while it does. */}
+      {mapShown && tracking && jobLatitude != null && jobLongitude != null && (
           <Suspense fallback={null}>
             <TrackingMap
-              helperLat={tracking.latitude}
-              helperLng={tracking.longitude}
+              helperLat={tracking.latitude!}
+              helperLng={tracking.longitude!}
               destLat={jobLatitude}
               destLng={jobLongitude}
+              destinationLabel={arrivalOnMap ? settledArrivalLabel : null}
             />
           </Suspense>
         )}

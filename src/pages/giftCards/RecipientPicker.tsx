@@ -21,6 +21,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import UserAvatar from "@/components/UserAvatar";
 import { formatName } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 export interface RecipientMatch {
   user_id: string;
@@ -30,6 +31,7 @@ export interface RecipientMatch {
 
 const MIN_QUERY_LEN = 2;
 const SEARCH_DEBOUNCE_MS = 300;
+const SEARCH_FAILED_COPY = "Couldn't search right now. Try again, or type their email address instead.";
 // An `@` appearing at all is a strong enough signal that the sender is
 // mid-way through typing an email (not yet a full match) that a name search
 // shouldn't fire underneath them — searching "bob@gm" against full names
@@ -72,7 +74,8 @@ export function RecipientPicker({
   const [text, setText] = useState(emailValue);
   const [results, setResults] = useState<RecipientMatch[]>([]);
   const [searching, setSearching] = useState(false);
-  const [searchFailed, setSearchFailed] = useState(false);
+  /** What to say when the name search failed, or null while it has not. */
+  const [searchFailed, setSearchFailed] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Guards a stale, slower response from clobbering a faster later one.
   const requestSeqRef = useRef(0);
@@ -100,7 +103,7 @@ export function RecipientPicker({
       onEmailChange(text);
       setResults([]);
       setSearching(false);
-      setSearchFailed(false);
+      setSearchFailed(null);
       return;
     }
 
@@ -111,11 +114,11 @@ export function RecipientPicker({
     if (trimmed.length < MIN_QUERY_LEN) {
       setResults([]);
       setSearching(false);
-      setSearchFailed(false);
+      setSearchFailed(null);
       return;
     }
     setSearching(true);
-    setSearchFailed(false);
+    setSearchFailed(null);
     const mySeq = ++requestSeqRef.current;
     debounceRef.current = setTimeout(() => {
       void (async () => {
@@ -129,7 +132,9 @@ export function RecipientPicker({
           if (requestSeqRef.current !== mySeq) return;
           report(e, { severity: "warning", tags: { source: "RecipientPicker.search" } });
           setResults([]);
-          setSearchFailed(true);
+          // The name search is rate limited server-side; say which limit
+          // rather than "couldn't search", which reads like an outage.
+          setSearchFailed(rpcErrorMessage("search_profiles_by_name", e) ?? SEARCH_FAILED_COPY);
         } finally {
           if (requestSeqRef.current === mySeq) setSearching(false);
         }
@@ -241,7 +246,7 @@ export function RecipientPicker({
               )}
               {searchFailed && (
                 <p className="font-sans text-ds-11 mt-1.5" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                  Couldn't search right now. Try again, or type their email address instead.
+                  {searchFailed}
                 </p>
               )}
               {trimmed.length >= MIN_QUERY_LEN && !searchFailed && (

@@ -10,6 +10,7 @@ import { fireSuccessMoment } from "@/lib/successMoment";
 import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { awardBlockFromError, posterAwardBlockMessage, type AwardBlockReason } from "@/lib/awardGate";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { postedActivityBucket } from "@/pages/activity/activityFilters";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -314,15 +315,10 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           );
         }
         throw new Error(
-          msg.includes("job_not_open")
-            ? "This job is no longer open — it may already be assigned."
-            : msg.includes("application_not_found")
-              ? "This application no longer exists — the applicant may have withdrawn."
-              : msg.includes("application_not_pending")
-                ? "This applicant can no longer be accepted."
-                : msg.includes("not_authorized")
-                  ? "You can only accept applicants on a job you posted."
-                  : "Couldn't send the offer — please try again.",
+          (isGroupJob
+            ? rpcErrorMessage("accept_group_application", error)
+            : rpcErrorMessage("accept_application", error)) ??
+            "Couldn't send the offer — please try again.",
         );
       }
     }
@@ -397,7 +393,6 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     if (error) {
       hapticError();
       const code = String((error as { code?: string }).code ?? "");
-      const msg = String(error.message ?? "");
       if (code === "PGRST202") {
         // Merge landed, migration hasn't deployed yet (db-deploy.yml runs on
         // the merge commit). Say so instead of blaming the user's tap.
@@ -407,12 +402,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       // The RPC's guards, in the helper's language. Each one means the offer
       // moved out from under this card, so re-read rather than leave the same
       // two buttons sitting there to fail again.
-      const guard =
-        /offer_expired/.test(msg) ? "This offer expired — the job is open to everyone again."
-        : /offer_not_pending|not_your_offer/.test(msg) ? "This offer isn't yours to respond to any more."
-        : /job_not_open/.test(msg) ? "This job is no longer open."
-        : /job_not_found/.test(msg) ? "This job is no longer available."
-        : null;
+      const guard = rpcErrorMessage("respond_to_direct_offer", error);
       if (guard) {
         toast.error(guard);
         await refresh();
@@ -634,8 +624,9 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           /could not find the function|does not exist|schema cache/i.test(msg);
         if (!rpcMissing) {
           hapticError();
-          if (/offer_not_active/.test(msg)) {
-            // The RPC's guard is `jobs.helper_id = auth.uid()`. This card is
+          const guard = rpcErrorMessage("decline_job_offer", rpcError);
+          if (guard) {
+            // offer_not_active: the RPC's guard is `jobs.helper_id = auth.uid()`. This card is
             // shown whenever the APPLICATION says accepted, which is a
             // different fact — the two can disagree (a reopened job, a poster
             // who reassigned, a partially-staffed group roster), and when they
@@ -645,7 +636,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
             //
             // Refresh so the card re-renders from the truth instead of
             // repeating the failure.
-            toast.error("This job isn't yours to respond to any more — someone else may have been booked.");
+            toast.error(guard);
             await refresh();
             return;
           }

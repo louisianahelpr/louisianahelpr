@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 // stays so this dialog keeps rendering a rejected write's own message if any
 // future write lands here.
 import { isWriteRejected } from "@/lib/mutationResult";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { report } from "@/lib/errorLogger";
 import {
   Dialog,
@@ -182,15 +183,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         // is the already-cancelled / already-finished race the previous
         // zero-row unwrapMutation guard existed to catch, now answered by the
         // server instead of inferred from a row count.
-        const human: Record<string, string> = {
-          not_cancellable:
-            "This job couldn't be cancelled — it may have already been cancelled, finished, or opened as a dispute. Refresh and check.",
-          not_authorized: "Only the person who posted this job can cancel it.",
-          job_not_found: "This job no longer exists. Refresh and check.",
-          not_authenticated: "Please sign in again to cancel this job.",
-        };
         throw new Error(
-          human[String(error.message ?? "").trim()] ??
+          rpcErrorMessage("poster_cancel_job", error) ??
             error.message ??
             "Couldn't cancel — please try again",
         );

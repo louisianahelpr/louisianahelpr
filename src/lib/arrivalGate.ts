@@ -32,11 +32,10 @@ import {
   arrivalEstablished,
   arrivalGateMessage,
   type ArrivalEvidence,
-  type ArrivalGateDoor,
 } from "../../supabase/functions/_shared/arrivalRule";
 
 export { arrivalEstablished, arrivalGateMessage };
-export type { ArrivalEvidence, ArrivalGateDoor };
+export type { ArrivalEvidence };
 
 export type ArrivalState = "none" | "claimed" | "verified" | "confirmed";
 

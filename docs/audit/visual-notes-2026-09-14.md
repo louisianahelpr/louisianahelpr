@@ -53,7 +53,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-42 | Saved Helprs should be one column, not a grid | small | [x] f70abb054 | [x] vn-42-after-saved-helpers-1440.webp |
 | VN-43 | Remove the card design picker from gift cards | small | [x] c57c568be | [x] vn-43-after-gift-card-1440-occasion.webp |
 | VN-44 | Plus tier (and Once / Annual) don't look enticing (OWNER QUESTION + PRICING DECISION) | medium | [x] a4bd85fe0 | [x] vn-44-after-vn44-plus-375.webp |
-| VN-45 | Referrals says $15 earned / $15 to cash out, but 0 referrals and the rank tracker shows no | small–medium | [ ] | [ ] |
+| VN-45 | Referrals says $15 earned / $15 to cash out, but 0 referrals and the rank tracker shows no | small–medium | [x] ec61d2ec0 | [ ] |
 | VN-46 | Notifications settings page doesn't scroll | small–medium | [x] 27a7a4a09 | [x] vn-46-notifications-1440-bottom.png |
 | VN-47 | Legal tab — remove "Download your data", and "contact support" is listed twice | small | [x] 34f87f288 | [x] vn-47-after-datarights-signedin-375.webp |
 | VN-48 | Post a Job form labels aren't in Title Case | small | [x] e363d18d6 | [x] vn-48-after-postjob-1440-photo.webp |

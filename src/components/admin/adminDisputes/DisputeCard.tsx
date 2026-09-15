@@ -8,6 +8,7 @@ import { formatShortDate } from "@/lib/format";
 import { hasPerk } from "@/lib/subscriptionTiers";
 import { previewDisputeSplit } from "@/lib/disputeSplitPreview";
 import { isUnsettled, unsettledReason } from "./unsettled";
+import { partitionEvidenceUrls } from "@/lib/evidenceUrl";
 
 /**
  * The split readout is ONE money column — net, gross and deduction stacked.
@@ -78,6 +79,11 @@ export const DisputeCard = ({
   retrying,
 }: DisputeCardProps) => {
   const record = disputeRecords[job.id];
+  // The record's evidence when it has any, else the legacy job array — the same
+  // precedence as before, filtered to URLs the app will actually load.
+  const evidence = partitionEvidenceUrls(
+    record?.evidence_urls?.length ? record.evidence_urls : (job.dispute_evidence_urls ?? []),
+  );
   // A decision on record whose money never moved. The card MUST say so: the
   // green DECIDED badge alone told an admin the case was closed while $180 of
   // a poster's escrow sat unmoved with no id, no reason and no retry anywhere
@@ -146,11 +152,18 @@ export const DisputeCard = ({
           )}
         </div>
 
-        {(record?.evidence_urls?.length ?? job.dispute_evidence_urls?.length ?? 0) > 0 && (
+        {evidence.trusted.length + evidence.withheld > 0 && (
           <div className="space-y-1">
             <p className="text-ds-11 font-medium text-muted-foreground">Evidence photos:</p>
+            {/* Only this project's signed proof-photo URLs render as a link or
+                image; anything else a party stored is counted, never loaded. */}
+            {evidence.withheld > 0 && (
+              <p className="text-ds-11 text-muted-foreground">
+                {evidence.withheld} attachment{evidence.withheld === 1 ? "" : "s"} not shown (not an uploaded photo).
+              </p>
+            )}
             <div className="flex gap-2 flex-wrap">
-              {(record?.evidence_urls ?? job.dispute_evidence_urls ?? []).map((url, i) => (
+              {evidence.trusted.map((url, i) => (
                 <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors">
                   <img loading="lazy" decoding="async" src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
                 </a>

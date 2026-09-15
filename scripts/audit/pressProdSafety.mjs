@@ -368,6 +368,13 @@ async function unwindJob(s, j) {
   const base = supabaseUrl();
   if (j.payment_status === "escrow" || j.payment_status === "payout_pending") {
     const r = await fetch(`${base}/functions/v1/create-payment`, { method: "POST", headers: headers(s), body: JSON.stringify({ action: "cancel_escrow", jobId: j.id }) });
+    const body = await r.text();
+    // cancel_escrow refunds only an OPEN, unhired job (dispute-races branch).
+    // A hired funded job is left to settle forward rather than cancelled:
+    // poster_cancel_job on it would strike the test poster.
+    if (r.status === 409 && /"useCancelJob":true/.test(body)) {
+      return { ok: true, note: "cancel_escrow 409 (hired, funded) — left to settle forward, not cancelled" };
+    }
     return { ok: r.ok, note: `cancel_escrow HTTP ${r.status}` };
   }
   if (j.status !== "open" || j.status === "cancelled") {

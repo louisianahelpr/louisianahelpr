@@ -12,6 +12,7 @@ import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
+import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 
 /**
  * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
@@ -1156,6 +1157,47 @@ serve(async (req) => {
       if (jobError || !job) throw new Error("Job not found");
       if (job.customer_id !== user.id) throw new Error("Not authorized");
 
+      // ── Only an unhired, undisputed job is the poster's to refund here ──
+      // This door checked `payment_status` alone, and it is reachable by any
+      // poster with a JWT (no UI calls it; the prod test sweepers do). So:
+      //   * on a DISPUTED job the poster — the side that filed, or the side
+      //     losing — took the escrow back out of a live dispute, and racing an
+      //     admin Quick Release it was a double spend (disjoint idempotency keys);
+      //   * on a job with a DECIDED dispute whose split has not executed
+      //     (rpc_decide_dispute moves status to completed/cancelled and leaves
+      //     the escrow held — live example on prod, is_seed job bb2c3732) it
+      //     overrode the admin's decision (lh-authz-rls review, HIGH);
+      //   * on a HIRED job it skipped the cancellation-fee ladder that
+      //     poster_cancel_job + void-cancelled-payments charge, so the Helpr's
+      //     late-cancel share simply vanished.
+      // An ALLOWLIST, not a denylist, so the next state nobody thought of is
+      // refused by default: `open` with no Helpr assigned — the one state where
+      // no fee is owed and no dispute can exist. Everything else goes through
+      // the Cancel button (poster_cancel_job), which owns those rules.
+      // The same predicates ride on the atomic claim below, so a hire or a
+      // filing that lands between this read and the claim still wins.
+      // The decided-but-unexecuted read is release-payout's own shared check
+      // (_shared/unsettledDispute.ts), fail-closed on a read error.
+      const settlement = await checkUnsettledDispute(supabaseAdmin, jobId);
+      if (settlement.readError) {
+        console.error(`[create-payment] cancel_escrow dispute check failed for job ${jobId}: ${settlement.readError}`);
+        return new Response(JSON.stringify({
+          error: "Couldn't check this job's dispute state. No money was moved — try again.",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+      }
+      if (job.status !== "open" || job.helper_id || settlement.blocked) {
+        const disputed = job.status === "disputed" || settlement.blocked;
+        console.error(
+          `[create-payment] cancel_escrow REFUSED on job ${jobId} (caller ${user.id}): status=${job.status}, helper=${job.helper_id ?? "none"}, unsettled dispute=${settlement.dispute?.id ?? "none"}`,
+        );
+        return new Response(JSON.stringify({
+          error: disputed
+            ? "This job is under dispute, so its payment can't be cancelled or refunded here. An admin will decide where the payment goes. No money was moved."
+            : "This job has a Helpr or has already started, so it has to be cancelled with Cancel job — that applies the cancellation rules and refunds you. No money was moved.",
+          ...(disputed ? { disputed: true } : { useCancelJob: true }),
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+      }
+
       // Atomic state claim: only an escrow-held job may be refunded.
       // Without this, a cancel racing the payout release could refund a
       // PI whose funds were already transferred to the helper — the
@@ -1173,6 +1215,9 @@ serve(async (req) => {
         .eq("id", jobId)
         .eq("status", job.status)
         .in("payment_status", ["escrow", "cancelling"])
+        // The allowlist above, inside the atomic write: `job.status` is 'open'
+        // here, and a hire landing since the read sets helper_id.
+        .is("helper_id", null)
         .select("id");
       if (claimErr) {
         console.error(`[create-payment] cancel_escrow state claim failed for job ${jobId}:`, claimErr);
@@ -1491,10 +1536,121 @@ serve(async (req) => {
       // budget and fee, else each of N helpers gets the full urgent bonus and
       // the platform over-pays N× what it collected.
       const helperPayout = (job.budget / dpHelpersCount) - (feeAmt / dpHelpersCount) + netUrgentFeeDollars(job.urgent_fee) / dpHelpersCount;
+      // ── Take the settlement claim, then move the money ──────────────────
+      // Here and not earlier: everything above this line can refuse (the group
+      // roster, a missing or uncaptured PaymentIntent) without moving a cent,
+      // and a claim held across those refusals would lock the counterpart
+      // action out of a dispute nothing had touched.
+      const releaseClaim = await claimDisputeSettlement(
+        supabaseAdmin, jobId, "release", user.id, "completed", "released",
+      );
+      if ("refusal" in releaseClaim) return releaseClaim.refusal;
+
+      // ── Stripe, inside the claim: has this charge already been refunded? ──
+      // The ledger check ran before the claim, and `recordRefund` swallows its
+      // own write failure, so an empty `payment_refunds` is not proof. The
+      // charge's `amount_refunded` is — the same check the 72h sweep makes
+      // (lh-money-escrow review round 2). Fails closed.
+      try {
+        const chargePi = await stripe.paymentIntents.retrieve(captureResult.paymentIntentId, { expand: ["latest_charge"] });
+        const charge = (chargePi as { latest_charge?: unknown }).latest_charge;
+        const refundedCents = charge && typeof charge === "object"
+          ? Number((charge as { amount_refunded?: number }).amount_refunded ?? 0)
+          : 0;
+        if (refundedCents > 0) {
+          await releaseDisputeSettlementClaim(supabaseAdmin, jobId, releaseClaim.claim);
+          console.error(`[create-payment] admin_release_dispute REFUSED for job ${jobId}: Stripe shows ${refundedCents}¢ already refunded`);
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "critical",
+            title: "Quick Release refused — the charge was already refunded",
+            message: `Job ${jobId} is disputed with its escrow reading held, but Stripe shows ${refundedCents}¢ refunded on its charge and no refund ledger row blocked the release. Nothing was transferred; reconcile by hand.`,
+            fields: { job_id: jobId, refunded_cents: refundedCents, payment_intent: captureResult.paymentIntentId },
+          });
+          return new Response(JSON.stringify({
+            error: "Stripe shows this charge was already refunded, so it can't also be released to the Helpr. Nothing was moved; this dispute needs manual reconciliation.",
+            alreadyMoved: true,
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+        }
+      } catch (chargeErr) {
+        await releaseDisputeSettlementClaim(supabaseAdmin, jobId, releaseClaim.claim);
+        console.error(`[create-payment] admin_release_dispute: charge refund check failed for job ${jobId}:`, chargeErr);
+        return new Response(JSON.stringify({
+          error: "Couldn't confirm with Stripe that this charge hasn't been refunded. No money was moved — try again.",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+      }
+
+      // ── Stripe, inside the claim: a transfer for this job with no ledger row? ──
+      // transferToHelper's duplicate guard reads payout_transfers only. A
+      // transfer that left Stripe without its row — a split leg whose ledger
+      // write failed, an earlier release killed after Stripe answered — is
+      // invisible to it, and this action's own idempotency key then made a
+      // SECOND transfer. Reachable once a person clears a stuck claim or
+      // supersedes a decision (round 4 review of H2/M1). Every transfer for a
+      // job carries `transfer_group: job_<id>`; a live one the ledger does not
+      // record refuses. One the ledger DOES record is the idempotent re-run
+      // (transferToHelper skips it). Fails closed.
+      try {
+        const prior = await stripe.transfers.list({ transfer_group: `job_${jobId}`, limit: 100 });
+        const live = ((prior?.data ?? []) as Array<{ id: string; amount?: number; amount_reversed?: number }>)
+          .filter((t) => Number(t.amount ?? 0) - Number(t.amount_reversed ?? 0) > 0);
+        if (live.length > 0) {
+          const { data: ledgerRows, error: ledgerErr } = await supabaseAdmin
+            .from("payout_transfers")
+            .select("stripe_transfer_id, status")
+            .eq("job_id", jobId)
+            .in("status", ["pending", "paid"]);
+          if (ledgerErr) throw ledgerErr;
+          const known = new Set(((ledgerRows ?? []) as Array<{ stripe_transfer_id: string | null }>).map((r) => r.stripe_transfer_id));
+          const ghost = live.find((t) => !known.has(t.id));
+          if (ghost) {
+            await releaseDisputeSettlementClaim(supabaseAdmin, jobId, releaseClaim.claim);
+            console.error(`[create-payment] admin_release_dispute REFUSED for job ${jobId}: Stripe shows transfer ${ghost.id} with no ledger row`);
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "Quick Release refused — a transfer for this job is at Stripe with no ledger row",
+              message: `Job ${jobId} is disputed with its escrow reading held, but Stripe shows transfer ${ghost.id} in its transfer group and payout_transfers does not record it. Nothing was transferred; reconcile by hand.`,
+              fields: { job_id: jobId, transfer_id: ghost.id, amount_cents: Number(ghost.amount ?? 0) },
+            });
+            return new Response(JSON.stringify({
+              error: "Stripe shows a payout for this job that our ledger doesn't record, so another one can't be sent. Nothing was moved; this dispute needs manual reconciliation.",
+              alreadyMoved: true,
+            }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+          }
+        }
+      } catch (transferListErr) {
+        await releaseDisputeSettlementClaim(supabaseAdmin, jobId, releaseClaim.claim);
+        console.error(`[create-payment] admin_release_dispute: prior-transfer check failed for job ${jobId}:`, transferListErr);
+        return new Response(JSON.stringify({
+          error: "Couldn't confirm with Stripe that no payout already left for this job. No money was moved — try again.",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+      }
+
       if (job.helper_id && helperPayout > 0) {
-        // Throws on transfer/ledger failure → outer catch returns 500 and the
-        // job stays disputed (never silently flipped to released below).
-        await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, captureResult.paymentIntentId, job.id, feeAmt / dpHelpersCount, user.id);
+        try {
+          // Throws on transfer/ledger failure → outer catch returns 500 and the
+          // job stays disputed (never silently flipped to released below).
+          await transferToHelper(
+            stripe, supabaseAdmin, job.helper_id, helperPayout, captureResult.paymentIntentId, job.id,
+            feeAmt / dpHelpersCount, user.id,
+            () => stampDisputeSettlementClaim(supabaseAdmin, jobId, releaseClaim.claim),
+          );
+        } catch (transferErr) {
+          // Hand the claim back ONLY when no money left. transferToHelper also
+          // throws AFTER a transfer went out (its ledger write failed), and
+          // releasing then was the double spend the claim exists to stop: no
+          // ledger row, a free claim, and the admin's follow-up Quick Refund
+          // walked straight in (found building on the review round). A
+          // money-moved failure keeps the claim, which — stamped at its money
+          // step — never expires into another caller (claim_dispute_settlement:
+          // stuck_release) and pages ops with the statement to clear it once
+          // reconciled.
+          if (!(transferErr as { moneyMoved?: boolean } | null)?.moneyMoved) {
+            await releaseDisputeSettlementClaim(supabaseAdmin, jobId, releaseClaim.claim);
+          }
+          throw transferErr;
+        }
       }
 
       // Transfer already sent — a failed flip would leave the job "disputed"
@@ -1604,6 +1760,11 @@ serve(async (req) => {
         type: "info", link: `/my-posts?job=${job.id}`,
       });
 
+      // Settled. The claim would expire on its own and the job is no longer
+      // `disputed` so nothing could take it anyway, but leaving rows behind for
+      // a lock that is finished with is how a lock table turns into a mystery.
+      await releaseDisputeSettlementClaim(supabaseAdmin, jobId, releaseClaim.claim);
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
@@ -1646,6 +1807,11 @@ serve(async (req) => {
       // consumed the whole capture" outcome, which the branch below alerts on.
       let disputeRefundId: string | null = null;
       let disputeRefundCents = 0;
+      // Hoisted so the success path below can hand the claim back by token. It
+      // is TAKEN inside the try (immediately before the Stripe call, after every
+      // refusal that moves no money), but RELEASED after the flip, which is out
+      // there.
+      let refundClaimHeld: SettlementClaim | null = null;
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
           expand: ["latest_charge.balance_transaction"],
@@ -1690,11 +1856,96 @@ serve(async (req) => {
             // is rejected by Stripe with charge_already_refunded — still loud.
             // Skip entirely if withholding consumes the whole capture (Stripe
             // rejects a $0 refund); the job still flips to refunded below.
+            // Same claim as the release path, in the same place: immediately
+            // before the Stripe call and after every refusal that moves no
+            // money. OUTSIDE the `refundAmount > 0` test on purpose — the
+            // `else` branch below moves no money but still flips the job to
+            // cancelled/refunded, and a flip with no claim is exactly the state
+            // a concurrent Quick Release cannot see.
+            //
+            // `return`, not `throw`: this sits inside the refund try/catch, and
+            // a Response thrown here would be caught at the bottom of this
+            // block, rethrown, and rendered by the generic handler as an opaque
+            // 500 — turning "another admin is refunding this right now" into a
+            // mystery over a dispute where money may already be moving. The
+            // return exits `serve` and bypasses the catch entirely.
+            const refundClaim = await claimDisputeSettlement(
+              supabaseAdmin, jobId, "refund", user.id, "cancelled", "refunded",
+            );
+            if ("refusal" in refundClaim) return refundClaim.refusal;
+            refundClaimHeld = refundClaim.claim;
+
+            // ── Stripe, inside the claim: did a transfer for this job leave? ──
+            // The pre-claim ledger check reads payout_transfers, and a Quick
+            // Release whose transfer went out but whose ledger write failed —
+            // or whose holder died after Stripe answered — left no row there.
+            // Its claim sticks and pages, but once a person clears it this
+            // refund walked in over a paid Helpr (lh-money-escrow round 3, H2).
+            // Every transfer for a job carries `transfer_group: job_<id>`, so
+            // ask Stripe. Before BOTH branches: the zero-refund branch below
+            // still flips the job to refunded. Fails CLOSED.
+            let liveTransfer: { id: string; amount?: number; amount_reversed?: number } | undefined;
+            try {
+              const prior = await stripe.transfers.list({ transfer_group: `job_${jobId}`, limit: 100 });
+              liveTransfer = ((prior?.data ?? []) as Array<{ id: string; amount?: number; amount_reversed?: number }>)
+                .find((t) => Number(t.amount ?? 0) - Number(t.amount_reversed ?? 0) > 0);
+            } catch (listErr) {
+              await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaim.claim);
+              console.error(`[create-payment] admin_refund_dispute: transfers.list failed for job ${jobId}:`, listErr);
+              return new Response(JSON.stringify({
+                error: "Couldn't confirm with Stripe that no payout left for this job. No money was moved — try again.",
+              }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+            }
+            if (liveTransfer) {
+              await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaim.claim);
+              console.error(`[create-payment] admin_refund_dispute REFUSED for job ${jobId}: Stripe shows transfer ${liveTransfer.id} for this job`);
+              await postSlackOpsAlert({
+                kind: "money_at_risk",
+                severity: "critical",
+                title: "Quick Refund refused — a transfer for this job already left Stripe",
+                message: `Job ${jobId} is disputed with its escrow reading held, but Stripe shows transfer ${liveTransfer.id} in its transfer group and no payout ledger row blocked the refund. Nothing was refunded; reconcile by hand.`,
+                fields: { job_id: jobId, transfer_id: liveTransfer.id, amount_cents: Number(liveTransfer.amount ?? 0) },
+              });
+              return new Response(JSON.stringify({
+                error: "Stripe shows a payout to the Helpr already left for this job, so it can't also be refunded. Nothing was moved; this dispute needs manual reconciliation.",
+                alreadyMoved: true,
+              }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+            }
+
             if (refundAmount > 0) {
-              const refund = await stripe.refunds.create(
-                { payment_intent: paymentIntentId, amount: refundAmount },
-                { idempotencyKey: `refund-dispute-${jobId}` },
-              );
+              // Stamp at the money step (round 3, M2): only a claim that
+              // reached its Stripe call may stick; refund nothing without it.
+              if (!(await stampDisputeSettlementClaim(supabaseAdmin, jobId, refundClaim.claim))) {
+                await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaim.claim);
+                return new Response(JSON.stringify({
+                  error: "The settlement lock on this dispute was lost before the refund — no money was moved. Refresh and try again.",
+                }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+              }
+              let refund;
+              try {
+                refund = await stripe.refunds.create(
+                  { payment_intent: paymentIntentId, amount: refundAmount },
+                  { idempotencyKey: `refund-dispute-${jobId}` },
+                );
+              } catch (refundErr) {
+                // Give the claim back ONLY when Stripe DEFINITELY refused. A
+                // timeout, a dropped connection or a Stripe 5xx may have created
+                // the refund anyway (round-4 review, the mirror of the transfer
+                // rule in transferToHelper): the stamped claim then sticks and
+                // pages, instead of handing a Quick Release a clean claim.
+                // NOT StripeIdempotencyError (round-5 review, LOW-2): it means a
+                // request with this key already reached Stripe, so the refund
+                // may exist.
+                const type = String((refundErr as { type?: string } | null)?.type ?? "");
+                const definite = [
+                  "StripeInvalidRequestError",
+                  "StripeCardError",
+                  "StripePermissionError",
+                  "StripeAuthenticationError",
+                ].includes(type);
+                if (definite) await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaim.claim);
+                throw refundErr;
+              }
               disputeRefundId = refund.id;
               disputeRefundCents = Math.round(Number(refund.amount ?? refundAmount));
               await recordRefund(supabaseAdmin, {
@@ -1828,6 +2079,9 @@ serve(async (req) => {
         });
       }
 
+      // Settled — same tidy-up as the release path.
+      await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaimHeld);
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
@@ -1853,6 +2107,68 @@ serve(async (req) => {
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
+
+      // ── A disputed job is NOT a general refund ──────────────────────────
+      // This action deliberately accepts any job state (goodwill refunds on
+      // completed, released jobs are legitimate) and its flip below matches on
+      // id alone. On a DISPUTED job that combination is the third door into the
+      // release-vs-refund double spend: admin A's Quick Release transfers to the
+      // Helpr under `dispute-release-<job>`, admin B fires a general refund
+      // under `refund-general-<job>-full`, the keys are disjoint, both move, and
+      // the unguarded flip overwrites completed/released with cancelled/refunded
+      // — so the job row then disagrees with `payout_transfers` and the Helpr's
+      // Earnings screen.
+      //
+      // Refused rather than claimed: the dispute actions exist for this, they
+      // close the dispute record and write the audit row, and this one does
+      // neither. An admin who genuinely wants the poster refunded out of a
+      // dispute has a button for it.
+      if (job.status === "disputed") {
+        console.error(`[create-payment] admin_refund_general REFUSED on disputed job ${jobId} — use admin_refund_dispute`);
+        return new Response(
+          JSON.stringify({
+            error: "This job is under dispute. Use Quick Refund on the dispute instead — it closes the dispute record and writes the audit trail, and a general refund would race it. No money was moved.",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+        );
+      }
+
+      // Nor over a decided dispute whose split has not executed: that escrow is
+      // the decision's, and a full refund here followed by "Retry settlement"
+      // paid the split's legs on top (lh-money-escrow round 2). Fail closed.
+      const generalSettlement = await checkUnsettledDispute(supabaseAdmin, jobId);
+      if (generalSettlement.blocked) {
+        return new Response(
+          JSON.stringify({
+            error: generalSettlement.readError
+              ? "Couldn't check this job's dispute decision. No money was moved — try again."
+              : "An admin decision on this job's dispute hasn't executed yet. Settle it with Retry settlement instead. No money was moved.",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: generalSettlement.readError ? 503 : 409 },
+        );
+      }
+
+      // Nor while the poster's cancel_escrow refund is in flight: two refunds
+      // under disjoint keys on one charge, then two flips racing each other.
+      if (job.payment_status === "cancelling") {
+        return new Response(
+          JSON.stringify({
+            error: "The poster's cancellation is refunding this job right now. No money was moved — refresh in a minute.",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+        );
+      }
+
+      // And whatever the job's state, a full refund may not follow a payout.
+      // `payout_transfers` is the ledger of money that has already left to the
+      // Helpr; refunding the poster in full on top of it spends the escrow
+      // twice. A PARTIAL goodwill refund is still allowed — that is the
+      // platform choosing to eat a cost, not the escrow moving twice.
+      const wantsFullRefund = typeof amountCents !== "number";
+      if (wantsFullRefund) {
+        const alreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund");
+        if (alreadyPaidOut) return alreadyPaidOut;
+      }
 
       const totalCents = Math.round(Number(job.budget || 0) * 100);
       const requestedCents = typeof amountCents === "number" ? Math.round(amountCents) : null;
@@ -1944,15 +2260,47 @@ serve(async (req) => {
       // refunds leave the job state intact — the customer still owes the
       // remaining work or the helper still earned the unrefunded portion.
       if (!isPartial) {
-        const { data: generalRefundUpdated, error: generalRefundUpdateErr } = await supabaseAdmin.from("jobs").update({
+        // Conditional on the state this call READ (race-class audit 2026-09-14,
+        // deferred here from fa107a92f). Matched on id alone, this flip wrote
+        // cancelled/refunded over whatever landed during the Stripe round-trips
+        // — a dispute filed (open_dispute_as), a Quick Release that flipped the
+        // job completed/released, a payout that settled — so the job row then
+        // contradicted payout_transfers and the dispute record. Pinned to the
+        // read status AND payment_status, zero rows is re-read: a concurrent
+        // copy of this same full refund (one Stripe key, one refund) is this
+        // call's outcome too; anything else is money that moved while the job
+        // moved, and pages.
+        let generalFlip = supabaseAdmin.from("jobs").update({
           status: "cancelled",
           payment_status: "refunded",
           cancellation_reason: reason ? `[ADMIN REFUND] ${reason}` : "[ADMIN REFUND] Issued by support",
           cancelled_at: new Date().toISOString(),
           cancelled_by: user.id,
-        }).eq("id", jobId).select("id");
+        }).eq("id", jobId).eq("status", job.status);
+        generalFlip = job.payment_status == null
+          ? generalFlip.is("payment_status", null)
+          : generalFlip.eq("payment_status", job.payment_status);
+        let { data: generalRefundUpdated, error: generalRefundUpdateErr } = await generalFlip.select("id");
+        if (!generalRefundUpdateErr && (!generalRefundUpdated || generalRefundUpdated.length === 0)) {
+          const { data: nowJob } = await supabaseAdmin
+            .from("jobs").select("id, status, payment_status").eq("id", jobId).maybeSingle();
+          if (nowJob?.status === "cancelled" && nowJob?.payment_status === "refunded") {
+            generalRefundUpdated = [{ id: nowJob.id }];
+          } else {
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "General refund issued while the job changed state",
+              message:
+                `admin_refund_general refunded job ${jobId} in full, but the job moved ${job.status}/${job.payment_status ?? "null"} → ` +
+                `${nowJob?.status ?? "?"}/${nowJob?.payment_status ?? "?"} during the refund, so it was NOT flipped to refunded. ` +
+                "Check for a dispute or payout on it and reconcile by hand.",
+              fields: { job_id: jobId, read: `${job.status}/${job.payment_status ?? "null"}`, now: `${nowJob?.status ?? "?"}/${nowJob?.payment_status ?? "?"}` },
+            });
+          }
+        }
         if (generalRefundUpdateErr || !generalRefundUpdated || generalRefundUpdated.length === 0) {
-          console.error(`CRITICAL: general refund issued for job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, generalRefundUpdateErr ?? "matched 0 rows");
+          console.error(`CRITICAL: general refund issued for job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, generalRefundUpdateErr ?? "matched 0 rows (state moved)");
           return new Response(JSON.stringify({
             error: "refund issued but job status update failed — manual reconciliation needed",
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
@@ -2226,6 +2574,374 @@ async function logAdminMoneyAction(
  * notification, no audit row. Any other state returns null and the caller's
  * existing fail-loud path runs.
  */
+/**
+ * Has this job's escrow ALREADY moved, the other way?
+ *
+ * The claim is a mutex, not a settlement record: it says "no counterpart is in
+ * flight right now", and says nothing about one that finished. That gap is
+ * reachable. A Quick Release whose transfer succeeds and whose `jobs` flip then
+ * fails deliberately leaves the job `disputed` and returns a CRITICAL 500 for
+ * manual reconciliation; its stamped claim sticks and pages, and once a person
+ * clears it the job still reads `disputed` and Quick Refund is handed a clean
+ * claim on a charge whose escrow has already left. A handler killed between the
+ * Stripe call and the flip leaves exactly the same evidence.
+ *
+ * So the durable invariant is the LEDGER, not the lock: a refund refuses on a
+ * live payout row, a release refuses on a live refund row. This is the same
+ * check `transferToHelper` already makes against `payout_transfers` before a
+ * second transfer, generalised to the other direction.
+ *
+ * Fails CLOSED. A failed ledger read is indistinguishable from "nothing moved",
+ * and that is the one guess that spends the escrow twice.
+ */
+async function escrowAlreadyMovedTheOtherWay(
+  supabaseAdmin: any,
+  jobId: string,
+  action: "release" | "refund",
+): Promise<Response | null> {
+  const table = action === "release" ? "payment_refunds" : "payout_transfers";
+  // `payment_refunds` has NO status column (20260704120000; verified live
+  // 2026-09-14). A row there is written by recordRefund only AFTER Stripe
+  // returned the refund, so its existence is the fact that matters. The first
+  // draft of this filtered it `.in("status", …)`, which PostgREST answers with
+  // a 400 — fail-closed below turned that into a 503 on EVERY Quick Release.
+  // The mock store ignores filter columns, so no edge test could see it;
+  // src/test/edgeFilterColumnContract.test.ts now checks every edge filter
+  // column against the prod schema snapshot.
+  let ledger = supabaseAdmin.from(table).select("id").eq("job_id", jobId);
+  if (table === "payout_transfers") ledger = ledger.in("status", ["pending", "paid"]);
+  const { data, error } = await ledger.limit(1);
+  if (error) {
+    console.error(`[create-payment] ${action}: ${table} ledger read failed for job ${jobId}:`, error.message);
+    return new Response(
+      JSON.stringify({ error: "Couldn't verify whether this escrow has already moved. No money was moved here — try again." }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+    );
+  }
+  if (!data || data.length === 0) return null;
+  console.error(
+    `[create-payment] ${action} REFUSED for job ${jobId}: a ${action === "release" ? "refund" : "payout"} ledger row already exists — the escrow moved the other way.`,
+  );
+  await postSlackOpsAlert({
+    kind: "money_at_risk",
+    severity: "warning",
+    title: "Dispute settlement refused — the escrow already moved the other way",
+    message:
+      `A ${action} was attempted on job ${jobId}, but ${table} already holds a live row for it. ` +
+      "No money was moved. This job's dispute needs manual reconciliation: one side has already been paid.",
+    fields: { job_id: jobId, attempted: action, ledger: table },
+  });
+  return new Response(
+    JSON.stringify({
+      error:
+        action === "release"
+          ? "This escrow was already refunded to the poster — it can't also be released. Nothing was moved; this dispute needs manual reconciliation."
+          : "This escrow was already released to the Helpr — it can't also be refunded. Nothing was moved; this dispute needs manual reconciliation.",
+      alreadyMoved: true,
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+  );
+}
+
+/** What a successful claim hands back: the token that owns it. */
+type SettlementClaim = { token: string | null };
+
+/**
+ * Win the right to move this job's escrow, or be told who already has it.
+ *
+ * Quick Release and Quick Refund on the SAME job at once was the last hole in
+ * the dispute money paths (docs/OPEN.md, open since 2026-09-14). Both handlers
+ * end in a conditional `UPDATE jobs … WHERE status = 'disputed'`, and that is
+ * what made release-vs-release and refund-vs-refund safe — but it cannot make
+ * release-vs-REFUND safe, because the Stripe step runs FIRST in both. The two
+ * steps are a `transfers.create` and a `refunds.create` under different
+ * idempotency keys, so neither one's guard can see the other: both moved real
+ * money, then one won the flip and the other returned `alreadyResolved` over a
+ * job that had paid the Helpr AND refunded the poster.
+ *
+ * `claim_dispute_settlement` is a primary-key INSERT, so exactly one concurrent
+ * caller can win it and there is no read-then-write window to lose. It is taken
+ * immediately before the Stripe call and released if that call throws — never
+ * before, because the claim must not outlive an abort that moved no money.
+ *
+ * The TOKEN is what makes the release safe. A re-entrant same-action caller is
+ * let through (`joined`) but gets no token, so its own cleanup cannot delete
+ * the claim a different call's live Stripe request is standing on.
+ *
+ * Fails CLOSED. A claim RPC that errors is indistinguishable from "somebody
+ * else holds it", and guessing wrong here spends money twice.
+ *
+ * Returns a Response to send back, or the claim to carry to the release.
+ */
+async function claimDisputeSettlement(
+  supabaseAdmin: any,
+  jobId: string,
+  action: "release" | "refund",
+  adminId: string,
+  finalStatus: string,
+  finalPaymentStatus: string,
+): Promise<{ refusal: Response } | { claim: SettlementClaim }> {
+  // The ledger check comes FIRST: a claim taken on a job whose escrow has
+  // already gone the other way would be a lock held over a refusal.
+  const alreadyMoved = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, action);
+  if (alreadyMoved) return { refusal: alreadyMoved };
+
+  const { data: verdictRow, error } = await supabaseAdmin.rpc("claim_dispute_settlement", {
+    _job_id: jobId,
+    _action: action,
+    _admin_id: adminId,
+  });
+  if (error) {
+    // PGRST202 = the RPC is not deployed yet. Edge functions and migrations
+    // deploy on separate workflows, so this function CAN reach prod first, and
+    // for that gap both admin dispute buttons return 503. That is deliberate:
+    // there is no fallback that still protects the money, and the honest answer
+    // is to refuse rather than run unguarded. The other routes out of a dispute
+    // (rpc_decide_dispute + execute-dispute-split, or the 72h sweep) still work.
+    const code = (error as { code?: string }).code;
+    console.error(`[create-payment] claim_dispute_settlement failed for job ${jobId} (${action}):`, error.message);
+    return {
+      refusal: new Response(
+        JSON.stringify({
+          error:
+            code === "PGRST202"
+              ? "The settlement lock isn't deployed yet — this dispute can't be resolved safely until it is. No money was moved."
+              : "Couldn't take the settlement lock on this dispute. No money was moved — try again.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+      ),
+    };
+  }
+
+  const verdict = (verdictRow as { verdict?: string; token?: string } | null)?.verdict;
+  const token = (verdictRow as { token?: string } | null)?.token ?? null;
+
+  if (verdict === "claimed") return { claim: { token } };
+  // Re-entrant same action (a double-click, two admins on the same button).
+  // It used to be let through with no token: one Stripe key and one guarded
+  // flip made the pair safe while the holder lived. But the joiner moved money
+  // with no claim row of its own, so if the holder then died before its money
+  // step its unstamped claim expired (round 4, M2) with the joiner's Stripe
+  // call still in flight and nothing standing behind it (lh-money-escrow
+  // round 3, M3). The holder settles; the joiner is told so and moves nothing.
+  if (verdict === "joined") {
+    return {
+      refusal: new Response(
+        JSON.stringify({
+          error: action === "release"
+            ? "This dispute is already being released to the Helpr — nothing more was done. Refresh to see the result."
+            : "This dispute is already being refunded to the poster — nothing more was done. Refresh to see the result.",
+          inProgress: true,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+      ),
+    };
+  }
+
+  if (verdict === "split_pending") {
+    // A decided split has not executed. The admin's decision decides this
+    // escrow; Quick Release / Quick Refund may not settle over it.
+    return {
+      refusal: new Response(
+        JSON.stringify({
+          error: "An admin has already decided this dispute and its split hasn't executed yet. Use Retry settlement on that decision instead. No money was moved.",
+          splitPending: true,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+      ),
+    };
+  }
+
+  if (typeof verdict === "string" && verdict.startsWith("stuck_")) {
+    // A dead holder's claim: it may have moved money with no ledger row. The
+    // claim function has already paged ops with the reconcile-and-clear step.
+    const holder = verdict.slice("stuck_".length);
+    return {
+      refusal: new Response(
+        JSON.stringify({
+          error: `An earlier ${holder === "split" ? "split execution" : holder} on this dispute stopped part-way and may have moved money. Ops has been paged; this dispute is locked until they reconcile it. No money was moved here.`,
+          stuck: holder,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+      ),
+    };
+  }
+
+  if (verdict === "not_settleable") {
+    // The job is disputed but its escrow is not held: cancel_escrow is
+    // refunding it (`cancelling`), or it already went somewhere (cancelled,
+    // refunded, released, chargeback). Moving money now is the double spend
+    // the claim exists to stop, so refuse — loudly, because a disputed job in
+    // that state needs a person to close its dispute record.
+    const paymentStatus = String((verdictRow as { payment_status?: string } | null)?.payment_status ?? "unknown");
+    console.error(`[create-payment] ${action} REFUSED for disputed job ${jobId}: payment_status=${paymentStatus} is not a held escrow`);
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Dispute action refused — the escrow is not held",
+      message:
+        `An admin ${action} on disputed job ${jobId} was refused: payment_status is ${paymentStatus}, so the escrow ` +
+        "is being cancelled or has already moved. No money was moved; close this dispute by hand.",
+      fields: { job_id: jobId, attempted: action, payment_status: paymentStatus },
+    });
+    return {
+      refusal: new Response(
+        JSON.stringify({
+          error: paymentStatus === "cancelling"
+            ? "The poster's cancellation is refunding this escrow right now, so it can't be released or refunded here. No money was moved — refresh in a minute."
+            : `This escrow is no longer held (payment ${paymentStatus}), so it can't be released or refunded here. No money was moved — this dispute needs manual reconciliation.`,
+          notSettleable: true,
+          paymentStatus,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+      ),
+    };
+  }
+
+  if (verdict === "not_disputed") {
+    // The 72h sweep got there first: completed / payout_pending /
+    // auto_resolved. Correctly settled, just not by this admin — the first
+    // draft read it as "left the queue unsettled" and paged money_at_risk over
+    // a job that was fine (lh-money-escrow review, MEDIUM-3). A release reports
+    // it resolved; a refund is told plainly the escrow went to the Helpr.
+    const { data: nowJob, error: nowErr } = await supabaseAdmin
+      .from("jobs").select("status, payment_status, dispute_status").eq("id", jobId).maybeSingle();
+    if (!nowErr && nowJob?.dispute_status === "auto_resolved" && nowJob?.status === "completed" && nowJob?.payment_status === "payout_pending") {
+      return {
+        refusal: new Response(
+          JSON.stringify(
+            action === "release"
+              ? { success: true, alreadyResolved: true, resolvedBy: "auto_resolve", message: "The 72-hour dispute timeout already released this escrow to the Helpr — nothing more was done." }
+              : { error: "The 72-hour dispute timeout already settled this escrow to the Helpr (it pays out after the 24-hour hold), so it can't be refunded here. No money was moved.", resolvedBy: "auto_resolve" },
+          ),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: action === "release" ? 200 : 409 },
+        ),
+      };
+    }
+    // NOT automatically a success. "Not disputed" also describes a job a
+    // withdrawal just restored to `in_progress` with the escrow still held, and
+    // telling the admin that was "already resolved" would retire it from the
+    // queue with nobody paid. Defer to the verified check, which only says
+    // resolved after re-reading the exact terminal pair.
+    const settled = await alreadyResolvedDispute(supabaseAdmin, jobId, finalStatus, finalPaymentStatus);
+    if (settled) return { refusal: settled };
+    // Settled the OTHER way by the counterpart admin action (a Quick Release
+    // landed before this Quick Refund, or vice versa). Correct and final, so a
+    // clean 409 — not the "left the queue unsettled" money page, which would
+    // fire on every crossed pair the claim just resolved correctly.
+    const otherWay = action === "release"
+      ? nowJob?.status === "cancelled" && nowJob?.payment_status === "refunded"
+      : nowJob?.status === "completed" && nowJob?.payment_status === "released";
+    if (!nowErr && otherWay) {
+      return {
+        refusal: new Response(
+          JSON.stringify({
+            error: action === "release"
+              ? "This dispute was already settled by refunding the poster, so it can't also be released. No money was moved."
+              : "This dispute was already settled by releasing the escrow to the Helpr, so it can't also be refunded. No money was moved.",
+            settledOtherWay: true,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+        ),
+      };
+    }
+    console.error(
+      `[create-payment] ${action} on job ${jobId}: no longer disputed, but NOT settled either — the dispute left the queue with the escrow still held.`,
+    );
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Dispute left the queue unsettled",
+      message:
+        `An admin ${action} on job ${jobId} found the job no longer disputed, but it has not settled to ` +
+        `${finalStatus}/${finalPaymentStatus} either. The escrow may still be held with nobody paid.`,
+      fields: { job_id: jobId, attempted: action },
+    });
+    return {
+      refusal: new Response(
+        JSON.stringify({
+          error: "This job is no longer under dispute, but its payment hasn't settled either. No money was moved — refresh, and if it still looks wrong this one needs manual reconciliation.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+      ),
+    };
+  }
+
+  const other = String(verdict).replace("held_by_", "");
+  console.log(`[create-payment] ${action} on job ${jobId} refused: a ${other} is already in flight`);
+  // Every holder the claim table admits, by name. The first draft had two
+  // branches, so a job held by the 72h sweep or by execute-dispute-split told
+  // the admin "Another admin is refunding this escrow" — the wrong party AND
+  // the wrong direction, on the one screen deciding which way money goes.
+  const heldByCopy: Record<string, string> = {
+    release: "Another admin is releasing this escrow to the Helpr right now.",
+    refund: "Another admin is refunding this escrow to the poster right now.",
+    split: "This dispute's decided split is being executed right now.",
+    sweep: "The 72-hour dispute timeout is settling this job right now.",
+  };
+  return {
+    refusal: new Response(
+      JSON.stringify({
+        error:
+          `${heldByCopy[other] ?? "Another settlement is already moving this escrow."} ` +
+          "No money was moved here — refresh to see the result.",
+        heldBy: other,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+    ),
+  };
+}
+
+/**
+ * Hand the claim back. Release by TOKEN: a caller with no token owns nothing and
+ * must free nothing, or a re-entrant loser's cleanup deletes the winner's claim
+ * mid-transfer. Best-effort, retried once — an unstamped leftover expires after
+ * the claim TTL; a stamped one sticks and pages, correctly.
+ */
+async function releaseDisputeSettlementClaim(
+  supabaseAdmin: any,
+  jobId: string,
+  claim: SettlementClaim | null,
+): Promise<void> {
+  if (!claim?.token) return;
+  // Retried once (round 3, M2). A claim left behind by one failed RPC locks
+  // both admin buttons out of the dispute until it expires. An UNSTAMPED
+  // leftover then expires quietly (it moved nothing); a stamped one pages,
+  // correctly, because its holder reached a money step.
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const { error } = await supabaseAdmin.rpc("release_dispute_settlement_claim", {
+      _job_id: jobId,
+      _token: claim.token,
+    });
+    if (!error) return;
+    console.error(`[create-payment] release_dispute_settlement_claim failed for job ${jobId} (attempt ${attempt}):`, error.message);
+  }
+}
+
+/**
+ * Stamp the claim at the money step (round 3, M2), immediately BEFORE the
+ * Stripe call that moves money. Only a stamped claim sticks when its holder
+ * dies (`stuck_*`, a critical page); an unstamped one moved nothing and
+ * expires. Returns false when the stamp did not land — the claim is gone or
+ * was never this caller's — and the caller must then move NO money.
+ */
+async function stampDisputeSettlementClaim(
+  supabaseAdmin: any,
+  jobId: string,
+  claim: SettlementClaim | null,
+): Promise<boolean> {
+  if (!claim?.token) return false;
+  const { data, error } = await supabaseAdmin.rpc("stamp_dispute_settlement_claim", {
+    _job_id: jobId,
+    _token: claim.token,
+  });
+  if (error) {
+    console.error(`[create-payment] stamp_dispute_settlement_claim failed for job ${jobId}:`, error.message);
+    return false;
+  }
+  return data === true;
+}
+
 async function alreadyResolvedDispute(
   supabaseAdmin: any,
   jobId: string,
@@ -2252,7 +2968,12 @@ async function transferToHelper(
   paymentIntentId: string | null,
   jobId: string,
   platformFeeAmount = 0,
-  initiatedByUserId: string | null = null
+  initiatedByUserId: string | null = null,
+  // Called immediately before `stripe.transfers.create`; the transfer is made
+  // only if it resolves true. The dispute release stamps its settlement claim
+  // here (round 3, M2), so every no-money exit above it — the profile read,
+  // the ledger check, the charge link — leaves an unstamped claim.
+  beforeTransfer?: () => Promise<boolean>,
 ) {
   // Get helper's connected account. Distinguish a READ ERROR from a missing
   // account so a transient failure doesn't send admins chasing "helper never
@@ -2296,6 +3017,12 @@ async function transferToHelper(
       currency: "usd",
       destination: helperProfile.stripe_account_id,
       metadata: { job_id: jobId, helper_id: helperId, initiated_by: "admin" },
+      // The job's transfer group, the same `job_<id>` release-payout,
+      // process-scheduled-payouts and the dispute split use. It is what lets a
+      // Quick Refund ask Stripe, inside its claim, whether a transfer for this
+      // job already left — the durable answer when this call's ledger write
+      // failed or its holder died after Stripe answered (round 3, H2).
+      transfer_group: `job_${jobId}`,
     };
 
     // Link the transfer to the source charge if we have one
@@ -2310,11 +3037,38 @@ async function transferToHelper(
       }
     }
 
+    if (beforeTransfer && !(await beforeTransfer())) {
+      // The settlement claim is no longer this caller's. No money moved, so
+      // this is NOT moneyMoved: the caller hands back whatever it still holds.
+      throw new Error("The settlement lock on this dispute was lost before the transfer — no money was moved. Refresh and try again.");
+    }
+
     // Stripe-level idempotency: same dispute release = same transfer, so a
     // retry never double-pays even if the ledger write below failed first.
-    const transfer = await stripe.transfers.create(transferParams, {
-      idempotencyKey: `dispute-release-${jobId}`,
-    });
+    let transfer;
+    try {
+      transfer = await stripe.transfers.create(transferParams, {
+        idempotencyKey: `dispute-release-${jobId}`,
+      });
+    } catch (stripeErr) {
+      // Only a DEFINITE refusal proves no transfer exists. A timeout, a dropped
+      // connection or a Stripe 5xx may have created it anyway, and handing the
+      // settlement claim back then let a Quick Refund take a clean claim over
+      // an empty ledger and refund on top (lh-money-escrow review round 3, H2).
+      // Anything not on this list keeps the claim: it sticks (stuck_release)
+      // and pages ops to reconcile against Stripe.
+      // NOT StripeIdempotencyError (round-5 review, LOW-5): it means a request
+      // with this key already reached Stripe, so the transfer may exist.
+      const type = String((stripeErr as { type?: string } | null)?.type ?? "");
+      const definite = [
+        "StripeInvalidRequestError",
+        "StripeCardError",
+        "StripePermissionError",
+        "StripeAuthenticationError",
+      ].includes(type);
+      if (!definite) (stripeErr as { moneyMoved?: boolean }).moneyMoved = true;
+      throw stripeErr;
+    }
     console.log(`Transferred $${amount.toFixed(2)} to helper ${helperId} (transfer: ${transfer.id})`);
 
     // Insert as "paid" immediately — same pattern as release-payout and
@@ -2360,7 +3114,11 @@ async function transferToHelper(
       }
     }
     if (ledgerErr) {
-      throw new Error(`transfer ${transfer.id} sent but ledger write failed — manual reconciliation needed: ${ledgerErr.message}`);
+      // `moneyMoved`: the caller must NOT hand back its settlement claim — the
+      // transfer is out and no ledger row says so.
+      const sentErr = new Error(`transfer ${transfer.id} sent but ledger write failed — manual reconciliation needed: ${ledgerErr.message}`);
+      (sentErr as Error & { moneyMoved?: boolean }).moneyMoved = true;
+      throw sentErr;
     }
   } catch (e) {
     console.error(`Failed to transfer to helper ${helperId}:`, e);

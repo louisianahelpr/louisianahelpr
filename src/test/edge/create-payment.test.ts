@@ -1022,6 +1022,7 @@ describe("create-payment edge function", () => {
           {
             id: "job-1",
             customer_id: POSTER.id,
+            status: "open",
             stripe_payment_intent_id: "pi_live",
             budget: 100,
             customer_fee_amount: 10,
@@ -1079,6 +1080,7 @@ describe("create-payment edge function", () => {
           {
             id: "job-1",
             customer_id: POSTER.id,
+            status: "open",
             stripe_payment_intent_id: "pi_live",
             budget: 0,
             customer_fee_amount: 2,
@@ -1118,6 +1120,92 @@ describe("create-payment edge function", () => {
       expect((cancelUpdate?.payload as Record<string, unknown>).status).toBe(
         "cancelled",
       );
+    });
+
+    // cancel_escrow checked payment_status alone, and a disputed job's escrow
+    // is still `escrow` — so the poster could POST this action (no UI needed,
+    // the JWT is enough) and refund themselves out of a live dispute, or race an
+    // admin Quick Release into a double spend. poster_cancel_job has always
+    // excluded `disputed`; this door now does too.
+    it("refuses a DISPUTED job: 409, no Stripe call, no claim written", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed",
+          payment_status: "escrow", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: 10,
+        }],
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 11000, amount_received: 11000 });
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect((await json(res)).disputed).toBe(true);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    });
+
+    it("the atomic claim carries the allowlist, so a hire or a filing after the read still wins", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: 10 }],
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 11000, amount_received: 11000 });
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      const claim = scenario.writes.find(
+        (w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "cancelling",
+      );
+      expect(claim?.filters).toEqual(expect.arrayContaining([{ op: "eq", column: "status", value: "open" }]));
+    });
+
+    // A poster with a JWT can POST this directly. On a HIRED job it skipped the
+    // cancellation-fee ladder poster_cancel_job charges; on a job with a
+    // decided-but-unexecuted dispute (rpc_decide_dispute moves status off
+    // `disputed`) it overrode the admin's split. Allowlist: open + no Helpr.
+    it.each([
+      ["in_progress, hired", { status: "in_progress", helper_id: HELPER.id }, "useCancelJob"],
+      ["accepted, hired", { status: "accepted", helper_id: HELPER.id }, "useCancelJob"],
+      ["completed (decided split pending)", { status: "completed", helper_id: HELPER.id }, "disputed"],
+    ])("refuses a %s job: 409, no Stripe call, no claim written", async (_label, fields, flag) => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: POSTER.id, payment_status: "escrow", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: 10, ...fields }],
+      };
+      if (flag === "disputed") {
+        scenario.reads.disputes = { rows: [{ id: "d-1", execution_status: "pending", payout_split: { poster: 0.5, helper: 0.5 } }] };
+      }
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect((await json(res))[flag]).toBe(true);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    });
+
+    it("refuses an OPEN job that still carries a decided, unexecuted dispute", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, payment_status: "escrow", stripe_payment_intent_id: "pi_live" }] };
+      scenario.reads.disputes = { rows: [{ id: "d-1", execution_status: null, payout_split: {} }] };
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    });
+
+    it("fails CLOSED (503, nothing moved) when the dispute check cannot be read", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, payment_status: "escrow", stripe_payment_intent_id: "pi_live" }] };
+      scenario.reads.disputes = { error: { message: "read blew up" } };
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(503);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
     });
 
     it("non-owner cannot cancel another poster's escrow", async () => {
@@ -1744,6 +1832,526 @@ describe("create-payment edge function", () => {
         ).toBe(true);
       });
 
+      // ── The settlement claim (20260915034822) ──────────────────────────
+      // Quick Release and Quick Refund on the SAME job at once each ran their
+      // Stripe step before the guarded `jobs` flip, under different idempotency
+      // keys, so the escrow paid the Helpr AND refunded the poster. The claim
+      // is taken immediately before the Stripe call; these four cases are the
+      // whole contract. BUILT 2026-09-14, not yet measured on prod
+      // (scripts/probes/admin-release-vs-refund.prod.mjs).
+      describe("settlement claim", () => {
+        it("takes the claim before the transfer, and hands it back when settled", async () => {
+          seedReleasable();
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(200);
+          const claims = scenario.rpcCalls!.filter((c) => c.name === "claim_dispute_settlement");
+          expect(claims).toHaveLength(1);
+          expect(claims[0].args).toMatchObject({ _job_id: "job-1", _action: "release" });
+          // Order is the whole point: a claim taken after the transfer guards
+          // nothing.
+          const claimAt = scenario.rpcCalls!.findIndex((c) => c.name === "claim_dispute_settlement");
+          const settleAt = scenario.rpcCalls!.findIndex((c) => c.name === "settle_dispute_record");
+          expect(claimAt).toBeLessThan(settleAt);
+          expect(stripeMock.transfers.create).toHaveBeenCalled();
+          expect(
+            scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim"),
+          ).toBe(true);
+        });
+
+        it("refuses with 409 when the other action holds the claim, and moves no money", async () => {
+          seedReleasable();
+          scenario.rpc.claim_dispute_settlement = { verdict: "held_by_refund" };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(409);
+          expect((await json(res)).heldBy).toBe("refund");
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+          // Nothing was flipped, closed or logged either.
+          expect(scenario.rpcCalls!.some((c) => c.name === "settle_dispute_record")).toBe(false);
+        });
+
+        it("a re-entrant same-action caller (`joined`) gets 409 and moves NO money (round 3, M3)", async () => {
+          seedReleasable();
+          // `joined` is what the RPC returns to a second concurrent Quick
+          // Release. It holds no token and no claim row is its own, so letting
+          // it through moved money with nothing standing behind it: if the
+          // holder then died unstamped its claim expired while this caller's
+          // transfer was still in flight. The holder settles; the joiner waits.
+          scenario.rpc.claim_dispute_settlement = { verdict: "joined" };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          const body = await json(res);
+          expect(res.status).toBe(409);
+          expect(body.inProgress).toBe(true);
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+          expect(scenario.rpcCalls!.some((c) => c.name === "settle_dispute_record")).toBe(false);
+          expect(
+            scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim"),
+          ).toBe(false);
+        });
+
+        it("a joined Quick Refund gets 409 and issues NO refund (round 3, M3)", async () => {
+          seedRefundable();
+          scenario.rpc.claim_dispute_settlement = { verdict: "joined" };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(409);
+          expect((await json(res)).inProgress).toBe(true);
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+          expect(jobUpdate()).toBeUndefined();
+        });
+
+        it("stamps the claim immediately before the transfer, by token (round 3, M2)", async () => {
+          seedReleasable();
+          scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "tok-s" };
+          let callsAtTransfer = -1;
+          stripeMock.transfers.create.mockImplementation(async () => {
+            callsAtTransfer = scenario.rpcCalls!.length;
+            return { id: "tr_d" };
+          });
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(200);
+          const stamps = scenario.rpcCalls!
+            .map((c, i) => ({ ...c, i }))
+            .filter((c) => c.name === "stamp_dispute_settlement_claim");
+          expect(stamps).toHaveLength(1);
+          expect(stamps[0].args).toMatchObject({ _job_id: "job-1", _token: "tok-s" });
+          // The stamp is the LAST rpc before the transfer: every no-money exit
+          // before it (profile read, ledger check, charge link) leaves an
+          // unstamped claim that expires instead of paging.
+          expect(stamps[0].i).toBe(callsAtTransfer - 1);
+        });
+
+        it("moves NO money when the stamp does not land — the claim is no longer this caller's (round 3, M2)", async () => {
+          seedReleasable();
+          scenario.rpc.stamp_dispute_settlement_claim = false;
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBeGreaterThanOrEqual(400);
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+          expect(jobUpdate()).toBeUndefined();
+        });
+
+        it("stamps before the Quick Refund's Stripe refund, and refunds nothing without the stamp (round 3, M2)", async () => {
+          seedRefundable();
+          scenario.rpc.stamp_dispute_settlement_claim = false;
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBeGreaterThanOrEqual(400);
+          expect(scenario.rpcCalls!.some((c) => c.name === "stamp_dispute_settlement_claim")).toBe(true);
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+          expect(jobUpdate()).toBeUndefined();
+        });
+
+        it("retries a failed claim release once before giving up (round 3, M2)", async () => {
+          seedReleasable();
+          scenario.rpcErrors = { release_dispute_settlement_claim: { message: "connection reset", code: "08006" } };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(200);
+          expect(scenario.rpcCalls!.filter((c) => c.name === "release_dispute_settlement_claim")).toHaveLength(2);
+        });
+
+        it("tags the Quick Release transfer with the job's transfer_group so the counterpart can find it (round 3, H2)", async () => {
+          seedReleasable();
+          const fn = await load();
+          await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }));
+          expect(stripeMock.transfers.create.mock.calls[0][0]).toMatchObject({ transfer_group: "job_job-1" });
+        });
+
+        it("Quick Release asks Stripe inside the claim too: a transfer for the job with NO ledger row blocks a second transfer", async () => {
+          // The mirror of the H2 check below. A split transfer or an earlier
+          // Quick Release that went out with no payout_transfers row is
+          // invisible to transferToHelper's ledger guard, and a fresh transfer
+          // under this action's own idempotency key paid the Helpr twice — the
+          // exit rpc_supersede_dispute_decision opens (round 4 review).
+          seedReleasable();
+          scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "tok-g" };
+          stripeMock.transfers.list.mockResolvedValue({
+            data: [{ id: "tr_ghost", amount: 8800, amount_reversed: 0, transfer_group: "job_job-1" }],
+          });
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(409);
+          expect((await json(res)).alreadyMoved).toBe(true);
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+          expect(jobUpdate()).toBeUndefined();
+          expect(scenario.rpcCalls!.filter((c) => c.name === "release_dispute_settlement_claim")).toEqual([
+            expect.objectContaining({ args: { _job_id: "job-1", _token: "tok-g" } }),
+          ]);
+        });
+
+        it("Quick Release control: a transfer the ledger already records is the idempotent re-run, not a ghost", async () => {
+          seedReleasable();
+          stripeMock.transfers.list.mockResolvedValue({
+            data: [{ id: "tr_d", amount: 8800, amount_reversed: 0, transfer_group: "job_job-1" }],
+          });
+          scenario.reads.payout_transfers = {
+            selectOverrides: [
+              { includes: "amount_cents", result: { rows: [{ stripe_transfer_id: "tr_d", amount_cents: 8800, status: "paid" }] } },
+              { includes: "status", result: { rows: [{ stripe_transfer_id: "tr_d", status: "paid" }] } },
+            ],
+          };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(200);
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+          expect(jobUpdate()!.payment_status).toBe("released");
+        });
+
+        it("Quick Refund asks Stripe inside the claim: a transfer already out for the job (no ledger row) blocks the refund (round 3, H2)", async () => {
+          seedRefundable();
+          scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "tok-q" };
+          stripeMock.transfers.list.mockResolvedValue({
+            data: [{ id: "tr_ghost", amount: 8800, amount_reversed: 0, reversed: false, transfer_group: "job_job-1" }],
+          });
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+          );
+          const body = await json(res);
+          expect(res.status).toBe(409);
+          expect(body.alreadyMoved).toBe(true);
+          expect(stripeMock.transfers.list).toHaveBeenCalledWith(expect.objectContaining({ transfer_group: "job_job-1" }));
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+          expect(jobUpdate()).toBeUndefined();
+          expect(slackAlerts.some((a) => (a as { title?: string }).title === "Quick Refund refused — a transfer for this job already left Stripe")).toBe(true);
+          expect(scenario.rpcCalls!.filter((c) => c.name === "release_dispute_settlement_claim")).toEqual([
+            expect.objectContaining({ args: { _job_id: "job-1", _token: "tok-q" } }),
+          ]);
+        });
+
+        it("Quick Refund KEEPS its claim when the Stripe refund fails ambiguously — the refund may exist (round 5)", async () => {
+          seedRefundable();
+          stripeMock.refunds.create.mockRejectedValueOnce(Object.assign(new Error("socket hang up"), { type: "StripeConnectionError" }));
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBeGreaterThanOrEqual(400);
+          expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(false);
+        });
+
+        it("Quick Refund KEEPS its claim on a StripeIdempotencyError — a request with that key already ran (round 5, LOW-2)", async () => {
+          seedRefundable();
+          stripeMock.refunds.create.mockRejectedValueOnce(Object.assign(new Error("Keys for idempotent requests can only be used with the same parameters"), { type: "StripeIdempotencyError" }));
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBeGreaterThanOrEqual(400);
+          expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(false);
+        });
+
+        it("Quick Refund gives the claim back when Stripe DEFINITELY refused the refund (round 5)", async () => {
+          seedRefundable();
+          stripeMock.refunds.create.mockRejectedValueOnce(Object.assign(new Error("charge already refunded"), { type: "StripeInvalidRequestError" }));
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBeGreaterThanOrEqual(400);
+          expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(true);
+        });
+
+        it("Quick Refund fails CLOSED when Stripe's transfer list cannot be read (round 3, H2)", async () => {
+          seedRefundable();
+          stripeMock.transfers.list.mockRejectedValue(new Error("stripe down"));
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(503);
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        });
+
+        it("Quick Refund control: a fully reversed transfer does not block the refund (round 3, H2)", async () => {
+          seedRefundable();
+          stripeMock.transfers.list.mockResolvedValue({
+            data: [{ id: "tr_back", amount: 8800, amount_reversed: 8800, reversed: true, transfer_group: "job_job-1" }],
+          });
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(200);
+          expect(stripeMock.refunds.create).toHaveBeenCalled();
+        });
+
+        it("releases by TOKEN, never by job_id alone", async () => {
+          seedReleasable();
+          scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "tok-abc" };
+          const fn = await load();
+          await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }));
+          const rel = scenario.rpcCalls!.filter((c) => c.name === "release_dispute_settlement_claim");
+          expect(rel).toHaveLength(1);
+          expect(rel[0].args).toMatchObject({ _job_id: "job-1", _token: "tok-abc" });
+        });
+
+        it("refuses a release when the escrow was already refunded — the claim is only a mutex, not a ledger", async () => {
+          seedReleasable();
+          // The durable invariant is the LEDGER, not the lock: a release whose
+          // flip failed leaves the job `disputed`, the claim expires after five
+          // minutes, and a refund is otherwise handed a clean claim on a charge
+          // whose escrow has already gone.
+          scenario.reads.payment_refunds = { rows: [{ id: "ref-1" }] };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(409);
+          expect((await json(res)).alreadyMoved).toBe(true);
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+          // And the claim was never taken, so it cannot be held over a refusal.
+          expect(scenario.rpcCalls!.some((c) => c.name === "claim_dispute_settlement")).toBe(false);
+        });
+
+        it("a Quick Refund arriving after a Quick Release settled the job gets a clean 409, not a money page", async () => {
+          seedReleasable();
+          scenario.rpc.claim_dispute_settlement = { verdict: "not_disputed" };
+          scenario.reads.jobs = {
+            selectOverrides: [
+              { includes: "status, payment_status", result: { rows: [{ status: "completed", payment_status: "released", dispute_status: "resolved" }] } },
+            ],
+            rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", budget: 100, urgent_fee: 0, platform_fee_amount: 10, helper_fee_percent: 10, title: "Disputed job", stripe_payment_intent_id: "pi_d" }],
+          };
+          stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_d", status: "succeeded", amount: 11000, amount_received: 11000 });
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+          );
+          const body = await json(res);
+          expect(res.status).toBe(409);
+          expect(body.settledOtherWay).toBe(true);
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+          expect(slackAlerts.some((a) => (a as { title?: string }).title === "Dispute left the queue unsettled")).toBe(false);
+        });
+
+        it("does not report `not_disputed` as resolved unless the job actually settled", async () => {
+          seedReleasable();
+          // A withdrawal restores the job to in_progress with the escrow still
+          // held. That is "not disputed" and emphatically not "resolved":
+          // saying so would retire it from the queue with nobody paid.
+          scenario.rpc.claim_dispute_settlement = { verdict: "not_disputed" };
+          scenario.reads.jobs = {
+            selectOverrides: [
+              { includes: "status, payment_status", result: { rows: [{ status: "in_progress", payment_status: "escrow" }] } },
+            ],
+            rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", budget: 100, urgent_fee: 0, platform_fee_amount: 10, helper_fee_percent: 10, title: "Disputed job", stripe_payment_intent_id: "pi_d" }],
+          };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(409);
+          expect(await json(res)).not.toMatchObject({ alreadyResolved: true });
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+        });
+
+        it("refuses a general refund on a disputed job — the third door into the same double spend", async () => {
+          seedAuth(scenario, ADMIN);
+          scenario.rpc.has_role = true;
+          scenario.reads.jobs = {
+            rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", budget: 100, title: "Disputed job", stripe_payment_intent_id: "pi_d" }],
+          };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill" } }),
+          );
+          expect(res.status).toBe(409);
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        });
+
+        it.each([
+          ["sweep", /72-hour dispute timeout/],
+          ["split", /decided split is being executed/],
+        ])("names the real holder when the claim is held_by_%s — never 'another admin is refunding'", async (holder, copy) => {
+          seedReleasable();
+          scenario.rpc.claim_dispute_settlement = { verdict: `held_by_${holder}` };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          const body = await json(res);
+          expect(res.status).toBe(409);
+          expect(body.heldBy).toBe(holder);
+          expect(String(body.error)).toMatch(copy);
+          expect(String(body.error)).not.toMatch(/refunding this escrow to the poster/);
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+        });
+
+        it.each(["cancelling", "refunded"])(
+          "refuses (409, no transfer) when the claim says the escrow is not held: payment %s",
+          async (paymentStatus) => {
+            seedReleasable();
+            scenario.rpc.claim_dispute_settlement = { verdict: "not_settleable", payment_status: paymentStatus };
+            const fn = await load();
+            const res = await fn.fetch(
+              fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+            );
+            const body = await json(res);
+            expect(res.status).toBe(409);
+            expect(body.notSettleable).toBe(true);
+            expect(body.paymentStatus).toBe(paymentStatus);
+            expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+            expect(scenario.rpcCalls!.some((c) => c.name === "settle_dispute_record")).toBe(false);
+          },
+        );
+
+        it("the 72h sweep already settled it: a release reports resolved, with no false money_at_risk page", async () => {
+          seedReleasable();
+          scenario.rpc.claim_dispute_settlement = { verdict: "not_disputed" };
+          scenario.reads.jobs = {
+            selectOverrides: [
+              { includes: "dispute_status", result: { rows: [{ status: "completed", payment_status: "payout_pending", dispute_status: "auto_resolved" }] } },
+            ],
+            rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", budget: 100, urgent_fee: 0, platform_fee_amount: 10, helper_fee_percent: 10, title: "Disputed job", stripe_payment_intent_id: "pi_d" }],
+          };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          const body = await json(res);
+          expect(res.status).toBe(200);
+          expect(body).toMatchObject({ alreadyResolved: true, resolvedBy: "auto_resolve" });
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+          expect(slackAlerts.some((a) => (a as { title?: string }).title === "Dispute left the queue unsettled")).toBe(false);
+        });
+
+        it.each([
+          ["split_pending", "splitPending"],
+          ["stuck_release", "stuck"],
+        ])("refuses (409, no transfer) when the claim answers %s", async (verdict, key) => {
+          seedReleasable();
+          scenario.rpc.claim_dispute_settlement = { verdict };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          const body = await json(res);
+          expect(res.status).toBe(409);
+          expect(body[key]).toBeTruthy();
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+        });
+
+        it("asks Stripe inside the claim: a charge already refunded (no ledger row) blocks the transfer and frees the claim", async () => {
+          seedReleasable();
+          scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "tok-r" };
+          stripeMock.paymentIntents.retrieve.mockResolvedValue({
+            id: "pi_d", status: "succeeded", latest_charge: { id: "ch_1", amount_refunded: 5000 },
+          });
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(409);
+          expect((await json(res)).alreadyMoved).toBe(true);
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+          expect(scenario.rpcCalls!.filter((c) => c.name === "release_dispute_settlement_claim")).toEqual([
+            expect.objectContaining({ args: { _job_id: "job-1", _token: "tok-r" } }),
+          ]);
+        });
+
+        it("KEEPS the claim when the transfer went out but its ledger write failed — a free claim there is the double spend", async () => {
+          seedReleasable();
+          scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "tok-m" };
+          stripeMock.transfers.create.mockResolvedValue({ id: "tr_sent" });
+          scenario.writeErrors.payout_transfers = { message: "insert refused" };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBeGreaterThanOrEqual(500);
+          expect(stripeMock.transfers.create).toHaveBeenCalled();
+          expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(false);
+        });
+
+        it("refuses a general refund over a decided, unexecuted dispute", async () => {
+          seedAuth(scenario, ADMIN);
+          scenario.rpc.has_role = true;
+          scenario.reads.jobs = {
+            rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "completed", payment_status: "escrow", budget: 100, title: "Decided job", stripe_payment_intent_id: "pi_d" }],
+          };
+          scenario.reads.disputes = { rows: [{ id: "d-1", execution_status: "pending", payout_split: { poster: 0.5, helper: 0.5 } }] };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill" } }),
+          );
+          expect(res.status).toBe(409);
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        });
+
+        it("fails CLOSED when the claim RPC errors — guessing here spends twice", async () => {
+          seedReleasable();
+          scenario.rpcErrors = { claim_dispute_settlement: { message: "boom", code: "XX000" } };
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(503);
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+        });
+
+        it("KEEPS the claim when Stripe fails ambiguously (timeout / connection / 5xx) — the transfer may exist", async () => {
+          seedReleasable();
+          stripeMock.transfers.create.mockRejectedValueOnce(Object.assign(new Error("socket hang up"), { type: "StripeConnectionError" }));
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBeGreaterThanOrEqual(400);
+          expect(
+            scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim"),
+          ).toBe(false);
+        });
+
+        it("KEEPS the claim on a StripeIdempotencyError from the transfer — a request with that key already ran (round-5 review, LOW-5)", async () => {
+          seedReleasable();
+          stripeMock.transfers.create.mockRejectedValueOnce(Object.assign(new Error("Keys for idempotent requests can only be used with the same parameters"), { type: "StripeIdempotencyError" }));
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBeGreaterThanOrEqual(400);
+          expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(false);
+        });
+
+        it("gives the claim back when Stripe DEFINITELY refused the transfer, so the counterpart is not locked out", async () => {
+          seedReleasable();
+          stripeMock.transfers.create.mockRejectedValueOnce(Object.assign(new Error("insufficient funds"), { type: "StripeInvalidRequestError" }));
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBeGreaterThanOrEqual(400);
+          expect(
+            scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim"),
+          ).toBe(true);
+        });
+      });
+
       it("an audit-log write that matches zero rows is never silent", async () => {
         seedReleasable();
         scenario.writeSelectRows.admin_audit_log = [];
@@ -1806,6 +2414,67 @@ describe("create-payment edge function", () => {
       expect(
         scenario.writes.some((w) => w.table === "admin_audit_log"),
       ).toBe(true);
+    });
+
+    // The full-refund flip matched on id alone and wrote cancelled/refunded
+    // over whatever landed during the Stripe round-trips (a dispute filed, a
+    // Quick Release, a payout). Deferred from the 2026-09-14 lifecycle-writes
+    // audit to this branch.
+    describe("admin_refund_general full-refund flip", () => {
+      const seedFull = (payment_status: string | null = "payout_pending") => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "completed", payment_status, budget: 100, title: "Goodwill job", stripe_payment_intent_id: "pi_g" }],
+        };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_g", status: "succeeded" });
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_g", amount: 10000 });
+      };
+      const call = async () => {
+        const fn = await load();
+        return fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill" } }));
+      };
+
+      it("is pinned to the status AND payment_status it read", async () => {
+        seedFull();
+        const res = await call();
+        expect(res.status).toBe(200);
+        const flip = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+        expect(flip?.payload).toMatchObject({ status: "cancelled", payment_status: "refunded" });
+        expect(flip?.filters).toEqual(expect.arrayContaining([
+          { op: "eq", column: "status", value: "completed" },
+          { op: "eq", column: "payment_status", value: "payout_pending" },
+        ]));
+      });
+
+      it("zero rows because the job MOVED during the refund: 500 and a critical page, never a silent success", async () => {
+        seedFull();
+        scenario.writeSelectRows.jobs = [];
+        scenario.reads.jobs.selectOverrides = [
+          { includes: "id, status, payment_status", result: { rows: [{ id: "job-1", status: "disputed", payment_status: "payout_pending" }] } },
+        ];
+        const res = await call();
+        expect(res.status).toBe(500);
+        expect(slackAlerts.some((a) => (a as { title?: string }).title === "General refund issued while the job changed state")).toBe(true);
+      });
+
+      it("zero rows because a concurrent copy of this refund already flipped it: success, no page", async () => {
+        seedFull();
+        scenario.writeSelectRows.jobs = [];
+        scenario.reads.jobs.selectOverrides = [
+          { includes: "id, status, payment_status", result: { rows: [{ id: "job-1", status: "cancelled", payment_status: "refunded" }] } },
+        ];
+        const res = await call();
+        expect(res.status).toBe(200);
+        expect(slackAlerts.some((a) => (a as { title?: string }).title === "General refund issued while the job changed state")).toBe(false);
+      });
+
+      it("refuses while the poster's cancel_escrow refund is in flight (payment_status cancelling)", async () => {
+        seedFull("cancelling");
+        const res = await call();
+        expect(res.status).toBe(409);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      });
     });
 
     it("admin_refund_general rejects an out-of-range partial amount", async () => {

@@ -42,6 +42,14 @@ const AUTH = { Authorization: "Bearer admin-jwt" };
 // A real uuid: the function now validates the shape before touching the DB,
 // because `= 'dispute-1'` on a uuid column comes back as an opaque 22P02.
 const DISPUTE_ID = "11111111-1111-4111-8111-111111111111";
+/**
+ * The metadata THIS function stamps on its own ledger rows. A payout_transfers
+ * or payment_refunds row without it was written by another money path, and the
+ * split must refuse over it rather than count it as one of its own legs
+ * (lh-money-escrow round 3, H3).
+ */
+const OWN_TRANSFER = { source: "execute_dispute_split", dispute_id: DISPUTE_ID };
+const OWN_REFUND = { dispute_id: DISPUTE_ID };
 
 /** $110.00 captured: a $100 budget plus a $10 poster service fee. */
 const CAPTURED_CENTS = 11_000;
@@ -548,7 +556,7 @@ describe("execute-dispute-split edge function", () => {
         dispute: { execution_status: "failed", execution_transfer_id: "tr_1" },
       });
       scenario.reads.payout_transfers = {
-        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720 }],
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720, metadata: OWN_TRANSFER }],
       };
       const fn = await load();
       const body = await json(await invoke(fn));
@@ -806,7 +814,7 @@ describe("execute-dispute-split edge function", () => {
       });
       // The transfer leg already settled on the previous attempt.
       scenario.reads.payout_transfers = {
-        rows: [{ id: "pt-1", stripe_transfer_id: "tr_prev", status: "paid" }],
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_prev", status: "paid", metadata: OWN_TRANSFER }],
       };
       const fn = await load();
       const body = await json(await invoke(fn));
@@ -821,7 +829,7 @@ describe("execute-dispute-split edge function", () => {
     it("skips the refund leg when a dispute_split refund is already on the ledger", async () => {
       seedExecutable(scenario, { helperShare: 0.6 });
       scenario.reads.payment_refunds = {
-        rows: [{ id: "pr-1", stripe_refund_id: "re_prev", source: "dispute_split" }],
+        rows: [{ id: "pr-1", stripe_refund_id: "re_prev", source: "dispute_split", metadata: OWN_REFUND }],
       };
       const fn = await load();
       const body = await json(await invoke(fn));
@@ -834,7 +842,7 @@ describe("execute-dispute-split edge function", () => {
     it("salts the transfer idempotency key after a failed attempt so Stripe retries for real", async () => {
       seedExecutable(scenario, { helperShare: 0.6 });
       scenario.reads.payout_transfers = {
-        rows: [{ id: "pt-1", stripe_transfer_id: "tr_dead", status: "failed" }],
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_dead", status: "failed", metadata: OWN_TRANSFER }],
       };
       const fn = await load();
       await invoke(fn);
@@ -848,7 +856,7 @@ describe("execute-dispute-split edge function", () => {
       // already left — the same money out twice.
       seedExecutable(scenario, { helperShare: 0, posterShare: 1 });
       scenario.reads.payout_transfers = {
-        rows: [{ id: "pt-1", stripe_transfer_id: "tr_prev", status: "paid" }],
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_prev", status: "paid", metadata: OWN_TRANSFER }],
       };
       const fn = await load();
       const res = await invoke(fn);
@@ -884,7 +892,7 @@ describe("execute-dispute-split edge function", () => {
       scenario.reads.disputes.rows![0].execution_status = "failed";
       scenario.reads.disputes.rows![0].execution_transfer_id = "tr_1";
       scenario.reads.payout_transfers = {
-        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720 }],
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720, metadata: OWN_TRANSFER }],
       };
       stripeMock.refunds.create.mockResolvedValue({ id: "re_1", amount: 4260, currency: "usd" });
 
@@ -916,7 +924,7 @@ describe("execute-dispute-split edge function", () => {
         dispute: { execution_status: "failed" },
       });
       scenario.reads.payout_transfers = {
-        rows: [{ id: "pt-1", stripe_transfer_id: "tr_prev", status: "paid", amount_cents: 5000, platform_fee_cents: 600 }],
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_prev", status: "paid", amount_cents: 5000, platform_fee_cents: 600, metadata: OWN_TRANSFER }],
       };
       const fn = await load();
       const body = await json(await invoke(fn));
@@ -965,7 +973,7 @@ describe("execute-dispute-split edge function", () => {
         dispute: { execution_status: "failed" },
       });
       scenario.reads.payout_transfers = {
-        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720 }],
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720, metadata: OWN_TRANSFER }],
       };
       scenario.reads.payment_refunds = { rows: [] };
       stripeMock.refunds.list.mockResolvedValue({
@@ -995,7 +1003,7 @@ describe("execute-dispute-split edge function", () => {
         dispute: { execution_status: "failed" },
       });
       scenario.reads.payout_transfers = {
-        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720 }],
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720, metadata: OWN_TRANSFER }],
       };
       stripeMock.refunds.list.mockRejectedValue(new Error("stripe down"));
 
@@ -1009,7 +1017,7 @@ describe("execute-dispute-split edge function", () => {
     it("treats a reversed transfer as settled — re-paying is an operator decision", async () => {
       seedExecutable(scenario, { helperShare: 0.6 });
       scenario.reads.payout_transfers = {
-        rows: [{ id: "pt-1", stripe_transfer_id: "tr_rev", status: "reversed" }],
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_rev", status: "reversed", metadata: OWN_TRANSFER }],
       };
       const fn = await load();
       await invoke(fn);
@@ -1134,6 +1142,18 @@ describe("execute-dispute-split edge function", () => {
       expect(body.stripe_transfer_id).toBe("tr_already");
     });
 
+    it("stamps a RECOVERED transfer id on the dispute at once, even when the run then refuses (round-5 review, LOW-4)", async () => {
+      seedExecutable(scenario, { helperShare: 0.6, dispute: { execution_status: "failed" } });
+      scenario.reads.payout_transfers = { rows: [] };
+      scenario.writeErrors.payout_transfers = { message: "heal refused" };
+      stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_already", amount: 5280, metadata: { dispute_id: DISPUTE_ID } }] });
+      scenario.rpc.claim_dispute_settlement = { verdict: "held_by_release" };
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect(writesTo("disputes").some((p) => p?.execution_transfer_id === "tr_already")).toBe(true);
+    });
+
     it("falls back to the transfer id stamped on the dispute row, verified against Stripe", async () => {
       seedExecutable(scenario, {
         helperShare: 0.6,
@@ -1164,14 +1184,296 @@ describe("execute-dispute-split edge function", () => {
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
 
-    it("does not ask Stripe on a FIRST attempt, where there is nothing to find", async () => {
+    it("does not run the transfer RECOVERY on a first attempt, where there is nothing of its own to find", async () => {
       seedExecutable(scenario, { helperShare: 0.6 }); // execution_status: null
       const fn = await load();
       const res = await invoke(fn);
 
       expect(res.status).toBe(200);
-      expect(stripeMock.transfers.list).not.toHaveBeenCalled();
+      // Exactly one list: the in-claim foreign-transfer check (6c), which runs
+      // on every attempt. The resume recovery would be a second.
+      expect(stripeMock.transfers.list).toHaveBeenCalledTimes(1);
+      expect(stripeMock.transfers.retrieve).not.toHaveBeenCalled();
       expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // lh-money-escrow round 3, H3. The split read only its OWN idea of the legs:
+  // `transferRows` counted ANY live payout_transfers row as its helper leg (a
+  // Quick Release transfer included) and the refund read filtered
+  // source='dispute_split'. So a split over an escrow another path had already
+  // moved paid the poster's share on top of a full Helpr payout, or the
+  // Helpr's share on top of a refund. It now reads every leg any path moved,
+  // inside the settlement claim, and refuses and pages critical.
+  describe("money another path already moved (round 3, H3)", () => {
+    const foreignPage = () =>
+      alerts().find((a) => a.title === "Dispute split refused — money already moved by another path") as
+        | { severity?: string; message?: string }
+        | undefined;
+
+    it("refuses a RESUME over a Quick Release transfer — it is not this split's helper leg", async () => {
+      seedExecutable(scenario, {
+        helperShare: 0.6,
+        job: { payment_status: "released" },
+        dispute: { execution_status: "failed" },
+      });
+      scenario.reads.payout_transfers = {
+        rows: [{ id: "pt-qr", stripe_transfer_id: "tr_quick", status: "paid", amount_cents: 8800, platform_fee_cents: 1200, metadata: { source: "admin_release_dispute" } }],
+      };
+      const fn = await load();
+      const res = await invoke(fn);
+      const body = await json(res);
+      expect(res.status).toBe(409);
+      expect(body.foreignMoney).toBeTruthy();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(foreignPage()?.severity).toBe("critical");
+      expect(foreignPage()?.message).toMatch(/Do not Retry settlement until the ledger matches Stripe/);
+      expect(writesTo("disputes").pop()).toMatchObject({ execution_status: "failed" });
+    });
+
+    it("refuses over a refund another path recorded (a Quick Refund / cancellation refund on the ledger)", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      scenario.reads.payment_refunds = {
+        rows: [{ id: "pr-q", stripe_refund_id: "re_quick", source: "admin_refund_dispute", amount_cents: 10651, metadata: {} }],
+      };
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(foreignPage()).toBeTruthy();
+    });
+
+    it("refuses over a dispute_split refund that belongs to a DIFFERENT dispute on the same job", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      scenario.reads.payment_refunds = {
+        rows: [{ id: "pr-o", stripe_refund_id: "re_other", source: "dispute_split", amount_cents: 4000, metadata: { dispute_id: "99999999-9999-4999-8999-999999999999" } }],
+      };
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    });
+
+    it("refuses when Stripe shows the charge refunded beyond this split's own refunds, with no ledger row at all", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1",
+        status: "succeeded",
+        amount_received: CAPTURED_CENTS,
+        latest_charge: { id: "ch_1", amount_refunded: 10651, balance_transaction: { fee: STRIPE_COST_CENTS } },
+      });
+      stripeMock.refunds.list.mockResolvedValue({
+        data: [{ id: "re_ghost", amount: 10651, status: "succeeded", metadata: {} }],
+      });
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(foreignPage()).toBeTruthy();
+    });
+
+    it("refuses over a transfer at Stripe in the job's group that is not this dispute's and has no ledger row", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_ghost", amount: 8800, amount_reversed: 0, metadata: { job_id: "job-1", initiated_by: "admin" } }],
+      });
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(foreignPage()).toBeTruthy();
+    });
+
+    it("control: this split's OWN refund at Stripe is not foreign money — the resume finishes", async () => {
+      seedExecutable(scenario, {
+        helperShare: 0.6,
+        job: { payment_status: "released" },
+        dispute: { execution_status: "failed" },
+      });
+      scenario.reads.payout_transfers = {
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720, metadata: OWN_TRANSFER }],
+      };
+      scenario.reads.payment_refunds = {
+        rows: [{ id: "pr-1", stripe_refund_id: "re_1", source: "dispute_split", amount_cents: 4260, metadata: OWN_REFUND }],
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1",
+        status: "succeeded",
+        amount_received: CAPTURED_CENTS,
+        latest_charge: { id: "ch_1", amount_refunded: 4260, balance_transaction: { fee: STRIPE_COST_CENTS } },
+      });
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(200);
+      expect(foreignPage()).toBeUndefined();
+    });
+
+    it("fails CLOSED when the in-claim ledger read fails: nothing moves", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      scenario.reads.payment_refunds = { error: { message: "read blew up" } };
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBeGreaterThanOrEqual(500);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // Round-4 reviews: the dispute row itself is re-judged under the claim.
+  describe("the dispute is re-read under the claim (round 5)", () => {
+    it("the execution claim (step 6) is pinned to the decided_at it read", async () => {
+      seedExecutable(scenario, { helperShare: 0.6, dispute: { decided_at: "2026-09-14T10:00:00Z" } });
+      const fn = await load();
+      await invoke(fn);
+      const claimWrite = writeRecords("disputes").find((w) => (w.payload as { execution_status?: string }).execution_status === "executing")!;
+      expect(claimWrite.filters).toEqual(expect.arrayContaining([
+        { op: "eq", column: "status", value: "decided" },
+        { op: "eq", column: "decided_at", value: "2026-09-14T10:00:00Z" },
+      ]));
+    });
+
+    it("markFailed only ever writes a DECIDED row — never a superseded or re-opened one", async () => {
+      seedExecutable(scenario);
+      stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: false, charges_enabled: true });
+      const fn = await load();
+      await invoke(fn);
+      const failure = writeRecords("disputes").filter((w) => (w.payload as { execution_status?: string }).execution_status === "failed").pop()!;
+      expect(failure.filters).toEqual(expect.arrayContaining([{ op: "eq", column: "status", value: "decided" }]));
+    });
+
+    it("refuses and moves nothing when the dispute was superseded between the read and the claim", async () => {
+      seedExecutable(scenario, { helperShare: 0.6, dispute: { decided_at: "2026-09-14T10:00:00Z" } });
+      scenario.rpc.claim_dispute_settlement = () => {
+        // rpc_supersede_dispute_decision committed while this run was past step 6.
+        scenario.reads.disputes.rows![0] = { ...scenario.reads.disputes.rows![0], status: "superseded" };
+        return { verdict: "claimed", token: "tok-rr" };
+      };
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(scenario.rpcCalls!.filter((c) => c.name === "release_dispute_settlement_claim")).toEqual([
+        expect.objectContaining({ args: { _job_id: "job-1", _token: "tok-rr" } }),
+      ]);
+    });
+
+    it("refuses when the decision changed under the claim (a different decided_at)", async () => {
+      seedExecutable(scenario, { helperShare: 0.6, dispute: { decided_at: "2026-09-14T10:00:00Z" } });
+      scenario.rpc.claim_dispute_settlement = () => {
+        // A fresh object: the mock hands rows out by reference, and the run's
+        // step-1 copy must keep the decided_at it read.
+        scenario.reads.disputes.rows![0] = { ...scenario.reads.disputes.rows![0], decided_at: "2026-09-14T11:00:00Z" };
+        return { verdict: "claimed", token: "tok-rd" };
+      };
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // lh-money-escrow round 3, M2 + M3: the settlement claim's two remaining holes.
+  describe("settlement claim hand-off (round 3, M2 / M3)", () => {
+    it("a joined split (another split run holds the claim) gets 409 and moves no money", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      scenario.rpc.claim_dispute_settlement = { verdict: "joined" };
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect((await json(res)).inProgress).toBe(true);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      // The running split owns the dispute row; the joiner must not relabel it failed.
+      expect(writesTo("disputes").filter((p) => p?.execution_status === "failed")).toHaveLength(0);
+    });
+
+    it("a joined retry of a FAILED split writes it back to failed and says when a retry will work (round-5 review, LOW-3)", async () => {
+      seedExecutable(scenario, { helperShare: 0.6, dispute: { execution_status: "failed", execution_error: "refund failed: stripe down" } });
+      scenario.rpc.claim_dispute_settlement = { verdict: "joined", claimed_at: "2026-09-14T20:00:00Z", expires_at: "2026-09-14T20:10:00Z" };
+      const fn = await load();
+      const res = await invoke(fn);
+      const body = await json(res);
+      expect(res.status).toBe(409);
+      expect(body.retryAfter).toBe("2026-09-14T20:10:00Z");
+      expect(String(body.error)).toMatch(/retry/i);
+      expect(writesTo("disputes").pop()).toMatchObject({ execution_status: "failed", execution_error: "refund failed: stripe down" });
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("stamps the claim by token before each Stripe money call", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "tok-split" };
+      const at: Record<string, number> = {};
+      stripeMock.transfers.create.mockImplementation(async () => {
+        at.transfer = scenario.rpcCalls!.length;
+        return { id: "tr_1", transfer_group: "job_job-1" };
+      });
+      stripeMock.refunds.create.mockImplementation(async (params: any) => {
+        at.refund = scenario.rpcCalls!.length;
+        return { id: "re_1", amount: params.amount, currency: "usd" };
+      });
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(200);
+      const calls = scenario.rpcCalls!;
+      expect(calls[at.transfer - 1]).toMatchObject({ name: "stamp_dispute_settlement_claim", args: { _job_id: "job-1", _token: "tok-split" } });
+      expect(calls[at.refund - 1]).toMatchObject({ name: "stamp_dispute_settlement_claim", args: { _job_id: "job-1", _token: "tok-split" } });
+    });
+
+    it("moves NO money when the stamp does not land", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      scenario.rpc.stamp_dispute_settlement_claim = false;
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    });
+
+    it("KEEPS the claim when the Stripe transfer fails ambiguously — the leg may exist with no trace (round 5, MEDIUM-1)", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      stripeMock.transfers.create.mockRejectedValueOnce(Object.assign(new Error("socket hang up"), { type: "StripeConnectionError" }));
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(502);
+      expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(false);
+      // Still recorded as failed (re-claimable by a split retry, which takes its own claim over).
+      expect(writesTo("disputes").pop()).toMatchObject({ execution_status: "failed" });
+    });
+
+    it("gives the claim back when Stripe DEFINITELY refused the transfer (round 5, MEDIUM-1)", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      stripeMock.transfers.create.mockRejectedValueOnce(Object.assign(new Error("insufficient funds"), { type: "StripeInvalidRequestError" }));
+      const fn = await load();
+      await invoke(fn);
+      expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(true);
+    });
+
+    it("KEEPS the claim when the Stripe refund fails ambiguously, and on an idempotency error (round 5, MEDIUM-1)", async () => {
+      for (const type of ["StripeAPIError", "StripeIdempotencyError"]) {
+        resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+        seedExecutable(scenario, { helperShare: 0.6 });
+        stripeMock.refunds.create.mockRejectedValueOnce(Object.assign(new Error("stripe 500"), { type }));
+        const fn = await load();
+        const res = await invoke(fn);
+        expect(res.status).toBe(502);
+        expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(false);
+      }
+    });
+
+    it("retries a failed claim release once", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      scenario.rpcErrors = { release_dispute_settlement_claim: { message: "connection reset", code: "08006" } };
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(200);
+      expect(scenario.rpcCalls!.filter((c) => c.name === "release_dispute_settlement_claim")).toHaveLength(2);
     });
   });
 

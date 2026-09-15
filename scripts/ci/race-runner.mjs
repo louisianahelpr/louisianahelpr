@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 /**
  * Two-connection race runner for the job-row races.
+ * Two-connection race runner for the job-row races proven on prod 2026-09-12
+ * (fixed in 20260913014328_lock_job_row_on_apply_and_confirm.sql, d0471d07f),
+ * plus race 3, added 2026-09-14 with
+ * 20260915034822_dispute_settlement_claim_and_race_locks.sql.
  *
  * Races 1-2 were proven on prod 2026-09-12 and fixed in
  * 20260913014328_lock_job_row_on_apply_and_confirm.sql (d0471d07f). Races 3-5
@@ -44,6 +48,13 @@
  *           second Done (pre-fix client write).
  *           BAD = helper_completed_at moved (or landed after completed_at), or
  *           completed_at not stamped.
+ *   race 3  settle_dispute_record vs open_dispute_as's re-freeze. A holds the
+ *           job FOR UPDATE while re-freezing a settled job back to disputed;
+ *           B settles the dispute record. Before 20260915034822 B read `jobs`
+ *           unlocked, so it decided from a snapshot A had already invalidated.
+ *           BAD = the dispute row ends 'decided' on a job that is live again.
+ *           This race has its OWN driver below (A re-freezes rather than
+ *           cancels), not the shared `round()`.
  *
  * A pass must be a pass for the right reason, so the runner fails when:
  *   - the CONTROL fails: B's write, with no concurrent A, must land;
@@ -308,6 +319,134 @@ for (const [name, value] of [["supabase_url", "http://127.0.0.1:9"], ["service_r
     [name, value],
   );
 }
+/**
+ * Race 3 — settle_dispute_record vs open_dispute_as's re-freeze.
+ * Added 2026-09-14 with 20260915034822; the one thing PGlite cannot prove,
+ * because it needs two connections holding conflicting locks.
+ *
+ *   A  BEGIN; SELECT open_dispute_as(job, …)   <- takes the job FOR UPDATE and
+ *      re-freezes a settled job back to disputed / dispute_status='open'
+ *   B  SELECT settle_dispute_record(job, 'helper')
+ *
+ * Before the migration B took NO lock at all, so it read the SETTLED row,
+ * passed every gate on that snapshot, and then wrote 'decided' + 'executed'
+ * onto a dispute A had just made live again. That is terminal:
+ * rpc_decide_dispute raises 'already decided' and execute-dispute-split returns
+ * 409, with no recovery short of manual SQL.
+ *
+ * B now locks its own `disputes` row FOR UPDATE first and nothing else (the
+ * other dispute RPCs take jobs -> disputes, so holding one row keeps B out of
+ * every cycle). A's re-freeze
+ * branch must write that same dispute row before it touches `jobs`, so it
+ * blocks, and B reads the job state A left. The round asserts BOTH halves: B
+ * waited on a lock (or it proved nothing), and the dispute did not end decided.
+ *
+ * BAD = the dispute row is 'decided' while the job is disputed / its
+ * dispute_status is 'open'.
+ */
+async function disputeFixture(admin) {
+  const poster = randomUUID();
+  const helper = randomUUID();
+  for (const [id, who] of [[poster, "poster"], [helper, "helper"]]) {
+    await admin.query("INSERT INTO auth.users (id, email) VALUES ($1, $2)", [id, `race-${who}-${id}@helpr.test`]);
+    await admin.query(
+      `UPDATE public.profiles
+          SET full_name = $2, approval_status = 'approved',
+              stripe_account_id = 'acct_ci_race', stripe_payouts_enabled = true,
+              stripe_identity_verified = true
+        WHERE user_id = $1`,
+      [id, `Race ${who}`],
+    );
+  }
+  // Walk the transition matrix to `completed`, then settle the money and write
+  // the terminal dispute state — the only shape settle_dispute_record accepts.
+  const { rows } = await admin.query(
+    `INSERT INTO public.jobs (title, description, category, budget, location, parish, status,
+                              customer_id, helper_id, date_needed, created_at, payment_status)
+     VALUES ('[CI race] dispute', 'race-runner.mjs fixture', 'cleaning', 100, 'Test Address', 'Orleans',
+             'in_progress'::job_status, $1, $2, CURRENT_DATE + 7, now() - interval '30 days', 'escrow')
+     RETURNING id`,
+    [poster, helper],
+  );
+  const job = rows[0].id;
+  await admin.query(
+    `UPDATE public.jobs
+        SET status = 'completed'::job_status, payment_status = 'released',
+            helper_completed_at = now() - interval '2 hours',
+            poster_completed_at = now() - interval '1 hour',
+            dispute_status = 'resolved', dispute_resolved_at = now(),
+            disputed_at = now() - interval '3 hours', disputed_by = $2
+      WHERE id = $1`,
+    [job, poster],
+  );
+  // The open record A will re-freeze and B will try to close.
+  await admin.query(
+    "INSERT INTO public.disputes (job_id, opener_id, reason, status) VALUES ($1, $2, 'race-runner fixture, work not delivered', 'open')",
+    [job, poster],
+  );
+  return { poster, helper, job };
+}
+
+/** With no concurrent re-freeze, B's settle must close the record — else the round proves nothing. */
+async function disputeControl(admin) {
+  const f = await disputeFixture(admin);
+  const { rows } = await admin.query("SELECT public.settle_dispute_record($1, 'helper') AS id", [f.job]);
+  if (!rows[0].id) throw new Error("CONTROL FAILED for race 3 — settle_dispute_record closed nothing on a clean fixture");
+}
+
+async function disputeRound(admin) {
+  const f = await disputeFixture(admin);
+  const A = await connect();
+  const B = await connect();
+  let bOutcome = "committed";
+  try {
+    await asUser(A, f.poster);
+    // Re-freeze: an existing open dispute + a job that is not `disputed` takes
+    // open_dispute_as's re-freeze branch, which holds the job FOR UPDATE. Filed
+    // as the PLATFORM (opener NULL): since 20260915025607 a person cannot touch
+    // a completed job at all (job_already_completed), and the platform's
+    // re-file is the one caller that still reaches this branch from completed.
+    await A.query(
+      "SELECT public.open_dispute_as($1, NULL, 'race-runner platform re-file, revision still not delivered', ARRAY[]::text[])",
+      [f.job],
+    );
+
+    await B.query("BEGIN");
+    const bDone = B.query("SELECT public.settle_dispute_record($1, 'helper') AS id", [f.job]).then(
+      async (r) => { bOutcome = `committed (id=${r.rows[0].id})`; await B.query("COMMIT"); },
+      async (e) => { bOutcome = `refused: ${describeError(e)}`; await B.query("ROLLBACK"); },
+    );
+
+    let waiting = false;
+    for (let i = 0; i < 50 && !waiting; i++) {
+      const { rows } = await admin.query("SELECT wait_event_type FROM pg_stat_activity WHERE pid = $1", [B.processID]);
+      waiting = rows[0]?.wait_event_type === "Lock";
+      if (!waiting) await sleep(10);
+    }
+    await sleep(HOLD_MS);
+    await A.query("COMMIT");
+    await bDone;
+
+    const { rows } = await admin.query(
+      `SELECT j.status::text AS status, j.dispute_status,
+              d.status AS dispute, d.execution_status
+         FROM public.jobs j
+         JOIN public.disputes d ON d.job_id = j.id
+        WHERE j.id = $1`,
+      [f.job],
+    );
+    const s = rows[0];
+    const live = s.status === "disputed" || s.dispute_status === "open";
+    const bad = live && s.dispute === "decided";
+    // The only refusal that counts as the guard working.
+    const wrongRefusal = bOutcome.startsWith("refused") && !/is not settled|has not settled its money/.test(bOutcome);
+    return { bad, waiting, wrongRefusal, status: s.status, disputeStatus: s.dispute_status, dispute: s.dispute, b: bOutcome };
+  } finally {
+    await A.end().catch(() => {});
+    await B.end().catch(() => {});
+  }
+}
+
 let failed = false;
 for (const race of Object.keys(RACES).map(Number)) {
   const { name } = RACES[race];
@@ -352,5 +491,30 @@ for (const race of Object.keys(RACES).map(Number)) {
     failed = true;
   }
 }
+// ── race 3, run through its own driver (different shape: A re-freezes, B settles) ──
+try {
+  await disputeControl(admin);
+  console.log("race 3 (settle vs dispute re-freeze) CONTROL ok: with no concurrent re-file, settle closes the record");
+  let bad = 0;
+  let notRaced = 0;
+  let wrongRefusals = 0;
+  for (let i = 1; i <= ROUNDS; i++) {
+    const r = await disputeRound(admin);
+    if (r.bad) bad++;
+    if (!r.waiting) notRaced++;
+    if (r.wrongRefusal) wrongRefusals++;
+    console.log(
+      `race 3 (settle vs dispute re-freeze) round ${String(i).padStart(2)}: ${r.bad ? "BAD" : "ok "} job=${r.status}/${r.disputeStatus} dispute=${r.dispute} B-waited-on-lock=${r.waiting} B=${r.b}`,
+    );
+  }
+  console.log(`\n== race 3 (settle vs dispute re-freeze): BAD ${bad}/${ROUNDS}; not-raced ${notRaced}; wrong-reason refusals ${wrongRefusals}\n`);
+  if (bad > 0) { console.error(`::error::race 3 reached the bad state in ${bad}/${ROUNDS} rounds`); failed = true; }
+  if (wrongRefusals > 0) { console.error(`::error::race 3: ${wrongRefusals} round(s) refused for a reason other than the settle gate — not a race result`); failed = true; }
+  if (notRaced > 0) { console.error(`::error::race 3: ${notRaced} round(s) never blocked on the re-freeze's row lock — the race was not exercised`); failed = true; }
+} catch (e) {
+  console.error(`::error::race 3: ${describeError(e)}`);
+  failed = true;
+}
+
 await admin.end();
 process.exit(failed ? 1 : 0);

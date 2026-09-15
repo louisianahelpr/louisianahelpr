@@ -38,7 +38,7 @@ export interface DisputeRecord {
   opener_id: string;
   reason: string;
   evidence_urls: string[];
-  status: "open" | "decided" | "withdrawn";
+  status: "open" | "decided" | "withdrawn" | "superseded";
   created_at: string;
   decided_at: string | null;
   decided_by: string | null;

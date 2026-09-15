@@ -1,0 +1,25 @@
+// create-payment transferToHelper as it stood before 20260915034822: no transfer_group.
+    const transferParams: any = {
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: "usd",
+      destination: helperProfile.stripe_account_id,
+      metadata: { job_id: jobId, helper_id: helperId, initiated_by: "admin" },
+    };
+
+    // Link the transfer to the source charge if we have one
+    if (paymentIntentId) {
+      try {
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        if (pi.latest_charge) {
+          transferParams.source_transaction = pi.latest_charge;
+        }
+      } catch (e) {
+        console.warn("Could not retrieve charge for transfer linking:", e);
+      }
+    }
+
+    // Stripe-level idempotency: same dispute release = same transfer, so a
+    // retry never double-pays even if the ledger write below failed first.
+    const transfer = await stripe.transfers.create(transferParams, {
+      idempotencyKey: `dispute-release-${jobId}`,
+    });

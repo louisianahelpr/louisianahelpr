@@ -223,12 +223,16 @@ describe("checkUnsettledDispute — the query it actually sends", () => {
         return m === "limit" ? Promise.resolve({ data: [], error: null }) : builder;
       };
     }
-    const client = { from: (t: string) => { table = t; return builder; } };
+    const tables: string[] = [];
+    const client = { from: (t: string) => { table = t; tables.push(t); return builder; } };
 
     const result = await checkUnsettledDispute(client, "job-9");
 
     expect(result.blocked).toBe(false);
-    expect(table).toBe("disputes");
+    expect(tables[0]).toBe("disputes");
+    // …and then the settlement-claim table (dispute-races round 3, H1).
+    expect(tables).toEqual(["disputes", "dispute_settlement_claims"]);
+    expect(table).toBe("dispute_settlement_claims");
     expect(chain).toContainEqual(["eq", "job_id", "job-9"]);
     expect(chain).toContainEqual(["eq", "status", "decided"]);
     expect(chain).toContainEqual(["or", "execution_status.is.null,execution_status.neq.executed", undefined]);

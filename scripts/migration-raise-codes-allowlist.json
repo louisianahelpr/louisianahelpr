@@ -1,0 +1,4 @@
+{
+  "//": "Guards a migration drops ON PURPOSE when it redefines a function. Each entry: migration file, schema-qualified function, the RAISE code, and why. scripts/check-migration-raise-codes.mjs; src/test/migrationRaiseCodesPreserved.test.ts.",
+  "allowed": []
+}

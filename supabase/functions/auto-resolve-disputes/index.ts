@@ -114,6 +114,10 @@ Deno.serve(async (req) => {
     if (fetchErr) throw fetchErr;
 
     const resolved: string[] = [];
+    // Jobs this run left alone because another settlement holds (or shares)
+    // the claim. Reported, not a defect: an admin or a split moving the escrow
+    // is the designed outcome, and the next tick re-reads the job.
+    const claimSkipped: Array<{ job_id: string; verdict: string }> = [];
     // Helper-filed disputes this run pushed to an admin instead of paying out.
     // Reported so the count is visible per run rather than only in the log —
     // a sudden rise is someone probing the timeout for free money.
@@ -138,7 +142,7 @@ Deno.serve(async (req) => {
       const { data: recent, error: recentErr } = await supabase
         .from("notifications")
         .select("user_id, title, link")
-        .in("title", [ESCALATED_TITLE, STUCK_SPLIT_TITLE])
+        .in("title", [ESCALATED_TITLE, STUCK_SPLIT_TITLE, UNSETTLEABLE_TITLE])
         .gte("created_at", cutoff)
         .order("created_at", { ascending: false })
         .limit(SWEEP_LIMIT);
@@ -271,6 +275,33 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // ── A dispute re-opened inside the 24h payout hold ─────────────────
+      // `disputed` + `payout_pending`. The flip below is pinned to 'escrow'
+      // (a chargeback guard), so it matched zero rows on every tick, forever,
+      // silently (lh-money-escrow round 2). Whether the Helpr should now be
+      // paid is exactly the question a re-filed dispute asks, so a person
+      // decides; the sweep tells them, once a day.
+      //
+      // ABOVE the helper-filed escalation, on purpose (lh-money-escrow round 3,
+      // M4): that escalation is pinned to payment_status='escrow' too, so a
+      // HELPER-filed dispute re-opened inside the hold matched zero rows there,
+      // logged "payment_status changed since read" and was skipped silently on
+      // every tick. Every non-escrow disputed job reaches a person from here,
+      // whoever filed it.
+      if (job.payment_status !== "escrow") {
+        claimSkipped.push({ job_id: job.id, verdict: `payment_${job.payment_status ?? "null"}` });
+        const { ok: holdAdminsOk, ids: holdAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.payoutHold");
+        if (!holdAdminsOk) defects.record(`admin lookup failed for payout-hold dispute job ${job.id}`);
+        await remindAdmins(
+          holdAdminIds,
+          UNSETTLEABLE_TITLE,
+          `"${job.title}" is past its 72h dispute deadline with its payment in ${job.payment_status ?? "an unknown state"}, so it can't be auto-settled. It needs an admin decision.`,
+          `/admin?view=disputes&job=${job.id}`,
+          `payout-hold dispute reminder job ${job.id}`,
+        );
+        continue;
+      }
+
       // ── The filer cannot win by silence ─────────────────────────────────
       //
       // Everything below this point settles the dispute with `_outcome:
@@ -303,7 +334,7 @@ Deno.serve(async (req) => {
       // filing path.
       //
       // Written on `jobs.dispute_status`, never `disputes.status` — the
-      // latter's CHECK admits only open/decided/withdrawn, so mirroring it
+      // latter's CHECK admits only open/decided/withdrawn/superseded, so mirroring it
       // there would throw and abort the sweep.
       if (job.disputed_by && job.helper_id && job.disputed_by === job.helper_id) {
         // Guarded on payment_status="escrow" for the same chargeback race the
@@ -373,71 +404,234 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Non-escalated: auto-release payment to helper.
-      // Also flip payment_status to 'payout_pending' so the auto-release-payment
-      // cron's Phase 2 (release-payout invocation, gated on RELEASE_PAYOUT_AUTO=1)
-      // actually moves the money. Without this, the job sat in escrow forever
-      // and the helper got a "payment released" notification that wasn't true.
+      // ── Take the settlement claim before the flip ───────────────────────
       //
-      // Optimistic concurrency: guard on payment_status="escrow" so a chargeback
-      // webhook that fires between our read and this write (flipping the job to
-      // "chargeback"/"refunded") isn't blindly overwritten with "payout_pending".
+      // The flip below is this sweep's money step: `payout_pending` is what
+      // release-payout / process-scheduled-payouts pay out for real. Its
+      // `payment_status = 'escrow'` guard sees a chargeback that already
+      // committed, but NOT an admin Quick Refund in flight — create-payment runs
+      // `stripe.refunds.create` BEFORE its own guarded flip, and for that whole
+      // window the job still reads disputed/escrow. The sweep won the flip, the
+      // admin's flip matched zero rows, and the Helpr was paid 24h later on top
+      // of the refund.
       //
-      // AND on the dispute state this run read (race-class audit 2026-09-14).
-      // Two party moves keep payment_status 'escrow' and were overwritten:
-      //   rpc_withdraw_dispute  restores status (in_progress/…) — the flip then
-      //                         wrote completed + payout_pending on a job the
-      //                         parties had just taken back out of dispute.
-      //   rpc_escalate_dispute  sets dispute_status 'escalated' with status
-      //                         still disputed — the flip then paid the Helpr
-      //                         out of a dispute the poster had just handed to
-      //                         an admin, the one outcome escalation exists to stop.
-      // The Stripe round-trips above hold this row unlocked, so the window is real.
-      let claimQuery = supabase
-        .from("jobs")
-        .update({
-          status: "completed",
-          payment_status: "payout_pending",
-          // +24h hold before the payout actually fires — a chargeback buffer,
-          // matching auto-release-payment. now() would make the job eligible on
-          // the very next payout cron tick with no safety window.
-          payout_scheduled_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          dispute_status: "auto_resolved",
-          dispute_resolved_at: new Date().toISOString(),
-          dispute_reason: `[AUTO-RESOLVED] Original: ${job.dispute_reason || "N/A"}. Dispute expired after 72 hours without resolution. Payment released to Helpr.`,
-        })
-        .eq("id", job.id)
-        .eq("status", "disputed")
-        .eq("payment_status", "escrow")
-        // A withdraw + re-file inside the window returns disputed/open again
-        // (ABA): the deadline and filer pin it to the dispute this run judged —
-        // a re-filed dispute has a fresh 72h clock, and a Helpr-filed one must
-        // escalate (above), never pay.
-        .lte("dispute_deadline", new Date().toISOString());
-      claimQuery = job.dispute_status == null
-        ? claimQuery.is("dispute_status", null)
-        : claimQuery.eq("dispute_status", job.dispute_status);
-      claimQuery = job.disputed_by == null
-        ? claimQuery.is("disputed_by", null)
-        : claimQuery.eq("disputed_by", job.disputed_by);
-      const { data: claimed, error: updateErr } = await claimQuery.select("id");
-
-      if (updateErr) {
-        console.error(`Failed to resolve dispute for job ${job.id}:`, updateErr);
+      // `claim_dispute_settlement` is the one lock create-payment's Quick
+      // Release/Refund and execute-dispute-split already share (20260915034822).
+      // Taken HERE — after every check above that can skip without moving
+      // anything, immediately before the flip — as action 'sweep', which is
+      // none of the others, so all four are mutually exclusive.
+      //
+      // Anything but a fresh `claimed` skips the job:
+      //   held_by_*    another settlement is moving this escrow right now.
+      //   joined       another sweep run holds it (overlapping ticks); that run
+      //                settles it, and a tokenless joiner must not.
+      //   not_disputed the job settled since the read above.
+      // An RPC ERROR fails CLOSED and is a defect: PGRST202 means the migration
+      // has not deployed, and running unguarded is exactly the race. No payout
+      // is lost by skipping — the job stays disputed and the next tick retries.
+      const { data: claimRow, error: claimErr } = await supabase.rpc("claim_dispute_settlement", {
+        _job_id: job.id,
+        _action: "sweep",
+        _admin_id: null,
+      });
+      if (claimErr) {
+        const code = (claimErr as { code?: string }).code;
+        console.error(`[auto-resolve-disputes] settlement claim failed for job ${job.id}; not auto-resolving:`, claimErr);
+        defects.record(`settlement claim ${job.id}: ${claimErr.message}${code ? ` (${code})` : ""} — not auto-resolved`);
         continue;
       }
-      if (!claimed || claimed.length === 0) {
-        console.log(`[auto-resolve-disputes] job ${job.id} status, dispute_status or payment_status changed since read (withdraw / escalate / chargeback race); skipping.`);
+      const claimVerdict = String((claimRow as { verdict?: string } | null)?.verdict ?? "missing");
+      const claimToken = (claimRow as { token?: string } | null)?.token ?? null;
+      const overExpired = (claimRow as { over_expired?: boolean } | null)?.over_expired === true;
+      if (claimVerdict !== "claimed" || !claimToken) {
+        console.log(`[auto-resolve-disputes] job ${job.id} settlement claim answered ${claimVerdict}; not auto-resolving.`);
+        claimSkipped.push({ job_id: job.id, verdict: claimVerdict });
+        // held_by_* / joined / not_disputed: another settlement is moving it,
+        // or already did — the designed outcome, silent. The rest can never
+        // clear by waiting, so a person is told (deduped daily), or the sweep
+        // would skip them every tick forever with nobody the wiser:
+        //   not_settleable  disputed, but the escrow is not held.
+        //   split_pending   a decided split has not executed.
+        //   stuck_*         a dead holder may have moved money (the claim
+        //                   function has already paged ops with the fix).
+        if (claimVerdict === "not_settleable" || claimVerdict === "split_pending" || claimVerdict.startsWith("stuck_")) {
+          const { ok: stuckAdminsOk, ids: stuckAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.unsettleable");
+          if (!stuckAdminsOk) defects.record(`admin lookup failed for unsettleable dispute job ${job.id}`);
+          await remindAdmins(
+            stuckAdminIds,
+            UNSETTLEABLE_TITLE,
+            `"${job.title}" is past its 72h dispute deadline but can't be auto-settled (${claimVerdict}). It needs an admin decision.`,
+            `/admin?view=disputes&job=${job.id}`,
+            `unsettleable dispute reminder job ${job.id}`,
+          );
+          if (claimVerdict.startsWith("stuck_")) {
+            defects.record(`dispute job ${job.id}: settlement lock held by a dead ${claimVerdict.slice(6)} — money may be half-moved; reconcile and clear the claim`);
+          }
+        }
         continue;
       }
 
-      // The job is settled — now close the RECORD, in the same tick, so the two
-      // sources of truth agree. Runs only after the claim succeeded, so a job
-      // this run did not actually resolve never has its dispute closed.
-      await closeDisputeRecord(
-        job.id,
-        "Auto-resolved by platform policy: the dispute passed its 72-hour deadline without the poster resolving or escalating it, so the escrow was released to the helpr.",
-      );
+      // From here on this run OWNS the claim, and every exit hands it back by
+      // token — `finally`, so a `continue` or a throw cannot strand it.
+      let flipped = false;
+      try {
+        // Won by expiring a DEAD holder's claim. That holder may have moved
+        // money and died before writing its ledger row or flipping the job —
+        // the ledger check below cannot see a write that never happened, and
+        // the sweep would then pay the Helpr on top of it (lh-money-escrow
+        // review, HIGH-2). A person decides that job; the stale-claim page has
+        // already gone out. Released, not held: holding it would only block
+        // the admin who comes to fix it.
+        if (overExpired) {
+          console.error(`[auto-resolve-disputes] job ${job.id}: settlement claim was taken over an expired holder — not auto-resolving over a dead settlement.`);
+          defects.record(`settlement claim on ${job.id} was won over an expired holder — not auto-resolved; reconcile against Stripe first`);
+          continue;
+        }
+        // ── The ledger cross-check, same as create-payment's release path ──
+        // The claim is a mutex, not a settlement record: it says
+        // nothing about a refund that FINISHED but whose flip failed (create-
+        // payment leaves that job disputed and pages for manual reconciliation)
+        // or whose holder died after Stripe answered. A `payment_refunds` row
+        // is written only after Stripe returned the refund, so its existence
+        // means the poster already has the money; paying the Helpr as well is
+        // the double spend. Fails CLOSED on a read error — indistinguishable
+        // from "nothing moved", the one guess that pays twice.
+        const { data: refundRows, error: refundLedgerErr } = await supabase
+          .from("payment_refunds")
+          .select("id")
+          .eq("job_id", job.id)
+          .limit(1);
+        if (refundLedgerErr) {
+          console.error(`[auto-resolve-disputes] refund ledger read failed for job ${job.id}; not auto-resolving:`, refundLedgerErr);
+          defects.record(`refund ledger read ${job.id}: ${refundLedgerErr.message} — not auto-resolved`);
+          continue;
+        }
+        if ((refundRows ?? []).length > 0) {
+          console.error(`[auto-resolve-disputes] job ${job.id} is disputed/escrow but already has a refund ledger row — refusing to schedule a payout on top of it.`);
+          defects.record(`refund ledger row exists on disputed job ${job.id} — escrow already refunded, payout NOT scheduled; needs manual reconciliation`);
+          continue;
+        }
+
+        // ── And Stripe itself, which is not best-effort ───────────────────
+        // `recordRefund` swallows its own write failure, so an empty ledger is
+        // not proof no refund left. The charge's `amount_refunded` is. Read
+        // INSIDE the claim: the PI check above ran before it and cannot see a
+        // refund issued since. Fails closed.
+        try {
+          const chargePi = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge"] });
+          const charge = (chargePi as { latest_charge?: unknown }).latest_charge;
+          const refundedCents = charge && typeof charge === "object"
+            ? Number((charge as { amount_refunded?: number }).amount_refunded ?? 0)
+            : 0;
+          // Refunds only. `charge.disputed` stays true after a chargeback is WON,
+          // so gating on it deferred that job forever with a defect every run
+          // (lh-money-escrow round 2); a live chargeback already reads
+          // payment_status 'chargeback' and fails the flip's escrow pin.
+          if (refundedCents > 0) {
+            console.error(`[auto-resolve-disputes] job ${job.id}: Stripe shows the charge refunded ${refundedCents}¢ — not scheduling a payout.`);
+            defects.record(`Stripe charge on disputed job ${job.id} is refunded (${refundedCents}¢) with no matching ledger/flip — payout NOT scheduled; needs manual reconciliation`);
+            continue;
+          }
+        } catch (e) {
+          console.error(`[auto-resolve-disputes] Stripe refund check failed for job ${job.id}; not auto-resolving:`, e);
+          defects.record(`Stripe refund check ${job.id}: ${e instanceof Error ? e.message : String(e)} — not auto-resolved`);
+          continue;
+        }
+
+        // Non-escalated: auto-release payment to helper.
+        // Also flip payment_status to 'payout_pending' so the auto-release-payment
+        // cron's Phase 2 (release-payout invocation, gated on RELEASE_PAYOUT_AUTO=1)
+        // actually moves the money. Without this, the job sat in escrow forever
+        // and the helper got a "payment released" notification that wasn't true.
+        //
+        // Optimistic concurrency: guard on payment_status="escrow" so a chargeback
+        // webhook that fires between our read and this write (flipping the job to
+        // "chargeback"/"refunded") isn't blindly overwritten with "payout_pending".
+        //
+        // AND on the dispute state this run read (race-class audit 2026-09-14).
+        // Two party moves keep payment_status 'escrow' and were overwritten:
+        //   rpc_withdraw_dispute  restores status (in_progress/…) — the flip then
+        //                         wrote completed + payout_pending on a job the
+        //                         parties had just taken back out of dispute.
+        //   rpc_escalate_dispute  sets dispute_status 'escalated' with status
+        //                         still disputed — the flip then paid the Helpr
+        //                         out of a dispute the poster had just handed to
+        //                         an admin, the one outcome escalation exists to stop.
+        // The Stripe round-trips above hold this row unlocked, so the window is real.
+        // (The settlement claim above covers the admin/split money paths; these
+        // predicates cover the PARTY moves, which take no claim.)
+        let claimQuery = supabase
+          .from("jobs")
+          .update({
+            status: "completed",
+            payment_status: "payout_pending",
+            // +24h hold before the payout actually fires — a chargeback buffer,
+            // matching auto-release-payment. now() would make the job eligible on
+            // the very next payout cron tick with no safety window.
+            payout_scheduled_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            dispute_status: "auto_resolved",
+            dispute_resolved_at: new Date().toISOString(),
+            dispute_reason: `[AUTO-RESOLVED] Original: ${job.dispute_reason || "N/A"}. Dispute expired after 72 hours without resolution. Payment released to Helpr.`,
+          })
+          .eq("id", job.id)
+          .eq("status", "disputed")
+          .eq("payment_status", "escrow")
+          // A withdraw + re-file inside the window returns disputed/open again
+          // (ABA): the deadline and filer pin it to the dispute this run judged —
+          // a re-filed dispute has a fresh 72h clock, and a Helpr-filed one must
+          // escalate (above), never pay.
+          .lte("dispute_deadline", new Date().toISOString());
+        claimQuery = job.dispute_status == null
+          ? claimQuery.is("dispute_status", null)
+          : claimQuery.eq("dispute_status", job.dispute_status);
+        claimQuery = job.disputed_by == null
+          ? claimQuery.is("disputed_by", null)
+          : claimQuery.eq("disputed_by", job.disputed_by);
+        const { data: claimed, error: updateErr } = await claimQuery.select("id");
+
+        if (updateErr) {
+          console.error(`Failed to resolve dispute for job ${job.id}:`, updateErr);
+          // A defect, not a log line: the claim and every check passed, so a
+          // failed write here is the one thing standing between an expired
+          // dispute and its payout, and a 2xx run would hide it.
+          defects.record(`resolve flip ${job.id}: ${updateErr.message}`);
+          continue;
+        }
+        if (!claimed || claimed.length === 0) {
+          console.log(`[auto-resolve-disputes] job ${job.id} status, dispute_status or payment_status changed since read (withdraw / escalate / chargeback race); skipping.`);
+          continue;
+        }
+
+        // The job is settled — now close the RECORD, in the same tick, so the two
+        // sources of truth agree. Runs only after the claim succeeded, so a job
+        // this run did not actually resolve never has its dispute closed.
+        await closeDisputeRecord(
+          job.id,
+          "Auto-resolved by platform policy: the dispute passed its 72-hour deadline without the poster resolving or escalating it, so the escrow was released to the helpr.",
+        );
+        flipped = true;
+      } finally {
+        // Retried once (round 3, M2): a claim left behind by one failed RPC
+        // blocks the admin buttons until it expires. A sweep claim is never
+        // stamped, so even a leftover only ever expires or is cleared by the
+        // monitor as a warning — never a stuck_* or a page.
+        let { error: releaseErr } = await supabase.rpc("release_dispute_settlement_claim", {
+          _job_id: job.id,
+          _token: claimToken,
+        });
+        if (releaseErr) {
+          ({ error: releaseErr } = await supabase.rpc("release_dispute_settlement_claim", {
+            _job_id: job.id,
+            _token: claimToken,
+          }));
+        }
+        if (releaseErr) {
+          // Not a defect: the claim expires on its own, and a leftover on a
+          // settled job is reported (not paged) by check_stale_dispute_settlement_claims.
+          console.error(`[auto-resolve-disputes] could not release the settlement claim on job ${job.id}:`, releaseErr);
+        }
+      }
+      if (!flipped) continue;
 
       // Notify both parties
       const notifications = [];
@@ -591,6 +785,11 @@ Deno.serve(async (req) => {
       const { data: claimed, error: stuckErr } = await supabase
         .from("disputes")
         .select("id, job_id, execution_status, execution_started_at, execution_error")
+        // DECIDED rows only (round-5 review, MEDIUM-2): a dispute superseded by
+        // rpc_supersede_dispute_decision keeps its execution record as history,
+        // and without this every supersede raised a permanent stuck-split alarm.
+        // Guard: src/test/disputeExecutionReadsFilterStatus.test.ts.
+        .eq("status", "decided")
         // 'pending' is in here even though nothing writes it today: the CHECK
         // and the partial index both admit it, and "decided, queued, never
         // claimed" is exactly as unsettled as the other two.
@@ -672,6 +871,7 @@ Deno.serve(async (req) => {
       {
         resolved: resolved.length,
         ids: resolved,
+        claim_skipped: claimSkipped,
         escalated_helper_filed: escalatedHelperFiled.length,
         escalated_helper_filed_ids: escalatedHelperFiled,
         dispute_records_swept: sweptRecords.length,

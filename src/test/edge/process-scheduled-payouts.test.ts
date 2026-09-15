@@ -28,7 +28,7 @@ import {
   resetSupabaseMock,
   type SupabaseScenario,
 } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 
 const CRON_SECRET = "cron-secret-xyz";
 
@@ -377,6 +377,47 @@ describe("process-scheduled-payouts edge function", () => {
   // subsequent run reached that skip, logged itself healthy, and left the job
   // reading 'payout_pending' with the helper already paid. Only hand-written
   // SQL could fix it.
+  // Round-5 money review, HIGH: this cron and release-payout share the claim
+  // row but not the idempotency key, so a claim orphaned by one and resumed by
+  // the other under its own key paid the Helpr twice. Stripe is asked first.
+  describe("an unrecorded transfer at Stripe", () => {
+    const orphan = () => ({ id: "led-orphan", helper_id: "helper-1", stripe_transfer_id: null, status: "pending", created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString() });
+    const run = async () => {
+      const fn = await load();
+      return fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+    };
+
+    it("an orphaned claim + a MATCHING unrecorded transfer: adopted, no transfers.create", async () => {
+      // The amount this job pays, observed from a clean run.
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      await run();
+      const amount = stripeMock.transfers.create.mock.calls[0][0].amount as number;
+      resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      scenario.reads.payout_transfers = { rows: [orphan()] };
+      // release-payout's transfer (its own key) went out; its ledger stamp did not.
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_release", amount, amount_reversed: 0, destination: "acct_helper", metadata: { job_id: "job-1", helper_id: "helper-1" } }],
+      });
+      await run();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const settle = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update");
+      expect((settle?.payload as Record<string, unknown>)?.stripe_transfer_id).toBe("tr_release");
+    });
+
+    it("an orphaned claim + a NON-matching unrecorded transfer: skipped, paged, no transfers.create", async () => {
+      seedPayableJob(scenario);
+      scenario.reads.payout_transfers = { rows: [orphan()] };
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_other", amount: 1, amount_reversed: 0, destination: "acct_someone_else", metadata: { job_id: "job-1" } }],
+      });
+      await run();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect((slackAlerts as Array<{ severity?: string }>).some((a) => a.severity === "critical")).toBe(true);
+    });
+  });
+
   describe("already-transferred heal", () => {
     it("completes the missing status flip on a single-helper job instead of skipping forever", async () => {
       seedPayableJob(scenario);

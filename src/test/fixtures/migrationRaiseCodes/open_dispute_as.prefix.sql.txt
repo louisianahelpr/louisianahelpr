@@ -1,0 +1,330 @@
+-- open_dispute_as as 20260915034822 carried it BEFORE the re-derive: built on a
+-- body older than 20260915025607, so it lacks RAISE 'job_already_completed'.
+CREATE OR REPLACE FUNCTION public.open_dispute_as(_job_id uuid, _opener_id uuid, _reason text, _evidence_urls text[])
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  _uid uuid := _opener_id;
+  _system boolean := _opener_id IS NULL;
+  _customer uuid;
+  _helper uuid;
+  _title text;
+  _status text;
+  _existing_id uuid;
+  _new_id uuid;
+  _other uuid;
+  _admin uuid;
+  _refroze boolean := false;
+  _reason_trimmed text;
+  _velocity_count integer;
+  _payment_status text;
+BEGIN
+  -- A dispute with no explanation freezes someone's money for 72 hours and
+  -- hands an admin nothing to decide on. Applies to the platform too: a
+  -- system filing has to say what happened in the same words a person would.
+  _reason_trimmed := btrim(COALESCE(_reason, ''));
+  IF _reason_trimmed = ''
+     OR right(_reason_trimmed, 1) = ':'
+     OR length(_reason_trimmed) < 15
+  THEN
+    RAISE EXCEPTION 'dispute_needs_description'
+      USING HINT = 'Describe what happened — an admin decides this from your words.';
+  END IF;
+
+  -- FOR UPDATE, restored. Without the lock two parties filing at the same
+  -- instant each read "no open dispute" and both insert. The unique index
+  -- added in 20260901032007 is the backstop; this is what makes the loser WAIT
+  -- and then take the existing-dispute branch instead of erroring.
+  SELECT customer_id, helper_id, title, status::text, payment_status
+    INTO _customer, _helper, _title, _status, _payment_status
+    FROM public.jobs WHERE id = _job_id FOR UPDATE;
+
+  IF _customer IS NULL THEN
+    RAISE EXCEPTION 'job not found';
+  END IF;
+
+  -- The platform is not a party to the job, so there is no membership to
+  -- check on that branch. Every human caller still is.
+  IF NOT _system AND _uid <> _customer AND _uid <> _helper THEN
+    RAISE EXCEPTION 'not authorized for this job';
+  END IF;
+
+  _other := CASE WHEN _uid = _customer THEN _helper ELSE _customer END;
+
+  -- ── Not over a decided dispute whose money has not moved ────────────────
+  -- rpc_decide_dispute leaves the job completed/cancelled with the escrow held
+  -- until execute-dispute-split settles it. A party re-filing then flipped the
+  -- job back to `disputed` (and a withdrawal to in_progress), which handed the
+  -- escrow to Quick Release / Quick Refund / the sweep and, via
+  -- poster_cancel_job, to void-cancelled-payments — each settling over the
+  -- admin's decision, and "Retry settlement" moving the split on top (both
+  -- reviews, round 2, HIGH; live shape on prod: job bb2c3732 / dispute
+  -- c7a12050). The decision stands until it executes.
+  IF EXISTS (
+    SELECT 1 FROM public.disputes d
+     WHERE d.job_id = _job_id
+       AND d.status = 'decided'
+       AND d.execution_status IS DISTINCT FROM 'executed'
+  ) THEN
+    RAISE EXCEPTION 'dispute_already_decided'
+      USING HINT = 'An admin has already decided this dispute and its payment is being settled.';
+  END IF;
+
+  -- ── Not while the escrow is being cancelled ─────────────────────────────
+  -- `cancelling` is cancel_escrow's claim: its Stripe refund is in flight.
+  -- A dispute stamped onto that job made it `disputed` with the refund still
+  -- going out, and an admin Quick Release then paid the Helpr beside it.
+  -- claim_dispute_settlement now refuses that shape too; this stops it being
+  -- created. Read under the FOR UPDATE above, so cancel_escrow's claim either
+  -- committed first (visible here) or waits behind this filing (and its own
+  -- status-pinned claim then matches zero rows).
+  IF _payment_status = 'cancelling' THEN
+    RAISE EXCEPTION 'dispute_payment_being_cancelled'
+      USING HINT = 'This job''s payment is being cancelled and refunded, so it can no longer be disputed.';
+  END IF;
+
+  SELECT id INTO _existing_id
+  FROM public.disputes
+  WHERE job_id = _job_id AND status = 'open'
+  LIMIT 1;
+
+  IF _existing_id IS NOT NULL THEN
+    -- Set-like append, 20260915034822. A DOUBLE SUBMIT from the dispute
+    -- dialog — two clicks inside one JS task, both past the React-state
+    -- `submitting` flag because state does not land until the next render —
+    -- sends two calls. The second blocks on the FOR UPDATE above, then lands
+    -- HERE, and with a bare `||` it appended the SAME evidence urls a second
+    -- time: the admin queue showed each photo twice and `evidence_urls` grew
+    -- without bound on every retry. The client now holds a synchronous ref
+    -- guard as well (DisputeDialog.tsx), but a guard in the browser is not a
+    -- guarantee; this is.
+    UPDATE public.disputes
+    SET evidence_urls = (
+          SELECT COALESCE(array_agg(u ORDER BY ord), '{}'::text[])
+            FROM (
+              SELECT u, min(ord) AS ord
+                FROM unnest(
+                       evidence_urls || COALESCE(_evidence_urls, '{}'::text[])
+                     ) WITH ORDINALITY AS t(u, ord)
+               GROUP BY u
+            ) d
+        )
+    WHERE id = _existing_id;
+
+    -- Mirror the appended evidence so the poster card and admin queue that
+    -- read the legacy array don't diverge from the disputes row.
+    UPDATE public.jobs
+       SET dispute_evidence_urls = (
+             SELECT COALESCE(array_agg(u ORDER BY ord), '{}'::text[])
+               FROM (
+                 SELECT u, min(ord) AS ord
+                   FROM unnest(
+                          COALESCE(dispute_evidence_urls, '{}'::text[])
+                            || COALESCE(_evidence_urls, '{}'::text[])
+                        ) WITH ORDINALITY AS t(u, ord)
+                  GROUP BY u
+               ) d
+           )
+     WHERE id = _job_id;
+
+    -- RE-FREEZE. An open `disputes` row on a job that is NOT disputed is the
+    -- shape auto-resolve-disputes leaves behind (it writes `jobs`, never this
+    -- table), and this branch used to RETURN without touching the job — so a
+    -- re-file inside the payout hold appended evidence, reported success, and
+    -- left the escrow free to pay out. Only re-freeze from a state the
+    -- transition matrix allows, so this can never raise on a job that has
+    -- legitimately moved on.
+    IF _status <> 'disputed' AND _status IN ('completed', 'in_progress', 'revision_requested', 'accepted') THEN
+      UPDATE public.jobs
+         SET status = 'disputed',
+             disputed_by = COALESCE(disputed_by, _uid),
+             disputed_at = COALESCE(disputed_at, now()),
+             dispute_status = 'open'
+       WHERE id = _job_id;
+      _refroze := true;
+    END IF;
+
+    -- Page ops on a re-freeze but not on a bare evidence append. A re-freeze
+    -- means money was one payout-hold away from leaving on a job somebody is
+    -- still contesting; an extra photo on an already-frozen dispute is not
+    -- news at 3am.
+    IF _refroze THEN
+      PERFORM public.notify_ops_dispute_filed(_job_id, _title, _reason, _uid, true);
+    END IF;
+
+    -- NO velocity check on this branch, deliberately. This is a re-file on a
+    -- dispute that already exists, and both mirror columns are COALESCEd above
+    -- precisely so it does not restamp. The job was already counted the first
+    -- time; counting it again here would flag people for uploading a second
+    -- photo.
+    --
+    -- This is ALSO the sweep's idempotency guard: a second pass over a job
+    -- whose dispute the platform already opened lands here, appends nothing
+    -- and returns the SAME id. No duplicate row, no second notification.
+    RETURN _existing_id;
+  END IF;
+
+  -- ── The job must still be disputable, 20260915034822 ────────────────────
+  -- The re-freeze branch above has always checked `_status` against the
+  -- transition matrix's own `-> disputed` edges. The NEW-dispute path below
+  -- never did: it inserted the row and stamped status='disputed'
+  -- unconditionally. `_status` was read under the FOR UPDATE above, so a
+  -- concurrent `poster_cancel_job` / completion / payout either commits BEFORE
+  -- this call takes the lock (and is therefore visible in `_status`) or waits
+  -- behind it — which is exactly why checking it here closes the window
+  -- instead of merely narrowing it.
+  --
+  -- Without it, filing a dispute that raced a cancellation either stamped
+  -- `disputed` onto a cancelled job (freezing an escrow that had already been
+  -- refunded) or raised `enforce_job_status_transition`'s raw Postgres prose at
+  -- the filer. A terse code instead, so `lifecycleErrorMessage` can say what
+  -- happened; the allowed set is the same list the re-freeze branch uses.
+  IF _status NOT IN ('completed', 'in_progress', 'revision_requested', 'accepted') THEN
+    RAISE EXCEPTION 'dispute_job_not_disputable'
+      USING HINT = 'This job has already been resolved or closed, so it can no longer be disputed.';
+  END IF;
+
+  INSERT INTO public.disputes (job_id, opener_id, reason, evidence_urls)
+  VALUES (_job_id, _uid, _reason, COALESCE(_evidence_urls, '{}'::text[]))
+  RETURNING id INTO _new_id;
+
+  -- ONE statement: status + the mirror columns together, so the
+  -- set_dispute_deadline trigger (BEFORE UPDATE, keyed on the flip to
+  -- 'disputed') sees a non-null disputed_at and can derive the 72h deadline.
+  UPDATE public.jobs
+     SET status = 'disputed',
+         disputed_by = _uid,
+         disputed_at = now(),
+         dispute_reason = _reason,
+         dispute_status = 'open',
+         dispute_evidence_urls =
+           COALESCE(dispute_evidence_urls, '{}'::text[]) || COALESCE(_evidence_urls, '{}'::text[])
+   -- Belt and braces on the predicate above: the same allowed set, written
+   -- into the statement itself so the freeze can never land on a job that
+   -- moved on, even if a future edit drops the IF.
+   WHERE id = _job_id
+     AND status::text IN ('completed', 'in_progress', 'revision_requested', 'accepted');
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'dispute_job_not_disputable'
+      USING HINT = 'This job has already been resolved or closed, so it can no longer be disputed.';
+  END IF;
+
+  -- ── DISPUTE VELOCITY ────────────────────────────────────────────────────
+  -- Delivers "3+ disputes in 30 days flags your account for review."
+  --
+  -- Skipped entirely for a system filing: `disputed_by` is NULL, nobody chose
+  -- to file, and flagging an account for the platform's own sweep would turn a
+  -- stalled revision into a fraud signal against whichever party the count
+  -- happened to land on.
+  --
+  -- Runs AFTER the UPDATE above on purpose: that statement is what stamps
+  -- disputed_by/disputed_at, so the dispute being filed right now is inside
+  -- the window the check counts. check_dispute_velocity returns TRUE while
+  -- UNDER the limit, so `NOT ...` is "this filing put them at or past it".
+  --
+  -- Wrapped, and this is the one place in this function where swallowing is
+  -- correct: the purpose of this RPC is to FREEZE THE MONEY on a contested
+  -- job. Failing to file a risk signal must never be the reason a real
+  -- dispute does not freeze.
+  IF NOT _system THEN
+    BEGIN
+      IF NOT public.check_dispute_velocity(_uid) THEN
+        -- One open flag per account at a time. Every further dispute past the
+        -- threshold is more of the same signal, and an admin resolving the flag
+        -- is what re-arms it.
+        IF NOT EXISTS (
+          SELECT 1 FROM public.fraud_flags
+          WHERE user_id = _uid AND flag_type = 'high_dispute_rate' AND resolved = false
+        ) THEN
+          SELECT count(*) INTO _velocity_count
+            FROM public.jobs
+           WHERE disputed_by = _uid
+             AND disputed_at > now() - interval '30 days';
+
+          INSERT INTO public.fraud_flags (user_id, job_id, flag_type, details)
+          VALUES (
+            _uid,
+            _job_id,
+            'high_dispute_rate',
+            'Opened ' || _velocity_count || ' disputes in the last 30 days, at or over the '
+              || 'review threshold. Most recent: "' || COALESCE(_title, 'a job') || '".'
+          );
+        END IF;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'open_dispute_as: dispute-velocity flag failed for % on job %: %',
+        _uid, _job_id, SQLERRM;
+    END;
+  END IF;
+
+  -- ── Tell the people this affects ────────────────────────────────────────
+  -- A human filing tells the counterparty (the filer knows already). A system
+  -- filing tells BOTH, because neither of them did this and neither is
+  -- expecting it.
+  --
+  -- `?job=<id>`, never a fixed `?filter=`: `disputed` has no chip of its own.
+  IF _system THEN
+    IF _customer IS NOT NULL THEN
+      INSERT INTO public.notifications (user_id, title, message, type, link)
+      VALUES (
+        _customer,
+        'Revision deadline passed — dispute opened',
+        'The revision you requested on "' || COALESCE(_title, 'a job') ||
+          '" was not delivered before the deadline, so we opened a dispute for you. ' ||
+          'The payment stays on hold and an admin will decide it — add your side.',
+        'warning',
+        '/my-posts?job=' || _job_id::text
+      );
+    END IF;
+    IF _helper IS NOT NULL THEN
+      INSERT INTO public.notifications (user_id, title, message, type, link)
+      VALUES (
+        _helper,
+        'Revision deadline passed — dispute opened',
+        'The revision requested on "' || COALESCE(_title, 'a job') ||
+          '" was not delivered before the deadline, so a dispute was opened automatically. ' ||
+          'An admin will decide the payment — add your side.',
+        'warning',
+        '/my-jobs?job=' || _job_id::text
+      );
+    END IF;
+  ELSIF _other IS NOT NULL THEN
+    INSERT INTO public.notifications (user_id, title, message, type, link)
+    VALUES (
+      _other,
+      'A dispute was opened',
+      'A dispute was opened on "' || COALESCE(_title, 'a job') ||
+        '". The payment is on hold while it is reviewed — add your side so an admin hears both.',
+      'warning',
+      CASE WHEN _other = _customer
+           THEN '/my-posts?job=' || _job_id::text
+           ELSE '/my-jobs?job=' || _job_id::text
+      END
+    );
+  END IF;
+
+  -- Then the admins, who are the ones who actually resolve it. Done here
+  -- because it CANNOT be done from the client: `user_roles` is unreadable to
+  -- a normal user and the notifications INSERT policy is admin/service-role
+  -- only. `?view=` is what Admin.tsx reads.
+  FOR _admin IN SELECT user_id FROM public.user_roles WHERE role = 'admin' LOOP
+    INSERT INTO public.notifications (user_id, title, message, type, link)
+    VALUES (
+      _admin,
+      'Job disputed',
+      '"' || COALESCE(_title, 'a job') || '" has been disputed. Payment is on hold pending review.',
+      'warning',
+      '/admin?view=disputes'
+    );
+  END LOOP;
+
+  -- And page ops in Slack.
+  PERFORM public.notify_ops_dispute_filed(_job_id, _title, _reason, _uid, false);
+
+  RETURN _new_id;
+END;
+$function$;

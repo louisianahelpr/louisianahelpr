@@ -26,9 +26,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
-import { unwrapMutation } from "@/lib/mutationResult";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
-import type { Database } from "@/integrations/supabase/types";
 
 interface DisputeDialogProps {
   jobId: string;
@@ -38,13 +36,14 @@ interface DisputeDialogProps {
   // this component fired from the browser, which 401'd on every call. The
   // server builds that message from `jobs.title` itself now
   // (notify_ops_dispute_filed, 20260902035447), so the prop had no reader left.
-  userId: string;
+  // `userId` went the same way: its one reader was the removed direct-write
+  // fallback's `disputed_by` (the RPC takes the filer from auth.uid()).
   open: boolean;
   onClose: () => void;
   onDisputed: () => void;
 }
 
-export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }: DisputeDialogProps) => {
+export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: DisputeDialogProps) => {
   const [reason, setReason] = useState("");
   const [details, setDetails] = useState("");
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
@@ -54,7 +53,6 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
   const detailsOk = details.trim().length >= DISPUTE_DETAILS_MIN;
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-  const disputedStatus: Database["public"]["Enums"]["job_status"] = "disputed";
 
   // Known precondition codes get human copy; anything else keeps the raw
   // message (still more useful than a generic string when it is an RLS or
@@ -138,18 +136,20 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
 
       const reasonText = composeDisputeReason(side, reason, details);
 
-      // Prefer the formal rpc_open_dispute path (writes a dedicated
-      // disputes row + mirrors onto the legacy jobs.dispute_* columns
-      // + flips job.status to 'disputed'). Migrations don't auto-deploy
-      // (see CLAUDE.md), so when the RPC isn't pushed yet we fall back
-      // to the prior direct-update path so the feature isn't broken
-      // between merge and `supabase db push`.
+      // rpc_open_dispute is the ONE filing path: it writes the disputes row,
+      // mirrors the jobs.dispute_* columns and flips status to 'disputed' in
+      // one server transaction. There used to be a PGRST202 ("RPC not
+      // deployed") fallback here that wrote status / disputed_at / disputed_by
+      // straight onto jobs. It was unreachable (the RPC has been live since
+      // long before this dialog shipped) and, since
+      // 20260915033734_dispute_markers_server_owned, the database refuses
+      // exactly that write from a client, so it could only ever fail.
       const { data: disputeId, error: rpcError } = await supabase.rpc(
         "rpc_open_dispute",
         { _job_id: jobId, _reason: reasonText, _evidence_urls: evidenceUrls },
       );
 
-      if (rpcError && rpcError.code !== "PGRST202") {
+      if (rpcError) {
         throw rpcError;
       }
 
@@ -157,33 +157,9 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
       // filed — this is the one screen where "we said it worked and it did
       // not" freezes someone's money on a promise the database never made, so
       // the returned id is checked rather than discarded.
-      if (!rpcError && !disputeId) {
+      if (!disputeId) {
         throw new Error(
           "This job couldn't be disputed — it may have already been resolved or closed. Refresh and try again.",
-        );
-      }
-
-      if (rpcError?.code === "PGRST202") {
-        // Fallback — RPC not deployed yet. Direct-update the legacy
-        // columns so the disputed state is still surfaced everywhere
-        // that reads from `jobs`.
-        // .select("id"): the legacy fallback writes the disputed state that
-        // holds the payment. If RLS or a stale id makes it match zero rows the
-        // update returns error === null, and this would have gone on to alert
-        // admins about a dispute the job row never entered.
-        unwrapMutation(
-          await supabase.from("jobs").update({
-            status: disputedStatus,
-            dispute_reason: reasonText,
-            dispute_evidence_urls: evidenceUrls,
-            disputed_at: new Date().toISOString(),
-            disputed_by: userId,
-          }).eq("id", jobId).select("id"),
-          {
-            action: "open a dispute on this job",
-            rejectedMessage: "This job couldn't be disputed — it may have already been resolved or closed. Refresh and try again.",
-            context: { jobId },
-          },
         );
       }
 

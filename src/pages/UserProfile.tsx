@@ -530,7 +530,6 @@ const UserProfile = () => {
             initials={initials}
             isOwnProfile={isOwnProfile}
             isIdVerified={isIdVerified}
-            mutualJobsCount={mutualJobsCount}
             tierBadge={<SubscriptionTierBadge tier={profile.subscription_tier} />}
             recognition={
               <RecognitionRow
@@ -584,6 +583,8 @@ const UserProfile = () => {
                 revisionFrequency={revisionFrequency}
                 cancellationRate={cancellationRate}
                 repeatHirePercent={data?.repeatHirePercent ?? null}
+                // Moved here from the header line (owner, 2026-09-14, VN-16).
+                mutualJobsCount={mutualJobsCount}
                 showReviews={showReviews}
                 showPostedJobs={showPostedJobs}
                 showWorkedJobs={showWorkedJobs}

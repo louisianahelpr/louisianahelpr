@@ -75,6 +75,10 @@ const REQUIRED_ANCHORS = [
   { label: "twitter:title", re: /<meta name="twitter:title" content="[^"]*" \/>/ },
   { label: "twitter:description", re: /<meta name="twitter:description" content="[^"]*" \/>/ },
   { label: 'meta name="robots"', re: /<meta name="robots" content="[^"]*" \/>/ },
+  // Icon links — api/share.ts rewrites their root-relative href to an absolute
+  // URL so a link-preview fetcher can load the H logo (VN-4, 2026-09-14).
+  { label: 'link rel="icon"', re: /<link rel="icon"[^>]*\shref="\/[^"]*"/ },
+  { label: 'link rel="apple-touch-icon"', re: /<link rel="apple-touch-icon"[^>]*\shref="\/[^"]*"/ },
 ];
 
 /** The image block must survive untouched — assert it is still intact. */

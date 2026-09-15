@@ -492,6 +492,8 @@ function AppliedJobCardInner({
             <DisputedSection
               app={app}
               job={job}
+              userId={userId}
+              initialTracking={initialTracking}
               navigate={navigate}
               onViewDispute={onViewDispute}
               onRefresh={onRefresh}

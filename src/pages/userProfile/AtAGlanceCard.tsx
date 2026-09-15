@@ -4,6 +4,7 @@ import {
   ClipboardList,
   Hammer,
   Sprout,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
@@ -60,7 +61,7 @@ type Cell = {
 };
 
 /** One metric cell — big value, quiet label. The only shape in this grid. */
-const MetricCell = ({ cell }: { cell: Cell }) => {
+const MetricCell = ({ cell, className }: { cell: Cell; className?: string }) => {
   const tone = cell.tone ?? "hsl(var(--ink-deep))";
   const interactive = !!cell.onClick;
   const body = (
@@ -100,7 +101,7 @@ const MetricCell = ({ cell }: { cell: Cell }) => {
   if (!interactive) {
     return (
       <div
-        className="flex flex-col gap-0.5 rounded-ds-md px-3 py-2.5 sm:py-3.5 min-w-0 min-h-[58px] justify-center"
+        className={cn("flex flex-col gap-0.5 rounded-ds-md px-3 py-2.5 sm:py-3.5 min-w-0 min-h-[58px] justify-center", className)}
         style={{ background: "hsl(var(--olivewood) / 0.05)" }}
       >
         {body}
@@ -116,6 +117,7 @@ const MetricCell = ({ cell }: { cell: Cell }) => {
       className={cn(
         // min-h-[58px] clears the 44px tap-target floor with room to spare.
         "flex flex-col gap-0.5 rounded-ds-md px-3 py-2.5 sm:py-3.5 min-w-0 min-h-[58px] justify-center text-left",
+        className,
         // Outline, not ring: the selected state below paints an inline
         // boxShadow, which is the property Tailwind's ring lives in, so a
         // ring could never show on the selected cell.
@@ -163,6 +165,12 @@ type Props = {
    * the same card and made a stranger doubt both.
    */
   repeatHirePercent: number | null;
+  /**
+   * Completed jobs the VIEWER and this member have done together. Its own
+   * tile, second only to the rating (owner, 2026-09-14, VN-16). Never shown on
+   * your own profile, and hidden at 0.
+   */
+  mutualJobsCount: number;
   showReviews: boolean;
   showPostedJobs: boolean;
   showWorkedJobs: boolean;
@@ -183,6 +191,7 @@ export const AtAGlanceCard = ({
   revisionFrequency: _revisionFrequency,
   cancellationRate,
   repeatHirePercent: _repeatHirePercent,
+  mutualJobsCount,
   showReviews,
   showPostedJobs,
   showWorkedJobs,
@@ -211,17 +220,25 @@ export const AtAGlanceCard = ({
     });
   }
 
-  // ── The two sides of the marketplace, only where they apply ──────────
-  if (postedJobsCount > 0) {
+  // ── Worked together ─────────────────────────────────────────────────
+  // Second, straight after the rating: for a visitor who has hired this person
+  // before, their own history with them is the strongest signal on the card.
+  // It used to be a quiet line under the bio in ProfileHeaderCard; owner,
+  // 2026-09-14 (VN-16): "you've worked together however many times can be a
+  // 5th box next to review, jobs posted, completed etc. order in most
+  // important to least". Not a button — there is no panel behind it.
+  if (!isOwnProfile && mutualJobsCount > 0) {
     cells.push({
-      key: "posted",
-      icon: ClipboardList,
-      value: String(postedJobsCount),
-      label: "Jobs posted",
-      onClick: onTogglePosted,
-      selected: showPostedJobs,
+      key: "together",
+      icon: Users,
+      value: String(mutualJobsCount),
+      label: "Worked together",
     });
   }
+
+  // ── The two sides of the marketplace, only where they apply ──────────
+  // Completed before posted (VN-16's most-to-least-important order): work
+  // someone actually did for other people outranks how often they posted.
   if (workedJobsCount > 0) {
     cells.push({
       key: "worked",
@@ -232,11 +249,25 @@ export const AtAGlanceCard = ({
       selected: showWorkedJobs,
     });
   }
+  if (postedJobsCount > 0) {
+    cells.push({
+      key: "posted",
+      icon: ClipboardList,
+      value: String(postedJobsCount),
+      label: "Jobs posted",
+      onClick: onTogglePosted,
+      selected: showPostedJobs,
+    });
+  }
 
-  /* ── EXACTLY FOUR TILES ──────────────────────────────────────────────
-     Owner, 2026-09-11, asked a second time and told me not to ask again:
-     this card shows Rating · Jobs posted · Jobs completed · Cancelled, and
-     nothing else. Deleted here with that ruling: "Typical reply time"
+  /* ── FIVE TILES, IN THIS ORDER ───────────────────────────────────────
+     Owner, 2026-09-14 (VN-16), changing the 2026-09-11 ruling below from four
+     tiles to five: Rating · Worked together · Jobs completed · Jobs posted ·
+     Cancelled — most to least important, and nothing else.
+
+     The 2026-09-11 ruling ("EXACTLY FOUR TILES", asked twice): this card shows
+     Rating · Jobs posted · Jobs completed · Cancelled, and nothing else.
+     Deleted with that ruling, and still deleted: "Typical reply time"
      (owner-only, `get_my_reply_latency()`), "Arrived on time", "Posters who
      rebooked" and "Needed revisions".
 
@@ -366,17 +397,32 @@ export const AtAGlanceCard = ({
 
   return (
     <section aria-label="At a glance">
-      {/* Four tiles max (see "EXACTLY FOUR TILES" above), so the grid tops out
-          at four columns: two-up on a phone, one row from `sm`. A six-column
-          track would have stranded four tiles in two-thirds of a desktop
-          frame.
+      {/* Up to four tiles: two-up on a phone, one row of four from `sm`.
+          FIVE (only when "Worked together" joins — see "FIVE TILES" above):
+          two-up on a phone with the fifth tile spanning the last row, so no
+          tile is stranded half-width beside an empty cell; one row of five
+          from `md`, where each tile still has room for its label. A six-column
+          track would have stranded tiles in part of a desktop frame.
           `auto-rows-fr`: every tile is as tall as the tallest, across rows
           too. Two-up at 375, a label that wraps ("31 of 61 jobs cancelled")
           made row 2 70.3px under a 58px row 1 (OPEN.md; guarded by
           e2e/journeys/stat-tile-heights.spec.ts). */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 auto-rows-fr gap-2">
-        {cells.map((c) => (
-          <MetricCell key={c.key} cell={c} />
+      <div
+        className={cn(
+          "grid grid-cols-2 auto-rows-fr gap-2",
+          cells.length >= 5 ? "md:grid-cols-5" : "sm:grid-cols-4",
+        )}
+      >
+        {cells.map((c, i) => (
+          <MetricCell
+            key={c.key}
+            cell={c}
+            className={
+              cells.length >= 5 && i === cells.length - 1 && cells.length % 2 === 1
+                ? "col-span-2 md:col-span-1"
+                : undefined
+            }
+          />
         ))}
       </div>
     </section>

@@ -714,6 +714,40 @@ const ProfilePage = () => {
               after — i.e. identical to the PageScaffold pages (Dashboard's is
               335 at x=20). Same fix as AppPage.tsx (9e3f3ad7f), found by the
               shell-cards lane. */
+          /* VN-37 was TRIED HERE AND REVERTED (2026-09-14). Do not try it again
+              without reading this.
+
+              The owner asked for "that small gap to the left and right of
+              content" to be filled on the Profile tab pages. This wrapper
+              bleeds 12px (`-mx-3`) to pay back the `px-3` it needs so that
+              `overflow-y-auto` — which computes `overflow-x` to `auto` too —
+              does not slice card shadows off flat, so its content box lands
+              exactly on the container's content edge. The fix attempted was to
+              bleed 24px at `xl` instead of 12, moving the cards 12px further
+              out.
+
+              Measured on prod at 1440 (frame 0->1192) before touching
+              anything, and this is why it was reverted:
+
+                /dashboard ............. panel  48 -> 1144
+                /my-posts .............. panel  48 -> 1144
+                /messages .............. panel  48 -> 1144
+                /profile?tab=reviews ... card   48 -> 1144
+
+              Pixel-identical. The Profile tabs are not inset relative to
+              anything — they are already flush with every PageScaffold
+              sibling, which is the parity the 2026-09-11 commit deliberately
+              established (see the note below it at 375). Bleeding here moved
+              Profile alone to x=36 and split the shared fixed-shell family,
+              since src/components/AppPage.tsx carries this wrapper string
+              byte-for-byte.
+
+              The gap the owner sees is the CONTAINER gutter — `px-5 lg:px-8
+              xl:px-12`, 48px at xl — shared by Profile, AppPage and
+              PageScaffold. Narrowing it is a one-line change to that string in
+              all three, an app-wide look decision, and it is OPEN for the
+              owner. It is not a Profile bug and must not be fixed one screen
+              at a time. */
           <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
           {/* `key={tab}` on the boundary re-mounts this wrapper on every

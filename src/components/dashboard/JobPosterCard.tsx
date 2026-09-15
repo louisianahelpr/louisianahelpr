@@ -1,9 +1,7 @@
-import { Star, ChevronRight } from "lucide-react";
 import { hasPerk, tierDisplayName } from "@/lib/subscriptionTiers";
 import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
-import { Link } from "react-router-dom";
 import { TrustRow } from "@/components/TrustRow";
-import UserAvatar from "@/components/UserAvatar";
+import { PersonTile } from "@/components/PersonTile";
 import type { EnrichedJob } from "./types";
 
 interface JobPosterCardProps {
@@ -80,106 +78,28 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
   const showTrustRow = hasTier || repeatJobs >= 2;
 
   return (
-    <Link
+    /* The tile itself is the shared PersonTile (lifted out of this file with
+       its markup unchanged, owner 2026-09-14 VN-22), so the poster's Posts card
+       can show its Helpr the same way. */
+    <PersonTile
+      userId={job.customer_id}
       // Guests can't open a profile — /user/:id is behind auth — so the tap
       // goes where it can actually lead somewhere.
       to={guest ? "/signup" : `/user/${job.customer_id}`}
-      className="relative block p-2.5 rounded-ds-md group glass-press transition-colors"
-      style={{
-        // `--surface-premium`, NOT a literal white. This was
-        // `hsla(0, 0%, 100%, 0.55)` — 55%-opaque pure white with no dark
-        // sibling — so in dark mode the "Posted by" tile painted as a bright
-        // silver panel sitting among otherwise dark tiles (caught on the iOS
-        // sim). That is the exact failure the token was introduced to fix; see
-        // the note above --surface-premium in index.css. This tile was just
-        // never migrated.
-        background: "var(--surface-premium)",
-        backdropFilter: "blur(16px) saturate(150%)",
-        WebkitBackdropFilter: "blur(16px) saturate(150%)",
-        border: "0.5px solid hsl(var(--bark) / 0.18)",
-        boxShadow:
-          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
-          "0 1px 2px hsl(var(--olivewood) / 0.05)",
-      }}
-    >
-      <div className="flex items-center gap-2.5">
-        {/* THE SHARED `<UserAvatar>`, not a hand-rolled circle.
-
-            This was a bare `<div>` whose monogram rendered only when
-            `posterAvatarUrl` was falsy — so an avatar row that points at a
-            file which loads perfectly and contains NOTHING (prod has these:
-            f53663b1…/avatar.png is a 79-byte 16×16 solid block, HTTP 200)
-            painted a flat coloured disc with no initials, while the very same
-            member's profile page showed "RA". Two avatar treatments for one
-            person, and the blank one on the tile where a helpr is deciding
-            whether to trust them.
-
-            `<UserAvatar>` already owns that verdict — it samples the decoded
-            bitmap (`isBlankAvatarBitmap`) and falls through to the monogram —
-            which is exactly why the profile page was right and this was not.
-            The fork simply predated it.
-
-            `pixelSize={40}` matches the rendered box so a multi-MB original
-            is not fetched into a 40px circle. The bark hairline and inset
-            highlight move onto the root so they frame photo and monogram
-            identically, and `ring-0` suppresses the fallback's own olivewood
-            hairline so there is one ring rather than two — same composition
-            ProfileHeaderCard uses. */}
-        <UserAvatar
-          userId={job.customer_id}
-          src={job.posterAvatarUrl}
-          name={job.posterName}
-          initials={posterInitials}
-          pixelSize={40}
-          alt=""
-          className="shrink-0 w-10 h-10"
-          fallbackClassName="text-ds-12 ring-0"
-          style={{
-            border: "1px solid hsl(var(--bark) / 0.22)",
-            boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)",
-          }}
-        />
-        <div className="min-w-0 flex-1">
-          <p
-            className="text-ds-10 font-sans font-semibold uppercase"
-            style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.06em" }}
-          >
-            Posted by
+      name={job.posterName}
+      avatarUrl={job.posterAvatarUrl}
+      initials={posterInitials}
+      eyebrow="Posted by"
+      rating={job.posterAvgRating}
+      reviewCount={job.posterReviewCount}
+      subline={
+        (job.posterCompletedJobs ?? 0) > 0 && (
+          <p className="font-sans text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            {job.posterCompletedJobs} {job.posterCompletedJobs === 1 ? "job" : "jobs"}
           </p>
-          <div className="flex items-baseline gap-2">
-            <p className="font-sans font-semibold leading-tight truncate text-ds-16 min-w-0" style={{ color: "hsl(var(--ink-deep))" }}>
-              {job.posterName}
-            </p>
-            {/* "New" (no reviews yet) and the relative post date were removed
-                here (owner: "remove new and 5 days ago") — a rating only
-                renders once there's one to show. */}
-            {(job.posterReviewCount ?? 0) > 0 && (
-              <span className="flex items-center gap-0.5 text-ds-11 shrink-0">
-                <Star className="w-3.5 h-3.5 fill-accent text-accent" />
-                <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                  {job.posterAvgRating?.toFixed(1)}
-                </span>
-                <span className="font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  ({job.posterReviewCount})
-                </span>
-              </span>
-            )}
-          </div>
-          {(job.posterCompletedJobs ?? 0) > 0 && (
-            <p className="font-sans text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {job.posterCompletedJobs} {job.posterCompletedJobs === 1 ? "job" : "jobs"}
-            </p>
-          )}
-        </div>
-        {/* "View profile" affordance — chevron on the right edge so the
-            card visually reads as tappable. */}
-        <ChevronRight
-          className="shrink-0 w-4 h-4 transition-transform group-hover:translate-x-0.5"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          strokeWidth={2}
-        />
-      </div>
-
+        )
+      }
+    >
       {/* Trust signal row — poster tier (Pro/Elite) is rendered inline;
           poster-data signals (Trusted, Worked together) go through the
           shared TrustRow component. Hidden entirely when a poster has no
@@ -213,6 +133,6 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
           <TrustRow repeatHirePercent={repeatJobs >= 2 ? 100 : undefined} />
         </div>
       )}
-    </Link>
+    </PersonTile>
   );
 }

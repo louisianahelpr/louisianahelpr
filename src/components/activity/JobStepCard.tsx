@@ -25,10 +25,11 @@ import { JobActionRow } from "./JobActionRow";
  *
  * THE SLOTS, in the order they always render:
  *
- *   1. `header`  — where this job IS. The step rail on every live state; on a
- *      disputed job, which has left the rail entirely, the dispute banner takes
- *      the same slot. One slot, so the answer to "where am I" is always the
- *      first thing in the card.
+ *   1. `header`  — where this job IS. The step rail on every state that has
+ *      one, disputed included (owner, 2026-09-14, VN-23: "disputes should still
+ *      show the tracker" — the dispute banner sits directly BELOW the rail in
+ *      the same slot, it no longer replaces it). One slot, so the answer to
+ *      "where am I" is always the first thing in the card.
  *   2. `ask`     — the ONE thing this step wants from the helper right now
  *      (a photo, a revision decision, a dispute response). Never two at once —
  *      that is the whole point.

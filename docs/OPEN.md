@@ -8,6 +8,29 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+- [x] CLOSED 2026-09-15 (CRITICAL, RLS bypass; found by the lh-authz-rls review
+  of the dispute-state guard, pre-existing): `public.open_jobs_browse` — an
+  owner-run (security_invoker=false, owned by postgres/BYPASSRLS) browse VIEW —
+  was client-writable. anon/authenticated held INSERT/UPDATE/DELETE on it, so a
+  write through it hit `jobs` with RLS bypassed. Proven on prod, rolled back, on
+  is_seed job 5eed0a10-…-0001: as anon `DELETE FROM public.open_jobs_browse` →
+  1 row; as a signed-in non-party `UPDATE … SET customer_id=<self>` → 1 row
+  (escrow takeover); anon INSERT of a foreign funded job also landed. Root
+  cause: prod's default privileges GRANT ALL on every postgres-owned relation in
+  public to anon/authenticated, so the 2026-07-06 REVOKE (20260706140000) was
+  silently undone when 20260912021641 did DROP+CREATE of the view. Fix:
+  migration 20260915041247 REVOKEs INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/
+  TRIGGER/MAINTAIN FROM PUBLIC, anon, authenticated (keeps SELECT). Class check
+  (LIVE catalog, not migration text, since a DROP+CREATE re-opens it):
+  `scripts/check-updatable-views.mjs`, wired into db-drift-detect.yml — fails on
+  ANY exposed-schema view that is security_invoker-off AND client-writable;
+  shown red on prod before deploy, self-test proves it can fail;
+  open_jobs_browse is the only such view today. PGlite 3×:
+  `scripts/probes/open-jobs-browse-writes.probe.mjs` (before: writes land;
+  after: refused, reads still work; 2 broken copies caught; skip path).
+  sha <pending>. Follow-up (reported, not done): consider revoking the public
+  default-privilege write grant so recreations can't re-open this class at all.
+
 Grouped by SURFACE, not by the order it was noticed — because most of these are
 instances of a few shared problems, and fixing them surface-by-surface costs a
 fraction of fixing them one report at a time.
@@ -80,8 +103,71 @@ tripped a check. Three classes, in order of how many:
 - [x] **Map entries done 2026-09-14: VN-9, VN-10, VN-11** — Fixed and Confirmed in the tracker with committed screenshots (`docs/audit/visual-notes-2026-09-14/`), driven against prod from a local preview build because prod deploys are blocked. VN-10 needed two commits: the second BrowseMap (the desktop split map in Dashboard.tsx) had its own copy of the handler and stayed a dead tap after the first fix — both now share `openJobFromPin`. Side-finding filed below: the Browse header over-counts the rendered list.
 
 - [x] CLOSED 2026-09-14. Owner decisions 2026-09-14 (pop-up), visual-notes follow-ups: (1) server refuses disputes on a completed job (open_dispute_as; migration, money review before merge); (2) Mark Job Complete confirm popup reads "Mark This Job Complete?" with a "Mark Complete" button; (3) JobConfirmation "Can't make it? See what happens" link reads "Cancel Job"; (4) done is final — NO help/support link on done cards, and Help Center must not tell users to contact Support about a done job. PROOF: (1) c4ebb5d83, migration `20260915025607_block_disputes_on_completed_jobs`, db-deploy run 34924689542 success; prod `schema_migrations` has 20260915025607; live `open_dispute_as` prosrc contains the guard (raise at char 2151, after the party check at 1552, before the existing-dispute branch at 2338); proacl unchanged `{postgres=X/postgres,service_role=X/postgres}`, rpc_open_dispute unchanged `{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}`. helper-e2e (437de07d, the job's Helpr) called `rpc_open_dispute` on completed seed job 5eed0a10-0000-4000-8000-000000000010 → HTTP 400 P0001 `job_already_completed`; before/after identical (job xmin 2192761, status completed/released, 0 disputes, 3 job notifications, 25 admin dispute notifications, 0 fraud flags, 0 disputes created in the last 15 min), nothing to clean up. PGlite probe `scripts/probes/dispute-on-completed-job.probe.mjs`: hole reproduced on the live shape, green after 3 applies, 6 broken copies caught. Guard test `src/components/disputeFiling.test.ts` red without the migration. Money review (lh-money-escrow): diff correct; the pre-existing table-write bypass it found is the next line. (2) b831aa934, (3) 68f758f7c, both pinned by `src/components/confirmPopupCopy.test.ts` (red on the old strings); e2e 02-marketplace clicks "Mark Complete". (4) 11c1edd94: Help Center dispute answer says a job marked done is final and Report a Problem is available while the job is in progress, no Support mention, no link (`src/pages/HelpCenter.test.tsx`, red on the old copy). Done cards already carry no help/support link (grep of activity cards). Gate: typecheck green; full vitest 424 files / 4475 passed.
-- [ ] Done is final, the TABLE door (money review of 20260915025607, 2026-09-14; pre-existing, not changed): the migration closes the RPC path only. Read from live definitions (not executed): the jobs policy "Customers can update their own jobs" has no WITH CHECK, `authenticated` holds column UPDATE on status/disputed_at/dispute_status/disputed_by, no poster-side trigger locks them (`enforce_poster_jobs_money_lock`, `prevent_job_field_escalation` do not list them), and `enforce_job_status_transition` allows ('completed','disputed'). A poster PATCH of `disputed_at` on a completed `payout_pending` job stalls `process-scheduled-payouts` (pays only `disputed_at IS NULL`) with no admin-queue entry; adding `status: 'disputed'` also escapes `auto-resolve-disputes` (needs payment_status='escrow'). `DisputeDialog.tsx:166-186` (RPC-not-deployed fallback) is that exact direct write (dead code, reported). Fix direction: BEFORE UPDATE trigger refusing non-admin changes to those columns unless a txn-local flag set by open_dispute_as is on (the `app.sanctioned_cancel` pattern); prove with a rolled-back non-admin poster probe. Also minor, same review: disputes opener can still append evidence via the "disputes opener update while open" policy on a completed job (no money); cancelled jobs are refused by the matrix only after the INSERT with raw text; a helper abort racing poster completion now raises job_already_completed but `ActiveJobSection.tsx:164` only maps not_abortable (generic toast).
+- [x] CLOSED 2026-09-14. Done is final, the TABLE door (money review of 20260915025607). Migration `20260915033734_dispute_markers_server_owned` (commit 9d6443208, db-deploy run 34928544962 green): a non-SECURITY-DEFINER BEFORE INSERT OR UPDATE trigger on jobs. A direct client write (current_user authenticated/anon, not admin) may not move status into/out of 'disputed' or change disputed_at / disputed_by / dispute_deadline / dispute_resolved_at / dispute_status (one exception: the assigned Helpr answering an open dispute they did not file, -> 'helper_responded'); on INSERT those markers are cleared. SECURITY DEFINER RPCs, service_role and cron are untouched. Found beyond the original item and closed in the same trigger: helper re-pointing disputed_by / de-escalating so auto-resolve pays them, either party moving status out of 'disputed', dispute_deadline pushes, and the INSERT door (a job created already carrying disputed_at; found by both reviewers). Dead `DisputeDialog.tsx` PGRST202 fallback removed. PROOF: `scripts/probes/dispute-table-door.probe.mjs` (live-shaped PGlite: red on the live shape, green applied 3x, 14 broken copies caught, skip + loud paths); CI class guard `src/test/disputeMarkersServerOwned.test.ts` (red on the original fallback payload). PROD, seed account poster-e2e (Perry Poster, non-admin) on its completed seed job 5f20df1e-9037-4502-9d4b-90b98deadb4a: PATCH disputed_at -> 403 42501 "jobs.disputed_at is set by the dispute RPCs, not by the client"; PATCH status=disputed -> 403 42501; row before and after identical (xmin 2193058, status completed, payment_status released, all markers NULL, updated_at unchanged). Live trigger function md5(prosrc) b1f276e3... equals the migration file; the dispute RPCs' md5s equal the probe fixture's, so the in-progress/abort/escalate/withdraw/decide paths proven green in the probe are the deployed ones. Reviewed by lh-money-escrow and lh-authz-rls (no blockers after fixes).
+- [ ] **CRITICAL, authz (found by lh-authz-rls reviewing 20260915033734, 2026-09-14; verified live by me: relacl, is_updatable):** `public.open_jobs_browse` is a `security_invoker=false` view owned by postgres, auto-updatable (is_insertable_into/is_updatable YES), with `anon=arwdxm` and `authenticated=arwdxm`. Writes through it run as the owner and skip jobs RLS, and the sibling lock triggers return early for `auth.uid() IS NULL` or a non-party, so anon can UPDATE/DELETE/INSERT browsable jobs (title, budget, customer_id, payment_status, boost fields...). No app code writes to the view. Fix: `REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.open_jobs_browse FROM PUBLIC, anon, authenticated` plus a CI class check (no public view writable by anon/authenticated), proven red on this view; verify with `has_table_privilege` after deploy.
+- [ ] Dispute follow-ups still open after the table-door fix (reported, not changed): (1) either party can still rewrite `jobs.dispute_reason` / `dispute_evidence_urls` / `dispute_helper_response` at any time, and `AdminDisputes.tsx:151` reads `jobs.dispute_reason` (the pinned copy is `disputes.reason`), so the text an admin decides on is editable (no money moves); (2) the disputes opener can still append evidence on a completed job via the "disputes opener update while open" policy; (3) cancelled jobs are refused by the status matrix only after the disputes INSERT with raw text; (4) `ActiveJobSection.tsx:164` maps only not_abortable, so job_already_completed from a racing helper abort shows a generic toast; (5) `supabase/functions/auto-resolve-disputes/index.ts:531-535` comment says status / dispute_status / dispute_resolved_at are writable by a party to the job; no longer true since 20260915033734 (logic keyed on payment_status is still right).
+- [ ] Visual-notes 2026-09-14 side-findings (lane D/VN-45/VN-54, reported not changed): profile "Worked together" counts every shared job, not completed ones (Hallie shows 44 vs 16 completed); disputed Helpr card still shows the "Add a before photo" ask; App.tsx comments claim /support /help /legal skip PageTransition (they don't); /help and /support missing from NATIVE_APP_SHELL_ROUTES; served HTML has two <link rel="manifest">; /favicon.ico is PNG data. VN-45: the 2 orphan referral_credits rows on the owner account were deleted with owner OK; money tiles vs referral count still read different sources. VN-54 verified live (business_name only when license/insurance admin-verified), owner confirmed — closed.
 - [ ] Visual-notes follow-ups found while fixing (reported, not changed): `src/components/JobConfirmation.tsx:382` still says "Can't make it? See what happens" (VN-18 wording); `src/lib/lifecycleErrors.ts:33` job_not_completed copy says a dispute opens once work is complete, contradicting VN-28 (no RPC currently raises it); server `open_dispute_as` still accepts disputes on completed jobs (VN-28 removed only the UI — money review); `HelperAvailabilityDisplay`, `DEFAULT_DESIGN`, the submitted-credentials query in useUserProfileData and `onReport` plumbing on My Posts are now unused; RecognitionRow still shows grey "License/Insurance pending" chips (VN-13 adjacent); VN-2 job popup shows a blank POSTED BY name for an applicant viewer (pre-existing, seen on prod).
+
+## Earnings tab fails the a11y contrast gate — blocks any /profile push (2026-09-14)
+`src/components/profile/EarningsTab.tsx:510` — `<span className="block text-ds-11 mt-0.5"
+style={{ color: "hsl(var(--olivewood) / 0.65)" }}>`. axe, light theme:
+**#77786f on #ffffff = 4.46:1 at 11px, needs 4.5:1** (wcag2aa color-contrast,
+serious). Missing by 0.04.
+
+Found by the pre-push `check:changed` sweep, which maps changed files to their
+nearest route and sweeps it: any push touching /profile now runs this and is
+refused. It is NOT caused by the change that hit it — the vn-profile branch's
+whole `src/` diff is three files, adds no colour anywhere, does not touch
+EarningsTab, and its Profile.tsx change is comment-only.
+
+- [ ] Nudge the alpha (0.65 -> ~0.70 clears 4.5:1 on white) or drop to the
+      solid token, then re-run
+      `PLAYWRIGHT_WEB_SERVER=1 node scripts/check-changed.mjs` from a worktree
+      with a /profile change. NOT done here: it is another lane's screen, and
+      **VN-3 (Earnings layout, "large / design discussion first")** is open on
+      exactly this tab — a colour nudge now would collide with that redesign.
+- Check dark theme too: `--olivewood` is a different value there (index.css:897
+  vs :527), so the fix is per-theme, not one number.
+- Until then a /profile push needs `LH_SKIP_CHANGED_CHECK=1` with a
+  `LH_SKIP_REASON`, which is logged to docs/audit/prepush-skips.log.
+
+## VN-37 "content should fill that space" — OWNER DECISION, app-wide gutter (2026-09-14)
+Owner, on the Profile tab pages: "reviews and other pages still have that small
+gap to the left and right of content. content should fill that space."
+
+VN-46 (Notifications wouldn't scroll) shipped and is ticked in the tracker.
+**VN-37 did not, and its tracker row must stay unticked.** It was fixed once,
+measured, and reverted — the fix was wrong, and the measurement says why.
+
+Measured on prod at 1440, `.app-shell-frame` 0→1192, before any change:
+- `/dashboard` `.page-panel` **48 → 1144**
+- `/my-posts` `.page-panel` **48 → 1144**
+- `/messages` `.page-panel` **48 → 1144**
+- `/profile?tab=reviews` first card **48 → 1144**
+
+Pixel-identical. The Profile tab pages are not inset relative to anything —
+they already sit flush with every PageScaffold sibling. The attempted fix bled
+the tab wrapper 12px further at `xl`, which moved Profile ALONE to x=36 and
+split the shared fixed-shell family, since `src/components/AppPage.tsx` carries
+that wrapper string byte-for-byte. (The "panel ~x36" in the note is that
+wrapper's own border box; it paints nothing, so there was no edge to fill to.)
+
+**The gap the owner sees is the container gutter** — `px-5 lg:px-8 xl:px-12`,
+48px at xl — shared character-for-character by `src/pages/Profile.tsx`,
+`src/components/ui/PageScaffold.tsx` and `src/components/AppPage.tsx`.
+- [ ] OWNER: decide whether that gutter narrows, and to what at each breakpoint
+      (375 is 20px and was approved on 2026-09-11 as matching Dashboard, so the
+      question is really lg/xl). Changing it touches every main screen at once
+      — that is the point, not a side effect. Do NOT fix it one screen at a
+      time; two of the three files are outside any single screen's lane.
+- Guards already in place, both proven red on the reverted change:
+  `src/components/profile/profileTabScroll.test.ts` (Profile and AppPage must
+  carry the identical wrapper string) and the parity assertion in
+  `e2e/prod-audit/profile-tab-scroll-fill.spec.ts` (Profile tab card inset must
+  equal the PageScaffold panel inset, measured in the same run — no hard-coded
+  number to re-choose when the gutter changes).
+- Branch `vn-profile` (not pushed) holds VN-46 + both guards + the spec.
 
 ## Browse header count disagrees with the rendered list — REPORT, not fixed (2026-09-14)
 Found while fixing VN-10 (map preview card was a dead tap). Owner's screenshot

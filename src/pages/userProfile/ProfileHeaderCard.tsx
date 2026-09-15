@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Briefcase, MapPin, Users } from "lucide-react";
+import { Briefcase, MapPin } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import type { Database } from "@/integrations/supabase/types";
 import type { LastActiveLabel } from "./types";
@@ -13,7 +13,6 @@ type Props = {
   initials: string;
   isOwnProfile: boolean;
   isIdVerified: boolean;
-  mutualJobsCount: number;
   /**
    * The subscription-tier pill — the ONLY badge in the header, beside the
    * name (owner, 2026-09-11). Null/undefined when the member has no tier, and
@@ -72,10 +71,10 @@ type Props = {
  *    and the name is stripped from CredentialBadge's own suffix so the same
  *    string is not printed twice a few pixels apart.
  *
- * 3. **"Worked together" is demoted.** It is a genuinely useful trust signal
- *    and a genuinely minor one; it was wearing the loudest treatment on the
- *    card. It is now a quiet serif line under the bio, the same weight as the
- *    rest of the meta.
+ * 3. **"Worked together" is not in this card any more.** It was demoted here
+ *    to a quiet line under the bio; owner, 2026-09-14 (VN-16) moved it into
+ *    the record as its own stat tile, second after the rating — see
+ *    AtAGlanceCard.
  *
  * 4. **The dead phone branch is deleted.** `profile.phone` was rendered here
  *    but is not returned by `get_safe_profiles` — the only read path for
@@ -94,9 +93,10 @@ export const ProfileHeaderCard = ({
   userId,
   displayName,
   initials,
-  isOwnProfile,
+  // Read only by the "worked together" line, which moved to AtAGlanceCard
+  // (VN-16). Still accepted so the call site is unchanged.
+  isOwnProfile: _isOwnProfile,
   isIdVerified: _isIdVerified,
-  mutualJobsCount,
   tierBadge,
   recognition,
   lastActiveLabel,
@@ -360,28 +360,6 @@ export const ProfileHeaderCard = ({
                   {skills.join(", ")}
                 </p>
               </div>
-            )}
-
-            {/* SHARED HISTORY — quiet, in the flow, under everything it
-                qualifies. See (3) in the block comment above. */}
-            {!isOwnProfile && mutualJobsCount > 0 && (
-              // ONE text node inside the flex row. It was `inline-flex` with
-              // the icon, the sentence, the number and the unit as four
-              // separate children, so `gap-1.5` + wrapping spread them across
-              // the full card width ("You've worked / together   12   times").
-              <p
-                className="font-sans text-ds-13 mt-3 flex items-start gap-1.5"
-                style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-              >
-                <Users className="w-3.5 h-3.5 shrink-0 mt-[3px]" aria-hidden />
-                <span>
-                  You&rsquo;ve worked together{" "}
-                  <span className="font-sans font-bold tabular-nums">
-                    {mutualJobsCount}
-                  </span>{" "}
-                  {mutualJobsCount === 1 ? "time" : "times"}
-                </span>
-              </p>
             )}
           </div>
         </div>

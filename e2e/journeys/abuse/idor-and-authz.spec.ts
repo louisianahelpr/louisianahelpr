@@ -109,7 +109,12 @@ test.describe("bad actors: IDOR & authz", () => {
   test("neither account can read the other's applications, messages or payouts", async ({ request }) => {
     // Payout transfers: policy is helper_id = auth.uid(). The poster must never
     // see the helper's transfers, nor vice-versa.
-    const posterSeesHelperPayouts = await selectAs(request, posterHeaders, `payout_transfers?helper_id=eq.${helperId}&select=id,amount`);
+    // `amount_cents`, not `amount`: the column has never been called `amount`
+    // (information_schema, prod 2026-09-15), so PostgREST answered 400 / 42703
+    // — an UNDEFINED COLUMN — before RLS was ever consulted. The assertion
+    // below then failed on transport, which reads as a security finding and is
+    // not one: with a bad column this check could not tell a leak from a typo.
+    const posterSeesHelperPayouts = await selectAs(request, posterHeaders, `payout_transfers?helper_id=eq.${helperId}&select=id,amount_cents`);
     expect(posterSeesHelperPayouts, "SECURITY: poster read the helper's payout_transfers").toEqual([]);
 
     // Applications the poster owns as a helper must not be visible to the helper

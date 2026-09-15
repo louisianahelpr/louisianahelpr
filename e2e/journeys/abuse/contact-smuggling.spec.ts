@@ -103,12 +103,20 @@ test.describe("bad actors: contact smuggling", () => {
     // reusable funded thread is not present, report uncovered rather than fund one
     // here (a Stripe charge for a filter test is not warranted).
     const helper = await getSession(request, "helper");
+    // `status=neq.completed` is not decoration: messaging on a job CLOSES 24
+    // hours after completion (`job_messaging_closes_at`, called by
+    // `can_message_in_job`, the first gate the messages INSERT policy checks).
+    // Without it this query happily returned a job completed weeks ago, the
+    // insert came back 403 / 42501, and the suite read a closed thread — the
+    // product working as designed — as a failure of the contact filter. Every
+    // funded job these two accounts share is completed and long closed, which
+    // is why this went red nightly (2026-09-15).
     const shared = (await request.get(
-      `${SUPABASE_URL}/rest/v1/jobs?helper_id=eq.${helper.user.id}&customer_id=eq.${posterId}&payment_status=in.(escrow,payout_pending,released)&select=id&limit=1`,
+      `${SUPABASE_URL}/rest/v1/jobs?helper_id=eq.${helper.user.id}&customer_id=eq.${posterId}&payment_status=in.(escrow,payout_pending,released)&status=neq.completed&status=neq.cancelled&select=id&limit=1`,
       { headers: posterHeaders },
     ).then((r) => r.json())) as Array<{ id: string }>;
     if (!shared.length) {
-      skipUncovered("Message smuggling not exercised", "no funded poster↔helper thread available; the funded lifecycle spec owns that setup. The gate itself is unit-tested in src/lib/messageScanner.test.ts and contactFilterParity.test.ts.");
+      skipUncovered("Message smuggling not exercised", "no funded poster↔helper thread that is still OPEN to messages (they close 24h after completion); the funded lifecycle spec owns that setup. The gate itself is unit-tested in src/lib/messageScanner.test.ts and contactFilterParity.test.ts.");
     }
     const jobId = shared[0].id;
     const send = await request.post(`${SUPABASE_URL}/rest/v1/messages`, {

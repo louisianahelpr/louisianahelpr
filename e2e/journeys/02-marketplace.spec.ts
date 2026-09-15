@@ -273,7 +273,12 @@ test.describe.serial("marketplace chain", () => {
       const hp = S.helperPage;
       await hp.goto("/dashboard");
       await hp.getByRole("button", { name: "Search jobs" }).first().click();
-      await hp.getByRole("searchbox", { name: "Search jobs" }).fill(RUN);
+      // The Browse search field is an ARIA combobox now, not a searchbox:
+      // `useComboboxKeyboard`'s comboboxProps sets role="combobox" on the input
+      // for the recent-searches popup, which overrides type="search"'s implicit
+      // role. getByRole("searchbox") matched nothing and the journey read a
+      // working field as a missing one (nightly red, 2026-09-15).
+      await hp.getByRole("combobox", { name: "Search jobs" }).fill(RUN);
       await expect(hp.getByRole("button", { name: new RegExp(`View .*${RUN}`) }), "the helper cannot find the funded job in Browse").toBeVisible({ timeout: 60_000 });
       await assertHealthy(hp, "helper browse finds job");
       await journey.milestone(hp, "helper-browse-finds-job");
@@ -292,7 +297,7 @@ test.describe.serial("marketplace chain", () => {
     await test.step("helper opens the job and applies with a note", async () => {
       await hp.goto("/dashboard");
       await hp.getByRole("button", { name: "Search jobs" }).first().click();
-      await hp.getByRole("searchbox", { name: "Search jobs" }).fill(RUN);
+      await hp.getByRole("combobox", { name: "Search jobs" }).fill(RUN);
       await hp.getByRole("button", { name: new RegExp(`View .*${RUN}`) }).click();
       const dialog = hp.getByRole("dialog").first();
       await expect(dialog.getByRole("button", { name: "Apply Now" })).toBeVisible({ timeout: 30_000 });

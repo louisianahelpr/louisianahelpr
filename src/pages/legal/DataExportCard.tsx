@@ -41,7 +41,12 @@ export function DataExportCard() {
   // The app-wide auth snapshot (getSession-backed, local, offline-safe) rather
   // than a network getUser() call, which used to leave `userId` null and the
   // button permanently disabled even with a valid local session.
-  const { user } = useAuthReady();
+  //
+  // `isReady` gates the signed-in/signed-out choice. Until the snapshot has
+  // settled `user` is null for EVERYONE — including a signed-in reader whose
+  // session is still restoring (up to the restore grace in useAuthReady) — so
+  // deciding from `user` alone showed that reader "Sign In to Download".
+  const { user, isReady } = useAuthReady();
   const userId = user?.id ?? null;
   const [exporting, setExporting] = useState(false);
 
@@ -139,7 +144,13 @@ export function DataExportCard() {
           <span className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             JSON file
           </span>
-          {userId ? (
+          {!isReady ? (
+            // Auth still settling: a neutral, disabled control in the shape of
+            // the signed-in one — never a Sign In link someone may not need.
+            <Button variant="primary" size="sm" className="shrink-0" disabled aria-busy>
+              Download My Data
+            </Button>
+          ) : userId ? (
             <Button
               onClick={handleExport}
               disabled={exporting}

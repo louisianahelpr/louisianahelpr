@@ -22,7 +22,7 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 // throws instead of switching documents.
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticLight: vi.fn() }));
 vi.mock("@/hooks/useAuthReady", () => ({
-  useAuthReady: () => ({ user: { id: "user-1" } }),
+  useAuthReady: () => ({ user: { id: "user-1" }, isReady: true }),
 }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: vi.fn() } }));
 

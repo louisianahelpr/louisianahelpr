@@ -197,12 +197,12 @@ export function ActiveJobSection({
     setAbortOpen(false);
     toast.warning(
       result?.action === "temp_ban"
-        ? "We told the poster — third strike: your account is suspended for 7 days."
+        ? "We told the person who posted this job — third strike: your account is suspended for 7 days."
         : result?.action === "warning"
-          ? "We told the poster — final warning. One more strike is a 7-day suspension."
+          ? "We told the person who posted this job — final warning. One more strike is a 7-day suspension."
           : outcome === "disputed"
-            ? "We told the poster. Our team will review what you’re owed."
-            : "We told the poster, and the job is open again. This counts as a reliability strike.",
+            ? "We told the person who posted this job. Our team will review what you’re owed."
+            : "We told the person who posted this job, and the job is open again. This counts as a reliability strike.",
     );
   };
 
@@ -265,7 +265,7 @@ export function ActiveJobSection({
         key="message"
         icon={MessageSquare}
         label="Message"
-        ariaLabel="Message the poster about this job"
+        ariaLabel="Message the person who posted this job"
         tone="message"
         onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}
       />
@@ -302,8 +302,8 @@ export function ActiveJobSection({
     abortedNotice: aborted ? (
       <p className="font-sans text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         {aborted === "disputed"
-          ? "You’ve cancelled this job and told the poster. Our team is reviewing what you’re owed — the payment is held safely until then."
-          : "You’ve cancelled this job and told the poster. The job is open to other Helprs again."}
+          ? "You’ve cancelled this job and told the person who posted this job. Our team is reviewing what you’re owed — the payment is held safely until then."
+          : "You’ve cancelled this job and told the person who posted this job. The job is open to other Helprs again."}
       </p>
     ) : null,
   };
@@ -363,7 +363,7 @@ export function ActiveJobSection({
         description=""
         callout={{
           icon: CalendarX2,
-          text: `Cancelling a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}. Telling us costs exactly the same as going quiet, and going quiet costs the poster their whole day.`,
+          text: `Cancelling a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}. Telling us costs exactly the same as going quiet, and going quiet costs the person who posted it their whole day.`,
         }}
         primaryLabel={aborting ? "Sending…" : "Cancel Job"}
         primaryTone="sienna"
@@ -376,11 +376,11 @@ export function ActiveJobSection({
           {/* The money outcome, stated plainly, before the tap. */}
           <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood))" }}>
             {abortWorkStarted
-              ? "You’ve already started, so we won’t decide who’s owed what on our own. The poster’s payment is held safely and our team reviews it — you may still be paid for the part you did."
-              : "You never started, so the poster is charged nothing. The job reopens for other Helprs right away and their payment stays protected."}
+              ? "You’ve already started, so we won’t decide who’s owed what on our own. Their payment is held safely and our team reviews it — you may still be paid for the part you did."
+              : "You never started, so the person who posted it is charged nothing. The job reopens for other Helprs right away and their payment stays protected."}
           </p>
           <label htmlFor={`abort-reason-${app.job_id}`} className="block text-ds-11 font-medium text-foreground">
-            What happened? The poster sees this.
+            What happened? The person who posted this job sees this.
           </label>
           <Textarea
             id={`abort-reason-${app.job_id}`}

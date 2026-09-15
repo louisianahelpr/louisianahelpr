@@ -48,7 +48,7 @@ export function requiredProof(job?: PhotoProofJob): RequiredProof {
     return {
       before: false,
       after: false,
-      reason: "This poster doesn't need photos for this job.",
+      reason: "The person who posted this job doesn't need photos for it.",
     };
   }
   return {

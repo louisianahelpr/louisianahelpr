@@ -213,7 +213,7 @@ export function IDVPromptDialog({
   // the review finishes"), and re-adding them would duplicate that copy.
   const intro = isAdminReview || isPending
     ? null
-    : (reason ?? "Helpr requires a quick ID + selfie check before you accept your first job. This protects posters and keeps the platform safe.");
+    : (reason ?? "Helpr requires a quick ID + selfie check before you accept your first job. This protects everyone hiring and keeps the platform safe.");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

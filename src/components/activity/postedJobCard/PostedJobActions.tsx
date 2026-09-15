@@ -268,7 +268,7 @@ export function PostedJobActions({
         onActionComplete();
         return;
       }
-      if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, // `?job=` — `completed` is a legacy key (the chip is "Done"), and the
+      if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The person who posted this job confirmed the issue on "${job.title}" is resolved. Payment will be released.`, // `?job=` — `completed` is a legacy key (the chip is "Done"), and the
         // payment is still releasing, so the bucket is not settled yet.
         type: "payment", link: `/my-jobs?job=${job.id}` });
       hapticSuccess();

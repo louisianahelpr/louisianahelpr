@@ -122,7 +122,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
             className="font-sans uppercase mb-1 inline-flex items-center gap-1 text-ds-10"
             style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
-            <MessageSquare className="w-3 h-3" /> Message from poster
+            <MessageSquare className="w-3 h-3" /> Message from the person who posted it
           </p>
           {/* Same server flag as the applicant note. This is the OTHER
               direction of the same leak — the poster's message reached the
@@ -284,7 +284,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Decline This Job?"
-        description="You applied for this one and the poster picked you, so backing out now counts against your account."
+        description="You applied for this one and the person who posted it picked you, so backing out now counts against your account."
         callout={{
           // The real ladder, from the shared statement — this callout used to
           // quote the retired 5-strike math ("Three declines gets you a

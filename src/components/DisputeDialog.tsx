@@ -392,7 +392,7 @@ export const DisputeDialog = ({ jobId, side, userId, open, onClose, onDisputed }
                 <>
                   <li>Nothing moves while this is open — the payment is <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>frozen for both of you</strong>.</li>
                   <li>Filing does not speed your payout up. If nobody resolves or escalates it, the hold simply lapses at the deadline and the payment releases on its normal schedule.</li>
-                  <li>If the poster escalates, an admin decides the outcome and nothing releases until they do.</li>
+                  <li>If the person who posted this job escalates, an admin decides the outcome and nothing releases until they do.</li>
                   <li>Evidence (photos, messages) makes your case stronger.</li>
                   <li>False or frivolous disputes can lead to warnings or suspension.</li>
                   <li>3+ disputes in 30 days flags your account for review.</li>

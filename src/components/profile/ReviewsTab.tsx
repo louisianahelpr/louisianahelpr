@@ -171,7 +171,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
           icon={Star}
           illustration={<EmptyStateIllustration variant="reviews" />}
           title="No reviews yet"
-          body="Complete a job and the poster's words will show up here."
+          body="Complete a job and your first review will show up here."
           action={
             /* How-reviews-work disclosure — opens a small popover with
                the 4 rating dimensions so new helprs know what's being
@@ -195,13 +195,13 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
               >
                 <p className="text-display-eyebrow mb-2">After every job</p>
                 <p className="font-display italic font-bold leading-tight mb-2 text-ds-16" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
-                  Posters leave one overall rating.
+                  Everyone who hires you leaves one overall rating.
                 </p>
                 <ul className="space-y-1.5 font-sans text-ds-11 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Overall</span> · a 1–5 star summary of the whole job</li>
                 </ul>
                 <p className="font-sans text-ds-11 mt-3 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  Posters can leave written feedback too. Everything shows up here within minutes.
+                  They can leave written feedback too. Everything shows up here within minutes.
                 </p>
               </PopoverContent>
             </Popover>

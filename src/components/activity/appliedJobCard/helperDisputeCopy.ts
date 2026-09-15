@@ -8,7 +8,7 @@
  * `helper_id`. On that card the panel:
  *
  *   · headlined "Both sides are talking it out",
- *   · captioned the countdown "If the poster doesn't resolve or escalate,
+ *   · captioned the countdown "If the person who posted this job doesn't resolve or escalate,
  *     payment auto-releases to you after the deadline" — a promise of payment,
  *     read by the person who had just complained about not being paid, and
  *   · offered a box to RESPOND to their own complaint, whose text lands on the
@@ -95,7 +95,7 @@ export function helperDisputeCopy(
     headline: awaitingAdmin
       ? "An admin is on it."
       : iOpenedIt
-        ? "You opened this. The poster can answer it."
+        ? "You opened this. The person who posted this job can answer it."
         : "Both sides are talking it out.",
     reasonLabel: iOpenedIt ? "Your reason: " : "Reason: ",
     consequenceText: iOpenedIt
@@ -103,10 +103,10 @@ export function helperDisputeCopy(
         // through, or ask an admin to decide") was written when withdrawing
         // was not reachable from this card, and sent a helper whose issue was
         // already settled to an admin for no reason.
-        `Waiting it out isn't a win — if nobody resolves this and the poster doesn't escalate, the hold just lapses and the payment releases on its normal schedule. Talk it through, ${
+        `Waiting it out isn't a win — if nobody resolves this and the person who posted this job doesn't escalate, the hold just lapses and the payment releases on its normal schedule. Talk it through, ${
           disputeLive ? "withdraw it if it's sorted, " : ""
         }or ask an admin to decide.`
-      : "If the poster doesn't resolve or escalate, payment auto-releases to you after the deadline.",
+      : "If the person who posted this job doesn't resolve or escalate, payment auto-releases to you after the deadline.",
     canRespond: respondableStatus && !iOpenedIt,
     canWithdraw: iOpenedIt && disputeLive,
   };

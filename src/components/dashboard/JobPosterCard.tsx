@@ -202,7 +202,7 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
               style={{ color: posterTierBadge.color, letterSpacing: "0.06em" }}
             >
               <posterTierBadge.icon className="w-3.5 h-3.5" strokeWidth={2.25} />
-              {tierDisplayName(job.posterSubscriptionTier)} Poster
+              {tierDisplayName(job.posterSubscriptionTier)} Member
             </span>
           )}
           {/* Poster-data trust signals via the reusable TrustRow component.

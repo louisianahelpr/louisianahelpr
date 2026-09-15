@@ -289,8 +289,8 @@ export function JobConfirmation({
           const { createNotification } = await import("@/lib/notifications");
           await createNotification({
             user_id: recipientId,
-            title: isOwner ? "Poster confirmed the job!" : "Helpr confirmed the job!",
-            message: `${isOwner ? "The poster" : "The Helpr"} confirmed they're committed to "${job.title}". Tap to confirm your side too.`,
+            title: isOwner ? "The person who posted this job confirmed it!" : "Helpr confirmed the job!",
+            message: `${isOwner ? "The person who posted this job" : "The Helpr"} confirmed they're committed to "${job.title}". Tap to confirm your side too.`,
             type: "info",
             // `?job=`, not `?filter=offered`. `offered` is a LEGACY filter key —
             // the strip is five buckets now (activityFilters.ts) and `offered` has
@@ -317,7 +317,7 @@ export function JobConfirmation({
   const helperDayOf = helperDayOfConfirmation({ helperConfirmedAt, helperDayofConfirmedAt, dateNeeded });
   const myConfirmed = localConfirmedAt || (isOwner ? posterConfirmedAt : helperDayOf);
   const otherConfirmed = isOwner ? helperDayOf : posterConfirmedAt;
-  const otherLabel = isOwner ? "Helpr" : "Poster";
+  const otherLabel = isOwner ? "Helpr" : "Posted by";
 
   const urgencyText = hoursUntilJob <= 0
     ? "Job date has passed"

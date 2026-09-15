@@ -6,7 +6,8 @@
  * (NOT real message bubbles) interleaved chronologically with the
  * real `messages` rows. They give both participants shared, in-thread
  * context for what happened on the job ("Helper marked on the way",
- * "Poster confirmed the job complete", "Job cancelled by poster") so
+ * "The person who posted this job confirmed it complete", "Job cancelled by
+ * the person who posted it") so
  * they don't have to jump to /my-jobs to see state changes.
  *
  * This is a pure derivation — no schema changes, no separate audit
@@ -94,7 +95,7 @@ export function deriveJobSystemEvents(
       id: `system-poster_confirmed_completed-${jobId}`,
       kind: "poster_confirmed_completed",
       at: job.poster_completed_at,
-      label: "Poster confirmed the job complete.",
+      label: "The person who posted this job confirmed it complete.",
     });
   }
   if (job.revision_requested_at) {
@@ -102,7 +103,7 @@ export function deriveJobSystemEvents(
       id: `system-revision_requested-${jobId}`,
       kind: "revision_requested",
       at: job.revision_requested_at,
-      label: "Poster requested a revision.",
+      label: "The person who posted this job requested a revision.",
     });
   }
   if (job.cancelled_at) {
@@ -117,7 +118,7 @@ export function deriveJobSystemEvents(
       kind: "cancelled",
       at: job.cancelled_at,
       label: who
-        ? `Job cancelled by ${who === "poster" ? "poster" : "Helpr"}.`
+        ? `Job cancelled by ${who === "poster" ? "the person who posted it" : "the Helpr"}.`
         : "Job was cancelled.",
     });
   }
@@ -133,7 +134,7 @@ export function deriveJobSystemEvents(
       kind: "disputed",
       at: job.disputed_at,
       label: who
-        ? `${who === "poster" ? "Poster" : "Helpr"} opened a dispute.`
+        ? `${who === "poster" ? "The person who posted this job" : "The Helpr"} opened a dispute.`
         : "A dispute was opened.",
     });
   }

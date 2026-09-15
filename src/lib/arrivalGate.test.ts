@@ -40,6 +40,6 @@ describe("arrivalGate", () => {
   it("never leaves the helper without a next step in the blocked copy", () => {
     expect(arrivalGateMessage({ helper_arrived_at: "x" })).toContain("Confirm They Arrived");
     expect(arrivalGateMessage({})).toContain("Mark yourself arrived");
-    expect(arrivalGateMessage({})).toContain("poster");
+    expect(arrivalGateMessage({})).toContain("the person who posted this job");
   });
 });

@@ -448,7 +448,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
               once, here, instead of twice. */}
           <DialogBody>
             <p>
-              Goes straight to the Helpr — no platform cut. Most posters tip 10–15%
+              Goes straight to the Helpr — no platform cut. Most people tip 10–15%
               for great work.
             </p>
           </DialogBody>

@@ -51,15 +51,15 @@ export function SubmittedStep({
   ) : (
     <CardSubPanel icon={CheckCircle2} title="Marked Complete" tone="primary">
       <div className="space-y-1">
-        <p className="text-ds-11 text-muted-foreground">Waiting for the poster to:</p>
+        <p className="text-ds-11 text-muted-foreground">Waiting for the person who posted this job to:</p>
         <ul className="text-ds-11 text-muted-foreground list-disc pl-4 space-y-0.5">
           <li><span className="text-foreground font-medium">Approve &amp; complete</span> the job</li>
           <li>Or <span className="text-foreground font-medium">request a revision</span></li>
         </ul>
         <p className="text-ds-10 text-muted-foreground/70 pt-1">
           {posterInstantRelease
-            ? `This poster approves instantly — then your payout is released ${PAYOUT_HOLD_HOURS} hours later.`
-            : `If the poster doesn't respond within ${AUTO_COMPLETE_HOURS} hours, the job completes automatically and your payout is released ${PAYOUT_HOLD_HOURS} hours after that.`}
+            ? `They approve instantly — then your payout is released ${PAYOUT_HOLD_HOURS} hours later.`
+            : `If the person who posted this job doesn't respond within ${AUTO_COMPLETE_HOURS} hours, the job completes automatically and your payout is released ${PAYOUT_HOLD_HOURS} hours after that.`}
         </p>
         {/* No countdown when the poster releases instantly (owner,
             2026-08-24): a 24h timer that ends within minutes is a lie. */}

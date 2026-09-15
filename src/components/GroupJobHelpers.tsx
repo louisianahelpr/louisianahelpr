@@ -197,7 +197,7 @@ export function GroupJobHelpers({
       const { error: notifyError } = await supabase.from("notifications").insert({
         user_id: removed.helper_id,
         title: "You're no longer on this group job",
-        message: "The poster is still putting this crew together and has taken you off it. You haven't been charged and nothing is owed.",
+        message: "The person who posted this job is still putting this crew together and has taken you off it. You haven't been charged and nothing is owed.",
         type: "job_updates",
         link: `/my-jobs?job=${jobId}`,
       });

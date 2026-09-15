@@ -145,7 +145,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         a: "We're growing across Louisiana's 64 parishes. If your area isn't busy yet, posting a job is the best way to attract local Helprs.",
       },
       {
-        q: "Can I both post jobs and work as a Helpr?",
+        q: "Can I both post jobs and do them?",
         a: 'Yes — every account can do both. There\'s no separate "poster" or "Helpr" mode.',
       },
     ],
@@ -187,7 +187,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: "How do I get my first application accepted?",
-        a: "A complete profile (photo, bio, skills) helps posters trust you faster. Respond fast — posters notice quick turnaround.",
+        a: "A complete profile (photo, bio, skills) helps people trust you faster. Respond fast — they notice quick turnaround.",
       },
       {
         q: "When do I get paid?",
@@ -208,10 +208,10 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // file's guards exist to stop. "The standard schedule" is now named:
         // STANDARD_PAYOUT_WINDOW, the same constant InstantPayoutDialog and
         // PayoutHistory interpolate.
-        a: `Payment releases to your Helpr account after the poster confirms completion, then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout; every standard payout after that is free. Instant Payout — cashing out the same day — is a Basic, Pro or Elite membership feature and charges a small percentage fee.`,
+        a: `Payment releases to your Helpr account after the person who posted the job confirms completion, then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout; every standard payout after that is free. Instant Payout — cashing out the same day — is a Basic, Pro or Elite membership feature and charges a small percentage fee.`,
       },
       {
-        q: "What if a poster doesn't confirm completion?",
+        q: "What if the person who posted the job doesn't confirm completion?",
         // WAS "…about 48 hours after completion". The notification the very
         // same event sends says 24 (auto-release-payment/index.ts:302-303,
         // 315-316), so a helper saw both numbers for one payout. Single number,
@@ -226,7 +226,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // number beside the notification's two. Interpolating both means a
         // change to either leg moves this answer with it instead of leaving it
         // as the one screen still quoting last quarter's clock.
-        a: `If a poster doesn't confirm within ${COPY_AUTO_RELEASE_HOURS} hours of you marking work done, it auto-completes and payment releases — funds reach your account about ${PAYOUT_HOLD_HOURS} hours after that.`,
+        a: `If the person who posted the job doesn't confirm within ${COPY_AUTO_RELEASE_HOURS} hours of you marking work done, it auto-completes and payment releases — funds reach your account about ${PAYOUT_HOLD_HOURS} hours after that.`,
       },
     ],
   },
@@ -245,11 +245,11 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // payment state at all. The old wording invited the exact worry escrow
         // exists to remove: a Helpr doing work on a job that might never have
         // been funded.
-        a: "The poster pays when they post the job, and Helpr holds that money (via Stripe) from that moment — before anyone applies, so a job you can apply to is a job that is already funded. It releases to you only after completion is confirmed. Neither side can touch it mid-job.",
+        a: "Whoever posts the job pays at that moment, and Helpr holds that money (via Stripe) from that moment — before anyone applies, so a job you can apply to is a job that is already funded. It releases to you only after completion is confirmed. Neither side can touch it mid-job.",
       },
       {
         q: "What fees does Helpr charge?",
-        a: `Free-account Helprs keep ${100 - TIER_PERKS.free.platformFeePercent}% (${TIER_PERKS.free.platformFeePercent}% platform fee). ${TIER_PERKS.basic.name} keeps ${100 - TIER_PERKS.basic.platformFeePercent}%, ${TIER_PERKS.pro.name} keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, ${TIER_PERKS.plus.name} ${100 - TIER_PERKS.plus.platformFeePercent}%, and ${TIER_PERKS.elite.name} ${100 - TIER_PERKS.elite.platformFeePercent}% (${TIER_PERKS.elite.platformFeePercent}% fee) — the platform fee drops as your plan tier rises. Posters pay a plan-based service fee at checkout too (${TIER_PERKS.free.platformFeePercent}% Free, ${TIER_PERKS.basic.platformFeePercent}% ${TIER_PERKS.basic.name}, ${TIER_PERKS.pro.platformFeePercent}% ${TIER_PERKS.pro.name}, ${TIER_PERKS.plus.platformFeePercent}% ${TIER_PERKS.plus.name}, ${TIER_PERKS.elite.platformFeePercent}% ${TIER_PERKS.elite.name}), with a small minimum so tiny jobs still cover card processing.`,
+        a: `Free-account Helprs keep ${100 - TIER_PERKS.free.platformFeePercent}% (${TIER_PERKS.free.platformFeePercent}% platform fee). ${TIER_PERKS.basic.name} keeps ${100 - TIER_PERKS.basic.platformFeePercent}%, ${TIER_PERKS.pro.name} keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, ${TIER_PERKS.plus.name} ${100 - TIER_PERKS.plus.platformFeePercent}%, and ${TIER_PERKS.elite.name} ${100 - TIER_PERKS.elite.platformFeePercent}% (${TIER_PERKS.elite.platformFeePercent}% fee) — the platform fee drops as your plan tier rises. Whoever posts a job pays a plan-based service fee at checkout too (${TIER_PERKS.free.platformFeePercent}% Free, ${TIER_PERKS.basic.platformFeePercent}% ${TIER_PERKS.basic.name}, ${TIER_PERKS.pro.platformFeePercent}% ${TIER_PERKS.pro.name}, ${TIER_PERKS.plus.platformFeePercent}% ${TIER_PERKS.plus.name}, ${TIER_PERKS.elite.platformFeePercent}% ${TIER_PERKS.elite.name}), with a small minimum so tiny jobs still cover card processing.`,
       },
       {
         q: "What if there's a dispute?",
@@ -276,7 +276,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // refuses a dispute on a completed job too (job_already_completed,
         // 20260915025607), so the answer says done is final and sends no one
         // to Support about a finished job.
-        a: "Open a dispute from the job's card in My Jobs (Helprs) or My Posts (posters) — not the job detail screen. Report a Problem is available while the job is in progress: Helprs get the button from On the Way until the job is done, including during a revision. If you're the poster, request a revision first and give the Helpr their window to fix it; the dispute link appears once that window has run. Once a job is marked done, it's final and can't be disputed. While a dispute is open, our team reviews both sides and can release the payment to either party or split it. Disputes have a 72-hour window: if it isn't resolved or escalated in that time, platform policy releases the payment to the Helpr automatically, so don't sit on it.",
+        a: "Open a dispute from the job's card — in My Jobs for a job you're doing, or My Posts for a job you posted — not the job detail screen. Report a Problem is available while the job is in progress: on a job you're doing, the button is there from On the Way until the job is done, including during a revision. On a job you posted, request a revision first and give the person doing it their window to fix it; the dispute link appears once that window has run. Once a job is marked done, it's final and can't be disputed. While a dispute is open, our team reviews both sides and can release the payment to either party or split it. Disputes have a 72-hour window: if it isn't resolved or escalated in that time, platform policy releases the payment to the Helpr automatically, so don't sit on it.",
       },
     ],
   },
@@ -324,7 +324,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         a: "We show a Helpr's cancellation history on their profile once they've been part of 5 or more jobs, counting both sides and any outcome. Low cancellation is a strong trust signal.",
       },
       {
-        q: "Can I report a Helpr or poster?",
+        q: "Can I report the other person on a job?",
         // Dropped "within 24 hours" — an SLA nothing in the product measures,
         // tracks or guarantees. Promising a review window we don't instrument
         // is a trust claim we can only ever break.
@@ -398,7 +398,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: `What's the difference between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name}?`,
-        a: `${TIER_PERKS.elite.name} adds the featured crown badge (visible to all posters), the longest head start on new jobs, and dedicated priority support — on top of everything ${TIER_PERKS.pro.name} offers, and at a lower platform fee (${TIER_PERKS.elite.platformFeePercent}% against ${TIER_PERKS.pro.platformFeePercent}%). Head start on a new job, measured against a free account: ${EARLY_ACCESS_LADDER}.`,
+        a: `${TIER_PERKS.elite.name} adds the featured crown badge (visible to everyone browsing for someone to hire), the longest head start on new jobs, and dedicated priority support — on top of everything ${TIER_PERKS.pro.name} offers, and at a lower platform fee (${TIER_PERKS.elite.platformFeePercent}% against ${TIER_PERKS.pro.platformFeePercent}%). Head start on a new job, measured against a free account: ${EARLY_ACCESS_LADDER}.`,
       },
       {
         // Plus was absent from this section entirely while the fees answer

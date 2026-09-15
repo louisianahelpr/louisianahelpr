@@ -137,8 +137,8 @@ type BadgeGroup = "helpr" | "account" | "poster";
 
 /** The caption printed above each group. This is the whole distinction. */
 const GROUP_LABEL: Record<BadgeGroup, string> = {
-  helpr: "As a Helpr",
-  poster: "As a poster",
+  helpr: "Doing jobs",
+  poster: "Posting jobs",
   account: "Verified",
 };
 

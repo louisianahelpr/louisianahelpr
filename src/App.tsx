@@ -99,6 +99,8 @@ const ForgotPassword = lazyWithPreload(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazyWithPreload(() => import("./pages/ResetPassword"));
 const Dashboard = lazyWithPreload(() => import("./pages/Dashboard"));
 const Profile = lazyWithPreload(() => import("./pages/Profile"));
+// Lazy: it reads useAuthReady, which pulls the Supabase client.
+const DataRightsRedirect = lazy(() => import("./pages/legal/DataRightsRedirect"));
 const PostJob = lazyWithPreload(() => import("./pages/PostJob"));
 const PaymentSuccess = lazyWithPreload(() => import("./pages/PaymentSuccess"));
 const UserProfile = lazyWithPreload(() => import("./pages/UserProfile"));
@@ -258,9 +260,12 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           data export lives inside the Privacy Policy. The route is KEPT as a
           redirect rather than deleted: the iOS App Store privacy listing
           points at this URL, so it must keep resolving somewhere that offers
-          the download — the export card's anchor on /privacy (public, and
-          open to a half-onboarded account via isProfileGateAllowed). */}
-      <Route path="/data-rights" element={<Navigate to="/privacy#download-your-data" replace />} />
+          the download. Signed in, that is the export card inside the Legal
+          tab's Privacy panel (/profile?tab=legal&doc=privacy — in-app nav,
+          and open to a half-onboarded account via isProfileGateAllowed);
+          signed out, the same card on the public /privacy page. It waits for
+          auth to settle before choosing — see DataRightsRedirect. */}
+      <Route path="/data-rights" element={routeEl(<DataRightsRedirect />, <div className="min-h-screen bg-premium-page" />)} />
 
       {/* Two live prod notifications link here — "Cancellation warning (1 of 2)"
           and "Your Elite shield absorbed this one" — and there has never been a

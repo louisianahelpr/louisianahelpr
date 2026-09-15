@@ -8,9 +8,11 @@ import { report } from "@/lib/errorLogger";
 import { hapticError } from "@/lib/haptics";
 import { saveOrShareFile } from "@/lib/fileExport";
 import { toast } from "sonner";
+import { DATA_EXPORT_ANCHOR } from "./dataExportAnchor";
 
-/** The anchor `/data-rights` redirects to (App.tsx): `/privacy#download-your-data`. */
-export const DATA_EXPORT_ANCHOR = "download-your-data";
+/** The card's anchor. `/data-rights` lands on it (DataRightsRedirect): the
+ *  Legal tab's Privacy panel when signed in, `/privacy` when signed out. */
+export { DATA_EXPORT_ANCHOR } from "./dataExportAnchor";
 
 /**
  * GDPR Art. 20 / CCPA data portability — the "Download your data" control.
@@ -44,7 +46,8 @@ export function DataExportCard() {
   const [exporting, setExporting] = useState(false);
 
   // Scroll to the card when the URL names it — `/data-rights` redirects to
-  // `/privacy#download-your-data`, and the policy's own "Data portability" row
+  // this anchor (on /profile?tab=legal&doc=privacy signed in, /privacy signed
+  // out; see dataRightsTarget), and the policy's own "Data portability" row
   // links here in-page. Mirrors PolicySection's hash handling.
   useEffect(() => {
     const check = () => {
@@ -149,7 +152,10 @@ export function DataExportCard() {
             </Button>
           ) : (
             <Button variant="primary" size="sm" className="shrink-0" asChild>
-              <Link to={`/login?redirect=${encodeURIComponent(`/privacy#${DATA_EXPORT_ANCHOR}`)}`}>
+              {/* Back through /data-rights, not straight to /privacy: once
+                  signed in, that route lands on this card inside the app's
+                  Legal tab instead of the nav-less public page. */}
+              <Link to={`/login?redirect=${encodeURIComponent("/data-rights")}`}>
                 Sign In to Download
               </Link>
             </Button>

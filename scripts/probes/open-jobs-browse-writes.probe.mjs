@@ -123,7 +123,7 @@ async function suite(label, db, key) {
 
 const BROKEN = [
   ["REVOKE omits the named roles (only FROM PUBLIC — their explicit grant survives)", MIG.replace("FROM PUBLIC, anon, authenticated", "FROM PUBLIC")],
-  ["REVOKE names only DELETE (UPDATE/INSERT stay open)", MIG.replace("REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN", "REVOKE DELETE")],
+  ["REVOKE weakened to DELETE only (UPDATE/INSERT stay open)", MIG.replace("REVOKE ALL ON public.open_jobs_browse", "REVOKE DELETE ON public.open_jobs_browse")],
 ];
 console.log("\n== 3. Broken copies (each must fail >= 1 expectation)");
 for (const [name, sql] of BROKEN) {

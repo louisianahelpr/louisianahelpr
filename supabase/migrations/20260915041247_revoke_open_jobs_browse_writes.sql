@@ -41,12 +41,14 @@
 DO $$
 BEGIN
   IF to_regclass('public.open_jobs_browse') IS NOT NULL THEN
-    -- Every write privilege, from every way a client role can hold it. Named
-    -- roles AND PUBLIC: `FROM PUBLIC` alone leaves an explicit anon/authenticated
-    -- grant, and the default-privilege grant above is explicit, per role.
-    REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN
-      ON public.open_jobs_browse
-      FROM PUBLIC, anon, authenticated;
+    -- REVOKE ALL, then re-grant only SELECT. Named roles AND PUBLIC, because
+    -- `FROM PUBLIC` alone leaves an explicit anon/authenticated grant (and the
+    -- default-privilege grant that re-opened this IS explicit, per role).
+    -- ALL rather than a named privilege list on purpose: prod is PG17 and holds
+    -- the MAINTAIN privilege on this view, but the CI replay-smoke Postgres is
+    -- older and errors on `REVOKE ... MAINTAIN` (unrecognized privilege type) —
+    -- REVOKE ALL removes every current and future privilege on both.
+    REVOKE ALL ON public.open_jobs_browse FROM PUBLIC, anon, authenticated;
 
     -- The one privilege the view exists to provide.
     GRANT SELECT ON public.open_jobs_browse TO anon, authenticated;

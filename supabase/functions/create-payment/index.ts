@@ -445,7 +445,29 @@ serve(async (req) => {
       // Floored at Stripe's real processing cost on the WHOLE transaction (budget
       // + fee + urgent tip + onboarding) so a tiny job can never leave the
       // platform underwater on Stripe fees.
-      const urgentFeeCents = Math.round((job.urgent_fee ?? 0) * 100);
+      // SERVER-AUTHORITATIVE URGENT FEE — never trust jobs.urgent_fee.
+      //
+      // is_urgent / urgent_fee are client-set at INSERT and the jobs INSERT
+      // column-lock trigger (enforce_jobs_insert_column_lock) deliberately
+      // leaves them writable, so a poster can POST /rest/v1/jobs directly with
+      // is_urgent=true and urgent_fee=NULL/0 and reach the urgent notification
+      // fan-out (instant-job-match keys off is_urgent alone) for free — silent
+      // hole H-001. The jobs_urgent_fee_required constraint
+      // (20260915055413) now rejects that at INSERT; this recompute is the
+      // defence-in-depth twin at charge time and the authority for rows already
+      // stored: an urgent job is charged the stored fee but never below the
+      // floor, a non-urgent job is never charged an urgent tip regardless of
+      // what the column holds. Floor/ceiling mirror URGENT_FEE_FLOOR_DOLLARS
+      // ($5) and MAX_URGENT_FEE_DOLLARS ($5,000) in src/lib/moneyLimits.ts.
+      const URGENT_FEE_FLOOR_CENTS = 500;
+      const URGENT_FEE_CEILING_CENTS = 500000;
+      const storedUrgentFeeCents = Math.round((job.urgent_fee ?? 0) * 100);
+      const urgentFeeCents = job.is_urgent
+        ? Math.min(
+            Math.max(storedUrgentFeeCents, URGENT_FEE_FLOOR_CENTS),
+            URGENT_FEE_CEILING_CENTS,
+          )
+        : 0;
       const onboardingChargeCents = owesOnboardingFee ? onboardingFeeCents : 0;
       const customerFeeCents = posterServiceFeeCents(
         Math.round(job.budget * 100),
@@ -505,8 +527,10 @@ serve(async (req) => {
         });
       }
 
-      // Urgent tip — non-taxable (passes through to helper)
-      if ((job.urgent_fee ?? 0) > 0) {
+      // Urgent tip — non-taxable (passes through to helper). Uses the
+      // server-recomputed urgentFeeCents (see above), never the stored column:
+      // present and >= the floor whenever the job is urgent, absent otherwise.
+      if (urgentFeeCents > 0) {
         lineItems.push({
           price_data: {
             currency: "usd",
@@ -516,7 +540,7 @@ serve(async (req) => {
               description: "Urgent tip — goes directly to the helpr",
               tax_code: "txcd_00000000", // Non-taxable: passes through to helper
             },
-            unit_amount: Math.round(job.urgent_fee * 100),
+            unit_amount: urgentFeeCents,
           },
           quantity: 1,
         });

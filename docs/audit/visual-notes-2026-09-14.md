@@ -19,7 +19,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-8 | Too much empty space below Saved Searches in the filter panel | small | [ ] | [ ] |
 | VN-9 | Map pin preview card — extra white top band, ringed X, box doesn't fit the card | medium | [x] 6f67b8daf | [x] vn9-1440-light-preview.jpg |
 | VN-10 | Clicking the job card on the map preview does nothing | small–medium | [x] ed9fdccf1 | [x] vn10-1440-fallback-detail.jpg |
-| VN-11 | Map "Recenter" button uses the "my location" crosshair icon (NEEDS DECISION) | small | [x] 6f67b8daf | [ ] |
+| VN-11 | Map "Recenter" button uses the "my location" crosshair icon (NEEDS DECISION) | small | [x] 6f67b8daf | [x] vn11-375-granted.jpg |
 | VN-12 | Remove availability from the public profile | small | [ ] | [ ] |
 | VN-13 | Public profile shows both "ID verified" and "Verification in progress" | small | [ ] | [ ] |
 | VN-14 | Are profile badges earned from the right numbers? (OWNER QUESTION — code read only) | medium | [ ] | [ ] |

@@ -233,8 +233,9 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
       // Also exclude the arrival migration (20260915044137): it legitimately
       // made report_helper_no_show read helper_completed_at for a STRONGER
       // no-show guard (refuses if arrived OR completed). The pre-guard baseline
-      // is the definition before both guard-adders.
-      noShow: latestDefinition("report_helper_no_show", [COMPLETION_FIX, "20260915044137"]),
+      // is the definition before both guard-adders. 20260915074058 (VN-33(b))
+      // restates that guard after prod lost it to an out-of-order apply.
+      noShow: latestDefinition("report_helper_no_show", [COMPLETION_FIX, "20260915044137", "20260915074058"]),
       helperCancel: latestDefinition("helper_cancel_booking", [COMPLETION_FIX]),
     };
     expect(without.trg).toBe("");

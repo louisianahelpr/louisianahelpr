@@ -229,6 +229,9 @@ export const RPC_ERROR_COPY = {
     // can still send it.
     helper_already_arrived:
       "Your Helpr has already marked arrived on this job, so it can't be reported as a no-show.",
+    // VN-33(b): their location was recorded near the job in the last 12h.
+    helper_near_miss_pending:
+      "Your Helpr checked in near the job, but a little way from its map pin. If they're there, tap Confirm They Arrived. If not, contact support.",
   },
   // DisputeDialog.
   rpc_open_dispute: {

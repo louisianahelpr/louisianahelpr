@@ -66,10 +66,14 @@ export function InProgressStep(ctx: PosterStepCtx) {
 
   // Owner's rule: No-Show is tied to the CLOCK, not to whether the helper
   // accepted — hidden until the scheduled start time has come and gone.
+  // VN-33(b): a Helpr whose location was recorded near the job in the last
+  // 12h may be standing at the real door of a wrong pin — the server refuses a
+  // no-show then (helper_near_miss_pending), so don't offer it.
   const showNoShow =
     job.status === "in_progress" &&
     !job.poster_completed_at &&
     !job.helper_arrived_at &&
+    !recentNearMiss &&
     hasJobStarted(job.date_needed, job.start_time);
   // SOS is gated on the helper actually BEING on site, and it ENDS when the job
   // does — a safety control that outlives the situation is noise.

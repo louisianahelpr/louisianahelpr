@@ -10,6 +10,14 @@
 //   24h admin notification + ops alert  (ledger.escalated_at); the Helpr is told
 //       support has been asked to step in.
 //
+// VN-33(b) NEAR MISS (wrong map pin): a Helpr refused as too far but within a
+// mile has helper_arrival_near_miss_at and no GPS verification. The poster can
+// still confirm them, but only within 12h, and nothing else follows up. Same
+// ledger and stages, counted from the near miss: mark_helper_arrival already
+// told the poster, so "first" is claimed without a second send; the 2h nudge
+// goes out as usual; admin is escalated at 10h, while the confirmation can
+// still be given.
+//
 // Stage timing lives in _shared/arrivalNudge.ts (unit-tested). Each stage is
 // CLAIMED in public.job_arrival_confirm_nudges with a conditional write before
 // anything is sent, so two overlapping runs cannot double-send; a claim that
@@ -21,7 +29,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { arrivalNudgeStage, type NudgeLedger } from "../_shared/arrivalNudge.ts";
+import { arrivalNudgeStage, NEAR_MISS_ESCALATE_AFTER_HOURS, type NudgeLedger } from "../_shared/arrivalNudge.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,7 +41,9 @@ type DueJob = {
   title: string;
   customer_id: string | null;
   helper_id: string | null;
-  helper_arrival_verified_at: string;
+  helper_arrival_verified_at: string | null;
+  helper_arrival_near_miss_at: string | null;
+  helper_arrival_near_miss_ft: number | null;
 };
 
 Deno.serve(async (req) => {
@@ -106,14 +116,14 @@ Deno.serve(async (req) => {
     const scan = await scanAll<DueJob>("awaiting poster arrival confirm", (countOpt) =>
       supabase
         .from("jobs")
-        .select("id, title, customer_id, helper_id, helper_arrival_verified_at", countOpt)
+        .select("id, title, customer_id, helper_id, helper_arrival_verified_at, helper_arrival_near_miss_at, helper_arrival_near_miss_ft", countOpt)
         .order("id", { ascending: true })
         .in("status", ["accepted", "in_progress"])
         // Fixture rows are driven by test harnesses, never by a real poster;
         // nudging and escalating them would page admins about seed data (4 such
         // rows on prod at ship time). Same scope as money-reconciliation.
         .eq("is_seed", false)
-        .not("helper_arrival_verified_at", "is", null)
+        .or("helper_arrival_verified_at.not.is.null,helper_arrival_near_miss_at.not.is.null")
         .is("poster_confirmed_arrival_at", null)
         .not("customer_id", "is", null)
         .not("helper_id", "is", null),
@@ -135,12 +145,27 @@ Deno.serve(async (req) => {
 
     const counts = { first: 0, second: 0, escalate: 0, errors: 0 };
     for (const job of scan.rows) {
-      const stage = arrivalNudgeStage(job.helper_arrival_verified_at, ledgers.get(job.id) ?? null, now);
+      // A GPS-verified arrival wins; otherwise the near miss is the anchor.
+      const nearMiss = !job.helper_arrival_verified_at;
+      const anchor = (job.helper_arrival_verified_at ?? job.helper_arrival_near_miss_at)!;
+      const stage = nearMiss
+        ? arrivalNudgeStage(anchor, ledgers.get(job.id) ?? null, now, NEAR_MISS_ESCALATE_AFTER_HOURS)
+        : arrivalNudgeStage(anchor, ledgers.get(job.id) ?? null, now);
       if (!stage) continue;
       try {
         if (!(await claim(job.id, stage))) continue;
         const posterLink = `/my-posts?job=${job.id}`;
-        if (stage === "first" || stage === "second") {
+        if (stage === "first" && nearMiss) {
+          // mark_helper_arrival already sent "Is your Helpr at the door?".
+        } else if (stage === "second" && nearMiss) {
+          await notifyUser(
+            job.customer_id!,
+            "Is your Helpr at the door?",
+            `"${job.title}" — they checked in ${job.helper_arrival_near_miss_ft ?? "some"} ft from the map pin. If they're there, tap Confirm They Arrived, or report a problem.`,
+            posterLink,
+            "job_updates",
+          );
+        } else if (stage === "first" || stage === "second") {
           await notifyUser(
             job.customer_id!,
             stage === "first" ? "Your Helpr is at the job" : "Please confirm your Helpr arrived",
@@ -156,8 +181,10 @@ Deno.serve(async (req) => {
           for (const a of admins ?? []) {
             await notifyUser(
               a.user_id,
-              "Arrival not confirmed in 24h",
-              `"${job.title}" — the Helpr's location was verified 24h ago and the poster hasn't confirmed. Confirm the arrival or open a dispute.`,
+              nearMiss ? "Arrival near a wrong pin not confirmed" : "Arrival not confirmed in 24h",
+              nearMiss
+                ? `"${job.title}" — the Helpr checked in ${job.helper_arrival_near_miss_ft ?? "?"} ft from the map pin ${NEAR_MISS_ESCALATE_AFTER_HOURS}h ago and the poster hasn't confirmed. The poster can confirm for 12h after that check-in; contact them, check the pin, or open a dispute.`
+                : `"${job.title}" — the Helpr's location was verified 24h ago and the poster hasn't confirmed. Confirm the arrival or open a dispute.`,
               `/admin?job=${job.id}`,
               "admin_alert",
             );
@@ -172,8 +199,10 @@ Deno.serve(async (req) => {
           await postSlackOpsAlert({
             kind: "custom",
             severity: "warning",
-            title: "Arrival not confirmed in 24h",
-            message: `Job ${job.id} — GPS arrival verified at ${job.helper_arrival_verified_at}; poster has not confirmed.`,
+            title: nearMiss ? "Near-miss arrival not confirmed" : "Arrival not confirmed in 24h",
+            message: nearMiss
+              ? `Job ${job.id} — Helpr checked in ${job.helper_arrival_near_miss_ft ?? "?"} ft from the pin at ${job.helper_arrival_near_miss_at}; poster has not confirmed.`
+              : `Job ${job.id} — GPS arrival verified at ${job.helper_arrival_verified_at}; poster has not confirmed.`,
             fields: { job_id: job.id },
             oncePerDayKey: `arrival-confirm-escalation:${job.id}`,
           });

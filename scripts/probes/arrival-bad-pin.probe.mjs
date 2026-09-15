@@ -23,6 +23,11 @@ const LIVE_BASE = read("./fixtures/dispute-table-door.live.sql");
 const MARKERS = read("../../supabase/migrations/20260915033734_dispute_markers_server_owned.sql");
 const GATE = read("../../supabase/migrations/20260915044137_arrival_requires_gps_and_poster.sql");
 const MIG = read("../../supabase/migrations/20260915074058_arrival_bad_pin_poster_confirm.sql");
+// What prod actually runs for report_helper_no_show (md5 dd3e9f2f…, checked
+// 2026-09-15): 20260914215112's body, applied after 20260915044137 and so
+// replacing that migration's arrived guard. The probe base reproduces that.
+const PROD_NO_SHOW = read("../../supabase/migrations/20260914215112_completion_lands_on_live_job_only.sql")
+  .match(/CREATE OR REPLACE FUNCTION public\.report_helper_no_show\(p_job_id uuid\)[\s\S]*?\n\$function\$;/)[0];
 
 const extract = (file, re) => {
   const m = read(file).match(re);
@@ -98,6 +103,10 @@ const J = {
   DONE: "40000000-0000-4000-8000-000000000005",     // near miss + poster confirmed 2h ago, photos
   MISSONLY: "40000000-0000-4000-8000-000000000006", // near miss, poster has not confirmed, photos
   REASSIGN: "40000000-0000-4000-8000-000000000007", // near miss, then reopened + re-awarded
+  NS_MISS: "40000000-0000-4000-8000-000000000008",  // start passed, near miss 1h ago: no-show refused
+  NS_ARR: "40000000-0000-4000-8000-000000000009",   // start passed, GPS-verified arrival: no-show refused
+  NS_OLD: "40000000-0000-4000-8000-00000000000a",   // start passed, near miss 13h ago: no-show allowed
+  CANC: "40000000-0000-4000-8000-00000000000b",     // cancelled, near miss 1h ago: poster confirm refused
 };
 const FIXTURES = `
 INSERT INTO public.profiles (user_id, idv_status, is_seed) VALUES ('${POSTER}', 'verified', true);
@@ -108,7 +117,13 @@ INSERT INTO public.jobs (id, customer_id, helper_id, title, status, payment_stat
   ('${J.STALE}',    '${POSTER}', '${HELPER}', 'stale',    'in_progress', 'escrow', 'cs_4', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '1 day', now() - interval '14 hours', NULL, NULL, true, true),
   ('${J.DONE}',     '${POSTER}', '${HELPER}', 'done',     'in_progress', 'escrow', 'cs_5', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '1 day', now() - interval '4 hours', ${PHOTOS}, true, true),
   ('${J.MISSONLY}', '${POSTER}', '${HELPER}', 'miss only','in_progress', 'escrow', 'cs_6', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '1 day', now() - interval '4 hours', ${PHOTOS}, true, true),
-  ('${J.REASSIGN}', '${POSTER}', '${HELPER}', 'reassign', 'in_progress', 'escrow', 'cs_7', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '1 day', now() - interval '4 hours', NULL, NULL, true, true);
+  ('${J.REASSIGN}', '${POSTER}', '${HELPER}', 'reassign', 'in_progress', 'escrow', 'cs_7', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '1 day', now() - interval '4 hours', NULL, NULL, true, true),
+  ('${J.NS_MISS}',  '${POSTER}', '${HELPER}', 'ns miss',  'in_progress', 'escrow', 'cs_8', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '2 days', now() - interval '3 hours', NULL, NULL, true, true),
+  ('${J.NS_ARR}',   '${POSTER}', '${HELPER}', 'ns arr',   'in_progress', 'escrow', 'cs_9', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '2 days', now() - interval '3 hours', NULL, NULL, true, true),
+  ('${J.NS_OLD}',   '${POSTER}', '${HELPER}', 'ns old',   'in_progress', 'escrow', 'cs_a', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '2 days', now() - interval '15 hours', NULL, NULL, true, true),
+  ('${J.CANC}',     '${POSTER}', '${HELPER}', 'cancelled','in_progress', 'escrow', 'cs_b', 100, ${JOB_LAT}, ${JOB_LNG}, now() - interval '1 day', now() - interval '2 hours', NULL, NULL, true, true);
+UPDATE public.jobs SET date_needed = current_date - 1 WHERE id IN ('${J.NS_MISS}', '${J.NS_ARR}', '${J.NS_OLD}');
+UPDATE public.jobs SET helper_arrived_at = now() - interval '2 hours', helper_arrival_verified_at = now() - interval '2 hours' WHERE id = '${J.NS_ARR}';
 INSERT INTO public.job_tracking (job_id, helper_id, status) VALUES
   ('${J.MISS}', '${HELPER}', 'on_the_way'), ('${J.MISSONLY}', '${HELPER}', 'on_the_way');
 `;
@@ -119,6 +134,9 @@ UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '13 hours'
 UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '3 hours', helper_arrival_near_miss_ft = 1400, helper_arrived_at = now() - interval '2 hours', poster_confirmed_arrival_at = now() - interval '2 hours', poster_confirmed_working_at = now() - interval '2 hours' WHERE id = '${J.DONE}';
 UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '3 hours', helper_arrival_near_miss_ft = 1400, poster_confirmed_working_at = now() - interval '2 hours' WHERE id = '${J.MISSONLY}';
 UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '1 hour', helper_arrival_near_miss_ft = 1400 WHERE id = '${J.REASSIGN}';
+UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '1 hour', helper_arrival_near_miss_ft = 1400 WHERE id = '${J.NS_MISS}';
+UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '13 hours', helper_arrival_near_miss_ft = 1400 WHERE id = '${J.NS_OLD}';
+UPDATE public.jobs SET helper_arrival_near_miss_at = now() - interval '1 hour', helper_arrival_near_miss_ft = 1400, status = 'cancelled' WHERE id = '${J.CANC}';
 `;
 
 async function as(db, who, sql) {
@@ -208,6 +226,25 @@ async function expectations(db) {
     const j = await row(db, J.REASSIGN);
     check(j.helper_arrival_near_miss_at === null && j.helper_arrival_near_miss_ft === null, `H near miss survived reassignment: ${j.helper_arrival_near_miss_at}`);
   }
+  // J. No-show: refused while a near miss is pending (and the record kept),
+  //    refused on an arrived Helpr (GUARD 0 restored), allowed after 12h.
+  {
+    const noShow = (job) => as(db, POSTER, `SELECT public.report_helper_no_show('${job}') AS v`);
+    const m = await noShow(J.NS_MISS);
+    const jm = await row(db, J.NS_MISS);
+    check(!m.ok && /helper_near_miss_pending/.test(m.err), `J1 no-show on a pending near miss: expected refusal, got ${m.ok ? "success" : m.err}`);
+    check(jm.helper_id === HELPER && jm.helper_arrival_near_miss_at !== null, `J1 near-miss job changed: helper ${jm.helper_id}, near miss ${jm.helper_arrival_near_miss_at}`);
+    const a = await noShow(J.NS_ARR);
+    check(!a.ok && /helper_already_arrived/.test(a.err), `J2 no-show on an arrived Helpr: expected refusal, got ${a.ok ? "success" : a.err}`);
+    const o = await noShow(J.NS_OLD);
+    check(o.ok, `J3 no-show after the 12h window: expected allowed, got ${o.err}`);
+  }
+  // K. The poster cannot stamp an arrival on a job that is no longer live.
+  {
+    const c = await confirm(db, J.CANC);
+    const j = await row(db, J.CANC);
+    check(!c.ok || j.helper_arrived_at === null, `K confirm on a cancelled job stamped arrival ${j.helper_arrived_at}`);
+  }
   // I. Grants unchanged.
   {
     const acl = (await db.query(`SELECT proacl::text AS a FROM pg_proc WHERE oid = 'public.mark_helper_arrival(uuid,numeric,numeric)'::regprocedure`)).rows[0].a;
@@ -222,6 +259,7 @@ async function fresh(migs) {
   await db.exec(MARKERS);
   await db.exec(EXTRA);
   await db.exec(GATE);
+  await db.exec(PROD_NO_SHOW);
   await db.exec(FIXTURES);
   for (const m of migs) await db.exec(m);
   if (migs.length) await db.exec(`RESET ROLE; SELECT set_config('request.uid', '', false); ${AFTER_FIXTURES}`);
@@ -231,14 +269,18 @@ async function fresh(migs) {
 let fail = false;
 {
   const db = await fresh([]);
-  console.log("== BEFORE (live: 20260915044137)");
+  console.log("== BEFORE (prod shape: 20260915044137 + the no-show body prod runs)");
   const r = await arrive(db, J.MISS, MISS);
   const gapRefused = !r.ok && /arrival_too_far/.test(r.err);
   const c = await confirm(db, J.MISS);
   const gapConfirm = !c.ok && /arrival_confirm_before_arrival/.test(c.err);
   console.log(`${gapRefused ? "GAP   " : "open  "} a Helpr 1,490 ft from a wrong pin is refused`);
   console.log(`${gapConfirm ? "GAP   " : "open  "} the poster cannot confirm that Helpr's arrival`);
-  if (!gapRefused || !gapConfirm) { fail = true; console.log("FAIL: the gap did not reproduce"); }
+  await db.exec(`RESET ROLE; SELECT set_config('request.uid', '', false); UPDATE public.jobs SET date_needed = current_date - 1 WHERE id = '${J.NS_ARR}'`);
+  const ns = await as(db, POSTER, `SELECT public.report_helper_no_show('${J.NS_ARR}') AS v`);
+  const gapNoShow = ns.ok;
+  console.log(`${gapNoShow ? "GAP   " : "closed"} prod's no-show strikes a GPS-verified, arrived Helpr (20260915044137's guard lost)`);
+  if (!gapRefused || !gapConfirm || !gapNoShow) { fail = true; console.log("FAIL: the gap did not reproduce"); }
   await db.close();
 }
 {
@@ -250,11 +292,14 @@ let fail = false;
 const mutate = (from, to) => { if (!MIG.includes(from)) throw new Error(`anchor missing: ${from.slice(0, 50)}`); return MIG.replace(from, to); };
 const broken = [
   ["near-miss radius unbounded", mutate("IF NOT v_verified AND v_dist <= 5280 THEN", "IF NOT v_verified THEN")],
-  ["poster confirm ignores the 12h window", mutate("AND OLD.helper_arrival_near_miss_at > now() - interval '12 hours' THEN", "THEN")],
+  ["poster confirm ignores the 12h window", mutate("       AND OLD.helper_arrival_near_miss_at > now() - interval '12 hours'\n       AND OLD.status", "       AND OLD.status")],
   ["completion accepts a near miss without the poster", mutate("       OR OLD.poster_confirmed_arrival_at IS NULL THEN", "       AND OLD.poster_confirmed_arrival_at IS NULL THEN")],
   ["poster may write the near miss", mutate("    'helper_arrival_near_miss_at',\n    'helper_arrival_near_miss_ft'\n  ];", "    'helper_arrival_near_miss_ft'\n  ];")],
   ["near miss not cleared on reassignment", mutate("    NEW.helper_arrival_near_miss_at := NULL;\n    NEW.helper_arrival_near_miss_ft := NULL;\n  END IF;", "  END IF;")],
   ["tracker working on a near miss alone", mutate("     AND ((v_job.helper_arrival_verified_at IS NULL AND v_job.helper_arrival_near_miss_at IS NULL)\n          OR v_job.poster_confirmed_arrival_at IS NULL) THEN", "     AND (v_job.helper_arrival_verified_at IS NULL AND v_job.helper_arrival_near_miss_at IS NULL) THEN")],
+  ["no-show ignores a pending near miss", mutate("  IF v_near_miss_at IS NOT NULL AND v_near_miss_at > now() - interval '12 hours' THEN", "  IF false THEN")],
+  ["no-show arrived guard not restored", mutate("  IF v_arrived_at IS NOT NULL OR v_helper_completed_at IS NOT NULL THEN", "  IF v_helper_completed_at IS NOT NULL THEN")],
+  ["poster confirm on a job that is not live", mutate("       AND OLD.status::text IN ('accepted', 'in_progress')\n       AND NEW.status::text IN ('accepted', 'in_progress') THEN", "       THEN")],
   ["near miss stamps an arrival", mutate("         SET helper_arrival_near_miss_at = v_now,", "         SET helper_arrived_at = v_now, helper_arrival_near_miss_at = v_now,")],
 ];
 console.log("\n== BROKEN COPIES (each must be caught)");

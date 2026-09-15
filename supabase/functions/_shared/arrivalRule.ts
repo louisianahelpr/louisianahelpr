@@ -59,9 +59,9 @@ export function arrivalGateMessage(
   const poster = !!job?.poster_confirmed_arrival_at;
   const nearMiss = !!job?.helper_arrival_near_miss_at;
   if (gps && poster) return "Arrival confirmed by your location and by the person who posted this job.";
-  if (nearMiss && poster) return "The poster confirmed you arrived.";
+  if (nearMiss && poster) return "The person who posted this job confirmed you arrived.";
   if (nearMiss && !gps) {
-    return `Your location was a little way from the job's map pin. If you're at the door, the poster can tap "Confirm They Arrived" ${unlocks}.`;
+    return `Your location was a little way from the job's map pin. If you're at the door, the person who posted this job can tap "Confirm They Arrived" ${unlocks}.`;
   }
   if (gps) {
     return `Your location is confirmed. The person who posted this job also needs to tap "Confirm They Arrived" — both are needed ${unlocks}.`;

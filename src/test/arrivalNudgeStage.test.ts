@@ -3,7 +3,7 @@
  * is nudged right away, again at 2h, and escalated to admin at 24h — once each.
  */
 import { describe, expect, it } from "vitest";
-import { arrivalNudgeStage } from "../../supabase/functions/_shared/arrivalNudge";
+import { arrivalNudgeStage, NEAR_MISS_ESCALATE_AFTER_HOURS } from "../../supabase/functions/_shared/arrivalNudge";
 
 const at = (h: number) => new Date(Date.parse("2026-09-15T10:00:00Z") + h * 3_600_000);
 const V = "2026-09-15T10:00:00Z";
@@ -33,5 +33,11 @@ describe("arrivalNudgeStage", () => {
   });
   it("sends the first nudge before anything else, however late the run", () => {
     expect(arrivalNudgeStage(V, null, at(30))).toBe("first");
+  });
+  it("VN-33(b): a near miss escalates at 10h, while the poster can still confirm", () => {
+    expect(NEAR_MISS_ESCALATE_AFTER_HOURS).toBeLessThan(12);
+    expect(arrivalNudgeStage(V, L(0, 2), at(9.9), NEAR_MISS_ESCALATE_AFTER_HOURS)).toBeNull();
+    expect(arrivalNudgeStage(V, L(0, 2), at(10), NEAR_MISS_ESCALATE_AFTER_HOURS)).toBe("escalate");
+    expect(arrivalNudgeStage(V, L(0, 2), at(10))).toBeNull();
   });
 });

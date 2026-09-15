@@ -131,8 +131,8 @@ export function arrivalRefusalMessage(
     case "too_far":
       if (refusal.posterCanConfirm) {
         return refusal.distanceFt != null
-          ? `Your location is about ${formatArrivalDistance(refusal.distanceFt)} from the job's map pin. If you're at the door, the poster can tap "Confirm They Arrived" — we've let them know.`
-          : `Your location is a little way from the job's map pin. If you're at the door, the poster can tap "Confirm They Arrived" — we've let them know.`;
+          ? `Your location is about ${formatArrivalDistance(refusal.distanceFt)} from the job's map pin. If you're at the door, the person who posted this job can tap "Confirm They Arrived" — we've let them know.`
+          : `Your location is a little way from the job's map pin. If you're at the door, the person who posted this job can tap "Confirm They Arrived" — we've let them know.`;
       }
       return refusal.distanceFt != null
         ? `You're about ${formatArrivalDistance(refusal.distanceFt)} from the job — get closer to mark arrived.`

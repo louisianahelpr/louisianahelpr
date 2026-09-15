@@ -945,7 +945,13 @@ export function JobTracking({
       // every refusal and otherwise always returns a jsonb verdict, so an
       // absent body means something silently did nothing — say so rather than
       // reporting a verification that may not exist.
-      const v = verdict as { verified?: boolean; distance_ft?: number | null } | null;
+      const v = verdict as { verified?: boolean; arrival_established?: boolean; distance_ft?: number | null } | null;
+      // VN-33(b): the poster already confirmed a near miss — the arrival stands
+      // without a GPS pass. Not a fault, and nothing new to stamp.
+      if (v && v.verified !== true && v.arrival_established === true) {
+        toast.success("You're checked in — the person who posted this job confirmed you arrived.");
+        return;
+      }
       if (!v || v.verified !== true) {
         report(new Error("mark_helper_arrival returned no verdict"), {
           tags: { source: "JobTracking.retryArrival" },
@@ -2361,8 +2367,10 @@ export function JobTracking({
                 poster confirmed it, so this is the one state where another GPS
                 read can change anything. Helper-only (inside `isHelper &&`),
                 and the RPC refuses anyone but `jobs.helper_id` (42501). It does
-                NOT advance the rail. */}
-            {!!jobStamps.arrivedAt && !jobStamps.arrivalVerifiedAt && (
+                NOT advance the rail. A poster-confirmed near miss (VN-33(b),
+                wrong map pin) is ALSO arrived-but-unverified, and it is already
+                an established arrival, so there is nothing to retry. */}
+            {!!jobStamps.arrivedAt && !jobStamps.arrivalVerifiedAt && !jobStamps.nearMissAt && (
               <Button
                 size="sm"
                 variant="outline"

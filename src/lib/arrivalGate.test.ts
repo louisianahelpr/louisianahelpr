@@ -143,7 +143,7 @@ describe("VN-33(b) bad map pin: a near miss counts only beside the poster's conf
   });
   it("a near miss alone unlocks nothing", () => {
     expect(arrivalEstablished({ helper_arrival_near_miss_at: nearMiss })).toBe(false);
-    expect(arrivalGateMessage({ helper_arrival_near_miss_at: nearMiss })).toMatch(/poster can tap "Confirm They Arrived"/);
+    expect(arrivalGateMessage({ helper_arrival_near_miss_at: nearMiss })).toMatch(/person who posted this job can tap "Confirm They Arrived"/);
   });
   it("the Helpr is told the poster can confirm, not just that they are too far", () => {
     expect(arrivalRefusalMessage({ kind: "too_far", distanceFt: 1490, posterCanConfirm: true })).toMatch(/map pin[\s\S]*Confirm They Arrived/);

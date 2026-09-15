@@ -10,6 +10,12 @@
  */
 export const SECOND_AFTER_HOURS = 2;
 export const ESCALATE_AFTER_HOURS = 24;
+/**
+ * VN-33(b) near miss (wrong map pin): the poster can confirm only within 12h
+ * of the Helpr's last near-miss attempt, so admin is pulled in at 10h — while
+ * that confirmation still works — not at 24h, when it no longer can.
+ */
+export const NEAR_MISS_ESCALATE_AFTER_HOURS = 10;
 
 export type NudgeLedger = {
   first_sent_at: string | null;
@@ -23,6 +29,7 @@ export function arrivalNudgeStage(
   verifiedAt: string,
   ledger: NudgeLedger,
   now: Date,
+  escalateAfterHours: number = ESCALATE_AFTER_HOURS,
 ): NudgeStage {
   const hours = (now.getTime() - new Date(verifiedAt).getTime()) / 3_600_000;
   if (!Number.isFinite(hours) || hours < 0) return null;
@@ -32,7 +39,7 @@ export function arrivalNudgeStage(
   // old when the nudges shipped (or when a run was missed) still gives the
   // poster SECOND_AFTER_HOURS to answer before admin is pulled in.
   const sinceFirst = (now.getTime() - new Date(ledger.first_sent_at).getTime()) / 3_600_000;
-  if (hours >= ESCALATE_AFTER_HOURS && sinceFirst >= SECOND_AFTER_HOURS) return "escalate";
+  if (hours >= escalateAfterHours && sinceFirst >= SECOND_AFTER_HOURS) return "escalate";
   if (!ledger.second_sent_at && sinceFirst >= SECOND_AFTER_HOURS) return "second";
   return null;
 }

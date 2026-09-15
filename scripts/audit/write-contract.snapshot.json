@@ -6252,6 +6252,20 @@
      "notNull": true,
      "type": "boolean"
     },
+    "helper_arrival_near_miss_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "helper_arrival_near_miss_ft": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
     "helper_arrival_verified_at": {
      "enum": null,
      "generated": false,

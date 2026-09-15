@@ -223,8 +223,34 @@ for (const { name, width, job } of [
     // matcher's first hit would SUBMIT the application and close the sheet
     // this spec exists to measure.
     await detail.getByRole("button", { name: /^(apply now|book now)$/i }).waitFor({ timeout: 10_000 });
-    // Let the open animation settle before measuring.
-    await page.waitForTimeout(500);
+    // Let the open animation settle before measuring — POLLED, not a fixed
+    // sleep. The dialog enters with `zoom-in-95` (ui/dialog.tsx), so while the
+    // animation is still running every rect inside it is scaled by up to 0.95.
+    // In WebKit the fixed 500ms was not always enough, and the 44px tap-target
+    // assertion read the Apply Now button at 41.8px — which is exactly
+    // 44 x 0.95, the entry scale, not an undersized button. Waiting for the
+    // element's own geometry to stop moving measures the dialog the user ends
+    // up looking at; a genuinely short button still fails, because this waits
+    // for stability, not for a value.
+    await page
+      .waitForFunction(
+        () => {
+          const dlg = document.querySelectorAll('[role="dialog"]');
+          const el = dlg[dlg.length - 1] as HTMLElement | undefined;
+          if (!el) return false;
+          const w = el.getBoundingClientRect().width;
+          const prev = (window as unknown as { __lhDlgW?: number }).__lhDlgW;
+          (window as unknown as { __lhDlgW?: number }).__lhDlgW = w;
+          // Two consecutive identical widths, and no residual scale on the box.
+          const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
+          return prev !== undefined && Math.abs(prev - w) < 0.5 && Math.abs(m.a - 1) < 0.01;
+        },
+        undefined,
+        { timeout: 10_000, polling: 100 },
+      )
+      .catch(() => undefined);
+    // A beat after stability for any paint that follows the last layout.
+    await page.waitForTimeout(200);
 
     const m = (await page.evaluate(MEASURE)) as Measurement;
 

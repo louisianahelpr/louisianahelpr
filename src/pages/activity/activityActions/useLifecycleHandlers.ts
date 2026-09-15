@@ -114,10 +114,11 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           //
           // Stepping away at the END of a job is normal and is not evidence of
           // fraud. What matters is that they WERE there, which the arrival
-          // ladder records at the moment it was true: server-verified GPS, or
-          // the poster's vouch (see arrivalGate.ts). The same rule is enforced
-          // by enforce_helper_completion_gates, so this is the message, not
-          // the gate.
+          // ladder records at the moment it was true: server-verified GPS AND
+          // the poster's "Confirm They Arrived" — both, since VN-33 (owner,
+          // 2026-09-14; see arrivalGate.ts). The same rule is enforced by
+          // enforce_helper_completion_gates and create-payment's release, so
+          // this is the message, not the gate.
           const { data: arrivalRow, error: arrivalErr } = await supabase
             .from("jobs")
             .select("helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at")

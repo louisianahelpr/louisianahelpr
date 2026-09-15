@@ -135,9 +135,11 @@ export function InProgressStep(ctx: PosterStepCtx) {
       }
       primary={
         showConfirmArrival ? (
-          /* A VOUCH, not homework (owner, 2026-08-24): these taps no longer
-             gate the helper's payout — they're evidence, so they dress like the
-             quiet secondary action they are. */
+          /* Styled as the quiet tint (owner, 2026-08-24). NOTE the arrival tap
+             DOES gate the helper again: since VN-33 (owner, 2026-09-14) the
+             Helpr cannot start working or mark the job complete until the
+             server has verified their location AND this is tapped. The
+             working confirmation below still gates nothing. */
           <Button
             size="sm"
             variant="outline"

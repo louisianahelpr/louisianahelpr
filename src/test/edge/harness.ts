@@ -470,6 +470,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/cron-auth.ts";`,
   );
 
+  // Arrival rule: `_shared/arrivalRule.ts` has ZERO imports and is the one
+  // predicate (GPS verified AND poster confirmed, VN-33) that create-payment's
+  // helper release and the app's completion gate both read.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/arrivalRule\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/arrivalRule.ts";`,
+  );
+
   // Escrow clock: `_shared/escrowTiming.ts` has ZERO imports and is the single
   // source of the 24-hour auto-release cutoff that user copy, the payout cron
   // and `payment-confirm-reminder`'s window all have to agree on.

@@ -170,6 +170,49 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
       expect(allowed).not.toContain("helper_arrival_verified_at");
       expect(guard).toContain("app.arrival_rpc");
     });
+
+    it("keeps helper_arrived_at out of the list too — only the arrival RPC writes it (VN-33)", () => {
+      // While it was on the list, a helper 2000 miles away could mark
+      // themselves arrived with a plain PATCH and no location at all, and
+      // mark_helper_arrival wrote it even when it refused to verify.
+      expect(
+        allowed,
+        "jobs.helper_arrived_at is on the helper allow-list again. A helper can mark " +
+          "themselves arrived with a direct PATCH, skipping mark_helper_arrival's 500ft check.",
+      ).not.toContain("helper_arrived_at");
+      expect(guard).toMatch(/'helper_arrival_verified_at',\s*'helper_arrived_at'/);
+      const rpc = liveDefinition("mark_helper_arrival");
+      expect(rpc, "mark_helper_arrival no longer refuses a far arrival").toMatch(/RAISE EXCEPTION 'arrival_too_far'/);
+      expect(rpc, "mark_helper_arrival no longer refuses an arrival with no location").toMatch(/RAISE EXCEPTION 'arrival_location_required'/);
+    });
+
+    it("gates helper completion on GPS AND poster confirmation, not either (VN-33)", () => {
+      const gates = liveDefinition("enforce_helper_completion_gates");
+      expect(
+        gates,
+        "enforce_helper_completion_gates lets completion through on only one arrival " +
+          "stamp. Owner, 2026-09-14: both are required.",
+      ).toMatch(/OLD\.helper_arrival_verified_at IS NULL\s+OR OLD\.poster_confirmed_arrival_at IS NULL/);
+      expect(gates, "the pre-2026-08-28 grandfather clause is back").not.toMatch(/timestamptz '2026-08-28/);
+    });
+
+    it("closes the side doors the VN-33 review found", () => {
+      const gates = liveDefinition("enforce_helper_completion_gates");
+      // A helper's direct status = 'completed' is a completion too.
+      expect(gates).toMatch(/NEW\.status::text = 'completed'/);
+      expect(gates).toMatch(/BEFORE UPDATE OF helper_completed_at, status ON public\.jobs/);
+      // The poster cannot write the GPS half.
+      const posterLock = sqlArrayLiteral(liveDefinition("enforce_poster_jobs_money_lock"), "locked_always");
+      expect(posterLock).toEqual(expect.arrayContaining(["helper_arrived_at", "helper_arrival_verified_at"]));
+      // The tracker row must belong to the job's helper.
+      expect(liveDefinition("enforce_job_tracking_arrival_gate")).toMatch(/v_job\.helper_id IS DISTINCT FROM NEW\.helper_id/);
+      // No no-show report once the helper has arrived (the reopen would erase the proof).
+      expect(liveDefinition("report_helper_no_show")).toMatch(/RAISE EXCEPTION 'helper_already_arrived'/);
+      // A helper cannot complete a job by writing its status.
+      expect(gates).toMatch(/RAISE EXCEPTION 'helper_cannot_complete_by_status'/);
+      // A re-awarded job starts with no arrival.
+      expect(liveDefinition("enforce_jobs_arrival_integrity")).toMatch(/NEW\.helper_arrival_verified_at := NULL/);
+    });
   });
 
   describe("poster money lock ↔ report_helper_no_show", () => {

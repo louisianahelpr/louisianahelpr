@@ -53,6 +53,20 @@ describe("deriveCurrentStatusIdx", () => {
   });
 
   it("treats an ESTABLISHED arrival + in_progress as Working — there is no separate start stamp", () => {
+    // Established = GPS verified AND poster confirmed (VN-33).
+    expect(
+      deriveCurrentStatusIdx({
+        jobStatus: "in_progress",
+        helperOnTheWayAt: AT,
+        helperArrivedAt: AT,
+        helperArrivalVerifiedAt: AT,
+        posterConfirmedArrivalAt: AT,
+      }),
+    ).toBe(STATUS_IDX.working);
+  });
+
+  it("stops at Arrived on HALF an arrival — GPS alone, or the poster alone (VN-33)", () => {
+    // Both of these painted Working under the old "verified OR confirmed" rule.
     expect(
       deriveCurrentStatusIdx({
         jobStatus: "in_progress",
@@ -60,7 +74,7 @@ describe("deriveCurrentStatusIdx", () => {
         helperArrivedAt: AT,
         helperArrivalVerifiedAt: AT,
       }),
-    ).toBe(STATUS_IDX.working);
+    ).toBe(STATUS_IDX.arrived);
     expect(
       deriveCurrentStatusIdx({
         jobStatus: "in_progress",
@@ -68,7 +82,7 @@ describe("deriveCurrentStatusIdx", () => {
         helperArrivedAt: AT,
         posterConfirmedArrivalAt: AT,
       }),
-    ).toBe(STATUS_IDX.working);
+    ).toBe(STATUS_IDX.arrived);
   });
 
   it("stops a CLAIMED-only arrival at Arrived — the rail must not lead the evidence", () => {

@@ -90,7 +90,9 @@ describe("VN-20 — arrival labels", () => {
   it("the Arrived-step caption carries only the open question", () => {
     // Old behaviour: "Poster confirmed" / "Location confirmed".
     expect(arrivalStateLabel("confirmed")).toBeNull();
-    expect(arrivalStateLabel("verified")).toBeNull();
+    // VN-33: the poster's confirmation is required, so a location-confirmed
+    // arrival is still waiting on the poster.
+    expect(arrivalStateLabel("verified")).toBe("Awaiting poster");
     expect(arrivalStateLabel("claimed")).toBe("Awaiting poster");
     expect(arrivalStateLabel("none")).toBeNull();
   });
@@ -249,6 +251,11 @@ describe("VN-20 — rendered tracker", () => {
 
   it("an unconfirmed claim keeps its amber caption on the rail", () => {
     renderTracker({ jobStatus: "in_progress" });
+    expect(screen.getByText("Awaiting poster")).toBeTruthy();
+  });
+
+  it("a GPS-verified arrival still waits on the poster (VN-33: both required)", () => {
+    renderTracker({ jobStatus: "in_progress", helperArrivalVerifiedAt: AT });
     expect(screen.getByText("Awaiting poster")).toBeTruthy();
   });
 });

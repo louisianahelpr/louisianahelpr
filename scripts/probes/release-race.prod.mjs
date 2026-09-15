@@ -38,7 +38,7 @@ async function fixture(label, helperDone) {
       category: "yard_work", location: "Baton Rouge, LA", date_needed: ago(0).slice(0, 10),
       budget: 50, status: "in_progress", payment_status: "escrow",
       helper_confirmed_at: ago(5), poster_confirmed_at: ago(5), accepted_at: ago(6),
-      helper_arrived_at: ago(3), helper_arrival_verified_at: ago(3), poster_confirmed_working_at: ago(2),
+      helper_arrived_at: ago(3), helper_arrival_verified_at: ago(3), poster_confirmed_arrival_at: ago(3), poster_confirmed_working_at: ago(2),
       proof_before_urls: ["https://example.invalid/b.jpg"], proof_after_urls: ["https://example.invalid/a.jpg"],
       helper_completed_at: helperDone ? ago(1) : null,
     },

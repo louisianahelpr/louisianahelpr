@@ -760,39 +760,50 @@ test.describe("full money loop against production", () => {
 
     /* --- 4b. ARRIVAL — the gate completion actually depends on --------------
        `enforce_helper_completion_gates` rejects a completion with 400
-       completion_requires_confirmed_arrival ("Mark arrival at the job site, or
-       ask the poster to confirm you arrived") unless arrival is on the row. The
-       spec used to jump from hire straight to helper_completed_at and failed
-       there the first time it ever got that far.
+       completion_requires_confirmed_arrival unless arrival is ESTABLISHED, and
+       since 20260915044137 (VN-33, owner: "both required … no fallback") that
+       takes BOTH: the server verified the helper's location
+       (`helper_arrival_verified_at`, only `mark_helper_arrival` writes it) AND
+       the poster confirmed (`poster_confirmed_arrival_at`).
 
-       These are not filler to satisfy a trigger — they are three real legs of
-       the journey (on-my-way, arrived, poster confirms arrival) that had no
-       coverage at all, and driving them manually is how the gate was found.
-       The poster's confirmation is the branch that matters most: it is the
-       fallback the product offers when the helper's device gives no location,
-       which is exactly what a headless browser does. */
+       These are three real legs of the journey (on-my-way, arrived, poster
+       confirms arrival). The arrival goes through the RPC, as the app does: a
+       helper PATCH of `helper_arrived_at` is refused (42501) now, and the RPC
+       refuses a far or missing location without writing. The fix sent is the
+       job's OWN coordinates, read back here: the backfill-job-geocode cron can
+       geocode "Baton Rouge, LA" while the row exists, and a fixed point could
+       then sit past 500 ft. With no coordinates on the job the RPC has nothing
+       to measure against and accepts any real fix. */
     const onTheWay = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
       headers: { ...rest(helper), Prefer: "return=representation" },
-      /* Backdated, not "now". Completion is additionally gated on 30 minutes
-         having passed since arrival ("Available 30 minutes after arrival to
-         ensure quality"), so a run that stamped arrival at the current instant
-         would satisfy the arrival trigger and then fail the delay one. These
-         two timestamps are the only place the suite pretends time passed. */
       data: { helper_on_the_way_at: new Date(Date.now() - 45 * 60_000).toISOString(), status: "in_progress" },
     });
     expect(onTheWay.ok(), `on-my-way failed: ${onTheWay.status()} ${await onTheWay.text()}`).toBe(true);
     expect(await onTheWay.json(), "on-my-way matched zero rows").toHaveLength(1);
 
-    const arrived = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
-      headers: { ...rest(helper), Prefer: "return=representation" },
-      data: { helper_arrived_at: new Date(Date.now() - 35 * 60_000).toISOString() },
+    const site = await request.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=latitude,longitude`, {
+      headers: rest(poster),
+    });
+    expect(site.ok(), `reading the job's coordinates failed: ${site.status()}`).toBe(true);
+    const [{ latitude, longitude }] = (await site.json()) as Array<{ latitude: number | null; longitude: number | null }>;
+    const arrived = await request.post(`${SUPABASE_URL}/rest/v1/rpc/mark_helper_arrival`, {
+      headers: rest(helper),
+      data: { p_job_id: job.id, p_lat: Number(latitude ?? 30.4515), p_lng: Number(longitude ?? -91.1871) },
     });
     expect(arrived.ok(), `arrival failed: ${arrived.status()} ${await arrived.text()}`).toBe(true);
-    expect(await arrived.json(), "arrival matched zero rows").toHaveLength(1);
+    expect(((await arrived.json()) as { verified?: boolean }).verified, "arrival was not verified").toBe(true);
 
     const arrivalConfirmed = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
       headers: { ...rest(poster), Prefer: "return=representation" },
-      data: { poster_confirmed_arrival_at: new Date(Date.now() - 30 * 60_000).toISOString() },
+      /* Backdated working confirmation, not "now". Completion is additionally
+         gated on 30 minutes since work started — COALESCE(
+         poster_confirmed_working_at, helper_arrived_at) — and the RPC stamps
+         the arrival at the current instant, so the poster's working stamp is
+         the only place the suite pretends time passed. */
+      data: {
+        poster_confirmed_arrival_at: new Date().toISOString(),
+        poster_confirmed_working_at: new Date(Date.now() - 35 * 60_000).toISOString(),
+      },
     });
     expect(
       arrivalConfirmed.ok(),

@@ -513,7 +513,7 @@ const POSTER_SUBSTATES: Record<JobStatus, SubState[]> = {
     {
       key: "arrival-verified",
       describe:
-        "in_progress, arrival VERIFIED by the server (helper_arrival_verified_at set) but poster has not vouched — 'Arrival GPS-verified' in the status line (map pin label when en route; VN-20), tracker may advance to Working",
+        "in_progress, arrival VERIFIED by the server (helper_arrival_verified_at set) but poster has not confirmed — 'Arrival GPS-verified' in the status line (map pin label when en route; VN-20), 'Awaiting poster' on the rail, tracker stays at Arrived until the poster confirms (VN-33: both required)",
       job: {
         helper_id: HELPER_ID,
         helper_confirmed_at: ISO(-DAYS(1)),
@@ -917,7 +917,7 @@ const APPLIED_STATES: AppliedState[] = [
     key: "active-arrival-verified",
     derived: "isActive",
     describe:
-      "in_progress, arrival VERIFIED — same pixels except the caption and the unlocked CTA; the pair with the cell above is the whole point of the claimed/verified axis",
+      "in_progress, arrival VERIFIED but not poster-confirmed — the CTA stays blocked and its reason names the poster's Confirm They Arrived (VN-33: GPS AND poster); the pair with the cell above is the claimed/verified axis",
     job: {
       status: "in_progress",
       helper_id: HELPER_ID,
@@ -1332,7 +1332,7 @@ function trackerCells(): StateCell[] {
     { key: "job-confirmed", describe: "current step = Confirmed (day-of confirmation stamped)", job: { status: "accepted", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(3)), date_needed: DATE_ONLY(0) } },
     { key: "on-the-way", describe: "current step = On the Way", job: { status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(3)), helper_on_the_way_at: ISO(-HOURS(1)), date_needed: DATE_ONLY(0) } },
     { key: "arrived-claimed", describe: "current step = Arrived, arrival CLAIMED — amber 'Awaiting poster' caption", job: { status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(3)), helper_on_the_way_at: ISO(-HOURS(2)), helper_arrived_at: ISO(-HOURS(1)), date_needed: DATE_ONLY(0) } },
-    { key: "arrived-verified", describe: "arrival VERIFIED — no rail caption; 'Arrival GPS-verified' in the status line (VN-20), rail may advance", job: { status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(3)), helper_on_the_way_at: ISO(-HOURS(2)), helper_arrived_at: ISO(-HOURS(1)), helper_arrival_verified_at: ISO(-HOURS(1)), date_needed: DATE_ONLY(0) } },
+    { key: "arrived-verified", describe: "arrival VERIFIED, poster not yet — 'Awaiting poster' rail caption; 'Arrival GPS-verified' in the status line (VN-20); rail stays at Arrived until the poster confirms (VN-33)", job: { status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(3)), helper_on_the_way_at: ISO(-HOURS(2)), helper_arrived_at: ISO(-HOURS(1)), helper_arrival_verified_at: ISO(-HOURS(1)), date_needed: DATE_ONLY(0) } },
     { key: "arrived-poster-confirmed", describe: "arrival CONFIRMED by the poster — no rail caption; 'Poster confirmed arrival' in the status line (VN-20)", job: { status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(3)), helper_on_the_way_at: ISO(-HOURS(2)), helper_arrived_at: ISO(-HOURS(1)), poster_confirmed_arrival_at: ISO(-HOURS(1)), date_needed: DATE_ONLY(0) } },
     { key: "working", describe: "current step = Working — MID-RAIL: passed steps use --success-ink, the current step uses --bark. Two greens, one rail.", job: { status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(4)), helper_on_the_way_at: ISO(-HOURS(3)), helper_arrived_at: ISO(-HOURS(2)), helper_arrival_verified_at: ISO(-HOURS(2)), poster_confirmed_arrival_at: ISO(-HOURS(2)), poster_confirmed_working_at: ISO(-HOURS(2)), date_needed: DATE_ONLY(0) } },
     { key: "done", describe: "current step = Done, allDone true — the current dot switches from --bark to --success-ink", job: { status: "completed", helper_id: HELPER_ID, ...completedStamps(), payment_status: "released" } },

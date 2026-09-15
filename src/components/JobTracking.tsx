@@ -15,9 +15,9 @@ import { jobStartDateTime } from "@/lib/dateUtils";
 import { jobDateMs, todayMs, JOB_TIMEZONE } from "@/lib/jobDate";
 import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
-import { arrivalEstablished, arrivalGateMessage, arrivalMapLabel, arrivalState, arrivalStateLabel, type ArrivalState } from "@/lib/arrivalGate";
+import { arrivalEstablished, arrivalGateMessage, arrivalMapLabel, arrivalRefusalFromError, arrivalRefusalMessage, arrivalState, arrivalStateLabel, type ArrivalRefusal, type ArrivalState } from "@/lib/arrivalGate";
 import { report } from "@/lib/errorLogger";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
@@ -253,9 +253,9 @@ export function deriveCurrentStatusIdx({
     // whether the arrival was verified), so `helperArrivedAt && in_progress`
     // was satisfied by the claim ITSELF — the inference was reading its own
     // side effect back as corroboration and painting Working off a helper who
-    // was 1792 miles away. With verification or the poster's vouch it is a
-    // sound inference and stays; without, the rail stops at Arrived, which is
-    // exactly what is known.
+    // was 1792 miles away. With an established arrival — since VN-33 that is
+    // verification AND the poster's confirmation — it is a sound inference and
+    // stays; without, the rail stops at Arrived, which is exactly what is known.
     if (
       trackingIdx < 0 &&
       jobStatus === "in_progress" &&
@@ -601,6 +601,9 @@ export function JobTracking({
   const [confirmDoneOpen, setConfirmDoneOpen] = useState(false);
   /** In-flight "Try My Location Again" — see `retryArrivalVerification`. */
   const [retryingArrival, setRetryingArrival] = useState(false);
+  /** Why the last "I've Arrived" tap was refused (VN-33), shown under the
+   *  button until an arrival succeeds. Nothing was written when it is set. */
+  const [arrivalRefusal, setArrivalRefusal] = useState<ArrivalRefusal | { kind: "denied" } | null>(null);
   const [helperConfirmedAt, setHelperConfirmedAt] = useState(initialHelperConfirmedAt);
   const [posterConfirmedAt, setPosterConfirmedAt] = useState(initialPosterConfirmedAt);
   // Lifecycle stamps off the jobs row, mirrored into state so the realtime
@@ -869,21 +872,15 @@ export function JobTracking({
   /**
    * RE-VERIFY AN ARRIVAL THAT IS ONLY *CLAIMED*.
    *
-   * `mark_helper_arrival` used to fire exactly once, inside the `arrived`
-   * transition, and the rail only ever moves forward — so a helper who denied
-   * the location prompt at the instant they tapped "I've Arrived", then went
-   * and turned Location on, had NO WAY BACK. Their arrival was stuck at
-   * `claimed` forever and the only route out was the poster tapping "Confirm
-   * They Arrived". The recourse path is real and stays, but it must not be the
-   * only one: the helper's own phone is now working again and the server is
-   * perfectly willing to look.
+   * Since 20260915044137 (VN-33) the server never writes a bare claim: an
+   * arrival that is not within 500ft is refused and writes nothing. So this
+   * path exists only for rows stamped before that — `helper_arrived_at`
+   * without `helper_arrival_verified_at` — which can no longer reach Working or
+   * completion without a verified location (both are needed, no fallback).
    *
-   * The RPC is safe to call again by construction (read the live definition):
-   * it COALESCEs `helper_arrived_at`, only ever ADDS
-   * `helper_arrival_verified_at`, and accepts `accepted` or `in_progress` —
-   * so a second call cannot un-verify, cannot re-stamp, and cannot move the
-   * rail. Nothing here touches `job_tracking`; the status is already
-   * `arrived`.
+   * The RPC is safe to call again by construction: it returns early on an
+   * already-verified row, otherwise it either refuses (no write) or stamps the
+   * verified arrival. It cannot un-verify, re-stamp, or move the rail.
    */
   const retryArrivalVerification = async () => {
     setRetryingArrival(true);
@@ -891,12 +888,7 @@ export function JobTracking({
       const outcome = await getLocationOutcome();
       if ("error" in outcome) {
         hapticError();
-        toast.error(
-          outcome.error === "denied"
-            ? "Location is turned off for Louisiana Helpr. Open Settings → Privacy → Location Services, allow it for this app, then tap Try My Location Again."
-            : "We still couldn't get a location fix. Step outside or somewhere with a clearer sky and try again — or ask the poster to tap \"Confirm They Arrived\".",
-          { duration: 9000 },
-        );
+        toast.error(arrivalRefusalMessage(outcome.error === "denied" ? { kind: "denied" } : { kind: "no_location" }), { duration: 9000 });
         return;
       }
 
@@ -906,8 +898,14 @@ export function JobTracking({
         p_lng: outcome.lng,
       });
       if (retryErr) {
-        report(retryErr, { tags: { source: "JobTracking.retryArrival" } });
+        const refusal = arrivalRefusalFromError(retryErr);
         hapticError();
+        if (refusal) {
+          // A refusal is the rule working, not a fault — no report.
+          toast.warning(arrivalRefusalMessage(refusal), { duration: 9000 });
+          return;
+        }
+        report(retryErr, { tags: { source: "JobTracking.retryArrival" } });
         toast.error(
           retryErr.code === "PGRST202"
             ? "Arrival check-in is updating — try again in a minute."
@@ -920,7 +918,7 @@ export function JobTracking({
       // absent body means something silently did nothing — say so rather than
       // reporting a verification that may not exist.
       const v = verdict as { verified?: boolean; distance_ft?: number | null } | null;
-      if (!v || typeof v.verified !== "boolean") {
+      if (!v || v.verified !== true) {
         report(new Error("mark_helper_arrival returned no verdict"), {
           tags: { source: "JobTracking.retryArrival" },
         });
@@ -929,25 +927,14 @@ export function JobTracking({
         return;
       }
 
-      if (v.verified) {
-        const nowIso = new Date().toISOString();
-        setJobStamps((prev) => ({
-          ...prev,
-          arrivedAt: prev.arrivedAt ?? nowIso,
-          arrivalVerifiedAt: prev.arrivalVerifiedAt ?? nowIso,
-        }));
-        hapticSuccess();
-        toast.success("Location confirmed — you're checked in at the job site.");
-        return;
-      }
-
-      hapticError();
-      toast.warning(
-        v.distance_ft != null
-          ? `We got your location, but you're about ${v.distance_ft}ft from the job site — too far to confirm it. Move closer and try again, or ask the poster to tap "Confirm They Arrived".`
-          : "We got your location but still couldn't confirm it. Try again from the job site, or ask the poster to tap \"Confirm They Arrived\".",
-        { duration: 9000 },
-      );
+      const nowIso = new Date().toISOString();
+      setJobStamps((prev) => ({
+        ...prev,
+        arrivedAt: prev.arrivedAt ?? nowIso,
+        arrivalVerifiedAt: prev.arrivalVerifiedAt ?? nowIso,
+      }));
+      hapticSuccess();
+      toast.success("Location confirmed — you're checked in at the job site.");
     } finally {
       setRetryingArrival(false);
     }
@@ -1034,34 +1021,51 @@ export function JobTracking({
     }
 
     const now0 = new Date().toISOString();
-    const loc = await getLocation();
+    // `arrived` keeps the REASON a fix failed, because a failed fix is now a
+    // refusal the helper has to act on (VN-33). Every other step proceeds
+    // either way, so it only needs the coordinates.
+    const locOutcome = newStatus === "arrived" ? await getLocationOutcome() : null;
+    const loc = locOutcome ? ("error" in locOutcome ? null : locOutcome) : await getLocation();
 
-    // ARRIVAL IS A TWO-PARTY, SERVER-VERIFIED EVENT.
+    // ARRIVAL IS SERVER-VERIFIED, AND A REFUSAL WRITES NOTHING.
     //
-    // The client no longer decides whether the helper is close enough — it
+    // The client does not decide whether the helper is close enough — it
     // hands its coordinates to `mark_helper_arrival`, which does the haversine
-    // itself and stamps `helper_arrival_verified_at` only when the answer is
-    // yes. The verdict is what the completion gate reads, and it is not a
-    // value this code can send.
-    //
-    // NO FIX, OR TOO FAR, IS NOT A DEAD END. The helper still marks the claim
-    // (`helper_arrived_at`) — the poster genuinely needs to know someone says
-    // they're here — but a bare claim does NOT unlock wrap-up on its own. The
-    // recourse is the poster: they can see the helper standing in front of
-    // them, and their "Confirm They Arrived" tap satisfies the gate. That is
-    // deliberate. Requiring location with no recourse would turn the accidental
-    // trap this replaces (an unreachable `job_checkins` fallback) into policy,
-    // and a helper inside a metal building would still be unable to get paid.
-    let arrivalVerified: boolean | null = null;
+    // itself. Owner, 2026-09-14 (VN-33): "it shouldn't let me move forward
+    // until my location is actually showing near the site AND the poster says
+    // I've arrived". Since 20260915044137 the RPC REFUSES an arrival that is
+    // not within 500ft, or has no location, and stamps nothing — no
+    // `helper_arrived_at`, no status change. So on a refusal this returns
+    // BEFORE the tracking row is written: the rail stays on On the Way, the
+    // line under the button says why, and the button offers "Try My Location
+    // Again". There is no poster fallback for a phone with no fix (owner
+    // accepted that); the poster's "Confirm They Arrived" is the SECOND half
+    // of the rule, not a substitute for the first.
     if (newStatus === "arrived") {
+      if (locOutcome && "error" in locOutcome) {
+        const refusal = locOutcome.error === "denied" ? { kind: "denied" as const } : { kind: "no_location" as const };
+        setArrivalRefusal(refusal);
+        hapticError();
+        toast.warning(arrivalRefusalMessage(refusal), { duration: 9000 });
+        setUpdating(false);
+        return;
+      }
       const { data: verdict, error: arrivalErr } = await supabase.rpc("mark_helper_arrival", {
         p_job_id: jobId,
         p_lat: loc?.lat ?? undefined,
         p_lng: loc?.lng ?? undefined,
       });
       if (arrivalErr) {
-        report(arrivalErr, { tags: { source: "JobTracking.markArrival" } });
+        const refusal = arrivalRefusalFromError(arrivalErr);
         hapticError();
+        if (refusal) {
+          // The rule working, not a fault — no report, nothing to re-read.
+          setArrivalRefusal(refusal);
+          toast.warning(arrivalRefusalMessage(refusal), { duration: 9000 });
+          setUpdating(false);
+          return;
+        }
+        report(arrivalErr, { tags: { source: "JobTracking.markArrival" } });
         toast.error(
           arrivalErr.code === "PGRST202"
             // Short window between merge and the auto-deploy landing.
@@ -1072,24 +1076,25 @@ export function JobTracking({
         loadTracking();
         return;
       }
-      const v = verdict as { verified?: boolean; distance_ft?: number | null } | null;
-      arrivalVerified = !!v?.verified;
+      // A null error is not a write: the RPC returns a verdict on every
+      // success, and only a verified one can come back now.
+      const v = verdict as { verified?: boolean } | null;
+      if (!v || v.verified !== true) {
+        report(new Error("mark_helper_arrival returned no verified verdict"), {
+          tags: { source: "JobTracking.markArrival" },
+        });
+        hapticError();
+        toast.error("Couldn't mark you arrived — try again?");
+        setUpdating(false);
+        loadTracking();
+        return;
+      }
+      setArrivalRefusal(null);
       setJobStamps((prev) => ({
         ...prev,
         arrivedAt: prev.arrivedAt ?? now0,
-        arrivalVerifiedAt: arrivalVerified ? (prev.arrivalVerifiedAt ?? now0) : prev.arrivalVerifiedAt,
+        arrivalVerifiedAt: prev.arrivalVerifiedAt ?? now0,
       }));
-      if (!arrivalVerified) {
-        // Say exactly what happened and exactly what unblocks them. Never
-        // "enable GPS in Settings" and nothing else — that was the dead end.
-        const far = v?.distance_ft != null;
-        toast.warning(
-          far
-            ? `Marked arrived, but you're about ${v!.distance_ft}ft from the job site so we couldn't confirm it. Ask the poster to tap "Confirm They Arrived" — that unlocks wrap-up.`
-            : "Marked arrived, but we couldn't get your location to confirm it. Turn Location on in Settings, or ask the poster to tap \"Confirm They Arrived\" — either one unlocks wrap-up.",
-          { duration: 9000 },
-        );
-      }
     }
 
     const now = now0;
@@ -1122,7 +1127,7 @@ export function JobTracking({
           report(doneErr, { tags: { source: "JobTracking.helperCompleted" } });
         }
         hapticError();
-        toast.error(mutationErrorMessage(doneErr, "Couldn't mark the job complete — try again?"));
+        toast.error(lifecycleErrorMessage(doneErr) ?? mutationErrorMessage(doneErr, "Couldn't mark the job complete — try again?"));
         setUpdating(false);
         loadTracking();
         return;
@@ -1217,7 +1222,7 @@ export function JobTracking({
         report(writeErr, { tags: { source: "JobTracking.updateStatus" } });
       }
       hapticError();
-      toast.error(mutationErrorMessage(writeErr, "Couldn't update your status — try again?"));
+      toast.error(lifecycleErrorMessage(writeErr) ?? mutationErrorMessage(writeErr, "Couldn't update your status — try again?"));
       setUpdating(false);
       setTracking(trackingBeforeWrite);
       loadTracking();
@@ -2159,35 +2164,28 @@ export function JobTracking({
         // were free. A helper 1792 miles away walked the rail to Done.
         //
         // ONE RULE, NOT A SECOND ONE: `arrivalEstablished` — the same predicate
-        // the payout CTA, `completeJob` and the DB trigger use.
+        // the payout CTA, `completeJob`, create-payment and the DB triggers use.
         //
-        // AND IT IS NOT A DEAD END, which is the whole point of the two-party
-        // design. A helper genuinely on site whose GPS won't fix is blocked
-        // here for exactly as long as it takes the poster to tap "Confirm They
-        // Arrived" — a control that is visible on the poster's card the moment
-        // `helper_arrived_at` is stamped (PostedJobActions.tsx:451) and whose
-        // write lands back here over the `jobs` realtime subscription above, so
-        // this button re-enables itself while the helper is looking at it. The
-        // previous design's harm (a live 500ft re-check at wrap-up, with a
-        // fallback reading a table that had no writers) is NOT reintroduced:
-        // nothing here re-reads the helper's location, and the claim, the
-        // 30-minute work clock and every other control stay exactly as they
-        // were.
+        // AND IT TAKES BOTH (owner, 2026-09-14, VN-33): the server verified
+        // the helper's location at the site AND the poster tapped "Confirm
+        // They Arrived". The job_tracking trigger (20260915044137) refuses the
+        // Working step on the server under the same rule, so this is the
+        // explanation, not the only lock. The poster's tap lands back here over
+        // the `jobs` realtime subscription above, so the button re-enables
+        // itself while the helper is looking at it.
         const needsArrival =
           (nextStatus.key === "working" || isDoneStep) && !arrivalEstablished(arrivalEvidence);
-        // Same rule, same recourse, but say which door is locked.
-        // `arrivalGateMessage` is written for the payout gate ("that unlocks
-        // wrap-up"), which is exactly right on the Done step and slightly
-        // wrong three steps earlier — the helper blocked at Working is not
-        // being told they can't get paid, they're being told they can't move
-        // the tracker. Derived from the same `arrivalState`, not a second rule.
+        // Same rule, same message source, but say which door is locked: the
+        // helper blocked at Working is being told they can't start work, not
+        // that they can't get paid.
         const arrivalBlockReason = !needsArrival
           ? null
-          : isDoneStep
-            ? arrivalGateMessage(arrivalEvidence)
-            : currentArrivalState === "claimed"
-              ? "You marked yourself arrived, but we couldn't confirm your location. Ask the poster to tap \"Confirm They Arrived\" on their job — that unlocks the rest of the tracker."
-              : "Mark yourself arrived at the job site first. If your location won't work, ask the poster to confirm you arrived — that works too.";
+          : arrivalGateMessage(arrivalEvidence, isDoneStep ? "wrap-up" : "tracker");
+        // The last "I've Arrived" tap was refused (too far, or no location).
+        // Nothing was written; the line says why and the button becomes the
+        // retry. Cleared the moment an arrival succeeds.
+        const arrivalRefusedHere = nextStatus.key === "arrived" && arrivalRefusal != null;
+        const arrivalRefusalReason = arrivalRefusal && nextStatus.key === "arrived" ? arrivalRefusalMessage(arrivalRefusal) : null;
 
         // The button is disabled for two different reasons and only ever
         // explained one of them. `isLocked` had a sentence under it; `updating`
@@ -2216,18 +2214,18 @@ export function JobTracking({
           : isLocked
             ? lockMessage
             : arrivalBlockReason
+              ?? arrivalRefusalReason
               ?? (needsProof ? requiredProof({ require_photo_proof: requirePhotoProof ?? true }).reason : null);
+        // Amber, like the arrival gate: both are the helper being told what
+        // blocks the next step, not a neutral status.
+        const amberReason = (needsArrival || arrivalRefusedHere) && !updating && !isLocked;
 
         return (
           <div className="pt-2 border-t border-border space-y-2">
             {disabledReason && (
               <p
-                className={`text-ds-11 text-center${needsArrival && !updating && !isLocked ? " font-semibold" : " text-muted-foreground"}`}
-                style={
-                  needsArrival && !updating && !isLocked
-                    ? { color: "hsl(var(--amber-ink))" }
-                    : undefined
-                }
+                className={`text-ds-11 text-center${amberReason ? " font-semibold" : " text-muted-foreground"}`}
+                style={amberReason ? { color: "hsl(var(--amber-ink))" } : undefined}
               >
                 {disabledReason}
               </p>
@@ -2245,20 +2243,21 @@ export function JobTracking({
               disabled={updating || isLocked || needsArrival || needsProof}
             >
               <nextStatus.icon className="w-3.5 h-3.5 mr-1" />
-              {/* The ACTION, not the step's name — see STATUSES. */}
-              {nextStatus.action ?? nextStatus.label}
+              {/* The ACTION, not the step's name — see STATUSES. After a
+                  refused arrival the same tap is a retry, so it says so. */}
+              {arrivalRefusedHere ? "Try My Location Again" : (nextStatus.action ?? nextStatus.label)}
             </Button>
-            {/* THE WAY BACK FROM A CLAIMED-ONLY ARRIVAL.
-                Shown only while `arrivalState` is exactly `claimed` — the
-                arrival was asserted but never location-confirmed, which is the
-                one state where another GPS read can change anything. Not on
-                `verified` or `confirmed` (nothing left to prove) and not on
-                `none` (the "I've Arrived" button above is that step).
-                Helper-only by the same scoping as every other arrival action
-                here: it lives inside the `isHelper &&` block, and the RPC
-                itself refuses anyone but `jobs.helper_id` (42501). It does NOT
-                advance the rail — the status is already `arrived`. */}
-            {currentArrivalState === "claimed" && (
+            {/* THE WAY BACK FROM AN UNVERIFIED ARRIVAL.
+                Shown only while the row has `helper_arrived_at` but no
+                `helper_arrival_verified_at` — a claim stamped before
+                20260915044137, when a far or fix-less arrival was still
+                written. It can never reach Working or completion without a
+                verified location now (VN-33, both are needed), even if the
+                poster confirmed it, so this is the one state where another GPS
+                read can change anything. Helper-only (inside `isHelper &&`),
+                and the RPC refuses anyone but `jobs.helper_id` (42501). It does
+                NOT advance the rail. */}
+            {!!jobStamps.arrivedAt && !jobStamps.arrivalVerifiedAt && (
               <Button
                 size="sm"
                 variant="outline"

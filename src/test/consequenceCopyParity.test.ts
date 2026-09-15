@@ -878,14 +878,15 @@ describe("consequences the app states must be delivered by something", () => {
     // COPY: src/pages/legal/CommunitySection.tsx —
     //   "GPS proximity check-in: Within 500 ft of the job location."
     //
-    // BACKEND CHECKED: public.mark_helper_arrival, migration 20260828011057 —
-    // a server-side haversine in feet, then `v_verified := v_dist <= 500`.
+    // BACKEND CHECKED: public.mark_helper_arrival, migration 20260915044137
+    // (was 20260828011057) — a server-side haversine in feet, then
+    // `v_verified := v_dist <= 500`, and since VN-33 a refusal past it.
     // So this one IS true. It is pinned rather than trusted because it is the
     // shape of claim that goes stale silently: the number lives twice (a legal
     // document and a plpgsql body) with no shared constant between them, and
     // the sentence is exactly the kind a user quotes back after a disputed
     // "GPS confirmed · 1792 mi from job" caption.
-    const sql = repoFile("supabase/migrations/20260828011057_verified_arrival_gate.sql");
+    const sql = repoFile("supabase/migrations/20260915044137_arrival_requires_gps_and_poster.sql");
     const enforced = sql.match(/v_verified\s*:=\s*v_dist\s*<=\s*(\d+)/)?.[1];
     expect(
       enforced,
@@ -895,7 +896,7 @@ describe("consequences the app states must be delivered by something", () => {
     expect(
       repoFile("src/pages/legal/CommunitySection.tsx"),
       `the legal page must state the ${enforced} ft radius mark_helper_arrival actually ` +
-        `enforces (20260828011057). There is no shared constant between the two — if the ` +
+        `enforces (20260915044137). There is no shared constant between the two — if the ` +
         `SQL moves, only this test stands between the change and a false statement in a ` +
         `binding document.`,
     ).toMatch(new RegExp(`${enforced}\\s*ft`));

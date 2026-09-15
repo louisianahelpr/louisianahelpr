@@ -45,6 +45,27 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   // handed raw Postgres prose.
   dispute_needs_description:
     "Tell us what happened first — a dispute holds someone's payment, and an admin decides it from your description.",
+  // Arrival and completion, migration 20260915044137 (VN-33, owner 2026-09-14:
+  // "both required: nearby by GPS AND poster confirms. No fallback."). None of
+  // these may offer one half as a substitute for the other.
+  // mark_helper_arrival — refused, nothing written.
+  arrival_too_far:
+    "You're too far from the job to mark arrived — get within 500 ft of the job site and try again.",
+  arrival_location_required:
+    "Your location has to show you at the job site to mark arrived. Turn Location on and try again.",
+  arrival_location_invalid:
+    "We couldn't read your location. Try again from the job site.",
+  // enforce_helper_completion_gates — the Helpr's completion write.
+  completion_requires_confirmed_arrival:
+    "Both are needed before you can mark the job complete: your location confirmed at the job site, and the poster tapping \"Confirm They Arrived\".",
+  // enforce_job_tracking_arrival_gate — the tracker's next step.
+  tracker_requires_arrival:
+    "Both are needed before you can start working: your location confirmed at the job site, and the poster tapping \"Confirm They Arrived\".",
+  tracker_requires_completion: "Mark the job complete first.",
+  tracker_not_assigned_helper: "Only the Helpr assigned to this job can update its tracker.",
+  // enforce_jobs_arrival_integrity — the poster's "Confirm They Arrived".
+  arrival_confirm_before_arrival:
+    "Your Helpr hasn't marked arrived yet — you can confirm once their location shows them at the job.",
 };
 
 // Sentences more than one RPC needs, written once so they cannot drift.
@@ -148,6 +169,12 @@ export const RPC_ERROR_COPY = {
     job_not_found: JOB_GONE,
     not_the_assigned_helper: NO_LONGER_BOOKED_STATUS,
     job_not_active: JOB_NOT_ACTIVE_STATUS,
+    // 20260915044137 (VN-33): refused, nothing written. JobTracking shows the
+    // distance-aware sentence from arrivalGate.ts first; these are the table
+    // copy for any other reader of the error.
+    arrival_too_far: LIFECYCLE_REASONS.arrival_too_far,
+    arrival_location_required: LIFECYCLE_REASONS.arrival_location_required,
+    arrival_location_invalid: LIFECYCLE_REASONS.arrival_location_invalid,
   },
   // userBlocks — block and settle shared jobs.
   block_user_and_settle: {
@@ -171,6 +198,11 @@ export const RPC_ERROR_COPY = {
     job_not_funded: LIFECYCLE_REASONS.job_not_funded,
     job_not_started: LIFECYCLE_REASONS.job_not_started,
     already_reported: LIFECYCLE_REASONS.already_reported,
+    // 20260915044137 (VN-33): an arrival means the server found them at the
+    // job, so it is not a no-show. The app hides No-Show then; a stale card
+    // can still send it.
+    helper_already_arrived:
+      "Your Helpr has already marked arrived on this job, so it can't be reported as a no-show.",
   },
   // DisputeDialog.
   rpc_open_dispute: {

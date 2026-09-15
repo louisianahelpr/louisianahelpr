@@ -11,6 +11,7 @@ import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
+import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 
 /**
  * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
@@ -670,26 +671,16 @@ serve(async (req) => {
       // `select("*")` above already returns every column read here.
       const isNewHelperCompletion = isHelper && !isPoster && !job.helper_completed_at;
       if (isNewHelperCompletion) {
-        // 1. ARRIVAL MUST BE ESTABLISHED — the server verified the helper within
-        //    500ft when they marked arrived, or the poster vouched for them. A
-        //    bare `helper_arrived_at` is a CLAIM and does not unlock completion
-        //    on its own, except for jobs already underway when the gate shipped
-        //    (same grandfather cutoff as the trigger, so a mid-job helper is not
-        //    stranded by a deploy). Mirrors src/lib/arrivalGate.ts on the client.
-        const ARRIVAL_GRANDFATHER_CUTOFF_MS = Date.parse("2026-08-28T00:00:00Z");
-        const arrivedAtMs = job.helper_arrived_at ? Date.parse(job.helper_arrived_at) : NaN;
-        const arrivalEstablished =
-          !!job.helper_arrival_verified_at ||
-          !!job.poster_confirmed_arrival_at ||
-          (Number.isFinite(arrivedAtMs) && arrivedAtMs < ARRIVAL_GRANDFATHER_CUTOFF_MS);
-        if (!arrivalEstablished) {
-          // Never a dead end — name the next thing they can actually do, the
-          // same two options arrivalGateMessage() offers.
-          throw new Error(
-            job.helper_arrived_at
-              ? "You marked yourself arrived, but we couldn't confirm your location. Ask the poster to tap \"Confirm They Arrived\" on their job — that unlocks wrap-up."
-              : "Mark yourself arrived at the job site first. If your location won't work, ask the poster to confirm you arrived — that works too.",
-          );
+        // 1. ARRIVAL MUST BE ESTABLISHED — and that takes BOTH (owner,
+        //    2026-09-14, VN-33): the server verified the helper within 500ft
+        //    when they marked arrived, AND the poster tapped "Confirm They
+        //    Arrived". Either one alone used to be enough, plus a grandfather
+        //    cutoff for pre-2026-08-28 arrivals; both are gone, matching the
+        //    trigger (20260915044137). The predicate and the sentence are the
+        //    shared ones the app uses (_shared/arrivalRule.ts), so the two
+        //    doors cannot drift.
+        if (!arrivalEstablished(job)) {
+          throw new Error(arrivalGateMessage(job, "wrap-up"));
         }
 
         // 2. PROOF PHOTOS — before AND after, on every job regardless of size.

@@ -560,16 +560,41 @@ test.describe.serial("marketplace chain", () => {
     await test.step("helper heads over and arrives; poster confirms arrival", async () => {
       let c = await card(hp, "/my-jobs", "Scheduled", false);
       await press(hp, c, /I'm On My Way/, "on my way");
-      // The location rationale: this helper declines, so arrival goes down the
-      // poster-confirms branch (the one a phone without GPS takes).
+      // The location rationale on the way: this helper declines here (en-route
+      // tracking is optional).
       if (await appears(hp.getByRole("button", { name: "Share Location" }), 8_000)) {
         await journey.milestone(hp, "location-rationale");
         await declineLocation(hp);
       }
       await journey.milestone(hp, "on-my-way");
+      // ARRIVAL NEEDS A REAL LOCATION AT THE SITE (VN-33, owner: "both required
+      // … no fallback"). mark_helper_arrival refuses a missing or far location
+      // and writes nothing, so the helper's browser is placed at the job's own
+      // coordinates and SHARES its location at the "I've Arrived" tap. The
+      // poster's confirmation below is the second half of the rule, not a
+      // substitute for the first.
+      const site = await request.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${S.jobId}&select=latitude,longitude`, { headers: rest(S.poster) });
+      expect(site.ok(), `reading the job's coordinates: ${site.status()}`).toBe(true);
+      const [{ latitude, longitude }] = (await site.json()) as Array<{ latitude: number | null; longitude: number | null }>;
+      await hp.context().grantPermissions(["geolocation"]);
+      // A job with no coordinates has nothing to measure against and the RPC
+      // accepts any real fix; Lafayette stands in for that case.
+      await hp.context().setGeolocation({ latitude: Number(latitude ?? 30.2241), longitude: Number(longitude ?? -92.0198) });
       c = await card(hp, "/my-jobs", "Scheduled", false);
-      await press(hp, c, /I've Arrived/, "arrived");
-      await journey.milestone(hp, "arrived-no-gps");
+      const arriveBtn = c.getByRole("button", { name: /I've Arrived/ }).first();
+      await expect(arriveBtn, `arrived: no "I've Arrived" control`).toBeVisible({ timeout: 45_000 });
+      await arriveBtn.click();
+      const share = hp.getByRole("button", { name: "Share Location" });
+      if (await appears(share, 8_000)) await share.click();
+      await expect.poll(
+        async () => {
+          const r = await request.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${S.jobId}&select=helper_arrival_verified_at`, { headers: rest(S.poster) });
+          return r.ok() ? Boolean(((await r.json()) as Array<{ helper_arrival_verified_at: string | null }>)[0]?.helper_arrival_verified_at) : false;
+        },
+        { timeout: 45_000, message: "the arrival was never server-verified" },
+      ).toBe(true);
+      await assertHealthy(hp, "arrived");
+      await journey.milestone(hp, "arrived-gps");
       c = await card(pp, "/my-posts", "Needs You");
       await press(pp, c, /Confirm They Arrived/, "poster confirms arrival");
       await journey.milestone(pp, "poster-confirmed-arrival");
@@ -577,14 +602,17 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("helper works the job: before photo, start, after photo, request payout", async () => {
       // The card shows ONE next thing at a time; follow it the way a helper does.
-      // Harness concession (prod-lifecycle's): the payout request unlocks 30 min
-      // after arrival, so both arrival stamps are backdated rather than waited on.
-      for (const [who, col] of [[S.helper, "helper_arrived_at"], [S.poster, "poster_confirmed_arrival_at"]] as const) {
+      // Harness concession (prod-lifecycle's): the payout request unlocks 30
+      // minutes after work started — COALESCE(poster_confirmed_working_at,
+      // helper_arrived_at) — so the poster's working stamp is backdated rather
+      // than waited on. helper_arrived_at itself can no longer be backdated:
+      // only mark_helper_arrival writes it (20260915044137).
+      {
         const r = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${S.jobId}`, {
-          headers: rest(who, { Prefer: "return=representation" }),
-          data: { [col]: new Date(Date.now() - 40 * 60_000).toISOString() },
+          headers: rest(S.poster, { Prefer: "return=representation" }),
+          data: { poster_confirmed_working_at: new Date(Date.now() - 40 * 60_000).toISOString() },
         });
-        expect(r.ok(), `backdating ${col}: ${r.status()} ${await r.text()}`).toBe(true);
+        expect(r.ok(), `backdating poster_confirmed_working_at: ${r.status()} ${await r.text()}`).toBe(true);
       }
       const seen: string[] = [];
       for (let i = 0; i < 8; i++) {

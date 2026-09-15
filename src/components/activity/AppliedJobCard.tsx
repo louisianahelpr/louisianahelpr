@@ -11,6 +11,7 @@ import { PhotoProofGroup } from "@/components/PhotoProof";
 import type { AppliedApp } from "./activityConstants";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
+import { PersonTile } from "@/components/PersonTile";
 import { JobActionRow, JobActionChip } from "./JobActionRow";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
@@ -155,7 +156,9 @@ function AppliedJobCardInner({
      block, collapsed or not), so counting it here would reserve a padded band
      for a child that no longer renders — the same empty-band defect
      STATUS_RENDERS_ACTIONS exists to stop on the poster's card. */
-  const hasCardBody = showDescription;
+  // The expanded body also has to render for the poster PersonTile (V6), even
+  // on a job with no description of its own to show.
+  const hasCardBody = showDescription || !!(isExpanded && posterId && app.posterName);
 
   /**
    * Location · date · time — built once, placed twice. Desktop puts it on the
@@ -164,49 +167,12 @@ function AppliedJobCardInner({
    */
   const metaRow = (
     <>
-      {/* ── ONE FACT, ONE TREATMENT ──
-          Owner, twice: expanding the card silently REDREW who posted it. The
-          collapsed card showed this quiet inline row; expanding it replaced the
-          same fact with a grey `bg-muted/40` band, a bigger avatar and an added
-          "Posted by" label — a band nothing else on the card wears, and the
-          same grey-band treatment they had already objected to behind the
-          location chip. Expanding a card must reveal MORE, never restyle what
-          was already on screen.
-
-          So the identity is drawn ONCE, in both states, identically. The label
-          is gone with the band: the collapsed card had done without it since
-          Issue #67 and nobody has ever needed telling that the name on a job
-          they applied to is the person who posted it. The profile LINK — the
-          one thing the expanded row genuinely added — is kept, and kept in both
-          states, because it is capability, not decoration. */}
-      {/* Reserve the name row while the poster names are still loading, so
-          the row arriving ~1s later does not push every card down (VN-32). */}
-      {app.posterName === undefined && app.job && (
-        <div className="flex items-center gap-1 mb-1" aria-hidden>
-          <div className="w-4 h-4 rounded-full bg-muted shrink-0" />
-          <div className="h-3 w-16 rounded bg-muted" />
-        </div>
-      )}
-      {app.posterName && (
-        <div className="flex items-center gap-1 mb-1">
-          <div className="w-4 h-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-9 font-bold shrink-0">
-            {app.posterName[0].toUpperCase()}
-          </div>
-          {/* An ownerless job still has a name to print — "a neighbor" — but no
-              profile behind it, and `/user/null` is not a page. */}
-          {posterId ? (
-            <a
-              href={`/user/${posterId}`}
-              onClick={(e) => e.stopPropagation()}
-              className="text-ds-11 text-muted-foreground hover:underline truncate"
-            >
-              {app.posterName}
-            </a>
-          ) : (
-            <span className="text-ds-11 text-muted-foreground truncate">{app.posterName}</span>
-          )}
-        </div>
-      )}
+      {/* Who posted the job is NOT drawn in this little meta area any more.
+          It is shown as a PersonTile UNDER the description when the card is
+          expanded (owner V6, 2026-09-15: "same as the poster side") — matching
+          VN-22, which moved the Helpr's profile out of exactly this spot into a
+          tile under the description on the poster card, so the two cards state
+          the other party the same way. See the PersonTile in the body below. */}
       <JobCardMetaRow
         dateNeeded={job.date_needed}
         startTime={job.start_time}
@@ -313,10 +279,12 @@ function AppliedJobCardInner({
                 `expandedJobId` toggle, unchanged in wording and position — it
                 simply now gates the description too, which is what makes it
                 coherent. Nothing was bolted on beside it. */}
-            {/* The "Posted by" band that used to sit here is GONE — the
-                identity row in the meta block above is now the only place this
-                card states who posted the job, in one treatment, expanded or
-                not. See the note there. */}
+            {/* WHO POSTED THE JOB — a PersonTile under the description (owner
+                V6, 2026-09-15: "same as the poster side"). VN-22 moved the
+                other party's profile out of the little meta area into a tile
+                here on the poster card; this mirrors it, so My Jobs and My
+                Posts state the other party identically. Rendered just below the
+                description, before the helper's own message. */}
             {/* EYEBROW GONE AGAIN, and this time for good (owner, 2026-08-30:
                 "remove eye brows" — reversing the same day's "eye brows were
                 removed so update so they know what things are"). The
@@ -342,6 +310,22 @@ function AppliedJobCardInner({
                 <h4 id={`job-desc-${app.job_id}`} className="sr-only">Job description</h4>
                 <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
               </section>
+            )}
+
+            {/* The poster, as a PersonTile — the same shared tile the poster
+                card uses for the Helpr (eyebrow "Posted by"). An ownerless job
+                (`posterId` null after the poster deleted their account) has a
+                name to print but no profile, so it is skipped rather than
+                linking to `/user/null`. Avatar url isn't carried on this card's
+                data, so PersonTile derives a monogram from the name. */}
+            {isExpanded && posterId && app.posterName && (
+              <PersonTile
+                userId={posterId}
+                to={`/user/${posterId}`}
+                name={app.posterName}
+                eyebrow="Posted by"
+                onClick={(e) => e.stopPropagation()}
+              />
             )}
 
             {isMinimalCard && (

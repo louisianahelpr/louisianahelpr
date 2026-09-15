@@ -21,6 +21,7 @@ import { deriveAppliedJobCardState, describeCancellation } from "./appliedJobCar
 import { CancellationFeePill } from "./appliedJobCard/CancellationFeePill";
 import { PendingApplicationSection } from "./appliedJobCard/PendingApplicationSection";
 import { OfferedActions } from "./appliedJobCard/OfferedActions";
+import { JobAddressLine } from "./appliedJobCard/JobAddressLine";
 import { ConfirmedSection } from "./appliedJobCard/ConfirmedSection";
 import { ActiveJobSection } from "./appliedJobCard/ActiveJobSection";
 import { DisputedSection } from "./appliedJobCard/DisputedSection";
@@ -449,6 +450,12 @@ function AppliedJobCardInner({
           )}
 
           {/* === ACTION SECTIONS === */}
+
+          {/* The full street address once this Helpr is offered or hired
+              (VN-55). The server only sends it to someone allowed to see it. */}
+          {(isOffered || isConfirmed || isActive || isDisputed) && (
+            <JobAddressLine location={job.location} />
+          )}
 
           {/* Offered: accept/decline — celebratory framing since this
               is a poster reaching out directly. Gold-warm accent

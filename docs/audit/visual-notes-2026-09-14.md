@@ -1,6 +1,6 @@
 # Visual notes — 2026-09-14
 
-54 entries (VN-1 … VN-54). Logged from owner screenshots/descriptions; locations read from code, causes marked unverified. Fixes land per the tracker below; each Confirmed tick has a before/after screenshot in visual-notes-2026-09-14/ and an ok review in its reviews.jsonl.
+55 entries (VN-1 … VN-55). Logged from owner screenshots/descriptions; locations read from code, causes marked unverified. Fixes land per the tracker below; each Confirmed tick has a before/after screenshot in visual-notes-2026-09-14/ and an ok review in its reviews.jsonl.
 
 
 ## Tracker
@@ -41,7 +41,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-30 | Review quick-tag chips run off the edge and can't be scrolled | small | [x] d49bc6d67 | [ ] |
 | VN-31 | Posts/Jobs search opens full width, and the chevron beside it is useless | small | [x] 571f6fcd2 | [x] vn-31-after-myjobs-search-1440.webp |
 | VN-32 | My Jobs page jumps ~10 times before it settles | medium–large | [ ] | [ ] |
-| VN-33 | Helpr 2000+ miles away can still tap "I've Arrived" and move forward | medium–large | [ ] | [ ] |
+| VN-33 | Helpr 2000+ miles away can still tap "I've Arrived" and move forward | medium–large | [x] c6ce514b1 | [x] vn-33-after-fix-after-375.webp |
 | VN-34 | Rename "Request My Payout" on the Done step, and don't allow it until photos are uploaded | small | [x] e6a330db6 | [x] vn-34-after-jobs-working-1440.webp |
 | VN-35 | Messages list header — move the chevron to the right of the hamburger; search opens too wi | small | [x] 107f092b2 | [x] vn-35-after-messages-search-1440.webp |
 | VN-36 | "No reviews yet" star illustration looks crammed / disorganised | small | [x] 7bf9db6ba | [x] vn-36-after-profile-reviews-1440.webp |
@@ -63,6 +63,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-52 | Where is the Group job option? (OWNER QUESTION — code read only) | question | [ ] | [ ] |
 | VN-53 | Pet care job — "Which pet is this for?" doesn't show the pets I've saved | small | [x] 937bc9093 | [x] vn-53-after-vn53-picker-roundtrip-1440.webp |
 | VN-54 | Business name should show only after admin approves | small | [ ] | [ ] |
+| VN-55 | Offered/hired Helpr must see the full address as text, not only on the map | small | [ ] | [ ] |
 
 ## Owner decisions (pop-ups, 2026-09-14)
 
@@ -685,3 +686,12 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Shared with: get_safe_profiles consumers (Messages, applicants, profile)
 - Size: small (verify) / medium (if a separate business approval is wanted)
 - Screenshot: none
+
+### VN-55: Offered/hired Helpr must see the full address as text, not only on the map
+- Screen / route: Jobs — /my-jobs, Helpr card once offered or hired (Scheduled / Needs You)
+- Viewport / theme: not specified
+- What the owner sees: "they need to be able to actually see the full address when the offer is sent to the helpr. not just in the map"
+- Where it lives: card meta row prints city only (src/components/activity/JobCardMetaRow.tsx getCity); the full `location` already reaches the offered/hired Helpr via get_jobs_for_my_applications → user_may_see_job_address (verified live 2026-09-14)
+- Fix: src/components/activity/appliedJobCard/JobAddressLine.tsx rendered in AppliedJobCard for offered/confirmed/active/disputed; prints nothing for a masked city-only location
+- Size: small
+

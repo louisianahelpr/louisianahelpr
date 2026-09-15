@@ -233,7 +233,8 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("stripe-idv-start error:", err);
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    // Generic client-safe message; detail is logged above (EF-5, 2026-09-15).
+    return new Response(JSON.stringify({ error: "We couldn't start identity verification right now. Please try again." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

@@ -138,3 +138,57 @@ describe("it refuses what it should", () => {
     expect((await res.json()).error).toMatch(/different Helpr account/i);
   });
 });
+
+describe("MS-4 · a SANDBOX transaction never grants in production", () => {
+  it("rejects a Sandbox transaction and writes nothing (default = production)", async () => {
+    // A sandbox purchase is FREE. Without the environment gate this same tx
+    // grants a real paid tier — the hole. APPLE_IAP_ENVIRONMENT is unset here,
+    // which is a production deployment.
+    appleReturns(baseTx({ environment: "Sandbox" }));
+    scenario.reads.profiles = { rows: [{ user_id: USER.id, subscription_tier: null, subscription_source: null, stripe_subscription_id: null }] };
+
+    const res = await post({ transactionId: TX });
+    expect(res.status).toBe(400);
+    expect((scenario.writes ?? []).filter((w) => w.table === "profiles")).toHaveLength(0);
+  });
+
+  it("still grants a Production transaction (the gate does not over-block)", async () => {
+    appleReturns(baseTx({ environment: "Production" }));
+    scenario.reads.profiles = { rows: [{ user_id: USER.id, subscription_tier: null, subscription_source: null, stripe_subscription_id: null }] };
+
+    const res = await post({ transactionId: TX });
+    expect(res.status).toBe(200);
+    expect((await res.json()).tier).toBe("plus");
+  });
+});
+
+describe("EF-4 · the purchase is bound to the caller by appAccountToken", () => {
+  it("refuses when appAccountToken names a DIFFERENT user and writes nothing", async () => {
+    appleReturns(baseTx({ appAccountToken: "99999999-2222-4333-8444-555555555555" }));
+    scenario.reads.profiles = { rows: [{ user_id: USER.id, subscription_tier: null, subscription_source: null, stripe_subscription_id: null }] };
+
+    const res = await post({ transactionId: TX });
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toMatch(/different Helpr account/i);
+    expect((scenario.writes ?? []).filter((w) => w.table === "profiles")).toHaveLength(0);
+  });
+
+  it("grants when appAccountToken matches the caller (case-insensitive)", async () => {
+    appleReturns(baseTx({ appAccountToken: USER.id.toUpperCase() }));
+    scenario.reads.profiles = { rows: [{ user_id: USER.id, subscription_tier: null, subscription_source: null, stripe_subscription_id: null }] };
+
+    const res = await post({ transactionId: TX });
+    expect(res.status).toBe(200);
+    expect((await res.json()).tier).toBe("plus");
+  });
+
+  it("grants and flags a legacy purchase with no appAccountToken (grant-and-flag, not refuse)", async () => {
+    // baseTx() carries no appAccountToken — the legacy case. Refusing here would
+    // strand a real paid purchase, so it grants.
+    appleReturns(baseTx());
+    scenario.reads.profiles = { rows: [{ user_id: USER.id, subscription_tier: null, subscription_source: null, stripe_subscription_id: null }] };
+
+    const res = await post({ transactionId: TX });
+    expect(res.status).toBe(200);
+  });
+});

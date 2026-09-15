@@ -753,7 +753,8 @@ Deno.serve(async (req) => {
     })
   } catch (err) {
     console.error('admin-user-actions error', err)
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    // Generic client-safe message; detail is logged above (EF-5, 2026-09-15).
+    return new Response(JSON.stringify({ error: 'Something went wrong performing that action. Please try again.' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }

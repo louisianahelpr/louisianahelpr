@@ -10,6 +10,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function sha256Hex(input: string): Promise<string> {
   const bytes = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -58,6 +60,23 @@ serve(async (req) => {
       );
     }
     const userId = userData.user.id;
+
+    // Stable per-attempt id supplied by the client (a UUID it generates once per
+    // cash-out and REUSES across retries of the same attempt). This is what the
+    // Stripe idempotency key binds to — see HM-1 below. It is read here, before
+    // any claim, because the whole point is that it does not depend on which
+    // credits happen to be unredeemed at transfer time.
+    let attemptId: string | null = null;
+    try {
+      const body = await req.json();
+      const raw = body?.attemptId;
+      // Accept only a well-formed UUID; anything else is treated as absent so a
+      // malformed value can never collide two unrelated cash-outs onto one key.
+      if (typeof raw === "string" && UUID_RE.test(raw)) attemptId = raw.toLowerCase();
+    } catch {
+      // No/'' body (older clients call invoke with no args) → attemptId stays
+      // null and we fall back to the legacy per-claim key below.
+    }
 
     // Get user's Stripe Connect account
     const { data: profile, error: profileErr } = await supabase
@@ -173,9 +192,24 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Idempotency key derived from the exact claimed credit set, so a retried
-    // transfer for the same claim never double-sends on Stripe's side.
-    const idempotencyKey = `cashout-${await sha256Hex(creditIds.slice().sort().join(","))}`;
+    // HM-1: bind the Stripe idempotency key to a STABLE per-attempt id, never to
+    // the claimed credit set. Deriving it from the set (the old behaviour, kept
+    // only as a legacy fallback below) double-pays on this sequence: a transfer
+    // succeeds but its response is lost → the catch rolls the claim back → a new
+    // credit accrues → the retry claims a DIFFERENT set → a different hash → a
+    // different key → Stripe does not dedupe and sends a second transfer. A
+    // client-supplied attempt id is the same across that retry, so Stripe
+    // replays the original transfer regardless of which credits are unredeemed
+    // now — mirroring instant-payout's persisted-record key.
+    //
+    // Fallback (no attemptId): the legacy set hash. It still dedupes a retry
+    // that claims the SAME set (the common case), and it preserves behaviour for
+    // already-deployed clients that call this with no body. The durable fix
+    // (a persisted cash-out ledger row so reconciliation can see the outflow)
+    // is noted for the lead.
+    const idempotencyKey = attemptId
+      ? `cashout-${attemptId}`
+      : `cashout-${await sha256Hex(creditIds.slice().sort().join(","))}`;
 
     let transfer;
     try {

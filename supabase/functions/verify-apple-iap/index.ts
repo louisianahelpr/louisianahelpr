@@ -42,7 +42,9 @@ import { corsHeadersFull as corsHeaders, errorResponse, jsonResponse } from "../
 import { TIER_FEE_PERCENT, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import {
   computeExpiry,
+  expectsProduction,
   fetchAppleTransaction,
+  isSandboxTransaction,
   resolveProduct,
 } from "../_shared/appleAppStore.ts";
 
@@ -91,6 +93,54 @@ serve(async (req) => {
     if (!meta) {
       return errorResponse(`Unknown product: ${tx.productId}`, 400, corsHeaders);
     }
+
+    // ── Reject a SANDBOX transaction in a production deployment ──────────────
+    // A sandbox StoreKit purchase is FREE and carries the same bundleId and the
+    // same `com.helpr.*` productId as a real one, so without this check a
+    // TestFlight or sandbox Apple ID grants itself a real paid tier for nothing
+    // (MS-4 / EF-4). Sandbox is allowed only when the deployment opts in via
+    // APPLE_IAP_ENVIRONMENT=sandbox (TestFlight / dev builds).
+    if (expectsProduction() && isSandboxTransaction(tx)) {
+      console.error(
+        "[verify-apple-iap] rejected SANDBOX transaction in production — user", user.id,
+        "tx", tx.transactionId, "product", tx.productId,
+      );
+      return errorResponse("This purchase could not be verified", 400, corsHeaders);
+    }
+
+    // ── Bind the purchase to THIS caller via appAccountToken ────────────────
+    // The client sets StoreKit's `appAccountToken` to the buyer's Supabase user
+    // id at purchase time, and Apple embeds it in the signed transaction — so it
+    // is the authoritative link between a purchase and an account. Binding on it
+    // (rather than "whoever verifies first" — the old first-claim guard below,
+    // now demoted to a secondary idempotency check) means a leaked transaction
+    // id (shared device, screenshot, support ticket, sandbox tester) cannot be
+    // redeemed by a different account, and the genuine buyer is never 409'd off
+    // their own subscription (EF-4).
+    //
+    // An ABSENT token is a legacy purchase from before the client set it: grant
+    // and flag rather than refuse, matching the deliberate grant-and-flag
+    // asymmetry documented above — refusing here would strand a real, paid
+    // purchase.
+    const boundToken = tx.appAccountToken ? tx.appAccountToken.toLowerCase() : null;
+    if (boundToken && boundToken !== user.id.toLowerCase()) {
+      console.error(
+        "[verify-apple-iap] appAccountToken MISMATCH — token", tx.appAccountToken,
+        "caller", user.id, "tx", tx.transactionId,
+      );
+      return errorResponse(
+        "This App Store purchase is linked to a different Helpr account",
+        403,
+        corsHeaders,
+      );
+    }
+    if (!boundToken) {
+      console.error(
+        "[verify-apple-iap] appAccountToken ABSENT — granting legacy purchase for user", user.id,
+        "tx", tx.transactionId, "(no purchase-time account binding to verify against)",
+      );
+    }
+
     if (tx.revocationDate) {
       // Refunded or revoked. Not an entitlement, and not an error the member
       // caused — say so plainly rather than 500ing.

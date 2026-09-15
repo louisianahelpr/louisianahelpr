@@ -571,7 +571,8 @@ Deno.serve(async (req) => {
     });
   } catch (e: any) {
     console.error("send-marketing-blast error:", e);
-    return new Response(JSON.stringify({ error: e.message || "Unknown error" }), {
+    // Generic client-safe message; detail is logged above (EF-5, 2026-09-15).
+    return new Response(JSON.stringify({ error: "Something went wrong sending the blast. Please try again." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

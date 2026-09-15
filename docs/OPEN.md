@@ -145,7 +145,7 @@ Everything below is either LIVE on main or parked on a pushed branch. Nothing is
 - [ ] PARKED branch `sec-hardening` (pushed, WIP, NOT reviewed, NOT deployed): task 1 no default client grants in public + new-relation grant gate; task 2 23 guards stop treating NULL auth.uid() as the service role. Needs: finish lh-authz-rls + lh-silent-failure review, PGlite 3x, gate, db-deploy, prod proof. Owner approved both.
 - [x] LANDED 2026-09-15 via easy-batch: VN-45 Referrals breakdown + Plus in get_ranked_open_jobs (header corrected). Still open from its review: tighten perkEnforcementParity scanner (unqualified CREATE FUNCTION, IN/CASE-WHEN tier forms). Was: PARKED branch `vn-lane-h` (pushed, WIP): VN-45 Referrals breakdown (ec61d2ec0, done) + Plus in get_ranked_open_jobs (review done, no blockers; fix migration header — it is NOT user-visible, the RPC has no client caller; tighten perkEnforcementParity scanner). Needs screen check of /profile?tab=referral then land. Pre-push a11y-prod sweep failed on its changed routes — read before landing.
 - [x] DONE 2026-09-15: weekly-helper-report tier list derived from the perk matrix (+ guard src/test/noHardcodedTierLists.test.ts). Was: weekly-helper-report edge fn excludes 'plus' from the Pro+ report (`.in("subscription_tier", ["pro","elite"])`).
-- [ ] VN-37 page gutter — app-wide design decision (see VN-37 entry); VN-3, 15, 21, 32, 41 need owner design picks. VN-52 Group jobs: owner said fix + turn on (large).
+- [ ] VN-37 page gutter — app-wide design decision (see VN-37 entry); VN-3, 15, 21, 32, 41 need owner design picks. VN-52 Group jobs: owner said fix + turn on (large) — full inventory + the two remaining blockers scoped in **## VN-52 Group jobs — inventory + turn-on plan** below.
 - [ ] "Test" workflow on main is red on knip (pre-existing per lane G).
 
 ## Role words out of user-facing copy — branch `role-neutral-copy-v2` (2026-09-15, NOT merged; rebuilt on main 5c3115ae5 from `role-neutral-copy`)
@@ -157,6 +157,188 @@ Everything below is either LIVE on main or parked on a pushed branch. Nothing is
 - [ ] Judgement calls to confirm or reverse: `As a Helpr` / `As a poster` badge-group captions on the public profile became **`Doing jobs` / `Posting jobs`**; the browse card tier badge `{tier} Poster` became **`{tier} Member`**; `arrivalStateLabel` "Awaiting poster" became **"Awaiting confirmation"** (drops the actor to stay short). Admin screens and legal pages were deliberately NOT reworded (allowlisted, reasons in the allowlist file) — say so if either should change too.
 - [ ] v2 rebuild (2026-09-15) carried the rule onto copy main added after the branch: the VN-33 arrival messages in `supabase/functions/_shared/arrivalRule.ts` (now IN the guard's scope via `SCAN_FILES`, because `src/lib/arrivalGate.ts` re-exports them onto the tracker), the lifecycleErrors arrival refusals, the JobTracking finish-release toast, the Helpr-facing 24h escalation in `arrival-confirm-reminder`, `arrivalStateLabel` "Awaiting poster" → **"Awaiting confirmation"**, and the map pin label `arrivalMapLabel` "Poster confirmed arrival" → **"Arrival confirmed by the person who posted it"** (same phrase as the status line). **Add to the 375 look:** that map-pin pill is `white-space:nowrap` at 10px and is now ~45 chars.
 - [ ] GAP (not in this branch): the guard scans `src/` plus arrivalRule only. `supabase/functions/**` still has ~36 role strings in user-reachable push/email/error copy (create-payment revision/completion notifications and refund errors, auto-resolve-disputes, auto-release-payment, `_shared/email-templates/drip.tsx`) plus some that are log/ledger text. Needs its own pass with an edge-scoped allowlist (admin alerts, ledger descriptions, logs). The 24h ADMIN notification in arrival-confirm-reminder was left in admin vocabulary, matching the branch's admin-screen exemption.
+## VN-52 Group jobs — inventory + turn-on plan (2026-09-15, routine, branch `vn-52-group-jobs`)
+
+Owner decision VN-52: fix Group jobs and turn them on (split payment + per-Helpr
+tracking + review model, then flip `GROUP_JOBS_ENABLED`). This is the full
+end-to-end inventory from source, the scope decision for this unattended run, and
+the buildable spec for the two remaining blockers. **The flag stays `false`** —
+see "Decision" below.
+
+### Decision — flag stays FALSE this run
+
+`GROUP_JOBS_ENABLED = false` (`src/lib/groupJobs.ts:79`) is NOT flipped. The money
+*disbursement* path is already complete and correct (see "What is already right"),
+but two blockers remain — **(b)** per-member completion/authorization and **(d)**
+the review model — and both are exactly the changes the withdrawal author flagged
+as "the change that looks smallest and is the most dangerous"
+(`20260902035641_...:255-294`). Both require **live DB verification**
+(`pg_policies`, `pg_get_functiondef`, `pg_proc.proacl`) that this run could not do
+(Supabase MCP was unauthenticated) and human review before landing. Landing a
+half-built escrow-gate/RLS rework unattended is the escrow-hole risk the standing
+orders warn against, so this run delivers the inventory + spec and leaves the
+flag off. The gate tripwire (`src/pages/postjob/groupJobsGate.test.ts`) was
+deliberately NOT disarmed: no per-member-lifecycle column was added, because
+adding it without the full (b) rework would let the next person flip the flag past
+a green tripwire onto a broken completion path.
+
+### The GROUP_JOBS_ENABLED gates (turn-on touch points)
+
+- `src/lib/groupJobs.ts:79` — the flag itself.
+- `src/components/postjob/LogisticsSection.tsx:50` — the "Group" segment option;
+  `:56-58` segment-count layout; `:340` mode selection; `:359` the helpers-needed
+  stepper. All behind `GROUP_JOBS_ENABLED`.
+- `src/pages/postjob/jobSubmitHelpers.ts:193` `is_group_job: GROUP_JOBS_ENABLED && isGroupJob`,
+  `:194` `helpers_needed: … ? parseInt(helpersNeeded) || 2 : 1`.
+- Server refusal that must be DROPPED when turning on:
+  `reject_new_group_jobs` trigger on `public.jobs`
+  (`20260902035641_...:216-241`) — blocks any user-authenticated INSERT/UPDATE
+  that makes a job a group job. Its own COMMENT says: "DROP this trigger in the
+  migration that ships per-member lifecycle state on group_job_helpers."
+- Gate test `src/pages/postjob/groupJobsGate.test.ts` — four tripwires; flipping
+  the flag makes tripwire 1 require a migration that adds `helper_completed_at`
+  to `group_job_helpers`, and re-checks the money-path refusals.
+
+### The 5 breakages (from `src/lib/groupJobs.ts`, re-verified in source)
+
+Root cause of all five: `accept_group_application` fills `group_job_helpers` but
+sets `jobs.helper_id` to the FIRST accepted helper only "so existing
+payout/notification paths keep resolving"
+(`20260804122000_accept_group_application.sql:28,115-121`). The rest of the
+lifecycle reads scalar `jobs.helper_id` as "the helper", so helpers 2..N break:
+
+- **(a) FIXED** — could not message the poster. `can_message_in_job` now has a
+  roster branch (`20260902035641_...:95-98`).
+- **(b) NOT FIXED — BLOCKER.** Cannot confirm / mark on-the-way / arrive /
+  complete. Three enforcement points all key off scalar `jobs.helper_id`:
+  - jobs UPDATE policy `USING (auth.uid() = helper_id)`
+    (`20260311000404_...:167`, WITH CHECK `:177`).
+  - `enforce_helper_completion_gates` early-returns on
+    `auth.uid() IS DISTINCT FROM OLD.helper_id` (`20260828011057_...:219-223`);
+    the arrival/proof/30-min gates it enforces are at `:225-252`.
+  - `enforce_helper_jobs_column_whitelist` same early-return
+    (`20260828011057_...:172-176`).
+  - `mark_helper_arrival` raises `not_the_assigned_helper` unless
+    `auth.uid() = v_job.helper_id` (`20260828011057_...:80-82`).
+  - `helper_mark_on_the_way` — same single-helper authz
+    (`20260829061546_helper_mark_on_the_way_atomic.sql`).
+  - create-payment `action:"release"` authorizes on `job.helper_id === user.id`.
+- **(c) FIXED** — job vanished from Activity when the roster filled;
+  `get_jobs_for_my_applications` now has a roster branch
+  (`20260902035641_...:180-183`).
+- **(d) NOT FIXED — BLOCKER.** Neither party can review. `reviews` carries
+  `UNIQUE (job_id, reviewer_id)` (`20260311000404_...:198`), so a poster gets
+  ONE review per job however many worked it. `enforce_review_validity`
+  (`20260504154800_enforce_review_validity.sql:16`, latest def
+  `20260904211812_...:44`) and the "Users can create reviews for eligible jobs"
+  INSERT policy both read scalar `jobs.helper_id`.
+- **(e) FIXED** — `admin_release_dispute` no longer pays 1/N and marks settled;
+  it refuses a multi-member roster (create-payment; guard in
+  `groupJobsGate.test.ts:101-124`).
+
+### What is already RIGHT — the money disbursement path (do NOT rebuild)
+
+Verified in source this run. The escrow model is ONE hold for the whole budget,
+split N ways at completion (`20260804122000_...:11-16`). Disbursement:
+
+- `process-scheduled-payouts` is the ONLY payer for multi-helper jobs. It
+  flattens each job to one `(job, helper)` pair per `group_job_helpers` row
+  (`index.ts:119-146`), so each roster member gets their **own transfer, ledger
+  row, and idempotency key** — independent shares, partial-failure isolation
+  (one missing Connect account can't block the rest). Re-scheduled hourly at :20
+  (`20260831195609_schedule_group_job_payout_fanout.sql`).
+- Release is gated on the **roster** actually paid, not `helpers_needed`
+  (`process-scheduled-payouts/index.ts:~119-146,545-575`): an under-filled roster
+  still releases once everyone owed is paid, and the leftover escrow is surfaced
+  via alert rather than stranded. Heal-split-state excludes group jobs (gated on
+  `allRosterPaid`, `:~560-575`).
+- **No double-pay**: both payers route every transfer through
+  `_shared/payoutClaim.ts`, backed by partial unique index
+  `payout_transfers_one_live_per_job_helper ON (job_id, helper_id) WHERE status
+  IN ('pending','paid','reversed')` (`20260831190418`). Exactly one claimant
+  wins; **one reversal is isolated to its own `(job, helper)` row**.
+- The three single-helper payers correctly REFUSE a multi-member roster:
+  `release-payout/index.ts:155-209` (409 + critical page, roster read fails
+  closed), `execute-dispute-split` (refuses group jobs),
+  create-payment `admin_release_dispute`.
+- `auto-release-payment` Phase 1 computes the per-helper preview
+  (`budget / helpersCount`, `index.ts:435-440`); **Phase 2 already excludes
+  multi-helper group jobs** from `dueQuery2`
+  (`index.ts:499-520`, `.or("is_group_job.is.null,is_group_job.eq.false,helpers_needed.lte.1")`)
+  — the "belongs to whoever owns those files" gap named in the fanout migration
+  header IS closed. `recordFailedAttempt` divides by roster size too (`:584-587`).
+
+Net: money is disbursed correctly per-Helpr once a group job legitimately reaches
+`payout_pending`. The gap is (b) — **what authorizes it to get there**. Today one
+helper (`jobs.helper_id`) marking complete would settle and pay the WHOLE roster,
+none of whom needed to confirm/arrive/complete. That is a trust hole, not a
+disbursement bug, and it is why (b) must land before the flag flips.
+
+### BLOCKER (b) — per-member lifecycle + authorization (build spec)
+
+Design decision needed from owner: **does a group job complete when ALL members
+mark complete, or the first?** Recommended: **all members**; `jobs.helper_completed_at`
+becomes the MAX over the roster, stamped only when every member is done (that is
+the value the payout sweeps already read). One migration, so policy/trigger/RPC
+never disagree:
+
+1. `ALTER TABLE public.group_job_helpers ADD COLUMN IF NOT EXISTS` per member:
+   `helper_confirmed_at`, `helper_dayof_confirmed_at`, `helper_on_the_way_at`,
+   `helper_arrived_at`, `helper_arrival_verified_at`, `helper_completed_at`
+   (all `timestamptz`), plus per-member `proof_before_urls` / `proof_after_urls`
+   if proof is required per member. (Lint: never write the literal C-R-E-A-T-E
+   T-A-B-L-E in a comment — `migration:new`, roles named, PGlite 3×.)
+2. Widen the jobs UPDATE authz to roster members **and** move the completion
+   gates onto the roster row: `enforce_helper_completion_gates` and
+   `enforce_helper_jobs_column_whitelist` must key off "is `auth.uid()` a roster
+   member of this job" instead of `OLD.helper_id`, and enforce arrival/proof/
+   30-min **per member** (`20260828011057_...:219-252`). A roster member marking
+   their own completion writes their `group_job_helpers` row, not `jobs`.
+3. `mark_helper_arrival` / `helper_mark_on_the_way` / create-payment
+   `action:"release"`: authorize on roster membership; write the per-member
+   column; derive `jobs.helper_arrived_at` etc. as the roster MAX/appropriate
+   aggregate for the poster's tracker.
+4. Derive `jobs.helper_completed_at` = MAX over roster, stamped only when every
+   member is complete — this is the single event that lets
+   `auto-release-payment` move the job to `payout_pending` and hand it to the
+   fan-out payer. Until then the escrow stays held. Confirm the tracker/poster UI
+   shows N-of-M progress (`GroupJobHelpers.tsx` already renders roster progress).
+5. In the SAME migration, `DROP TRIGGER trg_reject_new_group_jobs`
+   (`20260902035641_...:238`) so new group jobs can be created — but only once
+   1–4 and (d) are proven.
+
+### BLOCKER (d) — review model (design decision + schema)
+
+Design decision needed: **who reviews whom on a crew?** Recommended: poster
+reviews each Helpr, each Helpr reviews the poster.
+
+- Change `UNIQUE (job_id, reviewer_id)` → `UNIQUE (job_id, reviewer_id, reviewee_id)`
+  (`20260311000404_...:198`). This changes the inputs to: the trust ladder / tier
+  calc, the double-blind reveal (`20260506192638`), the review-nag cron, the
+  "Users can create reviews for eligible jobs" INSERT policy, and
+  `enforce_review_validity` (`20260904211812_...:44`) — all of which read scalar
+  `jobs.helper_id` today and must read the roster. Move all together.
+- Note (correcting the record, from `20260902035641_...:288-294`): `can_review_job`
+  does NOT gate the review UI — the chips read `job.payment_status` directly
+  (`AppliedJobCard.tsx:494`, `PostedJobActions.tsx:725`). The real blockers are
+  the INSERT policy + `enforce_review_validity` trigger.
+
+### Prod checks for the lead (needs live DB — this run could not run them)
+
+1. Confirm blast radius unchanged since 2026-09-01: `jobs` group rows still 2,
+   both `is_seed`; `group_job_helpers` still 0 rows; `payout_transfers` no
+   multi-helper rows. (read-only `execute_sql`.)
+2. Before any (b) work: `pg_get_functiondef` on `enforce_helper_completion_gates`,
+   `enforce_helper_jobs_column_whitelist`, `mark_helper_arrival`,
+   `helper_mark_on_the_way`; `pg_policies` for the jobs UPDATE policy — verify
+   they still match the source line refs above (deep audits verify by object
+   state, not migration text).
+3. Before any (d) work: confirm the live `reviews` unique constraint is
+   `(job_id, reviewer_id)` and enumerate every reader of `jobs.helper_id` in the
+   review/trust path.
+4. PGlite 3× any migration; `lh-money-escrow` + `lh-authz-rls` REVIEW ONLY on the
+   (b)/(d) diffs before landing; only then flip `GROUP_JOBS_ENABLED` and DROP
+   `trg_reject_new_group_jobs` in the same commit.
 
 ## RESOLVED: Vercel "Account is blocked" (2026-09-14 16:13–17:52 PDT)
 - [x] RESOLVED 2026-09-14 ~17:52 PDT (owner upgraded to Pro; cause: Hobby Edge Requests 3.1M/1M + Deployment Storage 34 GB/10 GB, see the Vercel item further down). Was: OWNER (dashboard only): every push since 4bbd125c1 (16:13 PDT) gets Vercel status `failure — Account is blocked.` (https://vercel.com/knowledge/why-is-my-account-deployment-blocked). Hobby team `louisianahelprs-projects`. Live site still serves 70f93a220 (14:30 PDT); NOT live: a0833ef22 TrackingMap pins, 3c299b328 completeJob duplicate-release fix, f9f5b0617 (package.json). Open Vercel → team → Usage / notifications for the reason (Hobby usage limit or fair-use), resolve, then redeploy main. Prod freshness runs time out red until then; that red is this, not the commits.

@@ -290,6 +290,7 @@ const ScheduleCard = ({
                 never be verified. */}
             <button
               type="button"
+              aria-label="Add to calendar"
               onClick={(e) => {
                 e.stopPropagation();
                 void exportJobRowToCalendar(job);
@@ -303,7 +304,11 @@ const ScheduleCard = ({
               style={{ color: "hsl(var(--bark))" }}
             >
               <CalendarPlus className="w-3.5 h-3.5 shrink-0" aria-hidden />
-              Add to calendar
+              {/* Icon-only where the card is narrow (phone, and the 1024–1279
+                  two-column list), so the city in the same row is not cut to
+                  "N…" or dropped. Measured on the cloud branch at 375: the city
+                  vanished; at 1024: "N…". */}
+              <span className="hidden min-[480px]:inline min-[1024px]:hidden min-[1280px]:inline">Add to calendar</span>
             </button>
           </div>
           {/* The two chips that say what this job IS — STATUS (where the job

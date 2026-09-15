@@ -9,23 +9,23 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 
 | VN | Issue | Size | Fixed | Confirmed |
 |---|---|---|---|---|
-| VN-1 | "ID verified" pill shows on the job-detail poster card | small | [ ] | [ ] |
-| VN-2 | Message button shows in the job popup after applying | small | [ ] | [ ] |
+| VN-1 | "ID verified" pill shows on the job-detail poster card | small | [x] 3d0d7a301 | [x] vn-1-after-vn1-detail-375.webp |
+| VN-2 | Message button shows in the job popup after applying | small | [x] 3d0d7a301 | [x] vn-2-after-applied-detail-1440.webp |
 | VN-3 | Earnings & Payouts page changes layout while it loads, and still looks messy (NEEDS DESIGN | large | [ ] | [ ] |
 | VN-4 | Share sheet shows a generic compass icon instead of the H logo | small–medium | [ ] | [ ] |
-| VN-5 | Browse search bar stretches across the whole list column | small | [ ] | [ ] |
-| VN-6 | Recent searches dropdown pushes the job list down instead of floating over it | small | [ ] | [ ] |
-| VN-7 | Refine Your Search panel does not need its own X | small | [ ] | [ ] |
-| VN-8 | Too much empty space below Saved Searches in the filter panel | small | [ ] | [ ] |
+| VN-5 | Browse search bar stretches across the whole list column | small | [x] e24bb4c3a | [x] vn-5-after-browse-search-1440.webp |
+| VN-6 | Recent searches dropdown pushes the job list down instead of floating over it | small | [x] e24bb4c3a | [x] vn-6-after-browse-recents-1440.webp |
+| VN-7 | Refine Your Search panel does not need its own X | small | [x] e24bb4c3a | [x] vn-7-after-browse-filters-tall-1920.webp |
+| VN-8 | Too much empty space below Saved Searches in the filter panel | small | [x] e24bb4c3a | [x] vn-8-after-browse-filters-tall-1920.webp |
 | VN-9 | Map pin preview card — extra white top band, ringed X, box doesn't fit the card | medium | [ ] | [ ] |
 | VN-10 | Clicking the job card on the map preview does nothing | small–medium | [ ] | [ ] |
 | VN-11 | Map "Recenter" button uses the "my location" crosshair icon (NEEDS DECISION) | small | [ ] | [ ] |
-| VN-12 | Remove availability from the public profile | small | [ ] | [ ] |
-| VN-13 | Public profile shows both "ID verified" and "Verification in progress" | small | [ ] | [ ] |
+| VN-12 | Remove availability from the public profile | small | [x] f0ace886a | [x] vn-12-after-public-profile-1440.webp |
+| VN-13 | Public profile shows both "ID verified" and "Verification in progress" | small | [x] f0ace886a | [x] vn-13-after-public-profile-1440.webp |
 | VN-14 | Are profile badges earned from the right numbers? (OWNER QUESTION — code read only) | medium | [ ] | [ ] |
 | VN-15 | Reviews on the public profile need a design discussion (same review shows twice) | large | [ ] | [ ] |
 | VN-16 | "You've worked together N times" becomes a 5th stat tile; order tiles most → least importa | small–medium | [ ] | [ ] |
-| VN-17 | Profile badges are too big | small | [ ] | [ ] |
+| VN-17 | Profile badges are too big | small | [x] f0ace886a | [x] vn-17-after-public-profile-1440.webp |
 | VN-18 | "Can't Finish" wording is wrong once the Helpr has confirmed (before work starts) | small | [ ] | [ ] |
 | VN-19 | "Report a Problem" should sit beside Message, not under it | small | [ ] | [ ] |
 | VN-20 | "Location confirmed" should not show on the tracker — show it on the map instead | medium | [ ] | [ ] |
@@ -34,34 +34,34 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-23 | Disputed jobs should still show the tracker | small–medium | [ ] | [ ] |
 | VN-24 | Contact Support has a large empty band above the title — use the same shell as the other p | small–medium | [ ] | [ ] |
 | VN-25 | Message composer should fill the bottom of the chat, not sit in a narrow centered strip | small | [ ] | [ ] |
-| VN-26 | "Tap a card to open it" tip strip isn't centered | small | [ ] | [ ] |
-| VN-27 | Remove the grey background box from the location on job cards | small | [ ] | [ ] |
+| VN-26 | "Tap a card to open it" tip strip isn't centered | small | [x] d49bc6d67 | [x] vn-26-after-myposts-done-1440.webp |
+| VN-27 | Remove the grey background box from the location on job cards | small | [x] d49bc6d67 | [x] vn-27-after-myposts-done-1440.webp |
 | VN-28 | Remove "report" from a job once it's done | small | [ ] | [ ] |
 | VN-29 | Keep a done job expanded until BOTH tip and review are done, then collapse | small–medium | [ ] | [ ] |
 | VN-30 | Review quick-tag chips run off the edge and can't be scrolled | small | [ ] | [ ] |
-| VN-31 | Posts/Jobs search opens full width, and the chevron beside it is useless | small | [ ] | [ ] |
+| VN-31 | Posts/Jobs search opens full width, and the chevron beside it is useless | small | [x] 571f6fcd2 | [x] vn-31-after-myjobs-search-1440.webp |
 | VN-32 | My Jobs page jumps ~10 times before it settles | medium–large | [ ] | [ ] |
 | VN-33 | Helpr 2000+ miles away can still tap "I've Arrived" and move forward | medium–large | [ ] | [ ] |
 | VN-34 | Rename "Request My Payout" on the Done step, and don't allow it until photos are uploaded | small | [ ] | [ ] |
-| VN-35 | Messages list header — move the chevron to the right of the hamburger; search opens too wi | small | [ ] | [ ] |
-| VN-36 | "No reviews yet" star illustration looks crammed / disorganised | small | [ ] | [ ] |
+| VN-35 | Messages list header — move the chevron to the right of the hamburger; search opens too wi | small | [x] 107f092b2 | [x] vn-35-after-messages-search-1440.webp |
+| VN-36 | "No reviews yet" star illustration looks crammed / disorganised | small | [x] 7bf9db6ba | [x] vn-36-after-profile-reviews-1440.webp |
 | VN-37 | Content doesn't fill the page — small gap left and right on My Reviews and other Profile t | small–medium | [ ] | [ ] |
-| VN-38 | Remove "Parish · Vermilion" from Edit Profile | small | [ ] | [ ] |
+| VN-38 | Remove "Parish · Vermilion" from Edit Profile | small | [x] bdc3f53d1 | [x] vn-38-after-edit-profile-1440-zip.webp |
 | VN-39 | Do skills & services and recent work show anywhere on the public profile? (OWNER QUESTION  | question | [ ] | [ ] |
 | VN-40 | Edit Profile save bar — "Cancel" / "Up to Date" buttons | small | [ ] | [ ] |
 | VN-41 | Schedule page — small calendar floating in a huge card, and Upcoming jobs cards full of de | large | [ ] | [ ] |
-| VN-42 | Saved Helprs should be one column, not a grid | small | [ ] | [ ] |
-| VN-43 | Remove the card design picker from gift cards | small | [ ] | [ ] |
+| VN-42 | Saved Helprs should be one column, not a grid | small | [x] f70abb054 | [x] vn-42-after-saved-helpers-1440.webp |
+| VN-43 | Remove the card design picker from gift cards | small | [x] c57c568be | [x] vn-43-after-gift-card-1440-occasion.webp |
 | VN-44 | Plus tier (and Once / Annual) don't look enticing (OWNER QUESTION + PRICING DECISION) | medium | [ ] | [ ] |
 | VN-45 | Referrals says $15 earned / $15 to cash out, but 0 referrals and the rank tracker shows no | small–medium | [ ] | [ ] |
 | VN-46 | Notifications settings page doesn't scroll | small–medium | [ ] | [ ] |
 | VN-47 | Legal tab — remove "Download your data", and "contact support" is listed twice | small | [ ] | [ ] |
-| VN-48 | Post a Job form labels aren't in Title Case | small | [ ] | [ ] |
-| VN-49 | "Require before & after photos" box is too spread out / badly positioned | small | [ ] | [ ] |
+| VN-48 | Post a Job form labels aren't in Title Case | small | [x] e363d18d6 | [x] vn-48-after-postjob-1440-photo.webp |
+| VN-49 | "Require before & after photos" box is too spread out / badly positioned | small | [x] 05d3332f6 | [x] vn-49-after-postjob-1440-photo.webp |
 | VN-50 | How does a flexible-schedule job work on the tracker? (OWNER QUESTION — code read only) | medium | [ ] | [ ] |
 | VN-51 | Repeating job should say "Start Date", not "Date needed" | small | [ ] | [ ] |
 | VN-52 | Where is the Group job option? (OWNER QUESTION — code read only) | question | [ ] | [ ] |
-| VN-53 | Pet care job — "Which pet is this for?" doesn't show the pets I've saved | small | [ ] | [ ] |
+| VN-53 | Pet care job — "Which pet is this for?" doesn't show the pets I've saved | small | [x] 937bc9093 | [x] vn-53-after-vn53-picker-roundtrip-1440.webp |
 | VN-54 | Business name should show only after admin approves | small | [ ] | [ ] |
 
 ## Owner decisions (pop-ups, 2026-09-14)

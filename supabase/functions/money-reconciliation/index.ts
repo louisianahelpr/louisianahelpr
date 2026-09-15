@@ -249,6 +249,19 @@ serve(async (req) => {
         "critical",
         "Job marked payment_status='released' with no payout_transfers ledger row — money supposedly left, with no record of where.",
       ),
+      // The mirror of releasedNoTransfer, and the class check for the
+      // refund-over-payout double outflow: a refund that landed on a job whose
+      // Helpr was already paid. The budget then leaves the platform twice — once
+      // to the Helpr (never clawed back), once back to the poster — and
+      // 'refunded' is treated as "settled" everywhere else, so nothing but this
+      // check ever sees it. Fires for any job whose payment_status is 'refunded'
+      // while a LIVE (paid / pending-with-id, i.e. isSettledTransfer)
+      // payout_transfers row exists for it.
+      refundedWithLivePayout: new Check(
+        "refunded_with_live_payout",
+        "critical",
+        "Job marked payment_status='refunded' while a live (paid / pending-with-id) payout_transfers row still exists and was not reversed — the poster was refunded while the Helpr keeps the payout, so the platform paid the budget twice.",
+      ),
       transferFeeMismatch: new Check(
         "transfer_platform_fee_mismatch",
         "critical",
@@ -600,6 +613,13 @@ serve(async (req) => {
     for (const job of jobRows) {
       if (job.payment_status === "released" && !paidJobIds.has(job.id as string)) {
         checks.releasedNoTransfer.add({ job_id: job.id, budget: money(job.budget) });
+      }
+      // The inverse divergence: a 'refunded' job that STILL carries a live
+      // payout means the refund walked over a settled payout with no reversal —
+      // the double outflow. `paidJobIds` is exactly the settled (paid /
+      // pending-with-id) set, so a 'refunded' job in it is the hole.
+      if (job.payment_status === "refunded" && paidJobIds.has(job.id as string)) {
+        checks.refundedWithLivePayout.add({ job_id: job.id, budget: money(job.budget) });
       }
     }
 

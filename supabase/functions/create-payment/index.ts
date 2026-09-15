@@ -2194,12 +2194,25 @@ serve(async (req) => {
         if (alreadyPaidOut) return alreadyPaidOut;
       }
 
-      const totalCents = Math.round(Number(job.budget || 0) * 100);
+      // MS-6: a provided `amountCents` is ALWAYS a partial refund that leaves
+      // the job running; a full refund + cancellation happens ONLY when
+      // `amountCents` is omitted — the same condition as `wantsFullRefund`
+      // above, and the two must agree. The old `isPartial` compared the request
+      // against `job.budget`, so a request for EXACTLY the budget was neither
+      // refused (`> totalCents` was false) nor treated as partial (`< totalCents`
+      // was false): it fell through to the full-refund branch, refunded the
+      // WHOLE capture (budget + poster service fee + urgent fee + tax) AND
+      // cancelled the job — and, because `wantsFullRefund` was also false there,
+      // even skipped the escrow-already-moved guard. There was no amount an
+      // admin could pass to refund exactly the budget as a partial. `isPartial`
+      // is now the exact negation of `wantsFullRefund`, and the upper bound is
+      // the ACTUAL captured amount (checked below, once the PaymentIntent is
+      // retrieved), never `job.budget`.
       const requestedCents = typeof amountCents === "number" ? Math.round(amountCents) : null;
-      const isPartial = requestedCents !== null && requestedCents > 0 && requestedCents < totalCents;
-      if (requestedCents !== null && (requestedCents <= 0 || requestedCents > totalCents)) {
-        throw new Error(`Invalid partial amount: ${requestedCents} cents (job total ${totalCents} cents)`);
+      if (requestedCents !== null && requestedCents <= 0) {
+        throw new Error(`Invalid partial amount: ${requestedCents} cents (must be > 0)`);
       }
+      const isPartial = requestedCents !== null;
 
       let paymentIntentId = job.stripe_payment_intent_id;
       if (!paymentIntentId && job.stripe_session_id) {
@@ -2215,6 +2228,16 @@ serve(async (req) => {
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
         if (pi.status === "succeeded") {
+          // MS-6: bound a partial refund against what Stripe ACTUALLY captured
+          // (budget + poster service fee + urgent fee + tax), not `job.budget`.
+          // A partial can be up to the full capture; anything beyond it is an
+          // over-refund and is refused. A partial EQUAL to the capture is still
+          // a partial — it never cancels the job (only an omitted `amountCents`
+          // does that).
+          const capturedCents = Math.round(Number(pi.amount_received ?? pi.amount ?? 0));
+          if (isPartial && requestedCents! > capturedCents) {
+            throw new Error(`Invalid partial amount: ${requestedCents} cents (captured ${capturedCents} cents)`);
+          }
           // Sequence number for the partial-refund idempotency key, derived
           // from Stripe's OWN refund history for this PaymentIntent.
           //

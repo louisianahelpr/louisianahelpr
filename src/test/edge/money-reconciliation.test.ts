@@ -200,6 +200,56 @@ describe("money-reconciliation edge function", () => {
     expect(slackAlerts).toHaveLength(1);
   });
 
+  // ── refunded_with_live_payout class check ─────────────────────────────────
+  // A job flipped to payment_status='refunded' while a live (paid) payout_transfers
+  // row still exists is the double-outflow: the poster was refunded and the Helpr
+  // keeps the payout. Nothing else in the app sees it, because 'refunded' reads as
+  // settled. This check is the only thing that catches it — proven red on a seed job.
+  it("catches a refunded job that still carries a LIVE payout (refunded_with_live_payout)", async () => {
+    const fn = await loadConfigured();
+    seedCleanLedger();
+    // Same job, but refunded AFTER the Helpr was paid — the transfer row is
+    // still 'paid' and was never reversed.
+    scenario.reads.jobs = {
+      rows: [{ ...(scenario.reads.jobs.rows ?? [])[0], payment_status: "refunded" }],
+    };
+    // payout_transfers left as the clean 'paid' row from seedCleanLedger.
+    const res = await fn.fetch(cronRequest(fn));
+    const b = await body(res);
+    const findings = b.findings as Array<{ check: string; severity: string }>;
+    const hit = findings.find((f) => f.check === "refunded_with_live_payout");
+    expect(hit).toBeDefined();
+    expect(hit?.severity).toBe("critical");
+  });
+
+  // A refunded job whose payout was REVERSED (money clawed back) is NOT the
+  // hole — the reversal is exactly what makes the platform whole. Must stay clean.
+  it("does NOT flag a refunded job whose payout was reversed", async () => {
+    const fn = await loadConfigured();
+    seedCleanLedger();
+    scenario.reads.jobs = {
+      rows: [{ ...(scenario.reads.jobs.rows ?? [])[0], payment_status: "refunded" }],
+    };
+    scenario.reads.payout_transfers = {
+      rows: [
+        {
+          job_id: "job-1",
+          amount_cents: 8800,
+          platform_fee_cents: 1200,
+          status: "reversed",
+          stripe_transfer_id: "tr_1",
+        },
+      ],
+    };
+    const res = await fn.fetch(cronRequest(fn));
+    const b = await body(res);
+    const findings = b.findings as Array<{ check: string }>;
+    expect(findings.map((f) => f.check)).not.toContain("refunded_with_live_payout");
+    // A fully-clean ledger: reversed payout is the platform made whole again.
+    expect(res.status).toBe(200);
+    expect(b.clean).toBe(true);
+  });
+
   it("a truncated DISPUTE cross-check skips the check instead of inventing criticals", async () => {
     // `dispute_flag_without_row` is a CRITICAL, and a short read makes flagged
     // jobs look like they have no dispute row. So a shortfall here would not

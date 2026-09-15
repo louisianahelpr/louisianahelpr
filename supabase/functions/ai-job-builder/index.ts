@@ -47,6 +47,47 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Bound the payload on BOTH axes and validate each item (EF-3, hole hunt
+    // 2026-09-15). The rate limit above caps request COUNT, not token SPEND: a
+    // single call could previously carry hundreds of KB of `messages` spread
+    // straight into the Gemini request, turning this into a general-purpose LLM
+    // relay billed to GEMINI_API_KEY. `role` was never checked either, so a
+    // caller could inject a second `system` turn after ours to steer the model.
+    // Cap the item count and total content bytes, require string content, and
+    // allow only conversational roles — an item is one turn of THIS form's
+    // back-and-forth, so 8 turns and ~8 KB total is generous for the real use.
+    const MAX_MESSAGES = 8;
+    const MAX_TOTAL_CONTENT_BYTES = 8 * 1024;
+    const ALLOWED_ROLES = new Set(["user", "assistant"]);
+    if (messages.length > MAX_MESSAGES) {
+      return new Response(JSON.stringify({ error: `Too many messages (max ${MAX_MESSAGES})` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    let totalContentBytes = 0;
+    for (const m of messages) {
+      if (
+        typeof m !== "object" || m === null ||
+        typeof (m as { role?: unknown }).role !== "string" ||
+        !ALLOWED_ROLES.has((m as { role: string }).role) ||
+        typeof (m as { content?: unknown }).content !== "string"
+      ) {
+        return new Response(
+          JSON.stringify({ error: "Each message must be { role: 'user'|'assistant', content: string }" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      totalContentBytes += new TextEncoder().encode((m as { content: string }).content).length;
+    }
+    if (totalContentBytes > MAX_TOTAL_CONTENT_BYTES) {
+      return new Response(
+        JSON.stringify({ error: "Message content too large" }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 

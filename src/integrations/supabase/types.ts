@@ -2168,6 +2168,7 @@ export type Database = {
           quiet_end: string | null
           quiet_start: string | null
           reviews: boolean
+          saved_helper_availability: boolean
           system_alerts: boolean
           transit_updates: boolean
           updated_at: string
@@ -2203,6 +2204,7 @@ export type Database = {
           quiet_end?: string | null
           quiet_start?: string | null
           reviews?: boolean
+          saved_helper_availability?: boolean
           system_alerts?: boolean
           transit_updates?: boolean
           updated_at?: string
@@ -2238,6 +2240,7 @@ export type Database = {
           quiet_end?: string | null
           quiet_start?: string | null
           reviews?: boolean
+          saved_helper_availability?: boolean
           system_alerts?: boolean
           transit_updates?: boolean
           updated_at?: string

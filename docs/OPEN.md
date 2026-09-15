@@ -8,6 +8,12 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## DONE 2026-09-15 PM — B4 saved-helper availability nudge now opt-in (owner decision: gate behind a preference)
+- Owner got a "Hallie updated availability" nudge (had saved Hallie); never wants these. Decision (pop-up): gate behind a preference, default OFF.
+- FIX: new STANDALONE `notification_preferences.saved_helper_availability boolean NOT NULL DEFAULT false` (migration 20260915202026). NOT a `notification_type_pref_map` type — the notification keeps `type='info'`; the `saved-helper-availability-push` cron reads the column directly and only fans out to opted-in customers (so no in-app row AND no device push for anyone who hasn't opted in). Deliberately leaves the six-registry closed type set untouched (like `match_digest_mode`/quiet hours). Bonus: default-OFF also ends the orphan-customer duplicate stream the cron documents.
+- UI: standalone "Saved Helpr Openings" toggle in NotificationPreferences (push-only, off by default) with the same deploy-lag guard `email_enabled` uses (strip the key from writes until the column exists on prod). types.ts + Prefs + defaultPrefs updated.
+- CHECK: `src/test/edge/saved-helper-availability-push.test.ts` — opted-in → notified, **opted-out (default) → nothing** (proven red-before: without the gate the opted-out customer got a notification). Registry + prefs-screen tests still green (closed type set intact).
+
 ## DONE 2026-09-15 PM — B1/B3 applied-job count/list/map divergence (owner live-QA)
 - **B1**: header/map showed "1 job" while the list said "Nothing today." Root
   cause: the list feed hides jobs the viewer applied to (`useDashboardData.ts:439`),

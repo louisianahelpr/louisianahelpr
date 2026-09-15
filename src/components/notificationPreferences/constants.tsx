@@ -18,6 +18,9 @@ export const defaultPrefs: Prefs = {
   financial_alerts: true, email_financial_alerts: true,
   job_matches: true, email_job_matches: true,
   match_digest_mode: false,
+  // Saved-helper availability nudges are opt-in (owner, 2026-09-15) — off
+  // until the user turns them on. Standalone toggle, not in `rows`.
+  saved_helper_availability: false,
   quiet_start: null,
   quiet_end: null,
 };

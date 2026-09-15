@@ -47,6 +47,13 @@ export interface Prefs {
       digest instead of being pushed individually. Urgent jobs always
       fire realtime regardless. */
   match_digest_mode: boolean;
+  /** Opt-in (default FALSE): "<Helpr> updated availability" nudges for saved
+      Helprs, sent by the saved-helper-availability-push cron. A STANDALONE
+      preference (like `match_digest_mode` and quiet hours) read directly by
+      the cron, NOT routed through `notification_type_pref_map` — so it does
+      not belong in the per-category `rows` grid and is not part of the
+      six-registry closed type set. Owner, 2026-09-15: off unless turned on. */
+  saved_helper_availability: boolean;
   /** Local-time `HH:MM` start of the quiet-hours window. NULL when
       quiet hours are disabled. Wired in migration
       `20260609120000_notification_quiet_hours.sql`. */

@@ -89,6 +89,20 @@ Deno.serve(async (req) => {
     for (const c of customerRows ?? []) {
       cursorByCustomer.set(c.user_id, (c.saved_helper_seen as Record<string, string> | null) ?? {});
     }
+
+    // Opt-in gate (owner, 2026-09-15): these nudges are OFF by default. Only
+    // customers who turned on `notification_preferences.saved_helper_availability`
+    // receive them. A customer with no preferences row has not opted in and is
+    // skipped — so no in-app notification row and no device push. This also
+    // means an orphan `favorite_helpers` row (a customer_id in neither profiles
+    // nor auth.users) can never be notified, closing the duplicate stream the
+    // block below documents at its other source.
+    const { data: prefRows } = await supabase
+      .from("notification_preferences")
+      .select("user_id")
+      .in("user_id", customerIds)
+      .eq("saved_helper_availability", true);
+    const optedIn = new Set<string>((prefRows ?? []).map((p) => p.user_id));
     // A customer with NO `profiles` row has nowhere to store a cursor. Step 6's
     // `.update(...).eq("user_id", id)` then matches zero rows and — this is the
     // whole defect — PostgREST reports `{ data: null, error: null }`, so the
@@ -128,9 +142,16 @@ Deno.serve(async (req) => {
       const latest = latestByHelper.get(fav.helper_id);
       if (!latest) continue;
       if (!cursorByCustomer.has(fav.customer_id)) {
+        // Data-integrity signal, checked BEFORE the opt-in gate: a
+        // favorite_helpers row pointing at a customer with no profiles row is
+        // an orphan worth surfacing regardless of preference.
         defects.record(`no profiles row for customer ${fav.customer_id} — cursor cannot be stored, skipping`);
         continue;
       }
+      // Opt-in gate (owner, 2026-09-15): skip customers who have not enabled
+      // saved-helper nudges (the default). No defect recorded — a deliberate
+      // no-send, not a fault.
+      if (!optedIn.has(fav.customer_id)) continue;
       const cursor = cursorByCustomer.get(fav.customer_id) ?? {};
       const lastSeen = cursor[fav.helper_id];
       if (lastSeen && new Date(lastSeen) >= new Date(latest)) continue;

@@ -152,6 +152,12 @@ const NotificationPreferences = () => {
   // derived master and strip the key from writes, and the screen behaves
   // exactly as it did before this change until the column shows up.
   const [emailMasterColumn, setEmailMasterColumn] = useState(true);
+  // Same deploy-lag guard for `saved_helper_availability` (migration
+  // 20260915202026), added the same merge as this bundle. Defaults true (assume
+  // the column exists — a new user with no row must still be able to opt in);
+  // only a LOADED row that lacks the column proves we're mid-deploy-gap, and
+  // then we strip the key from writes so the upsert can't PGRST204 on it.
+  const [savedHelperColumn, setSavedHelperColumn] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -193,6 +199,7 @@ const NotificationPreferences = () => {
         // needs the widening any more.
         const row = data as Record<string, unknown>;
         setEmailMasterColumn("email_enabled" in row);
+        setSavedHelperColumn("saved_helper_availability" in row);
         setPrefs({
           ...defaultPrefs,
           ...(data as Partial<Prefs>),
@@ -211,6 +218,7 @@ const NotificationPreferences = () => {
   const writable = (p: Prefs): Record<string, unknown> => {
     const payload: Record<string, unknown> = { ...p };
     if (!emailMasterColumn) delete payload.email_enabled;
+    if (!savedHelperColumn) delete payload.saved_helper_availability;
     return payload;
   };
 
@@ -772,6 +780,63 @@ const NotificationPreferences = () => {
         </>)}
         </Fragment>
       ))}
+
+      {/* Saved-Helpr availability nudges — a STANDALONE opt-in (owner,
+          2026-09-15), OFF by default. Not one of the type-routed category
+          rows above (it isn't in `notification_type_pref_map`); the
+          saved-helper-availability-push cron reads this column directly.
+          Push-only, like the digest row, so it keeps the two-column grid. */}
+      <div
+        className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
+        style={{
+          borderTop: "0.5px solid hsl(var(--olivewood) / 0.08)",
+        }}
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <span
+            className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
+            style={{
+              background: "hsl(var(--burnt-sienna) / 0.14)",
+              color: "hsl(var(--burnt-sienna))",
+            }}
+          >
+            <Bell className="w-3.5 h-3.5" />
+          </span>
+          <div className="min-w-0">
+            <Label
+              className="font-sans font-semibold block text-ds-14 mb-0"
+              style={{ color: "hsl(var(--ink-deep))" }}
+            >
+              Saved Helpr Openings
+            </Label>
+            <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Get a nudge when a Helpr you've saved opens up new availability. Off by default.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 min-[360px]:gap-6 shrink-0 ml-1.5 min-[360px]:ml-2">
+          <SwitchSlot
+            loaded={loaded}
+            savingKey={savingKey}
+            checked={prefs.saved_helper_availability}
+            onCheckedChange={() => toggle("saved_helper_availability")}
+            disabled={!loaded || !prefs.push_enabled}
+            ariaLabel="Saved Helpr availability nudges"
+            savingId="saved_helper_availability"
+          />
+          {/* Push-only — no email version, like the digest row. */}
+          <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
+            <span
+              className="font-sans text-ds-14"
+              style={{ color: "hsl(var(--olivewood) / 0.3)" }}
+              aria-hidden
+            >
+              —
+            </span>
+            <span className="sr-only">Push-only, no email version</span>
+          </div>
+        </div>
+      </div>
 
       {/* Test button — proves push + email + in-app end-to-end (see
           sendTestPush above). Zero registered push devices no longer

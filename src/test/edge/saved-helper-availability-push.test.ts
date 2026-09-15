@@ -14,6 +14,10 @@
  * to `profiles`, so the orphan that triggers it is reachable with no other bug.
  *
  * Runs the REAL function source through the edge harness.
+ *
+ * ALSO PINS the B4 opt-in gate (owner live-QA 2026-09-15): these nudges are
+ * OFF by default; only a customer whose
+ * `notification_preferences.saved_helper_availability` is true is notified.
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -40,8 +44,12 @@ function cronRequest(fn: EdgeHarness) {
 /**
  * One saved-helper pair whose helper has fresh availability.
  * `customerHasProfile: false` reproduces the prod orphan.
+ * `optedIn` decides whether the customer's row comes back from the
+ * `notification_preferences` opt-in read (which the real query filters to
+ * `saved_helper_availability = true` — the mock ignores filters, so the
+ * scenario stands in for the filtered result).
  */
-function seed(customerId: string, customerHasProfile: boolean) {
+function seed(customerId: string, customerHasProfile: boolean, optedIn = true) {
   scenario.reads.favorite_helpers = { rows: [{ customer_id: customerId, helper_id: HELPER }] };
   scenario.reads.helper_availability = {
     rows: [{ helper_id: HELPER, updated_at: "2026-09-10T00:00:00Z", is_available: true }],
@@ -60,6 +68,9 @@ function seed(customerId: string, customerHasProfile: boolean) {
         },
       },
     ],
+  };
+  scenario.reads.notification_preferences = {
+    rows: optedIn ? [{ user_id: customerId }] : [],
   };
 }
 
@@ -99,5 +110,18 @@ describe("saved-helper-availability-push", () => {
     expect(res.status).not.toBe(200);
     const body = JSON.parse(await res.text());
     expect(JSON.stringify(body)).toContain("orphan-customer");
+  });
+
+  // B4: the opt-in gate. A customer with a real profile and fresh saved-helper
+  // availability, who has NOT enabled the preference (the default), gets
+  // nothing — no in-app notification and no push. This is a clean no-send, not
+  // a defect, so the run still reports success.
+  it("does NOT notify a customer who has not opted in (default OFF)", async () => {
+    seed("customer-opted-out", true, false);
+    const fn = await loadConfigured();
+    const res = await cronRequest(fn);
+
+    expect(res.status).toBe(200);
+    expect(notificationInserts()).toHaveLength(0);
   });
 });

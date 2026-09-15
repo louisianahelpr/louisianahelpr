@@ -2,6 +2,14 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../../_shared/adminIds.ts";
+import {
+  CHARGEBACK_MAY_MARK_FILTER,
+  SETTLED_INTERNAL_DISPUTE_STATUSES,
+  chargebackMayMarkJob,
+  disputeStatusAsReadFilter,
+  findInternalPayoutHold,
+  holdReasons,
+} from "./_chargebackHold.ts";
 
 export async function handleChargeDisputeCreated(
   event: Stripe.Event,
@@ -40,10 +48,14 @@ export async function handleChargeDisputeCreated(
     }
   }
 
+  // Set when the job already carried a dispute hold the chargeback left alone,
+  // so the page tells ops the job has two things going on at once.
+  let keptHold: string | null = null;
+
   if (disputePiId) {
     const { data: chargebackJob, error: chargebackJobErr } = await supabase
       .from("jobs")
-      .select("id, customer_id, helper_id, title, payment_status, status")
+      .select("id, customer_id, helper_id, title, payment_status, status, dispute_status, disputed_at")
       .eq("stripe_payment_intent_id", disputePiId)
       .maybeSingle();
 
@@ -56,7 +68,7 @@ export async function handleChargeDisputeCreated(
         kind: "dispute_filed",
         severity: "critical",
         title: "Stripe chargeback — PAYOUT BLOCK SKIPPED (job lookup DB error)",
-        message: `A chargeback fired but the job lookup failed with a DB error — payout block NOT applied. Stripe will retry this webhook. If retries exhaust, manually set payment_status='chargeback', dispute_status='stripe_chargeback', disputed_at=NOW() on the job to prevent double-loss.`,
+        message: `A chargeback fired but the job lookup failed with a DB error — payout block NOT applied. Stripe will retry this webhook. If retries exhaust, manually set payment_status='chargeback' on the job to prevent double-loss — and dispute_status='stripe_chargeback', disputed_at=NOW() ONLY if the job has no dispute_status of its own (never overwrite an internal dispute or reversal hold).`,
         fields: {
           "Dispute ID": dispute.id,
           "Payment Intent": disputePiId ?? "—",
@@ -75,6 +87,51 @@ export async function handleChargeDisputeCreated(
         chargebackJob.payment_status,
       );
       const disputedAt = new Date().toISOString();
+      // The markers are NOT ours when the job already carries an internal hold
+      // (OPEN.md HIGH, d7a04acb9). This used to overwrite dispute_status and
+      // disputed_at unconditionally, and a dismissed inquiry then cleared
+      // disputed_at: a decided-but-unexecuted dispute ('resolved') paid the
+      // Helpr in full over the decided refund, and a 'reversal_hold' job became
+      // re-payable. The payout block (payment_status) still applies — it is the
+      // chargeback's own — but an internal dispute_status / disputed_at is left
+      // exactly as it was. See _chargebackHold.ts.
+      let mayMark = chargebackMayMarkJob(chargebackJob);
+      // One exception, for a RELEASED job whose internal dispute is SETTLED
+      // ('resolved' / 'auto_resolved'): the money already moved, so there is
+      // no internal hold to protect — and without a card-dispute marker a
+      // failed or canceled transfer re-queues the job and release-payout's
+      // allow-list pays it over the live chargeback. Settled is proven from
+      // the off-row reads too, because 'resolved' is also what an unexecuted
+      // decision looks like on the job row. The marker write is then a CAS on
+      // exactly the status read. Read before any write (a released job gets
+      // no block), so a read failure throws with nothing changed.
+      const settledReleased = !mayMark &&
+        chargebackJob.payment_status === "released" &&
+        (SETTLED_INTERNAL_DISPUTE_STATUSES as readonly string[]).includes(chargebackJob.dispute_status ?? "");
+      if (settledReleased) {
+        const hold = await findInternalPayoutHold(supabase, chargebackJob.id);
+        if (hold.readError) {
+          await postSlackOpsAlert({
+            kind: "dispute_filed",
+            severity: "critical",
+            title: "Stripe chargeback on a released job — HOLD CHECK FAILED, marker not placed",
+            message: `A chargeback fired on a released job whose own dispute reads as settled, but its open-dispute / unexecuted-split / reversed-payout records could not be read, so no chargeback marker was placed. Stripe will retry this webhook. Do not re-queue this job's payout until it is marked.`,
+            fields: {
+              "Dispute ID": dispute.id,
+              "Job ID": String(chargebackJob.id),
+              "Read error": hold.readError.slice(0, 200),
+            },
+            link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
+            oncePerDayKey: `dispute-created-hold-read-failed:${chargebackJob.id}`,
+          });
+          throw new Error(`Hold check failed for chargeback ${dispute.id} on job ${chargebackJob.id}: ${hold.readError}`);
+        }
+        mayMark = holdReasons(chargebackJob, hold).length === 0;
+      }
+      const markFilter = settledReleased
+        ? disputeStatusAsReadFilter(chargebackJob.dispute_status)
+        : CHARGEBACK_MAY_MARK_FILTER;
+      let markersPlaced = false;
 
       // The block is a COMPARE-AND-SET on the payment state it was decided
       // from (race-class audit 2026-09-14). Matched on id alone, a payout that
@@ -83,17 +140,13 @@ export async function handleChargeDisputeCreated(
       // hiding a paid Helpr from ops, and a later warning_closed then walked
       // that job back to payout_pending, re-queuing money that had already left.
       // Likewise a cancel_escrow holding 'cancelling' was stomped mid-refund.
-      // Zero rows means the job left the payable set: fall through to the
-      // marker-only write, exactly as the already-released branch does.
+      // Zero rows means the job left the payable set: no block, markers only.
+      // payment_status alone here; the markers are their own conditional write.
       let blockUpdateErr: { message: string } | null = null;
       if (shouldBlockPayout) {
         const { data: blocked, error: blockErr } = await supabase
           .from("jobs")
-          .update({
-            payment_status: "chargeback",
-            dispute_status: "stripe_chargeback",
-            disputed_at: disputedAt,
-          })
+          .update({ payment_status: "chargeback" })
           .eq("id", chargebackJob.id)
           .in("payment_status", ["payout_pending", "escrow"])
           .select("id");
@@ -106,19 +159,37 @@ export async function handleChargeDisputeCreated(
           shouldBlockPayout = false;
         }
       }
-      if (!blockUpdateErr && !shouldBlockPayout) {
-        // Markers only — no lifecycle column, so no state to race. disputed_at
-        // is still what every payout guard keys on.
-        const { error: markerErr } = await supabase
+      if (!blockUpdateErr && mayMark) {
+        // Markers — no lifecycle column. disputed_at is what the payout guards
+        // key on. A compare-and-set on "no markers, or card-dispute markers
+        // only": an internal dispute opened or decided since the read makes
+        // this match zero rows instead of being overwritten.
+        const { data: marked, error: markerErr } = await supabase
           .from("jobs")
           .update({ dispute_status: "stripe_chargeback", disputed_at: disputedAt })
-          .eq("id", chargebackJob.id);
+          .eq("id", chargebackJob.id)
+          .or(markFilter)
+          .select("id");
         blockUpdateErr = markerErr;
+        markersPlaced = !markerErr && (marked?.length ?? 0) > 0;
+        if (!markerErr && !markersPlaced) {
+          // Zero rows is legitimate: an internal hold took the markers since
+          // the read, and it is exactly what must not be overwritten.
+          logStep("Chargeback markers skipped — an internal dispute hold appeared since read", {
+            jobId: chargebackJob.id,
+          });
+        }
+      } else if (!blockUpdateErr) {
+        logStep("Chargeback markers skipped — job already carries an internal dispute hold", {
+          jobId: chargebackJob.id,
+          disputeStatus: chargebackJob.dispute_status,
+          disputedAt: chargebackJob.disputed_at,
+        });
       }
 
       if (blockUpdateErr) {
-        // The DB write failed — dispute markers (disputed_at, dispute_status,
-        // payment_status) were NOT applied. Without disputed_at set, the job
+        // A DB write failed — the payout block (payment_status) and/or the
+        // dispute markers (disputed_at, dispute_status) were NOT applied. Without disputed_at set, the job
         // remains invisible to every payout guard:
         //   - process-scheduled-payouts filters on `.is("disputed_at", null)`
         //   - release-payout checks `job.disputed_at !== null`
@@ -132,13 +203,14 @@ export async function handleChargeDisputeCreated(
           kind: "dispute_filed",
           severity: "critical",
           title: "Stripe chargeback — PAYOUT BLOCK FAILED (DB error), double-loss risk",
-          message: `A chargeback fired but the DB write to block payouts failed. The job stays payout_pending with disputed_at=null — invisible to all payout guards. Stripe will retry this webhook. If retries exhaust, manually set payment_status='chargeback', dispute_status='stripe_chargeback', disputed_at=NOW() on the job to prevent double-loss.`,
+          message: `A chargeback fired but the DB write to block payouts failed. The job may still be payable with no dispute marker — invisible to the payout guards. Stripe will retry this webhook. If retries exhaust, manually set payment_status='chargeback' on the job to prevent double-loss — and dispute_status='stripe_chargeback', disputed_at=NOW() ONLY if the job has no dispute_status of its own (never overwrite an internal dispute or reversal hold).`,
           fields: {
             "Dispute ID": dispute.id,
             "Payment Intent": disputePiId ?? "—",
             "Job ID": String(chargebackJob.id),
             "Prev payment_status": chargebackJob.payment_status,
             "Should block payout": String(shouldBlockPayout),
+            "Existing dispute_status": chargebackJob.dispute_status ?? "—",
             "Amount": `$${(dispute.amount / 100).toFixed(2)}`,
             "DB error": blockUpdateErr.message.slice(0, 200),
           },
@@ -152,14 +224,18 @@ export async function handleChargeDisputeCreated(
       logStep(
         shouldBlockPayout
           ? "Blocked payout on chargebacked job"
-          : "Chargeback on a job outside the payable set (released, or moved since read) — markers only, manual reconciliation needed",
+          : "Chargeback on a job outside the payable set (released, or moved since read) — no block, manual reconciliation needed",
         {
           jobId: chargebackJob.id,
           prevPaymentStatus: chargebackJob.payment_status,
           shouldBlockPayout,
+          markersPlaced,
           disputeId: dispute.id,
         },
       );
+      if (!markersPlaced) {
+        keptHold = `dispute_status=${chargebackJob.dispute_status ?? "null"}, disputed_at=${chargebackJob.disputed_at ?? "null"}`;
+      }
 
       // Notify all admins — chargebacks require a Stripe Dashboard response
       // or the platform auto-loses and pays both the customer AND a $15 fee.
@@ -196,6 +272,7 @@ export async function handleChargeDisputeCreated(
             .toISOString()
             .split("T")[0]
         : "—",
+      ...(keptHold ? { "Existing hold kept": keptHold } : {}),
     },
     link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
   });

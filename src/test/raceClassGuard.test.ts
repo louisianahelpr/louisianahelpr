@@ -250,8 +250,11 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
     expect(without.noShow).not.toMatch(/helper_completed_at/);
     expect(without.helperCancel).not.toMatch(/helper_completed_at/);
 
+    // 20260915101102 strengthened this clause from `auth.uid() IS NOT NULL`
+    // (which trusted any NULL uid, anon included) to `NOT is_server_context()`,
+    // so only a true server session may clear the payout stamp.
     expect(latestDefinition("enforce_completion_on_live_job")).toMatch(
-      /NEW\.helper_completed_at\s+IS\s+NULL\s+AND\s+auth\.uid\(\)\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'helper_completed_at_not_clearable'/i,
+      /NEW\.helper_completed_at\s+IS\s+NULL\s+AND\s+NOT\s+public\.is_server_context\(\)\s+THEN\s+RAISE\s+EXCEPTION\s+'helper_completed_at_not_clearable'/i,
     );
     const block = latestDefinition("block_user_and_settle");
     expect(block.match(/helper_completed_at\s+IS\s+NULL/gi)).toHaveLength(2); // the locked SELECT and the UPDATE predicate

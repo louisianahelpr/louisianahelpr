@@ -1477,7 +1477,11 @@ $function$;
 -- file was first drafted, so they were not in the original set. Re-derived from
 -- their LIVE definitions with only the trust test changed:
 --   enforce_completion_on_live_job       (live md5(prosrc) before: caller-role
---     gate; status check now runs for anon, waved only for a server context)
+--     gate; status door (block 3) now runs for anon, waved only for a server
+--     context. Its "no unstamp Done" block also carried the same NULL-uid trust
+--     as `auth.uid() IS NOT NULL` — a bare NULL uid could clear the payout stamp
+--     — so that clause becomes `NOT public.is_server_context()` too; the block
+--     is a RAISE, not an early RETURN, so null-uid-trust.sql does not see it.)
 --   enforce_dispute_evidence_append_only (live: _uid IS NULL pass-through ->
 --     is_server_context(); admins still exempt)
 --   enforce_job_tracking_arrival_gate    (20260915044137 + bad-pin near-miss;
@@ -1501,11 +1505,15 @@ BEGIN
   -- is refused. Without this the pin below and poster_cancel_job's refusal
   -- are one PATCH deep: the poster (RLS "Customers can update their own
   -- jobs") wipes the stamp and then cancels finished work, or the Helpr clears
-  -- and re-stamps to move the auto-release clock. A direct database session
-  -- (no uid) can still clear it.
+  -- and re-stamps to move the auto-release clock. Only a true SERVER context
+  -- (direct db / migration / cron, e.g. backdating a seed fixture) may clear
+  -- it. `NOT public.is_server_context()` on purpose, not `auth.uid() IS NOT
+  -- NULL`: a NULL uid alone is not the server — anon has one too — and this is
+  -- the payout-pipeline column (20260915101102). The next block keeps the
+  -- service-role re-stamp idempotent via auth.role() separately.
   IF OLD.helper_completed_at IS NOT NULL
      AND NEW.helper_completed_at IS NULL
-     AND auth.uid() IS NOT NULL THEN
+     AND NOT public.is_server_context() THEN
     RAISE EXCEPTION 'helper_completed_at_not_clearable'
       USING ERRCODE = '42501',
             HINT = 'A job marked done stays marked done. Ask for a change or open a dispute instead.';

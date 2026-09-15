@@ -262,11 +262,16 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // JobDetailDialog or JobDetail. It lives on the Activity job card
         // (AppliedJobCard / PostedJobActions) via `DisputeLink`, and its
         // visibility rules were undisclosed: a poster must request a REVISION
-        // first and let that window lapse (DisputeLink.tsx:58-74), and the link
-        // survives only 7 days past completion (:88-95). Sending someone to the
-        // wrong screen to file a time-limited money claim is the worst possible
-        // shape for this answer to be wrong in.
-        a: "Open a dispute from the job's card in My Jobs (Helprs) or My Posts (posters) — not the job detail screen. If you're the poster, request a revision first and give the Helpr their window to fix it; the dispute link appears once that window has run. It stays available for 7 days after completion. Our team reviews both sides and can release the payment to either party or split it. Disputes have a 72-hour window: if it isn't resolved or escalated in that time, platform policy releases the payment to the Helpr automatically, so don't sit on it.",
+        // first and let that window lapse (DisputeLink.tsx:58-74). Sending
+        // someone to the wrong screen to file a time-limited money claim is the
+        // worst possible shape for this answer to be wrong in.
+        // WAS: "It stays available for 7 days after completion." FALSE since
+        // VN-28 (owner, 2026-09-14: "they can't report a job once it's done"):
+        // a completed job has no dispute or Report a Problem control on either
+        // card (shouldShowDisputeLink, ActiveJobSection `showReport`). The
+        // Helpr's chip runs from On the Way until the job is marked done; after
+        // that the only path is Support, so the answer says so.
+        a: "Open a dispute from the job's card in My Jobs (Helprs) or My Posts (posters) — not the job detail screen. Helprs get a Report a Problem button from On the Way until the job is done, including during a revision. If you're the poster, request a revision first and give the Helpr their window to fix it; the dispute link appears once that window has run. Once a job is done, there's no dispute option on the card — contact Support instead. Our team reviews both sides and can release the payment to either party or split it. Disputes have a 72-hour window: if it isn't resolved or escalated in that time, platform policy releases the payment to the Helpr automatically, so don't sit on it.",
       },
     ],
   },

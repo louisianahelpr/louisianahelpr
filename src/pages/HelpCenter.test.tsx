@@ -11,6 +11,7 @@ import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/detailsSectionConstants";
+import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
 
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: () => {} }));
 vi.mock("@/integrations/supabase/client", () => ({
@@ -160,5 +161,35 @@ describe("/help FAQ copy is derived from config, not retyped", () => {
       const named = credentialAnswer!.includes(JOB_CATEGORY_LABELS[value].toLowerCase());
       expect(named).toBe(CREDENTIAL_TIER_CATEGORIES.has(value));
     }
+  });
+});
+
+describe("/help dispute answer matches the cards (VN-28)", () => {
+  // VN-28 (owner, 2026-09-14): "they can't report a job once it's done". The
+  // cards dropped the post-completion dispute window, but this answer still
+  // promised the option "stays available for 7 days after completion" — a
+  // time-limited money claim pointed at a control that no longer exists. The
+  // rule is read from the predicate itself so the copy check follows the code.
+  const disputeAnswer = FAQ_SECTIONS.flatMap((s) => s.items).find((i) => /dispute/i.test(i.q))?.a ?? "";
+  const completedJob = {
+    status: "completed",
+    poster_completed_at: new Date().toISOString(),
+    helper_completed_at: new Date().toISOString(),
+    disputed_at: null,
+    revision_requested_at: null,
+  };
+
+  it("promises no dispute window after completion while the cards offer none", () => {
+    expect(disputeAnswer).not.toBe("");
+    expect(shouldShowDisputeLink(completedJob, "customer")).toBe(false);
+    expect(shouldShowDisputeLink(completedJob, "helper")).toBe(false);
+    expect(disputeAnswer).not.toMatch(/\d+\s*days?\s+(after|past)\s+completion/i);
+    expect(disputeAnswer).not.toMatch(/stays available/i);
+    // …and says where a finished job goes instead.
+    expect(disputeAnswer).toMatch(/once a job is done[^.]*contact support/i);
+  });
+
+  it("names the Helpr's mid-job control by the label the card renders", () => {
+    expect(disputeAnswer).toContain("Report a Problem");
   });
 });

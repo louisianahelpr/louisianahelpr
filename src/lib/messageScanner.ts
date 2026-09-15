@@ -1,5 +1,10 @@
 // Advisory UX only — scan_message_content() in Postgres is the authoritative gate; keep patterns in sync.
-import { PHONE_PATTERN } from "./contactLeakRules";
+import { PHONE_PATTERN, LOCATION_SHARE_PATTERN } from "./contactLeakRules";
+
+// The exact app-generated "📍 Location: lat,lng" shape — see
+// LOCATION_SHARE_PATTERN's own doc comment (contactLeakRules.ts) for why a
+// 3-digit-integer longitude otherwise lines up with the phone shape below.
+const LOCATION_SHARE_REGEX = new RegExp(LOCATION_SHARE_PATTERN);
 
 // Off-platform activity detection patterns
 // The phone rule is NOT defined here: it is the shared PHONE_PATTERN, the same
@@ -46,6 +51,13 @@ export type DetectedViolation = {
 };
 
 export function scanMessage(content: string): DetectedViolation[] {
+  // sendMessage already skips this call entirely for a location share (the
+  // explicit `isLocationShare` flag); this is the client-side mirror of the
+  // SAME exemption contact_leak_reason applies server-side, so scanMessage
+  // itself is never the one place that disagrees — e.g. if it is ever called
+  // on a location share's content from somewhere else.
+  if (LOCATION_SHARE_REGEX.test(content)) return [];
+
   const violations: DetectedViolation[] = [];
 
   // Group 1 is the boundary character in front of the number (or "" at the

@@ -255,12 +255,16 @@ export const RichMessageInput = ({
           const { Geolocation } = await import("@capacitor/geolocation");
           const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
           const { latitude, longitude } = pos.coords;
-          // The explicit flag (not the "📍" prefix) is what exempts this
-          // app-generated share from the CLIENT scan; the server still scans
-          // it, and a full-precision coordinate's long digit tail can read as
-          // a phone number there. 6 decimals (~0.1 m) never does at Louisiana
-          // coordinates (200k random samples: 0 flagged).
-          onSend(`📍 Location: https://maps.google.com/?q=${latitude.toFixed(6)},${longitude.toFixed(6)}`, undefined, { isLocationShare: true });
+          // Bare "lat,lng" (MessageBubble builds the maps.google.com link at
+          // render time) — never a URL in the stored content. The explicit
+          // flag (not the "📍" prefix) is what exempts this app-generated
+          // share from the CLIENT scan; the server still scans it, and this
+          // EXACT shape is what LOCATION_SHARE_PATTERN
+          // (contactLeakRules.ts) exempts there too: a full-precision
+          // coordinate's digit tail can otherwise line up with the phone
+          // rule outside Louisiana (docs/OPEN.md queue #1 residual,
+          // 2026-09-14/15). 6 decimals is ~0.1 m.
+          onSend(`📍 Location: ${latitude.toFixed(6)},${longitude.toFixed(6)}`, undefined, { isLocationShare: true });
         } catch {
           toast.error("Location access denied — allow it in Settings to share your location.");
         }
@@ -270,7 +274,7 @@ export const RichMessageInput = ({
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const { latitude, longitude } = pos.coords;
-            onSend(`📍 Location: https://maps.google.com/?q=${latitude.toFixed(6)},${longitude.toFixed(6)}`, undefined, { isLocationShare: true });
+            onSend(`📍 Location: ${latitude.toFixed(6)},${longitude.toFixed(6)}`, undefined, { isLocationShare: true });
             resolve();
           },
           () => {

@@ -45,7 +45,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-34 | Rename "Request My Payout" on the Done step, and don't allow it until photos are uploaded | small | [x] e6a330db6 | [x] vn-34-after-jobs-working-1440.webp |
 | VN-35 | Messages list header — move the chevron to the right of the hamburger; search opens too wi | small | [x] 107f092b2 | [x] vn-35-after-messages-search-1440.webp |
 | VN-36 | "No reviews yet" star illustration looks crammed / disorganised | small | [x] 7bf9db6ba | [x] vn-36-after-profile-reviews-1440.webp |
-| VN-37 | Content doesn't fill the page — small gap left and right on My Reviews and other Profile t | small–medium | [ ] | [ ] |
+| VN-37 | Content doesn't fill the page — small gap left and right on My Reviews and other Profile t | small–medium | [x] 485569f19 | [x] vn-37-after-vn37-myposts-1440.webp |
 | VN-38 | Remove "Parish · Vermilion" from Edit Profile | small | [x] bdc3f53d1 | [x] vn-38-after-edit-profile-1440-zip.webp |
 | VN-39 | Do skills & services and recent work show anywhere on the public profile? (OWNER QUESTION  | question | [ ] | [ ] |
 | VN-40 | Edit Profile save bar — "Cancel" / "Up to Date" buttons | small | [x] 8b78763b4 | [x] vn-40-after-vn40-after-save-1440.webp |

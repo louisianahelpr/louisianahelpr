@@ -36,7 +36,8 @@ import { JobStepRowContext, hasRenderable, measureJobStepRow, type JobStepRowLay
  *
  *   - ONE horizontal row (`flex-nowrap`), inside this card — the same box the
  *     tracker lives in. It never wraps to a second row.
- *   - The primary leads and flexes wider (PRIMARY_FLEX shares) with its label.
+ *   - The primary TRAILS on the right (owner V2/V3) and flexes wider
+ *     (PRIMARY_FLEX shares) with its label.
  *   - Every other action is an equal-width chip beside it (icon over label, as
  *     JobActionChip draws it).
  *   - When the labelled layout would squeeze a chip under LABELLED_CHIP_MIN_PX
@@ -70,7 +71,8 @@ import { JobStepRowContext, hasRenderable, measureJobStepRow, type JobStepRowLay
  *      property of the ask, not a preface to it.
  *   4. the row's note — one line explaining the primary, portalled in by the
  *      control that owns the reason.
- *   5. THE ROW — `primary` (at most ONE, leading) then `actions` (chips).
+ *   5. THE ROW — `actions` (chips) then `primary` (at most ONE, TRAILING on
+ *      the right per owner V2/V3; its `flex:2` still makes it the widest slot).
  *      Callers pass `actions` as an array and may include `false`/`null` for
  *      an absent chip; `primary` may be null. A portalled CTA replaces
  *      `primary`.
@@ -210,8 +212,14 @@ export function JobStepCard({
           data-empty={layout.empty ? "true" : "false"}
           className="job-step-row flex flex-nowrap items-stretch gap-1.5"
         >
-          <div ref={setPrimaryHost} data-job-step-primary="" className="job-step-primary" />
+          {/* Chips lead, the primary TRAILS on the right (owner, 2026-09-15,
+              V2/V3: "primary buttons should be RIGHT"). DOM order = visual
+              order = focus order, so the primary is last to Tab to as well as
+              rightmost. Its `flex: 2` (index.css) still makes it the widest
+              slot — now on the right — so the hierarchy VN-21 set is kept,
+              only the side changes. */}
           {chips}
+          <div ref={setPrimaryHost} data-job-step-primary="" className="job-step-primary" />
         </div>
         {primaryHost && ownPrimary ? createPortal(ownPrimary, primaryHost) : null}
         {footnote}

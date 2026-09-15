@@ -427,9 +427,11 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
         "these controls render on their own row, outside the step's single action row",
       ).toEqual([]);
 
-      // The primary LEADS the row, and it is the control this state is about.
-      const primarySlot = row.firstElementChild as HTMLElement;
-      expect(primarySlot.hasAttribute("data-job-step-primary"), "the row does not start with its primary slot").toBe(true);
+      // The primary TRAILS the row on the right (owner, 2026-09-15, V2/V3:
+      // "primary buttons should be RIGHT"), and it is the control this state
+      // is about. It is the LAST child; the chips lead.
+      const primarySlot = row.lastElementChild as HTMLElement;
+      expect(primarySlot.hasAttribute("data-job-step-primary"), "the row does not end with its primary slot").toBe(true);
       const primaryLabels = [...primarySlot.children].map((b) => (b.textContent || "").trim());
       expect(primaryLabels, "the row's primary").toEqual(c.primary);
       // The row may never wrap onto a second line.

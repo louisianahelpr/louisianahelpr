@@ -28,18 +28,24 @@ tripped a check. Three classes, in order of how many:
   noise. Corrected the row to the file that exists (test-owned record, one
   UPDATE, verified 200 after). A repo-wide check for the same class found no
   other profile pointing at a missing object.
-  - [ ] Product question this raises and does NOT answer: how did the row and
-    the object diverge? If an upload can write `avatar.<newext>` without
-    rewriting the row (or a delete can leave it), a real user's avatar 400s the
-    same way. Worth a look at the upload path before calling this closed.
-- [ ] **11 x "Notifications › All" — no observable change (focus moved, nothing
-  else)** — pressing the already-active notification filter changes nothing
-  visible. Either the harness should treat a no-op re-press of the active tab
-  as documented, or the tab should show it is already selected.
+  - [x] ANSWERED, and the cause is fixed (02a4f9fbd): `scripts/audit/prod-seed.mjs`
+    insisted on `avatar.png`, while `src/lib/avatarStorage.ts` derives the key
+    from the content type and deletes every other `avatar.*` — by design, so a
+    jpg→png swap cannot leave the old object publicly fetchable. Seed and app
+    were fighting over one object. The seed now leaves a resolving avatar alone
+    whatever its type. No real-user path writes a row that points at a missing
+    object: avatarStorage updates the row and the object together.
+- [x] **11 x "Notifications › All" — no observable change** — FIXED in the
+  harness (02a4f9fbd): pressing the tab you are already on is supposed to do
+  nothing, so it now reads aria-selected / aria-pressed / aria-checked /
+  data-state=active / aria-current BEFORE the click and excuses a no-op only
+  for a control already in the state the press asks for.
 - [ ] **9 x `[auth] admin role lookup failed — role state is UNKNOWN: Profile
-  request timed out`** — a console error the harness counts as a failed press.
-  It is a timeout under sweep load, not a press defect; the auth layer logs at
-  error level for a slow read.
+  request timed out`** — DELIBERATELY NOT SILENCED. It is prod saying a profile
+  read exceeded its budget under a four-shard sweep. Muting it in the harness
+  would delete the signal. Decide: raise the profile-read timeout, make the
+  auth layer log a timeout below error level, or accept the red under sweep
+  load. Until then press-every-control stays red on these alone.
 - [ ] A handful of "control not found on a freshly loaded page (transient or
   non-deterministic)", including two fixture jobs named `[E2E DO NOT ACCEPT] J
   z8/z9` — a fixture-timing race, not a control.

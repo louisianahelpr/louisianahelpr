@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { formatPriceExact } from "@/lib/format";
 import { isIdentityVerified } from "@/lib/awardGate";
 import HelprMark from "@/components/HelprMark";
-import type { Database } from "@/integrations/supabase/types";
+import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import {
@@ -40,7 +40,8 @@ import {
   type WorkRecordDocumentInput,
 } from "@/lib/workRecordDocument";
 
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
+// jobs.offered_to_helper_id is not selectable (20260915045110): named columns.
+type Job = ReadableJobRow;
 
 interface WorkRecordData {
   profile: {
@@ -165,11 +166,11 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
       // Fetch completed jobs where this user was the helper
       const jobsRes = await supabase
         .from("jobs")
-        .select("*")
+        .select(JOB_READABLE_COLUMNS)
         .eq("helper_id", userId)
         .eq("status", "completed")
         .order("created_at", { ascending: false });
-      const completedJobs = unwrap(jobsRes) as Job[];
+      const completedJobs = readableJobRows<Job>(unwrap(jobsRes));
 
       // Fetch reviews received as helper — the SAME set the Reviews tab
       // shows (`useProfileStats`): only reviews past their anti-retaliation

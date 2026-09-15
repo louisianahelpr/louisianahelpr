@@ -1,7 +1,10 @@
 import type { Database } from "@/integrations/supabase/types";
+import type { ReadableJobRow } from "@/lib/jobColumns";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-export type Job = Database["public"]["Tables"]["jobs"]["Row"];
+// The row as an admin client can read it: jobs.offered_to_helper_id is not
+// selectable by `authenticated` (20260915045110), admins included.
+export type Job = ReadableJobRow;
 export type Tip = Database["public"]["Tables"]["tips"]["Row"];
 
 export type DrillDown = "users" | "jobs" | "revenue" | "fees" | "subscriptions" | "categories" | "payouts" | null;

@@ -1000,6 +1000,17 @@
     "nargs": 1
    }
   ],
+  "get_job_offer_targets": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_ids"
+    ],
+    "authenticated": true,
+    "nargdefaults": 1,
+    "nargs": 1
+   }
+  ],
   "get_job_pets": [
    {
     "anon": false,

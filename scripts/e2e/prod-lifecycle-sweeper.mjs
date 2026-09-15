@@ -101,7 +101,9 @@ async function cancelEscrow(jobId) {
  * degraded (live-key) run would strand an undeletable row.
  */
 async function reopenJob(jobId) {
-  const r = await fetch(`${BASE}/rest/v1/jobs?id=eq.${jobId}`, {
+  // `select=id` with the representation: bare `*` is refused since
+  // 20260915045110 (no table-level SELECT on jobs for authenticated).
+  const r = await fetch(`${BASE}/rest/v1/jobs?id=eq.${jobId}&select=id`, {
     method: "PATCH",
     headers: { ...H, Prefer: "return=representation" },
     body: JSON.stringify({ status: "open", helper_id: null }),
@@ -131,7 +133,9 @@ async function cancelJob(jobId) {
 }
 
 async function deleteJob(jobId) {
-  const r = await fetch(`${BASE}/rest/v1/jobs?id=eq.${jobId}`, {
+  // `select=id`: the row count below is the proof a delete landed, and a
+  // bare representation would be RETURNING * — refused since 20260915045110.
+  const r = await fetch(`${BASE}/rest/v1/jobs?id=eq.${jobId}&select=id`, {
     method: "DELETE",
     headers: { ...H, Prefer: "return=representation" },
   });

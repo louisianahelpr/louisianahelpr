@@ -4725,6 +4725,13 @@ export type Database = {
         }[]
       }
       get_job_customer_id: { Args: { _job_id: string }; Returns: string }
+      get_job_offer_targets: {
+        Args: { p_job_ids?: string[] }
+        Returns: {
+          job_id: string
+          offered_to_helper_id: string
+        }[]
+      }
       get_job_pets: {
         Args: { p_job_id: string }
         Returns: {

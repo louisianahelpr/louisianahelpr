@@ -17,7 +17,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
-import type { Database } from "@/integrations/supabase/types";
 import {
   buildHelperBadgeStats,
   helperSideFromRatings,
@@ -25,8 +24,11 @@ import {
   type HelperBadgeStats,
   type HelperSideReviews,
 } from "@/lib/helperBadgeStats";
+import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
 
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
+// The row as a signed-in client can read it: jobs.offered_to_helper_id is not
+// selectable (20260915045110), so these reads name their columns.
+type Job = ReadableJobRow;
 
 export type ProfileReview = {
   rating: number;
@@ -247,7 +249,7 @@ export function useProfileEarnings(userId: string | undefined, enabled: boolean)
       // not. Admin aggregates keep excluding `is_seed` unconditionally
       // (see src/config/showSeedJobs.ts); a platform-wide money figure and one
       // person's own ledger are not the same instrument.
-      const jobsQuery = supabase.from("jobs").select("*").neq("status", "cancelled");
+      const jobsQuery = supabase.from("jobs").select(JOB_READABLE_COLUMNS).neq("status", "cancelled");
       const [jobsRes, tipsRes] = await Promise.all([
         (rosterJobIds.length
           ? jobsQuery.or(`helper_id.eq.${id},id.in.(${rosterJobIds.join(",")})`)
@@ -259,7 +261,8 @@ export function useProfileEarnings(userId: string | undefined, enabled: boolean)
         // inflated the helper's earnings by money that never arrived.
         supabase.from("tips").select("amount, job_id, created_at").eq("helper_id", id).eq("payment_status", "paid"),
       ]);
-      const jobs = unwrap(jobsRes) ?? [];
+      // Cast, not `.overrideTypes()`: see the note in src/lib/jobColumns.ts.
+      const jobs = readableJobRows<Job>(unwrap(jobsRes));
       const allTips = unwrap(tipsRes) ?? [];
       const completedJobIds = new Set(jobs.filter((j) => j.status === "completed").map((j) => j.id));
       return { jobs, tips: allTips.filter((t) => completedJobIds.has(t.job_id)) };
@@ -275,10 +278,10 @@ export function useProfileSchedule(userId: string | undefined, enabled: boolean)
     queryFn: async () => {
       const id = userId!;
       const [posted, assigned] = await Promise.all([
-        supabase.from("jobs").select("*").eq("customer_id", id).in("status", ["open", "accepted", "in_progress"]).order("date_needed"),
-        supabase.from("jobs").select("*").eq("helper_id", id).in("status", ["accepted", "in_progress"]).order("date_needed"),
+        supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("customer_id", id).in("status", ["open", "accepted", "in_progress"]).order("date_needed"),
+        supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("helper_id", id).in("status", ["accepted", "in_progress"]).order("date_needed"),
       ]);
-      return { posted: unwrap(posted) ?? [], assigned: unwrap(assigned) ?? [] };
+      return { posted: readableJobRows<Job>(unwrap(posted)), assigned: readableJobRows<Job>(unwrap(assigned)) };
     },
   });
 }

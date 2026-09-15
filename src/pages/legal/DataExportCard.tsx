@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { report } from "@/lib/errorLogger";
+import { JOB_READABLE_COLUMNS } from "@/lib/jobColumns";
 import { hapticError } from "@/lib/haptics";
 import { saveOrShareFile } from "@/lib/fileExport";
 import { toast } from "sonner";
@@ -72,7 +73,9 @@ export function DataExportCard() {
     try {
       const [profileRes, jobsRes, applicationsRes, reviewsRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
-        supabase.from("jobs").select("*").or(`customer_id.eq.${userId},helper_id.eq.${userId}`),
+        // Named columns, not `*`: jobs.offered_to_helper_id is not selectable
+        // (20260915045110, owner decision 2026-09-14) and `*` 42501s the read.
+        supabase.from("jobs").select(JOB_READABLE_COLUMNS).or(`customer_id.eq.${userId},helper_id.eq.${userId}`),
         supabase.from("applications").select("*").eq("helper_id", userId),
         supabase.from("reviews").select("*").or(`reviewer_id.eq.${userId},reviewee_id.eq.${userId}`),
       ]);

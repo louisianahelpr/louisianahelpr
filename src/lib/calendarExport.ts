@@ -1,9 +1,10 @@
 import { toast } from "sonner";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { report } from "@/lib/errorLogger";
-import type { Database } from "@/integrations/supabase/types";
+import type { ReadableJobRow } from "@/lib/jobColumns";
 
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
+// jobs.offered_to_helper_id is not client-selectable (20260915045110).
+type Job = ReadableJobRow;
 
 /** Minutes a scheduled job is assumed to run when the job carries no
  *  `estimated_hours` — long enough to be useful on a calendar without

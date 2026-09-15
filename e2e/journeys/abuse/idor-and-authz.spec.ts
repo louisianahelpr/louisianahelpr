@@ -46,7 +46,10 @@ test.describe("bad actors: IDOR & authz", () => {
     posterHeaders = rest(poster);
     helperHeaders = rest(helper);
 
-    const created = await request.post(`${SUPABASE_URL}/rest/v1/jobs`, {
+    // `select=id`, not bare representation: RETURNING * on jobs is a 42501
+    // for authenticated since 20260915045110 (offered_to_helper_id is not
+    // column-granted), which would fail this setup for the wrong reason.
+    const created = await request.post(`${SUPABASE_URL}/rest/v1/jobs?select=id`, {
       headers: { ...posterHeaders, Prefer: "return=representation" },
       data: {
         customer_id: posterId,
@@ -84,7 +87,10 @@ test.describe("bad actors: IDOR & authz", () => {
   });
 
   test("the helper cannot UPDATE the poster's job (jobs UPDATE qual = customer_id)", async ({ request }) => {
-    const r = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${targetJobId}`, {
+    // `select=id` so a refused write is RLS answering 0 rows, not a column
+    // 42501 (20260915045110) — the latter would pass this assertion without
+    // ever exercising the policy.
+    const r = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${targetJobId}&select=id`, {
       headers: { ...helperHeaders, Prefer: "return=representation" },
       data: { budget: 1 },
     });
@@ -97,7 +103,9 @@ test.describe("bad actors: IDOR & authz", () => {
   });
 
   test("the helper cannot DELETE the poster's job", async ({ request }) => {
-    const r = await request.delete(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${targetJobId}`, {
+    // Same reason as the UPDATE above: name the column so the 0-row answer
+    // comes from RLS rather than from the jobs column grant.
+    const r = await request.delete(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${targetJobId}&select=id`, {
       headers: { ...helperHeaders, Prefer: "return=representation" },
     });
     const body = r.ok() ? await r.json() : [];
@@ -177,7 +185,7 @@ test.describe("bad actors: IDOR & authz", () => {
     // the only writer. A moved value here is a SECURITY (money) finding.
     for (const col of ["final_amount", "platform_fee_amount", "budget"] as const) {
       const before = (await request.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${targetJobId}&select=${col}`, { headers: posterHeaders }).then((x) => x.json()))[0]?.[col] ?? null;
-      const r = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${targetJobId}`, {
+      const r = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${targetJobId}&select=id`, {
         headers: { ...posterHeaders, Prefer: "return=representation" },
         data: { [col]: 99999 },
       });

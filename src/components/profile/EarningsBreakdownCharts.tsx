@@ -21,10 +21,11 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend,
 } from "recharts";
-import type { Database } from "@/integrations/supabase/types";
+import type { ReadableJobRow } from "@/lib/jobColumns";
 import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
+// jobs.offered_to_helper_id is not client-selectable (20260915045110).
+type Job = ReadableJobRow;
 
 interface EarningsBreakdownChartsProps {
   earningsJobs: Job[];

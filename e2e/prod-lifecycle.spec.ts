@@ -469,7 +469,12 @@ test.describe("full money loop against production", () => {
     // Letter-prefixed base36, never bare digits: the jobs contact-leak reject
     // trigger reads a 10+-digit run in a title as a phone number.
     const runId = `r${Date.now().toString(36)}-${process.env.GITHUB_RUN_ID ? `g${Number(process.env.GITHUB_RUN_ID).toString(36)}` : "local"}`;
-    const created = await request.post(`${SUPABASE_URL}/rest/v1/jobs`, {
+    // `select=` is MANDATORY on every jobs write that asks for the row back.
+    // Bare `return=representation` is `RETURNING *`, and 20260915045110 took
+    // the table-level SELECT off jobs for `authenticated` — so `*` now expands
+    // to a column this token may not read and the whole write 42501s. Naming
+    // the columns is not an optimisation here, it is what makes the call legal.
+    const created = await request.post(`${SUPABASE_URL}/rest/v1/jobs?select=id,parish,is_seed`, {
       headers: { ...rest(poster), Prefer: "return=representation" },
       data: {
         customer_id: poster.user.id,
@@ -694,7 +699,7 @@ test.describe("full money loop against production", () => {
        later rather than as a failure here. This is a TEST-HARNESS concession to a
        real product rule — the embargo itself is deliberate and is not being
        worked around in the app. */
-    const aged = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+    const aged = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=id`, {
       headers: { ...rest(poster), Prefer: "return=representation" },
       data: { created_at: new Date(Date.now() - 25 * 60_000).toISOString() },
     });
@@ -774,7 +779,9 @@ test.describe("full money loop against production", () => {
        geocode "Baton Rouge, LA" while the row exists, and a fixed point could
        then sit past 500 ft. With no coordinates on the job the RPC has nothing
        to measure against and accepts any real fix. */
-    const onTheWay = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+    // `select=id` with the representation: bare `return=representation` is
+    // `RETURNING *`, refused since 20260915045110.
+    const onTheWay = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=id`, {
       headers: { ...rest(helper), Prefer: "return=representation" },
       data: { helper_on_the_way_at: new Date(Date.now() - 45 * 60_000).toISOString(), status: "in_progress" },
     });
@@ -793,7 +800,7 @@ test.describe("full money loop against production", () => {
     expect(arrived.ok(), `arrival failed: ${arrived.status()} ${await arrived.text()}`).toBe(true);
     expect(((await arrived.json()) as { verified?: boolean }).verified, "arrival was not verified").toBe(true);
 
-    const arrivalConfirmed = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+    const arrivalConfirmed = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=id`, {
       headers: { ...rest(poster), Prefer: "return=representation" },
       /* Backdated working confirmation, not "now". Completion is additionally
          gated on 30 minutes since work started — COALESCE(
@@ -901,7 +908,7 @@ test.describe("full money loop against production", () => {
        once both sides are done, captures and schedules the payout in the same
        call (create-payment/index.ts:576). So the poster's completion is not
        missing from this suite, it is step 6. */
-    const helperDone = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+    const helperDone = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=id`, {
       headers: { ...rest(helper), Prefer: "return=representation" },
       data: { helper_completed_at: new Date().toISOString() },
     });

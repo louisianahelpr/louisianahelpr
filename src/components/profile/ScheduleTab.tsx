@@ -13,7 +13,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
-import type { Database } from "@/integrations/supabase/types";
+import type { ReadableJobRow } from "@/lib/jobColumns";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { StatusBadge } from "@/components/StatusBadge";
 import { categoryColors } from "@/components/activity/activityConstants";
@@ -29,7 +29,8 @@ import { inProgressBadgeTarget } from "@/components/dashboard/DashboardInProgres
 import { bucketPostedJob } from "@/pages/activity/activityFilters";
 import { exportJobRowToCalendar } from "@/lib/calendarExport";
 
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
+// jobs.offered_to_helper_id is not client-selectable (20260915045110).
+type Job = ReadableJobRow;
 
 /**
  * Where a schedule row goes when you tap it.

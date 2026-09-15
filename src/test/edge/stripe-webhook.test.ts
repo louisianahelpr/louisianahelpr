@@ -926,7 +926,7 @@ describe("stripe-webhook edge function", () => {
         event("evt_n2_rel_held", "charge.dispute.created", disputeObj("n2relh", "needs_response"));
         scenario.reads.jobs = {
           rows: [{
-            id: "job-rel", customer_id: "p", helper_id: "h", title: "Job",
+            id: "job-rel", customer_id: "p", helper_id: "h", title: "Job", payout_scheduled_at: null,
             status: "completed", payment_status: "released",
             dispute_status: "resolved", disputed_at: HELD_AT,
           }],

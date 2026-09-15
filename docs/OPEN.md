@@ -122,6 +122,14 @@ fraction of fixing them one report at a time.
 
 ---
 
+## Function-body drift — prod runs superseded function bodies (2026-09-15, branch `audit/function-body-drift`)
+
+New nightly check `scripts/audit/function-body-drift.mjs` (db-drift-detect.yml): replays every CREATE/DROP FUNCTION and compares the newest body with live `pg_proc.prosrc`. First run against prod found 4 real drifts; every other difference was comments/whitespace or the in-place notification-link rewrites (ignored). Cause each time: an older-timestamped migration applied AFTER a newer one, so the older body won — while the version ledger and every repo parity test (they read the newest file) stayed green.
+- [ ] `report_helper_no_show` — prod lacks 20260915044137's `helper_already_arrived` guard: a poster can no-show-strike a Helpr who ARRIVED (GPS-verified), and the reopen clears the arrival proof. Restated by VN-33(b) `20260915074058` (branch `visual/vn-33b-bad-pin`). Baselined until that deploys; remove the baseline entry after.
+- [ ] OWNER DECISION — `auto_pending_credentials`: prod runs 20260826040000's body, so 20260827180000's rule "renaming a verified business re-enters license/insurance review" is NOT live (0 profiles affected today). Credentials moved to `helper_credentials` on 2026-09-03 (20260903012612); decide whether the profile-column rule still matters, then restate or delete it. Baselined.
+- [ ] OWNER DECISION — `get_top_helpers_by_parish`: prod runs 20260509195035's body, without 20260701000000's canonical rating filter (unrevealed reviews and cancelled-job reviews still count toward parish "hero" badges via `get_helper_parish_badges`). Restate 0701's body or accept. Baselined.
+- [x] `reject_pending_job` — dropped on purpose by 20260828011811 (business seats), resurrected in the repo by 20260828020000; prod correctly has none. `20260915084149` drops it again so a replay matches prod (no-op on prod).
+
 ## HANDOFF — visual-notes session paused on usage (2026-09-14 late)
 Everything below is either LIVE on main or parked on a pushed branch. Nothing is lost.
 - LIVE + screen-confirmed: VN-1,2,4-8,9-14,16-20,22-30,31,34-36,38,40,42-44,46-49,53 (tracker in docs/audit/visual-notes-2026-09-14.md, 41 fixed / 39 confirmed). Security: open_jobs_browse + jobs_helper_safe write grants revoked with CI checks; dispute table door closed; disputes refused on completed jobs. VN-33 arrival gate (GPS AND poster) live with prod proof.

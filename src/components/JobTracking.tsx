@@ -696,6 +696,14 @@ export function JobTracking({
         // status writes below remain guarded, which is where correctness
         // matters. Fire-and-forget deliberately — the callback may run while
         // the app is suspended-but-executing and must not block the watch.
+        //
+        // The `.then()` is what makes it fire at all: a PostgrestBuilder is a
+        // lazy thenable that issues its fetch inside then(), so `void
+        // supabase.from(…).update(…).eq(…)` sent NOTHING and every en-route
+        // position after the first was dropped on the floor — the poster's map
+        // held the point from whenever the row was last written by another
+        // path. Same class as useMessagesData.ts:440 and
+        // useMessagesRealtime.ts:71. Still non-blocking: nobody awaits this.
         void supabase
           .from("job_tracking")
           .update({
@@ -703,7 +711,10 @@ export function JobTracking({
             longitude: p.lng,
             updated_at: new Date(p.at).toISOString(),
           })
-          .eq("id", trackingId);
+          .eq("id", trackingId)
+          .then(({ error }) => {
+            if (error) report(error, { severity: "warning", tags: { source: "JobTracking.enRoutePosition" } });
+          });
       },
     });
 

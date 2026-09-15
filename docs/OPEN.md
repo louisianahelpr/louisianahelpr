@@ -18,6 +18,36 @@ fraction of fixing them one report at a time.
 - [x] RESOLVED 2026-09-14 ~17:52 PDT (owner upgraded to Pro; cause: Hobby Edge Requests 3.1M/1M + Deployment Storage 34 GB/10 GB, see the Vercel item further down). Was: OWNER (dashboard only): every push since 4bbd125c1 (16:13 PDT) gets Vercel status `failure — Account is blocked.` (https://vercel.com/knowledge/why-is-my-account-deployment-blocked). Hobby team `louisianahelprs-projects`. Live site still serves 70f93a220 (14:30 PDT); NOT live: a0833ef22 TrackingMap pins, 3c299b328 completeJob duplicate-release fix, f9f5b0617 (package.json). Open Vercel → team → Usage / notifications for the reason (Hobby usage limit or fair-use), resolve, then redeploy main. Prod freshness runs time out red until then; that red is this, not the commits.
 - [x] VERIFIED 2026-09-14: cc2636f5f deployed (Vercel status success 00:53Z); live build-commit = cc2636f5f; a0833ef22, 3c299b328, f9f5b0617 are ancestors, so all live. Was: After unblock: confirm `<meta name="build-commit">` on www.louisianahelpr.com is at or after the newest shipping commit. Consider stopping preview deploys for non-main branches (every lane branch push builds a preview and counts toward Hobby limits).
 
+## Discarded PostgREST builder calls — branch `discarded-query-filters` (2026-09-15, routine)
+Reported as "AdminAnalytics drill-downs never filter by payment status". **The
+premise did not hold and the report is corrected, not repeated:** against the
+installed @supabase/postgrest-js 2.112.4 a filter MUTATES the builder and
+returns `this` (`dist/index.mjs:1688`), so the discarded `query.in(…)` at
+`AdminAnalytics.tsx:235-236` was in fact filtering — proven by a recording-fetch
+test that reads the request URL, not by a code read. Fixed anyway (reassigned):
+the shape is correct only by mutation and leaks filters onto every alias of the
+same builder.
+- [x] The same scan found a defect that is NOT version-dependent:
+  `JobTracking.tsx:699` did `void supabase.from("job_tracking").update(…).eq(…)`
+  with no `.then()`. A PostgrestBuilder fetches inside `then()`, so every
+  en-route position update after the watch started was never sent — the poster's
+  live map held whatever the row last said. Sixth instance of a class this repo
+  has fixed five times before (useMessagesData:440, useMessagesRealtime:71,
+  AdminReports:250, send-push-notification, cash-out-credits). Fixed with the
+  house `.then(({ error }) => report(error))` pattern; still non-blocking.
+- [x] Class check: `scripts/check-discarded-query-filters.mjs` (TypeScript
+  compiler API, reusable by ESLint/CI, `npm run check:discarded-filters`) +
+  `src/test/discardedQueryFilters.test.ts`. Red on origin/main d492446 (exit 1,
+  all 3 sites), green after. Covers filters, modifiers, writes and bare `rpc`.
+  Opt-out marker: `discarded-builder-ok: <reason>`.
+- [ ] **Merge `discarded-query-filters` into main.** Held off main because
+  branch `offer-privacy` also edits AdminAnalytics.tsx; the AdminAnalytics edit
+  is 3 lines (`const`→`let` + two reassignments) to keep that merge trivial.
+- [ ] Not verified in this container: `npm run typecheck:edge` (no Deno
+  installed) and prod behaviour of the en-route map. The tracking fix wants one
+  real en-route journey on prod before launch — it changes what the poster's map
+  shows, and no test can see that.
+
 ## HANDOFF 2026-09-15 — map notes + nightly reds (session closed)
 Orientation: `~/.claude/projects/-Users-lexilombas-louisianahelpr/memory/handoff-2026-09-15-map-and-nightly-reds.md`.
 Landed and live on prod: VN-9, VN-10, VN-11 (tracker Fixed + Confirmed, shots

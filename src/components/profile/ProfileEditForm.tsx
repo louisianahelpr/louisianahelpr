@@ -16,6 +16,7 @@ import { usePortfolio } from "@/components/profile/profileEditForm/usePortfolio"
 import { PhotoNameSection } from "@/components/profile/profileEditForm/PhotoNameSection";
 import { RecentWorkSection } from "@/components/profile/profileEditForm/RecentWorkSection";
 import { SaveBar } from "@/components/profile/profileEditForm/SaveBar";
+import { isProfileEditDirty } from "@/components/profile/profileEditForm/isProfileEditDirty";
 
 export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
 
@@ -89,15 +90,8 @@ export function ProfileEditForm({
     setSkills(next.join(", "));
   }
 
-  // Dirty check — the Save bar drives only the text fields (avatar /
-  // ID / portfolio persist on their own). Disabled when nothing in
-  // this set has diverged from the saved profile.
-  const dirty =
-    phone !== (profile?.phone ?? "") ||
-    location !== (profile?.location ?? "") ||
-    zipCode !== (profile?.zip_code ?? "") ||
-    bio !== (profile?.bio ?? "") ||
-    skills !== (profile?.skills ?? "");
+  // Dirty check against the saved profile — see isProfileEditDirty.
+  const dirty = isProfileEditDirty({ phone, location, zipCode, bio, skills }, profile);
 
   // Resolve parish from ZIP to validate it (the check mark and the unknown-ZIP
   // warning). The parish itself is NOT shown here any more (owner, 2026-09-14,

@@ -170,6 +170,20 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-jobs-dynamic-writers.mjs
 
+      # Default privileges that hand clients new relations in public
+      # (20260915051534), and functions that trust a bare NULL auth.uid() as the
+      # service role (20260915051905) — the two classes behind the 2026-09-15
+      # open_jobs_browse anon-write incident. LIVE, because a dashboard edit or
+      # an MCP apply can bring either back without a migration.
+      - name: No client default privileges and no NULL-uid trust
+        id: live_privileges
+        continue-on-error: true
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-live-privileges.mjs
+
       - name: Compute drift
         id: drift
         if: steps.precheck.outputs.skip != 'true'
@@ -389,6 +403,7 @@ jobs:
           TYPES_FRESH: ${{ steps.types_fresh.outcome }}
           UPDATABLE_VIEWS: ${{ steps.updatable_views.outcome }}
           JOBS_DYNAMIC_WRITERS: ${{ steps.jobs_dynamic_writers.outcome }}
+          LIVE_PRIVILEGES: ${{ steps.live_privileges.outcome }}
         run: |
           set -euo pipefail
           if [ "${TYPES_FRESH:-success}" = "failure" ]; then
@@ -403,6 +418,10 @@ jobs:
           fi
           if [ "${JOBS_DYNAMIC_WRITERS:-success}" = "failure" ]; then
             echo "::error::A client-callable SECURITY DEFINER function writes public.jobs from caller-supplied columns or a JSON patch (or the live read failed) — see 'No client-callable definer function writes jobs from caller input' above. It bypasses enforce_dispute_markers_server_owned's role trust."
+            failed=1
+          fi
+          if [ "${LIVE_PRIVILEGES:-success}" = "failure" ]; then
+            echo "::error::Prod's default privileges grant clients new relations in public, or a function trusts a bare NULL auth.uid() as the service role (or the live read failed) — see 'No client default privileges and no NULL-uid trust' above."
             failed=1
           fi
           if [ "${MISSING_PROD:-0}" != "0" ] || [ "${MISSING_REPO:-0}" != "0" ]; then

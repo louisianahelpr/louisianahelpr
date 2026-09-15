@@ -137,6 +137,52 @@ jobs:
           fi
           echo "✅ $VIEWS exposed-schema views checked — none client-writable"
 
+      # The default privileges that re-granted open_jobs_browse its anon writes
+      # (arwdxm on every relation postgres creates in public) must stay gone.
+      # 20260915051534 removes them; a later migration that re-adds them, or a
+      # replay that skips it, fails here. Same query runs live in
+      # scripts/check-live-privileges.mjs.
+      - name: Smoke — no default privilege grants a client role in public
+        run: |
+          set -euo pipefail
+          ENTRIES=$(psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_default_acl WHERE defaclnamespace = 'public'::regnamespace AND pg_get_userbyid(defaclrole) = 'postgres'")
+          if [ "${ENTRIES:-0}" -eq 0 ]; then
+            echo "::error::replayed schema has no postgres default-ACL entry for public — the image changed and this check would pass vacuously"
+            exit 1
+          fi
+          OUT=$(psql -v ON_ERROR_STOP=1 -At -F ' ' -f scripts/ci/client-default-privileges.sql)
+          if [ -n "$OUT" ]; then
+            echo "$OUT" | while read -r owner schema otype grantee priv; do
+              echo "::error::default privileges: $owner in $schema gives $grantee $priv on new $otype"
+            done
+            echo "::error::FIX: ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES|SEQUENCES FROM anon, authenticated (20260915051534). New relations grant their own privileges."
+            exit 1
+          fi
+          echo "✅ $ENTRIES postgres default-ACL entries in public — none grants anon/authenticated/PUBLIC"
+
+      # 23 guard triggers treated auth.uid() IS NULL as "service role"; an anon
+      # request has a NULL uid too, so an anon write that reached jobs skipped
+      # every money/state guard. 20260915051905 rebuilt them on
+      # public.is_server_context(). This fails on any function (re)defined by a
+      # migration that brings the bare NULL-uid trust back.
+      - name: Smoke — no function trusts a bare NULL auth.uid()
+        run: |
+          set -euo pipefail
+          FNS=$(psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_proc p JOIN pg_language l ON l.oid = p.prolang WHERE p.pronamespace = 'public'::regnamespace AND l.lanname = 'plpgsql'")
+          if [ "${FNS:-0}" -eq 0 ]; then
+            echo "::error::replayed schema has 0 plpgsql functions in public — the check would pass vacuously"
+            exit 1
+          fi
+          OUT=$(psql -v ON_ERROR_STOP=1 -At -F '|' -f scripts/ci/null-uid-trust.sql)
+          if [ -n "$OUT" ]; then
+            echo "$OUT" | while IFS='|' read -r fn shape cond; do
+              echo "::error::public.$fn (shape $shape) trusts a bare NULL uid: IF $cond THEN ..."
+            done
+            echo "::error::FIX: test public.is_server_context() instead of auth.uid() IS NULL (20260915051905). anon has a NULL uid too."
+            exit 1
+          fi
+          echo "✅ $FNS plpgsql functions in public checked — none trusts a bare NULL uid"
+
       - name: Smoke — post a job, expect triggers to fire cleanly
         # The actual P0: every INSERT INTO public.jobs invokes
         # notify_helpers_on_job_post() and notify_saved_searches_on_new_job(),

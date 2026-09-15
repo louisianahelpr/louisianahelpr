@@ -11,7 +11,12 @@ import { resolve } from "node:path";
 
 const src = readFileSync(resolve(__dirname, "PostedJobsTab.tsx"), "utf8");
 const start = src.indexOf("function LocationPressHint");
-const hint = src.slice(start, src.indexOf("\n}\n", start));
+// Comments are stripped: the component's own comment names the old classes it
+// replaced, which is history, not markup.
+const hint = src
+  .slice(start, src.indexOf("\n}\n", start))
+  .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+  .replace(/^\s*\/\/.*$/gm, "");
 
 describe("LocationPressHint centring (VN-26)", () => {
   it("centres icon, text and dismiss on one line", () => {

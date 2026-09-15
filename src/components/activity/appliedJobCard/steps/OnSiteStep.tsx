@@ -1,6 +1,6 @@
 import { JobStepCard } from "@/components/activity/JobStepCard";
 import { HelperPhotoAsk } from "./HelperPhotoAsk";
-import { PayoutPrimary } from "./PayoutPrimary";
+import { PayoutPrimary, PayoutUnlockNote } from "./PayoutPrimary";
 import type { HelperStepProps } from "./stepContract";
 
 /**
@@ -15,6 +15,10 @@ import type { HelperStepProps } from "./stepContract";
  * Directions is gone — they are standing at the address. So is Cancel Job
  * (owner, 2026-09-14, VN-18: no back-out once on the way or arrived); Report a
  * Problem sits beside Message instead.
+ *
+ * ONE ROW (owner, 2026-09-14, VN-21): the tracker's "Start Working" is the
+ * row's primary, Message and Report a Problem sit beside it. PayoutPrimary is
+ * only the fallback for a card whose tracker offers no next step.
  */
 export function OnSiteStep({
   app,
@@ -39,6 +43,7 @@ export function OnSiteStep({
       step="on_site"
       header={tracker}
       ask={<HelperPhotoAsk jobId={app.job_id} job={job} step="on_site" />}
+      notice={<PayoutUnlockNote hasPhotos={payout.hasPhotos} tooEarly={payout.tooEarly} minutesLeft={payout.minutesLeft} />}
       primary={<PayoutPrimary {...payout} />}
       actions={[messageChip, reportChip]}
       escape={abortedNotice}

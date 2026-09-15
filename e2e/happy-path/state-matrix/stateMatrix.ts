@@ -865,7 +865,7 @@ const APPLIED_STATES: AppliedState[] = [
     key: "confirmed-gate-active",
     derived: "isConfirmed",
     describe:
-      "confirmed booking more than 24h out — HelperTrackerPanel's gateActive branch: inline JobConfirmation, 'I'm On My Way' rendered DISABLED with an explanation",
+      "confirmed booking more than 24h out — HelperTrackerPanel's gateActive branch: inline JobConfirmation (its 'opens in' clock; inside 24h its 'I'm Still On' leads the one action row). No disabled 'I'm On My Way' preview since VN-21",
     job: { status: "accepted", helper_id: HELPER_ID, helper_confirmed_at: ISO(-HOURS(8)), date_needed: DATE_ONLY(DAYS(3)) },
     application: { status: "accepted" },
   },

@@ -1,6 +1,3 @@
-import { Truck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "@/components/activity/JobActionRow";
 import { JobConfirmation, helperDayOfConfirmation } from "@/components/JobConfirmation";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
 import { parseLocalDate } from "@/lib/dateUtils";
@@ -107,11 +104,6 @@ export function HelperTrackerPanel({
     !dayOfConfirmed &&
     hoursUntilJob > -24;
 
-  /** The 24h window JobConfirmation itself opens on. Outside it there is no tap
-   *  to offer, so the gate shows the clock instead of a dead button. */
-  const confirmWindowOpen = hoursUntilJob <= 24;
-  const reasonId = `on-the-way-locked-${app.job_id}`;
-
   const confirmation = (
     <JobConfirmation
       variant="inline"
@@ -177,34 +169,19 @@ export function HelperTrackerPanel({
       />
 
       {gateActive ? (
-        <div className="pt-2 border-t border-border space-y-2">
-          {/* The ONE primary while the step is open. */}
-          {confirmation}
-          {confirmWindowOpen && (
-            <>
-              {/* A REASON, not a silent dead button — the same shape the
-                  tracker's own `disabledReason` line uses one state later, so
-                  the locked control and the live one read as one control. */}
-              <p id={reasonId} className="text-ds-11 text-muted-foreground text-center">
-                Confirm you're still on to unlock this
-              </p>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled
-                aria-describedby={reasonId}
-                style={jobActionChipStyle("neutral")}
-                className={JOB_ACTION_FULL_CLASS}
-              >
-                {/* Word-for-word the tracker's own action label (STATUSES), so
-                    the button the helper is waiting for is visibly the one that
-                    appears the moment they confirm. */}
-                <Truck className="w-4 h-4" />
-                I'm On My Way
-              </Button>
-            </>
-          )}
-        </div>
+        /* The ONE primary while the step is open: "I'm Still On". It portals
+           into the step card's single action row (owner, 2026-09-14, VN-21 —
+           one row, primary first, the chips beside it), with its "Confirm by …"
+           deadline on the line above that row.
+
+           The disabled "I'm On My Way" preview that used to sit under it, with
+           "Confirm you're still on to unlock this" above, is GONE with the
+           stacked layout: in a single row it was a second primary-shaped
+           button next to the real one, which is the two-primaries shape the
+           shell refuses. Nothing is lost — "I'm On My Way" takes the same slot
+           the moment the confirmation lands, and the rail above still shows
+           Confirmed as the current step. */
+        confirmation
       ) : (
         /* Confirmed, or past the point of asking: the tracker's own next-step
            control is live above. `confirmation` renders the "Confirmation opens

@@ -29,7 +29,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-18 | "Can't Finish" wording is wrong once the Helpr has confirmed (before work starts) | small | [x] f336fcf99 | [x] vn-18-after-jobs-confirmed-1440.webp |
 | VN-19 | "Report a Problem" should sit beside Message, not under it | small | [x] bd5ecd567 | [x] vn-19-after-jobs-working-1440.webp |
 | VN-20 | "Location confirmed" should not show on the tracker — show it on the map instead | medium | [x] 67d4eb138 | [x] vn-20-after-vn20-map-1440-dresser.webp |
-| VN-21 | Job and post cards stack buttons in several rows — put them all on one row (NEEDS DESIGN D | large | [ ] | [ ] |
+| VN-21 | Job and post cards stack buttons in several rows — put them all on one row (NEEDS DESIGN D | large | [x] e208e155d | [x] vn-21-after-jobs-375-ontheway.webp |
 | VN-22 | When a posted job is expanded, show the Helpr's profile under the description, not in the  | medium | [x] 8d2889021 | [x] vn-22-after-vn22-posts-1440-expanded.webp |
 | VN-23 | Disputed jobs should still show the tracker | small–medium | [x] 4b3d69aa4 | [x] vn-23-after-vn23-disputed-1440.webp |
 | VN-24 | Contact Support has a large empty band above the title — use the same shell as the other p | small–medium | [x] 0a60030d8 | [x] vn-24-after-vn24-support-1440.webp |

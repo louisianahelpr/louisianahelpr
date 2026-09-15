@@ -21,6 +21,7 @@ import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
+import { JobStepRowSlot, useInJobStepRow } from "@/components/activity/jobStepRow";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
 // pulled in when a tracking card between On the Way and Done is visible.
@@ -617,6 +618,9 @@ export function JobTracking({
     posterCompletedAt: initialPosterCompletedAt ?? null,
   });
   const { request: requestPermission } = usePermissionRationale();
+  /** Mounted inside a job step card, the next-step CTA is THAT card's primary
+   *  and renders in its one action row (owner, 2026-09-14, VN-21). */
+  const inStepRow = useInJobStepRow();
 
   // Sync props
   useEffect(() => { setHelperConfirmedAt(initialHelperConfirmedAt); }, [initialHelperConfirmedAt]);
@@ -2290,16 +2294,16 @@ export function JobTracking({
         // blocks the next step, not a neutral status.
         const amberReason = (needsArrival || arrivalRefusedHere) && !updating && !isLocked;
 
-        return (
-          <div className="pt-2 border-t border-border space-y-2">
-            {disabledReason && (
-              <p
-                className={`text-ds-11 text-center${amberReason ? " font-semibold" : " text-muted-foreground"}`}
-                style={amberReason ? { color: "hsl(var(--amber-ink))" } : undefined}
-              >
-                {disabledReason}
-              </p>
-            )}
+        const reasonEl = disabledReason ? (
+          <p
+            className={`text-ds-11 text-center${amberReason ? " font-semibold" : " text-muted-foreground"}`}
+            style={amberReason ? { color: "hsl(var(--amber-ink))" } : undefined}
+          >
+            {disabledReason}
+          </p>
+        ) : null;
+
+        const ctaEl = (
             <Button
               size="sm"
               className="w-full"
@@ -2317,6 +2321,10 @@ export function JobTracking({
                   refused arrival the same tap is a retry, so it says so. */}
               {arrivalRefusedHere ? "Try My Location Again" : (nextStatus.action ?? nextStatus.label)}
             </Button>
+        );
+
+        const retryEl = (
+          <>
             {/* THE WAY BACK FROM AN UNVERIFIED ARRIVAL.
                 Shown only while the row has `helper_arrived_at` but no
                 `helper_arrival_verified_at` — a claim stamped before
@@ -2339,6 +2347,11 @@ export function JobTracking({
                 {retryingArrival ? "Checking…" : "Try My Location Again"}
               </Button>
             )}
+          </>
+        );
+
+        const doneDialog = (
+          <>
             {/* THE ONE TAP THAT MOVES MONEY GETS A CONFIRMATION.
                 The poster's mirror of this decision opens CompletionChoiceSheet
                 and walks them through it; the helper's requested the payout on
@@ -2367,6 +2380,33 @@ export function JobTracking({
                 </p>
               </BrandConfirmDialog>
             )}
+          </>
+        );
+
+        // ONE ROW (owner, 2026-09-14, VN-21). Inside a job step card this CTA
+        // IS the card's primary: it portals into the card's single action row
+        // (the step's own `primary` then stands down), its reason sits on the
+        // line directly above that row, and the dialog stays here. State, gates
+        // and handlers are untouched — only the DOM position moves.
+        if (inStepRow) {
+          return (
+            <>
+              <JobStepRowSlot slot="note">{reasonEl}</JobStepRowSlot>
+              <JobStepRowSlot slot="primary">
+                {ctaEl}
+                {retryEl}
+              </JobStepRowSlot>
+              {doneDialog}
+            </>
+          );
+        }
+
+        return (
+          <div className="pt-2 border-t border-border space-y-2">
+            {reasonEl}
+            {ctaEl}
+            {retryEl}
+            {doneDialog}
           </div>
         );
       })()}

@@ -12,6 +12,9 @@ name: Race Runner
 # The static half of the class check is scripts/check-race-class.mjs
 # (+ src/test/raceClassGuard.test.ts), run here first.
 #
+# Completion races 3-5 (Done vs cancel both ways, Done again vs release) were
+# added with 20260914215112; red proof for those: exclude_migrations=20260914215112.
+#
 # Red proof: dispatch with exclude_migrations=20260913014328 — the pre-fix
 # schema — and both races must go BAD.
 
@@ -99,7 +102,7 @@ jobs:
           EXCLUDE_MIGRATIONS: ${{ github.event.inputs.exclude_migrations }}
         run: bash scripts/ci/replay-migrations.sh
 
-      - name: Races — apply vs cancel, confirm vs cancel (2 connections)
+      - name: Races — apply/confirm/Done vs cancel, Done again vs release (2 connections)
         env:
           ROUNDS: ${{ github.event.inputs.rounds || '20' }}
         run: |

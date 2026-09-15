@@ -183,6 +183,14 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         // is the already-cancelled / already-finished race the previous
         // zero-row unwrapMutation guard existed to catch, now answered by the
         // server instead of inferred from a row count.
+        // A job the Helpr already marked done is refused with its own HINT
+        // (20260914215112). The mapper's generic not_cancellable line would
+        // hide the one fact the poster needs: approve, ask for a change, or
+        // dispute — so pass the server's hint through verbatim in that case.
+        const doneHint = String(error.hint ?? "");
+        if (String(error.message ?? "").trim() === "not_cancellable" && /already marked this job done/i.test(doneHint)) {
+          throw new Error(doneHint);
+        }
         throw new Error(
           rpcErrorMessage("poster_cancel_job", error) ??
             error.message ??

@@ -322,7 +322,14 @@ async function expandFirstCard(page: Page): Promise<boolean> {
     .first()
     .waitFor({ state: "attached", timeout: 8_000 })
     .catch(() => undefined);
-  if ((await toggle.count()) === 0) return false;
+  if ((await toggle.count()) === 0) {
+    // Already open is a driven frame, not a miss: a completed post with a tip
+    // or review outstanding opens EXPANDED by default (owner, 2026-09-14,
+    // VN-29), so its toggle already reads "Collapse Job Details".
+    return (
+      (await page.locator("button[aria-expanded]").filter({ hasText: "Collapse Job Details" }).count()) > 0
+    );
+  }
   // dispatchEvent, not click(): the toggle is `sr-only`, so Playwright treats it
   // as invisible and click() would time out. The handler is identical — it is
   // the same onToggle the card wrapper calls.
@@ -335,6 +342,21 @@ async function expandFirstCard(page: Page): Promise<boolean> {
     .filter({ hasText: "Collapse Job Details" })
     .count();
   return opened > 0;
+}
+
+/**
+ * The inverse of expandFirstCard, for "collapsed" cells. Every card used to
+ * open collapsed, so a collapsed cell needed no step; a completed post with a
+ * tip or review outstanding now opens expanded (owner, 2026-09-14, VN-29), and
+ * its collapsed frame is the one the user reaches by tapping it shut.
+ */
+async function collapseOpenCards(page: Page): Promise<void> {
+  const open = page.locator("button[aria-expanded]").filter({ hasText: "Collapse Job Details" });
+  const n = await open.count().catch(() => 0);
+  for (let i = 0; i < n; i++) {
+    await open.first().dispatchEvent("click").catch(() => undefined);
+    await page.waitForTimeout(150);
+  }
 }
 
 /**
@@ -504,6 +526,8 @@ async function driveCell(
     if (cell.expanded) {
       const ok = await expandFirstCard(page);
       if (!ok) failedAt = "no expandable card rendered (the seeded row did not reach the list)";
+    } else {
+      await collapseOpenCards(page);
     }
     // Not a ternary on activity-shell: the `else if` above already claimed
     // that surface, so this branch can only be a card surface.

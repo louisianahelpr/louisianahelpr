@@ -247,6 +247,10 @@ function PostedJobCardInner({
             // them could be compared at a glance), and what is behind the tap
             // is now the card's whole body — so the tap has to be offered on
             // all of them.
+            // One exception (owner, 2026-09-14, VN-29): a COMPLETED job with a
+            // tip or review still outstanding opens expanded, and collapses
+            // once both are done. The default lives in useCardExpansion
+            // (src/pages/activity), which owns `expandedJobIds`.
             expandable
             expanded={isExpanded}
             onToggle={() => toggleExpandedJobId(job.id)}

@@ -76,7 +76,7 @@ export function CheckoutStepIndicator({ onBackToForm }: CheckoutStepIndicatorPro
             color: "hsl(var(--ink-deep))",
           }}
         >
-          Review and pay
+          Review and Pay
         </span>
       </div>
     </div>

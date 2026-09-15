@@ -29,10 +29,11 @@ export function EmptyStateIllustration({
   // all. `reviews` is a five-star ROW — wide and short — and forcing it into
   // the square box letterboxed it, leaving a large dead gap above the title.
   // It gets a width-driven, auto-height default so it occupies only the space
-  // it actually draws in.
+  // it actually draws in. w-32 (was w-28) so the evenly spaced row keeps
+  // ~18px stars with clear gaps (VN-36, 2026-09-14).
   const defaultClass =
     variant === "reviews"
-      ? "mx-auto mb-5 h-auto w-28 text-[hsl(var(--burnt-sienna))]"
+      ? "mx-auto mb-5 h-auto w-32 text-[hsl(var(--burnt-sienna))]"
       : "mx-auto mb-4 h-24 w-24 text-[hsl(var(--burnt-sienna))]";
   return <Comp className={className ?? defaultClass} />;
 }

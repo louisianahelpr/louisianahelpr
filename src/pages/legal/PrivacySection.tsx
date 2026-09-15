@@ -6,6 +6,7 @@ import {
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
 import { LAST_UPDATED } from "./legalSections";
+import { DataExportCard, DATA_EXPORT_ANCHOR } from "./DataExportCard";
 
 /* ───────────────────────  PRIVACY  ─────────────────────── */
 export const PrivacyContent = () => (
@@ -169,15 +170,23 @@ export const PrivacyContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from <Link to="/profile" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Profile settings</Link> — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed.</p>
-            {/* Points at the export's real home. It lived on a standalone
-                /data-rights page until 2026-08-18; that URL still redirects
-                here, but a published policy should name where the control
-                actually is rather than lean on a redirect to stay true. */}
-            <p><strong className="text-foreground">Data portability:</strong> Download a complete copy of your data (profile, jobs, applications, reviews) as a machine-readable JSON file from <Link to="/profile?tab=legal" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Legal &amp; policies</Link> in your profile.</p>
+            {/* Points at the export's real home: the "Download your data"
+                card further down THIS policy (owner, 2026-09-14, VN-47). An
+                in-page hash link, not a route, so it works on the public
+                /privacy page and in the Profile Legal tab's Privacy panel
+                alike without bouncing a signed-in reader out of the app. */}
+            <p><strong className="text-foreground">Data portability:</strong> Download a complete copy of your data (profile, jobs, applications, reviews) as a machine-readable JSON file with <a href={`#${DATA_EXPORT_ANCHOR}`} className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Download your data</a> below.</p>
           </>
         }
       />
     </PolicySection>
+
+    {/* The export control, right under the section that grants the right.
+        `/data-rights` redirects to this anchor (App.tsx). Hidden while
+        searching, like the other non-policy blocks. */}
+    <HideOnSearch>
+      <DataExportCard />
+    </HideOnSearch>
 
     <PolicySection
       icon={Cookie}

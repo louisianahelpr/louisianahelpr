@@ -437,16 +437,16 @@ test.describe("post a job", () => {
     if (await fresh.isVisible().catch(() => false)) await fresh.click();
     await expect(page.getByRole("heading", { name: "Job Details", level: 1 })).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "Cleaning", exact: true }).click();
-    await page.getByRole("textbox", { name: "Job title *" }).fill(title);
+    await page.getByRole("textbox", { name: "Job Title *" }).fill(title);
     await page.getByRole("textbox", { name: "Description *" }).fill(`${JOB_MARKER} interruption test post. Not a real job; created and removed by the test suite.`);
     await shoot(page, info, "post-step-details");
 
-    await page.getByRole("combobox", { name: "Street address" }).fill("100 Audit Way");
+    await page.getByRole("combobox", { name: "Street Address" }).fill("100 Audit Way");
     await page.keyboard.press("Escape");
     await page.getByRole("combobox", { name: "City" }).fill("Baton Rouge");
     await page.keyboard.press("Escape");
     await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
-    await page.getByRole("button", { name: /Date needed/ }).click();
+    await page.getByRole("button", { name: /Date Needed/ }).click();
     const slot = slotAhead(100);
     const day = new RegExp(slot.monthDay.replace(" ", ".*"));
     await page.getByRole("button", { name: day }).or(page.getByRole("gridcell", { name: day })).first().click();

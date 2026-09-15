@@ -216,7 +216,7 @@ export function LogisticsSection({
             }}
           />
         </div>
-        <Label htmlFor="streetAddress" className="text-ds-11 text-muted-foreground">Street address</Label>
+        <Label htmlFor="streetAddress" className="text-ds-11 text-muted-foreground">Street Address</Label>
         {mapKitReady ? (
           <AddressAutocomplete
             id="streetAddress"
@@ -325,7 +325,7 @@ export function LogisticsSection({
           to walk into. One standing helper holds every date and can release a
           single one they can't make. */}
       <div className="space-y-3">
-        <Label id="job-type-label">Job type</Label>
+        <Label id="job-type-label">Job Type</Label>
         {/* With Group withdrawn, a restored draft carrying `isGroupJob: true`
             (useJobEntry:123 rehydrates it) must not leave the whole control
             unselected — One-Time is what that draft now IS, and
@@ -360,9 +360,9 @@ export function LogisticsSection({
           <div className="rounded-ds-md border border-border p-4 space-y-2">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />
-              <span className="text-ds-13 font-semibold text-foreground">Group job</span>
+              <span className="text-ds-13 font-semibold text-foreground">Group Job</span>
             </div>
-            <Label>How many Helprs needed?</Label>
+            <Label>How Many Helprs Needed?</Label>
             <Input
               type="number"
               inputMode="numeric"
@@ -381,7 +381,10 @@ export function LogisticsSection({
       </div>
 
       <div className="space-y-3">
-        <Label htmlFor="date">Date needed <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+        {/* A repeating job's date is when the series STARTS (owner,
+            2026-09-14, VN-51); the same field feeds RecurringSchedulePicker's
+            `startDate` above. */}
+        <Label htmlFor="date">{isRecurring ? "Start Date" : "Date Needed"} <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         <DatePickerField
           id="date"
           value={dateNeeded}
@@ -401,7 +404,7 @@ export function LogisticsSection({
         aria-labelledby="start-time-label"
         aria-describedby={scheduleInPast ? "start-time-error" : undefined}
       >
-        <Label id="start-time-label">Start time <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+        <Label id="start-time-label">Start Time <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         <TimePickerWheel value={startTime} onChange={setStartTime} ariaLabel="Start time" />
         {/* Live, not submit-only: this clears the moment the poster moves the
             date or the time, so fixing it visibly changes the screen. */}
@@ -425,7 +428,7 @@ export function LogisticsSection({
           onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
         />
         <span className="text-ds-11 text-muted-foreground leading-snug">
-          <span className="font-medium text-foreground">Flexible schedule</span> — Helpr can start earlier or later on the scheduled day
+          <span className="font-medium text-foreground">Flexible Schedule</span> — Helpr can start earlier or later on the scheduled day
         </span>
       </label>
 
@@ -438,7 +441,7 @@ export function LogisticsSection({
       )}
 
       <div className="space-y-2.5">
-        <Label htmlFor="requirements">Access &amp; parking notes</Label>
+        <Label htmlFor="requirements">Access &amp; Parking Notes</Label>
         <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Gate codes, where to park, which door, pets on site… (optional)" rows={2} maxLength={500} autoCapitalize="sentences" />
       </div>
 
@@ -458,7 +461,7 @@ export function LogisticsSection({
             <label htmlFor="include-materials" className="flex items-center gap-2 cursor-pointer">
               <Wrench className="w-4 h-4 text-primary" />
               <span className="text-ds-13 font-semibold text-foreground">
-                I'll provide materials
+                I'll Provide Materials
               </span>
             </label>
             <Switch
@@ -470,7 +473,7 @@ export function LogisticsSection({
           {includeMaterials && setMaterialsNote && (
             <div className="space-y-2">
               <Label htmlFor="materials-note" className="text-ds-11">
-                Materials I'll provide
+                Materials I'll Provide
               </Label>
               <Textarea
                 id="materials-note"

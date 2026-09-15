@@ -384,21 +384,18 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
             }
           />
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 items-start pb-2">
+          <div className="grid gap-3 items-start pb-2">
             {/* The count that used to head this list moved onto the controls
                 row above — see `countLabel`. It said the same thing one line
                 lower, and a single short phrase does not earn a line of its
                 own between the controls and the first card.
 
-                A GRID, not a stack. Saved Helprs are sibling cards, and the
-                standard's rule for repeating items is a responsive grid on
-                wide web — stacked, each card ran the full 1072px of the
-                desktop column and the "Offer a Job" CTA inside it stretched
-                to 980px, a primary button wider than most laptops' content
-                area. `items-start` is load-bearing: without it the grid
-                stretches every card in a row to the tallest one, which would
-                hand a sparse card the height of the rich card beside it and
-                undo the whole point of making cards hug their content. */}
+                ONE COLUMN (owner, 2026-09-14, VN-42: "should be 1 column").
+                This reverses the earlier responsive-grid ruling, which left
+                two saved Helprs in the left two-thirds of a wide page with a
+                dead third beside them. The grid's reason — "Offer a Job"
+                stretching across a full-width card — is handled in
+                SavedHelperCard: the CTA sizes to its content from md up. */}
             {filtered.map((h) => (
               <SavedHelperCard
                 key={h.helper_id}

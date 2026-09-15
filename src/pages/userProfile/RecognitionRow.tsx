@@ -91,9 +91,13 @@ const ICON_MAP: Record<
   React.ComponentType<{ className?: string; style?: React.CSSProperties }>
 > = { Star, TrendingUp, ShieldCheck, Award, Users, Crown, BadgeCheck, Gem };
 
-function MilestoneIcon({ name, color }: { name: string; color: string }) {
+// `className` MUST reach the <svg>: ProfileBadge sizes every mark by cloning
+// the icon element with a width/height class. This wrapper used to swallow it,
+// so milestone chips ("AS A HELPR") drew lucide's 24px default and stood
+// taller than the VERIFIED chips (VN-17, 2026-09-14).
+function MilestoneIcon({ name, color, className }: { name: string; color: string; className?: string }) {
   const Icon = ICON_MAP[name] ?? Star;
-  return <Icon style={{ color }} />;
+  return <Icon className={className} style={{ color }} />;
 }
 
 /**
@@ -393,7 +397,6 @@ type Props = {
   ladderStats: HelperTierStats | null;
   credentials: CredentialFields;
   backgroundChecked: boolean;
-  hasSubmittedCredentials: boolean;
 };
 
 export const RecognitionRow = ({
@@ -403,15 +406,13 @@ export const RecognitionRow = ({
   ladderStats,
   credentials,
   backgroundChecked,
-  hasSubmittedCredentials,
 }: Props) => {
   // ORDER IS THE CAP'S ONLY POLICY. The ladder rung is first because the
   // owner named it as always-visible; then the hardest-won trust signals; then
   // career milestones NEWEST-FIRST (`getEarnedMilestones` returns them
   // ascending, so "Master Helpr" is last in that array and must be first
   // here — showing "First Job" and hiding "Master Helpr" would be exactly
-  // backwards); and "Verification in progress" last, because a thing that has
-  // not cleared yet is the least impressive item on the profile.
+  // backwards).
   const specs: BadgeSpec[] = [];
 
   const ladder = ladderSpec(ladderProfile, ladderStats);
@@ -454,22 +455,8 @@ export const RecognitionRow = ({
     specs.push(milestoneSpec(milestone));
   }
 
-  if (hasSubmittedCredentials) {
-    specs.push({
-      key: "verification_in_progress",
-      group: "account",
-      label: "Verification in progress",
-      icon: <Clock />,
-      description:
-        "A credential has been submitted and Helpr is reviewing it. It becomes a badge once it clears.",
-      className: "border",
-      style: {
-        backgroundColor: "hsl(var(--amber-tint) / 0.15)",
-        color: "hsl(var(--amber-ink))",
-        borderColor: "hsl(var(--amber-tint) / 0.4)",
-      },
-    });
-  }
+  // No "Verification in progress" chip (owner, 2026-09-14, VN-13): a public
+  // profile shows only what has cleared, never what is pending review.
 
   if (specs.length === 0) return null;
 

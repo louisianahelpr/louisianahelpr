@@ -89,6 +89,7 @@ const Dashboard = () => {
     user, profile, isAdmin, loading, helprTier, allJobs, platformFee,
     helperAvailability, recommendedJobs, refresh, loadError,
     fetchNextPage, hasNextPage, isFetchingNextPage,
+    appliedJobIds, blockedUserIds,
   } = useDashboardData();
 
   // Sentinel for infinite scroll — fires fetchNextPage when ~80% of the list is in view.
@@ -122,6 +123,8 @@ const Dashboard = () => {
     // Same rate the feed cards render with (`effectiveFee` below is this
     // value) — the pay sorts have to order by the number on the card.
     effectiveFee: platformFee,
+    // Threaded into the header count so it excludes what the feed hides (B1).
+    appliedJobIds, blockedUserIds,
   });
 
   // The greeting card's "stat of the day" line was removed — it added a
@@ -689,6 +692,7 @@ const Dashboard = () => {
                     fetchNextPage={fetchNextPage}
                     hoveredJobId={hoveredJobId}
                     setHoveredJobId={setHoveredJobId}
+                    appliedJobIds={appliedJobIds}
                   />
                 </div>
                 {/* Web-desktop only: the map rides alongside the feed in its
@@ -734,6 +738,11 @@ const Dashboard = () => {
                         // same job (caught 2026-08-31 at 1440). Same value the
                         // list's JobCards use — one number per job, everywhere.
                         effectiveFee={effectiveFee}
+                        // Drop pins for jobs already applied to, so the map
+                        // agrees with the feed (which hides them) and the
+                        // header count (B1/B3). Optimistic apply updates the
+                        // set, so a pin vanishes the moment you apply.
+                        appliedJobIds={appliedJobIds}
                       />
                     </Suspense>
                   </div>

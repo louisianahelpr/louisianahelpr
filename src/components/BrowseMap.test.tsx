@@ -201,6 +201,36 @@ describe("BrowseMap pins", () => {
   });
 });
 
+// B1/B3 (owner live-QA 2026-09-15): the list feed hides jobs the viewer has
+// applied to, but the map kept their pins — so an applied job pinned the map
+// and its detail dialog still offered "Apply Now." The map now drops applied
+// pins to match the feed and the header count.
+describe("BrowseMap — applied-job exclusion (B1/B3)", () => {
+  it("drops the pin for a job the viewer has applied to", async () => {
+    // Both loaded jobs are applied → the map has nothing left to show and
+    // falls to its empty state, exactly as the list feed does.
+    rpcResolver.value = [makeJob(1), makeJob(2)];
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap appliedJobIds={new Set(["job-1", "job-2"])} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Empty map for now.")).toBeInTheDocument();
+    });
+  });
+
+  it("keeps pins for jobs the viewer has NOT applied to", async () => {
+    rpcResolver.value = [makeJob(1), makeJob(2)];
+    const { BrowseMap } = await import("./BrowseMap");
+    // Only job-1 applied → job-2's pin remains, so no empty state.
+    render(<BrowseMap appliedJobIds={new Set(["job-1"])} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("browse-map-surface")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Empty map for now.")).not.toBeInTheDocument();
+  });
+});
+
 // The map surface itself: MapKit is loaded on demand and can fail to
 // authorize. That must read as a stated outage with a way forward, never as a
 // blank grey box.

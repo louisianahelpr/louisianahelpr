@@ -636,6 +636,13 @@ export function useDashboardData() {
     allJobs,
     platformFee: profile ? viewerFeePercent : (ctx?.platformFee ?? TIER_PERKS.free.platformFeePercent),
     helperAvailability: ctx?.helperAvailability ?? [],
+    // The applied/blocked sets the feed uses to hide rows (see the enrich
+    // filter and splitFeedPage above). Exposed so the header count and the map
+    // can exclude exactly what the list excludes, instead of over-counting a
+    // job the viewer already applied to (B1). Already computed in the ctx
+    // fetch — no extra round-trip.
+    appliedJobIds: ctx?.appliedJobIds ?? new Set<string>(),
+    blockedUserIds: ctx?.blockedUserIds ?? new Set<string>(),
     recommendedJobs,
     refresh,
     // True once the open-jobs feed fetch has failed (first page).

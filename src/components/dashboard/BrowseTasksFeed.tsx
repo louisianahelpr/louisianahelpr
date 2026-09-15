@@ -248,6 +248,9 @@ interface BrowseTasksFeedProps {
   /** Desktop split-screen hover sync — the hovered job's map pin scales up. */
   hoveredJobId?: string | null;
   setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
+  /** Jobs the viewer has applied to — forwarded to the map so it drops their
+   *  pins, matching the list feed and the header count (B1/B3). */
+  appliedJobIds?: ReadonlySet<string>;
 }
 
 /**
@@ -290,6 +293,7 @@ export function BrowseTasksFeed({
   fetchNextPage,
   hoveredJobId,
   setHoveredJobId,
+  appliedJobIds,
 }: BrowseTasksFeedProps) {
   // Personalize the signed-in empty state — greet by first name instead of
   // the generic "neighbor" the guest screen uses. Falls back to "neighbor"
@@ -522,6 +526,8 @@ export function BrowseTasksFeed({
               // Same fee the cards below use — so a pin popup and the card for
               // the same job print the same take-home, not gross vs net.
               effectiveFee={effectiveFee}
+              // Drop applied jobs' pins so the map matches the list (B1/B3).
+              appliedJobIds={appliedJobIds}
             />
           </Suspense>
         </div>

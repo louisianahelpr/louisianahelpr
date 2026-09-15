@@ -58,9 +58,20 @@ interface UseDashboardFiltersOptions {
    * that figure depends on the viewer's tier. See `jobDisplayPay.ts`.
    */
   effectiveFee: number;
+  /**
+   * The viewer's applied-to job ids and blocked-poster user-ids, straight from
+   * useDashboardData's per-user context fetch. The feed hides these rows;
+   * threading them here lets the header count (useDashboardJobsCount) exclude
+   * exactly the same rows instead of over-counting an applied job (B1).
+   * Optional: a guest (DashboardGuest) has neither, so both default to empty.
+   */
+  appliedJobIds?: Set<string>;
+  blockedUserIds?: Set<string>;
 }
 
-export function useDashboardFilters({ allJobs, userId, profile, helperAvailability, effectiveFee }: UseDashboardFiltersOptions) {
+const EMPTY_ID_SET: ReadonlySet<string> = new Set();
+
+export function useDashboardFilters({ allJobs, userId, profile, helperAvailability, effectiveFee, appliedJobIds = EMPTY_ID_SET as Set<string>, blockedUserIds = EMPTY_ID_SET as Set<string> }: UseDashboardFiltersOptions) {
   // Browse state lives in the URL, not only in React state.
   //
   // It used to be plain `useState`, which made every history entry for the
@@ -423,6 +434,12 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   // can honestly say, since `allJobs` is paginated). See
   // useDashboardJobsCount.ts for exactly which filters are, and are not,
   // reproduced server-side, and why.
+  // Sorted arrays (not the Sets) so they hash into the count's react-query key
+  // stably — a Set serializes to `{}` and would collapse every distinct set to
+  // one cache entry. Sorting makes the key order-independent across refetches.
+  const appliedIdsKey = useMemo(() => [...appliedJobIds].sort(), [appliedJobIds]);
+  const blockedIdsKey = useMemo(() => [...blockedUserIds].sort(), [blockedUserIds]);
+
   const { data: totalMatchingCount, isLoading: totalMatchingCountLoading } = useDashboardJobsCount({
     userId,
     selectedCategory,
@@ -433,6 +450,8 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     boostedOnly,
     expiresWithin,
     earlyAccessTier,
+    appliedJobIds: appliedIdsKey,
+    blockedUserIds: blockedIdsKey,
   });
 
   const nearbyJobs = useMemo(() => {

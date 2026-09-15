@@ -16,6 +16,18 @@ import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 // same `open_jobs_browse` view, reapplying the filters that translate
 // cleanly to SQL.
 //
+// Applied/blocked exclusion (added for B1): the list feed hides jobs the
+// viewer already applied to (useDashboardData.ts) and jobs from blocked
+// posters, but this count used to query the view WITHOUT those culls — so
+// after applying to the one job matching your filters, the header read
+// "1 job" over a list that correctly said "Nothing today," and the map pin
+// stayed. The applied/blocked sets are already computed in
+// useDashboardData's per-user context fetch, so the caller threads them
+// down here (as arrays) and we reproduce the same `NOT IN (...)` cull with
+// NO extra round-trip. Guarded to non-empty AND small sets (<= MAX_EXCLUDE)
+// so a viewer who has applied to hundreds of jobs can't blow the request
+// URL length — beyond that we fall back to the documented over-count.
+//
 // KNOWN GAP (documented, not a bug): a few of useDashboardFilters'
 // predicates have no server-side equivalent here and are intentionally NOT
 // reproduced —
@@ -24,16 +36,15 @@ import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 //   - the "Nearby" location-string fallback (no precise coords on the
 //     masked view) — only the haversine-radius branch is server-expressible,
 //     and that needs the viewer's resolved coordinates, so it's skipped here.
-//   - excluding jobs the viewer already applied to / is blocked from — the
-//     applied/blocked sets live in `useDashboardData`'s per-user context
-//     fetch, not on this view, and re-fetching that here to build an
-//     `id NOT IN (...)` clause would trade a cheap `head: true` count for a
-//     second full context round-trip. The map's own count has this same
-//     gap (`get_open_jobs_for_map` doesn't filter applied/blocked either),
-//     so this keeps the two headers reading the same class of "true total."
 // Net effect: when either gap applies, this count can run slightly HIGH
 // (a small over-count), never low — it never reports fewer jobs than are
 // actually visible, which was the original bug.
+
+// Cap on how many ids we inline into a `NOT IN (...)` filter. PostgREST puts
+// the list in the query string; an unbounded set would eventually exceed the
+// URL length limit. A viewer who has applied to more than this many open jobs
+// is well past the point the over-count matters.
+const MAX_EXCLUDE = 200;
 export interface DashboardJobsCountFilters {
   userId?: string | null;
   selectedCategory: string | null;
@@ -45,6 +56,14 @@ export interface DashboardJobsCountFilters {
   expiresWithin: string;
   /** Same resolver output useDashboardFilters/useDashboardData use — keeps this layer in sync with both. */
   earlyAccessTier: string | null;
+  /**
+   * Ids of jobs the viewer has already applied to, and user-ids of posters the
+   * viewer has blocked — both already fetched by useDashboardData and threaded
+   * down so this count excludes exactly what the feed excludes. Sorted arrays
+   * (not Sets) so they hash stably into the query key.
+   */
+  appliedJobIds: string[];
+  blockedUserIds: string[];
 }
 
 // Escape the characters that are structurally significant inside a
@@ -58,12 +77,14 @@ export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
   const {
     userId, selectedCategory, searchQuery, minBudget, maxBudget,
     urgentOnly, boostedOnly, expiresWithin, earlyAccessTier,
+    appliedJobIds, blockedUserIds,
   } = filters;
 
   return useQuery({
     queryKey: [
       "dashboardJobsCount", userId, selectedCategory, searchQuery, minBudget, maxBudget,
       urgentOnly, boostedOnly, expiresWithin, earlyAccessTier,
+      appliedJobIds, blockedUserIds,
     ],
     queryFn: async () => {
       const now = new Date();
@@ -97,6 +118,16 @@ export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
       // counts during the db-deploy window.
       query = query.lte("created_at", new Date(Date.now() - earlyAccessDelayMs(earlyAccessTier)).toISOString());
       if (userId) query = query.neq("customer_id", userId);
+      // Exclude the jobs the feed itself hides (see the header comment): jobs
+      // the viewer applied to, and jobs from posters they blocked. Only when
+      // the set is non-empty (PostgREST rejects an empty `in.()`) and small
+      // enough to inline safely. Ids are uuids, so no quoting/escaping needed.
+      if (appliedJobIds.length > 0 && appliedJobIds.length <= MAX_EXCLUDE) {
+        query = query.not("id", "in", `(${appliedJobIds.join(",")})`);
+      }
+      if (blockedUserIds.length > 0 && blockedUserIds.length <= MAX_EXCLUDE) {
+        query = query.not("customer_id", "in", `(${blockedUserIds.join(",")})`);
+      }
       // Cast: `category` is a narrow generated enum; the filter value here
       // is free-text state from the URL/UI, not one of the literal members.
       if (selectedCategory) query = query.eq("category", selectedCategory as never);

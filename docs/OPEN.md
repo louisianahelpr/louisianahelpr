@@ -8,6 +8,27 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## DONE 2026-09-15 PM — B1/B3 applied-job count/list/map divergence (owner live-QA)
+- **B1**: header/map showed "1 job" while the list said "Nothing today." Root
+  cause: the list feed hides jobs the viewer applied to (`useDashboardData.ts:439`),
+  but `useDashboardJobsCount` counted `open_jobs_browse` WITHOUT that cull, and
+  the map (`get_open_jobs_for_map`) kept the pin. FIX: thread the
+  already-fetched `appliedJobIds`/`blockedUserIds` (computed in the ctx fetch)
+  through `useDashboardData` → `Dashboard` → `useDashboardFilters` →
+  `useDashboardJobsCount`, which now emits `NOT IN (...)` for both (guarded to
+  non-empty + ≤200 ids). BrowseMap gains an `appliedJobIds` prop and drops
+  applied pins (blocked-poster exclusion is not possible on the map — the RPC
+  omits `customer_id`; documented). No extra round-trip.
+- **B3**: applied job re-appliable until reload. Already handled: `useApplyFlow`
+  optimistically adds the id to the ctx `appliedJobIds` (`onMutate`) and
+  invalidates the context (`onSettled`); with B1's wiring the count auto-refetches
+  (its query key includes the applied set), the map pin vanishes, and
+  JobDetailDialog collapses to "Applied" via its DB-backed `viewerAppPosition`.
+- CHECK (every-report-becomes-a-check): `src/hooks/useDashboardJobsCount.test.tsx`
+  (new, 5 tests — count excludes applied/blocked; **proven red-before**: with the
+  exclusion disabled the applied-job count reverts to 3) + two exclusion tests in
+  `src/components/BrowseMap.test.tsx`. typecheck + eslint clean.
+
 - [x] CLOSED 2026-09-15 (CRITICAL, RLS bypass; found by the lh-authz-rls review
   of the dispute-state guard, pre-existing): `public.open_jobs_browse` — an
   owner-run (security_invoker=false, owned by postgres/BYPASSRLS) browse VIEW —

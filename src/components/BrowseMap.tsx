@@ -121,6 +121,16 @@ interface BrowseMapProps {
    * the guest dashboard) — then no pin is ever highlighted this way.
    */
   hoveredJobId?: string | null;
+  /**
+   * Job ids the viewer has already applied to. The list feed hides these rows
+   * (useDashboardData), so the map must drop their pins too — otherwise an
+   * applied job kept a pin on the map and the detail opened from it still
+   * offered "Apply Now" (B1/B3). The RPC exposes `id` but not `customer_id`,
+   * so applied-exclusion is possible here while blocked-poster exclusion is
+   * not (that stays the documented map-only gap). Empty/omitted for the guest
+   * dashboard, which has no applied set.
+   */
+  appliedJobIds?: ReadonlySet<string>;
 }
 
 /** Reads the app's resolved theme off `<html data-theme>` (set by
@@ -130,7 +140,7 @@ function readIsDark(): boolean {
   return document.documentElement.getAttribute("data-theme") === "dark";
 }
 
-export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId }: BrowseMapProps) {
+export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId, appliedJobIds }: BrowseMapProps) {
   const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";
   const mapKitStatus = useMapKitJs();
   const [jobs, setJobs] = useState<MapJob[]>([]);
@@ -183,8 +193,16 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   // markers themselves, the empty state) reads THIS, not the raw `jobs` —
   // otherwise the map would zoom to and count pins it isn't drawing.
   const visibleJobs = useMemo(
-    () => (filters ? jobs.filter(buildMapJobFilter(filters)) : jobs),
-    [jobs, filters],
+    () => {
+      const filtered = filters ? jobs.filter(buildMapJobFilter(filters)) : jobs;
+      // Drop pins for jobs the viewer has already applied to — the list feed
+      // hides them, so the map must agree (B1/B3). No-op when the set is empty
+      // (guest, or nobody applied yet).
+      return appliedJobIds && appliedJobIds.size > 0
+        ? filtered.filter((j) => !appliedJobIds.has(j.id))
+        : filtered;
+    },
+    [jobs, filters, appliedJobIds],
   );
   const filtersActive = !!filters && isAnyFilterActive(filters);
   // Filters the narrow map row has no field to evaluate. Named in the UI

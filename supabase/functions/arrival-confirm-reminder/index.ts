@@ -1,0 +1,197 @@
+// arrival-confirm-reminder — nudges a poster to tap "Confirm They Arrived", then
+// escalates to admin (VN-33, owner 2026-09-14: "Nudge, then escalate").
+//
+// Since 20260915044137 a Helpr needs BOTH the server's GPS verification and the
+// poster's confirmation before they can work or be paid. Nothing asked the
+// poster: the only "has arrived" notice obeys their travel-update preference.
+//
+//   0h  push + email the poster        (ledger.first_sent_at)
+//   2h  push + email them again         (ledger.second_sent_at)
+//   24h admin notification + ops alert  (ledger.escalated_at); the Helpr is told
+//       support has been asked to step in.
+//
+// Stage timing lives in _shared/arrivalNudge.ts (unit-tested). Each stage is
+// CLAIMED in public.job_arrival_confirm_nudges with a conditional write before
+// anything is sent, so two overlapping runs cannot double-send; a claim that
+// matches zero rows means another run already took it.
+//
+// Auth: CRON_SECRET or service-role bearer. Schedule: every 10 min
+// (20260915070651).
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
+import { scanAll, scanDefect } from "../_shared/paginate.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { arrivalNudgeStage, type NudgeLedger } from "../_shared/arrivalNudge.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+type DueJob = {
+  id: string;
+  title: string;
+  customer_id: string | null;
+  helper_id: string | null;
+  helper_arrival_verified_at: string;
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const url = new URL(req.url);
+  if (url.searchParams.get("health") === "1") {
+    return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const authHeader = req.headers.get("Authorization");
+  if (
+    !authHeader ||
+    ((!cronSecret || authHeader !== `Bearer ${cronSecret}`) &&
+      (!serviceRoleKey || authHeader !== `Bearer ${serviceRoleKey}`))
+  ) {
+    return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const defects = defectTracker();
+  const now = new Date();
+
+  // Push is fanned out by the notifications insert trigger; email is sent
+  // explicitly and its answer is read, the way review-nag-cron does.
+  const notifyUser = async (userId: string, title: string, message: string, link: string, type: string) => {
+    const { data, error } = await supabase
+      .from("notifications")
+      .insert({ user_id: userId, title, message, type, link })
+      .select("id");
+    if (error) throw error;
+    if ((data?.length ?? 0) === 0) throw new Error(`notification insert matched 0 rows for ${userId}`);
+    try {
+      const res = await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+        body: JSON.stringify({ user_id: userId, title, message, type, link }),
+      });
+      if (!res.ok) defects.record(`email ${userId}: HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 160)}`);
+    } catch (e) {
+      defects.record(`email ${userId}: ${(e as Error).message}`);
+    }
+  };
+
+  /** Claim one stage. true = this run owns it; false = already taken. */
+  const claim = async (jobId: string, stage: "first" | "second" | "escalate"): Promise<boolean> => {
+    const stamp = now.toISOString();
+    if (stage === "first") {
+      const { data, error } = await supabase
+        .from("job_arrival_confirm_nudges")
+        .upsert({ job_id: jobId, first_sent_at: stamp }, { onConflict: "job_id", ignoreDuplicates: true })
+        .select("job_id");
+      if (error) throw error;
+      return (data?.length ?? 0) > 0;
+    }
+    const col = stage === "second" ? "second_sent_at" : "escalated_at";
+    const { data, error } = await supabase
+      .from("job_arrival_confirm_nudges")
+      .update({ [col]: stamp })
+      .eq("job_id", jobId)
+      .is(col, null)
+      .select("job_id");
+    if (error) throw error;
+    return (data?.length ?? 0) > 0;
+  };
+
+  try {
+    const scan = await scanAll<DueJob>("awaiting poster arrival confirm", (countOpt) =>
+      supabase
+        .from("jobs")
+        .select("id, title, customer_id, helper_id, helper_arrival_verified_at", countOpt)
+        .order("id", { ascending: true })
+        .in("status", ["accepted", "in_progress"])
+        // Fixture rows are driven by test harnesses, never by a real poster;
+        // nudging and escalating them would page admins about seed data (4 such
+        // rows on prod at ship time). Same scope as money-reconciliation.
+        .eq("is_seed", false)
+        .not("helper_arrival_verified_at", "is", null)
+        .is("poster_confirmed_arrival_at", null)
+        .not("customer_id", "is", null)
+        .not("helper_id", "is", null),
+    );
+    if (scan.error) return cronError("arrival-confirm-reminder", scan.error.message, corsHeaders);
+    const short = scanDefect("awaiting poster arrival confirm", scan);
+    if (short) defects.record(short);
+
+    const ids = scan.rows.map((j) => j.id);
+    const ledgers = new Map<string, NudgeLedger>();
+    if (ids.length > 0) {
+      const { data, error } = await supabase
+        .from("job_arrival_confirm_nudges")
+        .select("job_id, first_sent_at, second_sent_at, escalated_at")
+        .in("job_id", ids);
+      if (error) throw error;
+      for (const r of data ?? []) ledgers.set(r.job_id, r);
+    }
+
+    const counts = { first: 0, second: 0, escalate: 0, errors: 0 };
+    for (const job of scan.rows) {
+      const stage = arrivalNudgeStage(job.helper_arrival_verified_at, ledgers.get(job.id) ?? null, now);
+      if (!stage) continue;
+      try {
+        if (!(await claim(job.id, stage))) continue;
+        const posterLink = `/my-posts?job=${job.id}`;
+        if (stage === "first" || stage === "second") {
+          await notifyUser(
+            job.customer_id!,
+            stage === "first" ? "Your Helpr is at the job" : "Please confirm your Helpr arrived",
+            stage === "first"
+              ? `"${job.title}" — tap Confirm They Arrived so they can start work.`
+              : `"${job.title}" — your Helpr has been waiting 2 hours. Confirm they arrived, or report a problem.`,
+            posterLink,
+            "job_updates",
+          );
+        } else {
+          const { data: admins, error: adminsErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+          if (adminsErr) throw adminsErr;
+          for (const a of admins ?? []) {
+            await notifyUser(
+              a.user_id,
+              "Arrival not confirmed in 24h",
+              `"${job.title}" — the Helpr's location was verified 24h ago and the poster hasn't confirmed. Confirm the arrival or open a dispute.`,
+              `/admin?job=${job.id}`,
+              "admin_alert",
+            );
+          }
+          await notifyUser(
+            job.helper_id!,
+            "We've asked support to step in",
+            `"${job.title}" — the poster hasn't confirmed your arrival, so our team is reviewing it.`,
+            `/my-jobs?job=${job.id}`,
+            "job_updates",
+          );
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "warning",
+            title: "Arrival not confirmed in 24h",
+            message: `Job ${job.id} — GPS arrival verified at ${job.helper_arrival_verified_at}; poster has not confirmed.`,
+            fields: { job_id: job.id },
+            oncePerDayKey: `arrival-confirm-escalation:${job.id}`,
+          });
+        }
+        counts[stage] += 1;
+      } catch (e) {
+        counts.errors += 1;
+        defects.record(`${stage} ${job.id}: ${(e as Error).message ?? String(e)}`);
+      }
+    }
+
+    return cronResult(
+      "arrival-confirm-reminder",
+      { processed: scan.rows.length, sent: counts.first + counts.second + counts.escalate, ...counts },
+      { count: defects.count, reasons: defects.reasons },
+      corsHeaders,
+    );
+  } catch (e) {
+    return cronError("arrival-confirm-reminder", (e as Error).message ?? String(e), corsHeaders);
+  }
+});

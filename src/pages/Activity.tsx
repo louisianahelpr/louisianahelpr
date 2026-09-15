@@ -6,8 +6,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
-import { Skeleton } from "@/components/ui/skeleton";
-import { LoadingHeading } from "@/components/ui/LoadingHeading";
+import { ActivityPageSkeleton } from "@/components/ActivityPageSkeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
@@ -409,42 +408,17 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const isTrulyEmpty = sourceCount === 0;
 
   const isWebDesktop = useIsWebDesktop();
+  const skeletonShownRef = useRef(false);
 
 
+  // The entrance animation is for arriving on a page that is already there.
+  // After a skeleton it replayed as a fade-to-empty + 8px rise between the
+  // skeleton and the cards — one more visible jump (VN-32).
+  if (loading) skeletonShownRef.current = true;
   if (loading) {
-    // Loading state mirrors the loaded layout: two-box stack on a
-    // bg-premium-page shell with skeleton cards inside the bottom box.
-    return (
-      <PageScaffold
-        // Same title-card padding + row height as the loaded header, so the
-        // skeleton→loaded swap doesn't thump the card taller or shorter.
-        titleCard={
-          <div className="flex items-center" style={{ minHeight: "44px" }}>
-            <Skeleton className="h-4 w-32 rounded" />
-          </div>
-        }
-        titleCardClassName={ACTIVITY_HEADER_PADDING}
-      >
-        <div className="px-4 pt-3 space-y-2.5">
-          {/* The shimmer carries no words, so without this the pending screen
-              had zero headings and zero copy — the page was unnameable to a
-              screen reader and the "exactly one h1" invariant only held once
-              the data landed. Visually hidden: the skeleton stays the visible
-              design. */}
-          <LoadingHeading
-            title={tab === "posted" ? "My Posts" : "My Jobs"}
-            message={tab === "posted" ? "Loading your posts…" : "Loading your jobs…"}
-          />
-          {/* On the "applied" tab use the application-card-shaped skeleton
-              so the loading→loaded swap doesn't visibly thump (see #121).
-              The "posted" tab keeps the original generic ActivityCardSkeleton
-              for now — it's a different card shape. */}
-          {tab === "applied"
-            ? [1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)
-            : [1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
-        </div>
-      </PageScaffold>
-    );
+    // One silhouette shared with the route fallback — see ActivityPageSkeleton
+    // for why the two loading frames must match the loaded layout (VN-32).
+    return <ActivityPageSkeleton tab={tab === "posted" ? "posted" : "applied"} />;
   }
 
 
@@ -508,7 +482,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           the VISIBLE page name (no app bar exists to carry it), and that name
           reads as chrome rather than as a row of the list. */}
       <PageScaffold
-        animate
+        animate={!skeletonShownRef.current}
         titleCard={isWebDesktop ? undefined : headerEl}
         titleCardClassName={ACTIVITY_HEADER_PADDING}
       >

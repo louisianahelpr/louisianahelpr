@@ -62,6 +62,7 @@ interface Geometry {
   nested: string[];
   frame: { left: number; right: number } | null;
   card: { left: number; right: number } | null;
+  /** The title BLOCK, not the <h1> glyph — see titleRow(). */
   title: { left: number; text: string } | null;
   docOverflow: number;
   widest: string | null;
@@ -92,7 +93,22 @@ function measure(): Geometry {
 
   // The first real content card under the title, not the header itself.
   const cardEl = scrollerEl?.querySelector<HTMLElement>(".liquid-glass, [class*='rounded-2xl']") ?? null;
-  const titleEl = document.querySelector<HTMLElement>("h1");
+
+  // NOT the <h1>'s own rect. PageHeader lays the title row out as
+  // [back chevron] [title column], so the h1's left edge sits a 44px tap
+  // target plus a gap to the right of the row — measured 48px in at BOTH 375
+  // and 1440, which is a property of the chevron, not of the page's gutter.
+  // Asserting on it would fail forever and say nothing about VN-37. Climb to
+  // the first ancestor that spans the content column: that block's left edge
+  // is what "the title is edge-aligned with the card" actually means.
+  const h1El = scrollerEl?.querySelector<HTMLElement>("h1") ?? document.querySelector<HTMLElement>("h1");
+  let titleEl: HTMLElement | null = h1El;
+  if (h1El && cardEl) {
+    const want = cardEl.getBoundingClientRect().width - 2;
+    for (let n: HTMLElement | null = h1El; n && n !== document.body; n = n.parentElement) {
+      if (n.getBoundingClientRect().width >= want) { titleEl = n; break; }
+    }
+  }
 
   let widest: string | null = null;
   let widestW = document.documentElement.clientWidth;
@@ -129,8 +145,15 @@ function measure(): Geometry {
 async function openTab(page: Page, tab: string) {
   await page.goto(`/profile?tab=${tab}`);
   await settle(page);
-  await expect(page.locator("h1"), `no title on ?tab=${tab} — signed out?`).toBeVisible({ timeout: 30_000 });
-  await page.waitForTimeout(700);
+  await expect(page.locator("h1").first(), `no title on ?tab=${tab} — signed out?`).toBeVisible({ timeout: 45_000 });
+  // The panels are lazy AND query-backed: an <h1> can be painted while the tab
+  // is still a Suspense skeleton, and measuring there reports the skeleton's
+  // geometry (it did, on the first probe of this spec). Wait for real content.
+  await expect(
+    page.locator(".page-measure .liquid-glass").first(),
+    `?tab=${tab} never rendered a content card`,
+  ).toBeVisible({ timeout: 45_000 });
+  await page.waitForTimeout(900);
 }
 
 for (const vw of [375, 1440] as const) {
@@ -211,10 +234,10 @@ for (const vw of [375, 1440] as const) {
     expect(rev.card, "no content card found in the reviews tab").not.toBeNull();
     expect(rev.title, "no <h1> on the reviews tab").not.toBeNull();
 
-    // The owner's actual ask: the title sits on the card's edge.
+    // The owner's actual ask: the title block sits on the card's edge.
     expect(
       Math.abs(rev.title!.left - rev.card!.left),
-      `VN-37: the title (x=${rev.title!.left}) is not edge-aligned with the card (x=${rev.card!.left}) at ${vw}`,
+      `VN-37: the title block (x=${rev.title!.left}) is not edge-aligned with the card (x=${rev.card!.left}) at ${vw}`,
     ).toBeLessThanOrEqual(1);
 
     // No dead band on one side only.

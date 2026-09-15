@@ -38,6 +38,42 @@ those are answerable by reading this instead of guessing.
   Follow-up (reported, not done): consider revoking the public default-privilege
   write grant so recreations can't re-open this class at all.
 
+- [ ] FIX ON BRANCH `fix-anon-grants` (awaiting lead prod-proof + land) — the
+  TABLE half of the excess-anon-grant class the open_jobs_browse CRITICAL was
+  the view half of. Two findings from the 2026-09-15 hole hunt: **H-004**
+  (docs/audit/holes-2026-09-15/authz-rls.md, origin/holes-authz-rls) — anon held
+  UPDATE/INSERT/REFERENCES/DELETE on `public.jobs` (jobs lock triggers all step
+  aside for NULL uid, RLS the only gate; DELETE policy is TO authenticated, so
+  anon's DELETE grant is policy-less); and **AUTHZ-02** (authz.md,
+  origin/holes-authz) — anon holds table-level SELECT on 14 admin/money/trust
+  tables with no signed-out read path. Both defense-in-depth (no live exposure),
+  same shape as the view CRITICAL. Fix: migration `20260915055601_revoke_excess
+  _anon_grants` — `REVOKE ALL ON public.jobs FROM anon, PUBLIC`; `REVOKE ALL`
+  from anon+PUBLIC on the 12 no-anon-write sensitive tables (admin_audit_log,
+  fraud_flags, user_bans, payout_transfers, instant_payouts, reports,
+  login_history, helper_verifications, gift_cards, referral_codes, tips,
+  push_tokens); `REVOKE SELECT, UPDATE, DELETE` (KEEP INSERT) on analytics_events
+  + error_logs (both take a legit anon INSERT under a permissive policy). No
+  MAINTAIN keyword (PG15 replay trap); REVOKE ALL sidesteps it and is
+  future-proof. authenticated's explicit grants untouched. Legitimate-anon-read
+  inventory built from source: only open_jobs_browse (view) + get_safe_profiles
+  (RPC) serve signed-out reads; base jobs and all 14 tables have no anon reader
+  (admin screens, self-scoped hooks, or service-role RPCs; user_bans read is
+  gated on user?.id and anon → /login; referral code goes to record_referral
+  _signup RPC). Class check (LIVE catalog, since default privileges re-open the
+  grant on any CREATE TABLE): `scripts/ci/sensitive-anon-grants.sql` +
+  `scripts/check-anon-table-grants.mjs`, wired into db-drift-detect.yml — fails
+  on an anon INSERT/UPDATE/DELETE no policy backs (jobs + sensitive set) or an
+  anon SELECT on a sensitive table; self-test proves it can fail. PGlite red→green:
+  `scripts/probes/anon-table-grants.probe.mjs` (BEFORE red 55 rows incl. jobs
+  DELETE + every sensitive SELECT/write, analytics INSERT correctly clean,
+  out-of-scope table not flagged; AFTER migration 3× green 0 rows, anon telemetry
+  INSERT + guest browse + authenticated writes all still work; 3 broken copies
+  caught; skip path). Parity guard `src/test/anonGrantsClassCheck.test.ts`.
+  LEAD TO PROVE ON PROD (rolled back) after land: anon INSERT on public.jobs →
+  42501; anon SELECT on each of the 14 tables → 401/permission-denied; guest
+  browse via open_jobs_browse → 200.
+
 - [x] CLOSED 2026-09-15 (CRITICAL follow-through on the item above): the rest of
   the class. Live read before either fix deployed (aclexplode on prod):
   `public.open_jobs_browse` AND `public.jobs_helper_safe` (security_invoker=on)
@@ -146,6 +182,10 @@ root-caused; seven stale test assumptions fixed, each checked against live prod.
   over-count above; and whichever visual-note entries remain.
 - Trap: never pre-create `~/.lh-browser.lock` — Playwright's globalSetup takes
   it, and taking it first deadlocks the run against itself.
+
+## holes-2026-09-15 (authz-rls) — storage buckets
+- [x] DONE 2026-09-15 on `fix-storage-buckets` (migration 20260915055517_storage_bucket_limits): H-003 — the PUBLIC `job-photos` bucket shipped with no `file_size_limit` and no `allowed_mime_types` (an unbounded, arbitrary-type, world-readable file host); `marketing-media` and `social-posts` had the same gap. The migration caps all three: job-photos → 50 MB + image (jpeg/png/webp/gif) **and** scope-video (mp4/quicktime/webm) types, kept PUBLIC (served via `getPublicUrl` in useJobMediaUpload/ReviewForm/imageUrl); marketing-media → 8 MB + jpeg/png/webp, kept PUBLIC (Instagram fetches server-side, can't use a signed URL); social-posts → 8 MB + jpeg/png/webp. INSERT policies untouched — the flagged `job-photos` `[1]=auth.uid()::text` branch writes under the caller's OWN uid (not cross-path) and is LIVE for review photos at `<uid>/reviews/…`, so deleting it would break ReviewForm; the size/MIME cap is what neutralises the exposure. Private document buckets (id/user-documents) left uncapped on purpose — complete-signup uploads under service role with a documented `application/octet-stream` fallback that an allow-list would reject. Class check: `src/test/storageBucketLimits.test.ts` replays the migrations and fails on any public bucket with a null limit (proven RED on the pre-fix tree for job-photos/marketing-media/social-posts). LEAD to verify on prod: an oversize / wrong-MIME upload to job-photos is rejected, and existing job photos still load.
+- [ ] GAP (report only): scope-video uploads (`useJobMediaUpload`, UI says "30s max") have NO client-side size or duration guard — only `accept="video/*"`. The new 50 MB bucket cap is the only ceiling; a longer/high-bitrate clip now fails at the bucket with a raw storage error instead of the app's own copy. Add a client `VIDEO_UPLOAD_MAX_BYTES` guard (like profile-videos) and/or compression.
 
 ## press-every-control — re-run 2026-09-15, 237 failed presses in 4 shards
 Coverage was 100% (0 undocumented skips); these are presses that fired and then

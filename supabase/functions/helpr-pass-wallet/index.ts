@@ -39,9 +39,18 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
-    // 1. Authenticate the caller — wallet passes are issued per-user.
+    // 1. Authenticate the caller — wallet passes are issued per-user. An auth
+    //    rejection returns 401 DIRECTLY, before the generic catch turns it into
+    //    a 500 (EF-03, hole hunt 2026-09-15): a 500 on this path both mislabels
+    //    a re-authenticate case as retry and poisons the 500 signal on money
+    //    endpoints with expired-session and bot noise.
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Not authenticated" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     const supabaseAuth = createClient(
       supabaseUrl,
       (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY"))!,
@@ -50,7 +59,12 @@ Deno.serve(async (req) => {
       authHeader.replace("Bearer ", ""),
     );
     const user = userData?.user;
-    if (!user) throw new Error("Not authenticated");
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: "Not authenticated" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     // 2. Pull the profile so we can build the pass payload + verify
     //    Elite gate. Elite-only feature — anyone else gets a paywall.

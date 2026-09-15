@@ -9,6 +9,7 @@ import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
 import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
+import { EarningsPageSkeleton, isEarningsTabUrl } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 import AppShell from "@/components/AppShell";
 import { toast } from "sonner";
 import { contactLeakFieldError, contactLeakRejectionMessage } from "@/lib/contactLeakField";
@@ -584,7 +585,7 @@ const ProfilePage = () => {
       >
         <div className="container mx-auto px-5 lg:px-6 xl:px-6 pt-3 lg:pt-5 pb-4 flex-1 min-h-0 overflow-y-auto">
           <div className="page-measure mx-auto">
-            <ProfilePageSkeleton />
+            {isEarningsTabUrl() ? <EarningsPageSkeleton /> : <ProfilePageSkeleton />}
           </div>
         </div>
       </AppShell>

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,6 +57,24 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  // Rate limit (EF-02, hole hunt 2026-09-15). The authorization rule below
+  // deliberately lets a job counterparty (or a mere applicant on a job) notify
+  // the other party, which is correct for lifecycle notices — but it turned a
+  // once-admin-only primitive into a user-reachable one that fans arbitrary
+  // caller-supplied copy out over three Helpr-branded channels (in-app + push +
+  // service-role email) with no budget. This is the ONLY client-reachable
+  // notification producer that lacked `checkRateLimit` while its 18 siblings
+  // have it. Keyed narrow per-JWT-subject (the sender) and wide per-IP, so one
+  // account can no longer email/push-bomb another. (The relationship gate and
+  // the 200/1000-char length caps below still stand; this adds the missing
+  // volume ceiling.)
+  const rl = await checkRateLimit(req, {
+    windowMs: 60_000,
+    maxRequests: 20,
+    keyPrefix: "create-notification",
+  });
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
 
   try {
     // Verify the caller is authenticated

@@ -17,6 +17,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { afterEach, vi } from "vitest";
 import {
   APPLE_TIERS,
   APPLE_CYCLES,
@@ -27,6 +28,8 @@ import {
   computeExpiry,
   isEntitled,
   decodeJwsPayload,
+  isSandboxTransaction,
+  expectsProduction,
   type AppleTransaction,
 } from "../../supabase/functions/_shared/appleAppStore";
 import { PRO_PRICE_MAP, type ProTierKey, type ProBillingCycle } from "../lib/proTiers";
@@ -422,5 +425,47 @@ describe("SubscriptionTab routes iOS through Apple", () => {
     expect(SRC).toMatch(/isIapAvailable\(\)\s*&&/);
     expect(SRC).toContain("handleRestorePurchases");
     expect(SRC).toMatch(/Restore purchases/);
+  });
+});
+
+// ── MS-4 / EF-4: environment gate on the entitlement source ────────────────
+//
+// A sandbox StoreKit purchase is free. `verify-apple-iap` must be able to tell
+// a Sandbox transaction from a Production one and refuse the former unless the
+// deployment explicitly opted into sandbox. These two pure helpers are that
+// decision; the edge test (src/test/edge/verify-apple-iap.test.ts) proves the
+// handler wires them together and writes nothing on a rejected sandbox tx.
+describe("sandbox environment gate", () => {
+  const tx = (over: Partial<AppleTransaction> = {}): AppleTransaction => ({
+    transactionId: "1",
+    originalTransactionId: "1",
+    productId: "com.helpr.plus.monthly",
+    bundleId: "com.Helpr",
+    ...over,
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("isSandboxTransaction is true only for a Sandbox-issued transaction", () => {
+    expect(isSandboxTransaction(tx({ environment: "Sandbox" }))).toBe(true);
+    expect(isSandboxTransaction(tx({ environment: "sandbox" }))).toBe(true); // case-insensitive
+    expect(isSandboxTransaction(tx({ environment: "Production" }))).toBe(false);
+    // Absent environment must NOT read as sandbox — that would block real buys.
+    expect(isSandboxTransaction(tx())).toBe(false);
+  });
+
+  it("expectsProduction is true unless APPLE_IAP_ENVIRONMENT is exactly 'sandbox'", () => {
+    // Unset (no Deno global at all, as in plain node) → production.
+    expect(expectsProduction()).toBe(true);
+
+    const stubEnv = (v: string | undefined) =>
+      vi.stubGlobal("Deno", { env: { get: (k: string) => (k === "APPLE_IAP_ENVIRONMENT" ? v : undefined) } });
+
+    stubEnv("sandbox");
+    expect(expectsProduction()).toBe(false);
+    stubEnv("production");
+    expect(expectsProduction()).toBe(true);
+    stubEnv(undefined);
+    expect(expectsProduction()).toBe(true);
   });
 });

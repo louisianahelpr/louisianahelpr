@@ -105,10 +105,12 @@ function scheduleRowTarget(job: Job, isPosted: boolean): { to: string; destinati
  *    icons, same `text-ds-11 text-muted-foreground`, same gaps, and the same
  *    location → date → time ORDER as the feed). It is *matched* rather than
  *    consumed for one concrete reason: that component's location chip is a
- *    real `<a>`/`<button>` map control, and this card's body is a single
- *    navigation `<button>` — an interactive element inside a button is
- *    invalid markup and breaks keyboard/AT focus order. The map lives one tap
- *    away on the job itself.
+ *    real `<a>`/`<button>` map control, and a tap anywhere on this card is
+ *    the card's navigation button (stretched under the rows) — a second
+ *    pointer target on the location would split one card into two
+ *    destinations. The map lives one tap away on the job itself. The meta
+ *    row's right side carries the card's one secondary action, "Add to
+ *    calendar" (VN-41).
  *
  * Two facts, stated once each, on their own line under the meta row:
  *  - STATUS (where the job is in its life) → `StatusBadge`, the canonical
@@ -167,137 +169,174 @@ const ScheduleCard = ({
       onToggle={() => {}}
       category={job.category}
     >
-      <button
-        type="button"
-        onClick={() => navigate(to)}
-        /* The accessible name states the same two facts the chips below show,
-           in the same words, plus where the tap goes — the chips are inside
-           this button, so without it a screen reader would read title, money,
-           place, date, time, status and role as one undifferentiated run. */
-        aria-label={`${job.title} — ${isPosted ? "you posted this" : "you're helping"}, ${jobStatusLabel(job.status).toLowerCase()}. Tap to ${destination}.`}
-        /* `pt-6` clears the category tab JobCardShell paints over the top-left
-           corner — the same allowance JobCardTitleBar and Browse's JobCard
-           make, and the reason every card's title now starts at an identical
-           offset from the card's top edge no matter how long it is. */
-        className="btn-press w-full text-left block px-4 pt-6 pb-2 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <h4
-            className="font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-          >
-            {job.title}
-          </h4>
-          {/* JobPrice `chip` / JobCardTitleBar geometry, value for value —
-              change one, change all three. A currency symbol is typography,
-              not an icon: the "$" is part of the same text node as the digits
-              (a DollarSign glyph beside an already-prefixed string rendered as
-              "$ $200"). */}
-          <span
-            className="inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center shrink-0 ml-3"
-            title={amountTitle}
-            style={{
-              background: "hsl(var(--bark) / 0.10)",
-              border: "0.5px solid hsl(var(--bark) / 0.28)",
-            }}
-          >
-            <span
-              className="font-sans leading-none tabular-nums text-ds-17"
-              style={{ fontWeight: 800, color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
-            >
-              <span style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}>$</span>
-              {amount}
-            </span>
-          </span>
-        </div>
-        {/* Location → date → time, the same order and the same chips the feed
-            and both activity cards use. The DATE is new here and not optional:
-            "Upcoming jobs" is a date-sorted list that previously printed only
-            a clock time, so two jobs a week apart read as though they were the
-            same afternoon. The CITY replaces the raw `location` column, which
-            printed a full street address on some rows and a city on others —
-            `getCity` is the same normaliser JobCardMetaRow runs, so the
-            schedule can never disagree with the cards it links to. The full
-            address still travels in the exported calendar event, where it is
-            the point. */}
-        <div className="mt-1.5 flex items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 overflow-hidden text-ds-11 text-muted-foreground">
-          {/* A job whose poster deleted their account is anonymised rather than
-              removed (20260901033011), so it stands with no address. The chip
-              drops out entirely rather than printing a pin with nothing beside
-              it — the date and time hold the row on their own. */}
-          {job.location && (
-            <span className="flex items-center gap-1 min-[360px]:gap-1.5 min-w-0 shrink">
-              <MapPin className="w-3 h-3 shrink-0" />
-              <span className="truncate">{getCity(job.location)}</span>
-            </span>
-          )}
-          <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-            <Calendar className="w-3 h-3 shrink-0" />
-            {formatJobDate(job.date_needed)}
-          </span>
-          <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-            <Clock className="w-3 h-3 shrink-0" />
-            {time}
-          </span>
-        </div>
-        {/* The two chips that say what this job IS. Both are plain, inert
-            spans, so they live INSIDE the navigation button — which also makes
-            more of the card a tap target for the thing tapping the card does.
-
-            They get a LINE OF THEIR OWN rather than sharing one with the
-            calendar action, and that is a measured decision, not a stylistic
-            one: sharing the line, the row fitted on a card whose status read
-            "Open" and wrapped on one whose status read "In progress", so two
-            cards in the same list came out different heights with the action
-            in a different place — the exact defect this rebuild exists to
-            remove. Structure must not depend on how long a label happens to
-            be. */}
-        <div className="mt-2 flex items-center gap-x-2 min-w-0">
-          <StatusBadge status={job.status} className="shrink-0" />
-          <span
-            className="inline-flex items-center rounded-ds-pill px-2 py-0.5 text-ds-10 font-semibold leading-none whitespace-nowrap shrink-0"
-            style={{
-              background: "hsl(var(--ivory-sand) / 0.65)",
-              border: "1px solid hsl(var(--olivewood) / 0.18)",
-              color: "hsl(var(--olivewood))",
-            }}
-          >
-            {isPosted ? "You posted" : "You're helping"}
-          </span>
-        </div>
-      </button>
-      {/* The one secondary action.
-
-          "Add to calendar" used to be a full-width row of its own under a
-          divider — the exact geometry a PRIMARY action gets, given to a
-          secondary one, on every card in the list. It is a compact,
-          right-aligned control now, with no rule above it. It has to be a
-          sibling of the navigation button rather than a child (a button inside
-          a button is invalid markup and breaks keyboard/AT focus order), which
-          is the only reason it still occupies a row at all.
-
-          Rendered unconditionally: `useProfileSchedule` only ever fetches
-          open / accepted / in_progress jobs, so there is no settled row here
-          to hide it from — and a branch that can never render is a branch that
-          can never be verified. Every card gets the same footer. */}
-      <div className="px-4 pb-2.5 pt-1 flex items-center">
+      {/* ONE ROW for the secondary action (VN-41, owner 2026-09-15: "Side by
+          side"). "Add to calendar" used to own a whole row under the chips,
+          only because it could not live inside the navigation button (a
+          button inside a button is invalid markup and breaks keyboard/AT
+          focus order). The rows now sit OUTSIDE the navigation button, and the
+          button is stretched over the whole card beneath them, so:
+            - the calendar action can sit in the meta row's right side, a
+              true sibling of the navigation button, not a child of it;
+            - a tap anywhere else on the card still navigates, exactly as
+              before (the rows are `pointer-events-none`; only the calendar
+              action opts back in, and it paints above the overlay);
+            - assistive tech hears exactly what it heard before: the
+              navigation button's aria-label (which always overrode the rows
+              it wrapped), then "Add to calendar". The visual rows are
+              aria-hidden so they are not read a second time. */}
+      <div className="relative">
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            void exportJobRowToCalendar(job);
-          }}
-          /* `min-h-[44px]` with `-my-2.5` buys the app's 44px tap floor
-             without adding 20px of height to every card — the overhang lands
-             on the card's own bottom padding, and the only thing above it is
-             the navigation button's own generous hit area, so nothing can
-             steal the tap. */
-          className="btn-press ml-auto inline-flex items-center gap-1.5 min-h-[44px] -my-2.5 px-2 -mr-2 rounded-ds-sm text-ds-11 font-semibold active:scale-[0.96] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-          style={{ color: "hsl(var(--bark))" }}
+          onClick={() => navigate(to)}
+          /* The accessible name states the same two facts the chips below show,
+             in the same words, plus where the tap goes — without it a screen
+             reader would read title, money, place, date, time, status and role
+             as one undifferentiated run. */
+          aria-label={`${job.title} — ${isPosted ? "you posted this" : "you're helping"}, ${jobStatusLabel(job.status).toLowerCase()}. Tap to ${destination}.`}
+          className="peer absolute inset-0 w-full h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--ring))]"
+        />
+        {/* `pt-6` clears the category tab JobCardShell paints over the top-left
+            corner — the same allowance JobCardTitleBar and Browse's JobCard
+            make, and the reason every card's title starts at an identical
+            offset from the card's top edge no matter how long it is. The press
+            feedback the navigation button used to carry on itself now rides
+            `peer-active`, because the button is an empty overlay. */}
+        <div
+          data-testid="schedule-card-body"
+          className="pointer-events-none px-4 pt-6 pb-3 transition-transform peer-active:scale-[0.99] motion-reduce:transition-none motion-reduce:peer-active:scale-100"
         >
-          <CalendarPlus className="w-3.5 h-3.5 shrink-0" aria-hidden />
-          Add to calendar
-        </button>
+          <div aria-hidden className="flex items-center justify-between gap-3">
+            <h4
+              className="font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+            >
+              {job.title}
+            </h4>
+            {/* JobPrice `chip` / JobCardTitleBar geometry, value for value —
+                change one, change all three. A currency symbol is typography,
+                not an icon: the "$" is part of the same text node as the digits
+                (a DollarSign glyph beside an already-prefixed string rendered as
+                "$ $200").
+
+                `pointer-events-auto` so its `title` tooltip (whose money this
+                is) still shows on hover under the rows' pointer-events-none;
+                the click it now receives navigates exactly as the overlay
+                button would. Keyboard and AT reach that same navigation through
+                the overlay button, so this is a pointer-only duplicate. */}
+            <span
+              className="pointer-events-auto cursor-pointer inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center shrink-0 ml-3"
+              title={amountTitle}
+              onClick={() => navigate(to)}
+              style={{
+                background: "hsl(var(--bark) / 0.10)",
+                border: "0.5px solid hsl(var(--bark) / 0.28)",
+              }}
+            >
+              <span
+                className="font-sans leading-none tabular-nums text-ds-17"
+                style={{ fontWeight: 800, color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
+              >
+                <span style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}>$</span>
+                {amount}
+              </span>
+            </span>
+          </div>
+          {/* Meta row: location → date → time on the left, the calendar action
+              on the right.
+
+              Location → date → time is the same order and the same chips the
+              feed and both activity cards use. The DATE is not optional:
+              "Upcoming jobs" is a date-sorted list, and a row that printed only
+              a clock time made two jobs a week apart read as the same
+              afternoon. The CITY replaces the raw `location` column, which
+              printed a full street address on some rows and a city on others —
+              `getCity` is the same normaliser JobCardMetaRow runs, so the
+              schedule can never disagree with the cards it links to. The full
+              address still travels in the exported calendar event, where it is
+              the point.
+
+              The facts truncate (location first, it is the only `shrink`
+              chip); the action never does — it is `shrink-0`, so a long city
+              gives way to it instead of pushing it off the card. */}
+          <div data-testid="schedule-card-meta-row" className="mt-1.5 flex items-center gap-3 min-w-0">
+            <div
+              aria-hidden
+              className="flex flex-1 items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 overflow-hidden text-ds-11 text-muted-foreground"
+            >
+              {/* A job whose poster deleted their account is anonymised rather
+                  than removed (20260901033011), so it stands with no address.
+                  The chip drops out entirely rather than printing a pin with
+                  nothing beside it — the date and time hold the row on their
+                  own. */}
+              {job.location && (
+                <span className="flex items-center gap-1 min-[360px]:gap-1.5 min-w-0 shrink">
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{getCity(job.location)}</span>
+                </span>
+              )}
+              <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                <Calendar className="w-3 h-3 shrink-0" />
+                {formatJobDate(job.date_needed)}
+              </span>
+              <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                <Clock className="w-3 h-3 shrink-0" />
+                {time}
+              </span>
+            </div>
+            {/* The one secondary action. Rendered unconditionally:
+                `useProfileSchedule` only ever fetches open / accepted /
+                in_progress jobs, so there is no settled row here to hide it
+                from — and a branch that can never render is a branch that can
+                never be verified. */}
+            <button
+              type="button"
+              aria-label="Add to calendar"
+              onClick={(e) => {
+                e.stopPropagation();
+                void exportJobRowToCalendar(job);
+              }}
+              /* `min-h-[44px]` with `-my-3.5` buys the app's 44px tap floor
+                 without making the meta row 44px tall — the overhang lands in
+                 the gaps above and below the row. `pointer-events-auto` +
+                 `relative z-[1]` lift it out of the rows' pointer-events-none
+                 and above the stretched navigation button. */
+              className="btn-press pointer-events-auto relative z-[1] shrink-0 inline-flex items-center gap-1.5 min-h-[44px] -my-3.5 px-2 -mr-2 rounded-ds-sm text-ds-11 font-semibold whitespace-nowrap active:scale-[0.96] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              <CalendarPlus className="w-3.5 h-3.5 shrink-0" aria-hidden />
+              {/* Icon-only where the card is narrow (phone, and the 1024–1279
+                  two-column list), so the city in the same row is not cut to
+                  "N…" or dropped. Measured on the cloud branch at 375: the city
+                  vanished; at 1024: "N…". */}
+              <span className="hidden min-[480px]:inline min-[1024px]:hidden min-[1280px]:inline">Add to calendar</span>
+            </button>
+          </div>
+          {/* The two chips that say what this job IS — STATUS (where the job
+              is in its life, `StatusBadge`, once) and ROLE (which side of the
+              job you are on, worded as a verb phrase so it cannot be misread as
+              a lifecycle state).
+
+              They keep a LINE OF THEIR OWN rather than sharing one with the
+              calendar action, and that is a measured decision, not a stylistic
+              one: sharing the line, the row fitted on a card whose status read
+              "Open" and wrapped on one whose status read "In progress", so two
+              cards in the same list came out different heights with the action
+              in a different place. Structure must not depend on how long a
+              label happens to be. */}
+          <div aria-hidden className="mt-2 flex items-center gap-x-2 min-w-0">
+            <StatusBadge status={job.status} className="shrink-0" />
+            <span
+              className="inline-flex items-center rounded-ds-pill px-2 py-0.5 text-ds-10 font-semibold leading-none whitespace-nowrap shrink-0"
+              style={{
+                background: "hsl(var(--ivory-sand) / 0.65)",
+                border: "1px solid hsl(var(--olivewood) / 0.18)",
+                color: "hsl(var(--olivewood))",
+              }}
+            >
+              {isPosted ? "You posted" : "You're helping"}
+            </span>
+          </div>
+        </div>
       </div>
     </JobCardShell>
   );
@@ -322,6 +361,36 @@ const UPCOMING_FILTERS: { value: UpcomingFilter; label: string }[] = [
   { value: "posted", label: "Posted" },
   { value: "applied", label: "Applied" },
 ];
+
+/**
+ * The tab's two-column layout (VN-41, owner 2026-09-15: "Side by side").
+ *
+ * The owner saw a ~280px calendar floating in a full-width card with ~650px of
+ * blank card either side of it, and the Upcoming jobs list pushed below it. At
+ * 1024px and up the calendar takes the LEFT column and the list takes the
+ * RIGHT, both starting at the same top edge (`items-start`, so a short list
+ * does not stretch the calendar card and vice versa).
+ *
+ * The calendar column is `clamp(320px, 42%, 480px)` — about 5/12 of the
+ * content width, never narrower than a usable month grid and never wider than
+ * 480px — and the list gets the rest (`minmax(0,1fr)`, so a long job title
+ * truncates instead of widening the track past the viewport). Against the
+ * Profile content box: 1440 with the rail open is ~1144px wide, so the
+ * calendar lands at 480 and the list at ~640; 1024 with the rail open is
+ * ~728px, so 320 / ~384.
+ *
+ * `min-[1024px]`, NOT `lg:`. This project's `lg` is 900 (tailwind.config.ts —
+ * it has to match WEB_DESKTOP_QUERY), and at 900 with the 248px rail open the
+ * content box is ~604px: two columns there would squeeze the list to ~260px.
+ * Below 1024 the page stacks exactly as before, calendar then list; the gap
+ * is `gap-4`, the same 16px the `space-y-4` stack used.
+ *
+ * The loading skeleton wears the same class, so the page does not jump from
+ * one column to two when the data lands. Pinned by ScheduleTab.layout.test.tsx,
+ * which compiles this string through the real Tailwind config.
+ */
+export const SCHEDULE_LAYOUT_CLASS =
+  "grid grid-cols-1 gap-4 items-start min-[1024px]:grid-cols-[clamp(320px,42%,480px)_minmax(0,1fr)] min-[1024px]:gap-6";
 
 export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack, hideHeader = false }: ScheduleTabProps) {
   // The viewer's own tier rate — the fallback used for assigned jobs whose
@@ -419,7 +488,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
       )}
 
       {loading ? (
-        <div className="space-y-4">
+        <div className={SCHEDULE_LAYOUT_CLASS}>
           <div className="rounded-2xl liquid-glass p-5 space-y-4">
             <div className="flex items-center justify-between">
               <Skeleton className="h-8 w-8 rounded-md" />
@@ -428,18 +497,18 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
             </div>
             <div className="grid grid-cols-7 gap-1">
               {Array.from({ length: 35 }).map((_, i) => (
-                <Skeleton key={i} className="h-9 rounded" />
+                <Skeleton key={i} className="h-9 rounded min-[1024px]:h-auto min-[1024px]:aspect-square" />
               ))}
             </div>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-3 min-w-0">
             <Skeleton className="h-5 w-32 rounded" />
             <Skeleton className="h-20 rounded-ds-md" />
             <Skeleton className="h-20 rounded-ds-md" />
           </div>
         </div>
       ) : (
-        <>
+        <div data-testid="schedule-layout" className={SCHEDULE_LAYOUT_CLASS}>
           {/* Calendar card — item 27, significantly more compact than before.
               The grid used to be `aspect-square` cells at full card width, so
               on any screen wider than a phone SE each day cell ballooned to
@@ -447,10 +516,16 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
               dots". Capping the grid at 280px and dropping cells to a fixed
               32px keeps every cell tappable (well over the 40px target isn't
               needed here — see aria-label + the whole-cell hit area) while
-              giving the Upcoming-jobs list below far more of the screen. */}
-          <div className="rounded-2xl liquid-glass p-3.5">
-            <div className="max-w-[280px] mx-auto">
-            <div className="flex items-center justify-between mb-2">
+              giving the Upcoming-jobs list below far more of the screen.
+
+              That cap is for the STACKED layout only. From 1024px the calendar
+              has a column of its own (VN-41), so the cap lifts
+              (`min-[1024px]:max-w-none`) and the day cells go square
+              (`aspect-square`) to fill it — at 1440 that is ~60px cells in a
+              480px column instead of 32px cells in a 280px island. */}
+          <div data-testid="schedule-calendar" className="rounded-2xl liquid-glass p-3.5 min-w-0 min-[1024px]:p-5">
+            <div className="max-w-[280px] mx-auto min-[1024px]:max-w-none">
+            <div className="flex items-center justify-between mb-2 min-[1024px]:mb-3">
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} aria-label="Previous month"><ChevronLeft className="w-3.5 h-3.5" /></Button>
               <div className="flex flex-col items-center gap-1">
                 {/* The month name is editorial (Bodoni Moda italic); the YEAR
@@ -491,14 +566,14 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
               </div>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} aria-label="Next month"><ChevronRight className="w-3.5 h-3.5" /></Button>
             </div>
-            <div className="grid grid-cols-7 gap-0.5 mb-0.5">
+            <div className="grid grid-cols-7 gap-0.5 mb-0.5 min-[1024px]:gap-1 min-[1024px]:mb-1">
               {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                <div key={d} className="text-center font-sans uppercase py-0.5 text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+                <div key={d} className="text-center font-sans uppercase py-0.5 text-ds-10 min-[1024px]:py-1 min-[1024px]:text-ds-11" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                   {d}
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-0.5">
+            <div className="grid grid-cols-7 gap-0.5 min-[1024px]:gap-1">
               {days.map((day, i) => {
                 if (day === null) return <div key={`e-${i}`} />;
                 const dateStr = getDateStr(day);
@@ -525,7 +600,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                     title={blockedReason ?? undefined}
                     aria-label={blockedReason ? `${dateStr} — ${blockedReason.toLowerCase()}` : undefined}
-                    className={`relative h-8 flex flex-col items-center justify-center rounded-ds-sm text-ds-11 transition-colors ${
+                    className={`relative h-8 min-[1024px]:h-auto min-[1024px]:aspect-square flex flex-col items-center justify-center rounded-ds-sm text-ds-11 min-[1024px]:text-ds-14 transition-colors ${
                       isSelected ? "btn-grad-primary text-[hsl(var(--parchment))]" :
                       isToday ? "text-primary font-bold ring-2 ring-primary/70 ring-inset bg-primary/8" :
                       // text-muted-foreground at FULL strength, not /70. The
@@ -567,7 +642,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                         list below, instead of one undifferentiated primary
                         dot for every job regardless of type. */}
                     {hasJobs && (
-                      <span className="absolute bottom-1 flex items-center gap-0.5">
+                      <span className="absolute bottom-1 min-[1024px]:bottom-2 flex items-center gap-0.5">
                         {[...new Set(dayJobs.map((j) => j.category ?? "other"))]
                           .slice(0, 3)
                           .map((cat) => (
@@ -626,6 +701,11 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
             </div>
           </div>
 
+          {/* The list column. Exactly one of its two states renders — the
+              selected day's jobs, or Upcoming jobs — so it is ONE grid cell
+              either way and the calendar never loses its left column when a
+              day is picked. */}
+          <div data-testid="schedule-list" className="min-w-0">
           {selectedDate && (
             <div className="space-y-3">
               <div>
@@ -761,7 +841,8 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
               )}
             </div>
           )}
-        </>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -29,14 +29,26 @@ serve(async (req) => {
   );
 
   try {
+    // Auth failures return 401 DIRECTLY, before the generic catch below can
+    // turn them into a confident "not subscribed". An unauthenticated or
+    // expired call is "we don't know who you are", never "you are not a member".
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Not authenticated" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseAuth.auth.getUser(token);
-    if (userError) throw new Error(userError.message);
+    if (userError || !userData.user?.email) {
+      return new Response(
+        JSON.stringify({ error: "Not authenticated" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated");
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -290,17 +302,23 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("[check-pro-subscription] error:", error);
-    // Return 200 with fallback so frontend doesn't crash/blank-screen
+    // FAIL CLOSED (EF-01, hole hunt 2026-09-15). This catch used to return
+    // HTTP 200 {subscribed:false, tier:null} on ANY internal failure — a
+    // Stripe blip, a network hiccup — which the client's `unwrap` reads as a
+    // successful "you are not a member" and renders over a paying member's
+    // tier. A 5xx here makes `unwrap` raise instead, so the query keeps its
+    // placeholderData (the profile's own subscription_tier column) rather than
+    // being overwritten with a confident, wrong `null`. We emit NO subscription
+    // verdict on the error path — only an error the client treats as
+    // "unknown, retry".
     return new Response(
       JSON.stringify({
-        subscribed: false,
-        tier: null,
-        fallback: true,
-        error: "Internal server error",
+        error: "Couldn't verify your membership. Please try again.",
+        retryable: true,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
+        status: 503,
       }
     );
   }

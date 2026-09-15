@@ -179,6 +179,14 @@ function AppliedJobCardInner({
           they applied to is the person who posted it. The profile LINK — the
           one thing the expanded row genuinely added — is kept, and kept in both
           states, because it is capability, not decoration. */}
+      {/* Reserve the name row while the poster names are still loading, so
+          the row arriving ~1s later does not push every card down (VN-32). */}
+      {app.posterName === undefined && app.job && (
+        <div className="flex items-center gap-1 mb-1" aria-hidden>
+          <div className="w-4 h-4 rounded-full bg-muted shrink-0" />
+          <div className="h-3 w-16 rounded bg-muted" />
+        </div>
+      )}
       {app.posterName && (
         <div className="flex items-center gap-1 mb-1">
           <div className="w-4 h-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-9 font-bold shrink-0">

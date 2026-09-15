@@ -1,7 +1,7 @@
 name: Prod audit (messy input, deep links, interruptions)
 
-# The two PROD suites in e2e/prod-audit/, against the DEPLOYED app and the REAL
-# backend as the seeded test accounts (owner, 2026-09-12: "no mock mode ever"):
+# The two PROD suites in e2e/prod-audit/, against THIS COMMIT served locally and
+# the REAL backend as the seeded test accounts (owner, 2026-09-12: "no mock mode ever"):
 #
 #   messy-input.spec.ts   every form: the whole value battery on every field,
 #                         the targeted format/price/DOB rules, and the
@@ -14,8 +14,10 @@ name: Prod audit (messy input, deep links, interruptions)
 #   interruptions.spec.ts double-tap, offline mid-submit, a slow network, back
 #                         and refresh mid-flow, and session expiry.
 #
-# No app build: like e2e-journeys.yml these drive the deployed site, which is
-# exactly the bundle users get. Serial, one worker, and in the SAME concurrency
+# Real backend, LOCAL frontend (2026-09-14): the job builds this commit and
+# serves it with `vite preview` (.github/actions/local-preview). The explore half
+# re-loads between presses on ~45 routes; on the deployed site that was tens of
+# thousands of Vercel edge requests a run. Serial, one worker, and in the SAME concurrency
 # group as the journeys and prod-lifecycle so nothing else drives these accounts
 # at the same time.
 #
@@ -90,7 +92,7 @@ jobs:
     # a failure of the app.
     timeout-minutes: 300
     env:
-      PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
       PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
       PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
       PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
@@ -109,6 +111,11 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - run: npx playwright install --with-deps chromium
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
 
       # The incomplete-profile and admin seed accounts exist only as seeded
       # rows: no password is stored for them anywhere, so a session can only be

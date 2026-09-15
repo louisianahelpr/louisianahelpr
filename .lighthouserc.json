@@ -36,7 +36,14 @@
     "accessibility/best-practices stay at `warn`: a11y-axe.yml is the real",
     "accessibility gate (WCAG 2A/2AA via axe over every screen at four",
     "variants), and Lighthouse's category score is a weaker, noisier signal",
-    "that should not be a second, softer copy of it."
+    "that should not be a second, softer copy of it.",
+    "",
+    "LOCAL BUILD SINCE 2026-09-14: lighthouse.yml audits this commit on",
+    "http://127.0.0.1:4173 (vite preview, gzip) instead of the deployed site, so",
+    "test traffic costs no Vercel edge requests. `canonical` is skipped because",
+    "index.html's canonical names the production host, which Lighthouse scores 0",
+    "on any other origin; the baselines above were measured on prod and the first",
+    "local run is the new baseline to compare against."
   ],
   "ci": {
     "collect": {
@@ -49,7 +56,8 @@
           "deviceScaleFactor": 1.75,
           "disabled": false
         },
-        "throttlingMethod": "simulate"
+        "throttlingMethod": "simulate",
+        "skipAudits": ["canonical"]
       },
       "numberOfRuns": 2
     },

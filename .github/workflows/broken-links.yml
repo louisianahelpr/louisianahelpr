@@ -3,9 +3,16 @@ name: Broken Link Check
 permissions:
   contents: read
 
-# Crawls the published site for broken links (404s, dead redirects).
-# App Store reviewers click through privacy/support/terms URLs — a 404 on
-# any of those is grounds for rejection. This catches them before submission.
+# Checks the app's legal/support routes and the homepage's outbound links
+# (404s, dead redirects). App Store reviewers click through privacy/support/
+# terms URLs — a 404 on any of those is grounds for rejection. This catches
+# them before submission.
+#
+# Against THIS COMMIT built and served locally (.github/actions/local-preview),
+# not the deployed site (2026-09-14: Vercel paused the project on Hobby limits
+# with test traffic as the main load; src/test/noTestTrafficOnVercel.test.ts).
+# Links back to the production host are excluded from lychee for the same
+# reason; that the deployed site answers at all is uptime.yml's job.
 #
 # Runs:
 # - Weekly on Tuesdays (App Store reviews happen all week)
@@ -23,27 +30,37 @@ on:
 
 jobs:
   link-check:
-    name: Crawl www.louisianahelpr.com for 404s
+    name: Check legal/support routes and outbound links for 404s
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Build and serve this commit locally
+        uses: ./.github/actions/local-preview
 
       - name: Check critical legal/support pages
         # These are the URLs Apple reviewers click. If any 404, we fail loud.
         run: |
           set -e
           URLS=(
-            "https://www.louisianahelpr.com/"
-            "https://www.louisianahelpr.com/privacy"
-            "https://www.louisianahelpr.com/terms"
-            "https://www.louisianahelpr.com/rules"
-            "https://www.louisianahelpr.com/support"
-            "https://www.louisianahelpr.com/login"
-            "https://www.louisianahelpr.com/signup"
-            "https://www.louisianahelpr.com/data-rights"
+            "http://127.0.0.1:4173/"
+            "http://127.0.0.1:4173/privacy"
+            "http://127.0.0.1:4173/terms"
+            "http://127.0.0.1:4173/rules"
+            "http://127.0.0.1:4173/support"
+            "http://127.0.0.1:4173/login"
+            "http://127.0.0.1:4173/signup"
+            "http://127.0.0.1:4173/data-rights"
           )
           FAIL=0
           THROTTLED=0
@@ -97,5 +114,6 @@ jobs:
             --accept 200,206,429
             --exclude-mail
             --exclude-path node_modules
-            https://www.louisianahelpr.com/
+            --exclude '^https?://(www\.)?louisianahelpr\.com'
+            http://127.0.0.1:4173/
           fail: false # don't fail on flaky external links — log only

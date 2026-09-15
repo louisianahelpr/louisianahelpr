@@ -52,7 +52,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 
 // ---------- config ----------
-const TARGET = 'https://www.louisianahelpr.com';
+// This checkout's local build on the prod backend (`npm run build && npx vite
+// preview --port 4173`), never the deployed site: a full-surface capture is
+// thousands of Vercel edge requests (src/test/noTestTrafficOnVercel.test.ts).
+const TARGET = (process.env.BASE || process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:4173').replace(/\/$/, '');
 const TEST_EMAIL = 'eli.test.helper@louisianahelpr.com';
 // NOT a constant any more. The account behind TEST_EMAIL was deleted and
 // re-created on 2026-09-07 (old auth id 6bdc1f67-…a6147 → 404 from GoTrue,

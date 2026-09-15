@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Repro for four keyboard-a11y defects against PROD (terminal 2, 2026-09-12).
+ * Repro for four keyboard-a11y defects (terminal 2, 2026-09-12), against a local
+ * build on the prod backend.
  * Usage: node scripts/audit/a11y-focus-repro.mjs <outDir> [baseURL]
  */
 import { chromium } from "@playwright/test";
@@ -11,7 +12,9 @@ import { pathToFileURL } from "node:url";
 
 const REPO = resolve(new URL("../..", import.meta.url).pathname);
 const OUT = resolve(process.argv[2] ?? "test-results/a11y-repro");
-const BASE = process.argv[3] ?? process.env.PLAYWRIGHT_BASE_URL ?? "https://www.louisianahelpr.com";
+// Local build by default (`npm run build && npx vite preview --port 4173`), never
+// the deployed site (src/test/noTestTrafficOnVercel.test.ts).
+const BASE = process.argv[3] ?? process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:4173";
 mkdirSync(OUT, { recursive: true });
 
 const { acquireBrowserLock, releaseBrowserLock } = await import(pathToFileURL(resolve(REPO, "e2e/browserLock.ts")).href);

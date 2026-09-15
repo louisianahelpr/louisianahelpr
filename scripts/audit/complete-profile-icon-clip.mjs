@@ -11,7 +11,9 @@ import { pathToFileURL } from "node:url";
 
 const REPO = resolve(new URL("../..", import.meta.url).pathname);
 const OUT = resolve(process.argv[2] ?? "test-results/cp-clip");
-const BASE = process.argv[3] ?? "https://www.louisianahelpr.com";
+// Local build by default (`npm run build && npx vite preview --port 4173`), never
+// the deployed site (src/test/noTestTrafficOnVercel.test.ts).
+const BASE = process.argv[3] ?? process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:4173";
 const ENGINE = process.argv[4] ?? "chromium";
 mkdirSync(OUT, { recursive: true });
 

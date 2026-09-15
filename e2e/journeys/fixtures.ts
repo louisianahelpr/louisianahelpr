@@ -17,8 +17,10 @@ import { deviceProfile, type Rotation } from "./scenarios";
 /**
  * Shared plumbing for the USER JOURNEY suite (e2e/journeys/*).
  *
- * The journeys drive the DEPLOYED app (PLAYWRIGHT_BASE_URL, default prod web)
- * against the REAL backend with the two shared E2E accounts: the same pair,
+ * The journeys drive this checkout's LOCAL build (playwright.config.ts's
+ * baseURL; never the deployed site, which costs Vercel edge requests — see
+ * src/test/noTestTrafficOnVercel.test.ts) against the REAL backend with the
+ * two shared E2E accounts: the same pair,
  * title marker, sweeper and Stripe tripwire as e2e/prod-lifecycle.spec.ts.
  *
  * SESSIONS. Two sources, and neither changes a credential:

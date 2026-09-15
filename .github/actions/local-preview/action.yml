@@ -1,0 +1,64 @@
+name: "Local preview of this commit"
+description: >
+  Real backend, LOCAL frontend (2026-09-14). Builds this checkout with the prod
+  Supabase VITE_* env and serves dist/ with `vite preview` on 127.0.0.1, so a
+  suite drives the real database, Stripe test mode and the shared test accounts
+  while adding zero Vercel edge requests. Vercel paused the project on Hobby
+  limits (3.1M of 1M edge requests) with test suites as the main load: one SPA
+  page load is ~110-215 edge requests. Same pattern as scripts/check-changed.mjs
+  and press-every-control.yml. Guarded by src/test/noTestTrafficOnVercel.test.ts.
+  Needs `npm install` to have run first. Point the suite at
+  http://127.0.0.1:<port> (the job also gets LOCAL_PREVIEW_URL in its env).
+
+inputs:
+  port:
+    description: "Port for vite preview (127.0.0.1 only)"
+    required: false
+    default: "4173"
+  supabase-url:
+    description: "VITE_SUPABASE_URL baked into the bundle (the REAL backend)"
+    required: false
+    default: "https://fncmgoasalhdgfwzhsqa.supabase.co"
+  supabase-publishable-key:
+    description: "VITE_SUPABASE_PUBLISHABLE_KEY (the publishable anon key the shipped bundle carries)"
+    required: false
+    default: "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build this commit (prod Supabase env)
+      shell: bash
+      env:
+        VITE_SUPABASE_PROJECT_ID: fncmgoasalhdgfwzhsqa
+        VITE_SUPABASE_URL: ${{ inputs.supabase-url }}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${{ inputs.supabase-publishable-key }}
+      run: |
+        set -euo pipefail
+        test -d node_modules || { echo "::error::local-preview needs npm install to run first"; exit 1; }
+        # No VITE_SENTRY_DSN / VITE_POSTHOG_KEY on purpose: test sessions no
+        # longer land in production analytics or error reporting either.
+        npm run build
+
+    - name: Serve dist/ with vite preview on 127.0.0.1
+      shell: bash
+      env:
+        PORT: ${{ inputs.port }}
+      run: |
+        set -euo pipefail
+        LOG="$RUNNER_TEMP/vite-preview-$PORT.log"
+        nohup npx vite preview --port "$PORT" --strictPort --host 127.0.0.1 > "$LOG" 2>&1 &
+        for i in $(seq 1 60); do
+          curl -sf "http://127.0.0.1:$PORT/" > /dev/null && break
+          sleep 1
+        done
+        if ! curl -sf "http://127.0.0.1:$PORT/" -o "$RUNNER_TEMP/preview-index.html"; then
+          echo "::error::vite preview did not answer on 127.0.0.1:$PORT"
+          cat "$LOG"
+          exit 1
+        fi
+        # A server that answers with an empty shell would turn every suite into
+        # a wall of confusing timeouts; fail here, naming the cause.
+        grep -q 'assets/index-' "$RUNNER_TEMP/preview-index.html" || { echo "::error::the preview served no built entry chunk"; exit 1; }
+        echo "LOCAL_PREVIEW_URL=http://127.0.0.1:$PORT" >> "$GITHUB_ENV"
+        echo "Serving this commit at http://127.0.0.1:$PORT"

@@ -135,6 +135,12 @@ const TRANSITION_GUARDS: { fn: string; seats: Seat[]; columns: string[]; why: st
     columns: ["status", "dispute_status", "disputed_at", "disputed_by", "dispute_resolved_at", "dispute_deadline"],
     why: "the dispute state machine is written only by the dispute RPCs / service / admin; the one direct client move is the Helpr's open -> helper_responded",
   },
+  {
+    fn: "enforce_job_completion_server_owned",
+    seats: ["helper", "poster", "offered"],
+    columns: ["status", "helper_completed_at"],
+    why: "helper_completed_at is server-stamped (clamped to now()) on the assigned Helpr's first write and immovable after; a client status change INTO 'completed' is refused for every seat — H-001/H-002 (20260915055245)",
+  },
 ];
 
 function lockLists() {
@@ -215,13 +221,13 @@ describe("jobs money / state-machine columns: every client-writable one has a tr
    * write that can stall or mislabel the Helpr's side.
    */
   const KNOWN_OPEN = [
-    // Poster clears helper_completed_at on an in_progress escrow job:
-    // auto-release-payment (poster_completed_at OR helper_completed_at <= cutoff)
-    // never sees it, so the Helpr's 24h auto-release is defeated.
-    "poster:helper_completed_at",
-    // Offered Helpr (pending direct offer, job still open): no escrow release
-    // reads it on an open job. Same column, same fix.
-    "offered:helper_completed_at",
+    // CLOSED 20260915055245 (enforce_job_completion_server_owned, H-001):
+    //   "poster:helper_completed_at" and "offered:helper_completed_at" — a
+    //   poster (or offered Helpr) clearing helper_completed_at on an in_progress
+    //   escrow job defeated auto-release-payment (poster_completed_at OR
+    //   helper_completed_at <= cutoff) from the other side. Now every non-server,
+    //   non-admin change to helper_completed_at except the assigned Helpr's
+    //   first (value-clamped) stamp is refused, so the pairs are covered here.
     // Written only by create-payment (service). A poster clearing it steers
     // auto-release-payment's undelivered-revision sweep (revision_completed_at IS NULL).
     "poster:revision_completed_at",
@@ -261,6 +267,45 @@ describe("jobs money / state-machine columns: every client-writable one has a tr
       { name: "99999999999999_fake_narrow.sql", sql: `CREATE OR REPLACE FUNCTION public.enforce_dispute_markers_server_owned() RETURNS trigger LANGUAGE plpgsql AS $function$${narrowed}$function$;` },
     ];
     expect(unguardedStateWrites(broken)).toEqual(expect.arrayContaining(["helper:disputed_by", "poster:disputed_by"]));
+  });
+
+  it("can fail: the completion guard's trigger dropped (helper_completed_at falls open again)", () => {
+    // Without zz_jobs_completion_server_owned, a poster / offered Helpr can
+    // write helper_completed_at with nothing constraining the value — the two
+    // pairs H-001 closed reappear as unguarded.
+    const dropped = [
+      ...FILES,
+      { name: "99999999999999_fake_drop_completion.sql", sql: "DROP TRIGGER IF EXISTS zz_jobs_completion_server_owned ON public.jobs;" },
+    ];
+    const open = unguardedStateWrites(dropped);
+    expect(open).toEqual(expect.arrayContaining(["poster:helper_completed_at", "offered:helper_completed_at"]));
+  });
+
+  it("can fail: the completion guard stops naming helper_completed_at (a narrowed copy)", () => {
+    const fns = newestFunctions(FILES) as Map<string, Fn>;
+    const g = fns.get("enforce_job_completion_server_owned");
+    expect(g, "enforce_job_completion_server_owned is not defined by any migration").toBeTruthy();
+    const narrowed = g!.body.replace(/\bNEW\.helper_completed_at\b/g, "NEW.updated_at").replace(/'helper_completed_at'/g, "'updated_at'");
+    const broken = [
+      ...FILES,
+      { name: "99999999999999_fake_narrow_completion.sql", sql: `CREATE OR REPLACE FUNCTION public.enforce_job_completion_server_owned() RETURNS trigger LANGUAGE plpgsql AS $function$${narrowed}$function$;` },
+    ];
+    expect(unguardedStateWrites(broken)).toEqual(expect.arrayContaining(["poster:helper_completed_at", "offered:helper_completed_at"]));
+  });
+
+  it("the completion guard is INVOKER, gates by role, clamps helper_completed_at, and blocks status -> completed", () => {
+    const g = (newestFunctions(FILES) as Map<string, Fn>).get("enforce_job_completion_server_owned");
+    expect(g, "enforce_job_completion_server_owned is not defined by any migration").toBeTruthy();
+    expect(g!.secdef, "the completion guard must be SECURITY INVOKER: as a definer its current_user is always the owner and it trusts everyone").toBe(false);
+    // Server roles pass, client roles are policed (same shape as the dispute guard).
+    expect(g!.body).toMatch(/current_user(?:::text)?\s+NOT\s+IN\s*\(\s*'(?:anon|authenticated)'\s*,\s*'(?:anon|authenticated)'\s*\)/i);
+    // helper_completed_at is overwritten with the server clock, never validated.
+    expect(g!.body).toMatch(/NEW\.helper_completed_at\s*:=\s*now\(\)/);
+    // The one direct client move: the assigned Helpr's first stamp.
+    expect(g!.body).toMatch(/OLD\.helper_completed_at\s+IS\s+NULL/i);
+    expect(g!.body).toMatch(/(?:v_uid|auth\.uid\(\))\s*=\s*OLD\.helper_id/);
+    // status -> completed is refused for a client.
+    expect(g!.body).toMatch(/NEW\.status::text\s*=\s*'completed'/);
   });
 
   it("the guard trusts server paths by ROLE, and admits exactly one direct client move", () => {

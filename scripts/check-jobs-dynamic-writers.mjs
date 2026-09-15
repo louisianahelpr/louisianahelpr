@@ -3,14 +3,17 @@
  * LIVE: no client-callable SECURITY DEFINER function may write public.jobs
  * from a caller-supplied column list or JSON patch.
  *
- * Why this exists (2026-09-15, enforce_dispute_state_server_owned). The jobs
- * dispute-state trigger trusts every statement that does NOT run as a client
- * role (`current_user NOT IN ('anon','authenticated')`): edge functions run as
+ * Why this exists (2026-09-15). The jobs server-owned-column triggers
+ * (enforce_dispute_markers_server_owned, and enforce_job_completion_server_owned
+ * added 20260915055245 for status='completed' and helper_completed_at) trust
+ * every statement that does NOT run as a client role
+ * (`current_user NOT IN ('anon','authenticated')`): edge functions run as
  * service_role and every SECURITY DEFINER RPC runs as its owner, postgres. That
  * trust is only sound while each definer RPC decides for itself WHICH columns
  * it writes and to WHAT. One definer function that forwards the caller's
  * choice — `EXECUTE format('UPDATE jobs SET %I = $1', col)`, a
- * `jsonb_populate_record(NULL::jobs, patch)` write, or `SET status = p->>'status'`
+ * `jsonb_populate_record(NULL::jobs, patch)` write, or
+ * `SET status = p->>'status'` / `SET helper_completed_at = (p->>'ts')::timestamptz`
  * — turns it into a bypass for every guarded column at once.
  *
  * The migrations are checked statically in src/test/jobsStateColumnGuard.test.ts.
@@ -76,11 +79,21 @@ if (!Array.isArray(rows) || rows.length === 0) {
 }
 
 if (process.argv.includes("--inject-fake")) {
+  // Two synthetic offenders, one per completion column guarded by
+  // enforce_job_completion_server_owned, so --inject-fake proves the live check
+  // catches a definer function forwarding the caller's status OR
+  // helper_completed_at.
   rows.push({
     name: "zz_fake_patch_job",
     acl: "{postgres=X/postgres,authenticated=X/postgres}",
     args: "p_job_id uuid, p_patch jsonb",
     body: "BEGIN UPDATE public.jobs SET status = (p_patch->>'status')::job_status WHERE id = p_job_id; END",
+  });
+  rows.push({
+    name: "zz_fake_stamp_completion",
+    acl: "{postgres=X/postgres,authenticated=X/postgres}",
+    args: "p_job_id uuid, p_patch jsonb",
+    body: "BEGIN UPDATE public.jobs SET helper_completed_at = (p_patch->>'helper_completed_at')::timestamptz WHERE id = p_job_id; END",
   });
 }
 

@@ -133,6 +133,21 @@ interface BrowseMapProps {
   appliedJobIds?: ReadonlySet<string>;
 }
 
+/** Placement of the pin-anchored preview popover, in `mapBoxRef` pixels.
+ *  `caretDir` "down": card sits above the pin, caret on its bottom edge points
+ *  down at the pin. "up": card flipped below the pin, caret on its top edge. */
+type PreviewPlacement = {
+  left: number;
+  top: number;
+  caretLeft: number;
+  caretDir: "up" | "down";
+};
+
+/** Popover geometry constants (px). */
+const PREVIEW_CARD_MAX_W = 416; // 26rem — matches the old sheet's max width.
+const PREVIEW_EDGE = 8; // keep the card this far from every map edge.
+const PREVIEW_CARET = 9; // caret height / gap between card and pin.
+
 /** Reads the app's resolved theme off `<html data-theme>` (set by
  *  `useDarkMode`) so the map's own tiles match the surrounding UI. */
 function readIsDark(): boolean {
@@ -377,14 +392,13 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   }, []);
 
   /**
-   * Open a pin's preview and slide the camera so the pin is NOT under the
-   * sheet that is about to cover the bottom of the pane.
-   *
-   * This is the other half of the "the card covers the pin you just tapped"
-   * fix: moving the card to the bottom stops it landing ON the pin, and this
-   * lifts the pin into the clear upper band so the two are visibly connected.
-   * The shift is a fraction of the CURRENT span, so it behaves the same at
-   * every zoom level, and the camera keeps its zoom (no `fitToPins` re-frame).
+   * Open a pin's preview and slide the camera so the pin sits a little BELOW
+   * centre — the card is a pin-anchored popover that renders ABOVE the pin
+   * (owner, 2026-09-15), so it needs clear room above and the pin needs to be
+   * clear of the very top. Centring the map slightly NORTH of the pin lands the
+   * pin at ~58% down: room above for the card, and never so low it hides behind
+   * the dock. The shift is a fraction of the CURRENT span, so it behaves the
+   * same at every zoom, and the camera keeps its zoom (no `fitToPins` re-frame).
    */
   const openPreview = useCallback((jobId: string, fromKeyboard: boolean) => {
     openedByKeyboardRef.current = fromKeyboard;
@@ -398,9 +412,9 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
       const span = map.region.span;
       map.setRegionAnimated(
         new mk.CoordinateRegion(
-          // South of the pin by ~18% of the visible height ⇒ the pin renders
-          // ABOVE centre, in the band the sheet never reaches.
-          new mk.Coordinate(Number(job.latitude) - span.latitudeDelta * 0.18, Number(job.longitude)),
+          // North of the pin by ~8% of the visible height ⇒ the pin renders a
+          // touch BELOW centre, leaving the upper band clear for the popover.
+          new mk.Coordinate(Number(job.latitude) + span.latitudeDelta * 0.08, Number(job.longitude)),
           new mk.CoordinateSpan(span.latitudeDelta, span.longitudeDelta),
         ),
         true,
@@ -665,7 +679,14 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   // MapKit animates the camera on open, so a one-shot measurement points at
   // where the pin used to be.
   const previewWrapRef = useRef<HTMLDivElement | null>(null);
-  const [caretLeft, setCaretLeft] = useState<number | null>(null);
+  // Pin-anchored popover placement (owner, 2026-09-15: the preview card sits AT
+  // the pin, not in a bottom sheet). Computed every frame from the selected
+  // pin's live screen position + the card's measured size, so it tracks the
+  // camera. `null` until the first measurement — the card renders hidden until
+  // then so it never flashes at 0,0. `caretDir` "down" = card is ABOVE the pin
+  // (caret on the card's bottom edge, pointing down at it); "up" = flipped
+  // BELOW the pin when there is no room above.
+  const [preview, setPreview] = useState<PreviewPlacement | null>(null);
   const prevSelectedElRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     const clearPin = () => {
@@ -680,7 +701,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
     const map = mapRef.current;
     if (!map || !selectedJobId) {
       clearPin();
-      setCaretLeft(null);
+      setPreview(null);
       return;
     }
     let frame = 0;
@@ -691,7 +712,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
       );
       if (el !== prevSelectedElRef.current) clearPin();
       if (!el) {
-        setCaretLeft(null);
+        setPreview(null);
         return;
       }
       if (prevSelectedElRef.current !== el) {
@@ -705,23 +726,57 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
           "drop-shadow(0 4px 8px hsl(var(--olivewood) / 0.45))";
         prevSelectedElRef.current = el;
       }
+      const box = mapBoxRef.current;
       const wrap = previewWrapRef.current;
-      if (!wrap) {
-        setCaretLeft(null);
+      if (!box || !wrap) {
+        setPreview(null);
         return;
       }
       const pinRect = el.getBoundingClientRect();
-      const wrapRect = wrap.getBoundingClientRect();
-      // Hidden when the pin is clustered to zero size, or is not actually
-      // ABOVE the card — a caret that points sideways at nothing is worse
-      // than no caret.
-      if (pinRect.width === 0 || pinRect.bottom > wrapRect.top + 4) {
-        setCaretLeft(null);
+      // Clustered to zero size ⇒ the pin isn't really on the map; drop the card
+      // rather than anchor it to a collapsed point.
+      if (pinRect.width === 0) {
+        setPreview(null);
         return;
       }
-      const x = pinRect.left + pinRect.width / 2 - wrapRect.left;
-      const clamped = Math.min(Math.max(x, 20), Math.max(20, wrapRect.width - 20));
-      setCaretLeft((cur) => (cur !== null && Math.abs(cur - clamped) < 0.5 ? cur : clamped));
+      const boxRect = box.getBoundingClientRect();
+      const cardRect = wrap.getBoundingClientRect();
+      const cardW = cardRect.width || PREVIEW_CARD_MAX_W;
+      const cardH = cardRect.height;
+      // Pin geometry in mapBox space. The coordinate anchor is the pin's bottom
+      // centre (anchorOffset lifts the element by half its height); its icon
+      // spans [pinTop, pinBottom].
+      const pinX = pinRect.left + pinRect.width / 2 - boxRect.left;
+      const pinTop = pinRect.top - boxRect.top;
+      const pinBottom = pinRect.bottom - boxRect.top;
+      // Bottom band the dock + FAB cover — measured, so the card never lands
+      // under them when it has to flip below the pin.
+      const bottomInset = clearanceProbeRef.current?.offsetHeight ?? 0;
+      // Horizontal: centre the card on the pin, clamped inside the map edges.
+      let left = pinX - cardW / 2;
+      left = Math.min(Math.max(left, PREVIEW_EDGE), Math.max(PREVIEW_EDGE, boxRect.width - cardW - PREVIEW_EDGE));
+      // Vertical: prefer ABOVE the pin (card bottom just over the pin's top).
+      // Flip BELOW only when there isn't room above.
+      let top = pinTop - PREVIEW_CARET - cardH;
+      let caretDir: "up" | "down" = "down";
+      if (top < PREVIEW_EDGE) {
+        top = pinBottom + PREVIEW_CARET;
+        caretDir = "up";
+      }
+      const maxTop = boxRect.height - bottomInset - cardH - PREVIEW_EDGE;
+      top = Math.max(PREVIEW_EDGE, Math.min(top, Math.max(PREVIEW_EDGE, maxTop)));
+      // Caret x: the pin's column relative to the card's left edge, kept off
+      // the rounded corners.
+      const caretLeft = Math.min(Math.max(pinX - left, 16), Math.max(16, cardW - 16));
+      setPreview((cur) =>
+        cur &&
+        Math.abs(cur.left - left) < 0.5 &&
+        Math.abs(cur.top - top) < 0.5 &&
+        Math.abs(cur.caretLeft - caretLeft) < 0.5 &&
+        cur.caretDir === caretDir
+          ? cur
+          : { left, top, caretLeft, caretDir },
+      );
     };
     sync();
     return () => {
@@ -1019,55 +1074,54 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
           The column itself is `pointer-events-none` so the map stays pannable
           through the empty space either side of the sheet; only the sheet and
           the button take pointer events back. */}
-      {!mapKitUnusable && (
+      {/* The my-location control keeps its own bottom-right home above the dock. */}
+      {!mapKitUnusable && mapReady && (
         <div
-          className="absolute left-0 right-0 z-[420] flex flex-col items-stretch gap-2 px-3 pointer-events-none"
+          className="absolute right-0 z-[420] flex justify-end px-3 pointer-events-none"
           style={{ bottom: MAP_DOCK_CLEARANCE }}
         >
-          {mapReady && (
-            <div className="flex justify-end">
-              <MyLocationControl onLocate={showMyLocation} busy={locating} />
-            </div>
-          )}
-          {/* ── Pin preview ──────────────────────────────────────────────────
-              A BOTTOM SHEET, not a callout over the pin (owner, 2026-08-31:
-              "X needs to be arranged better"; the card "floats mid-map
-              covering Cankton/Sunset" and clips a place label).
-
-              WHY A BOTTOM SHEET. The card has to go somewhere that is (a) a
-              fixed, predictable place rather than wherever the tapped pin
-              happens to be, (b) never on top of the pin that opened it, and
-              (c) never on top of the map controls. A bottom sheet anchored
-              above the dock is the conventional map+list answer (Apple Maps,
-              Google Maps) for exactly those reasons, and it is the only
-              placement that also gives the close control a real structural
-              home — a header lane of its own — instead of an overlay laid on
-              the card's price chip. `openPreview` additionally nudges the
-              camera so the tapped pin sits ABOVE centre, in the band the sheet
-              never reaches, so pin and card stay visibly connected.
-
-              The card inside is still the SAME `<JobCard bare>` the feed
-              renders (owner: "its not a shared component its the same page the
-              both use it") — untouched, and NOT edited for this: the close
-              control is the sheet's, not the card's. */}
-          {selectedJob && (
+          <MyLocationControl onLocate={showMyLocation} busy={locating} />
+        </div>
+      )}
+      {/* ── Pin preview — a POPOVER anchored to the tapped pin ────────────────
+          Owner, 2026-09-15: the card sits AT the pin (near/under it), not in a
+          bottom sheet. The two problems that once drove it to the bottom are
+          re-solved here rather than avoided:
+            • overlap — the card is centred on the pin and CLAMPED inside the
+              map edges, prefers ABOVE the pin, and FLIPS below only when there
+              is no room above; the dock band is excluded so a flipped card
+              never lands under the controls (see the placement sync effect);
+            • close-button-on-price — there is no close button to collide: the
+              preview closes by tapping the pin again, tapping empty map
+              (MapKit deselect), or Escape, exactly as the bottom sheet did.
+          `preview` (from the sync effect) carries the live left/top and the
+          caret. The card renders hidden until the first measurement so it
+          never flashes at 0,0. Still the SAME `<JobCard bare>` the feed
+          renders — untouched. */}
+      {!mapKitUnusable && selectedJob && (
+        <div
+          className="absolute z-[420] pointer-events-none"
+          style={{
+            left: preview?.left ?? 0,
+            top: preview?.top ?? 0,
+            width: "min(26rem, calc(100% - 16px))",
+            visibility: preview ? "visible" : "hidden",
+          }}
+        >
             <div
               ref={previewWrapRef}
-              className="relative w-full max-w-[26rem] mx-auto pointer-events-none"
+              className="relative w-full pointer-events-none motion-safe:animate-fade-in"
             >
-              {/* The caret — the card's "this one" finger. Sits on the card's
-                  top edge in the selected pin's own column (see the sync
-                  effect), so the bottom sheet is no longer a card about some
-                  job, it is a card about THAT pin. Two stacked triangles: the
-                  back one is the card's border colour, the front one the
-                  card's fill, 1px lower — a border-drawn caret without an SVG
-                  and without fighting the sheet's own 1px border. */}
-              {caretLeft !== null && (
+              {/* Caret pointing UP — card is BELOW the pin (flipped). Two
+                  stacked triangles: the back one is the card's border colour,
+                  the front one the card's fill, 1px lower — a border-drawn
+                  caret without an SVG. */}
+              {preview?.caretDir === "up" && (
                 <span aria-hidden data-testid="browse-map-preview-caret" className="absolute top-0 left-0 w-full h-0">
                   <span
                     className="absolute"
                     style={{
-                      left: caretLeft,
+                      left: preview.caretLeft,
                       top: -9,
                       transform: "translateX(-50%)",
                       width: 0,
@@ -1080,7 +1134,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
                   <span
                     className="absolute"
                     style={{
-                      left: caretLeft,
+                      left: preview.caretLeft,
                       top: -8,
                       transform: "translateX(-50%)",
                       width: 0,
@@ -1130,8 +1184,38 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
                 />
               </div>
             </aside>
+              {/* Caret pointing DOWN — card is ABOVE the pin (the default). */}
+              {preview?.caretDir === "down" && (
+                <span aria-hidden data-testid="browse-map-preview-caret" className="absolute bottom-0 left-0 w-full h-0">
+                  <span
+                    className="absolute"
+                    style={{
+                      left: preview.caretLeft,
+                      bottom: -9,
+                      transform: "translateX(-50%)",
+                      width: 0,
+                      height: 0,
+                      borderLeft: "9px solid transparent",
+                      borderRight: "9px solid transparent",
+                      borderTop: "9px solid hsl(var(--border))",
+                    }}
+                  />
+                  <span
+                    className="absolute"
+                    style={{
+                      left: preview.caretLeft,
+                      bottom: -8,
+                      transform: "translateX(-50%)",
+                      width: 0,
+                      height: 0,
+                      borderLeft: "8px solid transparent",
+                      borderRight: "8px solid transparent",
+                      borderTop: "8px solid hsl(var(--card))",
+                    }}
+                  />
+                </span>
+              )}
             </div>
-          )}
         </div>
       )}
     </div>

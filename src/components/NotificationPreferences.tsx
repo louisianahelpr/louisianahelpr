@@ -421,6 +421,18 @@ const NotificationPreferences = () => {
   // Profile tab used `space-y-4`. The tab shells are one shell now (owner,
   // many times over), so this scrolls with the page like every sibling rather
   // than scrolling inside itself.
+  //
+  // That removal was HALF done and left the page unscrollable (VN-46, owner
+  // 2026-09-14: "this page doesn't scroll" — the Test row and the security
+  // note stayed cut off under Promotions). The card stopped being a flex
+  // column, but the category rows kept their own
+  // `flex-1 min-h-0 overflow-y-auto overscroll-contain` region. With no
+  // bounded height above it `flex-1 min-h-0` resolved to the content's own
+  // height, so that region never scrolled itself — while `overscroll-contain`
+  // still stopped the wheel from chaining to the Profile scroll container
+  // behind it. Dead end both ways. There is now NO nested scroller anywhere in
+  // this card: the only scroll surface on the tab is Profile.tsx's wrapper, and
+  // `notificationPreferencesScroll.test.tsx` fails the moment one comes back.
   return (
     <div className="rounded-2xl liquid-glass overflow-hidden shadow-sm">
       {/* Column header — App / Email column labels sit directly above
@@ -533,12 +545,6 @@ const NotificationPreferences = () => {
           />
         </div>
       </div>
-
-      {/* Scrollable category region — master toggle + column header stay
-          pinned above, the security note stays pinned below, and the
-          digest + per-category rows scroll between them so every option
-          is reachable on a short viewport. */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
 
       {/* Quiet hours — when on, non-critical pushes are suppressed
           between start and end (security alerts always fire). Sits
@@ -825,7 +831,6 @@ const NotificationPreferences = () => {
             </>
           )}
         </button>
-      </div>
       </div>
 
       <div

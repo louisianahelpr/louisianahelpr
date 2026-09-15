@@ -38,7 +38,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-27 | Remove the grey background box from the location on job cards | small | [x] d49bc6d67 | [x] vn-27-after-myposts-done-1440.webp |
 | VN-28 | Remove "report" from a job once it's done | small | [x] 4faf35fc9 | [x] vn-28-after-jobs-working-1440.webp |
 | VN-29 | Keep a done job expanded until BOTH tip and review are done, then collapse | small–medium | [x] a36c47ee3 | [x] vn-29-after-vn29-done-1440.webp |
-| VN-30 | Review quick-tag chips run off the edge and can't be scrolled | small | [x] d49bc6d67 | [ ] |
+| VN-30 | Review quick-tag chips run off the edge and can't be scrolled | small | [x] d49bc6d67 | [x] vn-30-after-vn30-review-375.webp |
 | VN-31 | Posts/Jobs search opens full width, and the chevron beside it is useless | small | [x] 571f6fcd2 | [x] vn-31-after-myjobs-search-1440.webp |
 | VN-32 | My Jobs page jumps ~10 times before it settles | medium–large | [x] bb1b319ee | [x] vn-32-after-frame-02-381ms.webp |
 | VN-33 | Helpr 2000+ miles away can still tap "I've Arrived" and move forward | medium–large | [x] c6ce514b1 | [x] vn-33-after-fix-after-375.webp |

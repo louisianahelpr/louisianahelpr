@@ -243,8 +243,3 @@ export async function restorePurchases(): Promise<void> {
   const cdv = await ensureInitialized();
   await cdv.store.restorePurchases();
 }
-
-/** Test seam: reset the once-only initialisation. */
-export function __resetIapForTests(): void {
-  initialized = false;
-}

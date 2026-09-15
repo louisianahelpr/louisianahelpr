@@ -2239,5 +2239,17 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [ ] RESIDUAL (not test-controlled): a paid journey leg still lands ONE page load on prod — Stripe's success_url is the server's getAppUrl(). Candidate fix: context.route 302 of the prod host to the local base in e2e/journeys/fixtures.ts + prod-lifecycle.spec.ts, but it must be proven in WebKit first (not done: no WebKit locally, 8 GB Mac).
 - [ ] NOT STARTED (owner said finish up): Vercel usage alert — extend supabase-usage.yml with a step reading `GET https://api.vercel.com/v1/billing/charges?from&to&teamId=team_UQHppAVoPIPQbyh2b43y21BG` (FOCUS JSONL: ServiceName + ConsumedQuantity) and posting #ops-alerts via SLACK_WEBHOOK_URL at 70% of Pro limits for edge requests, data transfer, deployment storage; fail loudly when VERCEL_TOKEN is unset. OWNER STEP needed either way: create a Vercel token with read scope (team Helpr) and add it as the repo secret VERCEL_TOKEN — `gh secret list` shows none today.
 - [ ] OWNER: set Deployment Retention to shortest (Vercel → Project → Settings → Security/Deployment Retention); 34 GB of deployment storage is deploy history, not test traffic.
+### QUEUE ORDER (owner 2026-09-14: easiest → hardest; max 3 agents, one prod job at a time)
+Running: dispute-races close-HIGH→land→prove; charge.dispute.created hold-overwrite HIGH.
+1. [ ] Contact scanner: 14-digit number read as a phone → false off-platform warning + "blocked" notice on a saved message.
+2. [ ] Old cancelled prod job still carrying helper_completed_at: confirm refund recorded; fix ledger if not (read-mostly).
+3. [ ] Apply seeded group job (prod-seed.mjs --group-job), --verify, screenshot poster group card 375 light/dark.
+4. [ ] Offer privacy: hide jobs.offered_to_helper_id from non-posters (poster + offered Helpr only).
+5. [ ] VN-37 app-wide gutter: after the visual session lands vn-profile/vn-integrate and closes. Hoist the shared padding string (PageScaffold.tsx:178, AppPage.tsx:74, Profile.tsx:536/:608) to one constant; build 3 variants (px-5 / lg:px-6 xl:px-6 / lg:px-8 xl:px-8), 1440 side-by-side screenshots for the owner to pick; 375 locked at px-5 and proven byte-identical; full verify at 375/1440/1920 rail open/closed light/dark; guards profileTabScroll.test.ts + profile-tab-scroll-fill.spec.ts.
+6. [ ] completion-race branch: prod before/after probes, land, race-runner red/green.
+7. [ ] Race proofs on prod for the fa107a92f lifecycle-write fixes.
+8. [ ] Vercel usage alert (needs owner-added VERCEL_TOKEN secret).
+9. [ ] Full customer/helper → poster/Helpr rename — alone, nothing else running.
+10. [ ] Signed-in press-every-control full run on prod.
 - [ ] LAST, after everything above: independent re-check by a different model (sonnet) of ALL work landed 2026-09-13 — full vitest once, CI green per push, re-run each fix's own proof on prod, list what doesn't hold
 - [ ] OWNER: allow the Stripe connector write tool + reconnect Stripe, then add transfer.failed to live webhook and close #1462/#1521

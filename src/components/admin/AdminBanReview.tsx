@@ -49,14 +49,20 @@ import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 /**
  * What to CALL the evidence, per ladder. Getting this wrong is not cosmetic:
- * an admin deciding a ban reads "3 blocked messages" and goes looking for
+ * an admin deciding a ban reads "3 flagged messages" and goes looking for
  * messages that do not exist. Every violation_type that can reach
  * `pending_ban_review` needs an entry; the fallback is deliberately vague
  * rather than wrong.
+ *
+ * off_platform is "flagged", not "blocked" (docs/OPEN.md queue #1 residual,
+ * 2026-09-15): the count mixes messages the scanner REFUSED to send (nothing
+ * saved) with messages that WERE saved and hidden from the recipient — an
+ * admin reading "blocked" and looking for refused sends would miss the
+ * hidden ones. Matches the SQL notice text (message_violation_ladder).
  */
 const caseNoun = (violationType: string, count: number): string => {
   const nouns: Record<string, [string, string]> = {
-    off_platform: ["blocked message", "blocked messages"],
+    off_platform: ["flagged message", "flagged messages"],
     cancel_with_helper: ["cancellation", "cancellations"],
     job_denial: ["reliability strike", "reliability strikes"],
     // Added with 20260831183302, which moved the no-show ladder off its own
@@ -147,7 +153,7 @@ const BanReviewInner = () => {
       // that can open a case. This used to be hardcoded to 'off_platform',
       // which was fine while the message scanner was the only ladder feeding
       // the queue — a cancellation case (20260826040000) landed here with an
-      // empty evidence list and a "0 blocked messages" badge.
+      // empty evidence list and a "0 flagged messages" badge.
       const caseTypes = [...new Set(pending.map((r) => r.violation_type))];
       const { data: hist, error: histError } = await supabase
         .from("user_violations")
@@ -157,7 +163,7 @@ const BanReviewInner = () => {
         .order("created_at", { ascending: false });
       if (histError) report(histError, { severity: "warning", tags: { source: "AdminBanReview.history" } });
       // Keyed by user AND type: one user can have an open case of each kind,
-      // and a cancellation case must not quote blocked messages as evidence.
+      // and a cancellation case must not quote flagged messages as evidence.
       const historyByUser = new Map<string, ViolationRow[]>();
       ((hist ?? []) as ViolationRow[]).forEach((h) => {
         const key = `${h.user_id}::${h.violation_type}`;
@@ -221,7 +227,7 @@ const BanReviewInner = () => {
     <AdminViewShell>
       <AdminCard
         title="Pending Ban Reviews"
-        subtitle="Accounts a consequence ladder stopped — blocked messages, cancellations on a committed Helpr, or reliability strikes. Each is restricted for 7 days; nothing is permanent until you say so."
+        subtitle="Accounts a consequence ladder stopped — flagged messages, cancellations on a committed Helpr, or reliability strikes. Each is restricted for 7 days; nothing is permanent until you say so."
         action={
           cases.length > 0 ? (
             <span className={cn("inline-flex items-center justify-center rounded-full text-ds-11 font-bold px-2.5 py-1 min-w-[1.75rem]", toneBadgeClasses.warning)}>

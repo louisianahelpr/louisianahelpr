@@ -41,3 +41,27 @@
 export const PHONE_PATTERN =
   "(^|[^0-9])(1[^0-9a-zA-Z]{0,4})?[0-9]{3}[^0-9a-zA-Z]{0,4}[0-9]{3}[^0-9a-zA-Z]{0,4}[0-9]{4}(?![0-9])" +
   "|[0-9]{3}[^0-9a-zA-Z]{1,4}[0-9]{3}[^0-9a-zA-Z]{1,4}[0-9]{4}";
+
+/**
+ * The app-generated location-share shape (RichMessageInput's "Share
+ * Location" button): `📍 Location: <lat>,<lng>`, both rounded to 6 decimals
+ * by `toFixed(6)`. Anchored to the WHOLE message (`^...$`) so this only ever
+ * exempts a message that IS exactly this shape — never one that merely
+ * mentions it.
+ *
+ * A 3-digit-integer longitude (west of -100 — most of the continental US
+ * outside Louisiana, e.g. "-118.243700") coincidentally lines up with
+ * PHONE_PATTERN's 3-3-4 shape once its own fractional digits are counted in:
+ * "18.243700" reads as 3 digits, a ".", 3 more, then 4 of the 6 decimal
+ * digits. That is a coordinate, never a phone number, so this exact shape is
+ * exempted from PHONE_PATTERN on both sides (docs/OPEN.md queue #1 residual,
+ * 2026-09-14/15). Louisiana coordinates (2-digit integer parts on both axes)
+ * never needed this; the exemption is for the rest of the map.
+ *
+ * Checked BEFORE PHONE_PATTERN by contact_leak_reason (server) and scanMessage
+ * (client, belt-and-suspenders alongside sendMessage's `isLocationShare`
+ * skip) — src/lib/contactFilterParity.test.ts fails unless the newest
+ * migration's exemption literal equals this string.
+ */
+export const LOCATION_SHARE_PATTERN =
+  "^📍 Location: -?[0-9]{1,3}\\.[0-9]{6},-?[0-9]{1,3}\\.[0-9]{6}$";

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { hasViolation, scanMessage } from "./messageScanner";
-import { PHONE_PATTERN } from "./contactLeakRules";
+import { PHONE_PATTERN, LOCATION_SHARE_PATTERN } from "./contactLeakRules";
 
 /**
  * CONTACT-FILTER PARITY (terminal 7, 2026-09-12).
@@ -56,12 +56,29 @@ const serverPhonePattern = (() => {
   return m[1];
 })();
 
+/**
+ * The SQL literal in `IF v_norm ~ '<pattern>' THEN RETURN NULL;` — the
+ * location-share exemption (docs/OPEN.md queue #1 residual, 2026-09-15).
+ * Plain `~` (case-sensitive, no `*`), which is what distinguishes this line
+ * from the phone branch above and from the leading null/empty-string guard
+ * (which has no regex before its `RETURN NULL;`).
+ */
+const serverLocationSharePattern = (() => {
+  const m = NEWEST.body.match(/v_norm ~ '([^']+)' THEN\s+RETURN NULL;/);
+  if (!m) throw new Error(`${NEWEST.file}: contact_leak_reason no longer has a v_norm location-share exemption this test can read`);
+  return m[1];
+})();
+
 const FW = /[０-９]/g;
 const normalize = (s: string) => s.replace(FW, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
 
 function serverLeakReason(p: string): string | null {
   if (!p || p.trim() === "") return null;
   const v = normalize(p);
+  // Checked first, exactly like the live function: a message that IS this
+  // exact shape can never also read as a phone number, email, or
+  // off-platform-payment phrase.
+  if (new RegExp(serverLocationSharePattern).test(v)) return null;
   if (new RegExp(serverPhonePattern, "i").test(v)) return "phone";
   if (/(zero|one|two|three|four|five|six|seven|eight|nine|oh)([^a-z0-9]+(zero|one|two|three|four|five|six|seven|eight|nine|oh)){6,}/i.test(p)) return "phone";
   if (/[a-z0-9._]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}/i.test(p)) return "email";
@@ -169,18 +186,54 @@ describe("phone matcher: one definition", () => {
   });
 });
 
-describe("location shares never read as a phone number on the server", () => {
-  // RichMessageInput sends "📍 Location: https://maps.google.com/?q=<lat>,<lng>"
-  // with the client scan skipped, but contact_leak_reason still scans it. At
-  // full precision the old rule flagged every share (hidden + a strike); the
-  // new rule flagged ~0.03%. Rounded to 6 decimals it is 0 at Louisiana
-  // coordinates (lh-trust-safety review 2026-09-14).
+const clientFlagsAnything = (t: string) => hasViolation(t);
+const serverFlagsAnything = (t: string) => serverLeakReason(t) !== null;
+const shareOf = (lat: number, lng: number) => `📍 Location: ${lat.toFixed(6)},${lng.toFixed(6)}`;
+
+describe("location share pattern: one definition", () => {
+  it("the newest migration's location-share exemption is exactly the shared LOCATION_SHARE_PATTERN", () => {
+    expect(
+      serverLocationSharePattern,
+      `${NEWEST.file} carries a location-share exemption that is not src/lib/contactLeakRules.ts ` +
+        "LOCATION_SHARE_PATTERN — client and server have drifted; change both together",
+    ).toBe(LOCATION_SHARE_PATTERN);
+  });
+
+  it("the client scanner builds its exemption from LOCATION_SHARE_PATTERN, not its own literal", () => {
+    const src = readFileSync(resolve(process.cwd(), "src/lib/messageScanner.ts"), "utf8");
+    expect(src).toMatch(/const LOCATION_SHARE_REGEX = new RegExp\(LOCATION_SHARE_PATTERN\)/);
+  });
+});
+
+describe("location shares never read as a phone number on the server (docs/OPEN.md queue #1 residual, 2026-09-15)", () => {
+  // RichMessageInput sends bare "📍 Location: <lat>,<lng>" (never a URL —
+  // MessageBubble builds the maps.google.com link at render time) with the
+  // client scan skipped by `isLocationShare`; contact_leak_reason still
+  // scans every inserted message regardless, which is what this guards.
   const SRC = readFileSync(resolve(process.cwd(), "src/components/RichMessageInput.tsx"), "utf8");
 
-  it("every location share in RichMessageInput rounds to 6 decimals", () => {
-    const shares = [...SRC.matchAll(/maps\.google\.com\/\?q=([^`]+)`/g)].map((m) => m[1]);
+  it("every location share in RichMessageInput is the bare lat,lng shape, rounded to 6 decimals", () => {
+    const shares = [...SRC.matchAll(/📍 Location: (\$\{[^`]+?\})`/g)].map((m) => m[1]);
     expect(shares.length, "no location share found in RichMessageInput.tsx — this guard is blind").toBeGreaterThanOrEqual(2);
     for (const s of shares) expect(s).toBe("${latitude.toFixed(6)},${longitude.toFixed(6)}");
+    // Never the old URL-wrapped shape — that is exactly what let a 3-digit
+    // longitude's digit tail line up with the phone rule.
+    expect(SRC).not.toMatch(/📍 Location: https:\/\//);
+  });
+
+  // The exact repro this residual names: a real California coordinate (3-digit
+  // longitude integer part) used to read as a phone number on the server even
+  // though the client never scans it.
+  it("a California share (-118.2437, 3-digit longitude) is never flagged, client or server", () => {
+    const share = shareOf(34.052235, -118.2437);
+    expect(serverFlagsAnything(share), `server still flags ${JSON.stringify(share)}`).toBe(false);
+    expect(clientFlagsAnything(share), `client still flags ${JSON.stringify(share)}`).toBe(false);
+  });
+
+  it("a Louisiana share is never flagged either — no regression from the exemption", () => {
+    const share = shareOf(29.9511, -90.0715); // New Orleans
+    expect(serverFlagsAnything(share)).toBe(false);
+    expect(clientFlagsAnything(share)).toBe(false);
   });
 
   it("a grid of Louisiana coordinates at 6 decimals is never flagged by the server rule", () => {
@@ -190,11 +243,27 @@ describe("location shares never read as a phone number on the server", () => {
     for (let lat = 28.9; lat <= 33.02; lat += 0.0137131) {
       for (let lng = -94.05; lng <= -88.8; lng += 0.0173717) {
         n++;
-        if (serverFlagsPhone(`📍 Location: https://maps.google.com/?q=${lat.toFixed(6)},${lng.toFixed(6)}`)) flagged++;
+        if (serverFlagsAnything(shareOf(lat, lng))) flagged++;
       }
     }
     expect(n).toBeGreaterThan(50000);
     expect(flagged, `${flagged} of ${n} Louisiana location shares read as a phone number`).toBe(0);
+  });
+
+  it("a grid covering the rest of the continental US (3-digit longitudes included) is never flagged", () => {
+    let flagged = 0;
+    let n = 0;
+    // Roughly the continental US: lat 25-49, lng -125 to -67 — crosses the
+    // -100 line where a longitude's integer part goes from 2 digits to 3.
+    for (let lat = 25; lat <= 49; lat += 0.7331) {
+      for (let lng = -125; lng <= -67; lng += 0.9127) {
+        n++;
+        if (serverFlagsAnything(shareOf(lat, lng))) flagged++;
+        if (clientFlagsAnything(shareOf(lat, lng))) flagged++;
+      }
+    }
+    expect(n).toBeGreaterThan(1500);
+    expect(flagged, `${flagged} of ${n * 2} continental-US location shares read as a phone number`).toBe(0);
   });
 });
 

@@ -361,7 +361,7 @@ export function DisputedSection({
           onOpenChange={setWithdrawConfirmOpen}
           title="Withdraw this dispute?"
           description="The job goes back to where it was before you filed, and the payment comes off hold and returns to its normal schedule. You can file again if the issue isn't actually settled."
-          callout={{ icon: AlertTriangle, text: "Only withdraw if you and the poster have sorted it out." }}
+          callout={{ icon: AlertTriangle, text: "Only withdraw if you and the person who posted this job have sorted it out." }}
           primaryLabel="Withdraw Dispute"
           /* `bark`, not `sienna`: sienna is reserved for the genuinely
              irreversible (the poster's twin releases escrow and can never be
@@ -402,7 +402,7 @@ export function DisputedSection({
           key="message"
           icon={MessageSquare}
           label="Message"
-          ariaLabel="Message poster"
+          ariaLabel="Message them"
           tone="message"
           onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}
         />,

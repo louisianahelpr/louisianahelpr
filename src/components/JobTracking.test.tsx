@@ -275,7 +275,7 @@ describe("trackingProofCaption", () => {
     const far = trackingProofCaption("claimed", 1792, true);
     expect(far.text).toBe("Arrival not confirmed · 1792 mi from job");
     // The exact strings the old caption used, none of which may survive here.
-    expect(far.text).not.toMatch(/GPS confirmed|Poster confirmed/);
+    expect(far.text).not.toMatch(/GPS confirmed|Poster confirmed|confirmed by the person who posted/);
     expect(far.tone).toBe("warn");
 
     // Even standing on the job site, a claim nothing corroborates is a claim.
@@ -287,7 +287,7 @@ describe("trackingProofCaption", () => {
 
   it("spends the word 'confirmed' only on the poster's vouch", () => {
     expect(trackingProofCaption("confirmed", 1792, true)).toEqual({
-      text: "Poster confirmed arrival · last ping 1792 mi from job",
+      text: "Arrival confirmed by the person who posted it · last ping 1792 mi from job",
       tone: "ok",
     });
   });

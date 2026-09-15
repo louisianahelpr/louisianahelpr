@@ -400,7 +400,7 @@ export const DisputeTimelineDialog = ({
                 )}
                 {payoutSplit && (
                   <p className="font-sans text-ds-11 mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                    Payout: poster <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{Math.round((payoutSplit.poster ?? 0) * 100)}%</span>
+                    Payout: who posted it <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{Math.round((payoutSplit.poster ?? 0) * 100)}%</span>
                     {" · "}
                     Helpr <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{Math.round((payoutSplit.helper ?? 0) * 100)}%</span>
                   </p>
@@ -415,7 +415,7 @@ export const DisputeTimelineDialog = ({
                 {dispute?.execution_status === "executed" &&
                   (dispute.execution_helper_cents != null || dispute.execution_refund_cents != null) && (
                     <p className="font-sans text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                      Settled: poster{" "}
+                      Settled: who posted it{" "}
                       <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                         {usd(dispute.execution_refund_cents ?? 0)}
                       </span>

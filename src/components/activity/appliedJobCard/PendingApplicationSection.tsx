@@ -82,7 +82,7 @@ export function PendingApplicationSection({
           pending application is just a message + attachments now. */}
 
       {/* THEIR MESSAGE. */}
-      <section aria-label="Your message to the poster" onClick={(e) => e.stopPropagation()}>
+      <section aria-label="Your message to the person who posted this job" onClick={(e) => e.stopPropagation()}>
         {editing ? (
           <div className="space-y-1.5">
             {/* The eyebrow used to be this control's <label htmlFor>, so
@@ -91,7 +91,7 @@ export function PendingApplicationSection({
                 VoiceOver reads it as "text field, blank". `sr-only` keeps the
                 association and the announced name, verbatim. */}
             <label htmlFor={messageFieldId} className="sr-only">
-              Your message to the poster
+              Your message to the person who posted this job
             </label>
             <Textarea
               id={messageFieldId}

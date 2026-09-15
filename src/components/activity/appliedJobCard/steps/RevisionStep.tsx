@@ -48,8 +48,8 @@ export function RevisionStep({
       {job.revision_deadline && !job.revision_completed_at && (
         <DeadlineCountdown
           deadline={job.revision_deadline}
-          expiredText="Revision deadline passed — poster can dispute or complete"
-          consequenceText="Fix the revision before the deadline. If not completed, the poster can file a dispute."
+          expiredText="Revision deadline passed — they can dispute or complete"
+          consequenceText="Fix the revision before the deadline. If not completed, the person who posted this job can file a dispute."
           variant="warning"
         />
       )}
@@ -59,13 +59,13 @@ export function RevisionStep({
             className="text-ds-11 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded font-medium w-full"
             style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}
           >
-            <Check className="w-3 h-3 shrink-0" strokeWidth={3} /> Marked as fixed — waiting for poster
+            <Check className="w-3 h-3 shrink-0" strokeWidth={3} /> Marked as fixed — waiting on them
           </div>
           {job.revision_acceptance_deadline && (
             <DeadlineCountdown
               deadline={job.revision_acceptance_deadline}
-              expiredText="Poster didn't respond — payment auto-releasing"
-              consequenceText="If the poster doesn't accept or dispute, payment auto-releases to you."
+              expiredText="No response — payment auto-releasing"
+              consequenceText="If the person who posted this job doesn't accept or dispute, payment auto-releases to you."
               variant="warning"
             />
           )}

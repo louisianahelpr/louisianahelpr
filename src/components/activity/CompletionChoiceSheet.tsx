@@ -199,7 +199,7 @@ export function CompletionChoiceSheet({
         await createNotification({
           user_id: helperId,
           title: "Revision requested",
-          message: `The poster wants a small fix on "${description.trim().slice(0, 80)}${description.length > 80 ? "…" : ""}". Tap to see details.`,
+          message: `The person who posted this job wants a small fix on "${description.trim().slice(0, 80)}${description.length > 80 ? "…" : ""}". Tap to see details.`,
           type: "warning",
           // `?job=` — `revision_requested` has no chip; the live bucket is
           // "Needs you" for the helper and moves once they resubmit.

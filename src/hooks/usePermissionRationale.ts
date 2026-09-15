@@ -28,7 +28,7 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
   camera: {
     icon: "📷",
     title: "Camera Access",
-    body: "Helpr uses your camera to take before/after photos of jobs and verify your ID. Photos stay private and are only shared with the matched poster or Helpr.",
+    body: "Helpr uses your camera to take before/after photos of jobs and verify your ID. Photos stay private and are only shared with the other person on the job.",
     cta: "Allow Camera",
   },
   photos: {

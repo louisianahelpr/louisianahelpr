@@ -261,7 +261,7 @@ export function ApplyBody({
             masthead for what is an optional note field. */}
         <div className="flex items-baseline justify-between gap-2">
           <label htmlFor="apply-message" className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-            Note to the poster{" "}
+            Note to the person who posted this job{" "}
             <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
               (optional)
             </span>

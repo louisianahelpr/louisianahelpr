@@ -50,15 +50,15 @@ export function arrivalGateMessage(
   const unlocks = door === "wrap-up" ? "before you can mark the job complete" : "before you can start working";
   const gps = !!job?.helper_arrival_verified_at;
   const poster = !!job?.poster_confirmed_arrival_at;
-  if (gps && poster) return "Arrival confirmed by your location and by the poster.";
+  if (gps && poster) return "Arrival confirmed by your location and by the person who posted this job.";
   if (gps) {
-    return `Your location is confirmed. The poster also needs to tap "Confirm They Arrived" — both are needed ${unlocks}.`;
+    return `Your location is confirmed. The person who posted this job also needs to tap "Confirm They Arrived" — both are needed ${unlocks}.`;
   }
   if (poster) {
-    return `The poster confirmed you arrived, but your location hasn't. Tap "Try My Location Again" at the job site — both are needed ${unlocks}.`;
+    return `The person who posted this job confirmed you arrived, but your location hasn't. Tap "Try My Location Again" at the job site — both are needed ${unlocks}.`;
   }
   if (job?.helper_arrived_at) {
-    return `We couldn't confirm your location. Tap "Try My Location Again" at the job site, and the poster needs to tap "Confirm They Arrived" — both are needed ${unlocks}.`;
+    return `We couldn't confirm your location. Tap "Try My Location Again" at the job site, and the person who posted this job needs to tap "Confirm They Arrived" — both are needed ${unlocks}.`;
   }
-  return `Mark yourself arrived at the job site first. Your location has to show you there, and the poster confirms you arrived — both are needed ${unlocks}.`;
+  return `Mark yourself arrived at the job site first. Your location has to show you there, and the person who posted this job confirms you arrived — both are needed ${unlocks}.`;
 }

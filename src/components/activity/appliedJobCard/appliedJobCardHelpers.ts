@@ -139,6 +139,6 @@ export function describeCancellation(
       : "Cancelled automatically";
   }
   if (viewerId && by === viewerId) return "You cancelled this job";
-  if (job.customer_id && by === job.customer_id) return "Cancelled by the poster";
+  if (job.customer_id && by === job.customer_id) return "Cancelled by the person who posted it";
   return "Cancelled by Helpr support";
 }

@@ -193,7 +193,7 @@ export function ChatTimeline({
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               {composerLocked
-                ? "The poster starts this conversation."
+                ? "The person who posted this job starts this conversation."
                 : "Send the first message to get the job moving."}
             </p>
           </div>

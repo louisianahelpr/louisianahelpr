@@ -112,7 +112,7 @@ describe("arrival refusals from mark_helper_arrival (20260915044137)", () => {
 
   it("never offers the poster as a substitute for a location", () => {
     for (const kind of ["denied", "no_location"] as const) {
-      expect(arrivalRefusalMessage({ kind })).not.toMatch(/poster/i);
+      expect(arrivalRefusalMessage({ kind })).not.toMatch(/poster|person who posted/i);
     }
   });
 });

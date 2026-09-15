@@ -684,7 +684,7 @@ test.describe.serial("marketplace chain", () => {
       }
       test.info().annotations.push({ type: "helper-path", description: seen.join(" > ") });
       await expect.poll(async () => Boolean((await readJob(request, S.poster, S.jobId!)).helper_completed_at), { timeout: 30_000, message: `completion never recorded (path: ${seen.join(" > ")})` }).toBe(true);
-      await expect(hp.getByText(/Waiting for the poster to approve|Marked Complete/).first()).toBeVisible({ timeout: 45_000 });
+      await expect(hp.getByText(/Waiting for the person who posted this job|Marked Complete/).first()).toBeVisible({ timeout: 45_000 });
       await journey.milestone(hp, "submitted");
     });
 

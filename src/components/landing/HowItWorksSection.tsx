@@ -56,7 +56,7 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
     },
     {
       title: "Get picked",
-      desc: "The poster picks you. Verify your ID once, then work.",
+      desc: "The person who posted the job picks you. Verify your ID once, then work.",
     },
     {
       title: "Get paid when it's done",

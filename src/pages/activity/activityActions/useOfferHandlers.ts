@@ -169,8 +169,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
             .select("full_name")
             .eq("user_id", user.id)
             .single()
-            .then(({ data }) => (data?.full_name ?? "").split(" ")[0] || "The poster")
-        : "The poster";
+            .then(({ data }) => (data?.full_name ?? "").split(" ")[0] || "The person who posted this job")
+        : "The person who posted this job";
       await createNotification({
         user_id: app.helper_id,
         title: "Application declined",

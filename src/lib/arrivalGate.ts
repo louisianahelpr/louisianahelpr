@@ -2,7 +2,7 @@
  * ONE rule for "has this helper's arrival been established?", shared by every
  * surface that gates on it — the payout CTA (`completeJob`), the tracker's
  * Working and Done steps, the tracker's Arrived step caption (the open
- * "Awaiting poster" question only), and the arrival label on the tracking
+ * "Awaiting confirmation" question only), and the arrival label on the tracking
  * map's job pin.
  *
  * THE RULE ITSELF lives in `supabase/functions/_shared/arrivalRule.ts` so the
@@ -65,10 +65,10 @@ export function arrivalState(job: ArrivalEvidence | null | undefined): ArrivalSt
  *
  * VN-33 made a VERIFIED arrival a pending action too: the poster's
  * confirmation is now required, so a location-confirmed Helpr is still
- * "Awaiting poster". (Before VN-33 only a bare claim waited on the poster.)
+ * "Awaiting confirmation". (Before VN-33 only a bare claim waited on the poster.)
  */
 export function arrivalStateLabel(state: ArrivalState): string | null {
-  return state === "claimed" || state === "verified" ? "Awaiting poster" : null;
+  return state === "claimed" || state === "verified" ? "Awaiting confirmation" : null;
 }
 
 /**
@@ -79,7 +79,7 @@ export function arrivalStateLabel(state: ArrivalState): string | null {
 export function arrivalMapLabel(state: ArrivalState): string | null {
   switch (state) {
     case "confirmed":
-      return "Poster confirmed arrival";
+      return "Arrival confirmed by the person who posted it";
     case "verified":
       return "Location confirmed";
     default:

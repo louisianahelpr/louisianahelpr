@@ -293,7 +293,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       }
       const job = postedJobs.find(j => j.id === jobId);
       if (job?.helper_id) {
-        await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`,
+        await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The person who posted this job confirmed you've arrived for "${job.title}".`,
         // `?job=`, not `?filter=in_progress`: `in_progress` is a legacy filter
         // key with no chip in the five-bucket strip (activityFilters.ts), so
         // the helper landed on a filtered list with nothing selected — 17 rows
@@ -331,7 +331,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       }
       const job = postedJobs.find(j => j.id === jobId);
       if (job?.helper_id) {
-        await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`,
+        await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The person who posted this job confirmed you're working on "${job.title}".`,
         // `?job=`, not `?filter=in_progress`: `in_progress` is a legacy filter
         // key with no chip in the five-bucket strip (activityFilters.ts), so
         // the helper landed on a filtered list with nothing selected — 17 rows

@@ -156,7 +156,7 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
       return {
         title: "Stripe Is Still Verifying You",
         body:
-          "Your payout account is connected, but Stripe hasn't finished confirming who you are — it's usually a Social Security number or a photo ID it still needs. Posters are letting you into their homes, so we wait for that answer before a job becomes yours. Finish what Stripe is asking for and this clears on its own.",
+          "Your payout account is connected, but Stripe hasn't finished confirming who you are — it's usually a Social Security number or a photo ID it still needs. People are letting you into their homes, so we wait for that answer before a job becomes yours. Finish what Stripe is asking for and this clears on its own.",
         ctaLabel: "Finish Verification with Stripe",
         collect: "eventually_due",
       };
@@ -213,7 +213,7 @@ export function helperApplyBlockNotice(
       return {
         headline: "You can apply — but you can't be hired yet.",
         body:
-          "Helpr pays through Stripe, and posters can't hand you a job until your payout account exists. It takes about two minutes, once.",
+          "Helpr pays through Stripe, and no one can hand you a job until your payout account exists. It takes about two minutes, once.",
         ctaLabel: "Set Up Payouts",
         href: "/profile?tab=payment",
       };
@@ -221,7 +221,7 @@ export function helperApplyBlockNotice(
       return {
         headline: "You can apply — but you can't be hired yet.",
         body:
-          "Stripe hasn't finished confirming who you are, and posters can't hand you a job until it has. Finish what Stripe is asking for and this clears on its own.",
+          "Stripe hasn't finished confirming who you are, and no one can hand you a job until it has. Finish what Stripe is asking for and this clears on its own.",
         ctaLabel: "Finish Verification",
         href: "/profile",
       };

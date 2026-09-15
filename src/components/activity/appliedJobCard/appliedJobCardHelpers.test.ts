@@ -94,7 +94,7 @@ describe("describeCancellation — the card names who cancelled", () => {
   const base = { customer_id: "poster-1", cancelled_by: null as string | null, cancellation_reason: null as string | null };
 
   it("poster", () => {
-    expect(describeCancellation({ ...base, cancelled_by: "poster-1" }, HELPER)).toBe("Cancelled by the poster");
+    expect(describeCancellation({ ...base, cancelled_by: "poster-1" }, HELPER)).toBe("Cancelled by the person who posted it");
   });
   it("the viewer themselves — by id, never by role", () => {
     expect(describeCancellation({ ...base, cancelled_by: HELPER }, HELPER)).toBe("You cancelled this job");

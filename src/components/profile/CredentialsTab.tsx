@@ -661,7 +661,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
               className="font-sans mt-1 leading-snug text-ds-12"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              Attach a clearer copy and send it — we review within one business day. Until then, your verified badge isn't visible to posters.
+              Attach a clearer copy and send it — we review within one business day. Until then, your verified badge isn't visible to people hiring.
             </p>
           </div>
         </div>
@@ -738,7 +738,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             </Label>
             <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {anyVerified
-                ? "Shown beside your verified badge, so posters see who's licensed — not just that someone is."
+                ? "Shown beside your verified badge, so people hiring see who's licensed — not just that someone is."
                 : "If your license or COI is issued to a company, add the name exactly as it appears on the document."}
             </p>
           </div>

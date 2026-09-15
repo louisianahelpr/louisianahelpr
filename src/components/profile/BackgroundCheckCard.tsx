@@ -159,7 +159,7 @@ function BackgroundCheckCard({ status }: { status: string }) {
             Get background-checked
           </p>
           <p className="text-ds-12 text-muted-foreground leading-snug mt-0.5">
-            Stand out to posters with a verified Background-Checked badge on your
+            Stand out with a verified Background-Checked badge on your
             profile. One-time screening, paid by you — {BGC_PRICE}.
           </p>
         </div>

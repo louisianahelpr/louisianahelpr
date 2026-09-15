@@ -80,7 +80,7 @@ export const HELPER_MILESTONES: readonly HelperMilestoneDef[] = [
   {
     id: "first_five_star_streak_of_5",
     title: "✨ 5 perfect ratings in a row",
-    description: "Posters love you.",
+    description: "People love hiring you.",
   },
 ] as const;
 

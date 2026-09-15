@@ -90,4 +90,4 @@ export const CANCELLATION_LADDER_RUNGS = [
  * one, and an unused export is one more thing that can drift.
  */
 export const NO_SHOW_LADDER_SENTENCE =
-  "a first report is a final warning, and a second one from a different poster restricts their account for 7 days while an admin decides whether to ban it permanently";
+  "a first report is a final warning, and a second one from a different person who posted a job restricts their account for 7 days while an admin decides whether to ban it permanently";

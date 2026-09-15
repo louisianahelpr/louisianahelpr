@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
           await notifyUser(
             job.helper_id!,
             "We've asked support to step in",
-            `"${job.title}" — the poster hasn't confirmed your arrival, so our team is reviewing it.`,
+            `"${job.title}" — the person who posted this job hasn't confirmed your arrival, so our team is reviewing it.`,
             `/my-jobs?job=${job.id}`,
             "job_updates",
           );

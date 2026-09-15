@@ -86,11 +86,11 @@ const STATUSES: TrackerStep[] = [
  */
 const TRANSITION_TOAST: Record<string, string> = {
   confirmed: "You're marked as accepted.",
-  on_the_way: "The poster knows you're on the way.",
-  working: "The poster knows work has started.",
+  on_the_way: "The person who posted this job knows you're on the way.",
+  working: "The person who posted this job knows work has started.",
   // Interpolated, never restated as a literal — see escrowTiming.ts and the
   // copy-parity guard in src/lib/escrowTiming.copyParity.test.ts.
-  done: `Payout requested. The poster has ${COPY_AUTO_RELEASE_HOURS} hours to approve before your payment releases automatically.`,
+  done: `Payout requested. The person who posted this job has ${COPY_AUTO_RELEASE_HOURS} hours to approve before your payment releases automatically.`,
 };
 
 /**
@@ -346,7 +346,7 @@ export function deriveCurrentStatusIdx({
  * WHEN THE MAP ALREADY SAYS IT (owner, 2026-09-14, VN-20: "Location confirmed
  * … should be on the map"). A settled arrival — verified or confirmed — is now
  * drawn as a label on the map's job pin. While that map is on screen, this
- * line saying "Arrival GPS-verified" / "Poster confirmed arrival" a few pixels
+ * line saying "Arrival GPS-verified" / "Arrival confirmed by the person who posted it" a few pixels
  * above it is the same fact twice, so `arrivalShownOnMap` drops ONLY that
  * clause and keeps the location part ("Location shared · at the job"). With
  * no map drawn (no coordinates, or past the en-route step) the clause stays
@@ -386,7 +386,7 @@ export function trackingProofCaption(
   if (!hasPosition) {
     switch (state) {
       case "confirmed":
-        return { text: "Poster confirmed arrival · no location shared", tone: "ok" };
+        return { text: "Arrival confirmed by the person who posted it · no location shared", tone: "ok" };
       case "verified":
         return { text: "Arrival GPS-verified · no location shared", tone: "ok" };
       case "claimed":
@@ -406,7 +406,7 @@ export function trackingProofCaption(
     // contradiction here — the person standing next to the helper said yes.
     // It is still shown, because hiding it would be the same sin in reverse.
     case "confirmed":
-      return { text: `Poster confirmed arrival${suffix}`, tone: "ok" };
+      return { text: `Arrival confirmed by the person who posted it${suffix}`, tone: "ok" };
     // Verified is a statement about the MOMENT OF ARRIVAL, not about where the
     // helper is now — stepping away from a site mid-job is normal and is the
     // exact false-positive the arrival gate was built to stop punishing.
@@ -1203,7 +1203,7 @@ export function JobTracking({
             tags: { source: "JobTracking.finishRelease" },
             context: { jobId },
           });
-          toast.warning("Marked done. The poster already approved, but we couldn't start your payout just now — it releases automatically unless something needs a look. Pull to refresh.", { duration: 8000 });
+          toast.warning("Marked done. The person who posted this job already approved, but we couldn't start your payout just now — it releases automatically unless something needs a look. Pull to refresh.", { duration: 8000 });
         }
       }
     }
@@ -1334,7 +1334,7 @@ export function JobTracking({
         try {
           unwrapMutation(
             await supabase.from("jobs").update(patch).eq("id", jobId).select("id"),
-            { action: `update the poster's ${label}`, context: { jobId } },
+            { action: `update the ${label} shown to the person who posted this job`, context: { jobId } },
           );
         } catch (err) {
           if (!isWriteRejected(err)) report(err, { tags: { source } });
@@ -1355,7 +1355,7 @@ export function JobTracking({
       }
       if (stampErrors.length > 0) {
         hapticError();
-        toast.error("Saved for you, but we couldn't update the poster's view — check your connection.");
+        toast.error("Saved for you, but we couldn't update what the person who posted this job sees — check your connection.");
         setUpdating(false);
         loadTracking();
         return;
@@ -1419,7 +1419,7 @@ export function JobTracking({
     // no feedback at all. The tracker row moves, but it is one small step in a
     // scrolling line and easy to miss on the very tap that matters most.
     if (!posterNotified) {
-      toast.warning("Work started — we saved it, but couldn't tell the poster. Send them a message so they know.");
+      toast.warning("Work started — we saved it, but couldn't tell the person who posted this job. Send them a message so they know.");
     } else {
       // `arrived` has no entry in the map on purpose — see TRANSITION_TOAST.
       const message = TRANSITION_TOAST[newStatus];
@@ -1482,7 +1482,7 @@ export function JobTracking({
     poster_confirmed_arrival_at: jobStamps.posterConfirmedArrivalAt,
   };
   const currentArrivalState = arrivalState(arrivalEvidence);
-  // Rail caption: only the open "Awaiting poster" question (VN-20).
+  // Rail caption: only the open "Awaiting confirmation" question (VN-20).
   const arrivalCaption = arrivalStateLabel(currentArrivalState);
   // The settled arrival fact goes on the map's job pin when the map is drawn,
   // and falls back to the status line when it is not (VN-20).
@@ -1942,7 +1942,7 @@ export function JobTracking({
                       SETTLED states: "Poster confirmed" / "Location confirmed"
                       moved to the map's job pin, or to the status line under
                       the rail when no map is drawn. A claim still waiting on
-                      the poster keeps its amber "Awaiting poster" here — that
+                      the poster keeps its amber "Awaiting confirmation" here — that
                       is a pending action, not a fact about the location, and
                       without it a poster could read "Working" while their card
                       still asked them to confirm the arrival. */}
@@ -2364,7 +2364,7 @@ export function JobTracking({
                 open={confirmDoneOpen}
                 onOpenChange={(next) => { if (!updating) setConfirmDoneOpen(next); }}
                 title="Mark This Job Complete?"
-                description="This tells the poster the work is finished and starts the clock on your payment."
+                description="This tells the person who posted this job that the work is finished and starts the clock on your payment."
                 primaryLabel="Mark Complete"
                 primaryTone="bark"
                 primaryDisabled={updating}
@@ -2376,7 +2376,7 @@ export function JobTracking({
                 secondaryLabel="Cancel"
               >
                 <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood))" }}>
-                  The poster gets {COPY_AUTO_RELEASE_HOURS} hours to approve the work or ask for a change. If they don’t answer, your payment releases to you automatically. You can’t take this back from here.
+                  The person who posted this job gets {COPY_AUTO_RELEASE_HOURS} hours to approve the work or ask for a change. If they don’t answer, your payment releases to you automatically. You can’t take this back from here.
                 </p>
               </BrandConfirmDialog>
             )}

@@ -90,7 +90,7 @@ export function helperIcon(live = true) {
 
 // Arrival labels this pin may carry. A closed set, not free text: the label is
 // interpolated into divIcon HTML, so only these fixed strings may reach it.
-const DESTINATION_LABELS = new Set(["Location confirmed", "Poster confirmed arrival"]);
+const DESTINATION_LABELS = new Set(["Location confirmed", "Arrival confirmed by the person who posted it"]);
 
 // Destination pin — classic drop-pin in burnt-sienna.
 //

@@ -57,10 +57,10 @@ const LIFECYCLE_REASONS: Record<string, string> = {
     "We couldn't read your location. Try again from the job site.",
   // enforce_helper_completion_gates — the Helpr's completion write.
   completion_requires_confirmed_arrival:
-    "Both are needed before you can mark the job complete: your location confirmed at the job site, and the poster tapping \"Confirm They Arrived\".",
+    "Both are needed before you can mark the job complete: your location confirmed at the job site, and the person who posted this job tapping \"Confirm They Arrived\".",
   // enforce_job_tracking_arrival_gate — the tracker's next step.
   tracker_requires_arrival:
-    "Both are needed before you can start working: your location confirmed at the job site, and the poster tapping \"Confirm They Arrived\".",
+    "Both are needed before you can start working: your location confirmed at the job site, and the person who posted this job tapping \"Confirm They Arrived\".",
   tracker_requires_completion: "Mark the job complete first.",
   tracker_not_assigned_helper: "Only the Helpr assigned to this job can update its tracker.",
   // enforce_jobs_arrival_integrity — the poster's "Confirm They Arrived".
@@ -160,7 +160,8 @@ export const RPC_ERROR_COPY = {
   },
   // ConfirmedSection — cancelling a booking before the start.
   helper_cancel_booking: {
-    job_already_started: "The start time has passed — message the poster or contact support instead.",
+    job_already_started:
+      "The start time has passed, so this can't be cancelled here — message the person who posted this job, or contact support if you can't reach them.",
     not_cancellable:
       "This booking can't be cancelled any more — the job has already moved on. Refresh to see where it stands.",
     job_not_found: JOB_GONE,

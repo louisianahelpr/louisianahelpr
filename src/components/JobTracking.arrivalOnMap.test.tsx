@@ -12,7 +12,7 @@ import { arrivalMapLabel, arrivalStateLabel } from "@/lib/arrivalGate";
  * The Arrived step used to carry "Poster confirmed" / "Location confirmed" as a
  * caption. Those two settled facts now ride on the map's job pin, and when no
  * map is drawn they fall back to the status line under the rail — never to
- * nothing. Only the open "Awaiting poster" question stays on the rail.
+ * nothing. Only the open "Awaiting confirmation" question stays on the rail.
  *
  * Owner pop-up, same day: "Keep map until done". The map used to exist only
  * while the helper was en route — before any arrival could be settled — so it
@@ -92,13 +92,13 @@ describe("VN-20 — arrival labels", () => {
     expect(arrivalStateLabel("confirmed")).toBeNull();
     // VN-33: the poster's confirmation is required, so a location-confirmed
     // arrival is still waiting on the poster.
-    expect(arrivalStateLabel("verified")).toBe("Awaiting poster");
-    expect(arrivalStateLabel("claimed")).toBe("Awaiting poster");
+    expect(arrivalStateLabel("verified")).toBe("Awaiting confirmation");
+    expect(arrivalStateLabel("claimed")).toBe("Awaiting confirmation");
     expect(arrivalStateLabel("none")).toBeNull();
   });
 
   it("the map label names the two settled states and nothing else", () => {
-    expect(arrivalMapLabel("confirmed")).toBe("Poster confirmed arrival");
+    expect(arrivalMapLabel("confirmed")).toBe("Arrival confirmed by the person who posted it");
     expect(arrivalMapLabel("verified")).toBe("Location confirmed");
     expect(arrivalMapLabel("claimed")).toBeNull();
     expect(arrivalMapLabel("none")).toBeNull();
@@ -174,7 +174,7 @@ describe("VN-20 — rendered tracker", () => {
     expect(screen.queryByTestId("tracking-map")).toBeNull();
     // Old behaviour rendered exactly "Poster confirmed" under Arrived.
     expect(screen.queryByText("Poster confirmed")).toBeNull();
-    expect(screen.getByTestId("arrival-fact-fallback").textContent).toContain("Poster confirmed arrival");
+    expect(screen.getByTestId("arrival-fact-fallback").textContent).toContain("Arrival confirmed by the person who posted it");
   });
 
   it.each(["arrived", "working"])(
@@ -195,10 +195,10 @@ describe("VN-20 — rendered tracker", () => {
         },
       });
       expect((await screen.findByTestId("tracking-map")).getAttribute("data-destination-label")).toBe(
-        "Poster confirmed arrival",
+        "Arrival confirmed by the person who posted it",
       );
       expect(screen.queryByText("Poster confirmed")).toBeNull();
-      expect(screen.queryByText(/Poster confirmed arrival/)).toBeNull();
+      expect(screen.queryByText(/Arrival confirmed by the person who posted it/)).toBeNull();
       expect(screen.getByText(/Location shared · at the job/)).toBeTruthy();
     },
   );
@@ -226,7 +226,7 @@ describe("VN-20 — rendered tracker", () => {
     // Give the lazy map chunk every chance to appear before asserting it did not.
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.queryByTestId("tracking-map")).toBeNull();
-    expect(screen.getByText(/Poster confirmed arrival · last ping at the job/)).toBeTruthy();
+    expect(screen.getByText(/Arrival confirmed by the person who posted it · last ping at the job/)).toBeTruthy();
   });
 
   it("no coordinates on the job: no map, the status line keeps the verification clause", () => {
@@ -246,16 +246,16 @@ describe("VN-20 — rendered tracker", () => {
     });
     expect(screen.queryByTestId("tracking-map")).toBeNull();
     expect(screen.queryByText("Poster confirmed")).toBeNull();
-    expect(screen.getByText(/Poster confirmed arrival/)).toBeTruthy();
+    expect(screen.getByText(/Arrival confirmed by the person who posted it/)).toBeTruthy();
   });
 
   it("an unconfirmed claim keeps its amber caption on the rail", () => {
     renderTracker({ jobStatus: "in_progress" });
-    expect(screen.getByText("Awaiting poster")).toBeTruthy();
+    expect(screen.getByText("Awaiting confirmation")).toBeTruthy();
   });
 
   it("a GPS-verified arrival still waits on the poster (VN-33: both required)", () => {
     renderTracker({ jobStatus: "in_progress", helperArrivalVerifiedAt: AT });
-    expect(screen.getByText("Awaiting poster")).toBeTruthy();
+    expect(screen.getByText("Awaiting confirmation")).toBeTruthy();
   });
 });

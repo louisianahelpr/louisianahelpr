@@ -8,6 +8,7 @@ import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
+import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
@@ -37,6 +38,7 @@ function PostedJobCardInner({
   expandedJobIds,
   toggleExpandedJobId,
   helperNames,
+  helperAvatars,
   completedJobMeta,
   userId,
   onBoost,
@@ -143,31 +145,13 @@ function PostedJobCardInner({
    */
   const metaRow = (
             <>
-              {/* ── ONE FACT, ONE TREATMENT — the same fix as the helper card's
-                  poster row, and the same defect: expanding this card replaced
-                  this quiet inline identity with a grey `bg-muted/40` band, a
-                  bigger avatar and an "Offered to" label. One fact, two
-                  treatments, switched by a disclosure toggle.
-
-                  It is drawn ONCE now, in both states, with the profile link
-                  the band used to be the only place to get. Where the TRACKER
-                  is mounted it carries the helper's name and avatar in its own
-                  header (owner: the helper "belongs in the tracker"), so this
-                  row defers to it rather than repeating it. */}
-              {job.helper_id && !(isExpanded && showsTracker) && (
-                <div className="flex items-center gap-1 mb-1">
-                  <div className="w-4 h-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-9 font-bold shrink-0">
-                    {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
-                  </div>
-                  <a
-                    href={`/user/${job.helper_id}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-ds-11 text-muted-foreground hover:underline truncate"
-                  >
-                    {helperName}
-                  </a>
-                </div>
-              )}
+              {/* NO HELPR NAME ROW HERE (owner, 2026-09-14, VN-22: "the person
+                  working the job should show when it's expanded, not like
+                  that"). This reverses the earlier "one fact, one treatment"
+                  ruling that kept a 16px monogram + name link on the collapsed
+                  card and deferred to the tracker header when expanded. The
+                  Helpr now appears once, as a PersonTile under the description,
+                  on the expanded card only. */}
               <JobCardMetaRow
                 dateNeeded={job.date_needed}
                 startTime={job.start_time}
@@ -384,10 +368,25 @@ function PostedJobCardInner({
               </div>
             )}
 
-              {/* The grey "Offered to …" band that used to sit here is GONE —
-                  the identity row in the meta block above states who the job
-                  went to, in one treatment, expanded or not. See the note
-                  there. */}
+              {/* THE HELPR, AS A PROFILE (owner, 2026-09-14, VN-22: "the
+                  profile for who's working the job should be shown when the job
+                  is expanded under the job description, not in that little
+                  area"). The shared PersonTile — the same tile JobDetailDialog
+                  uses for "Posted by" — so it is one profile treatment app-wide.
+                  No rating: the card's data carries the Helpr's name and avatar
+                  only, and a second query per card is not worth a number the
+                  profile one tap away already shows. Stops propagation so the
+                  tap opens the profile without also collapsing the card. */}
+              {job.helper_id && (
+                <PersonTile
+                  userId={job.helper_id}
+                  to={`/user/${job.helper_id}`}
+                  name={helperName}
+                  avatarUrl={helperAvatars?.[job.helper_id] ?? null}
+                  eyebrow="Helpr"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
 
               {/* Cancelled: show fee info if a fee was recorded */}
               {job.status === "cancelled" && (

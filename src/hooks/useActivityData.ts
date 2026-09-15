@@ -72,6 +72,9 @@ export interface PostedActivity {
 /** Decoration for My Posts — resolves after the list is on screen. */
 export interface PostedActivityDetail {
   helperNames: Record<string, string>;
+  /** Avatar URL per helper, from the same get_safe_profiles row as the name —
+   *  the Helpr profile tile on an expanded Posts card (VN-22). */
+  helperAvatars: Record<string, string | null>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
   latestTracking: Record<string, TrackingData | null>;
   groupHelpersByJob: Record<string, GroupHelperLite[]>;
@@ -100,6 +103,7 @@ const EMPTY_POSTED: PostedActivity = {
 
 const EMPTY_POSTED_DETAIL: PostedActivityDetail = {
   helperNames: {},
+  helperAvatars: {},
   completedJobMeta: {},
   latestTracking: {},
   groupHelpersByJob: {},
@@ -251,8 +255,10 @@ export async function fetchPostedActivityDetail(
   }
 
   const helperNames: Record<string, string> = {};
+  const helperAvatars: Record<string, string | null> = {};
   (helperProfilesRes.data ?? []).forEach((p) => {
     helperNames[p.user_id] = formatName(p.full_name, "Helpr");
+    helperAvatars[p.user_id] = p.avatar_url ?? null;
   });
 
   const completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }> = {};
@@ -301,6 +307,7 @@ export async function fetchPostedActivityDetail(
 
   return {
     helperNames,
+    helperAvatars,
     completedJobMeta,
     latestTracking: latestTrackingByJob(activeIds, trackingRes),
     groupHelpersByJob,
@@ -489,7 +496,7 @@ function emptyResult<T>(): Promise<Result<T>> {
   return Promise.resolve({ data: null, error: null });
 }
 
-type SafeProfileRow = { user_id: string; full_name: string | null };
+type SafeProfileRow = { user_id: string; full_name: string | null; avatar_url?: string | null };
 
 type GroupHelperRow = {
   id: string;
@@ -887,6 +894,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     applicantCounts: posted.applicantCounts,
     pendingApplicantCounts: posted.pendingApplicantCounts,
     helperNames: postedD.helperNames,
+    helperAvatars: postedD.helperAvatars,
     completedJobMeta: postedD.completedJobMeta,
     declinedJobIds: applied.declinedJobIds,
     helperReviewedJobIds: applied.helperReviewedJobIds,

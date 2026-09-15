@@ -231,7 +231,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   const {
     loading, loadError, postedJobs, appliedApps, applicantCounts, pendingApplicantCounts,
-    helperNames, completedJobMeta,
+    helperNames, helperAvatars, completedJobMeta,
     helperReviewedJobIds, latestTracking, groupHelpersByJob, refresh,
     // Only THIS tab's data blocks the first card. The other tab's core query
     // is warmed on idle inside the hook, so switching still comes out of cache.
@@ -585,6 +585,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               expandedJobIds={actions.expandedJobIds}
               toggleExpandedJobId={actions.toggleExpandedJobId}
               helperNames={helperNames}
+              helperAvatars={helperAvatars}
               completedJobMeta={completedJobMeta}
               latestTracking={latestTracking}
               groupHelpersByJob={groupHelpersByJob}

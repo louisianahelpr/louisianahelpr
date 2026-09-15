@@ -31,6 +31,8 @@ interface PostedJobsTabProps {
   expandedJobIds: Set<string>;
   toggleExpandedJobId: (id: string) => void;
   helperNames: Record<string, string>;
+  /** Helper avatar URLs for the expanded card's Helpr tile (VN-22). */
+  helperAvatars?: Record<string, string | null>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
   /** Batched per-card tracking + group-helper data, pre-fetched by
       useActivityData. Hoisted here so each <JobTracking>/<GroupJobHelpers>
@@ -275,7 +277,7 @@ function ListTail({
 
 export const PostedJobsTab = ({
   jobs, highlightJobId, applicantCounts, expandedJobIds, toggleExpandedJobId,
-  helperNames, completedJobMeta,
+  helperNames, helperAvatars, completedJobMeta,
   latestTracking, groupHelpersByJob, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
   onRevision, onNoShow, onTip, onReview, onDispute, onReport, onViewDispute, onConfirmArrival, confirmingArrivalJobId, onConfirmWorking, confirmingWorkingJobId,
@@ -348,6 +350,7 @@ export const PostedJobsTab = ({
         expandedJobIds={expandedJobIds}
         toggleExpandedJobId={toggleExpandedJobId}
         helperNames={helperNames}
+        helperAvatars={helperAvatars}
         completedJobMeta={completedJobMeta}
         // `latestTracking[job.id]` may legitimately be `null` ("we
         // looked, no row exists") — the card forwards that down so

@@ -32,9 +32,9 @@ import { report } from "@/lib/errorLogger";
 import type { Conversation } from "@/components/messages/types";
 
 export const RECIPIENT_RESTRICTED_NOTICE =
-  "You can't send messages in this conversation. On this job, only the poster can message applicants and anyone with a pending offer. You can still read everything here.";
+  "You can't send messages in this conversation. On this job, only the person who posted it can message applicants and anyone with a pending offer. You can still read everything here.";
 export const RECIPIENT_RESTRICTED_TOAST =
-  "Only the job's poster can message this person, so the message wasn't sent.";
+  "Only the person who posted this job can message them, so the message wasn't sent.";
 
 /** The server gate's answer, or null when it could not be asked. */
 async function askGate(jobId: string, receiverId: string): Promise<boolean | null> {

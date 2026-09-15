@@ -164,7 +164,7 @@ const UserProfile = () => {
   // tenure) are rendered by ProfileHeaderCard instead. Do not "fix" a missing
   // subtitle by re-adding it here — it will not paint.
   const headerMeta = isOwnProfile
-    ? "A preview from a poster's perspective"
+    ? "A preview of what someone hiring you sees"
     : "Reviews, badges, and history";
 
   // Whether the loaded header will render trailing actions (Message, Save,
@@ -634,7 +634,7 @@ const UserProfile = () => {
 
                 THIS PAGE IS THE PREVIEW. Its whole job is to show the user what
                 a stranger sees — the header literally reads "How others see you
-                · A preview from a poster's perspective". A completion meter and
+                · A preview of what someone hiring you sees". A completion meter and
                 a self-improvement checklist are things no visitor can ever see,
                 so putting them here made the preview lie about the one thing it
                 exists to report.

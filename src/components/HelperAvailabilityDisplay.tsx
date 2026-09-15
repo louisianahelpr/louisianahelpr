@@ -59,7 +59,7 @@ export function HelperAvailabilityDisplay({ helperId, showEmpty = false, onSetUp
           <div className="min-w-0">
             <p className="text-ds-13 font-semibold text-foreground">Availability not set</p>
             <p className="text-ds-11 text-muted-foreground truncate">
-              Posters match jobs to your weekly hours.
+              People hiring match jobs to your weekly hours.
             </p>
           </div>
         </div>

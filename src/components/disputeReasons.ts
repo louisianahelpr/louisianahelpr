@@ -44,12 +44,12 @@ const POSTER_REASONS: readonly DisputeReason[] = [
  * only honest answer.
  */
 const HELPER_REASONS: readonly DisputeReason[] = [
-  { value: "poster_wont_confirm", label: "Poster won't confirm the work is done" },
+  { value: "poster_wont_confirm", label: "The person who posted the job won't confirm the work is done" },
   { value: "job_not_as_described", label: "Job wasn't what was described" },
   { value: "scope_changed", label: "Asked to do work outside the job" },
   { value: "no_access", label: "Couldn't get access to the property" },
   { value: "unsafe_site", label: "Site was unsafe or unsuitable" },
-  { value: "poster_no_show", label: "Poster wasn't there or wouldn't respond" },
+  { value: "poster_no_show", label: "The person who posted the job wasn't there or wouldn't respond" },
   { value: "other", label: "Other" },
 ];
 

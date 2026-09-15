@@ -271,7 +271,7 @@ export function ProfileEditForm({
           />
           <FieldError id="bio-contact-leak">{bioLeak}</FieldError>
           <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Posters read this when deciding who to hire. The more specific, the better.
+            People read this when deciding who to hire. The more specific, the better.
           </p>
         </div>
 

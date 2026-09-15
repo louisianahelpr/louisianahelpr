@@ -48,6 +48,20 @@ import { notificationDestination } from "@/components/notificationPanel/notifica
    request can sit open for minutes, and while it did the panel had no answer
    and rendered "Nothing new yet." — so every read is bounded, and running out
    of time takes the same error path as any other failure. */
+/**
+ * Needles for "this job was cancelled by whoever posted it" in a STORED
+ * notification body. These are not copy this file prints — the bodies are
+ * written by Postgres triggers (`poster_cancel_job`, `notify_on_job_update`;
+ * migrations 20260905021859, 20260908155425 and earlier), which say "cancelled
+ * by the poster". Every row already in the table says that and always will, so
+ * the legacy phrasing is load-bearing; the second entry is here for whenever a
+ * migration rewords the trigger.
+ */
+const CANCELLED_BY_POSTER_NEEDLES = [
+  "cancelled by the poster",
+  "cancelled by the person who posted",
+] as const;
+
 const LOAD_TIMEOUT_MS = 15_000;
 const withLoadTimeout = <T,>(pending: PromiseLike<T>): Promise<T> =>
   new Promise<T>((resolve, reject) => {
@@ -865,7 +879,19 @@ const NotificationPanel = () => {
                                 actions.push({ label: "Repost", href: "/post-job" });
                               } else if (
                                 n.type === "warning" &&
-                                n.message.toLowerCase().includes("cancelled by the poster")
+                                // MATCHES STORED TEXT, not copy this file owns.
+                                // Postgres triggers write these bodies
+                                // (20260905021859, 20260908155425 and older),
+                                // so the row says "cancelled by the poster" and
+                                // rows already in the table always will. The
+                                // 2026-09-15 role-word pass could not rewrite
+                                // history, and changing this needle alone would
+                                // silently drop the pill off every one of them.
+                                // Both phrasings match until a migration
+                                // rewords the trigger copy.
+                                CANCELLED_BY_POSTER_NEEDLES.some((needle) =>
+                                  n.message.toLowerCase().includes(needle),
+                                )
                               ) {
                                 // The Helpr's copy of a poster cancellation
                                 // (poster_cancel_job + notify_on_job_update both

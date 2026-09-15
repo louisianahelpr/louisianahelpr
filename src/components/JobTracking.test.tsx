@@ -273,7 +273,7 @@ describe("trackingProofCaption", () => {
 
   it("spends the word 'confirmed' only on the poster's vouch", () => {
     expect(trackingProofCaption("confirmed", 1792, true)).toEqual({
-      text: "Poster confirmed arrival · last ping 1792 mi from job",
+      text: "Arrival confirmed by the person who posted it · last ping 1792 mi from job",
       tone: "ok",
     });
   });

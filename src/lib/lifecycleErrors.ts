@@ -119,7 +119,8 @@ export const RPC_ERROR_COPY = {
   },
   // ConfirmedSection — cancelling a booking before the start.
   helper_cancel_booking: {
-    job_already_started: "The start time has passed — message the poster or contact support instead.",
+    job_already_started:
+      "The start time has passed, so this can't be cancelled here — message the person who posted this job, or contact support if you can't reach them.",
     not_cancellable:
       "This booking can't be cancelled any more — the job has already moved on. Refresh to see where it stands.",
     job_not_found: JOB_GONE,

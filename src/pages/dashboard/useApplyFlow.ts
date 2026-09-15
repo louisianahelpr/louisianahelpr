@@ -314,7 +314,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       if (noteWithheld) {
         toast.warning("Application sent — but your note wasn't included.", {
           description:
-            "It looked like contact or payment details, which can't be shared before a job is confirmed. The poster sees your application without it.",
+            "It looked like contact or payment details, which can't be shared before a job is confirmed. The person who posted it sees your application without it.",
           duration: 10000,
           action: { label: "View", onClick: () => navigate(`/my-jobs?job=${vars.jobId}`) },
         });

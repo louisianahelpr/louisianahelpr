@@ -59,19 +59,19 @@ export function arrivalEstablished(job: ArrivalEvidence | null | undefined): boo
  */
 export function arrivalGateMessage(job: ArrivalEvidence | null | undefined): string {
   return arrivalState(job) === "claimed"
-    ? "You marked yourself arrived, but we couldn't confirm your location. Ask the poster to tap \"Confirm They Arrived\" on their job — that unlocks wrap-up."
-    : "Mark yourself arrived at the job site first. If your location won't work, ask the poster to confirm you arrived — that works too.";
+    ? "You marked yourself arrived, but we couldn't confirm your location. Ask the person who posted this job to tap \"Confirm They Arrived\" on it — that unlocks wrap-up."
+    : "Mark yourself arrived at the job site first. If your location won't work, ask the person who posted this job to confirm you arrived — that works too.";
 }
 
 /** Short label for the tracker's Arrived step. */
 export function arrivalStateLabel(state: ArrivalState): string | null {
   switch (state) {
     case "confirmed":
-      return "Poster confirmed";
+      return "Confirmed by the person who posted it";
     case "verified":
       return "Location confirmed";
     case "claimed":
-      return "Awaiting poster";
+      return "Awaiting confirmation";
     default:
       return null;
   }

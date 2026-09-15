@@ -126,7 +126,7 @@ describe("ApplyConfirmDialog", () => {
   it("calls setApplyMessage as the pitch is typed", () => {
     const props = makeProps();
     render(<ApplyConfirmDialog {...props} />);
-    fireEvent.change(screen.getByLabelText(/note to the poster/i), {
+    fireEvent.change(screen.getByLabelText(/note to the person who posted this job/i), {
       target: { value: "I have done this before." },
     });
     expect(props.setApplyMessage).toHaveBeenCalledWith("I have done this before.");
@@ -179,14 +179,14 @@ describe("ApplyConfirmDialog", () => {
     expect(screen.queryByText(/Your pitch/i)).not.toBeInTheDocument();
     // The last coaching surface — the placeholder tip — is gone too (owner,
     // 2026-08-29). The field opens empty; the label carries the only prompt.
-    expect(screen.getByLabelText(/note to the poster/i)).not.toHaveAttribute("placeholder");
+    expect(screen.getByLabelText(/note to the person who posted this job/i)).not.toHaveAttribute("placeholder");
   });
 
   it("tells the helpr the poster reads the note, in the label itself", () => {
     // One title, not a title plus a subtitle repeating it. "Add a note" alone
     // read like a private memo, so people left it blank or wrote carelessly.
     render(<ApplyConfirmDialog {...makeProps()} />);
-    expect(screen.getByLabelText(/note to the poster/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/note to the person who posted this job/i)).toBeInTheDocument();
   });
 
   it("hides the character counter until the cap is in sight", () => {

@@ -115,11 +115,11 @@ export function getApplyTips(job: {
   // Category-specific tips
   const catTips: Record<string, string> = {
     handyman:  "List the specific tools you have for this type of work",
-    cleaning:  "Mention if you bring your own supplies or need the poster's",
+    cleaning:  "Mention if you bring your own supplies or need theirs",
     moving:    "Confirm if you have a truck or will need access to one",
     pet_care:  "Mention any pet care certifications or relevant experience",
     yard_work: "Specify what equipment you'll use",
-    painting:  "Mention your prep process — posters care about prep as much as painting",
+    painting:  "Mention your prep process — people hiring care about prep as much as painting",
   };
   if (job.category && catTips[job.category]) {
     tips.push(catTips[job.category]);

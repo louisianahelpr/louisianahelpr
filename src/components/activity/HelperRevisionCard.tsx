@@ -169,7 +169,7 @@ export function HelperRevisionCard({
       // eventually re-reads it, and under load that has taken 10s+, during
       // which the button read "I'll Fix It" again as if nothing had happened.
       setRevision((r) => (r ? { ...r, status: "accepted" } : r));
-      confirmConsequential("Got it — the poster knows you'll fix it. Tap Mark Fixed when it's done.");
+      confirmConsequential("Got it — the person who posted this job knows you'll fix it. Tap Mark Fixed when it's done.");
       onAccepted();
     } catch (err: unknown) {
       hapticError();
@@ -210,7 +210,7 @@ export function HelperRevisionCard({
           className="font-display italic font-bold leading-snug mt-0.5 text-ds-15"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
         >
-          Poster wants a small fix
+          A small fix was requested
         </p>
       </div>
 
@@ -253,10 +253,10 @@ export function HelperRevisionCard({
           className="mt-1.5 space-y-1 pl-1"
           style={{ color: "hsl(var(--olivewood) / 0.8)", lineHeight: 1.55 }}
         >
-          <li>• Message the poster before tapping "I'll fix it" — one sentence goes a long way</li>
+          <li>• Message the person who posted this job before tapping "I'll fix it" — one sentence goes a long way</li>
           <li>• Take a clear after-photo when you're done and attach it in chat</li>
           <li>• If you disagree with the request, discuss it first via the chat, not after</li>
-          <li>• Once fixed, mark complete and wait for the poster to confirm</li>
+          <li>• Once fixed, mark complete and wait for them to confirm</li>
         </ul>
       </details>
 

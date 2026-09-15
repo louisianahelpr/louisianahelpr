@@ -536,7 +536,7 @@ function AppliedJobCardInner({
                     <JobActionChip
                       icon={CheckCircle2}
                       label="Reviewed"
-                      ariaLabel="Already reviewed the poster"
+                      ariaLabel="Already reviewed the person who posted this job"
                       tone="done"
                       disabled
                       onClick={() => {}}
@@ -544,10 +544,10 @@ function AppliedJobCardInner({
                   ) : (
                     <JobActionChip
                       icon={Star}
-                      label="Review Poster"
-                      ariaLabel="Leave a review for the poster"
+                      label="Leave a Review"
+                      ariaLabel="Leave a review for the person who posted this job"
                       tone="edit"
-                      onClick={() => onHelperReview(app.job_id, posterId, app.posterName || "Poster")}
+                      onClick={() => onHelperReview(app.job_id, posterId, app.posterName || "the person who posted this job")}
                     />
                   )}
                 </JobActionRow>

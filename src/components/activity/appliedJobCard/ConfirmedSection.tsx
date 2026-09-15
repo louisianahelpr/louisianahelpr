@@ -124,7 +124,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
         <JobActionChip
           icon={MessageSquare}
           label="Message"
-          ariaLabel="Message the poster about this job"
+          ariaLabel="Message the person who posted this job"
           tone="message"
           onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}
         />
@@ -140,7 +140,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
         open={cancelOpen}
         onOpenChange={setCancelOpen}
         title="Cancel This Job?"
-        description={`"${job.title}" reopens for other Helprs right away, and the poster is told now — while there's still time to rebook.`}
+        description={`"${job.title}" reopens for other Helprs right away, and the person who posted it is told now — while there's still time to rebook.`}
         callout={{
           icon: CalendarX2,
           // The shared statement, not a hand-typed one. This callout was the

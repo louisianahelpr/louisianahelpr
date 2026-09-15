@@ -139,10 +139,12 @@ describe("no-show ladder — NO_SHOW_LADDER_SENTENCE ↔ report_helper_no_show (
     expect(
       s,
       `"${NO_SHOW_LADDER_SENTENCE}" must say the SECOND report comes from a DIFFERENT ` +
-        `poster — GUARD 3b counts DISTINCT reporters, so one poster acting alone can ` +
-        `never reach the top rung, and a sentence that omits this reads as "report the ` +
-        `same Helpr twice and they're gone"`,
-    ).toMatch(/different poster/);
+        `person who posted a job — GUARD 3b counts DISTINCT reporters, so one of them ` +
+        `acting alone can never reach the top rung, and a sentence that omits this reads ` +
+        `as "report the same Helpr twice and they're gone". (The clause was "a different ` +
+        `poster" until the role words came out of copy on 2026-09-15; the semantics it ` +
+        `guards are unchanged.)`,
+    ).toMatch(/different person who posted/);
     expect(
       s,
       `"${NO_SHOW_LADDER_SENTENCE}" must state the 7-day restriction, not a ban`,
@@ -159,8 +161,8 @@ describe("no-show ladder — NO_SHOW_LADDER_SENTENCE ↔ report_helper_no_show (
   });
 
   it("the distinct-reporter guard the sentence leans on is still in the SQL", () => {
-    // If GUARD 3b goes, "a second one from a different poster" becomes false and
-    // one poster can restrict a Helpr alone.
+    // If GUARD 3b goes, "a second one from a different person who posted a job"
+    // becomes false and one of them can restrict a Helpr alone.
     //
     // BLIND AS WRITTEN. The old matcher was `/DISTINCT[\s\S]{0,400}report/i`
     // against the RAW migration, and what it actually matched was line 43 —
@@ -175,8 +177,8 @@ describe("no-show ladder — NO_SHOW_LADDER_SENTENCE ↔ report_helper_no_show (
     expect(
       body,
       "GUARD 3b (escalate on DISTINCT reporters) is gone from the FUNCTION BODY — " +
-        "NO_SHOW_LADDER_SENTENCE's 'from a different poster' clause is now a lie, and " +
-        "one poster can drive a Helpr to the top rung by themselves",
+        "NO_SHOW_LADDER_SENTENCE's 'from a different person who posted a job' clause is " +
+        "now a lie, and one of them can drive a Helpr to the top rung by themselves",
     ).toMatch(/count\s*\(\s*DISTINCT\s+reported_by\s*\)/i);
   });
 

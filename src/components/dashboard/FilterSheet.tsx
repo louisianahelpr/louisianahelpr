@@ -854,7 +854,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
             label="Boosted Jobs"
             hint={
               <p className="text-ds-11 text-muted-foreground leading-snug">
-                Promoted by the poster
+                Promoted by the person who posted it
               </p>
             }
             checked={boostedOnly}

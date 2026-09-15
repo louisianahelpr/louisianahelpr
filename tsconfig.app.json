@@ -43,6 +43,7 @@
     "supabase/functions/_shared/productPrices.ts",
     "supabase/functions/_shared/escrowTiming.ts",
     "supabase/functions/_shared/arrivalRule.ts",
+    "supabase/functions/_shared/arrivalNudge.ts",
     "supabase/functions/_shared/productTiers.ts",
     "supabase/functions/_shared/helperEarnings.ts",
     "supabase/functions/_shared/seatTierGrant.ts",

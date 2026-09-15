@@ -3893,3 +3893,85 @@ html.senior-mode *::after {
 
 
 
+
+/* ── JOB STEP CARD: ONE ROW OF BUTTONS (owner, 2026-09-14, VN-21) ──────────
+   The layout JobStepCard's header comment states, and nothing else. It lives
+   here rather than as utility classes on each child because the children are
+   not the shell's to class: chips come from four components, and the primary
+   is portalled in from JobTracking / JobConfirmation / HelperRevisionCard.
+
+   - The row never wraps (`flex-nowrap` on the element).
+   - The primary leads at 2 shares, every chip is 1 equal share.
+   - `data-compact="true"` (measured by the shell, see shouldCompactJobStepRow)
+     hides each chip's visible label — it stays in the accessibility tree as
+     the chip's name — and, when there is a primary, sets the chips to an
+     equal 48px so the primary keeps the room for its own label.
+   - `data-tight="true"` (shouldTightenJobStepPrimary) is the last step before
+     a clipped label: see below.
+   - The primary's button releases its fixed `h-11`/nowrap so a long label
+     ("Try My Location Again") wraps inside the button instead of overflowing
+     the card at 320px. min-height stays at the 44px tap floor. */
+[data-job-step-row][data-empty="true"] {
+  display: none;
+}
+[data-job-step-row] > * {
+  flex: 1 1 0%;
+}
+[data-job-step-row] > [data-job-step-primary] {
+  flex: 2 1 0%;
+  display: flex;
+  gap: 0.375rem;
+  min-width: 0;
+}
+[data-job-step-row] > [data-job-step-primary]:empty {
+  display: none;
+}
+[data-job-step-row] > [data-job-step-primary] > * {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+/* CLASS selectors, deliberately (globalCssNoUtilityOverride.test.ts): this is a
+   component sizing its own slot's button — releasing the `sm` Button's h-11 so
+   a two-line label fits — not a global element rule out-ranking utilities. */
+.job-step-row > .job-step-primary :is(button, a) {
+  width: 100%;
+  height: auto;
+  min-height: 44px;
+  white-space: normal;
+  line-height: 1.2;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  text-align: center;
+}
+[data-job-step-row][data-compact="true"][data-has-primary="true"] > [data-job-step-primary] {
+  flex: 1 1 0%;
+}
+[data-job-step-row][data-compact="true"][data-has-primary="true"] > :not([data-job-step-primary]) {
+  flex: 0 1 48px;
+}
+/* Still short of room with icon-only chips (four buttons at 320px): the
+   primary keeps every word of its label but drops its icon, its side padding
+   and a type size, and holds a floor its words fit in; the chips give way
+   below 48px before it does. */
+[data-job-step-row][data-tight="true"] > [data-job-step-primary] {
+  min-width: 3.75rem;
+}
+.job-step-row[data-tight="true"] > .job-step-primary :is(button, a) {
+  font-size: 12px;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+[data-job-step-row][data-tight="true"] > [data-job-step-primary] :is(button, a) svg {
+  display: none;
+}
+[data-job-step-row][data-compact="true"] > :not([data-job-step-primary]) span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

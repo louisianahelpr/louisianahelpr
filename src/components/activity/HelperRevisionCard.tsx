@@ -27,6 +27,8 @@ import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
+import { JobStepPrimaryButton } from "./JobActionRow";
+import { JobStepRowSlot, useInJobStepRow } from "./jobStepRow";
 
 interface HelperRevisionCardProps {
   jobId: string;
@@ -63,6 +65,9 @@ export function HelperRevisionCard({
 }: HelperRevisionCardProps) {
   const [revision, setRevision] = useState<RevisionRow | null>(null);
   const [accepting, setAccepting] = useState(false);
+  /** Inside the helper's step card, "I'll Fix It" is that card's primary and
+   *  renders in its one action row (owner, 2026-09-14, VN-21). */
+  const inStepRow = useInJobStepRow();
 
   useEffect(() => {
     // Try to load from the formal table; fall back to the legacy note.
@@ -260,7 +265,29 @@ export function HelperRevisionCard({
         </ul>
       </details>
 
-      {/* Actions — ONE. See the header note on the removed "Discuss" twin. */}
+      {/* Actions — ONE. See the header note on the removed "Discuss" twin.
+
+          IN A STEP CARD (owner, 2026-09-14, VN-21: "can all the buttons be on 1
+          row like i'll fix it, message etc"): the accept is the card's primary,
+          so it renders in the card's single action row beside Message — in the
+          row's dark green, the one primary surface every step shares — while
+          this amber box keeps the request itself. Once accepted there is no
+          control left to draw here: the row's next primary is "Mark Fixed",
+          which RevisionStep offers from exactly that moment (and the accept
+          tap already confirmed with a toast). The "On it" receipt below is
+          the out-of-card rendering only. */}
+      {inStepRow ? (
+        !acknowledged && (
+          <JobStepRowSlot slot="primary">
+            <JobStepPrimaryButton
+              icon={Wrench}
+              label={accepting ? "Acknowledged…" : "I'll Fix It"}
+              onClick={() => { void handleAccept(); }}
+              disabled={accepting}
+            />
+          </JobStepRowSlot>
+        )
+      ) : (
       <div className="pt-0.5">
         <Button
           size="sm"
@@ -280,6 +307,7 @@ export function HelperRevisionCard({
           {acknowledged ? "On it" : accepting ? "Acknowledged…" : "I'll Fix It"}
         </Button>
       </div>
+      )}
     </div>
   );
 }

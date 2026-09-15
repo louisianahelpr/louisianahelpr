@@ -19,7 +19,8 @@
     "npm",
     "puppeteer",
     "cordova-plugin-purchase",
-    "pg"
+    "pg",
+    "@electric-sql/pglite"
   ],
   "rules": {
     "files": "error",

@@ -1,7 +1,6 @@
-import { AlertTriangle, CheckCircle2, DollarSign, MessageSquare } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AlertTriangle, CheckCircle2, DollarSign, History, LifeBuoy, MessageSquare } from "lucide-react";
 import { JobStepCard } from "@/components/activity/JobStepCard";
-import { JobActionChip, JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "../../JobActionRow";
+import { JobActionChip, JobStepPrimaryButton } from "../../JobActionRow";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
@@ -20,8 +19,8 @@ import type { PosterStepCtx } from "./posterStepContract";
  * ONE CHANGE OF STRUCTURE, deliberately: Resolve & Pay and Escalate used to be
  * a 2-up row of their own ABOVE a second 3-up row — two action rows in one
  * state, which is the variation this whole pass exists to remove. Resolve & Pay
- * is the money move and is now the step's single full-width primary; Escalate
- * joins the row, beside the other two ways of involving somebody else. Same
+ * is the money move and is now the step's single primary, leading the one row
+ * (owner, 2026-09-14, VN-21); Escalate joins the row, beside the other two ways of involving somebody else. Same
  * handlers, same confirms, same gates (`canResolve` / `canEscalate`) — only the
  * arrangement moved.
  */
@@ -121,21 +120,20 @@ export function DisputedStep(ctx: PosterStepCtx) {
         /* "Mark Resolved" was a lie of omission: one tap released the ENTIRE
            escrow, and neither the label nor the spoken name mentioned money. It
            is named for its consequence and confirms before it moves anything. */
+        /* It leads the card's ONE action row in the row's dark green (owner,
+           2026-09-14, VN-21), Escalate / Timeline / Message / Contact Admin
+           beside it. Still confirms before anything moves. */
         canEscalate && canResolve ? (
-          <Button
-            size="sm"
-            variant="outline"
-            className={JOB_ACTION_FULL_CLASS}
-            style={jobActionChipStyle("approve")}
+          <JobStepPrimaryButton
+            icon={CheckCircle2}
+            label="Resolve & Pay"
+            ariaLabel="Resolve & Pay — close this dispute and release the payment to your Helpr"
             disabled={disputeActing}
-            aria-label="Resolve & Pay — close this dispute and release the payment to your Helpr"
             onClick={(e) => {
               e.stopPropagation();
               setResolveConfirmOpen(true);
             }}
-          >
-            <CheckCircle2 className="w-4 h-4" /> Resolve &amp; Pay
-          </Button>
+          />
         ) : null
       }
       actions={[
@@ -153,9 +151,13 @@ export function DisputedStep(ctx: PosterStepCtx) {
             }}
           />
         ) : null,
+        /* Distinct ICONS for the three non-message chips (was one
+           AlertTriangle each). On the one row at 375 these chips are
+           icon-only (VN-21), and three identical triangles were three
+           buttons nobody could tell apart. */
         <JobActionChip
           key="timeline"
-          icon={AlertTriangle}
+          icon={History}
           label="Timeline & Evidence"
           ariaLabel="Timeline & Evidence — this dispute's full history, and a place to attach proof"
           tone="neutral"
@@ -171,7 +173,7 @@ export function DisputedStep(ctx: PosterStepCtx) {
         />,
         <JobActionChip
           key="admin"
-          icon={AlertTriangle}
+          icon={LifeBuoy}
           label="Contact Admin"
           ariaLabel="Contact Admin — get help from a Helpr admin about this dispute"
           tone="neutral"

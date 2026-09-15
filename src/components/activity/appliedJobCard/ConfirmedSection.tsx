@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { JobActionRow, JobActionChip } from "@/components/activity/JobActionRow";
+import { JobActionChip } from "@/components/activity/JobActionRow";
+import { JobStepCard } from "@/components/activity/JobStepCard";
 import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import { MessageSquare, CalendarX2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,41 +71,48 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
     navigate("/my-jobs");
   };
 
+  /* No "Add to Calendar" (owner, twice — here and on the offer card): "once
+     they accept a job it will be on their calendar in the app". Handing the
+     helpr an .ics to download and import is asking the user to do the app's
+     job, on a job the app already knows the date of.
+
+     Rendered through the shared JobStepCard shell like every live step — this
+     section used to hand-draw the identical container, which is how its row
+     would have stayed stacked while the others went to one row (owner,
+     2026-09-14, VN-21). */
   return (
-    <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
-      {/* ONE box: the step rail AND the day-of confirmation that completes its
-          "Confirmed" step. See HelperTrackerPanel — the confirmation used to be
-          a second glass card BELOW the tracker with its own green primary, so
-          the card offered two full-width green buttons at once and the wrong
-          one ("On the Way") was reachable first.
+    <JobStepCard
+      side="helper"
+      step="confirmed"
+      /* ONE box: the step rail AND the day-of confirmation that completes its
+         "Confirmed" step. See HelperTrackerPanel — the confirmation used to be
+         a second glass card BELOW the tracker with its own green primary, so
+         the card offered two full-width green buttons at once and the wrong
+         one ("On the Way") was reachable first.
 
-          It still leads the section, which is the ordering the owner set
-          ("confirmation needs to go before job starts because that comes
-          first") — the confirmation is now simply inside the tracker rather
-          than stacked above or below it. */}
-      <HelperTrackerPanel app={app} job={job} userId={userId} initialTracking={initialTracking} onCantMakeIt={() => setCancelOpen(true)} />
-      {/* Job countdown */}
-      <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
-      {/* The pets, and everything the owner already wrote down about them.
-          Self-hides when the job has none, so no category gate is needed here.
-          See JobPetCareSheet — before it, a sitter arrived knowing the address
-          and the time and nothing about the animal. */}
-      <JobPetCareSheet jobId={app.job_id} />
-      {/* No "Add to Calendar" (owner, twice — here and on the offer card):
-          "once they accept a job it will be on their calendar in the app".
-          Handing the helpr an .ics to download and import is asking the user
-          to do the app's job, on a job the app already knows the date of. */}
-      {/* THREE PEERS, ONE ROW (owner, 2026-08-30: "directions messages and
-          can't make it all need to be buttons in a row side by side").
+         It still leads the section, which is the ordering the owner set
+         ("confirmation needs to go before job starts because that comes
+         first") — the confirmation is now simply inside the tracker rather
+         than stacked above or below it. Its button ("I'm Still On", then the
+         tracker's "I'm On My Way") is the row's primary and portals into it. */
+      header={<HelperTrackerPanel app={app} job={job} userId={userId} initialTracking={initialTracking} onCantMakeIt={() => setCancelOpen(true)} />}
+      notice={
+        <>
+          <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
+          {/* The pets, and everything the owner already wrote down about them.
+              Self-hides when the job has none, so no category gate is needed here.
+              See JobPetCareSheet — before it, a sitter arrived knowing the address
+              and the time and nothing about the animal. */}
+          <JobPetCareSheet jobId={app.job_id} />
+        </>
+      }
+      /* THE PEERS, BESIDE THE PRIMARY ON ONE ROW (owner, 2026-08-30:
+         "directions messages and can't make it all need to be buttons in a row
+         side by side"; owner, 2026-09-14, VN-21: every button on one row, the
+         primary leading). The shell lays them out and drops them to icon-only
+         when four buttons do not fit with labels.
 
-          These were three different treatments stacked vertically — two
-          full-width outline buttons and a bare centred text link — for three
-          things a booked helpr does from this card. The shared JobActionRow /
-          JobActionChip pair is the app's existing 3-up, so this row is the same
-          component the posted card's chip rows render through rather than a
-          parallel primitive.
-
-          "Cancel Job" is the exit, not a link: it opens the same
+         "Cancel Job" is the exit, not a link: it opens the same
           reliability-ladder confirm the underlined link used to. Labelled
           "Cancel Job" (owner, 2026-09-14, VN-18: the back-out shown after the
           Helpr confirms and before On the Way says "Cancel Job") — the same
@@ -114,28 +122,30 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           (Withdraw, Cancel, Dispute) and it is the only alarm colour on this
           card — the tracker's yellow means "current step" and lives in the
           panel above, so the two never collide. The full sentence survives in
-          the accessible name; the visible label has ~92px at 320px.
+          the accessible name.
 
-          `columns` is passed deliberately: DirectionsButton self-hides on a job
-          with no address, and two chips stranded in a three-column grid is what
-          JobActionRow's explicit `columns` prop exists to prevent. */}
-      <JobActionRow columns={job.location?.trim() ? 3 : 2}>
-        <DirectionsButton location={job.location} variant="chip" />
+          DirectionsButton self-hides on a job with no address; the shell
+          counts what actually rendered. */
+      actions={[
+        <DirectionsButton key="directions" location={job.location} variant="chip" />,
         <JobActionChip
+          key="message"
           icon={MessageSquare}
           label="Message"
           ariaLabel="Message the poster about this job"
           tone="message"
           onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}
-        />
+        />,
         <JobActionChip
+          key="cancel"
           icon={CalendarX2}
           label="Cancel Job"
           ariaLabel="Cancel this job? See what happens if you cancel now"
           tone="danger"
           onClick={() => setCancelOpen(true)}
-        />
-      </JobActionRow>
+        />,
+      ]}
+      dialogs={
       <BrandConfirmDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
@@ -161,6 +171,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
         onPrimary={() => void handleCancelBooking()}
         secondaryLabel="Cancel"
       />
-    </div>
+      }
+    />
   );
 }

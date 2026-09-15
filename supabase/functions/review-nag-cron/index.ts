@@ -263,7 +263,7 @@ serve(async (req) => {
       // right bucket for that job.
       for (const party of [
         { user_id: job.customer_id, reviewing: "your Helpr", surface: "/my-posts" },
-        { user_id: job.helper_id, reviewing: "the customer", surface: "/my-jobs" },
+        { user_id: job.helper_id, reviewing: "the person who posted this job", surface: "/my-jobs" },
       ]) {
         if (!party.user_id) continue;
         if (reviewedBy.has(party.user_id)) continue;
@@ -272,9 +272,7 @@ serve(async (req) => {
         const title = inFirstWindow
           ? "How was your experience?"
           : "Last reminder — how was your experience?";
-        const message = `Take 30 seconds to rate ${party.reviewing} for "${job.title}". Reviews help the next ${
-          party.reviewing.includes("helper") ? "helper" : "customer"
-        } feel safe choosing.`;
+        const message = `Take 30 seconds to rate ${party.reviewing} for "${job.title}". Reviews help the next person feel safe choosing.`;
         // Every nag used to point at `/profile?tab=reviews&job=<id>`. That page
         // is READ-ONLY — it lists reviews RECEIVED — and Profile.tsx never
         // reads `?job=` at all, so the id was inert. So a notification whose

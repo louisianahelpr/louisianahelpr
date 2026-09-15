@@ -47,7 +47,7 @@ serve(async (req) => {
     // bug can take, so pick the record that actually carries the subscription.
     const customers = await stripe.customers.list({ email: user.email, limit: 100 });
     if (customers.data.length === 0) {
-      throw new Error("No Stripe customer found");
+      throw new Error("No billing account found for this email");
     }
 
     // Prefer a record with a subscription in ANY state — `all` deliberately,

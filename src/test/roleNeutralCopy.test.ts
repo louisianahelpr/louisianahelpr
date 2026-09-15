@@ -40,7 +40,10 @@ import ts from "typescript";
 import { ROLE_COPY_ALLOWLIST, isAllowedRoleCopy } from "./roleNeutralCopy.allowlist";
 
 const ROOT = path.resolve(__dirname, "../..");
-const SCAN_DIRS = ["src"];
+// supabase/functions since 2026-09-15 (owner decision): push, email and error
+// copy written by edge functions reaches users exactly like src/ copy does.
+// Admin-only and log-only strings there are allowlisted with reasons.
+const SCAN_DIRS = ["src", "supabase/functions"];
 // Files outside src/ whose strings the app renders as its own copy. The arrival
 // rule's messages live in the edge runtime's _shared folder so create-payment
 // and the app read one predicate, and src/lib/arrivalGate.ts re-exports
@@ -223,6 +226,20 @@ describe("user-visible copy names what someone did on a job, never a role", () =
     ];
     for (const src of cases) {
       expect(findRoleCopy(f("src/components/X.tsx"), src), src).toHaveLength(1);
+    }
+  });
+
+  it("covers edge-function copy too: the 2026-09-15 backend strings as they shipped (can fail)", () => {
+    const shipped = [
+      // create-payment, the Helpr's notification when revisions are requested.
+      'await db.from("notifications").insert({ message: `The poster has requested revisions on "${job.title}": ${note}` });',
+      // create-payment, a tip attempt by anyone else.
+      'throw new Error("Only the customer can tip the Helpr");',
+      // review-nag-cron, what the Helpr was asked to review.
+      '{ user_id: job.helper_id, reviewing: "the customer", surface: "/my-jobs" }',
+    ];
+    for (const src of shipped) {
+      expect(findRoleCopy(f("supabase/functions/create-payment/index.ts"), src), src).toHaveLength(1);
     }
   });
 

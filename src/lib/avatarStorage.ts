@@ -40,6 +40,31 @@
 //      cross-format case (jpg → png) and cleans up the legacy keys that
 //      mechanism 1 can no longer create.
 //
+// ── ORDER: UPLOAD → ROW → DELETE. NEVER DELETE BEFORE THE ROW MOVES. ──────
+//
+// Mechanism 2 used to run INSIDE the upload, before the caller wrote the row.
+// So a jpg → png swap deleted `avatar.jpg` and only THEN asked Postgres to
+// point `profiles.avatar_url` at `avatar.png` — and when that update failed
+// (a contact-leak bio on /complete-profile, a timeout, a zero-row write), the
+// row was left on an object that no longer existed and every screen rendering
+// that person fired a 400. Found on prod 2026-09-15 (22 failed presses): the
+// E2E helper's row said `avatar.png`, storage held only `avatar.jpg`.
+//
+// `replaceAvatarObject` therefore takes the ROW as an argument and owns the
+// order: upload, then `row.write(publicUrl)` (which must throw unless Postgres
+// confirms the write), then the sweep — and the sweep also keeps whatever the
+// row points at THE MOMENT BEFORE it deletes, so a second replacement that has
+// ALREADY moved the row does not have its object deleted by this one.
+//
+// Be exact about what that buys, because the guarantee is not total: the keep
+// list is read at T1 and applied at T2, so a replacement whose row write lands
+// BETWEEN those two statements is still unprotected. The window went from a
+// whole function body to the gap between two adjacent awaits. It is not zero,
+// and writing it down as zero is how the next reader stops looking.
+//
+// There is no exported way to upload an avatar without handing over the row.
+// `src/test/avatarRowObjectAgreement.test.ts` enforces this repo-wide.
+//
 // An extension-free fixed key (`${userId}/avatar`) was measured as a third
 // option and rejected: it works on `/object/public/` today, but Supabase's
 // `/render/image/public/` transform is a paid add-on that is OFF for this
@@ -142,10 +167,41 @@ export function assertUploadableAvatar(file: { type: string; size: number }): vo
   if (file.size > AVATAR_MAX_BYTES) throw new AvatarTooLargeError(file.size);
 }
 
+/**
+ * The avatar object a stored `avatar_url` names inside `<userId>/`, or `null`
+ * when it names something else (another user's folder, a data: URI, a
+ * non-Supabase URL, a portfolio image). Query strings (`?t=`) are ignored.
+ */
+export function avatarObjectNameFromUrl(url: string | null | undefined, userId: string): string | null {
+  if (!url) return null;
+  const marker = `/${AVATAR_BUCKET}/${userId}/`;
+  const at = url.indexOf(marker);
+  if (at < 0) return null;
+  const name = url.slice(at + marker.length).split(/[?#]/)[0];
+  return isAvatarObjectName(name) ? name : null;
+}
+
+/**
+ * The `profiles` row an avatar replacement must move BEFORE anything is
+ * deleted. Supplied by the caller because this module deliberately holds no
+ * database client.
+ */
+export interface AvatarProfileRow {
+  /**
+   * Point `profiles.avatar_url` at `publicUrl`. Resolve ONLY when Postgres
+   * confirms the write (rows back from `.select(…)`, e.g. via
+   * `unwrapMutation`) and THROW otherwise — a null `error` is not a write, and
+   * resolving on one lets the sweep delete the object the row still names.
+   */
+  write(publicUrl: string): Promise<unknown>;
+  /** `profiles.avatar_url` as it is right now. Throw if it cannot be read. */
+  read(): Promise<string | null>;
+}
+
 export interface AvatarReplaceResult {
   /** Storage key the new photo now occupies. */
   path: string;
-  /** Public URL, cache-busted — the value to write to `profiles.avatar_url`. */
+  /** Public URL, cache-busted — the value `row.write` was given, and confirmed. */
   publicUrl: string;
   /** Superseded objects this call confirmed are gone. */
   removed: string[];
@@ -189,19 +245,27 @@ export interface AvatarStorageClient {
 }
 
 /**
- * Upload a profile photo so that it REPLACES whatever was there.
+ * Upload a profile photo, point the profile at it, and only then retract
+ * whatever it replaced.
  *
- * Throws on a failed upload (nothing changed, the caller's existing recovery
- * path is right). Does NOT throw on a failed sweep: the new photo IS live at
- * that point, and refusing to return its URL would leave the profile pointing
- * at the OLD object — the exact thing being retracted. The failure comes back
- * in `staleRemaining` instead, already logged.
+ *   1. Upload. Throws on failure — nothing changed, row and bucket untouched.
+ *   2. `row.write(publicUrl)`. Its error is re-thrown UNCHANGED (callers
+ *      branch on `WriteRejectedError` / contact-leak codes) and NOTHING is
+ *      deleted: the row still names the old object, which still exists. The
+ *      new object may sit beside it until the next successful replace sweeps
+ *      it; that is a spare file, never a broken photo.
+ *   3. Sweep every other `avatar.*`, keeping this upload AND whatever the row
+ *      names at that instant. Never throws: the new photo is live and the row
+ *      points at it, so a failed sweep comes back in `staleRemaining`, already
+ *      logged. If the row cannot be re-read, nothing is deleted and the old
+ *      objects are reported as still exposed — unknown is never "clean".
  */
 export async function replaceAvatarObject(
   client: AvatarStorageClient,
   userId: string,
   file: File | Blob,
   contentType: string,
+  row: AvatarProfileRow,
 ): Promise<AvatarReplaceResult> {
   const bucket = client.storage.from(AVATAR_BUCKET);
   const path = avatarObjectKey(userId, contentType);
@@ -219,10 +283,24 @@ export async function replaceAvatarObject(
   // identical object, so without this the browser keeps painting the old photo.
   const publicUrl = `${publicData.publicUrl}?t=${Date.now()}`;
 
+  // The row moves first. If this throws, the sweep below never runs.
+  await row.write(publicUrl);
+
+  let rowName: string | null;
+  try {
+    rowName = avatarObjectNameFromUrl(await row.read(), userId);
+  } catch (err) {
+    const staleRemaining = [`${userId}/<profile row unreadable — nothing removed>`];
+    report(err instanceof Error ? err : new Error(String(err)), {
+      context: { bucket: AVATAR_BUCKET, kept: path, stale: staleRemaining.join(",") },
+    });
+    return { path, publicUrl, removed: [], staleRemaining };
+  }
+
   const { removed, staleRemaining } = await sweepSupersededAvatars(
     client,
     userId,
-    objectName,
+    rowName && rowName !== objectName ? [objectName, rowName] : objectName,
   );
 
   if (staleRemaining.length > 0) {
@@ -241,21 +319,23 @@ export async function replaceAvatarObject(
 }
 
 /**
- * Delete every `avatar.*` object in the user's folder except `keepName`, and
- * PROVE it by re-listing.
+ * Delete every `avatar.*` object in the user's folder except the kept name(s),
+ * and PROVE it by re-listing.
  *
- * Exported for the backfill/sweep path and for tests; `replaceAvatarObject`
- * calls it on every upload, which is what makes the fix self-healing for the
- * accounts that already have an orphan.
+ * Exported for tests; `replaceAvatarObject` calls it after every confirmed row
+ * write, which is what makes the fix self-healing for the accounts that
+ * already have an orphan. NEVER call it before `profiles.avatar_url` names the
+ * object being kept — the class check fails any call site that does.
  */
 export async function sweepSupersededAvatars(
   client: AvatarStorageClient,
   userId: string,
-  keepName: string | null,
+  keep: string | null | readonly string[],
 ): Promise<{ removed: string[]; staleRemaining: string[] }> {
   const bucket = client.storage.from(AVATAR_BUCKET);
+  const keepNames: readonly string[] = keep === null ? [] : typeof keep === "string" ? [keep] : keep;
 
-  const stale = await listSupersededAvatars(client, userId, keepName);
+  const stale = await listSupersededAvatars(client, userId, keepNames);
   if (stale === null) {
     // The folder could not be read, so it is NOT known that the old object is
     // gone — and "not known" is reported as still-exposed, never as clean.
@@ -272,7 +352,7 @@ export async function sweepSupersededAvatars(
   // rather than fired-and-forgotten so the re-list observes its effect.
   await bucket.remove(stale);
 
-  const after = await listSupersededAvatars(client, userId, keepName);
+  const after = await listSupersededAvatars(client, userId, keepNames);
   // Unverifiable is reported as still-exposed, for the same reason as above.
   if (after === null) return { removed: [], staleRemaining: stale };
 
@@ -284,8 +364,8 @@ export async function sweepSupersededAvatars(
 }
 
 /**
- * Every `avatar.*` key in the folder other than `keepName`, or `null` when the
- * folder could not be listed at all.
+ * Every `avatar.*` key in the folder other than the kept names, or `null` when
+ * the folder could not be listed at all.
  *
  * Sub-folders (`<uid>/portfolio/…`) come back from `.list()` as entries with a
  * null `id`; they are skipped, so a portfolio image is never in range of this.
@@ -293,19 +373,27 @@ export async function sweepSupersededAvatars(
 async function listSupersededAvatars(
   client: AvatarStorageClient,
   userId: string,
-  keepName: string | null,
+  keepNames: readonly string[],
 ): Promise<string[] | null> {
+  const LIMIT = 100;
   const { data, error } = await client.storage
     .from(AVATAR_BUCKET)
-    .list(userId, { limit: 100 });
+    .list(userId, { limit: LIMIT });
   if (error || !data) return null;
+  // A FULL page is not a folder listing, it is the first 100 of an unknown
+  // number — and reporting the unread remainder as swept is the same defect as
+  // reading a null `error` as success. `null` is how this function says "could
+  // not read it", and the callers already turn that into still-exposed.
+  // (A real folder holds a handful of `avatar.*` keys and one `portfolio`
+  // entry, so this is a guard, not a path anything normally takes.)
+  if (data.length >= LIMIT) return null;
   return data
     .filter(
       (o) =>
         o.id !== null &&
         o.id !== undefined &&
         isAvatarObjectName(o.name) &&
-        o.name !== keepName,
+        !keepNames.includes(o.name),
     )
     .map((o) => `${userId}/${o.name}`);
 }

@@ -129,6 +129,31 @@ export interface SupabaseScenario {
    * reached. The more specific key wins.
    */
   writeSelectRows: Record<string, Row[]>;
+  /**
+   * The Storage double, backed by a REAL key set rather than recorded calls.
+   *
+   * "Did the object survive?" has to be answered by the same `list()` the
+   * function code makes, because the defect class here is a delete that
+   * reports success and removes nothing: `remove()` answers
+   * `{ data: [], error: null }` when RLS filtered every path out, when the
+   * object was already gone, and when the caller was not the owner. A double
+   * that only records the call cannot tell those apart from a real delete, so
+   * `removeBehaviour: "silent-noop"` is the RLS-filtered delete verbatim.
+   *
+   * Additive: every pre-existing scenario starts with an empty bucket and the
+   * honest `"delete"` behaviour, and no function that never touches storage
+   * can observe this at all.
+   */
+  storage: {
+    /** Live objects, as full `<prefix>/<name>` keys. Mutated by upload/remove. */
+    objects: Set<string>;
+    removeBehaviour: "delete" | "silent-noop";
+    /** Forced failures. `null` (the default) means the call succeeds. */
+    listError: { message: string } | null;
+    uploadError: { message: string } | null;
+    /** Every `remove()` call, in order — lets a test assert NOTHING was deleted. */
+    removeCalls: string[][];
+  };
 }
 
 export function freshScenario(): SupabaseScenario {
@@ -143,6 +168,13 @@ export function freshScenario(): SupabaseScenario {
     writes: [],
     writeErrors: {},
     writeSelectRows: {},
+    storage: {
+      objects: new Set<string>(),
+      removeBehaviour: "delete",
+      listError: null,
+      uploadError: null,
+      removeCalls: [],
+    },
   };
 }
 
@@ -398,8 +430,62 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   }
 }
 
+/** The public base the double mints URLs from — matches the real path shape. */
+const STORAGE_PUBLIC_BASE = "https://mock.supabase.co/storage/v1/object/public";
+
+/**
+ * The subset of the Storage API the edge functions use, over `scenario.storage`.
+ *
+ * `list()` reports a sub-prefix (`<uid>/portfolio/…`) as ONE entry with a null
+ * `id`, exactly as PostgREST's storage API does — that null is what keeps a
+ * portfolio image out of range of the avatar sweep, so the double has to
+ * reproduce it or the sweep's most important exclusion is untested.
+ */
+function storageBucket(_bucket: string) {
+  const store = () => scenario.storage;
+  return {
+    upload: async (
+      path: string,
+      _body: unknown,
+      _opts?: { contentType?: string; upsert?: boolean },
+    ) => {
+      const s = store();
+      if (s.uploadError) return { data: null, error: s.uploadError };
+      s.objects.add(path);
+      return { data: { path }, error: null };
+    },
+    getPublicUrl: (path: string) => ({
+      data: { publicUrl: `${STORAGE_PUBLIC_BASE}/${_bucket}/${path}` },
+    }),
+    list: async (prefix: string, _opts?: { limit?: number }) => {
+      const s = store();
+      if (s.listError) return { data: null, error: s.listError };
+      const seen = new Set<string>();
+      const entries: Array<{ name: string; id: string | null }> = [];
+      for (const key of s.objects) {
+        if (!key.startsWith(`${prefix}/`)) continue;
+        const rest = key.slice(prefix.length + 1);
+        const slash = rest.indexOf("/");
+        const name = slash === -1 ? rest : rest.slice(0, slash);
+        if (seen.has(name)) continue;
+        seen.add(name);
+        entries.push({ name, id: slash === -1 ? `obj-${name}` : null });
+      }
+      return { data: entries, error: null };
+    },
+    remove: async (paths: string[]) => {
+      const s = store();
+      s.removeCalls.push(paths);
+      // BOTH branches answer `error: null` — that is the whole point.
+      if (s.removeBehaviour !== "silent-noop") for (const p of paths) s.objects.delete(p);
+      return { data: [], error: null };
+    },
+  };
+}
+
 export interface SupabaseClientMock {
   from: (table: string) => QueryBuilder;
+  storage: { from: (bucket: string) => ReturnType<typeof storageBucket> };
   auth: {
     getUser: ReturnType<typeof vi.fn>;
     admin: { getUserById: ReturnType<typeof vi.fn> };
@@ -418,6 +504,7 @@ export function createClient(
   const clientIndex = (scenario.clients?.length ?? 1) - 1;
   return {
     from: (table: string) => new QueryBuilder(table),
+    storage: { from: (bucket: string) => storageBucket(bucket) },
     auth: {
       getUser: vi.fn(async () => ({
         data: { user: scenario.authUser ?? null },

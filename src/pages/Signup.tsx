@@ -421,6 +421,26 @@ const Signup = () => {
       // body it sends above.
       const result = await completeProfile(userId);
 
+      // A previous avatar object the function's sweep could NOT confirm is
+      // gone. `complete-signup` has returned this field all along — "returned
+      // to the caller rather than only logged, so a still-public previous
+      // photo is something the app can surface to the person whose photo it
+      // is" — and nothing on this screen had ever read it, so on the signup
+      // path the sweep's one user-visible signal was dropped on the floor.
+      // It is reachable here: a resubmission re-uploads over an existing
+      // folder, and a legacy `avatar.<anything>` key from the old scheme is
+      // exactly what the sweep exists to retire. The `avatars` bucket is
+      // public and has twice held a mis-tapped identity document, so silence
+      // is the failure, not the inconvenience. Same copy as
+      // CompleteProfile.tsx — one sentence, one meaning, two screens.
+      const staleAvatarObjects =
+        (result as { staleAvatarObjects?: string[] } | null)?.staleAvatarObjects ?? [];
+      if (staleAvatarObjects.length > 0) {
+        toast.error(
+          "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again.",
+        );
+      }
+
       // WHY THERE IS NO `supabase.rpc("process_referral", …)` HERE ANY MORE.
       //
       // There used to be, and it could never have worked. `process_referral`

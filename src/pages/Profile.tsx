@@ -5,6 +5,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
+import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
 import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
@@ -505,19 +506,45 @@ const ProfilePage = () => {
     // rather than the looser `startsWith("image/")` this used (which accepted
     // image/heic and image/svg+xml — neither is in the bucket's
     // allowed_mime_types, so both failed at the server with an opaque message).
+    //
+    // The ROW is handed to `replaceAvatarObject`, not written after it: the
+    // old object is deleted only once Postgres confirms the row names the new
+    // one. This used to write the row LAST, with no `.select()`, so a failed
+    // or zero-row update left `avatar_url` on the object the sweep had just
+    // deleted — a broken photo on every screen that renders this member.
     setAvatarUploading(true);
 
+    const userId = user.id;
+    let uploaded = false;
     let replaced;
     try {
       assertUploadableAvatar(file);
-      replaced = await replaceAvatarObject(supabase, user.id, file, file.type);
+      replaced = await replaceAvatarObject(supabase, userId, file, file.type, {
+        write: async (publicUrl: string) => {
+          uploaded = true;
+          unwrapMutation(
+            await supabase
+              .from("profiles")
+              .update({ avatar_url: publicUrl })
+              .eq("user_id", userId)
+              .select("id"),
+            { action: "pin your new photo to your profile", context: { userId } },
+          );
+        },
+        read: () => readProfileAvatarUrl(userId),
+      });
     } catch (err) {
-      toast.error(mutationErrorMessage(err, "Couldn't upload your photo — please try again."));
+      toast.error(
+        uploaded
+          ? mutationErrorMessage(err, "Photo uploaded, but couldn't pin it to your profile. Try again?")
+          : mutationErrorMessage(err, "Couldn't upload your photo — please try again."),
+      );
       setAvatarUploading(false);
       return;
     }
 
     const avatarUrl = replaced.publicUrl;
+    setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
 
     // The new photo is live but the OLD one survived the sweep, so it is still
     // being served publicly. Say so — this is the case where staying quiet
@@ -526,17 +553,6 @@ const ProfilePage = () => {
       toast.error(
         "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again.",
       );
-    }
-
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ avatar_url: avatarUrl })
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      toast.error("Photo uploaded, but couldn't pin it to your profile. Try again?");
-    } else {
-      setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
     }
     setAvatarUploading(false);
   };

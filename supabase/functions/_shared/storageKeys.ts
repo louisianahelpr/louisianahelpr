@@ -172,6 +172,20 @@ export function safeDocumentExt(contentType: unknown, ext: unknown): string {
 const AVATAR_OBJECT_NAME = /^avatar\.[A-Za-z0-9]{1,16}$/;
 
 /**
+ * The avatar object a stored `avatar_url` names inside `<userId>/`, or `null`
+ * when it names anything else. Query strings are ignored. Twin of
+ * `avatarObjectNameFromUrl` in `src/lib/avatarStorage.ts`.
+ */
+export function avatarObjectNameFromUrl(url: string | null | undefined, userId: string): string | null {
+  if (!url) return null;
+  const marker = `/avatars/${userId}/`;
+  const at = url.indexOf(marker);
+  if (at < 0) return null;
+  const name = url.slice(at + marker.length).split(/[?#]/)[0];
+  return AVATAR_OBJECT_NAME.test(name) ? name : null;
+}
+
+/**
  * NOTE ON WHAT IS *NOT* SWEPT.
  *
  * `id-document.<ext>` has the same orphan-on-extension-swap shape, and it is
@@ -243,8 +257,8 @@ export interface AvatarSweepClient {
 }
 
 /**
- * Every `avatar.*` key in `<userId>/` other than `keepName`, or `null` when the
- * folder could not be listed at all.
+ * Every `avatar.*` key in `<userId>/` other than the kept names, or `null` when
+ * the folder could not be listed at all.
  *
  * Sub-prefixes (`<uid>/portfolio/…`) come back with a null `id` and are
  * skipped, so a portfolio image is never in range of this sweep.
@@ -252,35 +266,46 @@ export interface AvatarSweepClient {
 async function listSupersededAvatars(
   client: AvatarSweepClient,
   userId: string,
-  keepName: string | null,
+  keepNames: readonly string[],
 ): Promise<string[] | null> {
+  const LIMIT = 100;
   const { data, error } = await client.storage
     .from("avatars")
-    .list(userId, { limit: 100 });
+    .list(userId, { limit: LIMIT });
   if (error || !data) return null;
+  // A FULL page is the first 100 of an unknown number, not the folder. Saying
+  // "clean" over an unread remainder is the same defect as reading a null
+  // `error` as success — `accountPurge.ts`'s `listAllObjects` refuses the same
+  // claim. `null` is this function's "could not read it", and the caller turns
+  // that into still-exposed.
+  if (data.length >= LIMIT) return null;
   return data
     .filter(
       (o) =>
         o.id !== null &&
         o.id !== undefined &&
         AVATAR_OBJECT_NAME.test(o.name) &&
-        o.name !== keepName,
+        !keepNames.includes(o.name),
     )
     .map((o) => `${userId}/${o.name}`);
 }
 
 /**
- * Delete every `avatar.*` object in the user's folder except `keepName`, and
- * PROVE it by re-listing.
+ * Delete every `avatar.*` object in the user's folder except the kept name(s),
+ * and PROVE it by re-listing.
  *
- * Called on every avatar write, which is what makes the fix self-healing for
- * accounts that already carry an orphan from the old key scheme.
+ * Called after every CONFIRMED avatar row write, which is what makes the fix
+ * self-healing for accounts that already carry an orphan from the old key
+ * scheme. Never call it before `profiles.avatar_url` names the kept object: a
+ * write that then fails leaves the row on a deleted object
+ * (`src/test/avatarRowObjectAgreement.test.ts` fails any call site that does).
  */
 export async function sweepSupersededAvatars(
   client: AvatarSweepClient,
   userId: string,
-  keepName: string | null,
+  keep: string | null | readonly string[],
 ): Promise<{ removed: string[]; staleRemaining: string[] }> {
+  const keepName: readonly string[] = keep === null ? [] : typeof keep === "string" ? [keep] : keep;
   const stale = await listSupersededAvatars(client, userId, keepName);
   if (stale === null) {
     // Not readable is NOT the same as clean, and reporting it as clean is the

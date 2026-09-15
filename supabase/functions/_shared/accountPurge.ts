@@ -412,6 +412,46 @@ async function listAllObjects(
   return found;
 }
 
+/**
+ * Point `profiles.avatar_url` at nothing BEFORE the avatar object is deleted.
+ *
+ * `purge_user_data()` nulls the column too, but it runs AFTER the storage
+ * purge — and every step between them (ban retention, the RPC itself) can stop
+ * the deletion. A stopped deletion is a live account the user is told to retry
+ * from, and until now its row still named `avatars/<uid>/avatar.<ext>`, which
+ * the storage step had just deleted: a broken photo, a 400 on every screen that
+ * renders them. Clearing the row first means the row never names a missing
+ * object on any path.
+ *
+ * Never blocks the purge: the deletion is the legally-required act, and a
+ * stale pointer is a rendering defect, not a privacy one. But the result is
+ * recorded, never dropped, and zero rows is legitimate only because an
+ * abandoned signup can reach this with no profile row at all.
+ */
+async function clearAvatarPointer(
+  admin: PurgeCapableClient,
+  userId: string,
+  steps: PurgeStep[],
+): Promise<void> {
+  const { data, error }: PostgrestLike<{ user_id: string }[]> = await admin
+    .from("profiles")
+    .update({ avatar_url: null })
+    .eq("user_id", userId)
+    .select("user_id");
+  if (error) {
+    console.error(`[accountPurge] clearing avatar_url failed for ${userId}:`, error.message);
+    steps.push({ step: "avatar_pointer", ok: false, detail: `${error.code ?? "?"}: ${error.message}` });
+    return;
+  }
+  steps.push({
+    step: "avatar_pointer",
+    ok: true,
+    detail: (data?.length ?? 0) > 0
+      ? "avatar_url cleared before the avatar object is removed"
+      : "no profile row — nothing points at the avatar",
+  });
+}
+
 async function purgeIdentityStorage(
   admin: PurgeCapableClient,
   userId: string,
@@ -823,6 +863,8 @@ export async function purgeAccount(
   // Read the chat-attachment paths BEFORE the RPC deletes the rows that name
   // them (see collectMessageAttachments).
   const attachmentPaths = await collectMessageAttachments(admin, userId, steps);
+  // The row lets go of the avatar before the object goes (see clearAvatarPointer).
+  await clearAvatarPointer(admin, userId, steps);
   const storageOk = await purgeIdentityStorage(admin, userId, steps, [
     { bucket: "message-attachments", paths: attachmentPaths },
   ]);

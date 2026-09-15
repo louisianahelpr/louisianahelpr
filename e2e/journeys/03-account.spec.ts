@@ -44,6 +44,13 @@ async function readProfile(request: Parameters<typeof getSession>[0], s: Awaited
   return row;
 }
 
+/** `url` when a HEAD answers 200 right now, else null. */
+async function resolvingUrl(request: Parameters<typeof getSession>[0], url: string | null): Promise<string | null> {
+  if (!url) return null;
+  const r = await request.head(url).catch(() => null);
+  return r?.ok() ? url : null;
+}
+
 async function openFromProfile(page: Page, name: RegExp, heading: string) {
   await page.goto("/profile");
   await expect(page.getByRole("button", { name: "Log Out" }), "the profile page never finished loading").toBeVisible({ timeout: 45_000 });
@@ -67,13 +74,30 @@ test(j7, async ({ browser, request, journey }) => {
   const pp = journey.track("poster", await pctx.newPage());
 
   // Put the profile back even if a step fails half-way.
-  journey.cleanup("restore bio and avatar", async () => {
+  //
+  // The AVATAR is put back only if its object still exists. Changing the photo
+  // through the app deletes the object it replaced (src/lib/avatarStorage.ts
+  // sweeps every other `avatar.*`), and the crop dialog always produces a JPEG,
+  // so a `.png` before this run is GONE after it. This cleanup used to PATCH
+  // `before.avatar_url` back regardless — which is exactly how this account's
+  // row came to name a deleted `avatar.png` while storage held `avatar.jpg`
+  // (22 x `400 GET …/avatar.png` in press-every-control, 2026-09-15). When the
+  // old object is gone, the photo this run uploaded stays: it is real and it
+  // resolves. src/test/avatarRowObjectAgreement.test.ts fails a blind restore.
+  journey.cleanup("restore bio, and the avatar while its object still exists", async () => {
+    const restorable = await resolvingUrl(request, before.avatar_url);
     const r = await request.patch(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${helper.user.id}`, {
       headers: rest(helper, { Prefer: "return=representation" }),
-      data: { bio: before.bio, avatar_url: before.avatar_url },
+      data: restorable ? { bio: before.bio, avatar_url: restorable } : { bio: before.bio },
     });
     expect(r.ok(), `restoring profile: ${r.status()} ${await r.text()}`).toBe(true);
-    expect(await readProfile(request, helper)).toMatchObject({ bio: before.bio, avatar_url: before.avatar_url });
+    expect(((await r.json()) as unknown[]).length, "restoring profile matched no row").toBe(1);
+    const after = await readProfile(request, helper);
+    expect(after.bio).toBe(before.bio);
+    expect(
+      await resolvingUrl(request, after.avatar_url),
+      `after cleanup the helper's avatar_url names an object that does not exist: ${after.avatar_url}`,
+    ).toBe(after.avatar_url);
   });
 
   await test.step("edit a profile field and see it on the profile", async () => {
@@ -115,6 +139,9 @@ test(j7, async ({ browser, request, journey }) => {
     await expect
       .poll(async () => (await readProfile(request, helper)).avatar_url, { timeout: 45_000, message: "the new photo never saved to the profile" })
       .not.toBe(before.avatar_url);
+    // The row and the bucket agree: the URL the app just wrote is a real object.
+    const saved = (await readProfile(request, helper)).avatar_url;
+    expect(await resolvingUrl(request, saved), `the new avatar_url does not resolve: ${saved}`).toBe(saved);
     await expect(hp.getByText("That photo came through blank"), "the new photo is reported blank").toHaveCount(0, { timeout: 20_000 });
     await assertHealthy(hp, "after photo change");
     await journey.milestone(hp, "photo-changed");

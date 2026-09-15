@@ -1,14 +1,18 @@
 import { supabase } from "@/integrations/supabase/client";
-import {
-  assertUploadableAvatar,
-  replaceAvatarObject,
-  type AvatarReplaceResult,
-} from "@/lib/avatarStorage";
+import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
+import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
 import { sanitizeExt, withTimeout } from "./constants";
 
+/** What `saveRow` is given: the uploaded files the profile row should name. */
 export interface UploadedProfileFiles {
+  /** Public URL of the avatar that was JUST uploaded, or null when none was picked. */
   avatarUrl: string | null;
   idDocumentPath: string | null;
+}
+
+export interface SavedProfileFiles<T> {
+  /** Whatever `saveRow` returned — the row Postgres confirmed. */
+  saved: T;
   /**
    * Superseded avatar objects that are STILL PUBLICLY FETCHABLE.
    *
@@ -22,7 +26,18 @@ export interface UploadedProfileFiles {
 
 /**
  * Upload the avatar + optional government-ID file directly to Storage in
- * parallel (much faster than base64-through-edge-function).
+ * parallel (much faster than base64-through-edge-function), then save the
+ * profile row through `saveRow`, then retire the superseded avatar.
+ *
+ * ── THE ROW IS SAVED IN THE MIDDLE, NOT AFTER ─────────────────────────────
+ *
+ * This used to return the new avatar URL having ALREADY deleted the previous
+ * `avatar.*` object, and the caller wrote the row afterwards. When that write
+ * failed — a contact-leak bio rejected by the database (23514), a timeout, a
+ * zero-row update — the row was left on an object that no longer existed.
+ * `saveRow` now runs as `replaceAvatarObject`'s row-writer: after the upload,
+ * before any delete. It must THROW unless Postgres confirmed the write
+ * (`unwrapMutationRow`), and its error reaches the caller unchanged.
  *
  * ── THE TWO FILES ARE NOT THE SAME KIND OF THING ──────────────────────────
  *
@@ -57,53 +72,59 @@ export interface UploadedProfileFiles {
  * Any Storage error is re-thrown so the caller's try/catch (which drives the
  * recovery + toast path) sees it; never swallow it here.
  */
-export const uploadProfileFiles = async (
+export const uploadProfileFiles = async <T>(
   userId: string,
   avatarFile: File | null,
   idFile: File | null,
-): Promise<UploadedProfileFiles> => {
-  let avatarResult: AvatarReplaceResult | null = null;
-  let idDocumentPath: string | null = null;
+  saveRow: (files: UploadedProfileFiles) => Promise<T>,
+): Promise<SavedProfileFiles<T>> => {
+  // Throws before any network call — a file the bucket would reject with an
+  // opaque `mime type ... is not supported` (or a bare 413) instead fails
+  // here with copy the recovery path can show verbatim.
+  if (avatarFile) assertUploadableAvatar(avatarFile);
 
-  const uploads: Promise<void>[] = [];
+  // Deliberately NOT the avatar path: a timestamped key in the PRIVATE
+  // `id-documents` bucket, no upsert, no public URL ever minted. Successive
+  // uploads are meant to accumulate here — an ID is evidence with a review
+  // history, not a photo being replaced — which is exactly why the two
+  // buckets must not share a key strategy. Started now so it runs alongside
+  // the avatar upload.
+  const idUpload: Promise<string | null> = idFile
+    ? (async () => {
+        const path = `${userId}/id-document-${Date.now()}.${sanitizeExt(idFile.name)}`;
+        const { error } = await supabase.storage
+          .from("id-documents")
+          .upload(path, idFile, { contentType: idFile.type });
+        if (error) throw error;
+        return path;
+      })()
+    : Promise.resolve(null);
+  // Observed below; this only stops an early avatar failure from turning an
+  // ID failure into an unhandled rejection.
+  idUpload.catch(() => undefined);
 
-  if (avatarFile) {
-    // Throws before any network call — a file the bucket would reject with an
-    // opaque `mime type ... is not supported` (or a bare 413) instead fails
-    // here with copy the recovery path can show verbatim.
-    assertUploadableAvatar(avatarFile);
-    uploads.push(
-      replaceAvatarObject(supabase, userId, avatarFile, avatarFile.type).then((r) => {
-        avatarResult = r;
-      }),
-    );
+  if (!avatarFile) {
+    const idDocumentPath = await withTimeout(idUpload, "File upload");
+    return { saved: await saveRow({ avatarUrl: null, idDocumentPath }), staleAvatarObjects: [] };
   }
 
-  if (idFile) {
-    // Deliberately NOT the avatar path: a timestamped key in the PRIVATE
-    // `id-documents` bucket, no upsert, no public URL ever minted. Successive
-    // uploads are meant to accumulate here — an ID is evidence with a review
-    // history, not a photo being replaced — which is exactly why the two
-    // buckets must not share a key strategy.
-    const ext = sanitizeExt(idFile.name);
-    const path = `${userId}/id-document-${Date.now()}.${ext}`;
-    uploads.push(
-      supabase.storage
-        .from("id-documents")
-        .upload(path, idFile, { contentType: idFile.type })
-        .then(({ error }) => {
-          if (error) throw error;
-          idDocumentPath = path;
-        })
-    );
-  }
-
-  if (uploads.length) await withTimeout(Promise.all(uploads), "File upload");
-
-  const result = avatarResult as AvatarReplaceResult | null;
-  return {
-    avatarUrl: result?.publicUrl ?? null,
-    idDocumentPath,
-    staleAvatarObjects: result?.staleRemaining ?? [],
-  };
+  let saved: { value: T } | null = null;
+  // The timeout bounds what the member waits for; it does not cancel the
+  // work. If it fires, the replacement still runs upload → row → sweep in that
+  // order, so a late finish can never leave the row on a deleted object.
+  // 120s: it now spans the upload AND the save, which had 60s each before.
+  const replaced = await withTimeout(
+    replaceAvatarObject(supabase, userId, avatarFile, avatarFile.type, {
+      write: async (publicUrl: string) => {
+        const idDocumentPath = await idUpload;
+        saved = { value: await saveRow({ avatarUrl: publicUrl, idDocumentPath }) };
+      },
+      read: () => readProfileAvatarUrl(userId),
+    }),
+    "File upload",
+    120_000,
+  );
+  const done = saved as { value: T } | null;
+  if (!done) throw new Error("File upload finished without saving the profile.");
+  return { saved: done.value, staleAvatarObjects: replaced.staleRemaining };
 };

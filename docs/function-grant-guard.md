@@ -46,7 +46,7 @@ then classify:
 
 - **Likely client-callable → `GRANT EXECUTE … TO authenticated` (and `anon`
   where used by guest/marketing surfaces):** `get_approved_helpers`,
-  `get_top_helpers_by_parish`, `get_hero_parishes`, `count_profiles`,
+  `get_top_helpers_by_parish` (dropped 20260915191403, parish badges removed), `get_hero_parishes` (not live 2026-09-15), `count_profiles`,
   `can_review_job`, `get_helper_parish_badges`, `is_category_taxable`
 - **RLS / SECURITY DEFINER helpers → `GRANT EXECUTE … TO authenticated`:**
   `get_user_business_ids`, `is_user_verified_business_member`,

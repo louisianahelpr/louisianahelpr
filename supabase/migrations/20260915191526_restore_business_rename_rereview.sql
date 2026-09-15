@@ -17,9 +17,15 @@
 -- get_user_credential_tier() read them, prevent_self_escalation pins them
 -- (20260903012612, 20260903203751, 20260907195145).
 --
--- This restates 20260827180000's body verbatim. It differs from the live body
--- only by the is_admin_writer variable and the business_name block. The
--- trigger is unchanged. Proof: scripts/probes/business-rename-rereview.probe.mjs.
+-- This restates 20260827180000's body with ONE change: the rename block also
+-- requires NEW.*_status to still be 'verified'. 20260827180000 checked OLD only,
+-- so a single UPDATE that clears the document (the block above sets 'none') and
+-- renames — the shape purge_user_data's anonymisation writes — ended 'pending'
+-- with no document, and an anonymised profile could land in the admin credential
+-- queue (authz review 2026-09-15, reproduced live in a rolled-back transaction).
+-- For a user's own edit nothing differs: prevent_self_escalation runs first and
+-- pins NEW to OLD. The trigger is unchanged.
+-- Proof: scripts/probes/business-rename-rereview.probe.mjs.
 --
 -- REPLAY-SAFETY: CREATE OR REPLACE; ACL untouched (no REVOKE/GRANT needed —
 -- trigger function, grants unchanged by OR REPLACE).
@@ -71,13 +77,13 @@ BEGIN
   -- affected — editing the name while 'none'/'pending'/'rejected' costs
   -- nothing, so there is nothing to protect and no reason to nag.
   IF NEW.business_name IS DISTINCT FROM OLD.business_name AND NOT is_admin_writer THEN
-    IF OLD.license_status = 'verified' THEN
+    IF OLD.license_status = 'verified' AND NEW.license_status = 'verified' THEN
       NEW.license_status := 'pending';
       NEW.license_reviewed_at := NULL;
       NEW.license_reviewed_by := NULL;
       NEW.license_rejection_reason := NULL;
     END IF;
-    IF OLD.insurance_status = 'verified' THEN
+    IF OLD.insurance_status = 'verified' AND NEW.insurance_status = 'verified' THEN
       NEW.insurance_status := 'pending';
       NEW.insurance_reviewed_at := NULL;
       NEW.insurance_reviewed_by := NULL;

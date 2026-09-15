@@ -76,6 +76,16 @@ async function expectations(db) {
   await as(db, null, `UPDATE public.profiles SET business_name = 'Server Rename' WHERE user_id = '${U}'`);
   r = await row(db);
   check(r.license_status === "pending", `E server rename: license ${r.license_status}`);
+  // F. Clearing the document and renaming in one UPDATE: 'none', not 'pending'.
+  await reset(db);
+  await as(db, U, `UPDATE public.profiles SET business_name = 'Gone Co', license_url = NULL WHERE user_id = '${U}'`);
+  r = await row(db);
+  check(r.license_status === "none" && r.is_licensed === false, `F doc cleared + rename: license ${r.license_status} is_licensed ${r.is_licensed}`);
+  // G. The purge_user_data shape (server, no uid): name and both documents nulled -> both 'none'.
+  await reset(db);
+  await as(db, null, `UPDATE public.profiles SET business_name = NULL, license_url = NULL, insurance_url = NULL WHERE user_id = '${U}'`);
+  r = await row(db);
+  check(r.license_status === "none" && r.insurance_status === "none", `G purge-shaped write: license ${r.license_status} insurance ${r.insurance_status}`);
   return bad;
 }
 
@@ -108,8 +118,9 @@ const mutate = (from, to) => { if (!MIG.includes(from)) throw new Error(`anchor 
 const broken = [
   ["no rename rule", mutate("IF NEW.business_name IS DISTINCT FROM OLD.business_name AND NOT is_admin_writer THEN", "IF false THEN")],
   ["admins re-reviewed too", mutate("IF NEW.business_name IS DISTINCT FROM OLD.business_name AND NOT is_admin_writer THEN", "IF NEW.business_name IS DISTINCT FROM OLD.business_name THEN")],
-  ["insurance ignored", mutate("    IF OLD.insurance_status = 'verified' THEN\n      NEW.insurance_status := 'pending';", "    IF false THEN\n      NEW.insurance_status := 'pending';")],
-  ["any status re-reviewed", mutate("    IF OLD.license_status = 'verified' THEN", "    IF true THEN")],
+  ["insurance ignored", mutate("    IF OLD.insurance_status = 'verified' AND NEW.insurance_status = 'verified' THEN\n      NEW.insurance_status := 'pending';", "    IF false THEN\n      NEW.insurance_status := 'pending';")],
+  ["any status re-reviewed", mutate("    IF OLD.license_status = 'verified' AND NEW.license_status = 'verified' THEN", "    IF true THEN")],
+  ["OLD-only check (20260827180000 as written)", mutate("    IF OLD.license_status = 'verified' AND NEW.license_status = 'verified' THEN", "    IF OLD.license_status = 'verified' THEN")],
 ];
 console.log("\n== BROKEN COPIES (each must be caught)");
 for (const [label, sql] of broken) {

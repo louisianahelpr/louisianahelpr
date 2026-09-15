@@ -871,6 +871,28 @@ export async function checkA11y(
   }
 }
 
+// --- Desktop widths get a desktop pixel density ----------------------------
+
+/**
+ * The pixel density a real device at `width` CSS px has, for `test.use`.
+ *
+ * happy-path-webkit is built on the iPhone 13 descriptor (deviceScaleFactor 3),
+ * and `page.setViewportSize({ width: 1440 })` changes only the CSS size — so a
+ * "1440" variant there rendered a 4320x2700-pixel backing store, a screen no
+ * device has (desktop Safari and iPad are 2x at most). CI's Linux WebKit
+ * composites in software, and cost follows pixels: nightly-webkit 34924529210's
+ * traces show one painted frame every 3.2-6.7s at 1440@3x on /my-posts and
+ * /my-jobs (each Activity card carries its own backdrop-filter) against
+ * 1.1-1.6s at 375@3x, so every click's "stable" check (two frames) took 7-10s
+ * and those tests timed out at 30s. The same tests take 4-6s locally on a GPU.
+ *
+ * Returns `undefined` for phone widths, which keep the project's own 3x.
+ */
+export const DESKTOP_MIN_WIDTH = 1024;
+export function desktopScaleFor(width: number): { deviceScaleFactor: number } | undefined {
+  return width >= DESKTOP_MIN_WIDTH ? { deviceScaleFactor: 2 } : undefined;
+}
+
 // --- Custom test with fixtures ------------------------------------------
 
 interface HappyPathFixtures {

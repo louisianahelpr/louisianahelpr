@@ -38,6 +38,7 @@ vi.mock("@/lib/chunkReload", () => ({
   isChunkLoadError: () => false,
   hardReloadBypassCache: vi.fn(),
   recoverFromChunkError: () => false,
+  isRecoveryReloadInFlight: () => false,
 }));
 
 const currentUser = {

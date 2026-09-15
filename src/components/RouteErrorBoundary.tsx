@@ -7,6 +7,7 @@ import {
   isChunkLoadError,
   hardReloadBypassCache,
   recoverFromChunkError,
+  isRecoveryReloadInFlight,
 } from "@/lib/chunkReload";
 
 // Inline SVGs instead of lucide-react so these class components (statically
@@ -68,10 +69,20 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
   }
 
   static getDerivedStateFromError(error: Error): InnerState {
-    return { hasError: true, error };
+    // Decided here, not only in componentDidCatch, so the very first fallback
+    // render is already the quiet state and the card never commits.
+    return { hasError: true, error, recovering: isRecoveryReloadInFlight() };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // A recovery reload is already on its way out of this page. Whatever broke
+    // in the meantime — including the TypeError a prevented preload leaves
+    // behind (see isRecoveryReloadInFlight) — is a symptom of the stale chunk
+    // being handled, not a new failure: no card, no report.
+    if (isRecoveryReloadInFlight()) {
+      if (!this.state.recovering) this.setState({ recovering: true });
+      return;
+    }
     // Stale-chunk crashes (a deploy changed the chunk hashes mid-session)
     // aren't real route bugs — they reach this boundary when the user
     // navigates to a lazy route whose chunk 404s. Auto-recover with a
@@ -114,7 +125,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
     // user doesn't get trapped on the fallback if they hit "Go home" or
     // any other in-app link.
     if (this.state.hasError && prevProps.pathname !== this.props.pathname) {
-      this.setState({ hasError: false, error: null });
+      this.setState({ hasError: false, error: null, recovering: false });
     }
   }
 
@@ -131,10 +142,10 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
   render() {
     if (!this.state.hasError) return this.props.children;
 
-    const chunkError = isChunkLoadError(this.state.error);
-
-    // Reload already scheduled — say so plainly and get out of the way.
-    if (chunkError && this.state.recovering) {
+    // Reload already scheduled — say so plainly and get out of the way. Not
+    // gated on `chunkError`: while a recovery reload is in flight the error
+    // caught can be the TypeError a prevented preload leaves behind.
+    if (this.state.recovering) {
       return (
         <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 p-8 text-center" role="status">
           <span style={{ color: "hsl(var(--bark))" }}>

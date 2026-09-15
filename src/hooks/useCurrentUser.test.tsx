@@ -77,7 +77,7 @@ vi.mock("@/hooks/useAuthReady", () => ({
   useAuthReady: () => mocks.authReadyState,
 }));
 
-import { useCurrentUser } from "./useCurrentUser";
+import { useCurrentUser, __resetCarriedProfileReadsForTests } from "./useCurrentUser";
 
 const wrap = ({ children }: { children: React.ReactNode }) => {
   const qc = new QueryClient({
@@ -98,6 +98,125 @@ describe("useCurrentUser", () => {
     mocks.channelHandlerRef.reset();
     mocks.authReadyState.user = null;
     mocks.authReadyState.isReady = false;
+    __resetCarriedProfileReadsForTests();
+  });
+
+  // ── A slow profile read that answers inside the query's budget ───────────
+  //
+  // a11y-webkit-prod 34925526605 (2026-09-15 03:43 UTC, a prod stall): both
+  // engines captured "We couldn't load your account." Reproduced on prod data
+  // with the local preview: read #1 answered with the real row at +8.3s, but it
+  // had been abandoned at the 6s attempt timeout; the retry's fresh read never
+  // answered, so the card rendered at +12.9s. The retry now also accepts the
+  // abandoned read. These use the SHARED client retry policy (one retry, 500ms)
+  // because that is what production runs.
+  describe("slow profile read", () => {
+    const productionRetry = ({ children }: { children: React.ReactNode }) => {
+      const qc = new QueryClient({
+        defaultOptions: {
+          queries: { retry: (n: number) => n < 1, retryDelay: 500, gcTime: 0 },
+        },
+      });
+      return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+    };
+    const never = () => new Promise(() => {});
+
+    it("an answer that lands after the first attempt's timeout still loads the account", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: false });
+      try {
+        mocks.authReadyState.user = { id: "u1" };
+        mocks.authReadyState.isReady = true;
+        mocks.rolesMaybeSingle.mockResolvedValue({ data: null, error: null });
+        mocks.profileMaybeSingle
+          .mockImplementationOnce(
+            () =>
+              new Promise((resolve) =>
+                setTimeout(() => resolve({ data: { user_id: "u1", full_name: "Lexi" }, error: null }), 8_000),
+              ),
+          )
+          .mockImplementation(never);
+
+        const { result } = renderHook(() => useCurrentUser(), { wrapper: productionRetry });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(13_000);
+        });
+
+        expect(result.current.isError).toBe(false);
+        expect(result.current.isLoading).toBe(false);
+        expect(result.current.profile?.full_name).toBe("Lexi");
+        // The retry did run — this is not the first attempt quietly waiting longer.
+        expect(mocks.profileMaybeSingle).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("the time to the error card is unchanged when nothing ever answers", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: false });
+      try {
+        mocks.authReadyState.user = { id: "u1" };
+        mocks.authReadyState.isReady = true;
+        mocks.rolesMaybeSingle.mockResolvedValue({ data: null, error: null });
+        mocks.profileMaybeSingle.mockImplementation(never);
+
+        const { result } = renderHook(() => useCurrentUser(), { wrapper: productionRetry });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(12_000);
+        });
+        expect(result.current.isError).toBe(false);
+        expect(result.current.isLoading).toBe(true);
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(1_000);
+        });
+        expect(result.current.isError).toBe(true);
+        expect(result.current.isLoading).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("a carried read is not handed to an unrelated fetch long after it timed out", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: false });
+      try {
+        mocks.authReadyState.user = { id: "u1" };
+        mocks.authReadyState.isReady = true;
+        mocks.rolesMaybeSingle.mockResolvedValue({ data: null, error: null });
+        // Attempt 1 and the retry both hang; the card shows. The OLD read then
+        // answers with a pre-edit row long after — a later refresh() must not
+        // take it over the fresh read.
+        mocks.profileMaybeSingle
+          .mockImplementationOnce(
+            () =>
+              new Promise((resolve) =>
+                setTimeout(() => resolve({ data: { user_id: "u1", full_name: "Old" }, error: null }), 20_000),
+              ),
+          )
+          .mockImplementationOnce(never);
+
+        const { result } = renderHook(() => useCurrentUser(), { wrapper: productionRetry });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(13_000);
+        });
+        expect(result.current.isError).toBe(true);
+
+        mocks.profileMaybeSingle.mockImplementation(
+          () =>
+            new Promise((resolve) =>
+              setTimeout(() => resolve({ data: { user_id: "u1", full_name: "New" }, error: null }), 9_000),
+            ),
+        );
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(5_000);
+          void result.current.refresh();
+          await vi.advanceTimersByTimeAsync(4_000);
+        });
+        // +22s: the old read answered at +20s; the refresh started at +18s.
+        expect(result.current.profile?.full_name).not.toBe("Old");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   it("returns isLoading=true while auth is not ready", () => {

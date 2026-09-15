@@ -50,11 +50,76 @@ export type AdminStatus = "admin" | "not_admin" | "unknown";
 const PROFILE_QUERY_TIMEOUT_MS = 6000;
 const DEBUG_AUTH = import.meta.env.DEV;
 
+const PROFILE_TIMEOUT_MESSAGE = "Profile request timed out";
+
 const withTimeout = async <T,>(promise: Promise<T>, ms = PROFILE_QUERY_TIMEOUT_MS): Promise<T> => {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error("Profile request timed out")), ms)),
+    new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error(PROFILE_TIMEOUT_MESSAGE)), ms)),
   ]);
+};
+
+/**
+ * A PROFILE READ THAT MISSED ITS ATTEMPT'S DEADLINE IS NOT THROWN AWAY.
+ *
+ * `withTimeout` stops WAITING at 6s; it cannot cancel the request. Before this,
+ * the request that was still in flight was simply abandoned, and the query's
+ * one retry sent a brand-new read to the back of the same slow queue. Measured
+ * on prod data (local preview, WebKit, /activity, 2026-09-15): the first
+ * profile read answered with the real row at +8.3s — inside the ~12.5s the
+ * whole query is allowed — but it had been discarded at +6.3s, the retry sent
+ * at +6.8s never answered, and the account error card rendered at +12.9s. That
+ * is the capture a11y-webkit-prod took on /activity (webkit) and
+ * /profile?tab=reviews (chromium) during a prod stall at 03:43 UTC.
+ *
+ * So a timed-out read is kept for the retry, and the retry takes whichever of
+ * the old and the fresh request answers first. The time to the error card is
+ * unchanged (still per-attempt timeout x attempts); only a late answer that
+ * arrives inside that budget now counts.
+ *
+ * The carried request is reused only by a fetch that starts within
+ * ORPHAN_REUSE_WINDOW_MS of the timeout — the retry, 500ms later — never by an
+ * unrelated refetch long after, which could otherwise be handed a row read
+ * before a profile edit.
+ */
+const ORPHAN_REUSE_WINDOW_MS = 2000;
+const orphanedProfileReads = new Map<string, { read: Promise<Profile | null>; at: number }>();
+
+/** Test-only: forget any carried read so one test's timeout cannot feed the next. */
+export const __resetCarriedProfileReadsForTests = (): void => orphanedProfileReads.clear();
+
+/** Resolves with the first promise that fulfils; rejects with the last error only when all reject. */
+const firstFulfilled = <T,>(promises: Promise<T>[]): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    let left = promises.length;
+    for (const p of promises) {
+      p.then(resolve, (err) => {
+        left -= 1;
+        if (left === 0) reject(err);
+      });
+    }
+  });
+
+const readProfile = (userId: string): Promise<Profile | null> => {
+  const fresh = Promise.resolve(supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle()).then(
+    ({ data, error }) => {
+      if (error) throw error;
+      return data ?? null;
+    },
+  );
+  const orphan = orphanedProfileReads.get(userId);
+  orphanedProfileReads.delete(userId);
+  const carried = orphan && Date.now() - orphan.at <= ORPHAN_REUSE_WINDOW_MS ? orphan.read : null;
+  const read = carried ? firstFulfilled([fresh, carried]) : fresh;
+  // Kept for a possible retry, so its eventual rejection must never surface as
+  // an unhandled one; the attempt below still observes it.
+  read.catch(() => undefined);
+  return withTimeout(read).catch((err: unknown) => {
+    if (err instanceof Error && err.message === PROFILE_TIMEOUT_MESSAGE) {
+      orphanedProfileReads.set(userId, { read, at: Date.now() });
+    }
+    throw err;
+  });
 };
 
 interface CurrentUser {
@@ -98,12 +163,7 @@ const fetchCurrentUser = async (
   // *reach* /admin in the first place.
   // The profile lookup is essential — if it fails, the caller SHOULD see an
   // error (ProtectedRoute renders the retry card). It throws on error.
-  const profilePromise = withTimeout(
-    Promise.resolve(supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle()).then(({ data, error }) => {
-      if (error) throw error;
-      return data ?? null;
-    }),
-  );
+  const profilePromise = readProfile(userId);
 
   // The admin-role lookup must NEVER block the profile. It was previously in
   // the same `Promise.all`, so a `user_roles` RLS/permission/timeout failure

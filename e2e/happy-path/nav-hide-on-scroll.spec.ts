@@ -218,6 +218,26 @@ function navOffset(page: Page): Promise<number> {
   });
 }
 
+/**
+ * Wait for the dock to FINISH moving to where it belongs, then assert it.
+ *
+ * The dock slides on a 0.28s CSS transition, and `getComputedStyle().transform`
+ * reads the transition's CURRENT value — which only advances when the engine
+ * runs a rendering update. nightly-webkit 34924529210 (Linux WebKit, two
+ * workers on a CI runner) proved a single read after a fixed 500ms wait is not
+ * enough there: the trace's DOM snapshot shows the app HAD hidden the dock
+ * after the second scroll step (`aria-hidden="true"`, `inert`, inline
+ * `translateY(calc(var(--safe-area-bottom, 0px) + 130px))`), yet the read
+ * returned 0, and the screencast had painted no frame for 1.6s around it. So
+ * this polls the painted position instead of trusting one sample: a dock that
+ * never hides (or never returns) still fails, after the timeout.
+ */
+async function expectDock(page: Page, where: "hidden" | "docked", message: string) {
+  const offset = expect.poll(() => navOffset(page), { message, timeout: 5_000 });
+  if (where === "hidden") await offset.toBeGreaterThan(100);
+  else await offset.toBe(0);
+}
+
 /** The tallest genuinely-scrollable region on the route. */
 function scrollState(page: Page) {
   return page.evaluate(() => {
@@ -302,13 +322,13 @@ for (const route of ROUTES) {
     expect(initial.found, `${route} has no scrollable region — nothing to hide for`).toBe(true);
     expect(initial.max, `${route} scroll range`).toBeGreaterThan(400);
 
-    expect(await navOffset(page), `${route} docked at rest`).toBe(0);
+    await expectDock(page, "docked", `${route} docked at rest`);
 
     await wheel(page, 120, 8);
-    expect(await navOffset(page), `${route} after scrolling down`).toBeGreaterThan(100);
+    await expectDock(page, "hidden", `${route} after scrolling down`);
 
     await wheel(page, -120, 3);
-    expect(await navOffset(page), `${route} after scrolling up`).toBe(0);
+    await expectDock(page, "docked", `${route} after scrolling up`);
 
     // Near the top the dock always reveals, whatever the gesture direction.
     await page.evaluate(() => {
@@ -321,7 +341,7 @@ for (const route of ROUTES) {
       if (el) el.scrollTop = 0;
     });
     await page.waitForTimeout(500);
-    expect(await navOffset(page), `${route} back at the top`).toBe(0);
+    await expectDock(page, "docked", `${route} back at the top`);
 
     // The true end of the list. The dock hides on the way down; one upward
     // nudge — the gesture a user makes to reach for the nav — must bring it
@@ -354,7 +374,7 @@ for (const route of ROUTES) {
     expect(atEnd.top, `${route} scrolled deep into the list`).toBeGreaterThan(1_000);
 
     await wheel(page, -120, 2);
-    expect(await navOffset(page), `${route} recovers at the end of the list`).toBe(0);
+    await expectDock(page, "docked", `${route} recovers at the end of the list`);
   });
 }
 
@@ -380,7 +400,7 @@ test("a hidden dock is taken out of the tab order, not just out of the a11y tree
   await boot(page, "/my-posts?filter=waiting");
 
   await wheel(page, 120, 8);
-  expect(await navOffset(page), "dock hidden").toBeGreaterThan(100);
+  await expectDock(page, "hidden", "dock hidden");
 
   // `aria-hidden` on a bar of buttons that are still tabbable is an
   // aria-hidden-focus violation and a real trap for keyboard/switch users.
@@ -415,7 +435,7 @@ test("switching Home to map view cannot strand the dock off-screen", async ({
   await boot(page, "/dashboard");
 
   await wheel(page, 120, 8);
-  expect(await navOffset(page), "dock hidden by scrolling the feed").toBeGreaterThan(100);
+  await expectDock(page, "hidden", "dock hidden by scrolling the feed");
 
   // Map view sets `display:none` on the list's scroll container and renders a
   // map that never scrolls, so no further scroll event can ever fire on this
@@ -431,5 +451,5 @@ test("switching Home to map view cannot strand the dock off-screen", async ({
     .click();
   await page.waitForTimeout(1_200);
 
-  expect(await navOffset(page), "dock must return when the scroll surface goes away").toBe(0);
+  await expectDock(page, "docked", "dock must return when the scroll surface goes away");
 });

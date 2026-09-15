@@ -124,24 +124,53 @@ test(j7, async ({ browser, request, journey }) => {
     // Save is a DELETE of the week followed by an INSERT (HelperAvailability.tsx),
     // so the journey waits for the INSERT: leaving between the two wipes the
     // week (filed in docs/OPEN.md). The real hours are snapshotted and put back.
-    const hoursBefore = await request.get(
-      `${SUPABASE_URL}/rest/v1/helper_availability?helper_id=eq.${helper.user.id}&specific_date=is.null&select=day_of_week,is_available,start_time,end_time&order=day_of_week`,
-      { headers: rest(helper) },
-    );
-    const week = (await hoursBefore.json()) as Array<Record<string, unknown>>;
-    expect(week.length, "the helper has no saved weekly hours to start from").toBe(7);
-    journey.cleanup("restore weekly hours", async () => {
-      const now = await request.get(
+    const readWeek = async () => {
+      const res = await request.get(
         `${SUPABASE_URL}/rest/v1/helper_availability?helper_id=eq.${helper.user.id}&specific_date=is.null&select=day_of_week,is_available,start_time,end_time&order=day_of_week`,
         { headers: rest(helper) },
       );
-      if (JSON.stringify(await now.json()) === JSON.stringify(week)) return;
-      await request.delete(`${SUPABASE_URL}/rest/v1/helper_availability?helper_id=eq.${helper.user.id}&specific_date=is.null`, { headers: rest(helper) });
-      const put = await request.post(`${SUPABASE_URL}/rest/v1/helper_availability`, {
-        headers: rest(helper, { Prefer: "return=minimal" }),
-        data: week.map((d) => ({ ...d, helper_id: helper.user.id, specific_date: null })),
+      return (await res.json()) as Array<Record<string, unknown>>;
+    };
+    /**
+     * Write the week ATOMICALLY, through the app's own RPC.
+     *
+     * The restore used to be a DELETE followed by a POST of the snapshot. When
+     * the POST failed (or the run was killed between the two) the shared test
+     * account was left with NO weekly hours at all — which is exactly how the
+     * 2026-09-15 run (34927100318) found it: prod held 0 rows for helper-e2e
+     * on both engines, so this step failed on its own precondition before it
+     * measured anything. `save_weekly_availability` does the delete and the
+     * insert in one statement pair inside one transaction, so a failure leaves
+     * the previous week standing instead of nothing.
+     */
+    const writeWeek = async (slots: Array<Record<string, unknown>>) => {
+      const res = await request.post(`${SUPABASE_URL}/rest/v1/rpc/save_weekly_availability`, {
+        headers: rest(helper, { "Content-Type": "application/json" }),
+        data: { p_slots: slots.map(({ day_of_week, is_available, start_time, end_time }) => ({ day_of_week, is_available, start_time, end_time })) },
       });
-      expect(put.ok(), `restoring weekly hours: ${put.status()} ${await put.text()}`).toBe(true);
+      expect(res.ok(), `writing weekly hours: ${res.status()} ${await res.text()}`).toBe(true);
+    };
+    /** The seeded shape: every day 9-5. */
+    const DEFAULT_WEEK = [0, 1, 2, 3, 4, 5, 6].map((day_of_week) => ({
+      day_of_week,
+      is_available: true,
+      start_time: "09:00:00",
+      end_time: "17:00:00",
+    }));
+
+    let week = await readWeek();
+    if (week.length === 0) {
+      // The account owns this data and the journey is what writes it, so an
+      // empty week is seeded rather than reported as a missing precondition —
+      // a previous interrupted run is not a finding about the app.
+      test.info().annotations.push({ type: "seeded", description: "helper had no weekly hours; wrote the default 9-5 week" });
+      await writeWeek(DEFAULT_WEEK);
+      week = await readWeek();
+    }
+    expect(week.length, "the helper has no saved weekly hours to start from").toBe(7);
+    journey.cleanup("restore weekly hours", async () => {
+      if (JSON.stringify(await readWeek()) === JSON.stringify(week)) return;
+      await writeWeek(week);
     });
     await openFromProfile(hp, /^Availability/, "Availability");
     const sunday = hp.getByRole("switch", { name: "Toggle Sunday" });
@@ -168,7 +197,15 @@ test(j7, async ({ browser, request, journey }) => {
     await expect(hp.getByRole("switch", { name: "Toggle Sunday" }), "Sunday did not persist").toHaveAttribute("aria-checked", String(!wasOn), { timeout: 30_000 });
     await journey.milestone(hp, "availability-changed");
     await hp.getByRole("switch", { name: "Toggle Sunday" }).click();
-    const restored = hp.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/rest/v1/helper_availability") && r.ok(), { timeout: 30_000 });
+    // Same two reachable save paths as above (RPC first, table write as the
+    // PGRST202 fallback) — this second wait was still table-only.
+    const restored = hp.waitForResponse(
+      (r) =>
+        r.request().method() === "POST" &&
+        (r.url().includes("/rest/v1/rpc/save_weekly_availability") || r.url().includes("/rest/v1/helper_availability")) &&
+        r.ok(),
+      { timeout: 30_000 },
+    );
     await hp.getByRole("button", { name: "Save Availability" }).click();
     await restored;
     await hp.reload();

@@ -1,3 +1,5 @@
+import type { Page } from "@playwright/test";
+
 import { test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 
@@ -14,6 +16,30 @@ import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 const rotation = rotationFor(0);
 
 const guestTitle = scenarioTitle({ journey: "browse", persona: "new", state: "approved", rotation, outcome: "smooth" });
+/**
+ * Leave the filter sheet closed, whether or not the app closed it itself.
+ *
+ * Picking a Feed view CLOSES the sheet on its own — verified live on prod
+ * (local preview, WebKit, 2026-09-15: the dialog was gone within 100ms of the
+ * "Map" tap). The old line read `if (await d.isVisible()) await
+ * d.getByRole(close).click()`, which is a race with exactly that: the read can
+ * land in the last visible frame, and the click then waits 20s for a button
+ * that detached ("element was detached from the DOM, retrying" — e2e-journeys
+ * 34927100318, both engines). Waiting for "hidden" first makes a sheet that
+ * closes itself the fast path, and still fails if a sheet refuses to close.
+ */
+async function closeFilterSheet(page: Page) {
+  const sheet = page.getByRole("dialog");
+  if (await sheet.isHidden().catch(() => true)) return;
+  const closedItself = await sheet
+    .waitFor({ state: "hidden", timeout: 1_500 })
+    .then(() => true)
+    .catch(() => false);
+  if (closedItself) return;
+  await sheet.getByRole("button", { name: /close filters|show .*|done|apply/i }).first().click();
+  await expect(sheet, "the filter sheet would not close").toBeHidden({ timeout: 10_000 });
+}
+
 test(guestTitle, async ({ browser, journey }) => {
   test.skip(filteredOut(guestTitle), "SCENARIO pins another scenario");
   const ctx = await newUserContext(browser, null, { rotation });
@@ -105,9 +131,7 @@ test(authedTitle, async ({ browser, request, journey }) => {
     const sort = sheet.getByRole("group", { name: "Sort results" });
     await sort.getByRole("button", { name: /high/i }).first().click();
     await expect(sort.getByRole("button", { name: /high/i }).first()).toHaveAttribute("aria-pressed", "true");
-    const closeBtn = sheet.getByRole("button", { name: /close filters|show .*|done|apply/i }).first();
-    if (await sheet.isVisible()) await closeBtn.click();
-    await expect(sheet).toBeHidden({ timeout: 10_000 });
+    await closeFilterSheet(page);
     const prices = await cards.evaluateAll((els) =>
       els.map((e) => Number(/— \$([\d,]+)/.exec(e.getAttribute("aria-label") ?? "")?.[1]?.replace(/,/g, "") ?? "NaN")),
     );
@@ -119,8 +143,7 @@ test(authedTitle, async ({ browser, request, journey }) => {
     const cat = page.getByRole("dialog").getByRole("group", { name: "Filter by category" });
     await expect(cat).toBeVisible();
     await cat.getByRole("button", { name: /cleaning/i }).first().click();
-    const close2 = page.getByRole("dialog").getByRole("button", { name: /close filters|show .*|done|apply/i }).first();
-    if (await page.getByRole("dialog").isVisible()) await close2.click();
+    await closeFilterSheet(page);
     await expect(cards.first()).toBeVisible({ timeout: 20_000 });
     for (const label of await cards.evaluateAll((els) => els.map((e) => e.textContent ?? ""))) {
       expect.soft(label, "a non-Cleaning job survived the Cleaning filter").toMatch(/cleaning/i);
@@ -133,18 +156,21 @@ test(authedTitle, async ({ browser, request, journey }) => {
     await page.getByRole("button", { name: "Filters" }).first().click();
     const view = page.getByRole("dialog").getByRole("group", { name: "Feed view" });
     await view.getByRole("button", { name: "Map" }).click();
-    const d = page.getByRole("dialog");
-    if (await d.isVisible()) await d.getByRole("button", { name: /close filters|show .*|done|apply/i }).first().click();
+    await closeFilterSheet(page);
     await expect(page.locator("[class*='mapkit'], canvas, [aria-label*='map' i]").first(), "the map view never rendered").toBeVisible({ timeout: 45_000 });
     await assertHealthy(page, "map view", { settleMs: 30_000 });
     await journey.milestone(page, "map-view");
     await page.getByRole("button", { name: "Filters" }).first().click();
     await page.getByRole("dialog").getByRole("group", { name: "Feed view" }).getByRole("button", { name: "List" }).click();
+    // Picking a view closes the sheet (see closeFilterSheet), so Clear All is
+    // one more trip in — it used to be reachable in the same sheet visit.
+    await closeFilterSheet(page);
     // leave the account the way we found it: list view, no filters
+    await page.getByRole("button", { name: /^Filters/ }).first().click();
     const clear = page.getByRole("dialog").getByRole("button", { name: /clear|reset/i }).first();
     if (await clear.isVisible().catch(() => false)) await clear.click();
     await page.waitForTimeout(500);
-    if (await page.getByRole("dialog").isVisible()) await page.keyboard.press("Escape");
+    if (await page.getByRole("dialog").isVisible().catch(() => false)) await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
     await expect(cards.first()).toBeVisible({ timeout: 30_000 });
     await expect(cards, "Clear All did not restore the full feed").toHaveCount(total, { timeout: 20_000 });

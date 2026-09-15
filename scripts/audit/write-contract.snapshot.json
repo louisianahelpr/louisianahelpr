@@ -669,6 +669,15 @@
     "nargs": 0
    }
   ],
+  "enforce_job_completion_server_owned": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "enforce_job_expiry_floor": [
    {
     "anon": true,
@@ -2292,6 +2301,17 @@
    }
   ],
   "rpc_escalate_dispute": [
+   {
+    "anon": false,
+    "args": [
+     "_job_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "rpc_helper_mark_done": [
    {
     "anon": false,
     "args": [

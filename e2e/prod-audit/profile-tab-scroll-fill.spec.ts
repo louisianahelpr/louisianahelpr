@@ -139,10 +139,38 @@ function measure(): Geometry {
   };
 }
 
+/**
+ * Clear the app's own "We couldn't load your account" card if it is showing.
+ *
+ * Not a layout defect and not a harness bug: the profile query against prod
+ * genuinely fails now and then, and the app handles it correctly by offering a
+ * Try again button. Caught here because the 1440 run (which goes second) hit it
+ * reproducibly while 375 passed — the spec reported it as an opaque
+ * `locator('h1')` timeout, which reads like the page never rendered.
+ *
+ * So do what a user does, rather than widening a timeout around it: a timeout
+ * bump would only have made the same hiccup take longer to report the wrong
+ * cause.
+ */
+async function clearAccountHiccup(page: Page) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const retry = page.getByRole("button", { name: /try again/i });
+    if (!(await retry.count())) return;
+    await retry.first().click();
+    await settle(page);
+    await page.waitForTimeout(1_500);
+  }
+}
+
 async function openTab(page: Page, tab: string) {
   await page.goto(`/profile?tab=${tab}`);
   await settle(page);
-  await expect(page.locator("h1").first(), `no title on ?tab=${tab} — signed out?`).toBeVisible({ timeout: 45_000 });
+  await clearAccountHiccup(page);
+  await expect(
+    page.locator("h1").first(),
+    `no title on ?tab=${tab}. If the screenshot shows "We couldn't load your account", ` +
+      `that is a backend hiccup the retry above could not clear, not a layout defect.`,
+  ).toBeVisible({ timeout: 45_000 });
   // The panels are lazy AND query-backed: an <h1> can be painted while the tab
   // is still a Suspense skeleton, and measuring there reports the skeleton's
   // geometry (it did, on the first probe of this spec). Wait for real content.
@@ -258,6 +286,7 @@ for (const vw of [375, 1440] as const) {
     const sibling = await (async () => {
       await page.goto("/dashboard");
       await settle(page);
+      await clearAccountHiccup(page);
       await expect(page.locator(".page-panel").first(), "no PageScaffold panel on /dashboard").toBeVisible({ timeout: 45_000 });
       await page.waitForTimeout(700);
       return page.evaluate(() => {

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react"
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { toast } from "sonner";
+import { openJobFromPin } from "@/components/browseMap/openJobFromPin";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
@@ -706,10 +707,22 @@ const Dashboard = () => {
                         // Same job-detail dialog the feed's cards open on
                         // tap (openDetailJob), not the quick-apply sheet —
                         // see the matching note in BrowseTasksFeed.tsx.
-                        onJobAction={(jobId) => {
-                          const job = allJobs.find((j) => j.id === jobId);
-                          if (job) openDetailJob(job);
-                        }}
+                        //
+                        // VN-10: this was `allJobs.find(...)` alone, so a pin
+                        // for a job this page had not loaded (or had filtered
+                        // out — own posts, past-dated, already applied) was a
+                        // dead tap. Measured on prod at 1440, 2026-09-14:
+                        // "Pressure wash a driveway and patio" was pinned,
+                        // absent from the list, and its card did nothing.
+                        // `openJobFromPin` is the one lookup both maps use.
+                        onJobAction={(jobId) =>
+                          openJobFromPin({
+                            jobId,
+                            lists: [filters.filteredJobs, allJobs],
+                            open: openDetailJob,
+                            onError: (m) => toast.error(m),
+                          })
+                        }
                         currentUserId={user?.id}
                         filters={filters.mapFilter}
                         onClearFilters={filters.clearFilters}

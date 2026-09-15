@@ -1,13 +1,4 @@
 {
   "_doc": "Accepted function-body drift, keyed by name(input types). Each entry pins prod's exact md5(prosrc): if prod's body changes, the entry stops matching and the check fails again. Remove an entry once its drift is fixed (the script prints a note when an entry no longer matches). See scripts/audit/function-body-drift.mjs.",
-  "accepted": {
-    "auto_pending_credentials()": {
-      "md5": "482f4ec99800bc4f924e57dd1ef83e61",
-      "reason": "2026-09-15: prod runs 20260826040000's body (applied after 20260827180000), without the 'renaming a verified business re-enters review' rule. Credentials moved to helper_credentials on 2026-09-03 (20260903012612), so whether the profile-column rule still matters is an open decision in docs/OPEN.md."
-    },
-    "get_top_helpers_by_parish(text,integer)": {
-      "md5": "61b08d240688629e2b27322ddd2d0271",
-      "reason": "2026-09-15: prod runs 20260509195035's body, without 20260701000000's canonical rating filter (feedback_visible_at <= now(), no cancelled-job reviews). Only caller is get_helper_parish_badges (service_role). Open decision in docs/OPEN.md."
-    }
-  }
+  "accepted": {}
 }

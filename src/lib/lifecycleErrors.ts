@@ -201,6 +201,17 @@ export const RPC_ERROR_COPY = {
     arrival_location_required: LIFECYCLE_REASONS.arrival_location_required,
     arrival_location_invalid: LIFECYCLE_REASONS.arrival_location_invalid,
   },
+  // JobTracking — the Helpr's "I'm Done". The client pre-checks arrival, proof
+  // and the 30-minute floor and shows those toasts first; these are the table
+  // copy for a race that reaches the RPC anyway (20260915073143).
+  rpc_helper_mark_done: {
+    job_not_found: JOB_GONE,
+    not_the_assigned_helper: "You're no longer the Helpr on this job, so you can't mark it done.",
+    job_not_completable: "This job isn't active any more, so it can't be marked done. Pull to refresh.",
+    completion_requires_confirmed_arrival: LIFECYCLE_REASONS.completion_requires_confirmed_arrival,
+    completion_requires_proof_photos: "Add before and after photos before marking the job done.",
+    completion_min_work_time: "A job can't be marked done within 30 minutes of starting.",
+  },
   // userBlocks — block and settle shared jobs.
   block_user_and_settle: {
     invalid_target: "You can't block this account.",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
+import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import {
   Dialog,
   DialogContent,
@@ -150,7 +150,8 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
       );
 
       if (rpcError) {
-        throw rpcError;
+        const known = rpcErrorMessage("rpc_open_dispute", rpcError);
+        throw known ? new Error(known) : rpcError;
       }
 
       // The RPC returns the dispute's uuid. A null error is not proof it

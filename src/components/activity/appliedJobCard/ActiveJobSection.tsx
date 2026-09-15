@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/queryKeys";
+import { rpcErrorCode, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { supabase } from "@/integrations/supabase/client";
 import { JobActionChip } from "@/components/activity/JobActionRow";
 import { MessageSquare, CalendarX2, AlertTriangle } from "lucide-react";
@@ -135,6 +137,7 @@ export function ActiveJobSection({
   // Server owns every part of this decision (helper_abort_job, migration
   // 20260825190000): which settlement path the job takes, and what the strike
   // costs. The client only states it truthfully before the tap.
+  const queryClient = useQueryClient();
   const [abortOpen, setAbortOpen] = useState(false);
   const [abortReason, setAbortReason] = useState("");
   const [aborting, setAborting] = useState(false);
@@ -160,12 +163,23 @@ export function ActiveJobSection({
     if (error) {
       hapticError();
       report(error, { tags: { source: "ActiveJobSection.helperAbortJob" } });
-      toast.error(
-        /not_abortable/.test(error.message)
-          ? "This job has already moved on — pull to refresh and take another look."
-          : "We couldn’t send that — check your connection and try again.",
-        { action: { label: "Retry", onClick: () => void handleAbort() } },
-      );
+      const fallback = "We couldn’t send that — check your connection and try again.";
+      const code = rpcErrorCode("helper_abort_job", error);
+      const copy = rpcErrorMessage("helper_abort_job", error) ?? fallback;
+      if (code === "job_already_completed" || code === "job_not_found" || code === "not_authorized") {
+        // The job moved on under this card (marked complete a moment ago,
+        // removed, or no longer this person's). Retrying can only fail again,
+        // so close the dialog and re-read the job instead of offering one.
+        setAbortOpen(false);
+        toast.error(copy);
+        void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
+        return;
+      }
+      if (code === "dispute_needs_description") {
+        toast.error(copy);
+        return; // dialog stays open with the reason, so it can be expanded
+      }
+      toast.error(copy, { action: { label: "Retry", onClick: () => void handleAbort() } });
       return; // dialog stays open, reason preserved, primary re-enabled
     }
     hapticError(); // a strike is never a success moment

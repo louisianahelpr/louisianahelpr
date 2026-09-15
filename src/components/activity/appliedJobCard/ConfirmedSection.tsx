@@ -6,6 +6,7 @@ import { MessageSquare, CalendarX2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { DirectionsButton } from "./DirectionsButton";
 import { JobPetCareSheet } from "@/components/activity/JobPetCareSheet";
@@ -39,10 +40,9 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
     setCancelling(false);
     if (error) {
       hapticError();
-      const msg = /already_started/.test(error.message)
-        ? "The start time has passed — message the poster or contact support instead."
-        : "We couldn't cancel this job — please try again.";
-      toast.error(msg);
+      toast.error(
+        rpcErrorMessage("helper_cancel_booking", error) ?? "We couldn't cancel this job — please try again.",
+      );
       return;
     }
     hapticError(); // a strike is not a success moment

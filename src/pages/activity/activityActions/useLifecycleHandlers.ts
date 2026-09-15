@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { confirmConsequential } from "@/lib/toastPolicy";
-import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
+import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
@@ -382,7 +382,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         // them. "Please try again" was actively wrong advice for a guard that
         // will keep refusing until the start time passes.
         toast.error(
-          lifecycleErrorMessage(rpcError) ?? "Couldn't report the no-show — please try again.",
+          rpcErrorMessage("report_helper_no_show", rpcError) ?? "Couldn't report the no-show — please try again.",
         );
         return;
       }

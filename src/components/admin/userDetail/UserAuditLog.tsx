@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { History, ShieldAlert, Bell, UserCheck, Undo2 } from "lucide-react";
 import { report } from "@/lib/errorLogger";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { formatName } from "@/lib/utils";
 import {
   Dialog,
@@ -93,9 +94,8 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
       toast.error(
         error.code === "PGRST202"
           ? "Reversal isn't live yet — this deploys with the next migration. Try again shortly."
-          : error.message?.includes("not_authorized")
-            ? "You don't have permission to reverse this."
-            : "Couldn't reverse that strike. Nothing was changed.",
+          : (rpcErrorMessage("admin_reverse_violation", error) ??
+            "Couldn't reverse that strike. Nothing was changed."),
       );
       return;
     }

@@ -17,6 +17,7 @@ import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { arrivalEstablished, arrivalGateMessage, arrivalMapLabel, arrivalState, arrivalStateLabel, type ArrivalState } from "@/lib/arrivalGate";
 import { report } from "@/lib/errorLogger";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
@@ -899,7 +900,7 @@ export function JobTracking({
         toast.error(
           retryErr.code === "PGRST202"
             ? "Arrival check-in is updating — try again in a minute."
-            : "Couldn't re-check your arrival — try again?",
+            : (rpcErrorMessage("mark_helper_arrival", retryErr) ?? "Couldn't re-check your arrival — try again?"),
         );
         return;
       }
@@ -1054,7 +1055,7 @@ export function JobTracking({
           arrivalErr.code === "PGRST202"
             // Short window between merge and the auto-deploy landing.
             ? "Arrival check-in is updating — try again in a minute."
-            : "Couldn't mark you arrived — try again?",
+            : (rpcErrorMessage("mark_helper_arrival", arrivalErr) ?? "Couldn't mark you arrived — try again?"),
         );
         setUpdating(false);
         loadTracking();
@@ -1161,7 +1162,7 @@ export function JobTracking({
       } else if (otwErr.code !== "PGRST202") {
         report(otwErr, { tags: { source: "JobTracking.markOnTheWay" } });
         hapticError();
-        toast.error("Couldn't mark you on the way — try again?");
+        toast.error(rpcErrorMessage("helper_mark_on_the_way", otwErr) ?? "Couldn't mark you on the way — try again?");
         setUpdating(false);
         setTracking(trackingBeforeWrite);
         loadTracking();

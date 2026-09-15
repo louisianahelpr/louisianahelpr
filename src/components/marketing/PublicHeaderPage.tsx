@@ -9,7 +9,7 @@ interface PublicHeaderPageProps {
    *  the body column beneath it. Defaults to "public"
    *  (`px-5 sm:px-8 lg:px-12` over `.page-measure`), the ladder every
    *  current call site (Legal, Help Center) uses; Jobs overrides to
-   *  "default" (`page-measure px-5 lg:px-8 xl:px-12`) to match its own body. */
+   *  "default" (`page-measure px-5 lg:px-6 xl:px-6`) to match its own body. */
   width?: "public" | "default" | "none";
   /** Bottom padding for the body wrapper below the header — each page still
    *  owns its own closing rhythm (Jobs: `pb-safe-nav`, Legal/Help: `pb-8`+).

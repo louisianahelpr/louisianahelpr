@@ -38,7 +38,7 @@ interface ProfileTabHeaderProps {
  *
  * Two PageHeader options are load-bearing:
  *  - `width="none"`: Profile.tsx already wraps every tab in
- *    `container mx-auto px-5 lg:px-8 xl:px-12` > `page-measure mx-auto`. Any
+ *    `container mx-auto px-5 lg:px-6 xl:px-6` > `page-measure mx-auto`. Any
  *    container here would be a SECOND max-width + gutter.
  *  - `topInsetHandled`: the tabs render inside `<AppShell className="pt-safe-top">`,
  *    which has already cleared the notch. Without this flag PageHeader absorbs

@@ -214,7 +214,7 @@ const UserProfile = () => {
           meta={headerMeta}
           titleActions={headerActionPlaceholder}
         />
-        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
+        <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
           {/* The SAME wrapper the loaded body uses below — full page measure,
               one column, gap-6. It used to carry `max-w-2xl mx-auto`, a cap no
               other state on this page has: 86545cb12 moved all four states onto
@@ -288,7 +288,7 @@ const UserProfile = () => {
           meta={headerMeta}
           titleActions={headerActionPlaceholder}
         />
-        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
+        <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
           <div className="flex">
             <ErrorState variant="inline" onRetry={() => refetch()} />
           </div>
@@ -306,7 +306,7 @@ const UserProfile = () => {
           meta={headerMeta}
           titleActions={headerActionPlaceholder}
         />
-        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
+        <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
           <div className="flex">
             <EmptyState
               variant="inline"
@@ -412,7 +412,7 @@ const UserProfile = () => {
         // width from the title on every other document-scroll page (owner:
         // "spacing for title should be the same as all other pages"). Header
         // and body both use the canonical shell now — `page-measure mx-auto
-        // px-5 lg:px-8 xl:px-12 pt-4 pb-8` — which is exactly what the
+        // px-5 lg:px-6 xl:px-6 pt-4 pb-8` — which is exactly what the
         // header's `default` width resolves to, so the two share one edge.
         eyebrow={headerEyebrow}
         title={headerTitle}
@@ -501,7 +501,7 @@ const UserProfile = () => {
           choice and route list agree. */}
       <div
         data-profile-body
-        className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8 w-full"
+        className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8 w-full"
       >
         {/* ONE COLUMN at every width (owner: "should all be in 1 column", and
             "fix this to all go up and down"). The 12-col split put the identity

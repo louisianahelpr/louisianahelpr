@@ -31,7 +31,7 @@ const ProfileRouteSkeleton = () => (
       className="bg-premium-page pt-safe-top"
     >
       <div
-        className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-4 flex-1 min-h-0 overflow-y-auto"
+        className="container mx-auto px-5 lg:px-6 xl:px-6 pt-3 lg:pt-5 pb-4 flex-1 min-h-0 overflow-y-auto"
         aria-hidden
       >
         <div className="page-measure mx-auto">

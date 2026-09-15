@@ -28,7 +28,7 @@ import HelprMark from "@/components/HelprMark";
  */
 const DashboardHeader = () => (
   <header className="glass-header sticky top-0 z-50">
-    <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
+    <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-6 xl:px-6">
       <div className="flex items-center gap-2 min-w-0">
         <HelprMark to="/dashboard" size="sm" emblemOnly />
       </div>

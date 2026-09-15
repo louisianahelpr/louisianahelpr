@@ -9,7 +9,7 @@ import { useSidebar } from "@/components/ui/sidebar";
  *
  * Its comment used to claim it "matches user-facing DashboardHeader", and it
  * did not: `glass border-b` against the app bar's `glass-nav` + explicit blur,
- * `container mx-auto px-4` against `w-full px-5 lg:px-8 xl:px-12`, the full
+ * `container mx-auto px-4` against `w-full px-5 lg:px-6 xl:px-6`, the full
  * wordmark against the emblem alone, and a 40px sign-out button beside a 44px
  * bell. Every one of those is now DesktopTopNav's value, verbatim, so crossing
  * into /admin does not change the chrome under you (owner: "admin keeps the
@@ -49,7 +49,7 @@ const AdminTopBar = () => {
         WebkitBackdropFilter: "blur(20px)",
       }}
     >
-      <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
+      <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-6 xl:px-6">
         {/* EMBLEM LEFT, BELL + HAMBURGER RIGHT — the same shape as the signed-in
             app's DesktopTopNav, because admin is the same product (owner,
             after this bar was got wrong repeatedly).

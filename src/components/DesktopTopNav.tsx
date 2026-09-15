@@ -56,7 +56,7 @@ const DesktopTopNav = () => {
         WebkitBackdropFilter: "blur(20px)",
       }}
     >
-      <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
+      <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-6 xl:px-6">
         <HelprMark to="/dashboard" size="sm" emblemOnly />
         {/* `[&_button]:h-11 [&_button]:w-11` — the bell renders at the Button
             component's `size="icon"` default (h-14) while the hamburger below

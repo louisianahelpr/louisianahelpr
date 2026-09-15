@@ -20,7 +20,7 @@
 // `min-h-screen` / `pb-safe-nav` / page background here would fight it.
 //
 // NO SECOND MEASURE OR GUTTER either: Profile.tsx already wraps every tab in
-// `container mx-auto px-5 lg:px-8 xl:px-12` > `page-measure mx-auto`, which is
+// `container mx-auto px-5 lg:px-6 xl:px-6` > `page-measure mx-auto`, which is
 // why `Body` below carries only the column's gap.
 
 import { useState } from "react";

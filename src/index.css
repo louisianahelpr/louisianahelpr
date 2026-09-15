@@ -1450,7 +1450,7 @@ html.web-desktop {
        dead space ............................. 210px left + 197px right
 
      The frame is already inset by the rail and already carries the page's
-     horizontal padding (px-5 / lg:px-8 / xl:px-12), so removing this cap does
+     horizontal padding (px-5 / lg:px-6 / xl:px-6), so removing this cap does
      not run anything to the bezel — it lets the two-pane layout use the width
      it was given, which is what the map half wants anyway (owner, repeatedly:
      "make the content fill the preview panel").

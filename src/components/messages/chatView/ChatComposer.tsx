@@ -42,7 +42,7 @@ function dockPaddingBottom(keyboardInset: number): string {
  * Edge-to-edge bleed for the dock.
  *
  * The dock is a child of the chat column, which sits inside the shell's
- * horizontal gutter (`px-5 / lg:px-8 / xl:px-12` standalone, `px-4` embedded —
+ * horizontal gutter (`px-5 / lg:px-6 / xl:px-6` standalone, `px-4` embedded —
  * see ChatPaneShell). Inheriting that gutter left the frosted panel and its top
  * hairline stopping 20px short of each screen edge, so the composer read as a
  * floating card that had missed its margins rather than a bar attached to the

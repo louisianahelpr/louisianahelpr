@@ -71,7 +71,7 @@ function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps
       contentClassName="overflow-hidden"
       className="bg-premium-page pt-safe-top"
     >
-      <div className="container mx-auto px-5 lg:px-8 xl:px-12 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+      <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
         {/* NO `mx-auto` here, and that is the whole point of this line.
             `.page-measure` already centres itself (`margin-inline: auto`, one
             definition in index.css), so the utility was redundant — and it was

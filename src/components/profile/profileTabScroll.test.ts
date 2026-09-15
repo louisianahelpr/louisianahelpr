@@ -260,7 +260,7 @@ describe("Profile tab scroll wrapper keeps its shadow gutter free", () => {
  *
  * Pixel-identical. The Profile tabs were not inset relative to anything; they
  * were already flush with every PageScaffold sibling. The "gap" is the
- * container gutter (`px-5 lg:px-8 xl:px-12`) that all of them share, and
+ * container gutter (`px-5 lg:px-6 xl:px-6`) that all of them share, and
  * narrowing it is an app-wide decision, not a per-screen fix.
  *
  * src/components/AppPage.tsx carries this same wrapper byte-for-byte for the

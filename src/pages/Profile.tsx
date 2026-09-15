@@ -582,7 +582,7 @@ const ProfilePage = () => {
         contentClassName="overflow-hidden"
         className="bg-premium-page pt-safe-top"
       >
-        <div className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-4 flex-1 min-h-0 overflow-y-auto">
+        <div className="container mx-auto px-5 lg:px-6 xl:px-6 pt-3 lg:pt-5 pb-4 flex-1 min-h-0 overflow-y-auto">
           <div className="page-measure mx-auto">
             <ProfilePageSkeleton />
           </div>
@@ -654,7 +654,7 @@ const ProfilePage = () => {
           PageHeader of its own (ProfileLanding renders straight into this
           container), so it still needs this padding to match its
           PageScaffold siblings — hence the split rather than a flat removal. */}
-      <div className={`container mx-auto px-5 lg:px-8 xl:px-12 ${tab === "landing" ? "pt-3 lg:pt-5" : ""} pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}>
+      <div className={`container mx-auto px-5 lg:px-6 xl:px-6 ${tab === "landing" ? "pt-3 lg:pt-5" : ""} pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}>
         {tab === "landing" ? (
           /* Landing scrolls inside a PullToRefreshWrapper so swiping
              down re-syncs the profile, Stripe status, stats + reviews. */
@@ -758,12 +758,10 @@ const ProfilePage = () => {
               since src/components/AppPage.tsx carries this wrapper string
               byte-for-byte.
 
-              The gap the owner sees is the CONTAINER gutter — `px-5 lg:px-8
-              xl:px-12`, 48px at xl — shared by Profile, AppPage and
-              PageScaffold. Narrowing it is a one-line change to that string in
-              all three, an app-wide look decision, and it is OPEN for the
-              owner. It is not a Profile bug and must not be fixed one screen
-              at a time. */
+              The gap the owner saw is the CONTAINER gutter, shared by Profile,
+              AppPage, PageScaffold and the top bars. Owner, 2026-09-15 (VN-37,
+              pop-up): shrink it from 48px to 24px at desktop — done app-wide as
+              `px-5 lg:px-6 xl:px-6`, never one screen at a time. */
           <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
           {/* `key={tab}` on the boundary re-mounts this wrapper on every

@@ -112,7 +112,7 @@ interface PageHeaderProps {
 type WidthSpec = { outer: string; inner?: string };
 
 const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
-  default: { outer: "page-measure px-5 lg:px-8 xl:px-12" },
+  default: { outer: "page-measure px-5 lg:px-6 xl:px-6" },
   lg: { outer: "max-w-lg px-5 lg:px-8" },
   "2xl": { outer: "max-w-2xl px-5 lg:px-8" },
   "3xl": { outer: "max-w-3xl px-5 lg:px-8" },
@@ -121,7 +121,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
 
   // Fixed max-w-5xl body on the wider document gutter ladder.
   // Bodies: HomeHistory, WorkRecord.
-  "5xl-p4": { outer: "max-w-5xl px-4 lg:px-8 xl:px-12" },
+  "5xl-p4": { outer: "max-w-5xl px-4 lg:px-6 xl:px-6" },
 
   // Single mobile column that opens into a two-column desktop layout.
   // Body: PetProfiles.
@@ -149,7 +149,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
   // The PUBLIC / marketing gutter ladder — `px-5 sm:px-8 lg:px-12`, the same
   // scale the marketing <Navbar> and <Footer> use, over the unbounded
   // `.page-measure` column. It is NOT the `default` ladder: `default` steps at
-  // lg/xl (`px-5 lg:px-8 xl:px-12`), so a public page using it would sit 12px
+  // lg/xl (`px-5 lg:px-6 xl:px-6`), so a public page using it would sit 12px
   // in from its own sections between sm and lg and 16px in above xl.
   // Bodies: HelpCenter, Support (and the other `px-5 sm:px-8 lg:px-12`
   // PublicLayout sections).
@@ -158,7 +158,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
   // NO container. The one legitimate case for this is a header rendered by a
   // panel that is ALREADY inside the page's max-width + gutter box, where any
   // container here would be a second one. Profile's tabs are exactly that:
-  // Profile.tsx wraps every tab in `container mx-auto px-5 lg:px-8 xl:px-12`
+  // Profile.tsx wraps every tab in `container mx-auto px-5 lg:px-6 xl:px-6`
   // > `page-measure mx-auto`, i.e. the `default` geometry, applied one layer
   // up. Re-applying it here would inset the title by a second full gutter and
   // leave a dead side band — the hard layout failure documented above. The

@@ -716,7 +716,16 @@ serve(async (req) => {
         stripeAccountId: helperProfile.stripe_account_id,
         initiatedBy: "system",
         metadata: { source: "scheduled_payout" },
-        ledgerRows: (ledgerRows ?? []) as { id: string; stripe_transfer_id: string | null; status: string; created_at?: string | null }[],
+        // NO ledgerRows: it must READ FRESH (lh-money-escrow review, HIGH-1).
+        // The `ledgerRows` above were read at the top of this iteration, before
+        // the Stripe round-trips and the unrecorded-transfer check. A claim
+        // that a concurrent run settled in that window still reads 'pending'
+        // with a NULL transfer id in the stale snapshot, so classifyLedger
+        // called it an orphaned `openClaim`, claimPayout SKIPPED its INSERT (so
+        // the payout_transfers_one_live_per_job_helper unique index never
+        // fired), and this run made a SECOND transfer under a different
+        // idempotency key. Passing no snapshot makes claimPayout re-read the
+        // same query under the claim it is about to take.
       });
       if (claim.kind === "error") {
         console.error(`[process-scheduled-payouts] payout claim failed for job ${job.id} / helper ${helperId}: ${claim.message}`);

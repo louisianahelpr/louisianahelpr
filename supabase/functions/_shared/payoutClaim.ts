@@ -58,6 +58,11 @@ export interface LedgerRow {
   stripe_transfer_id: string | null;
   status: string;
   created_at?: string | null;
+  /** What a claim recorded it was about to send — the amount its transfer WILL
+   *  carry, which is not this run's recompute (the onboarding fee is deducted
+   *  before the claim is written). Read by the adopt match in
+   *  checkUnrecordedTransfers. Optional: not every caller selects it. */
+  amount_cents?: number | null;
 }
 
 /**
@@ -318,14 +323,14 @@ export type UnrecordedTransferCheck =
 
 export async function checkUnrecordedTransfers(
   supabaseAdmin: { from: (t: string) => any },
-  stripe: { transfers: { list: (params: { transfer_group?: string; destination?: string; limit: number }) => Promise<{ data?: unknown[] } | null | undefined> } },
+  stripe: { transfers: { list: (params: { transfer_group?: string; destination?: string; limit: number; starting_after?: string }) => Promise<{ data?: unknown[]; has_more?: boolean } | null | undefined> } },
   args: { jobId: string; helperId: string; stripeAccountId: string | null; amountCents: number; nowMs?: number },
 ): Promise<UnrecordedTransferCheck> {
   // JOB-wide: on a group job another roster member's recorded transfer is in
   // the same transfer group, and must not read as unrecorded.
   const { data, error } = await supabaseAdmin
     .from("payout_transfers")
-    .select("id, helper_id, stripe_transfer_id, status, created_at")
+    .select("id, helper_id, stripe_transfer_id, status, created_at, amount_cents")
     .eq("job_id", args.jobId);
   if (error) return { kind: "error", message: `ledger read failed: ${error.message}` };
   const rows = (data ?? []) as Array<LedgerRow & { helper_id?: string | null }>;
@@ -337,14 +342,38 @@ export async function checkUnrecordedTransfers(
   // Helpr's destination account is listed too and matched on
   // `metadata.job_id`, which every job payout has always carried. Without the
   // second list an untagged transfer is invisible and the check fails OPEN.
+  //
+  // The destination list is PAGINATED (lh-money-escrow review, LOW-1). It is
+  // per-Helpr across every job, so a Helpr with more than one page of transfers
+  // could push a legacy untagged transfer for THIS job off the first page — and
+  // a fail-open here double-pays. `pageAll` walks `starting_after` to the end;
+  // if it cannot finish within the cap it returns null and the whole check
+  // fails CLOSED (a payout that cannot be verified is deferred, never sent
+  // twice). The group list realistically holds a handful of rows but is walked
+  // the same way so a pathological group cannot fail open either.
+  const MAX_PAGES = 25; // 25 * 100 = 2500 transfers before we refuse to guess.
+  const pageAll = async (params: { transfer_group?: string; destination?: string }): Promise<StripeTransferLike[] | null> => {
+    const acc: StripeTransferLike[] = [];
+    let after: string | undefined;
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const res = await stripe.transfers.list({ ...params, limit: 100, ...(after ? { starting_after: after } : {}) });
+      const batch = (res?.data ?? []) as StripeTransferLike[];
+      acc.push(...batch);
+      if (!res?.has_more || batch.length === 0) return acc;
+      after = batch[batch.length - 1].id;
+    }
+    return null; // more pages than the cap — cannot enumerate, so cannot clear.
+  };
   let listed: StripeTransferLike[];
   try {
-    const grouped = await stripe.transfers.list({ transfer_group: `job_${args.jobId}`, limit: 100 });
     const byId = new Map<string, StripeTransferLike>();
-    for (const t of ((grouped?.data ?? []) as StripeTransferLike[])) byId.set(t.id, t);
+    const grouped = await pageAll({ transfer_group: `job_${args.jobId}` });
+    if (grouped === null) return { kind: "error", message: "too many transfers in the job's transfer group to enumerate" };
+    for (const t of grouped) byId.set(t.id, t);
     if (args.stripeAccountId) {
-      const toHelper = await stripe.transfers.list({ destination: args.stripeAccountId, limit: 100 });
-      for (const t of ((toHelper?.data ?? []) as StripeTransferLike[])) {
+      const toHelper = await pageAll({ destination: args.stripeAccountId });
+      if (toHelper === null) return { kind: "error", message: "too many transfers to the Helpr's account to enumerate — deferring" };
+      for (const t of toHelper) {
         if (t.metadata?.job_id === args.jobId) byId.set(t.id, t);
       }
     }
@@ -366,11 +395,19 @@ export async function checkUnrecordedTransfers(
   if (openClaim && unrecorded.length === 1) {
     const t = unrecorded[0];
     const destination = typeof t.destination === "string" ? t.destination : t.destination?.id ?? null;
+    // Match against what the ORPHANED CLAIM recorded, not this run's recompute
+    // (lh-money-escrow review, MEDIUM-1). A first payout deducts the $2
+    // onboarding fee before writing the claim, so the claim's amount_cents — and
+    // the Stripe transfer it sent — is net, while args.amountCents here is
+    // gross; comparing to the recompute made the canonical orphan un-adoptable
+    // and paged critical on every helper's first payout. Fall back to
+    // args.amountCents only when the claim did not record an amount.
+    const claimAmount = openClaim.amount_cents != null ? Number(openClaim.amount_cents) : args.amountCents;
     if (
       args.stripeAccountId &&
       destination === args.stripeAccountId &&
       t.metadata?.job_id === args.jobId &&
-      Number(t.amount) === args.amountCents
+      Number(t.amount) === claimAmount
     ) {
       return { kind: "adopt", claimId: openClaim.id, transferId: t.id };
     }

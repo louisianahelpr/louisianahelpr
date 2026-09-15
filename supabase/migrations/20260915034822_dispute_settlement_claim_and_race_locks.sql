@@ -7,9 +7,11 @@
 --   1. settle_dispute_record read `jobs` unlocked and decided from that
 --      snapshot. -> it locks its own `disputes` row FOR UPDATE first and reads
 --      the job after, so a concurrent re-freeze cannot land between the gate
---      and the write. Deliberately NOT a lock on `jobs`: that would take
---      jobs -> disputes while rpc_withdraw_dispute and rpc_decide_dispute take
---      disputes -> jobs, an ABBA cycle on the exact pairing this fixes.
+--      and the write. It takes no `jobs` lock at all — holding a single object
+--      keeps it out of every cycle. (Every OTHER dispute RPC here — sections 4
+--      and 6, and rpc_supersede/rpc_add_dispute_evidence — locks jobs before
+--      disputes; a `jobs` lock here would not conflict with that order, but it
+--      is simply not needed, and the one dispute-row lock is enough.)
 --
 --   2. Admin Quick Release and Quick Refund on the SAME job at once each ran
 --      their Stripe step (a transfer and a refund, different idempotency keys,
@@ -1548,7 +1550,15 @@ BEGIN
     FROM public.disputes
    WHERE id = _dispute_id
      FOR UPDATE;
-  IF _d.status <> 'decided' OR _d.execution_status = 'executed' THEN
+  -- NOT FOUND on the LOCKED re-read is load-bearing (lh-money-escrow review,
+  -- MEDIUM-2): a dispute deleted between the unlocked lookup above and this
+  -- lock leaves _d all-NULL, and `NULL <> 'decided' OR NULL = 'executed'` is
+  -- NULL — the gate below would fall through and the job UPDATE would strand the
+  -- escrow. IS DISTINCT FROM so a NULL still refuses.
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'dispute not found';
+  END IF;
+  IF _d.status IS DISTINCT FROM 'decided' OR _d.execution_status = 'executed' THEN
     RAISE EXCEPTION 'supersede_not_supersedable'
       USING HINT = 'Only a decided dispute whose split has not executed can be superseded.';
   END IF;
@@ -1732,20 +1742,34 @@ BEGIN
   -- the same jobs lock claim_dispute_settlement takes before it inserts, so a
   -- Quick Release / Quick Refund / sweep either committed its claim first
   -- (visible, refused) or waits behind this decision (and then finds the job
-  -- no longer disputed). Lock order disputes -> jobs, as before.
+  -- no longer disputed). Lock order jobs -> disputes.
   SELECT customer_id, helper_id, title
     INTO _customer_id, _helper_id, _job_title
     FROM public.jobs
    WHERE id = _job_id
      FOR UPDATE;
 
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'job not found';
+  END IF;
+
+  -- The dispute is judged from THIS locked re-read, not the unlocked lookup
+  -- above (lh-money-escrow review, MEDIUM-2). Its own NOT FOUND is load-
+  -- bearing: a dispute deleted between the lookup and this lock leaves
+  -- `_existing_status` NULL, and `NULL <> 'open'` is NULL — falling through the
+  -- gate and letting the UPDATE below strand the job's escrow. `IS DISTINCT
+  -- FROM` so a NULL that slips past NOT FOUND still refuses.
   SELECT status INTO _existing_status
     FROM public.disputes
    WHERE id = _dispute_id
      FOR UPDATE;
 
-  IF _existing_status <> 'open' THEN
-    RAISE EXCEPTION 'dispute already %', _existing_status;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'dispute not found';
+  END IF;
+
+  IF _existing_status IS DISTINCT FROM 'open' THEN
+    RAISE EXCEPTION 'dispute already %', COALESCE(_existing_status, 'gone');
   END IF;
 
   -- An admin who is a party to the job does not rule on it (round-4 review).

@@ -150,7 +150,14 @@ export const DisputeTimelineDialog = ({
       const newUrls: string[] = [];
       let failedUploads = 0;
       for (const file of evidenceFiles) {
-        const ext = file.name.split(".").pop();
+        // Sanitise the extension: the stored URL's path segment must match the
+        // server's anchored evidence check ([^/?#]+…), so a filename like
+        // "photo.jp#g" — ext "jp#g" — must not put a `#` in the object path, or
+        // the upload succeeds and the dispute RPC then refuses the URL with a
+        // misleading "not your upload" error. Keep only [a-z0-9], cap length,
+        // fall back to "jpg".
+        const rawExt = (file.name.split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
+        const ext = rawExt || "jpg";
         const path = `${uid}/disputes/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file);
         if (uploadError) {

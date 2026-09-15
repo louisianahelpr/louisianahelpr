@@ -566,6 +566,36 @@ const deadClaim = async (jobId, action, stamped) => {
   const fine = await decideOn(null);
   check("r5 control: rpc_decide_dispute still decides with no claim and a non-party admin", fine.res === "ok" && fine.status === "decided", JSON.stringify(fine));
 
+  // MEDIUM-2: the locked re-read is guarded. A dispute that does not exist (the
+  // deleted-under-us shape, reachable single-connection by deleting before the
+  // call) must RAISE, never fall through `NULL <> 'open'` and UPDATE the job.
+  {
+    const jobId = await newJob("disputed", "escrow", { dispute_status: "open" });
+    const { id } = await one(`INSERT INTO public.disputes (job_id, opener_id, reason) VALUES ($1, $2, 'gone') RETURNING id`, [jobId, POSTER]);
+    await db.query(`DELETE FROM public.disputes WHERE id = $1`, [id]);
+    await as(ADMIN);
+    const res = await attempt(`SELECT public.rpc_decide_dispute($1, 'half each', '{"poster":0.5,"helper":0.5}'::jsonb)`, [id]);
+    await as(null);
+    const j = await one(`SELECT status::text AS s, dispute_resolved_at FROM public.jobs WHERE id = $1`, [jobId]);
+    check("MEDIUM-2: rpc_decide_dispute on a deleted dispute RAISES and leaves the job untouched",
+      /dispute not found/.test(res) && j.s === "disputed" && j.dispute_resolved_at === null, `${res} / ${j.s}`);
+  }
+  {
+    const jobId = await newJob("completed", "escrow", { dispute_status: "resolved" });
+    const { id } = await one(
+      `INSERT INTO public.disputes (job_id, opener_id, reason, status, decided_at, decided_by, decision_text, payout_split, execution_status)
+       VALUES ($1, $2, 'x', 'decided', now(), $3, 'half', '{"poster":0.5,"helper":0.5}', 'pending') RETURNING id`,
+      [jobId, POSTER, ADMIN]);
+    await db.query(`DELETE FROM public.disputes WHERE id = $1`, [id]);
+    await as(ADMIN);
+    const res = await attempt(`SELECT public.rpc_supersede_dispute_decision($1, 'the helpr account was deleted for good')`, [id]);
+    await as(null);
+    const j = await one(`SELECT status::text AS s FROM public.jobs WHERE id = $1`, [jobId]);
+    const n = await one(`SELECT count(*)::int AS n FROM public.disputes WHERE job_id = $1`, [jobId]);
+    check("MEDIUM-2: rpc_supersede_dispute_decision on a deleted dispute RAISES, opens no new dispute, leaves the job",
+      /dispute not found/.test(res) && j.s === "completed" && n.n === 0, `${res} / ${j.s} / ${n.n}`);
+  }
+
   // Withdraw: an expired UNSTAMPED claim (any action) never blocks; a stamped one does.
   const withdrawWith = async (action, stamped) => {
     const jobId = await newJob("disputed", "escrow", { dispute_status: "open" });

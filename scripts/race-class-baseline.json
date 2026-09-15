@@ -27,7 +27,6 @@
     "sql:public.notifications_fill_job_id": "EXISTS check that a job id is real before stamping notifications.job_id; no lifecycle decision.",
     "sql:public.snapshot_application_job_point": "Copies rounded job coordinates onto the application at INSERT; coordinates are not lifecycle state.",
     "sql:public.open_dispute_as": "Primary job read is FOR UPDATE; remaining hit is a velocity/fraud-flag read in the same body. Not yet re-audited under this class.",
-    "client:src/components/DisputeDialog.tsx::status": "Opening a dispute (status -> disputed) with no status predicate. Not yet re-audited under this class — candidate for .in(\"status\", …).",
     "client:src/components/JobConfirmation.tsx::opaque:{ [field]: new Date().toISOStr": "Computed-key day-of confirmation stamp; field set is helper_dayof/poster confirmations. Not yet re-audited under this class.",
     "client:src/components/JobTracking.tsx::helper_completed_at": "Helper marks done; payout clock starts from this stamp. Not yet re-audited under this class — candidate for .eq(\"status\", \"in_progress\").",
     "client:src/components/JobTracking.tsx::opaque:patch": "stampJob(patch) helper for poster tracker stamps; payload typed TablesUpdate<\"jobs\">. Not yet re-audited under this class.",

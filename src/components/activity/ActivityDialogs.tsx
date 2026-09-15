@@ -281,7 +281,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
              this one dialog, and a poster who also worked a job would get the
              wrong list from a route check. */
           side={props.disputeJob.helper_id === props.user.id ? "helper" : "poster"}
-          userId={props.user.id} open={!!props.disputeJob}
+          open={!!props.disputeJob}
           onClose={() => props.setDisputeJob(null)} onDisputed={props.onRefresh}
         />
       )}

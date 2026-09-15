@@ -70,7 +70,11 @@ export function stripComments(sql) {
 }
 
 const QNAME = String.raw`(?:"?([a-z_][a-z0-9_$]*)"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?`;
-const esc = (s) => s.replace(/[$]/g, "\\$");
+// Full regex-metacharacter escape (backslash first, via the character class),
+// so a relation name is matched literally when spliced into a RegExp. Names
+// here are already constrained to [a-z0-9_$] by QNAME, but escape the whole
+// metacharacter set — incl. backslash — so the escaper is correct for any input.
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Violations for one migration's SQL text. */
 export function violationsFor(sqlText) {

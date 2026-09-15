@@ -50,11 +50,6 @@ test.beforeAll(async ({ request }) => {
   poster = await getSession(request, "poster");
 });
 
-/** Tailwind `xl` is the DEFAULT 1280 here — tailwind.config.ts overrides only
- *  `lg` (900) and `2xl` (1400). So 1440 exercises the VN-37 change and 375
- *  must prove it did NOT move. */
-const XL = 1280;
-
 interface Geometry {
   /** The one scroll surface the tab is supposed to have. */
   scroller: { scrollHeight: number; clientHeight: number; overflows: boolean } | null;
@@ -71,7 +66,9 @@ interface Geometry {
 function measure(): Geometry {
   const q = <T extends Element>(s: string) => document.querySelector<T>(s);
   const scrollerEl = q<HTMLElement>(".page-measure");
-  const frameEl = q<HTMLElement>(".app-shell-frame") ?? document.documentElement;
+  // No `?? document.documentElement` fallback: that made the "no frame"
+  // assertion below unfailable, which is the exact vacuity this spec polices.
+  const frameEl = q<HTMLElement>(".app-shell-frame");
 
   const scrolls = (el: Element) => {
     const cs = getComputedStyle(el);
@@ -247,15 +244,42 @@ for (const vw of [375, 1440] as const) {
     expect(rev.docOverflow, `horizontal overflow at ${vw}`).toBeLessThanOrEqual(0);
     expect(rev.widest, `an element is wider than the viewport at ${vw}`).toBeNull();
 
-    // The fix's OWN number. At xl the wrapper bleeds 24px into the container's
-    // 48px gutter instead of 12, so the card sits 12px further out than it did.
-    // Below xl nothing changed and the gap stays the container's own.
-    if (vw >= XL) {
-      expect(
-        gapL,
-        `VN-37: at ${vw} the card should sit 36px inside the frame (48px container gutter less the 12px the wrapper bleeds back), measured ${gapL}px`,
-      ).toBeLessThanOrEqual(40);
-    }
+    // THE INVARIANT, and the one this spec exists for.
+    //
+    // It replaces a hard-coded "the card should sit 36px inside the frame",
+    // which was written on 2026-09-14 from a misreading of VN-37 and would have
+    // frozen that mistake into the suite. Profile is the one main screen not
+    // built on PageScaffold, so the thing worth asserting is not a number — it
+    // is that its tab pages land on the same edge as the screens that ARE.
+    // Measured on prod at 1440 (frame 0->1192): /dashboard, /my-posts,
+    // /messages all put `.page-panel` at 48->1144 and ?tab=reviews put its card
+    // at 48->1144. Identical. A number would have to be re-chosen every time the
+    // shared gutter changes; this does not.
+    const sibling = await (async () => {
+      await page.goto("/dashboard");
+      await settle(page);
+      await expect(page.locator(".page-panel").first(), "no PageScaffold panel on /dashboard").toBeVisible({ timeout: 45_000 });
+      await page.waitForTimeout(700);
+      return page.evaluate(() => {
+        const el = document.querySelector<HTMLElement>(".page-panel");
+        const f = document.querySelector<HTMLElement>(".app-shell-frame");
+        if (!el || !f) return null;
+        const a = el.getBoundingClientRect(), b = f.getBoundingClientRect();
+        return { left: Math.round(a.left - b.left), right: Math.round(b.right - a.right) };
+      });
+    })();
+    info.annotations.push({
+      type: "VN-37 parity",
+      description: `${vw}: profile card inset L${gapL} R${gapR} vs PageScaffold panel inset L${sibling?.left} R${sibling?.right}`,
+    });
+    expect(sibling, "could not measure a PageScaffold sibling to compare against").not.toBeNull();
+    expect(
+      gapL,
+      `VN-37: Profile tab cards sit ${gapL}px inside the frame at ${vw} while its PageScaffold ` +
+        `siblings sit ${sibling!.left}px in. Profile is the one main screen not built on ` +
+        `PageScaffold; its tab pages must land on the same edge, or the app has two gutters. ` +
+        `If the gutter is meant to change, change it for the shared container, not for Profile.`,
+    ).toBe(sibling!.left);
 
     if (process.env.LH_PROFILE_SHOTS) {
       await page.screenshot({ path: join(process.env.LH_PROFILE_SHOTS, `vn37-reviews-${vw}.png`) });

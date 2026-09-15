@@ -32,56 +32,93 @@ import { resolve } from "node:path";
 const ROOT = resolve(__dirname, "../../..");
 const PANELS = resolve(ROOT, "src/pages/profile/ProfileTabPanels.tsx");
 const PROFILE = resolve(ROOT, "src/pages/Profile.tsx");
+const APPPAGE = resolve(ROOT, "src/components/AppPage.tsx");
 
 /**
- * Every string/template literal in a file, with comments excluded.
+ * Every class string a file can apply, read out of `className` attributes.
  *
- * NOT `/className="([^"]*)"/`. That was the first version of this and it had a
- * hole big enough to drive the defect back through: three panels in the
- * inventory today write the attribute as a ternary or a variable —
- *   HomeHistory.tsx:406   className={jobs.length > 1 ? "relative pl-5" : "…"}
- *   AutoTip.tsx:264       className={captionClass}
- *   ReferralSection.tsx:196  className={canSms ? "grid grid-cols-3 …" : "…"}
- * — and `cn(...)`/`clsx(...)` would be a fourth the moment anyone reaches for
- * it. A check that only sees one of five spellings passes while the defect
- * sits in the other four.
+ * Two earlier versions of this were both wrong, and both wrong in the
+ * direction that makes a guard useless — a silent false negative:
  *
- * So it scans every literal instead, which cannot be spelled around. The cost
- * is that comments MUST be excluded rather than stripped after the fact: this
- * very file, NotificationPreferences.tsx and SavedHelpersTab.tsx:74 all spell
- * `overflow-y-auto` out in prose, and a naive comment-stripper breaks on the
- * `//` inside any URL. Hence the small state walk below — code / line comment
- * / block comment / string, with escapes honoured.
+ *  1. `/className="([^"]*)"/` saw ONE of the five spellings. Three panels in
+ *     the inventory today use another: HomeHistory.tsx:406 (ternary),
+ *     AutoTip.tsx:264 (variable), ReferralSection.tsx:196 (ternary), and
+ *     `cn(...)`/`clsx(...)` would be a fifth.
+ *  2. Walking every string literal in the file fixed that and broke worse: in
+ *     JSX an apostrophe in ordinary prose ("Don't worry") opens a string that
+ *     runs to the next apostrophe, swallowing the real className attributes
+ *     after it into one blob that matches whatever the blob happens to contain.
+ *     31 className literals across 5 tab panels were invisible to it.
+ *
+ * So it reads the ATTRIBUTE, and only the attribute: `className=` then either
+ * a quoted string or a brace-balanced expression (strings inside the
+ * expression are skipped so a `}` in a class list cannot end it early). Every
+ * literal inside that expression counts, which covers the ternary, template
+ * and `cn(...)` spellings. A bare `className={ident}` is resolved against a
+ * `const ident = "…"` in the same file.
+ *
+ * NOT covered, deliberately and with a runtime backstop: a class list imported
+ * from another module, or built by a function call at runtime. That spelling
+ * appears nowhere in the inventory today, and
+ * e2e/prod-audit/profile-tab-scroll-fill.spec.ts asserts the same property on
+ * the rendered page from computed style, where spelling cannot hide it.
  */
 function classNames(src: string): string[] {
+  // `const FOO = "…"` / `let FOO = \`…\`` for the className={FOO} spelling.
+  const idents = new Map<string, string>();
+  for (const m of src.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(["'`])([^"'`]*)\2/g)) {
+    idents.set(m[1], m[3]);
+  }
+
+  /** Index just past the string starting at `i` (which is its quote). */
+  const skipString = (s: string, i: number): number => {
+    const q = s[i];
+    for (i++; i < s.length; i++) {
+      if (s[i] === "\\") { i++; continue; }
+      if (s[i] === q) return i + 1;
+    }
+    return i;
+  };
+
   const out: string[] = [];
-  let i = 0;
-  while (i < src.length) {
-    const c = src[i];
-    const next = src[i + 1];
-    if (c === "/" && next === "/") {
-      while (i < src.length && src[i] !== "\n") i++;
-    } else if (c === "/" && next === "*") {
-      i += 2;
-      while (i < src.length && !(src[i] === "*" && src[i + 1] === "/")) i++;
-      i += 2;
-    } else if (c === '"' || c === "'" || c === "`") {
-      const quote = c;
-      i++;
-      let buf = "";
-      while (i < src.length && src[i] !== quote) {
-        if (src[i] === "\\") {
-          buf += src[i + 1] ?? "";
-          i += 2;
-          continue;
-        }
-        buf += src[i];
-        i++;
+  const re = /className\s*=\s*/g;
+  for (let m = re.exec(src); m; m = re.exec(src)) {
+    const i = m.index + m[0].length;
+    const open = src[i];
+
+    if (open === '"' || open === "'") {
+      const end = skipString(src, i);
+      out.push(src.slice(i + 1, end - 1));
+      continue;
+    }
+    if (open !== "{") continue;
+
+    // Brace-balanced, skipping strings so a `}` inside one cannot close it.
+    let depth = 0;
+    let j = i;
+    for (; j < src.length; j++) {
+      const ch = src[j];
+      if (ch === '"' || ch === "'" || ch === "`") { j = skipString(src, j) - 1; continue; }
+      if (ch === "{") depth++;
+      else if (ch === "}") { depth--; if (depth === 0) break; }
+    }
+    const expr = src.slice(i + 1, j);
+
+    // Inside an expression an apostrophe IS a string delimiter, so a plain
+    // literal sweep is correct here in a way it never was over raw JSX.
+    let found = false;
+    for (let k = 0; k < expr.length; k++) {
+      const ch = expr[k];
+      if (ch === '"' || ch === "'" || ch === "`") {
+        const end = skipString(expr, k);
+        out.push(expr.slice(k + 1, end - 1));
+        found = true;
+        k = end - 1;
       }
-      i++;
-      out.push(buf);
-    } else {
-      i++;
+    }
+    if (!found) {
+      const ident = expr.trim();
+      if (idents.has(ident)) out.push(idents.get(ident)!);
     }
   }
   return out;
@@ -103,12 +140,20 @@ function panelFiles(): string[] {
 
 const SCROLLS = /\boverflow-(?:y-)?(?:auto|scroll)\b|\boverscroll-contain\b/;
 /**
- * A scroller is legitimate only if it bounds its OWN height. The token has to
- * START the class — `min-h-0` ends in `h-0` and would otherwise read as a
- * height bound, which is precisely the thing VN-46 proved is not one.
+ * A scroller is legitimate only if it caps its OWN height.
+ *
+ * Only `max-h-*` and an explicit `h-[…]`/`h-<n>` count. Earlier this also
+ * accepted `h-full`, `inset-0`, `fixed` and `absolute`, and none of those caps
+ * anything on its own: `h-full` resolves against a parent that may itself be
+ * auto (which is precisely how VN-46 happened), and a positioned element is
+ * only bounded if something else bounds it. Accepting them would bless a
+ * VN-46-identical scroller. `min-h-0` is not a cap either — the token has to
+ * START the class, or `min-h-0` reads as `h-0`.
+ *
+ * The two legitimate scrollers in the inventory today are PetProfiles' dialog
+ * lists, both `max-h-[calc(100dvh-…)]`, and both still pass.
  */
-const BOUNDED =
-  /(?:^|\s)(?:[a-z0-9:[\]-]+:)?(?:max-h-|h-\[|h-\d|h-full|h-screen|inset-0|fixed|absolute)/;
+const BOUNDED = /(?:^|\s)(?:[a-z0-9:[\]-]+:)?(?:max-h-|h-\[|h-\d)/;
 
 describe("Profile tabs have exactly one scroll surface", () => {
   it("finds the panel inventory at all (guards the regex rotting)", () => {
@@ -196,5 +241,50 @@ describe("Profile tab scroll wrapper keeps its shadow gutter free", () => {
     expect(broken, "Profile tab content does not fill its container").toEqual(
       [],
     );
+  });
+});
+
+/**
+ * ONE wrapper string for the whole fixed-shell family.
+ *
+ * This exists because of a mistake made on 2026-09-14, in the commit that
+ * added the file. VN-37 ("content should fill that space" on the Profile tab
+ * pages) was read as a Profile defect and fixed by bleeding this wrapper an
+ * extra 12px per side at `xl`. It was wrong. Measured on prod at 1440, frame
+ * 0->1192, BEFORE anything was touched:
+ *
+ *     /dashboard ............ panel  48 -> 1144
+ *     /my-posts ............. panel  48 -> 1144
+ *     /messages ............. panel  48 -> 1144
+ *     /profile?tab=reviews .. card   48 -> 1144
+ *
+ * Pixel-identical. The Profile tabs were not inset relative to anything; they
+ * were already flush with every PageScaffold sibling. The "gap" is the
+ * container gutter (`px-5 lg:px-8 xl:px-12`) that all of them share, and
+ * narrowing it is an app-wide decision, not a per-screen fix.
+ *
+ * src/components/AppPage.tsx carries this same wrapper byte-for-byte for the
+ * standalone sub-screens. Editing one and not the other splits the family and
+ * nothing in the suite noticed — the change shipped green, and only a
+ * measurement of the siblings caught it. So: the two strings must stay equal.
+ * If a future change really is meant for both, change both, and this passes.
+ */
+describe("Profile and AppPage share one tab-scroll wrapper", () => {
+  const wrapperOf = (file: string) =>
+    classNames(readFileSync(file, "utf8")).find((c) => c.includes("page-measure") && SCROLLS.test(c));
+
+  it("both files still have the wrapper", () => {
+    expect(wrapperOf(PROFILE), "Profile.tsx tab scroll wrapper not found").toBeTruthy();
+    expect(wrapperOf(APPPAGE), "AppPage.tsx scroll wrapper not found").toBeTruthy();
+  });
+
+  it("the two wrapper strings are identical", () => {
+    expect(
+      wrapperOf(PROFILE),
+      "Profile.tsx and AppPage.tsx disagree about the shared fixed-shell wrapper. " +
+        "Profile tab pages sit flush with the PageScaffold siblings (measured 48->1144 " +
+        "at 1440 on all four); moving one of them alone splits the family. Change both, " +
+        "or neither.",
+    ).toBe(wrapperOf(APPPAGE));
   });
 });

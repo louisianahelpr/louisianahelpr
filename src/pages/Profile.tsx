@@ -680,32 +680,41 @@ const ProfilePage = () => {
               after — i.e. identical to the PageScaffold pages (Dashboard's is
               335 at x=20). Same fix as AppPage.tsx (9e3f3ad7f), found by the
               shell-cards lane. */
-          /* VN-37, owner 2026-09-14: "reviews and other pages still have that
-              small gap to the left and right of content. content should fill
-              that space." The `px-3` above is a SHADOW GUTTER, not spacing —
-              `overflow-y-auto` computes `overflow-x` to `auto` too, so a card's
-              shadow is sliced off flat at the box edge without it. `-mx-3`
-              pays that 12px back out of the parent, which is why the content
-              box lands exactly on the container's own content edge and the
-              cards are flush with the title. The gap the owner is pointing at
-              is that container gutter (`xl:px-12`, 48px) minus nothing: at
-              1920 the wrapper's box runs x=36→1636 while the card inside it
-              starts at x=48.
+          /* VN-37 was TRIED HERE AND REVERTED (2026-09-14). Do not try it again
+              without reading this.
 
-              So the gutter bleeds by 24px instead of 12 from `xl` up: the
-              12px shadow clearance is unchanged, and the extra 12px per side
-              comes out of the container's 48px padding, landing the card on
-              x=36 — the edge the owner measured. PageHeader renders with
-              `width="none"` inside this same box (see ProfileTabHeader), so
-              the title moves with the cards and stays edge-aligned; no page
-              re-insets itself for the rail (CLAUDE.md) because the rail inset
-              still lives only on `.app-shell-frame` / `#root`.
+              The owner asked for "that small gap to the left and right of
+              content" to be filled on the Profile tab pages. This wrapper
+              bleeds 12px (`-mx-3`) to pay back the `px-3` it needs so that
+              `overflow-y-auto` — which computes `overflow-x` to `auto` too —
+              does not slice card shadows off flat, so its content box lands
+              exactly on the container's content edge. The fix attempted was to
+              bleed 24px at `xl` instead of 12, moving the cards 12px further
+              out.
 
-              Scoped to `xl:` deliberately. Phone was measured and approved on
-              2026-09-11 (first card 335px at x=20 at 375, identical to
-              Dashboard's) and `lg`'s gutter is only 32px, so neither can spare
-              24px without disagreeing with the PageScaffold siblings. */
-          <div className="page-measure w-[calc(100%+1.5rem)] -mx-3 xl:w-[calc(100%+3rem)] xl:-mx-6 h-full overflow-y-auto px-3 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
+              Measured on prod at 1440 (frame 0->1192) before touching
+              anything, and this is why it was reverted:
+
+                /dashboard ............. panel  48 -> 1144
+                /my-posts .............. panel  48 -> 1144
+                /messages .............. panel  48 -> 1144
+                /profile?tab=reviews ... card   48 -> 1144
+
+              Pixel-identical. The Profile tabs are not inset relative to
+              anything — they are already flush with every PageScaffold
+              sibling, which is the parity the 2026-09-11 commit deliberately
+              established (see the note below it at 375). Bleeding here moved
+              Profile alone to x=36 and split the shared fixed-shell family,
+              since src/components/AppPage.tsx carries this wrapper string
+              byte-for-byte.
+
+              The gap the owner sees is the CONTAINER gutter — `px-5 lg:px-8
+              xl:px-12`, 48px at xl — shared by Profile, AppPage and
+              PageScaffold. Narrowing it is a one-line change to that string in
+              all three, an app-wide look decision, and it is OPEN for the
+              owner. It is not a Profile bug and must not be fixed one screen
+              at a time. */
+          <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
           {/* `key={tab}` on the boundary re-mounts this wrapper on every
               tab switch, so `animate-ds-page-in` replays its entrance each

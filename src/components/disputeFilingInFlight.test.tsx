@@ -71,7 +71,6 @@ describe("DisputeDialog — same-frame double submit files one dispute", () => {
         <DisputeDialog
           jobId="job-1"
           side="poster"
-          userId="poster-1"
           open
           onClose={() => {}}
           onDisputed={() => {}}

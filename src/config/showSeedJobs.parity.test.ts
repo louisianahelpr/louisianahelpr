@@ -231,6 +231,9 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // filings (an undelivered revision past its deadline) take the identical
     // path a person's do. Same shape as its caller: one job by id.
     ["public.open_dispute_as", "single-job mutation; status is a precondition"],
+    // 20260915034822 gave it the job row FOR UPDATE (lock order jobs ->
+    // disputes); the 'open' it reads is the DISPUTE's status, not a feed.
+    ["public.rpc_decide_dispute", "single-job admin mutation; the 'open' it reads is the dispute's status"],
     // The `status = 'open'` it reads is DISPUTES.status (the live dispute on
     // one job the caller opened), not jobs.status — re-created by
     // 20260908024937 so the helper-opener can withdraw.

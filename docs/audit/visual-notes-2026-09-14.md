@@ -22,13 +22,13 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-11 | Map "Recenter" button uses the "my location" crosshair icon (NEEDS DECISION) | small | [x] 6f67b8daf | [x] vn11-375-granted.jpg |
 | VN-12 | Remove availability from the public profile | small | [x] f0ace886a | [x] vn-12-after-public-profile-1440.webp |
 | VN-13 | Public profile shows both "ID verified" and "Verification in progress" | small | [x] f0ace886a | [x] vn-13-after-public-profile-1440.webp |
-| VN-14 | Are profile badges earned from the right numbers? (OWNER QUESTION — code read only) | medium | [ ] | [ ] |
+| VN-14 | Are profile badges earned from the right numbers? (OWNER QUESTION — code read only) | medium | [x] 0864118ad | [x] vn-14-after-vn14-hallie-375.webp |
 | VN-15 | Reviews on the public profile need a design discussion (same review shows twice) | large | [ ] | [ ] |
 | VN-16 | "You've worked together N times" becomes a 5th stat tile; order tiles most → least importa | small–medium | [x] 50f18c09a | [x] vn-16-after-vn16-profile-375.webp |
 | VN-17 | Profile badges are too big | small | [x] f0ace886a | [x] vn-17-after-public-profile-1440.webp |
 | VN-18 | "Can't Finish" wording is wrong once the Helpr has confirmed (before work starts) | small | [x] f336fcf99 | [x] vn-18-after-jobs-confirmed-1440.webp |
 | VN-19 | "Report a Problem" should sit beside Message, not under it | small | [x] bd5ecd567 | [x] vn-19-after-jobs-working-1440.webp |
-| VN-20 | "Location confirmed" should not show on the tracker — show it on the map instead | medium | [ ] | [ ] |
+| VN-20 | "Location confirmed" should not show on the tracker — show it on the map instead | medium | [x] 67d4eb138 | [x] vn-20-after-vn20-map-1440-dresser.webp |
 | VN-21 | Job and post cards stack buttons in several rows — put them all on one row (NEEDS DESIGN D | large | [ ] | [ ] |
 | VN-22 | When a posted job is expanded, show the Helpr's profile under the description, not in the  | medium | [x] 8d2889021 | [x] vn-22-after-vn22-posts-1440-expanded.webp |
 | VN-23 | Disputed jobs should still show the tracker | small–medium | [x] 4b3d69aa4 | [x] vn-23-after-vn23-disputed-1440.webp |

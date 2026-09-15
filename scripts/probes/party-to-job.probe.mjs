@@ -1,6 +1,8 @@
 // Probe: 20260914210443 (is_party_to_job loses every client grant; the
 // messages INSERT policy checks the receiver through the caller-bound
-// can_send_message_to_in_job), in real Postgres. NOT a vitest test (pglite is
+// can_send_message_to_in_job) + 20260914215014 (the offered, not yet accepted,
+// Helpr is poster-only like applicants, and reaches only the poster), in real
+// Postgres. NOT a vitest test (pglite is
 // not a dependency), so run by hand:
 //
 //   mkdir -p ~/.lh-pglite-probe && cd ~/.lh-pglite-probe && npm i @electric-sql/pglite
@@ -14,8 +16,11 @@
 //
 // 1. BEFORE, on the live shape: the hole must reproduce (a signed-in stranger
 //    calls is_party_to_job with someone else's id and gets the answer).
-// 2. The real migration applied verbatim three times: every expectation holds.
-// 3. Deliberately broken copies of the migration, each on a fresh database:
+// 1b. BETWEEN, 20260914210443 alone (the shape live before 20260914215014):
+//    the offered-Helpr hole must reproduce (hired Helpr / roster reach the
+//    offered Helpr, the offered Helpr reaches them).
+// 2. Both migrations applied verbatim three times: every expectation holds.
+// 3. Deliberately broken copies of the migrations, each on a fresh database:
 //    every one must FAIL at least one expectation, or this probe cannot fail.
 // 4. Skip path: on a database without the prerequisites it is a no-op.
 // Exit 1 on any mismatch.
@@ -28,7 +33,9 @@ try {
   process.exit(2);
 }
 import fs from "node:fs";
-const MIG = fs.readFileSync(new URL("../../supabase/migrations/20260914210443_is_party_to_job_internal_receiver_gate.sql", import.meta.url), "utf8");
+const MIG1 = fs.readFileSync(new URL("../../supabase/migrations/20260914210443_is_party_to_job_internal_receiver_gate.sql", import.meta.url), "utf8");
+const MIG2 = fs.readFileSync(new URL("../../supabase/migrations/20260914215014_offered_helpr_poster_only_receiver.sql", import.meta.url), "utf8");
+const MIG = `${MIG1}\n${MIG2}`;
 
 const A = "71c56dfb-b326-4010-b960-b18dd3966e7f";   // poster of J1, J3, J4
 const B = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";   // stranger to J1 (poster of J2)
@@ -46,6 +53,12 @@ const J5 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";   // poster A, Helpr H2, bloc
 const J6 = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";   // poster B, Helpr H3, rate cap
 const J7 = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";   // ownerless (poster deleted), Helpr H1, applicant APP2
 const RA = "12121212-1212-4212-8212-121212121212";  // on J1 both as an applicant AND on the roster
+const OFF = "13131313-1313-4313-8313-131313131313"; // offered (not accepted) Helpr on J8
+const J8 = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";   // poster A, hired H1, offered OFF, roster R
+const J9 = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";   // poster A, hired H1, offered R who is ALSO on the roster
+const J10 = "f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0";  // poster A, hired H1 = offered H1 (accepted shape), roster R
+const J11 = "f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1";  // OWNERLESS (poster deleted), hired H1, offered OFF, roster R
+const J12 = "f2f2f2f2-f2f2-4f2f-8f2f-f2f2f2f2f2f2";  // poster A, hired H1, offered APP who is ALSO an applicant
 
 const SCHEMA = `
 CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
@@ -168,9 +181,14 @@ INSERT INTO public.jobs VALUES
   ('${J4}','${A}','${H1}',null,'completed', now() - interval '1 hour'),
   ('${J5}','${A}','${H2}',null,'in_progress',null),
   ('${J6}','${B}','${H3}',null,'in_progress',null),
-  ('${J7}',null,'${H1}',null,'in_progress',null);
-INSERT INTO public.group_job_helpers VALUES ('${J1}','${R}'), ('${J1}','${RA}');
-INSERT INTO public.applications VALUES ('${J1}','${APP}'), ('${J1}','${APP2}'), ('${J1}','${RA}'), ('${J7}','${APP2}');
+  ('${J7}',null,'${H1}',null,'in_progress',null),
+  ('${J8}','${A}','${H1}','${OFF}','in_progress',null),
+  ('${J9}','${A}','${H1}','${R}','in_progress',null),
+  ('${J10}','${A}','${H1}','${H1}','in_progress',null),
+  ('${J11}',null,'${H1}','${OFF}','in_progress',null),
+  ('${J12}','${A}','${H1}','${APP}','in_progress',null);
+INSERT INTO public.group_job_helpers VALUES ('${J1}','${R}'), ('${J1}','${RA}'), ('${J8}','${R}'), ('${J9}','${R}'), ('${J10}','${R}'), ('${J11}','${R}');
+INSERT INTO public.applications VALUES ('${J1}','${APP}'), ('${J1}','${APP2}'), ('${J1}','${RA}'), ('${J7}','${APP2}'), ('${J8}','${APP2}'), ('${J12}','${APP}');
 INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${H2}','${A}');
 INSERT INTO public.profiles VALUES ('${BAN}','banned',null);
 `;
@@ -222,6 +240,31 @@ async function scenario(db) {
   // non-applicant parties are still reachable by a Helpr / roster member
   out.send_helpr_to_roster = await send(H1, J1, R);
   out.wrap_helpr_roster = await rpc(H1, "can_send_message_to_in_job", `'${J1}','${R}'`);
+  // ── OWNER DECISION: the offered (not accepted) Helpr is poster-only ──────
+  out.send_poster_to_offered = await send(A, J8, OFF);
+  out.send_offered_to_poster = await send(OFF, J8, A);
+  out.wrap_poster_offered = await rpc(A, "can_send_message_to_in_job", `'${J8}','${OFF}'`);
+  out.send_helpr_to_offered = await send(H1, J8, OFF);
+  out.send_roster_to_offered = await send(R, J8, OFF);
+  out.wrap_helpr_probe_offered = await rpc(H1, "can_send_message_to_in_job", `'${J8}','${OFF}'`);
+  out.wrap_roster_probe_offered = await rpc(R, "can_send_message_to_in_job", `'${J8}','${OFF}'`);
+  // and the offered Helpr reaches only the poster (the Helpr/roster could not reply)
+  out.send_offered_to_helpr = await send(OFF, J8, H1);
+  out.send_offered_to_roster = await send(OFF, J8, R);
+  out.wrap_offered_probe_helpr = await rpc(OFF, "can_send_message_to_in_job", `'${J8}','${H1}'`);
+  // an offered Helpr who is also on the roster, or also the hired Helpr, keeps
+  // the hired/roster reachability
+  out.send_helpr_to_offered_roster = await send(H1, J9, R);
+  out.send_roster_to_offered_hired = await send(R, J10, H1);
+  out.send_offered_hired_to_roster = await send(H1, J10, R);
+  // the offered Helpr reaches no applicant either (poster-only branch)
+  out.send_offered_to_applicant = await send(OFF, J8, APP2);
+  // ownerless job: the offered Helpr is reachable by nobody (no poster)
+  out.send_ownerless_helpr_to_offered = await send(H1, J11, OFF);
+  out.wrap_ownerless_roster_probe_offered = await rpc(R, "can_send_message_to_in_job", `'${J11}','${OFF}'`);
+  // offered AND applicant: still poster-only
+  out.send_helpr_to_offered_applicant = await send(H1, J12, APP);
+  out.send_poster_to_offered_applicant = await send(A, J12, APP);
   // ── block: the wrapper answers false for a blocked pair, both directions ──
   out.wrap_blocked_poster_asks = await rpc(A, "can_send_message_to_in_job", `'${J5}','${H2}'`);
   out.wrap_blocked_helpr_asks = await rpc(H2, "can_send_message_to_in_job", `'${J5}','${A}'`);
@@ -261,7 +304,8 @@ async function scenario(db) {
   out.wrap_stranger_poster = await rpc(B, "can_send_message_to_in_job", `'${J1}','${A}'`);
   out.wrap_closed_thread_party = await rpc(A, "can_send_message_to_in_job", `'${J3}','${H1}'`);
   out.wrap_anon = await rpc(null, "can_send_message_to_in_job", `'${J1}','${H1}'`);
-  out.wrap_banned_party = await rpc(BAN, "can_send_message_to_in_job", `'${J1}','${H1}'`);
+  // BAN is J1's offered Helpr, so ask about the poster (reachable when not banned).
+  out.wrap_banned_party = await rpc(BAN, "can_send_message_to_in_job", `'${J1}','${A}'`);
   out.wrap_party_non_party = await rpc(A, "can_send_message_to_in_job", `'${J1}','${B}'`);
   out.wrap_party_party = await rpc(A, "can_send_message_to_in_job", `'${J1}','${H1}'`); // = what INSERT already reveals to A
 
@@ -322,6 +366,17 @@ const expectAfter = {
   photo_stranger_updates: false, photo_poster_updates: true, photo_stranger_deletes: false, photo_helpr_deletes: true,
   grant_authenticated_is_party: false, grant_anon_is_party: false, grant_service_is_party: true, grant_anon_wrapper: false,
   wrapper_secdef_search_path: true,
+  send_poster_to_offered: true, send_offered_to_poster: true, wrap_poster_offered: true,
+  send_helpr_to_offered: false, send_roster_to_offered: false, wrap_helpr_probe_offered: false, wrap_roster_probe_offered: false,
+  send_offered_to_helpr: false, send_offered_to_roster: false, wrap_offered_probe_helpr: false,
+  send_helpr_to_offered_roster: true, send_roster_to_offered_hired: true, send_offered_hired_to_roster: true,
+  send_offered_to_applicant: false, send_ownerless_helpr_to_offered: false, wrap_ownerless_roster_probe_offered: false,
+  send_helpr_to_offered_applicant: false, send_poster_to_offered_applicant: true,
+};
+// The offered-Helpr hole, as it stood on both earlier shapes.
+const offeredHole = {
+  send_helpr_to_offered: true, send_roster_to_offered: true, send_offered_to_helpr: true, send_offered_to_roster: true,
+  send_ownerless_helpr_to_offered: true, send_helpr_to_offered_applicant: true,
 };
 // On the live shape: the probing hole, and every send/photo behaviour the
 // migration must preserve (so AFTER is compared against real behaviour, not a guess).
@@ -330,8 +385,16 @@ const expectBefore = {
   // the owner-decision gap, reproduced on the live shape
   send_helpr_to_applicant: true, send_roster_to_applicant: true, send_messaged_applicant_to_applicant: true,
   send_messaged_applicant_to_helpr: true, send_messaged_applicant_to_roster: true,
+  ...offeredHole, send_offered_to_applicant: true,
   rpc_stranger_is_party_helpr: true, rpc_stranger_is_party_applicant: true, rpc_party_is_party: true, rpc_anon_is_party: "ERR",
   grant_authenticated_is_party: true, grant_anon_is_party: false,
+};
+
+// 20260914210443 alone (live until 20260914215014): everything as after, except the offered hole.
+const expectBetween = {
+  ...expectAfter, ...offeredHole,
+  wrap_helpr_probe_offered: true, wrap_roster_probe_offered: true, wrap_offered_probe_helpr: true,
+  wrap_ownerless_roster_probe_offered: true,
 };
 
 const diff = (got, want) => Object.entries(want).filter(([k, v]) => got[k] !== v).map(([k, v]) => `${k}: want ${v}, got ${got[k]}`);
@@ -362,30 +425,53 @@ let fail = false;
   else console.log("BEFORE: hole reproduced (stranger and applicant probes answered true); sends/photos baseline recorded");
 }
 
-// ── 2. The real migration, 3x ───────────────────────────────────────────────
+// ── 1b. BETWEEN: 20260914210443 alone ───────────────────────────────────────
+{
+  const db = new PGlite();
+  await db.exec(SCHEMA);
+  await db.exec(MIG1);
+  const between = await scenario(db);
+  await db.close();
+  const bad = diff(between, expectBetween);
+  if (bad.length) { fail = true; console.log("FAIL between (offered hole did not reproduce on 20260914210443):", bad); }
+  else console.log("BETWEEN: offered-Helpr hole reproduced on 20260914210443 (hired Helpr/roster <-> offered answered true)");
+}
+
+// ── 2. The real migrations, 3x ──────────────────────────────────────────────
 {
   const r = await run("REAL", MIG);
-  console.log("\n== AFTER real migration x3"); console.table(r.got);
+  console.log("\n== AFTER real migrations x3"); console.table(r.got);
   if (r.bad.length) { fail = true; console.log("FAIL after:", r.bad); }
   else console.log(`AFTER: all ${Object.keys(expectAfter).length} expectations met (green)`);
 }
 
 // ── 3. Broken copies: each must be caught ───────────────────────────────────
-const mutate = (from, to) => {
-  if (!MIG.includes(from)) throw new Error(`mutation anchor not found: ${from.slice(0, 60)}`);
-  return MIG.replace(from, to);
+// mutate1 breaks 20260914210443 (policy + is_party_to_job grants); mutate
+// breaks 20260914215014 (the wrapper body and its grants, which supersede
+// 20260914210443's). Each returns both migrations, in order.
+const mutateIn = (which, from, to) => {
+  const src = which === 1 ? MIG1 : MIG2;
+  if (!src.includes(from)) throw new Error(`mutation anchor not found in MIG${which}: ${from.slice(0, 60)}`);
+  const m = src.replace(from, to);
+  return which === 1 ? `${m}\n${MIG2}` : `${MIG1}\n${m}`;
+};
+const mutate1 = (from, to) => mutateIn(1, from, to);
+const mutate = (from, to) => mutateIn(2, from, to);
+const mutateBoth = (from, to) => {
+  if (!MIG1.includes(from) || !MIG2.includes(from)) throw new Error(`mutation anchor not in both migrations: ${from.slice(0, 60)}`);
+  return `${MIG1.replace(from, to)}\n${MIG2.replace(from, to)}`;
 };
 const broken = [
   ["revoke omits authenticated (FROM PUBLIC, anon)",
-    mutate("REVOKE ALL ON FUNCTION public.is_party_to_job(uuid, uuid) FROM PUBLIC, anon, authenticated;", "REVOKE ALL ON FUNCTION public.is_party_to_job(uuid, uuid) FROM PUBLIC, anon;")],
+    mutate1("REVOKE ALL ON FUNCTION public.is_party_to_job(uuid, uuid) FROM PUBLIC, anon, authenticated;", "REVOKE ALL ON FUNCTION public.is_party_to_job(uuid, uuid) FROM PUBLIC, anon;")],
   ["revoke FROM PUBLIC only (the 20260904 V-015 shape)",
-    mutate("REVOKE ALL ON FUNCTION public.is_party_to_job(uuid, uuid) FROM PUBLIC, anon, authenticated;", "REVOKE ALL ON FUNCTION public.is_party_to_job(uuid, uuid) FROM PUBLIC;")],
+    mutate1("REVOKE ALL ON FUNCTION public.is_party_to_job(uuid, uuid) FROM PUBLIC, anon, authenticated;", "REVOKE ALL ON FUNCTION public.is_party_to_job(uuid, uuid) FROM PUBLIC;")],
   ["wrapper not bound to the caller (no can_message_in_job gate)",
     mutate("     AND public.can_message_in_job(_job_id, auth.uid())\n", "")],
   ["policy still calls is_party_to_job (revoked, not swapped)",
-    mutate("AND public.can_send_message_to_in_job(job_id, receiver_id)", "AND public.is_party_to_job(job_id, receiver_id)")],
+    mutate1("AND public.can_send_message_to_in_job(job_id, receiver_id)", "AND public.is_party_to_job(job_id, receiver_id)")],
   ["policy checks sender_id instead of receiver_id",
-    mutate("AND public.can_send_message_to_in_job(job_id, receiver_id)", "AND public.can_send_message_to_in_job(job_id, sender_id)")],
+    mutate1("AND public.can_send_message_to_in_job(job_id, receiver_id)", "AND public.can_send_message_to_in_job(job_id, sender_id)")],
   ["wrapper SECURITY INVOKER",
     mutate(" STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  -- The caller", " STABLE\n SET search_path TO 'public'\nAS $function$\n  -- The caller")],
   ["wrapper without the ban check",
@@ -393,9 +479,19 @@ const broken = [
   ["wrapper without SET search_path",
     mutate(" STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  -- The caller", " STABLE SECURITY DEFINER\nAS $function$\n  -- The caller")],
   ["applicant branch not poster-gated (any party may message applicants)",
-    mutate("       OR (\n         EXISTS (\n           SELECT 1 FROM public.jobs j\n           WHERE j.id = _job_id AND j.customer_id = auth.uid()\n         )\n         AND EXISTS (", "       OR (\n         EXISTS (")],
+    mutate("       OR (\n         EXISTS (\n           SELECT 1 FROM public.jobs j\n           WHERE j.id = _job_id AND j.customer_id = auth.uid()\n         )\n         AND (", "       OR (\n         (")],
   ["messaged applicant may reach the Helpr/roster (caller gate dropped)",
-    mutate("         AND (\n           EXISTS (\n             SELECT 1 FROM public.jobs j\n             WHERE j.id = _job_id\n               AND (j.customer_id = auth.uid()", "         AND (\n           true OR EXISTS (\n             SELECT 1 FROM public.jobs j\n             WHERE j.id = _job_id\n               AND (j.customer_id = auth.uid()")],
+    mutate("         AND (\n           EXISTS (\n             SELECT 1 FROM public.jobs j\n             WHERE j.id = _job_id\n               AND (j.customer_id = auth.uid() OR", "         AND (\n           true OR EXISTS (\n             SELECT 1 FROM public.jobs j\n             WHERE j.id = _job_id\n               AND (j.customer_id = auth.uid() OR")],
+  ["offered Helpr back in the hired/roster receiver branch (Helpr/roster reach them)",
+    mutate("WHERE j.id = _job_id AND j.helper_id = _receiver", "WHERE j.id = _job_id AND (j.helper_id = _receiver OR j.offered_to_helper_id = _receiver)")],
+  ["offered Helpr may reach the hired Helpr/roster (offered back in the caller gate)",
+    mutate("AND (j.customer_id = auth.uid() OR j.helper_id = auth.uid())", "AND (j.customer_id = auth.uid() OR j.helper_id = auth.uid() OR j.offered_to_helper_id = auth.uid())")],
+  ["offered branch admits anyone on an ownerless job (customer_id IS NULL)",
+    mutate("WHERE j.id = _job_id AND j.customer_id = auth.uid()\n         )\n         AND (", "WHERE j.id = _job_id AND (j.customer_id = auth.uid() OR j.customer_id IS NULL)\n         )\n         AND (")],
+  ["offered Helpr dropped entirely (poster cannot reach them)",
+    mutate("           EXISTS (\n             SELECT 1 FROM public.jobs j\n             WHERE j.id = _job_id AND j.offered_to_helper_id = _receiver\n           )\n           OR EXISTS (", "           EXISTS (")],
+  ["offered branch not poster-gated (any party may message the offered Helpr)",
+    mutate("         AND (\n           EXISTS (\n             SELECT 1 FROM public.jobs j\n             WHERE j.id = _job_id AND j.offered_to_helper_id = _receiver\n           )", "       ) OR (\n         (\n           EXISTS (\n             SELECT 1 FROM public.jobs j\n             WHERE j.id = _job_id AND j.offered_to_helper_id = _receiver\n           )")],
   ["wrapper without the block check",
     mutate("     AND NOT public.are_users_blocked(auth.uid(), _receiver)\n", "")],
   ["wrapper without the rate check",
@@ -404,10 +500,12 @@ const broken = [
     mutate("             AND m.created_at > now() - interval '1 hour') < 30", "             AND m.created_at > now() - interval '1 hour') <= 30")],
   ["rate check counts every message ever (no window)",
     mutate("             AND m.created_at > now() - interval '1 hour') < 30", "             ) < 30")],
-  ["wrapper not granted to authenticated",
-    mutate("GRANT EXECUTE ON FUNCTION public.can_send_message_to_in_job(uuid, uuid) TO authenticated, service_role;", "GRANT EXECUTE ON FUNCTION public.can_send_message_to_in_job(uuid, uuid) TO service_role;")],
-  ["wrapper left anon-callable (no REVOKE)",
-    mutate("REVOKE ALL ON FUNCTION public.can_send_message_to_in_job(uuid, uuid) FROM PUBLIC, anon;", "")],
+  // Grants: both migrations assert the same ones (CREATE OR REPLACE keeps the
+  // ACL), so a grant is only really missing when neither file has it.
+  ["wrapper not granted to authenticated (neither migration)",
+    mutateBoth("GRANT EXECUTE ON FUNCTION public.can_send_message_to_in_job(uuid, uuid) TO authenticated, service_role;", "GRANT EXECUTE ON FUNCTION public.can_send_message_to_in_job(uuid, uuid) TO service_role;")],
+  ["wrapper left anon-callable (no REVOKE in either migration)",
+    mutateBoth("REVOKE ALL ON FUNCTION public.can_send_message_to_in_job(uuid, uuid) FROM PUBLIC, anon;", "")],
 ];
 console.log("\n== BROKEN COPIES (each must be caught)");
 for (const [label, sql] of broken) {

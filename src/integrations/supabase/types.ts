@@ -1384,6 +1384,8 @@ export type Database = {
           flag_reasons: string[] | null
           has_active_dispute: boolean
           helper_arrival_verified_at: string | null
+          helper_arrival_near_miss_at: string | null
+          helper_arrival_near_miss_ft: number | null
           helper_arrived_at: string | null
           helper_completed_at: string | null
           helper_confirmed_at: string | null
@@ -1494,6 +1496,8 @@ export type Database = {
           flag_reasons?: string[] | null
           has_active_dispute?: boolean
           helper_arrival_verified_at?: string | null
+          helper_arrival_near_miss_at?: string | null
+          helper_arrival_near_miss_ft?: number | null
           helper_arrived_at?: string | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
@@ -1604,6 +1608,8 @@ export type Database = {
           flag_reasons?: string[] | null
           has_active_dispute?: boolean
           helper_arrival_verified_at?: string | null
+          helper_arrival_near_miss_at?: string | null
+          helper_arrival_near_miss_ft?: number | null
           helper_arrived_at?: string | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
@@ -4801,6 +4807,8 @@ export type Database = {
           flag_reasons: string[] | null
           has_active_dispute: boolean
           helper_arrival_verified_at: string | null
+          helper_arrival_near_miss_at: string | null
+          helper_arrival_near_miss_ft: number | null
           helper_arrived_at: string | null
           helper_completed_at: string | null
           helper_confirmed_at: string | null
@@ -4936,6 +4944,8 @@ export type Database = {
           flag_reasons: string[] | null
           has_active_dispute: boolean
           helper_arrival_verified_at: string | null
+          helper_arrival_near_miss_at: string | null
+          helper_arrival_near_miss_ft: number | null
           helper_arrived_at: string | null
           helper_completed_at: string | null
           helper_confirmed_at: string | null

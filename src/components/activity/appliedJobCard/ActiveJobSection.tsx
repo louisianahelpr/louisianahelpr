@@ -126,6 +126,7 @@ export function ActiveJobSection({
       helperArrivedAt: job.helper_arrived_at,
       helperArrivalVerifiedAt: job.helper_arrival_verified_at,
       posterConfirmedArrivalAt: job.poster_confirmed_arrival_at,
+      helperArrivalNearMissAt: (job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at,
       helperCompletedAt: job.helper_completed_at,
       posterCompletedAt: job.poster_completed_at,
     });

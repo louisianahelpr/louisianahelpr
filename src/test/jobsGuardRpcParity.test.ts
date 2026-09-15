@@ -186,13 +186,17 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
       expect(rpc, "mark_helper_arrival no longer refuses an arrival with no location").toMatch(/RAISE EXCEPTION 'arrival_location_required'/);
     });
 
-    it("gates helper completion on GPS AND poster confirmation, not either (VN-33)", () => {
+    it("gates helper completion on (GPS or a near miss) AND poster confirmation (VN-33, VN-33b)", () => {
       const gates = liveDefinition("enforce_helper_completion_gates");
       expect(
         gates,
         "enforce_helper_completion_gates lets completion through on only one arrival " +
           "stamp. Owner, 2026-09-14: both are required.",
-      ).toMatch(/OLD\.helper_arrival_verified_at IS NULL\s+OR OLD\.poster_confirmed_arrival_at IS NULL/);
+      ).toMatch(
+        // VN-33(b), 2026-09-15: a within-a-mile near miss stands in for the GPS
+        // half, but the poster's confirmation is required either way.
+        /\(OLD\.helper_arrival_verified_at IS NULL AND OLD\.helper_arrival_near_miss_at IS NULL\)\s+OR OLD\.poster_confirmed_arrival_at IS NULL/,
+      );
       expect(gates, "the pre-2026-08-28 grandfather clause is back").not.toMatch(/timestamptz '2026-08-28/);
     });
 

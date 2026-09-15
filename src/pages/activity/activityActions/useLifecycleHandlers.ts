@@ -121,7 +121,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           // this is the message, not the gate.
           const { data: arrivalRow, error: arrivalErr } = await supabase
             .from("jobs")
-            .select("helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at")
+            .select("helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, helper_arrival_near_miss_at")
             .eq("id", jobId)
             .single();
           // Fails CLOSED (read error → can't prove arrival → block), but never

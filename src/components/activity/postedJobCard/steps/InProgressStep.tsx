@@ -51,9 +51,14 @@ export function InProgressStep(ctx: PosterStepCtx) {
     setCompletionSheetOpen,
   } = ctx;
 
+  // VN-33(b): also when the Helpr was refused as a little too far from a map
+  // pin that may be wrong (within a mile, last 12h) — the poster at the real
+  // door is the one who can say they're there. Same 12h window as the trigger.
+  const nearMissAt = (job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at;
+  const recentNearMiss = !!nearMissAt && Date.now() - new Date(nearMissAt).getTime() < 12 * 3_600_000;
   const showConfirmArrival =
     job.status === "in_progress" &&
-    !!job.helper_arrived_at &&
+    (!!job.helper_arrived_at || recentNearMiss) &&
     !job.poster_confirmed_arrival_at &&
     !job.helper_completed_at;
   const showConfirmWorking =

@@ -28,11 +28,18 @@ export type ArrivalEvidence = {
   helper_arrived_at?: string | null;
   helper_arrival_verified_at?: string | null;
   poster_confirmed_arrival_at?: string | null;
+  /** VN-33(b): mark_helper_arrival found the Helpr >500ft but <=1 mile from the
+   *  pin. Stands in for the GPS half ONLY beside the poster's confirmation. */
+  helper_arrival_near_miss_at?: string | null;
 };
 
 /** Does this job satisfy the arrival requirement for Working and for completion? */
 export function arrivalEstablished(job: ArrivalEvidence | null | undefined): boolean {
-  return !!job?.helper_arrival_verified_at && !!job?.poster_confirmed_arrival_at;
+  // VN-33(b), owner 2026-09-14 ("poster can confirm anyway" when the map pin is
+  // wrong): a recorded near miss counts in place of the GPS stamp, never alone.
+  // Same rule as enforce_helper_completion_gates / the tracker trigger
+  // (20260915074058).
+  return (!!job?.helper_arrival_verified_at || !!job?.helper_arrival_near_miss_at) && !!job?.poster_confirmed_arrival_at;
 }
 
 /** Which door the message is for: the payout request, or the tracker's next step. */
@@ -50,7 +57,12 @@ export function arrivalGateMessage(
   const unlocks = door === "wrap-up" ? "before you can mark the job complete" : "before you can start working";
   const gps = !!job?.helper_arrival_verified_at;
   const poster = !!job?.poster_confirmed_arrival_at;
+  const nearMiss = !!job?.helper_arrival_near_miss_at;
   if (gps && poster) return "Arrival confirmed by your location and by the person who posted this job.";
+  if (nearMiss && poster) return "The poster confirmed you arrived.";
+  if (nearMiss && !gps) {
+    return `Your location was a little way from the job's map pin. If you're at the door, the poster can tap "Confirm They Arrived" ${unlocks}.`;
+  }
   if (gps) {
     return `Your location is confirmed. The person who posted this job also needs to tap "Confirm They Arrived" — both are needed ${unlocks}.`;
   }

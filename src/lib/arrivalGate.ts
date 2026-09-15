@@ -97,7 +97,7 @@ export function arrivalMapLabel(state: ArrivalState): string | null {
  * caller reports as a plain failure.
  */
 export type ArrivalRefusal =
-  | { kind: "too_far"; distanceFt: number | null }
+  | { kind: "too_far"; distanceFt: number | null; posterCanConfirm?: boolean }
   | { kind: "no_location" };
 
 export function arrivalRefusalFromError(
@@ -129,6 +129,11 @@ export function arrivalRefusalMessage(
 ): string {
   switch (refusal.kind) {
     case "too_far":
+      if (refusal.posterCanConfirm) {
+        return refusal.distanceFt != null
+          ? `Your location is about ${formatArrivalDistance(refusal.distanceFt)} from the job's map pin. If you're at the door, the poster can tap "Confirm They Arrived" — we've let them know.`
+          : `Your location is a little way from the job's map pin. If you're at the door, the poster can tap "Confirm They Arrived" — we've let them know.`;
+      }
       return refusal.distanceFt != null
         ? `You're about ${formatArrivalDistance(refusal.distanceFt)} from the job — get closer to mark arrived.`
         : "You're too far from the job — get closer to mark arrived.";

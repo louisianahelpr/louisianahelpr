@@ -159,6 +159,8 @@ export type JobProgressEvidence = {
    *  from. See the inference for why they are load-bearing. */
   helperArrivalVerifiedAt?: string | null;
   posterConfirmedArrivalAt?: string | null;
+  /** VN-33(b) near miss — counts for the working inference only beside the poster's confirmation. */
+  helperArrivalNearMissAt?: string | null;
   helperCompletedAt?: string | null;
   posterCompletedAt?: string | null;
 };
@@ -190,6 +192,7 @@ export function deriveCurrentStatusIdx({
   helperArrivedAt,
   helperArrivalVerifiedAt,
   posterConfirmedArrivalAt,
+  helperArrivalNearMissAt,
   helperCompletedAt,
   posterCompletedAt,
 }: JobProgressEvidence): number {
@@ -264,6 +267,7 @@ export function deriveCurrentStatusIdx({
         helper_arrived_at: helperArrivedAt,
         helper_arrival_verified_at: helperArrivalVerifiedAt,
         poster_confirmed_arrival_at: posterConfirmedArrivalAt,
+        helper_arrival_near_miss_at: helperArrivalNearMissAt,
       })
     ) {
       atLeast(STATUS_IDX.working);
@@ -495,6 +499,7 @@ export function JobTracking({
   helperArrivedAt: initialHelperArrivedAt,
   helperArrivalVerifiedAt: initialHelperArrivalVerifiedAt,
   posterConfirmedArrivalAt: initialPosterConfirmedArrivalAt,
+  helperArrivalNearMissAt: initialHelperArrivalNearMissAt,
   helperCompletedAt: initialHelperCompletedAt,
   // Optional. Supplied by the surface that already holds the job row, so the
   // Done CTA can honour the proof gate at RENDER time instead of only on tap.
@@ -551,6 +556,8 @@ export function JobTracking({
    */
   helperArrivalVerifiedAt?: string | null;
   posterConfirmedArrivalAt?: string | null;
+  /** VN-33(b): a within-a-mile near miss (the map pin may be wrong). */
+  helperArrivalNearMissAt?: string | null;
   helperCompletedAt?: string | null;
   /** Optional; when omitted the Done CTA's render-time proof gate stays off. */
   proofBeforeUrls?: string[] | null;
@@ -614,6 +621,7 @@ export function JobTracking({
     arrivedAt: initialHelperArrivedAt ?? null,
     arrivalVerifiedAt: initialHelperArrivalVerifiedAt ?? null,
     posterConfirmedArrivalAt: initialPosterConfirmedArrivalAt ?? null,
+    nearMissAt: initialHelperArrivalNearMissAt ?? null,
     helperCompletedAt: initialHelperCompletedAt ?? null,
     posterCompletedAt: initialPosterCompletedAt ?? null,
   });
@@ -631,10 +639,11 @@ export function JobTracking({
       arrivedAt: initialHelperArrivedAt ?? null,
       arrivalVerifiedAt: initialHelperArrivalVerifiedAt ?? null,
       posterConfirmedArrivalAt: initialPosterConfirmedArrivalAt ?? null,
+      nearMissAt: initialHelperArrivalNearMissAt ?? null,
       helperCompletedAt: initialHelperCompletedAt ?? null,
       posterCompletedAt: initialPosterCompletedAt ?? null,
     });
-  }, [initialHelperOnTheWayAt, initialHelperArrivedAt, initialHelperArrivalVerifiedAt, initialPosterConfirmedArrivalAt, initialHelperCompletedAt, initialPosterCompletedAt]);
+  }, [initialHelperOnTheWayAt, initialHelperArrivedAt, initialHelperArrivalVerifiedAt, initialPosterConfirmedArrivalAt, initialHelperArrivalNearMissAt, initialHelperCompletedAt, initialPosterCompletedAt]);
   // Keep the batched-tracking prop in sync after activity refreshes — when
   // the parent refetches its batched job_tracking rows, the new value flows
   // back into the card (e.g. cache invalidation after a write).
@@ -694,6 +703,7 @@ export function JobTracking({
               arrivedAt: updated.helper_arrived_at !== undefined ? updated.helper_arrived_at : prev.arrivedAt,
               arrivalVerifiedAt: updated.helper_arrival_verified_at !== undefined ? updated.helper_arrival_verified_at : prev.arrivalVerifiedAt,
               posterConfirmedArrivalAt: updated.poster_confirmed_arrival_at !== undefined ? updated.poster_confirmed_arrival_at : prev.posterConfirmedArrivalAt,
+              nearMissAt: updated.helper_arrival_near_miss_at !== undefined ? updated.helper_arrival_near_miss_at : prev.nearMissAt,
               helperCompletedAt: updated.helper_completed_at !== undefined ? updated.helper_completed_at : prev.helperCompletedAt,
               posterCompletedAt: updated.poster_completed_at !== undefined ? updated.poster_completed_at : prev.posterCompletedAt,
             }));
@@ -1009,7 +1019,7 @@ export function JobTracking({
     if (newStatus === "done") {
       const { data: gate, error: gateErr } = await supabase
         .from("jobs")
-        .select("proof_before_urls, proof_after_urls, require_photo_proof, poster_confirmed_working_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at")
+        .select("proof_before_urls, proof_after_urls, require_photo_proof, poster_confirmed_working_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, helper_arrival_near_miss_at")
         .eq("id", jobId)
         .single();
       if (gateErr) {
@@ -1112,9 +1122,24 @@ export function JobTracking({
         return;
       }
       // A null error is not a write: the RPC returns a verdict on every
-      // success, and only a verified one can come back now.
-      const v = verdict as { verified?: boolean } | null;
-      if (!v || v.verified !== true) {
+      // success. Since 20260915074058 (VN-33b) three shapes come back:
+      //   verified: true                        — GPS within 500ft
+      //   arrival_established: true             — the poster already confirmed
+      //                                           a near-miss arrival (bad pin)
+      //   verified: false, poster_can_confirm   — within a mile of a pin that
+      //                                           may be wrong; nothing stamped,
+      //                                           the poster has been asked
+      const v = verdict as { verified?: boolean; arrival_established?: boolean; poster_can_confirm?: boolean; distance_ft?: number | null } | null;
+      if (v && v.verified === false && v.poster_can_confirm === true) {
+        const refusal = { kind: "too_far" as const, distanceFt: v.distance_ft ?? null, posterCanConfirm: true };
+        hapticError();
+        setArrivalRefusal(refusal);
+        setJobStamps((prev) => ({ ...prev, nearMissAt: prev.nearMissAt ?? new Date().toISOString() }));
+        toast.warning(arrivalRefusalMessage(refusal), { duration: 9000 });
+        setUpdating(false);
+        return;
+      }
+      if (!v || (v.verified !== true && v.arrival_established !== true)) {
         report(new Error("mark_helper_arrival returned no verified verdict"), {
           tags: { source: "JobTracking.markArrival" },
         });
@@ -1462,6 +1487,7 @@ export function JobTracking({
     helperArrivedAt: jobStamps.arrivedAt,
     helperArrivalVerifiedAt: jobStamps.arrivalVerifiedAt,
     posterConfirmedArrivalAt: jobStamps.posterConfirmedArrivalAt,
+    helperArrivalNearMissAt: jobStamps.nearMissAt,
     helperCompletedAt: jobStamps.helperCompletedAt,
     posterCompletedAt: jobStamps.posterCompletedAt,
   });
@@ -1480,6 +1506,7 @@ export function JobTracking({
     helper_arrived_at: jobStamps.arrivedAt,
     helper_arrival_verified_at: jobStamps.arrivalVerifiedAt,
     poster_confirmed_arrival_at: jobStamps.posterConfirmedArrivalAt,
+    helper_arrival_near_miss_at: jobStamps.nearMissAt,
   };
   const currentArrivalState = arrivalState(arrivalEvidence);
   // Rail caption: only the open "Awaiting confirmation" question (VN-20).

@@ -135,3 +135,18 @@ describe("server refusal copy (lifecycleErrors) — both halves, never either", 
     expect(lifecycleErrorMessage({ message: "completion_requires_confirmed_arrival" })).toMatch(/Both are needed/);
   });
 });
+
+describe("VN-33(b) bad map pin: a near miss counts only beside the poster's confirmation", () => {
+  const nearMiss = "2026-09-15T12:00:00Z";
+  it("a within-a-mile near miss plus the poster's confirmation establishes the arrival", () => {
+    expect(arrivalEstablished({ helper_arrived_at: nearMiss, helper_arrival_near_miss_at: nearMiss, poster_confirmed_arrival_at: nearMiss })).toBe(true);
+  });
+  it("a near miss alone unlocks nothing", () => {
+    expect(arrivalEstablished({ helper_arrival_near_miss_at: nearMiss })).toBe(false);
+    expect(arrivalGateMessage({ helper_arrival_near_miss_at: nearMiss })).toMatch(/poster can tap "Confirm They Arrived"/);
+  });
+  it("the Helpr is told the poster can confirm, not just that they are too far", () => {
+    expect(arrivalRefusalMessage({ kind: "too_far", distanceFt: 1490, posterCanConfirm: true })).toMatch(/map pin[\s\S]*Confirm They Arrived/);
+    expect(arrivalRefusalMessage({ kind: "too_far", distanceFt: 11_081_180 })).toMatch(/get closer/);
+  });
+});

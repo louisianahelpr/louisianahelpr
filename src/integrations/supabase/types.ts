@@ -2689,6 +2689,7 @@ export type Database = {
           background_check_status: string
           ban_status: string | null
           bio: string | null
+          boost_credit_used_count: number
           boost_credit_used_month: string | null
           business_name: string | null
           created_at: string
@@ -2792,6 +2793,7 @@ export type Database = {
           background_check_status?: string
           ban_status?: string | null
           bio?: string | null
+          boost_credit_used_count?: number
           boost_credit_used_month?: string | null
           business_name?: string | null
           created_at?: string
@@ -2895,6 +2897,7 @@ export type Database = {
           background_check_status?: string
           ban_status?: string | null
           bio?: string | null
+          boost_credit_used_count?: number
           boost_credit_used_month?: string | null
           business_name?: string | null
           created_at?: string
@@ -4573,6 +4576,14 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_monthly_free_boost: {
+        Args: { p_allowance: number; p_user_id: string }
+        Returns: {
+          claimed: boolean
+          credit_month: string
+          credits_used: number
+        }[]
+      }
       cleanup_observability_tables: { Args: never; Returns: undefined }
       cleanup_stripe_webhook_events: { Args: never; Returns: undefined }
       clear_available_now: { Args: never; Returns: undefined }
@@ -5458,6 +5469,10 @@ export type Database = {
       redeem_gift_card: {
         Args: { p_credit_id: string; p_job_id: string; p_user_id: string }
         Returns: Json
+      }
+      refund_monthly_free_boost: {
+        Args: { p_month: string; p_user_id: string }
+        Returns: boolean
       }
       reject_other_applications_on_accept: {
         Args: { p_accepted_application_id: string; p_job_id: string }

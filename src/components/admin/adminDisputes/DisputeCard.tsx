@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle, AlertTriangle, Scale, RefreshCw } from "lucide-r
 import { slaBadge } from "./adminDisputesHelpers";
 import type { DisputedJob, DisputeRecord, FilterTab } from "./types";
 import { formatShortDate } from "@/lib/format";
+import { hasPerk } from "@/lib/subscriptionTiers";
 import { previewDisputeSplit } from "@/lib/disputeSplitPreview";
 import { isUnsettled, unsettledReason } from "./unsettled";
 
@@ -107,7 +108,10 @@ export const DisputeCard = ({
                 <AlertTriangle className="w-3 h-3" /> Unsettled
               </span>
             )}
-            {[job.customer_id, job.helper_id].some((id) => id && tiers[id] === "elite") && (
+            {/* Derived from the Priority Support perk, not `=== "elite"`: Plus
+                holds it too since VN-44 (owner, 2026-09-14). Pre-existing gap
+                left as is: `tiers` carries the raw tier with no expiry. */}
+            {[job.customer_id, job.helper_id].some((id) => id && hasPerk(tiers[id], "dedicatedSupport")) && (
               <span className="text-ds-10 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">💎 Priority</span>
             )}
           </div>

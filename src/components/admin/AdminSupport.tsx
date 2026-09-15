@@ -35,7 +35,8 @@ type Ticket = {
 
 /* ───────────────────────── Priority Support ─────────────────────────────
  *
- * "Priority Support" is a bullet on the $20 Elite card. Until now it was sold
+ * "Priority Support" is a bullet on the Plus card (and inherited by Elite —
+ * moved down from Elite by the owner on 2026-09-14, VN-44). It was once sold
  * and not built: neither this file nor `supabase/functions/contact-support`
  * contained a single tier, priority or SLA reference. This is the
  * implementation the owner chose — QUEUE ORDERING in this inbox, with the tier

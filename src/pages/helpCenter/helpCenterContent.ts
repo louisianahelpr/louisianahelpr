@@ -1,4 +1,4 @@
-import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
+import { MONTHLY_FREE_BOOSTS, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 // The escrow clock is owned by the cron that actually moves the money, not by
 // this file. Same import the legal pages, PaymentSuccess and the activity cards
@@ -398,14 +398,14 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: `What's the difference between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name}?`,
-        a: `${TIER_PERKS.elite.name} adds the featured crown badge (visible to all posters), the longest head start on new jobs, and dedicated priority support — on top of everything ${TIER_PERKS.pro.name} offers, and at a lower platform fee (${TIER_PERKS.elite.platformFeePercent}% against ${TIER_PERKS.pro.platformFeePercent}%). Head start on a new job, measured against a free account: ${EARLY_ACCESS_LADDER}.`,
+        a: `${TIER_PERKS.elite.name} adds the gold crown badge (visible to all posters), unlimited free Job Boosts, the longest head start on new jobs, and priority support — on top of everything ${TIER_PERKS.pro.name} offers, and at a lower platform fee (${TIER_PERKS.elite.platformFeePercent}% against ${TIER_PERKS.pro.platformFeePercent}%). Head start on a new job, measured against a free account: ${EARLY_ACCESS_LADDER}.`,
       },
       {
         // Plus was absent from this section entirely while the fees answer
         // above already listed it — a reader comparing plans on this page could
         // not learn that the tier exists, let alone what it does.
         q: `Where does ${TIER_PERKS.plus.name} fit in?`,
-        a: `${TIER_PERKS.plus.name} sits between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name} at $${TIER_PERKS.plus.price}/month. It keeps everything ${TIER_PERKS.pro.name} gives you, drops your platform fee to ${TIER_PERKS.plus.platformFeePercent}%, and moves your head start on new jobs to ${earlyAccessHeadStartMinutes("plus")} minutes. The featured crown badge and dedicated support stay ${TIER_PERKS.elite.name}-only.`,
+        a: `${TIER_PERKS.plus.name} sits between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name} at $${TIER_PERKS.plus.price}/month. It keeps everything ${TIER_PERKS.pro.name} gives you, drops your platform fee to ${TIER_PERKS.plus.platformFeePercent}%, moves your head start on new jobs to ${earlyAccessHeadStartMinutes("plus")} minutes, and adds the featured crown badge, priority support and ${MONTHLY_FREE_BOOSTS.plus} free Job Boosts every month (${TIER_PERKS.pro.name} includes ${MONTHLY_FREE_BOOSTS.pro}). ${TIER_PERKS.elite.name} keeps all of that and makes the badge gold and Job Boosts unlimited.`,
       },
     ],
   },

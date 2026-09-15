@@ -22,9 +22,12 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, join } from "node:path";
 import {
+  MONTHLY_FREE_BOOSTS,
   TIER_ORDER,
   TIER_PERK_MATRIX,
   hasPerk,
+  monthlyFreeBoostAllowance,
+  monthlyFreeBoostsRemaining,
   normalizeTier,
   profileHasPerk,
   tierRank,
@@ -116,6 +119,46 @@ describe("tier perk matrix — the ladder rule", () => {
     expect(LADDER_EXEMPT).toEqual(["boostDiscount"]);
     const top = TIER_ORDER[TIER_ORDER.length - 1];
     expect(TIER_PERK_MATRIX[top].freeBoosts).toBe(true);
+  });
+});
+
+describe("monthly free-boost allowance — a count on the same ladder", () => {
+  it("is >= 1 exactly where monthlyFreeBoost is true", () => {
+    for (const tier of TIER_ORDER) {
+      expect(MONTHLY_FREE_BOOSTS[tier] >= 1, `${tier}`).toBe(TIER_PERK_MATRIX[tier].monthlyFreeBoost);
+    }
+  });
+
+  it("never decreases up the ladder", () => {
+    for (let i = 1; i < TIER_ORDER.length; i++) {
+      expect(
+        MONTHLY_FREE_BOOSTS[TIER_ORDER[i]],
+        `${TIER_ORDER[i]} includes fewer free boosts than ${TIER_ORDER[i - 1]}`,
+      ).toBeGreaterThanOrEqual(MONTHLY_FREE_BOOSTS[TIER_ORDER[i - 1]]);
+    }
+  });
+
+  it("resolves to 0 for a lapsed member and for tiers without the perk", () => {
+    expect(monthlyFreeBoostAllowance("plus", false)).toBe(0);
+    expect(monthlyFreeBoostAllowance("basic")).toBe(0);
+    expect(monthlyFreeBoostAllowance("business")).toBe(0);
+    expect(monthlyFreeBoostAllowance("PLUS")).toBe(MONTHLY_FREE_BOOSTS.plus);
+  });
+
+  it("counts what is left the way claim_monthly_free_boost does", () => {
+    const now = new Date("2026-09-15T12:00:00Z");
+    // Nothing spent, or spent in a past month.
+    expect(monthlyFreeBoostsRemaining("plus", true, null, 0, now)).toBe(2);
+    expect(monthlyFreeBoostsRemaining("plus", true, "2026-08", 2, now)).toBe(2);
+    // Spent this month.
+    expect(monthlyFreeBoostsRemaining("plus", true, "2026-09", 1, now)).toBe(1);
+    expect(monthlyFreeBoostsRemaining("plus", true, "2026-09", 2, now)).toBe(0);
+    // A legacy stamp (month written, count still 0) is one spent, not none —
+    // the SQL's GREATEST(count, 1).
+    expect(monthlyFreeBoostsRemaining("pro", true, "2026-09", 0, now)).toBe(0);
+    expect(monthlyFreeBoostsRemaining("plus", true, "2026-09", 0, now)).toBe(1);
+    // Lapsed.
+    expect(monthlyFreeBoostsRemaining("plus", false, null, 0, now)).toBe(0);
   });
 });
 

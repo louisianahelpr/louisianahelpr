@@ -48,11 +48,11 @@ export type TierPerkKey =
   | "priorityPlacement"    // application floated higher in the poster's list
   | "earlyAccess"          // sees new jobs before free members
   | "advancedAnalytics"    // earnings trends, category breakdown, best hours
-  | "featuredBadge"        // gold/crown badge on profile and applicant cards
-  | "dedicatedSupport"     // priority support SLA
+  | "featuredBadge"        // crown badge on profile and applicant cards (gold on Elite)
+  | "dedicatedSupport"     // priority support: a head start in the admin support queue (no SLA)
   | "boostDiscount"        // pays a reduced price for a Job Boost
   | "freeBoosts"           // Job Boosts included in the plan, unlimited
-  | "monthlyFreeBoost"     // one Job Boost per calendar month, then the discount
+  | "monthlyFreeBoost"     // MONTHLY_FREE_BOOSTS[tier] Job Boosts per calendar month, then the discount
   | "portfolioShowcase"    // photo portfolio rendered on the public profile
   | "referralUpgradeBonus" // upgrading to this tier pays the referrer the extra bonus
   | "helprPass"           // the Helpr Pass wallet card
@@ -115,17 +115,20 @@ export const TIER_PERK_MATRIX: Record<TierId, Record<TierPerkKey, boolean>> = {
     tierBadge: true,
   },
   plus: {
-    // Everything Pro grants. Plus's own perk is the 9% fee and the 15-minute
-    // early-access step; it adds nothing Pro lacks, but it must never lack
-    // anything Pro has.
+    // Everything Pro grants, plus the 9% fee and the 15-minute early-access
+    // step — and, since 2026-09-14 (owner, VN-44), two perks moved DOWN from
+    // Elite: the Featured Crown Badge and Priority Support, plus a larger
+    // monthly free-boost allowance than Pro's (MONTHLY_FREE_BOOSTS below).
+    // Elite keeps all of them, so the ladder rule still holds.
     instantPayout: true,
     priorityPlacement: true,
     earlyAccess: true, // 15 min
     advancedAnalytics: true,
-    // Elite identity perks, left with Elite on purpose (see the PLUS note in
-    // src/lib/subscriptionTiers.ts).
-    featuredBadge: false,
-    dedicatedSupport: false,
+    // Drawn as the crown mark (tierBadgeStyle.ts); gold stays Elite's.
+    featuredBadge: true,
+    // Enforced by the admin_support_queue RPC's head start
+    // (20260915043200_admin_support_queue_admits_plus).
+    dedicatedSupport: true,
     boostDiscount: true,
     freeBoosts: false,
     monthlyFreeBoost: true,
@@ -152,6 +155,65 @@ export const TIER_PERK_MATRIX: Record<TierId, Record<TierPerkKey, boolean>> = {
     tierBadge: true,
   },
 };
+
+/**
+ * How many free Job Boosts a `monthlyFreeBoost` tier gets per calendar month
+ * (UTC, `YYYY-MM`). The matrix above answers WHETHER a tier has the perk; this
+ * answers HOW MANY, and the two must agree — `tierPerks.parity.test.ts` asserts
+ * `monthlyFreeBoost` is true exactly where this is ≥ 1, and that it never
+ * decreases up the ladder.
+ *
+ * Enforced server-side by `public.claim_monthly_free_boost(user, allowance)`
+ * (20260915043201_monthly_free_boost_allowance), which create-boost-payment
+ * calls with this number; SQL holds no tier knowledge. The storefront bullet
+ * (`monthlyFreeBoostBullet` in src/lib/subscriptionTiers.ts) and the boost
+ * dialog's "free this month" quote both read it too, so the count sold, the
+ * count quoted and the count granted are one number.
+ *
+ * Pro 1 (owner, 2026-08-24) → Plus 2 (owner, 2026-09-14, VN-44: "more free
+ * boosts", above Pro's 1). Elite's value is moot — `freeBoosts` (unlimited) is
+ * checked first everywhere — and is set to Plus's so the ladder assertion reads
+ * without an exemption.
+ */
+export const MONTHLY_FREE_BOOSTS: Record<TierId, number> = {
+  free: 0,
+  basic: 0,
+  pro: 1,
+  plus: 2,
+  elite: 2,
+};
+
+/** The monthly free-boost allowance for a raw tier; 0 when lapsed or not entitled. */
+export function monthlyFreeBoostAllowance(
+  raw: string | null | undefined,
+  active = true,
+): number {
+  if (!hasPerk(raw, "monthlyFreeBoost", active)) return 0;
+  return MONTHLY_FREE_BOOSTS[normalizeTier(raw)];
+}
+
+/**
+ * Free boosts still unspent this calendar month, read from the two meter
+ * columns — the client-side twin of `claim_monthly_free_boost`'s WHERE clause.
+ *
+ * `usedMonth === thisMonth` with a `usedCount` of 0 counts as ONE used: rows
+ * stamped by the pre-allowance code (which wrote only the month) must not read
+ * as untouched, or a Pro member who spent their boost before the migration
+ * would be offered a second. The SQL applies the same `GREATEST(count, 1)`.
+ */
+export function monthlyFreeBoostsRemaining(
+  raw: string | null | undefined,
+  active: boolean,
+  usedMonth: string | null | undefined,
+  usedCount: number | null | undefined,
+  now: Date = new Date(),
+): number {
+  const allowance = monthlyFreeBoostAllowance(raw, active);
+  if (allowance === 0) return 0;
+  const thisMonth = now.toISOString().slice(0, 7);
+  const used = usedMonth === thisMonth ? Math.max(usedCount ?? 0, 1) : 0;
+  return Math.max(allowance - used, 0);
+}
 
 /**
  * Normalise a raw `profiles.subscription_tier` to a known tier id.

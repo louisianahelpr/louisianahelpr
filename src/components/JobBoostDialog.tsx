@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { BOOST_DISCOUNT_PCT, BOOST_DURATION_HOURS, boostPriceForTier, formatFeeUsd } from "@/lib/productPrices";
-import { hasPerk } from "@/lib/subscriptionTiers";
+import { monthlyFreeBoostAllowance, monthlyFreeBoostsRemaining, tierDisplayName } from "@/lib/subscriptionTiers";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
@@ -30,7 +30,7 @@ interface JobBoostDialogProps {
 
 export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDialogProps) {
   const [boosting, setBoosting] = useState(false);
-  const { profile } = useCurrentUser();
+  const { profile, refresh: refreshProfile } = useCurrentUser();
   // Price comes from the SAME rule the edge function charges by
   // (`boostPriceForTier`, mirroring create-boost-payment). This dialog used to
   // gate everything on Elite and quote the full $3 to Basic and Pro posters —
@@ -44,16 +44,23 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
   // would not have charged them.
   const subActive = subExp ? subExp > new Date() : true;
   const price = boostPriceForTier(subTier, subActive);
-  // The ONE FREE BOOST per calendar month (Pro and up) is spent server-side against
-  // profiles.boost_credit_used_month (create-boost-payment). The tier rule
-  // above knows nothing about it, so a Pro poster with an unused credit was
-  // quoted the discounted price and then charged $0 — the same
-  // price-that-isn't-the-price defect the comment above forbids, just in the
-  // other direction, and their monthly perk was spent without being named.
-  const thisMonth = new Date().toISOString().slice(0, 7);
-  const hasFreeProBoost =
-    hasPerk(subTier, "monthlyFreeBoost", subActive) &&
-    profile?.boost_credit_used_month !== thisMonth;
+  // The FREE BOOSTS per calendar month (Pro 1, Plus 2 — MONTHLY_FREE_BOOSTS)
+  // are spent server-side against the profiles.boost_credit_used_month +
+  // boost_credit_used_count meter (create-boost-payment →
+  // claim_monthly_free_boost). The tier rule above knows nothing about them,
+  // so a Pro poster with an unused credit was quoted the discounted price and
+  // then charged $0 — the same price-that-isn't-the-price defect the comment
+  // above forbids, just in the other direction, and their monthly perk was
+  // spent without being named. `monthlyFreeBoostsRemaining` applies the SQL's
+  // own rule, so the quote and the claim agree on how many are left.
+  const freeBoostAllowance = monthlyFreeBoostAllowance(subTier, subActive);
+  const freeBoostsLeft = monthlyFreeBoostsRemaining(
+    subTier,
+    subActive,
+    profile?.boost_credit_used_month,
+    profile?.boost_credit_used_count,
+  );
+  const hasFreeProBoost = freeBoostsLeft > 0;
   const isSubscriber = price.free || hasFreeProBoost;
   const BOOST_PRICE = isSubscriber ? "" : formatFeeUsd(price.cents);
   const isDiscounted = !isSubscriber && price.discounted;
@@ -74,6 +81,12 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
       // returned `free: true`. No Stripe redirect needed.
       if (data?.free) {
         hapticSuccess();
+        // A free boost spent a credit on the server-side meter. The profile the
+        // quote above reads is cached (useCurrentUser, 30s staleTime), so
+        // without this the next boost opened within that window is quoted
+        // "free" for a credit that is gone, and the server sends them to
+        // Checkout instead.
+        void refreshProfile();
         onBoosted?.();
         onClose();
         return;
@@ -129,7 +142,12 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                 >
                   {hasFreeProBoost && !price.free ? (
                     <>
-                      Your free Pro boost this month · runs for{" "}
+                      {/* Named from the tier, not "Pro": Plus holds this perk
+                          too, with a larger allowance. */}
+                      {freeBoostAllowance > 1
+                        ? `${freeBoostsLeft} of ${freeBoostAllowance} free ${tierDisplayName(subTier)} boosts left this month`
+                        : `Your free ${tierDisplayName(subTier)} boost this month`}
+                      {" "}· runs for{" "}
                       <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
                     </>
                   ) : (
@@ -138,7 +156,11 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                     </>
                   )}
                 </p>
-                {hasFreeProBoost && !price.free && (
+                {/* Only on the LAST free boost of the month. With an allowance
+                    above one (Plus), "after this one" the next boost is still
+                    free, and quoting a price there would be the
+                    price-that-isn't-the-price defect this dialog forbids. */}
+                {hasFreeProBoost && freeBoostsLeft === 1 && !price.free && (
                   <p
                     className="font-sans mt-1 text-ds-12"
                     style={{ color: "hsl(var(--olivewood) / 0.7)" }}

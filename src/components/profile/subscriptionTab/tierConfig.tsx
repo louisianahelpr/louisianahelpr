@@ -133,9 +133,11 @@ export const tierConfig: TierDisplay[] = [
   {
     id: "plus",
     name: TIER_PERKS.plus.name,
-    // Sparkles, same as Pro — the crown is Elite's Featured Crown Badge and
-    // must not appear on a tier that doesn't grant it.
-    iconName: "sparkles",
+    // The crown, derived from the perk: the crown IS the Featured Crown Badge,
+    // and Plus has granted it since 2026-09-14 (owner, VN-44). It said
+    // "sparkles" while the badge was Elite-only; reading the matrix means the
+    // card icon can never again show a mark the tier does not grant.
+    iconName: TIER_PERKS.plus.featuredBadge ? "crown" : "sparkles",
     forWhom: "For a smaller cut on every job.",
     ...formatTierPrices("plus"),
     feePercent: TIER_PERKS.plus.platformFeePercent,

@@ -8,12 +8,16 @@
 // and the only person who could tell was the one paying $15/mo.
 //
 // The colour rule (owner, via HelperBadges): gold is reserved for Elite, the
-// top rung. Pro and Plus share the sienna accent and the Sparkles mark —
-// deliberately, because Plus IS "everything in Pro" plus a lower fee, and the
-// tier NAME beside the icon is what distinguishes them. Basic stays neutral
-// bark so the gold reads as something earned rather than something bought at
-// the bottom of the ladder. Every value here is an existing design token; no
-// new colour was invented to give Plus a badge.
+// top rung. Pro and Plus share the sienna accent. Basic stays neutral bark so
+// the gold reads as something earned rather than something bought at the
+// bottom of the ladder. Every value here is an existing design token; no new
+// colour was invented to give Plus a badge.
+//
+// The MARK rule: the crown IS the Featured Crown Badge, so a tier wears the
+// Crown exactly when TIER_PERK_MATRIX grants it `featuredBadge` — asserted by
+// src/test/perkEnforcementParity.test.ts against the matrix, not against this table. Plus has
+// held that perk since 2026-09-14 (owner, VN-44), so Plus wears the crown in
+// sienna and Elite wears it in gold; Pro keeps Sparkles/Award.
 
 import { Star, Sparkles, Crown, Award, type LucideIcon } from "lucide-react";
 import { TIER_PERK_MATRIX, normalizeTier, type TierId } from "../../supabase/functions/_shared/tierPerks";
@@ -64,7 +68,8 @@ export interface TierBadgeStyle {
 /** The ring a free account (and Basic, see above) wears. */
 export const NEUTRAL_AVATAR_RING = "0 0 0 2px hsl(var(--bark) / 0.18)";
 
-const STYLES: Record<Exclude<TierId, "free">, TierBadgeStyle> = {
+/** Exported for src/test/perkEnforcementParity.test.ts only — callers use tierBadgeStyle(). */
+export const TIER_BADGE_STYLES: Record<Exclude<TierId, "free">, TierBadgeStyle> = {
   basic: {
     icon: Star,
     color: "hsl(var(--bark))",
@@ -88,11 +93,13 @@ const STYLES: Record<Exclude<TierId, "free">, TierBadgeStyle> = {
     prestige: true,
   },
   plus: {
-    icon: Sparkles,
+    // Crown, not Sparkles: Plus holds `featuredBadge` (VN-44). Colours stay
+    // Pro's sienna — gold is Elite's.
+    icon: Crown,
     color: "hsl(var(--burnt-sienna))",
     chipClass: "tier-gold-pro",
     chipIconColor: "hsl(var(--gold-warm))",
-    headerIcon: Award,
+    headerIcon: Crown,
     headerColor: "hsl(var(--burnt-sienna))",
     headerBackground: "hsl(var(--burnt-sienna) / 0.12)",
     avatarRing: "0 0 0 2.5px hsl(var(--burnt-sienna))",
@@ -120,5 +127,5 @@ const STYLES: Record<Exclude<TierId, "free">, TierBadgeStyle> = {
 export function tierBadgeStyle(raw: string | null | undefined): TierBadgeStyle | null {
   const tier = normalizeTier(raw);
   if (!TIER_PERK_MATRIX[tier].tierBadge) return null;
-  return STYLES[tier as Exclude<TierId, "free">];
+  return TIER_BADGE_STYLES[tier as Exclude<TierId, "free">];
 }

@@ -5,14 +5,18 @@
  * two that move a paid entitlement without Stripe ever being involved — so
  * nothing downstream reconciles them and a silent no-op is invisible.
  *
- * The Pro path is a spend-then-apply sequence and that ORDER is deliberate:
- * the month stamp is a conditional UPDATE
- * (`.eq(user_id).or(boost_credit_used_month is null or != thisMonth)`), which
- * is the only thing stopping two same-moment boosts from both riding one free
- * credit. It therefore has to be written FIRST. What was missing is the other
- * half of that bargain — if the boost itself then fails, the credit has to come
- * back, or the member has paid for a month of Pro and lost their one free boost
+ * The monthly path (Pro 1, Plus 2 — MONTHLY_FREE_BOOSTS) is a spend-then-apply
+ * sequence and that ORDER is deliberate: the claim is the conditional UPDATE
+ * inside `claim_monthly_free_boost` (20260915043201), which is the only thing
+ * stopping two same-moment boosts from both riding the last free credit. It
+ * therefore has to happen FIRST. The other half of that bargain — if the boost
+ * itself then fails, the credit has to come back through
+ * `refund_monthly_free_boost`, or the member loses one of their free boosts
  * with nothing to show for it and no way to say so.
+ *
+ * The allowance the function passes is asserted per tier, because that
+ * argument IS the perk: the SQL holds no tier knowledge, so a Plus member is
+ * granted two boosts only if this function says 2.
  *
  * Both paths also lacked the `.select("id")` + zero-row branch CLAUDE.md
  * requires: an UPDATE matching zero rows returns `{ data: [], error: null }`,
@@ -139,69 +143,218 @@ describe("create-boost-payment — Elite free boost", () => {
   });
 });
 
-describe("create-boost-payment — Pro free monthly boost", () => {
+const THIS_MONTH = () => new Date().toISOString().slice(0, 7);
+
+/** Answer claim_monthly_free_boost the way PostgREST does (RETURNS TABLE → array). */
+function claimAnswers(claimed: boolean, used: number | null = claimed ? 1 : null) {
+  scenario.rpc.claim_monthly_free_boost = () => {
+    // Record how many jobs writes existed at claim time — the ORDER assertion.
+    claimSeenJobWrites.push(jobWrites().length);
+    return [{ claimed, credit_month: THIS_MONTH(), credits_used: used }];
+  };
+}
+let claimSeenJobWrites: number[] = [];
+
+function rpcCallsNamed(name: string) {
+  return (scenario.rpcCalls ?? []).filter((c) => c.name === name);
+}
+
+describe("create-boost-payment — monthly free boost allowance", () => {
   beforeEach(() => {
     resetSupabaseMock();
     resetSharedMocks();
     resetStripeMock();
     resetEnv();
+    claimSeenJobWrites = [];
   });
 
-  it("spends the month credit BEFORE applying the boost (the race guard)", async () => {
+  it("spends the credit BEFORE applying the boost (the race guard)", async () => {
     seed("pro");
+    claimAnswers(true);
+    const fn = await load();
+    const body = await json(await fn.fetch(call(fn)));
+
+    expect(body.free).toBe(true);
+    expect(rpcCallsNamed("claim_monthly_free_boost")).toHaveLength(1);
+    // Zero jobs writes existed when the claim ran; one exists after.
+    expect(claimSeenJobWrites).toEqual([0]);
+    expect(jobWrites()).toHaveLength(1);
+  });
+
+  it.each([
+    ["pro", 1],
+    ["plus", 2],
+  ])("passes %s's allowance (%i) — the number the storefront sells", async (tier, allowance) => {
+    seed(tier);
+    claimAnswers(true);
     const fn = await load();
     await fn.fetch(call(fn));
 
-    // The claim must be first, and it must be conditional — otherwise two
-    // same-moment boosts both ride one credit.
-    const claim = profileWrites()[0];
-    expect(claim.op).toBe("update");
-    expect(claim.payload).toMatchObject({
-      boost_credit_used_month: new Date().toISOString().slice(0, 7),
+    expect(rpcCallsNamed("claim_monthly_free_boost")[0].args).toEqual({
+      p_user_id: USER_ID,
+      p_allowance: allowance,
     });
-    expect(claim.selectCols).toBe("user_id");
-    expect(scenario.writes.indexOf(claim)).toBeLessThan(
-      scenario.writes.indexOf(jobWrites()[0]),
-    );
   });
 
-  it("RETURNS the month credit when the boost flip matches zero rows", async () => {
-    // The defect this test exists for: the credit is already spent by the time
-    // the flip runs, so a failed flip that does not roll back destroys the
-    // member's one free boost of the month.
+  it("gives Plus MORE free boosts than Pro (owner, VN-44)", async () => {
     seed("pro");
+    claimAnswers(true);
+    let fn = await load();
+    await fn.fetch(call(fn));
+    const pro = (rpcCallsNamed("claim_monthly_free_boost")[0].args as { p_allowance: number }).p_allowance;
+
+    resetSupabaseMock();
+    seed("plus");
+    claimAnswers(true);
+    fn = await load();
+    await fn.fetch(call(fn));
+    const plus = (rpcCallsNamed("claim_monthly_free_boost")[0].args as { p_allowance: number }).p_allowance;
+
+    expect(plus).toBeGreaterThan(pro);
+  });
+
+  it("names the count on a multi-boost tier", async () => {
+    seed("plus");
+    claimAnswers(true, 2);
+    const fn = await load();
+    const body = await json(await fn.fetch(call(fn)));
+    expect(body.message).toMatch(/2 of 2 this month/);
+  });
+
+  it("does not claim for a lapsed member or a tier without the perk", async () => {
+    for (const tier of ["basic", "free"]) {
+      resetSupabaseMock();
+      seed(tier);
+      claimAnswers(true);
+      const fn = await load();
+      await fn.fetch(call(fn));
+      expect(rpcCallsNamed("claim_monthly_free_boost"), tier).toHaveLength(0);
+    }
+    resetSupabaseMock();
+    seed("plus");
+    (scenario.reads.profiles.rows![0] as Record<string, unknown>).subscription_expires_at =
+      new Date(Date.now() - 86_400_000).toISOString();
+    claimAnswers(true);
+    const fn = await load();
+    await fn.fetch(call(fn));
+    expect(rpcCallsNamed("claim_monthly_free_boost")).toHaveLength(0);
+  });
+
+  it("an exhausted allowance applies no free boost", async () => {
+    seed("plus");
+    claimAnswers(false);
+    const fn = await load();
+    const body = await json(await fn.fetch(call(fn)));
+
+    expect(body.free).toBeUndefined();
+    expect(jobWrites()).toHaveLength(0);
+    expect(rpcCallsNamed("refund_monthly_free_boost")).toHaveLength(0);
+  });
+
+  it("an unreadable claim answer is not a grant", async () => {
+    seed("plus");
+    scenario.rpc.claim_monthly_free_boost = [{}];
+    const fn = await load();
+    const body = await json(await fn.fetch(call(fn)));
+
+    expect(body.free).toBeUndefined();
+    expect(jobWrites()).toHaveLength(0);
+  });
+
+  it("RETURNS the credit when the boost flip matches zero rows", async () => {
+    // The credit is already spent by the time the flip runs, so a failed flip
+    // that does not roll back destroys one of the member's free boosts.
+    seed("plus");
+    claimAnswers(true, 2);
+    scenario.rpc.refund_monthly_free_boost = true;
     scenario.writeSelectRows["jobs"] = [];
     const fn = await load();
     const res = await fn.fetch(call(fn));
 
     expect(res.status).toBe(500);
-
-    const writes = profileWrites();
-    expect(writes).toHaveLength(2);
-    // Second profiles write is the rollback: the month is nulled back out.
-    expect(writes[1].payload).toEqual({ boost_credit_used_month: null });
-    // Conditional on the exact value we stamped, so a concurrent writer that
-    // has since moved the column on is not clobbered.
-    expect(writes[1].filters).toEqual(
-      expect.arrayContaining([
-        { op: "eq", column: "user_id", value: USER_ID },
-        {
-          op: "eq",
-          column: "boost_credit_used_month",
-          value: new Date().toISOString().slice(0, 7),
-        },
-      ]),
-    );
-    expect(writes[1].selectCols).toBe("user_id");
+    const refunds = rpcCallsNamed("refund_monthly_free_boost");
+    expect(refunds).toHaveLength(1);
+    // Conditional on the month the claim was made in.
+    expect(refunds[0].args).toEqual({ p_user_id: USER_ID, p_month: THIS_MONTH() });
   });
 
-  it("does not roll back the credit on a successful boost", async () => {
+  it("the flip re-checks open + not-already-boosted, so a same-job double request cannot spend two credits", async () => {
+    seed("plus");
+    claimAnswers(true);
+    const fn = await load();
+    await fn.fetch(call(fn));
+
+    const flip = jobWrites()[0];
+    expect(flip.filters).toEqual(
+      expect.arrayContaining([
+        { op: "eq", column: "id", value: JOB_ID },
+        { op: "eq", column: "status", value: "open" },
+      ]),
+    );
+    const or = flip.filters.find((f: { op: string }) => f.op === "or") as { value?: string } | undefined;
+    expect(or?.value ?? JSON.stringify(or)).toMatch(/boost_expires_at\.is\.null,boost_expires_at\.lte\./);
+  });
+
+  it("does not refund the credit on a successful boost", async () => {
     seed("pro");
+    claimAnswers(true);
     const fn = await load();
     const body = await json(await fn.fetch(call(fn)));
 
     expect(body.free).toBe(true);
-    // Exactly one profiles write: the claim. No rollback.
-    expect(profileWrites()).toHaveLength(1);
+    expect(rpcCallsNamed("refund_monthly_free_boost")).toHaveLength(0);
+    // The meter is never written through PostgREST while the RPC exists.
+    expect(profileWrites()).toHaveLength(0);
+  });
+
+  describe("PGRST202 fallback — this function deployed before its migration", () => {
+    it("falls back to the one-credit month stamp, conditional as before", async () => {
+      seed("pro");
+      scenario.rpcErrors = {
+        claim_monthly_free_boost: { message: "function not found", code: "PGRST202" },
+      };
+      const fn = await load();
+      const body = await json(await fn.fetch(call(fn)));
+
+      expect(body.free).toBe(true);
+      const claim = profileWrites()[0];
+      expect(claim.op).toBe("update");
+      expect(claim.payload).toEqual({ boost_credit_used_month: THIS_MONTH() });
+      expect(claim.selectCols).toBe("user_id");
+      expect(scenario.writes.indexOf(claim)).toBeLessThan(scenario.writes.indexOf(jobWrites()[0]));
+    });
+
+    it("rolls the legacy stamp back when the flip fails", async () => {
+      seed("pro");
+      scenario.rpcErrors = {
+        claim_monthly_free_boost: { message: "function not found", code: "PGRST202" },
+        refund_monthly_free_boost: { message: "function not found", code: "PGRST202" },
+      };
+      scenario.writeSelectRows["jobs"] = [];
+      const fn = await load();
+      const res = await fn.fetch(call(fn));
+
+      expect(res.status).toBe(500);
+      const writes = profileWrites();
+      expect(writes).toHaveLength(2);
+      expect(writes[1].payload).toEqual({ boost_credit_used_month: null });
+      expect(writes[1].filters).toEqual(
+        expect.arrayContaining([
+          { op: "eq", column: "user_id", value: USER_ID },
+          { op: "eq", column: "boost_credit_used_month", value: THIS_MONTH() },
+        ]),
+      );
+    });
+
+    it("a claim error that is NOT a missing function fails toward the paid path", async () => {
+      seed("plus");
+      scenario.rpcErrors = { claim_monthly_free_boost: { message: "boom", code: "XX000" } };
+      const fn = await load();
+      const body = await json(await fn.fetch(call(fn)));
+
+      expect(body.free).toBeUndefined();
+      expect(jobWrites()).toHaveLength(0);
+      expect(profileWrites()).toHaveLength(0);
+    });
   });
 });

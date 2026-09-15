@@ -61,13 +61,20 @@
  * placeholder id on ANY paid tier and cycle, so the failure mode is guarded in
  * general rather than patched for this one tier.
  *
- * Its only NEW perk is the 15-minute early-access step (Pro 10 → Plus 15 →
- * Elite 20); everything else it grants, it grants by inheriting Pro, which the
- * ladder requires — a higher tier can never hold fewer perks than a lower one.
- * Elite's identity perks (Featured Crown Badge, priority support) are
- * deliberately NOT moved down: which of them Plus should get is a pricing
- * judgement for the owner, not an interpolation, so Plus ships thin-but-honest
- * rather than advertising a perk that does not exist or gutting Elite unasked.
+ * It shipped with one new perk (the 15-minute early-access step, Pro 10 → Plus
+ * 15 → Elite 20) and everything else inherited from Pro, because which of
+ * Elite's perks to move down was a pricing call for the owner. The owner made
+ * it on 2026-09-14 (VN-44): Plus also gets the Featured Crown Badge, Priority
+ * Support and MORE free boosts than Pro (MONTHLY_FREE_BOOSTS: Pro 1, Plus 2).
+ * Elite keeps all three — it still holds everything Plus has, and adds the
+ * gold badge, unlimited boosts, the 20-minute head start and the Reliability
+ * Shield. Each moved perk is enforced where it is enforced for Elite:
+ *   • Featured Crown Badge — tierBadgeStyle.ts (crown mark, gated on
+ *     `featuredBadge`); the Membership card's own icon (tierConfig.tsx).
+ *   • Priority Support — `admin_support_queue` (the RPC's tier normalisation
+ *     now admits 'plus'; the entitled list is derived from `dedicatedSupport`).
+ *   • Free boosts — create-boost-payment → `claim_monthly_free_boost`, with the
+ *     allowance read from MONTHLY_FREE_BOOSTS.
  *
  * BASIC positioning: entry paid tier ($5/mo) for helpers testing the
  * marketplace who want the utility perks (Instant Payouts, 5-min Early
@@ -103,6 +110,7 @@ import { TIER_DISPLAY_NAMES, tierDisplayName } from "../../supabase/functions/_s
 // create-boost-payment gate on them and cannot import this module. See the
 // TierPerks interface comment below and _shared/tierPerks.ts's header (CC-019).
 import {
+  MONTHLY_FREE_BOOSTS,
   TIER_PERK_MATRIX,
   type TierId,
   type TierPerkKey,
@@ -110,9 +118,12 @@ import {
 
 export { tierDisplayName };
 export {
+  MONTHLY_FREE_BOOSTS,
   TIER_PERK_MATRIX,
   TIER_ORDER,
   hasPerk,
+  monthlyFreeBoostAllowance,
+  monthlyFreeBoostsRemaining,
   profileHasPerk,
   tierRank,
   tiersGrantingPerk,
@@ -137,6 +148,18 @@ export {
 export const ONE_TIME_PASS_DAYS = 30;
 
 export type SubscriptionTier = TierId;
+
+/**
+ * The storefront bullet for a tier's monthly free-boost allowance, DERIVED from
+ * MONTHLY_FREE_BOOSTS — the same number create-boost-payment passes to
+ * `claim_monthly_free_boost`. Pro's bullet read the literal "1 free Job Boost
+ * every month"; with a second tier on a different count, a literal per row is
+ * two chances for the card and the grant to disagree.
+ */
+export function monthlyFreeBoostBullet(tier: TierId): string {
+  const n = MONTHLY_FREE_BOOSTS[tier];
+  return `${n} free Job Boost${n === 1 ? "" : "s"} every month`;
+}
 
 /**
  * The perk BOOLEANS are not declared here any more — they are inherited from
@@ -227,7 +250,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
       "Priority Placement",
       "Portfolio Showcase",
       `${earlyAccessHeadStartMinutes("pro")}-min early access`,
-      "1 free Job Boost every month",
+      monthlyFreeBoostBullet("pro"),
       "Advanced Analytics",
     ],
   },
@@ -242,13 +265,18 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     ...TIER_PERK_MATRIX.plus,
     tagline: "A lower cut on every job",
     ctaLabel: "Upgrade",
-    // ONE bullet, and that is the honest state of this tier: the only thing
-    // Plus adds over Pro that is a real shipping feature is the extra five
-    // minutes of early access. Its actual value proposition is the 9% fee,
-    // which both storefronts render prominently and separately (which is why
-    // fees are deliberately absent from every tier's bullets). Do not pad this
-    // list with a perk that isn't built.
-    featureBullets: [`${earlyAccessHeadStartMinutes("plus")}-min early access`],
+    // What Plus adds over Pro, every line a shipping, server-enforced perk
+    // (see the PLUS note in this file's header for where each is enforced).
+    // The 9% fee is rendered separately, as on every tier. The two perks that
+    // moved down from Elite (owner, 2026-09-14, VN-44) are no longer listed on
+    // Elite's card — its "Everything in Plus" line carries them, the same way
+    // Pro's card does not repeat Basic's bullets.
+    featureBullets: [
+      "Featured Crown Badge",
+      `${earlyAccessHeadStartMinutes("plus")}-min early access`,
+      monthlyFreeBoostBullet("plus"),
+      "Priority Support",
+    ],
   },
   elite: {
     name: TIER_DISPLAY_NAMES.elite,
@@ -264,7 +292,11 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     tagline: "Maximum visibility",
     ctaLabel: "Upgrade",
     featureBullets: [
-      "Featured Crown Badge",
+      // Plus now has the Featured Crown Badge too (VN-44). What Elite adds is
+      // the GOLD treatment of it — tierBadgeStyle.ts keeps gold for Elite
+      // alone, Plus wears the crown in sienna — so this names the real
+      // difference rather than repeating a perk "Everything in Plus" covers.
+      "Gold Crown Badge",
       `${earlyAccessHeadStartMinutes("elite")}-min early access`,
       "Free unlimited Job Boosts",
       // Fits ONE line on the in-app Membership card, which is the tightest
@@ -277,7 +309,8 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
       // "every 6 months" cadence was also a bug on the Once 30-day pass,
       // which can never reach a 6-month window.
       "Reliability Shield — 1 strike",
-      "Priority Support",
+      // "Priority Support" moved to Plus (VN-44); Elite still has it through
+      // "Everything in Plus" and TIER_PERK_MATRIX.elite.dedicatedSupport.
     ],
   },
 };

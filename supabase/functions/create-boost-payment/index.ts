@@ -1,16 +1,92 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { BOOST_FEE_CENTS, BOOST_DURATION_HOURS, BOOST_DISCOUNT_PCT, BOOST_MIN_UNIT_AMOUNT_CENTS } from "../_shared/productPrices.ts";
 import { TIER_DISPLAY_NAMES, tierDisplayName } from "../_shared/tierNames.ts";
-import { hasPerk } from "../_shared/tierPerks.ts";
+import { hasPerk, monthlyFreeBoostAllowance } from "../_shared/tierPerks.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// ── Monthly free-boost meter ────────────────────────────────────────────────
+//
+// PGRST202 FALLBACK. db-deploy and functions-deploy are separate workflows on
+// the same push, so this code can reach prod minutes BEFORE the migration that
+// creates `claim_monthly_free_boost` / `refund_monthly_free_boost`. In that
+// window the RPC answers PGRST202 (function not found), and the only honest
+// thing to do is the pre-allowance meter: a conditional stamp of the month
+// column, which grants exactly ONE free boost. That under-grants Plus's second
+// boost for a few minutes; it never over-grants anyone, and a Pro member keeps
+// their perk throughout. Remove once 20260915043201 is confirmed live.
+const MISSING_RPC = "PGRST202";
+
+// NOT `ReturnType<typeof createClient>` — the overload resolves to a client
+// typed `never` schema (see execute-dispute-split for the long version).
+type SupabaseAdmin = SupabaseClient<any>;
+
+async function claimMonthlyFreeBoost(
+  admin: SupabaseAdmin,
+  userId: string,
+  allowance: number,
+): Promise<{ claimed: boolean; month: string; used: number | null; error: unknown }> {
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const { data, error } = await admin.rpc("claim_monthly_free_boost", {
+    p_user_id: userId,
+    p_allowance: allowance,
+  });
+  if (error && (error as { code?: string }).code === MISSING_RPC) {
+    const { data: credited, error: legacyErr } = await admin
+      .from("profiles")
+      .update({ boost_credit_used_month: thisMonth })
+      .eq("user_id", userId)
+      .or(`boost_credit_used_month.is.null,boost_credit_used_month.neq.${thisMonth}`)
+      .select("user_id");
+    return { claimed: (credited?.length ?? 0) > 0, month: thisMonth, used: null, error: legacyErr };
+  }
+  if (error) return { claimed: false, month: thisMonth, used: null, error };
+  // RETURNS TABLE → PostgREST hands back an array of one row.
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { claimed?: boolean; credit_month?: string; credits_used?: number | null }
+    | null
+    | undefined;
+  if (!row || typeof row.claimed !== "boolean") {
+    // An answer we cannot read is not a grant. Fail toward the paid path.
+    return { claimed: false, month: thisMonth, used: null, error: `unreadable claim result: ${JSON.stringify(data)}` };
+  }
+  return {
+    claimed: row.claimed,
+    month: row.credit_month ?? thisMonth,
+    used: row.credits_used ?? null,
+    error: null,
+  };
+}
+
+async function refundMonthlyFreeBoost(
+  admin: SupabaseAdmin,
+  userId: string,
+  month: string,
+): Promise<{ refunded: boolean; error: unknown }> {
+  const { data, error } = await admin.rpc("refund_monthly_free_boost", {
+    p_user_id: userId,
+    p_month: month,
+  });
+  if (error && (error as { code?: string }).code === MISSING_RPC) {
+    const { data: refunded, error: legacyErr } = await admin
+      .from("profiles")
+      .update({ boost_credit_used_month: null })
+      .eq("user_id", userId)
+      .eq("boost_credit_used_month", month)
+      .select("user_id");
+    return { refunded: (refunded?.length ?? 0) > 0, error: legacyErr };
+  }
+  if (error) return { refunded: false, error };
+  return { refunded: data === true, error: null };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -138,31 +214,33 @@ serve(async (req) => {
       );
     }
 
-    // Pro-and-up perk: ONE FREE BOOST per calendar month (owner, 2026-08-24),
-    // tracked by profiles.boost_credit_used_month (YYYY-MM). After it's
-    // spent, the tier falls through to its 20% discount below. The month check
-    // and the stamp are one conditional UPDATE so two same-moment boosts
-    // can't both ride the credit.
-    // Plus inherits this from Pro (CC-019: the literal `subTier === "pro"`
+    // Pro-and-up perk: N FREE BOOSTS per calendar month — Pro 1 (owner,
+    // 2026-08-24), Plus 2 (owner, 2026-09-14, VN-44). The count is
+    // MONTHLY_FREE_BOOSTS in _shared/tierPerks.ts, the same number the
+    // storefront bullet and the boost dialog read. After the allowance is
+    // spent, the tier falls through to its 20% discount below.
+    //
+    // The claim is `claim_monthly_free_boost` — one conditional UPDATE of the
+    // month + count meter (20260915043201), so two same-moment boosts cannot
+    // both ride the last credit. It used to be a PostgREST update of the month
+    // column alone, which can only express an allowance of ONE: a Plus member's
+    // second boost would have gone to Checkout under a card promising two.
+    //
+    // Plus inherits the perk from Pro (CC-019: the literal `subTier === "pro"`
     // silently withheld the monthly boost from the tier ABOVE Pro).
-    if (hasPerk(subTier, "monthlyFreeBoost", subActive)) {
-      const thisMonth = new Date().toISOString().slice(0, 7);
-      const { data: credited, error: creditErr } = await supabaseAdmin
-        .from("profiles")
-        .update({ boost_credit_used_month: thisMonth })
-        .eq("user_id", user.id)
-        .or(`boost_credit_used_month.is.null,boost_credit_used_month.neq.${thisMonth}`)
-        .select("user_id");
-      if (creditErr) {
-        console.error("[create-boost-payment] pro credit check failed:", creditErr);
+    const allowance = monthlyFreeBoostAllowance(subTier, subActive);
+    if (allowance > 0) {
+      const claim = await claimMonthlyFreeBoost(supabaseAdmin, user.id, allowance);
+      if (claim.error) {
+        console.error("[create-boost-payment] free monthly boost claim failed:", claim.error);
         // Fail toward the PAID path — never block a boost over the perk.
-      } else if ((credited?.length ?? 0) > 0) {
+      } else if (claim.claimed) {
         const boostExpires = new Date(Date.now() + BOOST_DURATION_HOURS * 60 * 60 * 1000);
-        // The credit is SPENT at this point — the conditional UPDATE above is
+        // The credit is SPENT at this point — the conditional claim above is
         // what makes two same-moment boosts unable to both ride it, so it has
         // to come first. That means everything after it owes the member a
-        // rollback: if the boost never lands, the month stamp must come back
-        // off, or their one free boost of the month is destroyed and they have
+        // rollback: if the boost never lands, the credit must come back, or
+        // one of their free boosts of the month is destroyed and they have
         // nothing to show for it and no way to say so.
         //
         // Guarded with `.select("id")` + a zero-row branch for the same reason
@@ -170,43 +248,56 @@ serve(async (req) => {
         // null }`, indistinguishable from success, and would answer
         // `free: true` over a job that was never boosted — while still having
         // burned the credit.
+        //
+        // CONDITIONAL on the job still being open and not already boosted.
+        // The "already boosted" check near the top is a READ taken before the
+        // claim, so two same-moment requests for ONE job (two devices, a
+        // retry) both pass it, both claim, and both flips land: one 24-hour
+        // boost, two credits gone. With an allowance of 2 that is Plus's
+        // whole month. Re-checking in the write makes the loser match zero
+        // rows, and the zero-row branch below refunds its credit.
+        const flipAt = new Date().toISOString();
         const { data: boostedRows, error: boostErr } = await supabaseAdmin
           .from("jobs")
           .update({
             boost_expires_at: boostExpires.toISOString(),
-            boosted_at: new Date().toISOString(),
+            boosted_at: flipAt,
           })
           .eq("id", job_id)
+          .eq("status", "open")
+          .or(`boost_expires_at.is.null,boost_expires_at.lte.${flipAt}`)
           .select("id");
         if (boostErr || (boostedRows?.length ?? 0) === 0) {
           console.error(
-            "[create-boost-payment] pro credit boost flip failed:",
+            "[create-boost-payment] free monthly boost flip failed:",
             boostErr ?? `zero rows matched for job ${job_id}`,
           );
-          // Give the month back. Conditional on the exact value we stamped, so
-          // a concurrent writer that has since moved the column on is not
-          // clobbered. If the rollback itself fails the member has silently
-          // lost the perk, so that case is logged loudly rather than dropped —
-          // it is the only trace ops would have.
-          const { data: refunded, error: refundErr } = await supabaseAdmin
-            .from("profiles")
-            .update({ boost_credit_used_month: null })
-            .eq("user_id", user.id)
-            .eq("boost_credit_used_month", thisMonth)
-            .select("user_id");
-          if (refundErr || (refunded?.length ?? 0) === 0) {
+          // Give the credit back. Conditional on the month we claimed in, so a
+          // meter that has since rolled into a new month is not touched. If
+          // the rollback itself fails the member has silently lost the perk,
+          // so that case is logged loudly rather than dropped — it is the only
+          // trace ops would have.
+          const refund = await refundMonthlyFreeBoost(supabaseAdmin, user.id, claim.month);
+          if (refund.error || !refund.refunded) {
             console.error(
-              `[create-boost-payment] CRITICAL: free monthly boost credit for ${user.id} was consumed (${thisMonth}) but the boost failed AND the credit could not be returned`,
-              refundErr ?? "zero rows matched",
+              `[create-boost-payment] CRITICAL: free monthly boost credit for ${user.id} was consumed (${claim.month}) but the boost failed AND the credit could not be returned`,
+              refund.error ?? "zero rows matched",
             );
           }
-          return fail(500, "We couldn't apply your free monthly boost. Please try again.");
+          return fail(
+            500,
+            refund.error || !refund.refunded
+              ? "We couldn't apply your free monthly boost. Please try again."
+              : "We couldn't apply your free boost — this job may already be boosted. Your free boost wasn't used.",
+          );
         }
         return new Response(
           JSON.stringify({
             free: true,
             boost_expires_at: boostExpires.toISOString(),
-            message: `Job boosted — your free ${tierDisplayName(subTier)} boost this month`,
+            message: allowance > 1
+              ? `Job boosted — free ${tierDisplayName(subTier)} boost ${claim.used ?? 1} of ${allowance} this month`
+              : `Job boosted — your free ${tierDisplayName(subTier)} boost this month`,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
         );

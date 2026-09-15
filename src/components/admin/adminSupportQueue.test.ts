@@ -11,7 +11,7 @@ import {
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 /**
- * The Elite "Priority Support" perk is queue ORDERING in the admin inbox. This
+ * The "Priority Support" perk (Plus and Elite) is queue ORDERING in the admin inbox. This
  * pins the ordering rule and, more importantly, its two failure modes: an
  * expired paid tier keeping the perk, and free tickets starving behind Elite.
  */
@@ -35,19 +35,18 @@ describe("priority entitlement is derived, not hardcoded", () => {
     const fromPerks = (Object.keys(TIER_PERKS) as Array<keyof typeof TIER_PERKS>)
       .filter(t => TIER_PERKS[t].dedicatedSupport);
     expect(PRIORITY_SUPPORT_TIERS).toEqual(fromPerks);
-    // Today that is Elite alone — and the assertion above is what keeps this
-    // true if the perk ever moves.
-    expect(PRIORITY_SUPPORT_TIERS).toEqual(["elite"]);
+    // Plus and Elite since the owner moved Priority Support down to Plus
+    // (2026-09-14, VN-44). The assertion above is what keeps this true if the
+    // perk moves again; this one pins the decision itself.
+    expect(PRIORITY_SUPPORT_TIERS).toEqual(["plus", "elite"]);
   });
 
   it("only entitled tiers report the perk", () => {
     expect(hasPrioritySupport("elite")).toBe(true);
-    // Plus is a real tier again (2026-09-05) and deliberately does NOT get
-    // priority support: TIER_PERKS.plus.dedicatedSupport is false, because
-    // moving one of Elite's identity perks down is a pricing decision the
-    // owner has not made. Asserted here so restoring the tier cannot quietly
-    // hand out Elite's support queue with it.
-    expect(hasPrioritySupport("plus")).toBe(false);
+    // Plus gets priority support since 2026-09-14 (owner, VN-44). The server
+    // half — admin_support_queue resolving a Plus reporter to 'plus' rather
+    // than 'free' — is pinned by src/test/perkEnforcementParity.test.ts.
+    expect(hasPrioritySupport("plus")).toBe(true);
     expect(hasPrioritySupport("pro")).toBe(false);
     expect(hasPrioritySupport("basic")).toBe(false);
     expect(hasPrioritySupport("free")).toBe(false);
@@ -104,6 +103,15 @@ describe("supportPriorityAt — effective arrival time", () => {
 });
 
 describe("sortSupportQueue", () => {
+  it("floats a fresh Plus ticket above younger free/pro tickets, like Elite", () => {
+    const order = sortSupportQueue([
+      ticket("free-2h", 2, "free"),
+      ticket("pro-6h", 6, "pro"),
+      ticket("plus-1h", 1, "plus"),
+    ]).map(t => t.id);
+    expect(order).toEqual(["plus-1h", "pro-6h", "free-2h"]);
+  });
+
   it("floats a fresh Elite ticket above younger free/pro tickets", () => {
     const order = sortSupportQueue([
       ticket("free-2h", 2, "free"),

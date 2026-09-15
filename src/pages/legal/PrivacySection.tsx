@@ -38,7 +38,7 @@ export const PrivacyContent = () => (
       items={[
         "We collect only what we need to match jobs and process payments — name, email, phone, ID, location, usage data.",
         "Stripe handles payments. We never store full card numbers.",
-        "Delete your account or download your data yourself, anytime, from your Data Rights page — no waiting on support.",
+        "Delete your account or download your data yourself, anytime, from the Download your data card in this policy — no waiting on support.",
       ]}
     />
 

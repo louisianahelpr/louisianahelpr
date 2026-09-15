@@ -3,6 +3,12 @@ import { sumHelperTakeHomeDollars } from "../_shared/helperEarnings.ts";
 import { feePercentForTier } from "../_shared/helperFees.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
+import { TIER_ORDER, TIER_PERK_MATRIX } from "../_shared/tierPerks.ts";
+
+// The "Pro+" weekly report rides the Advanced Analytics perk. Derived from the
+// perk matrix, not a hand-kept list: a hardcoded ["pro","elite"] silently
+// dropped Plus when Plus was restored (found 2026-09-14, VN-44 review).
+const REPORT_TIERS = TIER_ORDER.filter((t) => TIER_PERK_MATRIX[t].advancedAnalytics);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -90,7 +96,7 @@ Deno.serve(async (req) => {
         .order("user_id", { ascending: true })
         .in("user_id", chunk)
         .eq("approval_status", "approved")
-        .in("subscription_tier", ["pro", "elite"]),
+        .in("subscription_tier", [...REPORT_TIERS]),
     );
     const helperDefect = scanDefect("pro helpers", helperScan);
     if (helperDefect) throw new Error(helperDefect);

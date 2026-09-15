@@ -69,6 +69,29 @@ function liveDefinition(fnName: string): string {
   return readFileSync(resolve(MIGRATIONS, defining[defining.length - 1]), "utf8");
 }
 
+/**
+ * The newest migration text that (re)defines a TRIGGER by name. A trigger and
+ * the function it calls need not live in the same migration: 20260915101102
+ * rebuilds enforce_helper_completion_gates' BODY (the NULL-uid trust swap) with
+ * a plain CREATE OR REPLACE FUNCTION and does not touch the trigger, which
+ * 20260915044137 last (re)created on (helper_completed_at, status). Pinning the
+ * trigger to liveDefinition()'s file would go blind the moment a later migration
+ * rewrites only the function — so search the whole ledger for the trigger.
+ */
+function liveTriggerSql(triggerName: string): string {
+  const files = readdirSync(MIGRATIONS)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
+  const defining = files.filter((f) =>
+    readFileSync(resolve(MIGRATIONS, f), "utf8").includes(`TRIGGER ${triggerName}`),
+  );
+  expect(
+    defining.length,
+    `No migration defines trigger ${triggerName}. If it was renamed, point this test at the new name — do not delete the check.`,
+  ).toBeGreaterThan(0);
+  return readFileSync(resolve(MIGRATIONS, defining[defining.length - 1]), "utf8");
+}
+
 /** Pull a `name CONSTANT text[] := ARRAY[ 'a', 'b' ]` list out of plpgsql. */
 function sqlArrayLiteral(src: string, varName: string): string[] {
   const m = src.match(new RegExp(`${varName}\\s+CONSTANT\\s+text\\[\\]\\s*:=\\s*ARRAY\\[([^\\]]*)\\]`, "i"));
@@ -204,7 +227,9 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
       const gates = liveDefinition("enforce_helper_completion_gates");
       // A helper's direct status = 'completed' is a completion too.
       expect(gates).toMatch(/NEW\.status::text = 'completed'/);
-      expect(gates).toMatch(/BEFORE UPDATE OF helper_completed_at, status ON public\.jobs/);
+      // The trigger lives in whichever migration last (re)created it, which is
+      // NOT necessarily the one that last rewrote the function body.
+      expect(liveTriggerSql("trg_helper_completion_gates")).toMatch(/BEFORE UPDATE OF helper_completed_at, status ON public\.jobs/);
       // The poster cannot write the GPS half.
       const posterLock = sqlArrayLiteral(liveDefinition("enforce_poster_jobs_money_lock"), "locked_always");
       expect(posterLock).toEqual(expect.arrayContaining(["helper_arrived_at", "helper_arrival_verified_at"]));

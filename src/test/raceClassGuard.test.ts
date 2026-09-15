@@ -17,6 +17,10 @@ import * as guard from "../../scripts/check-race-class.mjs";
  */
 
 const FIX = "20260913014328";
+// 20260915101102 rebuilt enforce_application_job_state from its LIVE (post-fix,
+// FOR SHARE) body to change only its NULL-uid trust test, so it restates the
+// fix. "Pre-fix" therefore means leaving both out.
+const RESTATES_FIX = "20260915101102";
 const FIXTURES = resolve(__dirname, "fixtures/raceClass");
 const OFFER_HANDLERS = "src/pages/activity/activityActions/useOfferHandlers.ts";
 
@@ -24,7 +28,7 @@ type Hit = { key: string; file: string; line?: number };
 
 describe("race-class guard — red on the pre-fix code, green on the fix", () => {
   it("flags enforce_application_job_state when the FOR SHARE migration is absent", () => {
-    const keys = guard.sqlHits(guard.readMigrations({ exclude: [FIX] })).map((h: Hit) => h.key);
+    const keys = guard.sqlHits(guard.readMigrations({ exclude: [FIX, RESTATES_FIX] })).map((h: Hit) => h.key);
     expect(keys).toContain("sql:public.enforce_application_job_state");
   });
 
@@ -228,7 +232,10 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
 
   it("no exit around the stamp: clearing it, a block, a no-show report or a Helpr cancel cannot undo a job marked done", () => {
     const without = {
-      trg: latestDefinition("enforce_completion_on_live_job", [COMPLETION_FIX]),
+      // 20260915101102 (the NULL-uid trust swap) re-derives this guard from its
+      // LIVE body to change only its role test, so it restates the fix — exclude
+      // it too, or the pre-guard baseline still finds a definition.
+      trg: latestDefinition("enforce_completion_on_live_job", [COMPLETION_FIX, RESTATES_FIX]),
       block: latestDefinition("block_user_and_settle", [COMPLETION_FIX]),
       // Also exclude the arrival migration (20260915044137): it legitimately
       // made report_helper_no_show read helper_completed_at for a STRONGER

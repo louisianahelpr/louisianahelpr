@@ -5334,6 +5334,7 @@ export type Database = {
         Args: { object_name: string }
         Returns: boolean
       }
+      is_server_context: { Args: never; Returns: boolean }
       is_thread_muted: {
         Args: { _job_id: string; _other_user_id: string; _user: string }
         Returns: boolean

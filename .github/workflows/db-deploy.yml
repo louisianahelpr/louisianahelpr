@@ -71,6 +71,10 @@ on:
       - "scripts/ci/replay-migrations.sh"
       - "scripts/ci/client-writable-views.sql"
       - "scripts/check-updatable-views.mjs"
+      - "scripts/ci/client-default-privileges.sql"
+      - "scripts/ci/null-uid-trust.sql"
+      - "scripts/check-live-privileges.mjs"
+      - "scripts/check-migration-relation-grants.mjs"
       - "scripts/ci/sensitive-anon-grants.sql"
       - "scripts/check-anon-table-grants.mjs"
   # Manual trigger so you can re-run the deploy without a new commit
@@ -355,6 +359,18 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-updatable-views.mjs
+
+      # Same idea for the two classes behind that incident: prod's default
+      # privileges must not grant clients anything on new relations in public
+      # (20260915101101), and no function may trust a bare NULL auth.uid() as
+      # the service role (20260915101102). Same queries as the replay gate:
+      # scripts/ci/client-default-privileges.sql, scripts/ci/null-uid-trust.sql.
+      - name: Verify no client default privileges and no NULL-uid trust (live prod)
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-live-privileges.mjs
 
       - name: Notify on failure
         # Never gate this step on the secret: a missing SLACK_WEBHOOK_URL must

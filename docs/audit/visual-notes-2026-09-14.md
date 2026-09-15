@@ -49,7 +49,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-38 | Remove "Parish · Vermilion" from Edit Profile | small | [x] bdc3f53d1 | [x] vn-38-after-edit-profile-1440-zip.webp |
 | VN-39 | Do skills & services and recent work show anywhere on the public profile? (OWNER QUESTION  | question | [ ] | [ ] |
 | VN-40 | Edit Profile save bar — "Cancel" / "Up to Date" buttons | small | [x] 8b78763b4 | [x] vn-40-after-vn40-after-save-1440.webp |
-| VN-41 | Schedule page — small calendar floating in a huge card, and Upcoming jobs cards full of de | large | [ ] | [ ] |
+| VN-41 | Schedule page — small calendar floating in a huge card, and Upcoming jobs cards full of de | large | [x] ad3ba91ea | [x] vn-41-after-sched-jobs-1440.webp |
 | VN-42 | Saved Helprs should be one column, not a grid | small | [x] f70abb054 | [x] vn-42-after-saved-helpers-1440.webp |
 | VN-43 | Remove the card design picker from gift cards | small | [x] c57c568be | [x] vn-43-after-gift-card-1440-occasion.webp |
 | VN-44 | Plus tier (and Once / Annual) don't look enticing (OWNER QUESTION + PRICING DECISION) | medium | [x] a4bd85fe0 | [x] vn-44-after-vn44-plus-375.webp |

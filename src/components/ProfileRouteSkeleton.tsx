@@ -1,5 +1,6 @@
 import AppShell from "@/components/AppShell";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
+import { EarningsPageSkeleton, isEarningsTabUrl } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 
 /**
  * Suspense fallback for the `/profile` route's lazy chunk.
@@ -35,7 +36,7 @@ const ProfileRouteSkeleton = () => (
         aria-hidden
       >
         <div className="page-measure mx-auto">
-          <ProfilePageSkeleton />
+          {isEarningsTabUrl() ? <EarningsPageSkeleton /> : <ProfilePageSkeleton />}
         </div>
       </div>
     </AppShell>

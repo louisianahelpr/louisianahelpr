@@ -18,6 +18,7 @@ type ProfileTip = { amount: number; job_id: string; created_at: string };
 // Only the landing tab + its lightweight header are needed on first paint.
 // Every other tab panel and the rarely-opened dialogs are code-split so the
 // Profile route chunk stays small — each is fetched the first time it shows.
+import { EarningsPageSkeleton } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 const SecurityTab = lazy(() => import("@/components/profile/SecurityTab").then(m => ({ default: m.SecurityTab })));
 const ProfileEditForm = lazy(() => import("@/components/profile/ProfileEditForm").then(m => ({ default: m.ProfileEditForm })));
 const SupportInline = lazy(() => import("@/components/profile/SupportInline").then(m => ({ default: m.SupportInline })));
@@ -221,13 +222,13 @@ export const ProfileTabPanels = ({
           import uses rather than nothing, so the tab doesn't flash blank.
           Kept as a sibling branch (not a ternary) so the `tab === "x" && (`
           shell shape below stays intact for profileTabShell.test.ts. */}
-      {(tab === "earnings" || tab === "payment") && !user && <TabFallback />}
+      {(tab === "earnings" || tab === "payment") && !user && <EarningsPageSkeleton />}
       {(tab === "earnings" || tab === "payment") && user && (
         <div className="space-y-3">
           {earningsQuery.isError && (
             <ProfileSectionError section="your earnings" onRetry={() => { earningsQuery.refetch(); }} />
           )}
-          <Suspense fallback={<TabFallback />}>
+          <Suspense fallback={<EarningsPageSkeleton />}>
             <EarningsTab
               earningsJobs={earningsJobs}
               tips={tips}

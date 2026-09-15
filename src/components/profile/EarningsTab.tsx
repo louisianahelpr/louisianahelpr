@@ -19,7 +19,8 @@ import { saveOrShareFile } from "@/lib/fileExport";
 import { EarningsBreakdownCharts } from "@/components/profile/EarningsBreakdownCharts";
 import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
-import { HelperScheduleStrip } from "@/components/profile/HelperScheduleStrip";
+import { EarningsPageSkeleton } from "@/components/profile/earningsTab/EarningsPageSkeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { HelperStreakBadge } from "@/components/profile/HelperStreakBadge";
 import { MonthlyGoalCard } from "@/components/profile/MonthlyGoalCard";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -354,7 +355,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       {/* One-time "you got paid" celebration. Pulls from the
           payout_transfers ledger already loaded above, so no extra
           Supabase read. Suppression is per-device via safeStorage. */}
-      <PayoutCelebration payouts={payoutLedger} />
+      {/* Floats OVER the switcher instead of sitting in the flow: it appears
+          after the ledger loads and auto-dismisses, and in the flow both of
+          those moments shoved the whole page down and back up (VN-3, measured
+          as the last layout shift on a cold load). */}
+      <div className="relative h-0 z-20">
+        <div className="absolute inset-x-0 top-0">
+          <PayoutCelebration payouts={payoutLedger} />
+        </div>
+      </div>
 
       {/* NOT CONNECTED YET: the connect card is the page. Everything below it
           — the wallet, the goal, the charts, the ledger — is either empty or
@@ -395,24 +404,25 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           summary sums them, the history lists them, the charts group them.
           One view, ordered widest to narrowest — the figure, then what is
           coming, then the breakdown, then the row-by-row ledger. */}
-      {view === "earnings" && (
+      {/* EARNINGS VIEW — owner, 2026-09-15 (VN-3): "One skeleton. Better
+          organization", choosing all three proposals together:
+            1. money first — the Earned summary, with the week forecast / month
+               goal sitting directly under it as part of the same answer;
+            2. then the job-by-job history;
+            3. the charts and the Advanced Analytics link behind "More
+               insights" instead of always on the page.
+          "Your schedule" left this page (it is the Schedule tab's subject),
+          and nothing renders piecemeal: until the earnings rows are in, the
+          whole view is ONE skeleton with the loaded layout. */}
+      {view === "earnings" && loading && <EarningsPageSkeleton withHeader={false} />}
+      {view === "earnings" && !loading && (
       <section className="space-y-3">
-        {/* Motivational pill — consecutive 5-star reviews. Self-hides below a
-            3-streak so it only appears when it actually means something. It
-            lives in THIS view, not above the switcher where it used to sit: it
-            is a fact about how the work is going, which is the question this
-            half of the screen answers, and it has nothing to say to someone
-            who opened the tab to check a bank connection. */}
         {helperId && (
           <div className="flex">
             <HelperStreakBadge helperId={helperId} />
           </div>
         )}
 
-        {/* EARNED — the first card, and the only place on this screen that
-            states take-home. It also renders for a helpr who has NOT connected
-            Stripe (who has earnings but no wallet), which is exactly the state
-            the owner screenshotted. */}
         <EarningsSummaryCard
           loading={loading}
           range={range}
@@ -426,113 +436,85 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           releasingAt={releasingAt}
         />
 
-      {/* ─── COMING UP ────────────────────────────────────────────
-          Forward-looking content lives BEHIND the date-range toggle above,
-          not permanently on the page (owner: the Sunday projection and the
-          monthly-goal streak card were always-visible even for a helpr who
-          opened the tab to check their lifetime total, which two of these
-          three cards have nothing to do with). Selecting "This Week" or
-          "This Month" opts in; "Lifetime"/"This Year" show neither. */}
-      {range === "week" && (
-        <>
-          <SectionRule />
-          {/* "Projected by Sunday" card. Sums net take across
-              accepted/in-progress jobs whose date_needed falls in the current
-              week. Only renders for approved helpers — pre-onboarding helpers
-              have no earnings yet so a $0 forecast is just noise. */}
+        {range === "week" && (
           <EarningsForecastCard
             helperId={helperId}
             enabled={profile?.approval_status === "approved"}
             feeFallbackPercent={helperFeeFallbackPct}
           />
-        </>
-      )}
+        )}
 
-      {/* "Next 7 days" upcoming-jobs strip. Gated behind Stripe-connected so
-          pre-onboarded helpers (who can't accept jobs yet) don't see an
-          empty week. Closes #130. */}
-      <HelperScheduleStrip
-        helperId={helperId}
-        enabled={
-          profile?.approval_status === "approved" && !!stripeData?.connected
-        }
-      />
+        {range === "month" && (
+          <MonthlyGoalCard
+            completedJobs={completedJobs.map((j) => ({
+              // helper_completed_at so the month bucket matches when the job
+              // was done, not when it was posted
+              created_at: j.helper_completed_at ?? j.created_at,
+              netPayout: helperTakeHomeDollars(j, helperFeeFallbackPct),
+            }))}
+          />
+        )}
 
-      {range === "month" && (
-        <>
-          <SectionRule />
-          {/* Monthly earnings goal — the only control for it in the app
-              (/analytics carried a second one; removed). localStorage-backed,
-              so no DB migration needed. */}
-          {!loading && (
-            <MonthlyGoalCard
-              completedJobs={completedJobs.map((j) => ({
-                // prefer helper_completed_at so the month bucket matches when
-                // the job was actually done, not when it was posted
-                created_at: j.helper_completed_at ?? j.created_at,
-                // Same shared take-home definition (and same group split) as the
-                // tab total above, so the goal ring and the Total tile agree.
-                netPayout: helperTakeHomeDollars(j, helperFeeFallbackPct),
-              }))}
-            />
-          )}
-        </>
-      )}
+        <SectionRule />
+        <EarningHistory
+          earningsJobs={earningsJobs}
+          tips={tips}
+          loading={loading}
+          historyVisible={historyVisible}
+          page={PAGE}
+          onLoadMore={() => setHistoryVisible((n) => n + PAGE)}
+          onBrowseJobs={() => navigate("/dashboard")}
+          feeFallbackPct={helperFeeFallbackPct}
+        />
 
-      {/* ─── BREAKDOWN ───────────────────────────────────────────
-          The real, unlocked charts. This was its own "Insights" segment, which
-          made a pie chart of the reader's own completed jobs a peer of the
-          wallet; it is a way of looking at the figure above it, so it sits
-          under it. (The segment also used to render HelperAnalyticsBody — an
-          "Activity Trend" chart plus a grid of PRO-locked teaser cards never
-          wired to an actual Pro feature. Removed 2026-08-30.) */}
-      <SectionRule />
-      <p className="text-ds-11 px-1" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>More insights with every completed job</p>
-      <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
-
-      {/* The ONE entry point to /analytics (Advanced Analytics, built
-          2026-09-01 to satisfy the Pro bullet that previously pointed at
-          nothing). It is a link, not a locked teaser card: the charts above
-          stay free for everyone, and the page it opens decides for itself —
-          server-side — whether this helper gets the dashboard or the upgrade
-          offer. Deliberately not gated here; a client-side gate on a paid
-          perk is the bug this feature was built to stop repeating, and a
-          hidden link would leave the pricing bullet undiscoverable. */}
-      <button
-        type="button"
-        onClick={() => navigate("/profile?tab=analytics")}
-        className="w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
-      >
-        <span className="min-w-0 flex-1">
-          <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-            Advanced Analytics
-          </span>
-          <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
-            Where your money comes from, and when work gets posted near you
-          </span>
-        </span>
-        <span className="text-ds-13 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.5)" }} aria-hidden="true">
-          &rsaquo;
-        </span>
-      </button>
-
-      {/* ─── EARNING HISTORY ─── job by job, the rows behind the figure.
-          The per-JOB ledger belongs here, with the earnings it explains. The
-          two money-OUT ledgers it used to sit between (Stripe's payout history
-          and the per-transfer list) moved to the Payouts view: those describe
-          bank deposits, not work done. */}
-      <SectionRule />
-      <EarningHistory
-        earningsJobs={earningsJobs}
-        tips={tips}
-        loading={loading}
-        historyVisible={historyVisible}
-        page={PAGE}
-        onLoadMore={() => setHistoryVisible((n) => n + PAGE)}
-        onBrowseJobs={() => navigate("/dashboard")}
-        feeFallbackPct={helperFeeFallbackPct}
-      />
-
+        <SectionRule />
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="group w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                  More Insights
+                </span>
+                <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                  Where your money comes from, by category and month
+                </span>
+              </span>
+              <span
+                className="text-ds-13 shrink-0 transition-transform group-data-[state=open]:rotate-90"
+                style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                aria-hidden="true"
+              >
+                &rsaquo;
+              </span>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-3 pt-3">
+            <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
+            {/* The ONE entry point to /analytics (Advanced Analytics). A link,
+                not a locked teaser: the page it opens decides server-side
+                whether this helper gets the dashboard or the upgrade offer. */}
+            <button
+              type="button"
+              onClick={() => navigate("/profile?tab=analytics")}
+              className="w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                  Advanced Analytics
+                </span>
+                <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                  Trends over time, and when work gets posted near you
+                </span>
+              </span>
+              <span className="text-ds-13 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.5)" }} aria-hidden="true">
+                &rsaquo;
+              </span>
+            </button>
+          </CollapsibleContent>
+        </Collapsible>
       </section>
       )}
 

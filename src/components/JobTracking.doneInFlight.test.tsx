@@ -1,4 +1,4 @@
-// JobTracking "Yes, I'm Done" — synchronous in-flight guard + the live-status
+// JobTracking "Mark Job Complete" — synchronous in-flight guard + the live-status
 // predicate on the helper_completed_at stamp.
 //
 // `updating` is React state, so two clicks on the confirm dialog's primary
@@ -33,7 +33,7 @@ function chain(table: string) {
         data: {
           proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"], require_photo_proof: true,
           poster_confirmed_working_at: null, helper_arrived_at: new Date(Date.now() - 3 * 3600e3).toISOString(),
-          helper_arrival_verified_at: new Date(Date.now() - 3 * 3600e3).toISOString(), poster_confirmed_arrival_at: null,
+          helper_arrival_verified_at: new Date(Date.now() - 3 * 3600e3).toISOString(), poster_confirmed_arrival_at: new Date(Date.now() - 3 * 3600e3).toISOString(),
         },
         error: null,
       });
@@ -82,6 +82,7 @@ function renderWorking() {
       helperOnTheWayAt={AGO(4)}
       helperArrivedAt={AGO(3)}
       helperArrivalVerifiedAt={AGO(3)}
+      posterConfirmedArrivalAt={AGO(3)}
       proofBeforeUrls={["b.jpg"]}
       proofAfterUrls={["a.jpg"]}
       requirePhotoProof
@@ -101,8 +102,8 @@ describe("JobTracking Done — one request per decision", () => {
 
   it("two same-frame clicks on 'Yes, I'm Done' write helper_completed_at once", async () => {
     renderWorking();
-    fireEvent.click(await screen.findByRole("button", { name: /request my payout/i }));
-    const confirm = await screen.findByRole("button", { name: /yes, i'm done/i });
+    fireEvent.click(await screen.findByRole("button", { name: /mark job complete/i }));
+    const confirm = await screen.findByRole("button", { name: /mark complete/i });
     act(() => {
       confirm.click();
       confirm.click();
@@ -115,8 +116,8 @@ describe("JobTracking Done — one request per decision", () => {
 
   it("the stamp only matches a LIVE job (status predicate), and reads back poster_completed_at", async () => {
     renderWorking();
-    fireEvent.click(await screen.findByRole("button", { name: /request my payout/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /yes, i'm done/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /mark job complete/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /mark complete/i }));
     await waitFor(() => expect(stamps()).toHaveLength(1));
     const [stamp] = stamps();
     expect(stamp.filters).toContainEqual(["in", "status", ["accepted", "in_progress", "revision_requested"]]);
@@ -127,8 +128,8 @@ describe("JobTracking Done — one request per decision", () => {
   it("when the poster already confirmed, the Done finishes the release through create-payment", async () => {
     stampRow = { id: "job-1", poster_completed_at: AGO(0.1) };
     renderWorking();
-    fireEvent.click(await screen.findByRole("button", { name: /request my payout/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /yes, i'm done/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /mark job complete/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /mark complete/i }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(1));
     expect(invokeMock).toHaveBeenCalledWith("create-payment", { body: { action: "release", jobId: "job-1" } });
   });

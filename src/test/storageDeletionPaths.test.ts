@@ -89,6 +89,7 @@ const RULES: Rule[] = [
       "scripts/probes/admin-release-vs-refund.prod.mjs": "tears down the minted funded seed job it raced; no uploads are ever made on it; the weekly storage-orphan-sweep is the net",
       "scripts/probes/dispute-open-race.prod.mjs": "creates a bare job with no uploads (evidence urls are example.invalid strings, never storage objects); the weekly storage-orphan-sweep is the net",
       "scripts/probes/settle-dispute-race.prod.mjs": "creates a bare job with no uploads; the weekly storage-orphan-sweep is the net",
+      "scripts/probes/completion-race.prod.mjs": "creates a bare job with no uploads; the weekly storage-orphan-sweep is the net",
     },
   },
   {

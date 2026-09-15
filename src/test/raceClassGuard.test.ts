@@ -230,7 +230,11 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
     const without = {
       trg: latestDefinition("enforce_completion_on_live_job", [COMPLETION_FIX]),
       block: latestDefinition("block_user_and_settle", [COMPLETION_FIX]),
-      noShow: latestDefinition("report_helper_no_show", [COMPLETION_FIX]),
+      // Also exclude the arrival migration (20260915044137): it legitimately
+      // made report_helper_no_show read helper_completed_at for a STRONGER
+      // no-show guard (refuses if arrived OR completed). The pre-guard baseline
+      // is the definition before both guard-adders.
+      noShow: latestDefinition("report_helper_no_show", [COMPLETION_FIX, "20260915044137"]),
       helperCancel: latestDefinition("helper_cancel_booking", [COMPLETION_FIX]),
     };
     expect(without.trg).toBe("");
@@ -243,7 +247,10 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
     );
     const block = latestDefinition("block_user_and_settle");
     expect(block.match(/helper_completed_at\s+IS\s+NULL/gi)).toHaveLength(2); // the locked SELECT and the UPDATE predicate
-    expect(latestDefinition("report_helper_no_show")).toMatch(/v_helper_completed_at\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'helper_marked_done'/i);
+    // 20260915044137 broadened this guard: a no-show is now refused when the
+    // Helpr has arrived OR completed, raising 'helper_already_arrived'. The
+    // done-stamp still blocks the report — the protection is intact/stronger.
+    expect(latestDefinition("report_helper_no_show")).toMatch(/v_helper_completed_at\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'helper_already_arrived'/i);
     expect(latestDefinition("helper_cancel_booking")).toMatch(/v_job\.helper_completed_at\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'not_cancellable'/i);
   });
 });

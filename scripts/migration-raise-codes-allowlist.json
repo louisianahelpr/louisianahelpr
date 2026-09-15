@@ -1,4 +1,11 @@
 {
   "//": "Guards a migration drops ON PURPOSE when it redefines a function. Each entry: migration file, schema-qualified function, the RAISE code, and why. scripts/check-migration-raise-codes.mjs; src/test/migrationRaiseCodesPreserved.test.ts.",
-  "allowed": []
+  "allowed": [
+    {
+      "migration": "20260915044137_arrival_requires_gps_and_poster.sql",
+      "function": "public.report_helper_no_show",
+      "code": "helper_marked_done",
+      "reason": "Not dropped, replaced by a STRONGER guard: report_helper_no_show now refuses a no-show when the Helpr has arrived OR completed (RAISE 'helper_already_arrived'), a superset of the old completed-only check. The done-stamp-can't-be-undone protection is intact."
+    }
+  ]
 }

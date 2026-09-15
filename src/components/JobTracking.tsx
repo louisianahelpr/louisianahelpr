@@ -956,7 +956,7 @@ export function JobTracking({
 
 
   // SYNCHRONOUS IN-FLIGHT GUARD. `updating` is React state, so two taps on
-  // "Yes, I'm Done" dispatched in one frame both read false and both wrote
+  // the Mark Complete confirm dispatched in one frame both read false and wrote
   // helper_completed_at — moving the stamp the 24h auto-release clock is keyed
   // on, and (landing after a concurrent release or cancel) stamping a job that
   // was no longer live. A ref sees the first tap. Same class and fix as

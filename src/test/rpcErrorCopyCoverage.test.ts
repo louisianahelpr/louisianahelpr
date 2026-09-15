@@ -46,6 +46,25 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // Dispute settlement RPCs (20260915034822). These codes ARE user-reachable,
+  // but their copy is rendered by each caller's own dispute-copy path, not the
+  // central RPC_ERROR_COPY / rpcErrorMessage: DisputedSection + PostedJobActions
+  // route through isExpectedLifecycleRefusal + helperDisputeCopy/posterDisputeControls,
+  // and AdminDisputes renders in the admin console. dispute_settlement_in_progress
+  // is an EXPECTED_REFUSAL. See lifecycleErrors.ts.
+  rpc_withdraw_dispute: {
+    dispute_settlement_in_progress: {
+      reason: "Expected refusal rendered by DisputedSection/PostedJobActions via isExpectedLifecycleRefusal + their dispute-copy files, not central RPC_ERROR_COPY.",
+    },
+  },
+  rpc_decide_dispute: {
+    dispute_settlement_in_progress: {
+      reason: "Admin console (AdminDisputes) renders the settlement-in-progress refusal in its own dispute UI, not via rpcErrorMessage.",
+    },
+    admin_is_party: {
+      reason: "Admin-only guard: AdminDisputes gates the decide controls for an admin who is a party, and renders any raised code in its own admin dispute UI.",
+    },
+  },
   helper_abort_job: {
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
     reason_required: {

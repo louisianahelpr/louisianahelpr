@@ -177,6 +177,11 @@ export const RPC_ERROR_COPY = {
     dispute_needs_description: "Add a little more about why you can't finish, then try again.",
     job_not_found: JOB_GONE,
     not_authorized: "You're no longer booked on this job, so it can't be cancelled from here.",
+    // open_dispute_as (via the abort-dispute path), 20260915034822.
+    dispute_job_not_disputable: "This job has already been resolved or closed, so it can't be disputed. Refresh to see where it stands — if that looks wrong, contact support.",
+    dispute_already_decided: "An admin has already decided this dispute and its payment is being settled, so it can't be reopened. Refresh to see the decision — if that looks wrong, contact support.",
+    dispute_payment_being_cancelled: "This job's payment is being cancelled and refunded, so it can't be disputed. Refresh to see where it stands — if that looks wrong, contact support.",
+    dispute_evidence_invalid_url: "A photo couldn't be attached to this dispute. Remove it and try again.",
   },
   // JobTracking — "I'm On My Way" and arrival check-in.
   helper_mark_on_the_way: {
@@ -228,6 +233,11 @@ export const RPC_ERROR_COPY = {
   rpc_open_dispute: {
     dispute_needs_description: LIFECYCLE_REASONS.dispute_needs_description,
     job_already_completed: LIFECYCLE_REASONS.job_already_completed,
+    // open_dispute_as refusals, 20260915034822.
+    dispute_job_not_disputable: "This job has already been resolved or closed, so it can't be disputed. Refresh to see where it stands — if that looks wrong, contact support.",
+    dispute_already_decided: "An admin has already decided this dispute and its payment is being settled, so it can't be reopened. Refresh to see the decision — if that looks wrong, contact support.",
+    dispute_payment_being_cancelled: "This job's payment is being cancelled and refunded, so it can't be disputed. Refresh to see where it stands — if that looks wrong, contact support.",
+    dispute_evidence_invalid_url: "A photo couldn't be attached to this dispute. Remove it and try again.",
   },
 } satisfies Record<string, Record<string, string>>;
 

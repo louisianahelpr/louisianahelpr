@@ -379,7 +379,7 @@ export function JobConfirmation({
             onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }}
             className="w-full text-center text-ds-11 font-sans underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
           >
-            Can't make it? See what happens
+            Cancel Job
           </button>
         )}
       </DialogContent>

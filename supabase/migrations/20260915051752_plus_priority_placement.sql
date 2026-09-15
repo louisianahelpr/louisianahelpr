@@ -9,9 +9,12 @@
 -- byte-identical (md5 of prosrc and of the full definition) to the body in
 -- 20260907194734_remove_helper_preferred_parishes, the newest migration that
 -- defines it — bumped only 'elite' (5) and 'pro' (2.5). A Plus poster fell to
--- the ELSE 0 arm, so on the public /jobs board and in the RPC page order the
--- perk did nothing, and the signed-in dashboard (which re-sorts with the
--- client scorer) moved the same job a different distance than /jobs did.
+-- the ELSE 0 arm. NOT USER-VISIBLE TODAY: /jobs was deleted 2026-09-07 and
+-- this RPC has no client caller (src/config/showSeedJobs.ts). Both the guest
+-- and signed-in feeds read open_jobs_browse and rank with the client scorer,
+-- which already gave Plus its placement, and prod has no Plus profiles. This
+-- only keeps the server ladder consistent with the perk matrix, so a future
+-- caller cannot re-introduce the gap.
 --
 -- THE DECISION: Plus = 2.5, the same half step as Pro — not a new value
 -- between Pro and Elite. The placement ladder on every surface is "top rung
@@ -47,7 +50,7 @@
 -- type; every object it references (early_access_cutoff,
 -- seed_jobs_hidden_publicly, get_user_credential_tier, miles_between,
 -- mask_job_location) is defined by earlier migrations. Grants are restated
--- exactly as live: EXECUTE for anon (guest browse), authenticated, service_role.
+-- exactly as live: EXECUTE for anon, authenticated, service_role (grants as live).
 
 CREATE OR REPLACE FUNCTION public.get_ranked_open_jobs(p_limit integer DEFAULT 20, p_offset integer DEFAULT 0, p_include_seed boolean DEFAULT true, p_lat numeric DEFAULT NULL::numeric, p_lng numeric DEFAULT NULL::numeric, p_max_miles numeric DEFAULT NULL::numeric)
  RETURNS TABLE(id uuid, title text, description text, category job_category, budget numeric, date_needed date, start_time time without time zone, location text, parish text, is_urgent boolean, urgent_fee numeric, is_flexible_schedule boolean, is_recurring boolean, recurrence_interval text, is_group_job boolean, helpers_needed integer, estimated_hours numeric, photos text[], special_requirements text, created_at timestamp with time zone, expires_at timestamp with time zone, boosted_at timestamp with time zone, boost_expires_at timestamp with time zone, parish_match boolean, rank_score numeric, pricing_mode text, distance_band text)

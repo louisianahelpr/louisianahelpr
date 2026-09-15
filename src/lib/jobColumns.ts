@@ -61,6 +61,8 @@ export const JOB_READABLE_COLUMN_LIST = [
   "flag_reasons",
   "has_active_dispute",
   "helper_arrival_verified_at",
+  "helper_arrival_near_miss_at",
+  "helper_arrival_near_miss_ft",
   "helper_arrived_at",
   "helper_completed_at",
   "helper_confirmed_at",

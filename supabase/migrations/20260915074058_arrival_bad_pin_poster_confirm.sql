@@ -49,6 +49,16 @@ ALTER TABLE public.jobs
   ADD COLUMN IF NOT EXISTS helper_arrival_near_miss_at timestamptz,
   ADD COLUMN IF NOT EXISTS helper_arrival_near_miss_ft integer;
 
+-- Column-level SELECT on jobs (20260915045110): a new column has no grant for
+-- authenticated until the grants are re-derived. Parties read these two to
+-- show the poster's Confirm button and the Helpr's message.
+DO $$
+BEGIN
+  IF to_regprocedure('public.sync_jobs_select_grants()') IS NOT NULL THEN
+    PERFORM public.sync_jobs_select_grants();
+  END IF;
+END $$;
+
 COMMENT ON COLUMN public.jobs.helper_arrival_near_miss_at IS
   'Last time mark_helper_arrival found the assigned Helpr >500ft but <=1 mile from the pin (VN-33b). Server-owned.';
 

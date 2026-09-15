@@ -9,6 +9,7 @@ import { LEGAL_TERMS_VERSION, LEGAL_PRIVACY_VERSION } from "../_shared/legalVers
 import { SUPPORT_EMAIL } from "../_shared/resend.ts";
 import {
   avatarObjectKey,
+  avatarObjectNameFromUrl,
   resolveAvatarContentType,
   safeDocumentExt,
   sweepSupersededAvatars,
@@ -370,6 +371,8 @@ serve(async (req) => {
     }
 
     let avatarUrl: string | null = null;
+    // `avatar.<ext>` of the upload above — what the post-update sweep keeps.
+    let avatarObjectName: string | null = null;
     // Superseded avatar objects the sweep could NOT confirm are gone. Returned
     // to the caller rather than only logged, so a still-public previous photo
     // is something the app can surface to the person whose photo it is.
@@ -418,22 +421,12 @@ serve(async (req) => {
       } else {
         const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(avatarPath);
         avatarUrl = urlData.publicUrl;
-
-        // Delete any `avatar.*` sibling left by a different format (or by the
-        // old client-controlled key scheme) and PROVE it by re-listing. Never
-        // throws: the new photo is already live, and failing here would leave
-        // the profile pointing at the object being replaced.
-        const { staleRemaining } = await sweepSupersededAvatars(
-          supabase,
-          userId,
-          avatarPath.slice(userId.length + 1),
-        );
-        if (staleRemaining.length > 0) {
-          staleAvatarObjects = staleRemaining;
-          console.error(
-            `[complete-signup] ${staleRemaining.length} superseded avatar object(s) still public for ${userId}: ${staleRemaining.join(", ")}`,
-          );
-        }
+        avatarObjectName = avatarPath.slice(userId.length + 1);
+        // The superseded `avatar.*` siblings are NOT deleted here. They used
+        // to be — before the five early returns below and before the profile
+        // update — so any of those failing left `profiles.avatar_url` on an
+        // object this function had just deleted. The sweep runs after the
+        // update is confirmed; see `sweepSupersededAvatars` further down.
       }
     }
 
@@ -767,6 +760,45 @@ serve(async (req) => {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // The row is confirmed on the new photo, so only NOW retire every other
+    // `avatar.*` sibling (a different format, or the old client-controlled key
+    // scheme) and PROVE it by re-listing. Kept as well: whatever the row names
+    // at this instant, so a replacement from the app that has ALREADY moved the
+    // row does not have its object deleted here. Not a total guarantee: the row
+    // is read one statement before the delete, so a replacement landing between
+    // those two is still unprotected — the window is that gap, not zero.
+    // Never fails the signup — the photo is
+    // live and the row points at it; a survivor is returned in
+    // `staleAvatarObjects` and logged.
+    if (avatarUrl && avatarObjectName) {
+      const { data: rowNow, error: rowNowErr } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (rowNowErr) {
+        // Unknown is never "clean": remove nothing, report the exposure.
+        staleAvatarObjects = [`${userId}/<profile row unreadable — nothing removed>`];
+        console.error(`[complete-signup] avatar sweep skipped for ${userId}: ${rowNowErr.message}`);
+      } else {
+        const rowName = avatarObjectNameFromUrl(
+          (rowNow as { avatar_url?: string | null } | null)?.avatar_url,
+          userId,
+        );
+        const { staleRemaining } = await sweepSupersededAvatars(
+          supabase,
+          userId,
+          rowName && rowName !== avatarObjectName ? [avatarObjectName, rowName] : avatarObjectName,
+        );
+        if (staleRemaining.length > 0) {
+          staleAvatarObjects = staleRemaining;
+          console.error(
+            `[complete-signup] ${staleRemaining.length} superseded avatar object(s) still public for ${userId}: ${staleRemaining.join(", ")}`,
+          );
+        }
+      }
     }
 
     // Record legal consent. The signup form cannot be submitted without the

@@ -34,6 +34,8 @@ export type UnsettledDisputeCheck = {
   dispute?: { id: string; execution_status: string | null; payout_split: unknown };
   /** Set when the block is a failed read (fail-closed), carrying the real cause. */
   readError?: string;
+  /** Set when the block is a held (or dead holder's) dispute settlement claim. */
+  claim?: { action: string; claimed_at: string };
 };
 
 /**
@@ -71,6 +73,31 @@ export async function checkUnsettledDispute(
   }
 
   const row = (data as Array<{ id: string; execution_status: string | null; payout_split: unknown }> | null)?.[0];
-  if (!row) return { blocked: false };
-  return { blocked: true, dispute: row };
+  if (row) return { blocked: true, dispute: row };
+
+  // A dispute settlement claim (20260915034822) also blocks. A claim row means
+  // an admin Quick Release / Quick Refund, the 72h sweep or a split is moving
+  // this escrow right now — or died part-way and may already have moved it
+  // (a release/refund/split claim stamped at its money step never expires). A
+  // withdrawal can take the job out of `disputed` underneath either, and every payout path that reads
+  // only its ledger (this module's callers) then paid a second time
+  // (lh-money-escrow review, dispute-races round 3, H1). Missing table
+  // (42P01/PGRST205, the migration not deployed yet) blocks nothing; any other
+  // read failure is a refusal, like the decision read above.
+  const { data: claims, error: claimErr } = await supabaseAdmin
+    .from("dispute_settlement_claims")
+    .select("action, claimed_at")
+    .eq("job_id", jobId)
+    .limit(1);
+  if (claimErr) {
+    const code = String((claimErr as { code?: string }).code ?? "");
+    if (code === "42P01" || code === "PGRST205") return { blocked: false };
+    return {
+      blocked: true,
+      readError: (claimErr as { message?: string }).message ?? "dispute settlement claim check failed",
+    };
+  }
+  const claim = (claims as Array<{ action: string; claimed_at: string }> | null)?.[0];
+  if (claim) return { blocked: true, claim };
+  return { blocked: false };
 }

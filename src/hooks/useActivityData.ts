@@ -10,6 +10,8 @@ import { queryKeys } from "@/lib/queryKeys";
 import { validateResult } from "@/lib/validateResult";
 import { helperApplicationsSchema } from "@/lib/schemas";
 import { report } from "@/lib/errorLogger";
+import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
+import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 
 /* ============================================================================
    WHY THIS FILE IS FOUR QUERIES AND NOT ONE
@@ -140,12 +142,23 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   // Start" button. Nothing in this app has ever inserted a job_checkins row
   // (0 in prod), so the set was always empty and the button never rendered —
   // one query per Activity load, forever, for a control nobody could see.
-  const [jobsRes, appCountRes] = await Promise.all([
-    supabase.from("jobs").select("*").eq("customer_id", userId).order("created_at", { ascending: false }),
+  const [jobsRes, appCountRes, offerTargets] = await Promise.all([
+    // Named columns, not `*`: jobs.offered_to_helper_id is not selectable by a
+    // signed-in client (20260915045110, owner decision 2026-09-14), and `*`
+    // would 42501 the whole read. The poster gets their own offerees from
+    // get_job_offer_targets below and they are merged back onto the rows.
+    supabase
+      .from("jobs")
+      .select(JOB_READABLE_COLUMNS)
+      .eq("customer_id", userId)
+      .order("created_at", { ascending: false }),
     // `status` rides along so the two counts below can be told apart. Without
     // it every application ever filed counted as an applicant, including the
     // ones already declined.
     supabase.from("applications").select("job_id, status, jobs!inner(customer_id)").eq("jobs.customer_id", userId),
+    // Every job this user posted that carries an offer (poster-scoped server
+    // side). Enrichment: a failure is reported inside and reads as "no offer".
+    fetchJobOfferTargets(),
   ]);
 
   // Surface a failed primary fetch so the screen can show an ErrorState
@@ -181,8 +194,14 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
     }
   });
 
+  // Cast, not `.overrideTypes()`: see the note in src/lib/jobColumns.ts.
+  const postedJobs: Job[] = readableJobRows(jobsRes.data).map((j) => ({
+    ...j,
+    offered_to_helper_id: offerTargets.get(j.id) ?? null,
+  }));
+
   return {
-    postedJobs: jobsRes.data ?? [],
+    postedJobs,
     applicantCounts,
     pendingApplicantCounts,
   };

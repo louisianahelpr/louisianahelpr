@@ -9,6 +9,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
+import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -522,6 +523,96 @@ serve(async (req) => {
     const results: any[] = [];
 
     for (const job of (jobs || [])) {
+      // ── Not a job whose escrow an admin's dispute decision owns ──────────
+      // rpc_decide_dispute moves a poster-wins decision to status 'cancelled'
+      // with the escrow still held for execute-dispute-split — exactly the
+      // cancelled + escrow shape this loop refunds by the CANCELLATION rules.
+      // Both then refunded the same charge, and a party re-file + withdraw +
+      // poster_cancel_job reached it for any decision (lh-authz-rls round 2,
+      // HIGH). The decision settles it; this loop leaves it alone. Fails
+      // closed: an unreadable answer is a skip and a defect, never a refund.
+      const settlement = await checkUnsettledDispute(supabaseAdmin, job.id);
+      if (settlement.blocked) {
+        if (settlement.readError) {
+          console.error(`[void-cancelled-payments] dispute check failed for job ${job.id}; not refunding:`, settlement.readError);
+          defects.record(`dispute check ${job.id}: ${settlement.readError} — not refunded`);
+        } else {
+          console.log(`[void-cancelled-payments] job ${job.id} has an unexecuted dispute decision (${settlement.dispute?.id}); leaving the escrow to execute-dispute-split.`);
+        }
+        results.push({ job_id: job.id, title: job.title, status: settlement.readError ? "dispute_check_failed" : "dispute_decision_pending" });
+        continue;
+      }
+
+      // ── Not a job whose escrow already went to the Helpr ────────────────
+      // A live payout_transfers row means the escrow LEFT toward the Helpr (a
+      // Quick Release whose flip failed, a payout that raced a withdrawal).
+      // Such a job can still reach cancelled + escrow: a withdrawal restores
+      // it, poster_cancel_job cancels it, and this loop then refunded the
+      // poster by the cancellation rules on top of the Helpr's transfer
+      // (lh-money-escrow round 3, H1). This function never writes that ledger
+      // itself — the cancellation fee goes out as a Stripe transfer with no
+      // row — so any live row is another path's money. Refuse and page:
+      // unwinding it needs a person reconciling Stripe. Fails CLOSED.
+      const { data: livePayouts, error: livePayoutErr } = await supabaseAdmin
+        .from("payout_transfers")
+        .select("id, status")
+        .eq("job_id", job.id)
+        .in("status", ["pending", "paid"])
+        .limit(1);
+      if (livePayoutErr) {
+        console.error(`[void-cancelled-payments] payout ledger read failed for job ${job.id}; not refunding:`, livePayoutErr.message);
+        defects.record(`payout ledger read ${job.id}: ${livePayoutErr.message} — not refunded`);
+        results.push({ job_id: job.id, title: job.title, status: "payout_check_failed" });
+        continue;
+      }
+      if ((livePayouts ?? []).length > 0) {
+        console.error(`[void-cancelled-payments] job ${job.id} is cancelled + escrow but has a live payout_transfers row — NOT refunding over a paid Helpr.`);
+        defects.record(`job ${job.id}: cancelled + escrow with a live payout transfer — escrow already paid to the Helpr, not refunded; reconcile by hand`);
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "Cancelled job NOT refunded — its escrow was already paid to the Helpr",
+          message:
+            `Job ${job.id} ("${job.title}") is cancelled with its payment still reading escrow, but payout_transfers holds a live transfer to the Helpr. ` +
+            "The cancellation refund was NOT issued, because it would pay the same escrow out twice. Reconcile against Stripe and settle the job by hand.",
+          fields: { job_id: job.id, payout_transfer: String((livePayouts ?? [])[0]?.id ?? "") },
+        });
+        results.push({ job_id: job.id, title: job.title, status: "escrow_already_released" });
+        continue;
+      }
+      // And at Stripe (round-4 review): a transfer that left with no ledger
+      // row — a Quick Release killed after Stripe answered, a split leg whose
+      // ledger write failed — is invisible above. Every payout path tags
+      // `transfer_group: job_<id>`; a live one that is not this loop's own
+      // earlier cancellation-fee transfer (metadata.type) means the escrow
+      // already went to the Helpr. Fails CLOSED.
+      let ghostTransfer: { id: string; amount?: number } | undefined;
+      try {
+        const grouped = await stripe.transfers.list({ transfer_group: `job_${job.id}`, limit: 100 });
+        ghostTransfer = ((grouped?.data ?? []) as Array<{ id: string; amount?: number; amount_reversed?: number; metadata?: { type?: string } }>)
+          .find((t) => Number(t.amount ?? 0) - Number(t.amount_reversed ?? 0) > 0 && t.metadata?.type !== "cancellation_fee");
+      } catch (listErr) {
+        console.error(`[void-cancelled-payments] transfers.list failed for job ${job.id}; not refunding:`, (listErr as Error).message);
+        defects.record(`transfer check ${job.id}: ${(listErr as Error).message} — not refunded`);
+        results.push({ job_id: job.id, title: job.title, status: "payout_check_failed" });
+        continue;
+      }
+      if (ghostTransfer) {
+        console.error(`[void-cancelled-payments] job ${job.id} is cancelled + escrow but Stripe shows transfer ${ghostTransfer.id} — NOT refunding over a paid Helpr.`);
+        defects.record(`job ${job.id}: cancelled + escrow with Stripe transfer ${ghostTransfer.id} and no ledger row — not refunded; reconcile by hand`);
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "Cancelled job NOT refunded — its escrow was already paid to the Helpr",
+          message:
+            `Job ${job.id} ("${job.title}") is cancelled with its payment still reading escrow, but Stripe shows transfer ${ghostTransfer.id} in its transfer group with no payout ledger row. ` +
+            "The cancellation refund was NOT issued, because it would pay the same escrow out twice. Reconcile against Stripe and settle the job by hand.",
+          fields: { job_id: job.id, transfer_id: ghostTransfer.id, amount_cents: Number(ghostTransfer.amount ?? 0) },
+        });
+        results.push({ job_id: job.id, title: job.title, status: "escrow_already_released" });
+        continue;
+      }
+
       let paymentIntentId = job.stripe_payment_intent_id;
 
       // Resolve payment intent from session if not stored

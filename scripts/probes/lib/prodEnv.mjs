@@ -50,3 +50,24 @@ export async function invoke(fn, token, body) {
   try { json = await res.json(); } catch { /* empty */ }
   return { status: res.status, json };
 }
+
+/**
+ * Call a SECURITY DEFINER RPC as the service_role.
+ *
+ * `rest()` already carries the service key, but PostgREST routes RPCs under
+ * /rest/v1/rpc/<name> with the arguments in the body rather than the query
+ * string, so a probe for a service-role-only function (settle_dispute_record,
+ * claim_dispute_settlement) needs this rather than a hand-rolled fetch in each
+ * file. Returns { status, json } like `invoke`, because a probe judging a race
+ * has to see the refusal as well as the success.
+ */
+export async function rpcSr(fn, args) {
+  const res = await fetch(`${URL_}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "application/json" },
+    body: JSON.stringify(args ?? {}),
+  });
+  let json = null;
+  try { json = await res.json(); } catch { /* 204 */ }
+  return { status: res.status, json };
+}

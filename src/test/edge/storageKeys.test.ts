@@ -19,6 +19,7 @@ import { describe, it, expect } from "vitest";
 import {
   AVATAR_MIME_EXT,
   avatarObjectKey,
+  avatarObjectNameFromUrl,
   resolveAvatarContentType,
   safeDocumentExt,
   sweepSupersededAvatars,
@@ -188,5 +189,95 @@ describe("sweepSupersededAvatars", () => {
     const res = await sweepSupersededAvatars(client, "u1", "avatar.jpg");
     expect(removeCalls).toEqual([]);
     expect(res.staleRemaining).toEqual(["u1/<unreadable folder>"]);
+  });
+
+  /**
+   * `keep` takes a LIST now, because the sweep runs after the row write and
+   * has two objects to protect: the one this call just uploaded, and whatever
+   * `profiles.avatar_url` names at the instant before the delete. They differ
+   * whenever a second replacement lands in between — and deleting the row's
+   * object is precisely the divergence this whole change exists to stop.
+   */
+  describe("keeps every named object, not just its own upload", () => {
+    it("keeps the upload AND the object the row names", async () => {
+      const { client, objects } = fakeStorage([
+        "u1/avatar.jpg", // this call's upload
+        "u1/avatar.webp", // what the row names right now (another writer won)
+        "u1/avatar.php", // a legacy orphan, the only thing that should go
+      ]);
+
+      const res = await sweepSupersededAvatars(client, "u1", ["avatar.jpg", "avatar.webp"]);
+
+      expect(res.removed).toEqual(["u1/avatar.php"]);
+      expect(res.staleRemaining).toEqual([]);
+      expect([...objects].sort()).toEqual(["u1/avatar.jpg", "u1/avatar.webp"]);
+    });
+
+    it("a one-element list behaves exactly like the bare string it replaced", async () => {
+      const a = fakeStorage(["u1/avatar.php", "u1/avatar.jpg"]);
+      const b = fakeStorage(["u1/avatar.php", "u1/avatar.jpg"]);
+
+      expect(await sweepSupersededAvatars(a.client, "u1", "avatar.jpg")).toEqual(
+        await sweepSupersededAvatars(b.client, "u1", ["avatar.jpg"]),
+      );
+      expect([...a.objects]).toEqual([...b.objects]);
+    });
+
+    it("keeps nothing when told to keep nothing", async () => {
+      // `null` and `[]` are the account-has-no-avatar case, not a licence to
+      // guess: everything `avatar.*` goes, the portfolio folder still does not.
+      const { client, objects } = fakeStorage(["u1/avatar.jpg", "u1/avatar.php", "u1/portfolio/a.png"]);
+
+      const res = await sweepSupersededAvatars(client, "u1", null);
+
+      expect(res.removed.sort()).toEqual(["u1/avatar.jpg", "u1/avatar.php"]);
+      expect([...objects]).toEqual(["u1/portfolio/a.png"]);
+    });
+
+    it("still refuses to certify a silent delete when two names are kept", async () => {
+      const { client } = fakeStorage(["u1/avatar.jpg", "u1/avatar.webp", "u1/avatar.php"], {
+        removeBehaviour: "silent-noop",
+      });
+
+      const res = await sweepSupersededAvatars(client, "u1", ["avatar.jpg", "avatar.webp"]);
+
+      expect(res.removed).toEqual([]);
+      expect(res.staleRemaining).toEqual(["u1/avatar.php"]);
+    });
+  });
+});
+
+/**
+ * The edge twin of `avatarObjectNameFromUrl` in `src/lib/avatarStorage.ts`.
+ *
+ * `complete-signup` re-reads `profiles.avatar_url` after its own update and
+ * feeds the result to the sweep's keep-list. If this ever resolved a name it
+ * should not — another member's folder, a Google avatar, a portfolio image —
+ * the sweep would keep the wrong object, or protect nothing at all.
+ */
+describe("avatarObjectNameFromUrl", () => {
+  const CDN = "https://x.supabase.co/storage/v1/object/public/avatars";
+
+  it("names this user's avatar object, ignoring the cache-buster", () => {
+    expect(avatarObjectNameFromUrl(`${CDN}/u1/avatar.jpg`, "u1")).toBe("avatar.jpg");
+    expect(avatarObjectNameFromUrl(`${CDN}/u1/avatar.png?t=1757894400000`, "u1")).toBe("avatar.png");
+    expect(avatarObjectNameFromUrl(`${CDN}/u1/avatar.php`, "u1")).toBe("avatar.php");
+  });
+
+  it("names nothing for anything else", () => {
+    expect(avatarObjectNameFromUrl(`${CDN}/u2/avatar.jpg`, "u1")).toBeNull();
+    expect(avatarObjectNameFromUrl(`${CDN}/u1/portfolio/a.png`, "u1")).toBeNull();
+    expect(avatarObjectNameFromUrl("https://lh3.googleusercontent.com/a/x", "u1")).toBeNull();
+    expect(avatarObjectNameFromUrl(null, "u1")).toBeNull();
+    expect(avatarObjectNameFromUrl(undefined, "u1")).toBeNull();
+    expect(avatarObjectNameFromUrl("", "u1")).toBeNull();
+  });
+
+  it("agrees with the client twin, which keeps the same object", () => {
+    // If these drift, a signup sweep and a profile-edit sweep protect
+    // different objects and one of them deletes the other's row target.
+    expect(avatarObjectNameFromUrl(`${CDN}/u1/${avatarObjectKey("u1", "image/jpeg").slice(3)}`, "u1")).toBe(
+      "avatar.jpg",
+    );
   });
 });

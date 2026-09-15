@@ -47,6 +47,60 @@ describe("race-class guard — red on the pre-fix code, green on the fix", () =>
   });
 });
 
+describe("race-class guard — dispute settlement wave (BUILT 2026-09-14, no prod proof yet)", () => {
+  /**
+   * The three dispute targets, fixed in
+   * 20260915034822_dispute_settlement_claim_and_race_locks.sql.
+   *
+   * NOT yet measured on prod — the prod probes exist
+   * (scripts/probes/settle-dispute-race.prod.mjs,
+   * admin-release-vs-refund.prod.mjs, dispute-open-race.prod.mjs) and this lane
+   * deliberately did not run them. The local numbers are PGlite's, from
+   * scripts/probes/dispute-races.pglite.mjs (20 rounds each): claim 20/20 → 0/20,
+   * open-vs-cancel 20/20 → 0/20, double submit 20/20 → 0/20.
+   */
+  const DISPUTE_DIALOG = "src/components/DisputeDialog.tsx";
+  const REPO_ROOT = resolve(__dirname, "../..");
+
+  /**
+   * settle_dispute_record stays BASELINED after the fix, and that is correct.
+   * The scanner's rule is "a jobs read that decides a write must lock it", and
+   * this function's jobs read is deliberately unlocked — the lock is on its own
+   * `disputes` row, two statements above, which the scanner cannot see. A lock
+   * on `jobs` was the first draft and it created an ABBA deadlock with
+   * rpc_withdraw_dispute / rpc_decide_dispute. So the assertion here is that
+   * the entry carries the re-audit, not that the hit disappeared: a baseline
+   * entry still saying "not yet re-audited" is the thing that must fail.
+   */
+  it("keeps settle_dispute_record flagged (its jobs read is unlocked on purpose)", () => {
+    const keys = guard.sqlHits(guard.readMigrations()).map((h: Hit) => h.key);
+    expect(keys).toContain("sql:public.settle_dispute_record");
+  });
+
+  it("records the re-audit against it instead of leaving it unexplained", () => {
+    const reason = guard.loadBaseline().allow["sql:public.settle_dispute_record"];
+    expect(reason).toMatch(/Re-audited 2026-09-14/);
+    expect(reason).not.toMatch(/Not yet re-audited/i);
+  });
+
+  it("flags the pre-fix dispute filing (status, no status predicate)", () => {
+    const src = readFileSync(resolve(FIXTURES, "DisputeDialog.prefix.tsx.txt"), "utf8");
+    const keys = guard.clientHitsInSource(DISPUTE_DIALOG, src).map((h: Hit) => h.key);
+    expect(keys).toContain(`client:${DISPUTE_DIALOG}::status`);
+  });
+
+  it("passes the live dispute filing now that the fallback carries .in(\"status\", …)", () => {
+    const src = readFileSync(resolve(REPO_ROOT, DISPUTE_DIALOG), "utf8");
+    const keys = guard.clientHitsInSource(DISPUTE_DIALOG, src).map((h: Hit) => h.key);
+    expect(keys).not.toContain(`client:${DISPUTE_DIALOG}::status`);
+  });
+
+  it("keeps the whole inventory baselined — 0 new, 0 stale", () => {
+    const { unexpected, stale } = guard.compare(guard.allHits(), guard.loadBaseline());
+    expect({ unexpected: unexpected.map((h: Hit) => h.key), stale }).toEqual({ unexpected: [], stale: [] });
+  });
+});
+
 describe("race-class guard — edge functions (create-payment release, proven on prod 2026-09-12)", () => {
   const CP = "supabase/functions/create-payment/index.ts";
 
@@ -66,8 +120,11 @@ describe("race-class guard — edge functions (create-payment release, proven on
     expect(keys).not.toContain(`edge:${CP}::opaque:updateFields`);
     const flips = keys.filter((k: string) => k.startsWith(`edge:${CP}::payment_status+status`));
     // Only cancel_escrow's claim-only fallback flip (audited safe 2026-09-14,
-    // in baseline.safe) and admin_refund_general remain.
-    expect(flips).toHaveLength(2);
+    // in baseline.safe) remains. admin_refund_general's full-refund flip left
+    // the inventory on the dispute-races branch: it is pinned to the status and
+    // payment_status it read.
+    expect(flips).toHaveLength(1);
+    expect(live).toMatch(/\}\)\.eq\("id", jobId\)\.eq\("status", job\.status\);\s*\n\s*generalFlip = job\.payment_status == null/);
     expect(live).toMatch(/\.update\(updateFields\)\s*\n\s*\.eq\("id", jobId\)\s*\n\s*\.eq\("status", job\.status\)/);
     expect(live.match(/\.eq\("id", jobId\)\.eq\("status", "disputed"\)\.select\("id"\)/g)).toHaveLength(2);
   });
@@ -114,14 +171,80 @@ describe("race-class guard — edge functions (create-payment release, proven on
       `edge:${CP}::payment_status+status`,
       `edge:${CB}::payment_status`,
     ]));
-    expect(Object.keys(baseline.allow).filter((k) => k.startsWith("edge:"))).toEqual([
-      `edge:${CP}::payment_status+status#2`,
-      "edge:supabase/functions/execute-dispute-split/index.ts::opaque:jobPatch",
-    ]);
+    // The two writes deferred to the dispute-races branch are closed there:
+    // admin_refund_general's flip carries a status predicate (no hit at all),
+    // and execute-dispute-split's settlement write runs under the shared
+    // settlement claim (audited safe). Nothing edge-side is grandfathered.
+    expect(Object.keys(baseline.allow).filter((k) => k.startsWith("edge:"))).toEqual([]);
+    expect(Object.keys(baseline.safe)).toContain("edge:supabase/functions/execute-dispute-split/index.ts::opaque:jobPatch");
+    expect(readFileSync(resolve(__dirname, "../..", "supabase/functions/execute-dispute-split/index.ts"), "utf8"))
+      .toMatch(/"claim_dispute_settlement",\s*\n\s*\{ _job_id: job\.id, _action: "split"/);
   });
 
   it("the edge scan is part of the live-repo inventory", () => {
     expect(guard.allHits().some((h: Hit) => h.key.startsWith("edge:"))).toBe(true);
+  });
+});
+
+describe("race-class guard — job completion (helper Done vs poster confirm / cancel, 20260914215112)", () => {
+  const JT = "src/components/JobTracking.tsx";
+  const COMPLETION_FIX = "20260914215112";
+  const latestDefinition = (name: string, exclude: string[] = []) => {
+    let body: string | null = null;
+    for (const { sql } of guard.readMigrations({ exclude })) {
+      const re = new RegExp(`CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.${name}\\s*\\([\\s\\S]*?\\$(function)?\\$([\\s\\S]*?)\\$(function)?\\$`, "gi");
+      for (const m of sql.matchAll(re)) body = m[2];
+    }
+    return body ?? "";
+  };
+  const triggerDefined = (exclude: string[] = []) =>
+    guard.readMigrations({ exclude }).some(({ sql }: { sql: string }) => /CREATE\s+TRIGGER\s+trg_completion_on_live_job\s+BEFORE\s+UPDATE\s+OF\s+helper_completed_at/i.test(sql));
+
+  it("flags the pre-fix Done stamp (helper_completed_at, id predicate only)", () => {
+    const src = readFileSync(resolve(FIXTURES, "JobTrackingDone.prefix.tsx.txt"), "utf8");
+    const keys = guard.clientHitsInSource(JT, src).map((h: Hit) => h.key);
+    expect(keys).toContain(`client:${JT}::helper_completed_at`);
+  });
+
+  it("the live Done stamp carries the live-status predicate", () => {
+    const live = readFileSync(resolve(__dirname, "../..", JT), "utf8");
+    const keys = guard.clientHitsInSource(JT, live).map((h: Hit) => h.key);
+    expect(keys).not.toContain(`client:${JT}::helper_completed_at`);
+  });
+
+  it("without the fix migration there is no status guard on helper_completed_at and a done job is cancellable", () => {
+    expect(triggerDefined([COMPLETION_FIX])).toBe(false);
+    expect(latestDefinition("poster_cancel_job", [COMPLETION_FIX])).not.toMatch(/helper_completed_at\s+IS\s+NOT\s+NULL/i);
+  });
+
+  it("with it: the trigger judges OLD.status and pins a re-stamp; poster_cancel_job refuses a job marked done", () => {
+    expect(triggerDefined()).toBe(true);
+    const trg = latestDefinition("enforce_completion_on_live_job");
+    expect(trg).toMatch(/OLD\.status::text\s+NOT\s+IN\s+\('accepted',\s*'in_progress',\s*'revision_requested'\)/);
+    expect(trg).toMatch(/NEW\.helper_completed_at\s*:=\s*OLD\.helper_completed_at/);
+    const cancel = latestDefinition("poster_cancel_job");
+    expect(cancel).toMatch(/FOR\s+UPDATE;[\s\S]*v_job\.helper_completed_at\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'not_cancellable'/i);
+  });
+
+  it("no exit around the stamp: clearing it, a block, a no-show report or a Helpr cancel cannot undo a job marked done", () => {
+    const without = {
+      trg: latestDefinition("enforce_completion_on_live_job", [COMPLETION_FIX]),
+      block: latestDefinition("block_user_and_settle", [COMPLETION_FIX]),
+      noShow: latestDefinition("report_helper_no_show", [COMPLETION_FIX]),
+      helperCancel: latestDefinition("helper_cancel_booking", [COMPLETION_FIX]),
+    };
+    expect(without.trg).toBe("");
+    expect(without.block).not.toMatch(/helper_completed_at/);
+    expect(without.noShow).not.toMatch(/helper_completed_at/);
+    expect(without.helperCancel).not.toMatch(/helper_completed_at/);
+
+    expect(latestDefinition("enforce_completion_on_live_job")).toMatch(
+      /NEW\.helper_completed_at\s+IS\s+NULL\s+AND\s+auth\.uid\(\)\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'helper_completed_at_not_clearable'/i,
+    );
+    const block = latestDefinition("block_user_and_settle");
+    expect(block.match(/helper_completed_at\s+IS\s+NULL/gi)).toHaveLength(2); // the locked SELECT and the UPDATE predicate
+    expect(latestDefinition("report_helper_no_show")).toMatch(/v_helper_completed_at\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'helper_marked_done'/i);
+    expect(latestDefinition("helper_cancel_booking")).toMatch(/v_job\.helper_completed_at\s+IS\s+NOT\s+NULL\s+THEN\s+RAISE\s+EXCEPTION\s+'not_cancellable'/i);
   });
 });
 

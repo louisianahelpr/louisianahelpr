@@ -198,7 +198,7 @@ serve(async (req) => {
   const { data: dispute, error: disputeErr } = await supabaseAdmin
     .from("disputes")
     .select(
-      "id, job_id, status, payout_split, decision_text, execution_status, execution_transfer_id, execution_refund_id",
+      "id, job_id, status, decided_at, payout_split, decision_text, execution_status, execution_error, execution_transfer_id, execution_refund_id",
     )
     .eq("id", disputeId)
     .maybeSingle();
@@ -632,7 +632,10 @@ serve(async (req) => {
     // `getHelperFeePercent` resolves the helper's LIVE subscription tier, so a
     // tier change between attempts would make this run report (and stamp on the
     // dispute) a figure no transfer was ever made at.
-    .select("id, stripe_transfer_id, status, amount_cents, platform_fee_cents")
+    // `metadata` too: only a row THIS split wrote (metadata.dispute_id) is one
+    // of its legs. Any other live row is money another path moved, and the
+    // in-claim check at 6c refuses over it (lh-money-escrow round 3, H3).
+    .select("id, stripe_transfer_id, status, amount_cents, platform_fee_cents, metadata")
     .eq("job_id", job.id);
   if (transferReadErr) {
     console.error(`[execute-dispute-split] payout_transfers read failed for job ${job.id}:`, transferReadErr);
@@ -651,8 +654,10 @@ serve(async (req) => {
     amount_cents: number | null;
     platform_fee_cents: number | null;
   };
+  const isOwnRow = (r: { metadata?: unknown }) =>
+    (r.metadata as { dispute_id?: unknown } | null | undefined)?.dispute_id === disputeId;
   let settledTransfer: SettledTransfer | undefined = (transferRows ?? []).find((r) =>
-    ["pending", "paid", "reversed"].includes(r.status as string)
+    ["pending", "paid", "reversed"].includes(r.status as string) && isOwnRow(r)
   );
   const failedTransferCount = (transferRows ?? []).filter((r) => r.status === "failed").length;
 
@@ -706,6 +711,19 @@ serve(async (req) => {
       }
     }
     if (recovered) {
+      // Stamp the recovered leg on the dispute FIRST (round-5 review, LOW-4):
+      // the ledger heal below is best-effort, and every later exit of this run
+      // — a claim refusal, a refund failure — would otherwise leave the leg
+      // recorded nowhere, so rpc_supersede_dispute_decision could read
+      // "nothing moved". Scoped to a still-decided row; failure is logged.
+      const { error: stampLegErr } = await supabaseAdmin
+        .from("disputes")
+        .update({ execution_transfer_id: recovered })
+        .eq("id", disputeId)
+        .eq("status", "decided");
+      if (stampLegErr) {
+        console.error(`[execute-dispute-split] could not stamp recovered transfer ${recovered} on dispute ${disputeId}:`, stampLegErr);
+      }
       console.warn(
         `[execute-dispute-split] transfer ${recovered} for dispute ${disputeId} exists at Stripe but not in payout_transfers — treating the leg as settled and healing the ledger.`,
       );
@@ -745,16 +763,21 @@ serve(async (req) => {
     }
   }
 
+  // Every refund on the job, whatever wrote it. The first draft filtered
+  // source='dispute_split', which both hid a Quick Refund / cancellation refund
+  // from this split and counted ANOTHER dispute's split refund as this one's
+  // leg (round 3, H3). Only this dispute's own row settles the refund leg; the
+  // rest are refused over at 6c.
   const { data: refundRows, error: refundReadErr } = await supabaseAdmin
     .from("payment_refunds")
-    .select("id, stripe_refund_id, source")
-    .eq("job_id", job.id)
-    .eq("source", "dispute_split");
+    .select("id, stripe_refund_id, source, amount_cents, metadata")
+    .eq("job_id", job.id);
   if (refundReadErr) {
     console.error(`[execute-dispute-split] payment_refunds read failed for job ${job.id}:`, refundReadErr);
     return await refuse({ error: "duplicate-refund check failed — retry" }, 500);
   }
-  let settledRefund = (refundRows ?? [])[0];
+  let settledRefund: { id: string | null; stripe_refund_id: string | null; source: string | null } | undefined =
+    (refundRows ?? []).find((r) => r.source === "dispute_split" && isOwnRow(r));
 
   // Last-resort cross-check, ONLY on a resume with an empty refund ledger.
   //
@@ -898,11 +921,18 @@ serve(async (req) => {
   }
 
   // ── 6. Claim the execution BEFORE any Stripe call ────────────────────────
-  const { data: claimed, error: claimErr } = await supabaseAdmin
+  // Pinned to the decided_at this run read (round-4 review): a decision that was
+  // superseded and re-decided between the read and this claim is a different
+  // decision, and this run's arithmetic belongs to the old one.
+  let executionClaim = supabaseAdmin
     .from("disputes")
     .update({ execution_status: "executing", execution_started_at: new Date().toISOString() })
     .eq("id", disputeId)
-    .eq("status", "decided")
+    .eq("status", "decided");
+  executionClaim = dispute.decided_at == null
+    ? executionClaim.is("decided_at", null)
+    : executionClaim.eq("decided_at", dispute.decided_at);
+  const { data: claimed, error: claimErr } = await executionClaim
     .or(
       `execution_status.is.null,execution_status.in.(${CLAIMABLE_EXECUTION_STATES.join(",")})`,
     )
@@ -918,6 +948,278 @@ serve(async (req) => {
     );
   }
 
+  // ── 6b. Claim the JOB's settlement, not just this dispute's execution ────
+  //
+  // Step 6 above is a real claim and it is enough for split-vs-split: exactly
+  // one caller flips `execution_status` to 'executing'. What it cannot see is
+  // `create-payment`'s admin path. Quick Release checks `jobs.status ===
+  // 'disputed'` and nothing else, and `rpc_decide_dispute` leaves the job
+  // disputed until this function flips it — so an admin clicking Quick Release
+  // while this tick runs passes its gate, and its `dispute-release-<job>` key
+  // is disjoint from this function's `dispute-split-*` keys. The Helpr receives
+  // BOTH transfers, and the poster receives this split's refund leg on top.
+  // `payout_transfers` does not stop it: that guard is a read-then-write with
+  // no lock, and it says nothing about the refund leg at all.
+  //
+  // `claim_dispute_settlement` is the one lock both functions share
+  // (20260915034822). Action 'split' is neither 'release' nor 'refund', so
+  // either admin action arriving now is refused with `held_by_split`, and this
+  // function is refused if one of them got here first.
+  const { data: settlementClaimRow, error: settlementClaimErr } = await supabaseAdmin.rpc(
+    "claim_dispute_settlement",
+    { _job_id: job.id, _action: "split", _admin_id: null },
+  );
+  // Fails CLOSED, with ONE exception: PGRST202 means the migration has not
+  // deployed yet, and this function has always run without the lock. Refusing
+  // there would strand every decided dispute until the migration lands, which
+  // is a worse failure than the race it guards — and step 6's own claim still
+  // covers split-vs-split in the meantime.
+  const settlementClaimCode = (settlementClaimErr as { code?: string } | null)?.code;
+  if (settlementClaimErr && settlementClaimCode !== "PGRST202") {
+    console.error(`[execute-dispute-split] claim_dispute_settlement failed for job ${job.id}:`, settlementClaimErr);
+    await markFailed(supabaseAdmin, disputeId, "could not take the job settlement lock");
+    return json({ error: "could not take the settlement lock on this job — retry" }, 503);
+  }
+  const settlementVerdict = (settlementClaimRow as { verdict?: string } | null)?.verdict;
+  const settlementClaim: { token: string | null } = {
+    token: (settlementClaimRow as { token?: string } | null)?.token ?? null,
+  };
+  // `joined`: another run of THIS split holds the claim (two admins on "Retry
+  // settlement", a double click). It used to be let through with no token and
+  // moved money with no claim row of its own (lh-money-escrow round 3, M3). The
+  // holder settles; the joiner moves nothing, writes nothing on the dispute the
+  // holder owns, and pages nobody.
+  if (settlementClaimErr == null && settlementVerdict === "joined") {
+    // Step 6 above re-stamped 'executing' over whatever this dispute said. If
+    // it said 'failed', put that back (round-5 review, LOW-3): the queue must
+    // not show a run in progress that this caller never started, and the
+    // failure reason is what the admin needs. Pinned to 'executing' so the
+    // holder's own later write (executed / failed) always wins.
+    if (dispute.execution_status === "failed") {
+      const { error: restoreErr } = await supabaseAdmin
+        .from("disputes")
+        .update({ execution_status: "failed", execution_error: dispute.execution_error ?? null })
+        .eq("id", disputeId)
+        .eq("status", "decided")
+        .eq("execution_status", "executing");
+      if (restoreErr) console.error(`[execute-dispute-split] could not restore 'failed' on dispute ${disputeId}:`, restoreErr);
+    }
+    const retryAfter = (settlementClaimRow as { expires_at?: string } | null)?.expires_at ?? null;
+    return json(
+      {
+        error: retryAfter
+          ? `this split is already being executed — nothing more was done. Refresh to see the result; if it has not settled, retry after ${retryAfter}.`
+          : "this split is already being executed — nothing more was done. Refresh to see the result; if it has not settled, retry in about ten minutes.",
+        inProgress: true,
+        retryAfter,
+      },
+      409,
+    );
+  }
+  if (settlementClaimErr == null && settlementVerdict !== "claimed") {
+    const verdictText = String(settlementVerdict ?? "");
+    // Three different refusals, told apart, because each sends a person to do
+    // something different (lh-money-escrow round 2: every one of them used to
+    // say "an admin is settling the same job… retry once it finishes").
+    //   held_by_*       a live settlement is moving this escrow — retry later.
+    //   stuck_*         a DEAD holder may have moved money — reconcile first
+    //                   (the claim function has paged ops with the clear step).
+    //   not_disputed /  the job is not awaiting settlement, or its escrow is
+    //   not_settleable  not held — nothing to retry until that is explained.
+    const holder = verdictText.replace(/^held_by_|^stuck_/, "");
+    const kind = verdictText.startsWith("held_by_") ? "held" : verdictText.startsWith("stuck_") ? "stuck" : "unsettleable";
+    const holderLabel = holder === "sweep" ? "the 72h auto-resolve sweep" : holder === "split" ? "another split execution" : `an admin ${holder}`;
+    const paymentStatus = (settlementClaimRow as { payment_status?: string } | null)?.payment_status ?? null;
+    console.error(`[execute-dispute-split] refusing dispute ${disputeId}: job ${job.id} settlement claim answered ${verdictText}`);
+    await markFailed(supabaseAdmin, disputeId, `job settlement claim refused: ${verdictText}`, {}, job.id, settlementClaim);
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: kind === "held" ? "warning" : "critical",
+      title: kind === "held"
+        ? "Dispute split refused — the same job is being settled"
+        : kind === "stuck"
+          ? "Dispute split refused — an earlier settlement died part-way"
+          : "Dispute split refused — the job is not awaiting settlement",
+      message: kind === "held"
+        ? `execute-dispute-split was asked to settle dispute ${disputeId} on job ${job.id}, but ${holderLabel} is already moving that escrow. Nothing was moved here; retry once that finishes.`
+        : kind === "stuck"
+          ? `execute-dispute-split was asked to settle dispute ${disputeId} on job ${job.id}, but ${holderLabel} took the settlement lock and never released it — it may have moved money. Nothing was moved here; reconcile against Stripe and clear the lock (see the stale-claim page) before retrying.`
+          : `execute-dispute-split was asked to settle dispute ${disputeId} on job ${job.id}, but the claim answered ${verdictText}${paymentStatus ? ` (payment ${paymentStatus})` : ""}. Nothing was moved; find out what settled or froze this escrow before retrying.`,
+      fields: { dispute_id: disputeId, job_id: job.id, verdict: verdictText },
+    });
+    return json(
+      {
+        error: kind === "held"
+          ? `this job's escrow is being settled by ${holderLabel} — nothing was moved`
+          : kind === "stuck"
+            ? `an earlier settlement of this job died part-way and may have moved money — nothing was moved; reconcile first`
+            : `this job is not awaiting settlement (${verdictText}) — nothing was moved`,
+        heldBy: kind === "held" ? holder : null,
+        verdict: verdictText,
+      },
+      409,
+    );
+  }
+
+  // ── 6c. Money another path already moved — asked INSIDE the claim ────────
+  //
+  // lh-money-escrow round 3, H3. Everything above judged the legs by what THIS
+  // split recorded. A job's escrow can also have been moved by a Quick
+  // Release / Quick Refund whose flip failed, a cancellation refund, or a
+  // refund with no ledger row at all — and the split then paid its own legs on
+  // top. Read every leg any path moved, now that no other claimant can add
+  // one, and refuse + page critical on any that is not this dispute's:
+  //   • a live payout_transfers row without this dispute's metadata;
+  //   • a payment_refunds row that is not this dispute's split refund;
+  //   • Stripe `amount_refunded` above this split's own refunds (a refund that
+  //     reached Stripe with no ledger row), attributed with refunds.list.
+  // Fails CLOSED: an unreadable answer is a refusal, never "nothing moved".
+  {
+    // The DISPUTE first, under the claim (round-4 review): everything above was
+    // decided from the row read at step 1. A supersede or re-decision that
+    // committed since then means this run is executing a decision that no
+    // longer stands. Nothing has moved yet, so refuse and hand the claim back;
+    // markFailed is scoped to status 'decided' and leaves a changed row alone.
+    const { data: nowDispute, error: nowDisputeErr } = await supabaseAdmin
+      .from("disputes")
+      .select("id, status, decided_at, payout_split, execution_status")
+      .eq("id", disputeId)
+      .maybeSingle();
+    if (nowDisputeErr || !nowDispute) {
+      await markFailed(supabaseAdmin, disputeId, `could not re-read the dispute under the claim: ${nowDisputeErr?.message ?? "not found"}`, {}, job.id, settlementClaim);
+      return json({ error: "could not re-read this dispute before moving money — nothing was moved, retry" }, 503);
+    }
+    const decisionChanged = nowDispute.status !== "decided" ||
+      String(nowDispute.decided_at ?? "") !== String(dispute.decided_at ?? "") ||
+      JSON.stringify(nowDispute.payout_split ?? null) !== JSON.stringify(dispute.payout_split ?? null) ||
+      nowDispute.execution_status === "executed";
+    if (decisionChanged) {
+      console.error(`[execute-dispute-split] dispute ${disputeId} changed under the claim (status ${nowDispute.status}, execution ${nowDispute.execution_status}) — refusing`);
+      await markFailed(supabaseAdmin, disputeId, "the decision changed while this split was starting", {}, job.id, settlementClaim);
+      return json(
+        { error: "this decision changed while the split was starting (superseded, re-decided or already executed) — nothing was moved; refresh", decisionChanged: true },
+        409,
+      );
+    }
+
+    const foreign: string[] = [];
+    let ownRefundCents = 0;
+    let checkFailed: string | null = null;
+
+    const [{ data: liveTransfers, error: liveTransferErr }, { data: liveRefunds, error: liveRefundErr }] = await Promise.all([
+      supabaseAdmin.from("payout_transfers").select("id, stripe_transfer_id, status, metadata").eq("job_id", job.id),
+      supabaseAdmin.from("payment_refunds").select("id, stripe_refund_id, source, amount_cents, metadata").eq("job_id", job.id),
+    ]);
+    if (liveTransferErr || liveRefundErr) {
+      checkFailed = `ledger read failed: ${(liveTransferErr ?? liveRefundErr)?.message}`;
+    } else {
+      for (const t of liveTransfers ?? []) {
+        if (["pending", "paid", "reversed"].includes(t.status as string) && !isOwnRow(t)) {
+          foreign.push(`payout transfer ${t.stripe_transfer_id ?? t.id} (${t.status}, ${(t.metadata as { source?: string } | null)?.source ?? "no source"})`);
+        }
+      }
+      for (const r of liveRefunds ?? []) {
+        if (r.source === "dispute_split" && isOwnRow(r)) ownRefundCents += Math.max(0, Number(r.amount_cents ?? 0));
+        else foreign.push(`refund ${r.stripe_refund_id ?? r.id} (${r.source ?? "no source"})`);
+      }
+    }
+
+    if (!checkFailed && paymentIntentId) {
+      try {
+        const fresh = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge"] });
+        let charge = (fresh as { latest_charge?: unknown }).latest_charge as
+          | { id?: string; amount_refunded?: number }
+          | string
+          | null
+          | undefined;
+        if (typeof charge === "string") charge = await stripe.charges.retrieve(charge);
+        const refundedAtStripe = Number((charge as { amount_refunded?: number } | null | undefined)?.amount_refunded ?? 0);
+        if (refundedAtStripe > ownRefundCents) {
+          // Stripe holds more refunded money than this split's ledger rows.
+          // Attribute it: this split's own refunds carry metadata.dispute_id
+          // (one may be missing from the ledger, which the resume heals).
+          const refunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
+          let ownAtStripe = 0;
+          for (const r of (refunds?.data ?? []) as Array<{ id: string; amount?: number; status?: string; metadata?: { dispute_id?: string } }>) {
+            if (r.status === "failed" || r.status === "canceled") continue;
+            if (r.metadata?.dispute_id === disputeId) ownAtStripe += Number(r.amount ?? 0);
+            else foreign.push(`Stripe refund ${r.id} (no ledger row for this dispute)`);
+          }
+          if (refundedAtStripe > ownAtStripe && !foreign.some((f) => f.startsWith("Stripe refund") || f.startsWith("refund "))) {
+            foreign.push(`Stripe shows ${refundedAtStripe}¢ refunded on the charge, ${ownAtStripe}¢ of it this split's`);
+          }
+        }
+      } catch (e) {
+        checkFailed = `Stripe refund check failed: ${(e as Error).message}`;
+      }
+    }
+
+    // Transfers at Stripe in the job's group (every payout path tags
+    // `job_<id>`) that are not this dispute's and that no ledger row records:
+    // a Quick Release or payout whose ledger write failed. A ledger-recorded
+    // one was already judged above. This split's own unrecorded transfer
+    // (metadata.dispute_id) is the resume recovery's to adopt, not foreign.
+    if (!checkFailed) {
+      try {
+        const ledgerIds = new Set((liveTransfers ?? []).map((t) => t.stripe_transfer_id));
+        const grouped = await stripe.transfers.list({ transfer_group: `job_${job.id}`, limit: 100 });
+        for (const t of (grouped?.data ?? []) as Array<{ id: string; amount?: number; amount_reversed?: number; metadata?: { dispute_id?: string } }>) {
+          if (Number(t.amount ?? 0) - Number(t.amount_reversed ?? 0) <= 0) continue;
+          if (t.metadata?.dispute_id === disputeId || ledgerIds.has(t.id)) continue;
+          foreign.push(`Stripe transfer ${t.id} (no ledger row, not this dispute's)`);
+        }
+      } catch (e) {
+        checkFailed = `Stripe transfer check failed: ${(e as Error).message}`;
+      }
+    }
+
+    if (checkFailed) {
+      console.error(`[execute-dispute-split] foreign-money check failed for dispute ${disputeId} (job ${job.id}): ${checkFailed}`);
+      await markFailed(supabaseAdmin, disputeId, `could not verify what other paths moved: ${checkFailed}`, {}, job.id, settlementClaim);
+      return json({ error: "could not verify whether another path already moved this escrow — nothing was moved, retry" }, 503);
+    }
+    if (foreign.length > 0) {
+      console.error(`[execute-dispute-split] REFUSING dispute ${disputeId}: money already moved by another path on job ${job.id}: ${foreign.join("; ")}`);
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "critical",
+        title: "Dispute split refused — money already moved by another path",
+        message:
+          `execute-dispute-split was asked to settle dispute ${disputeId} on job ${job.id}, but part of this escrow was already moved outside this split: ${foreign.join("; ")}. ` +
+          "Nothing was moved by the split. Do not Retry settlement until the ledger matches Stripe; reconcile by hand (supersede the decision only if nothing moved).",
+        fields: { dispute_id: disputeId, job_id: job.id, foreign: foreign.join("; ").slice(0, 500) },
+      });
+      await markFailed(supabaseAdmin, disputeId, `money already moved by another path: ${foreign.join("; ")}`, {}, job.id, settlementClaim);
+      return json(
+        {
+          error: "part of this escrow was already moved outside this split — nothing was moved; reconcile before retrying",
+          foreignMoney: foreign,
+        },
+        409,
+      );
+    }
+  }
+
+  // Stamp the settlement claim at each money step (round 3, M2), immediately
+  // before the Stripe call. A claim only STICKS on its holder's death once
+  // stamped; every refusal above left it unstamped, so a failed release there
+  // expires instead of paging critical. No stamp, no money: false means the
+  // claim is gone. The one tokenless case is the migration-lag window
+  // (PGRST202) this function has always run through without the lock.
+  const stampMoneyStep = async (): Promise<boolean> => {
+    if (!settlementClaim.token) return settlementClaimCode === "PGRST202";
+    const { data: stamped, error: stampErr } = await supabaseAdmin.rpc("stamp_dispute_settlement_claim", {
+      _job_id: job.id,
+      _token: settlementClaim.token,
+    });
+    if (stampErr) console.error(`[execute-dispute-split] stamp_dispute_settlement_claim failed for job ${job.id}:`, stampErr);
+    return !stampErr && stamped === true;
+  };
+  const lostClaim = async (leg: string, settled: Parameters<typeof markFailed>[3] = {}) => {
+    await markFailed(supabaseAdmin, disputeId, `settlement lock lost before the ${leg} — nothing moved on this leg`, settled, job.id, settlementClaim);
+    return json({ error: `the settlement lock on this job was lost before the ${leg} — nothing was moved on it; retry` }, 409);
+  };
+
   // ── 7. Leg one: transfer the helper's share ──────────────────────────────
   let transferId: string | null = settledTransfer?.stripe_transfer_id ?? null;
   if (helperCents > 0 && !settledTransfer) {
@@ -929,11 +1231,11 @@ serve(async (req) => {
     if (helperErr) {
       // A transient read must not masquerade as "helper never onboarded".
       console.error(`[execute-dispute-split] helper profile read failed for ${job.helper_id}:`, helperErr);
-      await markFailed(supabaseAdmin, disputeId, "helper profile read failed");
+      await markFailed(supabaseAdmin, disputeId, "helper profile read failed", {}, job.id, settlementClaim);
       return json({ error: "Helpr profile read failed — retry" }, 500);
     }
     if (!helper?.stripe_account_id) {
-      await markFailed(supabaseAdmin, disputeId, "helper has not completed Stripe Connect onboarding");
+      await markFailed(supabaseAdmin, disputeId, "helper has not completed Stripe Connect onboarding", {}, job.id, settlementClaim);
       return json(
         { error: "the Helpr has not finished setting up their payout account — nothing was moved" },
         409,
@@ -945,11 +1247,11 @@ serve(async (req) => {
       account = await stripe.accounts.retrieve(helper.stripe_account_id);
     } catch (e) {
       console.error(`[execute-dispute-split] accounts.retrieve failed for ${helper.stripe_account_id}:`, e);
-      await markFailed(supabaseAdmin, disputeId, "could not verify the Helpr's Connect account");
+      await markFailed(supabaseAdmin, disputeId, "could not verify the Helpr's Connect account", {}, job.id, settlementClaim);
       return json({ error: "could not verify the Helpr's payout account — retry" }, 502);
     }
     if (!account.payouts_enabled || !account.charges_enabled) {
-      await markFailed(supabaseAdmin, disputeId, "helper Connect account is not fully active");
+      await markFailed(supabaseAdmin, disputeId, "helper Connect account is not fully active", {}, job.id, settlementClaim);
       return json(
         {
           error: "the Helpr's payout account is not fully active — nothing was moved",
@@ -959,6 +1261,8 @@ serve(async (req) => {
         409,
       );
     }
+
+    if (!(await stampMoneyStep())) return await lostClaim("transfer");
 
     let transfer: Stripe.Transfer;
     try {
@@ -1010,7 +1314,17 @@ serve(async (req) => {
         stripe_code: err.code,
         stripe_status: err.statusCode,
       });
-      await markFailed(supabaseAdmin, disputeId, `transfer failed: ${err.message}`);
+      // Hand the settlement claim back ONLY on a definite refusal (round-5
+      // review, MEDIUM-1). A timeout, dropped connection, Stripe 5xx or
+      // idempotency conflict may have created the transfer with no ledger row
+      // and no stamped leg id; releasing then let rpc_supersede_dispute_decision
+      // read "nothing moved". Kept, the stamped claim sticks for Quick Release /
+      // Quick Refund / the sweep and pages; a split retry takes it over and
+      // recovers its own transfer by metadata.
+      await markFailed(
+        supabaseAdmin, disputeId, `transfer failed: ${err.message}`, {}, job.id,
+        isDefiniteStripeRefusal(err) ? settlementClaim : null,
+      );
       return json({ error: `Stripe transfer failed: ${err.message}` }, 502);
     }
 
@@ -1052,7 +1366,7 @@ serve(async (req) => {
           "A dispute-split transfer left Stripe and its payout_transfers row was NOT written. The retry cannot see it, so re-running could double-pay. Reconcile by hand before retrying.",
         fields: { dispute_id: disputeId, job_id: job.id, transfer_id: transfer.id, amount_cents: helperCents, db_error: ledgerErr.message },
       });
-      await markFailed(supabaseAdmin, disputeId, `transfer ${transfer.id} sent but ledger write failed`, { transferId: transfer.id });
+      await markFailed(supabaseAdmin, disputeId, `transfer ${transfer.id} sent but ledger write failed`, { transferId: transfer.id }, job.id, settlementClaim);
       return json(
         {
           error: "transfer sent but the ledger write failed — manual reconciliation needed before retrying",
@@ -1066,6 +1380,8 @@ serve(async (req) => {
   // ── 8. Leg two: refund the poster's share ────────────────────────────────
   let refundId: string | null = (settledRefund?.stripe_refund_id as string) ?? null;
   if (refundCents > 0 && !settledRefund) {
+    if (!(await stampMoneyStep())) return await lostClaim("refund", { transferId, helperCents: movedHelperCents });
+
     let refund: Stripe.Refund;
     try {
       refund = await stripe.refunds.create(
@@ -1093,7 +1409,11 @@ serve(async (req) => {
       );
       // The transfer leg (if any) already succeeded and is recorded, so a retry
       // resumes here rather than re-paying the helper.
-      await markFailed(supabaseAdmin, disputeId, `refund failed: ${err.message}`, { transferId, helperCents });
+      // Same rule as the transfer leg: only a definite refusal frees the claim.
+      await markFailed(
+        supabaseAdmin, disputeId, `refund failed: ${err.message}`, { transferId, helperCents }, job.id,
+        isDefiniteStripeRefusal(err) ? settlementClaim : null,
+      );
       return json(
         {
           error: `the Helpr's share was settled but the poster refund failed: ${err.message}. Retry to finish the refund.`,
@@ -1163,6 +1483,9 @@ serve(async (req) => {
   let restoredCreditId: string | null = null;
   let restoredGiftCents = 0;
   if (giftRestoreCents > 0) {
+    if (!(await stampMoneyStep())) {
+      return await lostClaim("gift restore", { transferId, refundId, helperCents: movedHelperCents, refundCents });
+    }
     const { data: restoreData, error: restoreErr } = await supabaseAdmin.rpc(
       "restore_gift_card_for_job",
       { p_job_id: job.id, p_share_bps: giftShareBps, p_dry_run: false },
@@ -1201,7 +1524,7 @@ serve(async (req) => {
         refundId,
         helperCents: movedHelperCents,
         refundCents,
-      });
+      }, job.id, settlementClaim);
       return json(
         {
           error:
@@ -1266,7 +1589,7 @@ serve(async (req) => {
         db_error: jobUpdateErr?.message ?? "zero rows matched the state precondition",
       },
     });
-    await markFailed(supabaseAdmin, disputeId, "money moved but the job state did not flip", { transferId, refundId, helperCents: movedHelperCents, refundCents });
+    await markFailed(supabaseAdmin, disputeId, "money moved but the job state did not flip", { transferId, refundId, helperCents: movedHelperCents, refundCents }, job.id, settlementClaim);
     return json(
       {
         error: "the split moved money but the job status update failed — manual reconciliation needed",
@@ -1294,6 +1617,12 @@ serve(async (req) => {
       execution_error: null,
     })
     .eq("id", disputeId);
+
+  // Settled. The job is terminal now so nothing could take the claim anyway,
+  // but a lock table that keeps rows for finished work is how a lock table
+  // turns into a mystery.
+  await releaseClaim(supabaseAdmin, job.id, settlementClaim);
+
   if (disputeUpdateErr) {
     // The job is already terminal, so no double-pay is possible — but the
     // dispute is left claimable, and a retry would find both ledger legs
@@ -1426,7 +1755,19 @@ async function markFailed(
   disputeId: string,
   reason: string,
   settled: { transferId?: string | null; refundId?: string | null; helperCents?: number; refundCents?: number } = {},
+  // The job's cross-function settlement claim (20260915034822), when this
+  // failure happened after step 6b took it. Released HERE because every
+  // post-claim failure path funnels through this function — so a split that
+  // dies mid-flight hands the escrow straight back to the admin buttons
+  // instead of locking them out until the claim's TTL.
+  //
+  // By TOKEN: a caller that merely `joined` an existing claim holds no token
+  // and frees nothing, or its cleanup would delete a claim somebody else's
+  // live Stripe call is standing on.
+  claimJobId?: string | null,
+  claim?: { token: string | null } | null,
 ): Promise<void> {
+  if (claimJobId) await releaseClaim(admin, claimJobId, claim);
   try {
     const patch: Record<string, unknown> = {
       execution_status: "failed",
@@ -1440,6 +1781,10 @@ async function markFailed(
       .from("disputes")
       .update(patch)
       .eq("id", disputeId)
+      // Only a DECIDED row (round-4 review): a refusal on a dispute that is
+      // open, withdrawn or superseded must not stamp 'failed' onto it — that
+      // row's settlement state is not this run's to write.
+      .eq("status", "decided")
       // NOT `.neq("execution_status", "executed")`. PostgREST renders that as
       // SQL `<>`, and `NULL <> 'executed'` is NULL, not true — so a dispute
       // whose execution_status is still NULL (every dispute decided before the
@@ -1455,6 +1800,32 @@ async function markFailed(
     }
   } catch (e) {
     console.error(`[execute-dispute-split] markFailed threw for dispute ${disputeId}:`, e);
+  }
+}
+
+/**
+ * Did Stripe DEFINITELY refuse (so no object exists)? The same list
+ * create-payment's transferToHelper uses, minus StripeIdempotencyError: that
+ * one means a request with the same key already reached Stripe (round-5
+ * review). Anything else — a connection error, a timeout, a 5xx, a rate limit —
+ * may have created the object.
+ */
+function isDefiniteStripeRefusal(e: unknown): boolean {
+  const type = String((e as { type?: string } | null)?.type ?? "");
+  return ["StripeInvalidRequestError", "StripeCardError", "StripePermissionError", "StripeAuthenticationError"].includes(type);
+}
+
+/**
+ * Hand the job's settlement claim back by TOKEN, retried once (round 3, M2): a
+ * claim left behind by one failed RPC blocks the admin buttons until it
+ * expires. A tokenless caller owns nothing and frees nothing.
+ */
+async function releaseClaim(admin: AdminClient, jobId: string, claim?: { token: string | null } | null): Promise<void> {
+  if (!claim?.token) return;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const { error } = await admin.rpc("release_dispute_settlement_claim", { _job_id: jobId, _token: claim.token });
+    if (!error) return;
+    console.error(`[execute-dispute-split] could not release the settlement claim on job ${jobId} (attempt ${attempt}):`, error);
   }
 }
 

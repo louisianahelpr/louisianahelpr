@@ -712,4 +712,245 @@ describe("auto-resolve-disputes", () => {
       expect(body.dispute_records_swept).toBe(0);
     });
   });
+
+  // ── 4. The sweep takes the settlement claim ──────────────────────────────
+  //
+  // The 72h flip to completed/payout_pending was guarded only on
+  // `payment_status = 'escrow'`. An admin Quick Refund runs its Stripe refund
+  // BEFORE its own guarded flip, and during that window the job still reads
+  // disputed/escrow — so the sweep won the flip, the admin's flip matched zero
+  // rows, and release-payout paid the Helpr 24h later ON TOP of the refund.
+  // The fix is the same claim create-payment and execute-dispute-split take
+  // (claim_dispute_settlement, 20260915034822), as action 'sweep'.
+  describe("settlement claim", () => {
+    const claimCalls = () => rpcCalls("claim_dispute_settlement");
+    const releaseCalls = () => rpcCalls("release_dispute_settlement_claim");
+    const noSettlement = () => {
+      expect(writesTo("jobs")).toHaveLength(0);
+      expect(rpcCalls("settle_dispute_record")).toHaveLength(0);
+      expect(writesTo("notifications", "insert")).toHaveLength(0);
+    };
+
+    it("claims the job as 'sweep' and hands the claim back by token after settling", async () => {
+      seedExpiredDispute(scenario);
+      scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "sweep-token-1" };
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      expect(res.status).toBe(200);
+      expect(body.resolved).toBe(1);
+      expect(claimCalls()).toHaveLength(1);
+      expect(claimCalls()[0].args).toEqual({ _job_id: JOB_ID, _action: "sweep", _admin_id: null });
+      expect(releaseCalls()).toHaveLength(1);
+      expect(releaseCalls()[0].args).toEqual({ _job_id: JOB_ID, _token: "sweep-token-1" });
+    });
+
+    it("THE RACE: a Quick Refund in flight holds the claim — the sweep does not flip, close or notify", async () => {
+      seedExpiredDispute(scenario);
+      scenario.rpc.claim_dispute_settlement = { verdict: "held_by_refund" };
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      noSettlement();
+      expect(body.resolved).toBe(0);
+      // Not a defect: an admin settling the job is the designed outcome, and
+      // the next tick re-reads it.
+      expect(res.status).toBe(200);
+      expect(body.claim_skipped).toEqual([{ job_id: JOB_ID, verdict: "held_by_refund" }]);
+      // It never held the claim, so it releases nothing.
+      expect(releaseCalls()).toHaveLength(0);
+    });
+
+    it.each(["held_by_release", "held_by_split", "joined"])(
+      "skips the job when the claim answers %s",
+      async (verdict) => {
+        seedExpiredDispute(scenario);
+        scenario.rpc.claim_dispute_settlement = { verdict };
+        const h = await load();
+        const body = await json(await h.fetch(cronReq()));
+        noSettlement();
+        expect(body.resolved).toBe(0);
+        expect(releaseCalls()).toHaveLength(0);
+      },
+    );
+
+    it("skips a job that is no longer disputed by the time it claims", async () => {
+      seedExpiredDispute(scenario);
+      scenario.rpc.claim_dispute_settlement = { verdict: "not_disputed" };
+      const h = await load();
+      const body = await json(await h.fetch(cronReq()));
+      noSettlement();
+      expect(body.resolved).toBe(0);
+    });
+
+    it("fails CLOSED when the claim RPC errors (e.g. not deployed): no flip, and the run reports a defect", async () => {
+      seedExpiredDispute(scenario);
+      scenario.rpcErrors = { claim_dispute_settlement: { message: "Could not find the function", code: "PGRST202" } };
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      noSettlement();
+      expect(res.status).toBe(500);
+      expect(String((body.defectReasons as string[])[0])).toMatch(/settlement claim .*PGRST202/);
+    });
+
+    it("refuses on a live refund ledger row — the escrow already went to the poster — and releases the claim", async () => {
+      seedExpiredDispute(scenario);
+      scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "sweep-token-2" };
+      scenario.reads.payment_refunds = { rows: [{ id: "refund-row-1" }] };
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      noSettlement();
+      expect(res.status).toBe(500);
+      expect(String((body.defectReasons as string[]).join(" "))).toMatch(/refund ledger/);
+      expect(releaseCalls()).toEqual([
+        expect.objectContaining({ args: { _job_id: JOB_ID, _token: "sweep-token-2" } }),
+      ]);
+    });
+
+    it("fails CLOSED when the refund ledger cannot be read, and releases the claim", async () => {
+      seedExpiredDispute(scenario);
+      scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "sweep-token-3" };
+      scenario.reads.payment_refunds = { error: { message: "read blew up" } };
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      noSettlement();
+      expect(res.status).toBe(500);
+      expect(releaseCalls()).toHaveLength(1);
+    });
+
+    it("releases the claim even when its own flip matched zero rows", async () => {
+      seedExpiredDispute(scenario);
+      scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "sweep-token-4" };
+      scenario.writeSelectRows.jobs = [];
+      const h = await load();
+      const body = await json(await h.fetch(cronReq()));
+      expect(body.resolved).toBe(0);
+      expect(releaseCalls()).toHaveLength(1);
+    });
+
+    it("never settles over a DEAD holder: a claim won by expiring one (over_expired) skips, pages via defect, and is released", async () => {
+      seedExpiredDispute(scenario);
+      scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "sweep-token-5", over_expired: true };
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      noSettlement();
+      expect(res.status).toBe(500);
+      expect(String((body.defectReasons as string[]).join(" "))).toMatch(/expired holder/);
+      expect(releaseCalls()).toEqual([expect.objectContaining({ args: { _job_id: JOB_ID, _token: "sweep-token-5" } })]);
+    });
+
+    it("asks Stripe inside the claim: a refunded charge with NO ledger row still blocks the payout", async () => {
+      // recordRefund swallows its own write failure, so an empty ledger is not
+      // proof. The charge's amount_refunded is.
+      seedExpiredDispute(scenario);
+      scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "sweep-token-6" };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1", status: "succeeded", latest_charge: { id: "ch_1", amount_refunded: 9500, disputed: false },
+      });
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      noSettlement();
+      expect(res.status).toBe(500);
+      expect(String((body.defectReasons as string[]).join(" "))).toMatch(/refunded \(9500¢\)/);
+      expect(releaseCalls()).toHaveLength(1);
+    });
+
+    it("fails CLOSED when the in-claim Stripe check errors", async () => {
+      seedExpiredDispute(scenario);
+      scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "sweep-token-7" };
+      stripeMock.paymentIntents.retrieve
+        .mockResolvedValueOnce({ id: "pi_1", status: "succeeded" })
+        .mockRejectedValueOnce(new Error("stripe down"));
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      noSettlement();
+      expect(res.status).toBe(500);
+      expect(releaseCalls()).toHaveLength(1);
+    });
+
+    it("a failed flip after the claim is a defect, not a log line", async () => {
+      seedExpiredDispute(scenario);
+      scenario.writeErrors.jobs = { message: "write refused" };
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      expect(res.status).toBe(500);
+      expect(String((body.defectReasons as string[]).join(" "))).toMatch(/resolve flip job-1: write refused/);
+    });
+
+    const UNSETTLEABLE = "Dispute stuck — escrow cannot auto-settle";
+    const unsettleableNotes = () =>
+      writesTo("notifications", "insert").flatMap((w) => w.payload as Array<{ title: string }>).filter((n) => n.title === UNSETTLEABLE);
+
+    it.each([
+      ["not_settleable", false],
+      ["split_pending", false],
+      ["stuck_release", true],
+    ])("a claim answering %s can never clear by waiting: admins are reminded (defect: %s)", async (verdict, isDefect) => {
+      seedExpiredDispute(scenario);
+      scenario.rpc.claim_dispute_settlement = { verdict };
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      expect(writesTo("jobs")).toHaveLength(0);
+      expect(unsettleableNotes()).toHaveLength(2);
+      expect(res.status).toBe(isDefect ? 500 : 200);
+    });
+
+    it("a dispute re-opened inside the payout hold (payout_pending) is never claimed or silently re-skipped: admins are told", async () => {
+      seedExpiredDispute(scenario, { payment_status: "payout_pending" });
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      expect(claimCalls()).toHaveLength(0);
+      expect(writesTo("jobs")).toHaveLength(0);
+      expect(unsettleableNotes()).toHaveLength(2);
+      expect(body.claim_skipped).toEqual([{ job_id: JOB_ID, verdict: "payment_payout_pending" }]);
+    });
+
+    it("a chargeback that was WON (charge.disputed stays true, nothing refunded) does not block the payout forever", async () => {
+      seedExpiredDispute(scenario);
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1", status: "succeeded", latest_charge: { id: "ch_1", amount_refunded: 0, disputed: true },
+      });
+      const h = await load();
+      const body = await json(await h.fetch(cronReq()));
+      expect(body.resolved).toBe(1);
+    });
+
+    it("a HELPER-filed dispute re-opened inside the payout hold is not skipped silently: admins are told (round 3, M4)", async () => {
+      // The helper-filed escalation is pinned to payment_status='escrow', and it
+      // ran BEFORE the payout-hold reminder — so a helper-filed
+      // disputed/payout_pending job matched zero rows, logged "payment_status
+      // changed since read" and was skipped on every tick, forever, with nobody
+      // told.
+      seedExpiredDispute(scenario, { disputed_by: "helper-1", payment_status: "payout_pending" });
+      scenario.writeSelectRows.jobs = [];
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      expect(claimCalls()).toHaveLength(0);
+      expect(unsettleableNotes()).toHaveLength(2);
+      expect(body.claim_skipped).toEqual([{ job_id: JOB_ID, verdict: "payment_payout_pending" }]);
+    });
+
+    it("retries a failed claim release once (round 3, M2)", async () => {
+      seedExpiredDispute(scenario);
+      scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "sweep-token-r" };
+      scenario.rpcErrors = { release_dispute_settlement_claim: { message: "connection reset", code: "08006" } };
+      const h = await load();
+      await h.fetch(cronReq());
+      expect(releaseCalls()).toHaveLength(2);
+    });
+
+    it("never claims a helper-filed dispute it only escalates (no money step)", async () => {
+      seedExpiredDispute(scenario, { disputed_by: "helper-1" });
+      const h = await load();
+      await h.fetch(cronReq());
+      expect(claimCalls()).toHaveLength(0);
+    });
+  });
 });

@@ -25,9 +25,10 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import type { Database } from "@/integrations/supabase/types";
+import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
 
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
+// jobs.offered_to_helper_id is not selectable (20260915045110): named columns.
+type Job = ReadableJobRow;
 
 /** `group_job_helpers` — a group job's full roster, the source `release-payout`
  *  fans transfers across. `jobs.helper_id` only ever holds the lead. */
@@ -128,11 +129,11 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
       // Fetch completed jobs where this user is the poster (customer)
       const jobsRes = await supabase
         .from("jobs")
-        .select("*")
+        .select(JOB_READABLE_COLUMNS)
         .eq("customer_id", userId)
         .eq("status", "completed")
         .order("created_at", { ascending: false });
-      const jobs = unwrap(jobsRes) as Job[];
+      const jobs = readableJobRows<Job>(unwrap(jobsRes));
 
       if (jobs.length === 0) return [] as CompletedJobWithHelper[];
 

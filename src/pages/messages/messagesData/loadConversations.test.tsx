@@ -250,11 +250,41 @@ describe("ConversationRow — the avatar agrees with the name", () => {
 describe("fetchConversations — viewerIsAssignedHelper mirrors can_message_in_job", () => {
   const POSTER = CAMILLE_AUTH;
 
+  /**
+   * One fixture job per case, served the way PROD now serves it: as TWO reads.
+   *
+   * `jobs.offered_to_helper_id` is no longer selectable by a signed-in client
+   * (20260915045110, owner decision 2026-09-14) — the loader gets it from
+   * `get_job_offer_targets`, which returns a row only when the caller is the
+   * poster or the offeree. So the jobs read here DROPS the column exactly as
+   * PostgREST would, and the RPC answers from the same fixture rows, scoped to
+   * the viewer. A mock that kept handing the column back on the job row would
+   * pass while the app read `undefined` in prod.
+   */
   function withJobs(rows: Record<string, unknown>[]) {
     fromMock.mockImplementation((table: string) => {
       if (table === "messages") return makeBuilder(messagesResponse);
-      if (table === "jobs") return makeBuilder({ data: rows, error: null });
+      if (table === "jobs") {
+        const readable = rows.map((r) => {
+          const copy = { ...r };
+          delete copy.offered_to_helper_id;
+          return copy;
+        });
+        return makeBuilder({ data: readable, error: null });
+      }
       return makeBuilder({ data: [], error: null });
+    });
+    rpcMock.mockImplementation(async (fn: string) => {
+      if (fn === "get_safe_profiles") return profilesResponse;
+      if (fn === "get_job_offer_targets") {
+        return {
+          data: rows
+            .filter((r) => r.offered_to_helper_id && (r.customer_id === ME || r.offered_to_helper_id === ME))
+            .map((r) => ({ job_id: r.id, offered_to_helper_id: r.offered_to_helper_id })),
+          error: null,
+        };
+      }
+      return { data: [], error: null };
     });
   }
 

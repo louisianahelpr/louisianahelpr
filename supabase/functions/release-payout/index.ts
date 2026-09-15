@@ -31,7 +31,7 @@ import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT 
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
+import { checkUnrecordedTransfers, claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
 import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
 // process-scheduled-payouts — see _shared/releaseFlip.ts for TC-008, the
@@ -786,6 +786,47 @@ serve(async (req) => {
     );
   }
 
+  // ── A transfer for this job at Stripe that the ledger does not record ─────
+  // (round-5 money reviews, MEDIUM-1 then HIGH). The ledger read above is
+  // blind to a transfer that left Stripe without its row — a dispute Quick
+  // Release killed after Stripe answered, a split leg whose ledger write
+  // failed, or process-scheduled-payouts' own transfer whose claim it died
+  // before stamping. Resuming that orphaned claim here under THIS function's
+  // idempotency key paid the Helpr twice. `checkUnrecordedTransfers`
+  // (_shared/payoutClaim.ts, shared with process-scheduled-payouts) adopts one
+  // unmistakable match for an orphaned claim and refuses anything else. No
+  // orphaned-claim exemption. Fails closed.
+  const unrecorded = await checkUnrecordedTransfers(supabaseAdmin, stripe, {
+    jobId: job.id,
+    helperId: job.helper_id,
+    stripeAccountId: helper.stripe_account_id,
+    amountCents: payoutCents,
+  });
+  if (unrecorded.kind === "error") {
+    console.error(`[release-payout] unrecorded-transfer check failed for job ${job.id}: ${unrecorded.message}`);
+    await rollBackOnboardingFeeClaim();
+    return jsonResponse({ error: "could not verify prior transfers with Stripe — retry" }, 502);
+  }
+  if (unrecorded.kind === "inflight") {
+    await rollBackOnboardingFeeClaim();
+    return jsonResponse({ error: "another payout run is mid-transfer for this job" }, 409);
+  }
+  if (unrecorded.kind === "conflict") {
+    console.error(`[release-payout] REFUSING job ${job.id}: Stripe shows ${unrecorded.transferIds.join(", ")} with no payout_transfers row`);
+    await rollBackOnboardingFeeClaim();
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Payout refused — a transfer for this job is at Stripe with no ledger row",
+      message: `Job ${job.id} is payable, but Stripe shows ${unrecorded.transferIds.join(", ")} in its transfer group and payout_transfers does not record it. No second transfer was sent; reconcile the ledger against Stripe by hand.`,
+      fields: { job_id: job.id, transfer_ids: unrecorded.transferIds.join(", ") },
+    });
+    return jsonResponse(
+      { error: "a transfer for this job already exists at Stripe but not in the ledger — reconcile before paying out", existing_transfer_id: unrecorded.transferIds[0] },
+      409,
+    );
+  }
+
   // ── Claim the payout BEFORE calling Stripe ────────────────────────────────
   // The read above cannot close the race with process-scheduled-payouts: the
   // two use different idempotency keys on the same job, so Stripe would create
@@ -830,8 +871,21 @@ serve(async (req) => {
   const failedTransferCount = claim.failedCount;
 
   let transfer: Stripe.Transfer;
+  // Adopting: the orphaned claim this run just resumed IS the one whose
+  // transfer Stripe already holds. No second transfer; settle the claim with it.
+  const adopted = unrecorded.kind === "adopt" && claim.resumed && claim.claimId === unrecorded.claimId
+    ? unrecorded.transferId
+    : null;
+  if (unrecorded.kind === "adopt" && !adopted) {
+    // The claim this run holds is not the orphan the check matched: another
+    // run moved in between. Stand down rather than guess.
+    await rollBackOnboardingFeeClaim();
+    return jsonResponse({ error: "payout claim changed while verifying prior transfers — retry" }, 409);
+  }
   try {
-    transfer = await stripe.transfers.create(
+    transfer = adopted
+      ? ({ id: adopted, transfer_group: `job_${job.id}` } as Stripe.Transfer)
+      : await stripe.transfers.create(
       {
         amount: payoutCents,
         currency: "usd",

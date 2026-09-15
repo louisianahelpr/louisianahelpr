@@ -166,7 +166,10 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
 
     async function postJob(date: string, start: string, label: string) {
       const expires = ct(date, start).toISOString();
-      const r = await request.post(`${SUPABASE_URL}/rest/v1/jobs`, {
+      // `expires_at` is read back below, so name it (plus `id` for cleanup).
+      // Bare return=representation is RETURNING * and 42501s on jobs since
+      // 20260915045110 — authenticated has no table-level SELECT there.
+      const r = await request.post(`${SUPABASE_URL}/rest/v1/jobs?select=id,title,expires_at`, {
         headers: { ...rest(poster), Prefer: "return=representation" },
         data: {
           customer_id: poster.user.id,
@@ -187,7 +190,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
       expect(r.ok(), `job insert failed: ${r.status()} ${await r.text()}`).toBe(true);
       const [job] = await r.json();
       journey.cleanup(`delete ${label} job`, async () => {
-        const d = await request.delete(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+        const d = await request.delete(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=id`, {
           headers: { ...rest(poster), Prefer: "return=representation" },
         });
         expect(d.ok(), `cleanup delete ${d.status()}`).toBe(true);

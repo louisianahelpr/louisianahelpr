@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import {
   Dialog,
@@ -79,7 +79,26 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
     setEvidenceFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Synchronous in-flight guard. `submitting` is React state, so it does not
+  // land until the NEXT render — two clicks inside one JS task both passed it
+  // and both called `rpc_open_dispute`. The second blocked on the RPC's own
+  // FOR UPDATE, then took its existing-dispute branch and stored every evidence
+  // url a second time. The server is set-like about that now
+  // (open_dispute_as, 20260915034822), and that is the guarantee; this stops
+  // the second call being made at all, and is the same ref guard Apply Now,
+  // hire, review, tip and the admin dispute actions already carry.
+  const submittingRef = useRef(false);
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    try {
+      await submitOnce();
+    } finally {
+      submittingRef.current = false;
+    }
+  };
+
+  const submitOnce = async () => {
     if (!reason) {
       hapticError();
       toast.error("Please select a reason.");
@@ -107,7 +126,14 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
       const evidenceUrls: string[] = [];
       let failedUploads = 0;
       for (const file of evidenceFiles) {
-        const ext = file.name.split(".").pop();
+        // Sanitise the extension: the stored URL's path segment must match the
+        // server's anchored evidence check ([^/?#]+…), so a filename like
+        // "photo.jp#g" — ext "jp#g" — must not put a `#` in the object path, or
+        // the upload succeeds and the dispute RPC then refuses the URL with a
+        // misleading "not your upload" error. Keep only [a-z0-9], cap length,
+        // fall back to "jpg".
+        const rawExt = (file.name.split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
+        const ext = rawExt || "jpg";
         const path = `${uid}/disputes/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file);
         if (uploadError) {

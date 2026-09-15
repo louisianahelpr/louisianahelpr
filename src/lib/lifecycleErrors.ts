@@ -66,6 +66,26 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   // enforce_jobs_arrival_integrity — the poster's "Confirm They Arrived".
   arrival_confirm_before_arrival:
     "Your Helpr hasn't marked arrived yet — you can confirm once their location shows them at the job.",
+  // open_dispute_as, migration 20260915034822. The new-dispute path used to
+  // stamp `disputed` without checking the job was still disputable, so a filing
+  // that raced a cancellation or a payout either froze an escrow that had
+  // already been refunded or handed the filer `enforce_job_status_transition`'s
+  // raw Postgres prose. It raises a terse code now, and this is its sentence.
+  dispute_job_not_disputable:
+    "This job has already been resolved or closed, so it can't be disputed. Refresh to see where it stands — if that looks wrong, contact support.",
+  // open_dispute_as refuses a re-file while a decided dispute's split has not
+  // executed (20260915034822).
+  dispute_already_decided:
+    "An admin has already decided this dispute and its payment is being settled, so it can't be reopened. Refresh to see the decision — if that looks wrong, contact support.",
+  // rpc_withdraw_dispute / rpc_decide_dispute, 20260915034822: an admin
+  // settlement holds this escrow for a few minutes. A designed refusal — see
+  // EXPECTED_REFUSALS below.
+  dispute_settlement_in_progress:
+    "An admin is settling this dispute's payment right now, so it can't be changed. Refresh in a few minutes to see the result.",
+  // open_dispute_as refuses a job whose escrow cancel_escrow is refunding
+  // (payment_status 'cancelling'), 20260915034822.
+  dispute_payment_being_cancelled:
+    "This job's payment is being cancelled and refunded, so it can't be disputed. Refresh to see where it stands — if that looks wrong, contact support.",
 };
 
 // Sentences more than one RPC needs, written once so they cannot drift.
@@ -241,6 +261,21 @@ export function rpcErrorCode<R extends MappedRpc>(rpc: R, error: unknown): RpcEr
 export function rpcErrorMessage(rpc: MappedRpc, error: unknown): string | null {
   const code = rpcErrorCode(rpc, error);
   return code ? (RPC_ERROR_COPY[rpc] as Record<string, string>)[code] : null;
+}
+
+/**
+ * Codes that are a designed refusal rather than a defect: the user is shown the
+ * copy above, and the caller does NOT report them to Sentry (a settlement in
+ * progress is the lock working, not a bug — round-4 review, LOW).
+ */
+const EXPECTED_REFUSALS = ["dispute_settlement_in_progress"] as const;
+
+export function isExpectedLifecycleRefusal(error: unknown): boolean {
+  const raw =
+    typeof error === "string"
+      ? error
+      : ((error as { message?: string } | null)?.message ?? "");
+  return !!raw && EXPECTED_REFUSALS.some((code) => raw.includes(code));
 }
 
 /**

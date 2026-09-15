@@ -265,7 +265,10 @@ test.describe.serial("marketplace chain", () => {
     await test.step("helper finds it in Browse", async () => {
       test.skip(!S.funded, "unfunded jobs are not in Browse by design (payment_status gate)");
       // Harness concession (prod-lifecycle's): age past the 20-min early-access window.
-      const aged = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${S.jobId}`, {
+      // `select=id` is required with return=representation on jobs: bare
+      // representation is RETURNING *, and 20260915045110 took authenticated's
+      // table-level SELECT off jobs, so `*` 42501s the whole write.
+      const aged = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${S.jobId}&select=id`, {
         headers: rest(S.poster, { Prefer: "return=representation" }),
         data: { created_at: new Date(Date.now() - 25 * 60_000).toISOString() },
       });
@@ -608,7 +611,9 @@ test.describe.serial("marketplace chain", () => {
       // than waited on. helper_arrived_at itself can no longer be backdated:
       // only mark_helper_arrival writes it (20260915044137).
       {
-        const r = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${S.jobId}`, {
+        // Named column with the representation (20260915045110): bare
+        // `return=representation` is `RETURNING *` and is refused.
+        const r = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${S.jobId}&select=id`, {
           headers: rest(S.poster, { Prefer: "return=representation" }),
           data: { poster_confirmed_working_at: new Date(Date.now() - 40 * 60_000).toISOString() },
         });

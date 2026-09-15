@@ -1,0 +1,21 @@
+    if (newStatus === "done") {
+      try {
+        unwrapMutation(
+          await supabase.from("jobs").update({ helper_completed_at: now }).eq("id", jobId).select("id"),
+          {
+            action: "mark the job complete",
+            rejectedMessage: "We couldn't mark this job complete — it may have already been completed or cancelled. Pull to refresh.",
+            context: { jobId },
+          },
+        );
+      } catch (doneErr) {
+        if (!isWriteRejected(doneErr)) {
+          report(doneErr, { tags: { source: "JobTracking.helperCompleted" } });
+        }
+        hapticError();
+        toast.error(mutationErrorMessage(doneErr, "Couldn't mark the job complete — try again?"));
+        setUpdating(false);
+        loadTracking();
+        return;
+      }
+    }

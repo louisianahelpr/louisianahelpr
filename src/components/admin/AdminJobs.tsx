@@ -18,6 +18,7 @@ import { StatusOverrideDialog } from "./adminJobs/StatusOverrideDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
 import { report } from "@/lib/errorLogger";
+import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
 
 /**
  * Where an admin notification about a job should land, per RECIPIENT.
@@ -127,15 +128,19 @@ const AdminJobs = () => {
     const load = async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select("*")
+        // Named columns: `*` includes offered_to_helper_id, which is not
+        // selectable (20260915045110) and 42501s the whole read.
+        .select(JOB_READABLE_COLUMNS)
         .order("created_at", { ascending: false });
       if (error) {
         console.error("[AdminJobs] load:", error);
         toast.error("Couldn't load jobs — refresh to retry.");
       } else if (data) {
-        setJobs(data);
+        // Cast, not `.overrideTypes()`: see the note in src/lib/jobColumns.ts.
+        const rows = readableJobRows<Job>(data);
+        setJobs(rows);
         const flagMap = new Map<string, string[]>();
-        for (const job of data) {
+        for (const job of rows) {
           const existingFlags = job.flag_reasons || [];
           const detected = detectFlags(job);
           const allFlags = [...new Set([...existingFlags, ...detected])];

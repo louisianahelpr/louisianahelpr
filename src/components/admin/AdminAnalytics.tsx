@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
 import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, Loader2, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
@@ -76,13 +77,13 @@ const AdminAnalytics = () => {
       let page = 0;
       const PAGE_SIZE = 999;
       while (true) {
-        const { data, error } = await supabase.from("jobs").select("*").eq("is_seed", false).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        const { data, error } = await supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("is_seed", false).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
         if (error) {
           report(error, { tags: { source: "AdminAnalytics.loadJobs" } });
           break;
         }
         if (!data || data.length === 0) break;
-        allJobsData = [...allJobsData, ...data];
+        allJobsData = [...allJobsData, ...readableJobRows<Job>(data)];
         if (data.length < PAGE_SIZE) break;
         page++;
       }
@@ -237,12 +238,14 @@ const AdminAnalytics = () => {
       // being a silent no-op, and a filter dropped on a MONEY breakdown would
       // list every job while looking filtered. scripts/check-discarded-query-filters.mjs
       // fails CI on the shape.
-      let query = supabase.from("jobs").select("*").eq("is_seed", false).order("created_at", { ascending: false });
+      // Named columns, not `*`: offered_to_helper_id is not selectable
+      // (20260915045110) and `*` would 42501 the whole read.
+      let query = supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("is_seed", false).order("created_at", { ascending: false });
       if (type === "revenue" || type === "fees") query = query.in("payment_status", ["escrow", "payout_pending", "released"]);
       if (type === "payouts") query = query.in("payment_status", ["escrow", "payout_pending", "released"]);
       const { data, error } = await query;
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownJobs" } });
-      setDrillJobs(data || []);
+      setDrillJobs(readableJobRows<Job>(data));
     } else if (type === "subscriptions") {
       const { data, error } = await supabase.from("profiles").select("*").eq("is_seed", false).not("subscription_tier", "is", null).order("subscription_tier");
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownSubscriptions" } });

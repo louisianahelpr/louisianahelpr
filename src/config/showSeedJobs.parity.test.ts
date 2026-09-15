@@ -231,6 +231,9 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // filings (an undelivered revision past its deadline) take the identical
     // path a person's do. Same shape as its caller: one job by id.
     ["public.open_dispute_as", "single-job mutation; status is a precondition"],
+    // 20260915034822 gave it the job row FOR UPDATE (lock order jobs ->
+    // disputes); the 'open' it reads is the DISPUTE's status, not a feed.
+    ["public.rpc_decide_dispute", "single-job admin mutation; the 'open' it reads is the dispute's status"],
     // The `status = 'open'` it reads is DISPUTES.status (the live dispute on
     // one job the caller opened), not jobs.status — re-created by
     // 20260908024937 so the helper-opener can withdraw.
@@ -314,16 +317,37 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // Union across every definition in history, not just the latest: if any
     // revision of an object ever consulted the gate, it is a gated surface and
     // must be on the list. Conservative in the safe direction.
+    //
+    // The body ends at the DEFINITION's end, not at the next `CREATE` header.
+    // Header-to-header swallows whatever sits BETWEEN two definitions — prose
+    // and, in a migration that guards its DDL, `to_regprocedure('public.
+    // seed_jobs_hidden_publicly()')` replay checks. 20260915045110 has exactly
+    // that shape and the wide slice read the gate check belonging to
+    // `open_jobs_browse` (registered, gated) as belonging to
+    // `get_jobs_for_my_applications` (which has no is_seed filter and never
+    // had one). Registering a non-feed to silence that would have been a lie
+    // on the list this file exists to keep honest. Measured before changing:
+    // the narrower slice drops that one false positive and nothing else.
     const header = /CREATE (?:OR REPLACE )?(?:FUNCTION|VIEW)\s+(public\.\w+)/gi;
     const callers = new Set<string>();
     const dropped = new Set<string>();
+    /** End of the definition starting at `from`: its dollar-tag close, else its `;`. */
+    const definitionEnd = (sql: string, from: number, limit: number): number => {
+      const tag = sql.slice(from, limit).match(/\$[A-Za-z_]*\$/)?.[0];
+      if (tag) {
+        const open = sql.indexOf(tag, from) + tag.length;
+        const close = sql.indexOf(tag, open);
+        if (close > 0) return Math.min(close + tag.length, limit);
+      }
+      const semi = sql.indexOf(";", from);
+      return semi < 0 ? limit : Math.min(semi, limit);
+    };
     for (const { sql } of FILES) {
       const heads = [...sql.matchAll(header)];
       heads.forEach((h, i) => {
-        const body = sql.slice(
-          (h.index ?? 0) + h[0].length,
-          i + 1 < heads.length ? heads[i + 1].index : sql.length,
-        );
+        const start = (h.index ?? 0) + h[0].length;
+        const limit = i + 1 < heads.length ? (heads[i + 1].index ?? sql.length) : sql.length;
+        const body = sql.slice(start, definitionEnd(sql, start, limit));
         if (body.includes(SEED_VISIBILITY_AUTHORITY)) callers.add(h[1].toLowerCase());
       });
       for (const d of sql.matchAll(

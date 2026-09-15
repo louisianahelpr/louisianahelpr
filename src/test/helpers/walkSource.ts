@@ -30,8 +30,11 @@ const isGenerated = (file: string) => file.endsWith(".gen.ts");
  * Every .ts/.tsx file under `roots`, excluding build output and the edge
  * harness's transient modules. Directories that disappear mid-walk are
  * skipped for the same reason files are.
+ *
+ * `exts` widens the extension set without forking the walker — the offer-privacy
+ * guard has to read `scripts/**` too, which is .mjs.
  */
-export function walkSource(roots: string[]): string[] {
+export function walkSource(roots: string[], exts: readonly string[] = EXTS): string[] {
   const out: string[] = [];
   const visit = (dir: string) => {
     let entries: string[];
@@ -50,7 +53,7 @@ export function walkSource(roots: string[]): string[] {
         continue; // vanished between readdir and stat
       }
       if (isDir) visit(full);
-      else if (EXTS.some((e) => entry.endsWith(e)) && !isGenerated(full)) out.push(full);
+      else if (exts.some((e) => entry.endsWith(e)) && !isGenerated(full)) out.push(full);
     }
   };
   for (const root of roots) visit(root);

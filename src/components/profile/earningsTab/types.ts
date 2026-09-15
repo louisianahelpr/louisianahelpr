@@ -1,6 +1,8 @@
-import type { Database } from "@/integrations/supabase/types";
+import type { ReadableJobRow } from "@/lib/jobColumns";
 
-export type Job = Database["public"]["Tables"]["jobs"]["Row"];
+// The earnings tab is fed by useProfileEarnings, which names its columns:
+// jobs.offered_to_helper_id is not client-selectable (20260915045110).
+export type Job = ReadableJobRow;
 
 export interface PayoutLedgerRow {
   id: string;

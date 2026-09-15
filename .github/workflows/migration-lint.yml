@@ -286,6 +286,18 @@ jobs:
           # and event-trigger functions are exempt.
           echo "${{ steps.changed.outputs.files }}" | xargs node scripts/check-migration-grants.mjs
 
+      - name: Check new tables/views grant their own privileges
+        if: steps.changed.outputs.files != ''
+        run: |
+          # Since 20260915051534 a relation created in public gets NO anon or
+          # authenticated privileges by default (that default is what re-opened
+          # open_jobs_browse to anon writes on a DROP+CREATE). So every CREATE
+          # TABLE / CREATE VIEW newer than that migration must carry its own
+          # GRANT, and a table its ENABLE ROW LEVEL SECURITY, in the same file.
+          # Files at or before the cut-off are skipped, so the lint-all fallback
+          # does not re-report settled history.
+          echo "${{ steps.changed.outputs.files }}" | xargs node scripts/check-migration-relation-grants.mjs
+
       - name: Check no AFTER trigger mutates NEW
         if: steps.changed.outputs.files != ''
         run: |

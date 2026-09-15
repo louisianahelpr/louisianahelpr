@@ -194,6 +194,37 @@ function applyMeta(html: string, meta: Meta): string {
   return out;
 }
 
+/**
+ * ICON LINKS, ABSOLUTE (owner, 2026-09-14, VN-4: the share sheet showed "the
+ * compass" instead of the H logo for a shared /jobs/:id link).
+ *
+ * The shell ships its favicon / apple-touch-icon links root-relative
+ * (`href="/apple-touch-icon.png"`), which is right for the SPA — the native
+ * bundle serves them from its own origin. A link-preview fetcher, though, reads
+ * this document detached from any page, and the OS share sheet's placeholder
+ * glyph is what it draws when it cannot turn a link into an icon. og:image in
+ * the same head was already absolute; the icons were the one set of image
+ * references a fetcher had to resolve for itself.
+ *
+ * Same rule as applyMeta: VALUES only. The tags, their order and their other
+ * attributes are untouched, and every visitor — human or crawler — still gets
+ * the same bytes. Only a root-relative path (`/x`, never `//host`) is
+ * rewritten, and it is resolved against SITE_ORIGIN, never the request Host.
+ * `scripts/build-og-shell.mjs` asserts at build time that these links exist.
+ */
+const ICON_RELS = ["icon", "shortcut icon", "apple-touch-icon", "apple-touch-icon-precomposed"];
+const ICON_LINK_RE = new RegExp(
+  `(<link rel="(?:${ICON_RELS.map(escapeRegExp).join("|")})"[^>]*?\\shref=")(\\/(?!\\/)[^"]*)(")`,
+  "g",
+);
+
+function absolutiseIconLinks(html: string, origin: string = SITE_ORIGIN): string {
+  return html.replace(
+    ICON_LINK_RE,
+    (_m, head: string, path: string, tail: string) => head + escapeAttr(origin + path) + tail,
+  );
+}
+
 /* ------------------------------------------------------------------ *
  * Data — anon key only, same read path as the logged-out guest view
  * ------------------------------------------------------------------ */
@@ -508,8 +539,9 @@ export default {
     try {
       const url = new URL(request.url);
       const meta = await resolveMeta(url);
-      if (!meta) return respond(SHELL_HTML);
-      return respond(applyMeta(SHELL_HTML, meta));
+      const shell = absolutiseIconLinks(SHELL_HTML);
+      if (!meta) return respond(shell);
+      return respond(applyMeta(shell, meta));
     } catch {
       // Silence is the contract here: an OG-meta lookup that fails must
       // degrade to the plain shell, never to a broken share page. The

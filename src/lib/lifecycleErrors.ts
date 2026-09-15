@@ -30,7 +30,13 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   dispute_already_open: "There's already an open dispute on this job.",
   dispute_window_closed:
     "The dispute window for this job has closed. Contact support and we'll take a look.",
-  job_not_completed: "You can open a dispute once the work has been marked complete.",
+  // No RPC raises this today. It used to say a dispute opens once the work is
+  // complete, which is the opposite of the rule (owner, 2026-09-14: done is
+  // final), so it now says only what the code means.
+  job_not_completed: "This job hasn't been marked complete yet.",
+  // open_dispute_as, migration 20260915025607: a party filing (or appending
+  // to) a dispute on a completed job. Done is final (owner, 2026-09-14).
+  job_already_completed: "This job is finished, so it can't be disputed.",
   // rpc_open_dispute, migration 20260907032552. QA filed a dispute with the
   // description box empty on 2026-09-06 and it was accepted: the stored reason
   // was the literal "Other:" and an escrow froze for 72 hours on it. The RPC

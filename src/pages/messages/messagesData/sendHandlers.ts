@@ -257,13 +257,18 @@ export function createSendHandlers({
         const violationDesc = violations.map((v) => v.label).join(", ");
         if (!warningShown) {
           setWarningShown(true);
+          // Neutral by design (docs/OPEN.md queue #1 residual, 2026-09-15):
+          // the CLIENT scanner is advisory only and flags a few phrases
+          // ("my number", "my email", F-TRUST-01) the SERVER's
+          // contact_leak_reason deliberately does not act on. Claiming a
+          // strike here — before logViolation's RPC below has even asked the
+          // server whether this text is a real violation — told the truth
+          // only when the two rules agreed. Strike/warning wording now comes
+          // from that RPC's own verdict (logViolation.ts), never from the
+          // client's guess.
           toast.error(
-            // Honest copy: a second offence is a FINAL WARNING, not a ban. The
-            // ladder (apply_message_violation_consequence, 20260825183000) runs
-            // warning → final warning → 7-day restriction + admin review, and a
-            // permanent ban only ever comes from a person confirming it.
-            "⚠️ Warning: Sharing contact info or taking business off-platform is not allowed. This is your first warning — a second one is a final warning.",
-            { duration: 8000 }
+            "Remove contact details (phone number, email, payment app, etc.) to send this message.",
+            { duration: 6000 }
           );
         }
         // Log once per unique blocked message — a retry of the identical

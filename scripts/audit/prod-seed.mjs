@@ -358,6 +358,34 @@ const helperAvatarUrl = (helperId) => `${BASE}/storage/v1/object/public/avatars/
 
 async function ensureHelperAvatar(helperId) {
   const url = helperAvatarUrl(helperId);
+
+  // WHATEVER THE APP WROTE WINS, as long as it actually resolves.
+  //
+  // This function used to insist on `avatar.png`, and that fought the app:
+  // `src/lib/avatarStorage.ts` derives the key from the CONTENT TYPE and then
+  // deletes every other `avatar.*` in the folder, precisely so a jpg→png swap
+  // cannot leave the old object publicly fetchable (it was leaving identity
+  // documents live). So the moment anything uploads a photo for this account,
+  // the seed's `.png` is deleted by design and the row is repointed to `.jpg`.
+  //
+  // Found 2026-09-15 in the state that leaves behind: profiles.avatar_url ended
+  // in `avatar.png` while storage held only `avatar.jpg`, so every screen
+  // rendering the helper fired `400 GET …/avatar.png` — 22 of press-every-
+  // control's failed presses that night were this one broken image.
+  //
+  // Checking the row's OWN url first makes this idempotent with the app instead
+  // of at odds with it: a working avatar of any allowed type is left exactly as
+  // it is, and the `.png` branch below still rescues the genuinely-missing case
+  // this function was written for.
+  const [current] = await select(`profiles?user_id=eq.${helperId}&select=avatar_url`);
+  if (current?.avatar_url) {
+    const live = await fetch(current.avatar_url, { method: "HEAD", signal: AbortSignal.timeout(20_000) });
+    if (live.ok) {
+      console.log(`helper avatar: already resolves, left alone (${live.headers.get("content-type")}) ${current.avatar_url}`);
+      return;
+    }
+  }
+
   const head = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(20_000) });
   let action = "present, left alone";
   if (!head.ok) {

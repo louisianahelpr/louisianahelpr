@@ -713,6 +713,13 @@ test.describe("My Posts — card density + header", () => {
     // own toggle is unreachable by role while it is up — and an "element not
     // found" there would look exactly like a collapse.
     await page.keyboard.press("Escape");
+    // Escape on the Edit sheet does NOT discard silently: the form guards
+    // unsaved changes with a "Discard Your Changes?" confirm, so a second
+    // dialog is stacked and `toHaveCount(0)` never arrives — the app being
+    // careful read as this test's own failure (WebKit, 2026-09-15). Answer the
+    // guard the way a user would, then assert the card is still expanded.
+    const discard = page.getByRole("button", { name: /^Discard Changes$/ });
+    if (await discard.count()) await discard.first().click();
     await expect(modal).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Collapse Job Details" }).first(),

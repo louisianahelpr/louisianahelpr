@@ -73,7 +73,9 @@ test(authedTitle, async ({ browser, request, journey }) => {
     const firstName = (await cards.first().getAttribute("aria-label"))!.replace(/^View /, "").replace(/ — \$.*$/, "");
     const word = firstName.split(/\s+/).find((w) => w.length >= 5) ?? firstName.split(/\s+/)[0];
     await page.getByRole("button", { name: "Search jobs" }).first().click();
-    const box = page.getByRole("searchbox", { name: "Search jobs" });
+    // See the note on the combobox role in 02-marketplace.spec.ts: the field
+    // is role="combobox" now (recent-searches popup), not searchbox.
+    const box = page.getByRole("combobox", { name: "Search jobs" });
     await expect(box).toBeVisible();
     await box.fill("zzqxj-no-such-job");
     await expect(cards, "a nonsense search still listed jobs").toHaveCount(0, { timeout: 20_000 });

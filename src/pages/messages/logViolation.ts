@@ -54,7 +54,22 @@ export const logViolation = async (
 
   const action = (data as { action?: string } | null)?.action;
 
-  if (action === "final_warning") {
+  if (action === "warning") {
+    // The RPC's own verdict, not the client's guess (docs/OPEN.md queue #1
+    // residual, 2026-09-15): the send handler's immediate toast is neutral
+    // ("remove contact details…") because the client scanner also flags
+    // phrases ("my number", "my email") the server's contact_leak_reason
+    // does not act on. Only THIS response — the server having actually
+    // recorded a first strike — earns the "first warning" wording.
+    toast.error(
+      // Honest copy: a second offence is a FINAL WARNING, not a ban. The
+      // ladder (apply_message_violation_consequence, 20260825183000) runs
+      // warning → final warning → 7-day restriction + admin review, and a
+      // permanent ban only ever comes from a person confirming it.
+      "⚠️ Warning: Sharing contact info or taking business off-platform is not allowed. This is your first warning — a second one is a final warning.",
+      { duration: 8000 },
+    );
+  } else if (action === "final_warning") {
     toast.error(
       "Final warning — that's your second blocked message. One more and your account is restricted for 7 days while an admin reviews it.",
       { duration: 9000 },
@@ -65,9 +80,8 @@ export const logViolation = async (
       { duration: 10000 },
     );
   }
-  // 'warning' is already covered by the first-offence toast the send handler
-  // shows, and 'duplicate' means this exact message was already counted —
-  // neither needs a second toast on top. 'not_flagged' (20260915020258) means
-  // the server rule does not flag this text (a client-only phrase like
-  // "my number"), so nothing was recorded.
+  // 'duplicate' means this exact message was already counted, and
+  // 'not_flagged' (20260915020258) means the server rule does not flag this
+  // text (a client-only phrase like "my number") — neither earns a strike
+  // toast on top of the neutral notice the send handler already showed.
 };

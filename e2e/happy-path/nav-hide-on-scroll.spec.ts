@@ -232,10 +232,35 @@ function scrollState(page: Page) {
   });
 }
 
+/**
+ * Scroll the route by `dy`, `steps` times.
+ *
+ * Mobile WebKit has no wheel: Playwright throws "Mouse wheel is not supported
+ * in mobile WebKit", which is what took the whole nightly-webkit run red
+ * (2026-09-14) — six of its seventeen failures were this one line, in a
+ * project whose whole point is WKWebView parity. Scrolling the container
+ * directly is not a weaker substitute here: the dock listens for `scroll` in
+ * the capture phase (MobileNav.tsx's `checkScroll`) and never for `wheel`, so
+ * both paths deliver the app exactly the same event.
+ */
 async function wheel(page: Page, dy: number, steps: number) {
-  await page.mouse.move(187, 500);
+  await page.mouse.move(187, 500).catch(() => undefined);
   for (let i = 0; i < steps; i++) {
-    await page.mouse.wheel(0, dy);
+    try {
+      await page.mouse.wheel(0, dy);
+    } catch {
+      await page.evaluate((d) => {
+        // The same "tallest genuinely-scrollable region" scrollState() reads,
+        // so the scroll lands where the assertions are looking.
+        const els = [...document.querySelectorAll<HTMLElement>("*")].filter((el) => {
+          const oy = getComputedStyle(el).overflowY;
+          return (oy === "auto" || oy === "scroll") && el.scrollHeight > el.clientHeight + 2;
+        });
+        const el = els.sort((a, b) => b.scrollHeight - a.scrollHeight)[0];
+        if (el) el.scrollBy(0, d);
+        else window.scrollBy(0, d);
+      }, dy);
+    }
     await page.waitForTimeout(70);
   }
   // Longer than the 0.28s slide so the transform has settled before we read it.

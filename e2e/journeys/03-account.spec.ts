@@ -147,7 +147,20 @@ test(j7, async ({ browser, request, journey }) => {
     const sunday = hp.getByRole("switch", { name: "Toggle Sunday" });
     const wasOn = (await sunday.getAttribute("aria-checked")) === "true" || (await sunday.getAttribute("data-state")) === "checked";
     await sunday.click();
-    const saved = hp.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/rest/v1/helper_availability") && r.ok(), { timeout: 30_000 });
+    // The save goes through the `save_weekly_availability` RPC now (one atomic
+    // delete+insert under the same RLS policy; deployed on prod, verified
+    // 2026-09-15 via to_regprocedure). The old two-step table write survives
+    // in HelperAvailability.tsx only as a PGRST202 fallback for an
+    // undeployed RPC, so waiting for a POST to the TABLE waited for a request
+    // the app no longer makes — 30s, then red, on a save that had worked.
+    // Accept either, because both are still reachable code paths.
+    const saved = hp.waitForResponse(
+      (r) =>
+        r.request().method() === "POST" &&
+        (r.url().includes("/rest/v1/rpc/save_weekly_availability") || r.url().includes("/rest/v1/helper_availability")) &&
+        r.ok(),
+      { timeout: 30_000 },
+    );
     await hp.getByRole("button", { name: "Save Availability" }).click();
     await saved;
     await assertHealthy(hp, "availability saved");

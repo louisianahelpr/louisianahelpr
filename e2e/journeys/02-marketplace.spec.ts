@@ -273,7 +273,12 @@ test.describe.serial("marketplace chain", () => {
       const hp = S.helperPage;
       await hp.goto("/dashboard");
       await hp.getByRole("button", { name: "Search jobs" }).first().click();
-      await hp.getByRole("searchbox", { name: "Search jobs" }).fill(RUN);
+      // The Browse search field is an ARIA combobox now, not a searchbox:
+      // `useComboboxKeyboard`'s comboboxProps sets role="combobox" on the input
+      // for the recent-searches popup, which overrides type="search"'s implicit
+      // role. getByRole("searchbox") matched nothing and the journey read a
+      // working field as a missing one (nightly red, 2026-09-15).
+      await hp.getByRole("combobox", { name: "Search jobs" }).fill(RUN);
       await expect(hp.getByRole("button", { name: new RegExp(`View .*${RUN}`) }), "the helper cannot find the funded job in Browse").toBeVisible({ timeout: 60_000 });
       await assertHealthy(hp, "helper browse finds job");
       await journey.milestone(hp, "helper-browse-finds-job");
@@ -292,7 +297,7 @@ test.describe.serial("marketplace chain", () => {
     await test.step("helper opens the job and applies with a note", async () => {
       await hp.goto("/dashboard");
       await hp.getByRole("button", { name: "Search jobs" }).first().click();
-      await hp.getByRole("searchbox", { name: "Search jobs" }).fill(RUN);
+      await hp.getByRole("combobox", { name: "Search jobs" }).fill(RUN);
       await hp.getByRole("button", { name: new RegExp(`View .*${RUN}`) }).click();
       const dialog = hp.getByRole("dialog").first();
       await expect(dialog.getByRole("button", { name: "Apply Now" })).toBeVisible({ timeout: 30_000 });
@@ -590,7 +595,8 @@ test.describe.serial("marketplace chain", () => {
         // "Mark Job Complete" (owner, 2026-09-14; was "Request My Payout"). The
         // tracker's Done CTA and the card's PayoutPrimary now share the label,
         // so take the first in DOM order — the tracker's, which opens the
-        // "Yes, I'm Done" confirmation this step expects.
+        // "Mark This Job Complete?" confirmation this step expects (its button
+        // reads "Mark Complete", owner 2026-09-14; was "Yes, I'm Done").
         const payout = c.getByRole("button", { name: /^Mark Job Complete$/ }).first();
         await expect(before.or(after).or(start).or(payout).first(), `helper card offers no next step (so far: ${seen.join(" > ")})`).toBeVisible({ timeout: 45_000 });
         if (await before.isVisible() || await after.isVisible()) {
@@ -623,7 +629,7 @@ test.describe.serial("marketplace chain", () => {
           const payoutButtons = await c.getByRole("button", { name: /^Mark Job Complete$/ }).count();
           test.info().annotations.push({ type: "payout-cta-count", description: String(payoutButtons) });
           await payout.click();
-          const yes = hp.getByRole("button", { name: "Yes, I'm Done" });
+          const yes = hp.getByRole("button", { name: "Mark Complete", exact: true });
           await expect(yes, "Mark Job Complete opened no confirmation").toBeVisible({ timeout: 15_000 });
           await journey.milestone(hp, "request-payout-confirm");
           await yes.click();

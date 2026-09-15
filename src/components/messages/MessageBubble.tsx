@@ -50,7 +50,17 @@ const renderMessageContent = (
   }
   // Location message
   if (content.startsWith("📍 Location:")) {
-    const url = content.replace("📍 Location: ", "").trim();
+    const rest = content.replace("📍 Location: ", "").trim();
+    // Since docs/OPEN.md queue #1 residual (2026-09-15) RichMessageInput
+    // sends bare "lat,lng" — never a URL in the stored content, so a
+    // 3-digit-integer longitude's digit tail can no longer line up with the
+    // phone rule (LOCATION_SHARE_PATTERN, contactLeakRules.ts). The Maps
+    // link is built HERE, from two regex-validated numbers, which is safer
+    // than trusting a URL out of attacker-controlled content ever was.
+    // Older rows still carry the pre-fix "https://maps.google.com/?q=…"
+    // shape — rendered exactly as before.
+    const coords = rest.match(/^(-?[0-9]{1,3}\.[0-9]{1,6}),(-?[0-9]{1,3}\.[0-9]{1,6})$/);
+    const url = coords ? `https://maps.google.com/?q=${coords[1]},${coords[2]}` : rest;
     // Untrusted scheme → never emit an <a href>; fall back to inert text.
     if (!isSafeHttpsUrl(url)) return <p>{content}</p>;
     return (

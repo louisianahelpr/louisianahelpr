@@ -318,15 +318,31 @@ describe("message-violation ladder — client copy ↔ apply_message_violation_c
     expect(
       MESSAGE,
       "the top rung no longer notifies admins — cases would pile up unseen",
-    ).toMatch(/p_admin_message_format\s*=>\s*'%s has %s blocked messages/);
+    ).toMatch(/p_admin_message_format\s*=>\s*'%s has %s flagged messages/);
   });
 
-  it("the first-offence toast promises the SECOND is a final warning, matching the RPC", () => {
+  it("the first-offence toast promises the SECOND is a final warning, matching the RPC — and only fires on the RPC's own verdict", () => {
+    // docs/OPEN.md queue #1 residual, 2026-09-15: this toast moved OUT of
+    // sendHandlers' synchronous client-side guess — which fired the instant
+    // the CLIENT scanner matched, even for phrases ("my number", "my email")
+    // the server never acts on — and into logViolation's read of the RPC's
+    // own verdict, gated on `action === "warning"`. It now only shows once
+    // the server has actually recorded a first strike.
     expect(
-      SEND_HANDLERS,
-      "sendHandlers' first-warning toast no longer says a second offence is a final warning — " +
+      LOG_VIOLATION,
+      "logViolation's first-warning toast no longer says a second offence is a final warning — " +
         `the RPC applies '${ladder[2]}' on strike 2`,
     ).toContain("a second one is a final warning");
+    expect(
+      LOG_VIOLATION,
+      `logViolation's first-warning toast must be gated on the RPC's own '${ladder[1]}' verdict`,
+    ).toContain(`action === "${ladder[1]}"`);
+    // The immediate, synchronous notice (shown before the RPC can possibly
+    // have answered) must stay neutral — never claim a strike on a guess.
+    expect(
+      SEND_HANDLERS,
+      "sendHandlers' immediate notice claims a strike before the RPC has answered",
+    ).not.toMatch(/this is your first warning/i);
   });
 
   it("the final-warning toast quotes the same restriction length as the SQL", () => {

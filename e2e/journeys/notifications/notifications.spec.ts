@@ -103,11 +103,16 @@ test.describe("notifications & email", () => {
   });
 
   test("a message on a funded thread writes the recipient's row and an email_send_log row", async ({ request }) => {
+    // Still OPEN, not merely funded: a job's thread closes 24 hours after
+    // completion (`job_messaging_closes_at` → `can_message_in_job`, the first
+    // gate on the messages INSERT policy), so a completed job answers this
+    // query and then refuses the insert with 403 / 42501. See the same fix in
+    // e2e/journeys/abuse/contact-smuggling.spec.ts.
     const shared = (await request.get(
-      `${SUPABASE_URL}/rest/v1/jobs?helper_id=eq.${helperId}&customer_id=eq.${posterId}&payment_status=in.(escrow,payout_pending,released)&select=id&limit=1`,
+      `${SUPABASE_URL}/rest/v1/jobs?helper_id=eq.${helperId}&customer_id=eq.${posterId}&payment_status=in.(escrow,payout_pending,released)&status=neq.completed&status=neq.cancelled&select=id&limit=1`,
       { headers: posterHeaders },
     ).then((x) => x.json())) as Array<{ id: string }>;
-    if (!shared.length) skipUncovered("No funded thread", "no funded poster↔helper job to send a message on; the funded lifecycle spec owns that setup and its Stripe leg skips on a live key.");
+    if (!shared.length) skipUncovered("No funded thread", "no funded poster↔helper job whose thread is still open to messages (they close 24h after completion); the funded lifecycle spec owns that setup and its Stripe leg skips on a live key.");
     const jobId = shared[0].id;
     const send = await request.post(`${SUPABASE_URL}/rest/v1/messages`, {
       headers: { ...posterHeaders, Prefer: "return=representation" },

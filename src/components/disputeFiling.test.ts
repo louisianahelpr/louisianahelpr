@@ -177,3 +177,64 @@ describe("a dispute cannot be filed with no explanation", () => {
     expect(errs).toContain("dispute_needs_description");
   });
 });
+
+/**
+ * DONE IS FINAL — the server half.
+ *
+ * VN-28 (owner, 2026-09-14: "they can't report a job once it's done") removed
+ * the dispute controls from every completed card, and the owner then confirmed
+ * by pop-up: "if the job is done, its done. period." The RPC still accepted a
+ * filing on a completed job (and re-froze one through a stale open dispute
+ * row), so a direct call could hold a finished job's money for 72 hours.
+ * Migration 20260915025607 adds the guard; this pins its shape and position in
+ * the newest migration that defines open_dispute_as. Executed against real
+ * Postgres (PGlite, 3 applies, broken copies caught) by
+ * scripts/probes/dispute-on-completed-job.probe.mjs.
+ */
+describe("a completed job cannot be disputed", () => {
+  const MIGRATIONS = resolve(__dirname, "../../supabase/migrations");
+  const files = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort();
+  const defining = files.filter((f) =>
+    readFileSync(resolve(MIGRATIONS, f), "utf8").includes("FUNCTION public.open_dispute_as"),
+  );
+  const sql = defining.length ? readFileSync(resolve(MIGRATIONS, defining[defining.length - 1]), "utf8") : "";
+  // The function BODY only: the migration header quotes the guard in a
+  // comment, and a check that matched the comment would pass with no guard.
+  const headerAt = sql.search(/CREATE OR REPLACE FUNCTION public\.open_dispute_as\b/);
+  const bodyMatch = headerAt >= 0 ? sql.slice(headerAt).match(/\$function\$([\s\S]*?)\$function\$/) : null;
+  const body = bodyMatch ? bodyMatch[1] : "";
+
+  it("open_dispute_as raises job_already_completed for a person on a completed job", () => {
+    expect(defining.length, "No migration defines public.open_dispute_as — re-point this test, do not delete it.").toBeGreaterThan(0);
+    expect(body, "could not delimit open_dispute_as's body").not.toBe("");
+    const guard = body.match(/IF\s+NOT\s+_system\s+AND\s+_status\s*=\s*'completed'\s+THEN\s+RAISE\s+EXCEPTION\s+'job_already_completed'/);
+    expect(
+      guard,
+      "the live open_dispute_as no longer refuses a human dispute on a completed job. " +
+        "A direct rpc_open_dispute call can freeze a finished job's escrow again.",
+    ).toBeTruthy();
+  });
+
+  it("the guard sits after the party check and before both ways a dispute is written", () => {
+    const guardAt = body.indexOf("RAISE EXCEPTION 'job_already_completed'");
+    const partyAt = body.indexOf("RAISE EXCEPTION 'not authorized for this job'");
+    const existingAt = body.indexOf("SELECT id INTO _existing_id");
+    const insertAt = body.indexOf("INSERT INTO public.disputes");
+    for (const [name, at] of [["party check", partyAt], ["existing-dispute branch", existingAt], ["INSERT", insertAt]] as const) {
+      expect(at, `could not find the ${name} in open_dispute_as — re-read it before trusting this test`).toBeGreaterThan(-1);
+    }
+    expect(guardAt > partyAt, "the completed guard runs before the party check, so a stranger learns the job is done").toBe(true);
+    expect(
+      guardAt < existingAt && guardAt < insertAt,
+      "the completed guard runs after the existing-dispute branch, so an open row re-freezes a completed job",
+    ).toBe(true);
+  });
+
+  it("the client says it in words, and no copy promises a dispute after completion", async () => {
+    const { lifecycleErrorMessage } = await import("../lib/lifecycleErrors");
+    expect(lifecycleErrorMessage({ message: 'job_already_completed' })).toBe(
+      "This job is finished, so it can't be disputed.",
+    );
+    expect(lifecycleErrorMessage({ message: "job_not_completed" }) ?? "").not.toMatch(/dispute/i);
+  });
+});

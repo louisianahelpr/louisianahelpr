@@ -21,6 +21,29 @@ fraction of fixing them one report at a time.
 ## Owner visual notes 2026-09-14 (53 entries)
 - [ ] Work through `docs/audit/visual-notes-2026-09-14.md`. Its Tracker table is the per-entry checklist: Fixed needs a commit on main, Confirmed needs a committed screenshot + "ok" review recorded after the fix. Guard: `npm run visual-notes:check` (proven red on a fake tick; unit test `src/test/checkVisualNotes.test.ts`). Small entries in progress 2026-09-14 (3 lanes); medium/large and design-discussion entries not started.
 
+## Earnings tab fails the a11y contrast gate — blocks any /profile push (2026-09-14)
+`src/components/profile/EarningsTab.tsx:510` — `<span className="block text-ds-11 mt-0.5"
+style={{ color: "hsl(var(--olivewood) / 0.65)" }}>`. axe, light theme:
+**#77786f on #ffffff = 4.46:1 at 11px, needs 4.5:1** (wcag2aa color-contrast,
+serious). Missing by 0.04.
+
+Found by the pre-push `check:changed` sweep, which maps changed files to their
+nearest route and sweeps it: any push touching /profile now runs this and is
+refused. It is NOT caused by the change that hit it — the vn-profile branch's
+whole `src/` diff is three files, adds no colour anywhere, does not touch
+EarningsTab, and its Profile.tsx change is comment-only.
+
+- [ ] Nudge the alpha (0.65 -> ~0.70 clears 4.5:1 on white) or drop to the
+      solid token, then re-run
+      `PLAYWRIGHT_WEB_SERVER=1 node scripts/check-changed.mjs` from a worktree
+      with a /profile change. NOT done here: it is another lane's screen, and
+      **VN-3 (Earnings layout, "large / design discussion first")** is open on
+      exactly this tab — a colour nudge now would collide with that redesign.
+- Check dark theme too: `--olivewood` is a different value there (index.css:897
+  vs :527), so the fix is per-theme, not one number.
+- Until then a /profile push needs `LH_SKIP_CHANGED_CHECK=1` with a
+  `LH_SKIP_REASON`, which is logged to docs/audit/prepush-skips.log.
+
 ## VN-37 "content should fill that space" — OWNER DECISION, app-wide gutter (2026-09-14)
 Owner, on the Profile tab pages: "reviews and other pages still have that small
 gap to the left and right of content. content should fill that space."

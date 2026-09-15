@@ -14,7 +14,10 @@ export default defineConfig({
   cacheDir: "node_modules/.vitest",
   test: {
     environment: "jsdom",
-    // Cap worker threads at HALF the cores (floor 2).
+    // Cap worker threads at 2 (was half the cores). Each jsdom worker holds a
+    // few hundred MB; on the owner's 8 GB Mac, three lanes each running 4
+    // workers pushed the machine into GBs of swap (2026-09-14). CI's 4-core
+    // runners already landed on 2, so CI is unchanged.
     //
     // Vitest defaults to one worker per core. That is the right number when
     // vitest is the only thing running, and the wrong number here: parallel
@@ -33,7 +36,7 @@ export default defineConfig({
     poolOptions: {
       threads: {
         maxThreads: Number(process.env.VITEST_MAX_THREADS) ||
-          Math.max(2, Math.floor(cpus().length / 2)),
+          Math.min(2, Math.max(1, Math.floor(cpus().length / 2))),
         minThreads: 1,
       },
     },

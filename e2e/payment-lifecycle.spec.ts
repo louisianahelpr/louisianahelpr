@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
+import { LOCAL_BASE_URL } from "./localBase";
 
 // E2E coverage for the job lifecycle through PAYMENT — the escrow /
 // checkout / payout leg that `post-and-apply.spec.ts` explicitly stops
@@ -31,10 +32,8 @@ import { test, expect, type Page, type Route } from "@playwright/test";
 //     scope for a single-browser Playwright run. The edge-function unit
 //     tests in `src/test/edge/` cover the release/payout branch logic.
 
-const BASE_URL =
-  process.env.PLAYWRIGHT_BASE_URL ||
-  process.env.VERCEL_URL ||
-  "https://www.louisianahelpr.com";
+// This checkout's local build, never the deployed site (e2e/localBase.ts).
+const BASE_URL = LOCAL_BASE_URL;
 
 const TEST_EMAIL = process.env.PLAYWRIGHT_TEST_USER_EMAIL;
 const TEST_PASSWORD = process.env.PLAYWRIGHT_TEST_USER_PASSWORD;

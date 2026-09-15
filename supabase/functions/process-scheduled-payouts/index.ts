@@ -14,6 +14,7 @@ import { claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
 // that made a retry non-optional.
 import { flipJobToReleased, type FlipResult } from "../_shared/releaseFlip.ts";
 import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
+import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 
 
 serve(async (req) => {
@@ -142,6 +143,91 @@ serve(async (req) => {
     // balance in silence.
     const rosterSizeByJob = new Map<string, number>();
     for (const job of (jobs || [])) {
+      // ── Holds the job row may not show (defense in depth) ────────────────
+      //
+      // `.is("disputed_at", null)` above is this cron's only dispute guard on
+      // the job row, and that marker was clearable by a path that never placed
+      // it: charge.dispute.created overwrote dispute_status/disputed_at on any
+      // job, and a dismissed inquiry then cleared disputed_at (OPEN.md HIGH,
+      // d7a04acb9). Two holds that is not safe for live on their own tables:
+      //
+      //   1. a DECIDED dispute whose split has not executed. rpc_decide_dispute
+      //      sets status='completed' + dispute_status='resolved' before
+      //      execute-dispute-split moves a cent, so a full payout here pays the
+      //      Helpr over the decided refund (release-payout has refused this
+      //      since 2026-09-08 via the same shared check; this cron never did);
+      //   2. a REVERSED transfer. The per-helper ledger read below blocks a
+      //      reversed row for THIS helper, but then "heals" the job to
+      //      released, erasing the clawback; and a row whose helper_id was
+      //      NULLed or belongs to another roster member is not seen at all.
+      //      Job-wide here; 'reversal_cleared' is an operator's release.
+      //
+      // Both read per job, before any helper fan-out. Fail closed on a read
+      // error (a defect: work was dropped). A found hold is an outcome, not a
+      // defect, but it is a broken invariant (payout_pending with no marker),
+      // so it pages once a day per job.
+      const settlement = await checkUnsettledDispute(supabaseAdmin, job.id);
+      if (settlement.blocked) {
+        if (settlement.readError) {
+          console.error(`[process-scheduled-payouts] dispute settlement check failed for job ${job.id}: ${settlement.readError}`);
+          results.push({ job_id: job.id, status: "dispute_check_error", error: settlement.readError });
+          defects.record(`dispute settlement check ${job.id}: ${settlement.readError}`);
+          continue;
+        }
+        console.error(
+          `[process-scheduled-payouts] job ${job.id} refused: dispute ${settlement.dispute?.id} is decided but execution_status=${settlement.dispute?.execution_status}`,
+        );
+        results.push({ job_id: job.id, status: "unsettled_dispute_hold", dispute_id: settlement.dispute?.id });
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "Scheduled payout refused — decided dispute not executed",
+          message:
+            "A job reached the payout cron as payout_pending with no dispute marker, but its dispute is decided and the split has not run. No transfer was sent. Run the dispute split (not a full payout) and find what cleared the job's dispute marker.",
+          fields: {
+            "Job ID": job.id,
+            "Dispute ID": settlement.dispute?.id ?? "—",
+            "Execution status": settlement.dispute?.execution_status ?? "null",
+          },
+          link: "https://www.louisianahelpr.com/admin?tab=disputes",
+          oncePerDayKey: `scheduled-payout-unsettled-dispute:${job.id}`,
+        });
+        continue;
+      }
+      const { data: reversedRows, error: reversedErr } = await supabaseAdmin
+        .from("payout_transfers")
+        .select("id, status, stripe_transfer_id, helper_id")
+        .eq("job_id", job.id)
+        .eq("status", "reversed")
+        .limit(1);
+      if (reversedErr) {
+        console.error(`[process-scheduled-payouts] reversed-transfer check failed for job ${job.id}:`, reversedErr);
+        results.push({ job_id: job.id, status: "reversal_check_error", error: reversedErr.message });
+        defects.record(`reversed-transfer check ${job.id}: ${reversedErr.message}`);
+        continue;
+      }
+      const reversed = (reversedRows ?? []).find((r) => r.status === "reversed");
+      if (reversed) {
+        console.error(
+          `[process-scheduled-payouts] job ${job.id} refused: transfer ${reversed.stripe_transfer_id ?? reversed.id} was reversed and not cleared`,
+        );
+        results.push({ job_id: job.id, status: "reversed_transfer_hold", transfer_id: reversed.stripe_transfer_id });
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "Scheduled payout refused — a transfer on this job was reversed",
+          message:
+            "A job reached the payout cron as payout_pending with no dispute marker, but a payout on it was reversed and no operator has cleared it (payout_transfers.status='reversal_cleared'). No transfer was sent. Reconcile by hand and find what cleared the job's reversal hold.",
+          fields: {
+            "Job ID": job.id,
+            "Reversed transfer": reversed.stripe_transfer_id ?? reversed.id,
+          },
+          link: "https://www.louisianahelpr.com/admin?tab=payouts",
+          oncePerDayKey: `scheduled-payout-reversed-transfer:${job.id}`,
+        });
+        continue;
+      }
+
       if (job.is_group_job) {
         const { data: roster, error: rosterErr } = await supabaseAdmin
           .from("group_job_helpers")

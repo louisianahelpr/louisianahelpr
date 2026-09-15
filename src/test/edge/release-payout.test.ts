@@ -28,7 +28,7 @@ import {
   resetSupabaseMock,
   type SupabaseScenario,
 } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 
 const CRON_SECRET = "cron-secret-xyz";
 
@@ -344,6 +344,31 @@ describe("release-payout edge function", () => {
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
       const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
       expect((jobWrite?.payload as Record<string, unknown>).payment_status).toBe("released");
+    });
+
+    // lh-money-escrow review N3 (2026-09-14): a 'reversed' row is money that
+    // moved and was clawed back. Healing the job to released off it erased the
+    // clawback silently, before any other guard could page.
+    it("refuses (409) and pages when a transfer on the job was reversed — no heal, no transfer", async () => {
+      seedPayableJob(scenario);
+      scenario.reads.payout_transfers = {
+        rows: [{ id: "led-1", stripe_transfer_id: "tr_rev", status: "reversed" }],
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(409);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.some((w) => w.table === "jobs" && w.op === "update")).toBe(false);
+      expect(
+        (slackAlerts as Array<{ severity?: string; title: string }>).some(
+          (a) => a.severity === "critical" && /revers/i.test(a.title),
+        ),
+      ).toBe(true);
     });
 
     it("still returns 409 when another run is mid-transfer (claim held, no transfer id yet)", async () => {

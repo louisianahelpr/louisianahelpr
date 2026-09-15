@@ -21,6 +21,8 @@ import { compareJobsBySortMode } from "@/lib/smartSort";
 import { useProfile } from "@/hooks/useProfile";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import { openJobFromPin } from "@/components/browseMap/openJobFromPin";
+import { toast } from "sonner";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
@@ -495,10 +497,24 @@ export function BrowseTasksFeed({
               // sheet `handleApplyRequest` opens for the feed's swipe/Apply
               // affordance. One apply surface, reached the same way, whether
               // you found the job on the map or in the list.
-              onJobAction={(jobId) => {
-                const job = filters.filteredJobs.find((j) => j.id === jobId);
-                if (job) setDetailJob(job);
-              }}
+              //
+              //
+              // VN-10: this used to be `filteredJobs.find(...)` and nothing
+              // else, so a pin whose job the LIST doesn't hold — the feed is
+              // paginated and separately filtered, the map RPC returns every
+              // open job in view — made the card a dead tap. `openJobFromPin`
+              // widens the lookup (filtered jobs → every job loaded → the
+              // authoritative row) and says so when even that finds nothing.
+              // Shared with the desktop split map in Dashboard.tsx, which had
+              // its own narrower copy of this handler.
+              onJobAction={(jobId) =>
+                openJobFromPin({
+                  jobId,
+                  lists: [filters.filteredJobs, allJobs],
+                  open: setDetailJob,
+                  onError: (m) => toast.error(m),
+                })
+              }
               currentUserId={user?.id}
               filters={filters.mapFilter}
               onClearFilters={filters.clearFilters}

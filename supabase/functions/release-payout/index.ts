@@ -298,6 +298,42 @@ serve(async (req) => {
   // (see _shared/payoutClaim.ts), which is either in flight or orphaned — it is
   // handled by claimPayout below, not treated as an existing transfer.
   const ledgerRows = (ledgerRowsRaw ?? []) as LedgerRow[];
+
+  // A 'reversed' row is money that moved and was clawed back — NOT a settled
+  // payout. classifyLedger counts it as settled (so no second transfer goes
+  // out, which is right), and the heal below then flipped the job to
+  // 'released': the clawback vanished from every payout view, silently, before
+  // any other guard could page (lh-money-escrow review N3, 2026-09-14).
+  // Re-paying is an operator decision, signalled by setting the row to
+  // 'reversal_cleared'. Refuse and page until then.
+  const reversedRow = ledgerRows.find((r) => r.status === "reversed");
+  if (reversedRow) {
+    console.error(
+      `[release-payout] job ${job.id} refused: transfer ${reversedRow.stripe_transfer_id ?? reversedRow.id} was reversed and not cleared`,
+    );
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Payout refused — a transfer on this job was reversed",
+      message:
+        "A payout was requested for a job whose earlier transfer Stripe reversed. No transfer was sent and the job was not marked released. Reconcile by hand; to allow a re-pay, set the payout_transfers row to 'reversal_cleared'.",
+      fields: {
+        "Job ID": job.id,
+        "Reversed transfer": reversedRow.stripe_transfer_id ?? reversedRow.id,
+        "Initiated by": initiatedBy,
+      },
+      link: "https://www.louisianahelpr.com/admin?tab=payouts",
+      oncePerDayKey: `release-payout-reversed-transfer:${job.id}`,
+    });
+    return jsonResponse(
+      {
+        error: "a transfer on this job was reversed — payout refused until an operator clears it",
+        reversed_transfer_id: reversedRow.stripe_transfer_id,
+      },
+      409,
+    );
+  }
+
   const { settled: existing } = classifyLedger(ledgerRows);
   if (existing) {
     // ── The retry that HEALS a split state, instead of re-reporting it ──────

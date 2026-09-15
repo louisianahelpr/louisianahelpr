@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { hasViolation } from "./messageScanner";
+import { readdirSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { hasViolation, scanMessage } from "./messageScanner";
+import { PHONE_PATTERN } from "./contactLeakRules";
 
 /**
  * CONTACT-FILTER PARITY (terminal 7, 2026-09-12).
@@ -12,12 +15,46 @@ import { hasViolation } from "./messageScanner";
  * silently hidden ("phantom delivery" — see messageScanner.ts header). So on the
  * shared classes the client must be AT LEAST as strict as the server.
  *
- * `serverLeakReason` below is a faithful JS replica of the function body as
- * shipped in 20260913020635_reject_contact_leaks_in_jobs_and_bios.sql (the
- * live body read via pg_get_functiondef on 2026-09-12, email domain widened). If the DB function changes, this
- * replica and messageScanner.ts must be updated together; that is the drift this
- * test exists to catch before it reaches prod.
+ * `serverLeakReason` below is a JS replica of the function body as shipped in
+ * 20260913020635_reject_contact_leaks_in_jobs_and_bios.sql (the live body read
+ * via pg_get_functiondef on 2026-09-12, email domain widened), EXCEPT the phone
+ * branch: that one is no longer retyped here. It is read out of the NEWEST
+ * migration that defines contact_leak_reason (see `serverPhonePattern`), so a
+ * migration that changes the server phone rule is exercised by this file the
+ * moment it lands, instead of this replica quietly describing the old rule.
  */
+
+const MIGRATIONS_DIR = resolve(process.cwd(), "supabase/migrations");
+
+/**
+ * The newest migration's definition of public.contact_leak_reason: any case,
+ * `CREATE FUNCTION` or `CREATE OR REPLACE FUNCTION`, with or without `public.`,
+ * body up to its closing dollar-quote tag (`$$` or `$function$`).
+ */
+function newestContactLeakReason(): { file: string; body: string } {
+  const head = /^\s*create\s+(or\s+replace\s+)?function\s+(public\.)?"?contact_leak_reason"?\s*\(/im;
+  const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql")).sort();
+  for (let i = files.length - 1; i >= 0; i--) {
+    const sql = readFileSync(resolve(MIGRATIONS_DIR, files[i]), "utf8");
+    const start = sql.search(head);
+    if (start === -1) continue;
+    const tag = sql.slice(start).match(/\bAS\s+(\$[a-z_]*\$)/i);
+    if (!tag) throw new Error(`${files[i]}: contact_leak_reason has no dollar-quoted body this test can read`);
+    const open = sql.indexOf(tag[1], start);
+    const close = sql.indexOf(tag[1], open + tag[1].length);
+    return { file: files[i], body: sql.slice(start, close === -1 ? undefined : close) };
+  }
+  throw new Error("no migration defines public.contact_leak_reason — this guard is blind");
+}
+
+const NEWEST = newestContactLeakReason();
+
+/** The SQL literal in `IF v_norm ~* '<pattern>' THEN RETURN 'Phone number detected'`. */
+const serverPhonePattern = (() => {
+  const m = NEWEST.body.match(/v_norm ~\* '([^']+)' THEN\s+RETURN 'Phone number detected'/i);
+  if (!m) throw new Error(`${NEWEST.file}: contact_leak_reason no longer has a v_norm phone branch this test can read`);
+  return m[1];
+})();
 
 const FW = /[０-９]/g;
 const normalize = (s: string) => s.replace(FW, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
@@ -25,7 +62,7 @@ const normalize = (s: string) => s.replace(FW, (c) => String.fromCharCode(c.char
 function serverLeakReason(p: string): string | null {
   if (!p || p.trim() === "") return null;
   const v = normalize(p);
-  if (/[0-9]{3}[^0-9a-zA-Z]{0,4}[0-9]{3}[^0-9a-zA-Z]{0,4}[0-9]{4}/i.test(v)) return "phone";
+  if (new RegExp(serverPhonePattern, "i").test(v)) return "phone";
   if (/(zero|one|two|three|four|five|six|seven|eight|nine|oh)([^a-z0-9]+(zero|one|two|three|four|five|six|seven|eight|nine|oh)){6,}/i.test(p)) return "phone";
   if (/[a-z0-9._]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}/i.test(p)) return "email";
   if (/\bvenmo\b|\bcashapp\b|\bcash app\b|\bzelle\b|\bpaypal\b|\bapple\s*pay\b|\bgoogle\s*pay\b|\bcrypto\b|\bbitcoin\b|\bbtc\b|\beth\b/i.test(p)) return "payment";
@@ -81,4 +118,103 @@ describe("contact-filter parity: hyphenated / multi-label domains (fixed 2026-09
     expect(serverLeakReason(smuggle)).toBeNull();
     expect(hasViolation(smuggle)).toBe(false);
   });
+});
+
+/**
+ * PHONE MATCHER PARITY (docs/OPEN.md queue #1, 2026-09-14).
+ *
+ * The bug: a prod-proof message "SEED offered-proof 20260914215014" was read as
+ * a phone number by contact_leak_reason, because its phone rule was an
+ * unanchored "3 digits, 3 digits, 4 digits" window that matches INSIDE any run
+ * of 10+ digits. The sender got a real off-platform warning and a fraud flag.
+ * The client rule had the same flaw. Both rules now require that the number is
+ * not part of a longer digit run, and both are the SAME string.
+ *
+ * One fixture list (contactLeakPhoneFixtures.json) is run through the client
+ * scanner, through the pattern literal in the newest migration (compiled as a
+ * JS RegExp: sound because the pattern is restricted to the syntax subset that
+ * Postgres AREs and JavaScript read identically, checked below), and through
+ * the real Postgres function by scripts/probes/contact-scan-phone.probe.mjs.
+ */
+type PhoneFixtures = { phone: string[]; notPhone: string[] };
+const PHONE_FIXTURES = JSON.parse(
+  readFileSync(resolve(process.cwd(), "src/lib/contactLeakPhoneFixtures.json"), "utf8"),
+) as PhoneFixtures;
+
+const clientFlagsPhone = (t: string) => scanMessage(t).some((v) => v.type === "phone_number");
+const serverFlagsPhone = (t: string) => new RegExp(serverPhonePattern, "i").test(normalize(t));
+
+describe("phone matcher: one definition", () => {
+  it("the newest migration's server phone rule is exactly the shared PHONE_PATTERN", () => {
+    expect(
+      serverPhonePattern,
+      `${NEWEST.file} carries a phone rule that is not src/lib/contactLeakRules.ts PHONE_PATTERN — ` +
+        "client and server have drifted; change both together",
+    ).toBe(PHONE_PATTERN);
+  });
+
+  it("the client scanner builds its phone regex from PHONE_PATTERN, not its own literal", () => {
+    const src = readFileSync(resolve(process.cwd(), "src/lib/messageScanner.ts"), "utf8");
+    expect(src).toMatch(/const PHONE_REGEX = new RegExp\(PHONE_PATTERN, "gi"\)/);
+  });
+
+  it("PHONE_PATTERN uses only syntax Postgres AREs and JavaScript (incl. iOS 15 WebKit) read the same way", () => {
+    // Lookbehind is a SyntaxError before Safari 16.4 (the app supports iOS 15);
+    // \d \w \s \b mean different things (or nothing) in the two engines, and
+    // \m \M are Postgres-only. A back-reference is not allowed in ARE lookahead.
+    for (const banned of ["(?<", "\\d", "\\w", "\\s", "\\b", "\\m", "\\M", "\\1"]) {
+      expect(PHONE_PATTERN.includes(banned), `PHONE_PATTERN contains ${banned}`).toBe(false);
+    }
+    expect(PHONE_PATTERN.includes("'"), "a quote would end the SQL literal").toBe(false);
+  });
+});
+
+describe("location shares never read as a phone number on the server", () => {
+  // RichMessageInput sends "📍 Location: https://maps.google.com/?q=<lat>,<lng>"
+  // with the client scan skipped, but contact_leak_reason still scans it. At
+  // full precision the old rule flagged every share (hidden + a strike); the
+  // new rule flagged ~0.03%. Rounded to 6 decimals it is 0 at Louisiana
+  // coordinates (lh-trust-safety review 2026-09-14).
+  const SRC = readFileSync(resolve(process.cwd(), "src/components/RichMessageInput.tsx"), "utf8");
+
+  it("every location share in RichMessageInput rounds to 6 decimals", () => {
+    const shares = [...SRC.matchAll(/maps\.google\.com\/\?q=([^`]+)`/g)].map((m) => m[1]);
+    expect(shares.length, "no location share found in RichMessageInput.tsx — this guard is blind").toBeGreaterThanOrEqual(2);
+    for (const s of shares) expect(s).toBe("${latitude.toFixed(6)},${longitude.toFixed(6)}");
+  });
+
+  it("a grid of Louisiana coordinates at 6 decimals is never flagged by the server rule", () => {
+    let flagged = 0;
+    let n = 0;
+    // Louisiana bounding box, 0.0137 x 0.0173 steps with digit-varied tails.
+    for (let lat = 28.9; lat <= 33.02; lat += 0.0137131) {
+      for (let lng = -94.05; lng <= -88.8; lng += 0.0173717) {
+        n++;
+        if (serverFlagsPhone(`📍 Location: https://maps.google.com/?q=${lat.toFixed(6)},${lng.toFixed(6)}`)) flagged++;
+      }
+    }
+    expect(n).toBeGreaterThan(50000);
+    expect(flagged, `${flagged} of ${n} Louisiana location shares read as a phone number`).toBe(0);
+  });
+});
+
+describe("phone matcher: client and server agree on every shared fixture", () => {
+  it("the fixture list is not empty on either side", () => {
+    expect(PHONE_FIXTURES.phone.length).toBeGreaterThanOrEqual(10);
+    expect(PHONE_FIXTURES.notPhone.length).toBeGreaterThanOrEqual(10);
+  });
+
+  for (const t of PHONE_FIXTURES.phone) {
+    it(`both flag a real phone: ${JSON.stringify(t)}`, () => {
+      expect(clientFlagsPhone(t), `client scanMessage missed a phone: ${JSON.stringify(t)}`).toBe(true);
+      expect(serverFlagsPhone(t), `${NEWEST.file}: server phone rule missed ${JSON.stringify(t)}`).toBe(true);
+    });
+  }
+
+  for (const t of PHONE_FIXTURES.notPhone) {
+    it(`neither flags a non-phone digit string: ${JSON.stringify(t)}`, () => {
+      expect(clientFlagsPhone(t), `client scanMessage reads ${JSON.stringify(t)} as a phone number`).toBe(false);
+      expect(serverFlagsPhone(t), `${NEWEST.file}: server reads ${JSON.stringify(t)} as a phone number`).toBe(false);
+    });
+  }
 });

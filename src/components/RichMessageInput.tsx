@@ -256,8 +256,11 @@ export const RichMessageInput = ({
           const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
           const { latitude, longitude } = pos.coords;
           // The explicit flag (not the "📍" prefix) is what exempts this
-          // app-generated share from the content scan downstream.
-          onSend(`📍 Location: https://maps.google.com/?q=${latitude},${longitude}`, undefined, { isLocationShare: true });
+          // app-generated share from the CLIENT scan; the server still scans
+          // it, and a full-precision coordinate's long digit tail can read as
+          // a phone number there. 6 decimals (~0.1 m) never does at Louisiana
+          // coordinates (200k random samples: 0 flagged).
+          onSend(`📍 Location: https://maps.google.com/?q=${latitude.toFixed(6)},${longitude.toFixed(6)}`, undefined, { isLocationShare: true });
         } catch {
           toast.error("Location access denied — allow it in Settings to share your location.");
         }
@@ -267,7 +270,7 @@ export const RichMessageInput = ({
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const { latitude, longitude } = pos.coords;
-            onSend(`📍 Location: https://maps.google.com/?q=${latitude},${longitude}`, undefined, { isLocationShare: true });
+            onSend(`📍 Location: https://maps.google.com/?q=${latitude.toFixed(6)},${longitude.toFixed(6)}`, undefined, { isLocationShare: true });
             resolve();
           },
           () => {

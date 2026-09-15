@@ -132,17 +132,12 @@ jobs:
           printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY" >> .env
           echo ".env written ($(wc -l < .env) lines)"
 
-      - name: Build (prod VITE_* env)
-        run: npm run build
-
-      - name: Start the preview server
-        run: |
-          npx vite preview --port 4173 --strictPort --host 127.0.0.1 > preview.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://127.0.0.1:4173/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://127.0.0.1:4173/ > /dev/null || { cat preview.log; exit 1; }
+      # Real backend, LOCAL frontend: the shared action every frontend suite
+      # uses (src/test/noTestTrafficOnVercel.test.ts), same build as before.
+      - name: Build and serve this commit locally (prod VITE_* env)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-publishable-key: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
       - name: Press every control
         env:

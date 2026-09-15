@@ -52,7 +52,10 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), "../..");
 // built bundle ships to every browser. Nothing secret is used or needed.
 const BASE = (process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
 const KEY = process.env.SUPABASE_ANON_KEY || "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP";
-const SITE = (process.env.SITE_URL || "https://www.louisianahelpr.com").replace(/\/$/, "");
+// Signed-out PAGES come from a local build of this checkout (vite preview), never
+// the deployed site: test page loads cost Vercel edge requests
+// (src/test/noTestTrafficOnVercel.test.ts). The data half still asks prod.
+const SITE = (process.env.SITE_URL || "http://127.0.0.1:4173").replace(/\/$/, "");
 const HEADERS = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
 /**

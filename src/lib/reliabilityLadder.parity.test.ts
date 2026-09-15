@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   RELIABILITY_LADDER_RUNGS,
@@ -83,8 +83,36 @@ function ladderOf(block: string): Record<number, string> {
   return Object.fromEntries(rungs.map((r, i) => [i + 1, r]));
 }
 
+/**
+ * The NEWEST migration's `CREATE OR REPLACE FUNCTION public.<name>(` block,
+ * found by scanning every migration, so a later redefinition cannot leave this
+ * file asserting against a superseded body.
+ */
+function newestBlock(name: string): { file: string; block: string } {
+  const dir = resolve(process.cwd(), "supabase/migrations");
+  const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+  // Any case, CREATE FUNCTION or CREATE OR REPLACE FUNCTION, `public.` optional.
+  const head = new RegExp(`^\\s*create\\s+(or\\s+replace\\s+)?function\\s+(public\\.)?"?${name}"?\\s*\\(`, "im");
+  for (let i = files.length - 1; i >= 0; i--) {
+    const sql = readFileSync(resolve(dir, files[i]), "utf8");
+    const start = sql.search(head);
+    if (start === -1) continue;
+    const tag = sql.slice(start).match(/\bAS\s+(\$[a-z_]*\$)/i);
+    expect(tag, `${name} in ${files[i]} has no dollar-quoted body`).not.toBeNull();
+    const open = sql.indexOf(tag![1], start);
+    const end = sql.indexOf(tag![1], open + tag![1].length);
+    expect(end, `${name}'s body in ${files[i]} is unterminated`).toBeGreaterThan(open);
+    return { file: files[i], block: sql.slice(start, end) };
+  }
+  throw new Error(`no migration defines public.${name} — this guard is blind`);
+}
+
 const DENIAL = wrapperBlock("apply_job_denial_consequence");
-const MESSAGE = wrapperBlock("apply_message_violation_consequence");
+// Since 20260915020258 the off-platform ladder lives in
+// message_violation_ladder(p_description, p_content, p_message_saved); the
+// client RPC and the scan trigger are one-line delegates to it.
+const MESSAGE_LADDER = newestBlock("message_violation_ladder");
+const MESSAGE = MESSAGE_LADDER.block;
 const CANCEL = wrapperBlock("apply_cancellation_violation_consequence");
 
 // ---------------------------------------------------------------------------
@@ -331,6 +359,47 @@ describe("message-violation ladder — client copy ↔ apply_message_violation_c
         ).toBe(false);
       }
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("message-violation ladder — the notification says what actually happened (blocked vs hidden)", () => {
+  // docs/OPEN.md queue #1 (2026-09-14): a message the server SAVED (201) and
+  // hid from the recipient produced "That message was blocked…". Two paths
+  // reach this ladder; only the client one blocks.
+  const branch = (which: "saved" | "blocked") => {
+    const m = MESSAGE.match(/IF p_message_saved THEN([\s\S]*?)\n\s*ELSE\n([\s\S]*?)\n\s*END IF;/);
+    expect(m, `${MESSAGE_LADDER.file}: message_violation_ladder no longer branches its copy on p_message_saved`).not.toBeNull();
+    return which === "saved" ? m![1] : m![2];
+  };
+  const quoted = (sql: string) => [...sql.matchAll(/'message', '([^']+)'/g)].map((x) => x[1]);
+
+  it("each branch carries one message per rung", () => {
+    expect(quoted(branch("saved"))).toHaveLength(Object.keys(ladderOf(MESSAGE)).length);
+    expect(quoted(branch("blocked"))).toHaveLength(3);
+  });
+
+  it("the saved-and-hidden copy never says blocked, and says the other person cannot see it", () => {
+    for (const line of quoted(branch("saved"))) {
+      expect(line, `saved-message copy says "blocked": ${line}`).not.toMatch(/block/i);
+      expect(line).toMatch(/hidden from the other person/);
+    }
+  });
+
+  it("the refused-send copy still says blocked (the message was never saved)", () => {
+    for (const line of quoted(branch("blocked"))) expect(line).toMatch(/blocked/i);
+  });
+
+  it("the client RPC is the blocked path and the scan trigger is the saved path", () => {
+    const rpc = newestBlock("apply_message_violation_consequence");
+    const trigger = newestBlock("apply_message_scan_consequence");
+    expect(rpc.block, `${rpc.file}: apply_message_violation_consequence must delegate with p_message_saved = false`)
+      .toMatch(/public\.message_violation_ladder\(p_description, p_content, false\)/);
+    expect(trigger.block, `${trigger.file}: apply_message_scan_consequence must delegate with p_message_saved = true`)
+      .toMatch(/public\.message_violation_ladder\(v_reason, NEW\.content, true\)/);
+    // The trigger fires only for rows the BEFORE scan kept and hid.
+    expect(trigger.block).not.toMatch(/apply_message_violation_consequence\(/);
   });
 });
 

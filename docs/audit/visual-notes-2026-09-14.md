@@ -17,9 +17,9 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-6 | Recent searches dropdown pushes the job list down instead of floating over it | small | [x] e24bb4c3a | [x] vn-6-after-browse-recents-1440.webp |
 | VN-7 | Refine Your Search panel does not need its own X | small | [x] e24bb4c3a | [x] vn-7-after-browse-filters-tall-1920.webp |
 | VN-8 | Too much empty space below Saved Searches in the filter panel | small | [x] e24bb4c3a | [x] vn-8-after-browse-filters-tall-1920.webp |
-| VN-9 | Map pin preview card — extra white top band, ringed X, box doesn't fit the card | medium | [ ] | [ ] |
-| VN-10 | Clicking the job card on the map preview does nothing | small–medium | [ ] | [ ] |
-| VN-11 | Map "Recenter" button uses the "my location" crosshair icon (NEEDS DECISION) | small | [ ] | [ ] |
+| VN-9 | Map pin preview card — extra white top band, ringed X, box doesn't fit the card | medium | [x] 6f67b8daf | [x] vn9-1440-light-preview.jpg |
+| VN-10 | Clicking the job card on the map preview does nothing | small–medium | [x] ed9fdccf1 | [x] vn10-1440-fallback-detail.jpg |
+| VN-11 | Map "Recenter" button uses the "my location" crosshair icon (NEEDS DECISION) | small | [x] 6f67b8daf | [x] vn11-375-granted.jpg |
 | VN-12 | Remove availability from the public profile | small | [x] f0ace886a | [x] vn-12-after-public-profile-1440.webp |
 | VN-13 | Public profile shows both "ID verified" and "Verification in progress" | small | [x] f0ace886a | [x] vn-13-after-public-profile-1440.webp |
 | VN-14 | Are profile badges earned from the right numbers? (OWNER QUESTION — code read only) | medium | [ ] | [ ] |

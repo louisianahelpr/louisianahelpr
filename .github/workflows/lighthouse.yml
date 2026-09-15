@@ -3,8 +3,17 @@ name: Lighthouse CI
 permissions:
   contents: read
 
-# Runs Lighthouse against the published site to catch performance regressions
-# before they ship. Fails the run if mobile performance drops below threshold.
+# Runs Lighthouse against THIS COMMIT, built and served locally with
+# `vite preview` (.github/actions/local-preview, gzip on, prod Supabase env), to
+# catch performance regressions before they ship. Fails the run if mobile
+# performance drops below threshold.
+#
+# NOT the published site (2026-09-14): Vercel paused the project on Hobby
+# limits with test traffic as the main load, and every suite now builds locally
+# (src/test/noTestTrafficOnVercel.test.ts). Throttling is SIMULATED
+# (.lighthouserc.json), so the score models a slow phone rather than the
+# runner's loopback. `canonical` is skipped: the page's canonical URL names the
+# production host, which Lighthouse scores 0 on any other origin.
 #
 # Runs:
 # - On every PR to main (catches regressions before merge)
@@ -74,7 +83,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Audit published site (mobile, public routes only)
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+
+      - name: Audit this commit (mobile, public routes only)
         uses: treosh/lighthouse-ci-action@v12
         # BLOCKING. No `continue-on-error` — see the header for what its
         # presence cost. This step fails the run on either:
@@ -89,10 +108,10 @@ jobs:
           # the Lighthouse-CI complexity. Landing + browse + signup cover
           # the highest-traffic first-paint surfaces.
           urls: |
-            https://www.louisianahelpr.com
-            https://www.louisianahelpr.com/browse
-            https://www.louisianahelpr.com/login
-            https://www.louisianahelpr.com/signup
+            http://127.0.0.1:4173/
+            http://127.0.0.1:4173/browse
+            http://127.0.0.1:4173/login
+            http://127.0.0.1:4173/signup
           # Mobile emulation is set EXPLICITLY in .lighthouserc.json
           # (formFactor + screenEmulation), not by a preset name — the bogus
           # `"preset": "mobile"` is what killed the collector for three months.

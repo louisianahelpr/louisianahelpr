@@ -32,12 +32,17 @@ permissions:
 #     browse is non-empty, no money/PII relation returns rows, signed-out pages
 #     load. Runs on every push.
 #  2. authenticated — needs a real account. Runs on a schedule and on demand,
-#     NOT on every push: it drives the deployed production site over the
-#     network, so a red run during a Vercel deploy would mean nothing, and a
-#     check that is red for reasons unrelated to the diff trains people to
-#     ignore red.
+#     NOT on every push: a check that is red for reasons unrelated to the diff
+#     (a shared account's daily caps, a Supabase blip) trains people to ignore red.
 #  3. two-role — needs two seeded sessions plus a job in a specific lifecycle
 #     state that must be minted per run. Manual only.
+#
+# REAL BACKEND, LOCAL FRONTEND (2026-09-14). Every leg that loads pages builds
+# this commit and serves it with `vite preview` (.github/actions/local-preview);
+# none of them loads the deployed site. Vercel paused the project on Hobby
+# limits with test traffic as the main load (one page load is ~110-215 edge
+# requests). Supabase, Stripe test mode and the accounts are as real as before.
+# Guarded by src/test/noTestTrafficOnVercel.test.ts.
 #
 # EVERY SKIPPED LEG IS ANNOUNCED. The `boundary-report` job always runs and
 # writes a ::warning:: plus a step summary naming what did not execute and what
@@ -148,21 +153,30 @@ jobs:
   anon-surface:
     name: Anon surface contract (real prod, read-only, no credentials)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # 15, not 5: the page leg now builds this commit instead of asking Vercel.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
+          cache: "npm"
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
       - name: Ask production what a signed-out visitor gets (GET only)
         env:
           # Repository VARIABLES (not secrets) so a fork can retarget without
           # touching code. Unset falls back to PRODUCTION plus the publishable
           # key that already ships in the bundle — deliberately, so this leg can
-          # never be silenced by an unset secret.
+          # never be silenced by an unset secret. The signed-out PAGES come from
+          # this commit's local build, not the deployed site.
           SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
-          SITE_URL: ${{ vars.E2E_BASE_URL }}
+          SITE_URL: http://127.0.0.1:4173
         run: node scripts/e2e/anon-surface-contract.mjs
 
   # ---------------------------------------------------------------------
@@ -171,8 +185,7 @@ jobs:
   authenticated:
     name: Authenticated journeys (real account)
     needs: preflight
-    # Deliberately NOT on push. See the header: this leg goes over the network
-    # to a deployed site, and a deploy in flight would red it for nothing.
+    # Deliberately NOT on push. See the header.
     if: >-
       needs.preflight.outputs.have_user_creds == 'true' &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
@@ -193,9 +206,14 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - run: npx playwright install --with-deps chromium
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
       - name: auth + payment lifecycle
         env:
-          PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
           PLAYWRIGHT_TEST_USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
           PLAYWRIGHT_TEST_USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD }}
         # Kept on ONE line on purpose: src/test/e2eSpecsReachableInCi.test.ts
@@ -240,10 +258,15 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - run: npx playwright install --with-deps chromium
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
       - name: day-of confirm across two roles
         env:
           PLAYWRIGHT_TWO_ROLE: "1"
-          PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
           PLAYWRIGHT_POSTER_SESSION: ${{ secrets.PLAYWRIGHT_POSTER_SESSION }}
           PLAYWRIGHT_HELPER_SESSION: ${{ secrets.PLAYWRIGHT_HELPER_SESSION }}
           PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
@@ -310,6 +333,11 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - run: npx playwright install --with-deps chromium
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
 
       # Teardown FIRST. The rows that matter are the ones a previous run failed
       # to clean up, and they are only safely removable when nothing is racing.
@@ -336,7 +364,7 @@ jobs:
 
       - name: post → fund → apply → hire → complete → release → review
         env:
-          PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
           PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
           PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}

@@ -1,7 +1,8 @@
 name: E2E abuse & notifications
 
 # Terminal 7's two suites (e2e/journeys/abuse + e2e/journeys/notifications) against
-# the DEPLOYED app and REAL prod backend, with the two shared E2E accounts.
+# THIS COMMIT served locally (.github/actions/local-preview; no Vercel edge
+# requests, 2026-09-14) and the REAL prod backend, with the two shared E2E accounts.
 # Modeled on e2e-journeys.yml: same secrets, same pre/post sweeper, and the SAME
 # shared-accounts concurrency group so it never drives the accounts while the
 # journeys or prod-lifecycle suites are. Read-heavy: most abuse tests are
@@ -68,7 +69,7 @@ jobs:
           - project: journeys-webkit
             browser: webkit
     env:
-      PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
       PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
       PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
       PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
@@ -95,6 +96,11 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
 
       - name: Sweep anything a previous run stranded
         env:

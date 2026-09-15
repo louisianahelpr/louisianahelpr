@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { LOCAL_BASE_URL } from "./localBase";
 
 // Baseline e2e for the two highest-leverage marketplace paths: post a
 // job (customer side) and apply to a job (helper side). Authenticated
@@ -16,10 +17,8 @@ import { test, expect } from "@playwright/test";
 // happy-path: post → checkout (Stripe test mode) → apply → accept →
 // complete → review reveal.
 
-const BASE_URL =
-  process.env.PLAYWRIGHT_BASE_URL ||
-  process.env.VERCEL_URL ||
-  "https://www.louisianahelpr.com";
+// This checkout's local build, never the deployed site (e2e/localBase.ts).
+const BASE_URL = LOCAL_BASE_URL;
 
 async function expectClean(page: import("@playwright/test").Page) {
   const errors: string[] = [];

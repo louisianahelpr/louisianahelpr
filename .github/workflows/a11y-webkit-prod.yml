@@ -3,8 +3,11 @@ name: A11y in WebKit (prod)
 permissions:
   contents: read
 
-# The UI audit evidence sweep against PRODUCTION in real WebKit (iPhone 13)
+# The UI audit evidence sweep against the REAL backend in real WebKit (iPhone 13)
 # AND in Chromium, then a diff: what does WebKit report that Chromium does not?
+# The frontend is THIS COMMIT built and served locally (.github/actions/local-
+# preview), not the deployed site: every screen x variant on Vercel was a large
+# share of the edge requests that paused the project (2026-09-14).
 #
 # Owner, 2026-09-12: no mock mode, and iPhone users get WKWebView. Until this
 # file the only axe gate ran in Chromium against a mocked preview. Spec:
@@ -74,7 +77,7 @@ jobs:
           - engine: webkit
             project: a11y-prod-webkit
     env:
-      PLAYWRIGHT_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://www.louisianahelpr.com' }}
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
       PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
       PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
       PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
@@ -98,6 +101,11 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - run: npx playwright install --with-deps ${{ matrix.engine }}
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
 
       - name: Run the prod sweep
         # The serial describe ignores --workers; kept on one line for

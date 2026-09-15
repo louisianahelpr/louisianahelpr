@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { LOCAL_BASE_URL } from "./localBase";
 
 // Lean smoke tests for the deployed app. Goal: catch hard breakages
 // (white screen, JS crash on landing, marketing routes 404) before they
@@ -11,10 +12,8 @@ import { test, expect } from "@playwright/test";
 // schema-level coverage for that specific bug class without needing a live
 // account here.
 
-const BASE_URL =
-  process.env.PLAYWRIGHT_BASE_URL ||
-  process.env.VERCEL_URL ||
-  "https://www.louisianahelpr.com";
+// This checkout's local build, never the deployed site (e2e/localBase.ts).
+const BASE_URL = LOCAL_BASE_URL;
 
 // Helper: assert page rendered without JS errors. Captures pageerror
 // events; some Sentry/PostHog console warnings are acceptable but a

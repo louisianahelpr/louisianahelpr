@@ -2,20 +2,23 @@ import { defineConfig, devices } from "@playwright/test";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-// Minimal Playwright config for the e2e/ smoke suite.
+// Playwright config for the e2e/ suites.
 //
-// Two project entries:
-//   - chromium     — runs against a deployed env (PLAYWRIGHT_BASE_URL),
-//                    same as before. Used by the mobile-viewports +
-//                    smoke / post-and-apply specs that exercise the
-//                    real bundle on a real URL.
-//   - happy-path   — runs against the local Vite preview (npm run
-//                    preview, http://127.0.0.1:4173), Supabase calls
-//                    fully mocked via route(). The webServer block
-//                    auto-starts `npm run build && npx vite preview`
-//                    so the suite stands alone in CI.
+// REAL BACKEND, LOCAL FRONTEND (2026-09-14). Every project's default baseURL is
+// the local `vite preview` of THIS checkout (HAPPY_PATH_BASE_URL below), never
+// the deployed site. Vercel paused the project on Hobby limits (3.1M of 1M edge
+// requests) with test suites as the main load: one page load of this SPA is
+// ~110-215 edge requests. The real-backend projects (journeys, prod-audit,
+// a11y-prod, chromium) still talk to prod Supabase with the shared test
+// accounts; only the HTML/JS host is local. Start the server with
+// PLAYWRIGHT_WEB_SERVER=1 (the webServer block below builds and serves), or in
+// CI with .github/actions/local-preview. PLAYWRIGHT_BASE_URL still overrides
+// every project that does not pin its own. Guarded by
+// src/test/noTestTrafficOnVercel.test.ts.
 //
-// Set PLAYWRIGHT_BASE_URL to override the chromium project's base URL.
+//   - chromium     — the real-backend specs outside a project dir (auth,
+//                    payment-lifecycle, prod-lifecycle, mobile-viewports).
+//   - happy-path   — Supabase calls fully mocked via route(); always local.
 
 // In cloud/pre-built environments PLAYWRIGHT_BROWSERS_PATH may contain a
 // headless shell at a different revision than the installed @playwright/test
@@ -91,12 +94,13 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  // Locally 1 worker: Playwright's default (half the cores = 4 browsers) swaps
+  // the owner's 8 GB Mac when agent lanes run alongside. Override with --workers.
+  workers: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? "list" : [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL:
-      process.env.PLAYWRIGHT_BASE_URL ||
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://www.louisianahelpr.com"),
+    // Local build by default — never the deployed site (see the header).
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || HAPPY_PATH_BASE_URL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     // Allow CI environments that pre-install a specific Chromium build to
@@ -109,7 +113,7 @@ export default defineConfig({
     ...(headlessShell ? { launchOptions: { executablePath: headlessShell } } : {}),
   },
   projects: [
-    // Real-user journeys against the DEPLOYED app + REAL backend (prod
+    // Real-user journeys against this commit's local build + REAL backend (prod
     // Supabase, the two shared E2E accounts). Serial: they share accounts.
     // Run with `npm run test:journeys`; CI: .github/workflows/e2e-journeys.yml.
     {
@@ -130,8 +134,8 @@ export default defineConfig({
       use: { ...devices["iPhone 13"], screenshot: "only-on-failure", trace: "retain-on-failure", actionTimeout: 20_000 },
     },
     // PROD audits (owner, 2026-09-12: no mock mode ever): messy input on every
-    // form and the deep-link / interruption journeys, against the deployed app
-    // (PLAYWRIGHT_BASE_URL, default prod web) as the shared test accounts.
+    // form and the deep-link / interruption journeys, against this commit's
+    // local build (default baseURL) and prod Supabase as the shared test accounts.
     // Phone-sized: 375 is the primary surface. Serial: the specs share two
     // accounts. Nightly: .github/workflows/prod-audit.yml.
     //
@@ -161,8 +165,8 @@ export default defineConfig({
     },
     {
       name: "chromium",
-      // The default deployed-env suite — excludes happy-path/* which
-      // requires the local preview server to be running.
+      // The real-backend specs outside a project dir — excludes happy-path/*
+      // (mocked) and the dirs that have their own project.
       testIgnore: /(happy-path|journeys|a11y-prod|prod-audit)\//,
       use: { ...devices["Desktop Chrome"] },
     },
@@ -207,9 +211,9 @@ export default defineConfig({
     },
     {
       name: "a11y-prod",
-      // The UI audit evidence sweep against PROD (e2e/a11y-prod): the same
-      // capture + gate as the mocked sweep, on the deployed site with the real
-      // backend and the shared test accounts. Chromium at the phone viewport,
+      // The UI audit evidence sweep against PROD data (e2e/a11y-prod): the same
+      // capture + gate as the mocked sweep, on this commit's local build with
+      // the real backend and the shared test accounts. Chromium at the phone viewport,
       // so its report is the baseline the WebKit run below is diffed against.
       // Read-only; CI: .github/workflows/a11y-webkit-prod.yml. (`name:` is
       // first so src/test/e2eSpecsReachableInCi.test.ts can read this block.)
@@ -241,11 +245,10 @@ export default defineConfig({
       },
     },
   ],
-  // Auto-start `vite preview` for the happy-path project. Gated behind
-  // PLAYWRIGHT_WEB_SERVER=1 because Playwright's webServer block runs
-  // for EVERY project — leaving it unconditional would block the
-  // chromium / mobile-viewports suites (which point at a deployed URL
-  // and don't need a local preview).
+  // Auto-start `vite preview` of this checkout. Gated behind
+  // PLAYWRIGHT_WEB_SERVER=1 because Playwright's webServer block runs for EVERY
+  // project, and a CI job that already serves the build
+  // (.github/actions/local-preview) must not build twice.
   //
   // The CI workflow at .github/workflows/e2e-happy-path.yml sets the
   // env var; locally, run `PLAYWRIGHT_WEB_SERVER=1 npm run test:e2e:happy`
@@ -258,12 +261,11 @@ export default defineConfig({
         timeout: 180_000,
         stdout: "pipe",
         stderr: "pipe",
-        // The happy-path suite mocks all Supabase HTTP calls, so the
-        // actual key is never used in requests. A value must still be
-        // provided so the supabase-js client initialises without throwing
-        // "supabaseUrl is required" — which prevents the React app from
-        // mounting. The publishable (anon) key is already present in
-        // vitest.config.ts (a committed file), so embedding it here is safe.
+        // The REAL project and its publishable (anon) key — what the real-
+        // backend projects need, and harmless for happy-path, which mocks every
+        // Supabase call. A value must be present or supabase-js throws
+        // "supabaseUrl is required" and React never mounts. The publishable key
+        // is already in vitest.config.ts (a committed file), so this is safe.
         env: {
           VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co",
           VITE_SUPABASE_PUBLISHABLE_KEY: process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP",

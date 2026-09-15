@@ -9,8 +9,11 @@ permissions:
 #   - JS errors that only fire on small-viewport CSS branches
 #   - phone-cluster overflow on the landing page at 320
 #
-# Spec lives at e2e/mobile-viewports.spec.ts. Tests run against the
-# production site by default; override with PLAYWRIGHT_BASE_URL.
+# Spec lives at e2e/mobile-viewports.spec.ts. Tests run against THIS COMMIT,
+# built and served locally with `vite preview` (.github/actions/local-preview)
+# on the real Supabase backend — never the deployed site, which costs Vercel
+# edge requests on every push (the project was paused on Hobby limits,
+# 2026-09-14; src/test/noTestTrafficOnVercel.test.ts).
 #
 # Cost-conscious:
 # - Runs on every PR (required branch-protection check — a `paths:`
@@ -29,8 +32,8 @@ on:
   # Free and cheap, deliberately: the repo is public and this runs on
   # ubuntu-latest, where GitHub Actions is unmetered; the in-job paths filter
   # below skips the Playwright work and goes green in seconds when no UI file
-  # changed; and cancel-in-progress drops superseded runs. It also tests the
-  # PRODUCTION site by default, which on main is exactly what just shipped.
+  # changed; and cancel-in-progress drops superseded runs. It builds and tests
+  # the commit itself, so a layout regression is caught before it deploys.
   push:
     branches: [main]
   pull_request:
@@ -45,7 +48,8 @@ jobs:
   mobile-spot-check:
     name: Playwright mobile viewports (320 / 375 / 414 / 768 / 1024)
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    # 20, not 12: the job now builds this commit before measuring it.
+    timeout-minutes: 20
     # NOTE: deliberately NOT excluding dependabot[bot]. This job is a REQUIRED
     # status check on main, and GitHub counts a required check that is skipped
     # as unsatisfied — so excluding Dependabot here made every dependency PR
@@ -97,12 +101,14 @@ jobs:
         if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
         run: npx playwright install --with-deps chromium
 
+      - name: Build and serve this commit locally (real backend, local frontend)
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
+        uses: ./.github/actions/local-preview
+
       - name: Run mobile-viewport tests
         if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
         env:
-          # Default to the production site. Override at workflow_dispatch
-          # time if you want to point at a Vercel preview or local tunnel.
-          PLAYWRIGHT_BASE_URL: https://www.louisianahelpr.com
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
         run: npx playwright test e2e/mobile-viewports.spec.ts --reporter=list
 
       - name: Upload screenshots on failure

@@ -29,8 +29,10 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { toast } from "sonner";
+import { useUserLocation } from "@/hooks/useUserLocation";
 import { Button } from "@/components/ui/button";
-import { BellRing, MapPin, MapPinOff, Loader2, X } from "lucide-react";
+import { BellRing, MapPin, MapPinOff, Loader2 } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import {
@@ -50,7 +52,7 @@ import {
 import {
   fitToPins,
   laRegion,
-  RecenterControl,
+  MyLocationControl,
 } from "./browseMap/MapLayers";
 import {
   colorSchemeFor,
@@ -534,9 +536,21 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
 
   // Focus moves into the sheet ONLY when the pin was activated from the
   // keyboard (see `openedByKeyboardRef`).
-  const previewCloseRef = useRef<HTMLButtonElement | null>(null);
+  // There is no close button any more (VN-9: the owner removed the header lane
+  // and its circled X — clicking outside or pressing Escape closes the sheet).
+  // So the keyboard entry point is the CARD itself: JobCard's root carries
+  // role="button"/tabIndex, so focusing it both announces the job and leaves
+  // Enter/Space opening the detail dialog. Queried rather than ref-forwarded
+  // because JobCard is the feed's card and must not grow a prop for the map.
+  const previewCardRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (selectedJob && openedByKeyboardRef.current) previewCloseRef.current?.focus();
+    if (!selectedJob || !openedByKeyboardRef.current) return;
+    // Unquoted attribute selector on purpose: the map-marker a11y guard
+    // (src/test/mapMarkerAccessibleName.test.ts) greps this file for a quoted
+    // role="button" and, being a source grep, cannot tell a CSS selector from
+    // an unnamed JSX role. `[role=button]` is the same selector, no false hit.
+    const el = previewCardRef.current?.querySelector<HTMLElement>("[role=button]");
+    (el ?? previewCardRef.current)?.focus();
   }, [selectedJob]);
 
   /**
@@ -698,12 +712,76 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
     };
   }, [selectedJobId, mapReady, visibleJobs]);
 
-  const recenter = useCallback(() => {
+  /**
+   * VN-11 (owner decision, 2026-09-14): the crosshair button now does what its
+   * glyph has always promised — centre the map on the user.
+   *
+   * `useUserLocation` is the app's ONE location funnel (permission rationale,
+   * Capacitor on native / `navigator.geolocation` on web, the 5-minute cache,
+   * and the profile/ZIP/parish fallback chain). It is effect-driven off an
+   * `enabled` flag, so the button flips that flag and a second effect acts on
+   * whatever the hook settles to. No `isNativePlatform` branch lives here: the
+   * hook owns that, and it is a capability split, not a layout one.
+   *
+   * Failure is not silent and not a dead end: we fall back to the statewide
+   * Louisiana frame — the old Recenter behaviour, which is still the useful
+   * thing to do with a map you're lost on — and say why in a toast.
+   */
+  const [locationRequested, setLocationRequested] = useState(false);
+  const pendingLocateRef = useRef(false);
+  const geo = useUserLocation(locationRequested);
+  const locating = pendingLocateRef.current && geo.status === "loading";
+
+  const recenterLouisiana = useCallback(() => {
     const mk = getMapKit();
     const map = mapRef.current;
     if (!mk || !map) return;
     map.setRegionAnimated(laRegion(mk), true);
   }, []);
+
+  const centerOn = useCallback((lat: number, lng: number, approximate: boolean) => {
+    const mk = getMapKit();
+    const map = mapRef.current;
+    if (!mk || !map) return;
+    // An approximate position is a parish centroid, not a fix — framing it at
+    // neighbourhood zoom would claim an accuracy we do not have, so it gets a
+    // parish-sized span instead.
+    const span = approximate ? 0.6 : 0.08;
+    map.setRegionAnimated(
+      new mk.CoordinateRegion(new mk.Coordinate(lat, lng), new mk.CoordinateSpan(span, span)),
+      true,
+    );
+  }, []);
+
+  const showMyLocation = useCallback(() => {
+    pendingLocateRef.current = true;
+    if (geo.status === "ready") {
+      pendingLocateRef.current = false;
+      centerOn(geo.lat, geo.lng, geo.approximate);
+      return;
+    }
+    if (geo.status === "error") {
+      // Already asked and already refused this session — don't re-prompt, just
+      // do the honest fallback again.
+      pendingLocateRef.current = false;
+      recenterLouisiana();
+      toast.error(geo.message);
+      return;
+    }
+    setLocationRequested(true);
+  }, [geo, centerOn, recenterLouisiana]);
+
+  useEffect(() => {
+    if (!pendingLocateRef.current) return;
+    if (geo.status === "ready") {
+      pendingLocateRef.current = false;
+      centerOn(geo.lat, geo.lng, geo.approximate);
+    } else if (geo.status === "error") {
+      pendingLocateRef.current = false;
+      recenterLouisiana();
+      toast.error(geo.message);
+    }
+  }, [geo, centerOn, recenterLouisiana]);
 
   if (loading) {
     return (
@@ -755,7 +833,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
           className="absolute top-3 left-3 z-[400] max-w-[60%] px-2.5 py-1.5 rounded-ds-md font-sans text-ds-11 leading-snug"
           style={{
             // Tokened, not a literal white — see the same fix on
-            // `RecenterControl`: `--olivewood` inverts in dark mode, so a
+            // `MyLocationControl`: `--olivewood` inverts in dark mode, so a
             // hard-coded white ground put near-white text on near-white.
             background: "hsl(var(--card) / 0.94)",
             color: "hsl(var(--olivewood))",
@@ -914,9 +992,9 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
           own lower edge, so nothing here can collide with anything else here.
           Reading up from the floor: the dock clearance (`MAP_DOCK_CLEARANCE`,
           the map bleeds under the app's dock + FAB), then the preview sheet,
-          then the recenter button — so opening a preview LIFTS the recenter
+          then the my-location button — so opening a preview LIFTS that
           button by exactly the sheet's height rather than letting the two
-          overlap. Previously `RecenterControl` positioned itself absolutely at
+          overlap. Previously the control positioned itself absolutely at
           that same corner with no knowledge of anything else, which is why it
           crowded the FAB.
 
@@ -930,7 +1008,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
         >
           {mapReady && (
             <div className="flex justify-end">
-              <RecenterControl onRecenter={recenter} />
+              <MyLocationControl onLocate={showMyLocation} busy={locating} />
             </div>
           )}
           {/* ── Pin preview ──────────────────────────────────────────────────
@@ -998,7 +1076,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
               )}
             <aside
               // Named with the JOB, not just "Job preview": a keyboard/screen
-              // reader user lands on the close button inside this landmark, and
+              // reader user lands on the card inside this landmark, and
               // the complementary landmark's name is what tells them WHICH pin
               // they just opened. "Job preview" alone would announce the
               // container and nothing about the content.
@@ -1006,7 +1084,13 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
               data-testid="browse-map-preview"
               className="pointer-events-auto w-full motion-safe:animate-fade-in overflow-hidden"
               style={{
-                borderRadius: "1rem",
+                // 0.5rem, not 1rem: `JobCard bare` clips its own content to
+                // rounded-lg and carries no paint of its own, so this element
+                // IS the card's surface. Matching the radius (and holding no
+                // padding) is what makes the box fit the card exactly — the
+                // header lane and the inset that produced the white band above
+                // the card are gone (VN-9).
+                borderRadius: "0.5rem",
                 backgroundColor: "hsl(var(--card))",
                 border: "1px solid hsl(var(--border))",
                 boxShadow:
@@ -1016,53 +1100,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
                   "0 32px 64px -16px hsl(var(--olivewood) / 0.2)",
               }}
             >
-              {/* Header lane — the close control's OWN place in the sheet's
-                  structure. It is a row, above the card, at the sheet's full
-                  width: it cannot reach the price chip or the title, because
-                  they are not in it. The grab handle centres the lane so the
-                  surface reads as a sheet, and the 44x44 button sits at the
-                  end of the row the way every other dismiss in the app does.
-                  This lane is also why the card's own top-left category tab
-                  and top-right status corner are left alone — the sheet adds
-                  chrome ABOVE the card rather than competing inside it. */}
-              <div className="relative flex items-center justify-end h-11 pl-3 pr-1.5">
-                <span
-                  aria-hidden
-                  className="absolute left-1/2 top-2 -translate-x-1/2 h-1 w-9 rounded-full"
-                  style={{ backgroundColor: "hsl(var(--olivewood) / 0.22)" }}
-                />
-                <button
-                  type="button"
-                  ref={previewCloseRef}
-                  // Return focus to the pin only when the preview was reached
-                  // from the keyboard — a mouse user must not have the map
-                  // scrolled to a focused pin under them, and a keyboard user
-                  // must not be dumped on <body> with the map's whole tab
-                  // sequence to walk again.
-                  onClick={() => closePreview(openedByKeyboardRef.current)}
-                  aria-label="Close job preview"
-                  title="Close job preview"
-                  data-testid="browse-map-preview-close"
-                  // 44x44 — the project tap-target floor. The old control was
-                  // a bare 24x24 glyph with no background and no hit area.
-                  className="w-11 h-11 -mr-0.5 rounded-full flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                >
-                  {/* Its own filled disc, so the glyph has contrast against
-                      the sheet no matter what the card beneath it renders. */}
-                  <span
-                    aria-hidden
-                    className="w-7 h-7 rounded-full flex items-center justify-center"
-                    style={{
-                      backgroundColor: "hsl(var(--olivewood) / 0.08)",
-                      border: "0.5px solid hsl(var(--olivewood) / 0.16)",
-                    }}
-                  >
-                    <X className="w-4 h-4" strokeWidth={2.5} />
-                  </span>
-                </button>
-              </div>
-              <div className="px-2 pb-2">
+              <div ref={previewCardRef}>
                 <JobCard
                   job={mapJobToEnrichedJob(selectedJob)}
                   effectiveFee={effectiveFee ?? 0}

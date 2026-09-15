@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { LOCAL_BASE_URL } from "./localBase";
 
 // Authenticated smoke tests. Insurance against RLS or auth-flow
 // regressions on the most-used signed-in paths.
@@ -20,10 +21,8 @@ import { test, expect } from "@playwright/test";
 // The test is read-only — it signs in, checks dashboard renders, signs
 // out. No data mutations. Safe to run against production.
 
-const BASE_URL =
-  process.env.PLAYWRIGHT_BASE_URL ||
-  process.env.VERCEL_URL ||
-  "https://www.louisianahelpr.com";
+// This checkout's local build, never the deployed site (e2e/localBase.ts).
+const BASE_URL = LOCAL_BASE_URL;
 
 const TEST_EMAIL = process.env.PLAYWRIGHT_TEST_USER_EMAIL;
 const TEST_PASSWORD = process.env.PLAYWRIGHT_TEST_USER_PASSWORD;

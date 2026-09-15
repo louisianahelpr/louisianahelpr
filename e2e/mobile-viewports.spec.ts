@@ -1,4 +1,5 @@
 import { test, expect, devices } from "@playwright/test";
+import { LOCAL_BASE_URL } from "./localBase";
 
 // Mobile viewport spot-check, replaces what humans had to do by hand
 // during the 2026-05-09 QA pass (Cowork couldn't shrink Chrome below
@@ -17,10 +18,8 @@ import { test, expect, devices } from "@playwright/test";
 // landing page (`/`) and `/browse` are the two highest-value mobile
 // surfaces because they're what every prospective user first sees.
 
-const BASE_URL =
-  process.env.PLAYWRIGHT_BASE_URL ||
-  process.env.VERCEL_URL ||
-  "https://www.louisianahelpr.com";
+// This checkout's local build, never the deployed site (e2e/localBase.ts).
+const BASE_URL = LOCAL_BASE_URL;
 
 // Viewport set per the original test plan. Names mirror the spec doc
 // so failures map back to the exact device the bug reproduces on.

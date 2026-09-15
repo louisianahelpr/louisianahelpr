@@ -5,7 +5,7 @@
  * Deliberately narrow, not a full sweep: forces a handful of high-risk,
  * genuinely-uncovered states (keyboard-open, interrupted multi-step form,
  * DOM-injected long-string/max-content, and the five named hand-rolled
- * overlays' fixed-position containment) against the LIVE prod app with the
+ * overlays' fixed-position containment) against a local build on the prod backend with the
  * seeded test account, per docs/audit/launch-2026-09/PROTOCOL.md.
  *
  * Long-string/max-content probes inject text via page.evaluate() directly
@@ -29,7 +29,9 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 
-const TARGET = 'https://www.louisianahelpr.com';
+// This checkout's local build on the prod backend (`npm run build && npx vite
+// preview --port 4173`), never the deployed site (src/test/noTestTrafficOnVercel.test.ts).
+const TARGET = (process.env.BASE || process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:4173').replace(/\/$/, '');
 const TEST_EMAIL = 'eli.test.helper@louisianahelpr.com';
 // Resolved at runtime — the account behind TEST_EMAIL was re-created on
 // 2026-09-07 and the old literal (6bdc1f67-…) now 404s, which made this probe

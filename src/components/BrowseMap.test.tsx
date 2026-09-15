@@ -13,7 +13,7 @@
 // coverage, minus the map plumbing it never depended on.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 
 import JobCard from "./dashboard/JobCard";
 import { mapJobToEnrichedJob } from "./browseMap/mapJobToEnrichedJob";
@@ -52,12 +52,36 @@ vi.mock("@/lib/errorLogger", () => ({
   report: vi.fn(),
 }));
 
+// The my-location button (VN-11) reads the app's one location funnel. The hook
+// itself is tested in useUserLocation.test.tsx; here we drive its OUTCOMES —
+// a fix, and a refusal — and assert what the map does with each.
+const geoState = {
+  value: { status: "idle" } as
+    | { status: "idle" }
+    | { status: "loading" }
+    | { status: "ready"; lat: number; lng: number; source: string; approximate: boolean }
+    | { status: "error"; message: string },
+};
+vi.mock("@/hooks/useUserLocation", () => ({
+  useUserLocation: () => geoState.value,
+  getCachedUserLocation: () => null,
+}));
+
+const toastError = vi.fn();
+vi.mock("sonner", () => ({
+  toast: { error: (...args: unknown[]) => toastError(...args) },
+}));
+
 // MapKit always authorizes in these tests — the degraded paths are the
 // hook's own concern (see useMapKitJs.test.ts).
 vi.mock("@/hooks/useMapKitJs", () => ({
   useMapKitJs: () => "ready",
   useMapKitTokenSource: () => "server",
 }));
+
+/** Every MapStub the component constructs, newest last — lets a test assert
+ *  what the camera was actually told to do. */
+const mapInstances: Array<{ setRegionAnimated: ReturnType<typeof vi.fn> }> = [];
 
 /** The smallest `window.mapkit` the component's lifecycle can run against. */
 function installMapKitStub() {
@@ -79,6 +103,7 @@ function installMapKitStub() {
     annotationForCluster?: (c: unknown) => unknown;
     constructor(el: HTMLElement) {
       this.element = el;
+      mapInstances.push(this as unknown as { setRegionAnimated: ReturnType<typeof vi.fn> });
     }
     addAnnotations = vi.fn();
     removeAnnotations = vi.fn();
@@ -150,6 +175,9 @@ beforeEach(() => {
   window.localStorage.clear();
   rpcResolver.value = [makeJob(1), makeJob(2)];
   vi.clearAllMocks();
+  mapInstances.length = 0;
+  geoState.value = { status: "idle" };
+  toastError.mockClear();
   installMapKitStub();
 });
 
@@ -177,13 +205,13 @@ describe("BrowseMap pins", () => {
 // authorize. That must read as a stated outage with a way forward, never as a
 // blank grey box.
 describe("BrowseMap MapKit availability", () => {
-  it("mounts a map surface and a recenter control when MapKit is ready", async () => {
+  it("mounts a map surface and a my-location control when MapKit is ready", async () => {
     const { BrowseMap } = await import("./BrowseMap");
     render(<BrowseMap />);
 
     expect(await screen.findByTestId("browse-map-surface")).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByTestId("browse-map-recenter")).toBeInTheDocument();
+      expect(screen.getByTestId("browse-map-my-location")).toBeInTheDocument();
     });
     expect(screen.queryByTestId("browse-map-unavailable")).not.toBeInTheDocument();
   });
@@ -202,6 +230,86 @@ describe("BrowseMap MapKit availability", () => {
     expect(panel).toHaveTextContent("switch to the list view");
     vi.doUnmock("@/hooks/useMapKitJs");
     vi.resetModules();
+  });
+});
+
+// VN-11 (owner decision, 2026-09-14): the crosshair button used to fly back to
+// the statewide Louisiana frame while wearing the universal "where am I" glyph.
+// It now centres on the user — and when it can't, it says so instead of moving
+// the camera somewhere the user didn't ask for without explanation.
+describe("BrowseMap my-location button", () => {
+  // The availability block above ends with `vi.doUnmock("@/hooks/useMapKitJs")`,
+  // which drops the file-level `vi.mock` for that path too — so without this,
+  // every test after it gets the REAL hook, no token, and a map that never
+  // becomes ready. Re-assert the stub rather than depending on describe order.
+  beforeEach(() => {
+    vi.doMock("@/hooks/useMapKitJs", () => ({
+      useMapKitJs: () => "ready",
+      useMapKitTokenSource: () => "server",
+    }));
+    vi.resetModules();
+  });
+
+  it("is labelled for what it does", async () => {
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+
+    const btn = await screen.findByTestId("browse-map-my-location");
+    expect(btn).toHaveAccessibleName("Show my location");
+  });
+
+  it("centres the camera on the user's position when one is available", async () => {
+    geoState.value = { status: "ready", lat: 30.45, lng: -91.15, source: "device", approximate: false };
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+
+    const btn = await screen.findByTestId("browse-map-my-location");
+    const map = mapInstances[mapInstances.length - 1];
+    map.setRegionAnimated.mockClear();
+    fireEvent.click(btn);
+
+    await waitFor(() => expect(map.setRegionAnimated).toHaveBeenCalled());
+    const calls = map.setRegionAnimated.mock.calls;
+    const region = calls[calls.length - 1]?.[0];
+    expect(region.center.latitude).toBeCloseTo(30.45, 5);
+    expect(region.center.longitude).toBeCloseTo(-91.15, 5);
+    // A device fix is framed tight; only a centroid gets the parish-wide span.
+    expect(region.span.latitudeDelta).toBeLessThan(0.2);
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it("frames an APPROXIMATE position wider than a device fix", async () => {
+    geoState.value = { status: "ready", lat: 30.45, lng: -91.15, source: "zip", approximate: true };
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+
+    const btn = await screen.findByTestId("browse-map-my-location");
+    const map = mapInstances[mapInstances.length - 1];
+    map.setRegionAnimated.mockClear();
+    fireEvent.click(btn);
+
+    await waitFor(() => expect(map.setRegionAnimated).toHaveBeenCalled());
+    const calls = map.setRegionAnimated.mock.calls;
+    const region = calls[calls.length - 1]?.[0];
+    expect(region.span.latitudeDelta).toBeGreaterThan(0.2);
+  });
+
+  it("falls back to the Louisiana view and says why when location is refused", async () => {
+    geoState.value = { status: "error", message: "Location permission denied" };
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+
+    const btn = await screen.findByTestId("browse-map-my-location");
+    const map = mapInstances[mapInstances.length - 1];
+    map.setRegionAnimated.mockClear();
+    fireEvent.click(btn);
+
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith("Location permission denied"));
+    const calls = map.setRegionAnimated.mock.calls;
+    const region = calls[calls.length - 1]?.[0];
+    // The statewide frame — a span of degrees, not the tenth-of-a-degree box a
+    // real fix gets.
+    expect(region.span.latitudeDelta).toBeGreaterThan(1);
   });
 });
 

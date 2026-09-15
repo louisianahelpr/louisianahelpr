@@ -39,7 +39,8 @@ export type Message = {
    * - `sendStatus`: `"sending"` while the insert is in flight, `"failed"`
    *   if it errored (the bubble offers a retry), `"refused"` if the server
    *   refused it for a reason a retry cannot fix (the thread closed 24h
-   *   after completion; no retry offered). Confirmed messages leave this
+   *   after completion, or the receiver gate refuses this recipient; no
+   *   retry offered). Confirmed messages leave this
    *   `undefined`.
    */
   clientId?: string;
@@ -68,6 +69,16 @@ export type Conversation = {
       when the job is not completed or the RPC is not deployed.
       See src/lib/messagingLockout.ts. */
   messagingClosesAt?: string | null;
+  /** Set when a send in this thread was refused by the server's receiver gate
+      (`can_send_message_to_in_job`: only the poster may message applicants
+      and an offered Helpr). Flips the composer to its read-only notice.
+      See src/lib/recipientGate.ts. */
+  recipientRestricted?: boolean;
+  /** The job's poster (`jobs.customer_id`); null for an ownerless job. The
+      receiver gate asks "may I reach the poster?" as its control, so a false
+      answer is only blamed on the recipient rule when the caller can still
+      post at all. */
+  posterId?: string | null;
   /** True when the current user posted the job — drives poster-specific
       quick reply set in the chat composer. */
   viewerIsPoster?: boolean;

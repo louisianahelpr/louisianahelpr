@@ -1272,18 +1272,6 @@
     "nargs": 0
    }
   ],
-  "get_top_helpers_by_parish": [
-   {
-    "anon": false,
-    "args": [
-     "p_parish",
-     "p_limit"
-    ],
-    "authenticated": true,
-    "nargdefaults": 2,
-    "nargs": 2
-   }
-  ],
   "get_user_credential_tier": [
    {
     "anon": false,

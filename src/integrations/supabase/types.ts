@@ -5250,23 +5250,6 @@ export type Database = {
       }
       get_service_role_key: { Args: never; Returns: string }
       get_supabase_url: { Args: never; Returns: string }
-      get_top_helpers_by_parish: {
-        Args: { p_limit?: number; p_parish?: string }
-        Returns: {
-          avatar_url: string
-          avg_rating: number
-          bio: string
-          completed_jobs: number
-          full_name: string
-          hero_score: number
-          location: string
-          parish: string
-          review_count: number
-          skills: string
-          subscription_tier: string
-          user_id: string
-        }[]
-      }
       get_user_credential_tier: { Args: { p_user_id: string }; Returns: number }
       get_user_last_active: {
         Args: { user_ids: string[] }

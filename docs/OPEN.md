@@ -84,6 +84,66 @@ tripped a check. Three classes, in order of how many:
 - [ ] Visual-notes 2026-09-14 side-findings (lane D/VN-45/VN-54, reported not changed): profile "Worked together" counts every shared job, not completed ones (Hallie shows 44 vs 16 completed); disputed Helpr card still shows the "Add a before photo" ask; App.tsx comments claim /support /help /legal skip PageTransition (they don't); /help and /support missing from NATIVE_APP_SHELL_ROUTES; served HTML has two <link rel="manifest">; /favicon.ico is PNG data. VN-45: the 2 orphan referral_credits rows on the owner account were deleted with owner OK; money tiles vs referral count still read different sources. VN-54 verified live (business_name only when license/insurance admin-verified), owner confirmed — closed.
 - [ ] Visual-notes follow-ups found while fixing (reported, not changed): `src/components/JobConfirmation.tsx:382` still says "Can't make it? See what happens" (VN-18 wording); `src/lib/lifecycleErrors.ts:33` job_not_completed copy says a dispute opens once work is complete, contradicting VN-28 (no RPC currently raises it); server `open_dispute_as` still accepts disputes on completed jobs (VN-28 removed only the UI — money review); `HelperAvailabilityDisplay`, `DEFAULT_DESIGN`, the submitted-credentials query in useUserProfileData and `onReport` plumbing on My Posts are now unused; RecognitionRow still shows grey "License/Insurance pending" chips (VN-13 adjacent); VN-2 job popup shows a blank POSTED BY name for an applicant viewer (pre-existing, seen on prod).
 
+## Earnings tab fails the a11y contrast gate — blocks any /profile push (2026-09-14)
+`src/components/profile/EarningsTab.tsx:510` — `<span className="block text-ds-11 mt-0.5"
+style={{ color: "hsl(var(--olivewood) / 0.65)" }}>`. axe, light theme:
+**#77786f on #ffffff = 4.46:1 at 11px, needs 4.5:1** (wcag2aa color-contrast,
+serious). Missing by 0.04.
+
+Found by the pre-push `check:changed` sweep, which maps changed files to their
+nearest route and sweeps it: any push touching /profile now runs this and is
+refused. It is NOT caused by the change that hit it — the vn-profile branch's
+whole `src/` diff is three files, adds no colour anywhere, does not touch
+EarningsTab, and its Profile.tsx change is comment-only.
+
+- [ ] Nudge the alpha (0.65 -> ~0.70 clears 4.5:1 on white) or drop to the
+      solid token, then re-run
+      `PLAYWRIGHT_WEB_SERVER=1 node scripts/check-changed.mjs` from a worktree
+      with a /profile change. NOT done here: it is another lane's screen, and
+      **VN-3 (Earnings layout, "large / design discussion first")** is open on
+      exactly this tab — a colour nudge now would collide with that redesign.
+- Check dark theme too: `--olivewood` is a different value there (index.css:897
+  vs :527), so the fix is per-theme, not one number.
+- Until then a /profile push needs `LH_SKIP_CHANGED_CHECK=1` with a
+  `LH_SKIP_REASON`, which is logged to docs/audit/prepush-skips.log.
+
+## VN-37 "content should fill that space" — OWNER DECISION, app-wide gutter (2026-09-14)
+Owner, on the Profile tab pages: "reviews and other pages still have that small
+gap to the left and right of content. content should fill that space."
+
+VN-46 (Notifications wouldn't scroll) shipped and is ticked in the tracker.
+**VN-37 did not, and its tracker row must stay unticked.** It was fixed once,
+measured, and reverted — the fix was wrong, and the measurement says why.
+
+Measured on prod at 1440, `.app-shell-frame` 0→1192, before any change:
+- `/dashboard` `.page-panel` **48 → 1144**
+- `/my-posts` `.page-panel` **48 → 1144**
+- `/messages` `.page-panel` **48 → 1144**
+- `/profile?tab=reviews` first card **48 → 1144**
+
+Pixel-identical. The Profile tab pages are not inset relative to anything —
+they already sit flush with every PageScaffold sibling. The attempted fix bled
+the tab wrapper 12px further at `xl`, which moved Profile ALONE to x=36 and
+split the shared fixed-shell family, since `src/components/AppPage.tsx` carries
+that wrapper string byte-for-byte. (The "panel ~x36" in the note is that
+wrapper's own border box; it paints nothing, so there was no edge to fill to.)
+
+**The gap the owner sees is the container gutter** — `px-5 lg:px-8 xl:px-12`,
+48px at xl — shared character-for-character by `src/pages/Profile.tsx`,
+`src/components/ui/PageScaffold.tsx` and `src/components/AppPage.tsx`.
+- [ ] OWNER: decide whether that gutter narrows, and to what at each breakpoint
+      (375 is 20px and was approved on 2026-09-11 as matching Dashboard, so the
+      question is really lg/xl). Changing it touches every main screen at once
+      — that is the point, not a side effect. Do NOT fix it one screen at a
+      time; two of the three files are outside any single screen's lane.
+- Guards already in place, both proven red on the reverted change:
+  `src/components/profile/profileTabScroll.test.ts` (Profile and AppPage must
+  carry the identical wrapper string) and the parity assertion in
+  `e2e/prod-audit/profile-tab-scroll-fill.spec.ts` (Profile tab card inset must
+  equal the PageScaffold panel inset, measured in the same run — no hard-coded
+  number to re-choose when the gutter changes).
+- Branch `vn-profile` (not pushed) holds VN-46 + both guards + the spec.
+
 ## Browse header count disagrees with the rendered list — REPORT, not fixed (2026-09-14)
 Found while fixing VN-10 (map preview card was a dead tap). Owner's screenshot
 showed **"3 jobs"** in the Browse header over a list holding **one** card.

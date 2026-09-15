@@ -54,7 +54,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-43 | Remove the card design picker from gift cards | small | [x] c57c568be | [x] vn-43-after-gift-card-1440-occasion.webp |
 | VN-44 | Plus tier (and Once / Annual) don't look enticing (OWNER QUESTION + PRICING DECISION) | medium | [ ] | [ ] |
 | VN-45 | Referrals says $15 earned / $15 to cash out, but 0 referrals and the rank tracker shows no | small–medium | [ ] | [ ] |
-| VN-46 | Notifications settings page doesn't scroll | small–medium | [ ] | [ ] |
+| VN-46 | Notifications settings page doesn't scroll | small–medium | [x] 27a7a4a09 | [x] vn-46-notifications-1440-bottom.png |
 | VN-47 | Legal tab — remove "Download your data", and "contact support" is listed twice | small | [x] 34f87f288 | [x] vn-47-after-datarights-signedin-375.webp |
 | VN-48 | Post a Job form labels aren't in Title Case | small | [x] e363d18d6 | [x] vn-48-after-postjob-1440-photo.webp |
 | VN-49 | "Require before & after photos" box is too spread out / badly positioned | small | [x] 05d3332f6 | [x] vn-49-after-postjob-1440-photo.webp |

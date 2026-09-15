@@ -18,6 +18,21 @@ fraction of fixing them one report at a time.
 - [x] RESOLVED 2026-09-14 ~17:52 PDT (owner upgraded to Pro; cause: Hobby Edge Requests 3.1M/1M + Deployment Storage 34 GB/10 GB, see the Vercel item further down). Was: OWNER (dashboard only): every push since 4bbd125c1 (16:13 PDT) gets Vercel status `failure — Account is blocked.` (https://vercel.com/knowledge/why-is-my-account-deployment-blocked). Hobby team `louisianahelprs-projects`. Live site still serves 70f93a220 (14:30 PDT); NOT live: a0833ef22 TrackingMap pins, 3c299b328 completeJob duplicate-release fix, f9f5b0617 (package.json). Open Vercel → team → Usage / notifications for the reason (Hobby usage limit or fair-use), resolve, then redeploy main. Prod freshness runs time out red until then; that red is this, not the commits.
 - [x] VERIFIED 2026-09-14: cc2636f5f deployed (Vercel status success 00:53Z); live build-commit = cc2636f5f; a0833ef22, 3c299b328, f9f5b0617 are ancestors, so all live. Was: After unblock: confirm `<meta name="build-commit">` on www.louisianahelpr.com is at or after the newest shipping commit. Consider stopping preview deploys for non-main branches (every lane branch push builds a preview and counts toward Hobby limits).
 
+## HANDOFF 2026-09-15 — map notes + nightly reds (session closed)
+Orientation: `~/.claude/projects/-Users-lexilombas-louisianahelpr/memory/handoff-2026-09-15-map-and-nightly-reds.md`.
+Landed and live on prod: VN-9, VN-10, VN-11 (tracker Fixed + Confirmed, shots
+committed, verified in the deployed bundles). All four `nightly-red` issues
+root-caused; seven stale test assumptions fixed, each checked against live prod.
+- [ ] **Pick up:** watch the re-run chain to green — nightly-webkit (was running
+  at handoff), then a11y-webkit-prod, then e2e-journeys. **ONE AT A TIME**: they
+  share `concurrency: prod-load` with `cancel-in-progress: false`, so a second
+  queued run cancels the first, and a "cancelled" there is not a failure. The
+  issues close themselves on green; they cannot be ticked by hand.
+- [ ] **Decide (3):** the 9 auth-timeout presses below; the Browse header
+  over-count above; and whichever visual-note entries remain.
+- Trap: never pre-create `~/.lh-browser.lock` — Playwright's globalSetup takes
+  it, and taking it first deadlocks the run against itself.
+
 ## press-every-control — re-run 2026-09-15, 237 failed presses in 4 shards
 Coverage was 100% (0 undocumented skips); these are presses that fired and then
 tripped a check. Three classes, in order of how many:

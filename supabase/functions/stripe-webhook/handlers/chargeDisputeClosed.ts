@@ -45,7 +45,7 @@ export async function handleChargeDisputeClosed(
   if (closedPiId) {
     const { data: closedJob, error: closedJobErr } = await supabase
       .from("jobs")
-      .select("id, customer_id, helper_id, title, payment_status")
+      .select("id, customer_id, helper_id, title, payment_status, status, payout_scheduled_at")
       .eq("stripe_payment_intent_id", closedPiId)
       .maybeSingle();
 
@@ -129,23 +129,26 @@ export async function handleChargeDisputeClosed(
         }
       } else if (outcome === "warning_closed") {
         // A retrieval request (card-network inquiry, no funds ever withdrawn) was
-        // dismissed. chargeDisputeCreated treated it as a dispute and may have set
-        // payment_status = "chargeback" + disputed_at = NOW() on the job to block
-        // payout. Now that the inquiry is closed, unblock automatically:
+        // dismissed. chargeDisputeCreated blocks only a PAYABLE job — one in
+        // escrow or payout_pending — by flipping it to payment_status =
+        // "chargeback" + disputed_at = NOW(). Now that the inquiry is closed,
+        // put the job back in the payment state it held BEFORE the block.
         //
-        // process-scheduled-payouts gates on `.is("disputed_at", null)`, and
-        // release-payout gates on `dispute_status NOT IN ['resolved', 'auto_resolved']`.
-        // Without this reset both payout paths permanently block the job with no
-        // guided recovery path — the helper never gets paid.
+        // It used to write payout_pending unconditionally. On a job whose work
+        // was not done (escrow) that moved no money — process-scheduled-payouts
+        // requires status = 'completed' and a payout_scheduled_at — but it left
+        // the job where no sweep reads it: auto-release-payment only picks up
+        // escrow, the payout cron only completed jobs. Stranded.
         //
         // Scoped to payment_status = "chargeback" so jobs that were already
-        // "released" when the inquiry came in (shouldBlockPayout was false in
-        // chargeDisputeCreated) are untouched. The .select() return tells us
-        // whether a row actually matched so we only notify admins when a real
-        // unblock happened.
+        // "released" when the inquiry came in (the block was skipped in
+        // chargeDisputeCreated) are untouched. .select("id") makes the row
+        // count observable: zero rows on a job we just read as "chargeback"
+        // means something moved it underneath us, and that pages ops.
+        const restoredPaymentStatus = preChargebackPaymentStatus(closedJob);
         const { data: unblocked, error: unblockErr } = await supabase
           .from("jobs")
-          .update({ payment_status: "payout_pending", disputed_at: null })
+          .update({ payment_status: restoredPaymentStatus, disputed_at: null })
           .eq("id", closedJob.id)
           .eq("payment_status", "chargeback")
           .select("id");
@@ -159,7 +162,7 @@ export async function handleChargeDisputeClosed(
             kind: "custom",
             severity: "critical",
             title: "Stripe retrieval request dismissed — payout UNBLOCK FAILED",
-            message: `Dispute ${closedDispute.id} closed as "warning_closed" (retrieval request dismissed, no funds moved), but the job reset to payout_pending failed. The helper's payout is still blocked. Stripe will retry; if retries exhaust, manually set payment_status='payout_pending' and disputed_at=NULL on the job.`,
+            message: `Dispute ${closedDispute.id} closed as "warning_closed" (retrieval request dismissed, no funds moved), but restoring the job to ${restoredPaymentStatus} failed. The job is still payment_status='chargeback'. Stripe will retry; if retries exhaust, manually set payment_status='${restoredPaymentStatus}' and disputed_at=NULL on the job.`,
             fields: {
               "Dispute ID": closedDispute.id,
               "Job ID": String(closedJob.id),
@@ -173,8 +176,9 @@ export async function handleChargeDisputeClosed(
         }
 
         if (unblocked && unblocked.length > 0) {
-          logStep("Retrieval request dismissed — payout unblocked (payment_status → payout_pending, disputed_at cleared)", {
+          logStep("Retrieval request dismissed — payment state restored, disputed_at cleared", {
             jobId: closedJob.id,
+            restoredPaymentStatus,
             disputeId: closedDispute.id,
           });
           // Let admins know the automatic unblock happened.
@@ -185,12 +189,33 @@ export async function handleChargeDisputeClosed(
           for (const adminId of warnAdminIds) {
             await supabase.from("notifications").insert({
               user_id: adminId,
-              title: "ℹ Retrieval request closed — payout auto-unblocked",
-              message: `A card-network retrieval request for "${closedJob.title}" was dismissed with no chargeback. The Helpr's temporarily-blocked payout has been automatically unblocked and will proceed on the normal schedule.`,
+              title: restoredPaymentStatus === "payout_pending"
+                ? "ℹ Retrieval request closed — payout auto-unblocked"
+                : "ℹ Retrieval request closed — job back in escrow",
+              message: `A card-network retrieval request for "${closedJob.title}" was dismissed with no chargeback. ${restoredPaymentStatus === "payout_pending"
+                ? "The Helpr's temporarily-blocked payout has been automatically unblocked and will proceed on the normal schedule."
+                : "The job's funds are back in escrow and it continues as normal."}`,
               type: "info",
               link: "/admin",
             });
           }
+        } else if (closedJob.payment_status === "chargeback") {
+          // We read the job as blocked, the conditional write matched nothing:
+          // another writer moved payment_status in between. The job is in an
+          // unknown state that this webhook will not revisit (it ACKs 200), so
+          // a human has to look.
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "critical",
+            title: "Stripe retrieval request dismissed — unblock matched no row",
+            message: `Dispute ${closedDispute.id} closed as "warning_closed". The job was read as payment_status='chargeback' but restoring it to ${restoredPaymentStatus} matched zero rows — payment_status changed underneath the webhook. Check the job's payment_status and disputed_at by hand; no sweep will pick it up if it is still blocked.`,
+            fields: {
+              "Dispute ID": closedDispute.id,
+              "Job ID": String(closedJob.id),
+              "Intended payment_status": restoredPaymentStatus,
+            },
+            link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
+          });
         } else {
           // Job was not in "chargeback" state — it was already released when the
           // inquiry came in (shouldBlockPayout was false), so no payout was blocked.
@@ -226,4 +251,37 @@ export async function handleChargeDisputeClosed(
     },
     link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
   });
+}
+
+/**
+ * The payment_status a chargeback-blocked job held before
+ * charge.dispute.created flipped it to "chargeback".
+ *
+ * The block only ever applies to escrow or payout_pending, so the answer is one
+ * of those two. It is derived, not recorded (no schema change, and it also
+ * answers for jobs blocked before this fix shipped):
+ *
+ *   - a scheduled payout means payout_pending. Every edge writer that moves a
+ *     job from escrow to payout_pending (auto-release-payment, create-payment's
+ *     two-sided release, the re-pay checkout, auto-resolve-disputes) stamps
+ *     payout_scheduled_at in the same write, and nothing moves a job from
+ *     payout_pending back to escrow;
+ *   - a completed job with no schedule means payout_pending. This covers a
+ *     payout the transfer-failure handlers re-queued on a job released by
+ *     hand. It is NOT exact for a completed + escrow job (rpc_decide_dispute
+ *     leaves one), but no money moves wrongly: process-scheduled-payouts skips
+ *     a null payout_scheduled_at, and execute-dispute-split and the admin
+ *     payout batches treat escrow and payout_pending alike on a completed job;
+ *   - otherwise the work was not done and the money was still in escrow.
+ *
+ * Deliberately NOT keyed on poster_completed_at + helper_completed_at: the
+ * auto-release path completes a job 24h after the helper marks done with the
+ * poster stamp still null, so a stamps rule would restore that completed job
+ * to escrow — which auto-release-payment does not read either.
+ */
+export function preChargebackPaymentStatus(job: {
+  status?: string | null;
+  payout_scheduled_at?: string | null;
+}): "escrow" | "payout_pending" {
+  return job.payout_scheduled_at || job.status === "completed" ? "payout_pending" : "escrow";
 }

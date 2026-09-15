@@ -411,6 +411,126 @@ describe("stripe-webhook edge function", () => {
     });
   });
 
+  describe("charge.dispute.closed restores the pre-dispute payment state", () => {
+    // charge.dispute.created blocks only a PAYABLE job (escrow or
+    // payout_pending) by flipping it to 'chargeback'. A dismissed inquiry used
+    // to write payout_pending back unconditionally, so a job whose work was not
+    // done yet (escrow) landed in a state no sweep reads: auto-release-payment
+    // only takes escrow, process-scheduled-payouts only takes completed jobs
+    // with a payout_scheduled_at. Stranded.
+    function closedEvent(id: string, status: string) {
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id,
+        type: "charge.dispute.closed",
+        data: {
+          object: { id: `dp_${id}`, status, amount: 5000, payment_intent: "pi_disputed", charge: "ch_d" },
+        },
+      });
+    }
+    function unblockWrite() {
+      return scenario.writes.find(
+        (w) =>
+          w.table === "jobs" &&
+          w.op === "update" &&
+          "payment_status" in (w.payload as Record<string, unknown>),
+      );
+    }
+
+    it("dismissed on an in_progress job (work not done) returns it to escrow", async () => {
+      const fn = await loadConfigured();
+      closedEvent("evt_wc_escrow", "warning_closed");
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-ip", customer_id: "p", helper_id: "h", title: "Job",
+          payment_status: "chargeback", status: "in_progress", payout_scheduled_at: null,
+        }],
+      };
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(res.status).toBe(200);
+      const w = unblockWrite();
+      expect((w?.payload as Record<string, unknown>).payment_status).toBe("escrow");
+      expect((w?.payload as Record<string, unknown>).disputed_at).toBeNull();
+      // Still a compare-and-set on the block, and the row count is observable.
+      expect(w?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "chargeback" });
+      expect(w?.selectCols).toBe("id");
+    });
+
+    it("dismissed on a completed job with its payout scheduled returns it to payout_pending", async () => {
+      const fn = await loadConfigured();
+      closedEvent("evt_wc_pp", "warning_closed");
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-done", customer_id: "p", helper_id: "h", title: "Job",
+          payment_status: "chargeback", status: "completed",
+          payout_scheduled_at: "2026-09-13T00:00:00.000Z",
+        }],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect((unblockWrite()?.payload as Record<string, unknown>).payment_status).toBe("payout_pending");
+    });
+
+    it("a completed job with no payout schedule (hand-released, transfer re-queued) still returns to payout_pending", async () => {
+      const fn = await loadConfigured();
+      closedEvent("evt_wc_pp_nosched", "warning_closed");
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-requeued", customer_id: "p", helper_id: "h", title: "Job",
+          payment_status: "chargeback", status: "completed", payout_scheduled_at: null,
+        }],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect((unblockWrite()?.payload as Record<string, unknown>).payment_status).toBe("payout_pending");
+    });
+
+    it("the admin notice names the restored state (escrow is not a payout unblock)", async () => {
+      const fn = await loadConfigured();
+      closedEvent("evt_wc_notice", "warning_closed");
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-notice", customer_id: "p", helper_id: "h", title: "Job",
+          payment_status: "chargeback", status: "accepted", payout_scheduled_at: null,
+        }],
+      };
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const notices = scenario.writes.filter((w) => w.table === "notifications" && w.op === "insert");
+      expect(notices).toHaveLength(1);
+      expect((notices[0].payload as Record<string, unknown>).title).toMatch(/escrow/i);
+      expect((notices[0].payload as Record<string, unknown>).title).not.toMatch(/payout/i);
+    });
+
+    it("pages ops when the unblock matches zero rows on a job that was read as chargeback", async () => {
+      const fn = await loadConfigured();
+      closedEvent("evt_wc_zero", "warning_closed");
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-moved", customer_id: "p", helper_id: "h", title: "Job",
+          payment_status: "chargeback", status: "in_progress", payout_scheduled_at: null,
+        }],
+      };
+      scenario.writeSelectRows.jobs = [];
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(
+        slackAlerts.some((a) => /unblock matched no row/i.test((a as { title: string }).title)),
+      ).toBe(true);
+    });
+
+    it("a LOST dispute leaves payment_status untouched", async () => {
+      const fn = await loadConfigured();
+      closedEvent("evt_lost", "lost");
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-lost", customer_id: "p", helper_id: "h", title: "Job",
+          payment_status: "chargeback", status: "in_progress", payout_scheduled_at: null,
+        }],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(unblockWrite()).toBeUndefined();
+      const outcome = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+      expect((outcome?.payload as Record<string, unknown>).dispute_status).toBe("dispute_lost");
+    });
+  });
+
   describe("transfer.created (payout settlement)", () => {
     it("flips the ledger row to paid and the job to released", async () => {
       const fn = await loadConfigured();

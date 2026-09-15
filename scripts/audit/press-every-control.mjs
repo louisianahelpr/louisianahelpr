@@ -642,6 +642,22 @@ async function main() {
           target = target.first();
 
           const before = await snapshot();
+          // Was this control ALREADY in the state pressing it asks for? A tab
+          // that is the selected tab, a toggle already on — pressing it is
+          // supposed to do nothing, and "no observable change" is the correct
+          // outcome, not a defect. Re-pressing the active "Notifications › All"
+          // filter alone accounted for 11 failed presses on 2026-09-15.
+          // Read BEFORE the click, and narrow: this never excuses a control
+          // that was not already selected.
+          const alreadyActive = await target
+            .evaluate((el) =>
+              el.getAttribute("aria-selected") === "true" ||
+              el.getAttribute("aria-pressed") === "true" ||
+              el.getAttribute("aria-checked") === "true" ||
+              el.getAttribute("data-state") === "active" ||
+              el.getAttribute("data-state") === "checked" ||
+              el.getAttribute("aria-current") === "page")
+            .catch(() => false);
           const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length;
           try {
             await target.scrollIntoViewIfNeeded({ timeout: 2500 }).catch(() => {});
@@ -684,8 +700,10 @@ async function main() {
             after.hash !== before.hash ? `changed the DOM (${after.body - before.body >= 0 ? "+" : ""}${after.body - before.body} chars)` :
             after.focused !== before.focused ? "moved focus only" :
             "";
-          if (!changed) problems.push("no observable change");
-          else if (changed === "moved focus only") problems.push("no observable change (focus moved, nothing else)");
+          if (!alreadyActive) {
+            if (!changed) problems.push("no observable change");
+            else if (changed === "moved focus only") problems.push("no observable change (focus moved, nothing else)");
+          }
 
           entry.outcome = changed || "nothing";
           if (problems.length) {

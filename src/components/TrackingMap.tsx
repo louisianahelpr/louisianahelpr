@@ -1,7 +1,9 @@
-// TrackingMap — Uber-style live-tracking mini-map for in-progress jobs.
+// TrackingMap — tracking mini-map for in-progress jobs.
 //
-// Rendered inside JobTracking when a helper is "on_the_way" and their
-// live location (lat/lng from the job_tracking row) is available.
+// Rendered inside JobTracking from "on_the_way" until the job is marked done
+// (owner, 2026-09-14: "Keep map until done"), whenever the job_tracking row
+// carries a position. En route that position is live; after arrival it is the
+// last ping, and the helper pin says so.
 //
 // Uses the same Leaflet + react-leaflet stack as BrowseMap (react-leaflet
 // is already in the bundle; no new vendor or API-key path is introduced).
@@ -51,8 +53,10 @@ function withAccessibleName<T extends DivIcon>(icon: T, label: string): T {
   return icon;
 }
 
-// Helper pin — a moving vehicle indicator (olive circle with parchment center)
-function helperIcon() {
+// Helper pin — a moving vehicle indicator (olive circle with parchment center).
+// `live` is false once the helper has arrived: the point is then their last
+// ping, not a current position, and the accessible name must not claim more.
+export function helperIcon(live = true) {
   const olive = resolveToken("--olivewood", "hsl(83,18%,36%)");
   const parchment = resolveToken("--parchment", "#FAF8F5");
   const html = `
@@ -80,7 +84,7 @@ function helperIcon() {
       iconSize: leafletPoint(32, 32),
       iconAnchor: leafletPoint(16, 16),
     }),
-    "Your Helpr's current location",
+    live ? "Your Helpr's current location" : "Your Helpr's last shared location",
   );
 }
 
@@ -182,6 +186,8 @@ interface TrackingMapProps {
   destLng: number;
   /** Settled arrival fact to label the job pin with (VN-20), or null. */
   destinationLabel?: string | null;
+  /** True while en route (a live position); false once arrived (last ping). */
+  helperLive?: boolean;
 }
 
 export function TrackingMap({
@@ -190,6 +196,7 @@ export function TrackingMap({
   destLat,
   destLng,
   destinationLabel = null,
+  helperLive = true,
 }: TrackingMapProps) {
   return (
     <div
@@ -223,7 +230,7 @@ export function TrackingMap({
         {/* Helper — moving truck icon. Accessible name is stamped onto the
             marker's DOM node by `withAccessibleName` in `helperIcon()` above
             (see the comment there for why `alt` alone doesn't work here). */}
-        <Marker position={[helperLat, helperLng]} icon={helperIcon()} />
+        <Marker position={[helperLat, helperLng]} icon={helperIcon(helperLive)} />
         {/* Job destination — classic drop-pin, labelled with a settled
             arrival when there is one (VN-20). */}
         <Marker position={[destLat, destLng]} icon={destinationIcon(destinationLabel)} />

@@ -22,7 +22,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
-// pulled in when an active "on_the_way" tracking card is visible.
+// pulled in when a tracking card between On the Way and Done is visible.
 const TrackingMap = lazy(() =>
   import("@/components/TrackingMap").then((m) => ({ default: m.TrackingMap }))
 );
@@ -420,18 +420,41 @@ export function trackingProofCaption(
 }
 
 /**
- * Whether the live map mounts. Shared by the render and by the arrival-label
+ * The tracking-row steps the map is drawn on.
+ *
+ * KEEP THE MAP UNTIL DONE (owner, 2026-09-14, VN-20 pop-up: "Keep map until
+ * done"). This reverses the map being en-route only ("this should show map
+ * tracker when they're on the way"): it now stays from On the Way through
+ * Arrived and Working, so the arrival label on its job pin is actually seen,
+ * and hides once the job is marked done.
+ */
+const MAP_TRACKING_STATUSES = new Set(["on_the_way", "arrived", "working"]);
+
+/**
+ * Whether the map mounts. Shared by the render and by the arrival-label
  * placement (VN-20) so "the map shows the arrival" and "the map is on screen"
- * can never be two different answers. Shown only while the helper is en route
- * and both ends have coordinates — see the map block in the render.
+ * can never be two different answers.
+ *
+ * DRAWING THE MAP STARTS NO TRACKING. After On the Way the helper pin is the
+ * last position already on the `job_tracking` row; the position watch
+ * (`startEnRouteWatch`, the effect gated on `tracking.status === "on_the_way"`)
+ * still stops at arrival exactly as before.
+ *
+ * `markedDone` hides it once completion is submitted or settled — the helper's
+ * Done, the poster's approval, a completed job — including a job sent back for
+ * revision or disputed after submission, where the rail clamps to Working but
+ * the work was already handed in.
  */
 export function shouldShowTrackingMap(
   tracking: Pick<TrackingData, "status" | "latitude" | "longitude"> | null | undefined,
   jobLatitude: number | null | undefined,
   jobLongitude: number | null | undefined,
+  markedDone = false,
 ): boolean {
   return (
-    tracking?.status === "on_the_way" &&
+    !markedDone &&
+    !!tracking &&
+    MAP_TRACKING_STATUSES.has(tracking.status) &&
     tracking.latitude != null &&
     tracking.longitude != null &&
     jobLatitude != null &&
@@ -546,9 +569,9 @@ export function JobTracking({
   initialTracking?: TrackingData | null;
   /**
    * Job destination coordinates (from the jobs row). When provided alongside
-   * helper live location, an Uber-style mini-map is shown while the helper
-   * is "on_the_way". Both must be non-null for the map to render — the
-   * existing ETA text is shown as fallback.
+   * the helper's last tracking ping, a mini-map is shown from "on_the_way"
+   * until the job is marked done (owner, 2026-09-14). Both must be non-null
+   * for the map to render — the status line is the fallback.
    */
   jobLatitude?: number | null;
   jobLongitude?: number | null;
@@ -1372,7 +1395,13 @@ export function JobTracking({
   const arrivalCaption = arrivalStateLabel(currentArrivalState);
   // The settled arrival fact goes on the map's job pin when the map is drawn,
   // and falls back to the status line when it is not (VN-20).
-  const mapShown = shouldShowTrackingMap(tracking, jobLatitude, jobLongitude);
+  const markedDone =
+    currentStatusIdx >= STATUS_IDX.done ||
+    !!jobStamps.helperCompletedAt ||
+    !!jobStamps.posterCompletedAt ||
+    jobStatus === "completed" ||
+    jobStatus === "cancelled";
+  const mapShown = shouldShowTrackingMap(tracking, jobLatitude, jobLongitude, markedDone);
   const settledArrivalLabel = arrivalMapLabel(currentArrivalState);
   const arrivalOnMap = mapShown && settledArrivalLabel != null;
 
@@ -1963,12 +1992,16 @@ export function JobTracking({
           </p>
         )}
 
-      {/* Live-tracking map — shown while helper is on the way and both
-          positions are known (`shouldShowTrackingMap`). Lazy-loaded so the
-          Leaflet chunk isn't paid for by cards that never enter this state.
-          Falls back silently when coordinates are unavailable or the Leaflet
-          bundle hasn't loaded yet. A settled arrival rides on its job pin
-          (VN-20); the status line above drops that clause while it does. */}
+      {/* Tracking map — KEPT UNTIL DONE (owner, 2026-09-14: "Keep map until
+          done"; was en-route only). Shown from On the Way through Arrived and
+          Working while both positions are known (`shouldShowTrackingMap`),
+          for the Helpr and the poster alike, and hidden once the job is
+          marked done. Past On the Way the helper pin is the last ping on the
+          tracking row — the map draws it, it does not start or extend any
+          location watch. Lazy-loaded so the Leaflet chunk isn't paid for by
+          cards that never enter these steps. Falls back to the status line
+          when coordinates are unavailable. A settled arrival rides on its job
+          pin (VN-20); the status line above drops that clause while it does. */}
       {mapShown && tracking && jobLatitude != null && jobLongitude != null && (
           <Suspense fallback={null}>
             <TrackingMap
@@ -1977,6 +2010,7 @@ export function JobTracking({
               destLat={jobLatitude}
               destLng={jobLongitude}
               destinationLabel={arrivalOnMap ? settledArrivalLabel : null}
+              helperLive={tracking.status === "on_the_way"}
             />
           </Suspense>
         )}

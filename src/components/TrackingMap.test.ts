@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { destinationIcon } from "./TrackingMap";
+import { destinationIcon, helperIcon } from "./TrackingMap";
 
 /**
  * VN-20: the settled arrival fact is drawn ON the job pin. The label is
@@ -23,5 +23,12 @@ describe("TrackingMap destinationIcon", () => {
     const icon = destinationIcon("<img src=x onerror=alert(1)>");
     expect(String(icon.options.html)).not.toContain("onerror");
     expect(icon.createIcon().getAttribute("aria-label")).toBe("The job location");
+  });
+});
+
+describe("TrackingMap helperIcon", () => {
+  it("names a live position only while en route; after arrival it is the last ping", () => {
+    expect(helperIcon(true).createIcon().getAttribute("aria-label")).toBe("Your Helpr's current location");
+    expect(helperIcon(false).createIcon().getAttribute("aria-label")).toBe("Your Helpr's last shared location");
   });
 });

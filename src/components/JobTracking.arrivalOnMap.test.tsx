@@ -13,6 +13,10 @@ import { arrivalMapLabel, arrivalStateLabel } from "@/lib/arrivalGate";
  * caption. Those two settled facts now ride on the map's job pin, and when no
  * map is drawn they fall back to the status line under the rail — never to
  * nothing. Only the open "Awaiting poster" question stays on the rail.
+ *
+ * Owner pop-up, same day: "Keep map until done". The map used to exist only
+ * while the helper was en route — before any arrival could be settled — so it
+ * now stays through Arrived and Working and hides once the job is marked done.
  */
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
@@ -115,12 +119,19 @@ describe("VN-20 — arrival labels", () => {
     });
   });
 
-  it("the map gate needs en route plus both coordinate pairs", () => {
-    const enRoute = { status: "on_the_way", latitude: 30.2, longitude: -92.0 };
-    expect(shouldShowTrackingMap(enRoute, JOB_LAT, JOB_LNG)).toBe(true);
-    expect(shouldShowTrackingMap(enRoute, null, JOB_LNG)).toBe(false);
-    expect(shouldShowTrackingMap({ ...enRoute, latitude: null }, JOB_LAT, JOB_LNG)).toBe(false);
-    expect(shouldShowTrackingMap({ ...enRoute, status: "arrived" }, JOB_LAT, JOB_LNG)).toBe(false);
+  it("the map stays from On the Way through Arrived and Working, and hides once done", () => {
+    const ping = { latitude: 30.2, longitude: -92.0 };
+    for (const status of ["on_the_way", "arrived", "working"]) {
+      expect(shouldShowTrackingMap({ ...ping, status }, JOB_LAT, JOB_LNG)).toBe(true);
+    }
+    for (const status of ["assigned", "confirmed", "job_confirmed", "done"]) {
+      expect(shouldShowTrackingMap({ ...ping, status }, JOB_LAT, JOB_LNG)).toBe(false);
+    }
+    // Submitted / completed hides it even if the tracking row still says working.
+    expect(shouldShowTrackingMap({ ...ping, status: "working" }, JOB_LAT, JOB_LNG, true)).toBe(false);
+    // Both coordinate pairs are still required.
+    expect(shouldShowTrackingMap({ ...ping, status: "arrived" }, null, JOB_LNG)).toBe(false);
+    expect(shouldShowTrackingMap({ status: "arrived", latitude: null, longitude: null }, JOB_LAT, JOB_LNG)).toBe(false);
     expect(shouldShowTrackingMap(null, JOB_LAT, JOB_LNG)).toBe(false);
   });
 });
@@ -164,12 +175,64 @@ describe("VN-20 — rendered tracker", () => {
     expect(screen.getByTestId("arrival-fact-fallback").textContent).toContain("Poster confirmed arrival");
   });
 
-  it("no map drawn, tracking row present: the status line keeps the verification clause", () => {
+  it.each(["arrived", "working"])(
+    "map kept at %s: the poster-confirmed arrival rides on the job pin",
+    async (status) => {
+      renderTracker({
+        jobStatus: "in_progress",
+        posterConfirmedArrivalAt: AT,
+        jobLatitude: JOB_LAT,
+        jobLongitude: JOB_LNG,
+        initialTracking: {
+          id: "t-1",
+          status,
+          latitude: JOB_LAT,
+          longitude: JOB_LNG,
+          eta_minutes: null,
+          updated_at: AT,
+        },
+      });
+      expect((await screen.findByTestId("tracking-map")).getAttribute("data-destination-label")).toBe(
+        "Poster confirmed arrival",
+      );
+      expect(screen.queryByText("Poster confirmed")).toBeNull();
+      expect(screen.queryByText(/Poster confirmed arrival/)).toBeNull();
+      expect(screen.getByText(/Location shared · at the job/)).toBeTruthy();
+    },
+  );
+
+  it.each([
+    ["the helper marked Done", { initialTracking: { status: "done" } }],
+    ["completion was submitted", { helperCompletedAt: AT, initialTracking: { status: "working" } }],
+    ["the job is completed", { jobStatus: "completed", posterCompletedAt: AT, initialTracking: { status: "working" } }],
+  ] as const)("no map once %s — the status line keeps the verification clause", async (_label, over) => {
     renderTracker({
       jobStatus: "in_progress",
       posterConfirmedArrivalAt: AT,
       jobLatitude: JOB_LAT,
       jobLongitude: JOB_LNG,
+      ...over,
+      initialTracking: {
+        id: "t-1",
+        latitude: JOB_LAT,
+        longitude: JOB_LNG,
+        eta_minutes: null,
+        updated_at: AT,
+        ...over.initialTracking,
+      },
+    });
+    // Give the lazy map chunk every chance to appear before asserting it did not.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByTestId("tracking-map")).toBeNull();
+    expect(screen.getByText(/Poster confirmed arrival · last ping at the job/)).toBeTruthy();
+  });
+
+  it("no coordinates on the job: no map, the status line keeps the verification clause", () => {
+    renderTracker({
+      jobStatus: "in_progress",
+      posterConfirmedArrivalAt: AT,
+      jobLatitude: null,
+      jobLongitude: null,
       initialTracking: {
         id: "t-1",
         status: "arrived",
@@ -181,7 +244,7 @@ describe("VN-20 — rendered tracker", () => {
     });
     expect(screen.queryByTestId("tracking-map")).toBeNull();
     expect(screen.queryByText("Poster confirmed")).toBeNull();
-    expect(screen.getByText(/Poster confirmed arrival · last ping at the job/)).toBeTruthy();
+    expect(screen.getByText(/Poster confirmed arrival/)).toBeTruthy();
   });
 
   it("an unconfirmed claim keeps its amber caption on the rail", () => {

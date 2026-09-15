@@ -35,7 +35,11 @@ beforeAll(async () => {
     writeFileSync(GENERATED, `export const SHELL_HTML = ${JSON.stringify(html)};\n`);
     createdSnapshot = true;
   }
-  handler = (await import("../../api/share")).default;
+  // Imported by a runtime-built path so tsc (tsconfig.app.json covers src/
+  // only) does not pull api/share.ts and its build-time snapshot into the app
+  // project; vitest resolves it normally.
+  const sharePath = ["..", "..", "api", "share"].join("/");
+  handler = (await import(/* @vite-ignore */ sharePath)).default;
 });
 
 afterAll(() => {

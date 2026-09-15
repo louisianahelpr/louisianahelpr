@@ -53,16 +53,16 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-42 | Saved Helprs should be one column, not a grid | small | [x] f70abb054 | [x] vn-42-after-saved-helpers-1440.webp |
 | VN-43 | Remove the card design picker from gift cards | small | [x] c57c568be | [x] vn-43-after-gift-card-1440-occasion.webp |
 | VN-44 | Plus tier (and Once / Annual) don't look enticing (OWNER QUESTION + PRICING DECISION) | medium | [x] a4bd85fe0 | [x] vn-44-after-vn44-plus-375.webp |
-| VN-45 | Referrals says $15 earned / $15 to cash out, but 0 referrals and the rank tracker shows no | small–medium | [x] ec61d2ec0 | [ ] |
+| VN-45 | Referrals says $15 earned / $15 to cash out, but 0 referrals and the rank tracker shows no | small–medium | [x] ec61d2ec0 | [x] vn-45-after-referrals-breakdown-1440.webp |
 | VN-46 | Notifications settings page doesn't scroll | small–medium | [x] 27a7a4a09 | [x] vn-46-notifications-1440-bottom.png |
 | VN-47 | Legal tab — remove "Download your data", and "contact support" is listed twice | small | [x] 34f87f288 | [x] vn-47-after-datarights-signedin-375.webp |
 | VN-48 | Post a Job form labels aren't in Title Case | small | [x] e363d18d6 | [x] vn-48-after-postjob-1440-photo.webp |
 | VN-49 | "Require before & after photos" box is too spread out / badly positioned | small | [x] 05d3332f6 | [x] vn-49-after-postjob-1440-photo.webp |
 | VN-50 | How does a flexible-schedule job work on the tracker? (OWNER QUESTION — code read only) | medium | [ ] | [ ] |
-| VN-51 | Repeating job should say "Start Date", not "Date needed" | small | [ ] | [ ] |
+| VN-51 | Repeating job should say "Start Date", not "Date needed" | small | [x] e363d18d6 | [x] vn-51-after-postjob-recurring-375.webp |
 | VN-52 | Where is the Group job option? (OWNER QUESTION — code read only) | question | [ ] | [ ] |
 | VN-53 | Pet care job — "Which pet is this for?" doesn't show the pets I've saved | small | [x] 937bc9093 | [x] vn-53-after-vn53-picker-roundtrip-1440.webp |
-| VN-54 | Business name should show only after admin approves | small | [ ] | [ ] |
+| VN-54 | Business name should show only after admin approves | small | [x] 211c00c3c | [x] vn-54-after-profile-business-name-pending-vs-verified-375.webp |
 | VN-55 | Offered/hired Helpr must see the full address as text, not only on the map | small | [x] b1724cc69 | [x] vn-55-after-vn55-address-375.webp |
 
 ## Owner decisions (pop-ups, 2026-09-14)

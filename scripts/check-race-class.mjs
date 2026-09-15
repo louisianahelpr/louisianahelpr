@@ -298,11 +298,21 @@ export function loadBaseline() {
   return JSON.parse(readFileSync(BASELINE_PATH, "utf8"));
 }
 
+/**
+ * Two lists, one rule. `allow` is the grandfathered baseline — hits that have
+ * NOT been re-audited under this class. `safe` holds hits that WERE audited
+ * and proved safe with a concrete reason (a compare-and-set on payment_status
+ * the scanner cannot read, Stripe ground truth, a terminal status); see
+ * docs/audit/lifecycle-writes-audit-2026-09-14.md. Both are exact keys, both
+ * may only shrink, and a hit in neither fails — so a NEW unguarded write
+ * beside an audited one is still red.
+ */
 export function compare(hits, baseline) {
   const hitKeys = new Set(hits.map((h) => h.key));
-  const allowed = Object.keys(baseline.allow);
+  const known = { ...baseline.allow, ...(baseline.safe ?? {}) };
+  const allowed = Object.keys(known);
   return {
-    unexpected: hits.filter((h) => !(h.key in baseline.allow)),
+    unexpected: hits.filter((h) => !(h.key in known)),
     stale: allowed.filter((k) => !hitKeys.has(k)),
   };
 }

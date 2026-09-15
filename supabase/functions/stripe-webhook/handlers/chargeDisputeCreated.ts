@@ -71,18 +71,50 @@ export async function handleChargeDisputeCreated(
       // Only flip payment_status if the payout hasn't been finalized yet —
       // 'released' jobs already paid the helper so we leave the status alone
       // and let ops handle the net loss manually.
-      const shouldBlockPayout = ["payout_pending", "escrow"].includes(
+      let shouldBlockPayout = ["payout_pending", "escrow"].includes(
         chargebackJob.payment_status,
       );
+      const disputedAt = new Date().toISOString();
 
-      const { error: blockUpdateErr } = await supabase
-        .from("jobs")
-        .update({
-          ...(shouldBlockPayout ? { payment_status: "chargeback" } : {}),
-          dispute_status: "stripe_chargeback",
-          disputed_at: new Date().toISOString(),
-        })
-        .eq("id", chargebackJob.id);
+      // The block is a COMPARE-AND-SET on the payment state it was decided
+      // from (race-class audit 2026-09-14). Matched on id alone, a payout that
+      // settled between the read above and this write (process-scheduled-payouts
+      // flipping payout_pending → released) was overwritten to 'chargeback' —
+      // hiding a paid Helpr from ops, and a later warning_closed then walked
+      // that job back to payout_pending, re-queuing money that had already left.
+      // Likewise a cancel_escrow holding 'cancelling' was stomped mid-refund.
+      // Zero rows means the job left the payable set: fall through to the
+      // marker-only write, exactly as the already-released branch does.
+      let blockUpdateErr: { message: string } | null = null;
+      if (shouldBlockPayout) {
+        const { data: blocked, error: blockErr } = await supabase
+          .from("jobs")
+          .update({
+            payment_status: "chargeback",
+            dispute_status: "stripe_chargeback",
+            disputed_at: disputedAt,
+          })
+          .eq("id", chargebackJob.id)
+          .in("payment_status", ["payout_pending", "escrow"])
+          .select("id");
+        blockUpdateErr = blockErr;
+        if (!blockErr && (!blocked || blocked.length === 0)) {
+          logStep("Chargeback block skipped — payment_status left the payable set since read", {
+            jobId: chargebackJob.id,
+            readPaymentStatus: chargebackJob.payment_status,
+          });
+          shouldBlockPayout = false;
+        }
+      }
+      if (!blockUpdateErr && !shouldBlockPayout) {
+        // Markers only — no lifecycle column, so no state to race. disputed_at
+        // is still what every payout guard keys on.
+        const { error: markerErr } = await supabase
+          .from("jobs")
+          .update({ dispute_status: "stripe_chargeback", disputed_at: disputedAt })
+          .eq("id", chargebackJob.id);
+        blockUpdateErr = markerErr;
+      }
 
       if (blockUpdateErr) {
         // The DB write failed — dispute markers (disputed_at, dispute_status,
@@ -120,7 +152,7 @@ export async function handleChargeDisputeCreated(
       logStep(
         shouldBlockPayout
           ? "Blocked payout on chargebacked job"
-          : "Chargeback on already-released job — manual reconciliation needed",
+          : "Chargeback on a job outside the payable set (released, or moved since read) — markers only, manual reconciliation needed",
         {
           jobId: chargebackJob.id,
           prevPaymentStatus: chargebackJob.payment_status,

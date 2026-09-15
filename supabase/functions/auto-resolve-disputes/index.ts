@@ -382,7 +382,18 @@ Deno.serve(async (req) => {
       // Optimistic concurrency: guard on payment_status="escrow" so a chargeback
       // webhook that fires between our read and this write (flipping the job to
       // "chargeback"/"refunded") isn't blindly overwritten with "payout_pending".
-      const { data: claimed, error: updateErr } = await supabase
+      //
+      // AND on the dispute state this run read (race-class audit 2026-09-14).
+      // Two party moves keep payment_status 'escrow' and were overwritten:
+      //   rpc_withdraw_dispute  restores status (in_progress/…) — the flip then
+      //                         wrote completed + payout_pending on a job the
+      //                         parties had just taken back out of dispute.
+      //   rpc_escalate_dispute  sets dispute_status 'escalated' with status
+      //                         still disputed — the flip then paid the Helpr
+      //                         out of a dispute the poster had just handed to
+      //                         an admin, the one outcome escalation exists to stop.
+      // The Stripe round-trips above hold this row unlocked, so the window is real.
+      let claimQuery = supabase
         .from("jobs")
         .update({
           status: "completed",
@@ -396,15 +407,27 @@ Deno.serve(async (req) => {
           dispute_reason: `[AUTO-RESOLVED] Original: ${job.dispute_reason || "N/A"}. Dispute expired after 72 hours without resolution. Payment released to Helpr.`,
         })
         .eq("id", job.id)
+        .eq("status", "disputed")
         .eq("payment_status", "escrow")
-        .select("id");
+        // A withdraw + re-file inside the window returns disputed/open again
+        // (ABA): the deadline and filer pin it to the dispute this run judged —
+        // a re-filed dispute has a fresh 72h clock, and a Helpr-filed one must
+        // escalate (above), never pay.
+        .lte("dispute_deadline", new Date().toISOString());
+      claimQuery = job.dispute_status == null
+        ? claimQuery.is("dispute_status", null)
+        : claimQuery.eq("dispute_status", job.dispute_status);
+      claimQuery = job.disputed_by == null
+        ? claimQuery.is("disputed_by", null)
+        : claimQuery.eq("disputed_by", job.disputed_by);
+      const { data: claimed, error: updateErr } = await claimQuery.select("id");
 
       if (updateErr) {
         console.error(`Failed to resolve dispute for job ${job.id}:`, updateErr);
         continue;
       }
       if (!claimed || claimed.length === 0) {
-        console.log(`[auto-resolve-disputes] job ${job.id} payment_status changed since read (chargeback/refund race); skipping.`);
+        console.log(`[auto-resolve-disputes] job ${job.id} status, dispute_status or payment_status changed since read (withdraw / escalate / chargeback race); skipping.`);
         continue;
       }
 

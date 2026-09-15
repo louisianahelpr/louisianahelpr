@@ -248,12 +248,23 @@ serve(async (req) => {
        * payments' abandoned sweep only selects 'unpaid', and payment_failed only
        * stamps over null-or-'unpaid'. Leaving it 'abandoned'/'failed' would mint
        * a live checkout that none of those three can ever clean up again.
+       *
+       * The write is ALSO guarded on the re-mintable payment_status set read
+       * above (race-class audit 2026-09-14). The session-id guard cannot see
+       * the one funding path that leaves stripe_session_id alone:
+       * redeem_gift_card locks the job, checks 'unpaid' and flips it to
+       * 'escrow' without touching the session column. A gift tap racing a card
+       * tap on the same job let this stamp write that funded job back to
+       * 'unpaid' with a live Checkout URL on it — pay that and the job is
+       * funded twice. Zero rows then falls to the re-check below, which does
+       * not find our session and fails the request before a URL is returned.
        */
       const stampSession = async (newSessionId: string, extra: Record<string, unknown>) => {
         let q = supabaseAdmin
           .from("jobs")
           .update({ stripe_session_id: newSessionId, payment_status: "unpaid", ...extra })
-          .eq("id", jobId);
+          .eq("id", jobId)
+          .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)");
         q = previousSessionId
           ? q.eq("stripe_session_id", previousSessionId)
           : q.is("stripe_session_id", null);
@@ -907,14 +918,36 @@ serve(async (req) => {
       if (job.customer_id !== user.id) throw new Error("Not authorized");
       if (job.status !== "in_progress") throw new Error("Job must be in progress to request revision");
 
+      // Conditional on the status just read (race-class audit 2026-09-14).
+      // enforce_job_status_transition already refuses completed/disputed/
+      // cancelled → revision_requested, but a same-status write passes it: a
+      // double-tap re-stamped revision_requested_at and the note and sent the
+      // Helpr a second "Revision requested", and a request queued behind the
+      // Helpr's resolve_revision would have rewritten the note on a revision
+      // they had just delivered.
       const { data: revisionUpdated, error: revisionUpdateErr } = await supabaseAdmin.from("jobs").update({
         status: "revision_requested",
         revision_note: note || "The poster has requested revisions.",
         revision_requested_at: new Date().toISOString(),
-      }).eq("id", jobId).select("id");
-      if (revisionUpdateErr || !revisionUpdated || revisionUpdated.length === 0) {
-        console.error("[create-payment] request_revision update failed:", revisionUpdateErr ?? "matched 0 rows");
+      }).eq("id", jobId).eq("status", "in_progress").select("id");
+      if (revisionUpdateErr) {
+        console.error("[create-payment] request_revision update failed:", revisionUpdateErr);
         throw new Error("Failed to record revision request — please try again");
+      }
+      if (!revisionUpdated || revisionUpdated.length === 0) {
+        // Zero rows: the job left in_progress between the read and the write.
+        // Re-read to tell "a concurrent request already did this" (a clean,
+        // notification-free success) from "the job moved somewhere else".
+        const { data: nowJob, error: nowErr } = await supabaseAdmin
+          .from("jobs").select("status").eq("id", jobId).maybeSingle();
+        if (!nowErr && nowJob?.status === "revision_requested") {
+          return new Response(JSON.stringify({ success: true, alreadyRequested: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+          });
+        }
+        console.error("[create-payment] request_revision matched 0 rows; job now:", nowErr ?? nowJob?.status);
+        if (nowErr) throw new Error("Failed to record revision request — please try again");
+        throw new Error("This job is no longer in progress, so a revision can't be requested. Refresh to see its current state.");
       }
 
       if (job.helper_id) {
@@ -945,13 +978,35 @@ serve(async (req) => {
       const now = new Date();
       const acceptanceDeadline = new Date(now.getTime() + 72 * 60 * 60 * 1000);
 
+      // Conditional on a revision still open and not yet delivered (race-class
+      // audit 2026-09-14). Matched on id alone, the stamp landed on whatever the
+      // job had become: auto-release-payment's undelivered-revision sweep or the
+      // poster opening a dispute flips revision_requested → disputed, and the
+      // Helpr's queued stamp then wrote a 72h acceptance deadline onto a disputed
+      // job and told the poster "If you do nothing, payment auto-releases" about
+      // money an admin now decides. `revision_completed_at IS NULL` is the
+      // double-tap guard: set_revision_deadline clears it on every new request,
+      // so it is null exactly while a delivery is owed.
       const { data: resolveUpdated, error: resolveUpdateErr } = await supabaseAdmin.from("jobs").update({
         revision_completed_at: now.toISOString(),
         revision_acceptance_deadline: acceptanceDeadline.toISOString(),
-      }).eq("id", jobId).select("id");
-      if (resolveUpdateErr || !resolveUpdated || resolveUpdated.length === 0) {
-        console.error("[create-payment] resolve_revision update failed:", resolveUpdateErr ?? "matched 0 rows");
+      }).eq("id", jobId).eq("status", "revision_requested").is("revision_completed_at", null).select("id");
+      if (resolveUpdateErr) {
+        console.error("[create-payment] resolve_revision update failed:", resolveUpdateErr);
         throw new Error("Failed to record revision completion — please try again");
+      }
+      if (!resolveUpdated || resolveUpdated.length === 0) {
+        const { data: nowJob, error: nowErr } = await supabaseAdmin
+          .from("jobs").select("status, revision_completed_at").eq("id", jobId).maybeSingle();
+        if (!nowErr && nowJob?.status === "revision_requested" && nowJob?.revision_completed_at) {
+          // A concurrent tap already delivered it — no second deadline, no second notice.
+          return new Response(JSON.stringify({ success: true, alreadyResolved: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+          });
+        }
+        console.error("[create-payment] resolve_revision matched 0 rows; job now:", nowErr ?? nowJob?.status);
+        if (nowErr) throw new Error("Failed to record revision completion — please try again");
+        throw new Error("No revision pending — this job has moved on. Refresh to see its current state.");
       }
 
       await supabaseAdmin.from("notifications").insert({
@@ -1116,10 +1171,16 @@ serve(async (req) => {
       // platform pays twice. 'cancelling' stays claimable so a run that
       // failed after the claim can be retried (the Stripe idempotency
       // key below makes the refund itself single-shot either way).
+      //
+      // The claim is also pinned to the status just read (race-class audit
+      // 2026-09-14), so the final flip below can carry the same predicate: a
+      // job that moved (a dispute opened, a completion landed) between the read
+      // and here is refused BEFORE the refund, not discovered after it.
       const { data: claimed, error: claimErr } = await supabaseAdmin
         .from("jobs")
         .update({ payment_status: "cancelling" })
         .eq("id", jobId)
+        .eq("status", job.status)
         .in("payment_status", ["escrow", "cancelling"])
         .select("id");
       if (claimErr) {
@@ -1242,17 +1303,68 @@ serve(async (req) => {
       // The refund is already out — a failed status flip here must be LOUD,
       // or the job stays "in progress" on a refunded payment (helper still
       // sees it, auto-release could treat it as payable).
-      const { data: cancelUpdated, error: cancelUpdateErr } = await supabaseAdmin.from("jobs").update({
+      //
+      // Conditional on OUR claim (race-class audit 2026-09-14): payment_status
+      // still 'cancelling' and status still what the claim pinned. Matched on id
+      // alone this overwrote whatever landed during the Stripe round-trips —
+      // open_dispute_as's in_progress → disputed (the transition matrix allows
+      // disputed → cancelled, leaving an open dispute on a cancelled, refunded
+      // job) or a chargeback's payment_status — with cancelled/cancelled.
+      let { data: cancelUpdated, error: cancelUpdateErr } = await supabaseAdmin.from("jobs").update({
         payment_status: "cancelled",
         status: "cancelled",
         cancelled_at: new Date().toISOString(),
         cancelled_by: user.id,
-      }).eq("id", jobId).select("id");
+      }).eq("id", jobId).eq("status", job.status).eq("payment_status", "cancelling").select("id");
+      if (!cancelUpdateErr && (!cancelUpdated || cancelUpdated.length === 0)) {
+        // A concurrent retry of this same cancel (the claim re-admits
+        // 'cancelling', the refund key dedupes) may have flipped it first.
+        // That is this request's outcome too, not a divergence.
+        const { data: nowJob } = await supabaseAdmin
+          .from("jobs").select("id, status, payment_status").eq("id", jobId).maybeSingle();
+        if (nowJob?.status === "cancelled" && nowJob?.payment_status === "cancelled") {
+          cancelUpdated = [{ id: nowJob.id }];
+        } else if (nowJob?.payment_status === "cancelling") {
+          // Our claim still holds but the STATUS moved during the refund — in
+          // practice open_dispute_as (it does not look at payment_status). The
+          // refund is what actually happened, so cancelled must still win:
+          // leaving the job `disputed` on a refunded charge lets Quick Release
+          // (which gates on status alone) pay the Helpr out of money already
+          // returned. Forced on the claim alone — never over a chargeback or
+          // anything else that moved payment_status — and paged, because the
+          // dispute record it overrode needs a human to close it.
+          const { data: forced, error: forceErr } = await supabaseAdmin.from("jobs").update({
+            payment_status: "cancelled",
+            status: "cancelled",
+            cancelled_at: new Date().toISOString(),
+            cancelled_by: user.id,
+          }).eq("id", jobId).eq("payment_status", "cancelling").select("id");
+          cancelUpdated = forced;
+          cancelUpdateErr = forceErr;
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "critical",
+            title: "Escrow cancellation refunded a job whose status moved mid-refund",
+            message:
+              `cancel_escrow refunded job ${jobId} while its status moved ${job.status} → ${nowJob.status}. ` +
+              `${!forceErr && forced && forced.length > 0 ? "The job was forced to cancelled" : "The forced cancel ALSO failed"}; ` +
+              "close any open dispute on it and confirm no payout is queued.",
+            fields: { job_id: jobId, read_status: job.status, status_at_flip: nowJob.status, forced: String(!forceErr && !!forced?.length) },
+          });
+        }
+      }
       // .select("id"): a zero-row match here (error === null) is exactly the
       // "refund issued but status never flipped" case the comment above warns
       // about — must be caught the same as a real error, not silently passed.
       if (cancelUpdateErr || !cancelUpdated || cancelUpdated.length === 0) {
         console.error(`CRITICAL: refund issued for job ${jobId} (pi ${job.stripe_payment_intent_id}) but jobs.update to cancelled failed — manual reconciliation needed:`, cancelUpdateErr ?? "matched 0 rows");
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "Escrow cancellation refunded but the job did not flip to cancelled",
+          message: `cancel_escrow issued the refund for job ${jobId} but the jobs update did not land. The job may still look payable — reconcile by hand.`,
+          fields: { job_id: jobId, payment_intent: job.stripe_payment_intent_id ?? "—", reason: (cancelUpdateErr?.message ?? "matched 0 rows").slice(0, 200) },
+        });
         return new Response(JSON.stringify({
           error: "refund issued but job status update failed — contact support",
           stripe_payment_intent_id: job.stripe_payment_intent_id,

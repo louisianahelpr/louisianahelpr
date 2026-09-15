@@ -380,10 +380,21 @@ serve(async (req) => {
       // it can flip payment_status to "chargeback" before us. Without this WHERE
       // clause our UPDATE blindly overwrites "chargeback" with "payout_pending",
       // letting process-scheduled-payouts pay out a disputed/chargebacked job.
+      //
+      // AND on the status this run read (race-class audit 2026-09-14). The
+      // payment_status guard alone cannot see the two lifecycle moves that
+      // leave escrow untouched: open_dispute_as flips in_progress → disputed
+      // and a revision request flips in_progress → revision_requested, both
+      // with payment_status still 'escrow'. The Stripe round-trips above hold
+      // this row unlocked for hundreds of ms, and enforce_job_status_transition
+      // allows disputed → completed and revision_requested → completed, so a
+      // dispute filed in that window was overwritten to completed/payout_pending
+      // and the payout cron paid the Helpr on a job under dispute.
       const { data: claimed, error: releaseErr } = await supabaseAdmin
         .from("jobs")
         .update({ status: "completed", payment_status: "payout_pending", payout_scheduled_at: payoutTime })
         .eq("id", job.id)
+        .eq("status", job.status)
         .eq("payment_status", "escrow")
         .select("id");
       if (releaseErr) {
@@ -392,7 +403,7 @@ serve(async (req) => {
         continue;
       }
       if (!claimed || claimed.length === 0) {
-        console.log(`[auto-release-payment] job ${job.id} payment_status changed since read (chargeback race); skipping.`);
+        console.log(`[auto-release-payment] job ${job.id} status or payment_status changed since read (dispute / revision / chargeback race); skipping.`);
         results.push({ job_id: job.id, status: "skipped_status_changed" });
         continue;
       }

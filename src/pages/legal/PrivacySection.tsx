@@ -3,10 +3,33 @@ import {
   Database, Eye, Shield, Lock, Trash2, Cookie, Users, Wallet, Scale,
   CheckCircle, FileText, ShieldCheck,
 } from "lucide-react";
-import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
+import { useContext, type ReactNode } from "react";
+import {
+  PolicyRowItem,
+  PolicySection,
+  PolicySearchContext,
+  policySearchMatches,
+} from "@/components/policy/CollapsedPolicy";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
 import { LAST_UPDATED } from "./legalSections";
 import { DataExportCard, DATA_EXPORT_ANCHOR } from "./DataExportCard";
+
+/** The row whose "Download your data" link points at the export card. */
+const PORTABILITY_ROW_TITLE = "Deletion & portability";
+
+/**
+ * The export card's search behaviour. It used to sit in <HideOnSearch>, but the
+ * "Deletion & portability" row links to it (`#download-your-data`) and that row
+ * STAYS visible whenever a search matches its title — so during a search the
+ * link pointed at nothing. The card is now shown during a search whenever that
+ * row would be (same predicate, same title), or when the query names the card
+ * itself; otherwise it stays out of the result list as before.
+ */
+const EXPORT_CARD_SEARCH_TEXT = `${PORTABILITY_ROW_TITLE} Download your data data portability export JSON`;
+const ExportCardOnSearch = ({ children }: { children: ReactNode }) => {
+  const query = useContext(PolicySearchContext);
+  return policySearchMatches(query, EXPORT_CARD_SEARCH_TEXT) ? <>{children}</> : null;
+};
 
 /* ───────────────────────  PRIVACY  ─────────────────────── */
 export const PrivacyContent = () => (
@@ -166,7 +189,7 @@ export const PrivacyContent = () => (
       />
       <PolicyRowItem
         icon={Trash2}
-        title="Deletion & portability"
+        title={PORTABILITY_ROW_TITLE}
         body={
           <>
             <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from <Link to="/profile" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Profile settings</Link> — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed.</p>
@@ -182,11 +205,12 @@ export const PrivacyContent = () => (
     </PolicySection>
 
     {/* The export control, right under the section that grants the right.
-        `/data-rights` redirects to this anchor (App.tsx). Hidden while
-        searching, like the other non-policy blocks. */}
-    <HideOnSearch>
+        `/data-rights` redirects to this anchor (DataRightsRedirect). Visible
+        during a search whenever the row that links here is — see
+        ExportCardOnSearch. */}
+    <ExportCardOnSearch>
       <DataExportCard />
-    </HideOnSearch>
+    </ExportCardOnSearch>
 
     <PolicySection
       icon={Cookie}

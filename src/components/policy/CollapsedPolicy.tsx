@@ -102,6 +102,11 @@ export type PolicyRow = {
 const matches = (query: string, haystack: string) =>
   !query.trim() || haystack.toLowerCase().includes(query.trim().toLowerCase());
 
+/** The one search predicate rows and sections filter on, exported so a block
+ *  that must stay in step with a row (PrivacySection's export card, which that
+ *  row links to) cannot drift from it. */
+export const policySearchMatches = matches;
+
 export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: PolicyRow) => {
   const query = useContext(PolicySearchContext);
   const isSearching = !!query.trim();

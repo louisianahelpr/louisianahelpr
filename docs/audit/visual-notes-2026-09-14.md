@@ -63,7 +63,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-52 | Where is the Group job option? (OWNER QUESTION — code read only) | question | [ ] | [ ] |
 | VN-53 | Pet care job — "Which pet is this for?" doesn't show the pets I've saved | small | [x] 937bc9093 | [x] vn-53-after-vn53-picker-roundtrip-1440.webp |
 | VN-54 | Business name should show only after admin approves | small | [ ] | [ ] |
-| VN-55 | Offered/hired Helpr must see the full address as text, not only on the map | small | [ ] | [ ] |
+| VN-55 | Offered/hired Helpr must see the full address as text, not only on the map | small | [x] b1724cc69 | [x] vn-55-after-vn55-address-375.webp |
 
 ## Owner decisions (pop-ups, 2026-09-14)
 

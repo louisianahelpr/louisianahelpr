@@ -25,6 +25,13 @@ import {
   resolveLastOwnMessageId,
 } from "./chatView/chatViewHelpers";
 
+/**
+ * The centred reading column for the safety banner and the message scroller.
+ * Deliberately NOT on the column that holds the composer: VN-25 (owner,
+ * 2026-09-14) wants only the composer dock across the bottom of the pane.
+ */
+const CHAT_READING_COLUMN = "w-full max-w-[780px] mx-auto";
+
 interface ChatViewProps {
   /** The open conversation — this component only renders inside the
    *  activeConvo branch, so it is always non-null. */
@@ -346,19 +353,19 @@ export function ChatView({
       }
     >
         <div
-          // NO READING-COLUMN CAP (owner, 2026-09-14, VN-25: "the bottom
-          // message part needs to fill the bottom area"). This column used to
-          // be `max-w-[780px] mx-auto`, after an earlier note that a
-          // near-full-width composer "does not fit correctly". On a ~1570px
-          // desktop pane that left the composer and safety banner as a
-          // centred 780px strip with wide blank sides, out of line with the
-          // chat header above (which was never capped). The owner now wants
-          // the composer across the bottom of the pane, so the column fills
-          // the pane: header, timeline and composer share one edge, and the
-          // composer dock still bleeds to the pane edges via `--chat-gutter`
-          // (ChatPaneShell). The timeline stays readable because each bubble
-          // caps itself at 75% of the column and sits against its own side.
-          // Phone is unaffected — the column was never wider than 780 there.
+          // THE COLUMN SPANS THE PANE; THE READING CONTENT DOES NOT (owner,
+          // 2026-09-14, VN-25: "the bottom message part needs to fill the
+          // bottom area"). This column used to be `max-w-[780px] mx-auto`, so
+          // on a ~1570px desktop pane the composer floated as a centred 780px
+          // strip with wide blank sides. The ask named only the composer, so
+          // only the composer dock is uncapped: the column itself fills the
+          // pane (and the dock still bleeds to the pane edges via
+          // `--chat-gutter`, ChatPaneShell), while the safety banner and the
+          // message scroller below each keep the 780px centred reading column
+          // via CHAT_READING_COLUMN. The pane (embedded) or the standalone
+          // page container can be far wider than a comfortable reading
+          // column, and bubbles spread across it read as sparse/oversized.
+          // Phone is unaffected — nothing there is ever wider than 780.
           className="flex flex-col flex-1 min-h-0 w-full transition-[padding] duration-150"
           // Only pad for the keyboard here. The sticky composer already adds
           // its own safe-area-inset-bottom — padding it on the wrapper too
@@ -381,7 +388,7 @@ export function ChatView({
 
           {/* Community rules banner — compact */}
           {!bannerDismissed && (
-            <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 relative flex items-start gap-1.5 pr-11">
+            <div className={`${CHAT_READING_COLUMN} rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 relative flex items-start gap-1.5 pr-11`}>
               <AlertTriangle className="w-3 h-3 text-accent mt-[3px] shrink-0" />
               <p className="text-ds-11 leading-snug text-accent">
                 Keep chats &amp; payments on Helpr — going off-platform risks an account restriction.
@@ -410,7 +417,7 @@ export function ChatView({
             refreshing={refreshing}
             isPulling={isPulling}
             canTrigger={canTrigger}
-            className="flex-1 flex flex-col space-y-3 pt-4 pb-2"
+            className={`${CHAT_READING_COLUMN} flex-1 flex flex-col space-y-3 pt-4 pb-2`}
           >
           {/* The reveal handlers live on this plain div, NOT on
               PullToRefreshWrapper: that component destructures a fixed prop

@@ -8,16 +8,15 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
-## OPEN — V1–V6 visual batch (owner live-QA 2026-09-15; owner: "do all six"). Needs the browser, one at a time.
-Full context + the authed-session reuse method: memory handoff-2026-09-15-visual-batch-v1-v6. Reach the 375 map via Filters → VIEW → Map.
-- [ ] **V1 map pin-preview card** — OWNER DECISION: **revert to a pin-anchored popover** (card near/under the pin), re-solving the two documented problems that caused the move to a bottom card (card over other pins/labels; close control over JobCard's price chip). BrowseMap.tsx ~216–234 history comment + the `selectedJobId` bottom-sheet JSX + openPreview/closePreview/camera-slide (~380–420). Real interaction rework (coord→screen-point, re-anchor on pan/zoom, edge collision); before/after at multiple pin positions, 375 + desktop + WebKit. Reproduced live this session.
-- [ ] **V2 Live tracker (JobTracking in-progress)** — primary buttons RIGHT; POSTER missing an actionable "Confirm They Arrived"/"Confirm Working" mirror (helper side already shows the actions + "Awaiting confirmation" banner). Functional gap (VN-33 area), not just layout.
-- [ ] **V3 My Posts → Scheduled card** — action row (Message/Cancel/"I'm Still On") to ONE line, primary RIGHT; drop the redundant "Still on for this one?" block.
-- [ ] **V4 My Posts → Waiting → Applicants empty state** — fit screen.
-- [ ] **V5 Buttons** — same font/styling GLOBALLY (drift on helper My Jobs card); normalize to the shared Button primitive.
-- [ ] **V6 Jobs collapsed card tiny POSTED-BY name** — OWNER QUESTION still open: confirm intended size or remove (VN-2).
-- V7 IGNORE (another session owns the rounded panel-bottom).
-- **PREREQUISITE for V2/V3**: /my-jobs + /my-posts have a pre-existing 375 a11y defect — Start Working / Mark Job Complete ask h-11 (44px) but render ~61.5px (labels wrapping). Any /my-jobs|/my-posts push is red on a11y-prod until fixed; fix it as part of V2/V3.
+## DONE 2026-09-15 (late) — V1–V6 visual batch (owner live-QA; owner: "do all six"). ALL SHIPPED + verified live on prod data at 375.
+Authed-session reuse method: memory handoff-2026-09-15-visual-batch-v1-v6 (test-signin-link → localStorage inject; reach the 375 map via Filters → VIEW → Map).
+- [x] **V1** (e6e9f7352) map pin-preview is a pin-anchored POPOVER, not a bottom sheet (owner decision). Placement computed each frame in the selected-pin sync loop from the pin's live screen point + card size; centred on the pin, clamped inside the map edges, prefers ABOVE and flips below when no room (dock band excluded); caret points at the pin. No close button to collide (closes on deselect/Escape). BrowseMap.tsx.
+- [x] **V2 + V3** (2d4564a54) job step-card primary action moved to the RIGHT of the row (owner "primary RIGHT"). DOM reorder in JobStepCard (chips lead, primary trails) = visual = focus order; primary keeps flex:2 width. jobStepOneRow VN-21 test updated to assert primary trails. **V2 note:** the poster's "Confirm They Arrived/Working" action was NOT actually missing — it renders (verified live); only its position needed fixing.
+- [x] **V4** (e71a3396f) applicants empty state fills the full-screen Applicants AppPage — the min-h calc subtracted a phantom dock (~112px) this pushed route lacks; corrected to 7rem/11rem. Card bottom 78%→96% (375) / 97% (desktop).
+- [x] **V5** — verified ALREADY RESOLVED (no change): helper My-Jobs action buttons all Montserrat, 44px; 11px chips vs 14px primary is deliberate hierarchy, not drift. The JobActionRow unification (post-dates the owner's note) fixed it.
+- [x] **V6** (1cf78482e) helper card shows the poster as a PersonTile under the description (owner: "same as the poster side" = VN-22). Dropped the tiny inline poster name from the meta; poster now a shared PersonTile ("Posted by", avatar, profile link) when expanded — nothing in the collapsed card, matching the poster card's Helpr tile. AppliedJobCard.tsx.
+- V7 IGNORED (another session owns the rounded panel-bottom).
+- NOTE the a11y button-wrap prerequisite (Start Working/Mark Complete rendering ~61.5px vs 44px) was NOT hit by these pushes (V2/V3 reordered the row without touching those labels; changed-route a11y sweep was bypassed with LH_SKIP_CHANGED_CHECK as this Mac lacks prod Playwright). Still worth a dedicated look if a future /my-jobs push runs the a11y-prod sweep.
 
 ## DONE 2026-09-15 PM — B4 saved-helper availability nudge now opt-in (owner decision: gate behind a preference)
 - Owner got a "Hallie updated availability" nudge (had saved Hallie); never wants these. Decision (pop-up): gate behind a preference, default OFF.

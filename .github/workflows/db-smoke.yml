@@ -35,6 +35,11 @@ on:
       - ".github/workflows/db-smoke.yml"
       - "scripts/ci/replay-migrations.sh"
   workflow_dispatch:
+    inputs:
+      exclude_migrations:
+        description: "RED-PROOF ONLY: space-separated migration timestamp prefixes to leave out of the replay (proves a check fails on the pre-fix set). Empty for a real run."
+        required: false
+        default: ""
 
 concurrency:
   # See migration-lint.yml — `github.workflow` separates db-deploy's call
@@ -102,7 +107,35 @@ jobs:
         # race-runner.yml replays exactly what this deploy gate replays. The
         # full history of both — why each shim exists, why each soft-allow is
         # scoped to its expected error — moved with the code into that script.
+        env:
+          # Empty on every push/workflow_call run (github.event is the push).
+          EXCLUDE_MIGRATIONS: ${{ github.event.inputs.exclude_migrations }}
         run: bash scripts/ci/replay-migrations.sh
+
+      # No view in an exposed schema may be client-writable. open_jobs_browse
+      # (owner postgres, BYPASSRLS, security_invoker off) held anon/authenticated
+      # INSERT/UPDATE/DELETE, so anyone could PATCH or DELETE a funded job with
+      # jobs RLS bypassed. Default privileges re-grant writes on every
+      # DROP+CREATE of a view, so this runs on the replayed schema: a migration
+      # that recreates a view without re-revoking cannot reach deploy.
+      # The same query runs live against prod in scripts/check-updatable-views.mjs.
+      - name: Smoke — no exposed-schema view is client-writable
+        run: |
+          set -euo pipefail
+          VIEWS=$(psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind IN ('v','m') AND n.nspname IN ('public','graphql_public')")
+          if [ "${VIEWS:-0}" -eq 0 ]; then
+            echo "::error::replayed schema has 0 views in public/graphql_public — the check would pass vacuously"
+            exit 1
+          fi
+          OUT=$(psql -v ON_ERROR_STOP=1 -At -F ' ' -f scripts/ci/client-writable-views.sql)
+          if [ -n "$OUT" ]; then
+            echo "$OUT" | while read -r schema view kind owner rest; do
+              echo "::error::$kind $schema.$view (owner $owner) client-writable: $rest"
+            done
+            echo "::error::FIX: in the migration that creates/recreates the view, REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON <view> FROM PUBLIC, anon, authenticated (MAINTAIN too on PG17, behind server_version_num). Keep GRANT SELECT."
+            exit 1
+          fi
+          echo "✅ $VIEWS exposed-schema views checked — none client-writable"
 
       - name: Smoke — post a job, expect triggers to fire cleanly
         # The actual P0: every INSERT INTO public.jobs invokes

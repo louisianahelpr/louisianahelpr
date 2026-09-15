@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { unwrapMutation, isWriteRejected } from "@/lib/mutationResult";
 
 /**
@@ -92,7 +93,7 @@ export async function blockUser(
     const message =
       String((error as { code?: string }).code ?? "") === "PGRST202"
         ? "Blocking is briefly unavailable while an update finishes deploying. Please try again in a minute."
-        : error.message || "Couldn't block this person — try again?";
+        : (rpcErrorMessage("block_user_and_settle", error) ?? (error.message || "Couldn't block this person — try again?"));
     return { ok: false, cancelledJobIds: [], settled: [], error: message };
   }
 

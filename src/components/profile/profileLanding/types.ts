@@ -1,4 +1,5 @@
 import type { Database } from "@/integrations/supabase/types";
+import type { HelperBadgeStats } from "@/lib/helperBadgeStats";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -32,6 +33,10 @@ export interface ProfileLandingProps {
   reviewCount: number;
   postedCount: number;
   completedCount: number;
+  /** Verification-ladder inputs AS A HELPR (VN-14): jobs worked and reviews
+   *  received as a Helpr. `null` while stats are loading — the badge then
+   *  withholds rather than guess. */
+  helperBadgeStats?: HelperBadgeStats | null;
   /* Payout status is NOT a prop: <ProfileLanding /> owns it via
      `useStripeConnectStatus()`, which reads the user straight from the
      `useCurrentUser` cache. Passing it down from the page meant the (slow,

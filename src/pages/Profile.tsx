@@ -210,6 +210,8 @@ const ProfilePage = () => {
   const postedCount = statsQuery.data?.postedCount ?? 0;
   const avgRating = statsQuery.data?.avgRating ?? null;
   const reviewCount = statsQuery.data?.reviewCount ?? 0;
+  // Ladder-badge inputs AS A HELPR (VN-14) — same builder as the public profile.
+  const helperBadgeStats = statsQuery.data?.helperBadgeStats ?? null;
 
   const reviews = reviewsQuery.data ?? [];
   const earningsJobs = earningsQuery.data?.jobs ?? [];
@@ -657,6 +659,7 @@ const ProfilePage = () => {
               reviewCount={reviewCount}
               postedCount={postedCount}
               completedCount={completedCount}
+              helperBadgeStats={helperBadgeStats}
               onSelectTab={(key) => setTab(key as Tab)}
               onNavigate={navigate}
               /* Inline job lists now load via an enabled-gated query that

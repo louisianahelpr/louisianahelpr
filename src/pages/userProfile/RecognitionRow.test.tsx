@@ -12,7 +12,7 @@ import { RecognitionRow } from "./RecognitionRow";
 function renderRow() {
   return render(
     <RecognitionRow
-      milestoneStats={{ completedJobs: 12, avgRating: 5, repeatHirePercent: 0, credentialTier: 0 }}
+      milestoneStats={{ completedJobs: 12, avgRating: 5, reviewCount: 12, repeatHirePercent: 0, credentialTier: 0 }}
       idVerified
       ladderProfile={null}
       ladderStats={null}

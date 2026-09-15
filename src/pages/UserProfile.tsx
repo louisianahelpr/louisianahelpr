@@ -99,6 +99,8 @@ const UserProfile = () => {
     workedJobs,
     completedWorkedJobs,
     completedWorkedCount,
+    badgeStats,
+    credentialTier,
     canReadReviewText,
     replyLatency,
     cancellationRate,
@@ -531,11 +533,14 @@ const UserProfile = () => {
             tierBadge={<SubscriptionTierBadge tier={profile.subscription_tier} />}
             recognition={
               <RecognitionRow
+                // AS A HELPR (VN-14, owner 2026-09-14): jobs worked, not posted
+                // + worked, and reviews received as a Helpr — `stats` is the
+                // headline total and stays on the tiles. `credentialTier` null
+                // = unknown, which withholds Licensed Pro without asserting 0.
                 milestoneStats={{
-                  completedJobs: stats.completedJobs,
-                  avgRating: stats.avgRating,
+                  ...badgeStats,
                   repeatHirePercent: data?.repeatHirePercent ?? 0,
-                  credentialTier: data?.credentialTier ?? 0,
+                  credentialTier,
                 }}
                 // Both the own-row flag AND the public `is_id_verified` column
                 // from get_safe_profiles — the direct select is RLS-blocked for
@@ -546,7 +551,7 @@ const UserProfile = () => {
                   (profile as unknown as { is_id_verified?: boolean }).is_id_verified === true
                 }
                 ladderProfile={tierProfile}
-                ladderStats={stats}
+                ladderStats={badgeStats}
                 credentials={profile as unknown as ComponentProps<typeof RecognitionRow>["credentials"]}
                 backgroundChecked={
                   (profile as unknown as { background_check_status?: string }).background_check_status === "verified"

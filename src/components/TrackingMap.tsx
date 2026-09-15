@@ -1,7 +1,9 @@
-// TrackingMap — Uber-style live-tracking mini-map for in-progress jobs.
+// TrackingMap — tracking mini-map for in-progress jobs.
 //
-// Rendered inside JobTracking when a helper is "on_the_way" and their
-// live location (lat/lng from the job_tracking row) is available.
+// Rendered inside JobTracking from "on_the_way" until the job is marked done
+// (owner, 2026-09-14: "Keep map until done"), whenever the job_tracking row
+// carries a position. En route that position is live; after arrival it is the
+// last ping, and the helper pin says so.
 //
 // Uses the same Leaflet + react-leaflet stack as BrowseMap (react-leaflet
 // is already in the bundle; no new vendor or API-key path is introduced).
@@ -51,8 +53,10 @@ function withAccessibleName<T extends DivIcon>(icon: T, label: string): T {
   return icon;
 }
 
-// Helper pin — a moving vehicle indicator (olive circle with parchment center)
-function helperIcon() {
+// Helper pin — a moving vehicle indicator (olive circle with parchment center).
+// `live` is false once the helper has arrived: the point is then their last
+// ping, not a current position, and the accessible name must not claim more.
+export function helperIcon(live = true) {
   const olive = resolveToken("--olivewood", "hsl(83,18%,36%)");
   const parchment = resolveToken("--parchment", "#FAF8F5");
   const html = `
@@ -80,15 +84,40 @@ function helperIcon() {
       iconSize: leafletPoint(32, 32),
       iconAnchor: leafletPoint(16, 16),
     }),
-    "Your Helpr's current location",
+    live ? "Your Helpr's current location" : "Your Helpr's last shared location",
   );
 }
 
-// Destination pin — classic drop-pin in burnt-sienna
-function destinationIcon() {
+// Arrival labels this pin may carry. A closed set, not free text: the label is
+// interpolated into divIcon HTML, so only these fixed strings may reach it.
+const DESTINATION_LABELS = new Set(["Location confirmed", "Poster confirmed arrival"]);
+
+// Destination pin — classic drop-pin in burnt-sienna.
+//
+// `label` is the settled arrival fact (owner, 2026-09-14, VN-20: "Location
+// confirmed does not need to show on the tracker, it should be on the map").
+// It sits as a small pill directly above the pin. The marker icon element is
+// `position: absolute`, so the pill anchors to the pin itself and moves with
+// it; the pin's 24x32 hit box is unchanged.
+export function destinationIcon(label?: string | null) {
   const sienna = resolveToken("--burnt-sienna", "#A0613B");
   const parchment = resolveToken("--parchment", "#FAF8F5");
-  const html = `
+  const ink = resolveToken("--ink-deep", "#2E2E28");
+  const safeLabel = label && DESTINATION_LABELS.has(label) ? label : null;
+  const labelHtml = safeLabel
+    ? `
+    <div data-arrival-label style="
+      position:absolute;left:50%;bottom:calc(100% + 3px);transform:translateX(-50%);
+      white-space:nowrap;padding:2px 7px;border-radius:9999px;
+      background:${parchment};color:${ink};
+      border:0.5px solid ${sienna};
+      box-shadow:0 2px 6px -2px rgba(46,46,40,0.35);
+      font-family:Montserrat,'Montserrat Fallback',system-ui,sans-serif;
+      font-size:10px;font-weight:600;line-height:1.45;
+      pointer-events:none;
+    ">${safeLabel}</div>`
+    : "";
+  const html = `${labelHtml}
     <svg width="24" height="32" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
       <path d="M14 0C6.27 0 0 6.27 0 14c0 9.5 14 22 14 22s14-12.5 14-22C28 6.27 21.73 0 14 0z"
         fill="${sienna}" />
@@ -103,7 +132,7 @@ function destinationIcon() {
       iconAnchor: leafletPoint(12, 32),
       popupAnchor: leafletPoint(0, -32),
     }),
-    "The job location",
+    safeLabel ? `The job location · ${safeLabel}` : "The job location",
   );
 }
 
@@ -114,11 +143,14 @@ function FitBounds({
   helperLng,
   destLat,
   destLng,
+  labelled,
 }: {
   helperLat: number;
   helperLng: number;
   destLat: number;
   destLng: number;
+  /** The job pin carries an arrival label — reserve room above it. */
+  labelled: boolean;
 }) {
   const map = useMap();
   useEffect(() => {
@@ -128,16 +160,20 @@ function FitBounds({
     // error_logs 13 times from /my-jobs (journeys lane, 2026-09-12). A 180px
     // preview gains nothing from the animation.
     try {
+      // A labelled pin stands ~54px above its point (32px pin + pill), so
+      // the top inset grows to keep the label inside the 180px frame.
       map.fitBounds(
         [[helperLat, helperLng], [destLat, destLng]],
-        { padding: [36, 36], maxZoom: 15, animate: false },
+        labelled
+          ? { paddingTopLeft: [36, 60], paddingBottomRight: [36, 36], maxZoom: 15, animate: false }
+          : { padding: [36, 36], maxZoom: 15, animate: false },
       );
     } catch {
       // fitBounds can throw when positions are identical — fall back to
       // centering on the helper at a reasonable zoom.
       map.setView([helperLat, helperLng], 13, { animate: false });
     }
-  }, [map, helperLat, helperLng, destLat, destLng]);
+  }, [map, helperLat, helperLng, destLat, destLng, labelled]);
   return null;
 }
 
@@ -148,6 +184,10 @@ interface TrackingMapProps {
   /** Job destination (from the jobs row). */
   destLat: number;
   destLng: number;
+  /** Settled arrival fact to label the job pin with (VN-20), or null. */
+  destinationLabel?: string | null;
+  /** True while en route (a live position); false once arrived (last ping). */
+  helperLive?: boolean;
 }
 
 export function TrackingMap({
@@ -155,6 +195,8 @@ export function TrackingMap({
   helperLng,
   destLat,
   destLng,
+  destinationLabel = null,
+  helperLive = true,
 }: TrackingMapProps) {
   return (
     <div
@@ -183,13 +225,15 @@ export function TrackingMap({
           helperLng={helperLng}
           destLat={destLat}
           destLng={destLng}
+          labelled={!!destinationLabel}
         />
         {/* Helper — moving truck icon. Accessible name is stamped onto the
             marker's DOM node by `withAccessibleName` in `helperIcon()` above
             (see the comment there for why `alt` alone doesn't work here). */}
-        <Marker position={[helperLat, helperLng]} icon={helperIcon()} />
-        {/* Job destination — classic drop-pin */}
-        <Marker position={[destLat, destLng]} icon={destinationIcon()} />
+        <Marker position={[helperLat, helperLng]} icon={helperIcon(helperLive)} />
+        {/* Job destination — classic drop-pin, labelled with a settled
+            arrival when there is one (VN-20). */}
+        <Marker position={[destLat, destLng]} icon={destinationIcon(destinationLabel)} />
       </MapContainer>
     </div>
   );

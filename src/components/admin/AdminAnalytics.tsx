@@ -231,9 +231,15 @@ const AdminAnalytics = () => {
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownUsers" } });
       setDrillUsers(data || []);
     } else if (type === "jobs" || type === "revenue" || type === "fees" || type === "payouts") {
-      const query = supabase.from("jobs").select("*").eq("is_seed", false).order("created_at", { ascending: false });
-      if (type === "revenue" || type === "fees") query.in("payment_status", ["escrow", "payout_pending", "released"]);
-      if (type === "payouts") query.in("payment_status", ["escrow", "payout_pending", "released"]);
+      // Reassign, never `query.in(…)` as a bare statement: today's
+      // postgrest-js mutates the builder and returns `this`, so a discarded
+      // filter still happens to apply — but it is one upstream release from
+      // being a silent no-op, and a filter dropped on a MONEY breakdown would
+      // list every job while looking filtered. scripts/check-discarded-query-filters.mjs
+      // fails CI on the shape.
+      let query = supabase.from("jobs").select("*").eq("is_seed", false).order("created_at", { ascending: false });
+      if (type === "revenue" || type === "fees") query = query.in("payment_status", ["escrow", "payout_pending", "released"]);
+      if (type === "payouts") query = query.in("payment_status", ["escrow", "payout_pending", "released"]);
       const { data, error } = await query;
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownJobs" } });
       setDrillJobs(data || []);

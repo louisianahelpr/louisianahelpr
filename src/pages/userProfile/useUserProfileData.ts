@@ -8,6 +8,12 @@ import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 import { pickRequestedProfile } from "@/lib/safeProfiles";
+import {
+  buildHelperBadgeStats,
+  helperSideFromRatings,
+  helperSideReviews,
+  type HelperSideReviews,
+} from "@/lib/helperBadgeStats";
 import type { ProfileReview, ProfileJob, ReplyLatency } from "./types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -526,9 +532,10 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
          different averages depending on who is looking. The client-side
          derivation underneath is the PGRST202 fallback and is left byte-for-
          byte as it was, so the deploy-lag window behaves exactly like today.
-         `avgRating` keeps its `0`-means-none contract because `computeBadges`
-         and `computeHelperTier` are written against it; nothing renders that 0
-         — every display site gates on `reviewCount > 0` first. */
+         `avgRating` keeps its `0`-means-none contract; nothing renders that 0
+         — every display site gates on `reviewCount > 0` first. These are the
+         HEADLINE numbers (posted + worked jobs, every review received). Badges
+         no longer read them — see `helperReviews` / `badgeStats` (VN-14). */
       const stats = {
         completedJobs: int(publicStats?.completed_jobs_total) ?? completedCount,
         avgRating:
@@ -755,7 +762,24 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
          SAMPLE SIZE behind the repeat-hire and rate stats — that is a
          denominator, not a second score, and it stays. */
 
+      /* BADGE INPUTS: reviews received AS A HELPR (VN-14). `stats.avgRating`
+         above is every review this person received, as a poster too — right
+         for the one headline rating, wrong for "Trusted Helpr · 4.5+". The
+         RPC publishes the poster-side split, so the helper side is recovered
+         from it (see helperSideReviews for when that is exact). The fallback
+         keeps only reviews on jobs this viewer can see they WORKED — a
+         .limit(20) page, so it can under-count, never mix in poster reviews. */
+      const workedJobIds = new Set(workedJobs.map((j) => j.id));
+      const helperReviews: HelperSideReviews = publicStats
+        ? helperSideReviews(publicStats)
+        : helperSideFromRatings(
+            allReviewRows
+              .filter((r) => workedJobIds.has(r?.job_id))
+              .map((r) => r.rating as number),
+          );
+
       return {
+        helperReviews,
         profile: {
           ...(prof as Profile),
           /* ProfileHeaderCard reads `background_check_status` straight off the
@@ -855,11 +879,14 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
           : typeof repeatHireRes?.data === "number"
           ? repeatHireRes.data
           : null,
-        // Credential tier 0-3 — 0 when the RPC errored/isn't deployed, which
-        // simply withholds the "Licensed Pro" milestone rather than claiming it.
+        // Credential tier 0-3, or NULL = UNKNOWN (VN-14, owner 2026-09-14).
+        // It used to fall back to 0 on any RPC error — an assertion that the
+        // person holds no license, made precisely when we could not find out.
+        // Unknown withholds the "Licensed Pro" badge only; the error itself is
+        // reported above (PGRST202 / 42501 are the designed benign cases).
         credentialTier:
           credentialTierRes?.error || typeof credentialTierRes?.data !== "number"
-            ? 0
+            ? null
             : credentialTierRes.data,
         // `helper_credentials` is RLS-scoped to the owner, so the amber
         // "Verification in progress" chip could only ever appear on your own
@@ -1041,6 +1068,10 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
      is a .limit(20) page of rows RLS hides from visitors; the count is a
      server-side aggregate. Render the count, list what you can load. */
   const completedWorkedCount = data?.completedAsHelperCount ?? completedWorkedJobs.length;
+  /* Every badge earned by working reads THIS, not `stats` (VN-14): the same
+     helper-only job count as the "Jobs completed" tile, and reviews received
+     as a Helpr. See src/lib/helperBadgeStats.ts. */
+  const badgeStats = buildHelperBadgeStats(completedWorkedCount, data?.helperReviews);
   const canReadReviewText = data?.canReadReviewText ?? true;
   const statSamples = data?.statSamples ?? {
     jobs: 0,
@@ -1087,6 +1118,8 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     workedJobs,
     completedWorkedJobs,
     completedWorkedCount,
+    badgeStats,
+    credentialTier: data?.credentialTier ?? null,
     canReadReviewText,
     statSamples,
     replyLatency,

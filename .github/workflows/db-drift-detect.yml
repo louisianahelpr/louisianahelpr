@@ -144,7 +144,7 @@ jobs:
       # every postgres-owned relation in public. So this reads the LIVE catalog
       # rather than trusting the migration to have stuck. Same
       # continue-on-error + fail-at-the-end shape as types_fresh.
-      - name: No owner-run view is client-writable
+      - name: No exposed-schema view is client-writable
         id: updatable_views
         continue-on-error: true
         if: steps.precheck.outputs.skip != 'true'
@@ -152,6 +152,23 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-updatable-views.mjs
+
+      # enforce_dispute_markers_server_owned (20260915033734) trusts every
+      # statement not running as anon/authenticated — i.e. every SECURITY
+      # DEFINER RPC, which runs as its owner postgres. That is only sound while
+      # no client-callable definer function writes jobs from a caller-supplied
+      # column list or JSON patch. The migrations are checked in vitest
+      # (jobsStateColumnGuard.test.ts); this reads LIVE pg_proc, which can hold
+      # a function no migration defines (a dashboard edit, an MCP apply, a
+      # failed replay). Same continue-on-error + fail-at-the-end shape.
+      - name: No client-callable definer function writes jobs from caller input
+        id: jobs_dynamic_writers
+        continue-on-error: true
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-jobs-dynamic-writers.mjs
 
       - name: Compute drift
         id: drift
@@ -371,6 +388,7 @@ jobs:
           MISSING_REPO: ${{ steps.drift.outputs.missing_repo }}
           TYPES_FRESH: ${{ steps.types_fresh.outcome }}
           UPDATABLE_VIEWS: ${{ steps.updatable_views.outcome }}
+          JOBS_DYNAMIC_WRITERS: ${{ steps.jobs_dynamic_writers.outcome }}
         run: |
           set -euo pipefail
           if [ "${TYPES_FRESH:-success}" = "failure" ]; then
@@ -379,8 +397,12 @@ jobs:
             failed=1
           fi
           if [ "${UPDATABLE_VIEWS:-success}" = "failure" ]; then
-            echo "::error::An exposed-schema view is owner-run (security_invoker off) AND client-writable — it bypasses the base table's RLS on write. See 'No owner-run view is client-writable' above."
-            echo "::error::FIX: REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON <view> FROM PUBLIC, anon, authenticated; keep GRANT SELECT. Note a DROP+CREATE re-opens it via default privileges."
+            echo "::error::An exposed-schema view is client-writable (a write door on its base table; an owner-run one bypasses RLS). See 'No exposed-schema view is client-writable' above."
+            echo "::error::FIX: REVOKE ALL ON <view> FROM PUBLIC, anon, authenticated; then GRANT SELECT back. Note a DROP+CREATE re-opens it via default privileges."
+            failed=1
+          fi
+          if [ "${JOBS_DYNAMIC_WRITERS:-success}" = "failure" ]; then
+            echo "::error::A client-callable SECURITY DEFINER function writes public.jobs from caller-supplied columns or a JSON patch (or the live read failed) — see 'No client-callable definer function writes jobs from caller input' above. It bypasses enforce_dispute_markers_server_owned's role trust."
             failed=1
           fi
           if [ "${MISSING_PROD:-0}" != "0" ] || [ "${MISSING_REPO:-0}" != "0" ]; then

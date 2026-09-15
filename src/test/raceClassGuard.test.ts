@@ -17,6 +17,10 @@ import * as guard from "../../scripts/check-race-class.mjs";
  */
 
 const FIX = "20260913014328";
+// 20260915051905 rebuilt enforce_application_job_state from its LIVE (post-fix,
+// FOR SHARE) body to change only its NULL-uid trust test, so it restates the
+// fix. "Pre-fix" therefore means leaving both out.
+const RESTATES_FIX = "20260915051905";
 const FIXTURES = resolve(__dirname, "fixtures/raceClass");
 const OFFER_HANDLERS = "src/pages/activity/activityActions/useOfferHandlers.ts";
 
@@ -24,7 +28,7 @@ type Hit = { key: string; file: string; line?: number };
 
 describe("race-class guard — red on the pre-fix code, green on the fix", () => {
   it("flags enforce_application_job_state when the FOR SHARE migration is absent", () => {
-    const keys = guard.sqlHits(guard.readMigrations({ exclude: [FIX] })).map((h: Hit) => h.key);
+    const keys = guard.sqlHits(guard.readMigrations({ exclude: [FIX, RESTATES_FIX] })).map((h: Hit) => h.key);
     expect(keys).toContain("sql:public.enforce_application_job_state");
   });
 

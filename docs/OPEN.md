@@ -14,8 +14,34 @@ fraction of fixing them one report at a time.
 
 ---
 
+## PROD IS NOT DEPLOYING — Vercel "Account is blocked" (found 2026-09-14 ~17:45 PDT)
+- [ ] OWNER (dashboard only): every push since 4bbd125c1 (16:13 PDT) gets Vercel status `failure — Account is blocked.` (https://vercel.com/knowledge/why-is-my-account-deployment-blocked). Hobby team `louisianahelprs-projects`. Live site still serves 70f93a220 (14:30 PDT); NOT live: a0833ef22 TrackingMap pins, 3c299b328 completeJob duplicate-release fix, f9f5b0617 (package.json). Open Vercel → team → Usage / notifications for the reason (Hobby usage limit or fair-use), resolve, then redeploy main. Prod freshness runs time out red until then; that red is this, not the commits.
+- [ ] After unblock: confirm `<meta name="build-commit">` on www.louisianahelpr.com is at or after the newest shipping commit. Consider stopping preview deploys for non-main branches (every lane branch push builds a preview and counts toward Hobby limits).
+
 ## Owner visual notes 2026-09-14 (53 entries)
 - [ ] Work through `docs/audit/visual-notes-2026-09-14.md`. Its Tracker table is the per-entry checklist: Fixed needs a commit on main, Confirmed needs a committed screenshot + "ok" review recorded after the fix. Guard: `npm run visual-notes:check` (proven red on a fake tick; unit test `src/test/checkVisualNotes.test.ts`). Small entries in progress 2026-09-14 (3 lanes); medium/large and design-discussion entries not started.
+
+## Browse header count disagrees with the rendered list — REPORT, not fixed (2026-09-14)
+Found while fixing VN-10 (map preview card was a dead tap). Owner's screenshot
+showed **"3 jobs"** in the Browse header over a list holding **one** card.
+- The header prints `filters.totalMatchingCount` (`useDashboardJobsCount`) —
+  a server-side `count: "exact", head: true` over `open_jobs_browse` that
+  reproduces only the filters expressible on that view (Dashboard.tsx:578).
+- The rendered list applies further predicates client-side that the count never
+  sees: **your own posts** (`job.customer_id === userId`) and **past-dated
+  jobs** (`date_needed < today`) in `useDashboardFilters.ts:256-262`, plus
+  applied-to and blocked-poster rows dropped in `useDashboardData`.
+- `clientOnlyNarrowing` (useDashboardFilters.ts:161) nulls the count only for
+  the radius and availability filters, so those other four gaps stand.
+`useDashboardJobsCount.ts:19-36` documents this as a deliberate "small
+over-count, never an under-count". That trade was made against an undercount
+bug, but the owner's case is the one it cannot survive: a poster browsing their
+own parish sees a header counting jobs the list will never show. The same rows
+are pinned on the map, which is how VN-10 surfaced.
+- [ ] Decide: subtract the client-only predicates server-side (own posts and
+  past-dated are both expressible on the view), or null the count whenever any
+  client-only predicate is actually removing rows — the `clientOnlyNarrowing`
+  mechanism already exists and just does not cover these.
 
 ## Failed list loads rendered "nothing here" + storage audit (2026-09-14)
 - [x] CLOSED: bell panel said "Nothing new yet." for a poster with 313 unread during the outage. The error card was reachable only from a resolved `{ error }`: a rejected query, an errored session read (auth down → treated as signed out) and a pending/hung load (postgrest retries in flight) all fell through to the empty state. Fix: one `failLoad` path, a 15 s bound on every read, and a `listLoaded` store flag, so there is a loading row until the first successful load. Guard `src/components/NotificationPanel.failedLoad.test.tsx` was red 4/6, now green 6/6. Prod proof at 375 (poster-e2e, local preview, `rest/v1/notifications` aborted): "Loading notifications…" while retries ran, then the error card with Try again, no empty state, overflow 0 (review-logged).
@@ -459,10 +485,12 @@ query does not (optimistic insert, realtime dupe).
 
 ## Browse map — controls and preview card escape the map bounds
 Owner, 2026-09-11 ("fix this bullshit"), with three screenshots:
-- The **recenter button** (`browse-map-recenter`, BrowseMap.tsx:843) sits half
+- The **recenter button** (renamed 2026-09-14 by VN-11: it is now
+  `browse-map-my-location` / `MyLocationControl`, and centres on the user) sits half
   outside the map's right edge — clipped against the boundary between the map
   and the page background.
-- The **job preview card** (`aside`, the drag-handle + close-X sheet) is cut off
+- The **job preview card** (`aside`; the drag-handle + close-X header lane was
+  removed 2026-09-14 by VN-9 — the sheet is now the card itself) is cut off
   at the bottom; its lower half runs past the visible map area.
 Both are `position: absolute` inside the map container — check what is actually
 establishing their containing block. CLAUDE.md's standing trap: any ancestor

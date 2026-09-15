@@ -21,6 +21,8 @@ fraction of fixing them one report at a time.
 ## Owner visual notes 2026-09-14 (53 entries)
 - [ ] Work through `docs/audit/visual-notes-2026-09-14.md`. Its Tracker table is the per-entry checklist: Fixed needs a commit on main, Confirmed needs a committed screenshot + "ok" review recorded after the fix. Guard: `npm run visual-notes:check` (proven red on a fake tick; unit test `src/test/checkVisualNotes.test.ts`). Small entries in progress 2026-09-14 (3 lanes); medium/large and design-discussion entries not started.
 
+- [x] **Map entries done 2026-09-14: VN-9, VN-10, VN-11** — Fixed and Confirmed in the tracker with committed screenshots (`docs/audit/visual-notes-2026-09-14/`), driven against prod from a local preview build because prod deploys are blocked. VN-10 needed two commits: the second BrowseMap (the desktop split map in Dashboard.tsx) had its own copy of the handler and stayed a dead tap after the first fix — both now share `openJobFromPin`. Side-finding filed below: the Browse header over-counts the rendered list.
+
 ## Browse header count disagrees with the rendered list — REPORT, not fixed (2026-09-14)
 Found while fixing VN-10 (map preview card was a dead tap). Owner's screenshot
 showed **"3 jobs"** in the Browse header over a list holding **one** card.

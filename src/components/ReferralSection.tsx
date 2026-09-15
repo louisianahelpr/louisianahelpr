@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,12 @@ const ReferralSection = ({ userId }: { userId: string }) => {
 
   const [copied, setCopied] = useState(false);
   const [cashingOut, setCashingOut] = useState(false);
+  // Stable idempotency token for the CURRENT cash-out attempt. Generated once
+  // and REUSED across retries (so a retry after an ambiguous/lost response
+  // replays the original Stripe transfer instead of double-paying — HM-1); only
+  // cleared after a confirmed success, so the next genuine cash-out gets a
+  // fresh id.
+  const cashOutAttemptId = useRef<string | null>(null);
 
   /**
    * Does this device have anything registered for the `sms:` scheme?
@@ -122,12 +128,20 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     const ok = await requireBiometric("Confirm your referral cash-out");
     if (!ok) return;
     setCashingOut(true);
+    // Reuse the pending attempt id if a prior try didn't confirm success, so the
+    // server keys Stripe on a stable value across the retry (HM-1). A brand-new
+    // cash-out starts a fresh id.
+    if (!cashOutAttemptId.current) cashOutAttemptId.current = crypto.randomUUID();
     try {
-      const { data: result, error } = await supabase.functions.invoke("cash-out-credits");
+      const { data: result, error } = await supabase.functions.invoke("cash-out-credits", {
+        body: { attemptId: cashOutAttemptId.current },
+      });
       if (error) throw error;
       if (result?.error) {
         toast.error(result.error);
       } else {
+        // Confirmed success — retire this attempt id so the next cash-out is new.
+        cashOutAttemptId.current = null;
         await queryClient.invalidateQueries({ queryKey: queryKeys.referral.byUser(userId) });
       }
     } catch (err: any) {

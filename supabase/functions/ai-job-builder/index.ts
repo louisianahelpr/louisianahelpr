@@ -129,7 +129,9 @@ Always respond using the generate_job_posting tool.`;
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: `AI service error (${response.status}): ${t.slice(0, 200)}` }), {
+      // Keep the upstream status (the client shows a code) but never echo the
+      // raw upstream body to the caller — it is logged above (EF-5, 2026-09-15).
+      return new Response(JSON.stringify({ error: `AI service error (${response.status})` }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -162,7 +164,8 @@ Always respond using the generate_job_posting tool.`;
     });
   } catch (e) {
     console.error("ai-job-builder error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    // Generic client-safe message; detail is logged above (EF-5, 2026-09-15).
+    return new Response(JSON.stringify({ error: "Something went wrong generating your job. Please try again." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

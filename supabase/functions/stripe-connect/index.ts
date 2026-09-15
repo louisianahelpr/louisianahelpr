@@ -561,7 +561,10 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
     }
 
-    return new Response(JSON.stringify({ error: err.message }), {
+    // Client-safe generic message — the raw Stripe/PostgREST detail is already
+    // in the console.error above. Returning err.message here handed schema and
+    // integration internals to the caller (EF-5, hole hunt 2026-09-15).
+    return new Response(JSON.stringify({ error: "We couldn't set up your payout account right now. Please try again." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

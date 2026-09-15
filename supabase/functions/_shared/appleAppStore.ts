@@ -114,6 +114,42 @@ export interface AppleTransaction {
   revocationDate?: number;
   type?: string;
   purchaseDate?: number;
+  /**
+   * "Production" | "Sandbox" — which App Store environment issued this
+   * transaction. Apple's modern JWSTransactionDecodedPayload carries it;
+   * `fetchAppleTransaction` fills it from the base URL that answered when the
+   * payload omits it, so it is always populated on a returned transaction. A
+   * sandbox purchase is free, so a caller in production MUST refuse a Sandbox
+   * transaction (see `isSandboxTransaction`) or it grants a paid tier for free.
+   */
+  environment?: string;
+  /**
+   * The UUID the client bound the purchase to at buy time (StoreKit
+   * `appAccountToken`), set to the buyer's Supabase user id. The verify handler
+   * ties the grant to this rather than to whoever calls first.
+   */
+  appAccountToken?: string;
+}
+
+/**
+ * Did this transaction come from Apple's SANDBOX environment?
+ *
+ * Sandbox purchases cost nothing, so accepting one in a production deployment
+ * hands out a real paid tier for free (MS-4 / EF-4, hole hunt 2026-09-15).
+ */
+export function isSandboxTransaction(tx: AppleTransaction): boolean {
+  return (tx.environment ?? "").toLowerCase() === "sandbox";
+}
+
+/**
+ * Is this deployment expected to accept ONLY production receipts?
+ *
+ * Sandbox is allowed only when explicitly opted in via
+ * `APPLE_IAP_ENVIRONMENT=sandbox` (TestFlight / dev). Any other value — and the
+ * unset default — is a production deployment that must refuse sandbox receipts.
+ */
+export function expectsProduction(): boolean {
+  return readEnv("APPLE_IAP_ENVIRONMENT") !== "sandbox";
 }
 
 /**
@@ -209,6 +245,15 @@ export async function fetchAppleTransaction(
       // A transaction from ANOTHER app is not evidence of anything here.
       if (tx.bundleId !== cfg.bundleId) {
         throw new Error("Transaction bundleId mismatch");
+      }
+      // Record which environment actually served this transaction. The decoded
+      // payload carries `environment` on modern App Store Server API responses;
+      // when it doesn't, the base URL that answered is authoritative — a 404 on
+      // prod that then 200s on sandbox means this id only exists in sandbox.
+      // Without this the caller cannot tell a free sandbox purchase from a real
+      // one (MS-4 / EF-4).
+      if (!tx.environment) {
+        tx.environment = base === SANDBOX_BASE ? "Sandbox" : "Production";
       }
       return tx;
     }

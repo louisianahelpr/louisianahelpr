@@ -18,6 +18,47 @@ fraction of fixing them one report at a time.
 - [x] RESOLVED 2026-09-14 ~17:52 PDT (owner upgraded to Pro; cause: Hobby Edge Requests 3.1M/1M + Deployment Storage 34 GB/10 GB, see the Vercel item further down). Was: OWNER (dashboard only): every push since 4bbd125c1 (16:13 PDT) gets Vercel status `failure — Account is blocked.` (https://vercel.com/knowledge/why-is-my-account-deployment-blocked). Hobby team `louisianahelprs-projects`. Live site still serves 70f93a220 (14:30 PDT); NOT live: a0833ef22 TrackingMap pins, 3c299b328 completeJob duplicate-release fix, f9f5b0617 (package.json). Open Vercel → team → Usage / notifications for the reason (Hobby usage limit or fair-use), resolve, then redeploy main. Prod freshness runs time out red until then; that red is this, not the commits.
 - [x] VERIFIED 2026-09-14: cc2636f5f deployed (Vercel status success 00:53Z); live build-commit = cc2636f5f; a0833ef22, 3c299b328, f9f5b0617 are ancestors, so all live. Was: After unblock: confirm `<meta name="build-commit">` on www.louisianahelpr.com is at or after the newest shipping commit. Consider stopping preview deploys for non-main branches (every lane branch push builds a preview and counts toward Hobby limits).
 
+## Hole hunt 2026-09-15 — IAP / cash-out / error-leak fixes (branch `fix-iap-cashout-errorleak`, lead lands)
+Three findings fixed on branch `fix-iap-cashout-errorleak` (NOT merged — the lead
+verifies and lands; edge functions auto-deploy on merge to main). App typecheck
+green, `parsecheck` green on every edited file; **edge typecheck NOT run — Deno is
+not installed in this environment** (app typecheck + parsecheck used per the
+CLAUDE.md fallback). Touched vitest green. Each guard proven red on origin/main.
+
+- [x] FIXED (branch) — **MS-4 / EF-4**: `verify-apple-iap` accepted a SANDBOX
+  StoreKit transaction in production (a free sandbox purchase → real paid tier)
+  and bound a purchase to the caller by first-claim, not by `appAccountToken`.
+  Fix: `_shared/appleAppStore.ts` records the issuing `environment` (payload field
+  or the base URL that answered) and adds `appAccountToken` to `AppleTransaction`,
+  plus `isSandboxTransaction()` / `expectsProduction()`. `verify-apple-iap` now
+  refuses a Sandbox tx unless `APPLE_IAP_ENVIRONMENT=sandbox`, and binds the grant
+  to `appAccountToken` (refuse on mismatch, grant-and-flag when absent for legacy
+  buys). Client TODO for the lead: set StoreKit `appAccountToken` to the Supabase
+  user id when opening the purchase sheet (not launched yet). Tests red→green:
+  `src/test/edge/verify-apple-iap.test.ts` (sandbox-in-prod rejected + writes
+  nothing; appAccountToken mismatch → 403; match → grant), `src/test/appleIap.test.ts`
+  (isSandboxTransaction/expectsProduction truth tables).
+- [x] FIXED (branch) — **HM-1**: `cash-out-credits` keyed its Stripe idempotency
+  key off the MUTABLE claimed-credit set, so a retry after an ambiguous transfer
+  failure (that re-claimed a different set) double-paid. Fix: bind the key to a
+  stable client-supplied attempt id (`cashout-${attemptId}`, a UUID the client
+  generates once and REUSES across retries — `src/components/ReferralSection.tsx`),
+  falling back to the legacy set-hash only for older clients sending no body. Test
+  red→green: `src/test/edge/cash-out-credits.test.ts` (same attempt id → same key
+  even when the claimed set grows). **Residual for the lead:** the fully durable
+  fix is a persisted cash-out ledger row (like `instant_payouts`/`payout_transfers`)
+  so reconciliation can see the outflow and a retry can resume rather than
+  re-claim; deferred (needs a migration, out of this branch's scope).
+- [x] FIXED (branch) — **EF-5**: six of the eight handlers that returned raw
+  internal error text now return a generic client-safe message (detail stays in
+  `console.error`), preserving existing error CODES/branches: `stripe-connect`,
+  `admin-user-actions`, `admin-resend-verification`, `stripe-idv-start`,
+  `send-marketing-blast`, `ai-job-builder` (both the outer catch and the raw
+  Gemini-body echo). Guard: `src/test/edge/error-leak-EF5.test.ts`.
+  **DEFERRED to the lead (other branches own these files):** `create-payment/index.ts:2056`
+  and `execute-dispute-split/index.ts:153` — the two remaining EF-5 sites — left
+  untouched per the task's do-not-touch list.
+
 ## HANDOFF 2026-09-15 — map notes + nightly reds (session closed)
 Orientation: `~/.claude/projects/-Users-lexilombas-louisianahelpr/memory/handoff-2026-09-15-map-and-nightly-reds.md`.
 Landed and live on prod: VN-9, VN-10, VN-11 (tracker Fixed + Confirmed, shots

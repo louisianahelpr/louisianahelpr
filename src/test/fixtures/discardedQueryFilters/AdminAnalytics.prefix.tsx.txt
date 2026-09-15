@@ -1,0 +1,246 @@
+// @@ frozen from d492446 (origin/main) src/components/admin/AdminAnalytics.tsx lines 226-246
+// Blank-padded so the line numbers this guard reports are the real ones.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const openDrillDown = async (type: DrillDown) => {
+    setDrillDown(type);
+    setDrillLoading(true);
+    if (type === "users") {
+      const { data, error } = await supabase.from("profiles").select("*").eq("is_seed", false).order("created_at", { ascending: false });
+      if (error) report(error, { tags: { source: "AdminAnalytics.drillDownUsers" } });
+      setDrillUsers(data || []);
+    } else if (type === "jobs" || type === "revenue" || type === "fees" || type === "payouts") {
+      const query = supabase.from("jobs").select("*").eq("is_seed", false).order("created_at", { ascending: false });
+      if (type === "revenue" || type === "fees") query.in("payment_status", ["escrow", "payout_pending", "released"]);
+      if (type === "payouts") query.in("payment_status", ["escrow", "payout_pending", "released"]);
+      const { data, error } = await query;
+      if (error) report(error, { tags: { source: "AdminAnalytics.drillDownJobs" } });
+      setDrillJobs(data || []);
+    } else if (type === "subscriptions") {
+      const { data, error } = await supabase.from("profiles").select("*").eq("is_seed", false).not("subscription_tier", "is", null).order("subscription_tier");
+      if (error) report(error, { tags: { source: "AdminAnalytics.drillDownSubscriptions" } });
+      setDrillUsers(data || []);
+    }
+    setDrillLoading(false);
+  };

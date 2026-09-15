@@ -12,7 +12,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-1 | "ID verified" pill shows on the job-detail poster card | small | [x] 3d0d7a301 | [x] vn-1-after-vn1-detail-375.webp |
 | VN-2 | Message button shows in the job popup after applying | small | [x] 3d0d7a301 | [x] vn-2-after-applied-detail-1440.webp |
 | VN-3 | Earnings & Payouts page changes layout while it loads, and still looks messy (NEEDS DESIGN | large | [ ] | [ ] |
-| VN-4 | Share sheet shows a generic compass icon instead of the H logo | small–medium | [ ] | [ ] |
+| VN-4 | Share sheet shows a generic compass icon instead of the H logo | small–medium | [x] 8b3fbdb25 | [ ] |
 | VN-5 | Browse search bar stretches across the whole list column | small | [x] e24bb4c3a | [x] vn-5-after-browse-search-1440.webp |
 | VN-6 | Recent searches dropdown pushes the job list down instead of floating over it | small | [x] e24bb4c3a | [x] vn-6-after-browse-recents-1440.webp |
 | VN-7 | Refine Your Search panel does not need its own X | small | [x] e24bb4c3a | [x] vn-7-after-browse-filters-tall-1920.webp |
@@ -24,20 +24,20 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-13 | Public profile shows both "ID verified" and "Verification in progress" | small | [x] f0ace886a | [x] vn-13-after-public-profile-1440.webp |
 | VN-14 | Are profile badges earned from the right numbers? (OWNER QUESTION — code read only) | medium | [ ] | [ ] |
 | VN-15 | Reviews on the public profile need a design discussion (same review shows twice) | large | [ ] | [ ] |
-| VN-16 | "You've worked together N times" becomes a 5th stat tile; order tiles most → least importa | small–medium | [ ] | [ ] |
+| VN-16 | "You've worked together N times" becomes a 5th stat tile; order tiles most → least importa | small–medium | [x] 50f18c09a | [x] vn-16-after-vn16-profile-375.webp |
 | VN-17 | Profile badges are too big | small | [x] f0ace886a | [x] vn-17-after-public-profile-1440.webp |
 | VN-18 | "Can't Finish" wording is wrong once the Helpr has confirmed (before work starts) | small | [x] f336fcf99 | [x] vn-18-after-jobs-confirmed-1440.webp |
 | VN-19 | "Report a Problem" should sit beside Message, not under it | small | [x] bd5ecd567 | [x] vn-19-after-jobs-working-1440.webp |
 | VN-20 | "Location confirmed" should not show on the tracker — show it on the map instead | medium | [ ] | [ ] |
 | VN-21 | Job and post cards stack buttons in several rows — put them all on one row (NEEDS DESIGN D | large | [ ] | [ ] |
-| VN-22 | When a posted job is expanded, show the Helpr's profile under the description, not in the  | medium | [ ] | [ ] |
-| VN-23 | Disputed jobs should still show the tracker | small–medium | [ ] | [ ] |
-| VN-24 | Contact Support has a large empty band above the title — use the same shell as the other p | small–medium | [ ] | [ ] |
+| VN-22 | When a posted job is expanded, show the Helpr's profile under the description, not in the  | medium | [x] 8d2889021 | [x] vn-22-after-vn22-posts-1440-expanded.webp |
+| VN-23 | Disputed jobs should still show the tracker | small–medium | [x] 4b3d69aa4 | [x] vn-23-after-vn23-disputed-1440.webp |
+| VN-24 | Contact Support has a large empty band above the title — use the same shell as the other p | small–medium | [x] 0a60030d8 | [x] vn-24-after-vn24-support-1440.webp |
 | VN-25 | Message composer should fill the bottom of the chat, not sit in a narrow centered strip | small | [x] 2ae979419 | [x] vn-25-after-chat3-1440.webp |
 | VN-26 | "Tap a card to open it" tip strip isn't centered | small | [x] d49bc6d67 | [x] vn-26-after-myposts-done-1440.webp |
 | VN-27 | Remove the grey background box from the location on job cards | small | [x] d49bc6d67 | [x] vn-27-after-myposts-done-1440.webp |
 | VN-28 | Remove "report" from a job once it's done | small | [x] 4faf35fc9 | [x] vn-28-after-jobs-working-1440.webp |
-| VN-29 | Keep a done job expanded until BOTH tip and review are done, then collapse | small–medium | [ ] | [ ] |
+| VN-29 | Keep a done job expanded until BOTH tip and review are done, then collapse | small–medium | [x] a36c47ee3 | [x] vn-29-after-vn29-done-1440.webp |
 | VN-30 | Review quick-tag chips run off the edge and can't be scrolled | small | [x] d49bc6d67 | [ ] |
 | VN-31 | Posts/Jobs search opens full width, and the chevron beside it is useless | small | [x] 571f6fcd2 | [x] vn-31-after-myjobs-search-1440.webp |
 | VN-32 | My Jobs page jumps ~10 times before it settles | medium–large | [ ] | [ ] |

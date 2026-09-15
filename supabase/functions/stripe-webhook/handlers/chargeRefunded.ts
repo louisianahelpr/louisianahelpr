@@ -1,6 +1,17 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { findLivePayout } from "../../_shared/livePayoutGuard.ts";
+
+/**
+ * payment_status values it is SAFE to overwrite with 'refunded'. A full refund
+ * on one of these has not paid the Helpr, so flipping to 'refunded' is the
+ * truth. 'released'/'chargeback' are deliberately EXCLUDED (see the guard
+ * below): 'released' means the Helpr was paid, and 'chargeback' is a hold
+ * `charge.dispute.created` placed to STOP payouts — walking either back to
+ * 'refunded' is a money↔state divergence (MS-3 / HM-2).
+ */
+const REFUND_SAFE_PAYMENT_STATUSES = ["escrow", "payout_pending", "cancelling", "refunded"] as const;
 
 export async function handleChargeRefunded(
   event: Stripe.Event,
@@ -33,7 +44,7 @@ export async function handleChargeRefunded(
   if (refundPiId && isFullRefund && !isOnboardingFeeCorrection) {
     const { data: refundedJob, error: jobLookupErr } = await supabase
       .from("jobs")
-      .select("id, customer_id, title")
+      .select("id, customer_id, title, payment_status")
       .eq("stripe_payment_intent_id", refundPiId)
       .maybeSingle();
 
@@ -46,10 +57,63 @@ export async function handleChargeRefunded(
     }
 
     if (refundedJob) {
-      const { error: updateErr } = await supabase
+      // MS-3 / HM-2: a full refund on the escrow charge of a job that has
+      // ALREADY paid its Helpr leaves the Helpr paid and refunds the poster —
+      // the platform eats the budget. The old handler flipped ANY state to
+      // 'refunded' with no precondition, which also (a) erased the 'released'
+      // marker that is the only record the Helpr was paid, hiding the
+      // double-outflow from money-reconciliation, and (b) walked a 'chargeback'
+      // hold back to 'refunded'. This is the one sibling handler the R8/R9
+      // precondition pass (transferCreated / paymentIntentPaymentFailed) missed.
+      //
+      // We cannot "refuse" a refund Stripe has already made — the money is gone
+      // — so when the Helpr was paid we DO NOT overwrite the state (leaving the
+      // truth, 'released', in place for the reconciler and ops) and page
+      // critical that a manual transfer reversal is needed.
+      const livePayout = await findLivePayout(supabase, refundedJob.id);
+      if (livePayout.readError) {
+        // Fail closed, same contract as the lookup: an unreadable payout ledger
+        // cannot prove the Helpr was not paid, so retry rather than flip blind.
+        throw new Error(`Payout-ledger read failed for refunded job ${refundedJob.id}: ${livePayout.readError}`);
+      }
+      const priorStatus = (refundedJob as { payment_status?: string | null }).payment_status ?? null;
+      const helperAlreadyPaid = livePayout.hasLivePayout || priorStatus === "released";
+
+      if (helperAlreadyPaid) {
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "Refund landed on a job whose Helpr was already paid — manual transfer reversal needed",
+          message:
+            `charge.refunded (full) for job ${refundedJob.id} (PI ${refundPiId}): the poster has been refunded, but the Helpr was already paid ` +
+            `(payment_status='${priorStatus}'${livePayout.hasLivePayout ? `; ${livePayout.reason}` : ""}). ` +
+            `The job state was LEFT AS-IS (not flipped to 'refunded') so the payout stays visible. ` +
+            `Reverse the Helpr's transfer in Stripe to make the platform whole.`,
+          fields: {
+            "Job ID": refundedJob.id,
+            "Payment Intent": refundPiId,
+            "Payment Status (left as-is)": String(priorStatus),
+            "Live Transfer IDs": livePayout.transferIds.join(", ") || "(none — released state)",
+            "Refund Amount (cents)": String(charge.amount_refunded),
+          },
+        });
+        logStep("Refund NOT applied — Helpr already paid; ops paged for manual reversal", {
+          jobId: refundedJob.id,
+          priorStatus,
+          liveTransferIds: livePayout.transferIds,
+        });
+      } else {
+      // House standard: a compare-and-set flip with `.select("id")`, refusing
+      // to write over any state that is not refund-safe. A zero-row match here
+      // means the job moved out of the refund-safe set between the read and the
+      // write (e.g. into 'released' via a racing transfer.created) — page,
+      // never silently succeed.
+      const { data: flipped, error: updateErr } = await supabase
         .from("jobs")
         .update({ payment_status: "refunded" })
-        .eq("id", refundedJob.id);
+        .eq("id", refundedJob.id)
+        .in("payment_status", REFUND_SAFE_PAYMENT_STATUSES as unknown as string[])
+        .select("id");
       if (updateErr) {
         // Same fail-closed contract as the lookup: a dropped update here would
         // leave the job in its pre-refund state (e.g. "escrow") while Stripe
@@ -57,6 +121,28 @@ export async function handleChargeRefunded(
         // only be detected by manual reconciliation. Throw so Stripe retries.
         throw new Error(`Failed to mark job ${refundedJob.id} as refunded: ${updateErr.message}`);
       }
+      if (!flipped || (Array.isArray(flipped) && flipped.length === 0)) {
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "Refund flip matched zero rows — job left a refund-safe state under the webhook",
+          message:
+            `charge.refunded (full) for job ${refundedJob.id} (PI ${refundPiId}) matched zero rows on the payment_status precondition. ` +
+            `The job moved to a non-refund-safe state (e.g. 'released' or 'chargeback') between the read and the write. ` +
+            `Left unchanged — check the payout state by hand before assuming this refund is settled.`,
+          fields: {
+            "Job ID": refundedJob.id,
+            "Payment Intent": refundPiId,
+            "Payment Status (read)": String(priorStatus),
+            "Refund Amount (cents)": String(charge.amount_refunded),
+          },
+        });
+        logStep("Refund flip matched zero rows — precondition failed, ops paged", {
+          jobId: refundedJob.id,
+          priorStatus,
+        });
+      }
+      } // end helper-not-paid flip
 
       // Write payment_refunds ledger row. Refunds issued from the Stripe Dashboard
       // (not via void-cancelled-payments / admin functions that write their own row)

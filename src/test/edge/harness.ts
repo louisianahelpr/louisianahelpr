@@ -333,6 +333,17 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/stripeFees.ts";`,
   );
 
+  // Live-payout guard: `_shared/livePayoutGuard.ts` takes the supabase client
+  // as a parameter and has ZERO module-scope imports, so the generated file
+  // points at the REAL module — same reasoning as payoutClaim above. It is the
+  // one question a refund path asks before returning money to the poster ("has
+  // this job already paid its Helpr?"), and its FAIL-CLOSED behaviour on an
+  // unreadable `payout_transfers` is exactly the part a mock would paper over.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/livePayoutGuard\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/livePayoutGuard.ts";`,
+  );
+
   // Poster tier service fee + Stripe floor: `_shared/posterFees.ts` is pure
   // TypeScript too (it only re-exports the helper ladder + the floor helper), so
   // the generated file points at the REAL module — the poster fee the checkout

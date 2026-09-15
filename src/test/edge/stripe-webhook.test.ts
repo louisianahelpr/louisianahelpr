@@ -409,6 +409,117 @@ describe("stripe-webhook edge function", () => {
       );
       expect(jobWrite).toBeUndefined();
     });
+
+    // ── HM-2 / MS-3: full refund on a job whose Helpr was already paid ───────
+    // A Dashboard full refund on a 'released' job with a settled payout_transfers
+    // row must NOT flip the job to 'refunded' (which would erase the only record
+    // the Helpr was paid and hide the double-outflow from money-reconciliation).
+    // Leave the state as-is and page ops critical for a manual transfer reversal.
+    it("does NOT flip a released job with a live payout, and pages critical (HM-2)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_refund_paid",
+        type: "charge.refunded",
+        data: {
+          object: {
+            id: "ch_paid",
+            payment_intent: "pi_released",
+            amount: 5000,
+            amount_refunded: 5000,
+            currency: "usd",
+            refunds: { data: [{ id: "re_paid", amount: 5000, reason: null }] },
+          },
+        },
+      });
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: "poster-1",
+            title: "Paid job",
+            payment_status: "released",
+          },
+        ],
+      };
+      scenario.reads.payout_transfers = {
+        rows: [
+          {
+            id: "pt-1",
+            job_id: "job-1",
+            status: "paid",
+            stripe_transfer_id: "tr_live",
+            helper_id: "helper-1",
+          },
+        ],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      // The job is NOT flipped to refunded.
+      const jobWrite = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update",
+      );
+      expect(jobWrite).toBeUndefined();
+      // Ops is paged critical.
+      expect(
+        slackAlerts.some(
+          (a) =>
+            (a as { severity?: string }).severity === "critical" &&
+            /already paid/i.test((a as { title?: string }).title ?? ""),
+        ),
+      ).toBe(true);
+    });
+
+    // ── MS-3: the flip carries a payment_status precondition ────────────────
+    // A full refund on a job in a non-refund-safe state ('chargeback') must not
+    // silently walk it back to 'refunded'. The write is a compare-and-set: a
+    // zero-row match pages ops rather than claiming success.
+    it("uses a payment_status precondition on the flip and pages on a zero-row match (MS-3)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_refund_cb",
+        type: "charge.refunded",
+        data: {
+          object: {
+            id: "ch_cb",
+            payment_intent: "pi_chargeback",
+            amount: 5000,
+            amount_refunded: 5000,
+            currency: "usd",
+            refunds: { data: [{ id: "re_cb", amount: 5000, reason: null }] },
+          },
+        },
+      });
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: "poster-1",
+            title: "Chargeback job",
+            payment_status: "chargeback",
+          },
+        ],
+      };
+      // No live payout on this job — it reaches the guarded flip, whose
+      // precondition matches zero rows for a 'chargeback' state.
+      scenario.reads.payout_transfers = { rows: [] };
+      scenario.writeSelectRows.jobs = [];
+      await fn.fetch(webhookRequest(fn, "{}"));
+      // The flip carried an .in("payment_status", …) precondition.
+      const jobWrite = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update",
+      );
+      expect(jobWrite).toBeDefined();
+      expect(
+        jobWrite?.filters.some(
+          (f) => f.op === "in" && f.column === "payment_status",
+        ),
+      ).toBe(true);
+      // Zero-row match pages critical.
+      expect(
+        slackAlerts.some(
+          (a) => (a as { severity?: string }).severity === "critical",
+        ),
+      ).toBe(true);
+    });
   });
 
   describe("charge.dispute.closed restores the pre-dispute payment state", () => {

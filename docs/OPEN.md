@@ -38,6 +38,50 @@ those are answerable by reading this instead of guessing.
   Follow-up (reported, not done): consider revoking the public default-privilege
   write grant so recreations can't re-open this class at all.
 
+- [ ] FIXED (branch `fix-refund-double-pay`, prod verify + land deferred to the
+  lead — no authed prod session here). Money-state hole hunt 2026-09-15
+  (`docs/audit/holes-2026-09-15/money-state.md`, `money.md`). Three refund
+  holes, each shipped with a red-first edge-mock test (all 6 red on pre-fix
+  source, green after; full edge suite 616/616):
+  - **MS-6 (MEDIUM, PROVEN)** — admin partial refund of exactly the budget
+    silently became a FULL refund of the whole capture + a job cancellation.
+    `create-payment` `admin_refund_general`: a provided `amountCents` is now
+    ALWAYS partial (sent verbatim, never cancels the job); the ceiling is the
+    ACTUAL captured amount (`pi.amount_received`), not `job.budget`; a full
+    refund + cancel happens only when `amountCents` is omitted. Test:
+    `create-payment.test.ts` "keeps a refund of exactly the budget PARTIAL".
+  - **MS-2 (HIGH, PLAUSIBLE)** — `admin_refund_general` refunded an already-paid
+    job with no state gate and no transfer reversal (double payout). Added a
+    live-payout precondition via new `_shared/livePayoutGuard.ts` (`findLivePayout`,
+    the same paid/pending-with-id test as money-reconciliation's
+    `isSettledTransfer`): if the job is `released` or has a live payout_transfers
+    row it REFUSES and pages `postSlackOpsAlert` critical (money_at_risk); fails
+    closed on an unreadable ledger. Reversing a settled transfer stays a
+    deliberate manual/ops step, never a silent side effect. Tests: "REFUSES +
+    pages critical when a live payout exists", "fails closed when the payout
+    ledger cannot be read".
+  - **MS-3 / HM-2 (HIGH/MED, PLAUSIBLE)** — `charge.refunded` flipped ANY state
+    (incl. `released`/`chargeback`) to `refunded` with no precondition, erasing
+    the record the Helpr was paid and hiding the double-outflow. `chargeRefunded.ts`:
+    when a live payout exists (or state is `released`) it now LEAVES the state
+    as-is and pages critical for a manual transfer reversal; otherwise the flip
+    is a compare-and-set `.in("payment_status", [escrow,payout_pending,cancelling,
+    refunded]).select("id")` that pages on a zero-row match. Tests: "does NOT
+    flip a released job with a live payout", "uses a payment_status precondition
+    on the flip and pages on a zero-row match".
+  - **Class check** — `money-reconciliation` new CRITICAL check
+    `refunded_with_live_payout`: fires for any `payment_status='refunded'` job
+    that still carries a live (paid/pending-with-id) payout_transfers row.
+    Red-first on a seed job (`money-reconciliation.test.ts`), and stays clean
+    when the payout was reversed.
+  - **Deferred to the lead / not done here:** prod verification (Stripe test
+    mode, seed job) of all three paths; the OPT-IN transfer-reversal path for
+    `admin_refund_general` (chose REFUSE+page over auto-reversal for safety);
+    edge `tsc` (Deno unavailable in this sandbox — 403 on install; app typecheck
+    + parsecheck green, CI runs the edge typecheck). Did NOT touch
+    execute-dispute-split / release-payout / process-scheduled-payouts /
+    auto-resolve-disputes / the payout-claim lib (owned by `dispute-races`).
+
 - [x] CLOSED 2026-09-15 (CRITICAL follow-through on the item above): the rest of
   the class. Live read before either fix deployed (aclexplode on prod):
   `public.open_jobs_browse` AND `public.jobs_helper_safe` (security_invoker=on)

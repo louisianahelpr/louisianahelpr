@@ -1775,9 +1775,13 @@ describe("create-payment edge function", () => {
           },
         ],
       };
+      // $112 captured ($100 budget + $12 poster service fee). The partial
+      // ceiling is this captured amount, not job.budget (MS-6).
       stripeMock.paymentIntents.retrieve.mockResolvedValue({
         id: "pi_g",
         status: "succeeded",
+        amount: 11200,
+        amount_received: 11200,
       });
       stripeMock.refunds.create.mockResolvedValue({ id: "re_g" });
       const fn = await load();
@@ -1808,7 +1812,7 @@ describe("create-payment edge function", () => {
       ).toBe(true);
     });
 
-    it("admin_refund_general rejects an out-of-range partial amount", async () => {
+    it("admin_refund_general rejects a partial amount above the captured total", async () => {
       seedAuth(scenario, ADMIN);
       scenario.rpc.has_role = true;
       scenario.reads.jobs = {
@@ -1822,6 +1826,13 @@ describe("create-payment edge function", () => {
           },
         ],
       };
+      // $112 captured; a $9,999.99 partial is far above it and is refused.
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_g",
+        status: "succeeded",
+        amount: 11200,
+        amount_received: 11200,
+      });
       const fn = await load();
       const res = await fn.fetch(
         fn.request({
@@ -1835,6 +1846,152 @@ describe("create-payment edge function", () => {
       );
       expect(res.status).toBe(500);
       expect((await json(res)).error).toMatch(/invalid partial amount/i);
+    });
+
+    // ── MS-6: a partial refund of exactly the budget must STAY partial ───────
+    // Regression for the money-state hole hunt (2026-09-15). The "full vs
+    // partial" test used to compare the request against job.budget, so a
+    // request for exactly the budget was treated as a FULL refund: it refunded
+    // the WHOLE capture (budget + fees + tax) and cancelled the job. A provided
+    // amountCents is now ALWAYS partial and is sent verbatim.
+    it("admin_refund_general keeps a refund of exactly the budget PARTIAL — no full-capture refund, no cancellation (MS-6)", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            helper_id: HELPER.id,
+            budget: 100,
+            title: "Budget-equal refund",
+            payment_status: "escrow",
+            stripe_payment_intent_id: "pi_be",
+          },
+        ],
+      };
+      // $112 captured ($100 budget + $12 poster fee). The admin asks to refund
+      // exactly $100.00 (10000¢ == budget).
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_be",
+        status: "succeeded",
+        amount: 11200,
+        amount_received: 11200,
+      });
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_be" });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: {
+            action: "admin_refund_general",
+            jobId: "job-1",
+            amountCents: 10000, // === budget in cents
+          },
+        }),
+      );
+      const out = await json(res);
+      expect(res.status).toBe(200);
+      // It is treated as PARTIAL…
+      expect(out.partial).toBe(true);
+      // …so Stripe is asked for EXACTLY $100 — never the full $112 capture.
+      expect(stripeMock.refunds.create.mock.calls[0][0].amount).toBe(10000);
+      // …and the job is NOT cancelled / flipped to refunded.
+      const jobUpdate = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update",
+      );
+      expect(jobUpdate).toBeUndefined();
+    });
+
+    // ── MS-2: refund refused when the Helpr has already been paid ────────────
+    it("admin_refund_general REFUSES + pages critical when a live payout exists (MS-2)", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            helper_id: HELPER.id,
+            budget: 100,
+            title: "Already paid",
+            payment_status: "released",
+            stripe_payment_intent_id: "pi_paid",
+          },
+        ],
+      };
+      // A settled transfer to the Helpr — money already left the platform.
+      scenario.reads.payout_transfers = {
+        rows: [
+          {
+            id: "pt-1",
+            job_id: "job-1",
+            status: "paid",
+            stripe_transfer_id: "tr_live",
+            helper_id: HELPER.id,
+          },
+        ],
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: { action: "admin_refund_general", jobId: "job-1" },
+        }),
+      );
+      // Refused before any refund is issued…
+      expect(res.status).toBe(500);
+      expect((await json(res)).error).toMatch(/already paid|double-pay/i);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      // …and ops is paged critical.
+      expect(
+        slackAlerts.some(
+          (a) =>
+            (a as { severity?: string }).severity === "critical" &&
+            /already paid|double-pay/i.test((a as { title?: string }).title ?? ""),
+        ),
+      ).toBe(true);
+      // The job is left exactly as it was.
+      const jobUpdate = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update",
+      );
+      expect(jobUpdate).toBeUndefined();
+    });
+
+    // Fail-closed: an unreadable payout ledger cannot prove the Helpr was not
+    // paid, so the refund is refused rather than issued blind.
+    it("admin_refund_general fails closed when the payout ledger cannot be read (MS-2)", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            budget: 100,
+            title: "Ledger unreadable",
+            payment_status: "escrow",
+            stripe_payment_intent_id: "pi_x",
+          },
+        ],
+      };
+      scenario.reads.payout_transfers = {
+        error: { message: "permission denied for table payout_transfers" },
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: { action: "admin_refund_general", jobId: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(500);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(
+        slackAlerts.some(
+          (a) => (a as { severity?: string }).severity === "critical",
+        ),
+      ).toBe(true);
     });
   });
 });

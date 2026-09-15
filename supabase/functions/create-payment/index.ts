@@ -10,6 +10,7 @@ import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { findLivePayout } from "../_shared/livePayoutGuard.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 
@@ -1854,11 +1855,67 @@ serve(async (req) => {
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
 
-      const totalCents = Math.round(Number(job.budget || 0) * 100);
+      // A provided `amountCents` is ALWAYS a partial refund that leaves the job
+      // running; a full refund + cancellation happens ONLY when `amountCents`
+      // is omitted. This is the fix for MS-6: the "full vs partial" test used
+      // to compare the request against `job.budget` alone, so a request for
+      // EXACTLY the budget (`requestedCents === totalCents`) was neither refused
+      // nor treated as partial — it fell through to the full-refund branch and
+      // refunded the WHOLE capture (budget + poster service fee + urgent fee +
+      // tax) AND cancelled the job. There was no amount an admin could pass to
+      // refund exactly the budget as a partial. The upper bound is now the
+      // ACTUAL captured amount (checked below, once the PaymentIntent is
+      // retrieved), never `job.budget`, and the amount asked for is always the
+      // amount sent to Stripe.
       const requestedCents = typeof amountCents === "number" ? Math.round(amountCents) : null;
-      const isPartial = requestedCents !== null && requestedCents > 0 && requestedCents < totalCents;
-      if (requestedCents !== null && (requestedCents <= 0 || requestedCents > totalCents)) {
-        throw new Error(`Invalid partial amount: ${requestedCents} cents (job total ${totalCents} cents)`);
+      if (requestedCents !== null && requestedCents <= 0) {
+        throw new Error(`Invalid partial amount: ${requestedCents} cents (must be > 0)`);
+      }
+      const isPartial = requestedCents !== null;
+
+      // MS-2 guard: a refund on a job whose Helpr has ALREADY been paid returns
+      // the budget to the poster while the Helpr keeps the transfer — the
+      // platform pays twice. `admin_refund_general` had no state gate at all
+      // (unlike `cancel_escrow`'s escrow/cancelling claim and `release-payout`'s
+      // payout_pending 409). Refuse, and page ops critical, when a live payout
+      // exists or the job is already `released`. Reversing a settled transfer is
+      // a deliberate ops action (Stripe Dashboard reversal + refund, or the
+      // dispute-split path), never a silent side effect of a goodwill refund.
+      const livePayout = await findLivePayout(supabaseAdmin, jobId);
+      if (livePayout.readError) {
+        // Fail closed: an unreadable payout ledger cannot prove the Helpr was
+        // not paid, so we must not refund over it.
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "General refund blocked — payout ledger unreadable",
+          message: `admin_refund_general could not read payout_transfers for job ${jobId}, so it cannot prove the Helpr was not already paid. No refund issued.`,
+          fields: { job_id: jobId, error: livePayout.readError },
+        });
+        throw new Error(`admin_refund_general: could not read payout ledger for job ${jobId} — refusing to refund without confirming the payout state.`);
+      }
+      if (livePayout.hasLivePayout || job.payment_status === "released") {
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "General refund refused — Helpr already paid (would double-pay)",
+          message:
+            `admin_refund_general was called on job ${jobId}, but the Helpr has already been paid ` +
+            `(payment_status='${job.payment_status}'${livePayout.hasLivePayout ? `; ${livePayout.reason}` : ""}). ` +
+            `Refunding now would return the budget to the poster while the Helpr keeps the transfer. ` +
+            `No refund issued — reverse the Stripe transfer first (Dashboard or the dispute-split path), then refund manually.`,
+          fields: {
+            job_id: jobId,
+            payment_status: String(job.payment_status),
+            live_transfer_ids: livePayout.transferIds.join(", ") || "(none — released state)",
+            admin_user_id: user.id,
+          },
+        });
+        throw new Error(
+          `admin_refund_general refused: job ${jobId} has already paid its Helpr (payment_status='${job.payment_status}'` +
+            `${livePayout.hasLivePayout ? `, live transfer(s) ${livePayout.transferIds.join(", ")}` : ""}). ` +
+            `Reverse the payout transfer before refunding to avoid double-paying.`,
+        );
       }
 
       let paymentIntentId = job.stripe_payment_intent_id;
@@ -1875,6 +1932,16 @@ serve(async (req) => {
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
         if (pi.status === "succeeded") {
+          // MS-6: bound a partial refund against what Stripe ACTUALLY captured
+          // (budget + poster service fee + urgent fee + tax), not `job.budget`.
+          // A partial can be up to the full capture; anything beyond it is an
+          // over-refund and is refused. A partial equal to the capture is still
+          // a partial — it never cancels the job (only an omitted `amountCents`
+          // does that).
+          const capturedCents = Math.round(Number(pi.amount_received ?? pi.amount ?? 0));
+          if (isPartial && requestedCents! > capturedCents) {
+            throw new Error(`Invalid partial amount: ${requestedCents} cents (captured ${capturedCents} cents)`);
+          }
           // Sequence number for the partial-refund idempotency key, derived
           // from Stripe's OWN refund history for this PaymentIntent.
           //

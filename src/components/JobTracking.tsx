@@ -1191,27 +1191,64 @@ export function JobTracking({
     // both parties confirmed sitting in_progress.
     if (newStatus === "done") {
       let posterAlreadyConfirmed: boolean | undefined;
-      try {
-        const [stamped] = unwrapMutation(
-          await supabase
-            .from("jobs")
-            .update({ helper_completed_at: now })
-            .eq("id", jobId)
-            .in("status", ["accepted", "in_progress", "revision_requested"])
-            .select("id, poster_completed_at"),
-          {
-            action: "mark the job complete",
-            rejectedMessage: "We couldn't mark this job complete — it may have already been completed or cancelled. Pull to refresh.",
-            context: { jobId },
-          },
-        );
-        posterAlreadyConfirmed = !!stamped?.poster_completed_at;
-      } catch (doneErr) {
-        if (!isWriteRejected(doneErr)) {
-          report(doneErr, { tags: { source: "JobTracking.helperCompleted" } });
+
+      // COMPLETION IS A SERVER DECISION. rpc_helper_mark_done re-runs the
+      // assigned-Helpr / live-job / arrival / proof / 30-minute gates and stamps
+      // helper_completed_at = now() itself, so a direct PATCH can no longer pick
+      // the stamp's VALUE (a backdate makes it instantly auto-releasable) or land
+      // it on a job that already moved on (H-001/H-002,
+      // enforce_job_completion_server_owned). It returns poster_completed_at so a
+      // Done that arrives AFTER the poster already confirmed still finishes the
+      // release below.
+      //
+      // PGRST202 → the short merge→deploy window before the RPC lands (same
+      // pattern as helper_mark_on_the_way / mark_helper_arrival). In that window
+      // the completion trigger is not live either, so the legacy direct stamp
+      // still works and stays the fallback body.
+      const { data: doneRes, error: doneRpcErr } = await supabase.rpc("rpc_helper_mark_done", {
+        _job_id: jobId,
+      });
+      if (!doneRpcErr) {
+        posterAlreadyConfirmed = !!(doneRes as { poster_completed_at?: string | null } | null | undefined)?.poster_completed_at;
+      } else if (doneRpcErr.code === "PGRST202") {
+        try {
+          const [stamped] = unwrapMutation(
+            await supabase
+              .from("jobs")
+              .update({ helper_completed_at: now })
+              .eq("id", jobId)
+              .in("status", ["accepted", "in_progress", "revision_requested"])
+              .select("id, poster_completed_at"),
+            {
+              action: "mark the job complete",
+              rejectedMessage: "We couldn't mark this job complete — it may have already been completed or cancelled. Pull to refresh.",
+              context: { jobId },
+            },
+          );
+          posterAlreadyConfirmed = !!stamped?.poster_completed_at;
+        } catch (doneErr) {
+          if (!isWriteRejected(doneErr)) {
+            report(doneErr, { tags: { source: "JobTracking.helperCompleted" } });
+          }
+          hapticError();
+          toast.error(lifecycleErrorMessage(doneErr) ?? mutationErrorMessage(doneErr, "Couldn't mark the job complete — try again?"));
+          setUpdating(false);
+          loadTracking();
+          return;
+        }
+      } else {
+        // The RPC refused (a completion gate, a live-job race, authz) or errored.
+        // Its custom codes get their sentence through rpcErrorMessage; a benign
+        // race is not reported (matches the old zero-row path).
+        if (!isWriteRejected(doneRpcErr)) {
+          report(doneRpcErr, { tags: { source: "JobTracking.helperCompleted" } });
         }
         hapticError();
-        toast.error(lifecycleErrorMessage(doneErr) ?? mutationErrorMessage(doneErr, "Couldn't mark the job complete — try again?"));
+        toast.error(
+          lifecycleErrorMessage(doneRpcErr)
+            ?? rpcErrorMessage("rpc_helper_mark_done", doneRpcErr)
+            ?? "Couldn't mark the job complete — try again?",
+        );
         setUpdating(false);
         loadTracking();
         return;

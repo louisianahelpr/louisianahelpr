@@ -65,6 +65,9 @@ const UNREACHABLE: Allowlist = {
       reason: "Admin-only guard: AdminDisputes gates the decide controls for an admin who is a party, and renders any raised code in its own admin dispute UI.",
     },
   },
+  rpc_helper_mark_done: {
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
   helper_abort_job: {
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
     reason_required: {

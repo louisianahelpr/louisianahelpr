@@ -1,13 +1,19 @@
-// JobTracking "Mark Job Complete" — synchronous in-flight guard + the live-status
-// predicate on the helper_completed_at stamp.
+// JobTracking "Mark Job Complete" — synchronous in-flight guard + the
+// server-owned completion RPC.
 //
 // `updating` is React state, so two clicks on the confirm dialog's primary
 // button dispatched in one frame both read false: each ran the gate read and
-// each wrote helper_completed_at. The second write moved the stamp the 24h
-// auto-release clock is keyed on and re-notified the poster — and, landing
-// after a concurrent release or cancel, stamped a job that was no longer live
-// (measured in PGlite, 20260914215112's header). Same class and fix as
+// each fired the completion write. A second stamp moved the 24h auto-release
+// clock and re-notified the poster — and, landing after a concurrent release or
+// cancel, stamped a job that was no longer live (measured in PGlite,
+// 20260914215112's header). Same class and fix as
 // useActivityActions.inFlight.test.tsx: a ref set before the first await.
+//
+// Since 20260915073143 the Done write is rpc_helper_mark_done — the direct
+// jobs PATCH of helper_completed_at is refused by the server-owned trigger, and
+// the RPC alone stamps now(). This asserts one RPC call per decision, the
+// _job_id it carries, poster_completed_at read back from its result, and the
+// finish-the-release path when the poster already confirmed.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, act, fireEvent, waitFor } from "@testing-library/react";
 
@@ -15,6 +21,19 @@ type Call = { table: string; op: string; payload?: unknown; filters: Array<[stri
 const calls: Call[] = [];
 const invokeMock = vi.fn(async () => ({ data: { success: true, bothDone: true }, error: null }));
 let stampRow: Record<string, unknown> = { id: "job-1", poster_completed_at: null };
+const rpcMock = vi.fn(async (name: string, _args?: unknown) => {
+  if (name === "rpc_helper_mark_done") {
+    return {
+      data: {
+        already_done: false,
+        helper_completed_at: new Date().toISOString(),
+        poster_completed_at: stampRow.poster_completed_at ?? null,
+      },
+      error: null,
+    };
+  }
+  return { data: null, error: null };
+});
 
 function chain(table: string) {
   const c: Call = { table, op: "select", filters: [] };
@@ -51,7 +70,7 @@ function chain(table: string) {
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: (table: string) => chain(table),
-    rpc: async () => ({ data: null, error: null }),
+    rpc: (...args: unknown[]) => rpcMock(...(args as [string, unknown?])),
     functions: { invoke: (...args: unknown[]) => invokeMock(...(args as [])) },
   },
 }));
@@ -91,16 +110,20 @@ function renderWorking() {
   );
 }
 
-const stamps = () => calls.filter((c) => c.table === "jobs" && c.op === "update" && c.payload && "helper_completed_at" in (c.payload as object));
+const doneRpcCalls = () => rpcMock.mock.calls.filter(([name]) => name === "rpc_helper_mark_done");
+// A direct jobs UPDATE of helper_completed_at must NOT happen on the happy path
+// any more — the server-owned trigger refuses it; the RPC is the only writer.
+const directStamps = () => calls.filter((c) => c.table === "jobs" && c.op === "update" && c.payload && "helper_completed_at" in (c.payload as object));
 
 describe("JobTracking Done — one request per decision", () => {
   beforeEach(() => {
     calls.length = 0;
     invokeMock.mockClear();
+    rpcMock.mockClear();
     stampRow = { id: "job-1", poster_completed_at: null };
   });
 
-  it("two same-frame clicks on 'Yes, I'm Done' write helper_completed_at once", async () => {
+  it("two same-frame clicks on 'Yes, I'm Done' call rpc_helper_mark_done once", async () => {
     renderWorking();
     fireEvent.click(await screen.findByRole("button", { name: /mark job complete/i }));
     const confirm = await screen.findByRole("button", { name: /mark complete/i });
@@ -108,24 +131,25 @@ describe("JobTracking Done — one request per decision", () => {
       confirm.click();
       confirm.click();
     });
-    await waitFor(() => expect(stamps().length).toBeGreaterThan(0));
+    await waitFor(() => expect(doneRpcCalls().length).toBeGreaterThan(0));
     // Let any second in-flight call reach its write.
     await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
-    expect(stamps()).toHaveLength(1);
+    expect(doneRpcCalls()).toHaveLength(1);
+    // And never a direct client stamp of helper_completed_at.
+    expect(directStamps()).toHaveLength(0);
   });
 
-  it("the stamp only matches a LIVE job (status predicate), and reads back poster_completed_at", async () => {
+  it("Done goes through the RPC with the job id, and does not release when the poster hasn't confirmed", async () => {
     renderWorking();
     fireEvent.click(await screen.findByRole("button", { name: /mark job complete/i }));
     fireEvent.click(await screen.findByRole("button", { name: /mark complete/i }));
-    await waitFor(() => expect(stamps()).toHaveLength(1));
-    const [stamp] = stamps();
-    expect(stamp.filters).toContainEqual(["in", "status", ["accepted", "in_progress", "revision_requested"]]);
-    expect(stamp.select).toMatch(/poster_completed_at/);
+    await waitFor(() => expect(doneRpcCalls()).toHaveLength(1));
+    expect(doneRpcCalls()[0][1]).toEqual({ _job_id: "job-1" });
+    expect(directStamps()).toHaveLength(0);
     expect(invokeMock).not.toHaveBeenCalled();
   });
 
-  it("when the poster already confirmed, the Done finishes the release through create-payment", async () => {
+  it("when the RPC reports the poster already confirmed, Done finishes the release through create-payment", async () => {
     stampRow = { id: "job-1", poster_completed_at: AGO(0.1) };
     renderWorking();
     fireEvent.click(await screen.findByRole("button", { name: /mark job complete/i }));

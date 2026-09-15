@@ -5544,6 +5544,7 @@ export type Database = {
         Returns: undefined
       }
       rpc_escalate_dispute: { Args: { _job_id: string }; Returns: string }
+      rpc_helper_mark_done: { Args: { _job_id: string }; Returns: Json }
       rpc_open_dispute: {
         Args: { _evidence_urls: string[]; _job_id: string; _reason: string }
         Returns: string

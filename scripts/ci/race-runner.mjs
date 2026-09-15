@@ -223,9 +223,9 @@ for (const [name, value] of [["supabase_url", "http://127.0.0.1:9"], ["service_r
  * rpc_decide_dispute raises 'already decided' and execute-dispute-split returns
  * 409, with no recovery short of manual SQL.
  *
- * B now locks its own `disputes` row FOR UPDATE first — NOT `jobs`, which would
- * take jobs -> disputes while rpc_withdraw_dispute and rpc_decide_dispute take
- * disputes -> jobs, an ABBA cycle on the very pairing this fixes. A's re-freeze
+ * B now locks its own `disputes` row FOR UPDATE first and nothing else (the
+ * other dispute RPCs take jobs -> disputes, so holding one row keeps B out of
+ * every cycle). A's re-freeze
  * branch must write that same dispute row before it touches `jobs`, so it
  * blocks, and B reads the job state A left. The round asserts BOTH halves: B
  * waited on a lock (or it proved nothing), and the dispute did not end decided.
@@ -291,10 +291,13 @@ async function disputeRound(admin) {
   try {
     await asUser(A, f.poster);
     // Re-freeze: an existing open dispute + a job that is not `disputed` takes
-    // open_dispute_as's re-freeze branch, which holds the job FOR UPDATE.
+    // open_dispute_as's re-freeze branch, which holds the job FOR UPDATE. Filed
+    // as the PLATFORM (opener NULL): since 20260915025607 a person cannot touch
+    // a completed job at all (job_already_completed), and the platform's
+    // re-file is the one caller that still reaches this branch from completed.
     await A.query(
-      "SELECT public.open_dispute_as($1, $2, 'race-runner re-file, still not delivered', ARRAY[]::text[])",
-      [f.job, f.poster],
+      "SELECT public.open_dispute_as($1, NULL, 'race-runner platform re-file, revision still not delivered', ARRAY[]::text[])",
+      [f.job],
     );
 
     await B.query("BEGIN");

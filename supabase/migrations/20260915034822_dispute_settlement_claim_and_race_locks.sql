@@ -115,14 +115,12 @@ BEGIN
   -- raises 'dispute already decided' and `execute-dispute-split` returns 409,
   -- with no recovery short of manual SQL.
   --
-  -- A lock on `jobs` closes that window and OPENS a deadlock. This function
-  -- would then take jobs -> disputes, while `rpc_withdraw_dispute`
-  -- (20260908024937) and `rpc_decide_dispute` (20260609140000) both take
-  -- disputes -> jobs. That is an ABBA cycle on the single pairing this fix
-  -- exists to make safe — an admin settling while the opener withdraws — and
-  -- Postgres resolves it by killing one of them with 40P01, which
-  -- `closeDisputeRecordForJob` swallows into a Slack warning. The cure would
-  -- have been worse than the disease.
+  -- A lock on `jobs` was the first draft. At the time `rpc_withdraw_dispute`
+  -- and `rpc_decide_dispute` took disputes -> jobs, so it made an ABBA cycle
+  -- (40P01, swallowed into a Slack warning by `closeDisputeRecordForJob`).
+  -- Those two now take jobs -> disputes (sections 4 and 6), but this function
+  -- still needs no job lock: the single dispute-row lock below closes the
+  -- window on its own, and holding nothing else keeps it out of every cycle.
   --
   -- Locking the dispute row instead closes the same window with ONE lock and
   -- no ordering at all. The re-freeze branch's first write is
@@ -167,7 +165,10 @@ BEGIN
   -- prevent_job_field_escalation returns early for the poster
   -- (20260826040000), `dispute_resolved_at` is deliberately omitted from
   -- `locked_everyone` (20260826040000:369), and `disputed -> completed` is a
-  -- legal non-admin transition.
+  -- legal non-admin transition. (Since 20260915033734 the dispute markers are
+  -- server-owned — trg_dispute_markers_server_owned refuses a party's write to
+  -- dispute_status — but `payment_status` stays the gate: it was never
+  -- party-writable, and the gate should not depend on a later trigger.)
   --
   -- So a party LOSING a live dispute could otherwise send one PATCH —
   -- {"status":"completed","dispute_status":"resolved"} — and have this
@@ -1024,6 +1025,25 @@ BEGIN
       USING HINT = 'Once a job is marked done it is final.';
   END IF;
 
+  -- ── Evidence is the filer's own uploads, nothing else (authz review of the
+  -- dispute-races rebase, MEDIUM). Both the new-dispute path and the re-file
+  -- branch below store `_evidence_urls` verbatim, and they render as <a>/<img>
+  -- in the admin console and the other party's dialog. A person may attach only
+  -- signed proof-photos URLs for their own uploads on this job
+  -- (dispute_evidence_url_ok, section 8); the platform files with none.
+  IF _system THEN
+    IF COALESCE(cardinality(_evidence_urls), 0) > 0 THEN
+      RAISE EXCEPTION 'dispute_evidence_invalid_url'
+        USING HINT = 'A platform filing carries no evidence.';
+    END IF;
+  ELSIF EXISTS (
+    SELECT 1 FROM unnest(COALESCE(_evidence_urls, '{}'::text[])) AS e(u)
+     WHERE NOT public.dispute_evidence_url_ok(e.u, _uid, _job_id)
+  ) THEN
+    RAISE EXCEPTION 'dispute_evidence_invalid_url'
+      USING HINT = 'Only photos you uploaded to this dispute can be attached.';
+  END IF;
+
   _other := CASE WHEN _uid = _customer THEN _helper ELSE _customer END;
 
   -- ── Not over a decided dispute whose money has not moved ────────────────
@@ -1353,6 +1373,23 @@ BEGIN
     RAISE EXCEPTION 'not authenticated';
   END IF;
 
+  -- The status this job held before the dispute froze it. See the header for
+  -- why it is derived rather than read, and why only two values are reachable.
+  -- Lock order jobs -> disputes (lh-authz-rls review of the rebase): the same
+  -- order as open_dispute_as and claim_dispute_settlement, so no pairing of
+  -- dispute RPCs can deadlock. The live body took disputes first.
+  SELECT CASE
+           WHEN j.poster_completed_at IS NOT NULL
+             OR j.payout_scheduled_at IS NOT NULL
+             OR COALESCE(j.payment_status, '') IN ('payout_pending', 'released')
+           THEN 'completed'
+           ELSE 'in_progress'
+         END
+    INTO _restored
+    FROM public.jobs j
+   WHERE j.id = _job_id
+     FOR UPDATE;
+
   SELECT id, opener_id INTO _dispute_id, _opener
     FROM public.disputes
    WHERE job_id = _job_id AND status = 'open'
@@ -1369,22 +1406,6 @@ BEGIN
   IF _opener IS DISTINCT FROM _uid THEN
     RAISE EXCEPTION 'only the party who opened this dispute may withdraw it';
   END IF;
-
-  -- The status this job held before the dispute froze it. See the header for
-  -- why it is derived rather than read, and why only two values are reachable.
-  -- Read under the same FOR UPDATE lock the dispute row is holding, so a
-  -- concurrent approval cannot land between this read and the write below.
-  SELECT CASE
-           WHEN j.poster_completed_at IS NOT NULL
-             OR j.payout_scheduled_at IS NOT NULL
-             OR COALESCE(j.payment_status, '') IN ('payout_pending', 'released')
-           THEN 'completed'
-           ELSE 'in_progress'
-         END
-    INTO _restored
-    FROM public.jobs j
-   WHERE j.id = _job_id
-     FOR UPDATE;
 
   -- 20260915034822 (round 3, H1): not while this escrow is being settled.
   -- An EXPIRED claim that never stamped a money step (any sweep, or a holder
@@ -1491,6 +1512,7 @@ DECLARE
   _title text;
   _moved boolean;
   _new_id uuid;
+  _job_id_lookup uuid;
 BEGIN
   IF _uid IS NULL THEN
     RAISE EXCEPTION 'not authenticated' USING ERRCODE = '42501';
@@ -1503,6 +1525,22 @@ BEGIN
       USING HINT = 'Say why this decision can never execute — it goes in the audit log.';
   END IF;
 
+  -- Lock order jobs -> disputes (lh-authz-rls review of the rebase): job id
+  -- looked up unlocked (it never changes), job locked, then the dispute row.
+  SELECT job_id INTO _job_id_lookup FROM public.disputes WHERE id = _dispute_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'dispute not found';
+  END IF;
+
+  SELECT status::text, payment_status, customer_id, helper_id, title
+    INTO _job_status, _payment_status, _customer, _helper, _title
+    FROM public.jobs
+   WHERE id = _job_id_lookup
+     FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'job not found';
+  END IF;
+
   SELECT id, job_id, opener_id, reason, evidence_urls, status, decided_at, decided_by,
          decision_text, payout_split, execution_status, execution_started_at,
          execution_error, execution_transfer_id, execution_refund_id
@@ -1510,21 +1548,9 @@ BEGIN
     FROM public.disputes
    WHERE id = _dispute_id
      FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'dispute not found';
-  END IF;
   IF _d.status <> 'decided' OR _d.execution_status = 'executed' THEN
     RAISE EXCEPTION 'supersede_not_supersedable'
       USING HINT = 'Only a decided dispute whose split has not executed can be superseded.';
-  END IF;
-
-  SELECT status::text, payment_status, customer_id, helper_id, title
-    INTO _job_status, _payment_status, _customer, _helper, _title
-    FROM public.jobs
-   WHERE id = _d.job_id
-     FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'job not found';
   END IF;
 
   IF _uid = _customer OR _uid = _helper THEN
@@ -1691,17 +1717,15 @@ BEGIN
     RAISE EXCEPTION 'decision_text required';
   END IF;
 
-  SELECT job_id, status INTO _job_id, _existing_status
+  -- Lock order jobs -> disputes (lh-authz-rls review of the rebase). The job
+  -- id is looked up unlocked (disputes.job_id never changes), the job is
+  -- locked, then the dispute row, and its status is judged under that lock.
+  SELECT job_id INTO _job_id
     FROM public.disputes
-   WHERE id = _dispute_id
-     FOR UPDATE;
+   WHERE id = _dispute_id;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'dispute not found';
-  END IF;
-
-  IF _existing_status <> 'open' THEN
-    RAISE EXCEPTION 'dispute already %', _existing_status;
   END IF;
 
   -- FOR UPDATE, 20260915034822 (round 4): the claim check below must read under
@@ -1714,6 +1738,15 @@ BEGIN
     FROM public.jobs
    WHERE id = _job_id
      FOR UPDATE;
+
+  SELECT status INTO _existing_status
+    FROM public.disputes
+   WHERE id = _dispute_id
+     FOR UPDATE;
+
+  IF _existing_status <> 'open' THEN
+    RAISE EXCEPTION 'dispute already %', _existing_status;
+  END IF;
 
   -- An admin who is a party to the job does not rule on it (round-4 review).
   IF _uid = _customer_id OR _uid = _helper_id THEN
@@ -1854,6 +1887,7 @@ DECLARE
   _helper uuid;
   _url text;
   _merged text[];
+  _job_id_lookup uuid;
 BEGIN
   IF _uid IS NULL THEN
     RAISE EXCEPTION 'not authenticated' USING ERRCODE = '42501';
@@ -1863,14 +1897,17 @@ BEGIN
       USING HINT = 'Attach between one and ten photos.';
   END IF;
 
-  SELECT id, job_id, opener_id, status, reason, evidence_urls INTO _d
-    FROM public.disputes WHERE id = _dispute_id FOR UPDATE;
+  -- Lock order jobs -> disputes, like every other dispute RPC.
+  SELECT job_id INTO _job_id_lookup FROM public.disputes WHERE id = _dispute_id;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'dispute not found';
   END IF;
 
   SELECT customer_id, helper_id INTO _customer, _helper
-    FROM public.jobs WHERE id = _d.job_id FOR UPDATE;
+    FROM public.jobs WHERE id = _job_id_lookup FOR UPDATE;
+
+  SELECT id, job_id, opener_id, status, reason, evidence_urls INTO _d
+    FROM public.disputes WHERE id = _dispute_id FOR UPDATE;
   IF _uid IS DISTINCT FROM _customer AND _uid IS DISTINCT FROM _helper THEN
     RAISE EXCEPTION 'not authorized for this job' USING ERRCODE = '42501';
   END IF;
@@ -1888,15 +1925,11 @@ BEGIN
       USING HINT = 'Evidence here is only for a dispute an admin re-opened, while it is open.';
   END IF;
 
-  -- Anchored (round-5 review, LOW-1): the whole URL must be a Supabase storage
-  -- object URL whose PATH is the caller's own upload for this job — not a
-  -- foreign URL carrying that path in its query, and no `..` segment.
+  -- One validator for every evidence writer (dispute_evidence_url_ok, section
+  -- 8): this project's host, a SIGNED proof-photos object URL whose path is the
+  -- caller's own upload for this job, no `..`.
   FOREACH _url IN ARRAY _evidence_urls LOOP
-    IF _url IS NULL
-       OR length(_url) > 2048
-       OR position('..' IN _url) > 0
-       OR _url !~ ('^https://[A-Za-z0-9.-]+/storage/v1/object/(sign|public)/proof-photos/'
-                   || _uid::text || '/disputes/' || _d.job_id::text || '/[^/?#]+([?][^#]*)?$') THEN
+    IF NOT public.dispute_evidence_url_ok(_url, _uid, _d.job_id) THEN
       RAISE EXCEPTION 'dispute_evidence_invalid_url'
         USING HINT = 'Only photos you uploaded to this dispute can be attached.';
     END IF;
@@ -1932,3 +1965,85 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.rpc_add_dispute_evidence(uuid, text[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rpc_add_dispute_evidence(uuid, text[]) TO authenticated;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 8. Dispute evidence: one validator, and append-only for parties
+--    (lh-authz-rls review of the dispute-races rebase, MEDIUM + LOW-1).
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- Evidence reached `disputes.evidence_urls` through three writers, and only
+-- rpc_add_dispute_evidence checked what it was given: open_dispute_as (new
+-- filing and re-file branch, reached through rpc_open_dispute by either party)
+-- stored any string, and the opener's own UPDATE (RLS "disputes opener update
+-- while open") could replace or empty the whole array. Probed on prod as both
+-- parties: `javascript:` and attacker-host URLs were stored and then rendered as
+-- <a href>/<img src> in the admin console and the other party's dialog.
+--
+-- dispute_evidence_url_ok is the one definition: THIS project's host, a SIGNED
+-- proof-photos object URL (the bucket is private; `public` URLs never load),
+-- whose path is the uploader's own `<uid>/disputes/<job>/<file>` (the path the
+-- storage INSERT policy already forces), no `..`. open_dispute_as and
+-- rpc_add_dispute_evidence call it, and a BEFORE UPDATE trigger holds every
+-- party write to it and to append-only. Admins (curation) and service-role
+-- writers (no JWT) are not constrained. Existing rows are untouched: only
+-- elements a write ADDS are checked.
+CREATE OR REPLACE FUNCTION public.dispute_evidence_url_ok(_url text, _uploader uuid, _job_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public'
+AS $function$
+  SELECT _url IS NOT NULL
+     AND _uploader IS NOT NULL
+     AND _job_id IS NOT NULL
+     AND length(_url) <= 2048
+     AND position('..' IN _url) = 0
+     AND _url ~ ('^https://fncmgoasalhdgfwzhsqa\.supabase\.co/storage/v1/object/sign/proof-photos/'
+                 || _uploader::text || '/disputes/' || _job_id::text || '/[^/?#]+([?][^#]*)?$')
+$function$;
+
+REVOKE ALL ON FUNCTION public.dispute_evidence_url_ok(text, uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.dispute_evidence_url_ok(text, uuid, uuid) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.enforce_dispute_evidence_append_only()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  _uid uuid := auth.uid();
+  _added text;
+BEGIN
+  -- Service role / cron / edge functions (no JWT) and admins are not parties.
+  IF _uid IS NULL OR public.has_role(_uid, 'admin') THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.evidence_urls IS NOT DISTINCT FROM OLD.evidence_urls THEN
+    RETURN NEW;
+  END IF;
+  -- Nothing already submitted may be removed or replaced by a party.
+  IF NOT (COALESCE(NEW.evidence_urls, '{}'::text[]) @> COALESCE(OLD.evidence_urls, '{}'::text[])) THEN
+    RAISE EXCEPTION 'dispute_evidence_append_only' USING ERRCODE = '42501';
+  END IF;
+  -- And anything added is the caller's own signed upload for this job.
+  FOR _added IN
+    SELECT u FROM unnest(COALESCE(NEW.evidence_urls, '{}'::text[])) AS n(u)
+    EXCEPT
+    SELECT u FROM unnest(COALESCE(OLD.evidence_urls, '{}'::text[])) AS o(u)
+  LOOP
+    IF NOT public.dispute_evidence_url_ok(_added, _uid, NEW.job_id) THEN
+      RAISE EXCEPTION 'dispute_evidence_invalid_url' USING ERRCODE = '42501';
+    END IF;
+  END LOOP;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.enforce_dispute_evidence_append_only() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_dispute_evidence_append_only ON public.disputes;
+CREATE TRIGGER trg_dispute_evidence_append_only
+  BEFORE UPDATE OF evidence_urls ON public.disputes
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_dispute_evidence_append_only();

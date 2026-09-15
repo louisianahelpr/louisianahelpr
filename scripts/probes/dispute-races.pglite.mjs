@@ -127,6 +127,9 @@ await db.exec(`
     created_at timestamptz NOT NULL DEFAULT now()
   );
   CREATE TABLE public.user_roles (user_id uuid, role text);
+  CREATE TYPE app_role AS ENUM ('admin','moderator','user');
+  CREATE FUNCTION public.has_role(_user_id uuid, _role app_role) RETURNS boolean LANGUAGE sql STABLE AS $f$
+    SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = _role::text) $f$;
   -- The stale-claim monitor (same migration) indexes error_logs and reads the
   -- two money ledgers; present so the migration applies verbatim.
   CREATE TABLE public.error_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -197,6 +200,11 @@ if (settleBefore === settleAfter) throw new Error("could not build the BEFORE se
 
 const openAfter = fnBody("open_dispute_as");
 let openBefore = openAfter
+  // drop the evidence validation (the rebase's authz fix; prod's body has none)
+  .replace(
+    /\n  -- ── Evidence is the filer's own uploads[\s\S]*?\n  END IF;\n/,
+    "\n",
+  )
   // drop the IF … dispute_job_not_disputable gate before the INSERT
   .replace(
     /\n  -- ── The job must still be disputable[\s\S]*?END IF;\n\n(  INSERT INTO public\.disputes)/,
@@ -217,6 +225,7 @@ let openBefore = openAfter
     "    UPDATE public.jobs\n       SET dispute_evidence_urls =\n             COALESCE(dispute_evidence_urls, '{}'::text[]) || COALESCE(_evidence_urls, '{}'::text[])\n     WHERE id = _job_id;",
   );
 for (const [what, marker] of [
+  ["evidence validation", "dispute_evidence_url_ok"],
   ["disputable gate", "dispute_job_not_disputable"],
   ["set-like append", "array_agg(u ORDER BY ord)"],
 ]) {
@@ -344,6 +353,10 @@ async function claimRound(hasClaim) {
 //     the caller got raw transition prose instead of a code the dialog can
 //     translate.
 // 3b: the same evidence url submitted twice. BAD = it is stored twice.
+/** A signed proof-photos URL of the kind DisputeDialog uploads (what dispute_evidence_url_ok admits). */
+const evidenceUrl = (uid, jobId, file) =>
+  `https://fncmgoasalhdgfwzhsqa.supabase.co/storage/v1/object/sign/proof-photos/${uid}/disputes/${jobId}/${file}?token=t`;
+
 async function openRaceRound() {
   const { id: jobId } = await one(
     `INSERT INTO public.jobs (title, customer_id, helper_id, status, payment_status)
@@ -355,7 +368,7 @@ async function openRaceRound() {
   let code = "none";
   try {
     await db.query(`SELECT public.open_dispute_as($1, $2, 'the work was never delivered at all', $3)`,
-      [jobId, POSTER, ["https://example.invalid/a.jpg"]]);
+      [jobId, POSTER, [evidenceUrl(POSTER, jobId, "a.jpg")]]);
   } catch (e) {
     code = /dispute_job_not_disputable/.test(e.message) ? "clean" : "raw";
   }
@@ -371,7 +384,7 @@ async function doubleSubmitRound() {
     [POSTER, HELPER],
   );
   await asUser(POSTER);
-  const url = ["https://example.invalid/evidence.jpg"];
+  const url = [evidenceUrl(POSTER, jobId, "evidence.jpg")];
   const reason = "the work was never delivered at all";
   for (let k = 0; k < 2; k++) {
     await db.query(`SELECT public.open_dispute_as($1, $2, $3, $4)`, [jobId, POSTER, reason, url]);

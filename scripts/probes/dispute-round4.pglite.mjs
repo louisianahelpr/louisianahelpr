@@ -604,7 +604,7 @@ const deadClaim = async (jobId, action, stamped) => {
     const jobId = await newJob("disputed", "escrow", { dispute_status: "escalated" });
     await db.query(`UPDATE public.jobs SET dispute_evidence_urls = '{}' WHERE id = $1`, [jobId]);
     const { id: reopened } = await one(`INSERT INTO public.disputes (job_id, opener_id, reason) VALUES ($1, NULL, 'Re-opened by an admin after the earlier decision could not be carried out: x') RETURNING id`, [jobId]);
-    const url = (uid) => `https://x.supabase.co/storage/v1/object/sign/proof-photos/${uid}/disputes/${jobId}/a.jpg?token=t`;
+    const url = (uid) => `https://fncmgoasalhdgfwzhsqa.supabase.co/storage/v1/object/sign/proof-photos/${uid}/disputes/${jobId}/a.jpg?token=t`;
     const add = async (uid, disputeId, urls) => {
       await as(uid);
       const r = await attempt(`SELECT public.rpc_add_dispute_evidence($1, $2::text[])`, [disputeId, urls]);
@@ -629,29 +629,81 @@ const deadClaim = async (jobId, action, stamped) => {
     // Anchored (round-5 review, LOW-1): the proof-photos path must BE the URL's
     // path, not appear somewhere inside it, and no `..` segment.
     const inQuery = await add(HELPER, reopened, [`https://evil.example/x?u=/storage/v1/object/sign/proof-photos/${HELPER}/disputes/${jobId}/a.jpg`]);
-    const dotdot = await add(HELPER, reopened, [`https://x.supabase.co/storage/v1/object/sign/proof-photos/${HELPER}/disputes/${jobId}/../../${POSTER}/a.jpg`]);
+    const dotdot = await add(HELPER, reopened, [`https://fncmgoasalhdgfwzhsqa.supabase.co/storage/v1/object/sign/proof-photos/${HELPER}/disputes/${jobId}/../../${POSTER}/a.jpg`]);
     check("LOW-1 (r5): the path is anchored — embedded in a foreign URL or climbing with .. is refused",
       /dispute_evidence_invalid_url/.test(inQuery) && /dispute_evidence_invalid_url/.test(dotdot), `${inQuery} / ${dotdot}`);
-    const many = Array.from({ length: 60 }, (_, i) => `https://x.supabase.co/storage/v1/object/sign/proof-photos/${HELPER}/disputes/${jobId}/f${i}.jpg`);
+    const many = Array.from({ length: 60 }, (_, i) => `https://fncmgoasalhdgfwzhsqa.supabase.co/storage/v1/object/sign/proof-photos/${HELPER}/disputes/${jobId}/f${i}.jpg`);
     let capped = "ok";
     for (let i = 0; i < 6 && capped === "ok"; i++) capped = await add(HELPER, reopened, many.slice(i * 10, i * 10 + 10));
     check("LOW-1 (r5): the dispute's evidence is capped in total, not just per call", /dispute_evidence_limit/.test(capped), capped);
     // A dispute whose opener simply deleted their account is NOT an admin re-open.
     const jobAnon = await newJob("disputed", "escrow", { dispute_status: "open" });
     const { id: anonOpener } = await one(`INSERT INTO public.disputes (job_id, opener_id, reason) VALUES ($1, NULL, 'the work was never delivered') RETURNING id`, [jobAnon]);
-    const anonAdd = await add(HELPER, anonOpener, [`https://x.supabase.co/storage/v1/object/sign/proof-photos/${HELPER}/disputes/${jobAnon}/a.jpg`]);
+    const anonAdd = await add(HELPER, anonOpener, [`https://fncmgoasalhdgfwzhsqa.supabase.co/storage/v1/object/sign/proof-photos/${HELPER}/disputes/${jobAnon}/a.jpg`]);
     check("LOW-2 (r5): a dispute with no opener because the opener was deleted is not an admin re-open (refused)", /dispute_evidence_not_allowed/.test(anonAdd), anonAdd);
+    // authz review of the rebase: host pinned, `sign` only.
+    const otherHost = await add(HELPER, reopened, [`https://attacker.example/storage/v1/object/sign/proof-photos/${HELPER}/disputes/${jobId}/a.jpg`]);
+    const publicRoute = await add(HELPER, reopened, [`https://fncmgoasalhdgfwzhsqa.supabase.co/storage/v1/object/public/proof-photos/${HELPER}/disputes/${jobId}/a.jpg`]);
+    check("authz (rebase): the evidence host is pinned to this project and only signed object URLs pass",
+      /dispute_evidence_invalid_url/.test(otherHost) && /dispute_evidence_invalid_url/.test(publicRoute), `${otherHost} / ${publicRoute}`);
     const empty = await add(HELPER, reopened, []);
     check("LOW-1: an empty evidence list is refused", /dispute_evidence_invalid_url|dispute_evidence_empty/.test(empty), empty);
 
     const jobO = await newJob("disputed", "escrow", { dispute_status: "open" });
     const { id: openerOwned } = await one(`INSERT INTO public.disputes (job_id, opener_id, reason) VALUES ($1, $2, 'filed by the poster') RETURNING id`, [jobO, POSTER]);
-    const notReopened = await add(HELPER, openerOwned, [`https://x.supabase.co/storage/v1/object/sign/proof-photos/${HELPER}/disputes/${jobO}/a.jpg`]);
+    const notReopened = await add(HELPER, openerOwned, [`https://fncmgoasalhdgfwzhsqa.supabase.co/storage/v1/object/sign/proof-photos/${HELPER}/disputes/${jobO}/a.jpg`]);
     check("LOW-1: a party-filed dispute keeps its opener-only evidence rule (this RPC refuses it)", /dispute_evidence_not_allowed/.test(notReopened), notReopened);
     await db.query(`UPDATE public.disputes SET status = 'decided' WHERE id = $1`, [reopened]);
     const decidedAdd = await add(HELPER, reopened, [url(HELPER)]);
     check("LOW-1: no evidence once the re-opened dispute is decided", /dispute_evidence_not_allowed/.test(decidedAdd), decidedAdd);
   }
+}
+
+// ── authz review of the rebase: every evidence writer validates, append-only ─
+{
+  const exists = await hasFn("public.dispute_evidence_url_ok(text,uuid,uuid)");
+  check("authz (rebase): one shared evidence validator, dispute_evidence_url_ok(text, uuid, uuid)", exists);
+  const jobId = await newJob("in_progress", "escrow");
+  const url = (uid) => `https://fncmgoasalhdgfwzhsqa.supabase.co/storage/v1/object/sign/proof-photos/${uid}/disputes/${jobId}/a.jpg?token=t`;
+  const viaOpen = await attempt(`SELECT public.open_dispute_as($1, $2, 'the work was never delivered at all', $3::text[])`,
+    [jobId, POSTER, ["javascript:alert(document.domain)"]]);
+  check("authz (rebase): open_dispute_as refuses evidence that is not the filer's own signed upload for this job",
+    /dispute_evidence_invalid_url/.test(viaOpen), viaOpen);
+  const okOpen = await attempt(`SELECT public.open_dispute_as($1, $2, 'the work was never delivered at all', $3::text[])`, [jobId, POSTER, [url(POSTER)]]);
+  const refileBad = await attempt(`SELECT public.open_dispute_as($1, $2, 'the work was never delivered at all', $3::text[])`,
+    [jobId, HELPER, ["https://attacker.example/pixel.png"]]);
+  check("authz (rebase): a valid filing works, and the re-file branch validates too",
+    okOpen === "ok" && /dispute_evidence_invalid_url/.test(refileBad), `${okOpen} / ${refileBad}`);
+
+  const { id: disputeId } = await one(`SELECT id FROM public.disputes WHERE job_id = $1 AND status = 'open'`, [jobId]);
+  await as(POSTER);
+  const replace = await attempt(`UPDATE public.disputes SET evidence_urls = ARRAY['https://attacker.example/pixel.png'] WHERE id = $1`, [disputeId]);
+  const drop = await attempt(`UPDATE public.disputes SET evidence_urls = '{}' WHERE id = $1`, [disputeId]);
+  const appendBad = await attempt(`UPDATE public.disputes SET evidence_urls = evidence_urls || ARRAY['https://attacker.example/pixel.png'] WHERE id = $1`, [disputeId]);
+  const appendOk = await attempt(`UPDATE public.disputes SET evidence_urls = evidence_urls || ARRAY[$2] WHERE id = $1`, [disputeId, url(POSTER).replace("a.jpg", "b.jpg")]);
+  await as(null);
+  check("authz (rebase): a party's direct UPDATE of evidence is append-only and validated (no replace, no delete, no foreign URL; a real upload still appends)",
+    /dispute_evidence_append_only/.test(replace) && /dispute_evidence_append_only/.test(drop) && /dispute_evidence_invalid_url/.test(appendBad) && appendOk === "ok",
+    `${replace} / ${drop} / ${appendBad} / ${appendOk}`);
+  await as(ADMIN);
+  const adminEdit = await attempt(`UPDATE public.disputes SET evidence_urls = '{}' WHERE id = $1`, [disputeId]);
+  await as(null);
+  check("authz (rebase): an admin can still curate evidence", adminEdit === "ok", adminEdit);
+  const svc = await attempt(`UPDATE public.disputes SET evidence_urls = evidence_urls || ARRAY['legacy'] WHERE id = $1`, [disputeId]);
+  check("authz (rebase): service-role writers (no JWT) are not affected", svc === "ok", svc);
+
+  // Lock order: every dispute RPC takes jobs before disputes (as open_dispute_as
+  // and claim_dispute_settlement do), so no pairing can cycle.
+  const bodyOf = async (sig) => (await one(`SELECT prosrc FROM pg_proc WHERE oid = to_regprocedure($1)`, [sig]))?.prosrc ?? "";
+  const bad = [];
+  for (const sig of ["public.rpc_withdraw_dispute(uuid)", "public.rpc_decide_dispute(uuid,text,jsonb)",
+                     "public.rpc_supersede_dispute_decision(uuid,text)", "public.rpc_add_dispute_evidence(uuid,text[])"]) {
+    const b = await bodyOf(sig);
+    const jobsLock = b.search(/FROM public\.jobs[^;]*FOR UPDATE/);
+    const disputesLock = b.search(/FROM public\.disputes[^;]*FOR UPDATE/);
+    if (!(jobsLock >= 0 && disputesLock >= 0 && jobsLock < disputesLock)) bad.push(`${sig} jobs@${jobsLock} disputes@${disputesLock}`);
+  }
+  check("authz (rebase): lock order is jobs -> disputes in every dispute RPC", bad.length === 0, bad.join("; "));
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);

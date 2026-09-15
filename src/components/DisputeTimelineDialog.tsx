@@ -31,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { disputeEvidenceChannel, isAdminReopened } from "@/components/disputeEvidenceChannel";
+import { partitionEvidenceUrls } from "@/lib/evidenceUrl";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { formatDistanceToNow } from "date-fns";
 
@@ -268,9 +269,11 @@ export const DisputeTimelineDialog = ({
   const reason = dispute?.reason ?? legacy?.reason ?? null;
   const createdAt = dispute?.created_at ?? legacy?.disputed_at ?? null;
   const openerId = dispute?.opener_id ?? legacy?.disputed_by ?? null;
-  const evidenceUrls = dispute?.evidence_urls?.length
-    ? dispute.evidence_urls
-    : (legacy?.evidence_urls ?? []);
+  // Only this project's signed proof-photo URLs render as a link or image; any
+  // other string a party stored is counted and withheld (src/lib/evidenceUrl.ts).
+  const { trusted: evidenceUrls, withheld: withheldEvidence } = partitionEvidenceUrls(
+    dispute?.evidence_urls?.length ? dispute.evidence_urls : (legacy?.evidence_urls ?? []),
+  );
   const decidedAt = dispute?.decided_at ?? legacy?.dispute_resolved_at ?? null;
   const decisionText = dispute?.decision_text ?? null;
   const payoutSplit = dispute?.payout_split ?? null;
@@ -346,10 +349,17 @@ export const DisputeTimelineDialog = ({
                   · {evidenceUrls.length}
                 </span>
               </p>
-              {evidenceUrls.length === 0 ? (
-                <p className="font-sans mt-1.5 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  No evidence uploaded yet.
+              {withheldEvidence > 0 && (
+                <p className="font-sans mt-1.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  {withheldEvidence} attachment{withheldEvidence === 1 ? "" : "s"} not shown (not an uploaded photo).
                 </p>
+              )}
+              {evidenceUrls.length === 0 ? (
+                withheldEvidence === 0 && (
+                  <p className="font-sans mt-1.5 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                    No evidence uploaded yet.
+                  </p>
+                )
               ) : (
                 <div className="flex gap-2 flex-wrap mt-1.5">
                   {evidenceUrls.map((url, i) => (

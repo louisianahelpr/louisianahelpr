@@ -38,6 +38,48 @@ those are answerable by reading this instead of guessing.
   Follow-up (reported, not done): consider revoking the public default-privilege
   write grant so recreations can't re-open this class at all.
 
+- [x] CLOSED 2026-09-15 (CRITICAL follow-through on the item above): the rest of
+  the class. Live read before either fix deployed (aclexplode on prod):
+  `public.open_jobs_browse` AND `public.jobs_helper_safe` (security_invoker=on)
+  both held anon+authenticated INSERT/UPDATE/DELETE/MAINTAIN; no matviews; no
+  app code writes through either. Re-proven on prod in ONE DO block ending in
+  RAISE EXCEPTION (always rolled back; job 5eed0a10-…-0001 xmin 2054802 before
+  and after): anon via open_jobs_browse UPDATE title=title 1 row, UPDATE
+  payment_status+customer_id 1 row, DELETE 1 row; authenticated non-party
+  UPDATE/DELETE/INSERT 1 row each (the jobs guard triggers wave NULL auth.uid()
+  through as "service role", so anon was unguarded). jobs_helper_safe: anon
+  permission denied; authenticated UPDATE/DELETE 0 rows (RLS), INSERT of own
+  job 1 row — not a bypass, but a second unreviewed write door. Fix: migration
+  20260915043245_revoke_writes_on_exposed_views (both views by name + every
+  non-extension view/matview in public/graphql_public; INSERT/UPDATE/DELETE/
+  TRUNCATE/REFERENCES/TRIGGER, MAINTAIN behind server_version_num; SELECT kept).
+  Class check, one query `scripts/ci/client-writable-views.sql`, widened to ANY
+  client write grant on ANY exposed view: (1) db-smoke.yml replay gate step "no
+  exposed-schema view is client-writable"; (2) `scripts/check-updatable-views.mjs`
+  live on prod, now also right after the push in db-deploy.yml (plus nightly in
+  db-drift-detect). PGlite: `scripts/probes/exposed-view-writes.probe.mjs`
+  (before red + writes land; after 3× green, all 12 write probes refused, reads
+  work; DROP+CREATE turns it red again; 3 broken copies caught; skip path; no
+  bare MAINTAIN). Tamper check: edge logs (24h retention) show no PATCH/DELETE/
+  POST on either view except the 04:37Z post-fix 401 verification; all 22+
+  funded jobs are is_seed with consistent seed-account owners; the 3 non-seed
+  jobs are cancelled/unpaid. sha fea3bd564, db-deploy run 34930636986 green (replay gate step green on
+  the replayed schema; the new post-push live check printed "Checked 2 views …
+  OK"). Red proof: db-smoke run 34930646351 dispatched with
+  exclude_migrations="20260915041247 20260915043245" failed at the new step
+  listing open_jobs_browse anon+authenticated INSERT/UPDATE/DELETE (so the PG15
+  image does re-grant on DROP+CREATE). Live check red on prod before deploy
+  (jobs_helper_safe), green after. Prod after deploy: both ACLs anon=r,
+  authenticated=r, 0 client write grants (table or column); rolled-back probe:
+  every UPDATE/DELETE/INSERT through either view as anon and authenticated →
+  42501, SELECT still works; job xmin still 2054802; anon REST GET
+  /rest/v1/open_jobs_browse → 200, PATCH on either view → 401. Reviewed by
+  lh-authz-rls: nothing blocking; column-level-grant gap and REVOKE-without-
+  privilege abort fixed before push. Known gap (reported, not done): the CI
+  replay soft-allows 20260412002746 failing, so jobs_helper_safe never exists in
+  the replayed schema; the replay gate cannot see that view — only the
+  post-push/nightly live check can.
+
 Grouped by SURFACE, not by the order it was noticed — because most of these are
 instances of a few shared problems, and fixing them surface-by-surface costs a
 fraction of fixing them one report at a time.

@@ -738,6 +738,10 @@ export function JobTracking({
   // which of three modes the runtime actually got (background / foreground /
   // denied). That mode drives the UI below — we never claim background
   // delivery we have not established. See src/lib/enRouteLocation.ts.
+  // The last position the en-route watch delivered. The arrival read falls
+  // back to it when a fresh one-shot fix times out (see getLocationOutcome).
+  const lastEnRouteFixRef = useRef<{ lat: number; lng: number; at: number } | null>(null);
+
   useEffect(() => {
     setEnRouteMode(null);
     if (!isHelper) return;
@@ -753,6 +757,7 @@ export function JobTracking({
       },
       onPosition: (p) => {
         if (cancelled) return;
+        lastEnRouteFixRef.current = { lat: p.lat, lng: p.lng, at: Date.now() };
         // No unwrapMutation here on purpose: this is a best-effort position
         // refresh, and a zero-row result just means the job moved on. The
         // status writes below remain guarded, which is where correctness
@@ -841,7 +846,7 @@ export function JobTracking({
       if (isNativePlatform) {
         try {
           const { Geolocation } = await import("@capacitor/geolocation");
-          const pos = await Geolocation.getCurrentPosition({ timeout: 10000 });
+          const pos = await Geolocation.getCurrentPosition({ timeout: 15000, maximumAge: 30000 });
           location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         } catch (e) {
           // Capacitor surfaces a denial as a message, not a code, on iOS.
@@ -861,11 +866,20 @@ export function JobTracking({
             if (err?.code === 1) denied = true;
             resolve();
           },
-          { timeout: 10000 },
+          { timeout: 15000, maximumAge: 30000 },
         );
       });
     });
     if (location) return location;
+    // A one-shot fix can time out while the en-route watch is still receiving
+    // positions (seen on prod 2026-09-14: a helper 2,099 mi away got "we
+    // couldn't get your location" and the RPC was never called, while the
+    // status line above read "2099 mi from job"). Use the watch's own last
+    // point if it is under a minute old — the SERVER still measures the
+    // distance and refuses anything outside 500ft, so this can only turn a
+    // vague "no location" into the real answer.
+    const recent = lastEnRouteFixRef.current;
+    if (!denied && recent && Date.now() - recent.at < 60_000) return { lat: recent.lat, lng: recent.lng };
     return { error: denied ? "denied" : "unavailable" };
   };
 

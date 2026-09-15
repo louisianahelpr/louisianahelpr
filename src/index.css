@@ -1631,6 +1631,35 @@ html.web-desktop {
   }
 }
 
+/* A FIXED SHELL ON A DOCUMENT-SCROLL ROUTE OWNS ITS OWN TOP OFFSET.
+   Owner, 2026-09-14 (VN-24): signed in, Contact Support (/support) and Help
+   Center (/help) had "a large empty band above the title" at 1440. The same
+   is true of /legal, /terms, /privacy and /rules — all PublicHeaderPage.
+
+   Where the band came from, measured in code:
+     - Those routes are in DOCUMENT_SCROLL_ROUTES (html has no `app-shell`), so
+       the desktop rule above pads #root 3.5rem for DesktopTopNav.
+     - Signed in, PublicLayout renders AppShell, whose `.app-shell-frame` sets
+       its own `top: 56px` (AppShell's topBarOffset) for the same bar.
+     - The route's <PageTransition> motion.div carries `will-change:
+       transform`, which makes it the containing block for that `fixed` frame
+       — so the frame sits inside #root's padding AND adds its own offset.
+   Title top: 56 (#root) + 56 (frame) + 24 (PageHeader pt-6) = 136px, against
+   80px on a Profile tab (AppPage: frame top 56 + 24).
+
+   The offline banner rule above (`html.offline-banner-visible:not(.app-shell)
+   #root`) double-counts through the same containing block — AppShell already
+   adds the banner offset to its own `top` in JS — so it is cancelled here too.
+
+   Only a page that actually mounts an AppShell frame matches `:has`, so the
+   signed-out marketing layout (Navbar + Footer, no AppShell) and every true
+   document-scroll page keep their padding. Guard:
+   src/test/rootPaddingVsAppShellFrame.test.ts. */
+html.offline-banner-visible:not(.app-shell) #root:has(.app-shell-frame),
+html.web-desktop.desktop-rail:not(.app-shell) #root:has(.app-shell-frame) {
+  padding-top: 0;
+}
+
 /* Leaflet map (BrowseMap) — lock ALL touch gestures to Leaflet itself.
    Without `touch-action: none`, iOS WKWebView treats a drag on the map as a
    page pan and slides the WHOLE app — header AND bottom dock — left/right

@@ -8,6 +8,17 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN — V1–V6 visual batch (owner live-QA 2026-09-15; owner: "do all six"). Needs the browser, one at a time.
+Full context + the authed-session reuse method: memory handoff-2026-09-15-visual-batch-v1-v6. Reach the 375 map via Filters → VIEW → Map.
+- [ ] **V1 map pin-preview card** — OWNER DECISION: **revert to a pin-anchored popover** (card near/under the pin), re-solving the two documented problems that caused the move to a bottom card (card over other pins/labels; close control over JobCard's price chip). BrowseMap.tsx ~216–234 history comment + the `selectedJobId` bottom-sheet JSX + openPreview/closePreview/camera-slide (~380–420). Real interaction rework (coord→screen-point, re-anchor on pan/zoom, edge collision); before/after at multiple pin positions, 375 + desktop + WebKit. Reproduced live this session.
+- [ ] **V2 Live tracker (JobTracking in-progress)** — primary buttons RIGHT; POSTER missing an actionable "Confirm They Arrived"/"Confirm Working" mirror (helper side already shows the actions + "Awaiting confirmation" banner). Functional gap (VN-33 area), not just layout.
+- [ ] **V3 My Posts → Scheduled card** — action row (Message/Cancel/"I'm Still On") to ONE line, primary RIGHT; drop the redundant "Still on for this one?" block.
+- [ ] **V4 My Posts → Waiting → Applicants empty state** — fit screen.
+- [ ] **V5 Buttons** — same font/styling GLOBALLY (drift on helper My Jobs card); normalize to the shared Button primitive.
+- [ ] **V6 Jobs collapsed card tiny POSTED-BY name** — OWNER QUESTION still open: confirm intended size or remove (VN-2).
+- V7 IGNORE (another session owns the rounded panel-bottom).
+- **PREREQUISITE for V2/V3**: /my-jobs + /my-posts have a pre-existing 375 a11y defect — Start Working / Mark Job Complete ask h-11 (44px) but render ~61.5px (labels wrapping). Any /my-jobs|/my-posts push is red on a11y-prod until fixed; fix it as part of V2/V3.
+
 ## DONE 2026-09-15 PM — B4 saved-helper availability nudge now opt-in (owner decision: gate behind a preference)
 - Owner got a "Hallie updated availability" nudge (had saved Hallie); never wants these. Decision (pop-up): gate behind a preference, default OFF.
 - FIX: new STANDALONE `notification_preferences.saved_helper_availability boolean NOT NULL DEFAULT false` (migration 20260915202026). NOT a `notification_type_pref_map` type — the notification keeps `type='info'`; the `saved-helper-availability-push` cron reads the column directly and only fans out to opted-in customers (so no in-app row AND no device push for anyone who hasn't opted in). Deliberately leaves the six-registry closed type set untouched (like `match_digest_mode`/quiet hours). Bonus: default-OFF also ends the orphan-customer duplicate stream the cron documents.

@@ -2168,9 +2168,9 @@ export function JobTracking({
               <BrandConfirmDialog
                 open={confirmDoneOpen}
                 onOpenChange={(next) => { if (!updating) setConfirmDoneOpen(next); }}
-                title="Request Your Payout?"
+                title="Mark This Job Complete?"
                 description="This tells the poster the work is finished and starts the clock on your payment."
-                primaryLabel="Yes, I'm Done"
+                primaryLabel="Mark Complete"
                 primaryTone="bark"
                 primaryDisabled={updating}
                 onPrimary={(e) => {

@@ -103,25 +103,31 @@ export function fitToPins(
   map.setRegionAnimated(inset(region), animate);
 }
 
-// "Recenter" control — flies back to the same Louisiana frame the map opens
-// on, so users who have panned/zoomed deep get the statewide view back in one
-// tap. Takes the handler as a prop now that there is no `useMap()` to reach for.
+// "My location" control (VN-11, owner decision 2026-09-14) — centres the map
+// on the user's current position. It USED to fly back to the statewide
+// Louisiana frame while wearing the crosshair, which is the universal "show me
+// where I am" glyph (and is what `CurrentLocationPill` means by it elsewhere in
+// this app); the owner chose to keep the icon and make the button honest rather
+// than swap the glyph. When no position can be had — permission denied, no
+// geolocation — the caller falls back to the statewide frame and toasts.
 //
-// NOT self-positioned any more (2026-08-31). It used to be `position:absolute`
+// NOT self-positioned (2026-08-31). It used to be `position:absolute`
 // with its own `bottom: safe-area + 96px` — the same constant the FAB and the
 // dock use — which meant it sat in the one corner most likely to be crowded,
 // and nothing could move it when the pin preview opened underneath. It is now a
 // plain button laid out by BrowseMap's bottom control stack, which owns the
 // single dock-clearance constant and lifts the whole stack above the preview
 // sheet when one is open. 44x44 (w-11 h-11) meets the project tap-target floor.
-export function RecenterControl({ onRecenter }: { onRecenter: () => void }) {
+export function MyLocationControl({ onLocate, busy = false }: { onLocate: () => void; busy?: boolean }) {
   return (
     <button
       type="button"
-      onClick={onRecenter}
-      aria-label="Recenter map"
-      title="Recenter map"
-      data-testid="browse-map-recenter"
+      onClick={onLocate}
+      disabled={busy}
+      aria-label="Show my location"
+      aria-busy={busy || undefined}
+      title="Show my location"
+      data-testid="browse-map-my-location"
       className="pointer-events-auto w-11 h-11 rounded-full flex items-center justify-center active:scale-[0.94] transition-all"
       style={{
         // TOKENS, not a literal white (fixed 2026-08-31). This was

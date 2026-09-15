@@ -21,6 +21,8 @@ import { compareJobsBySortMode } from "@/lib/smartSort";
 import { useProfile } from "@/hooks/useProfile";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import { fetchJobForPin } from "@/components/browseMap/fetchJobForPin";
+import { toast } from "sonner";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
@@ -495,9 +497,30 @@ export function BrowseTasksFeed({
               // sheet `handleApplyRequest` opens for the feed's swipe/Apply
               // affordance. One apply surface, reached the same way, whether
               // you found the job on the map or in the list.
+              //
+              // VN-10: this used to be `filteredJobs.find(...)` and nothing
+              // else, so a pin whose job the LIST doesn't hold — the feed is
+              // paginated and separately filtered, the map RPC returns every
+              // open job in view — made the card a dead tap. The lookup now
+              // widens (this page's filtered jobs → every job loaded → the
+              // authoritative row from `open_jobs_browse`) and, failing all
+              // three, says so instead of doing nothing.
               onJobAction={(jobId) => {
-                const job = filters.filteredJobs.find((j) => j.id === jobId);
-                if (job) setDetailJob(job);
+                const job =
+                  filters.filteredJobs.find((j) => j.id === jobId) ??
+                  allJobs.find((j) => j.id === jobId);
+                if (job) {
+                  setDetailJob(job);
+                  return;
+                }
+                // Not in memory — fetch it. The pin's own MapJob is not usable
+                // here (no `customer_id`: see fetchJobForPin's header).
+                void fetchJobForPin(jobId)
+                  .then((fetched) => {
+                    if (fetched) setDetailJob(fetched);
+                    else toast.error("That job is no longer available.");
+                  })
+                  .catch(() => toast.error("Couldn't open that job. Try again."));
               }}
               currentUserId={user?.id}
               filters={filters.mapFilter}

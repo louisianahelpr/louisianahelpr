@@ -15,6 +15,7 @@ import { shareNative, copyToClipboard } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { formatPriceExact } from "@/lib/format";
+import { referralEarningsBreakdown } from "@/lib/referralEarnings";
 import { userFacingError } from "@/lib/userFacingError";
 
 /**
@@ -137,8 +138,13 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     }
   };
 
-  const totalCredits = credits.reduce((sum, c) => sum + Number(c.amount), 0);
-  const unredeemedCredits = credits.filter(c => !c.redeemed).reduce((sum, c) => sum + Number(c.amount), 0);
+  // One reduction over the credit ledger (VN-45). Money totals are every row,
+  // because that is what cash-out-credits pays; the breakdown says which part
+  // came from referring people, so "$15 earned" never sits beside "0
+  // referrals" unexplained. See src/lib/referralEarnings.ts.
+  const earnings = referralEarningsBreakdown(credits);
+  const totalCredits = earnings.total;
+  const unredeemedCredits = earnings.unredeemed;
 
   if (loading) {
     // Skeleton mirrors the live single-screen layout exactly — no jump on load.
@@ -282,6 +288,27 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         ))}
       </div>
 
+      {/* Where the credit came from (VN-45). Shown only when part of "Total
+          earned" is NOT from people you referred — a $5 first_job_bonus you got
+          as the person referred, or any other credit — which is exactly when
+          the tiles and the rank ladder below would otherwise disagree. */}
+      {earnings.needsExplanation && (
+        <div className="rounded-ds-md liquid-glass px-4 py-3" data-testid="referral-earnings-breakdown">
+          <ul className="space-y-1.5">
+            {earnings.lines.map((line) => (
+              <li key={line.source} className="flex items-baseline justify-between gap-3">
+                <span className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  {line.label}
+                </span>
+                <span className="font-sans font-semibold tabular-nums text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
+                  ${formatPriceExact(line.amount)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {unredeemedCredits > 0 && (
         <div className="rounded-2xl liquid-glass p-4 flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -306,7 +333,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           Self-contained so we don't churn the parent on credit refreshes. */}
       <ReferralExtras
         referralCount={referralCount}
-        totalEarned={totalCredits}
+        earnedFromReferrals={earnings.fromReferring}
       />
 
       {/* How it works */}

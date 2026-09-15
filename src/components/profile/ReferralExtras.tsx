@@ -9,9 +9,15 @@ import { Trophy } from "lucide-react";
 import { formatPriceExact } from "@/lib/format";
 
 interface ReferralExtrasProps {
+  /** People YOU referred (`referrals.referrer_id`). */
   referralCount: number;
-  /** Sum of all referral-credit dollars (redeemed + unredeemed). */
-  totalEarned: number;
+  /**
+   * Credit earned by referring people — referrer_bonus + subscription_bonus,
+   * redeemed or not. NOT every credit row: a first_job_bonus you received as
+   * the person referred is not a rung on this ladder (VN-45), and ReferralSection
+   * lists it separately. See src/lib/referralEarnings.ts.
+   */
+  earnedFromReferrals: number;
 }
 
 // Tier ladder — one rung per referred friend, $5 each.
@@ -35,7 +41,7 @@ const LADDER = [
   { goal: 5, label: "Friend 5", reward: "+$5 · $25 max" },
 ];
 
-export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasProps) {
+export function ReferralExtras({ referralCount, earnedFromReferrals }: ReferralExtrasProps) {
   // Active rung — the *highest* milestone the user has reached. Drives
   // the "now" marker and rewards-claimed pill.
   const activeRungIdx = LADDER.reduce(
@@ -87,13 +93,13 @@ export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasPro
                   dollars, so a $12.50 balance read "$13" here while the tiles
                   above and the cash-out button said "$12.50". Credits are money
                   the user can withdraw — never round them for display. */}
-              ${formatPriceExact(totalEarned)}
+              ${formatPriceExact(earnedFromReferrals)}
             </p>
             <p
               className="font-sans text-ds-10"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              earned
+              from referrals
             </p>
           </div>
         </div>

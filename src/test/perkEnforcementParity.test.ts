@@ -14,6 +14,7 @@ import { TIER_PERKS, monthlyFreeBoostBullet } from "@/lib/subscriptionTiers";
 import { TIER_BADGE_STYLES } from "@/lib/tierBadgeStyle";
 import { tierConfig } from "@/components/profile/subscriptionTab/tierConfig";
 import { PRIORITY_SUPPORT_TIERS } from "@/components/admin/AdminSupport";
+import { posterPlacementBonus } from "@/lib/smartSort";
 
 /**
  * THE STOREFRONT MAY NOT SELL A PERK THE SERVER DOES NOT GRANT — per perk, per
@@ -82,6 +83,94 @@ describe("Priority Support — admin_support_queue ↔ dedicatedSupport", () => 
 
   it("the client passes exactly the dedicatedSupport tiers", () => {
     expect([...PRIORITY_SUPPORT_TIERS].sort()).toEqual(tiersGrantingPerk("dedicatedSupport").slice().sort());
+  });
+});
+
+describe("Priority Placement — every SQL tier ladder ↔ the perk it enforces", () => {
+  /**
+   * The live bug (2026-09-14): `get_ranked_open_jobs` scored `'elite' THEN 5`
+   * and `'pro' THEN 2.5`, and Plus — which holds priorityPlacement — fell to
+   * ELSE 0. Fixed by 20260915051752_plus_priority_placement.
+   *
+   * The inventory is derived from the migrations, not listed here: the NEWEST
+   * definition of every public function, scanned for a numeric tier ladder
+   * (`subscription_tier = '<tier>' THEN <number>`). Each ladder found must be
+   * registered to the perk it enforces — an unregistered ladder fails, so a new
+   * ranking function cannot skip this check — and must score exactly the tiers
+   * that hold that perk.
+   */
+  const TIER_LADDER_PERK: Record<string, TierPerkKey> = {
+    get_ranked_open_jobs: "priorityPlacement", // poster placement in the browse feed
+    early_access_cutoff: "earlyAccess", // head-start minutes
+  };
+
+  /** name → newest body, over every migration. A later DROP with no redefinition removes it. */
+  function newestBodies(): Map<string, { file: string; body: string }> {
+    const out = new Map<string, { file: string; body: string }>();
+    const def = /CREATE (?:OR REPLACE )?FUNCTION public\.([a-z0-9_]+)\s*\([\s\S]*?\$([A-Za-z_]*)\$([\s\S]*?)\$\2\$/gi;
+    const drop = /DROP FUNCTION (?:IF EXISTS )?public\.([a-z0-9_]+)\s*(?:\(|;|\s)/gi;
+    for (const f of readdirSync(MIGRATIONS).filter((x) => x.endsWith(".sql")).sort()) {
+      const sql = readFileSync(resolve(MIGRATIONS, f), "utf8");
+      const defined = new Set<string>();
+      for (const m of sql.matchAll(def)) {
+        out.set(m[1].toLowerCase(), { file: f, body: m[3] });
+        defined.add(m[1].toLowerCase());
+      }
+      for (const m of sql.matchAll(drop)) if (!defined.has(m[1].toLowerCase())) out.delete(m[1].toLowerCase());
+    }
+    return out;
+  }
+
+  /** The numeric tier arms of a body, comments stripped so a commented-out arm never counts. */
+  function ladderArms(body: string): Array<{ tier: string; value: number; index: number }> {
+    const code = body.replace(/--[^\n]*/g, "");
+    return [...code.matchAll(/subscription_tier\s*=\s*'([a-z_]+)'\s+THEN\s+(\d+(?:\.\d+)?)/gi)].map((m) => ({
+      tier: m[1],
+      value: Number(m[2]),
+      index: m.index ?? 0,
+    }));
+  }
+
+  const bodies = newestBodies();
+  const ladders = [...bodies].filter(([, b]) => ladderArms(b.body).length > 0);
+
+  it("finds the ladders it is supposed to (the scan itself can fail)", () => {
+    expect(ladders.map(([n]) => n).sort()).toEqual(expect.arrayContaining(Object.keys(TIER_LADDER_PERK).sort()));
+  });
+
+  it("every numeric subscription-tier ladder in a live function is registered to a perk", () => {
+    const unregistered = ladders.filter(([n]) => !(n in TIER_LADDER_PERK)).map(([n, b]) => `${n} (${b.file})`);
+    expect(unregistered, "register each new tier ladder in TIER_LADDER_PERK with the perk it enforces").toEqual([]);
+  });
+
+  it.each(Object.entries(TIER_LADDER_PERK))("%s scores exactly the tiers holding %s", (fn, perk) => {
+    const b = bodies.get(fn)!;
+    const arms = ladderArms(b.body);
+    for (const a of arms) expect(TIER_ORDER, `${fn}: unknown tier '${a.tier}' in ${b.file}`).toContain(a.tier);
+    const scored = TIER_ORDER.filter((t) => arms.some((a) => a.tier === t && a.value > 0));
+    expect(scored, `${fn} (${b.file}) — tiers with a non-zero arm`).toEqual(tiersGrantingPerk(perk));
+  });
+
+  it.each(Object.keys(TIER_LADDER_PERK))("%s zeroes a lapsed membership before any tier arm", (fn) => {
+    const b = bodies.get(fn)!;
+    const code = b.body.replace(/--[^\n]*/g, "");
+    const expiry = /subscription_expires_at\s*<=\s*now\(\)\s*THEN\s+0\b/i.exec(code);
+    expect(expiry, `${fn}: no 'subscription_expires_at <= now() THEN 0' arm in ${b.file}`).toBeTruthy();
+    expect(expiry!.index).toBeLessThan(Math.min(...ladderArms(b.body).map((a) => a.index)));
+  });
+
+  it("get_ranked_open_jobs moves each tier the same distance the client scorer does", () => {
+    // Same 10% / 5%-of-the-recency-span scale as posterPlacementBonus, per
+    // tier: the signed-in dashboard re-sorts this feed with the client scorer,
+    // so a tier weighted differently on the two sides reorders on sign-in.
+    const b = bodies.get("get_ranked_open_jobs")!;
+    const SQL_RECENCY_SPAN = 50;
+    expect(b.body, "recency span changed — update SQL_RECENCY_SPAN").toMatch(/GREATEST\(0,\s*50\s*-/);
+    const arms = ladderArms(b.body);
+    for (const tier of TIER_ORDER) {
+      const sql = arms.find((a) => a.tier === tier)?.value ?? 0;
+      expect(sql / SQL_RECENCY_SPAN, `${tier} in ${b.file}`).toBeCloseTo(posterPlacementBonus(tier), 10);
+    }
   });
 });
 

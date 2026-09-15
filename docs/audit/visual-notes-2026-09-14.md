@@ -1,6 +1,6 @@
 # Visual notes — 2026-09-14
 
-53 entries (VN-1 … VN-53). Logged from owner screenshots/descriptions; locations read from code, causes marked unverified. Nothing here has been changed in code.
+54 entries (VN-1 … VN-54). Logged from owner screenshots/descriptions; locations read from code, causes marked unverified. Nothing here has been changed in code.
 
 
 ## Tracker
@@ -62,6 +62,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-51 | Repeating job should say "Start Date", not "Date needed" | small | [ ] | [ ] |
 | VN-52 | Where is the Group job option? (OWNER QUESTION — code read only) | question | [ ] | [ ] |
 | VN-53 | Pet care job — "Which pet is this for?" doesn't show the pets I've saved | small | [ ] | [ ] |
+| VN-54 | Business name should show only after admin approves | small | [ ] | [ ] |
 
 ## Owner decisions (pop-ups, 2026-09-14)
 
@@ -654,4 +655,14 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Fix direction: share one query key/hook with the pets page (and filter by owner_id), invalidate on save
 - Shared with: JobPetCareSheet (Helpr view of the job's pets) reads the same table
 - Size: small
+- Screenshot: none
+
+### VN-54: Business name should show only after admin approves
+- Screen / route: Public profile /user/:id header (business name line), CredentialBadge wherever it renders
+- Viewport / theme: n/a
+- What the owner sees: "if they do have a business it should show their business name only after admin approves"
+- Where it lives: server gate supabase/migrations/20260907062224_public_profile_identity_verdict_matches_the_hire_gate.sql:90-96 (`get_safe_profiles` emits business_name only when license OR insurance is `verified`); client src/pages/userProfile/ProfileHeaderCard.tsx:158-244; src/components/CredentialBadge.tsx:65 (same rule); admin approval src/components/admin/AdminCredentialQueue.tsx:270-276
+- Likely cause: code already appears to do this (name tied to an admin-verified license/insurance, not a separate business approval). Needs a LIVE check (`pg_get_functiondef('get_safe_profiles')`) plus a profile with a pending credential and a business name. Open question: owner may mean a separate "business approved" step rather than license/insurance approval (unverified live)
+- Shared with: get_safe_profiles consumers (Messages, applicants, profile)
+- Size: small (verify) / medium (if a separate business approval is wanted)
 - Screenshot: none

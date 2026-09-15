@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { Button } from "@/components/ui/button";
-import { JobActionChip } from "@/components/activity/JobActionRow";
+import { JobActionChip, JobStepPrimaryButton } from "@/components/activity/JobActionRow";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, MessageSquare, Send, Undo2 } from "lucide-react";
+import { AlertTriangle, History, LifeBuoy, MessageSquare, Send, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { isExpectedLifecycleRefusal, lifecycleErrorMessage } from "@/lib/lifecycleErrors";
@@ -244,7 +244,7 @@ export function DisputedSection({
           card renders under the heading "Helpr's response", so there is nothing
           to respond to and the control read as being asked to answer your own
           complaint. Their words are already in `dispute_reason`, shown above. */}
-      {!hasResponded && canRespond && (
+      {!hasResponded && canRespond && (awaitingAdmin || respondingJobId === app.job_id) && (
         <div className="space-y-2">
           {/* Say who reads it once it is out of the poster's hands, so the
               control does not read as a dead end. */}
@@ -257,8 +257,12 @@ export function DisputedSection({
               into the record they read before they decide.
             </p>
           )}
-          {respondingJobId === app.job_id ? (
-            <div className="space-y-2">
+          {/* The FORM stays here, above the row — it is this state's ask. The
+              button that opens it is the row's primary (see `primary` below,
+              owner 2026-09-14, VN-21). `data-job-step-form` tells the one-row
+              guard these are form controls, not the card's moves. */}
+          {respondingJobId === app.job_id && (
+            <div className="space-y-2" data-job-step-form="">
               {/* Still a REAL <label htmlFor>, just not a visible one (owner,
                   2026-08-31: "Remove eye brows"). An aria-label alone was
                   rejected here and still is. What a sighted user reads instead
@@ -313,12 +317,6 @@ export function DisputedSection({
                 <Button size="sm" variant="ghost" onClick={() => { setRespondingJobId(null); setDisputeResponse(""); }}>Cancel</Button>
               </div>
             </div>
-          ) : (
-            <Button size="sm" variant="outline" className="w-full" onClick={() => setRespondingJobId(app.job_id)}>
-              {/* "Respond to Dispute" implies the poster is still the one
-                  listening. Once it is escalated they are not. */}
-              <MessageSquare className="w-4 h-4 mr-1" /> {awaitingAdmin ? "Add Your Side" : "Respond to Dispute"}
-            </Button>
           )}
         </div>
       )}
@@ -326,23 +324,32 @@ export function DisputedSection({
     </>
   );
 
-  /* WITHDRAW — the shell's ONE primary for this state. Shaped like "Respond to
-          Dispute" above rather than as a chip in the row below, because it is
-          this panel's primary move for the person who filed, and the three
-     chips at the foot are all read-only or off-card. The two are mutually
-     exclusive by construction: `canRespond` is false for the opener and
-     `canWithdraw` is true only for the opener — so the state never has two
-     primaries, which is the shell's rule. */
+  /* THE ROW'S PRIMARY — Withdraw for the person who filed, Respond for the
+     person who did not. The two are mutually exclusive by construction:
+     `canRespond` is false for the opener and `canWithdraw` is true only for the
+     opener — so the state never has two primaries, which is the shell's rule.
+
+     Both lead the card's ONE action row, in the dark green, with Timeline /
+     Message / Contact Admin beside them (owner, 2026-09-14, VN-21). Respond
+     used to be a full-width outline inside the body above the row; it opens
+     the same inline form, which still renders above the row, and it steps out
+     of the row while that form is open (the form's Submit is the move then). */
+  const respondOpen = respondingJobId === app.job_id;
   const primary = canWithdraw ? (
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full"
-          disabled={withdrawing}
-          onClick={() => setWithdrawConfirmOpen(true)}
-        >
-          <Undo2 className="w-4 h-4 mr-1" /> Withdraw Dispute
-        </Button>
+    <JobStepPrimaryButton
+      icon={Undo2}
+      label="Withdraw Dispute"
+      disabled={withdrawing}
+      onClick={() => setWithdrawConfirmOpen(true)}
+    />
+  ) : !hasResponded && canRespond && !respondOpen ? (
+    /* "Respond to Dispute" implies the poster is still the one listening.
+       Once it is escalated they are not. */
+    <JobStepPrimaryButton
+      icon={MessageSquare}
+      label={awaitingAdmin ? "Add Your Side" : "Respond to Dispute"}
+      onClick={() => setRespondingJobId(app.job_id)}
+    />
   ) : null;
 
   /* Gated alongside its button — a confirm whose primary action the server
@@ -377,7 +384,10 @@ export function DisputedSection({
   const actions = [
         <JobActionChip
           key="timeline"
-          icon={AlertTriangle}
+          // Its own icon, not the AlertTriangle Contact Admin also wore: on the
+          // one row at 375 these chips are icon-only (VN-21), and two
+          // identical triangles could not be told apart.
+          icon={History}
           // "View Timeline & Add Evidence" wanted 169px in a 110px chip at
           // 375px and still overflowed by 45px at 1440. The chip wraps now,
           // but a four-word label in a three-up row is three lines of 11px
@@ -398,7 +408,7 @@ export function DisputedSection({
         />,
         <JobActionChip
           key="admin"
-          icon={AlertTriangle}
+          icon={LifeBuoy}
           label="Contact Admin"
           ariaLabel="Contact an admin about this dispute"
           tone="neutral"

@@ -1,8 +1,8 @@
 import { Check, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { HelperRevisionCard } from "@/components/activity/HelperRevisionCard";
 import { JobStepCard } from "@/components/activity/JobStepCard";
+import { JobStepPrimaryButton } from "@/components/activity/JobActionRow";
 import type { HelperStepProps } from "./stepContract";
 
 /**
@@ -74,11 +74,20 @@ export function RevisionStep({
     </>
   );
 
+  // ONE ROW (owner, 2026-09-14, VN-21: "can all the buttons be on 1 row like
+  // i'll fix it, message etc"). Before acceptance the row's primary is the
+  // revision card's "I'll Fix It", portalled in from HelperRevisionCard; from
+  // acceptance it is "Mark Fixed". Either way it leads the row in the dark
+  // green, with Message and Report a Problem beside it — never both at once.
   const primary =
     !job.revision_completed_at && revisionAccepted ? (
-      <Button size="sm" variant="outline" className="w-full" disabled={resolving} onClick={onMarkFixed}>
-        <RefreshCw className={`w-4 h-4 mr-1${resolving ? " animate-spin" : ""}`} /> {resolving ? "Marking…" : "Mark Fixed"}
-      </Button>
+      <JobStepPrimaryButton
+        icon={RefreshCw}
+        iconClassName={resolving ? "animate-spin" : undefined}
+        label={resolving ? "Marking…" : "Mark Fixed"}
+        disabled={resolving}
+        onClick={onMarkFixed}
+      />
     ) : null;
 
   return (

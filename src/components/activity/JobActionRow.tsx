@@ -267,6 +267,11 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
  * children so a conditionally-absent action (No-Show only appears once the
  * start time has passed) yields a deliberate two-up row instead of two chips
  * stranded in a three-column grid.
+ *
+ * NOT for job STEP cards: those draw their one row in JobStepCard (owner,
+ * 2026-09-14, VN-21 — primary and chips on a single flex row that never
+ * wraps). This grid remains for the chip rows outside the step shell (the
+ * pending application's Edit / Withdraw, the helper's completed Review).
  */
 export function JobActionRow({
   columns,
@@ -304,6 +309,53 @@ function composeAccessibleName(label: string, ariaLabel?: string): string | unde
   if (!ariaLabel) return undefined; // no aria-label: the visible text IS the name
   const starts = ariaLabel.trim().toLowerCase().startsWith(label.trim().toLowerCase());
   return starts ? ariaLabel : `${label} — ${ariaLabel}`;
+}
+
+/**
+ * THE PRIMARY of a job step card's one row (owner, 2026-09-14, VN-21: "one
+ * row, primary action in the dark green (btn primary), other buttons beside
+ * it").
+ *
+ * The `default` Button variant, so it wears `btn-grad-primary` — the same
+ * surface as the tracker's own next-step CTA, which portals into the same slot
+ * — and nothing is layered over it (no inline `background`, no tint): the
+ * gloss IS the hierarchy. Before this, the row's primary was drawn five ways —
+ * the tracker's gloss, PayoutPrimary's flat bark painted over the gloss, the
+ * poster's quiet `primary` tint, the revision's amber, the dispute's outline —
+ * so "the main move" looked different on every step.
+ *
+ * Its width, height and label wrapping come from the row (index.css,
+ * `[data-job-step-primary]`), not from here, so the same button can never be
+ * sized one way on one step and another way on the next.
+ */
+export function JobStepPrimaryButton({
+  icon: Icon,
+  label,
+  onClick,
+  disabled,
+  ariaLabel,
+  iconClassName,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: (e: React.MouseEvent) => void;
+  disabled?: boolean;
+  /** Appended to the visible label, never substituted — see composeAccessibleName. */
+  ariaLabel?: string;
+  iconClassName?: string;
+}) {
+  return (
+    <Button
+      size="sm"
+      className="w-full"
+      disabled={disabled}
+      aria-label={composeAccessibleName(label, ariaLabel)}
+      onClick={onClick}
+    >
+      <Icon className={`w-4 h-4 mr-1 shrink-0${iconClassName ? ` ${iconClassName}` : ""}`} />
+      {label}
+    </Button>
+  );
 }
 
 export function JobActionChip({

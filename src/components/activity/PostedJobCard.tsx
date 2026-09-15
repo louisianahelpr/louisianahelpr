@@ -17,7 +17,6 @@ import { formatPrice, formatPriceExact, formatRecurrenceInterval } from "@/lib/f
 import { type PostedJobCardProps } from "./postedJobCard/types";
 import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
-import { JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "./JobActionRow";
 import { useHighlightPulse } from "./useHighlightPulse";
 import { UnfundedJobNotice, shouldShowUnfundedNotice } from "./postedJobCard/UnfundedJobNotice";
 import { useFundExistingJob } from "@/hooks/useFundExistingJob";
@@ -464,38 +463,15 @@ function PostedJobCardInner({
                       already been made and overruled. */}
                   {/* Job countdown */}
                   <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
-                  {job.helper_confirmed_at && (
-                    <div className="space-y-1.5">
-                      {/* No "X says they've arrived" banner (owner: "remove") —
-                          the tracker's Arrived step is lit, which is the same
-                          statement with the whole timeline around it.
+                  {/* No "X says they've arrived" banner (owner: "remove") —
+                      the tracker's Arrived step is lit, which is the same
+                      statement with the whole timeline around it.
 
-                          The Confirm Arrival ACTION stays, and is gated on the
-                          work not being finished: a job whose helpr has marked
-                          it done cannot still be asking whether they turned up,
-                          and that impossible pair was on screen (owner: "they
-                          can't be done and you haven't even marked them
-                          arrived"). Its handler stops propagation for the same
-                          reason as the tracker wrapper below: the card shell
-                          owns the expand toggle, so an unguarded control fires
-                          its action AND collapses the card under the finger. */}
-                      {job.helper_arrived_at
-                        && !job.poster_confirmed_arrival_at
-                        && !job.helper_completed_at && (
-                        /* Same full-width treatment as its twin in
-                           PostedJobActions ("Confirm They Arrived") — this one
-                           was the solid `default` CTA while the identical
-                           action one state later was a quiet tint, so the same
-                           decision shouted or whispered depending on which
-                           branch rendered it. Both are the `primary` tint now.
-                           (The label divergence is reported, not silently
-                           changed.) */
-                        <Button size="sm" variant="outline" className={JOB_ACTION_FULL_CLASS} style={jobActionChipStyle("primary")} onClick={(e) => { e.stopPropagation(); onConfirmArrival(job.id); }}>
-                          <CheckCircle2 className="w-4 h-4" /> Confirm Arrival
-                        </Button>
-                      )}
-                    </div>
-                  )}
+                      The Confirm Arrival ACTION moved to the card's ONE action
+                      row (owner, 2026-09-14, VN-21: every button on a Posts
+                      card on one row): it is ScheduledStep's primary now, same
+                      gate, same handler. It used to be a full-width button up
+                      here, a row of its own above the tracker. */}
                 </div>
               )}
 

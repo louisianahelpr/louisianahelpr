@@ -484,8 +484,14 @@ test.describe("My Posts — card density + header", () => {
     // so a label that does not fit is simply unreadable, which is the failure
     // this gate exists to catch. `[data-job-action-chip]` is the hook that
     // separates the two (JobActionRow.tsx).
+    //
+    // A chip in a row the shell has marked `data-compact="true"` is icon-only
+    // BY DESIGN (owner, 2026-09-14, VN-21: never a second row; when labels do
+    // not fit the chips drop them) — its label is visually hidden and stays as
+    // the accessible name, so it is not a truncation and is skipped here.
     const clipped = await page.evaluate(() =>
       Array.from(document.querySelectorAll<HTMLElement>("[data-job-action-chip] span"))
+        .filter((el) => !el.closest('[data-job-step-row][data-compact="true"]'))
         .filter((el) => el.scrollWidth > el.clientWidth + 1)
         .map((el) => el.textContent ?? ""),
     );
@@ -629,12 +635,15 @@ test.describe("My Posts — card density + header", () => {
     // has a helpr has nothing left to advertise, so the link it copied led
     // somewhere nobody else could take. It is still one of the four main
     // actions on an OPEN job, which is where it does work.
+    // The CHIPS of the card's one row. Since VN-21 (owner, 2026-09-14) the row
+    // opens with its primary slot (empty and hidden on this state), so it is
+    // skipped rather than read as an unnamed first chip.
     const order = await page.evaluate(() => {
       const msg = document.querySelector('button[aria-label="Message Helpr"]');
       const row = msg?.parentElement;
-      return Array.from(row?.children ?? []).map(
-        (c) => c.getAttribute("aria-label") ?? c.textContent?.trim() ?? "",
-      );
+      return Array.from(row?.children ?? [])
+        .filter((c) => !c.hasAttribute("data-job-step-primary"))
+        .map((c) => c.getAttribute("aria-label") ?? c.textContent?.trim() ?? "");
     });
     expect(order[0]).toMatch(/SOS/i);
     expect(order[1]).toMatch(/message/i);

@@ -181,16 +181,11 @@ const CASES: Array<{
   {
     name: "arrived, work underway",
     job: makeJob({ status: "in_progress" }),
-    // FINDING (reported, NOT fixed here — this file may only add tests):
-    // an arrived, working job renders TWO glossy CTAs for the same decision —
-    // the tracker's next-step "Done" (JobTracking → updateStatus("done")) and
-    // the section's "Mark Job Complete" (onComplete). Same collision
-    // the revision state was fixed for, one state earlier in the lifecycle;
-    // the revision fix hid the tracker's Done only when
-    // `jobStatus === "revision_requested"`.
-    // Pinned at 2 so this test passes at HEAD AND fails the moment someone
-    // fixes it — at which point drop this line and let the invariant apply.
-    knownDefect: 2,
+    // FIXED (VN-21, owner 2026-09-14). This state used to render TWO glossy
+    // "Mark Job Complete" CTAs — the tracker's next-step Done and the
+    // section's PayoutPrimary — and was pinned here at `knownDefect: 2`. The
+    // one-row shell now lets the tracker's CTA claim the row's primary slot
+    // and the step's own PayoutPrimary stands down, so the invariant applies.
   },
   {
     name: "awaiting the poster's approval",
@@ -272,8 +267,12 @@ describe("helper active card — exactly one way out of a live job", () => {
         /Message/i.test(b.textContent || ""),
       );
       expect(message, "Message must stay reachable").toBeTruthy();
-      expect(report!.closest(".grid"), "Report a Problem is not in an action row").not.toBeNull();
-      expect(report!.closest(".grid"), "Report a Problem is not in the same row as Message").toBe(message!.closest(".grid"));
+      // The ONE row (owner, 2026-09-14, VN-21 — was a `.grid` chip row under a
+      // separate full-width primary).
+      expect(report!.closest("[data-job-step-row]"), "Report a Problem is not in an action row").not.toBeNull();
+      expect(report!.closest("[data-job-step-row]"), "Report a Problem is not in the same row as Message").toBe(
+        message!.closest("[data-job-step-row]"),
+      );
     });
   }
 });
@@ -332,10 +331,14 @@ describe("helper active card — at most one primary CTA per state", () => {
     await act(async () => { fixIt.click(); await Promise.resolve(); });
     const btn = markFixed();
     expect(btn, "the 'Mark Fixed' escape from an accepted revision never appeared").toBeTruthy();
-    expect(
-      btn!.className,
-      "'Mark Fixed' must stay secondary — two glossy CTAs is the bug this file guards",
-    ).not.toContain("btn-grad-primary");
+    // DELIBERATELY CHANGED (owner, 2026-09-14, VN-21: one row, the primary in
+    // the dark green). This used to assert Mark Fixed stayed an outline,
+    // because the revision card's own "On it" receipt kept the gloss after the
+    // accept and two glossy buttons would have been on the card. In the step
+    // card the accept renders in the row and is GONE once accepted, so Mark
+    // Fixed takes the row's primary slot — and is the only glossy CTA.
+    expect(btn!.closest("[data-job-step-primary]"), "'Mark Fixed' is not the row's primary").not.toBeNull();
+    expect(primaryCtas(container), "two glossy CTAs is the bug this file guards").toEqual(["Mark Fixed"]);
   });
 
   it("the revision card no longer draws its own 'Discuss' twin of Message", async () => {

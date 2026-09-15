@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
+import { JobStepRowSlot } from "@/components/activity/jobStepRow";
 
 /**
  * THE HELPER'S DAY-OF ANSWER, in one place.
@@ -430,10 +431,13 @@ export function JobConfirmation({
      "Confirmed" is the step, its colour is whether it's done, and this button
      is how it gets done. */
   if (variant === "inline") {
+    /* Inside a job step card the control is that card's primary and renders in
+       its ONE action row, the deadline on the line above it (owner,
+       2026-09-14, VN-21). Outside one, both slots render in place. */
     return (
       <>
-        {deadlineNotice}
-        {confirmCta}
+        <JobStepRowSlot slot="note">{deadlineNotice}</JobStepRowSlot>
+        <JobStepRowSlot slot="primary">{confirmCta}</JobStepRowSlot>
         {confirmDialog}
       </>
     );

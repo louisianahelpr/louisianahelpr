@@ -1,7 +1,6 @@
 import { CheckCircle2, XCircle, AlertTriangle, MessageCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { JobStepCard } from "@/components/activity/JobStepCard";
-import { JobActionChip, JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "../../JobActionRow";
+import { JobActionChip, JobStepPrimaryButton } from "../../JobActionRow";
 import { SosShareButton } from "@/components/SosShareButton";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
@@ -24,9 +23,10 @@ import type { PosterStepCtx } from "./posterStepContract";
  *              AFTER the release.
  *   primary  — the ONE vouch this step wants: Confirm They Arrived, then
  *              Confirm They're Working. They are mutually exclusive by their
- *              own gates, so the card never draws two.
- *   actions  — SOS · No-Show · Dispute · Message · Approve, counted by the
- *              shell. Order globally: danger left, Message middle, Approve
+ *              own gates, so the card never draws two. It leads the card's
+ *              ONE action row (owner, 2026-09-14, VN-21).
+ *   actions  — SOS · No-Show · Dispute · Message · Approve, beside it on that
+ *              row. Order globally: danger left, Message middle, Approve
  *              right — the escalation and the release of money never land next
  *              to each other under a thumb.
  *   footnote — why Review and Tip are not here yet.
@@ -134,33 +134,31 @@ export function InProgressStep(ctx: PosterStepCtx) {
         </>
       }
       primary={
+        /* ONE ROW, PRIMARY IN THE DARK GREEN (owner, 2026-09-14, VN-21:
+           "confirm they're working, no show, message etc — all of these
+           buttons need to be on 1 line not multiple"; ruled: the primary is
+           the dark green button, the others beside it). This reverses the
+           quiet-tint styling of 2026-08-24 for these two vouches — they lead
+           the row now, so they wear the row's primary surface.
+
+           NOTE the arrival tap DOES gate the helper again: since VN-33 (owner,
+           2026-09-14) the Helpr cannot start working or mark the job complete
+           until the server has verified their location AND this is tapped.
+           The working confirmation still gates nothing. */
         showConfirmArrival ? (
-          /* Styled as the quiet tint (owner, 2026-08-24). NOTE the arrival tap
-             DOES gate the helper again: since VN-33 (owner, 2026-09-14) the
-             Helpr cannot start working or mark the job complete until the
-             server has verified their location AND this is tapped. The
-             working confirmation below still gates nothing. */
-          <Button
-            size="sm"
-            variant="outline"
-            className={JOB_ACTION_FULL_CLASS}
-            style={jobActionChipStyle("primary")}
+          <JobStepPrimaryButton
+            icon={CheckCircle2}
+            label={confirmingArrivalJobId === job.id ? "…" : "Confirm They Arrived"}
             disabled={confirmingArrivalJobId === job.id}
             onClick={() => onConfirmArrival(job.id)}
-          >
-            <CheckCircle2 className="w-4 h-4" /> {confirmingArrivalJobId === job.id ? "…" : "Confirm They Arrived"}
-          </Button>
+          />
         ) : showConfirmWorking ? (
-          <Button
-            size="sm"
-            variant="outline"
-            className={JOB_ACTION_FULL_CLASS}
-            style={jobActionChipStyle("primary")}
+          <JobStepPrimaryButton
+            icon={CheckCircle2}
+            label={confirmingWorkingJobId === job.id ? "…" : "Confirm They're Working"}
             disabled={confirmingWorkingJobId === job.id}
             onClick={() => onConfirmWorking(job.id)}
-          >
-            <CheckCircle2 className="w-4 h-4" /> {confirmingWorkingJobId === job.id ? "…" : "Confirm They're Working"}
-          </Button>
+          />
         ) : null
       }
       actions={[

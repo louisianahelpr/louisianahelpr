@@ -625,11 +625,12 @@ test.describe.serial("marketplace chain", () => {
         const before = c.getByText("Add a before photo", { exact: true });
         const after = c.getByText("Add an after photo", { exact: true });
         const start = c.getByRole("button", { name: /^Start Working$/ });
-        // "Mark Job Complete" (owner, 2026-09-14; was "Request My Payout"). The
-        // tracker's Done CTA and the card's PayoutPrimary now share the label,
-        // so take the first in DOM order — the tracker's, which opens the
-        // "Mark This Job Complete?" confirmation this step expects (its button
-        // reads "Mark Complete", owner 2026-09-14; was "Yes, I'm Done").
+        // "Mark Job Complete" (owner, 2026-09-14; was "Request My Payout"). Since
+        // VN-21 the tracker's Done CTA is the card's ONE primary and the
+        // same-label PayoutPrimary stands down, so there is one; `.first()`
+        // stays as a guard. It opens the "Mark This Job Complete?"
+        // confirmation this step expects (its button reads "Mark Complete",
+        // owner 2026-09-14; was "Yes, I'm Done").
         const payout = c.getByRole("button", { name: /^Mark Job Complete$/ }).first();
         await expect(before.or(after).or(start).or(payout).first(), `helper card offers no next step (so far: ${seen.join(" > ")})`).toBeVisible({ timeout: 45_000 });
         if (await before.isVisible() || await after.isVisible()) {

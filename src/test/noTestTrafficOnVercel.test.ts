@@ -138,10 +138,24 @@ export function sourceViolations(files: Record<string, string>): string[] {
   return v;
 }
 
+/**
+ * Directories under the walked roots that are BUILD OUTPUT, not source. They
+ * are gitignored, so they exist only after a build — which is exactly the
+ * order CI runs things in (`build` then `test` in one job), and why this guard
+ * went red on main without a single tracked file changing.
+ *
+ * `scripts/generated/og-shell.js` is a snapshot of the app's own index.html,
+ * canonical `https://www.louisianahelpr.com` tag and all. That URL is the
+ * PRODUCT's, not a test target — the thing this guard exists to catch is a
+ * spec or harness pointing test traffic at the deployed site, and a generated
+ * copy of the page we ship cannot do that.
+ */
+const GENERATED_DIRS = new Set(["generated"]);
+
 function walk(dir: string, exts: RegExp): string[] {
   const out: string[] = [];
   for (const name of readdirSync(dir)) {
-    if (name === "node_modules" || name.startsWith(".")) continue;
+    if (name === "node_modules" || name.startsWith(".") || GENERATED_DIRS.has(name)) continue;
     const p = join(dir, name);
     if (statSync(p).isDirectory()) out.push(...walk(p, exts));
     else if (exts.test(name)) out.push(p);

@@ -226,7 +226,17 @@ for (const job of jobs) {
     if (!r.ok) failures.push(`cancel ${job.id}: HTTP ${r.status} ${r.body}`);
   } else if (funded) {
     const r = await cancelEscrow(job.id);
-    if (!r.ok) failures.push(`cancel_escrow ${job.id}: HTTP ${r.status} ${r.body}`);
+    if (r.status === 409 && /"useCancelJob":true/.test(r.body)) {
+      /* cancel_escrow only refunds an OPEN job with no Helpr since the
+         dispute-races branch (a hired job has a cancellation-fee ladder the
+         direct refund skipped). It is deliberately NOT cancelled here instead:
+         poster_cancel_job on a job a Helpr accepted records a
+         cancel_with_helper strike, and three of those restrict poster-e2e for
+         7 days and break every nightly journey (lh-money-escrow review). A
+         hired, funded leftover settles FORWARD (auto-release, or the next
+         run's release) — reported, never a failure. */
+      console.log(`    left to settle forward: ${job.id} is hired and funded (cancel_escrow 409 useCancelJob)`);
+    } else if (!r.ok) failures.push(`cancel_escrow ${job.id}: HTTP ${r.status} ${r.body}`);
   } else {
     // Walk the status back to 'open' first when the run got as far as hiring or
     // completing — the DELETE policy will not touch anything else.

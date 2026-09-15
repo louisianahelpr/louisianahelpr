@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, MessageSquare, Send, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { isExpectedLifecycleRefusal, lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
@@ -84,9 +85,18 @@ export function DisputedSection({
     try {
       const { error } = await supabase.rpc("rpc_withdraw_dispute", { _job_id: app.job_id });
       if (error) {
-        report(error, { tags: { source: "DisputedSection.withdrawDispute" }, context: { job_id: app.job_id } });
+        // A settlement in progress is the lock working, not a defect: say so,
+        // and keep it out of Sentry. Everything else is reported as before.
+        const expected = isExpectedLifecycleRefusal(error);
+        if (!expected) {
+          report(error, { tags: { source: "DisputedSection.withdrawDispute" }, context: { job_id: app.job_id } });
+        }
         hapticError();
-        toast.error("We couldn't withdraw that dispute — please try again.");
+        toast.error(
+          expected
+            ? (lifecycleErrorMessage(error) ?? "We couldn't withdraw that dispute — please try again.")
+            : "We couldn't withdraw that dispute — please try again.",
+        );
         return;
       }
       if (job.customer_id) {

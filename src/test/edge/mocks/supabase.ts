@@ -136,7 +136,22 @@ export function freshScenario(): SupabaseScenario {
     authUser: undefined,
     authError: null,
     reads: {},
-    rpc: {},
+    rpc: {
+      // `create-payment`'s admin dispute actions and `execute-dispute-split`
+      // take a settlement claim before their Stripe step (20260915034822).
+      // `{verdict:"claimed"}` is the neutral answer — this caller won the claim
+      // — so every scenario that is not ABOUT the race keeps testing what it
+      // was written to test. A scenario that IS about the race overrides it
+      // with `{verdict:"held_by_release"}` / `{verdict:"held_by_refund"}` /
+      // `{verdict:"held_by_split"}`. The token is what the release is keyed on:
+      // a `joined` verdict carries none, and frees nothing.
+      claim_dispute_settlement: { verdict: "claimed", token: "claim-token-default" },
+      // The holder stamps its claim immediately before its first money-moving
+      // Stripe call and refuses to make it unless the stamp landed (round 4,
+      // M2). `true` is the neutral answer; a scenario about a lost claim sets
+      // it to `false`.
+      stamp_dispute_settlement_claim: true,
+    },
     rpcErrors: {},
     rpcCalls: [],
     clients: [],

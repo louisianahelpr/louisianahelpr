@@ -30,16 +30,17 @@ import { Upload, X, Clock, CheckCircle2, FileImage } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
+import { disputeEvidenceChannel, isAdminReopened } from "@/components/disputeEvidenceChannel";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { formatDistanceToNow } from "date-fns";
 
 interface DisputeRow {
   id: string;
   job_id: string;
-  opener_id: string;
+  opener_id: string | null;
   reason: string;
   evidence_urls: string[];
-  status: "open" | "decided" | "withdrawn";
+  status: "open" | "decided" | "withdrawn" | "superseded";
   created_at: string;
   decided_at: string | null;
   decided_by: string | null;
@@ -181,7 +182,27 @@ export const DisputeTimelineDialog = ({
         throw new Error("No evidence files uploaded.");
       }
 
-      if (dispute) {
+      if (dispute && disputeEvidenceChannel(dispute, userId) === "reopened") {
+        // A dispute an admin re-opened has no opener, so the opener-only UPDATE
+        // below matches nobody. rpc_add_dispute_evidence is the channel for
+        // either party there (party check, own-upload path check, set-like
+        // append, jobs mirror — all server-side), and it returns the merged
+        // array, so there is no last-write-wins window to re-read around.
+        const { data: merged, error: rpcErr } = await (supabase.rpc as any)("rpc_add_dispute_evidence", {
+          _dispute_id: dispute.id,
+          _evidence_urls: newUrls,
+        });
+        if (rpcErr) {
+          // PGRST202: the function is not deployed yet (migration lag). Say so
+          // plainly; it is not a defect to report.
+          if ((rpcErr as { code?: string }).code === "PGRST202") {
+            throw new Error("Adding evidence here isn't available yet — try again in a few minutes.");
+          }
+          report(rpcErr, { tags: { source: "DisputeTimelineDialog.addEvidenceReopened" } });
+          throw new Error("Couldn't attach your evidence — the dispute may have been decided. Refresh and try again.");
+        }
+        setDispute({ ...dispute, evidence_urls: (merged as string[] | null) ?? [...(dispute.evidence_urls ?? []), ...newUrls] });
+      } else if (dispute) {
         // Re-read the array immediately before merging. This UPDATE sends the
         // WHOLE array, so it is last-write-wins: merging onto the copy loaded
         // when the dialog opened would silently DELETE anything added since —
@@ -266,12 +287,14 @@ export const DisputeTimelineDialog = ({
   // The legacy path (no formal `disputes` row yet, evidence lives on
   // `jobs.dispute_evidence_urls`) is governed by the job-party policy
   // instead, so it is left open to both sides.
-  const canAddEvidence = dispute
-    ? dispute.status === "open" && isOpener
-    : true;
+  //
+  // One exception (round 5): a dispute an admin re-opened has no opener, and
+  // either party adds evidence through rpc_add_dispute_evidence instead.
+  const evidenceChannel = disputeEvidenceChannel(dispute, userId);
+  const canAddEvidence = evidenceChannel === "opener" || evidenceChannel === "reopened" || evidenceChannel === "legacy";
   // The counterparty's real channel, so the dialog explains rather than
   // just going quiet on them.
-  const blockedFromEvidence = !!dispute && dispute.status === "open" && !isOpener;
+  const blockedFromEvidence = evidenceChannel === "blocked";
 
   const usd = (cents: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
@@ -305,7 +328,13 @@ export const DisputeTimelineDialog = ({
                 </p>
               )}
               <p className="font-sans text-ds-10 mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {isOpener ? "Filed by you." : "Filed by the other party."}
+                {isAdminReopened(dispute)
+                  ? "Re-opened by an admin for a new decision."
+                  : dispute && dispute.opener_id === null
+                    // No opener and not an admin re-open: the filer's account is
+                    // gone. Neutral, rather than claiming who filed it.
+                    ? "Filed on this job."
+                    : isOpener ? "Filed by you." : "Filed by the other party."}
               </p>
             </div>
 

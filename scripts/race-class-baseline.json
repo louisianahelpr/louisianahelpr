@@ -13,7 +13,6 @@
     "sql:public.detect_suspicious_user_patterns": "Aggregate fraud-flag cron over jobs; writes only fraud_flags for admin review.",
     "sql:public.detect_stuck_payments": "Cron detector writing error_logs + admin notifications; no money movement.",
     "sql:public.reject_other_applications_on_accept": "Ownership/membership EXISTS over applications JOIN jobs; caller must already own the job. Not yet re-audited under this class.",
-    "sql:public.rpc_decide_dispute": "Reads customer_id/helper_id/title (participants, immutable once hired) for notifications; dispute row itself is the decision. Not yet re-audited under this class.",
     "sql:public.notify_helper_application_viewed": "Reads job title for notification copy; no decision on job state.",
     "sql:public.respond_to_direct_offer": "Main status read is FOR UPDATE (raced 0/20 on prod 2026-09-12); remaining hit is the INSERT ... SELECT FROM jobs for the decline notification after the lock is held.",
     "sql:public.sweep_dayof_confirm_reminders": "Cron reminder sweep; worst race outcome is one reminder on a job that changed in the same instant.",
@@ -23,9 +22,9 @@
     "sql:public.reject_pending_job": "Admin rejection of a pending post; reads business_id + notification copy. Not yet re-audited under this class.",
     "sql:public.notify_user_on_review": "Reads title + customer_id for notification copy; no decision on job state.",
     "sql:public.purge_user_data": "Account deletion; the jobs read selects the deleting user's own unfunded, unhired jobs. Not yet re-audited under this class.",
-    "sql:public.settle_dispute_record": "Closes the dispute row from the job's settled money state; called after the money write. Not yet re-audited under this class — candidate for FOR SHARE.",
     "sql:public.notifications_fill_job_id": "EXISTS check that a job id is real before stamping notifications.job_id; no lifecycle decision.",
     "sql:public.snapshot_application_job_point": "Copies rounded job coordinates onto the application at INSERT; coordinates are not lifecycle state.",
+    "sql:public.settle_dispute_record": "Re-audited 2026-09-14 (20260915034822). The jobs read is deliberately UNLOCKED: this function locks its own `disputes` row FOR UPDATE first and reads the job after, so the re-freeze window is closed by the dispute row, not the job row. A lock on `jobs` here was the first draft and it created an ABBA deadlock — jobs -> disputes here against disputes -> jobs in rpc_withdraw_dispute and rpc_decide_dispute, on the exact admin-vs-withdrawal pairing the fix exists for. The scanner reads the jobs SELECT and cannot see the dispute-row lock two statements above it.",
     "sql:public.open_dispute_as": "Primary job read is FOR UPDATE; remaining hit is a velocity/fraud-flag read in the same body. Not yet re-audited under this class.",
     "client:src/components/JobConfirmation.tsx::opaque:{ [field]: new Date().toISOStr": "Computed-key day-of confirmation stamp; field set is helper_dayof/poster confirmations. Not yet re-audited under this class.",
     "client:src/components/JobTracking.tsx::helper_completed_at": "Helper marks done; payout clock starts from this stamp. Not yet re-audited under this class — candidate for .eq(\"status\", \"in_progress\").",
@@ -35,9 +34,7 @@
     "client:src/components/activity/EditJobDialog.tsx::opaque:updateData": "Poster edit of job details (title, schedule, expires_at); lifecycle columns not in the object. Opaque because it is a variable.",
     "client:src/components/activity/appliedJobCard/DisputedSection.tsx::opaque:patch": "Payload is dispute_helper_response (+ dispute_status), not job status; opaque because it is a variable.",
     "client:src/components/admin/AdminDisputes.tsx::status": "Admin-only dispute close; admin is the arbiter of that job's status. Not yet re-audited under this class.",
-    "client:src/components/admin/AdminJobs.tsx::status": "Admin-only removal (status cancelled); intended to win over any concurrent state. Not yet re-audited under this class.",
-    "edge:supabase/functions/create-payment/index.ts::payment_status+status#2": "admin_refund_general full-refund flip (status cancelled, payment_status refunded) matched on id only. Audited 2026-09-14: UNSAFE (a concurrent Quick Release on a disputed job is overwritten). Fix pending in the dispute-races branch, deliberately not edited here.",
-    "edge:supabase/functions/execute-dispute-split/index.ts::opaque:jobPatch": "Settlement flip is a CAS on .in(payment_status, [escrow, payout_pending, released, refunded]) writing payment_status + fee columns only; the resume states let a release and a refund overlap. Audited 2026-09-14; fix (settlement claim) pending in the dispute-races branch, not edited here."
+    "client:src/components/admin/AdminJobs.tsx::status": "Admin-only removal (status cancelled); intended to win over any concurrent state. Not yet re-audited under this class."
   },
   "_doc_safe": "`safe`: edge lifecycle writes AUDITED 2026-09-14 (docs/audit/lifecycle-writes-audit-2026-09-14.md) and proved safe, or fixed with a guard the scanner cannot read, each with its reason. Same rules as `allow`: exact keys, may only shrink, and a new hit beside one of these still fails. The usual reason is a compare-and-set on payment_status, which the scanner does not read as a predicate (it only reads .eq/.in on `status`).",
   "safe": {
@@ -54,6 +51,7 @@
     "edge:supabase/functions/stripe-webhook/handlers/transferFailed.ts::payment_status": "SAFE: CAS .eq(payment_status, released) -> payout_pending after the ledger row for this transfer id is marked failed; never regresses a refunded or charged-back job.",
     "edge:supabase/functions/stripe-webhook/handlers/transferReversed.ts::payment_status": "SAFE: the freeze is a CAS .eq(payment_status, released) -> payout_pending + reversal_hold markers; never regresses a refunded or charged-back job.",
     "edge:supabase/functions/void-cancelled-payments/index.ts::opaque:patch": "SAFE: settleCancelledJob is a CAS .eq(payment_status, escrow) with .select(id) and a loud zero-row path, on rows selected at status = cancelled, which has no outgoing transition in enforce_job_status_transition. Patch is payment_status + cancellation_fee_status only.",
-    "edge:supabase/functions/void-cancelled-payments/index.ts::payment_status": "SAFE: markAbandoned is a CAS .eq(payment_status, unpaid) -> abandoned with .select(id); a checkout that completed since the read matches zero rows. No status write."
+    "edge:supabase/functions/void-cancelled-payments/index.ts::payment_status": "SAFE: markAbandoned is a CAS .eq(payment_status, unpaid) -> abandoned with .select(id); a checkout that completed since the read matches zero rows. No status write.",
+    "edge:supabase/functions/execute-dispute-split/index.ts::opaque:jobPatch": "FIXED 2026-09-14 (dispute-races): the settlement flip runs under claim_dispute_settlement(job,'split') (20260915034822), the lock Quick Release, Quick Refund and the 72h sweep also take, so none of them can move this escrow while the split holds it; the write itself stays a CAS .in(payment_status, [escrow, payout_pending, released, refunded]) + .select(id), zero rows paged critical. The claim admits a decided split whose job rpc_decide_dispute moved to completed/cancelled. Opaque only because the payload is a variable (payment_status + fee columns, never status)."
   }
 }

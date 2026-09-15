@@ -8,7 +8,7 @@ import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
-import { claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
+import { checkUnrecordedTransfers, claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
 // release-payout — see _shared/releaseFlip.ts for TC-008, the stranded payout
 // that made a retry non-optional.
@@ -667,6 +667,47 @@ serve(async (req) => {
       // rest stop here rather than at the Stripe call. The same row is what
       // records a FAILED attempt, which nothing in this function ever wrote.
       const claimAmountCents = Math.round(helperPayout * 100);
+
+      // ── Ask Stripe first: a transfer for this job the ledger does not record ──
+      // (round-5 lh-money-escrow review, HIGH). release-payout shares this
+      // claim row but not this function's idempotency key: a claim it orphaned
+      // after its transfer went out was resumed here under `scheduled-payout-*`
+      // — a second real transfer. `checkUnrecordedTransfers` (shared with
+      // release-payout) adopts one unmistakable match for an orphaned claim and
+      // refuses anything else, paging. Fails closed.
+      const unrecorded = await checkUnrecordedTransfers(supabaseAdmin, stripe, {
+        jobId: job.id,
+        helperId,
+        stripeAccountId: helperProfile.stripe_account_id,
+        amountCents: claimAmountCents,
+      });
+      if (unrecorded.kind === "error") {
+        console.error(`[process-scheduled-payouts] unrecorded-transfer check failed for job ${job.id}: ${unrecorded.message}`);
+        await rollBackOnboardingFeeClaim();
+        results.push({ job_id: job.id, status: "transfer_check_error", error: unrecorded.message });
+        defects.record(`unrecorded-transfer check ${job.id}: ${unrecorded.message}`);
+        continue;
+      }
+      if (unrecorded.kind === "inflight") {
+        await rollBackOnboardingFeeClaim();
+        results.push({ job_id: job.id, status: "already_claimed", detail: "another payout run is mid-transfer" });
+        continue;
+      }
+      if (unrecorded.kind === "conflict") {
+        console.error(`[process-scheduled-payouts] REFUSING job ${job.id}: Stripe shows ${unrecorded.transferIds.join(", ")} with no payout_transfers row`);
+        await rollBackOnboardingFeeClaim();
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "Scheduled payout refused — a transfer for this job is at Stripe with no ledger row",
+          message: `Job ${job.id} is due a payout, but Stripe shows ${unrecorded.transferIds.join(", ")} in its transfer group and payout_transfers does not record it. No second transfer was sent; reconcile the ledger against Stripe by hand.`,
+          fields: { job_id: job.id, helper_id: helperId, transfer_ids: unrecorded.transferIds.join(", ") },
+        });
+        results.push({ job_id: job.id, status: "unrecorded_transfer_at_stripe", transfer_ids: unrecorded.transferIds });
+        defects.record(`job ${job.id}: unrecorded Stripe transfer ${unrecorded.transferIds.join(", ")} — payout refused`);
+        continue;
+      }
+
       const claim = await claimPayout(supabaseAdmin, {
         jobId: job.id,
         helperId,
@@ -691,6 +732,16 @@ serve(async (req) => {
         continue;
       }
       const failedCount = claim.failedCount;
+      // Adopting (see the check above): the orphaned claim this run resumed is
+      // the one whose transfer Stripe already holds.
+      const adoptedTransferId = unrecorded.kind === "adopt" && claim.resumed && claim.claimId === unrecorded.claimId
+        ? unrecorded.transferId
+        : null;
+      if (unrecorded.kind === "adopt" && !adoptedTransferId) {
+        await rollBackOnboardingFeeClaim();
+        results.push({ job_id: job.id, status: "already_claimed", detail: "claim changed while verifying prior transfers" });
+        continue;
+      }
 
       // ── Step 4b: HARD CAP — never transfer more than the escrow was funded with ──
       //
@@ -811,9 +862,11 @@ serve(async (req) => {
         const idempotencyKey = failedCount > 0
           ? `${payoutKeyBase}-r${failedCount}`
           : payoutKeyBase;
-        const transfer = await stripe.transfers.create(transferParams, {
-          idempotencyKey,
-        });
+        const transfer = adoptedTransferId
+          ? { id: adoptedTransferId }
+          : await stripe.transfers.create(transferParams, {
+            idempotencyKey,
+          });
         console.log(`Payout: $${helperPayout.toFixed(2)} to helper ${helperId} for job ${job.id} (onboarding fee deducted: $${onboardingFeeDollars.toFixed(2)})`);
 
         // Write the payout_transfers ledger row immediately after the transfer

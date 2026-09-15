@@ -398,6 +398,89 @@ describe("release-payout edge function", () => {
     });
   });
 
+  // Round 5 (MEDIUM-1): the ledger is not the only record of a transfer. A
+  // Quick Release killed after Stripe answered, or a split leg whose ledger
+  // write failed, left a real transfer in the job's group with no row here —
+  // and this function then paid the Helpr a second time.
+  describe("a transfer at Stripe with no ledger row", () => {
+    const req = () => ({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } });
+
+    it("refuses (409), pages critical, and sends no second transfer", async () => {
+      seedPayableJob(scenario);
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_ghost", amount: 11200, amount_reversed: 0, transfer_group: "job_job-1", metadata: { job_id: "job-1" } }],
+      });
+      const fn = await load();
+      const res = await fn.fetch(fn.request(req()));
+      expect(res.status).toBe(409);
+      expect(stripeMock.transfers.list).toHaveBeenCalledWith(expect.objectContaining({ transfer_group: "job_job-1" }));
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect((slackAlerts as Array<{ title?: string; severity?: string }>).some(
+        (a) => a.title === "Payout refused — a transfer for this job is at Stripe with no ledger row" && a.severity === "critical",
+      )).toBe(true);
+      expect(scenario.writes.some((w) => w.table === "payout_transfers" && w.op === "insert")).toBe(false);
+    });
+
+    // Round-5 money review, HIGH: release-payout and process-scheduled-payouts
+    // share the claim row but not the idempotency key. A claim orphaned by one
+    // (older than the 2-minute in-flight window) was resumed by the OTHER under
+    // ITS key — a second real transfer. An orphaned claim no longer exempts the
+    // Stripe check: one matching unrecorded transfer is adopted, anything else
+    // refuses.
+    it("an orphaned claim + a MATCHING unrecorded transfer: adopts it, no transfers.create", async () => {
+      // The amount this job pays, observed from a clean run.
+      seedPayableJob(scenario);
+      await (await load()).fetch((await load()).request(req()));
+      const amount = stripeMock.transfers.create.mock.calls[0][0].amount as number;
+      resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+
+      seedPayableJob(scenario);
+      scenario.reads.payout_transfers = { rows: [{ id: "led-orphan", helper_id: "helper-1", stripe_transfer_id: null, status: "pending", created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString() }] };
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_sched", amount, amount_reversed: 0, destination: "acct_helper", metadata: { job_id: "job-1", helper_id: "helper-1" } }],
+      });
+      const fn = await load();
+      const res = await fn.fetch(fn.request(req()));
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(res.status).toBe(200);
+      const settle = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update");
+      expect((settle?.payload as Record<string, unknown>)?.stripe_transfer_id).toBe("tr_sched");
+    });
+
+    it("an orphaned claim + a NON-matching unrecorded transfer: 409, page, no transfers.create", async () => {
+      seedPayableJob(scenario);
+      scenario.reads.payout_transfers = { rows: [{ id: "led-orphan", helper_id: "helper-1", stripe_transfer_id: null, status: "pending", created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString() }] };
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_other", amount: 1234, amount_reversed: 0, destination: "acct_someone_else", metadata: { job_id: "job-1" } }],
+      });
+      const fn = await load();
+      const res = await fn.fetch(fn.request(req()));
+      expect(res.status).toBe(409);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect((slackAlerts as Array<{ severity?: string }>).some((a) => a.severity === "critical")).toBe(true);
+    });
+
+    it("fails CLOSED when the Stripe transfer list cannot be read", async () => {
+      seedPayableJob(scenario);
+      stripeMock.transfers.list.mockRejectedValue(new Error("stripe down"));
+      const fn = await load();
+      const res = await fn.fetch(fn.request(req()));
+      expect(res.status).toBeGreaterThanOrEqual(500);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("control: a fully reversed transfer does not block the payout", async () => {
+      seedPayableJob(scenario);
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_back", amount: 11200, amount_reversed: 11200, transfer_group: "job_job-1" }],
+      });
+      const fn = await load();
+      const res = await fn.fetch(fn.request(req()));
+      expect(res.status).toBe(200);
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("the post-transfer flip is retried on a transient DB fault", () => {
     it("retries a 57014 statement timeout rather than stranding the payout", async () => {
       seedPayableJob(scenario);

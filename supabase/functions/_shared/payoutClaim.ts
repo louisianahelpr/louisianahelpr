@@ -278,3 +278,88 @@ export async function failClaim(
   }
   return { ok: true };
 }
+
+// ─── Unrecorded transfers at Stripe ─────────────────────────────────────────
+//
+// The claim row closes the race between runs, but release-payout and
+// process-scheduled-payouts use DIFFERENT idempotency keys
+// (`release-payout-<job>` vs `scheduled-payout-<job>`). A claim orphaned by one
+// of them after its transfer went out — killed before `settleClaim` stamped the
+// id — was RESUMED by the other under ITS key: a second real transfer
+// (round-5 lh-money-escrow review, HIGH). And a transfer from any other path
+// that never reached the ledger (a dispute Quick Release, a split leg) was
+// invisible to both. So before claiming, ask Stripe what exists in the job's
+// transfer group and compare it with the WHOLE job's ledger.
+
+/** The subset of a Stripe transfer this check reads. */
+export interface StripeTransferLike {
+  id: string;
+  amount?: number;
+  amount_reversed?: number;
+  destination?: string | { id?: string } | null;
+  metadata?: Record<string, string | undefined> | null;
+}
+
+export type UnrecordedTransferCheck =
+  /** Nothing at Stripe the ledger does not know about. Claim and transfer as usual. */
+  | { kind: "clear" }
+  /**
+   * An orphaned claim of this (job, helper) and exactly ONE unrecorded transfer
+   * that is unmistakably its payout (destination, metadata.job_id and amount all
+   * match). Settle `claimId` with `transferId`; do NOT call transfers.create.
+   */
+  | { kind: "adopt"; claimId: string; transferId: string }
+  /** Another run holds a claim inside the in-flight window: stand down, no page. */
+  | { kind: "inflight" }
+  /** Unrecorded money that cannot be attributed: refuse and page. */
+  | { kind: "conflict"; transferIds: string[] }
+  /** The ledger or Stripe could not be read: fail closed. */
+  | { kind: "error"; message: string };
+
+export async function checkUnrecordedTransfers(
+  supabaseAdmin: { from: (t: string) => any },
+  stripe: { transfers: { list: (params: { transfer_group: string; limit: number }) => Promise<{ data?: unknown[] } | null | undefined> } },
+  args: { jobId: string; helperId: string; stripeAccountId: string | null; amountCents: number; nowMs?: number },
+): Promise<UnrecordedTransferCheck> {
+  // JOB-wide: on a group job another roster member's recorded transfer is in
+  // the same transfer group, and must not read as unrecorded.
+  const { data, error } = await supabaseAdmin
+    .from("payout_transfers")
+    .select("id, helper_id, stripe_transfer_id, status, created_at")
+    .eq("job_id", args.jobId);
+  if (error) return { kind: "error", message: `ledger read failed: ${error.message}` };
+  const rows = (data ?? []) as Array<LedgerRow & { helper_id?: string | null }>;
+  const recorded = new Set(rows.map((r) => r.stripe_transfer_id).filter((id): id is string => !!id));
+
+  let listed: StripeTransferLike[];
+  try {
+    const res = await stripe.transfers.list({ transfer_group: `job_${args.jobId}`, limit: 100 });
+    listed = ((res?.data ?? []) as StripeTransferLike[]);
+  } catch (e) {
+    return { kind: "error", message: `Stripe transfer list failed: ${(e as Error).message}` };
+  }
+  const unrecorded = listed.filter(
+    (t) => Number(t.amount ?? 0) - Number(t.amount_reversed ?? 0) > 0 && !recorded.has(t.id),
+  );
+  if (unrecorded.length === 0) return { kind: "clear" };
+
+  // This helper's claim rows. A row with no helper_id (a redacted helper) is
+  // treated as this job's claim rather than ignored.
+  const helperRows = rows.filter((r) => r.helper_id == null || r.helper_id === args.helperId);
+  const { openClaim, inFlightClaim } = classifyLedger(helperRows, args.nowMs);
+  if (inFlightClaim) return { kind: "inflight" };
+
+  if (openClaim && unrecorded.length === 1) {
+    const t = unrecorded[0];
+    const destination = typeof t.destination === "string" ? t.destination : t.destination?.id ?? null;
+    if (
+      args.stripeAccountId &&
+      destination === args.stripeAccountId &&
+      t.metadata?.job_id === args.jobId &&
+      Number(t.amount) === args.amountCents
+    ) {
+      return { kind: "adopt", claimId: openClaim.id, transferId: t.id };
+    }
+  }
+  return { kind: "conflict", transferIds: unrecorded.map((t) => t.id) };
+}

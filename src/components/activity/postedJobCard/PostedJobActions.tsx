@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
+import { isExpectedLifecycleRefusal, lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 import { mutationErrorMessage } from "@/lib/mutationResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { type Job } from "../activityConstants";
@@ -252,12 +253,21 @@ export function PostedJobActions({
       // control that is dead for months with zero Sentry events is the whole
       // argument for this line.
       if (error) {
-        report(error, { tags: { source: "PostedJobCard.withdrawDispute" }, context: { job_id: job.id } });
+        // A settlement in progress (dispute_settlement_in_progress) is the lock
+        // working, not a defect: shown, never reported.
+        const expected = isExpectedLifecycleRefusal(error);
+        if (!expected) {
+          report(error, { tags: { source: "PostedJobCard.withdrawDispute" }, context: { job_id: job.id } });
+        }
         hapticError();
         // Wording unchanged: `mutationErrorMessage` returns its fallback for a
         // plain PostgrestError, so routing through it would only look like it
         // was doing something.
-        toast.error("We couldn't mark that resolved — please try again.");
+        toast.error(
+          expected
+            ? (lifecycleErrorMessage(error) ?? "We couldn't mark that resolved — please try again.")
+            : "We couldn't mark that resolved — please try again.",
+        );
         return;
       }
       const { data: releaseData, error: releaseError } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId: job.id } });

@@ -1,0 +1,57 @@
+/**
+ * A migration that redefines a function keeps every guard (RAISE code) the
+ * newest earlier definition had, unless scripts/migration-raise-codes-allowlist.json
+ * says why not. Inventory: the migrations themselves. See
+ * scripts/check-migration-raise-codes.mjs for the incident this closes
+ * (open_dispute_as losing `job_already_completed`).
+ */
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+// @ts-expect-error — plain .mjs script, no type declarations
+import * as check from "../../scripts/check-migration-raise-codes.mjs";
+
+const MIG = "supabase/migrations";
+
+describe("migrations keep the guards of the functions they redefine", () => {
+  it("parses function bodies and terse RAISE codes (prose messages are not codes)", () => {
+    const defs = check.functionDefinitions(`
+      CREATE OR REPLACE FUNCTION public.f(a uuid) RETURNS void LANGUAGE plpgsql AS $function$
+      BEGIN RAISE EXCEPTION 'job_already_completed'; RAISE EXCEPTION 'dispute already %', x; END; $function$;
+      CREATE OR REPLACE FUNCTION g() RETURNS int LANGUAGE sql AS $$ SELECT 1 $$;`);
+    expect(defs.map((d: { name: string }) => d.name)).toEqual(["public.f", "public.g"]);
+    expect([...check.raiseCodes(defs[0].body)]).toEqual(["job_already_completed"]);
+  });
+
+  it("is RED on the dispute-settlement migration as it stood before the re-derive", () => {
+    const guard = readFileSync(path.join(MIG, "20260915025607_block_disputes_on_completed_jobs.sql"), "utf8");
+    const prefix = readFileSync("src/test/fixtures/migrationRaiseCodes/open_dispute_as.prefix.sql.txt", "utf8");
+    const files: Record<string, string> = {
+      "20260915025607_block_disputes_on_completed_jobs.sql": guard,
+      "20260915034822_dispute_settlement_claim_and_race_locks.sql": prefix,
+    };
+    const dropped = check.droppedCodes({ files: Object.keys(files), readFile: (f: string) => files[f], allowlist: [] });
+    expect(dropped).toEqual([
+      expect.objectContaining({ function: "public.open_dispute_as", code: "job_already_completed" }),
+    ]);
+  });
+
+  it("an allowlist entry with a reason lets a deliberate drop through", () => {
+    const files: Record<string, string> = {
+      "20260915000000_a.sql": "CREATE OR REPLACE FUNCTION public.h() RETURNS void LANGUAGE plpgsql AS $f$ BEGIN RAISE EXCEPTION 'old_guard'; END $f$;",
+      "20260915040000_b.sql": "CREATE OR REPLACE FUNCTION public.h() RETURNS void LANGUAGE plpgsql AS $f$ BEGIN NULL; END $f$;",
+    };
+    const readFile = (f: string) => files[f];
+    expect(check.droppedCodes({ files: Object.keys(files), readFile, allowlist: [] })).toHaveLength(1);
+    const allowlist = [{ migration: "20260915040000_b.sql", function: "public.h", code: "old_guard", reason: "guard moved to a trigger" }];
+    expect(check.droppedCodes({ files: Object.keys(files), readFile, allowlist })).toHaveLength(0);
+  });
+
+  it("every allowlist entry carries a reason", () => {
+    for (const a of check.loadAllowlist()) expect(String(a.reason ?? "").length).toBeGreaterThan(10);
+  });
+
+  it("the live migrations drop no guard", () => {
+    expect(check.droppedCodes()).toEqual([]);
+  });
+});

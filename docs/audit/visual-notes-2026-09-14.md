@@ -482,6 +482,25 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Shared with: every Profile tab page using that wrapper; same "fill the space" rule as the rail/fit rules — check Activity/Messages too
 - Size: small–medium
 - Screenshot: My Reviews screenshot from VN-36 (not saved)
+- **TRIED AND REVERTED, 2026-09-14 — do not attempt the same fix again.** Read
+  before touching this. The scroll wrapper was bled an extra 12px per side at
+  `xl` so the cards would move from x=48 to x=36. It was wrong. Measured on
+  prod at 1440 (`.app-shell-frame` 0→1192) BEFORE any change:
+  `/dashboard` panel 48→1144 · `/my-posts` 48→1144 · `/messages` 48→1144 ·
+  `/profile?tab=reviews` card 48→1144 — pixel-identical. The Profile tab pages
+  are NOT inset relative to anything; they already sit flush with every
+  PageScaffold sibling, and bleeding here moved Profile alone and split the
+  shared fixed-shell family (`src/components/AppPage.tsx` carries the same
+  wrapper string byte-for-byte). The "panel ~x36" in the note above is the
+  wrapper's own border box, which paints nothing — there was never an edge
+  there to fill to; the numbers matched while the conclusion did not.
+- **What VN-37 actually is:** the container gutter `px-5 lg:px-8 xl:px-12`
+  (48px at xl), shared by Profile.tsx, PageScaffold.tsx and AppPage.tsx.
+  Narrowing it is one line in that string in all three — an app-wide look
+  decision for the owner, not a per-screen fix. Queued in docs/OPEN.md.
+  Guarded by `src/components/profile/profileTabScroll.test.ts` (Profile and
+  AppPage must carry the identical wrapper) and by the parity assertion in
+  `e2e/prod-audit/profile-tab-scroll-fill.spec.ts`.
 
 ### VN-38: Remove "Parish · Vermilion" from Edit Profile
 - Screen / route: Profile → Edit Profile (ZIP field)

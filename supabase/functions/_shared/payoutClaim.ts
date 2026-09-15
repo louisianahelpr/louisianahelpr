@@ -318,7 +318,7 @@ export type UnrecordedTransferCheck =
 
 export async function checkUnrecordedTransfers(
   supabaseAdmin: { from: (t: string) => any },
-  stripe: { transfers: { list: (params: { transfer_group: string; limit: number }) => Promise<{ data?: unknown[] } | null | undefined> } },
+  stripe: { transfers: { list: (params: { transfer_group?: string; destination?: string; limit: number }) => Promise<{ data?: unknown[] } | null | undefined> } },
   args: { jobId: string; helperId: string; stripeAccountId: string | null; amountCents: number; nowMs?: number },
 ): Promise<UnrecordedTransferCheck> {
   // JOB-wide: on a group job another roster member's recorded transfer is in
@@ -331,10 +331,24 @@ export async function checkUnrecordedTransfers(
   const rows = (data ?? []) as Array<LedgerRow & { helper_id?: string | null }>;
   const recorded = new Set(rows.map((r) => r.stripe_transfer_id).filter((id): id is string => !!id));
 
+  // Two lists, unioned by id. The job's transfer group finds every transfer a
+  // payout path tagged. `transfer_group` is not a guarantee, though — a
+  // create-payment Quick Release before 20260915034822 carried none — so the
+  // Helpr's destination account is listed too and matched on
+  // `metadata.job_id`, which every job payout has always carried. Without the
+  // second list an untagged transfer is invisible and the check fails OPEN.
   let listed: StripeTransferLike[];
   try {
-    const res = await stripe.transfers.list({ transfer_group: `job_${args.jobId}`, limit: 100 });
-    listed = ((res?.data ?? []) as StripeTransferLike[]);
+    const grouped = await stripe.transfers.list({ transfer_group: `job_${args.jobId}`, limit: 100 });
+    const byId = new Map<string, StripeTransferLike>();
+    for (const t of ((grouped?.data ?? []) as StripeTransferLike[])) byId.set(t.id, t);
+    if (args.stripeAccountId) {
+      const toHelper = await stripe.transfers.list({ destination: args.stripeAccountId, limit: 100 });
+      for (const t of ((toHelper?.data ?? []) as StripeTransferLike[])) {
+        if (t.metadata?.job_id === args.jobId) byId.set(t.id, t);
+      }
+    }
+    listed = [...byId.values()];
   } catch (e) {
     return { kind: "error", message: `Stripe transfer list failed: ${(e as Error).message}` };
   }

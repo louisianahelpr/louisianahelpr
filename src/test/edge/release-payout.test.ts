@@ -460,6 +460,23 @@ describe("release-payout edge function", () => {
       expect((slackAlerts as Array<{ severity?: string }>).some((a) => a.severity === "critical")).toBe(true);
     });
 
+    it("finds an UNGROUPED transfer for this job by destination + metadata.job_id (transfer_group is not a guarantee)", async () => {
+      // A transfer created without `transfer_group` — every create-payment
+      // Quick Release before 20260915034822 — is invisible to a group list. The
+      // check also lists the Helpr's destination account and matches the job
+      // id in metadata, so it cannot fail open on one.
+      seedPayableJob(scenario);
+      stripeMock.transfers.list.mockImplementation(async (p: { destination?: string; transfer_group?: string }) => ({
+        data: p.destination === "acct_helper"
+          ? [{ id: "tr_legacy", amount: 8800, amount_reversed: 0, destination: "acct_helper", transfer_group: null, metadata: { job_id: "job-1", initiated_by: "admin" } }]
+          : [],
+      }));
+      const fn = await load();
+      const res = await fn.fetch(fn.request(req()));
+      expect(res.status).toBe(409);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
     it("fails CLOSED when the Stripe transfer list cannot be read", async () => {
       seedPayableJob(scenario);
       stripeMock.transfers.list.mockRejectedValue(new Error("stripe down"));

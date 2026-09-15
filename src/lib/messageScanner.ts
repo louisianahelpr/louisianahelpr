@@ -1,15 +1,15 @@
 // Advisory UX only — scan_message_content() in Postgres is the authoritative gate; keep patterns in sync.
+import { PHONE_PATTERN } from "./contactLeakRules";
+
 // Off-platform activity detection patterns
-// Every separator widened to `[^0-9a-zA-Z]{0,4}` to match
-// scan_message_content()'s separator scope exactly, including the
-// leading `+1`/area-code boundary this had left as `\s*[-.]?\s*\(?` — a
-// narrower client scope than the server (V-016, lh-verifier 2026-09-04):
-// the server accepts ANY 0-4 non-alphanumeric separator characters there
-// too (e.g. "504_555_0100", 9/14 tested separator variants), so a message
-// composing clean under this warning could still be struck server-side on
-// send with no visible warning first — the same phantom-delivery shape the
-// cash-only/in-cash and slash-separator fixes both closed.
-const PHONE_REGEX = /(\+?1?[^0-9a-zA-Z]{0,4}\(?\d{3}\)?[^0-9a-zA-Z]{0,4}\d{3}[^0-9a-zA-Z]{0,4}\d{4})/gi;
+// The phone rule is NOT defined here: it is the shared PHONE_PATTERN, the same
+// string the server's contact_leak_reason() uses (contactFilterParity.test.ts
+// fails if they differ). Separators stay `[^0-9a-zA-Z]{0,4}` (V-016,
+// lh-verifier 2026-09-04: a narrower client scope than the server meant a
+// message composing clean here could still be struck on send), and the number
+// may no longer sit inside a longer digit run (docs/OPEN.md queue #1,
+// 2026-09-14: a 14-digit timestamp read as a phone number).
+const PHONE_REGEX = new RegExp(PHONE_PATTERN, "gi");
 // Spelled-out phone: 7+ consecutive number-words (mirrors the server heuristic).
 const SPELLED_PHONE_REGEX = /(zero|one|two|three|four|five|six|seven|eight|nine|oh)([^a-z0-9]+(zero|one|two|three|four|five|six|seven|eight|nine|oh)){6,}/gi;
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
@@ -48,9 +48,13 @@ export type DetectedViolation = {
 export function scanMessage(content: string): DetectedViolation[] {
   const violations: DetectedViolation[] = [];
 
-  const phones = normalizeDigits(content).match(PHONE_REGEX);
-  if (phones) {
-    phones.forEach((m) => violations.push({ type: "phone_number", match: m.trim(), label: "Phone number detected" }));
+  // Group 1 is the boundary character in front of the number (or "" at the
+  // start). Keep it only when it is part of how the number is written ("(" or
+  // "+"), so the dialog quotes "(225) 555 0199", not ":2255550199".
+  for (const m of normalizeDigits(content).matchAll(PHONE_REGEX)) {
+    const lead = m[1] ?? "";
+    const shown = (/[(+]/.test(lead) ? lead : "") + m[0].slice(lead.length);
+    violations.push({ type: "phone_number", match: shown.trim(), label: "Phone number detected" });
   }
 
   const spelledPhones = content.match(SPELLED_PHONE_REGEX);

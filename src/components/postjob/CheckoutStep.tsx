@@ -417,7 +417,7 @@ export function CheckoutStep({
       <div className="rounded-2xl liquid-glass overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-primary" /> Payment breakdown
+            <CreditCard className="w-4 h-4 text-primary" /> Payment Breakdown
           </h3>
         </div>
         <div className="p-5 space-y-3">
@@ -454,7 +454,7 @@ export function CheckoutStep({
             </div>
           )}
           <div className="flex justify-between text-ds-13">
-            <span className="text-muted-foreground">Job budget</span>
+            <span className="text-muted-foreground">Job Budget</span>
             <span className="font-medium text-foreground">${formatPriceExact(budgetNum)}</span>
           </div>
           {/* ── What the Helpr actually receives ────────────────────────────
@@ -530,7 +530,7 @@ export function CheckoutStep({
               (create-gift-card-checkout → posterServiceFeeCents(amount, 0)). */}
           <div className="flex justify-between text-ds-13">
             <span className="text-muted-foreground">
-              {hasGift ? "Service fee" : `Service fee (${customerFee ?? 12}%)`}
+              {hasGift ? "Service Fee" : `Service Fee (${customerFee ?? 12}%)`}
             </span>
             {hasGift ? (
               <span className="font-medium" style={{ color: "hsl(var(--success-ink))" }}>
@@ -542,13 +542,13 @@ export function CheckoutStep({
           </div>
           {isUrgent && urgentFeeNum > 0 && (
             <div className="flex justify-between text-ds-13">
-              <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent bonus (goes to Helpr)</span>
+              <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent Bonus (Goes to Helpr)</span>
               <span className="font-medium text-foreground">${formatPriceExact(urgentFeeNum)}</span>
             </div>
           )}
           {onboardingFeeAmount > 0 && (
             <div className="flex justify-between text-ds-13">
-              <span className="text-muted-foreground">One-time account setup <span className="text-ds-12">(first job only)</span></span>
+              <span className="text-muted-foreground">One-Time Account Setup <span className="text-ds-12">(First Job Only)</span></span>
               <span className="font-medium text-foreground">${formatPriceExact(onboardingFeeAmount)}</span>
             </div>
           )}
@@ -672,14 +672,14 @@ export function CheckoutStep({
               return (
                 <>
                   <div className="flex justify-between text-ds-13">
-                    <span className="text-muted-foreground">State &amp; parish sales tax</span>
+                    <span className="text-muted-foreground">State &amp; Parish Sales Tax</span>
                     <span className="font-medium text-muted-foreground">
                       {taxLoading ? "checking…" : "calculated at payment"}
                     </span>
                   </div>
                   <div className="h-px bg-border" />
                   <div className="flex justify-between items-baseline">
-                    <span className="font-semibold text-foreground">Total before tax</span>
+                    <span className="font-semibold text-foreground">Total Before Tax</span>
                     <span className="text-ds-20 font-bold text-foreground">
                       ${formatPriceExact(totalCharge)}
                     </span>
@@ -720,7 +720,7 @@ export function CheckoutStep({
                 </div>
                 <div className="h-px bg-border" />
                 <div className="flex justify-between items-baseline">
-                  <span className="font-semibold text-foreground">Estimated total</span>
+                  <span className="font-semibold text-foreground">Estimated Total</span>
                   <span className="text-ds-20 font-bold text-foreground">
                     ${formatPriceExact(totalWithTax)}
                   </span>
@@ -789,7 +789,7 @@ export function CheckoutStep({
           className="flex items-center justify-between gap-3 rounded-ds-md liquid-glass p-4 cursor-pointer"
         >
           <span className="text-ds-13 text-foreground leading-snug">
-            <span className="font-semibold block">Save card for next time</span>
+            <span className="font-semibold block">Save Card for Next Time</span>
             <span className="text-ds-11 text-muted-foreground">
               Stripe stores it securely so you can one-tap next time you post.
             </span>

@@ -67,5 +67,7 @@ export const logViolation = async (
   }
   // 'warning' is already covered by the first-offence toast the send handler
   // shows, and 'duplicate' means this exact message was already counted —
-  // neither needs a second toast on top.
+  // neither needs a second toast on top. 'not_flagged' (20260915020258) means
+  // the server rule does not flag this text (a client-only phrase like
+  // "my number"), so nothing was recorded.
 };

@@ -2,6 +2,13 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../../_shared/adminIds.ts";
+import {
+  disputeStatusAsReadFilter,
+  findInternalPayoutHold,
+  holdReasons,
+  isChargebackDisputeStatus,
+  type InternalPayoutHold,
+} from "./_chargebackHold.ts";
 
 export async function handleChargeDisputeClosed(
   event: Stripe.Event,
@@ -42,10 +49,14 @@ export async function handleChargeDisputeClosed(
     : outcome === "lost" ? "dispute_lost"
     : "warning_closed";
 
+  // True when a dismissed inquiry restored the payment state but left a hold
+  // the job carried on its own, so the closing alert does not claim an unblock.
+  let heldAfterDismissal = false;
+
   if (closedPiId) {
     const { data: closedJob, error: closedJobErr } = await supabase
       .from("jobs")
-      .select("id, customer_id, helper_id, title, payment_status, status, payout_scheduled_at")
+      .select("id, customer_id, helper_id, title, payment_status, status, payout_scheduled_at, dispute_status, disputed_at")
       .eq("stripe_payment_intent_id", closedPiId)
       .maybeSingle();
 
@@ -73,39 +84,105 @@ export async function handleChargeDisputeClosed(
     }
 
     if (closedJob) {
-      const { error: resolveUpdateErr } = await supabase
-        .from("jobs")
-        .update({
-          dispute_status: finalDisputeStatus,
-          dispute_resolved_at: new Date().toISOString(),
-        })
-        .eq("id", closedJob.id);
+      // The job's dispute markers are the card dispute's to rewrite only when
+      // it placed them (see _chargebackHold.ts). An internal dispute_status —
+      // 'resolved' on a decided dispute, 'reversal_hold', 'open', 'escalated' —
+      // is never overwritten with a card-dispute outcome.
+      const ownsMarkers = isChargebackDisputeStatus(closedJob.dispute_status);
 
-      if (resolveUpdateErr) {
-        // A dropped write leaves dispute_status stuck at "stripe_chargeback"
-        // rather than "dispute_won"/"dispute_lost"/"warning_closed". On a won
-        // dispute this is especially harmful: the Slack alert below tells ops
-        // to release the helper's payout, but release-payout's dispute guard
-        // only allows dispute_status ∈ {resolved, auto_resolved}. With
-        // "stripe_chargeback" still set the payout remains permanently blocked
-        // until a human repairs the row manually — with no signal that the
-        // repair is even needed. Alert ops NOW (before throwing) so the
-        // critical-severity page has full context, then throw so the
-        // idempotency row is rolled back and Stripe retries.
-        await postSlackOpsAlert({
-          kind: outcome === "won" ? "dispute_won" : outcome === "lost" ? "dispute_lost" : "custom",
-          severity: "critical",
-          title: "Stripe dispute closed — OUTCOME NOT RECORDED (DB error)",
-          message: `Dispute ${closedDispute.id} closed as "${outcome}" but the jobs.dispute_status update failed. The job's dispute state is still "stripe_chargeback". Stripe will retry this webhook.`,
-          fields: {
-            "Dispute ID": closedDispute.id,
-            "Outcome": outcome,
-            "Job ID": String(closedJob.id),
-            "DB error": resolveUpdateErr.message.slice(0, 200),
-          },
-          link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
+      // A dismissed inquiry is the one outcome that lifts a hold automatically,
+      // so it must first know about the holds that live OFF the job row. Read
+      // before any write: on a read failure nothing has changed, and the throw
+      // lets Stripe retry. A won dispute reads them too, so the admin notice
+      // does not tell anyone to release a payout over a live hold — but a read
+      // failure there only changes the wording (nothing is unblocked on 'won').
+      let hold: InternalPayoutHold = {};
+      if (outcome === "warning_closed" || outcome === "won") {
+        hold = await findInternalPayoutHold(supabase, closedJob.id);
+        if (hold.readError && outcome === "warning_closed") {
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "critical",
+            title: "Stripe retrieval request dismissed — HOLD CHECK FAILED, job left blocked",
+            message: `Dispute ${closedDispute.id} closed as "warning_closed", but the check for an unexecuted dispute split or a reversed payout on the job could not be read. Nothing was changed (the job stays payment_status='chargeback'). Stripe will retry this webhook.`,
+            fields: {
+              "Dispute ID": closedDispute.id,
+              "Job ID": String(closedJob.id),
+              "Read error": hold.readError.slice(0, 200),
+            },
+            link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
+            // Stripe retries this delivery for days; one page per job per day
+            // is the signal, the rest are counted in the digest.
+            oncePerDayKey: `dispute-closed-hold-read-failed:${closedJob.id}`,
+          });
+          throw new Error(
+            `Hold check failed for warning_closed dispute ${closedDispute.id} (job ${closedJob.id}): ${hold.readError}`,
+          );
+        }
+      }
+      // Every live hold on the job, from the row and the off-row reads. A
+      // SETTLED internal status ('resolved' with no unexecuted split,
+      // 'auto_resolved') is not a hold: release-payout pays those normally.
+      const reasons = hold.readError ? [] : holdReasons(closedJob, hold);
+      const held = reasons.length > 0;
+
+      if (ownsMarkers) {
+        // Compare-and-set on a card-dispute status: an internal dispute opened
+        // since the read is not overwritten with this outcome.
+        const { data: recorded, error: resolveUpdateErr } = await supabase
+          .from("jobs")
+          .update({
+            dispute_status: finalDisputeStatus,
+            dispute_resolved_at: new Date().toISOString(),
+          })
+          .eq("id", closedJob.id)
+          .or(disputeStatusAsReadFilter(closedJob.dispute_status))
+          .select("id");
+
+        if (resolveUpdateErr) {
+          // A dropped write leaves dispute_status stuck at "stripe_chargeback"
+          // rather than "dispute_won"/"dispute_lost"/"warning_closed". On a won
+          // dispute this is especially harmful: the Slack alert below tells ops
+          // to release the helper's payout, but release-payout's dispute guard
+          // only allows dispute_status ∈ {resolved, auto_resolved}. With
+          // "stripe_chargeback" still set the payout remains permanently blocked
+          // until a human repairs the row manually — with no signal that the
+          // repair is even needed. Alert ops NOW (before throwing) so the
+          // critical-severity page has full context, then throw so the
+          // idempotency row is rolled back and Stripe retries.
+          await postSlackOpsAlert({
+            kind: outcome === "won" ? "dispute_won" : outcome === "lost" ? "dispute_lost" : "custom",
+            severity: "critical",
+            title: "Stripe dispute closed — OUTCOME NOT RECORDED (DB error)",
+            message: `Dispute ${closedDispute.id} closed as "${outcome}" but the jobs.dispute_status update failed. The job's dispute state is still "${closedJob.dispute_status}". Stripe will retry this webhook.`,
+            fields: {
+              "Dispute ID": closedDispute.id,
+              "Outcome": outcome,
+              "Job ID": String(closedJob.id),
+              "DB error": resolveUpdateErr.message.slice(0, 200),
+            },
+            link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
+          });
+          throw new Error(`Failed to record dispute outcome "${outcome}" for job ${closedJob.id}: ${resolveUpdateErr.message}`);
+        }
+        if (!recorded || recorded.length === 0) {
+          // Read as card-dispute-owned, matched nothing: an internal dispute took
+          // the markers in between. Not overwriting it is correct; say so.
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "warning",
+            title: "Stripe dispute closed — outcome not recorded (job dispute state changed)",
+            message: `Dispute ${closedDispute.id} closed as "${outcome}", but the job's dispute_status changed from "${closedJob.dispute_status}" before the outcome was written, so it was left alone. Check the job's dispute state by hand.`,
+            fields: { "Dispute ID": closedDispute.id, "Job ID": String(closedJob.id), "Outcome": outcome },
+            link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
+          });
+        }
+      } else {
+        logStep("Dispute closed on a job with an internal dispute_status — outcome not written over it", {
+          jobId: closedJob.id,
+          disputeStatus: closedJob.dispute_status,
+          outcome,
         });
-        throw new Error(`Failed to record dispute outcome "${outcome}" for job ${closedJob.id}: ${resolveUpdateErr.message}`);
       }
 
       if (outcome === "won") {
@@ -121,8 +198,16 @@ export async function handleChargeDisputeClosed(
         for (const adminId of wonAdminIds) {
           await supabase.from("notifications").insert({
             user_id: adminId,
-            title: "Chargeback WON — release Helpr payout",
-            message: `Stripe ruled in our favor on the $${(closedDispute.amount / 100).toFixed(2)} chargeback for "${closedJob.title}". Funds are restored. Please release the Helpr's payout from the Admin panel.`,
+            title: held
+              ? "Chargeback WON — job still on hold"
+              : hold.readError
+              ? "Chargeback WON — check the job before releasing"
+              : "Chargeback WON — release Helpr payout",
+            message: `Stripe ruled in our favor on the $${(closedDispute.amount / 100).toFixed(2)} chargeback for "${closedJob.title}". Funds are restored. ${held
+              ? `The job still has its own hold (${reasons.join("; ")}). Settle that first; a full payout is not owed until it is.`
+              : hold.readError
+              ? "Its open-dispute and payout-reversal records could not be read, so check them in the Admin panel before releasing the Helpr's payout."
+              : "Please release the Helpr's payout from the Admin panel."}`,
             type: "payment",
             link: "/admin",
           });
@@ -131,8 +216,8 @@ export async function handleChargeDisputeClosed(
         // A retrieval request (card-network inquiry, no funds ever withdrawn) was
         // dismissed. chargeDisputeCreated blocks only a PAYABLE job — one in
         // escrow or payout_pending — by flipping it to payment_status =
-        // "chargeback" + disputed_at = NOW(). Now that the inquiry is closed,
-        // put the job back in the payment state it held BEFORE the block.
+        // "chargeback". Now that the inquiry is closed, put the job back in the
+        // payment state it held BEFORE the block.
         //
         // It used to write payout_pending unconditionally. On a job whose work
         // was not done (escrow) that moved no money — process-scheduled-payouts
@@ -140,17 +225,41 @@ export async function handleChargeDisputeClosed(
         // the job where no sweep reads it: auto-release-payment only picks up
         // escrow, the payout cron only completed jobs. Stranded.
         //
-        // Scoped to payment_status = "chargeback" so jobs that were already
-        // "released" when the inquiry came in (the block was skipped in
-        // chargeDisputeCreated) are untouched. .select("id") makes the row
-        // count observable: zero rows on a job we just read as "chargeback"
-        // means something moved it underneath us, and that pages ops.
+        // disputed_at is cleared ONLY when the card dispute placed it and no
+        // hold exists (OPEN.md HIGH, d7a04acb9; holdReasons in
+        // _chargebackHold.ts: an unexecuted or open dispute, a reversed
+        // transfer, status 'disputed', or a live internal dispute_status). It used to be cleared
+        // unconditionally, and it is process-scheduled-payouts' only dispute
+        // guard on the job row, so the dismissal lifted holds it never placed:
+        //   - a decided dispute whose split has not executed was paid in FULL
+        //     over the decided refund (rpc_decide_dispute leaves disputed_at);
+        //   - a reversed payout ('reversal_hold') became re-payable.
+        // Both holds are read from their own tables (the old created handler
+        // overwrote the job's dispute_status on such jobs, so the row alone
+        // cannot be trusted). When one exists disputed_at is KEPT — stamped if
+        // somehow empty — and ops is paged. The payment_status block itself is
+        // the chargeback's own and is restored, so the internal process
+        // (execute-dispute-split needs escrow/payout_pending) can still run.
+        //
+        // Compare-and-set on payment_status = "chargeback" AND the dispute_status
+        // the decision was made from. .select("id") makes the row count
+        // observable: zero rows on a job we just read as "chargeback" means
+        // something moved it underneath us, and that pages ops.
+        const clearDisputedAt = ownsMarkers && !held;
         const restoredPaymentStatus = preChargebackPaymentStatus(closedJob);
         const { data: unblocked, error: unblockErr } = await supabase
           .from("jobs")
-          .update({ payment_status: restoredPaymentStatus, disputed_at: null })
+          .update({
+            payment_status: restoredPaymentStatus,
+            disputed_at: clearDisputedAt
+              ? null
+              : held
+              ? (closedJob.disputed_at ?? new Date().toISOString())
+              : (closedJob.disputed_at ?? null),
+          })
           .eq("id", closedJob.id)
           .eq("payment_status", "chargeback")
+          .or(disputeStatusAsReadFilter(closedJob.dispute_status))
           .select("id");
 
         if (unblockErr) {
@@ -162,7 +271,7 @@ export async function handleChargeDisputeClosed(
             kind: "custom",
             severity: "critical",
             title: "Stripe retrieval request dismissed — payout UNBLOCK FAILED",
-            message: `Dispute ${closedDispute.id} closed as "warning_closed" (retrieval request dismissed, no funds moved), but restoring the job to ${restoredPaymentStatus} failed. The job is still payment_status='chargeback'. Stripe will retry; if retries exhaust, manually set payment_status='${restoredPaymentStatus}' and disputed_at=NULL on the job.`,
+            message: `Dispute ${closedDispute.id} closed as "warning_closed" (retrieval request dismissed, no funds moved), but restoring the job to ${restoredPaymentStatus} failed. The job is still payment_status='chargeback'. Stripe will retry; if retries exhaust, manually set payment_status='${restoredPaymentStatus}'${clearDisputedAt ? " and disputed_at=NULL" : " and LEAVE disputed_at as it is"} on the job.`,
             fields: {
               "Dispute ID": closedDispute.id,
               "Job ID": String(closedJob.id),
@@ -176,12 +285,34 @@ export async function handleChargeDisputeClosed(
         }
 
         if (unblocked && unblocked.length > 0) {
-          logStep("Retrieval request dismissed — payment state restored, disputed_at cleared", {
+          heldAfterDismissal = held;
+          logStep("Retrieval request dismissed — payment state restored", {
             jobId: closedJob.id,
             restoredPaymentStatus,
+            disputedAtCleared: clearDisputedAt,
+            holdReasons: reasons,
             disputeId: closedDispute.id,
           });
-          // Let admins know the automatic unblock happened.
+          if (held) {
+            // The chargeback's own block is lifted; the internal hold is not.
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "Stripe retrieval request dismissed on a job with an internal payout hold — hold KEPT",
+              message: `Dispute ${closedDispute.id} closed as "warning_closed". The job was restored to ${restoredPaymentStatus}, but disputed_at was KEPT because ${reasons.join("; ")}. Settle that by hand; do not release a full payout over it. (auto-resolve-disputes does not read disputed_at: if the job is still 'disputed', check it will not auto-pay.)`,
+              fields: {
+                "Dispute ID": closedDispute.id,
+                "Job ID": String(closedJob.id),
+                "Job status": closedJob.status ?? "—",
+                "Job dispute_status": closedJob.dispute_status ?? "—",
+                "Unexecuted dispute": hold.unsettledDisputeId ?? "—",
+                "Open dispute": hold.openDisputeId ?? "—",
+                "Reversed transfer": hold.reversedTransferId ?? "—",
+              },
+              link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
+            });
+          }
+          // Let admins know what the automatic restore did.
           const { ids: warnAdminIds } = await loadAdminIds(
             supabase,
             "stripe-webhook.chargeDisputeClosed.warningClosed",
@@ -189,10 +320,14 @@ export async function handleChargeDisputeClosed(
           for (const adminId of warnAdminIds) {
             await supabase.from("notifications").insert({
               user_id: adminId,
-              title: restoredPaymentStatus === "payout_pending"
+              title: held
+                ? "Retrieval request closed — job still on hold"
+                : restoredPaymentStatus === "payout_pending"
                 ? "ℹ Retrieval request closed — payout auto-unblocked"
                 : "ℹ Retrieval request closed — job back in escrow",
-              message: `A card-network retrieval request for "${closedJob.title}" was dismissed with no chargeback. ${restoredPaymentStatus === "payout_pending"
+              message: `A card-network retrieval request for "${closedJob.title}" was dismissed with no chargeback. ${held
+                ? `The job still has its own hold (${reasons.join("; ")}), which was left in place. Settle it from the Admin panel.`
+                : restoredPaymentStatus === "payout_pending"
                 ? "The Helpr's temporarily-blocked payout has been automatically unblocked and will proceed on the normal schedule."
                 : "The job's funds are back in escrow and it continues as normal."}`,
               type: "info",
@@ -201,18 +336,19 @@ export async function handleChargeDisputeClosed(
           }
         } else if (closedJob.payment_status === "chargeback") {
           // We read the job as blocked, the conditional write matched nothing:
-          // another writer moved payment_status in between. The job is in an
-          // unknown state that this webhook will not revisit (it ACKs 200), so
-          // a human has to look.
+          // another writer moved payment_status or dispute_status in between.
+          // The job is in an unknown state that this webhook will not revisit
+          // (it ACKs 200), so a human has to look.
           await postSlackOpsAlert({
             kind: "custom",
             severity: "critical",
             title: "Stripe retrieval request dismissed — unblock matched no row",
-            message: `Dispute ${closedDispute.id} closed as "warning_closed". The job was read as payment_status='chargeback' but restoring it to ${restoredPaymentStatus} matched zero rows — payment_status changed underneath the webhook. Check the job's payment_status and disputed_at by hand; no sweep will pick it up if it is still blocked.`,
+            message: `Dispute ${closedDispute.id} closed as "warning_closed". The job was read as payment_status='chargeback' but restoring it to ${restoredPaymentStatus} matched zero rows — payment_status or dispute_status changed underneath the webhook. Check the job's payment_status, dispute_status and disputed_at by hand; no sweep will pick it up if it is still blocked.`,
             fields: {
               "Dispute ID": closedDispute.id,
               "Job ID": String(closedJob.id),
               "Intended payment_status": restoredPaymentStatus,
+              "Read dispute_status": closedJob.dispute_status ?? "—",
             },
             link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
           });
@@ -242,6 +378,8 @@ export async function handleChargeDisputeClosed(
         ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored — release the helper's blocked payout manually via the Admin panel.`
         : outcome === "lost"
         ? `Stripe ruled against us on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds permanently withdrawn. Reconcile the loss.`
+        : heldAfterDismissal
+        ? `An early-fraud warning for $${(closedDispute.amount / 100).toFixed(2)} was dismissed without a chargeback. The job's own dispute or payout-reversal hold was kept in place.`
         : `An early-fraud warning for $${(closedDispute.amount / 100).toFixed(2)} was dismissed without a chargeback. Any previously-blocked helper payout has been automatically unblocked.`,
     fields: {
       "Dispute ID": closedDispute.id,

@@ -174,7 +174,7 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("fills details with a photo", async () => {
       await page.getByRole("button", { name: "Cleaning", exact: true }).click();
-      await page.getByRole("textbox", { name: "Job title *" }).fill(TITLE);
+      await page.getByRole("textbox", { name: "Job Title *" }).fill(TITLE);
       await page.getByRole("textbox", { name: "Description *" }).fill(
         "Automated journey test. Not a real job; created and removed by the test suite. Please ignore.",
       );
@@ -184,7 +184,7 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("fills logistics with a parish-less ZIP and a date", async () => {
-      await page.getByRole("combobox", { name: "Street address" }).fill("100 Audit Way");
+      await page.getByRole("combobox", { name: "Street Address" }).fill("100 Audit Way");
       await page.keyboard.press("Escape");
       await page.getByRole("combobox", { name: "City" }).fill("Baton Rouge");
       await page.keyboard.press("Escape");
@@ -193,7 +193,7 @@ test.describe.serial("marketplace chain", () => {
       // so the job is posted with parish null, the same guard prod-lifecycle uses.
       journey.allowReport(/ZIP 99999 resolved to no Louisiana parish/, "deliberate: keeps parish null so no real helper is notified");
       await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
-      await page.getByRole("button", { name: /Date needed/ }).click();
+      await page.getByRole("button", { name: /Date Needed/ }).click();
       // Soon, not days out: the day-of confirm opens inside 24h and the
       // tracker's actions unlock at T-2h, so J5 can walk the whole job now.
       const slot = SLOT;
@@ -592,7 +592,11 @@ test.describe.serial("marketplace chain", () => {
         const before = c.getByText("Add a before photo", { exact: true });
         const after = c.getByText("Add an after photo", { exact: true });
         const start = c.getByRole("button", { name: /^Start Working$/ });
-        const payout = c.getByRole("button", { name: /^Request My Payout$/ });
+        // "Mark Job Complete" (owner, 2026-09-14; was "Request My Payout"). The
+        // tracker's Done CTA and the card's PayoutPrimary now share the label,
+        // so take the first in DOM order — the tracker's, which opens the
+        // "Yes, I'm Done" confirmation this step expects.
+        const payout = c.getByRole("button", { name: /^Mark Job Complete$/ }).first();
         await expect(before.or(after).or(start).or(payout).first(), `helper card offers no next step (so far: ${seen.join(" > ")})`).toBeVisible({ timeout: 45_000 });
         if (await before.isVisible() || await after.isVisible()) {
           const label = (await before.isVisible()) ? "Before" : "After";
@@ -620,12 +624,12 @@ test.describe.serial("marketplace chain", () => {
           await assertHealthy(hp, "start working");
           await journey.milestone(hp, "working");
         } else {
-          seen.push("Request My Payout");
-          const payoutButtons = await c.getByRole("button", { name: /Request (My )?Payout/ }).count();
+          seen.push("Mark Job Complete");
+          const payoutButtons = await c.getByRole("button", { name: /^Mark Job Complete$/ }).count();
           test.info().annotations.push({ type: "payout-cta-count", description: String(payoutButtons) });
           await payout.click();
           const yes = hp.getByRole("button", { name: "Yes, I'm Done" });
-          await expect(yes, "Request My Payout opened no confirmation").toBeVisible({ timeout: 15_000 });
+          await expect(yes, "Mark Job Complete opened no confirmation").toBeVisible({ timeout: 15_000 });
           await journey.milestone(hp, "request-payout-confirm");
           await yes.click();
           await expect(yes).toBeHidden({ timeout: 30_000 });

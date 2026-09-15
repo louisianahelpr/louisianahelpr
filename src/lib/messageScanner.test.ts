@@ -28,14 +28,10 @@
  *   sender now gets the same heads-up before send that the server will act
  *   on after send.
  *
- *   PHONE regex difference:
- *     Client:  /(\+?1?\s*[-.]?\s*\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4})/
- *       Supports leading +1, parenthesised area code, and common dash/dot/space
- *       separators between groups.
- *     Server:  [0-9]{3}[^0-9]?[0-9]{3}[^0-9]?[0-9]{4}
- *       Simpler: 3 digits, optional single non-digit, 3 digits, optional single
- *       non-digit, 4 digits. Matches a plain 10-digit run ("9855551234") but
- *       only allows ONE separator character between groups (not multiple spaces).
+ *   PHONE regex: NO difference any more (2026-09-14). Client and server use
+ *     the one string PHONE_PATTERN in src/lib/contactLeakRules.ts (10 digits,
+ *     or 11 starting with 1, 0-4 separators between groups, never inside a
+ *     longer digit run); contactFilterParity.test.ts pins the migration to it.
  *
  *   PAYMENT APP word-boundary handling:
  *     Client:  \b word boundaries prevent "ethics" matching "eth" or "depth"
@@ -107,6 +103,32 @@ describe("scanMessage", () => {
       // and was missed here until the leading segment was widened to match.
       const v = scanMessage("reach me at 504_555_0100");
       expect(v.some((x) => x.type === "phone_number")).toBe(true);
+    });
+
+    // docs/OPEN.md queue #1 (2026-09-14): "SEED offered-proof 20260914215014"
+    // was read as a phone number (server AND client) and struck two accounts.
+    // A phone is 10 digits, or 11 starting with 1, never a window inside a
+    // longer digit run.
+    it("does NOT flag a 14-digit timestamp (the prod false positive)", () => {
+      expect(scanMessage("SEED offered-proof 20260914215014").some((x) => x.type === "phone_number")).toBe(false);
+      expect(hasViolation("20260914215014")).toBe(false);
+    });
+
+    it("does NOT flag 12+ digit runs or an 11-digit run that does not start with 1", () => {
+      for (const msg of ["ref 123456789012", "order 123456789012345", "order 22255550199", "epoch 1726350614000"]) {
+        expect(scanMessage(msg).some((x) => x.type === "phone_number"), `should not flag: ${msg}`).toBe(false);
+      }
+    });
+
+    it("still flags the real phone shapes named in the fix", () => {
+      for (const msg of ["225-555-0199", "(225) 555 0199", "+1 225 555 0199", "2255550199", "12255550199"]) {
+        expect(scanMessage(msg).some((x) => x.type === "phone_number"), `should flag: ${msg}`).toBe(true);
+      }
+    });
+
+    it("reports each of two back-to-back numbers, not just the first", () => {
+      const matches = scanMessage("2255550199,5045550100").filter((x) => x.type === "phone_number").map((x) => x.match);
+      expect(matches).toEqual(["2255550199", "5045550100"]);
     });
   });
 

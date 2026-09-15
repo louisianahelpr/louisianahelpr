@@ -41,7 +41,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
       hapticError();
       const msg = /already_started/.test(error.message)
         ? "The start time has passed — message the poster or contact support instead."
-        : "We couldn't cancel the booking — please try again.";
+        : "We couldn't cancel this job — please try again.";
       toast.error(msg);
       return;
     }
@@ -59,10 +59,10 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
     }
     toast.warning(
       action === "temp_ban"
-        ? "Booking cancelled — third strike: your account is suspended for 7 days."
+        ? "Job cancelled — third strike: your account is suspended for 7 days."
         : action === "warning"
-          ? "Booking cancelled — final warning. One more strike is a 7-day suspension."
-          : "Booking cancelled. This counts as a reliability strike.",
+          ? "Job cancelled — final warning. One more strike is a 7-day suspension."
+          : "Job cancelled. This counts as a reliability strike.",
     );
     setCancelOpen(false);
     // The job left this list; the realtime jobs subscription refetches, but
@@ -104,8 +104,12 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           component the posted card's chip rows render through rather than a
           parallel primitive.
 
-          "Can't make it" is the exit, not a link: it opens the same
-          reliability-ladder confirm the underlined link used to. `danger` is
+          "Cancel Job" is the exit, not a link: it opens the same
+          reliability-ladder confirm the underlined link used to. Labelled
+          "Cancel Job" (owner, 2026-09-14, VN-18: the back-out shown after the
+          Helpr confirms and before On the Way says "Cancel Job") — the same
+          words ActiveJobSection's chip and dialog use for that window, so the
+          accepted and in-progress cards cannot name one exit two ways. `danger` is
           the tone every sanctioned-exit control in these rows already wears
           (Withdraw, Cancel, Dispute) and it is the only alarm colour on this
           card — the tracker's yellow means "current step" and lives in the
@@ -126,8 +130,8 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
         />
         <JobActionChip
           icon={CalendarX2}
-          label="Can't Make It"
-          ariaLabel="Can't make it? See what happens if you cancel this booking"
+          label="Cancel Job"
+          ariaLabel="Cancel this job? See what happens if you cancel now"
           tone="danger"
           onClick={() => setCancelOpen(true)}
         />
@@ -135,7 +139,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
       <BrandConfirmDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
-        title="Cancel This Booking?"
+        title="Cancel This Job?"
         description={`"${job.title}" reopens for other Helprs right away, and the poster is told now — while there's still time to rebook.`}
         callout={{
           icon: CalendarX2,
@@ -151,7 +155,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           // replace.
           text: `Cancelling a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}.`,
         }}
-        primaryLabel={cancelling ? "Cancelling…" : "Cancel My Booking"}
+        primaryLabel={cancelling ? "Cancelling…" : "Cancel Job"}
         primaryTone="sienna"
         primaryDisabled={cancelling}
         onPrimary={() => void handleCancelBooking()}

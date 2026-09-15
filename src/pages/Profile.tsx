@@ -393,21 +393,52 @@ const ProfilePage = () => {
     const bioLeak = contactLeakFieldError(bio, "bio");
     if (bioLeak) { hapticError(); toast.error(bioLeak); return; }
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({
-      full_name: merged, phone: phone.trim(), location: location.trim(),
-      bio: bio.trim(), skills: skills.trim(),
-      date_of_birth: dateOfBirth || null,
-      zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
-      parish: parish,
-    }).eq("user_id", user.id);
-    setSaving(false);
-    if (error) { hapticError(); toast.error(contactLeakRejectionMessage(error) ?? "We couldn't save your profile — please try again."); }
-    else {
-      setFullName(merged);
-      setJustSaved(true);
-      hapticSuccess();
-      setTimeout(() => setJustSaved(false), 1800);
+    // The values as submitted, so the success path can tell whether a field
+    // was edited again while the request was in flight.
+    const submitted = { phone, location, zipCode, bio, skills };
+    let saved: Pick<Profile, "full_name" | "phone" | "location" | "bio" | "skills" | "date_of_birth" | "zip_code" | "parish">;
+    try {
+      // `.select(...)` + unwrapMutation: a null `error` is not a write — an
+      // update that matches zero rows returns no error and used to show "Saved".
+      // The returned row is also what the form's baseline moves to below.
+      [saved] = unwrapMutation(
+        await supabase.from("profiles").update({
+          full_name: merged, phone: phone.trim(), location: location.trim(),
+          bio: bio.trim(), skills: skills.trim(),
+          date_of_birth: dateOfBirth || null,
+          zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
+          parish: parish,
+        }).eq("user_id", user.id)
+          .select("full_name, phone, location, bio, skills, date_of_birth, zip_code, parish"),
+        { action: "save your profile", context: { userId: user.id } },
+      );
+    } catch (err) {
+      setSaving(false);
+      hapticError();
+      toast.error(contactLeakRejectionMessage(err) ?? mutationErrorMessage(err, "We couldn't save your profile — please try again."));
+      return;
     }
+    setSaving(false);
+    // MOVE THE BASELINE. ProfileEditForm's `dirty` (isProfileEditDirty)
+    // compares the fields against `profile`; this used to stay at the pre-save
+    // row, so once "Saved" cleared the bar came back as "Save Changes"
+    // (measured: Saved at +0.7s, Save Changes at +3.7s), and editing a field
+    // back to its old value read as clean and could not be saved.
+    setProfile((prev) => (prev ? { ...prev, ...saved } : prev));
+    // The fields take the stored (trimmed / normalised) values too, or a
+    // trailing space keeps them "dirty" against the new baseline — but only
+    // where the field still holds what was submitted, so typing during the
+    // round-trip is not overwritten.
+    const keep = <T,>(sent: T, next: T) => (cur: T) => (cur === sent ? next : cur);
+    setPhone(keep(submitted.phone, saved.phone ?? ""));
+    setLocation(keep(submitted.location, saved.location ?? ""));
+    setZipCode(keep(submitted.zipCode, saved.zip_code ?? ""));
+    setBio(keep(submitted.bio, saved.bio ?? ""));
+    setSkills(keep(submitted.skills, saved.skills ?? ""));
+    setFullName(saved.full_name ?? merged);
+    setJustSaved(true);
+    hapticSuccess();
+    setTimeout(() => setJustSaved(false), 1800);
   };
 
   const handleIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

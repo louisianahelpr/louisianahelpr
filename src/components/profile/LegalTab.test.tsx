@@ -7,11 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 
-// GDPR Art. 20 portability is promised IN WRITING by the Privacy Policy
-// ("Download a complete copy of your data … from Legal & policies in your
-// profile"), so the export is a legal commitment, not a nice-to-have. It
-// moved here from the standalone /data-rights page on 2026-08-18; these
-// tests are what stops the move from having quietly broken it.
+// GDPR Art. 20 portability is promised IN WRITING by the Privacy Policy, so
+// the export is a legal commitment, not a nice-to-have. History: standalone
+// /data-rights page → a card under every document on this tab (2026-08-18) →
+// inside the Privacy Policy itself (owner, 2026-09-14, VN-47), so on this tab
+// it is in the Privacy panel only. These tests stop that move from quietly
+// breaking the export, and pin one "contact support" link per document.
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -21,7 +22,7 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 // throws instead of switching documents.
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticLight: vi.fn() }));
 vi.mock("@/hooks/useAuthReady", () => ({
-  useAuthReady: () => ({ user: { id: "user-1" } }),
+  useAuthReady: () => ({ user: { id: "user-1" }, isReady: true }),
 }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: vi.fn() } }));
 
@@ -95,21 +96,26 @@ const renderTab = () =>
     </QueryClientProvider>,
   );
 
-describe("Legal & policies — data rights", () => {
-  it("offers the data export the Privacy Policy links here for", () => {
-    renderTab();
+/** Open the Privacy document, where the export control now lives. */
+const renderPrivacy = () => {
+  renderTab();
+  selectDoc("Privacy");
+};
+
+describe("Legal & policies — data rights (inside the Privacy Policy)", () => {
+  it("offers the data export in the Privacy document", () => {
+    renderPrivacy();
     expect(screen.getByRole("heading", { name: "Download your data" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download My Data" })).toBeEnabled();
   });
 
   it("keeps the GDPR/CCPA footnote with the control", () => {
-    renderTab();
+    renderPrivacy();
     expect(screen.getByText(/Under the EU GDPR and California CCPA/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "contact support" })).toHaveAttribute("href", "/support");
   });
 
   it("exports profile, jobs, applications and reviews as one JSON file", async () => {
-    renderTab();
+    renderPrivacy();
 
     fireEvent.click(screen.getByRole("button", { name: "Download My Data" }));
     await waitFor(() => expect(createdBlobs).toHaveLength(1));
@@ -123,10 +129,8 @@ describe("Legal & policies — data rights", () => {
       reviews: TABLE_DATA.reviews,
     });
     expect(payload.exported_at).toEqual(expect.any(String));
-    // The object URL is still revoked — but `saveOrShareFile` now defers it by
-    // ~1s (nativeShare.ts) rather than revoking on the same tick. Revoking
-    // immediately after `.click()` can abort the download in Safari, so the
-    // delay is deliberate. Kept as an assertion rather than dropped: an
+    // `saveOrShareFile` defers the revoke by ~1s (nativeShare.ts) — revoking
+    // on the same tick can abort the download in Safari. Still asserted: an
     // un-revoked blob URL pins the whole export in memory for the session.
     await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:mock"), {
       timeout: 2000,
@@ -138,7 +142,7 @@ describe("Legal & policies — data rights", () => {
       ((table: string) =>
         stubTable(table, table === "reviews" ? { message: "permission denied" } : null)) as unknown as typeof supabase.from,
     );
-    renderTab();
+    renderPrivacy();
 
     fireEvent.click(screen.getByRole("button", { name: "Download My Data" }));
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
@@ -154,16 +158,24 @@ describe("Legal & policies — data rights", () => {
     );
   });
 
-  it("keeps the data export reachable from where /data-rights lands", () => {
-    // /data-rights redirects to `/profile?tab=legal` with NO ?doc= (App.tsx),
-    // so it opens the DEFAULT document panel. The Privacy Policy and the iOS
-    // App Store privacy listing both point at that URL in writing, so the
-    // export has to be on screen there — i.e. outside the document tab band,
-    // not tucked inside the Privacy panel where the default view never shows
-    // it. Assert it while the default (Terms) panel is the one open.
+  it("no longer puts the export under Terms or Rules (VN-47)", () => {
     renderTab();
-    expect(screen.getByRole("tab", { name: "Terms" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("heading", { name: "Download your data" })).toBeInTheDocument();
+    for (const tab of ["Terms", "Rules"]) {
+      selectDoc(tab);
+      expect(screen.queryByRole("button", { name: "Download My Data" })).toBeNull();
+      expect(screen.queryByRole("heading", { name: "Download your data" })).toBeNull();
+    }
+  });
+
+  it("shows exactly ONE contact-support link on each document (VN-47)", () => {
+    renderTab();
+    for (const tab of ["Terms", "Rules", "Privacy"]) {
+      selectDoc(tab);
+      const support = screen
+        .getAllByRole("link")
+        .filter((l) => /contact support/i.test(l.textContent ?? ""));
+      expect(support, tab).toHaveLength(1);
+    }
   });
 });
 
@@ -208,15 +220,5 @@ describe("Legal & policies — the same documents the signed-out page shows", ()
     selectDoc("Privacy");
     expect(screen.getByRole("heading", { name: /^Information we collect/ })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /^The basics/ })).toBeNull();
-  });
-
-  it("keeps the export on screen whichever document is open", () => {
-    // It is a control, not a policy, so it sits outside the band — and the
-    // /data-rights promise above depends on it never being hidden behind one.
-    renderTab();
-    for (const tab of ["Rules", "Privacy", "Terms"]) {
-      selectDoc(tab);
-      expect(screen.getByRole("button", { name: "Download My Data" })).toBeInTheDocument();
-    }
   });
 });

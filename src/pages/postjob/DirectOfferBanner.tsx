@@ -45,7 +45,7 @@ export function DirectOfferBanner({
         </div>
         <div className="flex-1 min-w-0 break-words">
           <p className="text-ds-13 font-semibold text-foreground">
-            Direct offer to {name}
+            Direct Offer to {name}
           </p>
           <p className="text-ds-11 text-muted-foreground">
             They'll have {offerWindowLabel(responseHours)} to accept before this job
@@ -69,7 +69,7 @@ export function DirectOfferBanner({
           htmlFor="direct-offer-window"
           className="text-ds-11 text-muted-foreground shrink-0"
         >
-          First look for
+          First Look For
         </Label>
         <Select
           value={String(responseHours)}

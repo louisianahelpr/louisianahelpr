@@ -1,16 +1,8 @@
-import { useState, type ReactNode } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { Download, Loader2 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuthReady } from "@/hooks/useAuthReady";
-import { report } from "@/lib/errorLogger";
-import { hapticError } from "@/lib/haptics";
-import { saveOrShareFile } from "@/lib/fileExport";
-import { toast } from "sonner";
 import { TermsContent } from "@/pages/legal/TermsSection";
 import { CommunityContent } from "@/pages/legal/CommunitySection";
 import { PrivacyContent } from "@/pages/legal/PrivacySection";
@@ -21,12 +13,8 @@ import {
   TAB_ICONS,
 } from "@/pages/legal/legalSections";
 
-// The same lazy import Profile and AccountBanned use: the dialog chunk and its
-// confirm-flow deps are fetched only if the user actually opens it.
-
-// THIS TAB STATES NO POLICY OF ITS OWN. It is a directory plus one control:
-// links to the three policy documents, the GDPR/CCPA data export, and deep
-// links into the canonical sections on /legal.
+// THIS TAB STATES NO POLICY OF ITS OWN. It composes the three policy
+// documents (the GDPR/CCPA data export lives inside the Privacy one).
 //
 // It used to render its own accordion summaries of the fee split, cancellation
 // windows, strike ladders and dispute steps — a second, hand-maintained wording
@@ -34,157 +22,6 @@ import {
 // moneyLimits and the shared PolicySection primitives; none of that belongs
 // here now. If a policy needs to change, it changes in src/pages/legal/ and
 // this tab needs no edit at all.
-
-// ---------- Data rights ----------
-
-/**
- * GDPR Art. 20 / CCPA data portability — the "Download your data" control.
- *
- * MERGED HERE 2026-08-18 from the standalone `/data-rights` page. That route
- * had been reduced to a single button once its inert CCPA "do not sell or
- * share" toggle came out (7e62af5f), and a whole route for one control is
- * not a screen. `/data-rights` now redirects here (App.tsx) rather than 404 —
- * the Privacy Policy promises this export IN WRITING and links to it, and the
- * iOS App Store privacy listing points at the URL too, so the old address has
- * to keep resolving somewhere that actually offers the download.
- *
- * Deliberately NOT here: account deletion (GDPR Art. 17 erasure). It lives on
- * the Profile landing / Settings screen only, so there is exactly ONE entry
- * point to an irreversible action rather than two that can drift apart.
- *
- * Own component (not inlined into LegalTab) purely so the `exporting` state
- * transition re-renders this card instead of the whole policy document below.
- */
-function DataExportCard() {
-  // Derive the user id from the app-wide auth snapshot (getSession-backed,
-  // local, offline-safe) rather than a network getUser() call. The null guard
-  // remains because a failed getUser() round-trip used to leave `userId` null
-  // and the export button permanently disabled even with a valid local session.
-  const { user } = useAuthReady();
-  const userId = user?.id ?? null;
-  const [exporting, setExporting] = useState(false);
-
-  const handleExport = async () => {
-    if (!userId) return;
-    setExporting(true);
-    try {
-      const [profileRes, jobsRes, applicationsRes, reviewsRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
-        supabase.from("jobs").select("*").or(`customer_id.eq.${userId},helper_id.eq.${userId}`),
-        supabase.from("applications").select("*").eq("helper_id", userId),
-        supabase.from("reviews").select("*").or(`reviewer_id.eq.${userId},reviewee_id.eq.${userId}`),
-      ]);
-
-      // Never drop the Supabase `error` — a swallowed failure would hand the
-      // user a JSON file full of `null` and call it their data export.
-      const firstError = profileRes.error || jobsRes.error || applicationsRes.error || reviewsRes.error;
-      if (firstError) throw firstError;
-
-      const payload = {
-        exported_at: new Date().toISOString(),
-        profile: profileRes.data,
-        jobs: jobsRes.data,
-        applications: applicationsRes.data,
-        reviews: reviewsRes.data,
-      };
-
-      // THE HANDOFF USED TO BE A NO-OP ON THE PLATFORM THIS APP SHIPS ON.
-      // It was `URL.createObjectURL` → `<a download>` → `.click()` →
-      // `revokeObjectURL`. Capacitor serves bundled `dist/` from WKWebView,
-      // which honours neither the `download` attribute nor a `blob:`
-      // navigation, so on iOS the tap spun, fetched every row, threw nothing,
-      // logged nothing — and produced no file. That is not just a bug here:
-      // the Privacy Policy and the iOS App Store privacy listing both point
-      // users at this control in writing for GDPR Art. 20 / CCPA portability,
-      // and `/data-rights` redirects to it. A data-export button that silently
-      // does nothing is a compliance problem.
-      //
-      // `saveOrShareFile` picks the route the platform actually supports
-      // (native: stage a real file, share the `file://` URI so iOS offers Save
-      // to Files / Mail; web: the anchor download) and toasts on every failure
-      // path. See src/lib/fileExport.ts.
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-      const ok = await saveOrShareFile({
-        blob,
-        filename: `helpr-data-export-${new Date().toISOString().split("T")[0]}.json`,
-        label: "your data export",
-        source: "LegalTab.exportData",
-      });
-      // saveOrShareFile owns the failure toast and the telemetry, so this adds
-      // only the haptic the rest of this handler gives a failure. A cancelled
-      // share sheet also lands here and stays silent, which is correct — the
-      // user dismissed it on purpose.
-      if (!ok) hapticError();
-    } catch (err) {
-      report(err, { tags: { source: "LegalTab.exportData" } });
-      hapticError();
-      toast.error("We couldn't put your data together just now — try again or email support.");
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  return (
-    <div className="space-y-2">
-      {/* Same card anatomy as the document row above (liquid-glass squircle,
-          10x10 primary icon badge, display title + muted body) so the tab
-          reads as one surface — but no hover-lift, because this card ACTS
-          rather than navigates and shouldn't borrow a link's affordance. */}
-      <section className="rounded-2xl liquid-glass squircle p-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Download className="w-4 h-4" strokeWidth={2.25} aria-hidden />
-          </div>
-          <div className="flex-1 min-w-0">
-            {/* id is what the wrapping <section> in LegalTab points its
-                aria-labelledby at, so the data-rights block is named by this
-                heading instead of carrying a second, duplicate label. */}
-            <h2
-              id="legal-data-export"
-              className="font-display font-bold text-foreground leading-tight text-ds-15"
-            >
-              Download your data
-            </h2>
-            <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
-              Get a complete copy of your Helpr data — profile, posted jobs, applications, and reviews — as a single JSON file.
-            </p>
-          </div>
-        </div>
-        {/* flex-wrap lets the format hint and the button stack on a narrow
-            phone instead of squeezing the 44px-tall button below target size. */}
-        <div
-          className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3"
-          style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
-        >
-          <span className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            JSON file
-          </span>
-          <Button
-            onClick={handleExport}
-            disabled={exporting || !userId}
-            aria-busy={exporting}
-            variant="primary"
-            size="sm"
-            className="shrink-0"
-          >
-            {exporting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />Preparing…</> : "Download My Data"}
-          </Button>
-        </div>
-      </section>
-
-      {/* The GDPR/CCPA footnote travels WITH the export control — it is the
-          legal context for why the right exists, and it carries the contact
-          route for every privacy question the button doesn't answer. Routes
-          to the in-app support form, not a raw `mailto:` (which needs a
-          configured mail client and does nothing inside the native app). */}
-      <p className="text-ds-11 leading-relaxed px-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        Under the EU GDPR and California CCPA, you have specific rights about how Helpr handles your personal data.
-        For any other privacy question,{" "}
-        <Link to="/support" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>contact support</Link>.
-      </p>
-    </div>
-  );
-}
 
 /**
  * Account deletion, on the ONE profile route an incomplete profile can open.
@@ -398,29 +235,12 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
         ))}
       </Tabs>
 
-      {/* DATA RIGHTS SIT OUTSIDE THE TAB BAND, not inside the Privacy panel.
-          They used to live under the Privacy block, on the reasoning that the
-          right belongs to the document that grants it — true, and still stated
-          by the footnote inside the card. But once the documents stopped
-          stacking, "inside Privacy" became "two taps away and invisible from
-          the default panel", and `/data-rights` redirects to
-          `/profile?tab=legal` with no `?doc=` (App.tsx) — so it would have
-          landed on Terms with the export nowhere on screen. The Privacy Policy
-          and the iOS App Store privacy listing both point at that URL IN
-          WRITING, so the control it promises has to be visible wherever that
-          redirect lands. It is a control, not a policy document, so it is the
-          one thing on this screen that is not behind the band.
-
-          The hairline rule + top padding are what separate it from whichever
-          document is open; it is labelled by the card's own "Download your
-          data" heading rather than a second heading of its own. */}
-      <section
-        aria-labelledby="legal-data-export"
-        className="pt-4"
-        style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.14)" }}
-      >
-        <DataExportCard />
-      </section>
+      {/* No "Download your data" card here any more (owner, 2026-09-14,
+          VN-47). It sat under every document, below that document's own
+          "Questions? Contact support" footer, and added a second "contact
+          support" link. The export now lives inside the Privacy Policy
+          (`DataExportCard`, rendered by PrivacyContent), so on this tab it is
+          in the Privacy panel, and `/data-rights` redirects to its anchor. */}
     </div>
   );
 }

@@ -443,6 +443,90 @@ describe("process-scheduled-payouts edge function", () => {
     });
   });
 
+  // Defense in depth for OPEN.md (HIGH, d7a04acb9): a dismissed card inquiry
+  // used to clear disputed_at — this cron's only dispute guard — on jobs whose
+  // real hold lives off the job row. Both holds are now read here directly.
+  describe("holds the job row may not show", () => {
+    it("(1) refuses a job whose decided dispute has not executed, even with disputed_at cleared", async () => {
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      scenario.reads.disputes = {
+        rows: [{ id: "disp-1", execution_status: "pending", payout_split: { poster: 0.5, helper: 0.5 } }],
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      const body = await json(res);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("unsettled_dispute_hold");
+      expect(scenario.writes.some((w) => w.table === "jobs" && w.op === "update")).toBe(false);
+    });
+
+    it("(2) refuses a job with a reversed transfer the per-helper ledger read does not see", async () => {
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      // The per-helper dedupe read (keyed on this helper_id) sees nothing — a
+      // legacy or NULLed-helper ledger row — while the job-wide read sees the
+      // reversal. Before: a second transfer went out.
+      scenario.reads.payout_transfers = {
+        rows: [],
+        selectOverrides: [{
+          includes: "helper_id",
+          result: { rows: [{ id: "pt-1", status: "reversed", stripe_transfer_id: "tr_rev", helper_id: null }] },
+        }],
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      const body = await json(res);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("reversed_transfer_hold");
+    });
+
+    it("(2) a reversed transfer is never 'healed' to released — the clawback stays visible", async () => {
+      seedPayableJob(scenario);
+      scenario.reads.payout_transfers = {
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_rev", status: "reversed", helper_id: "helper-1" }],
+      };
+      const fn = await load();
+      await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.some((w) => w.table === "jobs" && w.op === "update")).toBe(false);
+    });
+
+    it("fails closed and records a defect when a hold cannot be read", async () => {
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      scenario.reads.disputes = { error: { message: "disputes down" } };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      expect(res.status).toBe(500);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("a reversal an operator cleared (reversal_cleared) does not block", async () => {
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      // The mock hands rows back whatever the filter says, so this also pins
+      // that the code judges each row's status itself. (The disputes query's
+      // own filter is pinned in release-payout-unsettled-dispute.test.ts.)
+      scenario.reads.payout_transfers = {
+        rows: [],
+        selectOverrides: [{
+          includes: "helper_id",
+          result: { rows: [{ id: "pt-1", status: "reversal_cleared", stripe_transfer_id: "tr_old", helper_id: "helper-1" }] },
+        }],
+      };
+      const fn = await load();
+      await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("group-job urgent split (#114)", () => {
     it("splits the urgent fee across the roster like the budget", async () => {
       // The poster is charged the urgent fee ONCE, bundled into escrow, so a

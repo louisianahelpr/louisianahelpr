@@ -41,7 +41,7 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor="title">Job title <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+        <Label htmlFor="title">Job Title <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         {/* The valid-tick sits in the LABEL row, beside the counter, not
             inside the field.
             Inside the field it cost `pr-10` — 40px of a 269px input at 375 —

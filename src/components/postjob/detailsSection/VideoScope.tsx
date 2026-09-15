@@ -18,7 +18,7 @@ export function VideoScope({
     <div className="mt-4">
       <Label className="mb-2 block">
         Video{" "}
-        <span className="font-normal text-muted-foreground">(optional, 30s max)</span>
+        <span className="font-normal text-muted-foreground">(Optional, 30s Max)</span>
       </Label>
       <p className="text-ds-11 font-sans leading-snug mb-2" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
         A short clip gets you more accurate quotes and fewer surprises.

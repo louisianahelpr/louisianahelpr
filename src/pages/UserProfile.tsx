@@ -16,7 +16,6 @@ import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
-import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
 import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
@@ -88,7 +87,6 @@ const UserProfile = () => {
     data,
     isError,
     refetch,
-    hasSubmittedCredentials,
     reviewsFromQuery,
     setLocalReviews,
     reviews,
@@ -554,7 +552,6 @@ const UserProfile = () => {
                 backgroundChecked={
                   (profile as unknown as { background_check_status?: string }).background_check_status === "verified"
                 }
-                hasSubmittedCredentials={hasSubmittedCredentials}
               />
             }
             // PRESENCE on the identity line, not in the badge row — it is
@@ -770,8 +767,8 @@ const UserProfile = () => {
                 had been deleted), so every profile omitted it anyway. Retired
                 deliberately 2026-08-27 rather than given an editor. */}
 
-            {/* Availability */}
-            <HelperAvailabilityDisplay helperId={userId!} />
+            {/* No Availability section on the PUBLIC profile (owner, 2026-09-14,
+                VN-12). The own Profile Availability tab still edits it. */}
 
             {/* Recent work — photos the helper uploaded on their own profile.
                 Ungated on purpose; see HelperWorkPhotos for why. */}

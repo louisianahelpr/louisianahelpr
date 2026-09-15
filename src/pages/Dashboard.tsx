@@ -539,7 +539,7 @@ const Dashboard = () => {
                       style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}
                     >
                       {filters.searchOpen ? (
-                        <BrowseSearchBar filters={filters} />
+                        <BrowseSearchBar filters={filters} floatRecents />
                       ) : (
                         <>
                           {/* THE ROW EARNS ITS HEIGHT. With the emblem hidden

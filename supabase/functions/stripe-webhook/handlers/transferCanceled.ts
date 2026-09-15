@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { requeueBlockers } from "./_chargebackHold.ts";
 
 export async function handleTransferCanceled(
   event: Stripe.Event,
@@ -56,7 +57,50 @@ export async function handleTransferCanceled(
   // "canceled", so a fresh transfer is correctly issued.
   // Scope to a currently-"released" job so we never regress one an operator has
   // since refunded / charged back.
+  // A job with a live dispute is NOT re-queued (lh-money-escrow review N2,
+  // 2026-09-14). This reset used to run with no dispute check, so a job
+  // carrying an open chargeback, a lost one, or an unsettled internal dispute
+  // became payable again — and release-payout's allow-list pays a settled
+  // internal status over a card dispute. Such a job stays 'released' (a false
+  // terminal state, but not a payable one) and ops is paged to reconcile.
+  let requeueBlocked = false;
   if (canceledLedger?.job_id) {
+    const blockers = await requeueBlockers(supabase, canceledLedger.job_id);
+    if (blockers.readError) {
+      await postSlackOpsAlert({
+        kind: "payout_failed",
+        severity: "critical",
+        title: "Helpr payout canceled — dispute check FAILED, job not re-queued",
+        message: `Stripe transfer ${transfer.id} canceled, but the job's dispute state could not be read, so it was not re-queued for payout. Stripe will retry this webhook.`,
+        fields: {
+          "Transfer ID": transfer.id,
+          "Job ID": String(canceledLedger.job_id),
+          "Read error": blockers.readError.slice(0, 200),
+        },
+        oncePerDayKey: `transfer-canceled-dispute-check-failed:${canceledLedger.job_id}`,
+      });
+      throw new Error(`Dispute check failed before re-queuing job ${canceledLedger.job_id} after canceled transfer ${transfer.id}: ${blockers.readError}`);
+    }
+    if (blockers.reasons.length > 0) {
+      requeueBlocked = true;
+      logStep("Canceled transfer on a job with a live dispute — NOT re-queued", {
+        jobId: canceledLedger.job_id,
+        reasons: blockers.reasons,
+      });
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "critical",
+        title: "Helpr payout canceled on a job with a live dispute — NOT re-queued",
+        message: `Stripe transfer ${transfer.id} canceled, so the Helpr was not paid. The job was left 'released' instead of going back to payout_pending because ${blockers.reasons.join("; ")}. Settle the dispute, then re-queue or refund by hand.`,
+        fields: {
+          "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
+          "Transfer ID": transfer.id,
+          "Job ID": String(canceledLedger.job_id),
+        },
+      });
+    }
+  }
+  if (canceledLedger?.job_id && !requeueBlocked) {
     const { error: jobResetErr } = await supabase
       .from("jobs")
       .update({ payment_status: "payout_pending" })

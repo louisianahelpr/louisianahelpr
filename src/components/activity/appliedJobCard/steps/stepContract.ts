@@ -19,10 +19,14 @@ export interface HelperStepProps {
   tracker: ReactNode;
   /** The Message chip, identical in every step — built once, never re-styled. */
   messageChip: ReactNode;
-  /** The "Can't Finish" chip, or null in the states where the exit is gone. */
+  /** The "Cancel Job" chip — only after the helper has confirmed and before
+   *  "I'm On My Way" (owner, 2026-09-14, VN-18); null everywhere else. */
   exitChip: ReactNode;
-  /** The quiet Report a Problem link, or null where "Can't Finish" still exists. */
-  escape: ReactNode;
+  /** The "Report a Problem" danger chip for the action row, beside Message
+   *  (owner, 2026-09-14, VN-19) — from On the Way onward, i.e. wherever
+   *  "Cancel Job" is gone; null where Cancel Job still exists, on a disputed
+   *  job, or once the job is done. */
+  reportChip: ReactNode;
   /** Rendered after an abort has been taken; replaces the exit. */
   abortedNotice: ReactNode;
 }

@@ -16,6 +16,7 @@ import { usePortfolio } from "@/components/profile/profileEditForm/usePortfolio"
 import { PhotoNameSection } from "@/components/profile/profileEditForm/PhotoNameSection";
 import { RecentWorkSection } from "@/components/profile/profileEditForm/RecentWorkSection";
 import { SaveBar } from "@/components/profile/profileEditForm/SaveBar";
+import { isProfileEditDirty } from "@/components/profile/profileEditForm/isProfileEditDirty";
 
 export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
 
@@ -89,34 +90,22 @@ export function ProfileEditForm({
     setSkills(next.join(", "));
   }
 
-  // Dirty check — the Save bar drives only the text fields (avatar /
-  // ID / portfolio persist on their own). Disabled when nothing in
-  // this set has diverged from the saved profile.
-  const dirty =
-    phone !== (profile?.phone ?? "") ||
-    location !== (profile?.location ?? "") ||
-    zipCode !== (profile?.zip_code ?? "") ||
-    bio !== (profile?.bio ?? "") ||
-    skills !== (profile?.skills ?? "");
+  // Dirty check against the saved profile — see isProfileEditDirty.
+  const dirty = isProfileEditDirty({ phone, location, zipCode, bio, skills }, profile);
 
-  // Resolve parish from ZIP for an inline confirmation under the field
-  // (it's the value used for Louisiana sales tax). Mirrors the silent
-  // lookup the Profile page already runs.
-  const { parish: zipParish, unknownZip, resolution } = useParishForZip(zipCode);
+  // Resolve parish from ZIP to validate it (the check mark and the unknown-ZIP
+  // warning). The parish itself is NOT shown here any more (owner, 2026-09-14,
+  // VN-38: "remove parish vermilion from edit profile"); Profile.tsx still
+  // looks it up and saves it with the ZIP.
+  const { parish: zipParish, unknownZip } = useParishForZip(zipCode);
   // Recognised, not merely five digits — an unknown ZIP shows its own warning.
   const zipValid = zipCode.length === 5 && !unknownZip && !!zipParish;
-  // The hook reports `incomplete` until its first answer lands, which on mount
-  // would blink the saved parish off the screen for a frame. Fall back to the
-  // stored value until the lookup has actually said something.
-  const resolvedParish = resolution.status === "incomplete"
-    ? (profile?.parish ?? null)
-    : zipParish;
 
   // "Other" skills free-text — kept as its own local buffer (not derived
   // fresh from `skills` on every render) so typing a comma doesn't
   // instantly re-join/trim the field out from under the cursor. Resynced
   // only when the underlying saved profile's skills change (initial load /
-  // navigating back to this tab), same trigger as resolvedParish above.
+  // navigating back to this tab).
   const [customText, setCustomText] = useState(customSkills.join(", "));
   useEffect(() => {
     const saved = (profile?.skills ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -160,6 +149,8 @@ export function ProfileEditForm({
   return (
     // Bottom padding clears the sticky save bar (16+44+16 = 76px) plus a
     // safe-area buffer so the last form field doesn't tuck under the bar.
+    // Kept even while the bar is hidden (it only shows once something changed,
+    // VN-40), so the page does not jump when it appears.
     // `var(--safe-area-bottom)` for the same reason as SaveBar's own padding:
     // a bare env() reads 0 under <PageTransition>'s promoted ancestor, so the
     // clearance quietly lost the home-indicator allowance.
@@ -230,18 +221,9 @@ export function ProfileEditForm({
                 </div>
               </div>
             </div>
-            {/* Parish confirmation — reassures the user the ZIP
-                registered (and catches a wrong one). Parish drives
-                Louisiana sales tax. */}
-            {resolvedParish && (
-              <p className="flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                <MapPin className="w-3 h-3 shrink-0" />
-                Parish · <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{resolvedParish}</span>
-              </p>
-            )}
-            {/* The counterpart to the confirmation above. A ZIP that resolves
-                to nothing used to render nothing, so "no parish line" meant
-                both "still typing" and "you are about to be unreachable". */}
+            {/* A ZIP that resolves to nothing must say so — silence used to
+                mean both "still typing" and "you are about to be
+                unreachable". */}
             {unknownZip && (
               <p role="status" className="flex items-start gap-1 text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
                 <MapPin className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />
@@ -408,14 +390,14 @@ export function ProfileEditForm({
             yet", which is a different job entirely. */}
         {/* Same one-paragraph-one-typeface rule as RecentWorkSection: this
             sentence used to switch from serif italic to upright sans halfway
-            through ("…save from the" / "bar below"). Emphasis is weight +
+            through ("…save from the" / "bar that appears below"). Emphasis is weight +
             colour now; the family runs unbroken. */}
         <p
           className="text-center font-sans px-6 leading-snug text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Photos &amp; ID save automatically. Your other edits save from the{" "}
-          <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>bar below</span>.
+          <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>bar that appears below</span>.
         </p>
       </form>
 

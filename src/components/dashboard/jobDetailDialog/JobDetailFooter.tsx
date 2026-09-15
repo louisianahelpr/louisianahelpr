@@ -93,11 +93,12 @@ export const JobDetailFooter = ({
        renders for the few people entitled to send one. */
     <div className="flex gap-1.5 pt-0.5">
       {/* Message the poster — gated to people with a real reason to
-          reach them: the poster themselves, a helper who's been offered
-          or hired onto the job, OR a helper who has already applied
-          (they may have a genuine question — "is the gate code needed?").
-          A helper just browsing can't DM cold, so posters aren't flooded.
-          The backend poster-first rule still governs the actual send. */}
+          reach them: the poster themselves, or a helper who's been offered
+          or hired onto the job. Applicants do NOT get it (owner, 2026-09-14,
+          VN-2: "they can [not] message the poster unless they have been
+          offered/accepted") — this reverses the earlier rule that let anyone
+          with an application ask a question. UI only; the backend
+          poster-first rule still governs the actual send. */}
       {/* `viewerUserId != null` guard is load-bearing, not defensive noise.
           It starts null (the auth look-up in useJobDetailData resolves a beat
           after the dialog opens) and `job.helper_id` is null on every unclaimed
@@ -108,8 +109,7 @@ export const JobDetailFooter = ({
       {viewerUserId != null &&
       (viewerUserId === job.customer_id ||
         viewerUserId === (job as { offered_to_helper_id?: string | null }).offered_to_helper_id ||
-        viewerUserId === (job as { helper_id?: string | null }).helper_id ||
-        viewerAppPosition != null) && (
+        viewerUserId === (job as { helper_id?: string | null }).helper_id) && (
       <IconActionButton
         ariaLabel="Ask a question"
         onClick={onAskQuestion}

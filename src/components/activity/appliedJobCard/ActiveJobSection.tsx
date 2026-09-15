@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { JobActionChip } from "@/components/activity/JobActionRow";
-import { MessageSquare, CalendarX2 } from "lucide-react";
+import { MessageSquare, CalendarX2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticLight } from "@/lib/haptics";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
@@ -12,7 +12,6 @@ import { hasRequiredProof } from "@/lib/photoProofPolicy";
 import { report } from "@/lib/errorLogger";
 import { deriveCurrentStatusIdx, STATUS_IDX, type TrackingData } from "@/components/JobTracking";
 import { HelperTrackerPanel } from "./HelperTrackerPanel";
-import { DisputeLink } from "@/components/jobs/DisputeLink";
 import { deriveHelperStep, type HelperStepProps } from "./steps/stepContract";
 import { EnRouteStep } from "./steps/EnRouteStep";
 import { OnSiteStep } from "./steps/OnSiteStep";
@@ -54,7 +53,7 @@ interface ActiveJobSectionProps {
  * What lives here now is only what OUTLIVES a step — the abort dialog and its
  * RPC, the payout-unlock timer, the poster's instant-release flag, and the
  * derivation of which step we are on. The shared controls (tracker, Message,
- * the exit chip, the escape link) are built ONCE here and handed down, so a
+ * the Cancel Job chip, the Report a Problem chip) are built ONCE here and handed down, so a
  * step cannot restyle them. Everything visible is a step component rendering
  * through the shared {@link JobStepCard} shell.
  */
@@ -104,15 +103,15 @@ export function ActiveJobSection({
   // ── The sanctioned exit, and the point at which it stops being offered ──
   //
   // Owner, 2026-08-30: "can't finish should not be an option." Taken literally
-  // that strands the state machine, so the exit is not deleted, it is BOUNDED:
+  // that strands the state machine, so the exit is not deleted, it is BOUNDED.
+  // Owner, 2026-09-14 (VN-18) narrowed the bound and renamed it "Cancel Job":
   //
-  //   scheduled / on the way / arrived  → the exit is offered
-  //   working (and anything after)      → no exit chip at all
+  //   accepted / confirmed (before "I'm On My Way") → Cancel Job is offered
+  //   on the way / arrived / working / after        → no back-out at all
   //
   // `deriveCurrentStatusIdx` is the same derivation the step rail is drawn
-  // from, so the chip and the rail can never disagree about whether work has
-  // started. It is also what picks the step component below — one derivation,
-  // not two.
+  // from, so the chip and the rail can never disagree about where the job is.
+  // It is also what picks the step component below — one derivation, not two.
   const trackerIdx =
     deriveCurrentStatusIdx({
       trackingStatus: initialTracking?.status ?? null,
@@ -130,6 +129,8 @@ export function ActiveJobSection({
     });
   const workUnderway = trackerIdx >= STATUS_IDX.working;
   const hasArrived = trackerIdx >= STATUS_IDX.arrived;
+  const onTheWay = trackerIdx >= STATUS_IDX.on_the_way;
+  const hasConfirmed = trackerIdx >= STATUS_IDX.confirmed;
 
   // Server owns every part of this decision (helper_abort_job, migration
   // 20260825190000): which settlement path the job takes, and what the strike
@@ -222,7 +223,20 @@ export function ActiveJobSection({
   };
 
   // ── The controls every step shares, built exactly once ──
-  const showExit = !aborted && !workUnderway;
+  const showExit = !aborted && hasConfirmed && !onTheWay;
+  // Report a Problem: from On the Way onward — exactly where Cancel Job is gone
+  // — so removing that control never removes the PATH. Never on a job already
+  // in dispute (no double-file) and never once the job is done (owner,
+  // 2026-09-14, VN-28: no report once done).
+  const disputedAt = (job as { disputed_at?: string | null }).disputed_at ?? null;
+  const showReport =
+    !aborted &&
+    onTheWay &&
+    !!onOpenDispute &&
+    !disputedAt &&
+    job.status !== "disputed" &&
+    job.status !== "completed" &&
+    !job.poster_completed_at;
 
   const shared: HelperStepProps = {
     app,
@@ -246,38 +260,36 @@ export function ActiveJobSection({
       <JobActionChip
         key="exit"
         icon={CalendarX2}
-        label="Can't Finish"
-        ariaLabel="Can't finish this job? See what happens if you stop now"
+        label="Cancel Job"
+        ariaLabel="Cancel this job? See what happens if you cancel now"
         tone="danger"
         onClick={() => setAbortOpen(true)}
       />
     ) : null,
-    // ── THE ONE STATE WITH NO OTHER EXIT ──
+    // ── REPORT A PROBLEM, BESIDE MESSAGE ──
     // Owner, 2026-09-11: "report a problem add it only where necessary." It
-    // appears at exactly the complement of the exit chip — removing a CONTROL
-    // must not remove the PATH. Quiet sienna underline, below the row, never in
-    // it: a dispute freezes escrow and is not a peer of Message.
-    escape:
-      workUnderway && !showExit && onOpenDispute ? (
-        <DisputeLink
-          job={{
-            status: job.status,
-            poster_completed_at: job.poster_completed_at ?? null,
-            helper_completed_at: job.helper_completed_at ?? null,
-            disputed_at: (job as { disputed_at?: string | null }).disputed_at ?? null,
-            revision_requested_at: job.revision_requested_at ?? null,
-          }}
-          side="helper"
-          forceShow
-          label="Report a Problem"
-          onOpenDispute={onOpenDispute}
-        />
-      ) : null,
+    // appears at exactly the complement of the Cancel Job chip — removing a
+    // CONTROL must not remove the PATH. Owner, 2026-09-14 (VN-19) reversed the
+    // earlier "quiet link below the row" ruling: it is a danger-tone chip IN
+    // the action row, beside Message. Same destination (the dispute dialog).
+    reportChip: showReport ? (
+      <JobActionChip
+        key="report"
+        icon={AlertTriangle}
+        label="Report a Problem"
+        ariaLabel="Report a problem — open a dispute about this job"
+        tone="danger"
+        onClick={() => {
+          hapticLight();
+          onOpenDispute?.();
+        }}
+      />
+    ) : null,
     abortedNotice: aborted ? (
       <p className="font-sans text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         {aborted === "disputed"
-          ? "You’ve told the poster you can’t finish. Our team is reviewing what you’re owed — the payment is held safely until then."
-          : "You’ve told the poster you can’t finish. The job is open to other Helprs again."}
+          ? "You’ve cancelled this job and told the poster. Our team is reviewing what you’re owed — the payment is held safely until then."
+          : "You’ve cancelled this job and told the poster. The job is open to other Helprs again."}
       </p>
     ) : null,
   };
@@ -333,13 +345,13 @@ export function ActiveJobSection({
       <BrandConfirmDialog
         open={abortOpen}
         onOpenChange={(next) => { if (!aborting) setAbortOpen(next); }}
-        title="Can’t Finish This Job?"
+        title="Cancel This Job?"
         description=""
         callout={{
           icon: CalendarX2,
-          text: `Stopping a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}. Telling us costs exactly the same as going quiet, and going quiet costs the poster their whole day.`,
+          text: `Cancelling a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}. Telling us costs exactly the same as going quiet, and going quiet costs the poster their whole day.`,
         }}
-        primaryLabel={aborting ? "Sending…" : "I Can’t Finish"}
+        primaryLabel={aborting ? "Sending…" : "Cancel Job"}
         primaryTone="sienna"
         primaryHaptic="warning"
         primaryDisabled={aborting || abortReason.trim().length < 5}

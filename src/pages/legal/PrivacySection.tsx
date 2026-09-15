@@ -3,9 +3,33 @@ import {
   Database, Eye, Shield, Lock, Trash2, Cookie, Users, Wallet, Scale,
   CheckCircle, FileText, ShieldCheck,
 } from "lucide-react";
-import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
+import { useContext, type ReactNode } from "react";
+import {
+  PolicyRowItem,
+  PolicySection,
+  PolicySearchContext,
+  policySearchMatches,
+} from "@/components/policy/CollapsedPolicy";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
 import { LAST_UPDATED } from "./legalSections";
+import { DataExportCard, DATA_EXPORT_ANCHOR } from "./DataExportCard";
+
+/** The row whose "Download your data" link points at the export card. */
+const PORTABILITY_ROW_TITLE = "Deletion & portability";
+
+/**
+ * The export card's search behaviour. It used to sit in <HideOnSearch>, but the
+ * "Deletion & portability" row links to it (`#download-your-data`) and that row
+ * STAYS visible whenever a search matches its title — so during a search the
+ * link pointed at nothing. The card is now shown during a search whenever that
+ * row would be (same predicate, same title), or when the query names the card
+ * itself; otherwise it stays out of the result list as before.
+ */
+const EXPORT_CARD_SEARCH_TEXT = `${PORTABILITY_ROW_TITLE} Download your data data portability export JSON`;
+const ExportCardOnSearch = ({ children }: { children: ReactNode }) => {
+  const query = useContext(PolicySearchContext);
+  return policySearchMatches(query, EXPORT_CARD_SEARCH_TEXT) ? <>{children}</> : null;
+};
 
 /* ───────────────────────  PRIVACY  ─────────────────────── */
 export const PrivacyContent = () => (
@@ -14,7 +38,7 @@ export const PrivacyContent = () => (
       items={[
         "We collect only what we need to match jobs and process payments — name, email, phone, ID, location, usage data.",
         "Stripe handles payments. We never store full card numbers.",
-        "Delete your account or download your data yourself, anytime, from your Data Rights page — no waiting on support.",
+        "Delete your account or download your data yourself, anytime, from the Download your data card in this policy — no waiting on support.",
       ]}
     />
 
@@ -165,19 +189,28 @@ export const PrivacyContent = () => (
       />
       <PolicyRowItem
         icon={Trash2}
-        title="Deletion & portability"
+        title={PORTABILITY_ROW_TITLE}
         body={
           <>
             <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from <Link to="/profile" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Profile settings</Link> — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed.</p>
-            {/* Points at the export's real home. It lived on a standalone
-                /data-rights page until 2026-08-18; that URL still redirects
-                here, but a published policy should name where the control
-                actually is rather than lean on a redirect to stay true. */}
-            <p><strong className="text-foreground">Data portability:</strong> Download a complete copy of your data (profile, jobs, applications, reviews) as a machine-readable JSON file from <Link to="/profile?tab=legal" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Legal &amp; policies</Link> in your profile.</p>
+            {/* Points at the export's real home: the "Download your data"
+                card further down THIS policy (owner, 2026-09-14, VN-47). An
+                in-page hash link, not a route, so it works on the public
+                /privacy page and in the Profile Legal tab's Privacy panel
+                alike without bouncing a signed-in reader out of the app. */}
+            <p><strong className="text-foreground">Data portability:</strong> Download a complete copy of your data (profile, jobs, applications, reviews) as a machine-readable JSON file with <a href={`#${DATA_EXPORT_ANCHOR}`} className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Download your data</a> below.</p>
           </>
         }
       />
     </PolicySection>
+
+    {/* The export control, right under the section that grants the right.
+        `/data-rights` redirects to this anchor (DataRightsRedirect). Visible
+        during a search whenever the row that links here is — see
+        ExportCardOnSearch. */}
+    <ExportCardOnSearch>
+      <DataExportCard />
+    </ExportCardOnSearch>
 
     <PolicySection
       icon={Cookie}

@@ -1519,10 +1519,11 @@ function dialogCells(): StateCell[] {
       fixture: { job: { ...BASE_JOB, status: "open" } as CellFixture["job"], applicants: 3 },
     },
     {
-      id: "dialog-helper-cant-make-it",
+      id: "dialog-helper-cancel-job-accepted",
       route: "/my-jobs?filter=all",
-      describe: "Helper-side 'Can't Make It' confirm on a confirmed booking — the money-consequence copy.",
-      open: ["card", "Can't Make It"],
+      describe:
+        "Helper-side 'Cancel Job' confirm on a confirmed booking (status 'accepted' + helper_confirmed_at) — the money-consequence copy. Was 'Can't Make It'; renamed to match the in-progress card (owner, 2026-09-14, VN-18).",
+      open: ["card", "Cancel Job"],
       fixture: {
         job: { ...BASE_JOB, status: "accepted", helper_id: HELPER_ID, helper_confirmed_at: ISO(-HOURS(8)), date_needed: DATE_ONLY(DAYS(1)) } as CellFixture["job"],
         application: { ...BASE_APPLICATION, status: "accepted" } as CellFixture["application"],

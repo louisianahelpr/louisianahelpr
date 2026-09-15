@@ -8,6 +8,29 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+- [x] CLOSED 2026-09-15 (CRITICAL, RLS bypass; found by the lh-authz-rls review
+  of the dispute-state guard, pre-existing): `public.open_jobs_browse` — an
+  owner-run (security_invoker=false, owned by postgres/BYPASSRLS) browse VIEW —
+  was client-writable. anon/authenticated held INSERT/UPDATE/DELETE on it, so a
+  write through it hit `jobs` with RLS bypassed. Proven on prod, rolled back, on
+  is_seed job 5eed0a10-…-0001: as anon `DELETE FROM public.open_jobs_browse` →
+  1 row; as a signed-in non-party `UPDATE … SET customer_id=<self>` → 1 row
+  (escrow takeover); anon INSERT of a foreign funded job also landed. Root
+  cause: prod's default privileges GRANT ALL on every postgres-owned relation in
+  public to anon/authenticated, so the 2026-07-06 REVOKE (20260706140000) was
+  silently undone when 20260912021641 did DROP+CREATE of the view. Fix:
+  migration 20260915041247 REVOKEs INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/
+  TRIGGER/MAINTAIN FROM PUBLIC, anon, authenticated (keeps SELECT). Class check
+  (LIVE catalog, not migration text, since a DROP+CREATE re-opens it):
+  `scripts/check-updatable-views.mjs`, wired into db-drift-detect.yml — fails on
+  ANY exposed-schema view that is security_invoker-off AND client-writable;
+  shown red on prod before deploy, self-test proves it can fail;
+  open_jobs_browse is the only such view today. PGlite 3×:
+  `scripts/probes/open-jobs-browse-writes.probe.mjs` (before: writes land;
+  after: refused, reads still work; 2 broken copies caught; skip path).
+  sha <pending>. Follow-up (reported, not done): consider revoking the public
+  default-privilege write grant so recreations can't re-open this class at all.
+
 Grouped by SURFACE, not by the order it was noticed — because most of these are
 instances of a few shared problems, and fixing them surface-by-surface costs a
 fraction of fixing them one report at a time.

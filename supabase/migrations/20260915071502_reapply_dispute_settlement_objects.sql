@@ -375,7 +375,7 @@ ALTER TABLE public.dispute_settlement_claims
   ADD COLUMN IF NOT EXISTS money_step_at timestamptz;
 
 -- Replay-safe widening: a table left by an earlier run of this migration
--- carries the two-value check, and CREATE TABLE IF NOT EXISTS will not revisit
+-- carries the two-value check, and the guarded create will not revisit
 -- it. Dropped and re-added rather than edited, which Postgres has no syntax for.
 ALTER TABLE public.dispute_settlement_claims
   DROP CONSTRAINT IF EXISTS dispute_settlement_claims_action_check;

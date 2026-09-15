@@ -157,13 +157,81 @@ tripped a check. Three classes, in order of how many:
   noise. Corrected the row to the file that exists (test-owned record, one
   UPDATE, verified 200 after). A repo-wide check for the same class found no
   other profile pointing at a missing object.
-  - [x] ANSWERED, and the cause is fixed (02a4f9fbd): `scripts/audit/prod-seed.mjs`
-    insisted on `avatar.png`, while `src/lib/avatarStorage.ts` derives the key
-    from the content type and deletes every other `avatar.*` — by design, so a
-    jpg→png swap cannot leave the old object publicly fetchable. Seed and app
-    were fighting over one object. The seed now leaves a resolving avatar alone
-    whatever its type. No real-user path writes a row that points at a missing
-    object: avatarStorage updates the row and the object together.
+  - [x] ANSWERED — and the first answer (02a4f9fbd) NAMED THE WRONG WRITER.
+    It blamed `scripts/audit/prod-seed.mjs` for insisting on `avatar.png` and
+    said "no real-user path writes a row that points at a missing object". Both
+    halves were wrong, and the second one is the dangerous half: it closed the
+    class while it was still open.
+    THE WRITER WAS JOURNEY J7's CLEANUP (`e2e/journeys/03-account.spec.ts`). J7
+    changes the photo through the crop dialog, which always produces a JPEG — so
+    the app wrote `avatar.jpg` and, by design, deleted `avatar.png` — and the
+    cleanup then PATCHed the row back to the `avatar.png` URL it had remembered
+    from before the run. A row pointed at an object its own run had just deleted.
+    The seed then made it worse rather than caused it: it wrote a HARD-CODED
+    `…/avatar.png` into the row and `--verify` demanded `.png` back.
+    AND REAL USERS COULD REACH THE SAME STATE, four more ways, because the old
+    object was deleted BEFORE the row moved: Profile.tsx (upload + delete, then
+    an update with no `.select()`), CompleteProfile via `uploadProfileFiles`
+    (whose row write can fail on a contact-leak bio, 23514), `complete-signup`
+    (sweep, then five early returns and the profile UPDATE), and `accountPurge`
+    (avatar object deleted before `purge_user_data` cleared the row).
+    FIXED on branch `avatar-divergence`: every path is now upload → CONFIRMED row
+    write (`.select(...)` + `unwrapMutation`) → sweep, the sweep keeps whatever
+    the row names at that instant, and the purge clears `avatar_url` first. The
+    class check is `src/test/avatarRowObjectAgreement.test.ts` — red on
+    origin/main naming all 7 sites (`AVATAR_AGREEMENT_ROOT=<pre-fix checkout>`),
+    green on the branch.
+  - [ ] **After `avatar-divergence` lands, run these three against prod**
+    (nothing here is verified until they pass):
+    1. `node scripts/audit/prod-seed.mjs --verify` → the row
+       `helper avatar_url resolves` must be ok (it replaces the old
+       "helper avatar file + avatar_url", which demanded `.png` specifically).
+    2. A test-account purge → the `avatar_pointer` step must be present and
+       `ok: true`, ordered BEFORE the storage purge.
+    3. `HEAD <a test account's profiles.avatar_url>` → 200.
+  - Silent-failure review of the branch (`lh-silent-failure`, review-only).
+    Fixed on the branch: `Signup.tsx` now surfaces `complete-signup`'s
+    `staleAvatarObjects` (the edge function had returned it all along and no
+    client had ever read it — the sweep's one user-visible signal, on the public
+    bucket that has twice held an identity document, went nowhere);
+    `prod-seed`'s `resolvingAvatarUrl` no longer reads a timeout or a 5xx as
+    "the object is missing" and then repoints the row on it; a FULL `list()`
+    page is reported as unreadable rather than clean in both sweep twins; and
+    the class check's B1 no longer accepts any call named `write` as the row
+    write. Left open, with reasons:
+  - [ ] **The purge's "Nothing is lost" is not true, and predates this branch.**
+    `purgeAccount` deletes identity storage (ID scans, the avatar object) in
+    step 4 of 7, and steps 5-7 plus `auth.admin.deleteUser` can each abort after
+    it. The user is then shown "Nothing is lost — please try again" on a live
+    account whose documents and photo are already gone. The branch's new
+    `clearAvatarPointer` sits just before that delete and is outside the abort
+    gate ON PURPOSE (the deletion is the legally-required act; a stale pointer
+    is a rendering defect, not a privacy one) — and it makes the aborted state
+    strictly better than before, "no photo" instead of a 400 on every screen.
+    So this is not a regression, but the copy is still a lie. Decide: make the
+    message name what was already removed, or move the irreversible storage
+    purge after every step that can abort.
+  - [ ] **`uploadProfileFiles`'s 120s `withTimeout` can report a save that
+    COMMITTED as a failure.** `withTimeout` is a `Promise.race`: it rejects, it
+    does not cancel. If the timer fires after `saveRow` commits, the member is
+    told "File upload timed out" on a profile that saved, and re-submits the
+    whole form. Same class as the two 60s timeouts it replaced, so not new —
+    but the save is now inside the raced promise, which widens it. Fix is to
+    let the inner `withTimeout(..., "Profile save")` own the save and drop the
+    outer bound, or to resolve with `saved` when it is non-null on rejection.
+  - [ ] **J7's `resolvingUrl` conflates "could not check" with "gone"**
+    (`e2e/journeys/03-account.spec.ts`), the same shape just fixed in
+    prod-seed. Restore side is fail-safe (the run's own photo resolves, so the
+    skip self-heals); the assertion side turns a network blip into a failed
+    journey. Give it the same tri-state treatment on the next journeys pass —
+    not done here because journeys run against prod and could not be exercised
+    from this session.
+  - [ ] **The class check's `set[A-Z]` exemption is broader than its comment.**
+    `avatarRowObjectAgreement.test.ts` excuses any `avatar_url` written inside a
+    callee matching `/^set[A-Z]/` as "React state mirroring a write already
+    made". `setProfileRow({ avatar_url: rememberedUrl })` would pass unchecked.
+    Narrowing it risks false positives on legitimate `setProfile(prev => …)`
+    call sites, so it wants a real look rather than a quick regex.
 - [x] **11 x "Notifications › All" — no observable change** — FIXED in the
   harness (02a4f9fbd): pressing the tab you are already on is supposed to do
   nothing, so it now reads aria-selected / aria-pressed / aria-checked /

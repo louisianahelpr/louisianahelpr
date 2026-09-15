@@ -303,13 +303,13 @@ const HONEST_GAPS = [
 ];
 
 // ── Hallie Helper's avatar ───────────────────────────────────────────────────
-// The helper's profile points at avatars/<user_id>/avatar.png. That object went
-// missing on prod once (the main E2E helper's avatar rendered broken) and was
-// replaced by hand with a generated PNG. This script owns the file now: if the
-// object is missing it uploads a deterministic PNG generated below (nothing
-// binary is committed), and it keeps profiles.avatar_url pointed at it. It
-// never overwrites an object that exists (x-upsert: false), so whatever image
-// is there is left alone.
+// The helper's avatar object went missing on prod once (the main E2E helper's
+// avatar rendered broken). This script REPAIRS a broken avatar; it does not own
+// one. The app owns the object — `src/lib/avatarStorage.ts` writes
+// `avatar.<ext>` by content type and then deletes every other `avatar.*` — so
+// the seed never deletes anything, never overwrites an object (x-upsert:
+// false), and writes profiles.avatar_url only to a URL it has just proven
+// answers 200. Nothing binary is committed; the fallback PNG is generated below.
 function crc32(buf) {
   let crc = 0xffffffff;
   for (let n = 0; n < buf.length; n++) {
@@ -354,41 +354,82 @@ function helperAvatarPng(size = 256) {
   ]);
 }
 
-const helperAvatarUrl = (helperId) => `${BASE}/storage/v1/object/public/avatars/${helperId}/avatar.png`;
+const avatarObjectUrl = (helperId, name) => `${BASE}/storage/v1/object/public/avatars/${helperId}/${name}`;
+
+/**
+ * `url` when a HEAD answers 2xx right now, `null` when the object is genuinely
+ * NOT THERE (404/410), and a THROW for anything else.
+ *
+ * The third case is the one that matters. This used to be
+ * `.catch(() => null)` + `r?.ok`, which collapsed a 20-second timeout, a DNS
+ * blip and a storage 5xx into the same answer as a 404 — and that answer is
+ * what decides whether `ensureHelperAvatar` REPOINTS the row. A flaky run
+ * would have concluded the app's current photo was missing and moved
+ * `avatar_url` onto a stale sibling (or a freshly generated placeholder), the
+ * app's next upload would have swept that sibling, and we would be back at the
+ * 2026-09-15 state — this script making the same class of mistake it was
+ * rewritten to stop making. "I could not check" is never "it is not there".
+ */
+async function resolvingAvatarUrl(url) {
+  if (!url) return null;
+  let r;
+  try {
+    r = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(20_000) });
+  } catch (e) {
+    throw new Error(`HEAD ${url} could not be checked (${e?.message ?? e}) — refusing to treat that as missing`);
+  }
+  if (r.ok) return url;
+  if (r.status === 404 || r.status === 410) return null;
+  throw new Error(`HEAD ${url} → ${r.status} — refusing to treat that as missing`);
+}
+
+/** The helper's `avatar.*` objects, newest first (what the app most recently uploaded leads). */
+async function listHelperAvatarObjects(helperId) {
+  const r = await fetch(`${BASE}/storage/v1/object/list/avatars`, {
+    method: "POST",
+    headers: SRH,
+    body: JSON.stringify({ prefix: helperId, limit: 100, offset: 0, sortBy: { column: "updated_at", order: "desc" } }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!r.ok) throw new Error(`list avatars/${helperId} → ${r.status} ${await r.text()}`);
+  const rows = await r.json();
+  return (Array.isArray(rows) ? rows : []).filter((o) => o.id && /^avatar\.[A-Za-z0-9]{1,16}$/.test(o.name)).map((o) => o.name);
+}
 
 async function ensureHelperAvatar(helperId) {
-  const url = helperAvatarUrl(helperId);
-
-  // WHATEVER THE APP WROTE WINS, as long as it actually resolves.
+  // THE ROW NEVER NAMES AN OBJECT THIS FUNCTION HAS NOT JUST SEEN ANSWER 200.
   //
-  // This function used to insist on `avatar.png`, and that fought the app:
-  // `src/lib/avatarStorage.ts` derives the key from the CONTENT TYPE and then
-  // deletes every other `avatar.*` in the folder, precisely so a jpg→png swap
-  // cannot leave the old object publicly fetchable (it was leaving identity
-  // documents live). So the moment anything uploads a photo for this account,
-  // the seed's `.png` is deleted by design and the row is repointed to `.jpg`.
-  //
-  // Found 2026-09-15 in the state that leaves behind: profiles.avatar_url ended
-  // in `avatar.png` while storage held only `avatar.jpg`, so every screen
-  // rendering the helper fired `400 GET …/avatar.png` — 22 of press-every-
-  // control's failed presses that night were this one broken image.
-  //
-  // Checking the row's OWN url first makes this idempotent with the app instead
-  // of at odds with it: a working avatar of any allowed type is left exactly as
-  // it is, and the `.png` branch below still rescues the genuinely-missing case
-  // this function was written for.
+  // Found 2026-09-15: profiles.avatar_url ended in `avatar.png` while storage
+  // held only `avatar.jpg`, so every screen rendering the helper fired
+  // `400 GET …/avatar.png` — 22 of press-every-control's failed presses. The
+  // writer was journey J7's cleanup restoring a remembered `.png` URL after the
+  // app (by design) had deleted that object. This function made the same class
+  // of mistake: it wrote a HARD-CODED `…/avatar.png` into the row, so any app
+  // upload in between left the row on a deleted object, and --verify then
+  // demanded `.png` back. Now:
+  //   1. whatever the row names wins, if it resolves;
+  //   2. else an avatar object that already exists (the app's own upload) wins;
+  //   3. else the generated PNG is uploaded, never over an existing object;
+  //   4. the row is written only to the URL proven in 1-3, row count checked;
+  //   5. the row is re-read and must resolve — loud if the app replaced the
+  //      photo mid-run. Nothing is ever deleted: the app owns the sweep.
   const [current] = await select(`profiles?user_id=eq.${helperId}&select=avatar_url`);
-  if (current?.avatar_url) {
-    const live = await fetch(current.avatar_url, { method: "HEAD", signal: AbortSignal.timeout(20_000) });
-    if (live.ok) {
-      console.log(`helper avatar: already resolves, left alone (${live.headers.get("content-type")}) ${current.avatar_url}`);
-      return;
+  if (await resolvingAvatarUrl(current?.avatar_url)) {
+    console.log(`helper avatar: already resolves, left alone ${current.avatar_url}`);
+    return;
+  }
+
+  let confirmed = null;
+  let action = "";
+  for (const name of await listHelperAvatarObjects(helperId)) {
+    confirmed = await resolvingAvatarUrl(avatarObjectUrl(helperId, name));
+    if (confirmed) {
+      action = `row named a missing object (${current?.avatar_url ?? "null"}); repointed at the existing ${name}`;
+      break;
     }
   }
 
-  const head = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(20_000) });
-  let action = "present, left alone";
-  if (!head.ok) {
+  if (!confirmed) {
     const up = await fetch(`${BASE}/storage/v1/object/avatars/${helperId}/avatar.png`, {
       method: "POST",
       headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "image/png", "x-upsert": "false", "cache-control": "3600" },
@@ -396,18 +437,23 @@ async function ensureHelperAvatar(helperId) {
       signal: AbortSignal.timeout(30_000),
     });
     const text = await up.text();
-    // "already exists" means a HEAD blip or a race: the file is there.
+    // "already exists" means a list blip or a race: the file is there.
     if (!up.ok && !/exists|duplicate/i.test(text)) throw new Error(`upload helper avatar → ${up.status} ${text}`);
-    action = up.ok ? "was MISSING, uploaded" : "present (upload reported it exists)";
+    confirmed = await resolvingAvatarUrl(avatarObjectUrl(helperId, "avatar.png"));
+    if (!confirmed) throw new Error(`helper avatar: avatar.png does not resolve after upload (${up.status} ${text})`);
+    action = up.ok ? "no avatar object existed; uploaded avatar.png" : "avatar.png present (upload reported it exists)";
   }
-  const [prof] = await select(`profiles?user_id=eq.${helperId}&select=avatar_url`);
-  if (prof?.avatar_url !== url) {
-    await rest("PATCH", `profiles?user_id=eq.${helperId}&is_seed=eq.true`, { avatar_url: url }, { prefer: "return=minimal" });
-    action += "; avatar_url repointed";
+
+  const written = await rest("PATCH", `profiles?user_id=eq.${helperId}&is_seed=eq.true`, { avatar_url: confirmed }, { prefer: "return=representation" });
+  if (!Array.isArray(written) || written.length !== 1) {
+    throw new Error(`helper avatar: avatar_url write matched ${Array.isArray(written) ? written.length : 0} rows (is the helper still is_seed?)`);
   }
-  const after = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(20_000) });
-  if (!after.ok) throw new Error(`helper avatar still missing after ensure (${after.status})`);
-  console.log(`helper avatar: ${action} (${after.headers.get("content-type")}, ${after.headers.get("content-length")} bytes) ${url}`);
+
+  const [after] = await select(`profiles?user_id=eq.${helperId}&select=avatar_url`);
+  if (!(await resolvingAvatarUrl(after?.avatar_url))) {
+    throw new Error(`helper avatar: after the write the row names ${after?.avatar_url}, which does not resolve — the photo changed mid-run; re-run --avatar`);
+  }
+  console.log(`helper avatar: ${action} → ${after.avatar_url}`);
 }
 
 // ── Group job (seeded coverage for GroupJobHelpers on the poster card) ──────
@@ -841,11 +887,23 @@ async function verify() {
   await check("payout_transfers (helper)", `payout_transfers?helper_id=eq.${helperId}&select=id`, 1, "real flow");
   await check("tips (helper)", `tips?helper_id=eq.${helperId}&select=id`, 1, "real flow");
   {
-    const r = await fetch(helperAvatarUrl(helperId), { method: "HEAD", signal: AbortSignal.timeout(20_000) }).catch((e) => ({ ok: false, status: e.message }));
+    // The row and the object agree: whatever avatar_url names answers 200. Not
+    // "names avatar.png" — the app legitimately moves it to avatar.jpg, and
+    // demanding .png back was half of how the row and object came apart.
     const [p] = await select(`profiles?user_id=eq.${helperId}&select=avatar_url`);
-    const pointed = p?.avatar_url === helperAvatarUrl(helperId);
-    const ok = r.ok && pointed;
-    rows.push({ state: "helper avatar file + avatar_url", n: ok ? 1 : 0, min: 1, ok, source: "prod-seed", err: ok ? "" : `HEAD ${r.status}, avatar_url ${pointed ? "ok" : "differs"}` });
+    let ok = false;
+    let err = "";
+    try {
+      ok = Boolean(await resolvingAvatarUrl(p?.avatar_url));
+      if (!ok) err = `avatar_url ${p?.avatar_url ?? "null"} does not resolve — run --avatar`;
+    } catch (e) {
+      // A verifier reports "could not check" as a FAILED row, never as a pass
+      // — but it says WHICH it is, because "the photo is gone, re-run --avatar"
+      // and "storage did not answer, re-run --verify" are different actions,
+      // and one report that conflates them is how you fix the wrong thing.
+      err = `avatar_url ${p?.avatar_url ?? "null"} COULD NOT BE CHECKED: ${e.message}`;
+    }
+    rows.push({ state: "helper avatar_url resolves", n: ok ? 1 : 0, min: 1, ok, source: "prod-seed", err });
   }
   await check("helper credentials", `helper_credentials?user_id=eq.${helperId}&select=id`, 3);
   await check("helper availability", `helper_availability?helper_id=eq.${helperId}&select=id`, 6);

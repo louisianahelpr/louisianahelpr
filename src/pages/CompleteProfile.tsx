@@ -330,26 +330,8 @@ const CompleteProfile = () => {
       // collide with the session's autoRefreshToken loop, producing
       // "Acquiring an exclusive Navigator LockManager lock ... lock stolen" errors.
 
-      // Upload files directly to Storage in parallel (much faster than base64-through-edge-function)
-      // Government ID upload was removed from this page — Stripe Identity
-      // (triggered from the first job post) collects the real ID now, so
-      // idFile is always null here.
-      const { avatarUrl, idDocumentPath, staleAvatarObjects } =
-        await uploadProfileFiles(user.id, avatarFile, null);
-
       // Reuse the already-resolved value from the live effect above.
       const parish = resolvedZipParish;
-
-      // A superseded photo that survived the replace is STILL PUBLIC. Do not
-      // fail the submit over it — the new photo is live and the profile is
-      // about to point at it — but never let it pass silently either: if the
-      // member was replacing a photo they wanted retracted (the licence /
-      // passport case this bucket has already seen), silence is the failure.
-      if (staleAvatarObjects.length > 0) {
-        toast.error(
-          "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again.",
-        );
-      }
 
       // Single, lightweight DB update — no large JSON over the wire
       const updates: ProfileCompletionUpdates = {
@@ -388,9 +370,17 @@ const CompleteProfile = () => {
         terms_accepted_at: nowIso,
         terms_version_accepted: LATEST_TERMS_VERSION,
       };
-      if (avatarUrl) updates.avatar_url = avatarUrl;
-      if (idDocumentPath) updates.id_document_url = idDocumentPath;
 
+      // Upload files directly to Storage (much faster than base64-through-
+      // edge-function), and SAVE THE ROW INSIDE the upload: `uploadProfileFiles`
+      // calls this after the photo is stored and before the photo it replaces
+      // is deleted. It used to hand back a URL with the old object already
+      // gone, so the save below failing (a contact-leak bio, a timeout, a
+      // zero-row update) left `avatar_url` on a deleted object.
+      // Government ID upload was removed from this page — Stripe Identity
+      // (triggered from the first job post) collects the real ID now, so
+      // idFile is always null here.
+      //
       // Read the persisted row back in the same round-trip. ProtectedRoute's
       // Big-7 completeness gate re-evaluates the instant we navigate to
       // /dashboard, so the cache MUST hold the authoritative saved row — not
@@ -406,18 +396,39 @@ const CompleteProfile = () => {
       // with nothing to show for the attempt. This is the one write on the
       // screen, and it is the screen's only exit, so a silent rejection has to
       // surface as a failure.
-      const savedRow = unwrapMutationRow<Record<string, unknown>>(
-        await withTimeout(
-          Promise.resolve(
-            supabase.from("profiles").update(updates).eq("user_id", user.id).select("*"),
-          ),
-          "Profile save",
-        ),
-        {
-          action: "save your profile",
-          context: { userId: user.id },
+      const userId = user.id;
+      const { saved: savedRow, staleAvatarObjects } = await uploadProfileFiles(
+        userId,
+        avatarFile,
+        null,
+        async ({ avatarUrl, idDocumentPath }) => {
+          if (avatarUrl) updates.avatar_url = avatarUrl;
+          if (idDocumentPath) updates.id_document_url = idDocumentPath;
+          return unwrapMutationRow<Record<string, unknown>>(
+            await withTimeout(
+              Promise.resolve(
+                supabase.from("profiles").update(updates).eq("user_id", userId).select("*"),
+              ),
+              "Profile save",
+            ),
+            {
+              action: "save your profile",
+              context: { userId },
+            },
+          );
         },
       );
+
+      // A superseded photo that survived the replace is STILL PUBLIC. Do not
+      // fail the submit over it — the new photo is live and the profile points
+      // at it — but never let it pass silently either: if the member was
+      // replacing a photo they wanted retracted (the licence / passport case
+      // this bucket has already seen), silence is the failure.
+      if (staleAvatarObjects.length > 0) {
+        toast.error(
+          "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again.",
+        );
+      }
 
       // Append the acceptance EVENT to the audit trail. `legal_acceptances` is
       // append-only (INSERT + SELECT policies only, no UPDATE/DELETE), so a

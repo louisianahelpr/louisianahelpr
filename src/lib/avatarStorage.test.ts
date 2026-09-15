@@ -11,16 +11,27 @@
  * removed nothing answers `{ data: [], error: null }`. Every assertion below
  * that mentions `staleRemaining` is checking that this module refuses to
  * certify a delete it did not observe.
+ *
+ * The third, and the reason `replaceAvatarObject` now takes the ROW: the sweep
+ * used to run BEFORE the caller wrote `profiles.avatar_url`. A row write that
+ * then failed — a contact-leak bio rejected with 23514, a timeout, an UPDATE
+ * that matched zero rows and answered `{ data: [], error: null }` — left the
+ * row naming an object this code had just deleted, and every screen rendering
+ * that member fired a 400 (22 of them on prod, 2026-09-15). So every test in
+ * "the row moves first" below asserts the same pair of facts: the bucket still
+ * holds the object the row names, and NOTHING was removed.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import {
   assertUploadableAvatar,
   avatarObjectKey,
+  avatarObjectNameFromUrl,
   isAvatarObjectName,
   replaceAvatarObject,
   AvatarTooLargeError,
   UnsupportedAvatarError,
+  type AvatarProfileRow,
   type AvatarStorageClient,
 } from "./avatarStorage";
 
@@ -40,6 +51,8 @@ function fakeStorage(
     removeBehaviour?: "delete" | "silent-noop";
     listFails?: boolean;
     uploadError?: { message: string };
+    /** Shared ordered log — see `fakeRow`, which appends to the same array. */
+    events?: string[];
   } = {},
 ) {
   const objects = new Map(Object.entries(initial));
@@ -49,6 +62,7 @@ function fakeStorage(
     storage: {
       from: () => ({
         upload: (path: string, _body: unknown, o?: { contentType?: string }) => {
+          opts.events?.push(`upload:${path}`);
           if (opts.uploadError) return Promise.resolve({ error: opts.uploadError });
           objects.set(path, o?.contentType ?? "application/octet-stream");
           return Promise.resolve({ error: null });
@@ -73,6 +87,7 @@ function fakeStorage(
           return Promise.resolve({ data: entries, error: null });
         },
         remove: (paths: string[]) => {
+          opts.events?.push(`remove:${paths.join(",")}`);
           removeCalls.push(paths);
           // Both branches answer `error: null` — that is the whole point.
           if (opts.removeBehaviour !== "silent-noop") {
@@ -88,6 +103,68 @@ function fakeStorage(
   };
 
   return { client, objects, removeCalls };
+}
+
+const CDN = "https://cdn.test/storage/v1/object/public/avatars";
+/** What the app's row holds for one of this user's objects. */
+const rowUrl = (name: string, userId = "u1") => `${CDN}/${userId}/${name}?t=1757894400000`;
+
+/**
+ * The `AvatarProfileRow` half of a replacement, backed by a real stored value
+ * so "what does the row name NOW?" is answered by reading it back rather than
+ * by a recorded call.
+ *
+ * `writeBehaviour` is the part that matters:
+ *   "reject"   — Postgres refused the UPDATE (23514 on a contact-leak bio, a
+ *                timeout). The caller's error must reach the caller unchanged.
+ *   "zero-row" — the UPDATE matched NOTHING and answered
+ *                `{ data: [], error: null }`. A null `error` is not a write, so
+ *                the row-writer (`unwrapMutation`) throws instead of resolving.
+ * Both are the case that used to leave the row on a deleted object, and both
+ * must leave the bucket exactly as they found it.
+ */
+function fakeRow(
+  initialName: string | null,
+  opts: {
+    writeBehaviour?: "store" | "reject" | "zero-row";
+    readFails?: boolean;
+    /** Value `read()` answers, whatever was written — a racing second tab. */
+    readsAs?: string | null;
+    userId?: string;
+    events?: string[];
+  } = {},
+) {
+  const userId = opts.userId ?? "u1";
+  let value = initialName === null ? null : rowUrl(initialName, userId);
+  const writes: string[] = [];
+
+  const row: AvatarProfileRow = {
+    write: async (publicUrl: string) => {
+      opts.events?.push(`row.write:${publicUrl}`);
+      writes.push(publicUrl);
+      if (opts.writeBehaviour === "reject") {
+        throw Object.assign(
+          new Error('new row for relation "profiles" violates check constraint "bio_no_contact"'),
+          { code: "23514" },
+        );
+      }
+      if (opts.writeBehaviour === "zero-row") {
+        // Verbatim shape of what `unwrapMutation` throws on `{ data: [] }`.
+        throw new Error("Couldn't pin your new photo to your profile — nothing was saved.");
+      }
+      value = publicUrl;
+    },
+    read: async () => {
+      opts.events?.push("row.read");
+      if (opts.readFails) throw new Error("profile read failed");
+      if (opts.readsAs !== undefined) {
+        return opts.readsAs === null ? null : rowUrl(opts.readsAs, userId);
+      }
+      return value;
+    },
+  };
+
+  return { row, writes, current: () => value };
 }
 
 const file = (type: string, size = 1024) => ({ type, size }) as unknown as File;
@@ -133,11 +210,32 @@ describe("assertUploadableAvatar", () => {
   });
 });
 
+describe("avatarObjectNameFromUrl — which object does a stored row name?", () => {
+  it("reads this user's avatar object out of a stored URL, query string and all", () => {
+    expect(avatarObjectNameFromUrl(`${CDN}/u1/avatar.jpg`, "u1")).toBe("avatar.jpg");
+    expect(avatarObjectNameFromUrl(`${CDN}/u1/avatar.png?t=1757894400000`, "u1")).toBe("avatar.png");
+    // The legacy key space the old scheme could produce is still recognised —
+    // the sweep must be able to KEEP one, not only delete it.
+    expect(avatarObjectNameFromUrl(`${CDN}/u1/avatar.undefined`, "u1")).toBe("avatar.undefined");
+  });
+
+  it("names nothing for a URL that is not this user's avatar object", () => {
+    // Another member's folder: the sweep must never keep (or delete) on this.
+    expect(avatarObjectNameFromUrl(`${CDN}/u2/avatar.jpg`, "u1")).toBeNull();
+    expect(avatarObjectNameFromUrl(`${CDN}/u1/portfolio/work-1.jpg`, "u1")).toBeNull();
+    expect(avatarObjectNameFromUrl("data:image/png;base64,AAAA", "u1")).toBeNull();
+    expect(avatarObjectNameFromUrl("https://lh3.googleusercontent.com/a/x", "u1")).toBeNull();
+    expect(avatarObjectNameFromUrl(null, "u1")).toBeNull();
+    expect(avatarObjectNameFromUrl(undefined, "u1")).toBeNull();
+  });
+});
+
 describe("replaceAvatarObject — the orphan bug", () => {
   it("REPLACES a .jpg with a .png instead of leaving both public", async () => {
     const { client, objects } = fakeStorage({ "u1/avatar.jpg": "image/jpeg" });
+    const { row } = fakeRow("avatar.jpg");
 
-    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png");
+    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png", row);
 
     expect(res.path).toBe("u1/avatar.png");
     expect(res.removed).toEqual(["u1/avatar.jpg"]);
@@ -154,8 +252,9 @@ describe("replaceAvatarObject — the orphan bug", () => {
       "u1/avatar.undefined": "image/jpeg",
       "u1/portfolio/work-1.jpg": "image/jpeg",
     });
+    const { row } = fakeRow("avatar.jpg");
 
-    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png");
+    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png", row);
 
     expect(res.removed.sort()).toEqual([
       "u1/avatar.jpeg",
@@ -169,8 +268,9 @@ describe("replaceAvatarObject — the orphan bug", () => {
 
   it("is a no-op sweep when the format is unchanged (same key, upserted)", async () => {
     const { client, objects, removeCalls } = fakeStorage({ "u1/avatar.png": "image/png" });
+    const { row } = fakeRow("avatar.png");
 
-    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png");
+    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png", row);
 
     expect(removeCalls).toEqual([]);
     expect(res.staleRemaining).toEqual([]);
@@ -187,8 +287,9 @@ describe("replaceAvatarObject — the orphan bug", () => {
       { "u1/avatar.jpg": "image/jpeg" },
       { removeBehaviour: "silent-noop" },
     );
+    const { row } = fakeRow("avatar.jpg");
 
-    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png");
+    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png", row);
 
     expect(res.removed).toEqual([]);
     expect(res.staleRemaining).toEqual(["u1/avatar.jpg"]);
@@ -202,24 +303,165 @@ describe("replaceAvatarObject — the orphan bug", () => {
 
   it("treats an unreadable folder as still-exposed, never as clean", async () => {
     const { client } = fakeStorage({ "u1/avatar.jpg": "image/jpeg" }, { listFails: true });
+    const { row } = fakeRow("avatar.jpg");
 
-    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png");
+    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png", row);
 
     expect(res.staleRemaining).toEqual(["u1/<unreadable folder>"]);
     expect(report).toHaveBeenCalledTimes(1);
   });
 
-  it("throws on a failed upload and changes nothing", async () => {
+  it("throws on a failed upload and changes nothing — the row is never asked", async () => {
     const { client, objects } = fakeStorage(
       { "u1/avatar.jpg": "image/jpeg" },
       { uploadError: { message: "network" } },
     );
+    const { row, writes } = fakeRow("avatar.jpg");
 
     await expect(
-      replaceAvatarObject(client, "u1", file("image/png"), "image/png"),
+      replaceAvatarObject(client, "u1", file("image/png"), "image/png", row),
     ).rejects.toMatchObject({ message: "network" });
     // The old object is deliberately still here: a failed upload must not
     // leave the profile with no photo at all.
     expect([...objects.keys()]).toEqual(["u1/avatar.jpg"]);
+    expect(writes, "an upload that failed must not move the row").toEqual([]);
+  });
+});
+
+/**
+ * THE ORDER. Upload → confirmed row write → sweep, and every failure before
+ * the sweep leaves the bucket alone.
+ *
+ * This is the invariant `src/test/avatarRowObjectAgreement.test.ts` enforces
+ * from source across every call site; these prove the same thing by running it.
+ * Both client call sites go through this function — `Profile.tsx` hands over a
+ * row-writer that is `unwrapMutation(update(...).select("id"))`, and
+ * `CompleteProfile` hands over one via `uploadProfileFiles` — so the two
+ * behaviours below are what each of those paths does.
+ */
+describe("replaceAvatarObject — the row moves first", () => {
+  it("writes the row BEFORE it removes anything", async () => {
+    const events: string[] = [];
+    const { client } = fakeStorage({ "u1/avatar.jpg": "image/jpeg" }, { events });
+    const { row } = fakeRow("avatar.jpg", { events });
+
+    await replaceAvatarObject(client, "u1", file("image/png"), "image/png", row);
+
+    const write = events.findIndex((e) => e.startsWith("row.write:"));
+    const remove = events.findIndex((e) => e.startsWith("remove:"));
+    expect(write, "the row was never written").toBeGreaterThan(-1);
+    expect(remove, "the superseded object was never removed").toBeGreaterThan(-1);
+    expect(events[0]).toBe("upload:u1/avatar.png");
+    expect(write < remove, `row.write must precede remove — got ${events.join(" → ")}`).toBe(true);
+  });
+
+  it("hands the row the SAME cache-busted URL it returns", async () => {
+    const { client } = fakeStorage({ "u1/avatar.jpg": "image/jpeg" });
+    const { row, writes } = fakeRow("avatar.jpg");
+
+    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png", row);
+
+    // A row pointed at the un-busted URL and a browser painting the photo being
+    // retracted are the same defect from two sides.
+    expect(writes).toEqual([res.publicUrl]);
+    expect(res.publicUrl).toMatch(/\/u1\/avatar\.png\?t=\d+$/);
+  });
+
+  it("a REJECTED row write deletes nothing and re-throws the error unchanged", async () => {
+    // 23514: the contact-leak bio constraint, the real rejection this hit on
+    // /complete-profile. The caller branches on the code, so it must survive.
+    const { client, objects, removeCalls } = fakeStorage({ "u1/avatar.jpg": "image/jpeg" });
+    const { row, current } = fakeRow("avatar.jpg", { writeBehaviour: "reject" });
+
+    await expect(
+      replaceAvatarObject(client, "u1", file("image/png"), "image/png", row),
+    ).rejects.toMatchObject({ code: "23514" });
+
+    expect(removeCalls, "a failed row write must delete NOTHING").toEqual([]);
+    // The row still names avatar.jpg, and avatar.jpg is still there. The new
+    // upload sits beside it — a spare file, never a broken photo.
+    expect(current()).toContain("/u1/avatar.jpg");
+    expect(objects.has("u1/avatar.jpg")).toBe(true);
+    expect(objects.has("u1/avatar.png")).toBe(true);
+    expect(report, "nothing was exposed, so nothing is reported").not.toHaveBeenCalled();
+  });
+
+  it("a ZERO-ROW row write deletes nothing — a null error is not a write", async () => {
+    // `.update()` matching no row answers `{ data: [], error: null }`. The
+    // row-writer turns that into a throw (unwrapMutation); if it ever resolved
+    // instead, THIS is the delete that would orphan the row.
+    const { client, objects, removeCalls } = fakeStorage({ "u1/avatar.jpg": "image/jpeg" });
+    const { row, current } = fakeRow("avatar.jpg", { writeBehaviour: "zero-row" });
+
+    await expect(
+      replaceAvatarObject(client, "u1", file("image/png"), "image/png", row),
+    ).rejects.toThrow(/nothing was saved/);
+
+    expect(removeCalls).toEqual([]);
+    expect(current()).toContain("/u1/avatar.jpg");
+    expect(objects.has("u1/avatar.jpg")).toBe(true);
+  });
+
+  it("KEEPS whatever the row names, even when that is not what it just uploaded", async () => {
+    // Two tabs racing: this call uploaded avatar.png, but by the time the sweep
+    // reads the row a second replacement has already pointed it at avatar.webp.
+    // Deleting avatar.webp here would orphan the OTHER tab's row.
+    const { client, objects } = fakeStorage({
+      "u1/avatar.jpg": "image/jpeg",
+      "u1/avatar.webp": "image/webp",
+    });
+    const { row } = fakeRow("avatar.jpg", { readsAs: "avatar.webp" });
+
+    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png", row);
+
+    expect(res.removed).toEqual(["u1/avatar.jpg"]);
+    expect(res.staleRemaining).toEqual([]);
+    expect([...objects.keys()].sort()).toEqual(["u1/avatar.png", "u1/avatar.webp"]);
+  });
+
+  it("keeps the row's object when the row names something this call did not touch", async () => {
+    // Same-format replace (png over png) while the row still names avatar.gif:
+    // the kept set is the union, not "the one I uploaded".
+    const { client, objects } = fakeStorage({
+      "u1/avatar.png": "image/png",
+      "u1/avatar.gif": "image/gif",
+      "u1/avatar.undefined": "image/jpeg",
+    });
+    const { row } = fakeRow("avatar.gif", { readsAs: "avatar.gif" });
+
+    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png", row);
+
+    expect(res.removed).toEqual(["u1/avatar.undefined"]);
+    expect([...objects.keys()].sort()).toEqual(["u1/avatar.gif", "u1/avatar.png"]);
+  });
+
+  it("deletes NOTHING when the row cannot be re-read, and says so", async () => {
+    // Unknown is never "clean": the same rule the folder-unreadable case gets.
+    const { client, objects, removeCalls } = fakeStorage({ "u1/avatar.jpg": "image/jpeg" });
+    const { row } = fakeRow("avatar.jpg", { readFails: true });
+
+    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png", row);
+
+    expect(removeCalls).toEqual([]);
+    expect(res.removed).toEqual([]);
+    expect(res.staleRemaining).toEqual(["u1/<profile row unreadable — nothing removed>"]);
+    expect(objects.has("u1/avatar.jpg")).toBe(true);
+    // Loud from inside the module, like every other unverified outcome.
+    expect(report).toHaveBeenCalledTimes(1);
+  });
+
+  it("sweeps everything but its own upload when the row names no avatar object", async () => {
+    // A Google-login avatar, or a row that was NULL: there is nothing extra to
+    // keep, and the legacy objects must still go.
+    const { client, objects } = fakeStorage({
+      "u1/avatar.jpg": "image/jpeg",
+      "u1/avatar.undefined": "image/jpeg",
+    });
+    const { row } = fakeRow(null, { readsAs: null });
+
+    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png", row);
+
+    expect(res.removed.sort()).toEqual(["u1/avatar.jpg", "u1/avatar.undefined"]);
+    expect([...objects.keys()]).toEqual(["u1/avatar.png"]);
   });
 });

@@ -59,6 +59,7 @@ export function HelperTrackerPanel({
   userId,
   initialTracking,
   onCantMakeIt,
+  readOnly = false,
 }: {
   app: AppliedApp;
   job: Job;
@@ -67,6 +68,12 @@ export function HelperTrackerPanel({
   /** Hands off to the caller's real cancel flow from inside the commit popup.
    *  Omitted where the caller has none (a job already underway). */
   onCantMakeIt?: () => void;
+  /** Rail only: no step control, no day-of confirmation, no position watch.
+   *  For a job frozen by a dispute (owner, 2026-09-14, VN-23: "disputes should
+   *  still show the tracker"). Nothing on the rail may move while an admin or
+   *  the poster holds the job, so the tracker shows where it stopped and offers
+   *  no next step — the same read-only rail the poster's card mounts. */
+  readOnly?: boolean;
 }) {
   const dayOfConfirmed = helperDayOfConfirmation({
     helperConfirmedAt: job.helper_confirmed_at,
@@ -93,6 +100,7 @@ export function HelperTrackerPanel({
    *    gate may only hold while the control that releases it exists.
    */
   const gateActive =
+    !readOnly &&
     (job.status === "accepted" || job.status === "open") &&
     !job.helper_on_the_way_at &&
     !job.helper_arrived_at &&
@@ -138,7 +146,7 @@ export function HelperTrackerPanel({
         embedded
         jobId={app.job_id}
         helperId={userId}
-        isHelper={!gateActive}
+        isHelper={!gateActive && !readOnly}
         isOwner={false}
         jobDateNeeded={job.date_needed}
         jobStartTime={job.start_time}
@@ -208,7 +216,7 @@ export function HelperTrackerPanel({
            impossible. JobConfirmation already self-hides on `helperOnTheWayAt`;
            `helperArrivedAt` is checked here too so no ordering of the two
            stamps can put two glossy CTAs on one card. */
-        !job.helper_on_the_way_at && !job.helper_arrived_at && confirmation
+        !readOnly && !job.helper_on_the_way_at && !job.helper_arrived_at && confirmation
       )}
     </div>
   );

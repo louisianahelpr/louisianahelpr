@@ -14,6 +14,8 @@ import { formatDistanceToNow } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import { JobStepCard } from "@/components/activity/JobStepCard";
 import { HelperPhotoAsk } from "./steps/HelperPhotoAsk";
+import { HelperTrackerPanel } from "./HelperTrackerPanel";
+import type { TrackingData } from "@/components/JobTracking";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { helperDisputeCopy } from "./helperDisputeCopy";
 import { disputeSupportSubject } from "@/lib/supportSubject";
@@ -22,6 +24,8 @@ import type { AppliedApp, Job } from "../activityConstants";
 interface DisputedSectionProps {
   app: AppliedApp;
   job: Job;
+  userId: string;
+  initialTracking?: TrackingData | null;
   navigate: (to: string) => void;
   onViewDispute: (job: Job) => void;
   onRefresh: () => void;
@@ -37,6 +41,8 @@ interface DisputedSectionProps {
 export function DisputedSection({
   app,
   job,
+  userId,
+  initialTracking,
   navigate,
   onViewDispute,
   onRefresh,
@@ -103,11 +109,22 @@ export function DisputedSection({
     }
   };
 
-  /* A disputed job has left the step rail, so the dispute banner takes the
-     shell's `header` slot — the answer to "where is this job" is still the
-     first thing in the card, exactly as the tracker is on every live step. */
+  /* THE TRACKER STAYS (owner, 2026-09-14, VN-23: "disputes should still show
+     the tracker"). This reverses the earlier layout, where the dispute banner
+     REPLACED the tracker in the shell's `header` slot on the reasoning that a
+     disputed job "has left the step rail". The poster's card never did that —
+     PostedJobCard's `showsTracker` includes `disputed` — so the two ends of one
+     dispute disagreed about whether the job still had a tracker.
+
+     The header is now the SAME HelperTrackerPanel every live step mounts, with
+     the dispute banner directly below it: where the job stopped first, then
+     why it is frozen. `readOnly` because nothing on the rail may move while
+     the dispute holds the job — JobTracking already clamps a disputed job at
+     Working and refuses its Done; read-only also refuses the earlier steps
+     for a dispute raised before the work began. */
   const header = (
     <>
+      <HelperTrackerPanel app={app} job={job} userId={userId} initialTracking={initialTracking} readOnly />
       <div
         className="rounded-ds-md p-3"
         style={{

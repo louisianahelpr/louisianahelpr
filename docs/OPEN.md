@@ -18,6 +18,32 @@ fraction of fixing them one report at a time.
 - [x] RESOLVED 2026-09-14 ~17:52 PDT (owner upgraded to Pro; cause: Hobby Edge Requests 3.1M/1M + Deployment Storage 34 GB/10 GB, see the Vercel item further down). Was: OWNER (dashboard only): every push since 4bbd125c1 (16:13 PDT) gets Vercel status `failure — Account is blocked.` (https://vercel.com/knowledge/why-is-my-account-deployment-blocked). Hobby team `louisianahelprs-projects`. Live site still serves 70f93a220 (14:30 PDT); NOT live: a0833ef22 TrackingMap pins, 3c299b328 completeJob duplicate-release fix, f9f5b0617 (package.json). Open Vercel → team → Usage / notifications for the reason (Hobby usage limit or fair-use), resolve, then redeploy main. Prod freshness runs time out red until then; that red is this, not the commits.
 - [x] VERIFIED 2026-09-14: cc2636f5f deployed (Vercel status success 00:53Z); live build-commit = cc2636f5f; a0833ef22, 3c299b328, f9f5b0617 are ancestors, so all live. Was: After unblock: confirm `<meta name="build-commit">` on www.louisianahelpr.com is at or after the newest shipping commit. Consider stopping preview deploys for non-main branches (every lane branch push builds a preview and counts toward Hobby limits).
 
+## press-every-control — re-run 2026-09-15, 237 failed presses in 4 shards
+Coverage was 100% (0 undocumented skips); these are presses that fired and then
+tripped a check. Three classes, in order of how many:
+- [x] **22 x `400 GET <helper-uuid>/avatar.png`** — FIXED at the source. The
+  helper test account's `profiles.avatar_url` ended in `avatar.png` while
+  storage held `avatar.jpg` (uploaded 2026-09-13), so every screen rendering
+  that avatar fired a 400 and any press on such a screen failed on console
+  noise. Corrected the row to the file that exists (test-owned record, one
+  UPDATE, verified 200 after). A repo-wide check for the same class found no
+  other profile pointing at a missing object.
+  - [ ] Product question this raises and does NOT answer: how did the row and
+    the object diverge? If an upload can write `avatar.<newext>` without
+    rewriting the row (or a delete can leave it), a real user's avatar 400s the
+    same way. Worth a look at the upload path before calling this closed.
+- [ ] **11 x "Notifications › All" — no observable change (focus moved, nothing
+  else)** — pressing the already-active notification filter changes nothing
+  visible. Either the harness should treat a no-op re-press of the active tab
+  as documented, or the tab should show it is already selected.
+- [ ] **9 x `[auth] admin role lookup failed — role state is UNKNOWN: Profile
+  request timed out`** — a console error the harness counts as a failed press.
+  It is a timeout under sweep load, not a press defect; the auth layer logs at
+  error level for a slow read.
+- [ ] A handful of "control not found on a freshly loaded page (transient or
+  non-deterministic)", including two fixture jobs named `[E2E DO NOT ACCEPT] J
+  z8/z9` — a fixture-timing race, not a control.
+
 ## Nightly reds — worked 2026-09-15, what is left
 - [x] Root-caused all four open `nightly-red` issues. THREE (e2e-journeys #1595, a11y-webkit-prod #1597, press-every-control #1582) died on Supabase auth returning **HTTP 522** for that whole window — nothing could sign in. Auth verified healthy since (bad-credentials probe returns 400 invalid_credentials).
 - [x] Six stale test assumptions fixed underneath them, each verified against live prod, not guessed (2eb1e4416, 18c1169d5, 8874b3ef4): messaging closes 24h after completion so "any funded job" picked a closed thread (403/42501); `payout_transfers.amount` does not exist, it is `amount_cents` (400/42703, which meant an authz assertion could not tell a leak from a typo); the Browse search field is an ARIA combobox now, not a searchbox; availability saves through the `save_weekly_availability` RPC, not a table POST; `page.mouse.wheel` does not exist in mobile WebKit (6 of nightly-webkit's 17 failures); and Escape on the Edit sheet raises a "Discard Your Changes?" guard rather than closing.

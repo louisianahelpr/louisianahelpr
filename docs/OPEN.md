@@ -38,6 +38,42 @@ those are answerable by reading this instead of guessing.
   Follow-up (reported, not done): consider revoking the public default-privilege
   write grant so recreations can't re-open this class at all.
 
+- [ ] FIX ON BRANCH `fix-anon-grants` (awaiting lead prod-proof + land) — the
+  TABLE half of the excess-anon-grant class the open_jobs_browse CRITICAL was
+  the view half of. Two findings from the 2026-09-15 hole hunt: **H-004**
+  (docs/audit/holes-2026-09-15/authz-rls.md, origin/holes-authz-rls) — anon held
+  UPDATE/INSERT/REFERENCES/DELETE on `public.jobs` (jobs lock triggers all step
+  aside for NULL uid, RLS the only gate; DELETE policy is TO authenticated, so
+  anon's DELETE grant is policy-less); and **AUTHZ-02** (authz.md,
+  origin/holes-authz) — anon holds table-level SELECT on 14 admin/money/trust
+  tables with no signed-out read path. Both defense-in-depth (no live exposure),
+  same shape as the view CRITICAL. Fix: migration `20260915055601_revoke_excess
+  _anon_grants` — `REVOKE ALL ON public.jobs FROM anon, PUBLIC`; `REVOKE ALL`
+  from anon+PUBLIC on the 12 no-anon-write sensitive tables (admin_audit_log,
+  fraud_flags, user_bans, payout_transfers, instant_payouts, reports,
+  login_history, helper_verifications, gift_cards, referral_codes, tips,
+  push_tokens); `REVOKE SELECT, UPDATE, DELETE` (KEEP INSERT) on analytics_events
+  + error_logs (both take a legit anon INSERT under a permissive policy). No
+  MAINTAIN keyword (PG15 replay trap); REVOKE ALL sidesteps it and is
+  future-proof. authenticated's explicit grants untouched. Legitimate-anon-read
+  inventory built from source: only open_jobs_browse (view) + get_safe_profiles
+  (RPC) serve signed-out reads; base jobs and all 14 tables have no anon reader
+  (admin screens, self-scoped hooks, or service-role RPCs; user_bans read is
+  gated on user?.id and anon → /login; referral code goes to record_referral
+  _signup RPC). Class check (LIVE catalog, since default privileges re-open the
+  grant on any CREATE TABLE): `scripts/ci/sensitive-anon-grants.sql` +
+  `scripts/check-anon-table-grants.mjs`, wired into db-drift-detect.yml — fails
+  on an anon INSERT/UPDATE/DELETE no policy backs (jobs + sensitive set) or an
+  anon SELECT on a sensitive table; self-test proves it can fail. PGlite red→green:
+  `scripts/probes/anon-table-grants.probe.mjs` (BEFORE red 55 rows incl. jobs
+  DELETE + every sensitive SELECT/write, analytics INSERT correctly clean,
+  out-of-scope table not flagged; AFTER migration 3× green 0 rows, anon telemetry
+  INSERT + guest browse + authenticated writes all still work; 3 broken copies
+  caught; skip path). Parity guard `src/test/anonGrantsClassCheck.test.ts`.
+  LEAD TO PROVE ON PROD (rolled back) after land: anon INSERT on public.jobs →
+  42501; anon SELECT on each of the 14 tables → 401/permission-denied; guest
+  browse via open_jobs_browse → 200.
+
 - [x] CLOSED 2026-09-15 (CRITICAL follow-through on the item above): the rest of
   the class. Live read before either fix deployed (aclexplode on prod):
   `public.open_jobs_browse` AND `public.jobs_helper_safe` (security_invoker=on)

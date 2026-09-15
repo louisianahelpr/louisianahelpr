@@ -71,6 +71,8 @@ on:
       - "scripts/ci/replay-migrations.sh"
       - "scripts/ci/client-writable-views.sql"
       - "scripts/check-updatable-views.mjs"
+      - "scripts/ci/sensitive-anon-grants.sql"
+      - "scripts/check-anon-table-grants.mjs"
   # Manual trigger so you can re-run the deploy without a new commit
   # (e.g., to apply a backlog after secrets are first configured).
   workflow_dispatch:

@@ -3,7 +3,6 @@ import { hasPerk, tierDisplayName } from "@/lib/subscriptionTiers";
 import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
 import { Link } from "react-router-dom";
 import { TrustRow } from "@/components/TrustRow";
-import { IdVerifiedPill } from "@/components/profile/IdVerifiedPill";
 import UserAvatar from "@/components/UserAvatar";
 import type { EnrichedJob } from "./types";
 
@@ -51,10 +50,9 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
      "Community Fav" ever reached the screen.
 
      What replaces it is what is REAL and poster-side or account-level:
-     `posterIdVerified` (get_safe_profiles.is_id_verified, already fetched and
-     until now dropped on the floor), the paid tier, and the repeat-hire
-     relationship. All three go through `TrustRow`, which already draws the ID
-     chip — no second badge component on this tile. */
+     the paid tier and the repeat-hire relationship. (`posterIdVerified` was a
+     third signal here until owner, 2026-09-14 moved the ID-verified pill to
+     the profile only — VN-1.) */
   const posterInitials = (job.posterName || "User")
     .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
@@ -74,11 +72,12 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
      `hasReviews` went with it: reviews alone no longer justify opening the
      trust row, or a poster with reviews and nothing else would get an empty
      bordered band under their name. */
-  // `posterIdVerified` is optional on EnrichedJob (the column arrives from
-  // get_safe_profiles only on the signed-in feed), so a surface that does not
-  // supply it simply shows no chip rather than an unfounded one.
-  const posterIdVerified = job.posterIdVerified === true;
-  const showTrustRow = hasTier || repeatJobs >= 2 || posterIdVerified;
+  // NO ID-VERIFIED CHIP ON THIS TILE (owner, 2026-09-14, VN-1: "id verified
+  // does not need to show here. only in their profile"). The pill lives on the
+  // poster's profile (RecognitionRow) only, so it no longer opens the trust
+  // row either — otherwise a verified poster with no tier and no repeat jobs
+  // would get an empty bordered band under their name.
+  const showTrustRow = hasTier || repeatJobs >= 2;
 
   return (
     <Link
@@ -211,16 +210,6 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
               NO avgRating/reviewCount here — TrustRow renders those as a
               rating chip, which is the number already printed beside the name
               two rows up. See `showTrustRow`. */}
-          {/* ID VERIFICATION IN THE ONE FORM IT HAS. TrustRow drew it as
-              "✓ ID VERIFIED" — uppercase, letterspaced, a literal ✓
-              character, no pill — which was the fourth of four treatments of
-              a single fact across the app (owner, 2026-09-11: make it one).
-              The surviving form is the gold pill + shield from the profile
-              badge row, imported from `profile/IdVerifiedPill`, so the chip a
-              helper reads on a job is the same chip they will see on that
-              poster's profile. TrustRow keeps the repeat-hire signal, which
-              is a different claim. */}
-          {posterIdVerified && <IdVerifiedPill />}
           <TrustRow repeatHirePercent={repeatJobs >= 2 ? 100 : undefined} />
         </div>
       )}

@@ -23,7 +23,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-12 | Remove availability from the public profile | small | [x] f0ace886a | [x] vn-12-after-public-profile-1440.webp |
 | VN-13 | Public profile shows both "ID verified" and "Verification in progress" | small | [x] f0ace886a | [x] vn-13-after-public-profile-1440.webp |
 | VN-14 | Are profile badges earned from the right numbers? (OWNER QUESTION — code read only) | medium | [x] 0864118ad | [x] vn-14-after-vn14-hallie-375.webp |
-| VN-15 | Reviews on the public profile need a design discussion (same review shows twice) | large | [ ] | [ ] |
+| VN-15 | Reviews on the public profile need a design discussion (same review shows twice) | large | [x] 56e452c7b | [x] vn-15-after-vn15-reviews-375.webp |
 | VN-16 | "You've worked together N times" becomes a 5th stat tile; order tiles most → least importa | small–medium | [x] 50f18c09a | [x] vn-16-after-vn16-profile-375.webp |
 | VN-17 | Profile badges are too big | small | [x] f0ace886a | [x] vn-17-after-public-profile-1440.webp |
 | VN-18 | "Can't Finish" wording is wrong once the Helpr has confirmed (before work starts) | small | [x] f336fcf99 | [x] vn-18-after-jobs-confirmed-1440.webp |

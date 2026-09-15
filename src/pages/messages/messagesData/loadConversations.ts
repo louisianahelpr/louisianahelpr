@@ -264,6 +264,9 @@ export async function fetchConversations(
     // Track whether the current user is the poster on this job so the
     // chat can render poster-specific quick replies (vs helper-specific).
     viewerIsPoster: jobMap.get(v.jobId)?.customer_id === uid,
+    // The receiver gate's control question (src/lib/recipientGate.ts). Null
+    // for an ownerless job (poster deleted).
+    posterId: jobMap.get(v.jobId)?.customer_id ?? null,
     // Mirrors case 2 of the `can_message_in_job` RLS check: the helper this
     // job is assigned to, or offered to, is NOT an applicant and must keep a
     // working composer. Without this the poster-first lock outlived
@@ -368,6 +371,7 @@ export async function buildDeepLinkPlaceholder(
     jobStatus: jobRes.data?.status ?? null,
     messagingClosesAt: closesAtMap.get(deepLinkJobId) ?? null,
     viewerIsPoster: jobRes.data?.customer_id === uid,
+    posterId: jobRes.data?.customer_id ?? null,
     // Same rule as the list path above — see the comment there.
     viewerIsAssignedHelper:
       !!uid &&

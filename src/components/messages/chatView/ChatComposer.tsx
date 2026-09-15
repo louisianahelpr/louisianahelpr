@@ -4,6 +4,7 @@ import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
 import { assertWritable } from "@/hooks/useImpersonation";
 import { THREAD_CLOSED_NOTICE } from "@/lib/messagingLockout";
+import { RECIPIENT_RESTRICTED_NOTICE } from "@/lib/recipientGate";
 import type { Conversation, Message } from "../types";
 
 /**
@@ -72,6 +73,7 @@ const CHAT_GUTTER_BLEED = {
 export function ChatComposer({
   composerLocked,
   threadClosed = false,
+  recipientRestricted = false,
   chatLoadError,
   keyboardInset,
   activeConvo,
@@ -88,6 +90,9 @@ export function ChatComposer({
   /** True once the thread has passed its 24h post-completion close
       (src/lib/messagingLockout.ts). Replaces the composer with a notice. */
   threadClosed?: boolean;
+  /** True when the server's receiver gate refuses this recipient for this
+      viewer (src/lib/recipientGate.ts). Replaces the composer with a notice. */
+  recipientRestricted?: boolean;
   chatLoadError: boolean;
   keyboardInset: number;
   activeConvo: Conversation;
@@ -155,6 +160,33 @@ export function ChatComposer({
           <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} aria-hidden="true" />
           <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
             Your application's in. The poster will reach out here if they're interested — you'll be able to reply as soon as they do.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  if (recipientRestricted) {
+    /* Receiver gate — only the poster may message applicants and an offered
+       Helpr (can_send_message_to_in_job, 20260914210443 + 20260914215014).
+       Server-derived, same read-only notice as the lockout, so an existing
+       thread never offers a send RLS will refuse. */
+    return (
+      <div
+        className="pt-2 pb-3 glass-dock sticky bottom-0"
+        style={{ ...CHAT_GUTTER_BLEED, paddingBottom: dockPaddingBottom(keyboardInset) }}
+        data-testid="thread-recipient-restricted-notice"
+      >
+        <div
+          role="status"
+          className="flex items-start gap-2.5 rounded-ds-md px-3.5 py-3"
+          style={{
+            background: "hsl(var(--olivewood) / 0.06)",
+            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+          }}
+        >
+          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} strokeWidth={2} aria-hidden="true" />
+          <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            {RECIPIENT_RESTRICTED_NOTICE}
           </p>
         </div>
       </div>

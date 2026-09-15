@@ -11,6 +11,7 @@ import {
   fetchMessagingClosesAt,
   isLockoutRefusal,
 } from "@/lib/messagingLockout";
+import { RECIPIENT_RESTRICTED_TOAST, fetchRecipientRestricted } from "@/lib/recipientGate";
 
 // Module-level so it survives the per-render re-creation of the handlers:
 // a blocked send logs at most ONE violation per unique (user, message) —
@@ -157,6 +158,43 @@ export function createSendHandlers({
           setActiveConvo?.((prev) => (prev ? patch(prev) : prev));
           // `refused`, not `failed`: the bubble keeps the text but offers no
           // tap-to-retry, because a retry into a closed thread cannot work.
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.clientId === optimistic.clientId ? { ...m, sendStatus: "refused" } : m,
+            ),
+          );
+          return;
+        }
+        // Receiver gate: only the poster may message applicants and an offered
+        // Helpr (can_send_message_to_in_job). Ask that same server function
+        // whether it is the reason; if so the thread becomes read-only for this
+        // viewer and the bubble is non-retryable, like the lockout above.
+        // Only for the RLS policy's refusal: the ban and block triggers also
+        // raise 42501, with their own messages, and the gate answers false for
+        // those too.
+        // fetchRecipientRestricted also returns false for the poster itself and
+        // for any caller who cannot reach the poster either (banned, replaced,
+        // rate-capped), so those keep the ordinary retry below.
+        const posterId =
+          activeConvo?.jobId === optimistic.job_id ? (activeConvo.posterId ?? null) : null;
+        if (
+          /row-level security/i.test((error as { message?: string } | null)?.message ?? "") &&
+          (await fetchRecipientRestricted(
+            optimistic.job_id,
+            optimistic.receiver_id,
+            optimistic.sender_id,
+            posterId,
+          ))
+        ) {
+          toast.error(RECIPIENT_RESTRICTED_TOAST);
+          // Only the OPEN thread is flipped: reopening it from the inbox asks
+          // the server again, so the notice cannot outlive the rule (an offer
+          // accepted later makes the thread sendable again).
+          setActiveConvo?.((prev) =>
+            prev && prev.jobId === optimistic.job_id && prev.otherUserId === optimistic.receiver_id
+              ? { ...prev, recipientRestricted: true }
+              : prev,
+          );
           setMessages((prev) =>
             prev.map((m) =>
               m.clientId === optimistic.clientId ? { ...m, sendStatus: "refused" } : m,

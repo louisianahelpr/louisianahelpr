@@ -5,6 +5,7 @@ import { AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
 import { isThreadClosed, serverNow } from "@/lib/messagingLockout";
+import { useRecipientRestricted } from "@/lib/recipientGate";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { MessageActionSheet } from "./MessageActionSheet";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -314,6 +315,17 @@ export function ChatView({
   }, [messagingClosesAt]);
   const threadClosed = isThreadClosed(messagingClosesAt);
 
+  // Receiver gate (only the poster may message applicants and an offered
+  // Helpr): asked of the server for the open thread, so an existing thread
+  // the viewer can no longer send in shows a read-only notice instead of a
+  // composer whose sends bounce. Not asked while the closed or poster-first
+  // notice already owns the dock. See src/lib/recipientGate.ts.
+  const recipientRestricted = useRecipientRestricted({
+    activeConvo,
+    userId,
+    skip: threadClosed || composerLocked,
+  });
+
   // iMessage-style read receipt: only the CURRENT USER's most recent
   // *settled* outbound message carries a "Read"/"Delivered" indicator —
   // not every bubble. Derived from the messages already in state (no new
@@ -463,6 +475,7 @@ export function ChatView({
           <ChatComposer
             composerLocked={composerLocked}
             threadClosed={threadClosed}
+            recipientRestricted={recipientRestricted}
             chatLoadError={chatLoadError}
             keyboardInset={keyboardInset}
             activeConvo={activeConvo}

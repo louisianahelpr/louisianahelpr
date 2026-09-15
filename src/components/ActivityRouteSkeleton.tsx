@@ -1,7 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
-import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
-import { PageScaffold } from "@/components/ui/PageScaffold";
+import { ActivityPageSkeleton } from "@/components/ActivityPageSkeleton";
 
 /**
  * Suspense fallback for the `/my-jobs` and `/my-posts` routes' lazy chunk.
@@ -35,25 +32,7 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 const ActivityRouteSkeleton = ({ tab = "applied" }: { tab?: "applied" | "posted" }) => (
   <div role="status" aria-live="polite" aria-busy="true" data-testid="activity-route-skeleton">
     <span className="sr-only">{tab === "posted" ? "Loading your posts…" : "Loading your jobs…"}</span>
-    <PageScaffold
-      // Character-for-character the value ActivityHeader exports as
-      // ACTIVITY_HEADER_PADDING (src/pages/activity/ActivityHeader.tsx).
-      // Inlined rather than imported for the bundle reason above; if that
-      // constant ever changes, change it here too — the two must match or
-      // the title card thumps taller/shorter at the handoff.
-      titleCardClassName="!py-1.5 lg:!py-2"
-      titleCard={
-        <div className="flex items-center" style={{ minHeight: "44px" }} aria-hidden>
-          <Skeleton className="h-4 w-32 rounded" />
-        </div>
-      }
-    >
-      <div className="px-4 pt-3 space-y-2.5" aria-hidden>
-        {tab === "applied"
-          ? [1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)
-          : [1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
-      </div>
-    </PageScaffold>
+    <ActivityPageSkeleton tab={tab} />
   </div>
 );
 

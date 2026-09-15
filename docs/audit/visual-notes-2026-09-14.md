@@ -11,7 +11,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 |---|---|---|---|---|
 | VN-1 | "ID verified" pill shows on the job-detail poster card | small | [x] 3d0d7a301 | [x] vn-1-after-vn1-detail-375.webp |
 | VN-2 | Message button shows in the job popup after applying | small | [x] 3d0d7a301 | [x] vn-2-after-applied-detail-1440.webp |
-| VN-3 | Earnings & Payouts page changes layout while it loads, and still looks messy (NEEDS DESIGN | large | [ ] | [ ] |
+| VN-3 | Earnings & Payouts page changes layout while it loads, and still looks messy (NEEDS DESIGN | large | [x] 98635843e | [x] vn-3-after-earn-375-final.webp |
 | VN-4 | Share sheet shows a generic compass icon instead of the H logo | small–medium | [x] 8b3fbdb25 | [ ] |
 | VN-5 | Browse search bar stretches across the whole list column | small | [x] e24bb4c3a | [x] vn-5-after-browse-search-1440.webp |
 | VN-6 | Recent searches dropdown pushes the job list down instead of floating over it | small | [x] e24bb4c3a | [x] vn-6-after-browse-recents-1440.webp |
@@ -23,7 +23,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-12 | Remove availability from the public profile | small | [x] f0ace886a | [x] vn-12-after-public-profile-1440.webp |
 | VN-13 | Public profile shows both "ID verified" and "Verification in progress" | small | [x] f0ace886a | [x] vn-13-after-public-profile-1440.webp |
 | VN-14 | Are profile badges earned from the right numbers? (OWNER QUESTION — code read only) | medium | [x] 0864118ad | [x] vn-14-after-vn14-hallie-375.webp |
-| VN-15 | Reviews on the public profile need a design discussion (same review shows twice) | large | [ ] | [ ] |
+| VN-15 | Reviews on the public profile need a design discussion (same review shows twice) | large | [x] 56e452c7b | [x] vn-15-after-vn15-reviews-375.webp |
 | VN-16 | "You've worked together N times" becomes a 5th stat tile; order tiles most → least importa | small–medium | [x] 50f18c09a | [x] vn-16-after-vn16-profile-375.webp |
 | VN-17 | Profile badges are too big | small | [x] f0ace886a | [x] vn-17-after-public-profile-1440.webp |
 | VN-18 | "Can't Finish" wording is wrong once the Helpr has confirmed (before work starts) | small | [x] f336fcf99 | [x] vn-18-after-jobs-confirmed-1440.webp |
@@ -38,9 +38,9 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-27 | Remove the grey background box from the location on job cards | small | [x] d49bc6d67 | [x] vn-27-after-myposts-done-1440.webp |
 | VN-28 | Remove "report" from a job once it's done | small | [x] 4faf35fc9 | [x] vn-28-after-jobs-working-1440.webp |
 | VN-29 | Keep a done job expanded until BOTH tip and review are done, then collapse | small–medium | [x] a36c47ee3 | [x] vn-29-after-vn29-done-1440.webp |
-| VN-30 | Review quick-tag chips run off the edge and can't be scrolled | small | [x] d49bc6d67 | [ ] |
+| VN-30 | Review quick-tag chips run off the edge and can't be scrolled | small | [x] d49bc6d67 | [x] vn-30-after-vn30-review-375.webp |
 | VN-31 | Posts/Jobs search opens full width, and the chevron beside it is useless | small | [x] 571f6fcd2 | [x] vn-31-after-myjobs-search-1440.webp |
-| VN-32 | My Jobs page jumps ~10 times before it settles | medium–large | [ ] | [ ] |
+| VN-32 | My Jobs page jumps ~10 times before it settles | medium–large | [x] bb1b319ee | [x] vn-32-after-frame-02-381ms.webp |
 | VN-33 | Helpr 2000+ miles away can still tap "I've Arrived" and move forward | medium–large | [x] c6ce514b1 | [x] vn-33-after-fix-after-375.webp |
 | VN-34 | Rename "Request My Payout" on the Done step, and don't allow it until photos are uploaded | small | [x] e6a330db6 | [x] vn-34-after-jobs-working-1440.webp |
 | VN-35 | Messages list header — move the chevron to the right of the hamburger; search opens too wi | small | [x] 107f092b2 | [x] vn-35-after-messages-search-1440.webp |
@@ -49,7 +49,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 | VN-38 | Remove "Parish · Vermilion" from Edit Profile | small | [x] bdc3f53d1 | [x] vn-38-after-edit-profile-1440-zip.webp |
 | VN-39 | Do skills & services and recent work show anywhere on the public profile? (OWNER QUESTION  | question | [ ] | [ ] |
 | VN-40 | Edit Profile save bar — "Cancel" / "Up to Date" buttons | small | [x] 8b78763b4 | [x] vn-40-after-vn40-after-save-1440.webp |
-| VN-41 | Schedule page — small calendar floating in a huge card, and Upcoming jobs cards full of de | large | [ ] | [ ] |
+| VN-41 | Schedule page — small calendar floating in a huge card, and Upcoming jobs cards full of de | large | [x] ad3ba91ea | [x] vn-41-after-sched-jobs-1440.webp |
 | VN-42 | Saved Helprs should be one column, not a grid | small | [x] f70abb054 | [x] vn-42-after-saved-helpers-1440.webp |
 | VN-43 | Remove the card design picker from gift cards | small | [x] c57c568be | [x] vn-43-after-gift-card-1440-occasion.webp |
 | VN-44 | Plus tier (and Once / Annual) don't look enticing (OWNER QUESTION + PRICING DECISION) | medium | [x] a4bd85fe0 | [x] vn-44-after-vn44-plus-375.webp |

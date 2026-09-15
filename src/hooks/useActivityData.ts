@@ -860,7 +860,10 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
   const appliedAppsList = applied.appliedApps;
   const posterNames = appliedD.posterNames;
   const appliedAppsWithNames = useMemo(() => {
-    if (Object.keys(posterNames).length === 0) return appliedAppsList;
+    // Until the detail query lands, leave `posterName` undefined: the card
+    // reserves the name row with a same-height placeholder (VN-32). Once it
+    // lands, every row gets a string, even when no name came back.
+    if (!appliedDetail.data) return appliedAppsList;
     return appliedAppsList.map((a) => {
       if (!a.job) return a;
       // `customer_id` is nullable since 20260901033011 — a poster who deleted
@@ -872,7 +875,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
       const name = posterId ? posterNames[posterId] : undefined;
       return { ...a, posterName: name ?? "a neighbor" };
     });
-  }, [appliedAppsList, posterNames]);
+  }, [appliedAppsList, posterNames, appliedDetail.data]);
 
   const activeCore = isPosted ? postedCore : appliedCore;
 

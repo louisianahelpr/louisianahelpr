@@ -18,7 +18,6 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
-import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
 import { ProfileHeaderCard } from "./userProfile/ProfileHeaderCard";
 import BackgroundCheckCard from "@/components/profile/BackgroundCheckCard";
 import { AtAGlanceCard } from "./userProfile/AtAGlanceCard";
@@ -692,33 +691,13 @@ const UserProfile = () => {
                 Both `helper_skills` and `skill_endorsements` are dropped
                 (migration 20260904034410). */}
 
-            {/* Recent reviews — public trust-signal wall (#86). Shown to
-                everyone, owner included (owner, 2026-08-27), so the
-                preview reproduces what a prospective poster actually
-                reads. Read-only: quotes from past customers, no control
-                that could let anyone review themselves. */}
-            {/* `canReadReviewText` guard: this wall runs its own `reviews`
-                select, and that policy is TO authenticated — so for a
-                signed-out visitor it fetches nothing and renders its "be the
-                first to review" empty state, which would now sit under a
-                truthful "4.8 · 5 reviews" tile. ReviewsSection below says the
-                honest thing instead ("Sign in to read all 5 reviews"). */}
-            {showReviews && stats.reviewCount > 0 && canReadReviewText && (
-              <PublicReviewWall
-                helperId={userId!}
-                totalReviewCount={stats.reviewCount}
-                onSeeAll={
-                  stats.reviewCount > 5
-                    ? () => {
-                        setShowReviews(true);
-                        setShowPostedJobs(false);
-                        setShowWorkedJobs(false);
-                      }
-                    : undefined
-                }
-              />
-            )}
-
+            {/* ONE review list (owner, 2026-09-15, VN-15 pop-up: "One list
+                only"). The recent-reviews wall (PublicReviewWall) used to
+                render here too, so expanding reviews showed the same quotes
+                twice in two card styles. The rating summary above and the
+                filterable ReviewsSection below are the whole review surface
+                now; ReviewsSection already says "Sign in to read all N
+                reviews" to a signed-out visitor. */}
             {/* Reviews expanded inline — filter by category/rating +
                 progressive pagination (#27). */}
             {showReviews && (

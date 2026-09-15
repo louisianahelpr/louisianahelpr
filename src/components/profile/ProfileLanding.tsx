@@ -15,6 +15,7 @@ export function ProfileLanding({
   avgRating,
   reviewCount,
   completedCount,
+  helperBadgeStats,
   onSelectTab,
   onNavigate,
   onRequestDelete,
@@ -43,6 +44,7 @@ export function ProfileLanding({
         avgRating={avgRating}
         reviewCount={reviewCount}
         completedCount={completedCount}
+        helperBadgeStats={helperBadgeStats ?? null}
         onSelectTab={onSelectTab}
         tier={tier}
         hasPhoto={hasPhoto}

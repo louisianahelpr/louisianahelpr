@@ -18,6 +18,13 @@ import { formatName } from "@/lib/utils";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  buildHelperBadgeStats,
+  helperSideFromRatings,
+  helperSideReviews,
+  type HelperBadgeStats,
+  type HelperSideReviews,
+} from "@/lib/helperBadgeStats";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -43,6 +50,11 @@ export type ProfileStats = {
   postedCount: number;
   avgRating: number | null;
   reviewCount: number;
+  /** Inputs for the verification-ladder badge: jobs worked and reviews
+   *  received AS A HELPR — the same builder the public profile uses, so the
+   *  two surfaces agree (VN-14). `avgRating` / `reviewCount` above stay the
+   *  headline rating shown beside the name. */
+  helperBadgeStats: HelperBadgeStats;
 };
 
 const profileKey = (userId: string, section: string) =>
@@ -59,20 +71,62 @@ export function useProfileStats(userId: string | undefined) {
     enabled: !!userId,
     queryFn: async () => {
       const id = userId!;
-      const [helperJobsRes, reviewsRes, postedRes] = await Promise.all([
+      const [helperJobsRes, reviewsRes, postedRes, publicStatsRes] = await Promise.all([
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", id).eq("status", "completed"),
-        supabase.from("reviews").select("rating").eq("reviewee_id", id).lte("feedback_visible_at", new Date().toISOString()),
+        supabase.from("reviews").select("rating, job_id").eq("reviewee_id", id).lte("feedback_visible_at", new Date().toISOString()),
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", id),
+        // Same aggregate the public profile reads, so the owner's ladder badge
+        // is computed from the numbers visitors are shown (VN-14). The owner's
+        // own row passes its gate even while pending.
+        supabase.rpc("get_public_profile_stats", { p_user_ids: [id] }),
       ]);
       if (helperJobsRes.error) throw helperJobsRes.error;
       if (reviewsRes.error) throw reviewsRes.error;
       if (postedRes.error) throw postedRes.error;
       const ratings = reviewsRes.data ?? [];
+
+      // Badge inputs are secondary: a failed aggregate must not blank the
+      // landing, so it falls back to an exact own-row split instead.
+      if (publicStatsRes.error && publicStatsRes.error.code !== "PGRST202") {
+        report(publicStatsRes.error, {
+          severity: "warning",
+          tags: { area: "profile.helper_badge_stats" },
+        });
+      }
+      const publicRow = publicStatsRes.error
+        ? null
+        : (publicStatsRes.data ?? []).find((r) => r?.user_id === id) ?? null;
+      let helperReviews: HelperSideReviews;
+      if (publicRow) {
+        helperReviews = helperSideReviews(publicRow);
+      } else {
+        // Fallback: reviews on jobs this account WORKED. The owner is a party
+        // to every one of their own jobs, so RLS lets this read all of them.
+        const reviewedJobIds = [...new Set(ratings.map((r) => r.job_id))];
+        const workedRes = reviewedJobIds.length
+          ? await supabase.from("jobs").select("id").eq("helper_id", id).in("id", reviewedJobIds)
+          : { data: [] as { id: string }[], error: null };
+        if (workedRes.error) {
+          report(workedRes.error, {
+            severity: "warning",
+            tags: { area: "profile.helper_badge_stats_fallback" },
+          });
+        }
+        const workedIds = new Set((workedRes.data ?? []).map((j) => j.id));
+        helperReviews = helperSideFromRatings(
+          ratings.filter((r) => workedIds.has(r.job_id)).map((r) => r.rating),
+        );
+      }
+      const completedCount = helperJobsRes.count || 0;
       return {
-        completedCount: helperJobsRes.count || 0,
+        completedCount,
         postedCount: postedRes.count || 0,
         avgRating: ratings.length > 0 ? ratings.reduce((s, r) => s + r.rating, 0) / ratings.length : null,
         reviewCount: ratings.length,
+        helperBadgeStats: buildHelperBadgeStats(
+          publicRow?.completed_jobs_as_helper ?? completedCount,
+          helperReviews,
+        ),
       };
     },
   });

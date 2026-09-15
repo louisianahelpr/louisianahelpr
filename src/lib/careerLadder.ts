@@ -5,14 +5,30 @@ export interface CareerMilestone {
   icon: string; // Lucide icon name
   color: string; // hsl value
   requirement: {
+    /** Completed jobs WORKED as the Helpr — never jobs posted (VN-14). */
     completedJobs?: number;
+    /** Mean of reviews received AS A HELPR (VN-14). */
     avgRating?: number;
+    /** Reviews received as a Helpr. A rating floor without a sample floor let
+     *  one 5.0 review carry "Trusted Helpr" (VN-14). */
+    minReviews?: number;
     repeatHirePercent?: number;
     credentialTier?: number;
     communityPosts?: number;
     endorsements?: number;
   };
 }
+
+/**
+ * Every job-count and rating rule here is about WORK DONE AS A HELPR (owner,
+ * 2026-09-14, VN-14). Callers build `MilestoneStats` with
+ * `buildHelperBadgeStats` (src/lib/helperBadgeStats.ts), never from the
+ * profile's headline posted+worked totals.
+ *
+ * Every rating rule carries `minReviews: MIN_RATING_REVIEWS` and says so in its
+ * description.
+ */
+export const MIN_RATING_REVIEWS = 5;
 
 const CAREER_MILESTONES: CareerMilestone[] = [
   {
@@ -34,10 +50,10 @@ const CAREER_MILESTONES: CareerMilestone[] = [
   {
     id: "trusted_helpr",
     label: "Trusted Helpr",
-    description: "10 jobs with a 4.5+ average rating",
+    description: `10 jobs · 4.5+ rating from ${MIN_RATING_REVIEWS}+ reviews`,
     icon: "ShieldCheck",
     color: "hsl(155 50% 40%)",
-    requirement: { completedJobs: 10, avgRating: 4.5 },
+    requirement: { completedJobs: 10, avgRating: 4.5, minReviews: MIN_RATING_REVIEWS },
   },
   {
     id: "neighborhood_pro",
@@ -50,10 +66,12 @@ const CAREER_MILESTONES: CareerMilestone[] = [
   {
     id: "community_pillar",
     label: "Community Pillar",
-    description: "50 jobs · 4.8+ rating · 3+ repeat posters",
+    // Was "3+ repeat posters" over a rule that checks a PERCENTAGE — the
+    // description now states the rule it sits on (VN-14).
+    description: `50 jobs · 4.8+ rating from ${MIN_RATING_REVIEWS}+ reviews · 20%+ repeat hires`,
     icon: "Users",
     color: "hsl(210 60% 45%)",
-    requirement: { completedJobs: 50, avgRating: 4.8, repeatHirePercent: 20 },
+    requirement: { completedJobs: 50, avgRating: 4.8, minReviews: MIN_RATING_REVIEWS, repeatHirePercent: 20 },
   },
   {
     id: "elite_helpr",
@@ -74,18 +92,25 @@ const CAREER_MILESTONES: CareerMilestone[] = [
   {
     id: "master_helpr",
     label: "Master Helpr",
-    description: "200 jobs · 4.9+ rating",
+    description: `200 jobs · 4.9+ rating from ${MIN_RATING_REVIEWS}+ reviews`,
     icon: "Gem",
     color: "hsl(280 70% 55%)",
-    requirement: { completedJobs: 200, avgRating: 4.9 },
+    requirement: { completedJobs: 200, avgRating: 4.9, minReviews: MIN_RATING_REVIEWS },
   },
 ];
 
 export interface MilestoneStats {
+  /** Completed jobs worked as the Helpr. */
   completedJobs: number;
+  /** Mean of reviews received as a Helpr; 0 when none. */
   avgRating: number;
+  /** Reviews received as a Helpr. */
+  reviewCount: number;
   repeatHirePercent: number;
-  credentialTier: number;
+  /** `null` = UNKNOWN (the tier RPC errored or is not callable by this
+   *  viewer). Unknown withholds the credential badge without claiming the
+   *  person has no license; every other badge is unaffected (VN-14). */
+  credentialTier: number | null;
 }
 
 export function getEarnedMilestones(stats: MilestoneStats): CareerMilestone[] {
@@ -93,8 +118,9 @@ export function getEarnedMilestones(stats: MilestoneStats): CareerMilestone[] {
     const r = m.requirement;
     if (r.completedJobs && stats.completedJobs < r.completedJobs) return false;
     if (r.avgRating && stats.avgRating < r.avgRating) return false;
+    if (r.minReviews && stats.reviewCount < r.minReviews) return false;
     if (r.repeatHirePercent && stats.repeatHirePercent < r.repeatHirePercent) return false;
-    if (r.credentialTier && stats.credentialTier < r.credentialTier) return false;
+    if (r.credentialTier && (stats.credentialTier === null || stats.credentialTier < r.credentialTier)) return false;
     return true;
   });
 }

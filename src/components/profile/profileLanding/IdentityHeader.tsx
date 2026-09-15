@@ -12,6 +12,7 @@ import { tierDisplayName } from "@/lib/subscriptionTiers";
 import { tierBadgeStyle, NEUTRAL_AVATAR_RING } from "@/lib/tierBadgeStyle";
 import { hapticLight } from "@/lib/haptics";
 import { shareNative } from "@/lib/nativeShare";
+import { buildHelperBadgeStats, type HelperBadgeStats } from "@/lib/helperBadgeStats";
 import type { Profile } from "./types";
 
 interface IdentityHeaderProps {
@@ -22,6 +23,8 @@ interface IdentityHeaderProps {
   avgRating: number | null;
   reviewCount: number;
   completedCount: number;
+  /** Ladder inputs AS A HELPR (VN-14); null while loading. */
+  helperBadgeStats: HelperBadgeStats | null;
   onSelectTab: (key: string) => void;
   tier: string;
   hasPhoto: boolean;
@@ -37,6 +40,7 @@ export function IdentityHeader({
   avgRating,
   reviewCount,
   completedCount,
+  helperBadgeStats,
   onSelectTab,
   tier,
   hasPhoto,
@@ -319,11 +323,10 @@ export function IdentityHeader({
                     stripe_identity_verified: profile?.stripe_identity_verified ?? null,
                     stripe_account_id: profile?.stripe_account_id ?? null,
                   }}
-                  stats={{
-                    completedJobs: completedCount,
-                    avgRating: avgRating ?? 0,
-                    reviewCount,
-                  }}
+                  // Reviews received AS A HELPR, not every review (VN-14) —
+                  // the same inputs the public profile's ladder badge reads,
+                  // so the owner and a visitor see the same rung.
+                  stats={helperBadgeStats ?? buildHelperBadgeStats(completedCount, null)}
                   size="sm"
                 />
                 {earnedBadges.map((b) => (

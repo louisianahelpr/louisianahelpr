@@ -46,9 +46,11 @@ export interface HelperTierProfile {
 export interface HelperTierStats {
   /** Distinct jobs where this user was the `helper_id` and status='completed'. */
   completedJobs: number;
-  /** Mean rating across reviews where `reviewee_id` = this user. 0 if none. */
+  /** Mean rating across reviews this user received AS A HELPR — never the
+   *  poster-side ones (VN-14, owner 2026-09-14). Build with
+   *  `buildHelperBadgeStats` (src/lib/helperBadgeStats.ts). 0 if none. */
   avgRating: number;
-  /** Total reviews counted in `avgRating`. */
+  /** Reviews counted in `avgRating` (helper-side only). */
   reviewCount: number;
 }
 

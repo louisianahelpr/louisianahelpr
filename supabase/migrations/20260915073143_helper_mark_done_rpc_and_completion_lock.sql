@@ -155,6 +155,13 @@ BEGIN
       HINT = 'This job is no longer active (status=' || v_job.status::text || '), so it cannot be marked done.';
   END IF;
 
+  -- The gate checks below mirror enforce_helper_completion_gates
+  -- (20260915044137), which is AUTHORITATIVE: it fires on this UPDATE too (its
+  -- trigger is BEFORE UPDATE OF helper_completed_at, and auth.uid() is still the
+  -- Helpr inside this definer). These give the Helpr a clean, specific refusal
+  -- before the write; if the two ever drift, the trigger still fails closed.
+  -- Keep them in step with that function.
+  --
   -- Arrival established: BOTH the server-verified GPS stamp AND the poster's
   -- confirmation (VN-33, owner 2026-09-14; the exact rule
   -- enforce_helper_completion_gates enforces on the write).

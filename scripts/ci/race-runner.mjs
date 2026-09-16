@@ -143,11 +143,13 @@ async function fixture(admin, race) {
                               customer_id, helper_id, date_needed, created_at, payment_status,
                               helper_confirmed_at, poster_confirmed_at, accepted_at,
                               helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at,
+                              poster_confirmed_arrival_at,
                               poster_confirmed_working_at, proof_before_urls, proof_after_urls, helper_completed_at)
      VALUES ('[CI race] completion', 'race-runner.mjs fixture', 'cleaning', 100, 'Test Address', 'Orleans',
              'in_progress', $1, $2, CURRENT_DATE, now() - interval '30 days', 'escrow',
              now() - interval '5 hours', now() - interval '5 hours', now() - interval '6 hours',
              now() - interval '4 hours', now() - interval '3 hours', now() - interval '3 hours',
+             now() - interval '2 hours 45 minutes',
              now() - interval '2 hours', ARRAY['https://example.invalid/b.jpg'], ARRAY['https://example.invalid/a.jpg'],
              CASE WHEN $3 THEN now() - interval '1 hour' END)
      RETURNING id, helper_completed_at::text AS hc`,
@@ -400,7 +402,12 @@ async function disputeRound(admin) {
   const B = await connect();
   let bOutcome = "committed";
   try {
-    await asUser(A, f.poster);
+    // The re-file is filed as the PLATFORM (opener NULL), and open_dispute_as is
+    // service_role-only (proacl: postgres, service_role — a person cannot call
+    // it), so connection A runs it as the SERVICE, not as the poster. It used to
+    // run as the poster and only worked while authenticated still held an
+    // EXECUTE grant that has since been revoked (sec-hardening default-deny).
+    await asService(A);
     // Re-freeze: an existing open dispute + a job that is not `disputed` takes
     // open_dispute_as's re-freeze branch, which holds the job FOR UPDATE. Filed
     // as the PLATFORM (opener NULL): since 20260915025607 a person cannot touch

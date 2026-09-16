@@ -87,7 +87,20 @@ import { JobTracking } from "./JobTracking";
 const AGO = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
 
 function renderWorking() {
-  const today = new Date().toISOString().slice(0, 10);
+  // The day-gate (`isLocked`) compares this date's midnight against
+  // `todayMs()`, which resolves TODAY in the platform zone (America/Chicago).
+  // Building `today` from `toISOString()` (UTC) makes it a day AHEAD whenever
+  // UTC has already rolled past midnight while Chicago has not — i.e. every
+  // evening in the US and, in CI, every nightly run in the small UTC hours.
+  // That future date locks the CTA, the confirm dialog never opens, and the
+  // suite goes red purely on wall-clock time. Resolve today in the SAME zone
+  // the gate uses so the fixture is "today" wherever and whenever it runs.
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
   return render(
     <JobTracking
       jobId="job-1"

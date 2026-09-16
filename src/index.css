@@ -633,8 +633,12 @@
      FILL (JobTracking.tsx:1475 paints a solid button with it), so it cannot be
      lightened for legibility without restyling every destructive control.
      In LIGHT the fill colour is already legible as text (5.43:1 on white), so
-     this matches it; the dark value below is where they diverge. */
-  --destructive-ink: 19 74% 40%;
+     this matches it; the dark value below is where they diverge.
+     40%→38% (2026-09-16): on the disputed job-step's `bg-destructive/10` wash
+     over parchment (effective #f2e3dc) the 40% ink measured 4.32:1 — just under
+     AA — so the a11y-prod sweep of /my-jobs flagged it. 38% is 4.69:1 there and
+     stays ≥4.5 on every lighter surface it inks. */
+  --destructive-ink: 19 74% 38%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:         var(--parchment);
   --sidebar-foreground:         var(--olivewood);

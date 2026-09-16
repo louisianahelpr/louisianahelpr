@@ -2933,3 +2933,21 @@ Running: dispute-races close-HIGH→land→prove; charge.dispute.created hold-ov
 10. [ ] Signed-in press-every-control full run on prod.
 - [ ] LAST, after everything above: independent re-check by a different model (sonnet) of ALL work landed 2026-09-13 — full vitest once, CI green per push, re-run each fix's own proof on prod, list what doesn't hold
 - [ ] OWNER: allow the Stripe connector write tool + reconnect Stripe, then add transfer.failed to live webhook and close #1462/#1521
+
+## OWNER BATCH 2026-09-16 (verbatim intent; NOT yet started — needs browser before/after per screen)
+Captured from owner while low on usage; execute with screenshots on prod (test accounts), one browser at a time, when usage/Opus allows. Group the layout ones into a /jobs + /my-posts pass and the Messages ones into a Messages pass.
+1. Messages: open/scroll to the UNREAD messages on entry.
+2. Seed TEST JOBS on Home, Post, and Jobs — populate ALL sections (every status bucket) so each renders with data.
+3. /jobs + /my-posts: move the Helpr/Poster PersonTile box to UNDER the tracker and ABOVE the map. Name shows ONCE only.
+4. Remove the name to the LEFT of "updated", and remove the "at the job" text.
+5. QUESTION ANSWERED: maps are NOT all Apple — BrowseMap=Apple MapKit JS, TrackingMap=Leaflet. Owner likely wants tracker unified onto Apple MapKit (roadmap decision). → make it a task.
+6. POSTER side: there is NO button to confirm arrived / confirm working / confirm offered. Add them. If already clicked, still SHOW the box but DISABLED (or show the NEXT box once ready to advance).
+7. The "24 hours passed → gets deleted" state: should have been a "Work Done"-style button; since the helper never clicked it, show it DISABLED with the reason why (don't just delete silently).
+8. Green PRIMARY buttons always on the RIGHT for /post and /jobs.
+9. Button word SIZE + FONT must be CONSISTENT across these buttons (currently inconsistent).
+10. Move "before & after pictures" to a BUTTON on the SAME ROW as the other action buttons.
+11. Collapsed card: move "updated" to the LEFT of the time.
+12. Remove "Awaiting confirmation" text under confirmation — user can click Arrived or toggle to see why it's yellow.
+13. Tracker must NOT disappear during a DISPUTE or REVISION (keep it rendered).
+14. Home, Post, Jobs, AND Messages panels must NOT be curved on the bottom — they should run to the bottom like the right panel does.
+15. Messages should use the SAME layout as Home/Post/Jobs — it's currently the only one with that top panel.

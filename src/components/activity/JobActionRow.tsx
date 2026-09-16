@@ -345,9 +345,18 @@ export function JobStepPrimaryButton({
   iconClassName?: string;
 }) {
   return (
+    // `h-auto` alongside `size="sm"`'s `h-11`: this control's height is
+    // DELIBERATELY released so a long label ("Mark Job Complete") wraps to two
+    // lines and grows past 44px instead of truncating (the VN-21 one-row rule —
+    // the step-row CSS already sets `height:auto; min-height:44px`, and the
+    // chips beside it carry `h-auto` too). Naming `h-auto` here also tells the
+    // buttonGeometry a11y gate the height was released on purpose, so it is not
+    // flagged as an `h-11` (44px) size class the cascade "defeated" — a real
+    // control (45.2px for a one-line label, ~61.5px wrapped) never matches the
+    // 44px it declares, and this is the sanctioned way to say so (buttonGeometry.ts).
     <Button
       size="sm"
-      className="w-full"
+      className="w-full h-auto"
       disabled={disabled}
       aria-label={composeAccessibleName(label, ariaLabel)}
       onClick={onClick}

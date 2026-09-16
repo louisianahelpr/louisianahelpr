@@ -2376,7 +2376,13 @@ export function JobTracking({
         const ctaEl = (
             <Button
               size="sm"
-              className="w-full"
+              // `h-auto` releases `size="sm"`'s h-11: this CTA portals into the
+              // step row's primary slot, whose CSS sets height:auto so a long
+              // action ("Mark Job Complete") wraps instead of truncating — so
+              // it renders 45.2px (one line) to ~61.5px (wrapped), never the
+              // 44px h-11 declares. Naming h-auto keeps the buttonGeometry a11y
+              // gate from flagging it as a defeated size class (buttonGeometry.ts).
+              className="w-full h-auto"
               // Done asks first — see the dialog below. Every other step is a
               // reversible statement about where the helper is; this one moves
               // money and cannot be taken back from here.
@@ -2411,7 +2417,11 @@ export function JobTracking({
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full"
+                // h-auto releases size="sm"'s h-11 — this control lands in the
+                // step row (label can wrap), so it renders 45.2px+, never the
+                // 44px h-11 declares; naming h-auto keeps the buttonGeometry
+                // a11y gate from flagging it (see buttonGeometry.ts).
+                className="w-full h-auto"
                 onClick={() => { void retryArrivalVerification(); }}
                 disabled={retryingArrival || updating}
               >

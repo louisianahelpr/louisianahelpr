@@ -235,6 +235,44 @@ const ProtectedRoute = ({
     });
   }, [children]);
 
+  // AUTO-HEAL THE RECOVERABLE PROFILE-FETCH ERROR.
+  //
+  // The card below keeps the user signed in and offers a manual "Try again".
+  // But the profile query fails to that card only after its whole budget is
+  // spent (~12.5s: one 6s attempt, a retry, and the orphan-reuse window) — and
+  // on a slow-but-working connection the read would have landed given more
+  // time. Stranding the user behind a tap turns a recoverable stall into a
+  // dead end; it is also the single biggest source of nightly false-reds
+  // (a11y-webkit-prod, e2e, press) whenever the CI runner's hop to prod is
+  // slower than that budget.
+  //
+  // So while the error card is up, retry on a widening backoff. `refresh()`
+  // re-runs the query (with its own timeout/retry budget again); the moment the
+  // profile lands the branch below stops rendering and this effect's cleanup
+  // clears the timer. The manual button still works and is unaffected. Backoff
+  // caps at 30s so a genuinely dead or 4xx connection is polled gently (≤2/min),
+  // never hammered.
+  const showingProfileError = !!user && isError && !profile;
+  useEffect(() => {
+    if (!showingProfileError) return;
+    let cancelled = false;
+    let attempt = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      const delay = Math.min(4000 * 2 ** attempt, 30000);
+      timer = setTimeout(() => {
+        if (cancelled) return;
+        attempt += 1;
+        void refresh().finally(() => { if (!cancelled) schedule(); });
+      }, delay);
+    };
+    schedule();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [showingProfileError, refresh]);
+
   if (isLoading && !user) {
     // Cold-start moment only: no session known yet. Use the calm, static
     // brand-mark + skeleton fallback (same one the per-route Suspense

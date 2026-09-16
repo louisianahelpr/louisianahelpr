@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -289,10 +289,13 @@ export const useCurrentUser = (): CurrentUser => {
   });
 
 
-  const refresh = async () => {
+  // Stable identity (keyed on the user id): ProtectedRoute drives an
+  // auto-retry timer off this, and a fresh function every render would restart
+  // that timer on every tick.
+  const refresh = useCallback(async () => {
     if (!user?.id) return;
     await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(user.id) });
-  };
+  }, [queryClient, user?.id]);
 
   useEffect(() => {
     if (!DEBUG_AUTH) return;

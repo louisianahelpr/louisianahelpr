@@ -31,6 +31,10 @@ const MIGRATION = readFileSync(
   new URL("../../supabase/migrations/20260916023649_revoke_trigger_fn_execute_and_pin_search_path.sql", import.meta.url).pathname,
   "utf8",
 );
+const SWEEP = readFileSync(
+  new URL("../../supabase/migrations/20260916030921_revoke_all_trigger_fn_client_execute.sql", import.meta.url).pathname,
+  "utf8",
+);
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -93,6 +97,39 @@ const searchPath = async (db) =>
   let threw = null;
   try { await db.exec(MIGRATION); await db.exec(MIGRATION); } catch (e) { threw = e.message; }
   check("REPLAY-SAFE clean no-op when functions absent", threw === null, threw ?? "");
+  await db.close();
+}
+
+// ── Scenario C: the comprehensive sweep (20260916030921) ────────────────────
+// A DEFINER trigger fn, an INVOKER trigger fn, and a NON-trigger RPC — all with
+// the PUBLIC EXECUTE default. The sweep must revoke both triggers and leave the
+// real RPC executable, then be idempotent.
+{
+  const db = new PGlite();
+  await db.exec(ROLES);
+  await db.exec(`
+    CREATE OR REPLACE FUNCTION public.def_trig() RETURNS trigger
+      LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $fn$ BEGIN RETURN NEW; END $fn$;
+    CREATE OR REPLACE FUNCTION public.inv_trig() RETURNS trigger
+      LANGUAGE plpgsql AS $fn$ BEGIN RETURN NEW; END $fn$;
+    CREATE OR REPLACE FUNCTION public.real_rpc(x int) RETURNS int
+      LANGUAGE sql AS $fn$ SELECT x + 1 $fn$;`);
+
+  check("SWEEP RED-BEFORE anon can EXECUTE def trigger", await anonExec(db, "public.def_trig()") === true);
+  check("SWEEP RED-BEFORE authenticated can EXECUTE inv trigger", await authExec(db, "public.inv_trig()") === true);
+  check("SWEEP RED-BEFORE authenticated can EXECUTE real rpc", await authExec(db, "public.real_rpc(int)") === true);
+
+  await db.exec(SWEEP);
+
+  check("SWEEP def trigger no longer anon-executable", await anonExec(db, "public.def_trig()") === false);
+  check("SWEEP def trigger no longer authenticated-executable", await authExec(db, "public.def_trig()") === false);
+  check("SWEEP inv trigger no longer anon-executable", await anonExec(db, "public.inv_trig()") === false);
+  check("SWEEP inv trigger no longer authenticated-executable", await authExec(db, "public.inv_trig()") === false);
+  check("SWEEP real (non-trigger) RPC still authenticated-executable", await authExec(db, "public.real_rpc(int)") === true);
+
+  await db.exec(SWEEP); // idempotent
+  check("SWEEP idempotent: triggers still revoked, rpc still granted",
+    (await authExec(db, "public.def_trig()")) === false && (await authExec(db, "public.real_rpc(int)")) === true);
   await db.close();
 }
 

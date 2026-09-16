@@ -101,7 +101,11 @@ test("earnings tab renders one view at a time", async ({ helperPage: page }) => 
   // equally true of a split that dropped a section on the floor.
   await page.getByRole("tab", { name: "Earnings" }).click();
   await expect(page.getByText(/Earning history/i).first()).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText(/more insights with/i).first()).toBeVisible();
+  // The category/month breakdown collapsible. VN-3 (98635843e, 2026-09-14)
+  // renamed this section to "More Insights" when the three former segments
+  // became one Earnings view; the old marker ("more insights with …") went
+  // stale that day and reddened this smoke.
+  await expect(page.getByText(/More Insights/i).first()).toBeVisible();
 });
 
 // `/profile?tab=earnings` is the link every notification and email uses, and

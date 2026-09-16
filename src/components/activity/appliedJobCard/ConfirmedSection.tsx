@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { hasJobStarted } from "@/lib/dateUtils";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { DirectionsButton } from "./DirectionsButton";
 import { JobPetCareSheet } from "@/components/activity/JobPetCareSheet";
@@ -27,6 +28,19 @@ interface ConfirmedSectionProps {
 export function ConfirmedSection({ app, job, userId, initialTracking, navigate }: ConfirmedSectionProps) {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+
+  // helper_cancel_booking refuses once the scheduled start has passed
+  // (job_already_started: now >= date_needed + COALESCE(start_time,'00:00') in
+  // America/Chicago). Offering the chip in that window is a dead-end tap routed
+  // to "contact support" — the exact ghosting the sanctioned exit exists to
+  // prevent. auto-start-due-jobs runs every 15 min, so status stays 'accepted'
+  // (this card keeps rendering) for up to 15 min AFTER start; a null-start
+  // flexible job is "started" from midnight. Gate the chip on the SAME clock the
+  // RPC uses — hasJobStarted → jobLocalStartMs defaults a null start to 00:00,
+  // matching the RPC's COALESCE(...,'00:00'). Server guard still stands for
+  // direct calls / stale tabs. Past start, the in-progress abort exit is the
+  // right affordance, not cancel.
+  const startPassed = hasJobStarted(job.date_needed, job.start_time);
 
   // The sanctioned exit (owner, 2026-08-24): cancelling a committed booking
   // reopens the job and counts a reliability strike on the shared ladder
@@ -136,14 +150,18 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           tone="message"
           onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}
         />,
-        <JobActionChip
-          key="cancel"
-          icon={CalendarX2}
-          label="Cancel Job"
-          ariaLabel="Cancel this job? See what happens if you cancel now"
-          tone="danger"
-          onClick={() => setCancelOpen(true)}
-        />,
+        ...(startPassed
+          ? []
+          : [
+              <JobActionChip
+                key="cancel"
+                icon={CalendarX2}
+                label="Cancel Job"
+                ariaLabel="Cancel this job? See what happens if you cancel now"
+                tone="danger"
+                onClick={() => setCancelOpen(true)}
+              />,
+            ]),
       ]}
       dialogs={
       <BrandConfirmDialog

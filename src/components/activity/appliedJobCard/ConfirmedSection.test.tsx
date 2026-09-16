@@ -52,3 +52,34 @@ describe("ConfirmedSection back-out is 'Cancel Job' (VN-18)", () => {
     expect(screen.queryByText(/booking/i)).toBeNull();
   });
 });
+
+// The chip must not be offered once helper_cancel_booking would refuse it
+// (job_already_started). Same clock as the RPC: start = date_needed +
+// COALESCE(start_time,'00:00') in America/Chicago. Proven RED before the
+// hasJobStarted guard — the chip rendered in the refused window.
+describe("ConfirmedSection hides Cancel Job once the start has passed", () => {
+  const renderWith = (patch: Partial<Job>) =>
+    render(
+      <ConfirmedSection
+        app={app}
+        job={{ ...job, ...patch } as Job}
+        userId="helper-1"
+        navigate={() => {}}
+      />,
+    );
+
+  it("hides the chip for a job whose scheduled start is in the past", () => {
+    renderWith({ date_needed: "2020-01-01", start_time: "09:00" });
+    expect(screen.queryByRole("button", { name: /^Cancel Job/ })).toBeNull();
+  });
+
+  it("hides the chip for a null-start (flexible) job on a past day (RPC treats null as midnight)", () => {
+    renderWith({ date_needed: "2020-01-01", start_time: null });
+    expect(screen.queryByRole("button", { name: /^Cancel Job/ })).toBeNull();
+  });
+
+  it("still offers the chip for a clearly future job", () => {
+    renderWith({ date_needed: "2099-01-01", start_time: "09:00" });
+    expect(screen.getByRole("button", { name: /^Cancel Job/ })).toBeInTheDocument();
+  });
+});

@@ -34,18 +34,21 @@
  *           the database guarantee (trg_confirm_on_live_job) is under test.
  *           BAD = a cancelled job with helper_confirmed_at stamped.
  *   race 3  Done vs cancel (cancel first). A = poster_cancel_job; B = the
- *           PRE-FIX JobTracking stamp: UPDATE jobs SET helper_completed_at WHERE
- *           id — no status predicate (trg_completion_on_live_job under test).
+ *           Helpr's Done through rpc_helper_mark_done (since 20260915073143 the
+ *           one sanctioned writer of helper_completed_at; a direct client stamp
+ *           is refused). Once cancel commits, the RPC finds a non-live job and
+ *           raises job_not_completable — the live-job rule enforced inside it.
  *           BAD = a cancelled job carrying a done stamp.
- *   race 4  Done vs cancel (Done first). A = the Helpr's stamp; B =
- *           poster_cancel_job, queued behind it.
+ *   race 4  Done vs cancel (Done first). A = the Helpr's Done RPC (holds the row
+ *           FOR UPDATE); B = poster_cancel_job, queued behind it.
  *           BAD = a cancelled job carrying a done stamp (finished work cancelled).
- *   race 6  Done vs block. A = the Helpr's stamp; B = the poster's
- *           block_user_and_settle, queued behind it (review follow-up).
+ *   race 6  Done vs block. A = the Helpr's Done RPC (holds the row); B = the
+ *           poster's block_user_and_settle, queued behind it (review follow-up).
  *           BAD = a cancelled job carrying a done stamp.
  *   race 5  Done again vs release. The Helpr already marked done; A = the
  *           service-role release write completing the job; B = the Helpr's
- *           second Done (pre-fix client write).
+ *           second Done RPC, which finds helper_completed_at already set and
+ *           no-ops (already_done) — never a second stamp, never an error.
  *           BAD = helper_completed_at moved (or landed after completed_at), or
  *           completed_at not stamped.
  *   race 3  settle_dispute_record vs open_dispute_as's re-freeze. A holds the
@@ -160,8 +163,23 @@ async function fixture(admin, race) {
 
 // ── the writes ────────────────────────────────────────────────────────────
 const CANCEL = { as: "poster", run: (c, f) => c.query("SELECT public.poster_cancel_job($1, 'race-runner')", [f.job]) };
-/** The PRE-FIX JobTracking Done stamp: id predicate only. */
-const DONE = { as: "helper", run: (c, f) => c.query("UPDATE public.jobs SET helper_completed_at = now() WHERE id = $1", [f.job]) };
+/**
+ * The Helpr's Done, exactly as the app now issues it. Since 20260915073143 a
+ * direct client `UPDATE jobs SET helper_completed_at` is refused outright by
+ * enforce_job_completion_server_owned (H-001/H-002) — the assigned Helpr's Done
+ * is the one sanctioned writer, through rpc_helper_mark_done. That RPC is
+ * SECURITY DEFINER owned by postgres, so its inner UPDATE runs as postgres and
+ * clears the server-owned role gate, while auth.uid() inside it is still the
+ * Helpr (the JWT `sub` asUser set). It takes the row FOR UPDATE, so it is the
+ * lock-holder in the races where Done goes first, and on a job a concurrent
+ * cancel/release moved off 'live' it raises job_not_completable (the completion
+ * lands only on a live job — trg_completion_on_live_job's rule, now enforced
+ * inside the RPC too). A SELECT of the RPC returns exactly one row, so control()
+ * still sees rowCount === 1. Race 5's fixture pre-stamps helper_completed_at, so
+ * the RPC returns already_done and no-ops — the re-tap that must not move the
+ * clock or error.
+ */
+const DONE = { as: "helper", run: (c, f) => c.query("SELECT public.rpc_helper_mark_done($1)", [f.job]) };
 /** create-payment release completing a job both sides confirmed (service role, conditional as in index.ts). */
 const RELEASE = {
   as: "service",

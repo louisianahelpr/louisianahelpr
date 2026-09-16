@@ -132,6 +132,15 @@ test("one sheet, one step: the apply form is on the job detail surface", async (
   // 4. THE CLOSE X IS REACHABLE — on screen and hit-testable, not buried.
   const close = sheet.getByRole("button", { name: /^close$/i });
   await expect(close).toBeVisible();
+  // The dialog opens with `zoom-in-95`, so getBoundingClientRect reads the
+  // VISUAL rect — a 44px box measured mid-zoom is 44×0.95 = 41.8px. Under CI
+  // load WebKit finished this animation late enough that the measurement below
+  // caught the tail of it and flagged a 41.8px width (nightly-webkit red,
+  // 2026-09-15; passes uncontended locally). Wait for every animation on the
+  // dialog subtree to finish so the box is measured at its settled size.
+  await sheet.evaluate((el) =>
+    Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => {}))),
+  );
   const closeBox = await close.evaluate((el) => {
     const r = el.getBoundingClientRect();
     const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);

@@ -150,7 +150,7 @@
   "press  src/components/jobs/DisputeLink.tsx:139 <button>  active:opacity-70",
   "press  src/components/PaymentTab.tsx:355 <button>  active:opacity-70",
   "press  src/components/PayoutSetupForm.tsx:301 <button>  active:opacity-70",
-  "press  src/components/PhotoProof.tsx:257 <button>  active:opacity-100",
+  "press  src/components/PhotoProof.tsx:263 <button>  active:opacity-100",
   "press  src/components/profile/HelperTierBadge.tsx:130 <button>  active:opacity-70",
   "press  src/components/profile/profileLanding/IdentityHeader.tsx:303 <button>  active:opacity-70",
   "press  src/components/profile/ProfileSectionError.tsx:38 <button>  active:opacity-70",

@@ -27,6 +27,9 @@ import { ConfirmedSection } from "./appliedJobCard/ConfirmedSection";
 import { ActiveJobSection } from "./appliedJobCard/ActiveJobSection";
 import { DisputedSection } from "./appliedJobCard/DisputedSection";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "./jobCardPerson";
+import { JobStepRailCompact } from "./JobStepRailCompact";
+import { DisputeOpenBadge } from "./DisputeOpenBadge";
+import { deriveCurrentStatusIdx, railDisplayIdx, railStepLabels } from "@/components/JobTracking";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -330,7 +333,31 @@ function AppliedJobCardInner({
               when there is none the band collapses rather than reserving space
               for it. */}
           {(hasCardBody || isMinimalCard) && (
-          <div className={`px-4 pt-2.5 space-y-2 ${hasActionSection && !isMinimalCard ? "pb-1.5" : "pb-3"}`}>
+          /* GROUPED WITH THE META, NOT WITH THE TRACKER — the same regrouping
+             PostedJobCard takes, for the same owner note (2026-09-19: the
+             description "should be under the location date and time on
+             expansion. not with the live tracker box"), because both cards had
+             the same proximity inversion:
+
+               meta -> description    10px (title bar pb-2.5) + 10px (pt-2.5) = 20px
+               description -> section  6px (pb-1.5) + the section's own padding
+
+             `pt-1` closes the top to 14px. The BOTTOM only opens up when there
+             is actually a description to detach — `pb-1.5` exists because the
+             owner reported a dead band here ("remove gap under the location
+             and above the buttons") on a card where every child was
+             conditional and none of them rendered. That band is still
+             collapsed to 6px when this block is carrying only the person tile
+             or the not-selected line; it opens to 10px only when the
+             description is in it, which is the case the owner is looking at
+             and the one where the gap is doing work rather than reserving
+             space for nothing. */
+          <div
+            data-job-card-body=""
+            className={`px-4 pt-1 space-y-2 ${
+              hasActionSection && !isMinimalCard ? (showDescription ? "pb-2.5" : "pb-1.5") : "pb-3"
+            }`}
+          >
             {/* No chevron glyph on this card (owner: remove it) — the whole
                 card is the expand/collapse tap target (JobCardShell), so no
                 visible control is needed to say there's more. */}
@@ -461,7 +488,7 @@ function AppliedJobCardInner({
               withdraws the whole application, is a trap. The Seen chip is
               information and stays; when there is none the band is dropped
               entirely rather than drawing an empty bordered strip. */}
-          {!isMinimalCard && isPending && (editingMessageAppId !== app.id || viewedApp.poster_viewed_at) && (
+          {!isMinimalCard && isPending && ((isExpanded && editingMessageAppId !== app.id) || viewedApp.poster_viewed_at) && (
             <div
               className="px-4 py-2.5 space-y-1.5"
               style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
@@ -482,7 +509,21 @@ function AppliedJobCardInner({
                   <Eye className="w-3 h-3" aria-hidden="true" /> Seen {formatShortDate(viewedApp.poster_viewed_at)}
                 </span>
               )}
-              {editingMessageAppId !== app.id && (
+              {/* THE CONTROLS ARE BEHIND THE EXPAND; THE "Seen" CHIP IS NOT.
+                  My call, per the owner's ruling that Jobs collapses like
+                  Posts. Edit and Withdraw are an action row — two controls in
+                  a `JobActionRow` — and the standing rule on the other card is
+                  that controls live inside the expanded card while the
+                  collapsed card only SIGNALS (that is exactly what
+                  PosterConfirmationBadge does on My Posts). The "Seen" chip is
+                  the opposite: information, no tap, and the single most
+                  useful thing a waiting applicant can learn at a glance. So
+                  the chip stays collapsed and the pair does not.
+
+                  The band still drops entirely when it would be empty — the
+                  existing rule, and the reason a collapsed pending card with
+                  no "Seen" stamp draws no bordered strip at all. */}
+              {editingMessageAppId !== app.id && isExpanded && (
               <JobActionRow columns={2}>
                 <JobActionChip
                   icon={Pencil}
@@ -523,8 +564,32 @@ function AppliedJobCardInner({
             <OfferedActions app={app} job={job} onHelperResponse={onHelperResponse} respondingHelperAppId={respondingHelperAppId} />
           )}
 
+          /* ── BEHIND THE EXPAND, AS ON MY POSTS (owner, 2026-09-19) ──────
+             "jobs should open collapsed just like post does."
+
+             The premise needed correcting before the fix: this card ALREADY
+             defaulted to collapsed — `expandedJobIds` comes from
+             `useCardExpansion(postedJobs, …)`, whose default-open set only
+             ever holds POSTED job ids. What made a Jobs card LOOK open was
+             that most of it was never behind the gate: these three sections
+             each mount the full tracker AND the step card's action row, with
+             no `isExpanded` in sight, so a "collapsed" card showed an
+             eight-step rail, a map and a row of buttons.
+
+             Gated now, which is what makes the collapsed card a summary. Two
+             things deliberately stay outside the gate:
+               · JobAddressLine, directly below — a Helpr heading out must not
+                 have to expand a card to see where they are going (owner's
+                 explicit carve-out; src/test/enRouteAddressVisible.test.tsx
+                 stands as written);
+               · OfferedActions — Accept/Decline on a direct offer is a
+                 time-boxed decision, not a detail, and the owner did not ask
+                 for it to move.
+
+             What replaces the rail on a collapsed card is the COMPACT rail at
+             the bottom of this card — 16px dots, no labels. */
           {/* Confirmed: show tracking + message */}
-          {isConfirmed && (
+          {isConfirmed && isExpanded && (
             <ConfirmedSection
               app={app}
               job={job}
@@ -535,7 +600,7 @@ function AppliedJobCardInner({
           )}
 
           {/* In Progress / Revision */}
-          {isActive && (
+          {isActive && isExpanded && (
             <ActiveJobSection
               app={app}
               job={job}
@@ -553,8 +618,22 @@ function AppliedJobCardInner({
             />
           )}
 
+          {/* AN OPEN DISPUTE SURVIVES THE COLLAPSE (the panel does not).
+              The section below went behind the expand with the other two
+              (owner, 2026-09-19), and `helperDisputeCopy.test.ts` exists
+              precisely to fail when that hides a live dispute from the Helpr —
+              it did, immediately. The poster's card already had the answer:
+              the CONTROLS go behind the expand, the SIGNAL does not. Same
+              badge, same words, same treatment, now literally the same
+              component on both ends of one dispute. */}
+          {isDisputed && !isExpanded && (
+            <DisputeOpenBadge
+              escalated={(job as { dispute_status?: string | null }).dispute_status === "escalated"}
+            />
+          )}
+
           {/* Disputed */}
-          {isDisputed && (
+          {isDisputed && isExpanded && (
             <DisputedSection
               app={app}
               job={job}
@@ -718,6 +797,43 @@ function AppliedJobCardInner({
                   <span>{formatRecurrenceInterval(job.recurrence_interval)}{job.recurrence_end_date && ` until ${formatShortDate(job.recurrence_end_date)}`}</span>
                 </div>
               )}
+            </div>
+          )}
+          {/* THE COLLAPSED CARD'S PROGRESS, AT ITS BOTTOM EDGE (owner,
+              2026-09-19: "should we [move] posted, offered accepted confirmed
+              etc ones like this to the bottom of the collapsed card and when
+              they want to see more info then they click in to expand").
+
+              16px dots, no labels — measured, not chosen: the full rail wants
+              8x28 + 7x6 = 266px and this card's inner box is 212px at a 320
+              viewport, so the labelled rail could only ever scroll there. The
+              compact one is 170px and fits outright at every width.
+
+              PURE RENDER — no query, no realtime channel. It reads the stamps
+              this card already holds through `deriveCurrentStatusIdx`, which
+              matters because the alternative (mounting <JobTracking> on every
+              collapsed card) would open one subscription per row of the list.
+              That is also what this change REMOVES: until today the three
+              sections above mounted the FULL tracker on every collapsed card.
+
+              Not on a minimal card — a not-selected or cancelled application
+              has no progress worth drawing — and not while expanded, where the
+              full labelled rail is a few rows up. */}
+          {!isMinimalCard && !isExpanded && (isOffered || isConfirmed || isActive || isDisputed) && (
+            <div className="px-4 pb-2.5 pt-1 flex justify-center">
+              <JobStepRailCompact
+                steps={railStepLabels(false)}
+                displayIdx={railDisplayIdx({
+                  currentStatusIdx: deriveCurrentStatusIdx({
+                    trackingStatus: initialTracking?.status ?? null,
+                    jobStatus: job.status,
+                    helperCompletedAt: job.helper_completed_at,
+                  }),
+                  includePostingSteps: false,
+                  helperId: job.helper_id,
+                })}
+                jobStatus={job.status}
+              />
             </div>
           )}
         </JobCardShell>

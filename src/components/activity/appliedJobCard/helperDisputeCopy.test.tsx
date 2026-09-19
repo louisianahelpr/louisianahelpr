@@ -247,17 +247,52 @@ describe("the poster's collapsed card announces the dispute", () => {
     ).toBe(true);
   });
 
-  it("the helper's panel is still outside the expand gate, which is the bar being matched", () => {
-    // If this ever moved behind an expand, the two sides would be equally
-    // silent and the test above would be matching nothing worth matching.
+  /* WHAT THIS CASE ASSERTED, AND WHY IT CHANGED — read this before touching it.
+     It required `{isDisputed && (<DisputedSection`, i.e. the helper's dispute
+     PANEL outside the expand gate, on the reasoning that if it ever moved
+     behind an expand "the two sides would be equally silent and the test above
+     would be matching nothing worth matching."
+
+     On 2026-09-19 the owner ruled that a Jobs card collapses like a Posts card
+     and the panel DID move behind the expand — and this case failed, exactly
+     as designed. The claim it protects is not "the panel is ungated"; it is
+     "a Helpr scrolling My Jobs can see that one of these jobs has a 72-hour
+     clock running on their money". The poster's card satisfies that with a
+     collapsed-only BADGE while its controls sit behind the expand, and the
+     helper's card now does the same, with literally the same component.
+
+     So the assertion moves to the signal rather than the panel — and it is
+     STRONGER than what it replaces, twice over: it reads the DOM instead of
+     matching source text, and it also pins the panel's disappearance, so a
+     card that showed neither badge nor panel fails here too. */
+  it("a collapsed helper card still announces an open dispute, which is the bar being matched", async () => {
+    const { render, screen } = await import("@testing-library/react");
+    const { DisputeOpenBadge } = await import("../DisputeOpenBadge");
     const src = readFileSync(resolve(__dirname, "../AppliedJobCard.tsx"), "utf8");
-    const disputed = src.indexOf("{isDisputed && (");
-    expect(disputed, "AppliedJobCard no longer renders DisputedSection on `isDisputed`").toBeGreaterThan(-1);
+
+    // The badge on the collapsed card, and the panel only once expanded.
     expect(
-      /\{isDisputed && \(\s*<DisputedSection/.test(src),
-      "AppliedJobCard's dispute panel is no longer rendered directly on `isDisputed` — " +
-        "check it has not been put behind `isExpanded`, which would hide an open " +
-        "dispute from the helper too.",
+      /\{isDisputed && !isExpanded && \(\s*<DisputeOpenBadge/.test(src),
+      "AppliedJobCard no longer shows a collapsed-card dispute badge. A Helpr scrolling " +
+        "My Jobs cannot tell that one of these jobs has a 72-hour clock running on their pay.",
     ).toBe(true);
+    expect(
+      /\{isDisputed && isExpanded && \(\s*<DisputedSection/.test(src),
+      "AppliedJobCard's dispute panel is no longer rendered on `isDisputed` at all — the " +
+        "badge is a signal, not a replacement for the panel behind the tap.",
+    ).toBe(true);
+
+    // BOTH CARDS MOUNT THE SAME COMPONENT, so the two ends of one dispute
+    // cannot drift into two vocabularies again.
+    const posted = readFileSync(resolve(__dirname, "../PostedJobCard.tsx"), "utf8");
+    expect(
+      /<DisputeOpenBadge/.test(posted),
+      "PostedJobCard no longer mounts the shared DisputeOpenBadge",
+    ).toBe(true);
+
+    // And it actually says the two things that matter, rendered.
+    render(<DisputeOpenBadge escalated={false} />);
+    expect(screen.getByText(/Dispute open/i)).toBeInTheDocument();
+    expect(screen.getByText(/Payment on hold/i)).toBeInTheDocument();
   });
 });

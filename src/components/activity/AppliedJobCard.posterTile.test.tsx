@@ -30,7 +30,14 @@ import type { AppliedApp, Job } from "./activityConstants";
 // The tracker no longer carries the tile (owner, 2026-09-19). A real marker
 // element, so "not in the tracker" and "the tracker is nevertheless mounted on
 // a collapsed card" are both assertions that can fail.
-vi.mock("@/components/JobTracking", () => ({
+/* PARTIAL MOCK, not a replacement. Only the <JobTracking> COMPONENT is stubbed
+   (it opens a realtime channel and runs queries). Its pure exports —
+   `deriveCurrentStatusIdx`, `railStepLabels`, `railDisplayIdx` — are the real
+   ones, because the collapsed card's compact rail (owner, 2026-09-19) computes
+   its dots from them. A mock that dropped them made every card throw, which is
+   a truthful failure: the card genuinely needs that derivation now. */
+vi.mock("@/components/JobTracking", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/JobTracking")>()),
   JobTracking: () => <div data-testid="tracker" />,
 }));
 vi.mock("@/components/JobConfirmation", () => ({
@@ -122,10 +129,18 @@ function renderCard(expanded: boolean, toggle = vi.fn()) {
 describe("Jobs card shows the poster as a profile tile, expanded only (item 2)", () => {
   it("collapsed: no poster name or profile link anywhere on the card", () => {
     renderCard(false);
-    // The tracker IS mounted while collapsed on this side — that is exactly why
-    // the tile needs its own gate. Assert the tracker is there, so this test
-    // cannot pass by the tracker simply being absent.
-    expect(screen.getByTestId("tracker")).toBeInTheDocument();
+    /* THE TRACKER IS NO LONGER MOUNTED WHILE COLLAPSED (owner, 2026-09-19:
+       "jobs should open collapsed just like post does"). This used to assert
+       `getByTestId("tracker")` here, precisely BECAUSE the helper's card drew
+       the full tracker on a collapsed card and the tile therefore needed its
+       own gate — see the file header.
+
+       The gate and the reason for it both still stand, so the assertion is
+       re-pointed rather than dropped: the collapsed card now draws the COMPACT
+       rail, which is a real element carrying the same job's progress, so this
+       case still cannot pass by the card simply rendering nothing. */
+    expect(document.querySelector("[data-job-rail-compact]")).toBeInTheDocument();
+    expect(screen.queryByTestId("tracker"), "the full tracker is back on a collapsed card").toBeNull();
     expect(screen.queryByText("Pierre B.")).toBeNull();
     expect(document.querySelector('a[href="/user/poster-1"]')).toBeNull();
   });

@@ -363,15 +363,22 @@ const CASES: Array<{
     primary: ["Start Working"],
   },
   {
-    // The GREEN PRIMARY IS LAST (owner, 2026-09-16: the primary belongs on the
-    // right). The slot is a flex row, so source order is left-to-right: the
-    // outline retry first, the glossy "Start Working" right-most. Swapped from
-    // ["Start Working", "Try My Location Again"], which put the outline to the
-    // RIGHT of the primary on the one state that shows both.
-    name: "Jobs · Arrived, legacy unverified arrival (Try My Location Again + Start Working share the slot)",
+    /* THE UNVERIFIED ARRIVAL, WITH ONE CONTROL INSTEAD OF TWO.
+       This case read ["Try My Location Again", "Start Working"] — the tracker
+       portalled both into the single primary slot, outline first so the glossy
+       one stayed right-most (owner, 2026-09-16). Owner, 2026-09-19: the retry
+       chip is removed and the pull-to-refresh gesture on My Jobs re-checks the
+       arrival instead (src/lib/arrivalRefresh.ts).
+
+       THE CASE IS KEPT, NOT DELETED, and its ceiling is what makes it worth
+       keeping: this is still the state that used to draw an extra control, so
+       `maxControls` fails the moment one comes back. The row is one control
+       narrower here and nowhere else. */
+    name: "Jobs · Arrived, unverified arrival (Start Working alone — no retry chip)",
     render: active(makeJob({ poster_confirmed_working_at: null }), "arrived"),
-    minControls: 4,
-    primary: ["Try My Location Again", "Start Working"],
+    minControls: 3,
+    maxControls: 3,
+    primary: ["Start Working"],
   },
   {
     // The pair singlePrimaryCta.test.tsx pinned at 2: the tracker's "Mark Job

@@ -1,12 +1,14 @@
 import { memo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RotateCcw, RefreshCw, Check, MapPinOff, AlertTriangle } from "lucide-react";
+import { CheckCircle2, RotateCcw, RefreshCw, Check, MapPinOff } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
-import { JobTracking } from "@/components/JobTracking";
+import { JobTracking, deriveCurrentStatusIdx, railDisplayIdx, railStepLabels } from "@/components/JobTracking";
+import { JobStepRailCompact } from "./JobStepRailCompact";
+import { DisputeOpenBadge } from "./DisputeOpenBadge";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "./JobCardShell";
@@ -362,24 +364,13 @@ function PostedJobCardInner({
                 `disputed` has no chip of its own — the job buckets to "Needs
                 you", alongside every ordinary job awaiting a decision. */}
             {!isExpanded && job.status === "disputed" && (
-              <div
-                className="px-4 py-2 flex items-center gap-1.5"
-                style={{
-                  borderTop: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-                  background: "hsl(var(--burnt-sienna) / 0.08)",
-                }}
-              >
-                <AlertTriangle className="w-3 h-3 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
-                <span
-                  className="font-sans uppercase text-ds-10"
-                  style={{ color: "hsl(var(--sienna-ink))", letterSpacing: "0.18em" }}
-                >
-                  {job.dispute_status === "escalated" ? "Admin reviewing" : "Dispute open"}
-                </span>
-                <span className="font-sans text-ds-11 ml-auto" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                  Payment on hold
-                </span>
-              </div>
+              /* LIFTED INTO A SHARED COMPONENT, 2026-09-19. The markup was
+                 written out here and the comment above claimed the helper side
+                 "already did this" — true until the same day's collapse ruling
+                 put AppliedJobCard's dispute panel behind its expand. Rather
+                 than hand-write a second strip over there, both cards mount
+                 this one: one dispute, one treatment, on both ends of it. */
+              <DisputeOpenBadge escalated={job.dispute_status === "escalated"} />
             )}
             {/* 6e — the collapsed card says you OWE a confirmation.
                 (owner, 2026-09-19: controls stay inside the expanded card, but
@@ -412,6 +403,47 @@ function PostedJobCardInner({
                 card (V6). */}
             {!isExpanded && contested && trackerBlock && (
               <div className="px-4 py-2.5">{trackerBlock}</div>
+            )}
+            {/* AND ON EVERY OTHER STATUS, THE COMPACT RAIL AT THE BOTTOM
+                (owner, 2026-09-19: "should we [move] posted, offered accepted
+                confirmed etc ones like this to the bottom of the collapsed
+                card and when they want to see more info then they click in to
+                expand"). The four names in that sentence are this rail's own
+                step labels.
+
+                16px dots, no labels — measured, not chosen: the full rail with
+                the posting steps wants 8x28 + 7x6 = 266px and this card's
+                inner box is 212px at a 320 viewport, which is why the labelled
+                rail scrolls there today. The compact one is 170px and fits
+                outright at 320, 375 and 1440 alike.
+
+                NOT ON A CONTESTED CARD: that one keeps the FULL tracker while
+                collapsed (owner, the same day — "the tracker should not go
+                away for a dispute or revision"), and drawing both would be the
+                same rail twice on one card. The two conditions are exact
+                complements, so every collapsed card with a helper shows
+                exactly one of them.
+
+                `includePostingSteps` matches the expanded tracker directly
+                above it, so the collapsed and expanded rails have the same
+                number of dots in the same order — it is one rail at two
+                densities, which is the whole of the owner's ask. */}
+            {!isExpanded && !contested && showsTracker && !unfunded && (
+              <div className="px-4 pb-2.5 pt-0.5 flex justify-center">
+                <JobStepRailCompact
+                  steps={railStepLabels(true)}
+                  displayIdx={railDisplayIdx({
+                    currentStatusIdx: deriveCurrentStatusIdx({
+                      trackingStatus: initialTracking?.status ?? null,
+                      jobStatus: job.status,
+                      helperCompletedAt: job.helper_completed_at,
+                    }),
+                    includePostingSteps: true,
+                    helperId: job.helper_id,
+                  })}
+                  jobStatus={job.status}
+                />
+              </div>
             )}
             {/* The series, made visible — parents only (see SeriesStrip). */}
             {!job.parent_job_id && (
@@ -448,7 +480,27 @@ function PostedJobCardInner({
                 brief, the live tracker, the state chips, the countdowns, the
                 revision panel — appears on tap. */}
             {isExpanded && (
-            <div className="px-4 py-2.5 space-y-2">
+            /* GROUPED WITH THE META, NOT WITH THE TRACKER (owner, 2026-09-19:
+               the description "should be under the location date and time on
+               expansion. not with the live tracker box").
+
+               It was ALREADY under the meta in document order — that is why
+               nothing moved here. What was wrong was PROXIMITY, and the
+               numbers say it plainly:
+
+                 meta -> description   10px (title bar pb-2.5) + 10px (pt-2.5) = 20px
+                 description -> tracker 8px (space-y-2)
+
+               The description sat twice as far from the line it belongs to as
+               from the block it does not, so it read as the tracker's caption.
+               Inverted, with no element moved and nothing added:
+
+                 meta -> description   10px + 4px (pt-1)            = 14px
+                 description -> tracker 8px + 12px (the pt-3 below) = 20px
+
+               `pb-2.5` keeps the block's own bottom edge exactly where it was;
+               only the top tightens. */
+            <div className="px-4 pt-1 pb-2.5 space-y-2" data-job-card-body="">
               {/* Under the title on EVERY width (owner: "move back under
                 title globally"). This was `lg:hidden`, with a second copy
                 lifted into the title bar on desktop — two arrangements of one
@@ -621,8 +673,15 @@ function PostedJobCardInner({
                   it also shows the ORDER the steps happen in. */}
 
               {/* Visible live tracking — built once above (`trackerBlock`),
-                  because a CONTESTED job also draws it while collapsed. */}
-              {trackerBlock}
+                  because a CONTESTED job also draws it while collapsed.
+
+                  `pt-3` is the other half of the description's regrouping (see
+                  the block's own note above): it pushes the tracker 20px clear
+                  of the brief, so the brief reads with the meta line above it
+                  rather than as this box's caption. PADDING, not margin —
+                  `space-y-2` sets `margin-top` on every sibling here and its
+                  `> * + *` selector outranks a plain `mt-*` on the child. */}
+              <div className="pt-3" data-job-card-tracker-gap="">{trackerBlock}</div>
 
               {/* WHY THERE IS NO MAP — the honest state for an un-geocoded job.
                   (owner: "this should show map tracker when they're on the way")

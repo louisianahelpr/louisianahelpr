@@ -14,7 +14,14 @@ import type { Job } from "./activityConstants";
 // The tracker no longer carries the tile at all (owner, 2026-09-19 — third
 // position in five days; see jobCardPerson.tsx). A marker, so the assertions
 // below can measure against it rather than against nothing.
-vi.mock("@/components/JobTracking", () => ({
+/* PARTIAL MOCK, not a replacement. Only the <JobTracking> COMPONENT is stubbed
+   (it opens a realtime channel and runs queries). Its pure exports —
+   `deriveCurrentStatusIdx`, `railStepLabels`, `railDisplayIdx` — are the real
+   ones, because the collapsed card's compact rail (owner, 2026-09-19) computes
+   its dots from them. A mock that dropped them made every card throw, which is
+   a truthful failure: the card genuinely needs that derivation now. */
+vi.mock("@/components/JobTracking", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/JobTracking")>()),
   JobTracking: () => <div data-testid="tracker" />,
 }));
 vi.mock("@/components/JobConfirmation", () => ({ JobConfirmation: () => null }));

@@ -223,15 +223,26 @@ describe("the GPS nudge — encouragement, never an accusation", () => {
     },
   };
 
-  it("states the BENEFIT and offers the one tap, on a check-in with no GPS", () => {
+  /* THE "ONE TAP" HALF OF THIS CASE IS GONE, and that is the owner's ruling
+     rather than a regression (2026-09-19, later the same day): the "Try My
+     Location Again" chip is removed from the row and the pull-to-refresh
+     gesture on My Jobs performs the re-check instead
+     (src/lib/arrivalRefresh.ts). The BENEFIT line stays exactly as it was —
+     it is what tells a Helpr why turning Location on is worth anything — so
+     what this case asserts now is the line, plus the absence of the control it
+     used to name. It is not weakened: the absence is asserted, and the two
+     "goes quiet" cases below still prove the line itself can disappear. */
+  it("states the BENEFIT on a check-in with no GPS, and offers no retry control", () => {
     renderHelperTracker(CHECKED_IN_NO_GPS);
     const text = document.body.textContent ?? "";
     // "proof on your side" was the pre-2026-09-19-gate wording of the same
     // benefit; the sentence was cut to one line and the phrasing with it.
     expect(text, "what Location buys them").toMatch(/GPS proof you were here/i);
     expect(text).toMatch(/disputed/i);
-    // The one tap, and it is on screen beside the line that names the benefit.
-    expect(screen.getByRole("button", { name: /Try My Location Again/i })).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: /Try My Location Again/i }),
+      "the retry chip is back in the row — the refresh gesture owns this now",
+    ).toBeNull();
   });
 
   /**
@@ -245,6 +256,9 @@ describe("the GPS nudge — encouragement, never an accusation", () => {
    * and the buttons, "turn Location on" in both, "Try My Location Again" in
    * both. So this reads the two rendered paragraphs off the real component and
    * asserts neither says the other's job.
+   *
+   * It now also catches the DANGLING-REFERENCE class the button's removal
+   * created — see the `hits` assertion at the end.
    */
   it("does not say the same thing twice: the blocker is amber-only, the GPS ask muted-only", () => {
     renderHelperTracker(CHECKED_IN_NO_GPS);
@@ -260,9 +274,17 @@ describe("the GPS nudge — encouragement, never an accusation", () => {
     // Muted: the benefit, and nothing about the poster's tap.
     expect(muted!, `muted carries the blocker: ${muted}`).not.toMatch(/Confirm They Arrived|person who posted/i);
 
-    // "Try My Location Again" appears exactly ONCE on the card — on the button.
+    // "Try My Location Again" appears NOWHERE on the card any more. It used to
+    // be asserted at exactly 1 — on the button — because the prose kept
+    // duplicating the button's own words. The button is gone (owner,
+    // 2026-09-19), so any occurrence at all is now a DANGLING REFERENCE: copy
+    // naming a control the Helpr cannot find. That is the stronger assertion,
+    // not the weaker one.
     const hits = (document.body.textContent ?? "").match(/Try My Location Again/g) ?? [];
-    expect(hits, `"Try My Location Again" is printed ${hits.length}× on one card`).toHaveLength(1);
+    expect(
+      hits,
+      `the card names "Try My Location Again" ${hits.length}× and no such control exists`,
+    ).toHaveLength(0);
 
     // And the whole block is materially shorter than the ten lines measured.
     const total = amber!.length + muted!.length;

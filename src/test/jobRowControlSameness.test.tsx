@@ -321,11 +321,18 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
     minControls: 4,
   },
   {
-    // THE OTHER HALF OF THE SCREENSHOT: an outline "Try My Location Again"
-    // sharing the primary slot with the glossy "Start Working".
-    name: "Jobs · Arrived, unverified — Try My Location Again + Start Working",
+    /* THE OTHER HALF OF THE SCREENSHOT WAS an outline "Try My Location Again"
+       sharing the primary slot with the glossy "Start Working" — two different
+       SHAPES in one slot, which is what this file exists to catch. Owner,
+       2026-09-19: that chip is gone and the pull-to-refresh gesture on My Jobs
+       does the re-check (src/lib/arrivalRefresh.ts).
+
+       The state is kept because it is still a real state a Helpr reaches; what
+       it proves now is that every control on it is the one shape, with the row
+       one control shorter. */
+    name: "Jobs · Arrived, unverified — Start Working (retry chip removed)",
     render: active(makeJob({ poster_confirmed_working_at: null }), "arrived"),
-    minControls: 4,
+    minControls: 3,
   },
   {
     // ON SITE with the before photo still owed — the capture control the owner

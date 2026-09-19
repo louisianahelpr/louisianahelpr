@@ -465,15 +465,30 @@ describe("the step row's primary slot puts the glossy primary last", () => {
     return { view, primaryHost };
   }
 
-  it("the retry outline sits LEFT of the green primary, never right of it", () => {
+  /* WHAT THIS CASE USED TO PIN. The tracker portalled TWO controls into the
+     row's single primary slot in this state — its glossy next-step CTA and an
+     outline "Try My Location Again" — and source order decides left-to-right
+     in a flex row, so the outline had to come first for the green one to stay
+     right-most (owner, 2026-09-16, V2/V3).
+
+     Owner, 2026-09-19: the retry chip is removed and the pull-to-refresh
+     gesture on My Jobs does the re-check (src/lib/arrivalRefresh.ts). With one
+     control left there is no order to assert — so this asserts the thing that
+     replaced it, which is stronger: the slot holds EXACTLY ONE control, it is
+     the glossy primary, and the removed chip is not back. A slot that
+     silently regained a second control is the regression this now catches. */
+  it("the primary slot holds exactly one control, and it is the glossy primary", () => {
     const { primaryHost } = renderInStepRow();
     const buttons = Array.from(primaryHost.querySelectorAll("button"));
-    // Both controls are on the row — otherwise this proves nothing.
-    expect(buttons.length).toBe(2);
-    expect(buttons.some((b) => /Try My Location Again/.test(b.textContent ?? ""))).toBe(true);
-    const glossy = buttons.filter((b) => b.classList.contains("btn-grad-primary"));
-    expect(glossy).toHaveLength(1);
-    // RIGHT-MOST = LAST in a flex row.
-    expect(buttons[buttons.length - 1]).toBe(glossy[0]);
+    expect(
+      buttons.length,
+      `the primary slot holds ${buttons.length} controls: ` +
+        buttons.map((b) => JSON.stringify(b.textContent)).join(", "),
+    ).toBe(1);
+    expect(
+      buttons.some((b) => /Try My Location Again/.test(b.textContent ?? "")),
+      "the retry chip is back in the primary slot",
+    ).toBe(false);
+    expect(buttons[0].classList.contains("btn-grad-primary"), "the one control is not the glossy primary").toBe(true);
   });
 });

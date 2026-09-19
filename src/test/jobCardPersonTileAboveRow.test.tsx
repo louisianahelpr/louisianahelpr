@@ -71,7 +71,14 @@ vi.mock("@/components/PhotoProof", () => ({
    INSIDE it, so a stub that rendered nothing would make "the tile is not in the
    tracker" true by construction. This one is a real element the position
    assertions below can be measured against. */
-vi.mock("@/components/JobTracking", () => ({
+/* PARTIAL MOCK, not a replacement. Only the <JobTracking> COMPONENT is stubbed
+   (it opens a realtime channel and runs queries). Its pure exports —
+   `deriveCurrentStatusIdx`, `railStepLabels`, `railDisplayIdx` — are the real
+   ones, because the collapsed card's compact rail (owner, 2026-09-19) computes
+   its dots from them. A mock that dropped them made every card throw, which is
+   a truthful failure: the card genuinely needs that derivation now. */
+vi.mock("@/components/JobTracking", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/JobTracking")>()),
   JobTracking: () => <div data-testid="tracker" />,
   deriveCurrentStatusIdx: () => 0,
   STATUS_IDX: { assigned: 0, confirmed: 1, job_confirmed: 2, on_the_way: 3, arrived: 4, working: 5, done: 6 },
@@ -265,12 +272,19 @@ describe("Posts card: the Helpr tile is the last thing before the action row", (
     expect(profileLinks(`/user/${HELPER}`)).toHaveLength(0);
   });
 
-  it("collapsed + disputed: the tracker is on the card, the tile is NOT", () => {
-    // The one collapsed state that draws a tracker on this card (187f61c3f).
-    // It is the state where a tile riding inside the tracker would leak, which
-    // is why V6 is gated on the tile itself and not on the tracker.
+  it("collapsed + disputed: the FULL tracker is on the card, the tile is NOT", () => {
+    // The one collapsed state that draws the full tracker on this card
+    // (187f61c3f) — and the state where a tile riding inside the tracker would
+    // leak, which is why V6 is gated on the tile itself and not the tracker.
+    // Every other collapsed status gets the compact rail instead; the two are
+    // exact complements, asserted below.
     renderPosted({ ...baseJob, status: "disputed" } as Job, false);
     expect(screen.getByTestId("tracker")).toBeInTheDocument();
+    expect(
+      document.querySelector("[data-job-rail-compact]"),
+      "a contested collapsed card drew the full tracker AND the compact rail — the same " +
+        "rail twice on one card",
+    ).toBeNull();
     expect(profileLinks(`/user/${HELPER}`)).toHaveLength(0);
   });
 
@@ -304,11 +318,15 @@ describe("Jobs card: the Posted-by tile is the last thing before the action row"
     expect(screen.getByTestId("tracker").contains(tile)).toBe(false);
   });
 
-  it("collapsed: the tracker renders but the poster's name does NOT (V6)", () => {
+  it("collapsed: the compact rail renders but the poster's name does NOT (V6)", () => {
     renderApplied(makeApp(), false);
-    // THE POINT OF THIS SIDE: the helper's tracker is NOT behind the expand, so
-    // this assertion cannot pass by the tracker being absent.
-    expect(screen.getByTestId("tracker")).toBeInTheDocument();
+    /* The helper's FULL tracker used to render on a collapsed card, which is
+       why the tile needed its own gate. Owner, 2026-09-19 put it behind the
+       expand and replaced it with the 16px rail, so the assertion moves to
+       that — the collapsed card is still drawing this job's progress, so this
+       case cannot pass by the card rendering nothing at all. */
+    expect(document.querySelector("[data-job-rail-compact]")).toBeInTheDocument();
+    expect(screen.queryByTestId("tracker"), "the full tracker is back on a collapsed card").toBeNull();
     expect(screen.queryByText("Pierre B.")).toBeNull();
     expect(profileLinks(`/user/${POSTER}`)).toHaveLength(0);
   });

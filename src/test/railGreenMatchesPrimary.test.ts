@@ -21,6 +21,13 @@
  * The pip takes `--bark`, the gradient's own dominant mid stop, which is what
  * makes the two the same green to the eye.
  *
+ * ── WHERE THE RULE LIVES NOW ──────────────────────────────────────────────
+ * It moved out of JobTracking's render on 2026-09-19, into
+ * `src/components/activity/jobRailTone.ts`, because the owner's collapsed-rail
+ * ruling added a SECOND rail painting the same dots at 16px and a second copy
+ * of a colour rule is the drift this file exists to catch. Both rails call
+ * `railStepPaint`; this file reads the one definition.
+ *
  * ── WHY THIS FILE PARSES SOURCE INSTEAD OF READING getComputedStyle ───────
  * jsdom applies no stylesheet, so a rendered pip has no resolved colour to
  * read; `alarmColourInvariant.test.ts` next door parses for exactly this
@@ -36,16 +43,20 @@
  * asserts they are NOT green, so a future "make the rail one colour" cannot
  * quietly flatten them here.
  *
- * @mutate src/components/JobTracking.tsx | ? { background: "hsl(var(--bark))", color: "hsl(var(--parchment))" } | ? { background: "hsl(var(--success-ink))", color: "hsl(var(--parchment))" }
- * @mutate src/components/JobTracking.tsx | ? { fill: "hsl(var(--bark))", ring: "hsl(var(--bark) / 0.30)", ringEnd: "hsl(var(--bark) / 0)" } | ? { fill: "hsl(var(--success-ink))", ring: "hsl(var(--success-ink) / 0.30)", ringEnd: "hsl(var(--success-ink) / 0)" }
+ * @mutate src/components/activity/jobRailTone.ts |     fill: "hsl(var(--bark))",\n    ring: "hsl(var(--bark) / 0.30)", |     fill: "hsl(var(--success-ink))",\n    ring: "hsl(var(--bark) / 0.30)",
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { railStepTone } from "@/components/activity/jobRailTone";
 
 const ROOT = resolve(__dirname, "../..");
 const CSS = readFileSync(resolve(ROOT, "src/index.css"), "utf8");
-const TRACKER = readFileSync(resolve(ROOT, "src/components/JobTracking.tsx"), "utf8");
+const RULE = readFileSync(resolve(ROOT, "src/components/activity/jobRailTone.ts"), "utf8");
+/** Comments stripped — the module NAMES `--success-ink` in prose, recording
+ *  what the green used to be, and a guard that read prose as code would fail
+ *  on its own history note. Declarations only. */
+const RULE_CODE = RULE.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
 /**
  * The `H S% L%` triple a token resolves to in the LIGHT theme.
@@ -62,26 +73,42 @@ function resolveToken(name: string, which: "first" | "last"): string {
   return which === "first" ? hits[0] : hits[hits.length - 1];
 }
 
-/** Every `hsl(var(--x))` fill the rail paints a COMPLETED step with. */
+/**
+ * The token the `green` tone paints with — the ONE fill every completed step
+ * and the whole finished rail wear.
+ *
+ * `railStepTone` is imported below and swept over the rail's entire state
+ * space, so "which steps are green" is asserted against the real function
+ * rather than parsed; only the COLOUR that tone resolves to has to be read out
+ * of source, because jsdom applies no stylesheet.
+ */
+function greenToken(): string {
+  const block = /\n  green: \{[\s\S]*?fill: "hsl\(var\(--([\w-]+)\)\)"/.exec(RULE);
+  expect(
+    block,
+    "the `green` tone's fill is gone from jobRailTone.ts — re-read the rule before " +
+      "trusting this file, it no longer describes the rail",
+  ).not.toBeNull();
+  return block![1];
+}
+
+/** Every distinct tone a COMPLETED step can wear, from the real rule. */
 function completedPipTokens(): string[] {
-  const found: string[] = [];
-  // The passed-step branch.
-  const passed = /isPassed \|\| \(isActive && allDone\)\s*\n\s*(?:\/\*[\s\S]*?\*\/\s*\n\s*)*\?\s*\{ background: "hsl\(var\(--([\w-]+)\)\)"/.exec(TRACKER);
-  expect(
-    passed,
-    "the `isPassed || (isActive && allDone)` pip branch is gone from JobTracking.tsx — " +
-      "re-read the step map before trusting this file, it no longer describes the rail",
-  ).not.toBeNull();
-  found.push(passed![1]);
-  // The final Done pip on a finished rail (`currentTone`, allDone branch).
-  const done = /const currentTone = allDone\s*\n\s*\?\s*\{ fill: "hsl\(var\(--([\w-]+)\)\)"/.exec(TRACKER);
-  expect(
-    done,
-    "`currentTone`'s allDone branch changed shape — the Done pip on a finished rail is " +
-      "the one green that must match the others, and this file can no longer find it",
-  ).not.toBeNull();
-  found.push(done![1]);
-  return found;
+  // Swept, not assumed: every (status x cursor) the rail can be in, collecting
+  // the tones that mean "this step completed". If a future edit splits green
+  // into two tones, this picks both up and the assertions below check both.
+  const tones = new Set<string>();
+  const steps = 8;
+  for (const jobStatus of ["open", "accepted", "in_progress", "completed", "disputed"]) {
+    for (let displayIdx = 0; displayIdx < steps; displayIdx++) {
+      for (let idx = 0; idx < steps; idx++) {
+        const t = railStepTone({ idx, displayIdx, stepCount: steps, jobStatus });
+        if (t === "green") tones.add(greenToken());
+      }
+    }
+  }
+  expect(tones.size, "no step in the rail's whole state space is ever green").toBeGreaterThan(0);
+  return [...tones];
 }
 
 /** The token stops of `.btn-grad-primary`'s radial gradient, in order. */
@@ -97,7 +124,7 @@ describe("the rail's completed green IS the primary button's green", () => {
   it("every completed pip paints from a token the primary gradient is built from", () => {
     const stops = primaryGradientStops();
     const pips = completedPipTokens();
-    expect(pips.length, "no completed-pip branches found — the inventory is empty").toBe(2);
+    expect(pips.length, "no completed-pip tones found — the inventory is empty").toBeGreaterThan(0);
     for (const token of pips) {
       expect(
         stops,
@@ -127,14 +154,13 @@ describe("the rail's completed green IS the primary button's green", () => {
     }
   });
 
-  it("the emerald --success-ink is no longer anywhere in the rail's pip fills", () => {
+  it("the emerald --success-ink is no longer anywhere in the rail's tone table", () => {
     // The specific regression: `--success-ink` (142 50% 30%) beside a `--bark`
-    // (70 20% 33%) button. Named, so a revert is loud.
-    const railBlock = /const currentTone = allDone[\s\S]*?: \{ background: "hsl\(var\(--olivewood\) \/ 0\.08\)"/.exec(TRACKER);
-    expect(railBlock, "the rail's pip style block moved — re-anchor this assertion").not.toBeNull();
+    // (70 20% 33%) button. Named, so a revert is loud. The whole table is one
+    // module now, so this reads all five tones rather than one ternary chain.
     expect(
-      railBlock![0].includes("--success-ink"),
-      "a step pip paints --success-ink again. That is the emerald the owner reported as " +
+      RULE_CODE.includes("--success-ink"),
+      "a rail tone paints --success-ink again. That is the emerald the owner reported as " +
         "'a different shade' from the primary button's olive.",
     ).toBe(false);
   });
@@ -142,8 +168,8 @@ describe("the rail's completed green IS the primary button's green", () => {
   it("the alarm and amber pips are NOT flattened into the green", () => {
     // In scope: the green. Out of scope, and load-bearing: red means "this is
     // the step that went wrong", amber means "you are on this step".
-    expect(TRACKER, "the disputed pip must stay --destructive").toMatch(/background: "hsl\(var\(--destructive\)\)"/);
-    expect(TRACKER, "the current-step pip must stay --amber-solid").toMatch(/fill: "hsl\(var\(--amber-solid\)\)"/);
+    expect(RULE, "the disputed pip must stay --destructive").toMatch(/hsl\(var\(--destructive\)\)/);
+    expect(RULE, "the current-step pip must stay --amber-solid").toMatch(/hsl\(var\(--amber-solid\)\)/);
     const stops = primaryGradientStops();
     for (const token of ["destructive", "amber-solid"]) {
       expect(

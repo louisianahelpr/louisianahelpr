@@ -25,7 +25,14 @@ import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import type { Job } from "./activityConstants";
 
-vi.mock("@/components/JobTracking", () => ({
+/* PARTIAL MOCK, not a replacement. Only the <JobTracking> COMPONENT is stubbed
+   (it opens a realtime channel and runs queries). Its pure exports —
+   `deriveCurrentStatusIdx`, `railStepLabels`, `railDisplayIdx` — are the real
+   ones, because the collapsed card's compact rail (owner, 2026-09-19) computes
+   its dots from them. A mock that dropped them made every card throw, which is
+   a truthful failure: the card genuinely needs that derivation now. */
+vi.mock("@/components/JobTracking", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/JobTracking")>()),
   JobTracking: ({ personTile }: { personTile?: ReactNode }) => (
     <div data-testid="tracker">{personTile}</div>
   ),

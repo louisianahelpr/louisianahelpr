@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import { Constants } from "@/integrations/supabase/types";
 import { JOB_STATUS_COLORS, FALLBACK_STATUS_COLOR } from "@/lib/statusColors";
 import { deriveCurrentStatusIdx, STATUS_IDX } from "@/components/JobTracking";
+import { railStepTone, type RailTone } from "@/components/activity/jobRailTone";
 
 /**
  * ONE ALARM COLOUR, ONE MEANING.
@@ -121,16 +122,27 @@ describe("status colour comes from statusColors.ts", () => {
 // ===========================================================================
 
 /**
- * The rail's colour rule, transcribed from JobTracking.tsx (the step map at
- * ~1276-1360). It is transcribed rather than imported because the rule lives
- * inline inside a 1500-line component's render and there is no export to reach
- * — and this lane must not restructure a file twelve agents are editing.
+ * The rail's colour rule — IMPORTED, not transcribed.
  *
- * The transcription is GUARDED: `it("the transcription still matches the source")`
- * below fails if either predicate is edited, so this cannot silently describe a
- * rail that no longer exists.
+ * This block used to be a hand-copy of the ternary chain inside JobTracking's
+ * render, with a comment explaining that there was no export to reach and a
+ * companion test whose only job was to notice when the copy went stale. That
+ * is a copy of a colour rule, inside the file that exists to stop colour rules
+ * being copied — and it eventually cost what copies cost: on 2026-09-19 the
+ * completed green changed from `--success-ink` to `--bark` and this
+ * transcription still described the old one.
+ *
+ * The rule now lives in `src/components/activity/jobRailTone.ts` and BOTH
+ * rails call it — the full labelled one and the 16px collapsed one the owner
+ * asked for the same day. So this file asserts over the real function, and
+ * "the compact rail uses the same colour vocabulary as the expanded one" needs
+ * no separate test: it is the same call.
+ *
+ * What replaces the staleness guard is `it("both rails actually use it")`
+ * below — without that, importing the rule would make every assertion here
+ * true of a module nothing renders.
  */
-type Tone = "alarm" | "amber" | "green" | "bark" | "bark-tint" | "grey";
+type Tone = RailTone;
 
 function railTones(opts: {
   steps: readonly string[];
@@ -138,65 +150,33 @@ function railTones(opts: {
   jobStatus: string;
 }): Tone[] {
   const { steps, displayIdx, jobStatus } = opts;
-  const allDone = displayIdx === steps.length - 1;
-  return steps.map((key, idx) => {
-    const isActive = idx <= displayIdx;
-    const isCurrent = idx === displayIdx;
-    const isPassed = idx < displayIdx;
-    // JobTracking.tsx:1387 — `const disputedStep = jobStatus === "disputed" && idx === displayIdx`
-    //
-    // 2026-08-31: this was `disputedWorking = … && s.key === "working"`, which
-    // pinned red to the Working step *wherever the cursor actually was*. On a
-    // disputed job carrying a completion stamp the cursor sits on Done, so
-    // Working AND Done both went red — the "both can't be red" the owner
-    // reported. Keying the pin to the CURRENT step instead makes "at most one
-    // alarm" true by construction rather than by careful arithmetic: the
-    // predicate can match exactly one index, always.
-    const disputedStep = jobStatus === "disputed" && idx === displayIdx;
-    if (disputedStep) return "alarm";
-    if (isCurrent) {
-      // JobTracking.tsx: `const currentTone = allDone ? --success-ink : --amber-solid`.
-      // The old ternary chain painted the current step ALARM under a dispute and
-      // BARK otherwise — a second green a shade off --success-ink. Both were
-      // defects the owner named ("both can't be red"; "shouldn't be 2 different
-      // green"). Red is now carried solely by `disputedStep` above, so amber
-      // means exactly "on this step, not finished" and green means exactly
-      // "this step completed".
-      return allDone ? "green" : "amber";
-    }
-    if (isPassed || (isActive && allDone)) return "green";
-    if (isActive) return "bark-tint";
-    return "grey";
-  });
+  return steps.map((_key, idx) =>
+    railStepTone({ idx, displayIdx, stepCount: steps.length, jobStatus }),
+  );
 }
 
 describe("the progress rail's colour rule", () => {
   const SOURCE = repoFile("src/components/JobTracking.tsx");
 
-  it("the transcription still matches the source (guards this block going stale)", () => {
+  it("both rails actually use the imported rule — otherwise this file is vacuous", () => {
+    /* THE REPLACEMENT FOR THE OLD TRANSCRIPTION GUARD. Importing the rule
+       removes the drift, but it also means every assertion below would stay
+       green if the components quietly went back to painting their own colours.
+       So: both files that draw dots must call it. */
     expect(
       SOURCE,
-      "the `disputedStep` pin is gone from JobTracking.tsx — railTones() in this " +
-        "test no longer describes the rail. Re-read the step map and re-transcribe. " +
-        "(If it reverted to a key-based pin like `s.key === \"working\"`, that is the " +
-        "regression this file exists to catch: it can match a step that is not the " +
-        "cursor, which is how two dots went red at once.)",
-    ).toMatch(/disputedStep\s*=\s*jobStatus === "disputed" && idx === displayIdx/);
+      "JobTracking.tsx no longer calls railStepPaint — the full rail is painting its own " +
+        "colours again and this file is asserting a rule nothing renders",
+    ).toMatch(/railStepPaint\(/);
+    const COMPACT = repoFile("src/components/activity/JobStepRailCompact.tsx");
     expect(
-      SOURCE,
-      "`currentTone` changed shape — re-transcribe railTones(). It should be the " +
-        "two-branch allDone ? --success-ink : --amber-solid, NOT a ternary chain " +
-        "keyed on jobStatus (that chain is what put two reds on one card).",
-    ).toMatch(/currentTone\s*=\s*allDone[\s\S]{0,200}--amber-solid/);
-    expect(
-      SOURCE,
-      "the current step paints from --destructive again — red must be carried " +
-        "ONLY by disputedStep, or two steps can go alarm red at once",
-    ).not.toMatch(/currentTone\s*=[\s\S]{0,300}--destructive/);
-    expect(
-      SOURCE,
-      "disputedStep no longer paints --destructive — the alarm colour moved",
-    ).toMatch(/hsl\(var\(--destructive\)\)/);
+      COMPACT,
+      "JobStepRailCompact.tsx no longer calls railStepPaint — the collapsed rail has grown " +
+        "its own colour vocabulary, which is the 'two different green' defect in a new place",
+    ).toMatch(/railStepPaint\(/);
+    const RULE = repoFile("src/components/activity/jobRailTone.ts");
+    expect(RULE, "the alarm tone no longer paints --destructive").toMatch(/hsl\(var\(--destructive\)\)/);
+    expect(RULE, "the current-step tone no longer paints --amber-solid").toMatch(/hsl\(var\(--amber-solid\)\)/);
   });
 
   it("AT MOST ONE step may carry the alarm colour", () => {

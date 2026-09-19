@@ -19,9 +19,13 @@ import { report } from "@/lib/errorLogger";
 import { BEFORE_PHOTO_GATE_REASON, lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { railStepPaint } from "@/components/activity/jobRailTone";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
 import { JobStepRowSlot, useInJobStepRow } from "@/components/activity/jobStepRow";
-import { JobActionChip, JobStepPrimaryButton } from "@/components/activity/JobActionRow";
+/* `JobActionChip` was imported here for the "Try My Location Again" chip
+   only; that control is gone (owner, 2026-09-19) and this component draws no
+   chips of its own again — just its one primary. */
+import { JobStepPrimaryButton } from "@/components/activity/JobActionRow";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
 // pulled in when a tracking card between On the Way and Done is visible.
@@ -58,6 +62,30 @@ type TrackerStep = {
   icon: LucideIcon;
   color: string;
 };
+
+/** The step LABELS, in order, for a surface that draws the rail without
+ *  mounting this component — the collapsed card's compact rail
+ *  (JobStepRailCompact). Exported as labels rather than the whole array so the
+ *  icons and the action phrasing stay private to the full rail. */
+export function railStepLabels(includePostingSteps: boolean): string[] {
+  return (includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES).map((s) => s.label);
+}
+
+/** Where the compact rail's cursor sits, given the same inputs the full rail
+ *  derives from. One definition of the `includePostingSteps` offset, so the
+ *  two rails cannot disagree about which step a job is on. */
+export function railDisplayIdx({
+  currentStatusIdx,
+  includePostingSteps,
+  helperId,
+}: {
+  currentStatusIdx: number;
+  includePostingSteps: boolean;
+  helperId: string | null | undefined;
+}): number {
+  if (!includePostingSteps) return currentStatusIdx;
+  return helperId ? PRE_STATUSES.length + currentStatusIdx : 0;
+}
 
 const STATUSES: TrackerStep[] = [
   // Step 0 is never the TARGET of the next-step button (nextIdx is always
@@ -671,8 +699,6 @@ export function JobTracking({
   // The tracker's final step requests the payout, so it asks first — see the
   // BrandConfirmDialog at the bottom of the helper controls.
   const [confirmDoneOpen, setConfirmDoneOpen] = useState(false);
-  /** In-flight "Try My Location Again" — see `retryArrivalVerification`. */
-  const [retryingArrival, setRetryingArrival] = useState(false);
   /**
    * LEGACY ONLY since 2026-09-19. Why an "I've Arrived" tap was REFUSED, back
    * when `mark_helper_arrival` refused far or fix-less arrivals and wrote
@@ -1000,79 +1026,17 @@ export function JobTracking({
     }));
   };
 
-  /**
-   * RE-READ THE LOCATION ON AN ARRIVAL THAT IS NOT YET GPS-CONFIRMED.
-   *
-   * NOT a way past the gate — there isn't one, and this control must never
-   * imply there is. The poster's "Confirm They Arrived" is the only thing that
-   * unblocks Working and Done (owner, 2026-09-19). What a successful re-read
-   * buys the Helpr is EVIDENCE: a GPS-confirmed arrival on the row is proof on
-   * their side if the job is ever disputed, and it is what makes the poster's
-   * decision an easy yes. That is the benefit the line above this button
-   * states, and it is why the control is offered rather than nagged about.
-   *
-   * The RPC is safe to call again by construction: it re-stamps nothing, never
-   * downgrades an existing verification or confirmation, and cannot move the
-   * rail on its own.
-   */
-  const retryArrivalVerification = async () => {
-    setRetryingArrival(true);
-    try {
-      const outcome = await getLocationOutcome();
-      if ("error" in outcome) {
-        hapticError();
-        // NOT an error toast: nothing failed that the Helpr is responsible for,
-        // and their check-in already stands. `arrivalRefusalMessage` says what
-        // Location buys them and names the poster's tap as the actual gate.
-        toast.warning(arrivalRefusalMessage(outcome.error === "denied" ? { kind: "denied" } : { kind: "no_location" }), { duration: 9000 });
-        return;
-      }
+  /* `retryArrivalVerification` LIVED HERE and is gone (owner, 2026-09-19).
+     The "Try My Location Again" chip it backed is removed from the action row;
+     the same operation now runs from the pull-to-refresh gesture on My Jobs,
+     in `src/lib/arrivalRefresh.ts`, gated on an arrival that is recorded and
+     unverified. That module carries the reasoning, the conservatism rules, and
+     the note on why the replacement had to exist before the chip could go.
 
-      const { data: verdict, error: retryErr } = await supabase.rpc("mark_helper_arrival", {
-        p_job_id: jobId,
-        p_lat: outcome.lat,
-        p_lng: outcome.lng,
-      });
-      if (retryErr) {
-        const refusal = arrivalRefusalFromError(retryErr);
-        hapticError();
-        if (refusal) {
-          // LEGACY: only a pre-20260919155016 definition still raises these.
-          toast.warning(arrivalRefusalMessage(refusal), { duration: 9000 });
-          return;
-        }
-        report(retryErr, { tags: { source: "JobTracking.retryArrival" } });
-        toast.error(
-          retryErr.code === "PGRST202"
-            ? "Arrival check-in is updating — try again in a minute."
-            : (rpcErrorMessage("mark_helper_arrival", retryErr) ?? "Couldn't re-check your arrival — try again?"),
-        );
-        return;
-      }
-      // A null `error` IS NOT A WRITE. The RPC always returns a jsonb verdict
-      // on success, so an absent or unrecognisable body means something
-      // silently did nothing — `arrivalVerdictFromRpc` returns null for exactly
-      // that, and it must never be read as a verification that may not exist.
-      const v = arrivalVerdictFromRpc(verdict);
-      if (!v) {
-        report(new Error("mark_helper_arrival returned no verdict"), {
-          tags: { source: "JobTracking.retryArrival" },
-        });
-        hapticError();
-        toast.error("Couldn't re-check your arrival — try again?");
-        return;
-      }
+     `getLocationOutcome` and `applyArrivalVerdict` above are UNCHANGED and
+     still have their other caller — the "I've Arrived" transition — so nothing
+     was deleted with this beyond the retry itself. */
 
-      applyArrivalVerdict(v);
-      if (v.verified || v.posterConfirmed) hapticSuccess();
-      // ONE message source with the Arrived tap (`arrivalVerdictMessage`), so
-      // the two can never tell the Helpr different stories about the same row.
-      const say = v.verified || v.posterConfirmed ? toast.success : toast.info;
-      say(arrivalVerdictMessage(v), { duration: 9000 });
-    } finally {
-      setRetryingArrival(false);
-    }
-  };
 
 
   // SYNCHRONOUS IN-FLIGHT GUARD. `updating` is React state, so two taps on
@@ -1691,11 +1655,10 @@ export function JobTracking({
   const [openStepTooltip, setOpenStepTooltip] = useState<string | null>(null);
 
   const displaySteps = includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES;
-  const displayIdx = includePostingSteps
-    ? helperId
-      ? PRE_STATUSES.length + currentStatusIdx
-      : 0
-    : currentStatusIdx;
+  // ONE definition of the offset, shared with the collapsed card's compact
+  // rail — see `railDisplayIdx` at the top of this file. Inlined here until
+  // 2026-09-19, when a second rail started needing the same answer.
+  const displayIdx = railDisplayIdx({ currentStatusIdx, includePostingSteps, helperId });
 
   // The step row is ONE horizontally-scrolling line (owner: "the live tracker
   // should be 1 scrollable line"). Because it scrolls, the current step can sit
@@ -1968,9 +1931,20 @@ export function JobTracking({
               // Matching the token the gradient is built from is what makes
               // the two the same green to the eye. Guard:
               // src/test/railGreenMatchesPrimary.test.ts.
-              const currentTone = allDone
-                ? { fill: "hsl(var(--bark))", ring: "hsl(var(--bark) / 0.30)", ringEnd: "hsl(var(--bark) / 0)" }
-                : { fill: "hsl(var(--amber-solid))", ring: "hsl(var(--amber-solid) / 0.30)", ringEnd: "hsl(var(--amber-solid) / 0)" };
+              // EXTRACTED, 2026-09-19. The rule used to be written out here
+              // and TRANSCRIBED into alarmColourInvariant.test.ts, which said
+              // so and carried a second test to notice when the copy went
+              // stale. The collapsed card now paints the same dots at 16px
+              // (JobStepRailCompact), and a second rail meant a third copy —
+              // so both rails and the guard read `railStepPaint`
+              // (src/components/activity/jobRailTone.ts). "Same colour
+              // vocabulary as the expanded rail" is now true by construction.
+              const paint = railStepPaint({
+                idx,
+                displayIdx,
+                stepCount: displaySteps.length,
+                jobStatus,
+              });
               const Icon = s.icon;
               const ts = stepTimestamps[s.key];
               // Tooltip only on a genuinely COMPLETED step (passed, or the
@@ -2007,28 +1981,26 @@ export function JobTracking({
                     // affect the tooltip, which is absolutely positioned
                     // against the COLUMN (the outer div), not against this dot.
                     className={`relative w-7 h-7 rounded-full flex items-center justify-center transition-all !min-h-0 !min-w-0 ${isCurrent && !disputedStep ? "step-current-pulse" : ""}`}
+                    /* ONE SOURCE for every dot's colour — `railStepPaint`
+                       above. The five-branch ternary this replaces held the
+                       alarm, the amber cursor, the completed green (which is
+                       `--bark`, the primary button's green, owner 2026-09-19),
+                       the bark tint and the not-reached grey; all five moved
+                       into jobRailTone.ts verbatim and nothing about which
+                       step wears which changed. The ring and the pulse
+                       variables stay here because they are this rail's
+                       DRAWING, not its colour rule — the compact rail draws
+                       its own, smaller. */
                     style={
-                      disputedStep
-                        ? {
-                            background: "hsl(var(--destructive))",
-                            color: "hsl(var(--parchment))",
-                          }
-                        : isCurrent
+                      isCurrent && paint.ring
                         ? ({
-                            background: currentTone.fill,
-                            color: "hsl(var(--parchment))",
-                            boxShadow: `0 0 0 2px ${currentTone.ring}, 0 0 0 4px hsl(var(--parchment))`,
-                            "--step-pulse-ring": currentTone.ring,
-                            "--step-pulse-ring-end": currentTone.ringEnd,
+                            background: paint.fill,
+                            color: paint.ink,
+                            boxShadow: `0 0 0 2px ${paint.ring}, 0 0 0 4px hsl(var(--parchment))`,
+                            "--step-pulse-ring": paint.ring,
+                            "--step-pulse-ring-end": paint.ringEnd,
                           } as CSSProperties)
-                        : isPassed || (isActive && allDone)
-                          /* COMPLETED = the primary button's green (owner,
-                             2026-09-19). See `currentTone` above for why it is
-                             the `--bark` token and not the gradient class. */
-                          ? { background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }
-                          : isActive
-                            ? { background: "hsl(var(--bark) / 0.18)", color: "hsl(var(--bark))" }
-                            : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.80)" }
+                        : { background: paint.fill, color: paint.ink }
                     }
                   >
                     {/* A 44px TAP TARGET WITHOUT A 44px BOX — the same trick
@@ -2683,43 +2655,6 @@ export function JobTracking({
           />
         );
 
-        const retryEl = (
-          <>
-            {/* THE ONE TAP behind the GPS encouragement above (`gpsBenefitEl`,
-                same `gpsNudgeHere` gate). It does NOT unblock anything — the
-                poster's "Confirm They Arrived" is the only gate since
-                2026-09-19 — and it must never be drawn as if it did. What it
-                adds is EVIDENCE on the row: a GPS-confirmed arrival the Helpr
-                can point at in a dispute, and the thing that makes the poster's
-                decision an easy yes.
-
-                An OUTLINE, beside the primary rather than as it, for exactly
-                that reason: the glossy primary on this row is the step the
-                Helpr is actually trying to take.
-
-                Helper-only (inside `isHelper &&`), and the RPC refuses anyone
-                but `jobs.helper_id` (42501). It does not advance the rail. */}
-            {gpsNudgeHere && (
-              /* THE SAME OBJECT AS EVERY OTHER CONTROL IN THE ROW (owner,
-                 2026-09-19, second report). It was a raw
-                 `<Button variant="outline">` with an inline icon and a bare
-                 14px label — so on the one state that shows both, this and the
-                 glossy "Start Working" beside it were two different shapes,
-                 and both were a third shape from the stacked chips left of
-                 them. It goes through the row's primitive now and says what it
-                 is with TONE: `neutral`, the quiet olivewood the supporting
-                 actions wear, so the glossy primary is still unmistakably the
-                 step the Helpr is trying to take. */
-              <JobActionChip
-                icon={MapPin}
-                tone="neutral"
-                label={retryingArrival ? "Checking…" : "Try My Location Again"}
-                onClick={() => { void retryArrivalVerification(); }}
-                disabled={retryingArrival || updating}
-              />
-            )}
-          </>
-        );
 
         const doneDialog = (
           <>
@@ -2763,19 +2698,16 @@ export function JobTracking({
           return (
             <>
               <JobStepRowSlot slot="note">{reasonEl}</JobStepRowSlot>
-              {/* GREEN LAST = GREEN RIGHT-MOST (owner, 2026-09-16: the primary
-                  belongs on the right). This slot is a flex ROW, so source
-                  order is left-to-right: with the CTA first, the OUTLINE
-                  "Try My Location Again" sat to the right of the glossy
-                  primary whenever the retry gate fired (helper, en_route /
-                  on_site / working). Only the two children swap — both
-                  elements, their gates, handlers and busy states are
-                  untouched, and `retryEl` still renders nothing at all unless
-                  the arrival is claimed-but-unverified. */}
-              <JobStepRowSlot slot="primary">
-                {retryEl}
-                {ctaEl}
-              </JobStepRowSlot>
+              {/* ONE control in this slot again. It briefly held two — the
+                  glossy CTA and the outline "Try My Location Again" — and the
+                  ordering comment here existed only to keep the green one
+                  right-most (owner, 2026-09-16). The retry chip is gone
+                  (owner, 2026-09-19; the refresh gesture does it now, see
+                  src/lib/arrivalRefresh.ts), so there is nothing left to
+                  order. `primaryNeeds` in jobStepRow.tsx still takes an ARRAY
+                  because the day-of confirmation can put a second control here
+                  through its own slot — that case is unaffected. */}
+              <JobStepRowSlot slot="primary">{ctaEl}</JobStepRowSlot>
               {doneDialog}
             </>
           );
@@ -2785,7 +2717,6 @@ export function JobTracking({
           <div className="pt-2 border-t border-border space-y-2">
             {reasonEl}
             {ctaEl}
-            {retryEl}
             {doneDialog}
           </div>
         );

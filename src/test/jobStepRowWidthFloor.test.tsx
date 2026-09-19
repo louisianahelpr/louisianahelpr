@@ -403,14 +403,23 @@ const CASES: Case[] = [
     minControls: 4,
   },
   {
-    // TWO CONTROLS IN THE ONE PRIMARY SLOT, arriving through ONE slot:
-    // JobTracking renders `retryEl` and `ctaEl` as two children of a single
-    // `JobStepRowSlot slot="primary"`. Measured at 320 on prod: 29px and 27px,
-    // with 19px and 21px of label outside them.
-    name: "Jobs · Arrived, unverified — Try My Location Again + Start Working",
+    /* ONE CONTROL IN THE PRIMARY SLOT AGAIN, 2026-09-19.
+       This case existed because the slot held TWO — JobTracking rendered
+       `retryEl` and `ctaEl` as two children of a single
+       `JobStepRowSlot slot="primary"`, measured at 320 on prod at 29px and
+       27px with 19px and 21px of label hanging outside them. That is the
+       overflow this whole file measures, and it was the worst instance of it.
+
+       The owner removed the retry chip and gave the job to the pull-to-refresh
+       gesture (src/lib/arrivalRefresh.ts), so the slot is back to one control.
+       The case is KEPT rather than deleted: it is still a reachable state, its
+       labels still have to fit their controls, and `primaryNeeds` still takes
+       an array because the day-of confirmation can put a second control in
+       this slot through its own `JobStepRowSlot`. Only the count moved. */
+    name: "Jobs · Arrived, unverified — Start Working (retry chip removed)",
     side: "helper",
     render: active(makeJob({ poster_confirmed_working_at: null }), "arrived"),
-    minControls: 4,
+    minControls: 3,
   },
   {
     name: "Jobs · On site, before photo owed",

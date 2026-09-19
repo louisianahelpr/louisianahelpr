@@ -31,7 +31,22 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 const args = process.argv.slice(2);
-const files = args.filter((a) => !a.startsWith("--"));
+// Flags that TAKE A VALUE. Their value is not a positional — the whole
+// a11y-webkit-prod workflow was red from 2026-09-14 to 2026-09-19 because
+// `--out webkit-only.json` made files.length 3, so this file printed its
+// usage and exited 2 on every run (34864934892 … 35351014180). Any new
+// value-taking flag MUST be added here; src/test/a11yEngineDiffCli.test.ts
+// runs the workflow's own command line and fails if it does not parse.
+const VALUE_FLAGS = new Set(["--known", "--out"]);
+const files = [];
+for (let i = 0; i < args.length; i++) {
+  const a = args[i];
+  if (a.startsWith("--")) {
+    if (VALUE_FLAGS.has(a)) i++; // skip its value
+    continue;
+  }
+  files.push(a);
+}
 const opt = (name) => {
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : null;

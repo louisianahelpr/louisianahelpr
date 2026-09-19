@@ -2149,7 +2149,13 @@ button,
 /* Shared tactile press primitive — referenced by ~50 tappable elements but
    never defined, so none of them reacted to touch until now. */
 .btn-press {
-  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1);
+  /* `background-color` rides along because `.btn-press` is UNLAYERED and
+     `.ctl-tint`'s own transition is in `@layer components`, so on an element
+     carrying both (the dialog close button, the popup footer) this shorthand
+     wins and the hover tint would otherwise snap in while every other
+     control's fades. Same 120ms, so the two are indistinguishable. */
+  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 120ms cubic-bezier(0.2, 0, 0, 1);
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;

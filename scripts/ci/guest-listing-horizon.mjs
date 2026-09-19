@@ -144,7 +144,11 @@ if (atHorizon === 0) {
     `\nFAIL: the guest marketplace goes DARK on ${goesDark.date} (in ${goesDark.d} day(s)).\n` +
       `  ${today} listing(s) are visible today and every one of them expires by then.\n` +
       `  auto-expire-jobs cancels an open job once its scheduled date has passed, so nothing\n` +
-      `  refills this on its own. Post or re-date funded listings before that date.\n` +
+      `  refills this on its own. REFILL IT:\n` +
+      `      node scripts/probes/mint-funded-seed-jobs.prod.mjs --listings <out-file>\n` +
+      `  That mints genuinely-funded is_seed listings on Stripe TEST mode (it refuses any\n` +
+      `  session that is not cs_test_), dates them a month or more out, and spaces them ~14\n` +
+      `  days apart so they never age out together the way the 2026-09-16 set did.\n` +
       `  This is the check that the 2026-09-16 three-day red did not have: back then the\n` +
       `  marketplace emptied 86 minutes after a green run and nothing said so until it was gone.`,
   );

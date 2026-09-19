@@ -66,7 +66,6 @@
     "src/test/inboxRetryIdentity.test.ts",
     "src/test/jobMatchPreferenceGate.test.ts",
     "src/test/jobStatusExhaustive.test.ts",
-    "src/test/jobsGuardRpcParity.test.ts",
     "src/test/jobsStateColumnGuard.test.ts",
     "src/test/labelInName.test.tsx",
     "src/test/lapsedSuspensionRouteGate.test.tsx",

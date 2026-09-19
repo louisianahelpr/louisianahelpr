@@ -68,13 +68,32 @@ export function arrivalEstablished(job: ArrivalEvidence | null | undefined): boo
 export type ArrivalGateDoor = "wrap-up" | "tracker";
 
 /**
- * What to tell a Helpr blocked on the arrival rule.
+ * What to tell a Helpr blocked on the arrival rule. THE AMBER LINE.
  *
- * EVERY branch names the poster's tap as the one thing still missing — because
- * after 2026-09-19 it always is. The branches differ only in what the Helpr's
- * own location did or did not corroborate, and in whether they still owe an
- * arrival at all. None of them offers the Helpr's location as a way round the
- * poster, because there is no way round the poster.
+ * OWNER, 2026-09-19 (final browser gate): "amber says what is BLOCKING; muted
+ * says why GPS helps. Nothing else."
+ *
+ * WHAT WAS MEASURED. On the claimed-no-GPS card this line and the muted GPS
+ * nudge under it ran to TEN lines of prose at 375 — six here, four there — and
+ * they overlapped: both said "turn Location on", both named "Try My Location
+ * Again". The separation the design rests on (amber = something is stopping
+ * you, muted = advice) was blurred by the duplication, and this half LED with
+ * the GPS ask rather than with the blocker.
+ *
+ * So every blocked branch is now the SAME sentence: the poster's tap, which is
+ * the only thing that is ever actually blocking. No GPS ask lives here — not
+ * the instruction, not the button's name, not the reason. That is the muted
+ * line's whole job (`gpsBenefitEl` in src/components/JobTracking.tsx), and the
+ * one-tap control sits on the row beside it.
+ *
+ * The evidence the branches used to recite — "your location is confirmed at
+ * the job", "a little way from the map pin" — is not lost and was never a
+ * blocker: it is already on the tracker's own proof caption
+ * (`trackingProofCaption`) and, when a map is drawn, on its job pin
+ * (`arrivalMapLabel`). Saying it a third time here is what made this six lines.
+ *
+ * The two CONFIRMED branches are unchanged: they are not blocking anything, so
+ * they are not amber — they report a settled fact and stop asking.
  */
 export function arrivalGateMessage(
   job: ArrivalEvidence | null | undefined,
@@ -83,21 +102,44 @@ export function arrivalGateMessage(
   const unlocks = door === "wrap-up" ? "before you can mark the job complete" : "before you can start working";
   const gps = !!job?.helper_arrival_verified_at;
   const poster = !!job?.poster_confirmed_arrival_at;
-  const nearMiss = !!job?.helper_arrival_near_miss_at;
 
   if (poster) {
     return gps
       ? "Arrival confirmed by your location and by the person who posted this job."
       : "The person who posted this job confirmed you arrived.";
   }
-  if (gps) {
-    return `Your location is confirmed at the job. The person who posted this job still has to tap "Confirm They Arrived" ${unlocks}.`;
+  // THE ONE BLOCKER, whatever the location evidence says — that is the owner's
+  // 2026-09-19 rule, and it is why the branches collapsed into one sentence.
+  //
+  // WRITTEN OUT IN BOTH RETURNS, not hoisted into a `const blocker` the two
+  // interpolate. `src/test/controlReachability.test.ts` harvests the control
+  // names this function promises by reading the STRING LITERALS IT RETURNS
+  // (AST, not text) — a name that lives only in a local variable is invisible
+  // to it, this function drops out of COPY_PRODUCERS entirely, and CHECK 3's
+  // arrivalGateMessage↔posterConfirmationRung pair — the very pair the
+  // 2026-09-19 deadlock lived in — goes vacuously green. Caught by that guard's
+  // own "the inventories are real" assertion while this rewrite was in flight.
+  // The duplication is the price of the scanner being able to see the promise.
+  // ANY evidence of an arrival IS an arrival for this sentence's purposes. A
+  // verified or near-miss stamp is only ever written in the same statement that
+  // writes `helper_arrived_at`, so the extra reads change nothing on a healthy
+  // row — but they stop the branch below telling a Helpr who is demonstrably
+  // at the job to go and mark themselves arrived, on a row where one column
+  // went missing. `controlReachability.test.ts` also needs this function to
+  // read the near-miss column: it pairs copy with the control that offers the
+  // way out, and the poster's "Confirm They Arrived" is enabled off a near miss
+  // on the in-progress step (`recentArrivalNearMiss`, posterStepContract.ts).
+  // Drop the read and the pair's state space loses that path, which is how the
+  // guard found this edit's first draft.
+  const arrivalOnRecord = !!job?.helper_arrived_at || gps || !!job?.helper_arrival_near_miss_at;
+  if (!arrivalOnRecord) {
+    // The one state where the poster's tap is NOT the next thing to happen:
+    // there is no arrival for them to confirm yet, and marking it is the
+    // Helpr's own move. Naming both, in order, is the blocker — not an aside.
+    // The poster's tap is still named, because the Helpr has to know it is
+    // coming before they are anywhere near it (owner: "they shoud be aware of
+    // this so they dont try to cheat the system").
+    return `Mark yourself arrived at the job site first. The person who posted this job has to tap "Confirm They Arrived" ${unlocks}.`;
   }
-  if (nearMiss) {
-    return `Your location was a little way from the job's map pin. You're checked in either way — the person who posted this job has to tap "Confirm They Arrived" ${unlocks}.`;
-  }
-  if (job?.helper_arrived_at) {
-    return `You're checked in, but we couldn't confirm your location. Turn Location on and tap "Try My Location Again" so they can see you're here — either way, the person who posted this job has to tap "Confirm They Arrived" ${unlocks}.`;
-  }
-  return `Mark yourself arrived at the job site first. The person who posted this job then taps "Confirm They Arrived" ${unlocks} — that's required whether or not your location confirms you.`;
+  return `The person who posted this job has to tap "Confirm They Arrived" ${unlocks}.`;
 }

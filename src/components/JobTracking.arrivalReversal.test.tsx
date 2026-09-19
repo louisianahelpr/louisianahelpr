@@ -226,10 +226,47 @@ describe("the GPS nudge — encouragement, never an accusation", () => {
   it("states the BENEFIT and offers the one tap, on a check-in with no GPS", () => {
     renderHelperTracker(CHECKED_IN_NO_GPS);
     const text = document.body.textContent ?? "";
-    expect(text, "what Location buys them").toMatch(/proof on your side/i);
+    // "proof on your side" was the pre-2026-09-19-gate wording of the same
+    // benefit; the sentence was cut to one line and the phrasing with it.
+    expect(text, "what Location buys them").toMatch(/GPS proof you were here/i);
     expect(text).toMatch(/disputed/i);
-    // The one tap, and it is on screen beside the line that names it.
+    // The one tap, and it is on screen beside the line that names the benefit.
     expect(screen.getByRole("button", { name: /Try My Location Again/i })).toBeTruthy();
+  });
+
+  /**
+   * THE SEPARATION, ASSERTED ON THE RENDERED CARD (owner, 2026-09-19, final
+   * browser gate): "amber says what is BLOCKING; muted says why GPS helps.
+   * Nothing else."
+   *
+   * `arrivalGate.test.ts` pins the amber sentence as a string. It cannot see
+   * the OVERLAP, which is a property of the two blocks TOGETHER on one card —
+   * and the overlap is what the owner measured: ten lines between the photo box
+   * and the buttons, "turn Location on" in both, "Try My Location Again" in
+   * both. So this reads the two rendered paragraphs off the real component and
+   * asserts neither says the other's job.
+   */
+  it("does not say the same thing twice: the blocker is amber-only, the GPS ask muted-only", () => {
+    renderHelperTracker(CHECKED_IN_NO_GPS);
+    const paras = [...document.querySelectorAll("p")].map((p) => p.textContent ?? "");
+    const amber = paras.find((t) => t.includes("Confirm They Arrived"));
+    const muted = paras.find((t) => /Location on/i.test(t));
+    expect(amber, "the blocked CTA's amber reason is not on the card").toBeTruthy();
+    expect(muted, "the muted GPS benefit line is not on the card").toBeTruthy();
+    expect(amber).not.toBe(muted);
+
+    // Amber: the blocker, and nothing about Location.
+    expect(amber!, `amber carries the GPS ask: ${amber}`).not.toMatch(/Location on|Try My Location Again/i);
+    // Muted: the benefit, and nothing about the poster's tap.
+    expect(muted!, `muted carries the blocker: ${muted}`).not.toMatch(/Confirm They Arrived|person who posted/i);
+
+    // "Try My Location Again" appears exactly ONCE on the card — on the button.
+    const hits = (document.body.textContent ?? "").match(/Try My Location Again/g) ?? [];
+    expect(hits, `"Try My Location Again" is printed ${hits.length}× on one card`).toHaveLength(1);
+
+    // And the whole block is materially shorter than the ten lines measured.
+    const total = amber!.length + muted!.length;
+    expect(total, `the arrival prose block is back to ${total} chars`).toBeLessThan(220);
   });
 
   it("never threatens — the framings the owner rejected stay rejected", () => {

@@ -208,16 +208,36 @@ export function deriveCurrentStatusIdx({
   const atLeast = (idx: number) => { if (idx > jobIdx) jobIdx = idx; };
 
   if (jobStatus === "accepted") atLeast(STATUS_IDX.assigned);
-  // A job cannot BE in progress without having been confirmed, so the status
-  // itself is evidence of at least "Confirmed" even when no stamp survived.
-  // Without this floor the seeded/older in-progress rows — assigned, underway,
-  // but carrying none of the four timestamps — still read "Offered" with the
-  // bar at 14%, which is the same lie the owner reported on the
-  // ready-to-release job, just with a different missing column. Deliberately
-  // `job_confirmed` and not `working`: "the work has started" is a claim only
-  // an actual stamp or the helper's own tracking row gets to make.
+  // STATUS IS NOT A CONFIRMATION (owner, 2026-09-19).
+  //
+  // This used to read `in_progress`/`revision_requested` as evidence of at
+  // least "Confirmed" (STATUS_IDX.job_confirmed), on the reasoning that a job
+  // cannot BE in progress without having been confirmed. That reasoning was
+  // wrong on the only rows it was written for. FOUND LIVE on prod job
+  // bb2c3732: `in_progress` with `helper_confirmed_at`, `poster_confirmed_at`
+  // AND `helper_dayof_confirmed_at` all NULL. The rail painted Confirmed
+  // complete, the next-step CTA therefore became "I'm On My Way" — and
+  // `helper_mark_on_the_way` refused the tap with `helper_not_confirmed`,
+  // because its one predicate is `v_job.helper_confirmed_at IS NULL`
+  // (verified live on prod, 2026-09-19, and pinned by
+  // src/test/jobsGuardRpcParity.test.ts).
+  //
+  // That is the bad-GPS deadlock's class, one step earlier on the same rail: a
+  // control offered for an action the server will refuse. The floor did not
+  // just mislabel a step, it SKIPPED THE GATE — the helper's-confirmation
+  // check below lives on the `job_confirmed` branch of the next-step CTA, and
+  // a rail already sitting at `job_confirmed` never reaches that branch.
+  //
+  // So the Confirmed step is derived from the STAMPS and nothing else (the
+  // mutual day-of rule a dozen lines down). What `in_progress` still evidences
+  // is that somebody was assigned and the job is underway — the Offered step,
+  // which is also the rail's floor. An in-progress job with no confirmation
+  // stamp at all now reads "Offered", and that is not the old lie in a new
+  // place: it is the honest rendering of a row that evidences no confirmation.
+  // (Every such row on prod today is `is_seed = true` — see the report in the
+  // handoff; no organic job has ever reached this state.)
   if (jobStatus === "in_progress" || jobStatus === "revision_requested") {
-    atLeast(STATUS_IDX.job_confirmed);
+    atLeast(STATUS_IDX.assigned);
   }
   if (helperConfirmedAt || posterConfirmedAt) atLeast(STATUS_IDX.confirmed);
   // The MUTUAL step wants the helper's DAY-BEFORE stamp, not the accept-time
@@ -2305,42 +2325,70 @@ export function JobTracking({
 
         // Find next actionable status (skip job_confirmed — handled by JobConfirmation component)
         let nextIdx = currentStatusIdx + 1;
-        if (nextIdx < STATUSES.length && STATUSES[nextIdx].key === "job_confirmed") {
+        if (
+          nextIdx < STATUSES.length &&
+          STATUSES[nextIdx].key === "job_confirmed" &&
           // Once the HELPER has confirmed, skip to on_the_way — that is all
           // helper_mark_on_the_way asks for (see `helperHasConfirmed`).
           // Otherwise stay here: the confirmation the line below points at is
           // theirs to give, so the instruction is actionable.
-          if (helperHasConfirmed) {
-            nextIdx++;
-          } else {
-            /* "Confirm the job below" is only true once there IS something
-               below. JobConfirmation opens 24 hours out; before that it used
-               to render nothing, so this line pointed at an empty space.
-               JobConfirmation now shows its own "opens in …" card in that
-               window, and this line matches it rather than contradicting it. */
-            // Measured from the real START, not from midnight of the job's
-            // day. Off midnight, an evening job's window opened up to 18 hours
-            // early and this line promised a control that was not there yet.
-            const confirmOpen =
-              !startAt || startAt.getTime() - Date.now() <= 24 * 3_600_000;
-            /* Silent before the window opens: JobConfirmation renders its own
-               "Confirmation opens in …" strip directly below in that state and
-               says the same thing with a clock attached. Two sentences saying
-               "you'll confirm later", stacked, is the duplication this card
-               keeps being audited for. */
-            if (!confirmOpen) return null;
-            return (
-              <div className="pt-2 border-t border-border">
-                <p className="text-ds-11 text-muted-foreground text-center">
-                  Confirm the job below to unlock the next step
-                </p>
-              </div>
-            );
-          }
+          helperHasConfirmed
+        ) {
+          nextIdx++;
         }
 
         const nextStatus = STATUSES[nextIdx];
         if (!nextStatus) return null;
+
+        /* THE SERVER'S ON-THE-WAY FLOOR, ENFORCED BY NAME — NOT BY POSITION.
+         *
+         * `helper_mark_on_the_way` has exactly one content predicate:
+         * `v_job.helper_confirmed_at IS NULL` → `helper_not_confirmed`
+         * (read live off prod, 2026-09-19; pinned by
+         * src/test/jobsGuardRpcParity.test.ts). So "I'm On My Way" must never
+         * be offered without that stamp.
+         *
+         * This check used to live INSIDE the `job_confirmed` skip above, which
+         * made it positional: it only ran when the rail happened to sit one
+         * step short of Confirmed. Prod job bb2c3732 walked straight past it —
+         * `deriveCurrentStatusIdx` floored an `in_progress` job at Confirmed on
+         * the STATUS alone, so `nextIdx` was already `on_the_way` and the gate
+         * was never consulted. The derivation is fixed above; this is the half
+         * that makes the gate impossible to skip again, whatever a future
+         * derivation does: it keys on the STEP THE BUTTON WOULD TAKE, which is
+         * the same thing the server keys on.
+         *
+         * Scoped to exactly what the server refuses, and no wider (`arrived`,
+         * `working` and `done` have their own gates and do NOT read this
+         * stamp): the standing rule on this card is that the client is the same
+         * rule as the server, never stricter — a poster or a data gap must not
+         * be able to trap a helper on a step the server would have allowed.
+         */
+        if (!helperHasConfirmed && (nextStatus.key === "job_confirmed" || nextStatus.key === "on_the_way")) {
+          /* "Confirm the job below" is only true once there IS something
+             below. JobConfirmation opens 24 hours out; before that it used
+             to render nothing, so this line pointed at an empty space.
+             JobConfirmation now shows its own "opens in …" card in that
+             window, and this line matches it rather than contradicting it. */
+          // Measured from the real START, not from midnight of the job's
+          // day. Off midnight, an evening job's window opened up to 18 hours
+          // early and this line promised a control that was not there yet.
+          const confirmOpen =
+            !startAt || startAt.getTime() - Date.now() <= 24 * 3_600_000;
+          /* Silent before the window opens: JobConfirmation renders its own
+             "Confirmation opens in …" strip directly below in that state and
+             says the same thing with a clock attached. Two sentences saying
+             "you'll confirm later", stacked, is the duplication this card
+             keeps being audited for. */
+          if (!confirmOpen) return null;
+          return (
+            <div className="pt-2 border-t border-border">
+              <p className="text-ds-11 text-muted-foreground text-center">
+                Confirm the job below to unlock the next step
+              </p>
+            </div>
+          );
+        }
 
         // While a revision is open, the revision flow OWNS completion (the
         // card's "Mark Fixed" → poster accepts). The tracker caps its index
@@ -2524,17 +2572,24 @@ export function JobTracking({
          * thing stopping them is the poster's tap, and `reasonEl` above says so.
          *
          * ONE TAP is the "Try My Location Again" button rendered directly below
-         * it (`retryEl`), which re-runs the permission pre-prompt and the fix —
-         * so the sentence names the control the reader can see.
+         * it (`retryEl`), which re-runs the permission pre-prompt and the fix.
+         * Same gate as that button, deliberately: a line about turning Location
+         * on, with no control on screen, is worse than no line at all.
          *
-         * Same gate as that button, deliberately: a line telling someone to tap
-         * a button that is not on screen is worse than no line at all.
+         * ONE SENTENCE, AND ONLY THE BENEFIT (owner, 2026-09-19, final browser
+         * gate: "amber says what is BLOCKING; muted says why GPS helps. Nothing
+         * else"). It used to run three sentences and end by naming the button
+         * directly beneath it — while the amber line above ALSO said "turn
+         * Location on" and ALSO named "Try My Location Again". Ten lines of
+         * prose between the photo box and the buttons, saying two things twice.
+         * The instruction is gone (the button is right there, wearing the same
+         * words) and the "gets you confirmed faster" clause is gone with it:
+         * that is a nudge about the poster's behaviour, not a benefit we can
+         * promise. What is left is the one thing Location actually buys them.
          */
         const gpsBenefitEl = gpsNudgeHere ? (
           <p className="text-ds-11 text-center text-muted-foreground">
-            Worth turning Location on: a GPS-confirmed arrival is proof on your side if this job is
-            ever disputed, and it usually gets you confirmed faster. Tap “Try My Location Again”
-            once it’s on.
+            Turning Location on gives you GPS proof you were here, if this job is ever disputed.
           </p>
         ) : null;
 

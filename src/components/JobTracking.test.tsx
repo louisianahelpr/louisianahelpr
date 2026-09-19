@@ -36,6 +36,35 @@ describe("deriveCurrentStatusIdx", () => {
     ).toBe(STATUS_IDX.job_confirmed);
   });
 
+  it("never paints Confirmed off jobs.status — that is a STAMP fact (owner, 2026-09-19)", () => {
+    /* THE REPORTED PROD ROW. bb2c3732-476a-4f66-aae6-372cbdfcfdf6:
+     * `in_progress` with helper_confirmed_at, poster_confirmed_at AND
+     * helper_dayof_confirmed_at all NULL. This function used to floor any
+     * `in_progress`/`revision_requested` job at `job_confirmed` on the reasoning
+     * that a job cannot be underway without having been confirmed — so the rail
+     * painted Confirmed complete, the next-step CTA became "I'm On My Way", and
+     * `helper_mark_on_the_way` refused the tap with `helper_not_confirmed`
+     * (its one predicate is `v_job.helper_confirmed_at IS NULL` — read live off
+     * prod 2026-09-19). A control offered for an action that will be refused:
+     * the bad-GPS deadlock's class, one step earlier on the same rail.
+     *
+     * The floor also SKIPPED THE GATE, which is the sharper half: the
+     * helper's-confirmation check lived on the `job_confirmed` branch of the
+     * CTA, and a rail already sitting at `job_confirmed` never reached it.
+     * `JobTracking.onTheWayGate.test.tsx` holds the rendered half.
+     */
+    expect(deriveCurrentStatusIdx({ jobStatus: "in_progress" })).toBe(STATUS_IDX.assigned);
+    expect(deriveCurrentStatusIdx({ jobStatus: "revision_requested" })).toBe(STATUS_IDX.assigned);
+    // One stamp is still only worth its own step, however far the status has run.
+    expect(deriveCurrentStatusIdx({ jobStatus: "in_progress", helperConfirmedAt: AT })).toBe(
+      STATUS_IDX.confirmed,
+    );
+    // …and Confirmed still lights the moment the MUTUAL pair is there.
+    expect(
+      deriveCurrentStatusIdx({ jobStatus: "in_progress", helperConfirmedAt: AT, posterConfirmedAt: AT }),
+    ).toBe(STATUS_IDX.job_confirmed);
+  });
+
   it("advances to On the Way from the jobs-row stamp alone", () => {
     expect(
       deriveCurrentStatusIdx({ jobStatus: "in_progress", helperOnTheWayAt: AT }),

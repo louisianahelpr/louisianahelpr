@@ -45,6 +45,19 @@ import { resolve } from "node:path";
  * the durable half of that, not a replacement for it.
  */
 
+// VACUITY REGISTRATION (2026-09-19). This file was grandfathered into
+// src/test/vacuity.baseline.json as "declares no mutation"; the two mutations
+// below take it off that list, and the baseline entry goes with them — it may
+// only shrink. Each breaks one side of a parity this file claims to hold:
+//
+//   1. the tracker's Confirmed step back to being derived from jobs.status,
+//      which is the prod-bb2c3732 bug this describe block was added for;
+//   2. the "I'm On My Way" gate back to being POSITIONAL (job_confirmed only),
+//      which is what let that derivation route around it.
+//
+// @mutate src/components/JobTracking.tsx | "revision_requested") {\n    atLeast(STATUS_IDX.assigned) | "revision_requested") {\n    atLeast(STATUS_IDX.job_confirmed)
+// @mutate src/components/JobTracking.tsx | (nextStatus.key === "job_confirmed" \|\| nextStatus.key === "on_the_way") | (nextStatus.key === "job_confirmed")
+
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
 
@@ -334,6 +347,75 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
       expect(gates).toMatch(/RAISE EXCEPTION 'helper_cannot_complete_by_status'/);
       // A re-awarded job starts with no arrival.
       expect(liveDefinition("enforce_jobs_arrival_integrity")).toMatch(/NEW\.helper_arrival_verified_at := NULL/);
+    });
+  });
+
+  /**
+   * THE TRACKER'S "I'M ON MY WAY" CTA ↔ `helper_mark_on_the_way`.
+   *
+   * THE BUG, FOUND LIVE (owner, 2026-09-19). Prod job bb2c3732: `in_progress`
+   * with `helper_confirmed_at`, `poster_confirmed_at` and
+   * `helper_dayof_confirmed_at` all NULL. The tracker painted the Confirmed
+   * step complete (off `jobs.status`, not off any stamp) and offered "I'm On
+   * My Way" — and the server refused the tap with `helper_not_confirmed`.
+   *
+   * This predicate was NOT covered here, which is why the drift was invisible:
+   * the client gate existed and was right, but nothing pinned it to the
+   * server's, and nothing noticed when the derivation routed around it.
+   */
+  describe("tracker CTA ↔ helper_mark_on_the_way", () => {
+    const rpc = liveDefinition("helper_mark_on_the_way");
+    const tracker = readFileSync(resolve(ROOT, "src/components/JobTracking.tsx"), "utf8");
+
+    it("the server's floor is `helper_confirmed_at`, and nothing else about confirmation", () => {
+      // Verified live on prod fncmgoasalhdgfwzhsqa, 2026-09-19, via
+      // pg_get_functiondef — this asserts the migration still says the same.
+      expect(
+        rpc,
+        "helper_mark_on_the_way no longer refuses on helper_confirmed_at. If the floor moved, " +
+          "move the client gate with it — a client that is stricter traps a helper the server " +
+          "would have started, and one that is looser ships a button the server refuses.",
+      ).toMatch(/IF v_job\.helper_confirmed_at IS NULL THEN\s*\n\s*RAISE EXCEPTION 'helper_not_confirmed'/);
+      // The poster's confirmation is deliberately NOT a gate here (owner,
+      // 2026-08-24: a poster who never confirms must not block the helper).
+      expect(
+        rpc.slice(rpc.indexOf("FUNCTION public.helper_mark_on_the_way")),
+        "the RPC started reading poster_confirmed_at — the client does not, so they now disagree.",
+      ).not.toMatch(/v_job\.poster_confirmed_at IS NULL/);
+    });
+
+    it("the client reads the SAME column, and withholds the step by NAME", () => {
+      expect(
+        tracker,
+        "JobTracking's on-the-way gate no longer reads helperConfirmedAt.",
+      ).toMatch(/const helperHasConfirmed = !!helperConfirmedAt;/);
+      // BY NAME, not by position. The gate used to live inside the
+      // `job_confirmed` branch of the next-step CTA, so a rail that arrived at
+      // `on_the_way` by any other route skipped it entirely — which is exactly
+      // what the status-derived Confirmed floor did.
+      expect(
+        tracker,
+        'the "I\'m On My Way" step is no longer withheld by step key. A positional gate is ' +
+          "skippable by any change to deriveCurrentStatusIdx — that is how bb2c3732 shipped.",
+      ).toMatch(/!helperHasConfirmed && \(nextStatus\.key === "job_confirmed" \|\| nextStatus\.key === "on_the_way"\)/);
+    });
+
+    it("the rail's Confirmed step is derived from stamps, never from jobs.status", () => {
+      const derive = tracker.slice(
+        tracker.indexOf("export function deriveCurrentStatusIdx"),
+        tracker.indexOf("Floor at 0: the tracker always shows at least"),
+      );
+      expect(derive.length, "deriveCurrentStatusIdx was restructured — re-read it").toBeGreaterThan(200);
+      const statusFloor = derive.match(
+        /if \(jobStatus === "in_progress" \|\| jobStatus === "revision_requested"\) \{\s*\n\s*atLeast\(STATUS_IDX\.(\w+)\)/,
+      );
+      expect(statusFloor, "the in_progress floor is gone or reshaped — re-read the derivation").toBeTruthy();
+      expect(
+        statusFloor![1],
+        "jobs.status is being read as a confirmation again. `in_progress` evidences that somebody " +
+          "is assigned and the job is underway — the Offered step. It evidences no confirmation, " +
+          "and painting Confirmed off it is what offered the refused button on bb2c3732.",
+      ).toBe("assigned");
     });
   });
 

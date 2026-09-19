@@ -118,10 +118,61 @@ describe("arrivalGate — owner 2026-09-19: the poster confirms, EVERY time", ()
       // And the reversal must not be mis-shipped as "GPS is enough".
       expect(m).not.toMatch(/works too|either one|that unlocks/i);
     }
-    // A Helpr with no fix is told what to do AND that it is not the blocker.
-    expect(claimed).toContain("Try My Location Again");
-    expect(claimed).toMatch(/checked in/i);
     expect(none).toContain("Mark yourself arrived");
+  });
+
+  /**
+   * OWNER, 2026-09-19 (final browser gate): "amber says what is BLOCKING;
+   * muted says why GPS helps. Nothing else."
+   *
+   * THESE ASSERTIONS ARE DELIBERATELY INVERTED from the version above them,
+   * which required this line to say "checked in" and to name "Try My Location
+   * Again". That was measured on the claimed-no-GPS card as SIX amber lines
+   * sitting on FOUR muted ones, with "turn Location on" and "Try My Location
+   * Again" in both blocks. The duplication is what blurred the one distinction
+   * the card's colour scheme carries — amber means something is stopping you,
+   * muted means advice — so the GPS half moved wholesale to the muted line
+   * (`gpsBenefitEl`, src/components/JobTracking.tsx) and its one-tap control,
+   * which is rendered on the same row and already wears the words.
+   *
+   * If a future edit puts a Location instruction back in here, it is putting
+   * the overlap back with it.
+   */
+  it("carries the BLOCKER only — no GPS ask, no control name, no evidence recital", () => {
+    const blocked = [
+      arrivalGateMessage({ helper_arrived_at: T }, "tracker"),
+      arrivalGateMessage({ helper_arrived_at: T, helper_arrival_verified_at: T }, "tracker"),
+      arrivalGateMessage({ helper_arrived_at: T, helper_arrival_near_miss_at: T }, "tracker"),
+      arrivalGateMessage({}, "tracker"),
+      arrivalGateMessage({ helper_arrived_at: T }, "wrap-up"),
+    ];
+    for (const m of blocked) {
+      // The blocker, always.
+      expect(m).toContain("Confirm They Arrived");
+      // The GPS ask and its control belong to the muted line, not to this one.
+      expect(m, `amber must not carry the GPS ask: ${m}`).not.toMatch(/location on|turn location/i);
+      expect(m, `amber must not name the retry control: ${m}`).not.toContain("Try My Location Again");
+      // Evidence is not a blocker: the proof caption and the map pin already
+      // say what the location did or did not show.
+      expect(m, `amber must not recite location evidence: ${m}`).not.toMatch(
+        /checked in|map pin|your location is confirmed|a little way/i,
+      );
+    }
+    // And it LEADS with the blocker. The only words allowed in front of it are
+    // the Helpr's own outstanding move, when they still owe an arrival.
+    expect(arrivalGateMessage({ helper_arrived_at: T }, "tracker")).toMatch(
+      /^The person who posted this job has to tap/,
+    );
+    expect(arrivalGateMessage({}, "tracker")).toMatch(/^Mark yourself arrived/);
+  });
+
+  it("is materially SHORTER than the copy it replaced", () => {
+    // The owner asked for the length cut, so the cut is pinned as a number.
+    // 235 is the pre-fix claimed-no-GPS sentence ("You're checked in, but we
+    // couldn't confirm your location. Turn Location on and tap …"); 96 is what
+    // replaced it. Anything creeping back past ~120 is the recital returning.
+    const claimed = arrivalGateMessage({ helper_arrived_at: T }, "tracker");
+    expect(claimed.length, `the amber line grew back to ${claimed.length} chars: ${claimed}`).toBeLessThan(120);
   });
 
   it("stops asking once the poster has confirmed", () => {

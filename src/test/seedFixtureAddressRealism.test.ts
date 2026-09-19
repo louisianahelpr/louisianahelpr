@@ -35,12 +35,13 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { hasStreetAddress } from "@/components/activity/appliedJobCard/JobAddressLine";
-import {
-  ADDRESSES,
-  cityKey,
-  inLouisiana,
-  hasStreetAddress as scriptHasStreetAddress,
-} from "../../scripts/probes/lib/seedAddresses.mjs";
+// @ts-expect-error — plain .mjs script, no type declarations. Same convention as
+// src/test/writeContract.test.ts importing scripts/audit/write-contract.mjs. Kept
+// on ONE line because the directive must sit on the line TypeScript reports, and a
+// multi-line import reports on its `from` clause. Importing the REAL module is the
+// point of this guard: it proves the script's own transcription of hasStreetAddress
+// answers identically to the component's, so a .d.ts stub would defeat the check.
+import { ADDRESSES, cityKey, inLouisiana, hasStreetAddress as scriptHasStreetAddress } from "../../scripts/probes/lib/seedAddresses.mjs";
 
 const REPO = path.resolve(__dirname, "../..");
 

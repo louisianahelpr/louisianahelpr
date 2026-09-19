@@ -1428,18 +1428,23 @@ html.web-desktop {
      it only for the mobile bleed). `!important` needed: EmptyState sets the
      zeroed radii as an inline style, which only a stylesheet `!important`
      rule can beat. */
-  /* The panel itself, same story as the dock below it. `panelSurfaceStyle`
-     (pageCardSurfaces.ts) sets `borderBottomLeftRadius: 0`,
-     `borderBottomRightRadius: 0` and `borderBottom: none` INLINE and
-     unconditionally — correct on mobile, where the card genuinely bleeds under
-     the floating dock, and wrong on desktop, where that dock is hidden and the
-     card just ends in two square corners. Measured on /my-jobs: `24px 24px 0 0`.
-     Nothing in this app is square; this is the last surface that was. */
-  html.web-desktop .page-panel {
-    border-bottom-left-radius: 1.5rem !important;
-    border-bottom-right-radius: 1.5rem !important;
-    border-bottom: 1px solid hsl(var(--border)) !important;
-  }
+  /* NO desktop override of the panel's bottom edge — deliberately absent.
+     A `html.web-desktop .page-panel` rule used to live here, re-rounding the
+     bottom corners to 1.5rem and painting a bottom border, on the reasoning
+     that the floating mobile dock the panel bleeds under is hidden on desktop
+     so the card "just ended in two square corners".
+
+     REVERSED by the owner on 2026-09-16: the panels must NOT be curved on the
+     bottom — they run to the bottom of the viewport the way the right rail
+     does. The rail is the reference shape (DesktopSidebarNav.tsx:255-264:
+     rounded TOP corners only, `borderBottom: "none"`, bottom flush to the
+     viewport floor). With this override gone, `panelSurfaceStyle`
+     (pageCardSurfaces.ts:64-77) governs at every width — bottom radii 0,
+     `borderBottom: none` — so Home, My Posts, My Jobs, both Messages panes and
+     the guest dashboard match the rail and each other.
+
+     Do not re-add it. The TOP radius difference (panel 1.5rem vs rail 1rem) is
+     a separate question and was not part of this decision. */
   /* `.empty-state-dock` no longer paints anything at ANY width — the
      `liquid-glass` class was removed from it in EmptyState.tsx, because the
      panel it sits inside already provides the surface, the border and the

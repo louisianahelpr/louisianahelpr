@@ -134,6 +134,66 @@ export function useChatScroll({
     return () => el.removeEventListener("scroll", onScroll);
   }, [messages.length]);
 
+  /* LAND ON THE FIRST UNREAD MESSAGE, not the bottom (owner, 2026-09-16:
+     "messages should open to the unread messages").
+
+     Opening a thread always scrolled to the newest message — `openConvo`
+     (useMessagesData.ts) ends in a double-rAF `scrollToBottom()`. With ten
+     unread messages that puts you at the END of what you have not read and
+     asks you to scroll UP to find where you left off. The first-unread anchor
+     already existed here for the "Jump to new messages" chip; this uses it for
+     the landing too.
+
+     Deliberately narrow:
+     - Only when the thread HAD unread messages on open. With none, nothing
+       runs and the existing bottom landing is untouched — that is still the
+       right place for a thread you are caught up on.
+     - ONCE per conversation, guarded on `jobId|otherUserId`. A realtime
+       inbound message re-renders this hook, and without the guard it would
+       yank the reader back up to an anchor they have already passed.
+     - `behavior: "auto"` — the thread must already BE at the right place when
+       it paints, not animate there from the bottom.
+
+     It leans on one property of `openConvo`: it batches `setActiveConvo` with
+     `setMessages([])`, so ChatView always MOUNTS with an empty thread and the
+     first page lands a render later. That ordering is what lets the unread
+     snapshot effect above run before this effect has anything to anchor to —
+     on a mount that already had messages, the snapshot would still read 0 and
+     this would burn its one shot doing nothing. Pinned by
+     useChatScroll.unreadLanding.test.tsx, which renders in that same order.
+
+     It re-applies for a few frames because it has to beat `openConvo`'s
+     double-rAF `scrollToBottom()`, which is scheduled before this effect
+     runs and would otherwise land last and win. Same shape as the
+     keyboard re-anchor below, and equally a no-op on frames where nothing
+     moved. `openConvo` itself is untouched. */
+  const unreadLandingKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const convoKey = `${activeConvo.jobId}|${activeConvo.otherUserId}`;
+    if (unreadLandingKeyRef.current === convoKey) return;
+    // Nothing to anchor to yet — wait for the first page of messages.
+    if (messages.length === 0) return;
+    unreadLandingKeyRef.current = convoKey;
+    const targetId = initialFirstUnreadIdRef.current;
+    if (!targetId || initialUnreadCountRef.current <= 0) return;
+
+    let raf = 0;
+    let frames = 0;
+    const land = () => {
+      const el = scrollContainerRef.current;
+      const node = el?.querySelector<HTMLElement>(
+        `[data-msg-id="${targetId}"]`,
+      );
+      if (node) node.scrollIntoView({ behavior: "auto", block: "start" });
+      // 4 frames clears the double rAF with room to spare; short enough that
+      // a reader who scrolls immediately is not fought for long.
+      if (++frames < 4) raf = requestAnimationFrame(land);
+    };
+    land();
+    raf = requestAnimationFrame(land);
+    return () => cancelAnimationFrame(raf);
+  }, [activeConvo.jobId, activeConvo.otherUserId, messages.length]);
+
   // Reset the jump button whenever the conversation changes so a stale
   // "scrolled up" state from a previous thread doesn't bleed through.
   useEffect(() => {

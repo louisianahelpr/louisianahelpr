@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { defaultInboxTab } from "@/lib/inboxDefault";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { CheckSquare, ChevronDown, Menu, MessageSquare, Pin, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
@@ -180,6 +181,14 @@ export function ConversationList({
   resetSelectionNonce = 0,
 }: ConversationListProps) {
   const navigate = useNavigate();
+  /* Same gate Activity uses (Activity.tsx:410). On the desktop WEBSITE the
+     header stops being the scaffold's floating title card and becomes the
+     panel's first child under a hairline — see the PageScaffold call at the
+     bottom of this file. Messages was the last of the four scaffold pages
+     still wearing a separate top panel at every width (owner, 2026-09-16).
+     False on phone and on native at every size, so the phone rendering is
+     byte-for-byte unchanged. */
+  const isWebDesktop = useIsWebDesktop();
   const [showAllConvos, setShowAllConvos] = useState(false);
   // Multi-select delete mode. `selectMode` swaps each row into a
   // checkbox toggle (opening is suppressed) and reveals a bottom action
@@ -824,7 +833,7 @@ export function ConversationList({
                you are, so a third "Messages" three rows apart is chrome
                restating chrome. It goes `sr-only`, never away. Phone and native
                keep it visible: they have no app bar. */
-            titleSrOnly={embedded}
+            titleSrOnly={embedded || isWebDesktop}
             // In the title card the card owns the horizontal padding and there
             // is nothing below to rule off from — the gap does that. Embedded
             // (desktop) keeps both, because there it IS the panel's first row.
@@ -1259,7 +1268,32 @@ export function ConversationList({
     // The page's h1 lives in the toolbar row (visible on phone/native,
     // sr-only when embedded, and an sr-only stand-in during search/select
     // modes), which is what the title card renders.
-    <PageScaffold titleCard={headerEl} titleCardClassName={MESSAGES_HEADER_PADDING}>
+    /* ONE BOX on the desktop website, exactly as Activity does it
+       (Activity.tsx:484-496; owner, 2026-09-16: Messages was "the only page
+       with a separate top panel"). Home, My Posts and My Jobs all fold their
+       header into the panel at ≥900px; Messages was still passing a title
+       card unconditionally, so it alone showed two stacked boxes.
+
+       Phone and native keep the two-card stack — there the header carries the
+       VISIBLE page name (no app bar exists to carry it). `isWebDesktop` is
+       false at every phone width and on native at every size, so that
+       rendering is untouched. */
+    <PageScaffold
+      titleCard={isWebDesktop ? undefined : headerEl}
+      titleCardClassName={isWebDesktop ? undefined : MESSAGES_HEADER_PADDING}
+    >
+      {isWebDesktop && (
+        /* The wrapper owns the hairline and the horizontal padding, the same
+           way Activity's does — which is why the row's own `px-4` /
+           `minHeight: 52px` / `borderBottom` stay keyed to `embedded` below
+           and are NOT doubled up here. */
+        <div
+          className="shrink-0 px-5 py-1"
+          style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}
+        >
+          {headerEl}
+        </div>
+      )}
       {listBody}
     </PageScaffold>
   );

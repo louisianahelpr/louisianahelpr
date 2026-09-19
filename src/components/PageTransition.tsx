@@ -83,7 +83,7 @@ const PageTransition = ({ children }: PageTransitionProps) => {
     fromEdge.current = atEdge;
     // Only ARM the page drag for a true left-edge start. Paired with
     // `dragListener={false}` below, framer won't translate the page on any
-    // other pointerdown — so dragging mid-screen content (the Leaflet map,
+    // other pointerdown — so dragging mid-screen content (the browse map,
     // carousels, sliders) can never slide the whole fixed app shell sideways.
     // Framer's automatic drag listener ignored this: it dragged the page from
     // anywhere and only gated the *navigation* on fromEdge, which is exactly

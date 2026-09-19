@@ -41,6 +41,7 @@ vi.mock("@/components/PhotoProof", () => ({
   // portalled and contributing no control — stubbed to nothing so the row's
   // own count is unaffected either way.
   PhotoProofDialog: () => null,
+  PhotoProofRequirementNote: () => null,
 }));
 
 function makeSupabase() {

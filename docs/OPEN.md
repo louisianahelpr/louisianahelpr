@@ -3626,3 +3626,90 @@ so it cannot be computed offline.
 **PROPER FIX, open:** add `appliedMigrations` (from `supabase_migrations.schema_migrations`) to the
 snapshot on refresh (`.github/workflows/write-contract-refresh.yml`), then `pending` becomes exact.
 Until then the two RPCs are baselined, and this line is their OPEN.md entry.
+
+### DONE 2026-09-19 — the checking gap, phase 1 (commits `e8b538b0e`, `f286bcdb9`, `0f87f3efb`, `ca20f14f9`, `bdbdb5e25`, `a17550c63`, `01562f794`, `069d658e5`, `3912d03e5`, `2d706f78d`, `7e8b7f85d`)
+**`npm run vacuity`** — 4 parts, cheapest first: a ratchet (every guard registers a mutation or is
+grandfathered in `src/test/vacuity.baseline.json`, which may only SHRINK — a stale entry is itself a
+failure), a TS-AST static scan, a harness preflight, and a mutation runner. 11.5s full set; per push
+it is scoped to guards whose guard-file or guarded-file changed vs origin/main (untracked included —
+a brand-new guard matters most). Nightly full at 06:10 UTC. **The gate is itself guarded**
+(`vacuityGate.test.ts` plants vacuous guards and asserts each is flagged).
+**Now: 14/14 mutations killed, 0 known-vacuous, preflight 0 blocking.**
+
+WHAT IT FOUND: **20 of 132 guards pass on an empty inventory** — incl. the guards for money/state
+columns on `jobs`, zero-row writes, anon street-address leaks, admin authz, ban evasion, and (ironic)
+the "NO MOCK MODE, EVER" guard itself. Ratcheted, listed in `docs/audit/vacuity-report.json`.
+Plus 1 self-referential and 38 mount-wiring gaps (reported, not gated — the import graph resolves by
+path, so barrel re-exports and dynamic mounts are missed).
+
+**`shellConsistency.test.ts` SURVIVED replacing Profile's real `<AppShell>` with a `<div>`** — the
+guard behind the owner's "THEY SHOULD ALL BE THE SAME EVERY SINGLE ONE" — because it matched the
+literal `<AppShell` anywhere in the file and Profile has a second one in its skeleton branch. NOW
+AST-based: walks every return through both arms of every conditional, descends THROUGH capitalised
+wrappers, **stops dead at the first host element (a `<div>` IS a frame)**, and follows childless
+delegates and local JSX helpers. 6 pages' mutations now kill it. Two more holes closed on the way:
+`routePathsForPage` only matched PROPLESS mounts, so `<Activity defaultTab="applied" />` reported
+"no routes" and silently excused Activity from the agreement check.
+
+**`controlReachability.test.ts`** — every control name QUOTED in copy must resolve to a label some
+component renders (strong); every column gating a control must have a producer (strong); copy
+producers and control producers auto-paired by shared column vocabulary and EXECUTED over the full
+2^n boolean state space (best-effort, and honestly labelled so). Red-proof: with `arrivalRule.ts` +
+`posterStepContract.ts` byte-restored to the VN-33 world it reconstructs today's deadlock from
+source with nobody naming it.
+
+**`exhaustivenessRegistry.test.ts`** — 6 dimensions, each with inventory and coverage derived from
+the world. Two meta-properties stop the registry being a hand-list checked against itself: every
+enum in `Constants.public.Enums` must be CLAIMED by a dimension, and every non-delegated dimension is
+pushed a synthetic member through its own `coverage()` and must report it uncovered.
+
+**`adminDeepLinkContract.test.ts`** — found **14 of 34** admin links dead (see above).
+
+### SECURITY — fixed: a policy-less table holding client grants
+`notification_dedupe_suppressions`: RLS on, **ZERO policies**, yet `anon` SELECT and `authenticated`
+SELECT+INSERT (verified live). Not exploitable while RLS-with-no-policy denies all — which is exactly
+why it was a missing second line of defence: one `USING (true)` policy turns it into a live read of
+who was sent what. Root cause is the default-privileges re-grant class; `20260915055601`'s one-off
+REVOKE could only name tables existing then. Fixed `bdbdb5e25` (migration `20260919172735`).
+**CLASS CHECK:** `scripts/ci/sensitive-anon-grants.sql` had a hand-written `sensitive(tbl)` allowlist
+that never looked at this table. Generalised to *"every table with RLS on and zero policies must hold
+zero client grants"*, derived from `pg_class` + `pg_policies`, no list. Non-vacuity proven in real
+Postgres incl. a "FROM PUBLIC only" revoke leaving all 8 rows red — proving the repo's own
+`revoke-anon` scar rather than assuming it.
+
+### NEW — the edge mock had clauses that LIED
+`.not()` and `.ilike()` recorded themselves as `neq`/`eq`. Tests asserting those were checking the
+opposite of what they claimed. Now recording: `is, lte, gte, lt, gt` (as own ops) + `limit`, `order`.
+**Still NOT recorded, and the caveat comment now says so:** `.range()` (it really slices), the
+terminators (`single`/`maybeSingle`), and the big one — **filters are recorded, never MATCHED**: the
+scenario still decides results by table name, so a record tells you what the code ASKED for, never
+what the server would answer.
+New assertion that was impossible before, protecting money: `auto-release-payment`'s due query must
+carry `.is("revision_requested_at", null)` — without it the sweep pays out a job the poster formally
+sent back for revision.
+
+### NEW — a pattern worth sweeping for: "a check that requires a defect to survive"
+Three proofs-of-life were **locks on defects**. `exhaustivenessRegistry`'s "found enum-keyed maps at
+all" proved its scanner worked BY THE FACT that `instant-job-match` was broken; its "D2 goes red"
+case did string arithmetic on a ratchet entry. Both failed the instant the defect was fixed
+(`expected undefined to be truthy`). Both now run the real logic against a synthetic world.
+**This is the inverse of vacuity and equally bad — not a check that cannot fail, but one that can
+only pass while something is broken.** Worth a dedicated sweep.
+
+### NEW — `error-leak-EF5` found 8 edge functions still leaking
+Rewritten onto the AST over all 145 edge files: every `catch (binding)` plus anything ALIASED from it
+(`const err = error as Error`, `const message = err instanceof Error ? …` — both are how the leak is
+actually written here), flagged when a `new Response` reads a tainted name in a VALUE position.
+A textual first cut got 8 of 11 wrong. 1 fixed (`instant-job-match`), **7 recorded with what each
+leaks** — ratchet proven red both ways.
+
+### STILL OPEN from the checking work
+- 20 unfloored guards (ratcheted, listed in `docs/audit/vacuity-report.json`) — close them down.
+- 38 mount-wiring gaps reported, NOT gated — incl. `PostedJobCard.tsx` / `AppliedJobCard.tsx`, whose
+  parents are rendered by no test. That is exactly the shape of the badge bug caught by hand today.
+- The ratchet does NOT cover the 327 colocated specs or `src/test/edge/**`.
+- Class (e), literal-vs-semantic, is **not statically decidable and was not faked**: the gate forces
+  a registration but cannot judge whether the mutation is a GOOD one. A weak mutation still "kills".
+- `write-contract.snapshot.json` carries no metadata, so deploy-lag cannot be told from a real
+  missing RPC offline. Add `appliedMigrations` on refresh (see the reverted-heuristic entry above).
+- 7 edge functions still leak error detail (recorded in the EF5 ratchet).

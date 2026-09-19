@@ -1,6 +1,7 @@
 import type { AdminNavItem } from "@/components/admin/AdminSidebar";
 import {
   Activity,
+  AlarmClock,
   AlertTriangle,
   Award,
   Banknote,
@@ -78,6 +79,13 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "idvreview", label: "Identity Review", icon: ShieldCheck },
       { id: "credentials", label: "License & Insurance", icon: FileCheck },
       { id: "exceptions", label: "Exception Queue", icon: ClipboardList },
+      // The human end of the stalled-completion sweep (migration
+      // 20260919143637). A job stuck `in_progress` that nobody marks done
+      // holds its escrow forever; at +48h past its scheduled end the sweep
+      // escalates it here for a person to decide. It shipped with no screen at
+      // all, so the escalation existed only as an admin_alert notification and
+      // a Slack line — an alert that scrolls away, about held money.
+      { id: "stalled", label: "Stuck Jobs", icon: AlarmClock },
     ],
   },
   {

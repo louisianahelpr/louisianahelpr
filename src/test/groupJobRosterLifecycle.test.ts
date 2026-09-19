@@ -156,18 +156,34 @@ describe("group jobs — per-member roster lifecycle (breakage (b))", () => {
     const gate = functionBody(sql, "enforce_job_tracking_arrival_gate");
     expect(gate, "the tracker gate is no longer restated here").not.toHaveLength(0);
 
-    // The crew branch is entered only for a group job with a roster slot.
-    expect(gate).toMatch(/IF v_job\.is_group_job IS TRUE THEN/);
-    expect(gate).toMatch(/FROM public\.group_job_helpers g/);
-    expect(gate).toMatch(/g\.job_id = NEW\.job_id AND g\.helper_id = NEW\.helper_id/);
+    // ORDER MATTERS, and is asserted. The standing parity guard
+    // (src/test/jobsGuardRpcParity.test.ts) reads the FIRST Working branch in
+    // this body as THE Working predicate — putting the crew branch first
+    // silently re-points that assertion at a rule no real job runs, which is
+    // how a guard keeps passing while the thing it guards moves out from under
+    // it. Caught exactly that way on the first pass of this migration.
+    const singleAt = gate.indexOf("IF v_job.is_group_job IS NOT TRUE THEN");
+    const crewAt = gate.indexOf("-- ── THE CREW BRANCH");
+    expect(singleAt, "the single-helper branch is gone").toBeGreaterThan(-1);
+    expect(crewAt, "the crew branch is gone").toBeGreaterThan(-1);
+    expect(
+      singleAt,
+      "the crew branch precedes the single-helper branch — jobsGuardRpcParity's Working assertion now lands on the crew rule",
+    ).toBeLessThan(crewAt);
 
-    // Inside it, every predicate reads THAT MEMBER'S stamps. Reading the job's
-    // scalars there rebuilds the deadlock the whole file removes.
-    const crew = gate.slice(
-      gate.indexOf("IF v_job.is_group_job IS TRUE THEN"),
-      gate.indexOf("-- ── THE SINGLE-HELPER PATH, UNCHANGED"),
-    );
-    expect(crew).not.toHaveLength(0);
+    // The single-helper branch still reads the JOB, unchanged.
+    const single = gate.slice(singleAt, crewAt);
+    expect(single).toContain("v_job.helper_id IS DISTINCT FROM NEW.helper_id");
+    expect(single).toContain("v_job.helper_arrived_at IS NULL");
+    expect(single).toContain("v_job.poster_confirmed_arrival_at IS NULL");
+    expect(single).not.toMatch(/v_slot_/);
+
+    // The crew branch resolves membership against the ROSTER, and every
+    // predicate in it reads THAT MEMBER'S stamps. Reading the job's scalars
+    // there rebuilds the deadlock this whole file removes.
+    const crew = gate.slice(crewAt);
+    expect(crew).toMatch(/FROM public\.group_job_helpers g/);
+    expect(crew).toMatch(/g\.job_id = NEW\.job_id AND g\.helper_id = NEW\.helper_id/);
     expect(crew).toContain("v_slot_arrived_at IS NULL");
     expect(crew).toContain("v_slot_poster_arrival_at IS NULL");
     expect(crew).toContain("v_slot_completed_at IS NULL");
@@ -175,13 +191,6 @@ describe("group jobs — per-member roster lifecycle (breakage (b))", () => {
       crew,
       "the crew branch reads a job-level arrival/confirmation stamp a crew job never fills",
     ).not.toMatch(/v_job\.(helper_arrived_at|poster_confirmed_arrival_at|helper_completed_at)/);
-
-    // …and the single-helper branch still reads the job, unchanged.
-    const single = gate.slice(gate.indexOf("-- ── THE SINGLE-HELPER PATH, UNCHANGED"));
-    expect(single).toContain("v_job.helper_id IS DISTINCT FROM NEW.helper_id");
-    expect(single).toContain("v_job.helper_arrived_at IS NULL");
-    expect(single).toContain("v_job.poster_confirmed_arrival_at IS NULL");
-    expect(single).not.toMatch(/v_slot_/);
   });
 
   it("never widens the jobs UPDATE policy to the roster — in ANY migration", () => {

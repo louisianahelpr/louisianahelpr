@@ -903,88 +903,92 @@ BEGIN
     RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
   END IF;
 
-  -- ── THE CREW BRANCH ──────────────────────────────────────────────────────
-  IF v_job.is_group_job IS TRUE THEN
-    SELECT g.id, g.helper_arrived_at, g.poster_confirmed_arrival_at, g.helper_completed_at
-      INTO v_slot_id, v_slot_arrived_at, v_slot_poster_arrival_at, v_slot_completed_at
-    FROM public.group_job_helpers g
-    WHERE g.job_id = NEW.job_id AND g.helper_id = NEW.helper_id
-    FOR SHARE;
-
-    IF v_slot_id IS NULL THEN
+  -- ── THE SINGLE-HELPER PATH, UNCHANGED ────────────────────────────────────
+  -- Verbatim from prod, and FIRST in the function on purpose: the standing
+  -- parity guard (src/test/jobsGuardRpcParity.test.ts) reads the FIRST Working
+  -- branch in this body as THE Working predicate, so it must keep landing on
+  -- the rule every real job runs, not on the crew rule below.
+  IF v_job.is_group_job IS NOT TRUE THEN
+    -- The row must belong to the job's assigned helper — on EVERY client write,
+    -- position pings included.
+    IF v_job.helper_id IS DISTINCT FROM NEW.helper_id THEN
       RAISE EXCEPTION 'tracker_not_assigned_helper' USING ERRCODE = '42501',
-        HINT = 'Only a Helpr on this job''s crew can update its tracker.';
+        HINT = 'Only the Helpr assigned to this job can update its tracker.';
     END IF;
 
     IF TG_OP = 'UPDATE' AND NEW.status IS NOT DISTINCT FROM OLD.status THEN
+      -- Position pings (latitude/longitude/updated_at) never move a step.
       RETURN NEW;
     END IF;
     IF NEW.status NOT IN ('arrived', 'working', 'done') THEN
       RETURN NEW;
     END IF;
 
-    IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN
+    IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
       RAISE EXCEPTION 'tracker_requires_arrival' USING ERRCODE = '23514',
         HINT = 'Mark arrival at the job site first.';
     END IF;
 
+    -- THE WORKING UNLOCK. Owner, 2026-09-19: "they can not start working until
+    -- the poster confirms they are there … even if gps does confirm they are
+    -- there the poster still needs ro cfnrm wither way". So this reads ONE
+    -- stamp. The GPS half (helper_arrival_verified_at / the near-miss columns)
+    -- is evidence shown to both parties, and no longer part of this predicate.
     IF NEW.status = 'working'
-       AND v_slot_completed_at IS NULL
-       AND v_slot_poster_arrival_at IS NULL THEN
+       AND v_job.helper_completed_at IS NULL
+       AND v_job.poster_confirmed_arrival_at IS NULL THEN
       RAISE EXCEPTION 'tracker_requires_arrival' USING ERRCODE = '23514',
         HINT = 'The person who posted this job has to tap Confirm They Arrived before you can start working.';
     END IF;
 
     IF NEW.status = 'done'
-       AND v_slot_completed_at IS NULL
+       AND v_job.helper_completed_at IS NULL
        AND v_job.poster_completed_at IS NULL
        AND v_job.status IS DISTINCT FROM 'completed' THEN
       RAISE EXCEPTION 'tracker_requires_completion' USING ERRCODE = '23514',
-        HINT = 'Mark your part complete first.';
+        HINT = 'Mark the job complete first.';
     END IF;
 
     RETURN NEW;
   END IF;
 
-  -- ── THE SINGLE-HELPER PATH, UNCHANGED ────────────────────────────────────
-  -- The row must belong to the job's assigned helper — on EVERY client write,
-  -- position pings included.
-  IF v_job.helper_id IS DISTINCT FROM NEW.helper_id THEN
+  -- ── THE CREW BRANCH ──────────────────────────────────────────────────────
+  SELECT g.id, g.helper_arrived_at, g.poster_confirmed_arrival_at, g.helper_completed_at
+    INTO v_slot_id, v_slot_arrived_at, v_slot_poster_arrival_at, v_slot_completed_at
+  FROM public.group_job_helpers g
+  WHERE g.job_id = NEW.job_id AND g.helper_id = NEW.helper_id
+  FOR SHARE;
+
+  IF v_slot_id IS NULL THEN
     RAISE EXCEPTION 'tracker_not_assigned_helper' USING ERRCODE = '42501',
-      HINT = 'Only the Helpr assigned to this job can update its tracker.';
+      HINT = 'Only a Helpr on this job''s crew can update its tracker.';
   END IF;
 
   IF TG_OP = 'UPDATE' AND NEW.status IS NOT DISTINCT FROM OLD.status THEN
-    -- Position pings (latitude/longitude/updated_at) never move a step.
     RETURN NEW;
   END IF;
   IF NEW.status NOT IN ('arrived', 'working', 'done') THEN
     RETURN NEW;
   END IF;
 
-  IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
+  IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN
     RAISE EXCEPTION 'tracker_requires_arrival' USING ERRCODE = '23514',
       HINT = 'Mark arrival at the job site first.';
   END IF;
 
-  -- THE WORKING UNLOCK. Owner, 2026-09-19: "they can not start working until
-  -- the poster confirms they are there … even if gps does confirm they are
-  -- there the poster still needs ro cfnrm wither way". So this reads ONE
-  -- stamp. The GPS half (helper_arrival_verified_at / the near-miss columns)
-  -- is evidence shown to both parties, and no longer part of this predicate.
   IF NEW.status = 'working'
-     AND v_job.helper_completed_at IS NULL
-     AND v_job.poster_confirmed_arrival_at IS NULL THEN
+     AND v_slot_completed_at IS NULL
+     AND v_slot_poster_arrival_at IS NULL THEN
     RAISE EXCEPTION 'tracker_requires_arrival' USING ERRCODE = '23514',
       HINT = 'The person who posted this job has to tap Confirm They Arrived before you can start working.';
   END IF;
 
   IF NEW.status = 'done'
-     AND v_job.helper_completed_at IS NULL
+     AND v_slot_completed_at IS NULL
      AND v_job.poster_completed_at IS NULL
      AND v_job.status IS DISTINCT FROM 'completed' THEN
     RAISE EXCEPTION 'tracker_requires_completion' USING ERRCODE = '23514',
-      HINT = 'Mark the job complete first.';
+      HINT = 'Mark your part complete first.';
   END IF;
 
   RETURN NEW;

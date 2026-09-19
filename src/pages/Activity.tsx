@@ -444,16 +444,21 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const headerEl = (
     <ActivityHeader
       title={tab === "posted" ? "My Posts" : "My Jobs"}
-      // Desktop: the app bar already identifies the app, so the page name is
-      // sr-only here and the row is just its count + controls. Phone and
-      // native keep the visible title; they have no bar.
-      // …except when the list is EMPTY. Then there are no tabs and no count
-      // either (below), so an sr-only title left the row a 1094px bordered
-      // bar holding nothing but a magnifier — and the app bar names the app,
-      // not the page, so nothing on screen said "My Posts" (external QA,
-      // 2026-09-07). The name comes back exactly when it is the only thing
-      // the row has to say.
-      titleSrOnly={isWebDesktop && !isTrulyEmpty}
+      // Desktop: the app bar and the right rail already say which page you
+      // are on, so the page name is sr-only here and the row is just its
+      // count + controls. Phone and native keep the visible title; they have
+      // no bar. Same rule, same shape as Messages' `embedded || isWebDesktop`
+      // (ConversationList) and Home's unconditional `titleSrOnly`.
+      //
+      // `&& !isTrulyEmpty` USED TO HANG OFF THIS (external QA, 2026-09-07: an
+      // sr-only title left an empty list's row a 1094px bar holding nothing
+      // but a magnifier). It was never a My Jobs / My Posts difference — the
+      // two tabs run this exact line — but it read as one: an account with
+      // posts and no applications saw the title vanish on /my-posts and
+      // reappear in 20px Bodoni on /my-jobs, the only page of the four still
+      // painting one at 1440 (browser verification, 2026-09-19). Owner
+      // decision that day: hide it, matching Home, My Posts and Messages.
+      titleSrOnly={isWebDesktop}
       // Desktop has room for the tabs beside the screen name; phone puts them
       // on their own line under it. Same tabs either way.
       inlineFilters={isWebDesktop}

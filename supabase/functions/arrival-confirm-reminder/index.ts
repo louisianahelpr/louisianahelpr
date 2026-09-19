@@ -201,7 +201,14 @@ Deno.serve(async (req) => {
                 : verified
                   ? `"${job.title}" — the Helpr's location was verified 24h ago and the poster hasn't confirmed. Confirm the arrival or open a dispute.`
                   : `"${job.title}" — the Helpr checked in 24h ago with no usable location and the poster hasn't confirmed. Contact both, or open a dispute.`,
-              `/admin?job=${job.id}`,
+              // There is no arrival queue; the admin acts on ONE job here —
+              // contact both parties, check the pin, or open a dispute — and
+              // `?view=jobs` + `?job=` is the only admin surface that opens a
+              // named job's detail (AdminJobs.tsx's deep-link effect). The bare
+              // `/admin?job=<id>` this used to send was read by nobody:
+              // Admin.tsx reads `?view=` only, so AdminJobs never mounted and
+              // every one of these alerts landed on the dashboard home.
+              `/admin?view=jobs&job=${job.id}`,
               "admin_alert",
             );
           }

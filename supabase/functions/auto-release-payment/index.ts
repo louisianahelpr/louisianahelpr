@@ -681,7 +681,11 @@ serve(async (req) => {
                   Attempts: String(attemptNumber),
                   "Last error": String(detail).slice(0, 200),
                 },
-                link: "https://www.louisianahelpr.com/admin?tab=payouts",
+                // `?view=` is the ONLY query param /admin routes on (src/pages/Admin.tsx
+                // resolves `searchParams.get("view")` against VIEW_LABELS). This link
+                // read `?tab=payouts` for as long as it has existed, which Admin.tsx
+                // never looked at — every one of these alerts opened the dashboard home.
+                link: "https://www.louisianahelpr.com/admin?view=payouts",
               });
             }
 

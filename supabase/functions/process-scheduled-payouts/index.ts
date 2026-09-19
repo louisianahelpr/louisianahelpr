@@ -189,7 +189,11 @@ serve(async (req) => {
             "Dispute ID": settlement.dispute?.id ?? "—",
             "Execution status": settlement.dispute?.execution_status ?? "null",
           },
-          link: "https://www.louisianahelpr.com/admin?tab=disputes",
+          // `?view=` is the ONLY query param /admin routes on (src/pages/Admin.tsx
+          // resolves `searchParams.get("view")` against VIEW_LABELS). This link
+          // read `?tab=<name>` for as long as it has existed, which Admin.tsx
+          // never looked at — every one of these alerts opened the dashboard home.
+          link: "https://www.louisianahelpr.com/admin?view=disputes",
           oncePerDayKey: `scheduled-payout-unsettled-dispute:${job.id}`,
         });
         continue;
@@ -222,7 +226,7 @@ serve(async (req) => {
             "Job ID": job.id,
             "Reversed transfer": reversed.stripe_transfer_id ?? reversed.id,
           },
-          link: "https://www.louisianahelpr.com/admin?tab=payouts",
+          link: "https://www.louisianahelpr.com/admin?view=payouts",
           oncePerDayKey: `scheduled-payout-reversed-transfer:${job.id}`,
         });
         continue;
@@ -288,7 +292,7 @@ serve(async (req) => {
               "Unallocated share":
                 `${(job.helpers_needed ?? 1) - distinctRoster.size}/${job.helpers_needed ?? 1} of $${Number(job.budget ?? 0).toFixed(2)}`,
             },
-            link: "https://www.louisianahelpr.com/admin?tab=payouts",
+            link: "https://www.louisianahelpr.com/admin?view=payouts",
           });
         }
         for (const helperId of distinctRoster) payoutTargets.push({ job, helperId });
@@ -1055,7 +1059,7 @@ serve(async (req) => {
               Amount: `$${helperPayout.toFixed(2)}`,
               Error: flip.message.slice(0, 200),
             },
-            link: "https://www.louisianahelpr.com/admin?tab=payouts",
+            link: "https://www.louisianahelpr.com/admin?view=payouts",
           });
         }
 
@@ -1111,7 +1115,7 @@ serve(async (req) => {
             Amount: `$${helperPayout.toFixed(2)}`,
             Error: (e as Error).message?.slice(0, 200),
           },
-          link: "https://www.louisianahelpr.com/admin?tab=payouts",
+          link: "https://www.louisianahelpr.com/admin?view=payouts",
         });
 
         const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "process-scheduled-payouts.payoutFailed");

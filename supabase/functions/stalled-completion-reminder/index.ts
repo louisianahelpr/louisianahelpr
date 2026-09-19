@@ -240,7 +240,13 @@ Deno.serve(async (req) => {
               a.user_id,
               STALLED_ADMIN_TITLE,
               stalledAdminBody(job.title, hours),
-              `/admin?job=${job.id}`,
+              // The Stuck Jobs queue (`?view=stalled` in Admin.tsx's VIEW_LABELS
+              // / adminNavGroups) is the screen built for exactly this row —
+              // `admin_stalled_job_queue()` is what it renders, and "Mark
+              // Reviewed" is the action this alert is asking for. It used to
+              // be `/admin?job=<id>`, which Admin.tsx never reads (it reads
+              // `?view=` only), so the alert landed on the dashboard home.
+              `/admin?view=stalled`,
               "admin_alert",
             );
           }

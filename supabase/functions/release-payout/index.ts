@@ -190,7 +190,11 @@ serve(async (req) => {
           "Roster size": String(rosterSize),
           "Helpers needed": String(job.helpers_needed ?? 1),
         },
-        link: "https://www.louisianahelpr.com/admin?tab=payouts",
+        // `?view=` is the ONLY query param /admin routes on (src/pages/Admin.tsx
+        // resolves `searchParams.get("view")` against VIEW_LABELS). This link
+        // read `?tab=payouts` for as long as it has existed, which Admin.tsx
+        // never looked at — every one of these alerts opened the dashboard home.
+        link: "https://www.louisianahelpr.com/admin?view=payouts",
       });
       return jsonResponse(
         {
@@ -322,7 +326,7 @@ serve(async (req) => {
         "Reversed transfer": reversedRow.stripe_transfer_id ?? reversedRow.id,
         "Initiated by": initiatedBy,
       },
-      link: "https://www.louisianahelpr.com/admin?tab=payouts",
+      link: "https://www.louisianahelpr.com/admin?view=payouts",
       oncePerDayKey: `release-payout-reversed-transfer:${job.id}`,
     });
     return jsonResponse(
@@ -387,7 +391,7 @@ serve(async (req) => {
         "Transfer ID": existing.stripe_transfer_id ?? "(none)",
         "DB error": healed.message.slice(0, 200),
       },
-      link: "https://www.louisianahelpr.com/admin?tab=payouts",
+      link: "https://www.louisianahelpr.com/admin?view=payouts",
     });
     return jsonResponse(
       {
@@ -984,7 +988,7 @@ serve(async (req) => {
         "Claim row": claim.claimId,
         "DB error": settled.message.slice(0, 200),
       },
-      link: "https://www.louisianahelpr.com/admin?tab=payouts",
+      link: "https://www.louisianahelpr.com/admin?view=payouts",
     });
     return jsonResponse(
       {
@@ -1037,7 +1041,7 @@ serve(async (req) => {
         "Amount": `$${(payoutCents / 100).toFixed(2)}`,
         "DB error": flip.message.slice(0, 200),
       },
-      link: "https://www.louisianahelpr.com/admin?tab=payouts",
+      link: "https://www.louisianahelpr.com/admin?view=payouts",
     });
     return jsonResponse(
       {

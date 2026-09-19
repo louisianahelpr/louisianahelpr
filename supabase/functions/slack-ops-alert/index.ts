@@ -44,7 +44,7 @@ interface AlertBody {
   message: string
   // Optional structured fields rendered as a fields block
   fields?: Record<string, string | number | null | undefined>
-  // Optional admin deep link (e.g. /admin?tab=disputes&job=...)
+  // Optional admin deep link (e.g. /admin?view=disputes&job=...)
   link?: string
   // Override the destination channel (defaults to SLACK_OPS_CHANNEL or #ops-alerts)
   channel?: string

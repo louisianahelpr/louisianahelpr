@@ -3981,8 +3981,25 @@ html.senior-mode *::after {
 
    These two selectors are the row's complete child set: the primary slot's
    controls, and every chip. */
-[data-job-step-row] > [data-job-step-primary] > *,
-[data-job-step-row] > :not([data-job-step-primary]) {
+/* `:where()` so this floors a control that asks for NOTHING, and yields to one
+   that asks explicitly — the same contract the base-layer floor states at the
+   top of this file ("an explicit `min-h-*`/`min-w-*` -> that value").
+
+   2026-09-19: it was written with two bare attribute selectors, which out-rank
+   a utility, so it silently defeated the `min-w-0` that `JOB_ACTION_CHIP_CLASS`
+   carries for exactly the reason its own comment gives — a grid item's default
+   `min-width: auto` refuses to shrink below its content. The a11y-prod sweep
+   caught it as "size class ignored: asks min-w-0 (0px), renders 44.0px" on the
+   completed step, which is precisely what that check exists to say: a class on
+   an element that a code read believes and the render does not.
+
+   The last-ditch protection this was added for is unaffected. It guards a
+   control that declares no width at all; `allocateJobStepRow` is what keeps a
+   control from being allocated below 44px, and `jobStepRowWidthFloor.test.tsx`
+   is what proves it. A stylesheet cannot be the thing that stops a 12px
+   primary, because the primary is 12px only when the ALLOCATION is wrong. */
+:where([data-job-step-row] > [data-job-step-primary] > *),
+:where([data-job-step-row] > :not([data-job-step-primary])) {
   min-width: 44px;
 }
 /* NOTHING SIZES THE PRIMARY FROM HERE ANY MORE (owner, 2026-09-19, second

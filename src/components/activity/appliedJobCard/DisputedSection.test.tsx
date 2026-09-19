@@ -16,7 +16,7 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), warning: vi.fn(), success: v
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticSuccess: vi.fn() }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn() }));
-vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null }));
+vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null, PhotoProofDialog: () => null }));
 vi.mock("./steps/HelperPhotoAsk", () => ({ HelperPhotoAsk: () => null }));
 vi.mock("@/components/activity/DeadlineCountdown", () => ({ default: () => null }));
 vi.mock("./HelperTrackerPanel", () => ({

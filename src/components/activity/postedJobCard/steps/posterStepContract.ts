@@ -1,4 +1,9 @@
 import { assertNever } from "@/lib/assertNever";
+import {
+  completionStalled,
+  STALLED_APPROVE_DISABLED_LABEL,
+  STALLED_APPROVE_DISABLED_REASON,
+} from "../../../../../supabase/functions/_shared/stalledCompletion";
 import type { Job } from "../../activityConstants";
 
 /**
@@ -182,7 +187,11 @@ function arrivalBlockedReason(job: Job, step: PosterStepId): { reason: string; g
  * `revision_requested` — which `derivePosterStep` maps to the in-progress step
  * — lost BOTH confirmations outright.
  */
-export function posterConfirmationRung(job: Job, step: PosterStepId): PosterConfirmRung | null {
+export function posterConfirmationRung(
+  job: Job,
+  step: PosterStepId,
+  now: Date = new Date(),
+): PosterConfirmRung | null {
   if (step !== "scheduled" && step !== "in_progress") return null;
 
   // Near-miss stands in for an arrival on the IN-PROGRESS step only — that is
@@ -232,6 +241,73 @@ export function posterConfirmationRung(job: Job, step: PosterStepId): PosterConf
   // primary slot beside it. An ENABLED rung is kept exactly as it was: this
   // removes nothing that was offered before.
   if (!rung.enabled && job.helper_completed_at) return null;
+
+  /* ── THE STALLED JOB (owner item 7, 2026-09-19) ───────────────────────────
+   *
+   * "like for 24 hours passed that needs to be deleted. that should have been
+   * a button like work done but since they never clicked it it should be
+   * disabled and say why."
+   *
+   * A job that reached `in_progress` and was never marked done by either side
+   * showed the poster NOTHING: `InProgressStep`'s Approve chip is gated on
+   * `helper_completed_at`, so with no completion stamp there was no control
+   * and no explanation — and until `d738344c1` no sweep either, so the escrow
+   * simply sat. This is the explanation, in the one place a step card puts a
+   * control it cannot offer: a DISABLED box with the reason under it.
+   *
+   * IT IS THE CRON'S OWN PREDICATE (`completionStalled`, the module the sweep
+   * runs on), so the card can never promise a window the sweep does not
+   * enforce, and the two can never drift.
+   *
+   * PRECEDENCE — why this sits BELOW everything above it rather than at the
+   * top of the function. Both this notice and the confirmation ladder want the
+   * row's ONE primary slot (JobStepCard, jobStepOneRow.test.tsx), and the
+   * ladder does NOT stand down on its own here: what stands it down is a
+   * completion stamp, and a stalled job has neither. So the order is decided
+   * once, in this one place, and it is decided by how SPECIFIC and how
+   * ACTIONABLE each box is:
+   *
+   *   1. an ENABLED confirmation wins. It is a tap the poster can take right
+   *      now, and taking it is how the job moves; a control the user can act
+   *      on always outranks a notice they cannot.
+   *   2. a DISABLED confirmation still wins, because its reason names an
+   *      EARLIER and more specific link in the same chain. On a job whose
+   *      Helpr never arrived, "waiting on your Helpr's location check" is the
+   *      truth and "your Helpr hasn't marked this job done yet, ask them to
+   *      tap Mark Job Complete" is close to a lie — nobody is there to tap it.
+   *      Replacing a precise blocker with a vaguer one downstream of it makes
+   *      the card less honest, not more; and that poster is not left without a
+   *      move, because No-Show is a chip on the same row.
+   *   3. otherwise — the ladder has nothing left to say (a FINISHED box, which
+   *      is a fact the poster already knows) — the stalled notice takes the
+   *      slot. That is exactly the state the owner described: everything went
+   *      fine, and then nobody clicked Work Done.
+   *
+   * The sweep is unaffected either way: it nudges both parties on its own
+   * clock (`stalledCompletionStage`), so a poster whose card is showing a more
+   * specific blocker still hears about the stall.
+   *
+   * Nothing is enabled by this branch and no money moves from it: the owner's
+   * rule is that a stalled job is released or refunded only by a human
+   * decision (see the module header), so the card's job here is to say so.
+   */
+  if (rung.done && completionStalled(job, now)) {
+    return {
+      action: null,
+      label: STALLED_APPROVE_DISABLED_LABEL,
+      enabled: false,
+      // Not `done`: nothing was finished. The success tint would read as "this
+      // job is wrapped up", which is the opposite of what is happening.
+      done: false,
+      reason: STALLED_APPROVE_DISABLED_REASON,
+      // A GATE, not an ordinary wait — amber. Something must happen before the
+      // poster's own next move exists (the Helpr's tap, or our team), the job
+      // is past the time it should have ended, and their money is held while
+      // it stays that way. That is the same shape as the arrival deadlock
+      // above, and the opposite of "the booking simply isn't settled yet".
+      gate: true,
+    };
+  }
   return rung;
 }
 

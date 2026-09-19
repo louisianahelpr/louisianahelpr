@@ -5,6 +5,11 @@ import {
   derivePosterStep,
   type PosterStepId,
 } from "./posterStepContract";
+import {
+  STALLED_APPROVE_DISABLED_LABEL,
+  STALLED_APPROVE_DISABLED_REASON,
+  STALLED_FIRST_AFTER_HOURS,
+} from "../../../../../supabase/functions/_shared/stalledCompletion";
 import type { Job } from "../../activityConstants";
 
 /**
@@ -262,5 +267,103 @@ describe("item 6e — the collapsed card's signal", () => {
     for (const status of ["open", "completed", "disputed", "cancelled", "pending_approval"] as const) {
       expect(posterOwesConfirmation(job({ status })), status).toBe(false);
     }
+  });
+});
+
+/* ── OWNER ITEM 7 — THE STALLED JOB, AND WHO GETS THE ROW'S ONE SLOT ────────
+ *
+ * The ladder and the stalled notice both want the primary slot, and only one
+ * control may be in it (JobStepCard / jobStepOneRow.test.tsx). The precedence
+ * is decided in `posterConfirmationRung` and nowhere else, so it is checked
+ * here and nowhere else:
+ *
+ *   enabled confirmation  >  disabled confirmation  >  stalled notice  >  done box
+ *
+ * The predicate is the SWEEP's (`completionStalled`), so a card can never
+ * offer a window the cron does not enforce.
+ */
+const DAY = "2026-09-17";
+/** Well past that day's end in America/Chicago (midnight the 18th, CDT). */
+const LONG_AFTER = new Date("2026-09-20T12:00:00Z");
+/** Before it — the job is still legitimately running. */
+const DURING = new Date("2026-09-17T18:00:00Z");
+
+const stalledJob = (over: Partial<Record<string, unknown>> = {}): Job =>
+  ({
+    id: "job-1",
+    status: "in_progress",
+    date_needed: DAY,
+    start_time: "09:00",
+    estimated_hours: 2,
+    helper_confirmed_at: T(48),
+    helper_on_the_way_at: T(40),
+    helper_arrived_at: T(39),
+    helper_arrival_near_miss_at: null,
+    poster_confirmed_arrival_at: T(39),
+    poster_confirmed_working_at: T(38),
+    helper_completed_at: null,
+    poster_completed_at: null,
+    ...over,
+  }) as unknown as Job;
+
+describe("item 7 — the job nobody marked done", () => {
+  it("replaces the FINISHED box with the disabled stalled box and its reason", () => {
+    const rung = posterConfirmationRung(stalledJob(), "in_progress", LONG_AFTER);
+    expect(rung?.label).toBe(STALLED_APPROVE_DISABLED_LABEL);
+    expect(rung?.enabled).toBe(false);
+    expect(rung?.done, "nothing finished — the success tint would read as 'wrapped up'").toBe(false);
+    expect(rung?.reason).toBe(STALLED_APPROVE_DISABLED_REASON);
+    expect(rung?.gate, "a gate, not an ordinary wait — amber").toBe(true);
+    expect(rung?.action, "no handler: this box can never move money").toBeNull();
+  });
+
+  it("does not show while the job is still legitimately running", () => {
+    expect(posterConfirmationRung(stalledJob(), "in_progress", DURING)?.label).toBe("Working Confirmed");
+  });
+
+  it("uses the SWEEP's threshold, not one of its own", () => {
+    // scheduledEndMs is the LATER of the day's end and start+estimate, so this
+    // job's end is midnight the 18th in America/Chicago = 05:00Z.
+    const end = new Date("2026-09-18T05:00:00Z").getTime();
+    const justBefore = new Date(end + (STALLED_FIRST_AFTER_HOURS - 0.1) * 3_600_000);
+    const justAfter = new Date(end + STALLED_FIRST_AFTER_HOURS * 3_600_000);
+    expect(posterConfirmationRung(stalledJob(), "in_progress", justBefore)?.label).toBe("Working Confirmed");
+    expect(posterConfirmationRung(stalledJob(), "in_progress", justAfter)?.label).toBe(
+      STALLED_APPROVE_DISABLED_LABEL,
+    );
+  });
+
+  it("loses to an ENABLED confirmation — a tap the poster can take outranks a notice", () => {
+    const rung = posterConfirmationRung(
+      stalledJob({ poster_confirmed_arrival_at: null }),
+      "in_progress",
+      LONG_AFTER,
+    );
+    expect(rung?.label).toBe("Confirm They Arrived");
+    expect(rung?.enabled).toBe(true);
+  });
+
+  it("loses to a DISABLED confirmation — the earlier blocker is the more specific truth", () => {
+    const rung = posterConfirmationRung(
+      stalledJob({ poster_confirmed_arrival_at: null, helper_arrived_at: null }),
+      "in_progress",
+      LONG_AFTER,
+    );
+    expect(rung?.label).toBe("Confirm They Arrived");
+    expect(rung?.enabled).toBe(false);
+    expect(rung?.reason, "the location-check deadlock, not the generic stall line").toMatch(/location check/i);
+  });
+
+  it("never fires once either side has marked the job done", () => {
+    for (const stamp of ["helper_completed_at", "poster_completed_at"] as const) {
+      const rung = posterConfirmationRung(stalledJob({ [stamp]: T(1) }), "in_progress", LONG_AFTER);
+      expect(rung?.label ?? null, stamp).not.toBe(STALLED_APPROVE_DISABLED_LABEL);
+    }
+  });
+
+  it("never sets the collapsed card's owed-confirmation signal", () => {
+    // `posterOwesConfirmation` reads `enabled`, and this box never is — a
+    // stalled job is not a confirmation the poster is sitting on.
+    expect(posterOwesConfirmation(stalledJob())).toBe(false);
   });
 });

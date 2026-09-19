@@ -1,7 +1,8 @@
-import { DollarSign, CheckCircle2, Star, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { DollarSign, CheckCircle2, Star, RotateCcw, Image } from "lucide-react";
 import { JobStepCard } from "@/components/activity/JobStepCard";
 import { JobActionChip } from "../../JobActionRow";
-import { PhotoProofGroup } from "@/components/PhotoProof";
+import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { PosterStepCtx } from "./posterStepContract";
 
 /**
@@ -15,9 +16,11 @@ import type { PosterStepCtx } from "./posterStepContract";
  * can't report a job once it's done"). This reverses the earlier 7-day
  * post-completion dispute window and the Done-tab Report Job chip.
  *
- * The proof group renders only when there ARE photos (owner: "move to the
- * collapsed part") — an empty group printed two rows of chrome to report an
- * absence.
+ * The proof is a BUTTON on that row now, not a panel above it (owner item 10,
+ * 2026-09-19: "before & after pictures" goes on the same row as the other
+ * action buttons). It still renders only when there ARE photos (owner: "move
+ * to the collapsed part") — an empty group printed two rows of chrome to
+ * report an absence, and an empty gallery behind a chip would be a dead tap.
  */
 export function CompletedStep({
   job,
@@ -27,6 +30,7 @@ export function CompletedStep({
   onTip,
   onReview,
 }: PosterStepCtx) {
+  const [photosOpen, setPhotosOpen] = useState(false);
   const meta = completedJobMeta[job.id];
   const hasTipped = meta?.tipped;
   const hasReviewed = meta?.reviewed;
@@ -42,17 +46,21 @@ export function CompletedStep({
     <JobStepCard
       side="poster"
       step="completed"
-      ask={
-        hasProof ? (
-          <PhotoProofGroup
-            jobId={job.id}
-            beforeUrls={job.proof_before_urls || []}
-            afterUrls={job.proof_after_urls || []}
-            canUpload={false}
-          />
-        ) : null
-      }
       actions={[
+        /* The before & after pictures, first in the row: the quietest control
+           here and the only one that isn't a fresh decision — Tip, Review and
+           Hire Again all are, and the owner's primary-right rule (V2/V3) keeps
+           the loudest of them on the right. */
+        hasProof ? (
+          <JobActionChip
+            key="photos"
+            icon={Image}
+            label="Photos"
+            ariaLabel="Photos — the before and after proof photos from this job"
+            tone="neutral"
+            onClick={() => setPhotosOpen(true)}
+          />
+        ) : null,
         /* TIP IS NOT GATED ON THE HELPER BEING PAYABLE, and this component
            cannot gate it: `create-payment` refuses a tip outright when the
            helper has no `profiles.stripe_account_id`, and nothing in scope here
@@ -124,6 +132,14 @@ export function CompletedStep({
           />
         ),
       ]}
+      dialogs={
+        <PhotoProofDialog
+          open={photosOpen}
+          onOpenChange={setPhotosOpen}
+          beforeUrls={job.proof_before_urls || []}
+          afterUrls={job.proof_after_urls || []}
+        />
+      }
     />
   );
 }

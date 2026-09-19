@@ -37,6 +37,10 @@ vi.mock("@/lib/haptics", () => ({
 vi.mock("@/components/PhotoProof", () => ({
   PhotoProofGroup: () => <div data-testid="photo-proof" />,
   PhotoProofStep: ({ title }: { title: string }) => <div data-testid="photo-proof-step">{title}</div>,
+  // The gallery the step cards' `Photos` chip opens (owner item 10). Closed,
+  // portalled and contributing no control — stubbed to nothing so the row's
+  // own count is unaffected either way.
+  PhotoProofDialog: () => null,
 }));
 
 function makeSupabase() {
@@ -72,6 +76,8 @@ import { CompletedStep } from "./postedJobCard/steps/CompletedStep";
 import { DisputedStep } from "./postedJobCard/steps/DisputedStep";
 import { JobStepCard } from "./JobStepCard";
 import { JobStepRowSlot, shouldCompactJobStepRow, shouldTightenJobStepPrimary } from "./jobStepRow";
+// The sweep's own copy, never a retyped copy of it (owner item 7).
+import { STALLED_APPROVE_DISABLED_LABEL } from "../../../supabase/functions/_shared/stalledCompletion";
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});
@@ -85,6 +91,31 @@ const ago = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
 const ahead = (h: number) => new Date(NOW + h * 3_600_000).toISOString();
 const YESTERDAY = new Date(NOW - 24 * 3_600_000).toISOString().slice(0, 10);
 const TODAY = new Date(NOW).toISOString().slice(0, 10);
+
+/**
+ * A `date_needed` + `start_time` pair `h` hours from now, resolved in the JOB's
+ * timezone.
+ *
+ * Every clock gate on these cards resolves in America/Chicago — `hasJobStarted`
+ * → `jobLocalStartMs`, the tracker's two-hour unlock, the cancel RPC's own
+ * `COALESCE(start_time,'00:00')` — so a fixture that wants "the start is still
+ * an hour away" has to say so in that zone, not in the runner's. It is derived
+ * from the clock rather than typed because there is no fixed wall-clock time
+ * that is always in the future.
+ */
+function jobClock(h: number): { date: string; time: string } {
+  const at = new Date(NOW + h * 3_600_000);
+  return {
+    date: at.toLocaleDateString("en-CA", { timeZone: "America/Chicago" }),
+    time: at.toLocaleTimeString("en-GB", {
+      timeZone: "America/Chicago",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
+}
+/** Starts in an hour: inside the tracker's 2h unlock, before the cancel gate. */
+const STARTS_SOON = jobClock(1);
 
 type J = Job & { revision_note?: string | null };
 
@@ -221,6 +252,9 @@ const CASES: Array<{
   /** Floor on the controls found, so a fixture that stops reaching its state
    *  cannot pass on an empty card. */
   minControls: number;
+  /** CEILING, for the states whose point is that a control is ABSENT — a floor
+   *  alone cannot fail when something comes back. */
+  maxControls?: number;
   /** What the row's primary slot holds, in order ([] = no primary). */
   primary: string[];
   /** The primary is on screen but not tappable — the poster's confirmation
@@ -235,7 +269,42 @@ const CASES: Array<{
 }> = [
   // ── /my-jobs, Helpr ──
   {
+    /* THE START HAS NOT PASSED — and that is the whole state this case names.
+       It was written `date_needed: TODAY, start_time: "00:00"`, which is a job
+       whose start is already hours behind us; `ae6c80903` then (correctly)
+       hid the Cancel Job chip in exactly that window, because
+       `helper_cancel_booking` REFUSES it there (`job_already_started`) and an
+       offered control that the server refuses is a dead-end tap. The fixture
+       had simply stopped reaching the state its own name describes, and the
+       floor caught it: three controls, not four. The product is right; the
+       clock in the fixture was wrong. Its companion below pins the other side
+       of that same gate. */
     name: "Jobs · Confirmed (tracker CTA + Directions · Message · Cancel Job)",
+    render: () =>
+      wrap(
+        <ConfirmedSection
+          app={makeApp(makeJob({}))}
+          job={makeJob({
+            status: "accepted", date_needed: STARTS_SOON.date, start_time: STARTS_SOON.time,
+            helper_on_the_way_at: null, helper_arrived_at: null, poster_confirmed_working_at: null,
+          })}
+          userId={HELPER}
+          initialTracking={tracking("job_confirmed")}
+          navigate={vi.fn()}
+        />,
+      ),
+    minControls: 4,
+    primary: ["I'm On My Way"],
+    primaryDisabled: false,
+  },
+  {
+    /* THE SAME CARD PAST ITS START, so the pair states the rule rather than
+       one side of it: `helper_cancel_booking` refuses a cancel once the
+       scheduled start has passed (ae6c80903), so the chip is gone and the row
+       is legitimately three controls. Without this case, a future change that
+       hid Cancel EVERYWHERE would still pass the case above by accident of the
+       clock. */
+    name: "Jobs · Confirmed, start already passed (no Cancel Job — the RPC would refuse it)",
     render: () =>
       wrap(
         <ConfirmedSection
@@ -249,7 +318,8 @@ const CASES: Array<{
           navigate={vi.fn()}
         />,
       ),
-    minControls: 4,
+    minControls: 3,
+    maxControls: 3,
     primary: ["I'm On My Way"],
   },
   {
@@ -410,12 +480,52 @@ const CASES: Array<{
     // ALREADY ACTIONED, STILL ON SCREEN (owner: "if it was clicked already it
     // should still show but with the box disabled"). Both vouches in, the job
     // still running: a done-toned box, never a greyed-out green.
+    //
+    // `date_needed: TODAY` is load-bearing since owner item 7: the job's
+    // scheduled end is the end of its own day, and a job whose end has passed
+    // with nobody marking it done is STALLED — its slot goes to the stalled
+    // notice instead (the case directly below). A finished box is what a job
+    // that is still legitimately running shows.
     name: "Posts · In Progress, both vouches in (disabled Working Confirmed)",
-    render: () => wrap(<InProgressStep {...posterCtx(makeJob({ poster_confirmed_arrival_at: ago(6), poster_confirmed_working_at: ago(5) }))} />),
+    render: () => wrap(<InProgressStep {...posterCtx(makeJob({ date_needed: TODAY, poster_confirmed_arrival_at: ago(6), poster_confirmed_working_at: ago(5) }))} />),
     minControls: 3,
     primary: ["Working Confirmed"],
     primaryDisabled: true,
     primaryDone: true,
+  },
+  {
+    /* OWNER ITEM 7 — THE JOB NOBODY MARKED DONE (2026-09-19: "like for 24
+       hours passed that needs to be deleted. that should have been a button
+       like work done but since they never clicked it it should be disabled and
+       say why").
+
+       Both vouches given, the scheduled end long past, and NEITHER side has
+       marked the job complete. `InProgressStep` gates its Approve chip on
+       `helper_completed_at`, so this poster used to see no control and no
+       explanation at all — and until `d738344c1` no sweep either, so the
+       escrow just sat. The box is the sweep's OWN predicate (`completionStalled`,
+       supabase/functions/_shared/stalledCompletion.ts), disabled, with the
+       pinned reason under the row: the card cannot promise a window the cron
+       does not enforce, and NOTHING here releases money. */
+    name: "Posts · In Progress, nobody marked it done (disabled stalled box + the reason)",
+    render: () =>
+      wrap(
+        <InProgressStep
+          {...posterCtx(makeJob({
+            date_needed: YESTERDAY,
+            poster_confirmed_arrival_at: ago(26),
+            poster_confirmed_working_at: ago(25),
+            helper_completed_at: null,
+            poster_completed_at: null,
+          }))}
+        />,
+      ),
+    minControls: 3,
+    primary: [STALLED_APPROVE_DISABLED_LABEL],
+    primaryDisabled: true,
+    // NOT the done tone: nothing here finished.
+    primaryDone: false,
+    note: /Your payment stays in escrow/,
   },
   {
     // ITEM 6b — a job in `revision_requested` derives to THIS step, but both
@@ -491,6 +601,12 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
         controls.length,
         `expected at least ${c.minControls} controls, got [${labels.join(" | ")}] — the fixture no longer reaches this state`,
       ).toBeGreaterThanOrEqual(c.minControls);
+      if (c.maxControls !== undefined) {
+        expect(
+          controls.length,
+          `expected at most ${c.maxControls} controls, got [${labels.join(" | ")}] — a control this state must not offer is back`,
+        ).toBeLessThanOrEqual(c.maxControls);
+      }
 
       const rows = card!.querySelectorAll("[data-job-step-row]");
       expect(rows.length, `${rows.length} action rows on one card — [${labels.join(" | ")}]`).toBe(1);

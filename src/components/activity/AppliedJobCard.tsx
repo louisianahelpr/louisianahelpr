@@ -1,13 +1,13 @@
-import { memo, useRef } from "react";
+import { memo, useRef, useState } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2, Star,
   RefreshCw, XCircle,
-  Eye, Pencil,
+  Eye, Pencil, Image,
 } from "lucide-react";
-import { PhotoProofGroup } from "@/components/PhotoProof";
+import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { AppliedApp } from "./activityConstants";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
@@ -75,6 +75,12 @@ function AppliedJobCardInner({
 }: AppliedJobCardProps) {
   const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
+  /* The before & after pictures are a BUTTON on the action row now, not a
+     panel above it (owner item 10, 2026-09-19). ONE piece of state for the two
+     places this card shows them: `completed but not reviewed` and `fully done
+     and expanded` are mutually exclusive branches, so they can never both want
+     the gallery open. */
+  const [photosOpen, setPhotosOpen] = useState(false);
   // The viewing helper's own tier rate. Only consulted when the job carries no
   // stamped helper_fee_percent — see the fee-precedence note in the helper.
   const { profile: viewerProfile } = useCurrentUser();
@@ -143,6 +149,15 @@ function AppliedJobCardInner({
    *  with no owner and no address. Narrowed HERE, into a local, because reading
    *  `job.customer_id` again inside a callback re-widens it. */
   const posterId = job.customer_id;
+
+  /** Is there anything behind the Photos chip? Gated on the photos EXISTING,
+   *  because the chip opens a dialog and an empty one is a dead-end tap. */
+  const hasProof = (job.proof_before_urls?.length ?? 0) > 0 || (job.proof_after_urls?.length ?? 0) > 0;
+  /** `payout_pending` counts too, and a review needs a reviewee — both rules
+   *  are unchanged, just named once now that this gate decides a chip in a
+   *  shared row rather than a row of its own. See the notes at the call site. */
+  const canLeaveReview =
+    (job.payment_status === "released" || job.payment_status === "payout_pending") && !!posterId;
 
   /** Does the description say anything the TITLE hasn't already said? A job
    *  whose description is its own title back again is one line of duplication. */
@@ -534,15 +549,17 @@ function AppliedJobCardInner({
             />
           )}
 
-          {/* Completed - not yet reviewed: always show photo proof + review button */}
-          {isCompleted && !isFullyDone && (
+          {/* Completed - not yet reviewed: the proof photos and the review, as
+              two chips on one row.
+
+              The BAND itself is gated on having something to put in it. It used
+              to be unconditional because the proof panel was unconditional —
+              it printed "No photos were uploaded for this job" on a job with
+              none. With the panel gone that would leave a bordered strip with
+              nothing in it, which is the silent-band defect this card already
+              has a fallback for further down. */}
+          {isCompleted && !isFullyDone && (canLeaveReview || hasProof) && (
             <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
-              <PhotoProofGroup
-                jobId={app.job_id}
-                beforeUrls={job.proof_before_urls || []}
-                afterUrls={job.proof_after_urls || []}
-                canUpload={false}
-              />
               {/* Same icon-over-label chip PostedJobCard's completed state
                   uses for Review/Reviewed — this was a plain full-width
                   outline Button, the one place the two Done-tab cards
@@ -560,28 +577,48 @@ function AppliedJobCardInner({
                   there is no account to address one to, and the INSERT would
                   fail on a null `reviewee_id` — so the chip doesn't render
                   rather than offering an action that cannot complete. */}
-              {(job.payment_status === "released" || job.payment_status === "payout_pending") && posterId && (
-                <JobActionRow columns={1}>
-                  {helperReviewedJobIds.has(app.job_id) ? (
-                    <JobActionChip
-                      icon={CheckCircle2}
-                      label="Reviewed"
-                      ariaLabel="Already reviewed the person who posted this job"
-                      tone="done"
-                      disabled
-                      onClick={() => {}}
-                    />
-                  ) : (
-                    <JobActionChip
-                      icon={Star}
-                      label="Leave a Review"
-                      ariaLabel="Leave a review for the person who posted this job"
-                      tone="edit"
-                      onClick={() => onHelperReview(app.job_id, posterId, app.posterName || "the person who posted this job")}
-                    />
-                  )}
-                </JobActionRow>
-              )}
+              {/* ONE row: the photos beside the review, rather than a proof
+                  PANEL stacked above a one-chip row. `columns` is passed, not
+                  counted, so an absent chip yields a deliberate one-up row
+                  (JobActionRow). The Photos chip is gated on there BEING
+                  photos — a chip is a tap, and an empty gallery is a dead
+                  end — which is why this card no longer prints "No photos were
+                  uploaded for this job" when a job has none. */}
+              <JobActionRow columns={canLeaveReview && hasProof ? 2 : 1}>
+                {hasProof ? (
+                  <JobActionChip
+                    icon={Image}
+                    label="Photos"
+                    ariaLabel="Photos — the before and after proof photos from this job"
+                    tone="neutral"
+                    onClick={() => setPhotosOpen(true)}
+                  />
+                ) : null}
+                {!canLeaveReview ? null : helperReviewedJobIds.has(app.job_id) ? (
+                  <JobActionChip
+                    icon={CheckCircle2}
+                    label="Reviewed"
+                    ariaLabel="Already reviewed the person who posted this job"
+                    tone="done"
+                    disabled
+                    onClick={() => {}}
+                  />
+                ) : (
+                  <JobActionChip
+                    icon={Star}
+                    label="Leave a Review"
+                    ariaLabel="Leave a review for the person who posted this job"
+                    tone="edit"
+                    onClick={() => onHelperReview(app.job_id, posterId!, app.posterName || "the person who posted this job")}
+                  />
+                )}
+              </JobActionRow>
+              <PhotoProofDialog
+                open={photosOpen}
+                onOpenChange={setPhotosOpen}
+                beforeUrls={job.proof_before_urls || []}
+                afterUrls={job.proof_after_urls || []}
+              />
               {/* No dispute link on a completed job (owner, 2026-09-14,
                   VN-28: "they can't report a job once it's done") — this
                   replaced the issue-#113 7-day post-completion link. */}
@@ -597,13 +634,27 @@ function AppliedJobCardInner({
               <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Reviewed</span>
             </div>
           )}
-          {isFullyDone && isExpanded && (
+          {isFullyDone && isExpanded && hasProof && (
             <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
-              <PhotoProofGroup
-                jobId={app.job_id}
+              {/* The same Photos button as the completed-not-reviewed branch
+                  above (owner item 10). Alone in its row here: on a job that is
+                  finished AND reviewed there is nothing else left to do. The
+                  band no longer renders at all when the job has no photos,
+                  where it used to print an empty proof panel. */}
+              <JobActionRow columns={1}>
+                <JobActionChip
+                  icon={Image}
+                  label="Photos"
+                  ariaLabel="Photos — the before and after proof photos from this job"
+                  tone="neutral"
+                  onClick={() => setPhotosOpen(true)}
+                />
+              </JobActionRow>
+              <PhotoProofDialog
+                open={photosOpen}
+                onOpenChange={setPhotosOpen}
                 beforeUrls={job.proof_before_urls || []}
                 afterUrls={job.proof_after_urls || []}
-                canUpload={false}
               />
             </div>
           )}

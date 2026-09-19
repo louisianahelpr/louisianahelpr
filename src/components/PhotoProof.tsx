@@ -297,6 +297,71 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel }: Pho
   );
 };
 
+/* ── The full before/after gallery, on its own ──────────────────────────────
+ *
+ * Owner, 2026-09-19 (item 10): on a job card the before & after pictures are a
+ * BUTTON on the same row as the other action buttons. A button needs something
+ * to open, and what it opens is exactly what PhotoProofGroup's "View All"
+ * already opened — so the dialog is lifted out whole rather than written a
+ * second time, and the group keeps using it. Nothing about the gallery itself
+ * changes.
+ *
+ * Read-only by design: the uploader is a different control (`PhotoProofStep`,
+ * the step-anchored ask), and this is the surface for LOOKING at proof.
+ */
+export const PhotoProofDialog = ({
+  open,
+  onOpenChange,
+  beforeUrls,
+  afterUrls,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  beforeUrls: string[];
+  afterUrls: string[];
+}) => {
+  const hasBefore = beforeUrls.length > 0;
+  const hasAfter = afterUrls.length > 0;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHero
+          title="Photo Proof"
+        />
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+          {hasBefore && (
+            <div className="space-y-2">
+              <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
+              <div className="grid grid-cols-3 gap-2">
+                {beforeUrls.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                    <img loading="lazy" decoding="async" src={url} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+          {hasAfter && (
+            <div className="space-y-2">
+              <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">After</p>
+              <div className="grid grid-cols-3 gap-2">
+                {afterUrls.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                    <img loading="lazy" decoding="async" src={url} alt={`After ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+          {!hasBefore && !hasAfter && (
+            <p className="text-ds-11 text-muted-foreground text-center py-6">No photos uploaded yet.</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 /* ── Grouped Before & After card ── */
 type PhotoProofGroupProps = {
   jobId: string;
@@ -415,43 +480,12 @@ export const PhotoProofGroup = ({
         )}
       </>
 
-      {/* Full view dialog */}
-      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent>
-          <DialogHero
-            title="Photo Proof"
-          />
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-            {hasBefore && (
-              <div className="space-y-2">
-                <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {beforeUrls.map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                      <img loading="lazy" decoding="async" src={url} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-            {hasAfter && (
-              <div className="space-y-2">
-                <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">After</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {afterUrls.map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                      <img loading="lazy" decoding="async" src={url} alt={`After ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-            {!hasBefore && !hasAfter && (
-              <p className="text-ds-11 text-muted-foreground text-center py-6">No photos uploaded yet.</p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* The full gallery. It lives in its own exported component now
+          (`PhotoProofDialog`, below) because the job cards ask for the gallery
+          WITHOUT this panel: owner, 2026-09-19, item 10 — "before & after
+          pictures" is a button on the same row as the other action buttons,
+          not a second card above them. Same dialog, two hosts. */}
+      <PhotoProofDialog open={viewOpen} onOpenChange={setViewOpen} beforeUrls={beforeUrls} afterUrls={afterUrls} />
     </CardSubPanel>
   );
 };

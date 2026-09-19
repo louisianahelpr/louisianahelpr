@@ -44,6 +44,12 @@
     "supabase/functions/_shared/escrowTiming.ts",
     "supabase/functions/_shared/arrivalRule.ts",
     "supabase/functions/_shared/arrivalNudge.ts",
+    // The stalled-completion rule (d738344c1). The POSTER'S CARD reads it —
+    // `postedJobCard/steps/posterStepContract.ts` draws its disabled box from
+    // `completionStalled`, the same predicate the sweep runs on — so the app
+    // project compiles it like every other shared rule beside it. This project
+    // is `composite`, which means every file it compiles has to be listed.
+    "supabase/functions/_shared/stalledCompletion.ts",
     "supabase/functions/_shared/productTiers.ts",
     "supabase/functions/_shared/helperEarnings.ts",
     "supabase/functions/_shared/seatTierGrant.ts",

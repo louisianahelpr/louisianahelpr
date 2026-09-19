@@ -1,0 +1,309 @@
+/**
+ * OWNER ITEM 10 (2026-09-19): "before & after pictures" is a BUTTON, on the
+ * SAME ROW as the other action buttons.
+ *
+ * It used to be `PhotoProofGroup` — a titled two-column panel with six
+ * thumbnails and a "View All" text link — sitting in the `ask` slot ABOVE the
+ * action row on five different cards. So the one row the owner asked for
+ * (VN-21) had a second, taller block of chrome stacked on top of it, on every
+ * state where the proof exists.
+ *
+ * This file is the CLASS check for that ask, over all five call sites at once:
+ *
+ *   1. every site offers a `Photos` control;
+ *   2. on the three step cards it is INSIDE `[data-job-step-row]` — the single
+ *      action row — which is the half a "does the chip render" test cannot see
+ *      and the half the owner actually asked for;
+ *   3. no site still draws the `Photo Proof` panel above the row;
+ *   4. the control really opens the gallery. The dialog is the REAL
+ *      `PhotoProofDialog` here (not a stub), so this covers the wiring — the
+ *      extraction, the `dialogs` slot, and the open state — and not just the
+ *      button's existence.
+ *
+ * The UPLOAD ask is a different control and is deliberately untouched:
+ * `appliedJobCard/steps/HelperPhotoAsk.tsx` still renders one `PhotoProofStep`
+ * at a time from the tracker's current step.
+ */
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactElement, ReactNode } from "react";
+import type { AppliedApp, Job } from "./activityConstants";
+import type { PosterStepCtx } from "./postedJobCard/steps/posterStepContract";
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn() }));
+vi.mock("@/lib/haptics", () => ({
+  hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),
+  hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(),
+}));
+// NOT mocked: @/components/PhotoProof. The point of this file is the real one.
+vi.mock("@/components/JobTracking", () => ({
+  JobTracking: ({ personTile }: { personTile?: ReactNode }) => <div data-testid="tracker">{personTile}</div>,
+}));
+vi.mock("@/components/JobConfirmation", () => ({
+  JobConfirmation: () => null,
+  helperDayOfConfirmation: () => true,
+}));
+vi.mock("./JobCardMetaRow", () => ({ JobCardMetaRow: () => <div data-testid="meta" /> }));
+vi.mock("./useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
+
+function makeSupabase() {
+  const result = { data: null, error: null };
+  const chain: Record<string, unknown> = {};
+  for (const m of ["from", "select", "eq", "neq", "in", "order", "limit", "insert", "update", "upsert", "delete", "gte", "lte", "is", "not", "filter"]) {
+    chain[m] = vi.fn(() => chain);
+  }
+  chain.single = vi.fn(() => Promise.resolve(result));
+  chain.maybeSingle = vi.fn(() => Promise.resolve(result));
+  chain.then = (res: (v: typeof result) => unknown) => Promise.resolve(result).then(res);
+  return {
+    supabase: {
+      ...chain,
+      storage: { from: vi.fn(() => ({ upload: vi.fn(), createSignedUrl: vi.fn() })) },
+      channel: vi.fn(() => ({ on: vi.fn().mockReturnThis(), subscribe: vi.fn() })),
+      removeChannel: vi.fn(),
+      rpc: vi.fn(() => Promise.resolve(result)),
+      auth: { getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })) },
+    },
+  };
+}
+vi.mock("@/integrations/supabase/client", () => makeSupabase());
+
+import { CompletedStep } from "./postedJobCard/steps/CompletedStep";
+import { InProgressStep } from "./postedJobCard/steps/InProgressStep";
+import { DisputedStep } from "./postedJobCard/steps/DisputedStep";
+import { AppliedJobCard } from "./AppliedJobCard";
+
+const HELPER = "helper-1";
+const POSTER = "poster-1";
+const ago = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+const TODAY = new Date().toISOString().slice(0, 10);
+
+const BEFORE = ["https://example.test/before-1.jpg"];
+const AFTER = ["https://example.test/after-1.jpg", "https://example.test/after-2.jpg"];
+
+function makeJob(over: Record<string, unknown>): Job {
+  return {
+    id: "job-1",
+    title: "Mow the lawn",
+    description: "Front and back",
+    location: "Lafayette, LA",
+    customer_id: POSTER,
+    helper_id: HELPER,
+    budget: 100,
+    category: "yard_work",
+    date_needed: TODAY,
+    start_time: "09:00",
+    proof_before_urls: BEFORE,
+    proof_after_urls: AFTER,
+    helper_confirmed_at: ago(48),
+    poster_confirmed_at: ago(47),
+    poster_confirmed_arrival_at: ago(6),
+    poster_confirmed_working_at: ago(5),
+    helper_on_the_way_at: ago(7),
+    helper_arrived_at: ago(6),
+    helper_completed_at: null,
+    poster_completed_at: null,
+    status: "in_progress",
+    ...over,
+  } as unknown as Job;
+}
+
+function wrap(ui: ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+function posterCtx(job: Job): PosterStepCtx {
+  return {
+    job,
+    userId: POSTER,
+    helperNames: { [HELPER]: "Hallie H." },
+    completedJobMeta: {},
+    unfunded: false,
+    completingJobId: null,
+    confirmingArrivalJobId: null,
+    confirmingWorkingJobId: null,
+    instantReleaseOn: false,
+    navigate: vi.fn(),
+    onBoost: vi.fn(),
+    onEdit: vi.fn(),
+    onCancel: vi.fn(),
+    onComplete: vi.fn(),
+    onNoShow: vi.fn(),
+    onTip: vi.fn(),
+    onReview: vi.fn(),
+    onDispute: vi.fn(),
+    onReport: vi.fn(),
+    onViewDispute: vi.fn(),
+    onConfirmArrival: vi.fn(),
+    onConfirmWorking: vi.fn(),
+    onActionComplete: vi.fn(),
+    completionSheetOpen: false,
+    setCompletionSheetOpen: vi.fn(),
+    disputeActing: false,
+    resolveConfirmOpen: false,
+    setResolveConfirmOpen: vi.fn(),
+    escalateConfirmOpen: false,
+    setEscalateConfirmOpen: vi.fn(),
+    escalateDispute: vi.fn(),
+    resolveDisputeAndRelease: vi.fn(),
+  };
+}
+
+const noop = () => {};
+function renderAppliedCard(job: Job, reviewed: boolean) {
+  const app = { id: "app-1", job_id: job.id, helper_id: HELPER, status: "accepted", posterName: "Pierre B.", job } as unknown as AppliedApp;
+  return wrap(
+    <AppliedJobCard
+      app={app}
+      expandedJobIds={new Set([job.id])}
+      toggleExpandedJobId={vi.fn()}
+      helperReviewedJobIds={new Set(reviewed ? [job.id] : [])}
+      userId={HELPER}
+      onHelperResponse={noop}
+      respondingHelperAppId={null}
+      onComplete={noop}
+      completingJobId={null}
+      onResolveRevision={noop}
+      onHelperReview={noop}
+      onDispute={noop}
+      onViewDispute={noop}
+      onRefresh={noop}
+      disputeResponse=""
+      setDisputeResponse={noop}
+      respondingJobId={null}
+      setRespondingJobId={noop}
+      submittingResponse={false}
+      setSubmittingResponse={noop}
+      withdrawingAppId={null}
+      setWithdrawTarget={noop}
+      uploadingAttachment={null}
+      editingMessageAppId={null}
+      setEditingMessageAppId={noop}
+      editMessageText=""
+      setEditMessageText={noop}
+      savingMessage={false}
+      handleSaveMessage={noop}
+      handleAddAttachment={noop}
+      handleRemoveAttachment={noop}
+    />,
+  );
+}
+
+/** The completed job both sides of the app show, with proof attached. */
+const COMPLETED = {
+  status: "completed",
+  helper_completed_at: ago(3),
+  poster_completed_at: ago(2),
+  payment_status: "released",
+} as const;
+
+const SITES: Array<{
+  name: string;
+  render: () => ReturnType<typeof render>;
+  /** Step cards only: the chip must land in the single action row. */
+  inStepRow: boolean;
+}> = [
+  {
+    name: "Posts · In Progress, Helpr marked done",
+    render: () => wrap(<InProgressStep {...posterCtx(makeJob({ helper_completed_at: ago(1) }))} />),
+    inStepRow: true,
+  },
+  {
+    name: "Posts · Completed",
+    render: () => wrap(<CompletedStep {...posterCtx(makeJob(COMPLETED))} />),
+    inStepRow: true,
+  },
+  {
+    name: "Posts · Disputed",
+    render: () =>
+      wrap(
+        <DisputedStep
+          {...posterCtx(makeJob({ status: "disputed", dispute_status: "open", disputed_by: POSTER, dispute_reason: "x" }))}
+        />,
+      ),
+    inStepRow: true,
+  },
+  {
+    name: "Jobs · Completed, not yet reviewed",
+    render: () => renderAppliedCard(makeJob(COMPLETED), false),
+    inStepRow: false,
+  },
+  {
+    name: "Jobs · Fully done, expanded",
+    render: () => renderAppliedCard(makeJob(COMPLETED), true),
+    inStepRow: false,
+  },
+];
+
+const photosButton = () =>
+  screen.getByRole("button", { name: /^Photos\b/ });
+
+describe("item 10 — the before & after pictures are a button on the action row", () => {
+  for (const site of SITES) {
+    it(`${site.name}: offers a Photos button and no panel above the row`, () => {
+      const { container } = site.render();
+
+      const btn = photosButton();
+      expect(btn).toBeInTheDocument();
+
+      // The PANEL is gone. Checked BEFORE the dialog opens, because the
+      // dialog's own hero carries the same words.
+      expect(screen.queryByText("Photo Proof")).toBeNull();
+      // …and so is its "View All" escape hatch, which only that panel had.
+      expect(screen.queryByText("View All")).toBeNull();
+
+      if (site.inStepRow) {
+        const row = container.querySelector("[data-job-step-row]");
+        expect(row, "the step card has no action row").not.toBeNull();
+        expect(
+          row!.contains(btn),
+          "the Photos button is on the card but NOT in its single action row — which is the whole ask",
+        ).toBe(true);
+      }
+    });
+
+    it(`${site.name}: the button opens the gallery`, () => {
+      site.render();
+      expect(screen.queryByRole("dialog"), "the gallery is open before anyone tapped").toBeNull();
+
+      fireEvent.click(photosButton());
+
+      const dialog = screen.getByRole("dialog");
+      expect(within(dialog).getByText("Photo Proof")).toBeInTheDocument();
+      // Every photo the job carries, before and after.
+      for (const url of [...BEFORE, ...AFTER]) {
+        expect(dialog.querySelector(`img[src="${url}"]`), url).not.toBeNull();
+      }
+      expect(within(dialog).getByText("Before")).toBeInTheDocument();
+      expect(within(dialog).getByText("After")).toBeInTheDocument();
+    });
+  }
+
+  it("no site offers it when the job has no photos — an empty gallery is a dead-end tap", () => {
+    const bare = { proof_before_urls: [], proof_after_urls: [] };
+    for (const ui of [
+      <InProgressStep key="a" {...posterCtx(makeJob({ ...bare, helper_completed_at: ago(1) }))} />,
+      <CompletedStep key="b" {...posterCtx(makeJob({ ...COMPLETED, ...bare }))} />,
+      <DisputedStep key="c" {...posterCtx(makeJob({ ...bare, status: "disputed", dispute_status: "open", disputed_by: POSTER, dispute_reason: "x" }))} />,
+    ]) {
+      const { unmount } = wrap(ui);
+      expect(screen.queryByRole("button", { name: /^Photos\b/ })).toBeNull();
+      unmount();
+    }
+    for (const reviewed of [false, true]) {
+      const { unmount } = renderAppliedCard(makeJob({ ...COMPLETED, ...bare }), reviewed);
+      expect(screen.queryByRole("button", { name: /^Photos\b/ })).toBeNull();
+      unmount();
+    }
+  });
+});

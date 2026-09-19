@@ -1,8 +1,9 @@
-import { CheckCircle2, XCircle, AlertTriangle, MessageCircle } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, XCircle, AlertTriangle, MessageCircle, Image } from "lucide-react";
 import { JobStepCard } from "@/components/activity/JobStepCard";
 import { JobActionChip } from "../../JobActionRow";
 import { SosShareButton } from "@/components/SosShareButton";
-import { PhotoProofGroup } from "@/components/PhotoProof";
+import { PhotoProofDialog } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { CompletionChoiceSheet } from "@/components/activity/CompletionChoiceSheet";
 import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
@@ -17,11 +18,12 @@ import { recentArrivalNearMiss, type PosterStepCtx } from "./posterStepContract"
  * The poster's counterpart to the helper's OnSite / Working / Submitted steps,
  * and the state where the slots earn their keep:
  *
- *   ask      — the Helpr's proof photos, at the moment the poster is asked to
- *              release money against them. (Read-only: the poster never uploads
- *              here.) Both other PhotoProofGroup call sites are gated on
- *              completed / disputed, so before this the proof only appeared
- *              AFTER the release.
+ *   ask      — nothing here any more. The Helpr's proof photos used to fill it
+ *              as a two-column panel ABOVE the row; owner item 10 (2026-09-19)
+ *              made "before & after pictures" a BUTTON on the same row as the
+ *              other action buttons, so the gallery is now the `Photos` chip
+ *              and its dialog. It still appears at the moment the poster is
+ *              asked to release money against it, and is still read-only.
  *   primary  — the ONE vouch this step wants: Confirm They Arrived, then
  *              Confirm They're Working. They are mutually exclusive by their
  *              own gates, so the card never draws two. It leads the card's
@@ -33,6 +35,10 @@ import { recentArrivalNearMiss, type PosterStepCtx } from "./posterStepContract"
  *   footnote — why Review and Tip are not here yet.
  */
 export function InProgressStep(ctx: PosterStepCtx) {
+  // The proof gallery is a dialog off the row now (owner item 10), so the step
+  // owns its open state. It is the only state this step has: everything that
+  // must outlive a re-render is still the container's (PosterStepCtx).
+  const [photosOpen, setPhotosOpen] = useState(false);
   const {
     job,
     userId,
@@ -100,21 +106,6 @@ export function InProgressStep(ctx: PosterStepCtx) {
     <JobStepCard
       side="poster"
       step="in_progress"
-      ask={
-        showApprove && hasProof ? (
-          <div className="space-y-1.5">
-            <p className="font-sans leading-snug text-ds-11 px-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Your Helpr's proof photos — check these before you approve.
-            </p>
-            <PhotoProofGroup
-              jobId={job.id}
-              beforeUrls={job.proof_before_urls || []}
-              afterUrls={job.proof_after_urls || []}
-              canUpload={false}
-            />
-          </div>
-        ) : null
-      }
       notice={
         <>
           {/* ONE ROW, PRIMARY IN THE DARK GREEN (owner, 2026-09-14, VN-21:
@@ -192,6 +183,22 @@ export function InProgressStep(ctx: PosterStepCtx) {
             onClick={() => onDispute(job)}
           />
         ) : null,
+        /* THE PROOF PHOTOS, as a button on the row (owner item 10,
+           2026-09-19: "before & after pictures" belongs with the other action
+           buttons). Same gate the panel above the row had — the Helpr has
+           marked the job done AND there is something to look at — so this
+           changes WHERE the proof is, never WHEN it is offered. A chip with an
+           empty gallery behind it would be a dead-end tap. */
+        showApprove && hasProof ? (
+          <JobActionChip
+            key="photos"
+            icon={Image}
+            label="Photos"
+            ariaLabel="Photos — your Helpr's before and after proof photos; check these before you approve"
+            tone="neutral"
+            onClick={() => setPhotosOpen(true)}
+          />
+        ) : null,
         <JobActionChip
           key="message"
           icon={MessageCircle}
@@ -230,7 +237,16 @@ export function InProgressStep(ctx: PosterStepCtx) {
         ) : null
       }
       dialogs={
-        showApprove ? (
+        <>
+          {/* Rendered last and occupying no layout (JobStepCard `dialogs`), so
+              the gallery costs the row nothing. */}
+          <PhotoProofDialog
+            open={photosOpen}
+            onOpenChange={setPhotosOpen}
+            beforeUrls={job.proof_before_urls || []}
+            afterUrls={job.proof_after_urls || []}
+          />
+          {showApprove ? (
           <CompletionChoiceSheet
             open={completionSheetOpen}
             jobId={job.id}
@@ -244,7 +260,8 @@ export function InProgressStep(ctx: PosterStepCtx) {
             onConfirm={() => onComplete(job.id)}
             onRevisionSubmitted={onActionComplete}
           />
-        ) : null
+          ) : null}
+        </>
       }
     />
   );

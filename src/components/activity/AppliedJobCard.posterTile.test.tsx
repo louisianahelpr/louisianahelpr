@@ -43,7 +43,7 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), warning: vi.fn(), success: v
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticLight: vi.fn(), hapticWarning: vi.fn() }));
 vi.mock("@/components/activity/JobCountdown", () => ({ JobCountdown: () => null }));
 vi.mock("@/components/activity/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
-vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null }));
+vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null, PhotoProofDialog: () => null }));
 vi.mock("./JobCardMetaRow", () => ({ JobCardMetaRow: () => <div data-testid="meta" /> }));
 vi.mock("./useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));

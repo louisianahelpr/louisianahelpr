@@ -50,7 +50,7 @@ vi.mock("@/components/activity/appliedJobCard/OfferedActions", () => ({ OfferedA
 vi.mock("@/components/activity/appliedJobCard/ConfirmedSection", () => ({ ConfirmedSection: () => <div data-testid="confirmed" /> }));
 vi.mock("@/components/activity/appliedJobCard/ActiveJobSection", () => ({ ActiveJobSection: () => <div data-testid="active" /> }));
 vi.mock("@/components/activity/appliedJobCard/DisputedSection", () => ({ DisputedSection: () => <div data-testid="disputed" /> }));
-vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => <div data-testid="proof" /> }));
+vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => <div data-testid="proof" />, PhotoProofDialog: () => null }));
 
 const HELPER = "helper-1";
 const ago = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();

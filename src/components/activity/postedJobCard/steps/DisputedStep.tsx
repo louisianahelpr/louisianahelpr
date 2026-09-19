@@ -1,8 +1,9 @@
-import { AlertTriangle, CheckCircle2, DollarSign, History, LifeBuoy, MessageSquare } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, CheckCircle2, DollarSign, History, Image, LifeBuoy, MessageSquare } from "lucide-react";
 import { JobStepCard } from "@/components/activity/JobStepCard";
 import { JobActionChip, JobStepPrimaryButton } from "../../JobActionRow";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { PhotoProofGroup } from "@/components/PhotoProof";
+import { PhotoProofDialog } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { posterDisputeControls } from "../posterDisputeControls";
 import { disputeSupportSubject } from "@/lib/supportSubject";
@@ -13,8 +14,10 @@ import type { PosterStepCtx } from "./posterStepContract";
  *
  * The mirror of the helper's DisputedSection, in the same shell and the same
  * slot order, so the two ends of one dispute finally read as one screen from
- * both sides: banner in `header`, evidence in `ask`, the money move as the ONE
- * `primary`, and Timeline / Message / Contact Admin in the row.
+ * both sides: banner in `header`, the money move as the ONE `primary`, and
+ * Photos / Timeline / Message / Contact Admin in the row. (The evidence used
+ * to fill `ask` as a panel above the row — owner item 10, 2026-09-19 made
+ * "before & after pictures" a button on the row like the rest.)
  *
  * ONE CHANGE OF STRUCTURE, deliberately: Resolve & Pay and Escalate used to be
  * a 2-up row of their own ABOVE a second 3-up row — two action rows in one
@@ -25,6 +28,7 @@ import type { PosterStepCtx } from "./posterStepContract";
  * arrangement moved.
  */
 export function DisputedStep(ctx: PosterStepCtx) {
+  const [photosOpen, setPhotosOpen] = useState(false);
   const {
     job,
     userId,
@@ -45,6 +49,7 @@ export function DisputedStep(ctx: PosterStepCtx) {
   // they did not have. See posterDisputeControls.ts.
   const { disputeStatus, awaitingAdmin, showDeadline, canResolve, canEscalate, consequenceText, policyText } =
     posterDisputeControls(job, userId);
+  const hasProof = (job.proof_before_urls?.length ?? 0) > 0 || (job.proof_after_urls?.length ?? 0) > 0;
 
   const header = (
     <>
@@ -103,19 +108,6 @@ export function DisputedStep(ctx: PosterStepCtx) {
       side="poster"
       step="disputed"
       header={header}
-      ask={
-        job.poster_confirmed_working_at ? (
-          <PhotoProofGroup
-            jobId={job.id}
-            beforeUrls={job.proof_before_urls || []}
-            afterUrls={job.proof_after_urls || []}
-            canUploadBefore={false}
-            canUploadAfter={false}
-            requireAfter={true}
-            budget={job.budget}
-          />
-        ) : null
-      }
       primary={
         /* "Mark Resolved" was a lie of omission: one tap released the ENTIRE
            escrow, and neither the label nor the spoken name mentioned money. It
@@ -151,6 +143,24 @@ export function DisputedStep(ctx: PosterStepCtx) {
             }}
           />
         ) : null,
+        /* THE PROOF PHOTOS, on the row (owner item 10, 2026-09-19). They used
+           to be a two-column panel above it, gated on
+           `poster_confirmed_working_at`; the chip is gated on there being
+           photos instead, because a chip is a tap and an empty gallery is a
+           dead end. NOTE what that drops with the panel: its red "before &
+           after photos are required" line, which appeared when a disputed job
+           was missing required proof. Reported, not re-invented — the dialog
+           this opens shows the photos and nothing else (PhotoProofDialog). */
+        hasProof ? (
+          <JobActionChip
+            key="photos"
+            icon={Image}
+            label="Photos"
+            ariaLabel="Photos — the before and after proof photos filed on this job"
+            tone="neutral"
+            onClick={() => setPhotosOpen(true)}
+          />
+        ) : null,
         /* Distinct ICONS for the three non-message chips (was one
            AlertTriangle each). On the one row at 375 these chips are
            icon-only (VN-21), and three identical triangles were three
@@ -184,7 +194,14 @@ export function DisputedStep(ctx: PosterStepCtx) {
         />,
       ]}
       dialogs={
-        canEscalate ? (
+        <>
+          <PhotoProofDialog
+            open={photosOpen}
+            onOpenChange={setPhotosOpen}
+            beforeUrls={job.proof_before_urls || []}
+            afterUrls={job.proof_after_urls || []}
+          />
+          {canEscalate ? (
           <>
             {/* Gated alongside its control: a confirm whose primary action the
                 server would refuse must not be reachable at all. */}
@@ -222,7 +239,8 @@ export function DisputedStep(ctx: PosterStepCtx) {
               secondaryLabel="Cancel"
             />
           </>
-        ) : null
+          ) : null}
+        </>
       }
     />
   );

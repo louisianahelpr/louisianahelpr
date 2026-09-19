@@ -43,7 +43,7 @@ vi.mock("@/lib/adminAudit", () => ({ logAdminAction: vi.fn() }));
 vi.mock("@/lib/biometricGate", () => ({ requireBiometric: vi.fn(async () => true) }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn() }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
-vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null }));
+vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null, PhotoProofDialog: () => null }));
 
 import { PostedJobActions } from "./activity/postedJobCard/PostedJobActions";
 import AdminDisputes from "./admin/AdminDisputes";

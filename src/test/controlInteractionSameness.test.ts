@@ -419,13 +419,31 @@ describe("one hover, one press, one ring", () => {
     // index.css is this lane's own file and the one place such a rule would
     // plausibly live, so it is checked directly. `:hover .child` (a glyph
     // inside a hovered control) is allowed, exactly as `group-hover:` is.
-    const css = readFileSync("src/index.css", "utf8");
+    // Comments out first: this stylesheet's prose contains CSS samples, and a
+    // brace inside a comment would mis-pair every rule after it.
+    const css = readFileSync("src/index.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, " ");
     const offenders: string[] = [];
-    for (const m of css.matchAll(/([^\n{}]*:hover)(?![^{}]*\s)[^{}]*\{([^}]*)\}/g)) {
-      const selector = m[1].trim();
-      if (/:hover\s+\S/.test(selector)) continue; // a descendant of the hovered thing
-      if (/transform\s*:\s*(?!none)/.test(m[2])) offenders.push(`${selector} { ${m[2].trim()} }`);
+    for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const body = m[2];
+      // `transform: none` is how reduced-motion CANCELS movement — the
+      // opposite of a violation.
+      if (!/(?:^|[;{\s])transform\s*:\s*(?!none\b)\S/.test(body)) continue;
+      for (const part of m[1].split(",")) {
+        const selector = part.trim();
+        // ENDS with :hover => the rule targets the hovered element itself.
+        // `a:hover .lucide-arrow-right` does not, and is the allowed case:
+        // a glyph inside a control that holds still.
+        if (!/:hover$/.test(selector)) continue;
+        offenders.push(`${selector} { ${body.trim().replace(/\s+/g, " ")} }`);
+      }
     }
+    // FLOOR: the rule-splitter must actually be seeing rules. If this regex
+    // ever stops matching (a nested @media form it cannot parse, say) the
+    // loop above would find nothing and the assertion would pass vacuously.
+    const hoverRules = [...css.matchAll(/([^{}]+)\{[^{}]*\}/g)].flatMap((m) =>
+      m[1].split(",").map((x) => x.trim()).filter((x) => /:hover\b/.test(x)),
+    );
+    expect(hoverRules.length, "the stylesheet parser stopped seeing :hover rules").toBeGreaterThan(2);
     expect(offenders).toEqual([]);
   });
 

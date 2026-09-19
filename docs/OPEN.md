@@ -4277,3 +4277,57 @@ one is a real-fix-to-real-fix REFUSAL distance where the big number is arguably 
 was left alone — but it is the same family.
 Also still on the floor: `BrowseTasksFeed.tsx:323-328` reads the hook state and DISCARDS
 `approximate`. No longer user-visible (the `~` is unconditional now), but the flag is unused.
+
+### DONE 2026-09-19 — ONE hover/active/focus treatment — `df9467ddd`, `5b1b2c328`, `e30b66950`
+Owner's third consistency report. MEASURED BEFORE: **308 controls across 169 files** —
+tint `hover:bg-` 122 occurrences with **42 distinct values** (33 on controls), text 73, border 30,
+translate 21, opacity 21, shadow 13, scale 13, `active:scale-` 84 with **9** values. The 33 control
+tints were four token families x five alphas spelling ONE intent.
+**MY EVIDENCE WAS WRONG AND THE LANE CORRECTED IT: only 7 controls actually MOVED, not 13.** Six
+were `group-hover:` on a glyph INSIDE a still control; my grep matched `hover:` within
+`group-hover:`. Caught with a lookbehind BEFORE any edit relied on it — inverting that would have
+flipped the whole rule.
+
+THE RULE: **hover changes the TINT of a control and nothing else.** Two mechanisms chosen by the
+SURFACE, never by taste: unfilled -> `.ctl-tint` / `-brand` / `-danger` (closed set of 3 tones);
+filled -> `brightness-110` (dark fill) / `-95` (light fill), because a `bg-*` REPLACES a fill and on
+`btn-grad-primary` blanks the button out. `brightness-95` darkens, the same direction `.ctl-tint`
+moves unfilled controls, so `secondary` stops being a different species from `ghost`.
+**MOVEMENT: ZERO translation, none kept.** `hover:-translate-y-px` removed from the primary CTA (the
+app's most-rendered control and the single largest source of the complaint) plus its competing bark
+glow; `.link-standard`'s lift too. A glyph INSIDE a control may still slide — the target holds still.
+**Removing movement cannot change layout:** every removed value was a `transform`, and per CSS
+Transforms L1 §3 a transform does not affect layout. Nothing to re-measure.
+Touch: the whole treatment sits inside `@media (hover: hover)`, the app's existing convention — a tap
+can never strand a tint. Reduced motion: the convention exists (30+ blocks) and is followed, but
+honestly there is nothing left to suppress — colour is not motion. Focus folded in: the global
+`:focus-visible` (2px `--ring`, offset 2) is now the only ring. `.btn-press` 0.96 -> **0.97** so the
+two shared press primitives stop disagreeing by a percent.
+
+**THE GUARD CAUGHT TWO BUGS IN ITSELF — both are today's recurring traps:**
+1. The cva arm **read class names out of COMMENTS**: the comment quoting the owner contains a `"`,
+   which opened what the scanner took for a string, so it found the removed `hover:shadow-[...]` in
+   the prose EXPLAINING its removal and filed the fix as a violation of itself. Comments are now
+   blanked with offsets preserved.
+2. The stylesheet arm **SURVIVED its own mutation**: `([^\n{}]*:hover)(?![^{}]*\s)` had a negative
+   lookahead for whitespace after a selector that is ALWAYS followed by whitespace — it matched
+   nothing, asserted against an empty list, and passed on real code throughout.
+RED BEFORE: 6 of 9 assertions failed (`adhocTint 105 · press 110 · move 13 · notTint 31 · ring 4 ·
+adhocBrightness 2`). Cascade verified by hand against `dist/assets/*.css` after build (jsdom has no
+cascade); the byte offsets are recorded in the test header because the design depends on the
+unlayered `@media (hover:hover)` rule winning over the utility.
+
+### FOLLOW-UP — `src/test/controlInteractionLedger.json`, 147 entries, may only SHRINK
+A stale entry fails, and the guard separately requires the rule be adopted somewhere so the ledger
+can never just absorb the inventory. By owner: UNOWNED 43, admin 30, profile 27, dashboard 19
+(**incl. 6 of the 7 remaining movers**), **activity 15**, postjob 7, messages 6, reviewPanel 2,
+userProfile 2. All mechanical: drop the `hover:bg-*` / `hover:border-*`, add `ctl-tint`.
+Notable activity entries: `ActivityHeader.tsx:221/237/275/286`, `PostedJobsTab.tsx:151`,
+`AppliedJobsTab.tsx:422` and `postedJobs/DeclineApplicantSheet.tsx:87` (`hover:bg-secondary/70` **+
+`hover:border-border`** — two treatments on one gesture), `JobCardMetaRow.tsx:290`, plus four
+`active:opacity-*` presses. Remaining movers all in `dashboard/**` + `profile/**`:
+`IconActionButton.tsx:108`, `JobDetailDialog.tsx:737`, `PhotoLightbox.tsx:346/370/390/434`,
+`HelperScheduleStrip.tsx:256`.
+REPORT, not task: `.link-standard`'s `transition` still names `transform` (dead entry), and
+`.hover\:-translate-y-px` is still emitted (~120 dead bytes) because Tailwind's content scanner reads
+the class name out of the explaining comment and the `@mutate` directive.

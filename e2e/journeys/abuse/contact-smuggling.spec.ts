@@ -1,4 +1,4 @@
-import { test, expect, getSession, rest, sessionsAvailable, SUPABASE_URL, E2E_TITLE_MARKER, announceUncovered, skipUncovered } from "../fixtures";
+import { test, expect, getSession, optionalSession, rest, sessionsAvailable, SUPABASE_URL, E2E_TITLE_MARKER, announceUncovered, skipUncovered } from "../fixtures";
 
 /**
  * BAD ACTORS — contact-detail smuggling (terminal 7).
@@ -134,5 +134,68 @@ test.describe("bad actors: contact smuggling", () => {
     expect(msg.flagged_hidden, "SECURITY: a phone number in a message was NOT flagged_hidden by the server gate").toBe(true);
     expect(msg.flag_reason, "flag_reason should name the detected class").toMatch(/phone/i);
     await request.delete(`${SUPABASE_URL}/rest/v1/messages?id=eq.${msg.id}`, { headers: posterHeaders });
+
+    // ── UNDO THE CONSEQUENCE LADDER, then PROVE it is undone ────────────────
+    //
+    // This test deliberately trips a safety mechanism on a SHARED account.
+    // Deleting the message was never enough: `messages_scan_consequence` →
+    // `apply_message_scan_consequence` (AFTER INSERT, SECURITY DEFINER) also
+    // writes a `fraud_flags` row AND calls `message_violation_ladder`, which
+    // inserts a `user_violations` row and escalates on the COUNT of prior
+    // off_platform violations (rungs: warning → final_warning →
+    // pending_ban_review + a 7-day restriction).
+    //
+    // Nothing cleaned those up, so they accumulated one per night:
+    //   2026-09-15  warning        (nightly-red: prod-audit #1618 opened)
+    //   2026-09-17  final_warning  (profiles.ban_status stamped 'final_warning')
+    // and the shared poster account was ONE nightly run from a 7-day
+    // restriction that would have broken every prod workflow. 18 matching
+    // fraud_flags rows had piled up alongside.
+    //
+    // Deleting the violation each run keeps the ladder's prior-count at 0, so
+    // this test can never escalate past its first rung. Both tables are
+    // admin-only (`has_role(auth.uid(), 'admin')` on user_violations and
+    // fraud_flags — verified live in pg_policies), so cleanup needs the admin
+    // session. Running this test WITHOUT the ability to clean up is what
+    // poisoned the account, so a missing admin session is a hard failure here,
+    // not a skip.
+    const admin = await optionalSession(request, "admin");
+    expect(
+      admin,
+      "no admin session: this test writes an admin-only user_violations row it cannot then delete — " +
+        "set PLAYWRIGHT_ADMIN_EMAIL/_PASSWORD (see e2e/journeys/fixtures.ts) rather than leaving a strike on the shared poster",
+    ).toBeTruthy();
+    const adminHeaders = rest(admin!);
+    const marker = encodeURIComponent(`*${E2E_TITLE_MARKER}*`);
+    await request.delete(
+      `${SUPABASE_URL}/rest/v1/user_violations?user_id=eq.${posterId}&violation_type=eq.off_platform&description=like.${marker}`,
+      { headers: adminHeaders },
+    );
+    await request.delete(
+      `${SUPABASE_URL}/rest/v1/fraud_flags?user_id=eq.${posterId}&flag_type=eq.off_platform_contact&details=like.${marker}`,
+      { headers: adminHeaders },
+    );
+
+    // Read it back as admin — a DELETE that matched zero rows returns 204 too
+    // (CLAUDE.md: "a null error is not a write"), so the only honest proof is
+    // the re-read. This is the check for the whole class: it goes red the
+    // moment the ladder writes somewhere this cleanup does not reach.
+    const left = (await request.get(
+      `${SUPABASE_URL}/rest/v1/user_violations?user_id=eq.${posterId}&violation_type=eq.off_platform&select=id,action_taken,description`,
+      { headers: adminHeaders },
+    ).then((r) => r.json())) as Array<{ id: string; action_taken: string; description: string }>;
+    expect(
+      left,
+      `this test left ${left.length} off_platform violation(s) on the shared poster — the ladder escalates on that count and the third one restricts the account for 7 days: ${JSON.stringify(left)}`,
+    ).toEqual([]);
+
+    const [prof] = (await request.get(
+      `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${posterId}&select=ban_status`,
+      { headers: adminHeaders },
+    ).then((r) => r.json())) as Array<{ ban_status: string | null }>;
+    expect(
+      prof?.ban_status ?? "active",
+      "the ladder escalated profiles.ban_status on the shared poster — every prod workflow signs in as this account",
+    ).toBe("active");
   });
 });

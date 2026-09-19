@@ -60,14 +60,24 @@ import type { ReactElement } from "react";
  * on tap with a toast, and JobTracking's own note on it says the control that
  * LOOKED pressable was the worse half of the pair to get wrong. So this is a
  * render-time disabled state with the reason on the line above the row, and
- * the reason NAMES the "Before Photo" chip sitting one control to its left.
+ * the reason NAMES the "Before Photo" chip sitting beside it in the row.
+ *
+ * (That sentence said "one control to its left" until 2026-09-19, when the
+ * owner pinned the chip order: "before and after photos should be to the left
+ * of the primary buttons". The capture chip is now the LAST chip, immediately
+ * left of the primary, so it is no longer left of the reason — and the reason
+ * itself moved below the row in the same batch. The relationship the guard
+ * cares about is unchanged: the card names a control that is on the card.)
  */
 
 // PROOF THIS GUARD CAN FAIL (npm run vacuity). The first mutation takes the
 // capture control back off the row (it was a panel in the `ask` slot); the
 // second removes the done-step half of the proof gate, which is the half the
 // database really does enforce.
-// @mutate src/components/activity/appliedJobCard/steps/OnSiteStep.tsx | <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="on_site" />, | null,
+// (Re-anchored 2026-09-19: the chip moved to the END of the actions array
+// when the owner pinned the row's two ends, so it no longer carries a
+// trailing comma.)
+// @mutate src/components/activity/appliedJobCard/steps/OnSiteStep.tsx | <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="on_site" />] | null]
 // @mutate src/components/JobTracking.tsx | !hasRequiredProof({ require_photo_proof: requirePhotoProof ?? true }, proofBeforeUrls, proofAfterUrls); | false;
 // The third takes the BEFORE-photo half of the gate off Start Working — the
 // owner's 2026-09-19 rule, and the half that only became safe to enforce once

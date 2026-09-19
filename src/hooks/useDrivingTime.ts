@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
+import { plausibleTripMiles, plausibleTripMinutes } from "@/lib/geo";
 
 /**
  * Lightweight driving-time estimator for the dashboard JobCard meta row.
@@ -46,6 +47,33 @@ function heuristicMinutes(miles: number): number {
   return Math.max(1, Math.round(miles * minPerMi));
 }
 
+/**
+ * THE ONLY GATE BETWEEN A BROKEN ORIGIN AND AN ABSURD ETA ON SCREEN.
+ *
+ * Owner, 2026-09-19, /dashboard: "27h 6m · 1634 mi" on a Shreveport job.
+ * Both halves of that chip came from here and from the haversine beside it,
+ * and neither asked whether the answer was possible — so a viewer origin
+ * 1,600 miles out of the service area (see geo.ts for the reproduction)
+ * rendered a 27-hour commute on the app's main screen.
+ *
+ * The bound lives in the HOOK rather than at each call site on purpose:
+ * `useDrivingTime` is the single funnel every drive-time label in the app
+ * passes through (JobCard's meta pill and the job detail's Where tile, via
+ * useJobDetailData), so one gate here covers both, and any future caller
+ * inherits it instead of having to remember it.
+ *
+ * `miles` is bounded too, not just the minutes: the heuristic branch derives
+ * minutes FROM miles, so an out-of-bounds distance must not be allowed to
+ * mint an in-bounds-looking duration on the way through. And the MapKit
+ * branch answers with a real route, which can be absurd on its own even when
+ * the straight line beside it looks sane — a ferry leg, a closed pass — so
+ * the minutes are checked again on the way out.
+ */
+function boundedMinutes(miles: number | null, minutes: number | null): number | null {
+  if (plausibleTripMiles(miles) == null) return null;
+  return plausibleTripMinutes(minutes);
+}
+
 export function useDrivingTime(
   originLat: number | null | undefined,
   originLng: number | null | undefined,
@@ -54,10 +82,9 @@ export function useDrivingTime(
   miles: number | null,
 ): number | null {
   const mapKitStatus = useMapKitJs();
-  const [minutes, setMinutes] = useState<number | null>(() => {
-    if (miles == null) return null;
-    return heuristicMinutes(miles);
-  });
+  const [minutes, setMinutes] = useState<number | null>(() =>
+    miles == null ? null : boundedMinutes(miles, heuristicMinutes(miles)),
+  );
 
   useEffect(() => {
     // Re-seed the heuristic whenever the miles input changes so a
@@ -66,7 +93,7 @@ export function useDrivingTime(
       setMinutes(null);
       return;
     }
-    setMinutes(heuristicMinutes(miles));
+    setMinutes(boundedMinutes(miles, heuristicMinutes(miles)));
 
     if (
       mapKitStatus !== "ready" ||
@@ -82,7 +109,7 @@ export function useDrivingTime(
     );
     const cached = cache.get(key);
     if (typeof cached === "number") {
-      setMinutes(cached);
+      setMinutes(boundedMinutes(miles, cached));
       return;
     }
 
@@ -111,7 +138,7 @@ export function useDrivingTime(
         if (typeof seconds === "number" && seconds > 0) {
           const m = Math.max(1, Math.round(seconds / SECONDS_PER_MIN));
           cache.set(key, m);
-          setMinutes(m);
+          setMinutes(boundedMinutes(miles, m));
         }
       });
     } catch {

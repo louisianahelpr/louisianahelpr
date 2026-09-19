@@ -5,6 +5,7 @@ import { persistUserLocation } from "@/lib/persistUserLocation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { resolveParishByZip } from "@/lib/parishLookup";
 import { getParishCentroid } from "@/lib/parishCentroids";
+import { isPreciseFixAccuracy, isWithinServiceArea } from "@/lib/geo";
 
 /**
  * Where a "ready" position came from, in the order the product wants them
@@ -92,9 +93,20 @@ async function deriveFallbackLocation(
   // 1. Real geodata already on file. `numeric` columns arrive as STRINGS
   //    through PostgREST, so coerce — a typeof-number check silently skips
   //    this branch for every real row.
+  //
+  //    `isWithinServiceArea` is NOT belt-and-braces here, it is load-bearing.
+  //    This branch is where the reported defect actually came from: the
+  //    account's row held 37.4728 / -122.2444 (Menlo Park, CA) alongside a
+  //    Louisiana ZIP, and this function handed it back as `approximate: false`
+  //    — a "real fix" — on every load. A stored coordinate outside the area
+  //    this app serves is not a helpr who travelled, it is a fix that should
+  //    never have been written (see geo.ts), and the ZIP one line down is a
+  //    better answer than it in every case. Falling through rather than
+  //    returning is the fix for the READ side; the accuracy + service-area
+  //    gate in onSuccess below is the fix for the WRITE side.
   const lat = profile.latitude == null ? NaN : Number(profile.latitude);
   const lng = profile.longitude == null ? NaN : Number(profile.longitude);
-  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+  if (Number.isFinite(lat) && Number.isFinite(lng) && isWithinServiceArea(lat, lng)) {
     return { lat, lng, source: "profile", approximate: false };
   }
 
@@ -158,7 +170,48 @@ export function useUserLocation(enabled: boolean): GeoState {
       return () => { alive = false; };
     }
 
-    const onSuccess = (lat: number, lng: number) => {
+    /**
+     * A GEOLOCATION "SUCCESS" IS NOT THE SAME THING AS A FIX.
+     *
+     * This is the write side of the 2026-09-19 defect (see geo.ts for the
+     * full reproduction). When a browser can see no GPS, no Wi-Fi and no cell
+     * — a VPN, iCloud Private Relay, location services degraded — it does not
+     * call the error callback. It calls THIS one, with a position derived
+     * from the egress IP address and an `accuracy` in the tens of kilometres.
+     * The reporting account received 37.4728 / -122.2444, Menlo Park,
+     * California, while holding ZIP 70528 in Erath, Louisiana.
+     *
+     * Nothing here looked at `accuracy`, and nothing asked whether the answer
+     * was inside the area this app serves. So the guess was cached as a
+     * device fix, written to `profiles.latitude/longitude` (whose header in
+     * persistUserLocation.ts says "A PRECISE DEVICE FIX, and nothing else"),
+     * and thereafter re-read as ground truth by the distance pill, the radius
+     * filter, applicant proximity and the neighbour-hire count.
+     *
+     * Two gates, in the order they can be decided:
+     *
+     *   • ACCURACY — what the platform itself tells us about the fix. An IP
+     *     answer is orders of magnitude coarser than any radio one.
+     *   • SERVICE AREA — what the app knows about its own world. Every job is
+     *     in Louisiana; a viewer 1,600 miles away cannot be measured against
+     *     one usefully, whatever the platform claims about precision. This is
+     *     the gate that actually catches the reported case, because an IP fix
+     *     can and does come back with a confident-looking accuracy.
+     *
+     * A fix that fails either is routed to `failWith`, NOT to an error: the
+     * account almost certainly told us its ZIP at signup, and a parish
+     * centroid flagged `approximate` is both more correct and more honest
+     * than a precise-looking coordinate on the wrong continent.
+     */
+    const onSuccess = (lat: number, lng: number, accuracyMeters?: number | null) => {
+      if (!isPreciseFixAccuracy(accuracyMeters)) {
+        failWith("Couldn't get an accurate location");
+        return;
+      }
+      if (!isWithinServiceArea(lat, lng)) {
+        failWith("Couldn't get your location");
+        return;
+      }
       cached = { lat, lng, ts: Date.now() };
       setState({ status: "ready", lat, lng, source: "device", approximate: false });
       // Persist the fix to the signed-in user's profile. This is the ONLY
@@ -187,7 +240,7 @@ export function useUserLocation(enabled: boolean): GeoState {
           timeout: 10000,
           maximumAge: 5 * 60 * 1000,
         });
-        onSuccess(pos.coords.latitude, pos.coords.longitude);
+        onSuccess(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
       } catch (err) {
         const msg = String((err as { message?: string })?.message ?? "");
         failWith(
@@ -201,7 +254,7 @@ export function useUserLocation(enabled: boolean): GeoState {
         setState({ status: "loading" });
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            onSuccess(pos.coords.latitude, pos.coords.longitude);
+            onSuccess(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
             resolve();
           },
           (err) => {

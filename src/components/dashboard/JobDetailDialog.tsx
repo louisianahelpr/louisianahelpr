@@ -9,6 +9,7 @@ import { formatCategory } from "@/lib/format";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { getCity } from "@/lib/locationUtils";
+import { plausibleTripMiles } from "@/lib/geo";
 import { IconActionButton } from "./IconActionButton";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import type { EnrichedJob } from "./types";
@@ -807,7 +808,18 @@ const JobDetailDialog = ({
           </div>
         )}
 
-        <JobStatTiles job={job} distMilesForDriving={distMilesForDriving} drivingLabel={drivingLabel} />
+        {/* BOUNDED on the way in. The Where tile renders `~N mi` straight
+            from this number, and nothing between the haversine in
+            useJobDetailData and those pixels asked whether N could be right:
+            on 2026-09-19 the same viewer origin that put "1634 mi" on the
+            browse cards put it here too (geo.ts carries the reproduction).
+            The drive-time half beside it is already bounded inside
+            useDrivingTime, so this is the miles half of the same rule, and it
+            is applied at the boundary rather than inside the tile so the
+            tile's own composition ("12 min · ~4 mi", either half alone) keeps
+            working unchanged — a null simply drops the distance the way a
+            missing centroid already does. */}
+        <JobStatTiles job={job} distMilesForDriving={plausibleTripMiles(distMilesForDriving)} drivingLabel={drivingLabel} />
         </div>
         {/* Posted-by — always visible now, no toggle (owner: "remove
             details and put posted by info here"). Poster card is

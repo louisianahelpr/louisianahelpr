@@ -93,9 +93,20 @@ const FILLED = {
  * `useJobDerived` does not produce are stubbed — every gate decision in the
  * chain is live code.
  */
-function renderFormWith({ startTime, isFlexibleSchedule }: { startTime: string; isFlexibleSchedule: boolean }) {
+function renderFormWith({
+  startTime,
+  isFlexibleSchedule,
+  forceLogisticsIncomplete = false,
+}: {
+  startTime: string;
+  isFlexibleSchedule: boolean;
+  /** Reaches FormStep's label ladder directly — see the test that uses it. */
+  forceLogisticsIncomplete?: boolean;
+}) {
   const { result } = renderHook(() => useJobDerived({ ...FILLED, startTime, isFlexibleSchedule }));
-  const derived = result.current;
+  const derived = forceLogisticsIncomplete
+    ? { ...result.current, logisticsComplete: false }
+    : result.current;
 
   const noop = () => {};
   const form = {
@@ -159,6 +170,34 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
       expect(cta.textContent).not.toContain(label);
     }
     expect(cta.textContent).toContain("Review & Pay");
+  });
+
+  /**
+   * DEFENCE IN DEPTH, AND WHY IT NEEDS ITS OWN TEST.
+   *
+   * `npm run vacuity` proved the FormStep half of this fix cannot fail through
+   * the route above: once `useJobDerived` accepts the flag, `logisticsComplete`
+   * is true, so the entire `else if (!form.logisticsComplete)` label ladder is
+   * skipped and the start-time branch is never evaluated. Reverting the
+   * FormStep edit left every assertion above GREEN.
+   *
+   * The edit is kept anyway, because a label ladder that independently demands
+   * a start time is HOW THIS BUG HAPPENED: two files holding different
+   * definitions of "flexible", with the stricter one winning silently. So the
+   * ladder is asserted on its own terms — given a form that is incomplete for
+   * some other reason, FormStep must still not name a field the poster has
+   * opted out of. `logisticsComplete` is forced false here deliberately; that
+   * combination is unreachable from `useJobDerived` TODAY, and this is the
+   * guard that says so if it ever stops being.
+   */
+  it("never names the start time in the CTA label while Flexible is ticked", () => {
+    const { cta } = renderFormWith({
+      startTime: "",
+      isFlexibleSchedule: true,
+      forceLogisticsIncomplete: true,
+    });
+    expect(cta).toBeDisabled();
+    expect(cta.textContent).not.toContain("Pick a Start Time to Continue");
   });
 
   it("still BLOCKS the CTA with no start time and Flexible unticked", () => {

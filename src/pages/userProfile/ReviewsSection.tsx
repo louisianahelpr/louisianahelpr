@@ -4,6 +4,15 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatShortDate, formatCategory } from "@/lib/format";
 import type { ProfileReview } from "./types";
 import ReportDialog from "@/components/ReportDialog";
+// The ONE review-card design. See `src/components/profile/reviewCard.tsx` —
+// the chip and the star row are shared with PublicReviewWall rather than drawn
+// twice, which is the drift the owner caught on 2026-09-19.
+import {
+  ReviewCategoryChip,
+  ReviewStars,
+  ReviewTagChips,
+  splitReviewTags,
+} from "@/components/profile/reviewCard";
 
 type RatingFilter = "all" | "5" | "4" | "low";
 
@@ -220,40 +229,62 @@ export const ReviewsSection = ({
       )}
       {filteredReviews.length > 0 ? (
         <>
-          {visible.map((r) => (
+          {visible.map((r) => {
+            const { prose, tags } = splitReviewTags(r.feedback);
+            return (
             // Keyed by review id, never array index: the category/star
             // filters reorder and re-slice this list, and an index key let
             // the inline response editor stay mounted on the wrong card.
-            <div key={r.id} className="rounded-2xl liquid-glass p-5 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
-                    ))}
-                  </div>
-                  <span className="text-ds-11 font-medium text-foreground">{r.reviewerName}</span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-muted-foreground text-ds-11">{formatShortDate(r.created_at)}</span>
-                  {/* Report a review — user-generated content must be
-                      reportable (App Store guideline 1.2). The only
-                      `reportedType="review"` caller in the codebase lived in
-                      ReviewList.tsx, which is never mounted anywhere, so the
-                      admin review-takedown queue could never receive anything.
-                      Placed per-review so the report names which one. */}
-                  <button
-                    type="button"
-                    aria-label="Report this review"
-                    onClick={() => setReportingReviewId(r.id)}
-                    className="h-11 w-11 -mr-2 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <MoreHorizontal className="w-4 h-4" aria-hidden />
-                  </button>
-                </div>
+            <div key={r.id} className="rounded-2xl liquid-glass p-5 space-y-2" data-testid="profile-review-card">
+              {/* TOP-DOWN, in the order the owner asked for (2026-09-19,
+                  reading /user/:id): the person's NAME, then the stars with
+                  the category CHIP, then their one-tap words, then the review
+                  itself, then the date — with the report control tucked up
+                  beside the name where it is reachable but not competing.
+
+                  What this replaced, cramped into two lines: stars, then the
+                  name beside them at the same weight, then a separate
+                  `For: {jobTitle}` in plain muted text. That last line was the
+                  category all along — `useUserProfileData` sets
+                  `jobTitle = formatCategory(job_category)` on the RPC path, so
+                  the screen was printing a chip's worth of data as prose while
+                  a sibling component already had the chip. */}
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-ds-13 font-semibold text-foreground min-w-0 break-words">
+                  {r.reviewerName}
+                </span>
+                {/* Report a review — user-generated content must be
+                    reportable (App Store guideline 1.2). The only
+                    `reportedType="review"` caller in the codebase lived in
+                    ReviewList.tsx, which is never mounted anywhere, so the
+                    admin review-takedown queue could never receive anything.
+                    Placed per-review so the report names which one. */}
+                <button
+                  type="button"
+                  aria-label="Report this review"
+                  onClick={() => setReportingReviewId(r.id)}
+                  className="h-11 w-11 -mr-2 -mt-2 shrink-0 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <MoreHorizontal className="w-4 h-4" aria-hidden />
+                </button>
               </div>
-              <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
-              {r.feedback && <p className="text-ds-13 text-foreground leading-relaxed">{r.feedback}</p>}
+              {/* Stars and the category chip on one line. `flex-wrap` rather
+                  than a nowrap row: at 320 a long category ("Furniture
+                  assembly") beside five stars has nowhere to go, and a chip
+                  that overflows the card is worse than a chip on its own
+                  line. */}
+              <div className="flex items-center flex-wrap gap-2">
+                <ReviewStars rating={r.rating} />
+                <ReviewCategoryChip category={r.jobCategory} />
+              </div>
+              {/* The highlight — the reviewer's OWN one-tap words, lifted back
+                  out of the comment they were comma-jammed into. See
+                  `splitReviewTags`; nothing is summarised or invented. */}
+              <ReviewTagChips tags={tags} />
+              {prose && <p className="text-ds-13 text-foreground leading-relaxed">{prose}</p>}
+              {/* Date last and quiet — "out of the way" (owner). It used to
+                  sit top-right competing with the name. */}
+              <p className="text-muted-foreground text-ds-11">{formatShortDate(r.created_at)}</p>
               {/* Existing public response — visible to everyone */}
               {r.response_text && (
                 <div className="mt-3 pt-3 border-t border-[hsl(var(--bark)/0.10)]">
@@ -334,7 +365,8 @@ export const ReviewsSection = ({
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
           {canShowMore && (
             // p-3 rather than the card convention's p-5: a full-width
             // pagination control, sized as a button, not a content card.

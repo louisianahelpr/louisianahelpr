@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
 import { queryKeys } from "@/lib/queryKeys";
-import { formatCategory } from "@/lib/format";
+import { ReviewCategoryChip, ReviewStars } from "./reviewCard";
 
 /**
  * PublicReviewWall — a vertical stack of the helper's most recent
@@ -99,23 +99,15 @@ export function truncateFeedback(text: string, max: number = SNIPPET_MAX): {
   return { truncated: slice.slice(0, cut).trimEnd() + "…", isTruncated: true };
 }
 
-function StarRow({ rating }: { rating: number }) {
-  return (
-    <div role="img" className="flex gap-0.5" aria-label={`${rating} of 5 stars`}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <Star
-          key={n}
-          className={`w-3.5 h-3.5 ${
-            n <= rating
-              ? "fill-[hsl(var(--gold-warm))] text-[hsl(var(--gold-warm))]"
-              : "text-[hsl(var(--olivewood)/0.25)]"
-          }`}
-          aria-hidden="true"
-        />
-      ))}
-    </div>
-  );
-}
+/* The local `StarRow` and the inline category chip that used to live here are
+   gone — not deleted, MOVED to `./reviewCard`, which ReviewsSection (the card
+   a visitor actually sees on /user/:id) now imports too. Two public review
+   cards drawing the same three facts two different ways is exactly what the
+   owner was looking at on 2026-09-19. `reviewCardOneDesign.test.ts` keeps it
+   at one design. The star row swapped `--gold-warm` for `--accent` in the
+   move: the live surfaces (ReviewsSection, the signed-in Reviews tab) both
+   paint accent, and this component is the outlier — it is also currently
+   mounted by nothing but its own suite (reported, not resolved here). */
 
 function ReviewQuote({
   review,
@@ -148,20 +140,8 @@ function ReviewQuote({
       ].join(" ")}
     >
       <div className="flex items-center justify-between gap-2">
-        <StarRow rating={review.rating} />
-        {review.jobCategory && (
-          <span
-            data-testid="public-review-category"
-            className="text-ds-10 font-sans font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap"
-            style={{
-              background: "hsl(var(--bark) / 0.08)",
-              color: "hsl(var(--bark))",
-              border: "0.5px solid hsl(var(--bark) / 0.18)",
-            }}
-          >
-            {formatCategory(review.jobCategory)}
-          </span>
-        )}
+        <ReviewStars rating={review.rating} />
+        <ReviewCategoryChip category={review.jobCategory} />
       </div>
 
       {review.feedback && (

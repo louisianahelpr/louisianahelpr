@@ -220,25 +220,9 @@ export const AtAGlanceCard = ({
     });
   }
 
-  // ── Worked together ─────────────────────────────────────────────────
-  // Second, straight after the rating: for a visitor who has hired this person
-  // before, their own history with them is the strongest signal on the card.
-  // It used to be a quiet line under the bio in ProfileHeaderCard; owner,
-  // 2026-09-14 (VN-16): "you've worked together however many times can be a
-  // 5th box next to review, jobs posted, completed etc. order in most
-  // important to least". Not a button — there is no panel behind it.
-  if (!isOwnProfile && mutualJobsCount > 0) {
-    cells.push({
-      key: "together",
-      icon: Users,
-      value: String(mutualJobsCount),
-      label: "Worked together",
-    });
-  }
-
   // ── The two sides of the marketplace, only where they apply ──────────
-  // Completed before posted (VN-16's most-to-least-important order): work
-  // someone actually did for other people outranks how often they posted.
+  // Completed before posted (most-to-least-important order): work someone
+  // actually did for other people outranks how often they posted.
   if (workedJobsCount > 0) {
     cells.push({
       key: "worked",
@@ -260,10 +244,39 @@ export const AtAGlanceCard = ({
     });
   }
 
+  // ── Worked together ─────────────────────────────────────────────────
+  // FOURTH, after this person's own record — not second.
+  //
+  // Owner, 2026-09-19: "the correct order for the profile should be review,
+  // jobs completed, jobs posted, worked together, cancelled." It sat second
+  // from VN-16 (2026-09-14) until then.
+  //
+  // The reason the new order is better, worth keeping so nobody "restores" the
+  // old one: the first three tiles are what this PERSON did — their rating,
+  // the jobs they finished, the jobs they posted. "Worked together" is not
+  // about them at all, it is about the VIEWER's relationship with them, so it
+  // belongs after their own record rather than interrupting it. Cancelled
+  // stays last because it is the caveat on everything above it.
+  //
+  // Not a button — there is no panel behind it. It used to be a quiet line
+  // under the bio in ProfileHeaderCard.
+  if (!isOwnProfile && mutualJobsCount > 0) {
+    cells.push({
+      key: "together",
+      icon: Users,
+      value: String(mutualJobsCount),
+      label: "Worked together",
+    });
+  }
+
   /* ── FIVE TILES, IN THIS ORDER ───────────────────────────────────────
-     Owner, 2026-09-14 (VN-16), changing the 2026-09-11 ruling below from four
-     tiles to five: Rating · Worked together · Jobs completed · Jobs posted ·
-     Cancelled — most to least important, and nothing else.
+     Owner, 2026-09-19: Rating · Jobs completed · Jobs posted · Worked
+     together · Cancelled, and nothing else. See the "Worked together" block
+     above for why it moved from 2nd to 4th.
+
+     Superseded, kept so the history reads: owner, 2026-09-14 (VN-16) had
+     Rating · Worked together · Jobs completed · Jobs posted · Cancelled,
+     itself changing the 2026-09-11 ruling below from four tiles to five.
 
      The 2026-09-11 ruling ("EXACTLY FOUR TILES", asked twice): this card shows
      Rating · Jobs posted · Jobs completed · Cancelled, and nothing else.

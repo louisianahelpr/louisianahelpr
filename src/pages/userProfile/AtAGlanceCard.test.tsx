@@ -5,6 +5,18 @@
  *
  * Before: the card was capped at four tiles (Rating · Jobs posted · Jobs
  * completed · Cancelled) and "worked together" was a line in the header.
+ *
+ * ORDER CHANGED 2026-09-19 (owner, verbatim): "the correct order for the
+ * profile should be review, jobs completed, jobs posted, worked together,
+ * cancelled."
+ *
+ * The order this test asserted until then, and which it must NOT drift back
+ * to: Rating · Worked together · Jobs completed · Jobs posted · Cancelled.
+ * "Worked together" moved 2nd → 4th; nothing else moved.
+ *
+ * Asserting the exact sequence IS this test's job — it is the guard that
+ * catches the next accidental reshuffle — so it is never weakened to a
+ * set-membership check.
  */
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -42,13 +54,13 @@ const tileLabels = () => {
 };
 
 describe("AtAGlanceCard — five tiles, most to least important (VN-16)", () => {
-  it("orders Rating · Worked together · Jobs completed · Jobs posted · Cancelled", () => {
+  it("orders Rating · Jobs completed · Jobs posted · Worked together · Cancelled", () => {
     renderCard();
     expect(tileLabels()).toEqual([
       "1 review",
-      "Worked together",
       "Jobs completed",
       "Jobs posted",
+      "Worked together",
       "Cancelled · 11 of 20 jobs",
     ]);
     expect(screen.getByText("3")).toBeInTheDocument();

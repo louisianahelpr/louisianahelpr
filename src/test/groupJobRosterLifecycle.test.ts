@@ -38,6 +38,7 @@ import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql |   IF OLD.is_group_job IS TRUE\n     AND COALESCE(current_setting |   IF COALESCE(current_setting
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql |     'helper_completed_at',\n    'poster_confirmed_completion_at', |     'poster_confirmed_completion_at',
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql | REVOKE INSERT, UPDATE, DELETE ON public.group_job_helpers FROM PUBLIC, anon; | REVOKE INSERT ON public.group_job_helpers FROM PUBLIC;
+// @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql |     IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN |     IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
 
 const root = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(resolve(root, rel), "utf8");
@@ -146,6 +147,41 @@ describe("group jobs — per-member roster lifecycle (breakage (b))", () => {
     expect(gate).toContain("completion_requires_proof_photos");
     expect(gate).toContain("completion_min_work_time");
     expect(gate).toContain("auth.uid() IS DISTINCT FROM OLD.helper_id");
+  });
+
+  it("makes the tracker gate roster-aware without moving the single-helper branch", () => {
+    // FOUND LIVE, not in a migration file: a SECURITY DEFINER RPC called by a
+    // crew member is NOT a server context, so `enforce_job_tracking_arrival_gate`
+    // refused every tracker row for members 2..N on `jobs.helper_id`.
+    const gate = functionBody(sql, "enforce_job_tracking_arrival_gate");
+    expect(gate, "the tracker gate is no longer restated here").not.toHaveLength(0);
+
+    // The crew branch is entered only for a group job with a roster slot.
+    expect(gate).toMatch(/IF v_job\.is_group_job IS TRUE THEN/);
+    expect(gate).toMatch(/FROM public\.group_job_helpers g/);
+    expect(gate).toMatch(/g\.job_id = NEW\.job_id AND g\.helper_id = NEW\.helper_id/);
+
+    // Inside it, every predicate reads THAT MEMBER'S stamps. Reading the job's
+    // scalars there rebuilds the deadlock the whole file removes.
+    const crew = gate.slice(
+      gate.indexOf("IF v_job.is_group_job IS TRUE THEN"),
+      gate.indexOf("-- ── THE SINGLE-HELPER PATH, UNCHANGED"),
+    );
+    expect(crew).not.toHaveLength(0);
+    expect(crew).toContain("v_slot_arrived_at IS NULL");
+    expect(crew).toContain("v_slot_poster_arrival_at IS NULL");
+    expect(crew).toContain("v_slot_completed_at IS NULL");
+    expect(
+      crew,
+      "the crew branch reads a job-level arrival/confirmation stamp a crew job never fills",
+    ).not.toMatch(/v_job\.(helper_arrived_at|poster_confirmed_arrival_at|helper_completed_at)/);
+
+    // …and the single-helper branch still reads the job, unchanged.
+    const single = gate.slice(gate.indexOf("-- ── THE SINGLE-HELPER PATH, UNCHANGED"));
+    expect(single).toContain("v_job.helper_id IS DISTINCT FROM NEW.helper_id");
+    expect(single).toContain("v_job.helper_arrived_at IS NULL");
+    expect(single).toContain("v_job.poster_confirmed_arrival_at IS NULL");
+    expect(single).not.toMatch(/v_slot_/);
   });
 
   it("never widens the jobs UPDATE policy to the roster — in ANY migration", () => {

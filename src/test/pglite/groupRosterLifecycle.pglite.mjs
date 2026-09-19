@@ -17,10 +17,14 @@
  *       "fix") and crew member #2 marks the JOB complete with no confirmed
  *       arrival and no proof photos, because `enforce_helper_completion_gates`
  *       early-returns on `auth.uid() IS DISTINCT FROM OLD.helper_id`.
+ *   R3  `enforce_job_tracking_arrival_gate` refuses crew member #2 a tracker
+ *       row at all — a SECURITY DEFINER RPC called by them is not a server
+ *       context, so the membership test still reads `jobs.helper_id`.
  *
  * AFTER, with the migration applied:
- *   A1..A11 — the per-member lifecycle, its gates applied per member, the
- *   server-owned lock, the roll-up, and the UNCHANGED single-helper path.
+ *   A1..A18 — the per-member lifecycle, its gates applied per member, the
+ *   server-owned lock, the roll-up, the roster-aware tracker gate, and the
+ *   UNCHANGED single-helper path.
  */
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${process.env.HOME}/.lh-pglite-probe`;
 let PGlite;
@@ -173,6 +177,42 @@ DROP TRIGGER IF EXISTS trg_helper_completion_gates ON public.jobs;
 CREATE TRIGGER trg_helper_completion_gates
   BEFORE UPDATE OF helper_completed_at, status ON public.jobs
   FOR EACH ROW EXECUTE FUNCTION public.enforce_helper_completion_gates();
+
+-- ── enforce_job_tracking_arrival_gate, VERBATIM FROM PROD (pre-migration) ───
+-- The reason this probe grew a second red: a SECURITY DEFINER RPC called by a
+-- crew member is NOT a server context, so this gate refused every tracker row
+-- for members 2..N.
+CREATE OR REPLACE FUNCTION public.enforce_job_tracking_arrival_gate()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $fn$
+DECLARE v_job public.jobs;
+BEGIN
+  IF public.is_server_context() THEN RETURN NEW; END IF;
+  SELECT * INTO v_job FROM public.jobs WHERE id = NEW.job_id FOR SHARE;
+  IF v_job.id IS NULL THEN RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002'; END IF;
+  IF v_job.helper_id IS DISTINCT FROM NEW.helper_id THEN
+    RAISE EXCEPTION 'tracker_not_assigned_helper' USING ERRCODE = '42501';
+  END IF;
+  IF TG_OP = 'UPDATE' AND NEW.status IS NOT DISTINCT FROM OLD.status THEN RETURN NEW; END IF;
+  IF NEW.status NOT IN ('arrived', 'working', 'done') THEN RETURN NEW; END IF;
+  IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
+    RAISE EXCEPTION 'tracker_requires_arrival' USING ERRCODE = '23514';
+  END IF;
+  IF NEW.status = 'working' AND v_job.helper_completed_at IS NULL
+     AND v_job.poster_confirmed_arrival_at IS NULL THEN
+    RAISE EXCEPTION 'tracker_requires_arrival' USING ERRCODE = '23514';
+  END IF;
+  IF NEW.status = 'done' AND v_job.helper_completed_at IS NULL
+     AND v_job.poster_completed_at IS NULL AND v_job.status IS DISTINCT FROM 'completed' THEN
+    RAISE EXCEPTION 'tracker_requires_completion' USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+
+DROP TRIGGER IF EXISTS trg_job_tracking_arrival_gate ON public.job_tracking;
+CREATE TRIGGER trg_job_tracking_arrival_gate
+  BEFORE INSERT OR UPDATE ON public.job_tracking
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_job_tracking_arrival_gate();
 `;
 
 const FIXTURE = `
@@ -236,6 +276,17 @@ check(
   trap.ok
     ? "enforce_helper_completion_gates early-returned on auth.uid() IS DISTINCT FROM OLD.helper_id"
     : `unexpectedly refused: ${trap.error}`,
+);
+
+// R3 — the live tracker gate refuses every crew member who is not helper_id.
+const trackRed = await asUser(
+  M2,
+  `INSERT INTO public.job_tracking (job_id, helper_id, status) VALUES ('${GJOB}', '${M2}', 'on_the_way');`,
+);
+check(
+  "R3 the tracker gate refuses crew member #2 — a definer RPC is not a server context",
+  !trackRed.ok && /tracker_not_assigned_helper/.test(trackRed.error),
+  trackRed.error ?? "accepted — model is wrong",
 );
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -459,6 +510,56 @@ check(
   "A15 anon holds no write grant on the roster; authenticated is untouched",
   !tacl.i && !tacl.u && !tacl.d && tacl.au,
   `anon i/u/d=${tacl.i}/${tacl.u}/${tacl.d} authenticated update=${tacl.au}`,
+);
+
+// A16 — the tracker gate is now roster-aware, and reads the MEMBER'S stamps.
+await db.exec(FIXTURE);
+const cM = await asUser(M2, `SELECT public.rpc_group_member_confirm('${GJOB}');`);
+const oM = await asUser(M2, `SELECT public.rpc_group_member_on_the_way('${GJOB}', 30.45, -91.18);`);
+const trackRow = await one(
+  `SELECT status FROM public.job_tracking WHERE job_id='${GJOB}' AND helper_id='${M2}'`,
+);
+const workTooSoon = await asUser(
+  M2,
+  `UPDATE public.job_tracking SET status='working' WHERE job_id='${GJOB}' AND helper_id='${M2}';`,
+);
+check(
+  "A16 crew member #2 gets a tracker row; 'working' still needs the poster's confirmation OF THEM",
+  cM.ok && oM.ok && trackRow?.status === "on_the_way" &&
+    !workTooSoon.ok && /tracker_requires_arrival/.test(workTooSoon.error),
+  [cM.error, oM.error, workTooSoon.error ?? "working accepted with no poster confirm!"]
+    .filter(Boolean).join(" | "),
+);
+
+// A17 — a stranger still cannot write a crew job's tracker.
+const trackOutsider = await asUser(
+  OUTSIDER,
+  `INSERT INTO public.job_tracking (job_id, helper_id, status) VALUES ('${GJOB}', '${OUTSIDER}', 'on_the_way');`,
+);
+check(
+  "A17 a non-member still cannot write the crew's tracker",
+  !trackOutsider.ok && /tracker_not_assigned_helper/.test(trackOutsider.error),
+  trackOutsider.error ?? "accepted!",
+);
+
+// A18 — 1-HELPER TRACKER PATH UNCHANGED: 'working' still needs the job's own
+// poster confirmation, and a non-helper is still refused.
+await db.exec(
+  `UPDATE public.jobs SET poster_confirmed_arrival_at = NULL, helper_arrived_at = NULL WHERE id='${SJOB}';`,
+);
+const sTrack = await asUser(
+  LEAD,
+  `INSERT INTO public.job_tracking (job_id, helper_id, status) VALUES ('${SJOB}', '${LEAD}', 'working');`,
+);
+const sTrackOther = await asUser(
+  M2,
+  `INSERT INTO public.job_tracking (job_id, helper_id, status) VALUES ('${SJOB}', '${M2}', 'on_the_way');`,
+);
+check(
+  "A18 1-HELPER TRACKER PATH UNCHANGED: working gated, non-helper refused",
+  !sTrack.ok && /tracker_requires_arrival/.test(sTrack.error) &&
+    !sTrackOther.ok && /tracker_not_assigned_helper/.test(sTrackOther.error),
+  `${sTrack.error ?? "working accepted!"} / ${sTrackOther.error ?? "stranger accepted!"}`,
 );
 
 console.log(`\n${failures === 0 ? "ALL PASS" : `${failures} FAILURE(S)`}`);

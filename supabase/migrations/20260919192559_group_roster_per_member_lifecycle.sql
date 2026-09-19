@@ -854,6 +854,143 @@ BEGIN
 END;
 $function$;
 
+-- ── 7b. THE TRACKER GATE, PER MEMBER ────────────────────────────────────────
+-- FOUND LIVE, not in a migration file: `enforce_job_tracking_arrival_gate`
+-- (BEFORE INSERT OR UPDATE ON job_tracking) raises `tracker_not_assigned_helper`
+-- on `v_job.helper_id IS DISTINCT FROM NEW.helper_id` for every client session,
+-- and a SECURITY DEFINER RPC called by a crew member is NOT a server context
+-- (auth.uid() is still theirs). So members 2..N could not have a tracker row at
+-- all — the crew's on-the-way write would have failed on prod even though the
+-- roster stamp succeeded.
+--
+-- Restated VERBATIM from prod (pg_get_functiondef, 2026-09-19) with ONE added
+-- branch, entered only when `v_job.is_group_job IS TRUE` AND the writer holds a
+-- roster slot. A single-helper job cannot reach it, and the single-helper body
+-- below it is byte-for-byte what prod runs today.
+--
+-- Inside the branch every predicate reads THAT MEMBER'S row: `arrived` needs
+-- their own arrival, `working` needs the poster's confirmation OF THEM (the
+-- 2026-09-19 rule), `done` needs their own completion. Reading the job's
+-- scalars there would rebuild the deadlock this whole file removes.
+CREATE OR REPLACE FUNCTION public.enforce_job_tracking_arrival_gate()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_job public.jobs;
+  -- Scalars, not a record: a %ROWTYPE of group_job_helpers would bind at CREATE
+  -- time, and an unassigned `record` raises on field access when the SELECT
+  -- finds nothing — which is exactly the case this has to test for.
+  v_slot_id                  uuid;
+  v_slot_arrived_at          timestamptz;
+  v_slot_poster_arrival_at   timestamptz;
+  v_slot_completed_at        timestamptz;
+BEGIN
+  -- Server-side writers (service role) are not constrained. The helper's
+  -- on-the-way RPC writes 'on_the_way', which is not gated here. A NULL uid
+  -- alone is not the service role — anon has one too (20260915101102).
+  IF public.is_server_context() THEN
+    RETURN NEW;
+  END IF;
+  -- FOR SHARE: the stamps this decides from must not change under it (the race
+  -- class fixed in 20260913014328). helper_mark_on_the_way holds this jobs row
+  -- FOR UPDATE when it writes 'on_the_way' here; a share lock taken by the same
+  -- transaction does not wait on its own row lock.
+  SELECT * INTO v_job FROM public.jobs WHERE id = NEW.job_id FOR SHARE;
+  IF v_job.id IS NULL THEN
+    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
+  END IF;
+
+  -- ── THE CREW BRANCH ──────────────────────────────────────────────────────
+  IF v_job.is_group_job IS TRUE THEN
+    SELECT g.id, g.helper_arrived_at, g.poster_confirmed_arrival_at, g.helper_completed_at
+      INTO v_slot_id, v_slot_arrived_at, v_slot_poster_arrival_at, v_slot_completed_at
+    FROM public.group_job_helpers g
+    WHERE g.job_id = NEW.job_id AND g.helper_id = NEW.helper_id
+    FOR SHARE;
+
+    IF v_slot_id IS NULL THEN
+      RAISE EXCEPTION 'tracker_not_assigned_helper' USING ERRCODE = '42501',
+        HINT = 'Only a Helpr on this job''s crew can update its tracker.';
+    END IF;
+
+    IF TG_OP = 'UPDATE' AND NEW.status IS NOT DISTINCT FROM OLD.status THEN
+      RETURN NEW;
+    END IF;
+    IF NEW.status NOT IN ('arrived', 'working', 'done') THEN
+      RETURN NEW;
+    END IF;
+
+    IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN
+      RAISE EXCEPTION 'tracker_requires_arrival' USING ERRCODE = '23514',
+        HINT = 'Mark arrival at the job site first.';
+    END IF;
+
+    IF NEW.status = 'working'
+       AND v_slot_completed_at IS NULL
+       AND v_slot_poster_arrival_at IS NULL THEN
+      RAISE EXCEPTION 'tracker_requires_arrival' USING ERRCODE = '23514',
+        HINT = 'The person who posted this job has to tap Confirm They Arrived before you can start working.';
+    END IF;
+
+    IF NEW.status = 'done'
+       AND v_slot_completed_at IS NULL
+       AND v_job.poster_completed_at IS NULL
+       AND v_job.status IS DISTINCT FROM 'completed' THEN
+      RAISE EXCEPTION 'tracker_requires_completion' USING ERRCODE = '23514',
+        HINT = 'Mark your part complete first.';
+    END IF;
+
+    RETURN NEW;
+  END IF;
+
+  -- ── THE SINGLE-HELPER PATH, UNCHANGED ────────────────────────────────────
+  -- The row must belong to the job's assigned helper — on EVERY client write,
+  -- position pings included.
+  IF v_job.helper_id IS DISTINCT FROM NEW.helper_id THEN
+    RAISE EXCEPTION 'tracker_not_assigned_helper' USING ERRCODE = '42501',
+      HINT = 'Only the Helpr assigned to this job can update its tracker.';
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND NEW.status IS NOT DISTINCT FROM OLD.status THEN
+    -- Position pings (latitude/longitude/updated_at) never move a step.
+    RETURN NEW;
+  END IF;
+  IF NEW.status NOT IN ('arrived', 'working', 'done') THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
+    RAISE EXCEPTION 'tracker_requires_arrival' USING ERRCODE = '23514',
+      HINT = 'Mark arrival at the job site first.';
+  END IF;
+
+  -- THE WORKING UNLOCK. Owner, 2026-09-19: "they can not start working until
+  -- the poster confirms they are there … even if gps does confirm they are
+  -- there the poster still needs ro cfnrm wither way". So this reads ONE
+  -- stamp. The GPS half (helper_arrival_verified_at / the near-miss columns)
+  -- is evidence shown to both parties, and no longer part of this predicate.
+  IF NEW.status = 'working'
+     AND v_job.helper_completed_at IS NULL
+     AND v_job.poster_confirmed_arrival_at IS NULL THEN
+    RAISE EXCEPTION 'tracker_requires_arrival' USING ERRCODE = '23514',
+      HINT = 'The person who posted this job has to tap Confirm They Arrived before you can start working.';
+  END IF;
+
+  IF NEW.status = 'done'
+     AND v_job.helper_completed_at IS NULL
+     AND v_job.poster_completed_at IS NULL
+     AND v_job.status IS DISTINCT FROM 'completed' THEN
+    RAISE EXCEPTION 'tracker_requires_completion' USING ERRCODE = '23514',
+      HINT = 'Mark the job complete first.';
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
 -- ── 8. ROSTER RLS: A MEMBER MAY ACT ON THEIR OWN ROW ────────────────────────
 -- Members 2..N already SELECT their own roster row ("Job participants can view
 -- group helpers"). They do NOT get an UPDATE policy: every lifecycle column is
@@ -889,7 +1026,8 @@ DECLARE
     'public.enforce_group_member_lifecycle_server_owned()',
     'public.enforce_group_member_completion_gates()',
     'public.enforce_group_member_completion_not_clearable()',
-    'public.enforce_helper_completion_gates()'
+    'public.enforce_helper_completion_gates()',
+    'public.enforce_job_tracking_arrival_gate()'
   ];
 BEGIN
   FOREACH f IN ARRAY client_fns LOOP

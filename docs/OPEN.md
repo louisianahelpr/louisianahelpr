@@ -3508,3 +3508,59 @@ and synthetic `TouchEvent`s scroll nothing in EITHER engine (same method gives d
 where real CDP touch gives 245px). The `touch-action` chain is `auto` all the way up in both, so no
 divergence is expected — but it is unproven, not proven.
 (b) The blocked-CDN degraded map path in WebKit — route interception did not take; Chromium-proven only.
+
+## >>> ASK THE OWNER AFTER THE PUSH — they asked to be reminded <<<
+**Owner, 2026-09-19, verbatim: "im not sure. can you remind me to check this once everythung is on
+main and give you an answer once i see it for myself."**
+THE QUESTION: hiding `/my-jobs`'s desktop title (`bd86dfb18`) removed the `!isTrulyEmpty` escape
+hatch that external QA added on 2026-09-07. On the DESKTOP WEBSITE an **empty** My Posts / My Jobs
+now shows a header bar with **no page name and no tabs — just a magnifier icon floating alone**.
+Options when they look: (a) show the title only when the page is empty — restore the old exception;
+(b) put the empty-state message in the header instead (new copy in `ActivityHeader`/
+`ScreenHeaderRow`); (c) leave the bare magnifier. **RAISE THIS UNPROMPTED once main is pushed.**
+
+### DONE 2026-09-19 — map pin + desktop title — commits `92a4f8429`, `bd86dfb18`
+- **D1 fix:** the Helpr annotation is simply NOT BUILT once arrival is settled, so no orphan
+  `role="img"` node and no focus target (`mapMarkerAccessibleName` stays green). "Settled" comes
+  from the prop `TrackingMap` already takes — `destinationLabel` via the existing `labelled` flag,
+  the same fact that draws the pill and shifts the camera. No new prop, no `arrivalGate` import.
+  Un-arrived case proven byte-identical: 2 annotations, helper first, and
+  `helper.factory().outerHTML === helperMarkerElement(true).outerHTML`.
+- **Fix 2 — `/my-jobs` and `/my-posts` NEVER diverged by route.** Both are `Activity.tsx` running
+  the same line: `titleSrOnly={isWebDesktop && !isTrulyEmpty}` where
+  `sourceCount = tab === "posted" ? postedJobs.length : appliedApps.length`. It is **DATA**: an
+  account with posts and no applications is truly-empty on My Jobs and not on My Posts — one
+  expression, opposite answers, exactly the pair of screenshots measured. Now bare `isWebDesktop`,
+  matching Messages (`ConversationList.tsx:874`) and Home (`Dashboard.tsx:631`). 375 unchanged
+  (`useIsWebDesktop()` is false below 900px, so `false && x` and `false` are the same value).
+
+### DONE 2026-09-19 — admin stalled-job queue screen — commit `5ebca0a41`
+`/admin?view=stalled`, registered once in `adminNavGroups.tsx` (the rail, the command palette and
+the desktop side panel all read that one list). Modelled rung-for-rung on `AdminExceptionQueue`;
+money framing borrowed from `UnsettledSettlements`. **No route added** — `?view=` is the console's
+existing deep-link mechanism.
+- **PGRST202 fallback works TODAY** (the RPC does not exist on prod yet): a designed
+  "this queue isn't live yet" state with a Check-again button — explicitly NOT "the queue is empty".
+  `isMissingRpc` catches that ONE class; `42501`/`PGRST301` still throw to `ErrorState`, because
+  "I couldn't ask" must never read as "nothing is stuck" on a screen about held escrow.
+- **NO money control, enforced by test:** the screen fails if any button ever matches
+  `/release|refund|payout|charge/`. "Mark Reviewed" calls `resolve_stalled_job_flag` and nothing else.
+- 19/19 green, every assertion proven red first (incl. removing the rail row, dropping the in-flight
+  guard, treating RPC `false` as success, and adding a Release Payment button).
+
+### NEW — HIGH (pre-existing, class): admin escalation alerts deep-link to nowhere
+`stalled-completion-reminder/index.ts:243` AND `arrival-confirm-reminder/index.ts:204` both set the
+admin alert link to `/admin?job=<id>`. `Admin.tsx` reads only `?view=` and `?user=`;
+`AdminJobs.tsx:162` is the only `?job=` consumer and never mounts from that URL. So every admin
+escalation alert lands on the admin dashboard home. **The arrival one has been a dead link for as
+long as it has existed.** Lane dispatched with a class guard deriving BOTH the emitted links and the
+handled views from the world. Deliberately NOT fixed by teaching `Admin.tsx` to coerce `?job=` —
+that hides a broken link behind a redirect and would silently re-route the arrival alerts too.
+
+### OPEN, reported not built (owner decisions)
+- **After an admin marks a stalled job reviewed, the next step is undefined.** A stalled job has no
+  dispute record, so an admin must navigate to `?view=jobs` and use `RefundJobDialog` /
+  `StatusOverrideDialog` themselves. A LINK (not a money control) from the queue row into that
+  dialog would close the loop — needs a decision on which path is canonical.
+- **No rail badge count on the Stuck Jobs queue.** `getBadge` is fed by `Admin.tsx`'s stats loader,
+  which only runs on the home view; a live count needs a new prod query. Flagged, not guessed.

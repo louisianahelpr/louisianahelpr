@@ -3941,3 +3941,65 @@ for.**
    already-installed `.ipa`/`.apk` stays refused by the server.
 5. Deploy, then a prod xmin race proof of the roll-up — it cannot be run until the migration is live.
 Also: 13 new columns mean `src/integrations/supabase/types.ts` is stale after deploy.
+
+### DONE 2026-09-19 — ONE BUTTON SHAPE (owner item 9, second telling) — `9462cd203`, `b7d910b75`
+Owner, with a screenshot: *"i will not say this again. the buttons need to have the same size font
+and everything they shouldnt have all different stuff."* A previous lane reported item 9 PASSED —
+45 buttons all resolving to {11px, 12px, 14px}, all Montserrat, all >=44px. **That report validated
+the TIERS instead of questioning them.** The owner never asked for conformance to three sanctioned
+sizes; they asked for one treatment.
+
+THE SHAPE: **icon ABOVE an 11px wrapping label, a DECLARED `min-h-[44px]`, the Button base radius** —
+for every control in the row. Only TONE (green gloss / danger / done / neutral) and POSITION
+(primary right-most) vary.
+THE ARITHMETIC THAT FORCED IT: at 320 the row is ~256px; five slots + four 6px gaps leave ~46px
+each. An inline icon-beside-label control needs icon 18px + gap + "Working" at 14px (~54px) ~= **76px
+before it shows one word**. Stacked gives the whole 46px to the label and lets it wrap — "Working" at
+11px is ~42px.
+**That arithmetic is WHY the third tier existed:** the inline primary had grown a `[data-tight]` rung
+stepping it to 12px and stripping its icon — a third size and a third shape on the one control that
+most needs to look like its neighbours. **That rung is deleted.** `ICON_CHIP_PX` 48 -> 44 (the tap
+floor) instead, so at 320 with four icon-only chips the primary gets 56px not 40px.
+`primaryRoomAfterCompaction()` replaces `shouldTightenJobStepPrimary()` so a label that genuinely
+cannot fit is a readable NUMBER, not a silent shrink.
+**`index.css` no longer sizes the primary at all** — that block was HOW it drifted: chips declared
+geometry in a class, the primary inherited different geometry from a stylesheet, and its
+`padding: 0.5rem` silently out-ranked the class's `px-1`.
+
+RED-BEFORE: `src/test/jobRowControlSameness.test.tsx` against the unmodified tree — **12 of 16
+failed**, including the owner's own screenshot row ("Try My Location Again" and "Start Working" vs
+"Message": `text-ds-14` / icon-beside-label / no declared floor / bare label). Adding the day-of case
+then caught a **FOURTH object the first red run missed** — `JobConfirmation`'s "I'm Still On",
+portalled in from a file nothing under `src/components/activity` draws, which is exactly why the old
+static scan could not see it. The guard compares **resolved token values read off each rendered
+element**, not class names, so a comment cannot satisfy it. `npm run vacuity` 16/16 killed.
+
+DEAD TIERS DELETED, not flagged off: `JOB_ACTION_FULL_CLASS` (one consumer, `DirectionsButton
+variant="full"` — the DEFAULT, which no call site passed) and `SosShareButton`'s `"pill"` (also the
+default, also unreachable). Both props removed.
+PHOTO CAPTURE ON THE ROW (owner Part A): `HelperPhotoAsk`'s titled panel + full-width "Add Photo" —
+the block in the screenshot — is now one chip, `PhotoProofCaptureChip`, labelled **"Before Photo" /
+"After Photo"**. Deliberately NOT merged with the neutral "Photos" gallery chip: a helper with no
+before photo tapping "Photos" would land in an empty gallery. Still self-gates on
+`require_photo_proof`.
+
+### THE BEFORE-PHOTO GATE IS SERVER-BLOCKED (owner Part B) — correctly NOT shipped
+Verified live: `job_tracking` has exactly ONE non-internal trigger and
+`enforce_job_tracking_arrival_gate()`'s working branch refuses only on
+`poster_confirmed_arrival_at IS NULL` — **nothing about photos**. A client-only block would be
+STRICTER THAN THE SERVER and would strand any Helpr whose upload failed — the same shape as the
+bad-GPS deadlock removed this morning. The lane stopped and reported instead of shipping it.
+`src/test/beforePhotoCapture.test.tsx` pins the live predicate with a
+`START_WORKING_IS_SERVER_GATED = false` flag to flip. **Migration lane dispatched.**
+(The AFTER half already works and is enforced by `rpc_helper_mark_done`.)
+
+### NEW — the 320 truncation gate has a hole
+`e2e/happy-path/activity-card-density.spec.ts` sweeps `[data-job-action-chip] span`, but the four
+self-drawing row controls — Directions, SOS, Share, and the new capture chip — carry no such hook,
+so they sit OUTSIDE its inventory. Its own comment ("SOS is a SosShareButton, not a JobActionChip,
+so it carries no hook") is still accurate but now describes a bigger hole. Add the attribute.
+
+### TIGHTEST ROW IN THE APP — needs the lead's eyes at 320
+Helper **Disputed with a photo owed**: four 44px icon chips leave the primary ~56px; "Withdraw"
+measures ~50px at 11px. **Inside by 4px.** If it breaks mid-word, drop the capture chip from the
+dispute card (one line in `DisputedSection.tsx`).

@@ -4129,3 +4129,47 @@ against it, the same self-referential failure as the doc block it was written to
   forces the on_site row to ZERO visible chips at 320. "Retry Location" would buy a chip back. Copy
   change, so not made.
 - **The More popover itself is entirely unverified** — placement, width, and the 2-up grid inside it.
+
+### DONE 2026-09-19 — Directions gave the town: seed rows held a town — `3a0de5c22`, `1d31b8496`
+DIAGNOSIS CONFIRMED, and the code path was clean. `get_jobs_for_my_applications` rewrites `location`
+through `CASE WHEN user_may_see_job_address(...) THEN j.location ELSE mask_job_location(j.location)`;
+called AS THE OWNER'S OWN ACCOUNT on the job they were most likely looking at, it returned the
+location IN FULL. **`mask_job_location("New Iberia, LA")` returns `"New Iberia, LA"` — identical
+input and output, which is exactly why a town looked like a mask.** There was no street to return.
+BACKFILL: 210 town-only seeded rows -> **257 of 257 now carry a real Louisiana street address**,
+rotating 2-4 per city so 124 Lafayette fixtures do not stack on one doorstep. Coordinates moved with
+the address ONLY where a point already existed. The 8 funded `cs_test_` listings each got a distinct
+real address WITH ITS OWN coordinates rather than a city centroid, so pin and address name one door.
+`is_seed=false` rows untouched (0 street addresses, unchanged). **Privacy re-verified after the
+backfill:** a pending applicant on a seeded open job still gets `"Lafayette, LA"`.
+
+**THE GUARD FOUND A GENERATOR NOBODY KNEW ABOUT.** I briefed TWO seed scripts;
+`src/test/seedFixtureAddressRealism.test.ts` derives its inventory from the world (every file under
+`scripts/` that mentions `is_seed` and writes a `jobs` row) and found **SEVEN** — including
+`scripts/audit/pressProdSafety.mjs`, which went red on the first run. That is the difference between
+a list and a check.
+
+**The en-route address was ALREADY visible** — `JobAddressLine` sits in the ACTION SECTIONS band, a
+SIBLING of the `isExpanded` block, proven by rendering the card COLLAPSED in `confirmed` and
+`in_progress`, not by reading the JSX. No change needed; nothing handed back to the row-width lane.
+A mutation registered as a DELETION killed the guard with a SYNTAX ERROR — worthless proof — so it
+was changed to `<></>` so it fails on the assertion instead. Worth remembering as a mutation-quality
+rule: a mutation that breaks the parse proves nothing.
+
+### NEW — 37 seed rows pass the address check and still go nowhere
+`"100 Audit Way, Baton Rouge, LA 99999"` satisfies `hasStreetAddress()` but the street does not exist
+and 99999 is not a Louisiana ZIP, so **Directions on those rows resolves to nothing**. It is typed
+into the Street Address COMBOBOX by four e2e specs (`prod-lifecycle.spec.ts:159`,
+`journeys/fixtures.ts:264`, `journeys/02-marketplace.spec.ts:227`,
+`prod-audit/interruptions.spec.ts:468`), so changing it means re-proving the autocomplete resolves
+the new value. E2E lane's call.
+
+### NEW — three "real" prod jobs are actually fixtures
+`4c44aa1b`, `c4d3df74`, `24dd5b6b` — all stamped 2026-07-25 18:15:55, all `cancelled`, all town-only,
+all `is_seed = false` because they pre-date the flag. **Every `is_seed` sweep counts them as real
+user data.** Invisible to browse because cancelled. Worth flipping or deleting before launch.
+
+### NEW — the address runtime check cannot be credential-free
+Unlike `guest-listing-horizon.mjs`, an anon reader cannot verify this: `open_jobs_browse` runs
+`mask_job_location()` over the exact column being checked, so it needs the service role. It belongs
+on the credentialed leg of `e2e-real-backend.yml`.

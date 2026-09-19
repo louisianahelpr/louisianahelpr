@@ -16,7 +16,7 @@ import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { arrivalEstablished, arrivalEvidenceState, arrivalGateMessage, arrivalMapLabel, arrivalRefusalFromError, arrivalRefusalMessage, arrivalState, arrivalStateLabel, arrivalVerdictFromRpc, arrivalVerdictMessage, type ArrivalRefusal, type ArrivalState, type ArrivalVerdict } from "@/lib/arrivalGate";
 import { report } from "@/lib/errorLogger";
-import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { BEFORE_PHOTO_GATE_REASON, lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
@@ -2544,16 +2544,52 @@ export function JobTracking({
           proofBeforeUrls !== undefined &&
           !hasRequiredProof({ require_photo_proof: requirePhotoProof ?? true }, proofBeforeUrls, proofAfterUrls);
 
+        /* THE BEFORE PHOTO GATES "START WORKING" (owner, 2026-09-19: "if a
+         * before photo is required they can't press the working button until
+         * its done and same for a completed job for an after photo").
+         *
+         * THE SERVER IS THE ORACLE, AND IT SAYS SO SINCE 20260919195158:
+         * `enforce_job_tracking_arrival_gate()` raises
+         * `tracker_requires_before_photo` on `status = 'working'` under exactly
+         * this predicate. This block came in the same commit as that migration
+         * and must never lead it — a client stricter than the database is the
+         * class that produced the bad-GPS deadlock removed earlier the same day.
+         *
+         * ONLY the BEFORE photo, and only to START. The after photo is what
+         * `needsProof` above gates, on the Done step, where the work exists to
+         * photograph.
+         *
+         * `requiredProof().before` rather than a second reading of the flag —
+         * the policy module is the one definition, and the migration's SQL is
+         * a stated mirror of it. `proofBeforeUrls !== undefined` for the same
+         * reason `needsProof` has it: an unloaded gate query must not disable
+         * the button on a job that needs no photo at all.
+         */
+        const needsBeforePhoto =
+          nextStatus.key === "working" &&
+          proofBeforeUrls !== undefined &&
+          requiredProof({ require_photo_proof: requirePhotoProof ?? true }).before &&
+          (proofBeforeUrls?.length ?? 0) === 0;
+
         const disabledReason = updating
           ? "Saving your update — one moment…"
           : isLocked
             ? lockMessage
             : arrivalBlockReason
               ?? arrivalRefusalReason
+              // AFTER the arrival reason, matching the server's branch order:
+              // the poster's tap is the earlier event and the bigger blocker,
+              // and a Helpr who is not yet confirmed on site has nothing to
+              // photograph "as it was when you got there" anyway.
+              ?? (needsBeforePhoto ? BEFORE_PHOTO_GATE_REASON : null)
               ?? (needsProof ? requiredProof({ require_photo_proof: requirePhotoProof ?? true }).reason : null);
         // Amber, like the arrival gate: both are the helper being told what
-        // blocks the next step, not a neutral status.
-        const amberReason = (needsArrival || arrivalRefusedHere) && !updating && !isLocked;
+        // blocks the next step, not a neutral status. The before-photo gate is
+        // amber for the same reason and not the muted grey of a wait — it is
+        // something the Helpr must DO, and the chip that does it is in the same
+        // row, one control to the left.
+        const amberReason =
+          (needsArrival || arrivalRefusedHere || needsBeforePhoto) && !updating && !isLocked;
 
         /* ── THE GPS NUDGE: EXPLAIN THE BENEFIT, DON'T BLOCK OR NAG ──────────
          *
@@ -2628,7 +2664,12 @@ export function JobTracking({
               if (isDoneStep) setConfirmDoneOpen(true);
               else void updateStatus(nextStatus.key);
             }}
-            disabled={updating || isLocked || needsArrival || needsProof}
+            // SAME OBJECT, SAME DISABLED STATE (jobRowControlSameness). The
+            // before-photo gate adds a reason, not a new kind of control: a
+            // control that LOOKED pressable and then failed on tap with a toast
+            // is the shape the comment above `needsProof` records as the worse
+            // half to get wrong, and it is not coming back for this gate.
+            disabled={updating || isLocked || needsArrival || needsBeforePhoto || needsProof}
           />
         );
 

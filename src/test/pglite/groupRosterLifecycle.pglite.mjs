@@ -432,6 +432,28 @@ check(
   doneL.error ?? "",
 );
 
+// A10b — IDEMPOTENCY. The roll-up is the one write here that decides something
+// from a COUNT over rows other transactions are also stamping, and its race is
+// not prod-provable yet (the migration is undeployed,
+// `reject_new_group_jobs` refuses client-created group jobs, and prod holds no
+// real group job) — so this is the behavioural half of what
+// scripts/race-class-baseline.json records against those six functions. A
+// repeat Done must not re-stamp the member, must not re-run the roll-up, and
+// must not move the job's completion time.
+const doneLAgain = await asUser(LEAD, `SELECT public.rpc_group_member_mark_done('${GJOB}') AS r;`);
+const jobAfterRepeat = await one(`SELECT helper_completed_at FROM public.jobs WHERE id='${GJOB}'`);
+const slotAfterRepeat = await one(
+  `SELECT helper_completed_at FROM public.group_job_helpers WHERE job_id='${GJOB}' AND helper_id='${LEAD}'`,
+);
+check(
+  "A10b a repeat Done is idempotent: already_done, no re-stamp, no second roll-up",
+  doneLAgain.ok &&
+    JSON.stringify(doneLAgain.res?.[0]?.rows?.[0]?.r ?? {}).includes('"already_done":true') &&
+    String(jobAfterRepeat.helper_completed_at) === String(jobAfterL.helper_completed_at) &&
+    String(slotAfterRepeat.helper_completed_at) !== "null",
+  doneLAgain.error ?? `job stamp ${jobAfterRepeat.helper_completed_at} vs ${jobAfterL.helper_completed_at}`,
+);
+
 // A11 — the server-owned lock: a direct client PATCH cannot stamp a member.
 await db.exec(FIXTURE);
 const patch = await asUser(

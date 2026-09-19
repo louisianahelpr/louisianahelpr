@@ -40,6 +40,20 @@ const E2E = join(REPO, "e2e");
 const WORKFLOWS = join(REPO, ".github/workflows");
 
 /**
+ * Every `if:` in `yaml` that could make something NOT run.
+ *
+ * `always()` (and its `${{ }}` spelling) is the one condition that can only
+ * ADD executions, so it is not a way to silence a leg and is not returned.
+ * Everything else is — a secret, a repository variable, an event name, a
+ * branch, an actor — and is returned for the caller to fail on.
+ */
+function skippableConditions(yaml: string): string[] {
+  return [...yaml.matchAll(/^\s*if:\s*(.+?)\s*$/gm)]
+    .map((m) => m[1])
+    .filter((c) => !/^(\$\{\{\s*)?always\(\)(\s*\}\})?$/.test(c));
+}
+
+/**
  * Specs deliberately not run by any CI job. Each entry must say WHY, and
  * "why" has to be a real constraint, not "we didn't get to it".
  *
@@ -475,8 +489,42 @@ describe("CI crosses the mock boundary", () => {
     expect(triggers, "e2e-real-backend.yml must fire on push to main").toMatch(/push:\s*\n\s*branches:\s*\[main\]/);
 
     // And the anon leg specifically must not be conditioned on a secret.
+    //
+    // WHY THIS IS NO LONGER A BLANKET `not.toMatch(/\bif:/)`. That line read
+    // the WORD, not the MEANING, and on 2026-09-19 it went red on
+    // `if: always()` — a condition that makes the guest-listing-horizon step
+    // run MORE, so its day-by-day runway still prints when the contract step
+    // above has already failed. That is the step that NAMES the cause of a
+    // dark marketplace; forbidding it fails a workflow that is strictly harder
+    // to silence, not easier. The rule the line was written for is intact and
+    // is now stated as itself: NOTHING on this leg may be conditioned on
+    // something a person can unset or a fork will not have.
+    //
+    // This is deliberately an allow-list of always-run forms, not a
+    // deny-list of suspicious ones: a new `if:` shape lands here as a failure
+    // that someone has to look at, which is the behaviour the blanket line
+    // had and the reason it is not simply being deleted.
     const anonJob = src.slice(src.indexOf("  anon-surface:"), src.indexOf("  authenticated:"));
-    expect(anonJob).not.toMatch(/\bif:/);
+    expect(
+      skippableConditions(anonJob),
+      "a condition on the anon leg that can SKIP it — this guard exists so the one unmocked check in CI " +
+        "cannot be silenced by an unset secret, a fork, or a branch filter",
+    ).toEqual([]);
     expect(anonJob).not.toMatch(/secrets\./);
+  });
+
+  it("that condition check can fail — a secret-gated or event-gated anon leg is caught", () => {
+    // PROOF IT CAN FAIL, without touching .github/workflows (owned elsewhere).
+    // Every one of these is the defect the blanket line was guarding against.
+    expect(skippableConditions("  anon-surface:\n    if: ${{ secrets.E2E_KEY != '' }}\n")).toEqual([
+      "${{ secrets.E2E_KEY != '' }}",
+    ]);
+    expect(skippableConditions("    steps:\n      - name: x\n        if: github.event_name == 'schedule'\n")).toEqual([
+      "github.event_name == 'schedule'",
+    ]);
+    expect(skippableConditions("        if: vars.E2E_SUPABASE_URL\n")).toEqual(["vars.E2E_SUPABASE_URL"]);
+    // …and the always-run forms it must keep tolerating.
+    expect(skippableConditions("        if: always()\n")).toEqual([]);
+    expect(skippableConditions("        if: ${{ always() }}\n")).toEqual([]);
   });
 });

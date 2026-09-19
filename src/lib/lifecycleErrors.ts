@@ -16,6 +16,20 @@
  */
 import { isWriteRejected } from "./mutationResult";
 
+/**
+ * THE ONE SENTENCE FOR THE BEFORE-PHOTO GATE ON "START WORKING".
+ *
+ * Exported because two surfaces say it and they must not drift: the client's
+ * disabled "Start Working" reason (JobTracking), and the copy for
+ * `tracker_requires_before_photo`, which is what
+ * `enforce_job_tracking_arrival_gate()` raises when a write reaches the server
+ * anyway (20260919195158). It NAMES THE CONTROL that clears it — the "Before
+ * Photo" chip in the card's action row — because a disabled button whose
+ * reason does not say what to press is the defect, not the gate.
+ */
+export const BEFORE_PHOTO_GATE_REASON =
+  'Tap "Before Photo" and add one before you start working — it\'s the record of how the job looked when you got there.';
+
 const LIFECYCLE_REASONS: Record<string, string> = {
   // report_helper_no_show
   job_not_funded:
@@ -59,6 +73,17 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   // enforce_job_tracking_arrival_gate — the tracker's next step.
   tracker_requires_arrival:
     "The person who posted this job has to tap \"Confirm They Arrived\" before you can start working.",
+  // enforce_job_tracking_arrival_gate — the Before photo, migration
+  // 20260919195158 (owner, 2026-09-19: "if a before photo is required they
+  // can't press the working button until its done"). A DISTINCT code from
+  // tracker_requires_arrival on purpose: the two gates are cleared by two
+  // different people's controls, and a Helpr shown the arrival sentence for a
+  // missing photo would go and pester the poster for a tap that changes
+  // nothing. Same string on both sides of the wire — the client's disabled
+  // "Start Working" renders BEFORE_PHOTO_GATE_REASON, so the sentence the
+  // Helpr reads before the tap and the one the server sends if they get past
+  // it cannot drift.
+  tracker_requires_before_photo: BEFORE_PHOTO_GATE_REASON,
   tracker_requires_completion: "Mark the job complete first.",
   tracker_not_assigned_helper: "Only the Helpr assigned to this job can update its tracker.",
   // enforce_jobs_arrival_integrity — the poster's "Confirm They Arrived".

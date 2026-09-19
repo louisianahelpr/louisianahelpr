@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
+import { readFileSync, readdirSync } from "node:fs";
+import { resolve } from "node:path";
 import { act, render, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -25,30 +27,40 @@ import type { ReactElement } from "react";
  * `needsProof`, rendered as a disabled primary with `requiredProof().reason`
  * in the row's note. That half is correct and this file pins it.
  *
- * "START WORKING" IS NOT GATED, DELIBERATELY, AND THIS FILE PINS THAT TOO.
- * Read before changing it: the server is the oracle, and the server does not
- * enforce a before-photo on this transition. Verified read-only against prod
- * `fncmgoasalhdgfwzhsqa` on 2026-09-19 — `job_tracking` carries exactly one
- * non-internal trigger, `trg_job_tracking_arrival_gate` →
- * `enforce_job_tracking_arrival_gate()`, and its `working` branch is
+ * "START WORKING" IS NOW GATED TOO — AND THE SERVER GATED IT FIRST.
+ *
+ * THE HISTORY, KEPT BECAUSE THE ORDER IS THE POINT. Until 2026-09-19 this file
+ * pinned the OPPOSITE: Start Working was deliberately ungated, because the
+ * server was the oracle and the server did not enforce a before-photo on this
+ * transition. Verified read-only against prod `fncmgoasalhdgfwzhsqa` that
+ * morning — `job_tracking` carried exactly one non-internal trigger,
+ * `trg_job_tracking_arrival_gate` → `enforce_job_tracking_arrival_gate()`, and
+ * its `working` branch read
  *
  *     IF NEW.status = 'working'
  *        AND v_job.helper_completed_at IS NULL
  *        AND v_job.poster_confirmed_arrival_at IS NULL THEN
  *       RAISE EXCEPTION 'tracker_requires_arrival' …
  *
- * — the poster's vouch, and nothing about photos. A client block here would
- * make the app STRICTER than the database: a Helpr whose upload fails (denied
- * camera, storage error, offline) would be unable to start a job the backend
- * would happily have let them start, with no override anywhere. That is the
- * class that produced the bad-GPS deadlock, and the standing rule is that the
- * client never gates ahead of the server.
+ * — the poster's vouch, and nothing about photos. A client block on top of
+ * that would have made the app STRICTER than the database: a Helpr whose
+ * upload fails (denied camera, storage error, offline) unable to start a job
+ * the backend would happily have started, with no override anywhere. That is
+ * the class that produced the bad-GPS deadlock removed the same day, and the
+ * standing rule is that the client never gates ahead of the server.
  *
- * So the control is made one tap away — the capture chip sits directly beside
- * "Start Working" in the same row — and the BLOCK waits on a migration to
- * `enforce_job_tracking_arrival_gate()` (supabase/**, another lane's files).
- * The moment that lands, flip `START_WORKING_IS_SERVER_GATED` below and the
- * expectation with it.
+ * `20260919195158_before_photo_gates_working_step.sql` adds the server rule:
+ * the same `working` branch now also raises `tracker_requires_before_photo`
+ * (a DISTINCT code — the arrival gate is cleared by the POSTER's tap, this one
+ * by the HELPR's own chip) when `require_photo_proof` is on and
+ * `proof_before_urls` is empty, mirroring `requiredProof(job).before`. The
+ * client block below shipped in the SAME commit, never ahead of it.
+ *
+ * NOT ON TAP. An earlier version of the Done gate enforced its rule by failing
+ * on tap with a toast, and JobTracking's own note on it says the control that
+ * LOOKED pressable was the worse half of the pair to get wrong. So this is a
+ * render-time disabled state with the reason on the line above the row, and
+ * the reason NAMES the "Before Photo" chip sitting one control to its left.
  */
 
 // PROOF THIS GUARD CAN FAIL (npm run vacuity). The first mutation takes the
@@ -57,6 +69,10 @@ import type { ReactElement } from "react";
 // database really does enforce.
 // @mutate src/components/activity/appliedJobCard/steps/OnSiteStep.tsx | <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="on_site" />, | null,
 // @mutate src/components/JobTracking.tsx | !hasRequiredProof({ require_photo_proof: requirePhotoProof ?? true }, proofBeforeUrls, proofAfterUrls); | false;
+// The third takes the BEFORE-photo half of the gate off Start Working — the
+// owner's 2026-09-19 rule, and the half that only became safe to enforce once
+// 20260919195158 put it in the database.
+// @mutate src/components/JobTracking.tsx | disabled={updating || isLocked || needsArrival || needsBeforePhoto || needsProof} | disabled={updating || isLocked || needsArrival || needsProof}
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -102,6 +118,12 @@ vi.mock("@/integrations/supabase/client", () => makeSupabase());
 import type { AppliedApp, Job } from "@/components/activity/activityConstants";
 import { ActiveJobSection } from "@/components/activity/appliedJobCard/ActiveJobSection";
 import { requiredProof } from "@/lib/photoProofPolicy";
+import { BEFORE_PHOTO_GATE_REASON } from "@/lib/lifecycleErrors";
+
+// Read as TEXT, not imported: LIFECYCLE_REASONS is module-private on purpose,
+// and the thing being checked is that the CODE the trigger raises is a key in
+// that table — not that some string exists.
+const LIFECYCLE_COPY = readFileSync(resolve(__dirname, "../lib/lifecycleErrors.ts"), "utf8");
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});
@@ -110,10 +132,15 @@ beforeAll(() => {
 
 /**
  * Does `enforce_job_tracking_arrival_gate()` refuse `status='working'` without
- * the before photo? Read from prod, 2026-09-19: NO. Flip this when the
- * migration lands, and the two expectations below flip with it.
+ * the before photo? YES since
+ * `20260919195158_before_photo_gates_working_step.sql`. This constant is the
+ * interlock: it may only be `true` while a migration actually raises
+ * `tracker_requires_before_photo` from that function's `working` branch, which
+ * the first test below reads out of the migration set and asserts. Flipping it
+ * without the SQL turns this file red, which is the whole point — the client
+ * must never gate ahead of the server.
  */
-const START_WORKING_IS_SERVER_GATED = false;
+const START_WORKING_IS_SERVER_GATED = true;
 
 const HELPER = "helper-1";
 const POSTER = "poster-1";
@@ -265,7 +292,50 @@ describe("the completion gate, and the one that is the SERVER's to add", () => {
     expect(cta?.disabled, "the gate is refusing a job whose proof is complete").toBe(false);
   });
 
-  it("Start Working is NOT blocked by a missing before photo — the server does not block it either", async () => {
+  /**
+   * THE INTERLOCK. The client may only disable Start Working while the
+   * DATABASE refuses the same write, so the flag that turns the block on is
+   * itself checked against the migration set. Read from the latest migration
+   * that defines the trigger function, not from a name — a rename that loses
+   * the rule fails here rather than passing on an absent file.
+   */
+  it("the server refuses status='working' without the before photo", () => {
+    const dir = resolve(__dirname, "../../supabase/migrations");
+    const defining = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .filter((f) =>
+        readFileSync(resolve(dir, f), "utf8").includes("FUNCTION public.enforce_job_tracking_arrival_gate"),
+      );
+    expect(defining.length, "no migration defines enforce_job_tracking_arrival_gate any more").toBeGreaterThan(0);
+    const sql = readFileSync(resolve(dir, defining[defining.length - 1]), "utf8");
+
+    const gated = /RAISE EXCEPTION 'tracker_requires_before_photo'/.test(sql);
+    expect(
+      gated,
+      "START_WORKING_IS_SERVER_GATED is true but no migration raises tracker_requires_before_photo — " +
+        "the client would be stricter than the database, which is the deadlock class. Ship the SQL or flip the flag back.",
+    ).toBe(START_WORKING_IS_SERVER_GATED);
+
+    // The predicate is the APP's rule (src/lib/photoProofPolicy.ts
+    // requiredProof().before + hasRequiredProof), mirrored — not a second
+    // definition of "required".
+    expect(sql, "the SQL stopped reading the poster's per-job flag").toContain(
+      "COALESCE(v_job.require_photo_proof, true)",
+    );
+    expect(sql, "the SQL stopped reading the before-photo array").toContain(
+      "COALESCE(array_length(v_job.proof_before_urls, 1), 0) = 0",
+    );
+    // A DISTINCT code: reusing tracker_requires_arrival would send the Helpr to
+    // pester the poster for a tap that clears nothing.
+    expect(sql).not.toMatch(/tracker_requires_before_photo'[^\n]*\n[^\n]*Confirm They Arrived/);
+    // And the code has words at the surface that renders it.
+    expect(LIFECYCLE_COPY, "tracker_requires_before_photo has no copy in lifecycleErrors.ts").toContain(
+      "tracker_requires_before_photo",
+    );
+  });
+
+  it("Start Working is DISABLED with the reason under it when the before photo is missing", async () => {
     const { container } = await renderStep(
       makeJob({ proof_before_urls: [], poster_confirmed_working_at: null }),
       "arrived",
@@ -275,11 +345,41 @@ describe("the completion gate, and the one that is the SERVER's to add", () => {
     expect(
       cta?.disabled,
       START_WORKING_IS_SERVER_GATED
-        ? "the server now refuses status='working' without the before photo, so the button must say so BEFORE the tap"
+        ? "the server refuses status='working' without the before photo, so the button must say so BEFORE the tap — " +
+          "failing on tap with a toast is the shape this card was audited for twice"
         : "a CLIENT-ONLY block: enforce_job_tracking_arrival_gate() lets status='working' through without a before photo, " +
           "so this strands any Helpr whose upload fails with no way past. Gate the database first (see the header).",
     ).toBe(START_WORKING_IS_SERVER_GATED);
-    // …and the way to satisfy it is one tap away, in the same row.
+
+    // A dead control the card cannot explain is the defect, not the gate — and
+    // the sentence must NAME the chip that clears it.
+    const note = container.querySelector("[data-job-step-note]");
+    expect(note?.textContent ?? "").toContain(BEFORE_PHOTO_GATE_REASON);
+    expect(BEFORE_PHOTO_GATE_REASON, "the reason no longer names the control").toContain("Before Photo");
+    // …and that control is one tap away, in the same row.
     expect(within(row(container)).getByRole("button", { name: /^Before Photo\b/ })).toBeTruthy();
+  });
+
+  it("adding the before photo clears it — Start Working is ENABLED", async () => {
+    const { container } = await renderStep(
+      makeJob({ proof_before_urls: ["before.jpg"], poster_confirmed_working_at: null }),
+      "arrived",
+    );
+    const cta = primary(container);
+    expect(cta?.textContent?.trim()).toMatch(/Start Working/);
+    expect(cta?.disabled, "the gate is refusing a job whose before photo exists").toBe(false);
+  });
+
+  it("a job the poster marked as needing no photos is UNAFFECTED — Start Working is ENABLED", async () => {
+    const { container } = await renderStep(
+      makeJob({ proof_before_urls: [], require_photo_proof: false, poster_confirmed_working_at: null }),
+      "arrived",
+    );
+    const cta = primary(container);
+    expect(cta?.textContent?.trim()).toMatch(/Start Working/);
+    expect(
+      cta?.disabled,
+      "requiredProof({ require_photo_proof: false }).before is false — this job has no before photo to owe",
+    ).toBe(false);
   });
 });

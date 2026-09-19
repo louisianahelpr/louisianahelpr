@@ -78,7 +78,10 @@ class StubMap {
   removeAnnotations = vi.fn((a: StubAnnotation[]) => {
     this.annotations = this.annotations.filter((x) => !a.includes(x));
   });
-  setRegionAnimated = vi.fn((r: CoordinateRegion) => {
+  // MapKit's real signature is setRegionAnimated(region, animate) — the stub
+  // must take both, or `c[1]` below is a compile error against a 1-tuple and
+  // the "never animated" assertion cannot be written at all.
+  setRegionAnimated = vi.fn((r: CoordinateRegion, _animate?: boolean) => {
     this.region = r;
   });
   addEventListener = vi.fn();

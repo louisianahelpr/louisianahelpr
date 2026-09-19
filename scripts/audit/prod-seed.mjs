@@ -671,10 +671,16 @@ async function apply() {
     { id: sid("pet:dog"), owner_id: posterId, name: "Boudreaux (seed)", species: "dog", breed: "Catahoula", age_years: 4, weight_lbs: 62, feeding_schedule: "2 cups at 7am and 6pm", behavioral_notes: "Pulls near squirrels." },
     { id: sid("pet:cat"), owner_id: posterId, name: "Praline (seed)", species: "cat", age_years: 11, weight_lbs: 9, medical_notes: "Senior kidney diet." },
   ]);
+  // Conflict on the NATURAL key, not on id. favorite_helpers has a UNIQUE
+  // (customer_id, helper_id), so a row the real UI created for the same pair
+  // (random id) makes an on_conflict=id upsert violate that other constraint
+  // instead of merging (seen 2026-09-19: 23505 on a 2026-09-17 real-flow row).
+  // Merging on the pair rewrites the id back to the deterministic sid, which is
+  // what --teardown deletes by; nothing FKs favorite_helpers.id (checked live).
   await upsert("favorite_helpers", [
     { id: sid("fav:helper"), customer_id: posterId, helper_id: helperId, private_note: "SEED Great with fences." },
     { id: sid("fav:applicant01"), customer_id: posterId, helper_id: ids.applicant01, private_note: null },
-  ]);
+  ], "customer_id,helper_id");
   await upsert("saved_searches", [
     { id: sid("search:helper"), user_id: helperId, name: "SEED Handyman near Lafayette", category: "handyman", radius_miles: 25, min_budget: 100, notify_enabled: false },
     { id: sid("search:poster"), user_id: posterId, name: "SEED Storm prep", category: "storm_prep", max_budget: 400, notify_enabled: false },

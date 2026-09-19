@@ -2951,3 +2951,165 @@ Captured from owner while low on usage; execute with screenshots on prod (test a
 13. Tracker must NOT disappear during a DISPUTE or REVISION (keep it rendered).
 14. Home, Post, Jobs, AND Messages panels must NOT be curved on the bottom — they should run to the bottom like the right panel does.
 15. Messages should use the SAME layout as Home/Post/Jobs — it's currently the only one with that top panel.
+
+## IN PROGRESS 2026-09-19 — owner batch 2026-09-16 execution + owner decisions
+Recon done by three agents; five of items 3/4/11/12/13 all land in ONE file
+(`src/components/JobTracking.tsx`), which is why they ship as one lane.
+
+**Owner decisions taken 2026-09-19 (pop-up):**
+- **Seed target:** the shared `is_seed` test pair, NOT the owner's real account.
+  `scripts/audit/prod-seed.mjs --apply` now runs clean (see below); owner gets a
+  sign-in link to look at the populated sections.
+- **Tracker map (item 5):** unify `TrackingMap` onto Apple MapKit **now, in this
+  pass**. It was the only non-Apple map left (Leaflet + raw OSM tiles);
+  BrowseMap / AppleMapPreview / JobLocationPreview are all MapKit already.
+- **Item 8 vs destructive-right:** **primary wins.** Green primary is right-most
+  on /my-posts and /my-jobs everywhere; `OpenStep`'s Cancel moves LEFT, dropping
+  the "furthest from the thumb" rule recorded at `OpenStep.tsx:12-13`.
+- **Item 7 scope:** **both** readings, and fix the escrow bug (below).
+- **Item 6 collapsed card:** confirm controls stay inside the EXPANDED card, but
+  the collapsed card gains a visible "you owe a confirmation" signal. The
+  collapsed card is the most likely reason the owner saw "no button" at all.
+- **Item 11:** recon says the line already reads `Updated <h:mm>` — the word is
+  already left of the time; the only thing left of "Updated" is the NAME, i.e.
+  item 4a. Treated as satisfied by 4a, pending the lane's confirmation.
+
+### NEW — CRITICAL (money): an in_progress job the Helpr never marks done is stuck forever
+`auto-expire-jobs` §1 needs `status='accepted'`, §2 needs `status='open'`, and
+`auto-release-payment` requires `poster_completed_at <= cutoff OR
+helper_completed_at <= cutoff`. A job where the Helpr never taps "Mark Job
+Complete" matches **no sweep at all**: it sits `in_progress` with **escrow held
+indefinitely**. The poster gets no Approve (gated on `helper_completed_at`,
+`InProgressStep.tsx:82`) and no explanation. Owner chose to fix it in this pass:
+add the missing sweep + a CI check for the class, and render the disabled
+"Work Done" affordance with the reason (item 7).
+
+### NEW — HIGH (deadlock): bad-GPS arrival points each party at the other
+Since VN-33 (`20260915044137`) `mark_helper_arrival` refuses a far / fix-less
+arrival and **writes nothing**, so `helper_arrived_at` stays null. The Helpr's
+tracker CTA is then blocked with copy naming the poster's "Confirm They Arrived"
+tap as the way out (`JobTracking.tsx:2336-2342`) — but that poster control is
+itself gated on `helper_arrived_at` (`InProgressStep.tsx:59-65`), so it never
+renders. Each side is told to wait for the other. The arrival gate itself
+(GPS **AND** poster confirm, `src/lib/arrivalGate.test.ts`) is deliberate
+anti-fraud and is NOT being changed without an explicit owner decision; this
+pass surfaces the honest reason on the poster's side. **Owner decision still
+needed on whether the poster may vouch for arrival when GPS never resolved.**
+
+### Item 2 (seed every section) — 52/56, was 50/56
+`scripts/audit/prod-seed.mjs --apply` was crashing on
+`POST favorite_helpers → 409 23505`: a real-flow row created 2026-09-17 took the
+UNIQUE `(customer_id, helper_id)` that the seed's deterministic id wants, so an
+`on_conflict=id` upsert violated the *other* constraint instead of merging.
+FIXED by conflicting on the natural key (nothing FKs `favorite_helpers.id` —
+checked live against `pg_constraint`), which also restores the script's
+"teardown deletes exactly what apply created" invariant.
+Remaining gaps, all honest and documented as un-fakeable:
+`job status accepted` (real flow reaches it only after funding) and payment
+`failed` / `chargeback` / `cancelling` (need a real Stripe refund / dispute /
+failed transfer; faking the column would be read by money reconciliation).
+
+### Item 5 follow-through (answered + actioned)
+Maps were NOT all Apple: `BrowseMap` = Apple MapKit JS, `AppleMapPreview` =
+MapKit, `JobLocationPreview` = MapKit, but `TrackingMap` = Leaflet +
+`tile.openstreetmap.org`. Being ported this pass (owner decision above).
+
+### REPORTS (not tasks — dead/no-op code noticed during recon, per CLAUDE.md)
+- `ConversationList`'s `embedded` prop has **no production caller**
+  (`Messages.tsx:399` passes false; only a test passes true). The desktop
+  two-pane split it existed for was removed 2026-09-11. Its desktop branches are
+  dead code.
+- `JobActionRow.tsx:87-88` `JOB_ACTION_FULL_CLASS` is a **dead third button
+  tier**: its only consumer is `DirectionsButton.tsx:82 variant="full"`, and both
+  live call sites (`EnRouteStep.tsx:30`, `ConfirmedSection.tsx:144`) pass
+  `variant="chip"`.
+- `e2e/happy-path/activity-card-density.spec.ts:639-641`'s comment ("the row
+  opens with its primary slot") is **stale** post-`2d4564a54`; the assertion still
+  passes only because it filters the slot out.
+- OPEN.md's "V7 IGNORED — another session owns the rounded panel-bottom" note is
+  **stale**: no commit, branch or worktree touches `.page-panel`,
+  `panelSurfaceStyle` or the index.css panel radii.
+
+### DONE 2026-09-19 — Messages lane (items 14, 15, 1b) — commit `ea3ec524b` (local, unpushed)
+- **Item 15** `ConversationList.tsx`: `titleCard`/`titleCardClassName` are now phone-only
+  (`isWebDesktop ? undefined : headerEl`) and the header re-renders as the panel's first
+  child under a hairline — mirroring `Activity.tsx:486-496`. Only `titleSrOnly` flipped to
+  `isWebDesktop`; flipping the padding/hairline lines too would have doubled both.
+  Phone rendering is byte-identical, which was the acceptance bar.
+  CHECK `src/test/messagesNoSeparateTopPanel.test.tsx` — red-before observed.
+- **Item 14** `src/index.css`: deleted the `html.web-desktop .page-panel` bottom
+  radius/border override; `panelSurfaceStyle` now governs at every width. Comment
+  records the reversal and points at `DesktopSidebarNav.tsx:255-264` as the reference.
+  CHECK `src/test/pagePanelRunsToTheBottom.test.ts` — a **postcss source guard**, not a
+  computed-style test: jsdom never loads index.css and would read the inline `0`, so a
+  computed-style assertion could not fail. Walks every `.page-panel` rule for a non-zero
+  bottom radius (logical props + shorthand 3rd/4th values) or bottom border, plus a
+  second test proving the matcher is not vacuous. Red-before observed (3 rules listed).
+- **Item 1(b)** `chatView/useChatScroll.ts`: one-shot per-conversation effect lands on the
+  first unread `data-msg-id` instead of the bottom; zero-unread threads still land at the
+  bottom. Ref-guarded so realtime inbound never re-yanks. `inboxDefault.ts` untouched
+  (owner's 2026-08-30 "always All" decision stands — item 1 is a SCROLL ask).
+  CHECK `chatView/useChatScroll.unreadLanding.test.tsx` — red-before observed.
+
+### NEW — HIGH (app-wide list bug, found by the Messages lane): VirtualList virtualizes against the WINDOW inside overflow-hidden routes
+`src/components/VirtualList.tsx:42` uses `useWindowVirtualizer` (`getScrollElement: () =>
+window`, `observeElementOffset: (win) => win.scrollY`). But every AppShell/PageScaffold
+route is deliberately off `DOCUMENT_SCROLL_ROUTES` and `src/index.css:1186-1195` pins
+`html.app-shell{overflow:hidden}` + `html.app-shell body{overflow:hidden}`, so
+`window.scrollY` never moves while the real scrolling happens in an inner container.
+Only ~`innerHeight/estimateSize + overscan` rows (~16 on a phone at `estimateSize={80}`,
+`overscan={6}`) are ever mounted — scrolling past them should show blank space.
+Reachable TODAY: `CONVO_LIMIT = 50` in the inbox, and **Activity is in the same position**.
+This is also what blocks owner item 1(a) (scroll the thread LIST to the first unread):
+`scrollIntoView` cannot target a row that was never mounted; the correct mechanism is
+`virtualizer.scrollToIndex()` against the real container.
+Lane dispatched 2026-09-19 to prove it live on prod first (no mock mode), then fix via an
+opt-in `scrollElementRef` on VirtualList, then land item 1(a). Needs a CLASS-level check.
+
+### REPORTS added by the Messages lane (not tasks)
+- `ConversationList.tsx:1182-1183`: the bulk-hide action bar is `fixed` at
+  `calc(safe-area-bottom + 80px)` on the desktop website, reserving room for a bottom nav
+  dock that does not exist at >=900px.
+- `src/index.css:1422-1430` is an orphan comment describing an `.empty-state-dock` rule
+  that was already removed.
+
+### DONE 2026-09-19 — item 5: TrackingMap ported Leaflet → Apple MapKit JS — commit `43834d572` (local, unpushed)
+Every map in the app is now Apple MapKit. New: `src/components/trackingMap/trackingMarkers.ts`,
+`trackingRegion()`, `neutraliseMarkerFocus()`.
+- **Degraded path is now a DESIGNED state, not an absence.** Leaflet shipped in the bundle;
+  MapKit is a CDN script, so `missing-token` / `error` / constructor throw / a load that never
+  settles (15s watchdog, same as `JobLocationPreview`) all render the same 180px frame with a
+  `MapPinOff` panel — the tracker never reflows and never shows a blank grey hole. Critically the
+  panel still prints the **settled arrival fact**: `trackingProofCaption` DROPS the arrival clause
+  whenever the map is shown, so a silently-empty map would have taken that fact off screen entirely.
+- **a11y:** pins are `role="img"` + `aria-label` + `tabIndex -1` (NOT `role="button"` — they do
+  nothing when activated; the Leaflet version shipped focusable, `role="button"`, unnamed, which is
+  the bug `src/test/mapMarkerAccessibleName.test.ts` exists for). Map container is `role="group"`.
+- **OWNER DECISION 2026-09-19: the map stays STATIC** (`isZoomEnabled:false, isScrollEnabled:false`).
+  MapKit has no separate wheel-zoom flag, so leaving zoom on would let a 180px map inside a
+  scrolling job card eat the page scroll. Cost: no drag-pan/pinch. One-line revert if reversed.
+- CSP already allows `cdn.apple-mapkit.com` / `*.apple-mapkit.com` in `index.html` + `vercel.json`.
+- 12 mutation tests, each red-before-green (see agent report). TrackingMap 17/17,
+  mapMarkerAccessibleName 8/8, alarmColourInvariant 8/8.
+- **WebKit risks for the lead to verify in-browser:** `enabled:false` annotations may dim in some
+  WKWebView builds; the absolutely-positioned arrival pill (`bottom: calc(100% + 3px)`) inside a
+  MapKit-transformed subtree; a vertical swipe STARTING on the map must scroll the card; live
+  `data-theme` toggle while the tracker is open.
+
+### NEW — CLEANUP (Leaflet is now dead code)
+Zero importers of `leaflet` / `react-leaflet` / `leaflet/*` anywhere in `src/ e2e/ scripts/
+supabase/ index.html vite.config.ts vitest.config.ts` (grep exit=1, static AND dynamic).
+`react-leaflet-cluster` already gone from package.json. STILL PRESENT and to be removed in the
+lead's lockfile batch: `package.json:124 leaflet`, `:132 react-leaflet`, `:150 @types/leaflet`.
+Also dead: `src/index.css` ~1678-1810 `.leaflet-container` / `.leaflet-control-zoom` /
+`.leaflet-popup-*` / `.leaflet-control-attribution` — **careful deletion required**, the live
+`.browse-map-*` rules are interleaved at 1697-1715. Stale comments naming Leaflet:
+`JobTracking.tsx:26` and `:2162`, `PostedJobCard.tsx:518`.
+
+### OWNER DECISION 2026-09-19 — stuck-escrow policy (item 7 backend)
+**"Nudge both, then admin queue. Never move money automatically."** Escalating notifications to
+both parties once the scheduled time is meaningfully past with no completion stamp; if still
+untouched after a further window, flag into the admin queue for a HUMAN decision. Explicitly NOT
+auto-release to the Helpr and NOT auto-refund the poster — nobody can prove from the data whether
+the work happened. The flag must be a queue item AWAITING an admin, never a fabricated
+`admin_audit_log` row (every such row names a real `admin_id`). Lane dispatched.

@@ -50,7 +50,7 @@ async function fixture(scenario, label) {
       customer_id: POSTER, helper_id: HELPER, is_seed: true,
       title: `RACE-SETTLE ${scenario} ${label} ${tag()}`,
       description: "settle_dispute_record race probe fixture",
-      category: "yard_work", location: "Baton Rouge, LA", date_needed: ago(0).slice(0, 10),
+      category: "yard_work", location: "4412 Highland Rd, Baton Rouge, LA 70808", date_needed: ago(0).slice(0, 10),
       budget: 50,
       // `admins`: the money has already settled and the job's terminal dispute
       // state is written, which is the ONLY state settle_dispute_record accepts.

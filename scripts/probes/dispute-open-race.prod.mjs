@@ -60,7 +60,7 @@ async function fixture(scenario, label) {
       customer_id: POSTER, helper_id: HELPER, is_seed: true,
       title: `RACE-OPEN ${scenario} ${label} ${tag()}`,
       description: "rpc_open_dispute race probe fixture",
-      category: "yard_work", location: "Baton Rouge, LA", date_needed: ago(0).slice(0, 10),
+      category: "yard_work", location: "4412 Highland Rd, Baton Rouge, LA 70808", date_needed: ago(0).slice(0, 10),
       budget: 50, status: "in_progress", payment_status: "escrow",
       helper_confirmed_at: ago(5), poster_confirmed_at: ago(5), accepted_at: ago(6),
       helper_completed_at: ago(1),

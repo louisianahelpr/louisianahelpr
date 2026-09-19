@@ -168,7 +168,12 @@ export async function createPressJob(poster, runId, suffix = "") {
       description: "Automated press-every-control fixture. Not a real job. Created by CI and removed by its clean-up; if you can read this in the app the harness has a bug.",
       category: "cleaning",
       budget: 25,
-      location: "Baton Rouge, LA",
+      // A REAL street address, not a town (owner, 2026-09-19: "when i click
+      // directions, it gives directions to the town but not the actual
+      // address"). A press fixture is pressed BY a person, and Directions is
+      // one of the controls pressed; a town sends them to the middle of the
+      // parish. src/test/seedFixtureAddressRealism.test.ts holds the line.
+      location: "4412 Highland Rd, Baton Rouge, LA 70808",
       date_needed: new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10),
       status: "open",
       payment_status: "unpaid",

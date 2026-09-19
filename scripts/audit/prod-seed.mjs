@@ -532,7 +532,29 @@ async function applyGroupJob(posterId, helperId, applicantId) {
 
 // ── apply ────────────────────────────────────────────────────────────────────
 // Jobs: open + unpaid (invisible to guest browse) and pending_approval.
-const jobBase = { description: "SEED audit fixture — not a real job.", location: "Lafayette, LA", parish: null, date_needed: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10), pricing_mode: "set_price", payment_status: "unpaid", is_seed: true }; // explicit: enforce_jobs_insert_column_lock derives is_seed only for auth.uid() inserts, a service-role insert keeps the default false
+/**
+ * A REAL STREET ADDRESS, not a town (owner, 2026-09-19: "when i click
+ * directions, it gives directions to the town but not the actual address").
+ *
+ * The owner tapped Directions on a seeded job and Apple Maps dropped them in
+ * the middle of Lafayette. Nothing in the app was broken: `DirectionsButton`
+ * hands `job.location` to `mapsSearchUrl()`, the poster form writes
+ * "<street>, <city>, <state> <zip>", and `user_may_see_job_address` had already
+ * released the full column to them. The row simply had no street in it, because
+ * THIS value used to read "Lafayette, LA" — every fixture job on prod inherited
+ * a town.
+ *
+ * So the bug report was manufactured by the fixture, the third of that shape in
+ * one day. The fix belongs here rather than in a backfill: a seed that cannot
+ * produce a town is a seed that cannot produce this report again.
+ * `src/test/seedFixtureAddressRealism.test.ts` holds that line across every
+ * seed generator, not just this one.
+ *
+ * A real Lafayette arterial with its real ZIP, so a maps search resolves it.
+ */
+const SEED_JOB_ADDRESS = "2000 Johnston St, Lafayette, LA 70503";
+
+const jobBase = { description: "SEED audit fixture — not a real job.", location: SEED_JOB_ADDRESS, parish: null, date_needed: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10), pricing_mode: "set_price", payment_status: "unpaid", is_seed: true }; // explicit: enforce_jobs_insert_column_lock derives is_seed only for auth.uid() inserts, a service-role insert keeps the default false
 
 async function apply() {
   const posterId = await requireSeed(POSTER.email);

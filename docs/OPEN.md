@@ -3455,3 +3455,56 @@ do NOT use it for the new copy.)
 The in-flight browser lane is verifying a build from `19555e010`, BEFORE this change. The arrival
 rework (DB + UI) must get its own verification pass once the UI half lands — do not let the earlier
 run stand as proof of it.
+
+### BROWSER VERIFICATION 2026-09-19 — all 16 items PASS (build `19555e010`, prod, test pair)
+Chromium + WebKit at 375 / 1440 (and 320 for density). 92 screenshots, 52 reviewed, **zero
+unreviewed failures**. All prod fixtures restored and re-queried clean (1 probe message deleted,
+20 read-flags restored, 3 jobs' columns restored from snapshot, 2 temp `job_tracking` rows deleted).
+
+FIT — every touched page, `scrollWidth == clientWidth`, overflow 0, single 248px right-rail inset,
+zero left gutter, no per-page re-inset: `/dashboard`, `/my-posts`, `/my-jobs`, `/messages` + thread
+pane at both widths. At 320 both card pages are 320/320 (one 72px pulse-ring overhangs 4px, clipped).
+The only "widest element" hits are MapKit's offscreen `mk-font-size-detector` probe and an
+off-screen snap-carousel item inside an `overflow-x` scroller — both harmless.
+
+**Item 13 initially looked broken (no map) — root cause was SEED DATA, not code:** neither contested
+job had a `job_tracking` row. With one inserted, disputed/revision expanded AND disputed collapsed
+all render tracker + map with no person box. Rows deleted afterwards. Worth remembering before
+filing a "the map is gone" bug.
+
+**The old inbox bug is confirmed dead:** entry mounts idx 0-14, scrolled mounts idx **16-28**,
+scrollTop 1774 == scrollHeight 2444 - 670. The 96px below the last row is the container's own
+`padding-bottom:96px` bottom-nav clearance, not the old blank. Identical in WebKit.
+
+### DEFECTS FOUND + OWNER DECISIONS (2026-09-19, fifth batch)
+- **D2 — poster Disputed row is icon-only at 375 (35px chips) and 24px at 320**, five near-identical
+  grey circles on a money-dispute screen. **MY TWO DENSITY PREDICTIONS WERE INVERTED:** Completed
+  (4 chips) is fine with all labels visible; Disputed is the problem and worse than predicted.
+  **OWNER DECISION: LEAVE IT — "ill check once i see how it is now."** Not fixed by choice. The
+  reviewer's recommendation, if it is revisited: move Escalate + Contact Admin to an overflow and
+  keep Timeline + Message labelled.
+- **Item 7 note measured 112px/7 lines at 375, 128px/8 lines at 320**; with its 3-line disabled
+  button ~23% of the viewport, reading LOUDER than the tracker above it. **OWNER DECISION: trim to
+  ONE sentence, rest behind the tap.** Dispatched.
+- **Item 15 caveat — `/my-jobs` is the outlier, not Messages.** At 1440 `/dashboard`, `/my-posts`
+  and `/messages` all render `h1` as `sr-only`; `/my-jobs` still paints "My Jobs" in 20px Bodoni.
+  **OWNER DECISION: hide `/my-jobs`'s title to match.** Dispatched.
+- **D1 — Helpr map pin is a ~6px dark crescent once arrived** (pins coincide, pill on top;
+  `--olivewood` resolves to near-black `rgb(46,47,34)`, so the disc has no hue to separate it — the
+  token is PRE-EXISTING, the port just put pill + both pins in the same 50px).
+  **OWNER DECISION: hide the Helpr pin once arrival is settled.** Dispatched.
+- **D3 — brand logo paints beneath the 56px account-warning banner at 1440** and pokes ~6px out
+  below it on every page. PRE-EXISTING stacking issue, NOT this batch. Not fixed. Top-left of every
+  screenshot, so easy to mistake for new damage.
+
+### NEW — the nightly Playwright runs may have been vacuously green
+**Playwright's browsers were MISSING from this machine entirely** and had to be reinstalled
+(`npx playwright install chromium webkit`) before verification could run. Any local nightly that
+reported green without them is suspect. Worth checking what the nightly workflows actually did.
+
+### NOT PROVEN, stated rather than claimed
+(a) A real touch-drag on the map in WebKit — Playwright's WebKit exposes no trusted touch channel,
+and synthetic `TouchEvent`s scroll nothing in EITHER engine (same method gives delta 0 in Chromium,
+where real CDP touch gives 245px). The `touch-action` chain is `auto` all the way up in both, so no
+divergence is expected — but it is unproven, not proven.
+(b) The blocked-CDN degraded map path in WebKit — route interception did not take; Chromium-proven only.

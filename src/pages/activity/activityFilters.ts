@@ -328,11 +328,19 @@ export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
     // poster side so the same job never reads "Scheduled" to one party and
     // overdue to the other.
     if (jobIsOverdue({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
+    // TODAY IS LIVE — the helper's half of the owner's 2026-09-19 reorder.
+    // Scheduled now sits BELOW Waiting, so a job happening today cannot be
+    // filed in the calmer of the two on either side of the marketplace. The
+    // submitted-and-awaiting-approval case above returns first and stays
+    // Waiting, so this only catches work that is genuinely still the helpr's.
+    if (jobIsLive({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
     return "scheduled";
   }
   if (app.status === "accepted") {
     // A booking whose day has passed and which never even started.
     if (jobIsOverdue({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
+    // The day is here and they accepted it — today is theirs to turn up for.
+    if (jobIsLive({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
     return "scheduled";
   }
   // Applied, awaiting their decision.

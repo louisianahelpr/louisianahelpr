@@ -123,16 +123,25 @@ const FIXTURES: Fixture[] = [
   fixture("offer expired — job reopened, application rejected", "cancelled", "rejected", {
     status: "open",
   }),
-  fixture("confirmed booking", "scheduled", "accepted", {
+  // TODAY IS LIVE (owner, 2026-09-19): the four fixtures below are dated TODAY
+  // by the fixture helper, so they now bucket to Needs You on BOTH sides —
+  // Scheduled means "agreed and still AHEAD of you". This future-dated one
+  // exists so the Scheduled bucket still has a member; without it the badge
+  // assertion for `scheduled` would compare 0 to 0 and prove nothing.
+  fixture("confirmed booking, still ahead", "scheduled", "accepted", {
+    status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(20),
+    date_needed: new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10),
+  }),
+  fixture("confirmed booking", "needs_you", "accepted", {
     status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(20),
   }),
-  fixture("on the way", "scheduled", "accepted", {
+  fixture("on the way", "needs_you", "accepted", {
     status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(20), helper_on_the_way_at: ago(2),
   }),
-  fixture("arrived", "scheduled", "accepted", {
+  fixture("arrived", "needs_you", "accepted", {
     status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(20), helper_arrived_at: ago(1),
   }),
-  fixture("working", "scheduled", "accepted", {
+  fixture("working", "needs_you", "accepted", {
     status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(20),
     helper_arrived_at: ago(3), poster_confirmed_working_at: ago(2),
   }),

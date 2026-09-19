@@ -1,0 +1,144 @@
+name: Nightly reds nobody read
+
+# WHY THIS EXISTS (2026-09-19)
+# ----------------------------------------------------------------------------
+# On 2026-09-19 four `nightly-red` issues were open at once:
+#
+#   #1618 prod-audit          since 2026-09-17
+#   #1597 a11y-webkit-prod    since 2026-09-14  (5 "Still red" comments)
+#   #1595 e2e-journeys        since 2026-09-14  (4 comments)
+#   #1582 press-every-control since 2026-09-13  (8 comments)
+#
+# and every one of them was a REAL defect. a11y-webkit-prod could not run its
+# required diff at all. press-every-control had been leaking test jobs onto
+# prod, one per shard per night, for six days. prod-audit was saying, in as
+# many words, that the shared poster account was one nightly run from a 7-day
+# restriction that would have broken every prod workflow.
+#
+# The alerting was NOT broken. `.github/actions/nightly-issue-sync` opened each
+# issue the night it went red and faithfully appended "Still red" on every
+# subsequent failure. CLAUDE.md even says sessions must run
+# `gh issue list -l nightly-red` at session start.
+#
+# It failed at the LAST MILE, for three reasons:
+#   1. an open issue with no assignee is a list nobody is forced to look at;
+#   2. these workflows run ONLY on a schedule, so a push never reveals them —
+#      a commit could be green all day while a six-day red sat beside it;
+#   3. "check the list at session start" is an instruction, and instructions
+#      are the thing that gets skipped when the day is busy.
+#
+# THE OTHER HALF, ALREADY SHIPPED
+# ----------------------------------------------------------------------------
+# 6745591a1 (same day, the #1617 lane) made AGE VISIBLE: nightly-issue-sync now
+# states how long a red has sat and adds a `nightly-red-stale` label past a
+# day, so `gh issue list -l nightly-red` no longer shows an hour-old red and a
+# three-day-old red as identical. This workflow is the ENFORCEMENT half of the
+# same idea and deliberately does not recompute what that one displays — it
+# blocks on `nightly-red-stale` when the sync applied it, AND derives the age
+# itself, because a workflow that has stopped running entirely will never get
+# the label from its own sync step.
+#
+# WHAT THIS DOES
+# ----------------------------------------------------------------------------
+# It moves the signal to the one place everybody already looks: the checks on
+# their own push. A `nightly-red` issue that has been open longer than
+# MAX_AGE_HOURS turns the NEXT PUSH red, by name, with the run URL.
+#
+# It is a nudge with an escape hatch, not a wall: label an issue
+# `nightly-red-ack` and it stops blocking (it is still listed, with its age, in
+# the step summary, so an acknowledgement is visible rather than silent). The
+# grace period means one bad night never blocks anyone — only a red that
+# survives a full day does, which is precisely the failure this is about.
+#
+# Nothing here can close an issue or edit one: `issues: read` only. The
+# open/close lifecycle stays entirely with nightly-issue-sync.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # 12:40 UTC — inside the 03:00-13:00 band the prod crons share, but this
+    # job touches neither prod nor the network beyond the GitHub API, so it
+    # does not take the prod-load concurrency group.
+    - cron: "40 12 * * *"
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: nightly-red-age-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  age:
+    name: No nightly red older than a day
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # A full day: one red night is noise, a red that survives a day is a
+      # decision nobody made.
+      MAX_AGE_HOURS: "24"
+      ACK_LABEL: nightly-red-ack
+    steps:
+      - name: Read the nightly-red list
+        run: |
+          set -euo pipefail
+          rm -f /tmp/raw.json
+          # `prod-down` (uptime.yml) rides the same lifecycle and is strictly
+          # more urgent, so it is included.
+          for LABEL in nightly-red prod-down; do
+            gh issue list --repo "${{ github.repository }}" --label "$LABEL" --state open \
+              --json number,title,createdAt,labels,url --limit 100 \
+              >> /tmp/raw.json || echo '[]' >> /tmp/raw.json
+          done
+          jq -s 'add | unique_by(.number)' /tmp/raw.json > /tmp/issues.json
+          echo "open: $(jq 'length' /tmp/issues.json)"
+
+      - name: Fail if any has been open longer than the grace period
+        run: |
+          set -euo pipefail
+          NOW=$(date -u +%s)
+          MAX=$(( MAX_AGE_HOURS * 3600 ))
+
+          BLOCKING=$(jq -r --argjson now "$NOW" --argjson max "$MAX" --arg ack "$ACK_LABEL" '
+            map(. + { age: ($now - (.createdAt | fromdateiso8601)) })
+            | map(select(.age > $max or ([.labels[].name] | index("nightly-red-stale") != null)))
+            | map(select([.labels[].name] | index($ack) | not))
+            | .[] | "#\(.number) \(.title) — open \((.age / 3600) | floor)h — \(.url)"
+          ' /tmp/issues.json)
+
+          ACKED=$(jq -r --arg ack "$ACK_LABEL" '
+            map(select([.labels[].name] | index($ack)))
+            | .[] | "#\(.number) \(.title) — acknowledged"
+          ' /tmp/issues.json)
+
+          {
+            echo "## Nightly reds"
+            if [ -z "$BLOCKING" ] && [ -z "$ACKED" ]; then
+              echo "None open."
+            else
+              [ -n "$BLOCKING" ] && { echo "### Blocking (open > ${MAX_AGE_HOURS}h)"; echo '```'; echo "$BLOCKING"; echo '```'; }
+              [ -n "$ACKED" ] && { echo "### Acknowledged"; echo '```'; echo "$ACKED"; echo '```'; }
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "$BLOCKING" ]; then
+            echo "$BLOCKING" | while IFS= read -r line; do
+              echo "::error title=Nightly red nobody read::$line"
+            done
+            echo ""
+            echo "A scheduled check has been red for more than ${MAX_AGE_HOURS}h."
+            echo "On 2026-09-19 four of these were open at once and every one was a real"
+            echo "defect — one of them was silently writing rows to prod every night."
+            echo ""
+            echo "Read the run the issue points at (gh run view <id> --log-failed), fix it,"
+            echo "and the issue closes itself on the next green run. If it genuinely must"
+            echo "wait, label it '${ACK_LABEL}' and say why in a comment — an acknowledged"
+            echo "red is still listed here, it just stops blocking."
+            exit 1
+          fi
+          echo "No nightly red older than ${MAX_AGE_HOURS}h."

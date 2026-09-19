@@ -3759,3 +3759,52 @@ recorded rather than papered over.
   "Try My Location Again". The amber block also LEADS with the GPS ask rather than the blocker,
   blurring the amber-means-blocked / muted-means-advice separation the design rests on.
 - Seed rot: two `storage/v1/object/sign/proof-photos/...` URLs on seed job `e7e09075` return HTTP 400.
+
+### DONE 2026-09-19 — tracker "Confirmed" from stamps + arrival copy split — commit `a17f8e955`
+**The bug was sharper than the browser pass found.** The `jobStatus === "in_progress" ||
+"revision_requested"` floor at `STATUS_IDX.job_confirmed` did not merely MISLABEL a step — it
+**skipped the gate**. The `helperHasConfirmed` check lived inside the `job_confirmed` branch of the
+next-step CTA, so a rail already sitting at `job_confirmed` never reached it. The gate is now keyed
+on **the step the button would take** (`nextStatus.key`), not on where the rail happens to sit, so
+position can no longer bypass it. The floor drops to `STATUS_IDX.assigned` — a job underway
+evidences an assignment and nothing more.
+LIVE SERVER PREDICATE MATCHED (`pg_get_functiondef`, read-only): `helper_mark_on_the_way` has
+exactly ONE content check, `helper_confirmed_at IS NULL -> helper_not_confirmed`. It never reads
+`poster_confirmed_at` or `helper_dayof_confirmed_at`. The rail's two steps stay distinct: `confirmed`
+= "Accepted" (`helper_confirmed_at`), `job_confirmed` = "Confirmed", the mutual day-before.
+Both prior rules proven intact: the revision/disputed clamp to Working, and GPS-alone-stops-at-
+Arrived vs poster-confirm-alone-paints-Working.
+
+**Arrival copy split — the number moved:** amber **243 -> 94** chars, muted **186 -> 84**, block
+**429 -> 178**. At 375: **9 lines / 143.5px -> 4 lines / 63.8px**. At 320: **11 lines / 175.4px ->
+5 lines / 79.8px**. Amber now carries the BLOCKER only ("The person who posted this job has to tap
+\"Confirm They Arrived\" before you can start working."); muted carries only the benefit ("Turning
+Location on gives you GPS proof you were here, if this job is ever disputed."). "Try My Location
+Again" appears exactly ONCE per card. Heights are COMPUTED, not photographed — needs the browser lane.
+
+### NEW — PATTERN: seed fixtures create states the app cannot reach, and they cause false bug reports
+Today this cost two investigations:
+- item 13 "the tracker map is gone on contested jobs" — the CODE was right; neither contested seed
+  job had a `job_tracking` row.
+- the "Confirmed" bug above was FOUND on seed `bb2c3732`, which is `in_progress` with
+  `helper_confirmed_at` NULL.
+Scanned prod: **every** job in that state is `is_seed` — 4 of 17 `in_progress`, 13 of 18
+`completed`, 1 of 3 `disputed`. **No organic job has ever been in it.** The producers INSERT `jobs`
+with `status` set directly, bypassing `accept_job` / `respond_to_direct_offer` — the only writers of
+`helper_confirmed_at`: `scripts/probes/completion-race.prod.mjs`, `scripts/probes/arrival-gate.probe.mjs`,
+`scripts/ci/race-runner.mjs`, `e2e/prod-lifecycle.spec.ts`. (`auto_start_due_jobs` is NOT the culprit
+— it explicitly requires `helper_confirmed_at IS NOT NULL`.)
+**DECISION NEEDED:** either the fixtures stamp what the real flow would stamp, or a CHECK constraint
+forbids the state. Until then, a fixture-only state will keep being reported as a product bug.
+RESIDUAL, documented not fixed (`JobTracking.onTheWayGate.test.tsx`): on such a row the rail floors
+at Offered and the CTA becomes the vestigial "I've Accepted", which writes `job_tracking.status`
+only — **no client tap can produce `helper_confirmed_at`**. Withholding it would make that control
+unreachable in every state, i.e. a deletion dressed as a gate.
+
+### NEW — the reachability guard earned its keep within hours
+`controlReachability.test.ts` caught the tracker lane's own first draft going **vacuous, twice**:
+(1) hoisting the control name into a `const` made `arrivalGateMessage` invisible to its AST scan
+(it harvests RETURNED string literals), silently dropping the
+`arrivalGateMessage <-> posterConfirmationRung` pair — **the exact pair the 2026-09-19 deadlock lived
+in**; (2) dropping the near-miss read shrank the pair's state space and lost the path by which the
+poster's control IS enabled without `helper_arrived_at`. Both restored with the reason beside them.

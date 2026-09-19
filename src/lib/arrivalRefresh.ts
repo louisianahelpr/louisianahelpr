@@ -40,11 +40,13 @@ import { rpcErrorCode } from "@/lib/lifecycleErrors";
  *      would be the app apologising for work the user never requested. The
  *      only thing it ever says is a SUCCESS: "GPS confirmed you were at the
  *      job", once, at the moment the upgrade actually lands.
- *   4. IT NEVER STORMS THE PERMISSION PROMPT. A denial is remembered for the
- *      rest of the page's life ({@link deniedThisSession}) and every later
- *      refresh degrades to a plain refresh with no prompt. iOS shows the
- *      system dialog once per install, but a browser re-prompts per gesture,
- *      and a Helpr pulling to refresh five times must not be asked five times.
+ *   4. IT NEVER STORMS THE PERMISSION PROMPT. A denial is remembered and every
+ *      later refresh degrades to a plain refresh with no prompt — iOS shows
+ *      the system dialog once per install, but a browser re-prompts per
+ *      gesture, and a Helpr pulling to refresh five times must not be asked
+ *      five times. The memory is cleared on the next FOREGROUND RETURN, which
+ *      is the only honest signal that they may have just been to Settings and
+ *      allowed it; see {@link rememberDenial}.
  *   5. ITS ERROR COPY COMES FROM THE RPC'S OWN TABLE. Nothing here matches on
  *      message text — `rpcErrorCode` decides what is an ordinary refusal and
  *      what is a fault worth reporting, which is the same table every other
@@ -106,10 +108,49 @@ export function arrivalToUpgrade(
   );
 }
 
-/** Set once a fix is refused, for the life of the page. See rule 4. */
+/** Set once a fix is refused. Cleared on the next foreground return — see
+ *  {@link rememberDenial}. */
 let deniedThisSession = false;
+/** One listener per page, and only once a denial has actually happened. */
+let watchingForReturn = false;
 
-/** Test seam: forget the remembered denial. Not called by the app. */
+/**
+ * REMEMBER A REFUSAL, AND ARM A ONE-SHOT CLEAR FOR THE NEXT RETURN.
+ *
+ * The memory exists to stop a prompt storm (rule 4): five pulls must not be
+ * five prompts. But "for the life of the page" is too long by one case, and
+ * the copy landing alongside this change is what exposed it —
+ * `arrivalRefusalMessage`'s denied branch now reads:
+ *
+ *   "Location is turned off for Louisiana Helpr — allow it in Settings, then
+ *    pull down to refresh and we'll try again."
+ *
+ * A Helpr who follows that instruction exactly — Settings, allow, back to the
+ * app, pull — would have got NOTHING, because the flag was still set and
+ * `oneShotFix` returns null before it asks. The app would have told them to do
+ * something and then ignored them doing it, which is the same defect class as
+ * the dangling button reference this whole batch removed, one layer down.
+ *
+ * Returning to the foreground IS the "they may have just changed the setting"
+ * signal, and it is the only one available: the Permissions API cannot be
+ * relied on across WKWebView, and polling for a permission is a prompt storm
+ * by another name. Clearing on it costs at most ONE further prompt, and only
+ * after a deliberate app switch — the storm this guards against is repeated
+ * pulls inside one session, which is untouched.
+ */
+function rememberDenial(): void {
+  deniedThisSession = true;
+  if (watchingForReturn || typeof document === "undefined") return;
+  watchingForReturn = true;
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") deniedThisSession = false;
+  });
+}
+
+/** Test seam: forget the remembered denial. Not called by the app.
+ *  `watchingForReturn` is deliberately NOT reset — re-arming would add a
+ *  second listener on the next denial, and the one already registered is
+ *  still correct. */
 export function resetArrivalRefreshDenial(): void {
   deniedThisSession = false;
 }
@@ -139,7 +180,7 @@ async function oneShotFix(): Promise<{ lat: number; lng: number } | null> {
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         (err) => {
-          if (err?.code === 1) deniedThisSession = true; // PERMISSION_DENIED
+          if (err?.code === 1) rememberDenial(); // PERMISSION_DENIED
           resolve(null);
         },
         { timeout: 15000, maximumAge: 30000 },
@@ -148,7 +189,7 @@ async function oneShotFix(): Promise<{ lat: number; lng: number } | null> {
   } catch (e) {
     // Capacitor surfaces an iOS denial as a message, not a code.
     const msg = String((e as { message?: string } | null)?.message ?? e ?? "");
-    if (/denied|permission|authorized|authoriz/i.test(msg)) deniedThisSession = true;
+    if (/denied|permission|authorized|authoriz/i.test(msg)) rememberDenial();
     return null;
   }
 }

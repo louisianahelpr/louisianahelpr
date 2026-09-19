@@ -35,6 +35,7 @@
  * @mutate src/lib/arrivalRefresh.ts | !j.helper_arrival_verified_at && | true &&
  * @mutate src/lib/arrivalRefresh.ts | !j.poster_confirmed_arrival_at && | true &&
  * @mutate src/lib/arrivalRefresh.ts | if (deniedThisSession) return null; | if (false) return null;
+ * @mutate src/lib/arrivalRefresh.ts | if (document.visibilityState === "visible") deniedThisSession = false; | if (false) deniedThisSession = false;
  * @mutate src/lib/arrivalRefresh.ts | return verdict.verified | return !verdict.verified
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -150,6 +151,41 @@ describe("a refresh with nothing to upgrade touches nothing", () => {
         `prompt storm the remembered denial exists to stop`,
     ).toBe(1);
     expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("RE-ARMS after a foreground return — the copy tells them to go to Settings", async () => {
+    /* THE CASE THE STICKY FLAG GOT WRONG. `arrivalRefusalMessage`'s denied
+       branch reads "allow it in Settings, then pull down to refresh and we'll
+       try again". A Helpr who does exactly that — Settings, allow, back to the
+       app, pull — must actually get a retry. With the memory held for the life
+       of the page they got nothing: the app told them to do something and then
+       ignored them doing it.
+
+       Returning to the foreground is the one honest signal that a permission
+       may have changed; the prompt storm this guards against is repeated pulls
+       inside one session, asserted in the case above and untouched here. */
+    stubGeolocation("denied");
+    await upgradeUnverifiedArrival([job()], ME);
+    expect(fixCalls).toBe(1);
+    await upgradeUnverifiedArrival([job()], ME);
+    expect(fixCalls, "still suppressed while the page stays in front").toBe(1);
+
+    // They go to Settings and come back.
+    stubGeolocation("ok");
+    rpc.mockResolvedValue({
+      data: { arrival_recorded: true, verified: true, basis: "gps_verified", distance_ft: 30 },
+      error: null,
+    });
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    const res = await upgradeUnverifiedArrival([job()], ME);
+    expect(
+      fixCalls,
+      "after a foreground return the next pull did not ask for a fix — the Helpr followed " +
+        "the app's own instruction and was ignored",
+    ).toBe(1); // the stub was replaced, so this counter restarted at 0 then went to 1
+    expect(res.outcome).toBe("upgraded");
   });
 
   it("degrades silently when no fix arrives — nothing is broken, so nothing is said", async () => {

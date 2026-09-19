@@ -15,6 +15,7 @@ import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { formatPrice, formatPriceExact, formatRecurrenceInterval } from "@/lib/format";
 import { type PostedJobCardProps } from "./postedJobCard/types";
+import { PosterConfirmationBadge } from "./postedJobCard/PosterConfirmationBadge";
 import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { useHighlightPulse } from "./useHighlightPulse";
@@ -347,6 +348,15 @@ function PostedJobCardInner({
                 </span>
               </div>
             )}
+            {/* 6e — the collapsed card says you OWE a confirmation.
+                (owner, 2026-09-19: controls stay inside the expanded card, but
+                the collapsed card must signal that one is waiting.) The poster
+                reported "no button to confirm they arrived" while the controls
+                were in fact rendering — behind the expand. A poster who never
+                opens the card never learns they are the one holding the job up.
+                Self-gating on `posterOwesConfirmation`; renders no control, so
+                the one-row action contract is untouched. */}
+            {!isExpanded && <PosterConfirmationBadge job={job} />}
             {/* THE TRACKER SURVIVES THE COLLAPSE — for a contested job only.
                 (owner, 2026-09-19: "the tracker should not go away for a
                 dispute or revision".)

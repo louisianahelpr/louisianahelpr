@@ -72,8 +72,45 @@ runs:
         if [ "$STATUS" = "failure" ]; then
           if [ -n "$EXISTING" ]; then
             echo "Issue #$EXISTING already open for ${WORKFLOW_NAME} — adding a comment."
+
+            # HOW LONG IT HAS BEEN RED, said out loud.
+            #
+            # Added 2026-09-19 after `e2e-real-backend` sat red for THREE DAYS
+            # (#1617, opened 09-16T15:28, two minutes after the first red, then
+            # commented on 09-18 and 09-19). The reporting half worked perfectly;
+            # nothing conveyed AGE. In `gh issue list -l nightly-red` — the
+            # command CLAUDE.md tells every session to run at start — a red that
+            # began an hour ago and one that began last week looked identical,
+            # so the three-day-old one read as "already known" and was skipped.
+            #
+            # The title is the dedup key above, so it is deliberately NOT
+            # touched: retitling would break the `select(.title == ...)` match
+            # and open a SECOND issue on the next red. The age rides a LABEL
+            # instead, which `gh issue list` prints in its own column, plus the
+            # comment text.
+            OPENED_AT=$(gh issue view "$EXISTING" --repo "$REPO" --json createdAt --jq .createdAt 2>/dev/null || echo "")
+            AGE_DAYS=0
+            if [ -n "$OPENED_AT" ]; then
+              OPENED_S=$(date -u -d "$OPENED_AT" +%s 2>/dev/null || date -u -jf "%Y-%m-%dT%H:%M:%SZ" "$OPENED_AT" +%s 2>/dev/null || echo "")
+              if [ -n "$OPENED_S" ]; then
+                AGE_DAYS=$(( ( $(date -u +%s) - OPENED_S ) / 86400 ))
+              fi
+            fi
+
+            AGE_NOTE=""
+            if [ "$AGE_DAYS" -ge 1 ]; then
+              AGE_NOTE="**This has been red for ${AGE_DAYS} day(s)** — since $(echo "$OPENED_AT" | cut -c1-10). It is not a new failure, and it is not a known-and-accepted one either: nobody has closed it."
+              STALE_LABEL="${LABEL}-stale"
+              gh label create "$STALE_LABEL" --repo "$REPO" --color 5319E7 \
+                --description "Red for more than a day — escalated automatically by CI" \
+                >/dev/null 2>&1 || true
+              gh issue edit "$EXISTING" --repo "$REPO" --add-label "$STALE_LABEL" >/dev/null 2>&1 || true
+            fi
+
             gh issue comment "$EXISTING" --repo "$REPO" \
               --body "Still red: ${RUN_URL}
+
+        ${AGE_NOTE}
         ${BODY_EXTRA}"
           else
             echo "Opening a new ${LABEL} issue for ${WORKFLOW_NAME}."
@@ -96,6 +133,10 @@ runs:
             echo "Closing issue #$EXISTING — ${WORKFLOW_NAME} is green again."
             gh issue comment "$EXISTING" --repo "$REPO" \
               --body "Green again: ${RUN_URL}"
+            # Drop the escalation before closing: this issue number can be
+            # reopened by hand, and a stale-for-three-days marker left on a
+            # freshly-green workflow is a lie the next reader would act on.
+            gh issue edit "$EXISTING" --repo "$REPO" --remove-label "${LABEL}-stale" >/dev/null 2>&1 || true
             gh issue close "$EXISTING" --repo "$REPO"
           else
             echo "${WORKFLOW_NAME} is green and no open ${LABEL} issue exists — nothing to do."

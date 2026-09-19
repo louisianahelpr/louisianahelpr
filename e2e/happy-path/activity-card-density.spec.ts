@@ -19,7 +19,7 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import {
   test,
   expect,
@@ -206,10 +206,37 @@ async function dismissNudge(page: Page) {
  * is JobCardShell's sr-only button, which always fails Playwright's
  * "element is on top" check.
  */
+/**
+ * Activate a card's expand/collapse control.
+ *
+ * NOT `click({ force: true })`. `force` skips Playwright's actionability
+ * checks, but it still dispatches a REAL mouse event at the element's centre
+ * POINT — and this control is `sr-only`, a 44px box parked wherever the card's
+ * layout happens to put it. Whatever is topmost at that point receives the
+ * click.
+ *
+ * That is exactly how this file broke on 2026-09-19: the owner's card
+ * reorganisation moved the Deep-clean card's toggle to y≈790 in an 812px
+ * viewport — underneath the FIXED bottom navigation — so the click landed on
+ * MobileNav's "Home" button, the app pushed /dashboard, and the assertion
+ * failed with "element(s) not found" while standing on the Home screen. The
+ * app was never wrong: tapping the card body and activating this control from
+ * the keyboard both expand in place, verified against this build.
+ *
+ * The control IS the keyboard/screen-reader affordance, so activate it the way
+ * a keyboard user does. Focus + Enter is hit-test free, so no future layout
+ * change can silently redirect it at another element, and it proves the a11y
+ * affordance genuinely works rather than merely existing in the DOM.
+ */
+async function activateCardToggle(toggle: Locator) {
+  await toggle.focus();
+  await toggle.press("Enter");
+}
+
 async function expandCard(page: Page) {
   const toggle = page.getByRole("button", { name: "Expand Job Details" }).first();
   await expect(toggle).toBeAttached();
-  await toggle.click({ force: true });
+  await activateCardToggle(toggle);
   await expect(
     page.getByRole("button", { name: "Collapse Job Details" }).first(),
   ).toBeAttached();
@@ -228,12 +255,11 @@ async function withCardExpanded<T>(
   read: () => Promise<T>,
 ): Promise<T> {
   const toggles = page.getByRole("button", { name: /Expand Job Details/ });
-  await toggles.nth(index).click({ force: true });
+  await activateCardToggle(toggles.nth(index));
   const value = await read();
-  await page
-    .getByRole("button", { name: "Collapse Job Details" })
-    .first()
-    .click({ force: true });
+  await activateCardToggle(
+    page.getByRole("button", { name: "Collapse Job Details" }).first(),
+  );
   return value;
 }
 
@@ -358,9 +384,11 @@ test.describe("My Posts — card density + header", () => {
     await expect(description).toHaveCount(0);
 
     // The whole card is the click/tap toggle. The sr-only button inside
-    // JobCardShell is the keyboard/screen-reader affordance — it is intentionally
-    // not visually interactive, so { force: true } bypasses Playwright's
-    // "element is on top" check, which sr-only elements always fail.
+    // JobCardShell is the keyboard/screen-reader affordance — it is
+    // intentionally not visually interactive, so it is driven from the
+    // KEYBOARD here (see activateCardToggle) rather than with a forced mouse
+    // click, which lands on whatever element happens to be topmost at the
+    // control's coordinates.
     //
     // Target the specific Deep clean card by heading rather than .first(): the
     // overdue-sort lifts the revision_requested card (Touch-up paint, date
@@ -383,7 +411,7 @@ test.describe("My Posts — card density + header", () => {
     await dismissNudge(page);
     await page.screenshot({ path: `${SHOTS}/card-collapsed-375.png`, fullPage: true });
 
-    await toggle.click({ force: true });
+    await activateCardToggle(toggle);
     await expect(description.first()).toBeVisible();
     // Same card — the toggle expanded in place rather than navigating.
     await expect(page).toHaveURL(/\/my-posts/);
@@ -391,7 +419,7 @@ test.describe("My Posts — card density + header", () => {
 
     const collapse = deepCleanCard.getByRole("button", { name: "Collapse Job Details" });
     await expect(collapse).toHaveAttribute("aria-expanded", "true");
-    await collapse.click({ force: true });
+    await activateCardToggle(collapse);
     await expect(description).toHaveCount(0);
   });
 
@@ -556,8 +584,34 @@ test.describe("My Posts — card density + header", () => {
     // A scrollable region must be keyboard-reachable (axe scrollable-region-focusable).
     expect(focusable, "tracker row must be focusable").toBe(true);
 
-    // The status sentence is gone from the card; the name now rides the row.
-    await expect(page.getByText(/is on the way|finished the job|Offered to/i)).toHaveCount(0);
+    // The status SENTENCE is gone from the card; the name now rides the row.
+    //
+    // This used to be `toHaveCount(0)` on the wording itself, and on 2026-09-19
+    // that started matching something it was never written about. The owner's
+    // confirmation ladder ("let the button speak", PosterConfirmationPrimary)
+    // renders a rung NOTE explaining why a step's primary is disabled — "Your
+    // Helpr is on the way — you'll be able to confirm this the moment they mark
+    // themselves arrived" — into JobStepCard's `[data-job-step-note]` host, and
+    // repeats it as the disabled button's accessible name.
+    //
+    // That note is ANCHORED TO A CONTROL. The thing this test forbids is the
+    // old free-floating status caption that named the helpr and walked down the
+    // card as the job advanced. So the assertion is not "this wording is
+    // absent" — it is "this wording only ever appears inside a step's note
+    // host". A re-introduced status line anywhere else on the card still fails,
+    // which is the regression that matters, and the check now also pins WHERE
+    // the surviving copy is allowed to live.
+    const orphanStatusLines = await page.evaluate(() => {
+      const re = /is on the way|finished the job|Offered to/i;
+      return Array.from(document.querySelectorAll<HTMLElement>("*"))
+        .filter((el) => el.children.length === 0 && re.test(el.textContent ?? ""))
+        .filter((el) => !el.closest("[data-job-step-note]"))
+        .map((el) => (el.textContent ?? "").trim());
+    });
+    expect(
+      orphanStatusLines,
+      "status wording outside a step's note host — the free-floating caption is back",
+    ).toEqual([]);
     // ...and it is re-stated in the tracking card's HEADING, not as a caption
     // under the live step. The caption gave every step column a third line of
     // vertical space to accommodate one word on one of them, and it moved down

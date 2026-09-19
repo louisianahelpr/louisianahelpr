@@ -179,6 +179,21 @@ jobs:
           SITE_URL: http://127.0.0.1:4173
         run: node scripts/e2e/anon-surface-contract.mjs
 
+      # The other half of "is the marketplace lit?" — how many days of it are
+      # LEFT. The contract step above can only report a dark marketplace once
+      # guests are already looking at nothing; on 2026-09-16 it did exactly
+      # that, 86 minutes after a green run on the SAME commit, and the red then
+      # sat for three days. This reads the listings' own expiry data and fails
+      # BEFORE the last one ages out. `if: always()` so its diagnosis — the
+      # day-by-day runway — is printed even when the contract step has already
+      # failed, because that table is what names the cause.
+      - name: Days of guest marketplace left (real prod, read-only, no credentials)
+        if: always()
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+        run: node scripts/ci/guest-listing-horizon.mjs
+
   # ---------------------------------------------------------------------
   # Leg 2 — a real account against the deployed site.
   # ---------------------------------------------------------------------

@@ -1,6 +1,7 @@
-import { CheckCircle2, MessageSquare, XCircle } from "lucide-react";
+import { MessageSquare, XCircle } from "lucide-react";
 import { JobStepCard } from "@/components/activity/JobStepCard";
-import { JobActionChip, JobStepPrimaryButton } from "../../JobActionRow";
+import { JobActionChip } from "../../JobActionRow";
+import { PosterConfirmationPrimary } from "./PosterConfirmationPrimary";
 import type { PosterStepCtx } from "./posterStepContract";
 
 /**
@@ -16,34 +17,44 @@ import type { PosterStepCtx } from "./posterStepContract";
  * CONFIRM ARRIVAL, ON THE ROW (owner, 2026-09-14, VN-21: every button on a
  * Posts card on one row). A booked job whose Helpr has tapped "I've Arrived"
  * before the status moved on used to draw a full-width "Confirm Arrival" of its
- * own in PostedJobCard, above the tracker. It is this step's primary now, with
- * the gate it had there: the Helpr confirmed and arrived, the poster has not
- * vouched yet, and the work is not already marked done (a job whose Helpr
- * has marked it done cannot still be asking whether they turned up). The label
- * still differs from InProgressStep's "Confirm They Arrived" — reported, not
- * silently changed.
+ * own in PostedJobCard, above the tracker. It is this step's primary now.
+ *
+ * AND IT NO LONGER DISAPPEARS (owner, 2026-09-19: "if it was clicked already it
+ * should still show but with the box disabled"). The gate that used to decide
+ * whether to render anything at all now decides which RUNG of one ladder this
+ * card is on — see `posterConfirmationRung`. Enabled on exactly the same
+ * condition as before (the Helpr confirmed the booking and arrived, the poster
+ * has not vouched yet, the work is not already marked done); disabled with an
+ * honest reason before that; a done-toned box after it. The label still differs
+ * from InProgressStep's "Confirm They Arrived" — reported, not silently
+ * changed, and it is the ladder that carries the difference now.
  */
-export function ScheduledStep({ job, navigate, onCancel, onConfirmArrival }: PosterStepCtx) {
-  const showConfirmArrival =
-    !!job.helper_confirmed_at &&
-    !!job.helper_arrived_at &&
-    !job.poster_confirmed_arrival_at &&
-    !job.helper_completed_at;
+export function ScheduledStep({
+  job,
+  navigate,
+  onCancel,
+  onConfirmArrival,
+  onConfirmWorking,
+  confirmingArrivalJobId,
+  confirmingWorkingJobId,
+}: PosterStepCtx) {
   return (
     <JobStepCard
       side="poster"
       step="scheduled"
-      primary={
-        showConfirmArrival ? (
-          <JobStepPrimaryButton
-            icon={CheckCircle2}
-            label="Confirm Arrival"
-            onClick={(e) => {
-              e.stopPropagation();
-              onConfirmArrival(job.id);
-            }}
-          />
-        ) : null
+      /* In `notice` rather than `primary` because the box comes with a reason,
+         and only a CHILD of the shell can portal into the row's note host. It
+         claims the primary slot itself, which stands the `primary` prop down —
+         the shell's existing one-primary rule, not a second one. */
+      notice={
+        <PosterConfirmationPrimary
+          job={job}
+          step="scheduled"
+          confirmingArrivalJobId={confirmingArrivalJobId}
+          confirmingWorkingJobId={confirmingWorkingJobId}
+          onConfirmArrival={onConfirmArrival}
+          onConfirmWorking={onConfirmWorking}
+        />
       }
       actions={[
         <JobActionChip

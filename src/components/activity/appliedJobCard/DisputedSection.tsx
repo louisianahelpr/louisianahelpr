@@ -279,8 +279,29 @@ export function DisputedSection({
                 maxLength={500}
                 className="text-ds-11"
               />
+              {/* GREEN PRIMARY RIGHT-MOST (owner, 2026-09-19), like every other
+                  pair on these cards — PendingApplicationSection's Cancel/Save
+                  and OfferedActions both read ghost-then-primary. This one was
+                  the exact inverse, glossy Submit FIRST with a ghost Cancel to
+                  its right, and it survived the VN-21/V2/V3 sweeps only
+                  because `data-job-step-form` (above) makes the one-row guard
+                  skip these controls as content. Submit also bypassed
+                  JobStepPrimaryButton entirely — no released height, no
+                  composed accessible name — while Cancel carried no geometry
+                  at all beside a `flex-1` sibling. Both fixed here; the
+                  handlers, gates and busy state are untouched. */}
               <div className="flex gap-2">
-                <Button size="sm" className="flex-1" disabled={!disputeResponse.trim() || submittingResponse} onClick={async () => {
+                <Button size="sm" variant="ghost" className="flex-1" onClick={() => { setRespondingJobId(null); setDisputeResponse(""); }}>Cancel</Button>
+                {/* The primary sizes itself from the row it normally lives in;
+                    here it needs a flex parent of its own to share the width
+                    with Cancel. */}
+                <div className="flex-1 min-w-0">
+                  <JobStepPrimaryButton
+                  icon={Send}
+                  label={submittingResponse ? "Sending…" : "Submit"}
+                  ariaLabel="Submit your side of this dispute"
+                  disabled={!disputeResponse.trim() || submittingResponse}
+                  onClick={async () => {
                   setSubmittingResponse(true);
                   // `.select("id")`: a bare `.update().eq(...)` resolves
                   // `{data: null, error: null}` whether it changed one row or
@@ -311,10 +332,9 @@ export function DisputedSection({
                   setRespondingJobId(null);
                   setDisputeResponse("");
                   onRefresh();
-                }}>
-                  <Send className="w-3.5 h-3.5 mr-1" /> {submittingResponse ? "Sending…" : "Submit"}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => { setRespondingJobId(null); setDisputeResponse(""); }}>Cancel</Button>
+                  }}
+                  />
+                </div>
               </div>
             </div>
           )}

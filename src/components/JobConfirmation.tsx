@@ -19,6 +19,9 @@ import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
 import { JobStepRowSlot } from "@/components/activity/jobStepRow";
+// The row's own done-state surface, so the poster's "already confirmed" box
+// matches the Tipped / Reviewed boxes rather than inventing a fourth grey.
+import { jobActionChipStyle } from "@/components/activity/JobActionRow";
 
 /**
  * THE HELPER'S DAY-OF ANSWER, in one place.
@@ -139,8 +142,22 @@ export function JobConfirmation({
   const now = new Date();
   const hoursUntilJob = (jobDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-  // Hide once helper is on the way or beyond
-  if (helperOnTheWayAt) return null;
+  /* THE HELPER'S card hides once they are on the way or beyond: they have
+     answered "still on?" with their feet, and the tracker below takes over.
+     Unchanged.
+
+     THE POSTER'S DOES NOT ANY MORE (owner, 2026-09-19: "on poster i see no
+     button to ... confirmed offered"). Their confirmation is a separate stamp
+     (`poster_confirmed_at`) that the Helpr setting off does not answer — so
+     this line deleted the poster's ONLY confirm-offer control, and its
+     "You: Confirmed / Pending" read-back with it, the instant the Helpr tapped
+     "I'm On My Way", whether or not the poster had ever confirmed. A poster who
+     had not confirmed lost the box before they could; one who had lost any
+     trace that they did.
+
+     The 24h window below is UNCHANGED and deliberately so: widening when a
+     poster may confirm is a policy call, not a rendering fix. */
+  if (helperOnTheWayAt && !isOwner) return null;
 
   const isLiveJob = jobStatus === "accepted" || jobStatus === "in_progress";
   /* THE WINDOW CLOSES WHEN THE JOB DAY DOES — for the helper.
@@ -410,20 +427,53 @@ export function JobConfirmation({
     </p>
   );
 
-  /** The one control, shared by both variants so they can't drift. */
-  const confirmCta = !myConfirmed && (isOwner || isHelper) && (
-    <Button
-      variant="primary"
-      size="sm"
-      onClick={() => setShowConfirmDialog(true)}
-      // h-11, not the old h-8: at 32px this was the smallest interactive
-      // control on either job card and ~12px under the WCAG 2.5.5 / project
-      // 44px floor that every sibling button already meets.
-      className="w-full rounded-ds-md h-11 min-h-[44px] text-ds-12"
-    >
-      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-      I'm Still On
-    </Button>
+  /** The one control, shared by both variants so they can't drift.
+   *
+   *  text-ds-14, not the old text-ds-12: this is a row PRIMARY (it portals
+   *  into the step row's primary slot on the inline variant) and every other
+   *  primary in the activity cards is 14px — the chips are the 11px tier and
+   *  nothing else is in between (owner, 2026-09-19: "the buttons word size and
+   *  font need to be consistent"). `h-auto min-h-[44px]` replaces the flat
+   *  `h-11` for the same reason JobStepPrimaryButton names it: inside the row
+   *  the CSS releases the height so a two-line label fits, so a control that
+   *  declares 44px and renders 61px is a size class the cascade defeated —
+   *  the buttonGeometry a11y gate reads `h-auto` as "released on purpose".
+   *  The 44px tap-target floor is unchanged. */
+  const confirmCtaClass = "w-full rounded-ds-md h-auto min-h-[44px] text-ds-14";
+  const confirmCta = (isOwner || isHelper) && (
+    !myConfirmed ? (
+      <Button
+        variant="primary"
+        size="sm"
+        onClick={() => setShowConfirmDialog(true)}
+        className={confirmCtaClass}
+      >
+        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+        I'm Still On
+      </Button>
+    ) : isOwner ? (
+      /* THE BOX STAYS, DISABLED (owner, 2026-09-19: "if it was clicked already
+         it should still show but with the box disabled"). Before this the CTA
+         simply evaporated on confirm, so the poster's own answer was carried
+         only by a status pill — and the card read as though it had never asked.
+         The `done` tone, not a greyed-out green: a disabled primary at half
+         opacity is how "you already did this" ends up looking broken.
+
+         POSTER ONLY. The Helpr's branch of this shared component is untouched:
+         their control portals into their step card's single action row, where a
+         permanent inert box would occupy the primary slot the tracker's own
+         next-step CTA needs. */
+      <Button
+        variant="outline"
+        size="sm"
+        disabled
+        style={jobActionChipStyle("done")}
+        className={`${confirmCtaClass} border-0`}
+      >
+        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+        Confirmed
+      </Button>
+    ) : null
   );
 
   /* MERGED INTO THE TRACKER — no box, no heading, no date, no chips.

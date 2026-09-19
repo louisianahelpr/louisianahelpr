@@ -223,6 +223,15 @@ const CASES: Array<{
   minControls: number;
   /** What the row's primary slot holds, in order ([] = no primary). */
   primary: string[];
+  /** The primary is on screen but not tappable — the poster's confirmation
+   *  ladder keeps its box visible in every state (owner, 2026-09-19). */
+  primaryDisabled?: boolean;
+  /** …and when it is a FINISHED box it wears the `done` tone instead of the
+   *  glossy primary, so "already confirmed" cannot read as "broken button". */
+  primaryDone?: boolean;
+  /** A reason the card owes for a disabled primary, matched against the row's
+   *  note slot. A dead control with no explanation is the defect. */
+  note?: RegExp;
 }> = [
   // ── /my-jobs, Helpr ──
   {
@@ -338,10 +347,16 @@ const CASES: Array<{
     primary: [],
   },
   {
-    name: "Posts · Scheduled (Message · Cancel)",
+    // THE LADDER'S FIRST RUNG (owner, 2026-09-19). This state used to render
+    // NO primary at all — the confirm box only appeared at the one instant it
+    // was tappable — which is why the owner reported "no button to confirm
+    // they arrived". It is now a disabled box with an honest reason.
+    name: "Posts · Scheduled, nothing to confirm yet (disabled Confirm Arrival + Message · Cancel)",
     render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", helper_on_the_way_at: null, helper_arrived_at: null }))} />),
-    minControls: 2,
-    primary: [],
+    minControls: 3,
+    primary: ["Confirm Arrival"],
+    primaryDisabled: true,
+    note: /once your Helpr is at the job/,
   },
   {
     // Was a full-width button of its own in PostedJobCard, above the tracker.
@@ -363,10 +378,65 @@ const CASES: Array<{
     primary: ["Confirm They're Working"],
   },
   {
-    name: "Posts · In Progress, start passed and nobody arrived (No-Show · Message)",
+    name: "Posts · In Progress, start passed and nobody arrived (disabled Confirm They Arrived + No-Show · Message)",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ helper_on_the_way_at: null, helper_arrived_at: null, poster_confirmed_working_at: null }))} />),
+    minControls: 3,
+    primary: ["Confirm They Arrived"],
+    primaryDisabled: true,
+    note: /once your Helpr is at the job/,
+  },
+  {
+    // THE BAD-GPS DEADLOCK, SURFACED (owner item 6c). Since VN-33
+    // `mark_helper_arrival` REFUSES a far or fix-less arrival and writes
+    // nothing, so `helper_arrived_at` stays null — while the Helpr's own
+    // blocked CTA names the poster's "Confirm They Arrived" tap as the way
+    // out. That control was gated on `helper_arrived_at`, so it never
+    // rendered and each side waited for the other. The gate is UNCHANGED (GPS
+    // and poster-confirm, arrivalGate.test.ts); what the poster gets is the
+    // box, disabled, saying what is actually stuck.
+    name: "Posts · In Progress, Helpr on the way but no location fix (disabled + the honest reason)",
+    render: () =>
+      wrap(
+        <InProgressStep
+          {...posterCtx(makeJob({ helper_arrived_at: null, helper_on_the_way_at: ago(1), poster_confirmed_working_at: null }))}
+        />,
+      ),
     minControls: 2,
-    primary: [],
+    primary: ["Confirm They Arrived"],
+    primaryDisabled: true,
+    note: /location check/i,
+  },
+  {
+    // ALREADY ACTIONED, STILL ON SCREEN (owner: "if it was clicked already it
+    // should still show but with the box disabled"). Both vouches in, the job
+    // still running: a done-toned box, never a greyed-out green.
+    name: "Posts · In Progress, both vouches in (disabled Working Confirmed)",
+    render: () => wrap(<InProgressStep {...posterCtx(makeJob({ poster_confirmed_arrival_at: ago(6), poster_confirmed_working_at: ago(5) }))} />),
+    minControls: 3,
+    primary: ["Working Confirmed"],
+    primaryDisabled: true,
+    primaryDone: true,
+  },
+  {
+    // ITEM 6b — a job in `revision_requested` derives to THIS step, but both
+    // gates used to test `job.status === "in_progress"` literally, so a
+    // revision job lost its confirmations outright. Same rule as an ordinary
+    // in-progress job now: the working vouch is still owed and still offered.
+    name: "Posts · Revision requested, working vouch still owed (Confirm They're Working)",
+    render: () =>
+      wrap(
+        <InProgressStep
+          {...posterCtx(makeJob({
+            status: "revision_requested",
+            poster_confirmed_arrival_at: ago(6),
+            poster_confirmed_working_at: null,
+            helper_completed_at: ago(5),
+            revision_requested_at: ago(3),
+          }))}
+        />,
+      ),
+    minControls: 3,
+    primary: ["Confirm They're Working"],
   },
   {
     name: "Posts · In Progress, Helpr marked done (Message · Approve)",
@@ -459,13 +529,89 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
       // right-hand one; on every state but the legacy-arrival retry the slot
       // holds a single control and first and last are the same element.
       if (c.primary.length > 0) {
-        expect(
-          (primarySlot.lastElementChild as HTMLElement).classList.contains("btn-grad-primary"),
-          `the row's right-most primary "${primaryLabels[primaryLabels.length - 1]}" does not wear btn-grad-primary`,
-        ).toBe(true);
+        const rightMost = primarySlot.lastElementChild as HTMLElement;
+        // A FINISHED box is the one exception, and it declares itself
+        // (`data-job-step-done`, JobActionRow) rather than just quietly
+        // lacking the gloss — which is what a real regression looks like.
+        if (c.primaryDone) {
+          expect(rightMost.hasAttribute("data-job-step-done"), `"${primaryLabels[0]}" is not marked as a finished box`).toBe(true);
+          expect(
+            rightMost.classList.contains("btn-grad-primary"),
+            `the finished box "${primaryLabels[0]}" wears the glossy primary — a done state must not look like the live action`,
+          ).toBe(false);
+        } else {
+          expect(
+            rightMost.classList.contains("btn-grad-primary"),
+            `the row's right-most primary "${primaryLabels[primaryLabels.length - 1]}" does not wear btn-grad-primary`,
+          ).toBe(true);
+        }
+        // Disabled means disabled — and a disabled control the card cannot
+        // explain is the anti-pattern (JobTracking's blocked CTA always has
+        // its one line; PayoutPrimary's disabled twin is why we don't).
+        if (c.primaryDisabled !== undefined) {
+          expect(
+            (rightMost as HTMLButtonElement).disabled,
+            `"${primaryLabels[primaryLabels.length - 1]}" should be ${c.primaryDisabled ? "disabled" : "enabled"}`,
+          ).toBe(c.primaryDisabled);
+        }
+      }
+      if (c.note) {
+        const note = card!.querySelector("[data-job-step-note]");
+        expect(note?.textContent ?? "", `the disabled primary has no reason under it — [${labels.join(" | ")}]`).toMatch(c.note);
       }
     });
   }
+});
+
+/**
+ * V2/V3 — THE GREEN PRIMARY IS THE RIGHT-MOST CONTROL, and a destructive one
+ * never is (owner, 2026-09-16, reaffirmed 2026-09-19).
+ *
+ * The row itself is held to this by the primary-slot assertions above. These
+ * two are the places the row's guard CANNOT see, which is exactly why they
+ * still had it backwards:
+ *
+ *  - the helper's dispute-response FORM, which `data-job-step-form` marks as
+ *    content so the one-row guard skips it — it had the glossy Submit FIRST
+ *    with a ghost Cancel to its right;
+ *  - the poster's OPEN step, which has no primary at all, and put the
+ *    destructive Cancel in the right-most slot ("furthest from the thumb", a
+ *    rationale the owner has now reversed).
+ */
+describe("V2/V3 — the green primary trails, the destructive one never does", () => {
+  it("puts Submit right of Cancel in the dispute-response form", async () => {
+    const { container } = disputed(
+      makeJob({ status: "disputed", dispute_status: "open", disputed_by: POSTER, dispute_reason: "x" }),
+      "job-1",
+    )();
+    await act(async () => { await Promise.resolve(); });
+
+    const form = container.querySelector("[data-job-step-form]");
+    expect(form, "the response form did not open — the fixture no longer reaches this state").not.toBeNull();
+    const buttons = [...form!.querySelectorAll("button")];
+    expect(buttons.map((b) => b.textContent?.trim())).toEqual(["Cancel", "Submit"]);
+
+    const glossy = buttons.filter((b) => b.classList.contains("btn-grad-primary"));
+    expect(glossy.length, "the form should have exactly one glossy primary").toBe(1);
+    expect(
+      glossy[0],
+      "the glossy primary is not the right-most control in its row",
+    ).toBe(buttons[buttons.length - 1]);
+  });
+
+  it("does not leave the destructive chip in the poster's right-most slot", async () => {
+    const { container } = wrap(<OpenStep {...posterCtx(makeJob({ status: "open", helper_id: null }))} />);
+    await act(async () => { await Promise.resolve(); });
+
+    const row = container.querySelector("[data-job-step-row]")!;
+    const chips = [...row.children].filter((c) => !c.hasAttribute("data-job-step-primary"));
+    const labels = chips.map((c) => (c.getAttribute("aria-label") || c.textContent || "").trim());
+    expect(labels[0], `Cancel should lead the row — got [${labels.join(" | ")}]`).toMatch(/^Cancel/);
+    expect(
+      labels[labels.length - 1],
+      `a destructive control is the right-most in the row — [${labels.join(" | ")}]`,
+    ).not.toMatch(/^Cancel/);
+  });
 });
 
 describe("VN-21 — icon-only chips instead of a second row", () => {

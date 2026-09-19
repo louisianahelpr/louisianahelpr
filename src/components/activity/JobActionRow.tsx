@@ -335,6 +335,7 @@ export function JobStepPrimaryButton({
   disabled,
   ariaLabel,
   iconClassName,
+  tone = "primary",
 }: {
   icon: LucideIcon;
   label: string;
@@ -343,7 +344,42 @@ export function JobStepPrimaryButton({
   /** Appended to the visible label, never substituted — see composeAccessibleName. */
   ariaLabel?: string;
   iconClassName?: string;
+  /**
+   * `done` — this row's action has ALREADY BEEN TAKEN and the box stays on
+   * screen saying so (owner, 2026-09-19: "if it was clicked already it should
+   * still show but with the box disabled"). It wears the row's `done` tone —
+   * the same success tint the "Tipped" / "Reviewed" chips use — and NOT the
+   * glossy primary at 50% opacity, because a greyed-out green is exactly how
+   * "you already did this" ends up reading as "this button is broken" (the
+   * case that put `done` in `jobActionChipStyle` in the first place).
+   *
+   * Everything else is identical to the primary: same slot, same 44px floor,
+   * same 14px type, same released height. Only the surface changes, so the
+   * box cannot drift into being a differently-sized control.
+   */
+  tone?: "primary" | "done";
 }) {
+  if (tone === "done") {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full h-auto border-0"
+        style={jobActionChipStyle("done")}
+        // Always inert: a finished statement, never a tap.
+        disabled
+        // How a test — and a reader of the DOM — tells "the row's primary is a
+        // finished box" from "the row's primary lost its gloss", which is a
+        // defect (jobStepOneRow.test.tsx).
+        data-job-step-done=""
+        aria-label={composeAccessibleName(label, ariaLabel)}
+        onClick={onClick}
+      >
+        <Icon className={`w-4 h-4 mr-1 shrink-0${iconClassName ? ` ${iconClassName}` : ""}`} />
+        {label}
+      </Button>
+    );
+  }
   return (
     // `h-auto` alongside `size="sm"`'s `h-11`: this control's height is
     // DELIBERATELY released so a long label ("Mark Job Complete") wraps to two

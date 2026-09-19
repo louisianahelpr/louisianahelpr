@@ -9,8 +9,18 @@ import type { PosterStepCtx } from "./posterStepContract";
  *
  * No ask and no primary: applicants are the primary, and they are rendered
  * above this by PostedJobApplicants. What this step owns is the four levers —
- * Share, Boost, Edit, Cancel — least destructive first, Cancel last so the one
- * irreversible action is furthest from the thumb.
+ * Cancel, Share, Boost, Edit.
+ *
+ * CANCEL LEADS, IT NO LONGER TRAILS (owner, 2026-09-19). The original order
+ * was Share · Boost · Edit · Cancel, and its reasoning is worth keeping rather
+ * than deleting: "least destructive first, Cancel last so the one irreversible
+ * action is furthest from the thumb". The owner reversed it — the rule across
+ * the app is now that the most-primary control takes the RIGHT-most slot and a
+ * destructive one never does, which is what every other row on these cards
+ * already does (InProgressStep: "danger left, Message middle, Approve right").
+ * This row has no green primary of its own, so what the reversal costs is only
+ * Cancel's position: it moves to the far left, where every other danger
+ * control on a step card sits, and the remaining three keep their order.
  *
  * The boost banner is a NOTICE (it states a fact and offers nothing), which is
  * why it is no longer a `mb-2` div hand-spaced above the row.
@@ -43,6 +53,7 @@ export function OpenStep({ job, unfunded, onBoost, onEdit, onCancel }: PosterSte
         ) : null
       }
       actions={[
+        <JobActionChip key="cancel" icon={XCircle} label="Cancel" ariaLabel="Cancel job" tone="danger" onClick={() => onCancel(job)} />,
         <ShareJobButton
           key="share"
           job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
@@ -67,7 +78,6 @@ export function OpenStep({ job, unfunded, onBoost, onEdit, onCancel }: PosterSte
           />
         ),
         <JobActionChip key="edit" icon={Pencil} label="Edit" ariaLabel="Edit job" tone="edit" onClick={() => onEdit(job)} />,
-        <JobActionChip key="cancel" icon={XCircle} label="Cancel" ariaLabel="Cancel job" tone="danger" onClick={() => onCancel(job)} />,
       ]}
     />
   );

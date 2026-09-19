@@ -102,11 +102,28 @@ export function PendingApplicationSection({
               /* Verbatim from ApplyBody's Textarea. */
               className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed"
             />
+            {/* THE TWO TIERS, AND THESE ARE BOTH THE WRONG ONE (owner,
+                2026-09-19: "the buttons word size and font need to be
+                consistent bc rn they are not").
+
+                The activity cards run exactly two button tiers and they are
+                deliberate: 11px is the icon-over-label CHIP (JobActionRow's
+                label span), 14px is the row PRIMARY (`size="sm"` → text-ds-14).
+                Save was a green `btn-grad-primary` at ELEVEN — the only primary
+                in the tree below 14 — and Cancel was an 11px FLAT TEXT button,
+                which is not what the 11px tier is: that tier is the chip, icon
+                over label, and nothing else.
+
+                Both now take `size="sm"`'s own h-11/px-4/text-ds-14 with no
+                override at all, which is also what retires the `h-7`: at 28px
+                it declared a height the global 44px floor (index.css) silently
+                overrode, so the button measured 44 while its class said 28.
+                Nothing about the layout or the handlers changes. */}
             <div className="flex items-center gap-1.5 justify-end">
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-ds-11" onClick={() => setEditingMessageAppId(null)} disabled={savingMessage}>
+              <Button size="sm" variant="ghost" onClick={() => setEditingMessageAppId(null)} disabled={savingMessage}>
                 <X className="w-3 h-3 mr-0.5" /> Cancel
               </Button>
-              <Button size="sm" className="h-7 px-2 text-ds-11" onClick={() => handleSaveMessage(app.id)} disabled={savingMessage}>
+              <Button size="sm" onClick={() => handleSaveMessage(app.id)} disabled={savingMessage}>
                 <Check className="w-3 h-3 mr-0.5" /> {savingMessage ? "Saving…" : "Save"}
               </Button>
             </div>

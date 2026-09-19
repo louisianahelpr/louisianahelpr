@@ -253,6 +253,16 @@ Deno.serve(async (req) => {
       delivery: "🚚",
       pet_care: "🐾",
       assembly: "🪛",
+      // storm_prep and events were MISSING until 2026-09-19, so both fell
+      // through to the generic "✨" in the one place a user sees this map —
+      // the push notification title. In Louisiana, storm_prep is the category
+      // that most needs to be glanceable: `src/lib/categoryIcons.ts` gives it
+      // CloudLightning for exactly that reason, and the in-app CategoryIcon
+      // list had the same two-member hole (see CategoryIcon.tsx's note).
+      // `ENUM_MAP_RATCHET` in src/test/edge/exhaustivenessRegistry.test.ts is
+      // what found it and is what keeps the next enum member from repeating it.
+      storm_prep: "⛈️",
+      events: "🎉",
       other: "✨",
     };
     const emoji = categoryEmoji[job.category] ?? "✨";
@@ -339,10 +349,15 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Instant match error:", error);
     // `catch` binds `unknown` — see delete-own-account for why this is not a nit.
     const message = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ error: message }), {
+    // The DETAIL stays server-side and the CALLER gets a fixed string (EF-5,
+    // hole hunt 2026-09-15). `message` here is whatever PostgREST or the push
+    // fan-out threw, so returning it hands table and column names to whoever
+    // can reach this endpoint. src/test/edge/error-leak-EF5.test.ts sweeps the
+    // whole class; this was the one site in it that this lane owns.
+    console.error("Instant match error:", message, error);
+    return new Response(JSON.stringify({ error: "Could not run the job match right now." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

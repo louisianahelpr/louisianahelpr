@@ -57,6 +57,7 @@
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import ts from "typescript";
 import { Constants } from "@/integrations/supabase/types";
@@ -142,9 +143,11 @@ const D1: Dimension = {
  * `pending_approval` fell through every branch of a status switch and rendered
  * an empty bordered box, twice. `jobStatusExhaustive.test.ts` holds the line
  * on the canonical `job_status` maps; this generalises it to EVERY enum and
- * every map in the tree, including the ones nobody thought of as a registry —
- * `instant-job-match`'s `categoryEmoji` is 10 of 12 job categories, so a
- * `storm_prep` job's push notification silently gets the fallback sparkle.
+ * every map in the tree, including the ones nobody thought of as a registry.
+ * The first thing it found was `instant-job-match`'s `categoryEmoji` at 10 of
+ * 12 job categories, so a `storm_prep` job's push notification silently got
+ * the fallback sparkle — in Louisiana, of all the categories to lose. Fixed
+ * 2026-09-19; the ratchet below is empty because of it.
  *
  * THE THRESHOLD, and why there is one. A map may legitimately cover a SUBSET
  * (`useHealthData`'s four terminal statuses are a bucket, not a registry).
@@ -246,8 +249,47 @@ export function enumMemberBranches(files = productSources()): Map<string, string
  * is owned by another lane today.
  */
 const ENUM_MAP_RATCHET: Record<string, string[]> = {
-  "supabase/functions/instant-job-match/index.ts categoryEmoji": ["storm_prep", "events"],
+  // EMPTY, and that is the point: instant-job-match's categoryEmoji — the one
+  // entry this list was born with — was fixed on 2026-09-19 (storm_prep ⛈️,
+  // events 🎉) and the ratchet went red until the entry was removed, exactly
+  // as designed. An entry here is a defect waiting to be closed, never a
+  // permanent excuse.
 };
+
+/**
+ * The ratchet comparison itself, as a PURE function of (holes, ratchet).
+ *
+ * It was inlined in the test, which meant the "able to fail" proof below could
+ * only do string arithmetic on a ratchet ENTRY — and when the last entry was
+ * fixed, that proof failed with `expected undefined to be truthy`: it had been
+ * asserting that a defect still existed, not that the check still worked.
+ *
+ * Pulled out here, the real comparison can be run against a synthetic world,
+ * so the proof survives the list being empty — which is the state we want the
+ * list to be in.
+ */
+export function enumMapRatchetDrift(
+  holes: EnumMapHole[],
+  ratchet: Record<string, string[]>,
+): string[] {
+  const now = new Map<string, string[]>();
+  for (const h of holes) {
+    if (h.covered / h.total < TOTALITY_RATIO) continue;
+    const key = Object.keys(ratchet).find((k) => h.site.startsWith(k.split(" ")[0])) ?? h.site;
+    now.set(key, h.missing);
+  }
+  const drift: string[] = [];
+  for (const [k, v] of now) {
+    const known = ratchet[k];
+    if (!known) drift.push(`NEW incomplete map: ${k} is missing ${v.join(", ")}`);
+    else if (known.join(",") !== v.join(","))
+      drift.push(`${k} now misses ${v.join(", ")} (ratchet says ${known.join(", ")})`);
+  }
+  for (const k of Object.keys(ratchet)) {
+    if (!now.has(k)) drift.push(`${k} is no longer incomplete — remove it from ENUM_MAP_RATCHET`);
+  }
+  return drift;
+}
 
 // ───────────────────────────────────────────────────────────────────────────
 // D3 — every notification type is legal AND has an emitter     [ENFORCED]
@@ -627,14 +669,54 @@ describe("D4 — row-level security covers every table", () => {
 describe("D2 — every enum member has a branch in the maps that mean to be total", () => {
   const holes = enumKeyedMapHoles();
 
-  it("found enum-keyed maps at all", () => {
-    expect(holes.length + Object.keys(Constants.public.Enums).length).toBeGreaterThan(0);
-    // The scanner must be able to SEE a known incomplete map, or the ratchet
-    // below is checking nothing.
+  it("the enum-keyed-map scanner can still SEE an incomplete map", () => {
+    // THIS USED TO PIN A REAL DEFECT. The proof-of-life was
+    // `holes.some(h => h.site.includes("instant-job-match"))` — i.e. the
+    // scanner was shown to work by the fact that instant-job-match's
+    // categoryEmoji was missing storm_prep and events. That made closing the
+    // hole IMPOSSIBLE without this test going red: a check that requires a
+    // defect to keep existing is not a check, it is a lock on the defect. It
+    // duly went red the moment the emoji were added (2026-09-19).
+    //
+    // The proof is now synthetic and derived from the live enum set: take a
+    // real enum, write a map covering all but ONE of its members, and require
+    // the scanner to report exactly that member. Nothing in the app has to
+    // stay broken for this to hold, and it still fails the day the scanner
+    // stops parsing object literals, stops reading `Constants.public.Enums`,
+    // or loses its TOTALITY_RATIO arithmetic.
+    const [enumName, members] = (
+      Object.entries(Constants.public.Enums) as Array<[string, readonly string[]]>
+    )
+      .filter(([, m]) => m.length >= 5)
+      .sort((a, b) => b[1].length - a[1].length)[0];
+    expect(members, "no enum with >= 5 members to build the probe from").toBeTruthy();
+
+    const dropped = members[members.length - 1];
+    const probe = `const probe = {\n${members
+      .slice(0, -1)
+      .map((m, i) => `  ${m}: ${i},`)
+      .join("\n")}\n};\nexport default probe;\n`;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "enum-map-probe-"));
+    const file = path.join(dir, "probe.ts");
+    try {
+      fs.writeFileSync(file, probe);
+      const found = enumKeyedMapHoles([file]);
+      expect(
+        found.map((h) => ({ enumName: h.enumName, missing: h.missing })),
+        `The scanner was handed a ${enumName} map covering ${members.length - 1} of ` +
+          `${members.length} members and found no hole. It is no longer able to see one, ` +
+          `so the ratchet below is checking nothing.`,
+      ).toContainEqual({ enumName, missing: [dropped] });
+      expect(found[0].covered / found[0].total).toBeGreaterThanOrEqual(TOTALITY_RATIO);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+
+    // And it must still be reading the real tree, not an empty file list.
     expect(
-      holes.some((h) => h.site.includes("instant-job-match")),
-      "the enum-keyed-map scanner stopped seeing instant-job-match's categoryEmoji",
-    ).toBe(true);
+      productSources().length,
+      "productSources() came back empty — every scan in this file would report nothing",
+    ).toBeGreaterThan(50);
   });
 
   it("ENFORCED: the incomplete-map ratchet is exactly the world, in both directions", () => {
@@ -642,22 +724,7 @@ describe("D2 — every enum member has a branch in the maps that mean to be tota
     // MISSING MEMBERS, so a thirteenth job_category makes the recorded set
     // stale and this goes red on the day the enum grows; closing a hole makes
     // the entry describe nothing and also goes red.
-    const now = new Map<string, string[]>();
-    for (const h of holes) {
-      if (h.covered / h.total < TOTALITY_RATIO) continue;
-      const key = Object.keys(ENUM_MAP_RATCHET).find((k) => h.site.startsWith(k.split(" ")[0])) ?? h.site;
-      now.set(key, h.missing);
-    }
-    const drift: string[] = [];
-    for (const [k, v] of now) {
-      const known = ENUM_MAP_RATCHET[k];
-      if (!known) drift.push(`NEW incomplete map: ${k} is missing ${v.join(", ")}`);
-      else if (known.join(",") !== v.join(","))
-        drift.push(`${k} now misses ${v.join(", ")} (ratchet says ${known.join(", ")})`);
-    }
-    for (const k of Object.keys(ENUM_MAP_RATCHET)) {
-      if (!now.has(k)) drift.push(`${k} is no longer incomplete — remove it from ENUM_MAP_RATCHET`);
-    }
+    const drift = enumMapRatchetDrift(holes, ENUM_MAP_RATCHET);
     expect(drift, drift.join("\n")).toEqual([]);
   });
 
@@ -713,12 +780,36 @@ describe("the registry's checks are able to fail", () => {
   });
 
   it("D2 goes red for an enum member nobody's total map covers", () => {
-    // The pre-fix shape: a map that is 10 of 12 and whose ratchet entry has
-    // not been updated. The ratchet must notice the set changed.
-    const known = ENUM_MAP_RATCHET["supabase/functions/instant-job-match/index.ts categoryEmoji"];
-    expect(known).toBeTruthy();
-    const drifted = [...known, "pet_care"];
-    expect(known.join(",")).not.toBe(drifted.join(","));
+    // Run the REAL comparison against a synthetic world, in all three
+    // directions it is supposed to fail in. This used to assert that
+    // instant-job-match's ratchet entry existed — so the day that hole was
+    // closed, the proof-of-life failed with "expected undefined to be truthy".
+    // A proof that depends on a defect surviving is a lock on the defect.
+    const hole: EnumMapHole = {
+      site: "supabase/functions/made-up/index.ts:1",
+      enumName: "job_category",
+      covered: 11,
+      total: 12,
+      missing: ["storm_prep"],
+    };
+    const key = "supabase/functions/made-up/index.ts:1";
+
+    // (a) a NEW incomplete map nobody has recorded
+    expect(enumMapRatchetDrift([hole], {})).toEqual([
+      "NEW incomplete map: supabase/functions/made-up/index.ts:1 is missing storm_prep",
+    ]);
+    // (b) a recorded map whose missing SET changed — the day the enum grows
+    expect(enumMapRatchetDrift([{ ...hole, missing: ["storm_prep", "events"] }], { [key]: ["storm_prep"] })).toEqual([
+      `${key} now misses storm_prep, events (ratchet says storm_prep)`,
+    ]);
+    // (c) a recorded map that has been FIXED — the entry must go
+    expect(enumMapRatchetDrift([], { [key]: ["storm_prep"] })).toEqual([
+      `${key} is no longer incomplete — remove it from ENUM_MAP_RATCHET`,
+    ]);
+    // …and it stays quiet on a world that agrees with its ratchet.
+    expect(enumMapRatchetDrift([hole], { [key]: ["storm_prep"] })).toEqual([]);
+    // A map BELOW the totality threshold is a bucket, not a registry: ignored.
+    expect(enumMapRatchetDrift([{ ...hole, covered: 4, total: 12 }], {})).toEqual([]);
   });
 
   it("the enum-claim meta-check goes red for an enum no dimension names", () => {

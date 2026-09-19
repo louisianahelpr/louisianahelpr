@@ -96,7 +96,13 @@ export function namesItsColumns(context: string): boolean {
     .split("\n")
     .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l))
     .map((l) => l.replace(/\/\/.*$/, ""))
-    .join("\n");
+    .join("\n")
+    // REGEX LITERALS TOO. `/[?&]select=/.test(path)` only ASKS whether the
+    // caller already named columns; on its own it adds nothing to the URL.
+    // Vacuity broke the append in pressProdSafety.mjs and this guard still
+    // saw "select=" — in the test that guards the append. Only a `select=`
+    // that ends up in a string the URL is built from counts.
+    .replace(/\/[^/\n]*select=[^/\n]*\//g, "");
   return /select=/.test(code);
 }
 

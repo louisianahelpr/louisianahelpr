@@ -3,40 +3,43 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
 /**
- * ONE TYPE SCALE FOR THE ACTIVITY CARDS' BUTTONS (owner, 2026-09-19: "the
- * buttons word size and font need to be consistent bc rn they are not").
+ * THE STATIC HALF of the one-control rule (owner, 2026-09-19, twice: "the
+ * buttons word size and font need to be consistent"; "i will not say this
+ * again. the buttons need to have the same size font and everything").
  *
- * THE TIERS ARE REAL AND THIS DOES NOT FLATTEN THEM. The cards run exactly two:
+ * ── READ THIS BEFORE TRUSTING THIS FILE ────────────────────────────────────
+ * The first version of this guard asserted that every action button resolved
+ * to one of THREE sanctioned tiers — 11px chip, 12px squeezed primary, 14px
+ * primary — and reported PASS on the screen the owner then screenshotted. It
+ * validated the tiers instead of questioning them. There are no tiers now:
+ * every control in a job-card action row is ONE object at ONE size
+ * (`JOB_ROW_LABEL_CLASS`, 11px), and the 12px `[data-tight]` rung is deleted.
  *
- *   CHIP     11px, Montserrat, 44px tap target — the icon-over-label control
- *            (`JobActionChip`). The 11px lives on the chip's LABEL SPAN, not on
- *            the button, which is why a BUTTON declaring 11px is drift by
- *            definition: it is a flat text button borrowing the chip's size
- *            without being one.
- *   PRIMARY  14px, Montserrat, 44px — the row's one main move. It comes from
- *            `size="sm"` (button.tsx: `h-11 px-4 text-ds-14`), so the correct
- *            primary declares NO font size at all.
+ * The REAL check is `src/test/jobRowControlSameness.test.tsx`, which renders
+ * every state of both cards and compares the controls in each row to EACH
+ * OTHER — size, icon placement, tap floor, radius, label treatment. A static
+ * scan cannot see that a stacked chip and an inline button ended up in the
+ * same row; that file can, and it is registered with a mutation proving it.
  *
- * docs/OPEN.md records 11-vs-14 as deliberate hierarchy (V5), and the two
- * shell-owned exceptions are CSS, not classes: index.css steps a squeezed
- * primary down to 12px (`[data-tight]`) and hides chip labels outright
- * (`[data-compact]`). Both belong to the row, which is the point — a step file
- * never decides its own type.
+ * What is left HERE is the cheap static sweep the rendered check cannot do:
+ * across every non-test .tsx in the activity tree, no action button may
  *
- * So the rule a button in this tree must satisfy is narrow and mechanical:
- * declare NO type size (inherit the sanctioned one) or declare exactly
- * `text-ds-14`, and never re-declare the font family. What this catches is the
- * next 12px primary or 11px text button, which is how the three fixed on
- * 2026-09-19 got in:
- *
- *   JobConfirmation "I'm Still On"        text-ds-12 on a row primary
- *   PendingApplicationSection "Save"      text-ds-11 on a glossy primary
- *   PendingApplicationSection "Cancel"    text-ds-11 on a flat text button
+ *   - declare a type size other than `text-ds-11` — the one size the row has;
+ *   - reach outside the design scale at all (`text-xs`, `text-[13px]`);
+ *   - name a second typeface.
  *
  * THE INVENTORY IS DERIVED, not listed: every non-test .tsx under
- * src/components/activity, plus the one component outside it that renders a
- * control INTO a step row (JobConfirmation). A new step file is covered the
- * day it is written.
+ * src/components/activity. A new step file is covered the day it is written.
+ *
+ * `src/components/JobConfirmation.tsx` used to be appended to that list
+ * because it renders a control INTO a step row. It is NOT any more, and the
+ * reason is worth stating: that file draws TWO things — the row control (its
+ * `inline` variant, portalled into the primary slot) and a standalone
+ * "Still on for this one?" PANEL that is not in any row and has no business
+ * being held to the row's 11px. A per-file static scan cannot tell them apart.
+ * The rendered guard can: it reads whatever actually lands in a
+ * `[data-job-step-row]`, wherever it was written, so JobConfirmation's row
+ * control is covered there and its panel is left alone.
  */
 
 const ROOT = resolve(__dirname, "../../..");
@@ -67,10 +70,7 @@ const NOT_ACTION_ROWS = new Set([
 const META_ROW = "src/components/activity/JobCardMetaRow.tsx";
 
 function files(): string[] {
-  const list = [
-    ...walk(join(ROOT, "src/components/activity")),
-    join(ROOT, "src/components/JobConfirmation.tsx"),
-  ].map((p) => relative(ROOT, p));
+  const list = walk(join(ROOT, "src/components/activity")).map((p) => relative(ROOT, p));
   return list.filter((p) => !NOT_ACTION_ROWS.has(p) && p !== META_ROW);
 }
 
@@ -161,9 +161,9 @@ function buttonTags(): Tag[] {
  *  — the right call — and it wears the link's own size, not a button tier's. */
 const isLinkStyled = (t: Tag) => /\bunderline\b|\blink-standard\b/.test(t.text);
 
-const SANCTIONED = new Set(["text-ds-14"]);
+const SANCTIONED = new Set(["text-ds-11"]);
 
-describe("activity card action buttons — one type scale", () => {
+describe("activity card action buttons — ONE type size, one typeface", () => {
   const tags = buttonTags();
 
   it("finds the buttons at all (a scanner that matches nothing passes everything)", () => {
@@ -174,7 +174,7 @@ describe("activity card action buttons — one type scale", () => {
     expect(tags.some((t) => t.where.startsWith("src/components/activity/JobActionRow.tsx"))).toBe(true);
   });
 
-  it("declares no type size but the primary tier", () => {
+  it("declares no type size but the row's one size", () => {
     const drift = tags
       .filter((t) => !isLinkStyled(t))
       .flatMap((t) =>
@@ -185,7 +185,7 @@ describe("activity card action buttons — one type scale", () => {
       );
     expect(
       drift,
-      "an action button below (or between) the sanctioned tiers: the 11px tier is the chip's LABEL SPAN, and a row primary is 14px",
+      "an action button at a size the row does not have. There is exactly one: JOB_ROW_LABEL_CLASS (text-ds-11). See src/test/jobRowControlSameness.test.tsx",
     ).toEqual([]);
   });
 

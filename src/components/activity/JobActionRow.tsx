@@ -33,11 +33,40 @@ const COLS: Record<number, string> = {
 };
 
 /**
- * Shared chip geometry. Exported because ShareJobButton renders its own
- * <Button> (it owns the native-share fallback chain) and has to match its
- * neighbours exactly — it takes this string through its `className` prop.
+ * THE ONE SHAPE OF A JOB-CARD ACTION ROW — owner, 2026-09-19, for the second
+ * time and with a screenshot: "i will not say this again. the buttons need to
+ * have the same size font and everything they shouldnt have all different
+ * stuff".
  *
- * `min-h-[44px]` is the tap target. `h-auto` alone left these at ~41px.
+ * Icon ABOVE an 11px label that may wrap, a declared 44px tap floor, the
+ * Button base's own radius. EVERY control in the row is this object: the
+ * chips, the primary, the tracker's portalled CTA, the location retry, the
+ * photo capture. The only two things a row is allowed to vary are
+ *
+ *   TONE      green gloss for the main move, danger tint for a destructive
+ *             one, done tint for one already taken (jobActionChipStyle);
+ *   POSITION  the primary trails on the right (owner V2/V3).
+ *
+ * WHY STACKED AND NOT INLINE. The row must hold FIVE controls at 320px without
+ * wrapping (the poster's disputed card: Escalate · Timeline · Message ·
+ * Contact Admin + Resolve & Pay). At 320 the row measures ~256px, so five
+ * slots and four 6px gaps leave ~46px each. An inline icon-beside-label
+ * control needs the icon (18px) + its gap + the longest word at 14px
+ * ("Working" ≈ 54px) ≈ 76px before it can show a single word — it cannot fit,
+ * which is exactly why the inline primary had grown a 12px `[data-tight]`
+ * step-down and a THIRD type size. Stacked gives the whole 46px to the label
+ * and lets it wrap: "Working" at 11px is ~42px. One shape, one size, no
+ * step-down.
+ *
+ * Exported because ShareJobButton, SosShareButton and DirectionsButton render
+ * their own <Button>/<a> (native-share fallback chains and an anchor the OS
+ * must see) and have to match their neighbours exactly — they take this string
+ * through `className`.
+ *
+ * `min-h-[44px]` is the tap target, DECLARED rather than inherited from the
+ * row's CSS: `h-auto` alone left these at ~41px, and a control that relies on
+ * index.css to rescue its height is one stylesheet edit from being a different
+ * size than the control beside it.
  *
  * THE LABEL MUST WRAP, and the override has to live on the label element.
  * `buttonVariants` sets `whitespace-nowrap` on the button itself, so a label
@@ -59,33 +88,31 @@ const COLS: Record<number, string> = {
  * to shrink below its content, which is what let a too-wide chip push past its
  * column instead of wrapping inside it.
  */
-export const JOB_ACTION_CHIP_CLASS =
-  "w-full h-auto min-h-[44px] min-w-0 flex-col gap-0.5 px-1 py-1.5 glass-press border-0 " +
+export const JOB_ROW_CONTROL_SHAPE =
+  "w-full h-auto min-h-[44px] min-w-0 flex-col gap-0.5 px-1 py-1.5 " +
   "[&_span]:whitespace-normal [&_span]:break-words [&_span]:leading-tight [&_span]:text-center";
 
 /**
- * The FULL-WIDTH sibling of the chip, for the one-decision-per-row controls
- * that legitimately span the card (Confirm Start / Confirm They Arrived /
- * Confirm They're Working / View Timeline).
- *
- * It exists because those four were the last places in the posted-job card
- * still drawing their own button: three different treatments across four
- * buttons that all mean "acknowledge a step" — two solid `default` CTAs
- * (Confirm Start, the card-body Confirm Arrival) beside two tinted outlines
- * (Confirm They Arrived, Confirm They're Working), at text-ds-15/font-bold
- * next to a chip row at text-ds-11/font-medium. Same height (size="sm" is
- * h-11, exactly the chip's 44px min) but nothing else matched, which is what
- * "button inconsistency in size etc." was pointing at.
- *
- * Deliberately NOT the chip's stacked icon-over-label: a control that owns a
- * whole row reads better horizontally, and stacking a lone chip across the
- * card would leave a 44px band of empty tint either side of the icon. What it
- * DOES share is the 44px tap target, the row's type scale and weight, and the
- * `jobActionChipStyle` tone palette — so the full-width control and the chips
- * under it read as one system rather than two.
+ * THE SHAPE PLUS THE TINTED-CHIP SURFACE. Everything that is not the glossy
+ * primary wears this: `glass-press` is the press effect a tinted/outline
+ * control needs (the glossy primary brings its own through `btn-grad-primary`
+ * + ELEV_FILLED, and stacking the two made the main move press twice as deep
+ * as its neighbours), `border-0` because the tone's own hairline comes from
+ * {@link jobActionChipStyle}.
  */
-export const JOB_ACTION_FULL_CLASS =
-  "w-full h-11 min-h-[44px] gap-1.5 px-3 text-ds-11 font-medium glass-press border-0";
+export const JOB_ACTION_CHIP_CLASS = `${JOB_ROW_CONTROL_SHAPE} glass-press border-0`;
+
+/**
+ * THE LABEL. One element, one size, one weight, for every control in the row —
+ * `JobActionChip`, `JobStepPrimaryButton`, and the three files that draw their
+ * own <Button> into the row (ShareJobButton, SosShareButton, DirectionsButton)
+ * because they own an <a> or a native-share fallback chain.
+ *
+ * `leading-tight`, not `leading-none`: these labels wrap (see
+ * JOB_ROW_CONTROL_SHAPE) and leading-none stacked two lines on top of
+ * each other.
+ */
+export const JOB_ROW_LABEL_CLASS = "text-ds-11 leading-tight font-medium";
 
 export type JobActionTone =
   | "message"
@@ -324,9 +351,12 @@ function composeAccessibleName(label: string, ariaLabel?: string): string | unde
  * poster's quiet `primary` tint, the revision's amber, the dispute's outline —
  * so "the main move" looked different on every step.
  *
- * Its width, height and label wrapping come from the row (index.css,
- * `[data-job-step-primary]`), not from here, so the same button can never be
- * sized one way on one step and another way on the next.
+ * IT IS THE SAME OBJECT AS THE CHIPS BESIDE IT (owner, 2026-09-19, second
+ * report): `JOB_ROW_CONTROL_SHAPE`, the same 11px `JOB_ROW_LABEL_CLASS`, the
+ * same icon-above-label stack, the same declared 44px floor. It used to be an
+ * inline `size="sm"` button at 14px with no declared floor, sitting beside
+ * stacked 11px chips — two kinds of object in one row, which is what the
+ * screenshot showed. Only the SURFACE says it is the primary.
  */
 export function JobStepPrimaryButton({
   icon: Icon,
@@ -364,7 +394,7 @@ export function JobStepPrimaryButton({
       <Button
         variant="outline"
         size="sm"
-        className="w-full h-auto border-0"
+        className={JOB_ACTION_CHIP_CLASS}
         style={jobActionChipStyle("done")}
         // Always inert: a finished statement, never a tap.
         disabled
@@ -375,30 +405,34 @@ export function JobStepPrimaryButton({
         aria-label={composeAccessibleName(label, ariaLabel)}
         onClick={onClick}
       >
-        <Icon className={`w-4 h-4 mr-1 shrink-0${iconClassName ? ` ${iconClassName}` : ""}`} />
-        {label}
+        <Icon className={`w-4 h-4${iconClassName ? ` ${iconClassName}` : ""}`} />
+        <span className={JOB_ROW_LABEL_CLASS}>{label}</span>
       </Button>
     );
   }
   return (
-    // `h-auto` alongside `size="sm"`'s `h-11`: this control's height is
-    // DELIBERATELY released so a long label ("Mark Job Complete") wraps to two
-    // lines and grows past 44px instead of truncating (the VN-21 one-row rule —
-    // the step-row CSS already sets `height:auto; min-height:44px`, and the
-    // chips beside it carry `h-auto` too). Naming `h-auto` here also tells the
+    // `h-auto` (inside JOB_ROW_CONTROL_SHAPE) alongside `size="sm"`'s `h-11`:
+    // this control's height is DELIBERATELY released so a long label ("Mark Job
+    // Complete") wraps and grows past 44px instead of truncating, with
+    // `min-h-[44px]` holding the tap floor. Naming `h-auto` also tells the
     // buttonGeometry a11y gate the height was released on purpose, so it is not
     // flagged as an `h-11` (44px) size class the cascade "defeated" — a real
-    // control (45.2px for a one-line label, ~61.5px wrapped) never matches the
-    // 44px it declares, and this is the sanctioned way to say so (buttonGeometry.ts).
+    // control never matches the 44px it declares, and this is the sanctioned
+    // way to say so (buttonGeometry.ts).
+    //
+    // NO `glass-press`: `btn-grad-primary` carries ELEV_FILLED's own
+    // `active:scale-[0.97]` and shadow collapse. Adding the chips' press on top
+    // pressed the main move twice as deep as its neighbours — a difference in
+    // FEEL that the owner's "same … everything" covers just as much as size.
     <Button
       size="sm"
-      className="w-full h-auto"
+      className={JOB_ROW_CONTROL_SHAPE}
       disabled={disabled}
       aria-label={composeAccessibleName(label, ariaLabel)}
       onClick={onClick}
     >
-      <Icon className={`w-4 h-4 mr-1 shrink-0${iconClassName ? ` ${iconClassName}` : ""}`} />
-      {label}
+      <Icon className={`w-4 h-4${iconClassName ? ` ${iconClassName}` : ""}`} />
+      <span className={JOB_ROW_LABEL_CLASS}>{label}</span>
     </Button>
   );
 }
@@ -440,10 +474,7 @@ export function JobActionChip({
       onClick={onClick}
     >
       <Icon className="w-4 h-4" />
-      {/* leading-tight, not leading-none: these labels wrap now (see
-          JOB_ACTION_CHIP_CLASS), and leading-none stacked two lines on top of
-          each other. */}
-      <span className="text-ds-11 leading-tight font-medium">{label}</span>
+      <span className={JOB_ROW_LABEL_CLASS}>{label}</span>
     </Button>
   );
 }

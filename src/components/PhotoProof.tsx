@@ -17,6 +17,7 @@ import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mut
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative } from "@/lib/nativeCamera";
+import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS, jobActionChipStyle } from "@/components/activity/JobActionRow";
 
 type PhotoProofProps = {
   jobId: string;
@@ -34,9 +35,19 @@ type PhotoProofProps = {
    * rather than the heading's action.
    */
   triggerLabel?: string;
+  /**
+   * Draw the trigger as a JOB-CARD ACTION ROW CONTROL rather than the panel's
+   * own full-width button (owner, 2026-09-19: "before and after buttons should
+   * also be on the same lines as the other buttons").
+   *
+   * Same `JOB_ACTION_CHIP_CLASS` / `JOB_ROW_LABEL_CLASS` every other control in
+   * that row wears, so the capture control cannot become a fourth kind of
+   * button. The DIALOG is unchanged — this is only where the tap comes from.
+   */
+  chip?: boolean;
 };
 
-const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel }: PhotoProofProps) => {
+const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip }: PhotoProofProps) => {
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -156,24 +167,46 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel }: Pho
 
   const hasPhotos = existingUrls.length > 0;
 
+  const triggerText =
+    triggerLabel && !hasPhotos
+      ? triggerLabel
+      : `${type === "before" ? "Before" : "After"} ${hasPhotos ? `(${existingUrls.length})` : "Photos"}`;
+
   return (
     <>
-      {/* This trigger only ever renders inside PhotoProofGroup's two-column
-          grid (the two call sites below), so sizing it to its column is safe.
-          `whitespace-normal` overrides the Button base's `whitespace-nowrap`,
-          which is what forced the overflow; `h-auto` + `leading-tight` let it
-          become two lines rather than clip. No label text is changed. */}
-      <Button
-        size="sm"
-        variant={hasPhotos ? "ghost" : "outline"}
-        onClick={() => setOpen(true)}
-        className={`w-full min-w-0 h-auto min-h-9 py-1.5 whitespace-normal leading-tight ${hasPhotos ? "text-primary" : ""}`}
-      >
-        {hasPhotos ? <CheckCircle2 className="w-4 h-4 mr-1" /> : <Camera className="w-4 h-4 mr-1" />}
-        {triggerLabel && !hasPhotos
-          ? triggerLabel
-          : `${type === "before" ? "Before" : "After"} ${hasPhotos ? `(${existingUrls.length})` : "Photos"}`}
-      </Button>
+      {chip ? (
+        /* THE ROW CONTROL. `edit` tone — the row's sunshine "this one wants
+           something from you" tint — so it is visibly distinct from the
+           neutral `Photos` chip that OPENS the gallery, and from the green
+           primary it sits beside. Once the photo exists HelperPhotoAsk stops
+           rendering this at all, so there is no "done" state to draw here. */
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+          className={JOB_ACTION_CHIP_CLASS}
+          style={jobActionChipStyle(hasPhotos ? "done" : "edit")}
+          aria-label={`${triggerText} — add the ${type} photo for this job`}
+        >
+          {hasPhotos ? <CheckCircle2 className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
+          <span className={JOB_ROW_LABEL_CLASS}>{triggerText}</span>
+        </Button>
+      ) : (
+        /* This trigger only ever renders inside PhotoProofGroup's two-column
+           grid (the two call sites below), so sizing it to its column is safe.
+           `whitespace-normal` overrides the Button base's `whitespace-nowrap`,
+           which is what forced the overflow; `h-auto` + `leading-tight` let it
+           become two lines rather than clip. No label text is changed. */
+        <Button
+          size="sm"
+          variant={hasPhotos ? "ghost" : "outline"}
+          onClick={() => setOpen(true)}
+          className={`w-full min-w-0 h-auto min-h-9 py-1.5 whitespace-normal leading-tight ${hasPhotos ? "text-primary" : ""}`}
+        >
+          {hasPhotos ? <CheckCircle2 className="w-4 h-4 mr-1" /> : <Camera className="w-4 h-4 mr-1" />}
+          {triggerText}
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -568,4 +601,44 @@ export const PhotoProofStep = ({
       <PhotoProof jobId={jobId} type={type} existingUrls={existingUrls} onUploaded={onUploaded} triggerLabel="Add Photo" />
     </div>
   </CardSubPanel>
+);
+
+/**
+ * THE SAME UPLOAD, AS ONE CONTROL ON THE JOB CARD'S ACTION ROW.
+ *
+ * Owner, 2026-09-19: "before and after buttons should also be on the same
+ * lines as the other buttons". {@link PhotoProofStep} — a titled panel with a
+ * hint line and a full-width "Add Photo" button — was the block sitting ABOVE
+ * the row in their screenshot. This is the same uploader and the same dialog,
+ * drawn as the row's own control.
+ *
+ * `label` names WHICH photo ("Before Photo" / "After Photo"), which is what
+ * keeps it from reading as a duplicate of the neutral `Photos` chip beside it
+ * on the disputed card — that one OPENS the gallery of photos already taken
+ * (`PhotoProofDialog`), this one ADDS the one that is missing. Two controls,
+ * two verbs, two tones; they were deliberately not merged, because merging
+ * them would mean a helper with no before photo taps "Photos" and lands in an
+ * empty gallery instead of the camera.
+ */
+export const PhotoProofCaptureChip = ({
+  jobId,
+  type,
+  existingUrls,
+  onUploaded = () => {},
+  label,
+}: {
+  jobId: string;
+  type: "before" | "after";
+  existingUrls: string[];
+  onUploaded?: () => void;
+  label: string;
+}) => (
+  <PhotoProof
+    jobId={jobId}
+    type={type}
+    existingUrls={existingUrls}
+    onUploaded={onUploaded}
+    triggerLabel={label}
+    chip
+  />
 );

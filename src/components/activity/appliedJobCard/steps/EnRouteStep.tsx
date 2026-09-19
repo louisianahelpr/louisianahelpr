@@ -27,7 +27,7 @@ export function EnRouteStep({ job, tracker, messageChip, exitChip, reportChip, a
       step="en_route"
       header={tracker}
       actions={[
-        showDirections ? <DirectionsButton key="directions" location={job.location} variant="chip" /> : null,
+        showDirections ? <DirectionsButton key="directions" location={job.location} /> : null,
         messageChip,
         exitChip,
         reportChip,

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 import { shareNative } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { JOB_ROW_LABEL_CLASS } from "@/components/activity/JobActionRow";
 
 interface ShareJobButtonProps {
   /** The job being shared — only the title/budget/category/id/city are referenced. */
@@ -333,7 +334,7 @@ export function ShareJobButton({
           {copied ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <Share2 className="w-4 h-4" />}
           {/* The flip is label→confirmation, and both stay short enough that
               the 4-up action grid does not reflow. */}
-          <span className="text-ds-11 leading-none font-medium">
+          <span className={JOB_ROW_LABEL_CLASS}>
             {copied ? "Copied" : restLabel}
           </span>
         </>

@@ -41,10 +41,15 @@ export function WorkingStep({
       side="helper"
       step="working"
       header={tracker}
-      ask={<HelperPhotoAsk jobId={app.job_id} job={job} step="working" />}
       notice={<PayoutUnlockNote hasPhotos={payout.hasPhotos} tooEarly={payout.tooEarly} minutesLeft={payout.minutesLeft} />}
       primary={<PayoutPrimary {...payout} />}
-      actions={[messageChip, reportChip]}
+      /* THE PHOTO CAPTURE IS A CHIP IN THE ROW, not a panel above it
+         (owner, 2026-09-19: "before and after buttons should also be on the
+         same lines as the other buttons"). It renders nothing once the
+         photo this step asks for exists, and nothing at all on a job the
+         poster marked as needing no photos — so the row is 3-up or 4-up,
+         never a hole. It LEADS the chips: it is the thing being asked for. */
+      actions={[<HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="working" />, messageChip, reportChip]}
       escape={abortedNotice}
     />
   );

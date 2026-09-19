@@ -196,7 +196,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
         </>
       }
       actions={[
-        showSos ? <SosShareButton key="sos" jobId={job.id} variant="chip" /> : null,
+        showSos ? <SosShareButton key="sos" jobId={job.id} /> : null,
         showNoShow ? (
           <JobActionChip
             key="noshow"

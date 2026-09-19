@@ -42,6 +42,11 @@ vi.mock("@/components/PhotoProof", () => ({
   // own count is unaffected either way.
   PhotoProofDialog: () => null,
   PhotoProofRequirementNote: () => null,
+  // THE CAPTURE CONTROL, which now lives IN the row (owner, 2026-09-19:
+  // "before and after buttons should also be on the same lines as the other
+  // buttons"). NOT stubbed to null: it is one of the row's controls and the
+  // per-case floors below count it.
+  PhotoProofCaptureChip: ({ label }: { label: string }) => <button type="button">{label}</button>,
 }));
 
 function makeSupabase() {
@@ -76,7 +81,7 @@ import { OpenStep } from "./postedJobCard/steps/OpenStep";
 import { CompletedStep } from "./postedJobCard/steps/CompletedStep";
 import { DisputedStep } from "./postedJobCard/steps/DisputedStep";
 import { JobStepCard } from "./JobStepCard";
-import { JobStepRowSlot, shouldCompactJobStepRow, shouldTightenJobStepPrimary } from "./jobStepRow";
+import { JobStepRowSlot, shouldCompactJobStepRow, primaryRoomAfterCompaction } from "./jobStepRow";
 // The sweep's own copy, never a retyped copy of it (owner item 7).
 import { STALLED_APPROVE_DISABLED_LABEL } from "../../../supabase/functions/_shared/stalledCompletion";
 
@@ -349,9 +354,12 @@ const CASES: Array<{
     primary: ["I've Arrived"],
   },
   {
+    // The fixture carries both proof photos, so the capture chip is absent —
+    // the row is legitimately three. Its companion above pins the other side.
     name: "Jobs · Arrived (Start Working + Message · Report a Problem)",
     render: active(makeJob({ ...VERIFIED, poster_confirmed_working_at: null }), "arrived"),
     minControls: 3,
+    maxControls: 3,
     primary: ["Start Working"],
   },
   {
@@ -375,9 +383,15 @@ const CASES: Array<{
     primary: ["Mark Job Complete"],
   },
   {
-    name: "Jobs · Working, after photo still owed (ask above, disabled Mark Job Complete in the row)",
+    /* THE CAPTURE IS IN THE ROW NOW (owner, 2026-09-19: "before and after
+       buttons should also be on the same lines as the other buttons"). It was
+       a titled panel with a full-width "Add Photo" button in the `ask` slot
+       ABOVE the row — the block in the owner's screenshot. Four controls, not
+       three: After Photo · Message · Report a Problem + the disabled primary. */
+    name: "Jobs · Working, after photo still owed (After Photo chip IN the row, disabled Mark Job Complete)",
     render: active(makeJob({ ...VERIFIED, proof_after_urls: [] }), "working"),
-    minControls: 3,
+    minControls: 4,
+    maxControls: 4,
     primary: ["Mark Job Complete"],
   },
   {
@@ -776,11 +790,22 @@ describe("VN-21 — icon-only chips instead of a second row", () => {
     expect(shouldCompactJobStepRow({ width: 267, chips: 2, hasPrimary: true, chipNeedPx: 57, primaryNeedPx: 140 })).toBe(true);
   });
 
-  it("tightens the primary only when icon-only chips still leave it short", () => {
-    // 375, three chips: 267 - 3×48 - 18 = 105px left for the primary.
-    expect(shouldTightenJobStepPrimary({ width: 267, chips: 3, primaryNeedPx: 100 })).toBe(false);
-    // 320, three chips: 212 - 162 = 50px left.
-    expect(shouldTightenJobStepPrimary({ width: 212, chips: 3, primaryNeedPx: 100 })).toBe(true);
+  it("leaves the primary real room once the chips are icon-only — there is no third rung", () => {
+    // This replaced `shouldTightenJobStepPrimary` (owner, 2026-09-19): the old
+    // rung answered "is the primary short?" by stepping it down to 12px and
+    // stripping its icon, which is how the row ended up with three type sizes
+    // and two shapes. `ICON_CHIP_PX` came down from 48 to the 44px tap floor
+    // instead, so the primary gets the pixels without changing what it is.
+    // 375, three icon-only chips: 311 - 3×44 - 18 = 161px for the primary.
+    expect(primaryRoomAfterCompaction({ width: 311, chips: 3 })).toBe(161);
+    // 320, FOUR icon-only chips — the widest row in the app (poster Disputed,
+    // helper Disputed with the photo capture): 256 - 4×44 - 24 = 56px. Every
+    // primary label this app has fits its longest word in that at 11px.
+    expect(primaryRoomAfterCompaction({ width: 256, chips: 4 })).toBe(56);
+    // At 48px chips the same row left 40px, which is where the 12px rung came
+    // from. The constant is the fix; this pins that it moved.
+    expect(primaryRoomAfterCompaction({ width: 256, chips: 4 })).toBeGreaterThan(40);
+    expect(primaryRoomAfterCompaction({ width: 0, chips: 4 })).toBe(0);
   });
 
   it("never compacts an unmeasured row or a lone button", () => {

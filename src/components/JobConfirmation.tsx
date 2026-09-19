@@ -21,7 +21,7 @@ import { report } from "@/lib/errorLogger";
 import { JobStepRowSlot } from "@/components/activity/jobStepRow";
 // The row's own done-state surface, so the poster's "already confirmed" box
 // matches the Tipped / Reviewed boxes rather than inventing a fourth grey.
-import { jobActionChipStyle } from "@/components/activity/JobActionRow";
+import { jobActionChipStyle, JobStepPrimaryButton } from "@/components/activity/JobActionRow";
 
 /**
  * THE HELPER'S DAY-OF ANSWER, in one place.
@@ -484,10 +484,42 @@ export function JobConfirmation({
     /* Inside a job step card the control is that card's primary and renders in
        its ONE action row, the deadline on the line above it (owner,
        2026-09-14, VN-21). Outside one, both slots render in place. */
+    /* THE ROW'S OWN CONTROL, not this file's panel CTA (owner, 2026-09-19,
+       second report: "the buttons need to have the same size font and
+       everything they shouldnt have all different stuff").
+
+       This used to portal `confirmCta` — `confirmCtaClass`, an inline 14px
+       button — straight into a row of stacked 11px chips, so "I'm Still On"
+       was a different object from the Message and Directions beside it. It is
+       the easiest drift in the app to miss, because nothing under
+       src/components/activity draws it. It goes through
+       `JobStepPrimaryButton` now, exactly like every other primary in that
+       slot; the `done` tone carries the owner's other rule (the box stays,
+       disabled, once it has been tapped) without a greyed-out green.
+
+       The PANEL variant below still uses `confirmCta` — it is not in a row,
+       and holding a standalone card CTA to the row's 11px would be the same
+       mistake in the other direction. */
+    const rowCta = (isOwner || isHelper) && (
+      !myConfirmed ? (
+        <JobStepPrimaryButton
+          icon={CheckCircle2}
+          label="I'm Still On"
+          onClick={() => setShowConfirmDialog(true)}
+        />
+      ) : isOwner ? (
+        <JobStepPrimaryButton
+          icon={CheckCircle2}
+          label="Confirmed"
+          tone="done"
+          onClick={() => {}}
+        />
+      ) : null
+    );
     return (
       <>
         <JobStepRowSlot slot="note">{deadlineNotice}</JobStepRowSlot>
-        <JobStepRowSlot slot="primary">{confirmCta}</JobStepRowSlot>
+        <JobStepRowSlot slot="primary">{rowCta}</JobStepRowSlot>
         {confirmDialog}
       </>
     );

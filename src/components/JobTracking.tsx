@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
-import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { COPY_AUTO_RELEASE_HOURS } from "../../supabase/functions/_shared/escrowTiming";
 import { haversineMiles } from "@/lib/geo";
@@ -22,6 +21,7 @@ import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
 import { JobStepRowSlot, useInJobStepRow } from "@/components/activity/jobStepRow";
+import { JobActionChip, JobStepPrimaryButton } from "@/components/activity/JobActionRow";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
 // pulled in when a tracking card between On the Way and Done is visible.
@@ -2607,30 +2607,29 @@ export function JobTracking({
           </>
         ) : null;
 
+        /* THE ROW'S PRIMARY, drawn by the row's own primitive.
+         *
+         * It used to be a raw `<Button size="sm" className="w-full h-auto">`
+         * with the icon inline and a bare 14px label, portalled into a row of
+         * stacked 11px chips — "Message" and "I'm On My Way" side by side as
+         * two different kinds of object, which is the screenshot the owner sent
+         * twice. `JobStepPrimaryButton` is that one object; nothing about the
+         * gates, the busy state or the confirm dialog moves. */
         const ctaEl = (
-            <Button
-              size="sm"
-              // `h-auto` releases `size="sm"`'s h-11: this CTA portals into the
-              // step row's primary slot, whose CSS sets height:auto so a long
-              // action ("Mark Job Complete") wraps instead of truncating — so
-              // it renders 45.2px (one line) to ~61.5px (wrapped), never the
-              // 44px h-11 declares. Naming h-auto keeps the buttonGeometry a11y
-              // gate from flagging it as a defeated size class (buttonGeometry.ts).
-              className="w-full h-auto"
-              // Done asks first — see the dialog below. Every other step is a
-              // reversible statement about where the helper is; this one moves
-              // money and cannot be taken back from here.
-              onClick={() => {
-                if (isDoneStep) setConfirmDoneOpen(true);
-                else void updateStatus(nextStatus.key);
-              }}
-              disabled={updating || isLocked || needsArrival || needsProof}
-            >
-              <nextStatus.icon className="w-3.5 h-3.5 mr-1" />
-              {/* The ACTION, not the step's name — see STATUSES. After a
-                  refused arrival the same tap is a retry, so it says so. */}
-              {arrivalRefusedHere ? "Try My Location Again" : (nextStatus.action ?? nextStatus.label)}
-            </Button>
+          <JobStepPrimaryButton
+            icon={nextStatus.icon}
+            // The ACTION, not the step's name — see STATUSES. After a
+            // refused arrival the same tap is a retry, so it says so.
+            label={arrivalRefusedHere ? "Try My Location Again" : (nextStatus.action ?? nextStatus.label)}
+            // Done asks first — see the dialog below. Every other step is a
+            // reversible statement about where the helper is; this one moves
+            // money and cannot be taken back from here.
+            onClick={() => {
+              if (isDoneStep) setConfirmDoneOpen(true);
+              else void updateStatus(nextStatus.key);
+            }}
+            disabled={updating || isLocked || needsArrival || needsProof}
+          />
         );
 
         const retryEl = (
@@ -2650,20 +2649,23 @@ export function JobTracking({
                 Helper-only (inside `isHelper &&`), and the RPC refuses anyone
                 but `jobs.helper_id` (42501). It does not advance the rail. */}
             {gpsNudgeHere && (
-              <Button
-                size="sm"
-                variant="outline"
-                // h-auto releases size="sm"'s h-11 — this control lands in the
-                // step row (label can wrap), so it renders 45.2px+, never the
-                // 44px h-11 declares; naming h-auto keeps the buttonGeometry
-                // a11y gate from flagging it (see buttonGeometry.ts).
-                className="w-full h-auto"
+              /* THE SAME OBJECT AS EVERY OTHER CONTROL IN THE ROW (owner,
+                 2026-09-19, second report). It was a raw
+                 `<Button variant="outline">` with an inline icon and a bare
+                 14px label — so on the one state that shows both, this and the
+                 glossy "Start Working" beside it were two different shapes,
+                 and both were a third shape from the stacked chips left of
+                 them. It goes through the row's primitive now and says what it
+                 is with TONE: `neutral`, the quiet olivewood the supporting
+                 actions wear, so the glossy primary is still unmistakably the
+                 step the Helpr is trying to take. */
+              <JobActionChip
+                icon={MapPin}
+                tone="neutral"
+                label={retryingArrival ? "Checking…" : "Try My Location Again"}
                 onClick={() => { void retryArrivalVerification(); }}
                 disabled={retryingArrival || updating}
-              >
-                <MapPin className="w-3.5 h-3.5 mr-1" />
-                {retryingArrival ? "Checking…" : "Try My Location Again"}
-              </Button>
+              />
             )}
           </>
         );

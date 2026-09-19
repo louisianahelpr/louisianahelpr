@@ -141,7 +141,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           DirectionsButton self-hides on a job with no address; the shell
           counts what actually rendered. */
       actions={[
-        <DirectionsButton key="directions" location={job.location} variant="chip" />,
+        <DirectionsButton key="directions" location={job.location} />,
         <JobActionChip
           key="message"
           icon={MessageSquare}

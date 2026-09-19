@@ -40,6 +40,9 @@ vi.mock("@/components/PhotoProof", () => ({
   // portalled and contributing no control — stubbed to nothing so the row's
   // own count is unaffected either way.
   PhotoProofDialog: () => null,
+  // The capture control that moved onto the action row (owner, 2026-09-19).
+  // A plain button, so it counts as a control but never as a glossy CTA.
+  PhotoProofCaptureChip: ({ label }: { label: string }) => <button type="button">{label}</button>,
 }));
 
 /** A supabase double whose every builder method chains and whose terminals

@@ -140,7 +140,6 @@ export function JobStepCard({
   const rowRef = useRef<HTMLDivElement | null>(null);
   const [layout, setLayout] = useState<JobStepRowLayout>({
     compact: false,
-    tight: false,
     empty: chips.length === 0 && !hasRenderable(primary),
     hasPrimary: hasRenderable(primary),
   });
@@ -151,7 +150,6 @@ export function JobStepCard({
       const next = measureJobStepRow(row);
       setLayout((prev) =>
         prev.compact === next.compact &&
-        prev.tight === next.tight &&
         prev.empty === next.empty &&
         prev.hasPrimary === next.hasPrimary
           ? prev
@@ -159,9 +157,8 @@ export function JobStepCard({
       );
     };
     measure();
-    // WIDTH changes only. The modes change the row's HEIGHT (labels hide,
-    // the primary's type steps down), and re-measuring on that would feed the
-    // decision back into itself.
+    // WIDTH changes only. Compaction changes the row's HEIGHT (labels hide),
+    // and re-measuring on that would feed the decision back into itself.
     let lastWidth = row.getBoundingClientRect().width;
     const onResize = () => {
       const w = row.getBoundingClientRect().width;
@@ -207,7 +204,6 @@ export function JobStepCard({
           ref={rowRef}
           data-job-step-row=""
           data-compact={layout.compact ? "true" : "false"}
-          data-tight={layout.tight ? "true" : "false"}
           data-has-primary={layout.hasPrimary ? "true" : "false"}
           data-empty={layout.empty ? "true" : "false"}
           className="job-step-row flex flex-nowrap items-stretch gap-1.5"

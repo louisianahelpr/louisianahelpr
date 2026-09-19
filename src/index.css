@@ -3821,12 +3821,11 @@ html.senior-mode *::after {
    - `data-compact="true"` (measured by the shell, see shouldCompactJobStepRow)
      hides each chip's visible label — it stays in the accessibility tree as
      the chip's name — and, when there is a primary, sets the chips to an
-     equal 48px so the primary keeps the room for its own label.
-   - `data-tight="true"` (shouldTightenJobStepPrimary) is the last step before
-     a clipped label: see below.
-   - The primary's button releases its fixed `h-11`/nowrap so a long label
-     ("Try My Location Again") wraps inside the button instead of overflowing
-     the card at 320px. min-height stays at the 44px tap floor. */
+     equal 44px (the tap floor) so the primary keeps the room for its own label.
+   - There is NO third rung. The primary is the same stacked 11px control as
+     the chips (JOB_ROW_CONTROL_SHAPE), so it releases its own `h-11`/nowrap
+     in its own class and a long label ("Try My Location Again") wraps inside
+     the button instead of overflowing the card at 320px. */
 [data-job-step-row][data-empty="true"] {
   display: none;
 }
@@ -3846,39 +3845,31 @@ html.senior-mode *::after {
   flex: 1 1 0%;
   min-width: 0;
 }
-/* CLASS selectors, deliberately (globalCssNoUtilityOverride.test.ts): this is a
-   component sizing its own slot's button — releasing the `sm` Button's h-11 so
-   a two-line label fits — not a global element rule out-ranking utilities. */
-.job-step-row > .job-step-primary :is(button, a) {
-  width: 100%;
-  height: auto;
-  min-height: 44px;
-  white-space: normal;
-  line-height: 1.2;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  text-align: center;
-}
+/* NOTHING SIZES THE PRIMARY FROM HERE ANY MORE (owner, 2026-09-19, second
+   report: "the buttons need to have the same size font and everything").
+
+   This block used to carry `.job-step-row > .job-step-primary :is(button, a)`
+   — width/height/min-height/white-space/line-height/padding/text-align — which
+   is how the row's primary ended up a DIFFERENT OBJECT from the chips beside
+   it: the chips declared their geometry in `JOB_ACTION_CHIP_CLASS` and the
+   primary inherited a different geometry from a stylesheet, so the two could
+   (and did) drift. Every control in the row now carries
+   `JOB_ROW_CONTROL_SHAPE` itself — same w-full, same h-auto, same
+   `min-h-[44px]`, same wrapping, same centring — and this rule is gone rather
+   than kept as a redundant second opinion. Its `padding-left/right: 0.5rem`
+   also silently beat the class's `px-1` (a two-class selector out-ranks a
+   utility), which is exactly the drift it was supposed to prevent.
+
+   What survives is the COMPACTION rung, and it is the only one: when a label's
+   longest word will not fit its share, the chips go icon-only at the 44px tap
+   floor and the primary keeps its label in the room that frees up. The
+   `[data-tight]` rung under this — a 12px primary with its icon stripped — is
+   deleted with it; see ICON_CHIP_PX in jobStepRow.tsx. */
 [data-job-step-row][data-compact="true"][data-has-primary="true"] > [data-job-step-primary] {
   flex: 1 1 0%;
 }
 [data-job-step-row][data-compact="true"][data-has-primary="true"] > :not([data-job-step-primary]) {
-  flex: 0 1 48px;
-}
-/* Still short of room with icon-only chips (four buttons at 320px): the
-   primary keeps every word of its label but drops its icon, its side padding
-   and a type size, and holds a floor its words fit in; the chips give way
-   below 48px before it does. */
-[data-job-step-row][data-tight="true"] > [data-job-step-primary] {
-  min-width: 3.75rem;
-}
-.job-step-row[data-tight="true"] > .job-step-primary :is(button, a) {
-  font-size: 12px;
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
-}
-[data-job-step-row][data-tight="true"] > [data-job-step-primary] :is(button, a) svg {
-  display: none;
+  flex: 0 1 44px;
 }
 [data-job-step-row][data-compact="true"] > :not([data-job-step-primary]) span {
   position: absolute;

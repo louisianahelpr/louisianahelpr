@@ -13,7 +13,7 @@ import {
 import { shareNative } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { report } from "@/lib/errorLogger";
-import { JOB_ACTION_CHIP_CLASS } from "@/components/activity/JobActionRow";
+import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS } from "@/components/activity/JobActionRow";
 
 /**
  * The SOS "share my location" control and its confirmation sheet.
@@ -25,15 +25,13 @@ import { JOB_ACTION_CHIP_CLASS } from "@/components/activity/JobActionRow";
  * to become one self-contained unit rather than the sheet being lifted into a
  * shared ancestor.
  *
- * Two shapes, one behaviour:
- *  - `pill`  — the original rounded pill. Still what a HELPER sees in the
- *              tracker header; their card was not part of the reorganisation
- *              and is deliberately left looking exactly as it did.
- *  - `chip`  — icon-over-label, matching its neighbours in the owner's
- *              Share / Message row.
+ * ONE shape: the action row's icon-over-label control
+ * (`JOB_ACTION_CHIP_CLASS`), exactly like its neighbours. The doc block on the
+ * component below records the second shape that used to live here and why it
+ * is gone.
  *
  * The burnt-sienna tint and border are carried across verbatim from the old
- * header pill, so the control reads the same in both shapes.
+ * header pill, so the control reads the same as it always did.
  *
  * The LABEL is --danger-ink, not raw --burnt-sienna. A raw brand hue has no
  * dark sibling: on the dark canvas it resolved to rgb(212,103,53) over its own
@@ -95,13 +93,21 @@ async function readCurrentPosition(jobId: string): Promise<{ lat: number; lng: n
   }
 }
 
-export function SosShareButton({
-  jobId,
-  variant = "pill",
-}: {
-  jobId: string;
-  variant?: "pill" | "chip";
-}) {
+/**
+ * ONE SHAPE, and it is the action row's (owner, 2026-09-19, second report:
+ * "the buttons need to have the same size font and everything they shouldnt
+ * have all different stuff").
+ *
+ * There used to be a `variant` prop: `"chip"` (the row control) and `"pill"` —
+ * a hand-rolled `<button>` at `h-10`, `rounded-full`, `text-xs` and
+ * `font-bold`: a height, a radius and a type token that appear nowhere else in
+ * this row. `"pill"` was the DEFAULT and had no call site — the only consumer,
+ * InProgressStep, passes the chip — so what shipped was the chip and what a
+ * reader of this file would assume was normal was the pill. Deleted rather
+ * than kept behind a flag: a control in this row that can be drawn two ways is
+ * how the row ends up with two kinds of object in it.
+ */
+export function SosShareButton({ jobId }: { jobId: string }) {
   const [open, setOpen] = useState(false);
   const [locating, setLocating] = useState(false);
 
@@ -168,40 +174,20 @@ export function SosShareButton({
 
   return (
     <>
-      {variant === "chip" ? (
-        <Button
-          variant="outline"
-          size="sm"
-          className={JOB_ACTION_CHIP_CLASS}
-          style={{ ...SOS_TINT, border: SOS_TINT.border }}
-          aria-label="SOS — share your location"
-          onClick={(e) => {
-            e.stopPropagation();
-            setOpen(true);
-          }}
-        >
-          <ShieldAlert className="w-4 h-4" />
-          <span className="text-ds-11 leading-none font-medium">SOS</span>
-        </Button>
-      ) : (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setOpen(true);
-          }}
-          aria-label="SOS — share your location"
-          className="h-10 px-3 rounded-full inline-flex items-center gap-1.5 text-xs font-bold shrink-0 active:scale-95 transition-all"
-          style={{
-            color: SOS_TINT.color,
-            background: SOS_TINT.background,
-            border: "1px solid hsl(var(--burnt-sienna) / 0.22)",
-          }}
-        >
-          <ShieldAlert className="w-3.5 h-3.5" />
-          SOS
-        </button>
-      )}
+      <Button
+        variant="outline"
+        size="sm"
+        className={JOB_ACTION_CHIP_CLASS}
+        style={{ ...SOS_TINT, border: SOS_TINT.border }}
+        aria-label="SOS — share your location"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(true);
+        }}
+      >
+        <ShieldAlert className="w-4 h-4" />
+        <span className={JOB_ROW_LABEL_CLASS}>SOS</span>
+      </Button>
 
       <Sheet open={open} onOpenChange={setOpen}>
         {/* No bespoke padding or ground. `side="bottom"` is a centred modal at

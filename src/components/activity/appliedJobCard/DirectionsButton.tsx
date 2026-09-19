@@ -2,7 +2,7 @@ import { Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   JOB_ACTION_CHIP_CLASS,
-  JOB_ACTION_FULL_CLASS,
+  JOB_ROW_LABEL_CLASS,
   jobActionChipStyle,
 } from "@/components/activity/JobActionRow";
 import { mapsSearchUrl } from "@/lib/mapsLink";
@@ -29,61 +29,36 @@ import { mapsSearchUrl } from "@/lib/mapsLink";
  * Returns null when there is no address — a Directions button that navigates
  * nowhere is worse than no button.
  */
-export function DirectionsButton({
-  location,
-  variant = "full",
-}: {
-  location: string | null | undefined;
-  /**
-   * `"full"` is the original full-width row control.
-   *
-   * `"chip"` is the icon-over-label chip, for the shared `JobActionRow` — owner,
-   * 2026-08-30: "directions messages and can't make it all need to be buttons
-   * in a row side by side". It renders through the SAME
-   * `JOB_ACTION_CHIP_CLASS`/`jobActionChipStyle` pair `JobActionChip` uses
-   * (ShareJobButton does the identical thing for the same reason: this one owns
-   * its own <a>, so it can't render through JobActionChip's <button>), which is
-   * what keeps it geometrically identical to the chips beside it — same 44px
-   * floor, same wrapping label, same tint.
-   */
-  variant?: "full" | "chip";
-}) {
+export function DirectionsButton({ location }: { location: string | null | undefined }) {
   const href = location ? mapsSearchUrl(location) : "";
   if (!href) return null;
 
-  if (variant === "chip") {
-    return (
-      <Button
-        asChild
-        size="sm"
-        variant="outline"
-        className={JOB_ACTION_CHIP_CLASS}
-        style={jobActionChipStyle("neutral")}
-      >
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          aria-label={`Directions — get directions to ${location}`}
-        >
-          <Navigation className="w-4 h-4" />
-          <span className="text-ds-11 leading-tight font-medium">Directions</span>
-        </a>
-      </Button>
-    );
-  }
-
+  /*
+   * ONE SHAPE, and it is the row's (owner, 2026-09-19, second report).
+   *
+   * There used to be a `variant` prop here: `"chip"` (the row control) and
+   * `"full"`, a full-width horizontal control carrying `JOB_ACTION_FULL_CLASS`
+   * — a THIRD button tier that existed only in this file. Both live call sites
+   * (EnRouteStep, ConfirmedSection) passed `"chip"`; `"full"` was the DEFAULT,
+   * so nothing rendered it and nothing could, yet it was the shape a reader of
+   * this file would assume was normal. The tier and the prop are gone rather
+   * than preserved behind a flag: a row control that can be drawn two ways is
+   * how a row ends up with two kinds of object in it.
+   *
+   * It draws its own <Button> (rather than going through JobActionChip)
+   * because it owns an <a> — an anchor hands a `maps://` scheme straight to
+   * the OS, where `window.open` inside a WebView swallows it — so it takes the
+   * shared class and the shared label class instead.
+   */
   return (
     <Button
       asChild
       size="sm"
       variant="outline"
-      className={JOB_ACTION_FULL_CLASS}
+      className={JOB_ACTION_CHIP_CLASS}
       // `neutral`, not `primary`: Directions is navigational, a thing you do on
-      // the way to the decision — it must not out-shout "Mark Job Complete"
-      // or the Accept/Decline pair. Same olivewood tint Message wears,
-      // which is the tone this row already speaks in.
+      // the way to the decision — it must not out-shout "Mark Job Complete".
+      // Same olivewood tint Message wears, which is the tone this row speaks in.
       style={jobActionChipStyle("neutral")}
     >
       <a
@@ -95,10 +70,10 @@ export function DirectionsButton({
         // navigation to a card in a different state than they left it. Same
         // guard the location link in JobCardMetaRow uses.
         onClick={(e) => e.stopPropagation()}
-        aria-label={`Get directions to ${location}`}
+        aria-label={`Directions — get directions to ${location}`}
       >
         <Navigation className="w-4 h-4" />
-        Directions
+        <span className={JOB_ROW_LABEL_CLASS}>Directions</span>
       </a>
     </Button>
   );

@@ -12,14 +12,18 @@ import type { ReactNode } from "react";
  * codebase itself describes as best-effort (it drops on a cold native socket).
  * With it down the dialog closed and the card still asked for the After photo.
  *
- * PhotoProofStep is replaced with a stand-in that exposes its `onUploaded`, so
- * this pins exactly the wiring HelperPhotoAsk owns: an upload invalidates the
- * activity cache that renders the card.
+ * PhotoProofCaptureChip is replaced with a stand-in that exposes its
+ * `onUploaded`, so this pins exactly the wiring HelperPhotoAsk owns: an upload
+ * invalidates the activity cache that renders the card.
+ *
+ * It was `PhotoProofStep` until 2026-09-19, when the owner moved the capture
+ * control off its panel and onto the card's action row — same uploader, same
+ * `onUploaded`, one control instead of a titled block.
  */
 vi.mock("@/components/PhotoProof", () => ({
-  PhotoProofStep: ({ title, onUploaded }: { title: string; onUploaded?: () => void }) => (
+  PhotoProofCaptureChip: ({ label, onUploaded }: { label: string; onUploaded?: () => void }) => (
     <div>
-      <span>{title}</span>
+      <span>{label}</span>
       <button type="button" onClick={() => onUploaded?.()}>
         simulate upload finished
       </button>
@@ -42,7 +46,7 @@ const setup = (ui: ReactNode) => {
 describe("HelperPhotoAsk", () => {
   it("re-reads the activity cache when the After photo upload finishes", () => {
     const spy = setup(<HelperPhotoAsk jobId="job-1" job={job()} step="working" />);
-    expect(screen.getByText("Add an after photo")).toBeTruthy();
+    expect(screen.getByText("After Photo")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "simulate upload finished" }));
     expect(spy).toHaveBeenCalledWith({ queryKey: ["activity"] });
   });
@@ -51,7 +55,7 @@ describe("HelperPhotoAsk", () => {
     const spy = setup(
       <HelperPhotoAsk jobId="job-1" job={job({ proof_after_urls: ["a.png"] })} step="working" />,
     );
-    expect(screen.getByText("Add a before photo")).toBeTruthy();
+    expect(screen.getByText("Before Photo")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "simulate upload finished" }));
     expect(spy).toHaveBeenCalledWith({ queryKey: ["activity"] });
   });

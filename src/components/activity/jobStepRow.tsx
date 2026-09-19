@@ -74,9 +74,18 @@ export const JOB_STEP_ROW_GAP_PX = 6;
 export const LABELLED_CHIP_MIN_PX = 68;
 /** The primary takes this many chip-widths while labels are showing. */
 export const PRIMARY_FLEX = 2;
-/** An icon-only chip beside a primary. Never below the 44px tap target unless
- *  the row genuinely has no other room (five buttons at 320px). */
-export const ICON_CHIP_PX = 48;
+/**
+ * An icon-only chip beside a primary — EXACTLY the 44px tap target.
+ *
+ * It was 48px, which is where the last type tier came from: four 48px chips at
+ * 320px left the primary 40px, too narrow for "Resolve", so the row grew a
+ * `[data-tight]` rung that stepped the primary down to 12px and stripped its
+ * icon — a THIRD size and a THIRD shape, on the one control that most needs to
+ * look like the others. At 44px the same row leaves the primary 56px, which
+ * fits every primary label this app has at 11px, so the rung is gone (owner,
+ * 2026-09-19: one treatment, tone and position are the only variables).
+ */
+export const ICON_CHIP_PX = 44;
 
 /**
  * Should the secondary chips drop to icon-only?
@@ -115,23 +124,28 @@ export function shouldCompactJobStepRow({
 }
 
 /**
- * Once the chips are icon-only, is the primary STILL short of room for its
- * label? Then it drops its own icon and side padding and steps down a type
- * size, keeping every word of the label (owner: "the primary keeps its
- * label"). Reached at 320px with four buttons.
+ * Once the chips are icon-only, how much room is left for the primary?
+ *
+ * This used to be `shouldTightenJobStepPrimary`, a THIRD rung that answered
+ * "is the primary still short?" by shrinking it — 12px type, no icon, no side
+ * padding. That was the row's own answer to the owner's complaint being
+ * written into the CSS: the main move ended up a different size and a
+ * different shape from the chips beside it precisely when the row was most
+ * crowded. The rung is deleted; `ICON_CHIP_PX` came down to the 44px tap floor
+ * instead, which buys the primary the same pixels without changing what it is.
+ *
+ * Kept as a measurement so a future label that genuinely cannot fit is a
+ * FAILING NUMBER somebody can read, not a silent step-down.
  */
-export function shouldTightenJobStepPrimary({
+export function primaryRoomAfterCompaction({
   width,
   chips,
-  primaryNeedPx,
 }: {
   width: number;
   chips: number;
-  primaryNeedPx: number;
-}): boolean {
-  if (!width || chips === 0) return false;
-  const left = width - chips * ICON_CHIP_PX - JOB_STEP_ROW_GAP_PX * chips;
-  return left < primaryNeedPx;
+}): number {
+  if (!width) return 0;
+  return width - chips * ICON_CHIP_PX - JOB_STEP_ROW_GAP_PX * chips;
 }
 
 /** Width of `text`'s longest word in `like`'s font — or, with `lines`, the
@@ -178,21 +192,23 @@ function chipNeedPx(chip: Element): number {
 
 /** The primary control(s): the label on at most TWO lines ("Confirm They're
  *  Working" stacked three words high read as a squeezed button, not a primary)
- *  + its icon + px-2 each side.
+ *  + px-1 each side + the hairline.
  *
- *  Measured at the `sm` Button's 14px, NOT the rendered size: the tight mode
- *  this feeds shrinks the rendered font, and measuring that would flip the
- *  decision back on the next pass — a render loop. */
+ *  Measured at 11px — the row's ONE type size (JOB_ROW_LABEL_CLASS) — and no
+ *  longer at the `sm` Button's 14px: the primary is the same stacked chip as
+ *  its neighbours now, so its icon sits ABOVE the label and costs the label no
+ *  width at all. The old +16 icon and +20 padding terms came from the inline
+ *  shape and over-reserved ~36px, which is part of what pushed short rows into
+ *  compaction earlier than they needed to be. */
 function primaryNeedPx(primaryHost: Element): number {
   const buttons = [...primaryHost.children];
   if (buttons.length === 0) return 0;
-  const per = buttons.map((b) => longestWordPx(b, (b.textContent || "").trim(), 2, "14px") + 16 + 20 + 2);
+  const per = buttons.map((b) => longestWordPx(b, (b.textContent || "").trim(), 2, "11px") + 12);
   return per.reduce((a, b) => a + b, 0) + JOB_STEP_ROW_GAP_PX * (buttons.length - 1);
 }
 
 export interface JobStepRowLayout {
   compact: boolean;
-  tight: boolean;
   hasPrimary: boolean;
   empty: boolean;
 }
@@ -205,7 +221,7 @@ export function measureJobStepRow(row: HTMLElement): JobStepRowLayout {
   const chipEls = [...row.children].filter((c) => c !== primaryHost);
   const width = row.getBoundingClientRect().width;
   const empty = !hasPrimary && chipEls.length === 0;
-  if (!width) return { compact: false, tight: false, hasPrimary, empty };
+  if (!width) return { compact: false, hasPrimary, empty };
   const chipNeed = chipEls.reduce((m, c) => Math.max(m, chipNeedPx(c)), 0) || LABELLED_CHIP_MIN_PX;
   const primaryNeed = hasPrimary && primaryHost ? primaryNeedPx(primaryHost) : 0;
   const compact = shouldCompactJobStepRow({
@@ -215,7 +231,5 @@ export function measureJobStepRow(row: HTMLElement): JobStepRowLayout {
     chipNeedPx: chipNeed,
     primaryNeedPx: primaryNeed,
   });
-  const tight =
-    compact && hasPrimary && shouldTightenJobStepPrimary({ width, chips: chipEls.length, primaryNeedPx: primaryNeed });
-  return { compact, tight, hasPrimary, empty };
+  return { compact, hasPrimary, empty };
 }

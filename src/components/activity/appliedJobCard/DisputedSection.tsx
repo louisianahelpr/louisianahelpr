@@ -219,10 +219,22 @@ export function DisputedSection({
         afterUrls={job.proof_after_urls || []}
         canUpload={false}
       />
-    ) : (
-      <HelperPhotoAsk jobId={app.job_id} job={job} step="dispute" />
-    )
+    ) : null
   ) : null;
+
+  /* THE EVIDENCE CAPTURE, ON THE ROW (owner, 2026-09-19: "before and after
+     buttons should also be on the same lines as the other buttons"). It used
+     to be a panel in the `ask` slot above the row. Same rule as the two live
+     steps, and the same component — a dispute is not a special case.
+
+     It renders nothing once both photos exist (the read-only group above takes
+     over) and nothing on a no-photos-required job, so this row is 4-up or
+     5-up. The 5-up at 320 is the tightest row in the app: four 44px icon-only
+     chips leave the primary ~56px, and "Withdraw" measures ~50px at 11px —
+     inside it, but by 4px. Eyeball it before believing it. */
+  const photoChip = job.poster_confirmed_working_at && !hasAllProof
+    ? <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="dispute" />
+    : null;
 
   const body = (
     <>
@@ -402,6 +414,7 @@ export function DisputedSection({
      them, so this row is a 3-up for the same reason every other state's row is
      the width it is. */
   const actions = [
+        photoChip,
         <JobActionChip
           key="timeline"
           // Its own icon, not the AlertTriangle Contact Admin also wore: on the

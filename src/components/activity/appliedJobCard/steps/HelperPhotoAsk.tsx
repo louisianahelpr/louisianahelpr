@@ -1,15 +1,30 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { PhotoProofStep } from "@/components/PhotoProof";
+import { PhotoProofCaptureChip } from "@/components/PhotoProof";
 import { queryKeys } from "@/lib/queryKeys";
 import type { Job } from "../../activityConstants";
 
 /**
- * ONE photo ask, belonging to the step the card is on.
+ * ONE photo ask, belonging to the step the card is on — AS A CONTROL ON THE
+ * CARD'S ACTION ROW.
  *
  * Owner, 2026-09-11: uploads "tie to tracker steps instead of sitting
  * always-on… one ask at a time, at the moment it makes sense". The group view
  * (PhotoProofGroup) stays the REVIEW surface — a completed job being looked
  * back on — and is never the ask on a live one.
+ *
+ * Owner again, 2026-09-19: "before and after buttons should also be on the
+ * same lines as the other buttons." This used to render `PhotoProofStep` into
+ * the card's `ask` slot: a titled panel with a hint line and a full-width "Add
+ * Photo" button, stacked ABOVE the one action row VN-21 asked for. It is now a
+ * single chip IN that row, the same object as Message and the primary beside
+ * it (`PhotoProofCaptureChip`). The panel is gone rather than left behind with
+ * its button removed — a heading and a hint with no control is not an ask.
+ *
+ * The one-line hint went with it, and that is the deliberate trade: the label
+ * ("Before Photo" / "After Photo") plus the dialog's own "Before photos"
+ * heading carry it, and the helper's blocked "Mark Job Complete" already
+ * states the rule in full (`requiredProof().reason`) at the step where it
+ * actually bites.
  *
  * The per-step order, and why:
  *
@@ -23,7 +38,8 @@ import type { Job } from "../../activityConstants";
  *              second, so it only ever appears once the After exists.
  *   dispute  → chronological, Before then After: this is evidence, not a step.
  *
- * Once a photo exists its ask is gone, so a satisfied job renders nothing here.
+ * Once a photo exists its ask is gone, so a satisfied job renders nothing here
+ * and the row is one control shorter.
  */
 export function HelperPhotoAsk({
   jobId,
@@ -67,26 +83,21 @@ export function HelperPhotoAsk({
   const afterUrls = job.proof_after_urls || [];
 
   const beforeAsk = (
-    <PhotoProofStep
+    <PhotoProofCaptureChip
       jobId={jobId}
       type="before"
       existingUrls={beforeUrls}
       onUploaded={readBack}
-      title="Add a before photo"
-      hint="Show the job as you found it, before you start."
+      label="Before Photo"
     />
   );
   const afterAsk = (
-    <PhotoProofStep
+    <PhotoProofCaptureChip
       jobId={jobId}
       type="after"
       existingUrls={afterUrls}
       onUploaded={readBack}
-      title="Add an after photo"
-      // Deliberately does NOT repeat "the proof that releases your payment":
-      // the tracker's own disabled-Done reason, rendered under the same
-      // condition a little above, already says it.
-      hint="Show the finished work. This is what unlocks Done."
+      label="After Photo"
     />
   );
 

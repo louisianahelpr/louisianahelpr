@@ -564,7 +564,7 @@ function AppliedJobCardInner({
             <OfferedActions app={app} job={job} onHelperResponse={onHelperResponse} respondingHelperAppId={respondingHelperAppId} />
           )}
 
-          /* ── BEHIND THE EXPAND, AS ON MY POSTS (owner, 2026-09-19) ──────
+          {/* ── BEHIND THE EXPAND, AS ON MY POSTS (owner, 2026-09-19) ──────
              "jobs should open collapsed just like post does."
 
              The premise needed correcting before the fix: this card ALREADY
@@ -587,7 +587,7 @@ function AppliedJobCardInner({
                  for it to move.
 
              What replaces the rail on a collapsed card is the COMPACT rail at
-             the bottom of this card — 16px dots, no labels. */
+             the bottom of this card — 16px dots, no labels. */}
           {/* Confirmed: show tracking + message */}
           {isConfirmed && isExpanded && (
             <ConfirmedSection

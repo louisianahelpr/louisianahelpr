@@ -5,7 +5,7 @@ import { persistUserLocation } from "@/lib/persistUserLocation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { resolveParishByZip } from "@/lib/parishLookup";
 import { getParishCentroid } from "@/lib/parishCentroids";
-import { isPreciseFixAccuracy, isWithinServiceArea } from "@/lib/geo";
+import { isPreciseFixAccuracy } from "@/lib/geo";
 
 /**
  * Where a "ready" position came from, in the order the product wants them
@@ -38,7 +38,7 @@ export type GeoState =
     }
   | { status: "error"; message: string };
 
-let cached: { lat: number; lng: number; ts: number } | null = null;
+let cached: { lat: number; lng: number; ts: number; approximate: boolean } | null = null;
 const TTL = 5 * 60 * 1000;
 
 /**
@@ -94,19 +94,20 @@ async function deriveFallbackLocation(
   //    through PostgREST, so coerce — a typeof-number check silently skips
   //    this branch for every real row.
   //
-  //    `isWithinServiceArea` is NOT belt-and-braces here, it is load-bearing.
-  //    This branch is where the reported defect actually came from: the
-  //    account's row held 37.4728 / -122.2444 (Menlo Park, CA) alongside a
-  //    Louisiana ZIP, and this function handed it back as `approximate: false`
-  //    — a "real fix" — on every load. A stored coordinate outside the area
-  //    this app serves is not a helpr who travelled, it is a fix that should
-  //    never have been written (see geo.ts), and the ZIP one line down is a
-  //    better answer than it in every case. Falling through rather than
-  //    returning is the fix for the READ side; the accuracy + service-area
-  //    gate in onSuccess below is the fix for the WRITE side.
+  //    A STORED COORDINATE IS NEVER SECOND-GUESSED BY ITS GEOGRAPHY. fecdbf6e7
+  //    added an `isWithinServiceArea` test here, on the theory that the
+  //    account's row (37.4728 / -122.2444, Menlo Park CA, beside a Louisiana
+  //    ZIP) had to be an IP guess. The owner was in Menlo Park. The row is
+  //    correct, and the gate's effect was to replace a real Californian
+  //    position with the Erath parish centroid — telling a user in California
+  //    that they were a few miles from a New Iberia job, and handing that
+  //    invented origin to radius search, applicant proximity and
+  //    get_neighbor_hire_count. Out-of-state is not evidence of a bad fix:
+  //    people travel, relocate, and own Louisiana property from elsewhere.
+  //    The only test left is "is it a number".
   const lat = profile.latitude == null ? NaN : Number(profile.latitude);
   const lng = profile.longitude == null ? NaN : Number(profile.longitude);
-  if (Number.isFinite(lat) && Number.isFinite(lng) && isWithinServiceArea(lat, lng)) {
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
     return { lat, lng, source: "profile", approximate: false };
   }
 
@@ -162,7 +163,13 @@ export function useUserLocation(enabled: boolean): GeoState {
     };
 
     if (cached && Date.now() - cached.ts < TTL) {
-      setState({ status: "ready", lat: cached.lat, lng: cached.lng, source: "device", approximate: false });
+      setState({
+        status: "ready",
+        lat: cached.lat,
+        lng: cached.lng,
+        source: "device",
+        approximate: cached.approximate,
+      });
       return;
     }
     if (!isNativePlatform && (typeof navigator === "undefined" || !navigator.geolocation)) {
@@ -171,60 +178,42 @@ export function useUserLocation(enabled: boolean): GeoState {
     }
 
     /**
-     * A GEOLOCATION "SUCCESS" IS NOT THE SAME THING AS A FIX.
+     * A SUCCESS IS KEPT. WHAT VARIES IS HOW MUCH WE CLAIM ABOUT IT.
      *
-     * This is the write side of the 2026-09-19 defect (see geo.ts for the
-     * full reproduction). When a browser can see no GPS, no Wi-Fi and no cell
-     * — a VPN, iCloud Private Relay, location services degraded — it does not
-     * call the error callback. It calls THIS one, with a position derived
-     * from the egress IP address and an `accuracy` in the tens of kilometres.
-     * The reporting account received 37.4728 / -122.2444, Menlo Park,
-     * California, while holding ZIP 70528 in Erath, Louisiana.
+     * fecdbf6e7 routed any fix outside Louisiana+2° — and any fix the platform
+     * called coarse — to `failWith`, i.e. threw the coordinates away and
+     * derived a parish centroid from the signup ZIP instead. That was built on
+     * a misdiagnosis: the owner really was in Menlo Park (see geo.ts). The
+     * result was an app that answered "we don't know where you are" to a user
+     * whose browser had just told it exactly where they were, and then
+     * substituted a point 1,600 miles from them.
      *
-     * Nothing here looked at `accuracy`, and nothing asked whether the answer
-     * was inside the area this app serves. So the guess was cached as a
-     * device fix, written to `profiles.latitude/longitude` (whose header in
-     * persistUserLocation.ts says "A PRECISE DEVICE FIX, and nothing else"),
-     * and thereafter re-read as ground truth by the distance pill, the radius
-     * filter, applicant proximity and the neighbour-hire count.
+     * So there is no geography test here at all, and the accuracy test no
+     * longer discards. A position we received is a position we keep:
      *
-     * Two gates, in the order they can be decided:
+     *   • It is always cached and always surfaced, whatever its accuracy and
+     *     wherever on earth it is. Downstream (the radius filter, the pill,
+     *     applicant proximity) gets the viewer's real origin.
+     *   • `approximate` carries the platform's own confidence forward, so a
+     *     surface quoting a small number of miles can say it is rough instead
+     *     of implying a GPS-grade measurement.
+     *   • Only the PROFILE WRITE is gated. `profiles.latitude/longitude` is
+     *     documented in persistUserLocation.ts as "A PRECISE DEVICE FIX, and
+     *     nothing else" and `get_neighbor_hire_count` runs a sub-mile test on
+     *     it, so a 40 km-accurate point must not land there. A coarse fix
+     *     lives for this session and is not made permanent.
      *
-     *   • ACCURACY — what the platform itself tells us about the fix. An IP
-     *     answer is orders of magnitude coarser than any radio one.
-     *   • SERVICE AREA — what the app knows about its own world. Every job is
-     *     in Louisiana; a viewer 1,600 miles away cannot be measured against
-     *     one usefully, whatever the platform claims about precision. This is
-     *     the gate that actually catches the reported case, because an IP fix
-     *     can and does come back with a confident-looking accuracy.
-     *
-     * A fix that fails either is routed to `failWith`, NOT to an error: the
-     * account almost certainly told us its ZIP at signup, and a parish
-     * centroid flagged `approximate` is both more correct and more honest
-     * than a precise-looking coordinate on the wrong continent.
+     * `failWith` is for a position we never received. It is not reachable from
+     * here, and the class guard asserts that.
      */
     const onSuccess = (lat: number, lng: number, accuracyMeters?: number | null) => {
-      if (!isPreciseFixAccuracy(accuracyMeters)) {
-        failWith("Couldn't get an accurate location");
-        return;
-      }
-      if (!isWithinServiceArea(lat, lng)) {
-        failWith("Couldn't get your location");
-        return;
-      }
-      cached = { lat, lng, ts: Date.now() };
-      setState({ status: "ready", lat, lng, source: "device", approximate: false });
-      // Persist the fix to the signed-in user's profile. This is the ONLY
-      // funnel a granted position passes through on either platform, which is
-      // why the write lives here rather than at the two call sites.
-      //
-      // Until now the fix died in the module cache above after five minutes,
-      // so `profiles.latitude/longitude` had three readers and no writer and
-      // every distance feature was inert for real accounts. Deliberately not
-      // awaited: the radius filter the user actually asked for must not wait
-      // on a round trip, and `persistUserLocation` reports its own failures
-      // rather than swallowing them.
-      void persistUserLocation(lat, lng);
+      const precise = isPreciseFixAccuracy(accuracyMeters);
+      cached = { lat, lng, ts: Date.now(), approximate: !precise };
+      setState({ status: "ready", lat, lng, source: "device", approximate: !precise });
+      // Deliberately not awaited: the radius filter the user actually asked
+      // for must not wait on a round trip, and `persistUserLocation` reports
+      // its own failures rather than swallowing them.
+      if (precise) void persistUserLocation(lat, lng);
     };
 
     // Native (Capacitor) reads through @capacitor/geolocation so iOS/Android

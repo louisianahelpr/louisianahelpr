@@ -9,7 +9,6 @@ import { formatCategory } from "@/lib/format";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { getCity } from "@/lib/locationUtils";
-import { plausibleTripMiles } from "@/lib/geo";
 import { IconActionButton } from "./IconActionButton";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import type { EnrichedJob } from "./types";
@@ -808,18 +807,24 @@ const JobDetailDialog = ({
           </div>
         )}
 
-        {/* BOUNDED on the way in. The Where tile renders `~N mi` straight
-            from this number, and nothing between the haversine in
-            useJobDetailData and those pixels asked whether N could be right:
-            on 2026-09-19 the same viewer origin that put "1634 mi" on the
-            browse cards put it here too (geo.ts carries the reproduction).
-            The drive-time half beside it is already bounded inside
-            useDrivingTime, so this is the miles half of the same rule, and it
-            is applied at the boundary rather than inside the tile so the
-            tile's own composition ("12 min · ~4 mi", either half alone) keeps
-            working unchanged — a null simply drops the distance the way a
-            missing centroid already does. */}
-        <JobStatTiles job={job} distMilesForDriving={plausibleTripMiles(distMilesForDriving)} drivingLabel={drivingLabel} />
+        {/* THE TRUE DISTANCE, UNSUPPRESSED — this is the one surface that
+            should state it.
+
+            fecdbf6e7 wrapped this number in a bound that returned null past
+            500 mi, on the belief that "1634 mi" was a symptom of a bad origin.
+            It was not: the owner was in Menlo Park and the figure was correct
+            (geo.ts). Hiding it here was the wrong half of that fix. The browse
+            card suppresses the pill because a commute estimate on a scan row
+            is noise; the detail sheet is the opposite case — the user has
+            opened THIS job and asked about it, there is room for a full
+            answer, and "we know where you are but won't say how far" would be
+            a worse answer than the mileage.
+
+            The drive-time half beside it is still absent, and correctly so:
+            `drivingLabel` comes from useDrivingTime, which declines to
+            estimate a drive nobody drives. So the Where tile reads "~1634 mi"
+            with no ETA — true, and not pretending to be a commute. */}
+        <JobStatTiles job={job} distMilesForDriving={distMilesForDriving} drivingLabel={drivingLabel} />
         </div>
         {/* Posted-by — always visible now, no toggle (owner: "remove
             details and put posted by info here"). Poster card is

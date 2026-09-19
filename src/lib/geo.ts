@@ -21,87 +21,82 @@ export function parseNearbyFilter(value: string): number | null {
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
- * TRUST AND BOUNDS FOR A DISTANCE OR ETA SHOWN TO A USER
+ * TRUST AND PRESENTATION FOR A DISTANCE OR ETA SHOWN TO A USER
  *
- * Owner report, 2026-09-19, /dashboard: the browse cards read
- * "27h 6m · 1634 mi", "29h 52m · 1813 mi", "29h 28m · 1797 mi",
- * "28h 23m · 1731 mi" for jobs in Shreveport, New Iberia, Lafayette and Lake
- * Charles. Every job row was correct. The ORIGIN was not.
+ * ── THE REPORT ─────────────────────────────────────────────────────────────
+ * Owner, 2026-09-19, /dashboard: the browse cards read "27h 6m · 1634 mi",
+ * "29h 52m · 1813 mi", "29h 28m · 1797 mi", "28h 23m · 1731 mi" for jobs in
+ * Shreveport, New Iberia, Lafayette and Lake Charles — "why is this showing
+ * here it hasnt before".
  *
- * REPRODUCED EXACTLY. `profiles` for the reporting account on prod
- * (fncmgoasalhdgfwzhsqa) held
- *     latitude  37.47282350893211
- *     longitude -122.2443517921565
- *     location_captured_at 2026-09-19 21:00:08+00
- *     zip_code 70528 (Erath, LA)   parish Vermilion
- * i.e. Menlo Park, California, written THAT DAY by persistUserLocation from a
- * `navigator.geolocation` "success". haversineMiles from that point to the
- * four parish centroids returns 1633.74 / 1813.15 / 1796.52 / 1731.37 — the
- * four numbers on the owner's screen, to the mile. The maths was never wrong.
+ * ── THE FIRST DIAGNOSIS, AND WHY IT WAS WRONG ──────────────────────────────
+ * fecdbf6e7 concluded the ORIGIN was bad: `profiles` held
+ * 37.47282350893211 / -122.2443517921565 — Menlo Park, California —
+ * `location_captured_at` that same day, beside ZIP 70528 (Erath, LA). That
+ * looked exactly like the known failure mode where a browser with no GPS,
+ * Wi-Fi or cell answers the SUCCESS callback from the egress IP. So a
+ * service-area gate (Louisiana + 2°) was added, and any fix outside it was
+ * thrown away and replaced with the signup ZIP's parish centroid.
  *
- * So there are two separate defects, and both are closed here:
+ * THE OWNER WAS ACTUALLY IN MENLO PARK. "Yes I'm in Menlo Park rn."
  *
- *   1. AN ORIGIN THE APP HAD NO BUSINESS TRUSTING. A browser that cannot see
- *      GPS, Wi-Fi or cell (VPN, iCloud Private Relay, location services
- *      degraded) does not fail — it succeeds, with an IP-derived guess.
- *      `useUserLocation` accepted it, cached it, and persistUserLocation wrote
- *      it into the two columns whose own header says "A PRECISE DEVICE FIX,
- *      and nothing else". From then on it was re-read as `source: "profile",
- *      approximate: false` forever. `isWithinServiceArea` is the gate.
+ * The coordinate was a correct fix from a real user who had travelled. The
+ * 1,634 miles was TRUE. And the gate built on top of that misreading was
+ * strictly worse than the bug it replaced: it discarded a real position and
+ * substituted Erath, Louisiana — so the app would have told a user standing in
+ * California that they were ~5 mi from a New Iberia job, and fed that
+ * fabricated origin to server-side radius search, applicant proximity and
+ * get_neighbor_hire_count. A false "we don't know where you are" is bad; a
+ * confident wrong answer is worse.
  *
- *   2. A NUMBER NOTHING BOUNDED. Nowhere between the haversine and the pixels
- *      did anything ask whether the answer was possible. A Louisiana
- *      marketplace cannot produce a 27-hour commute, and a chip that says it
- *      does is worse than no chip. `plausibleTripMiles` / -`Minutes` are that
- *      bound, and they are defence in depth: they hold even when a future
- *      origin goes wrong in a way the service-area gate does not catch.
+ * ── WHAT THE EVIDENCE ACTUALLY SUPPORTS ────────────────────────────────────
+ * Geography is not evidence about a fix. Travelling helprs, relocating users
+ * and out-of-state owners of Louisiana property are all legitimate viewers,
+ * and none of them can be distinguished from an IP guess by looking at a
+ * latitude. `isWithinServiceArea` is therefore DELETED, not relaxed — a
+ * threshold on the wrong signal has no correct value.
+ *
+ * Two things survive, and they are different in kind:
+ *
+ *   ACCURACY (`isPreciseFixAccuracy`) is a real signal, because the platform
+ *   is telling us about its own confidence rather than us inferring from the
+ *   answer. But it no longer DISCARDS anything: a coarse fix is still the best
+ *   information we have about where the viewer is. It is demoted — flagged
+ *   `approximate` and kept out of the precise-fix columns — never dropped.
+ *
+ *   COMMUTE RANGE (`isCommutableDistance`) is not a truth claim at all. The
+ *   real defect in the owner's screenshot was PRESENTATION: a 27-hour drive is
+ *   not a commute, and printing it on every card in a feed is noise whether or
+ *   not it is accurate. The number is true and stays available where the user
+ *   asks for it; what it must not do is masquerade as a commute estimate.
  * ──────────────────────────────────────────────────────────────────────────── */
 
 /**
- * Louisiana plus a border margin — the area a viewer of THIS app can be in
- * and still have "miles to this job" mean something.
- *
- * The state's own bounds are lat 28.9285…33.0195, lng -94.0430…-88.7581. The
- * margin is 2°, which is ~138 mi of latitude and ~120 mi of longitude at this
- * latitude, so the box reaches Houston, Little Rock, Jackson and Mobile: a
- * real helpr who is out of state for the week still gets a real distance.
- *
- * It does NOT reach Dallas, Memphis, Atlanta — or Menlo Park. A position
- * outside this box is not a helpr standing somewhere unusual, it is a fix the
- * app should not have believed, and the honest answer is to fall back to what
- * the account told us at signup (its ZIP → parish) and say the result is
- * approximate.
- */
-export const SERVICE_AREA_BOUNDS = {
-  minLat: 28.9285 - 2,
-  maxLat: 33.0195 + 2,
-  minLng: -94.043 - 2,
-  maxLng: -88.7581 + 2,
-} as const;
-
-/** True when a coordinate could plausibly be a viewer of a Louisiana marketplace. */
-export function isWithinServiceArea(lat: number, lng: number): boolean {
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
-  return (
-    lat >= SERVICE_AREA_BOUNDS.minLat &&
-    lat <= SERVICE_AREA_BOUNDS.maxLat &&
-    lng >= SERVICE_AREA_BOUNDS.minLng &&
-    lng <= SERVICE_AREA_BOUNDS.maxLng
-  );
-}
-
-/**
- * How coarse a positioning "success" may be and still be treated as a FIX.
+ * How coarse a positioning "success" may be and still be called a FIX.
  *
  * `GeolocationCoordinates.accuracy` is metres at 95% confidence. GPS lands
- * under 50, Wi-Fi trilateration 20–3,000, a cell tower 1,000–5,000. The
- * IP-address fallback — the branch that produced the Menlo Park coordinate —
- * is tens of kilometres at its very best and is routinely hundreds. 10 km
- * therefore sits above every radio-derived fix and below every IP one.
+ * under 50, Wi-Fi trilateration 20–3,000, a cell tower 1,000–5,000. An
+ * IP-derived answer is tens of kilometres at best and routinely hundreds. 10km
+ * sits above every radio-derived fix and below every IP one.
  *
- * A platform that reports NO accuracy is treated as UNKNOWN rather than
- * untrusted: it still has to pass `isWithinServiceArea`, but we do not throw
- * away a fix merely because the shim was terse.
+ * WHAT FAILING THIS NOW COSTS, and why the ceiling is safe to keep. It used to
+ * mean "throw the coordinates away", which made a false negative catastrophic:
+ * the viewer's true position was replaced by a ZIP centroid a thousand miles
+ * off. It now means only "do not call this precise" — the position is still
+ * used, still measured against, still shown; it is flagged `approximate`, and
+ * it is not written to `profiles.latitude/longitude`. That write gate is the
+ * point. Those columns are documented in persistUserLocation.ts as "A PRECISE
+ * DEVICE FIX, and nothing else", and `get_neighbor_hire_count` runs a SUB-MILE
+ * test against them — a 40 km-accurate point stored there would report half a
+ * city as one another's neighbours. So the cost of a false negative is now a
+ * flag, and the cost of a false positive is a broken neighbour test.
+ *
+ * NOTE ON VERIFICATION: `profiles` stores no accuracy column, so the owner's
+ * stored row cannot tell us what accuracy its fix carried. The ceiling is
+ * therefore justified by what failing it now costs, not by that row.
+ *
+ * A platform that reports NO accuracy is treated as precise rather than
+ * coarse: a terse shim is not evidence of a bad fix either.
  */
 export const MAX_TRUSTED_FIX_ACCURACY_M = 10_000;
 
@@ -112,45 +107,65 @@ export function isPreciseFixAccuracy(accuracyMeters: number | null | undefined):
 }
 
 /**
- * The longest trip a browse-surface distance chip may claim, in miles.
+ * The longest straight-line trip a browse card may describe as a commute.
  *
- * MEASURED, not guessed. Against src/lib/parishCentroids.ts, the widest pair
- * of Louisiana parish centroids — the widest trip this pill is CAPABLE of
- * describing, since the destination is always a parish centroid — is
- * Caddo ↔ Plaquemines at 329.4 mi. The state's own bounding-box diagonal is
- * 421.7 mi. 500 clears the widest real trip by ~170 mi and the diagonal by
- * ~78 mi, so a viewer up to roughly 80 mi outside the state line still sees a
- * pill for the farthest parish in it. Shreveport ↔ New Orleans (~275 mi), the
- * longest journey anyone would actually call a long job, is well inside.
+ * This is NOT a claim that a larger number is false. The viewer may be
+ * anywhere on earth and the distance to a Louisiana job may legitimately be
+ * 1,634 miles. It is a claim about USEFULNESS: past this, "how far" stops
+ * being a thing a helpr weighs against a $120 job and starts being trivia,
+ * and the drive-time estimate beside it stops describing a drive anyone takes.
  *
- * The reported values were 1634–1813 mi: 3.3–3.6× the bound.
+ * 500 mi is chosen so that it can never suppress a trip inside this
+ * marketplace, from any viewer who could plausibly take it. Measured against
+ * src/lib/parishCentroids.ts, the widest pair of Louisiana parish centroids —
+ * the widest trip this pill is CAPABLE of describing, since the destination is
+ * always a centroid — is Caddo ↔ Plaquemines at 329.4 mi, and the state's own
+ * bounding-box diagonal is 421.7 mi. So a viewer up to ~80 mi outside the
+ * state line still gets a number for the farthest parish in it, and a viewer
+ * in Houston, Jackson or Mobile keeps every card they had.
+ *
+ * Unlike the deleted service-area gate, this threshold is applied to the TRIP,
+ * not to the viewer. It never decides that a user is illegitimate, never
+ * discards a coordinate, and never makes the app claim it does not know where
+ * someone is.
  */
-export const MAX_PLAUSIBLE_TRIP_MILES = 500;
+export const COMMUTE_RANGE_MILES = 500;
 
-/**
- * And in minutes, because the drive-time half has its own way of going wrong:
- * MapKit Directions returns a REAL route, so it does not have to agree with
- * the straight line beside it. 500 mi of driving is about 8 hours; 720 min
- * (12h) clears that at an average of 42 mph and still refuses the 27h 6m the
- * owner was shown.
- */
-export const MAX_PLAUSIBLE_TRIP_MINUTES = 720;
-
-/**
- * The miles a user may be shown, or null when the number cannot be right.
- *
- * Returning null rather than clamping is deliberate: a clamped "500 mi" is
- * still a claim, and it is still false. The chip's callers already render
- * nothing for null, so an impossible distance degrades to the same quiet
- * absence as an unknown one.
- */
-export function plausibleTripMiles(miles: number | null | undefined): number | null {
-  if (miles == null || !Number.isFinite(miles) || miles < 0) return null;
-  return miles > MAX_PLAUSIBLE_TRIP_MILES ? null : miles;
+/** True when "X mi away" is a commute a helpr might actually weigh. */
+export function isCommutableDistance(miles: number | null | undefined): boolean {
+  const m = tripMiles(miles);
+  return m != null && m <= COMMUTE_RANGE_MILES;
 }
 
-/** Same rule for the drive-time half. */
-export function plausibleTripMinutes(minutes: number | null | undefined): number | null {
+/**
+ * A usable mileage, or null.
+ *
+ * Rejects only what is not a number — null, NaN, Infinity, negative. It does
+ * NOT reject large values: that was the mistake. 1,634 mi is a number, and the
+ * job detail renders it.
+ */
+export function tripMiles(miles: number | null | undefined): number | null {
+  if (miles == null || !Number.isFinite(miles) || miles < 0) return null;
+  return miles;
+}
+
+/**
+ * A drive time is only ever shown for a trip already inside COMMUTE_RANGE_MILES
+ * (useDrivingTime enforces that first), so this is the second axis of the same
+ * question: given a straight line under 500 mi, no honest road route takes
+ * longer than this.
+ *
+ * MapKit Directions answers with a REAL route, which can disagree wildly with
+ * the straight line beside it — a ferry leg, a seasonal closure, a routing
+ * error. 500 mi of driving is about 8 hours; 12h clears that at an average of
+ * 42 mph. This bound is safe to keep knowing the viewer may be anywhere,
+ * because it is conditioned on a distance that is already commutable — it can
+ * only ever fire on a route that contradicts its own straight line.
+ */
+export const MAX_COMMUTE_MINUTES = 720;
+
+/** The minutes half of the same rule. */
+export function commuteMinutes(minutes: number | null | undefined): number | null {
   if (minutes == null || !Number.isFinite(minutes) || minutes < 0) return null;
-  return minutes > MAX_PLAUSIBLE_TRIP_MINUTES ? null : minutes;
+  return minutes > MAX_COMMUTE_MINUTES ? null : minutes;
 }

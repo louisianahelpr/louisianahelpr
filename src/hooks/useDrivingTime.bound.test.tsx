@@ -1,16 +1,28 @@
 /**
  * THE ETA HALF OF THE 2026-09-19 CHIP — "27h 6m · 1634 mi".
  *
+ * CORRECTION (read this before the assertions). The first fix called that
+ * number impossible and hunted the origin. It was not impossible: the owner
+ * confirmed "Yes I'm in Menlo Park rn", so the 1,634 miles and the 27 hours
+ * were both TRUE. What is wrong with them is that a 27-hour drive is not a
+ * commute, and this hook exists to answer "is it worth the drive".
+ *
+ * So the rule these tests pin is about the TRIP, not the viewer. Nothing here
+ * decides a coordinate is untrustworthy, and nothing discards one — the hook
+ * simply declines to estimate a drive nobody takes, and the distance stays
+ * available to any surface that wants to state it plainly (the job detail's
+ * Where tile does exactly that).
+ *
  * `useDrivingTime` is the single funnel every drive-time label in this app
  * passes through: JobCard's browse meta pill and the job detail's Where tile
- * (via jobDetailDialog/useJobDetailData). So the bound lives in the hook, and
+ * (via jobDetailDialog/useJobDetailData). So the rule lives in the hook, and
  * these tests are what prove both surfaces inherit it — the detail dialog is
  * covered here without a second render of it.
  *
  * Both of the hook's branches are exercised, because they fail differently:
- * the heuristic derives minutes FROM miles (so an impossible distance must
- * not mint a possible-looking duration), while MapKit answers with a REAL
- * route that need not agree with the straight line beside it.
+ * the heuristic derives minutes FROM miles (so a non-commute distance must not
+ * mint a commute-looking duration), while MapKit answers with a REAL route
+ * that need not agree with the straight line beside it.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -19,7 +31,7 @@ let mapKitStatus = "idle";
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => mapKitStatus }));
 
 import { useDrivingTime } from "./useDrivingTime";
-import { MAX_PLAUSIBLE_TRIP_MILES, MAX_PLAUSIBLE_TRIP_MINUTES } from "@/lib/geo";
+import { COMMUTE_RANGE_MILES, MAX_COMMUTE_MINUTES } from "@/lib/geo";
 
 /** The prod coordinate that caused the report, and one of the four jobs. */
 const MENLO_PARK = { lat: 37.47282350893211, lng: -122.2443517921565 };
@@ -32,19 +44,20 @@ beforeEach(() => {
 });
 
 describe("heuristic branch", () => {
-  it("returns nothing for the distance the owner was actually shown", () => {
+  it("declines to estimate a drive for the distance the owner was shown", () => {
     const { result } = renderHook(() =>
       useDrivingTime(MENLO_PARK.lat, MENLO_PARK.lng, SHREVEPORT.lat, SHREVEPORT.lng, 1634),
     );
-    // Before the bound this seeded 1634 × 1.3 ≈ 2124 min and rendered "35h 24m"
-    // — or, once MapKit answered, the "27h 6m" on the screenshot.
+    // Before this rule the heuristic seeded 1634 × 1.3 ≈ 2124 min and rendered
+    // "35h 24m" — or, once MapKit answered, the "27h 6m" on the screenshot.
+    // Both were accurate. Neither was a commute.
     expect(result.current).toBeNull();
   });
 
   it("is null on the FIRST render, not only after an effect", () => {
     // The lazy useState initialiser is a separate code path from the effect,
-    // and it is the one that paints the first frame. An unbounded initial
-    // value would flash the absurd number and then remove it.
+    // and it is the one that paints the first frame. An ungated initial value
+    // would flash the 30-hour figure and then remove it.
     const { result } = renderHook(() =>
       useDrivingTime(MENLO_PARK.lat, MENLO_PARK.lng, SHREVEPORT.lat, SHREVEPORT.lng, 1813),
     );
@@ -56,7 +69,7 @@ describe("heuristic branch", () => {
       useDrivingTime(BATON_ROUGE.lat, BATON_ROUGE.lng, SHREVEPORT.lat, SHREVEPORT.lng, 230),
     );
     expect(result.current).toBe(Math.round(230 * 1.3));
-    expect(result.current!).toBeLessThan(MAX_PLAUSIBLE_TRIP_MINUTES);
+    expect(result.current!).toBeLessThan(MAX_COMMUTE_MINUTES);
   });
 
   it("still estimates a short one", () => {
@@ -66,13 +79,13 @@ describe("heuristic branch", () => {
     expect(result.current).toBe(10);
   });
 
-  it("passes the mileage bound and refuses the value past it", () => {
+  it("estimates at the commute range and declines the value past it", () => {
     const at = renderHook(() =>
-      useDrivingTime(BATON_ROUGE.lat, BATON_ROUGE.lng, SHREVEPORT.lat, SHREVEPORT.lng, MAX_PLAUSIBLE_TRIP_MILES),
+      useDrivingTime(BATON_ROUGE.lat, BATON_ROUGE.lng, SHREVEPORT.lat, SHREVEPORT.lng, COMMUTE_RANGE_MILES),
     );
     expect(at.result.current).not.toBeNull();
     const past = renderHook(() =>
-      useDrivingTime(BATON_ROUGE.lat, BATON_ROUGE.lng, SHREVEPORT.lat, SHREVEPORT.lng, MAX_PLAUSIBLE_TRIP_MILES + 1),
+      useDrivingTime(BATON_ROUGE.lat, BATON_ROUGE.lng, SHREVEPORT.lat, SHREVEPORT.lng, COMMUTE_RANGE_MILES + 1),
     );
     expect(past.result.current).toBeNull();
   });
@@ -104,7 +117,7 @@ describe("MapKit branch", () => {
     };
   }
 
-  it("refuses a real route that is longer than this app can be about", () => {
+  it("declines a real cross-country route — accurate, but not a commute", () => {
     // 27h 6m — the exact duration on the owner's card, which a genuine
     // cross-country MapKit route would return for that origin.
     stubMapKit((27 * 60 + 6) * 60);
@@ -114,9 +127,11 @@ describe("MapKit branch", () => {
     expect(result.current).toBeNull();
   });
 
-  it("refuses an absurd route even when the straight line beside it looks sane", () => {
+  it("declines a route that contradicts its own straight line", () => {
     // A 60-mile hop that MapKit answers with a 20-hour route (a ferry leg, a
-    // closed pass). The miles half would have rendered happily.
+    // closed pass, a routing error). The distance is commutable, so this is
+    // the second axis doing its job: the route disagrees with its own straight
+    // line, and only one of them can be right.
     stubMapKit(20 * 3600);
     const { result } = renderHook(() =>
       useDrivingTime(BATON_ROUGE.lat, BATON_ROUGE.lng, 30.0, -90.5, 60),
@@ -136,8 +151,8 @@ describe("MapKit branch", () => {
     await waitFor(() => expect(result.current).toBe(45));
   });
 
-  it("re-bounds a route it already has cached", async () => {
-    // The cache stores the RAW MapKit answer, so the bound has to be applied
+  it("re-applies the rule to a route it already has cached", async () => {
+    // The cache stores the RAW MapKit answer, so the rule has to be applied
     // again on the way out of it — otherwise the first card in a scroll
     // refuses the number and the second one, served from cache, shows it.
     stubMapKit(19 * 3600);

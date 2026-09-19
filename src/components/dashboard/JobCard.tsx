@@ -14,7 +14,7 @@ import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { getCity } from "@/lib/locationUtils";
-import { haversineMiles, plausibleTripMiles } from "@/lib/geo";
+import { haversineMiles, isCommutableDistance, tripMiles } from "@/lib/geo";
 import { getParishCentroid, getCentroidFromLocation } from "@/lib/parishCentroids";
 import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
@@ -152,19 +152,35 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       ? getParishCentroid((job as { parish?: string | null }).parish) ??
         getCentroidFromLocation(job.location)
       : null;
-  // BOUNDED, and the bound is not decoration. Owner, 2026-09-19: this pill
-  // read "27h 6m · 1634 mi" on a Shreveport job, because the viewer origin
-  // was 1,600 miles outside the state (geo.ts carries the reproduction). The
-  // origin defect is fixed in useUserLocation; this is the second line — a
-  // number this surface cannot possibly be right about does not render at
-  // all. plausibleTripMiles returns null rather than clamping, so an
-  // impossible distance degrades to the same quiet absence as an unknown one
-  // and the row simply reads as it does for a viewer with no location.
-  const distanceMiles = plausibleTripMiles(
+  // THE PILL IS A COMMUTE PILL, SO IT ONLY RENDERS FOR A COMMUTE.
+  //
+  // Owner, 2026-09-19: this read "27h 6m · 1634 mi" on a Shreveport job —
+  // "why is this showing here". The first fix treated that as a wrong number
+  // and blamed the origin. The number was RIGHT: the owner was in Menlo Park
+  // (geo.ts carries the corrected account). What was wrong was printing it
+  // here. This row is the one-line scan a helpr uses to decide whether a job
+  // is worth the drive; "1634 mi" answers a question nobody on this screen is
+  // asking, and repeats itself on all forty cards.
+  //
+  // So beyond commuting range the pill is simply absent — the row reads
+  // exactly as it does for a viewer whose location we never had. That is a
+  // deliberate choice between two honest options ("say something useful" or
+  // "say nothing"): the alternative, a "far from you" chip on every card, is
+  // the same global fact stamped forty times, which is the noise the owner
+  // reported in a different costume. The fact itself is not lost — the job
+  // detail sheet states the real distance, because there the user has asked
+  // about THIS job. A feed-level banner is the right home for the global
+  // version of it; that surface is not this file's to change.
+  //
+  // NOTE what this is NOT: it is not a claim that the viewer is somewhere
+  // illegitimate, and nothing here discards a coordinate. `userLat/userLng`
+  // stay exactly as they arrived and the radius filter still runs on them.
+  const rawTripMiles = tripMiles(
     destCentroid && userLat != null && userLng != null
       ? haversineMiles(userLat, userLng, destCentroid.lat, destCentroid.lng)
       : null,
   );
+  const distanceMiles = isCommutableDistance(rawTripMiles) ? rawTripMiles : null;
   // EVERY value here is approximate and the visible text now says so.
   //
   // It always was: open_jobs_browse masks precise job coordinates on purpose,

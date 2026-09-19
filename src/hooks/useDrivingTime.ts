@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
-import { plausibleTripMiles, plausibleTripMinutes } from "@/lib/geo";
+import { commuteMinutes, isCommutableDistance } from "@/lib/geo";
 
 /**
  * Lightweight driving-time estimator for the dashboard JobCard meta row.
@@ -48,30 +48,36 @@ function heuristicMinutes(miles: number): number {
 }
 
 /**
- * THE ONLY GATE BETWEEN A BROKEN ORIGIN AND AN ABSURD ETA ON SCREEN.
+ * A DRIVE TIME IS ONLY OFFERED FOR A TRIP SOMEONE WOULD DRIVE.
  *
- * Owner, 2026-09-19, /dashboard: "27h 6m · 1634 mi" on a Shreveport job.
- * Both halves of that chip came from here and from the haversine beside it,
- * and neither asked whether the answer was possible — so a viewer origin
- * 1,600 miles out of the service area (see geo.ts for the reproduction)
- * rendered a 27-hour commute on the app's main screen.
+ * Owner, 2026-09-19, /dashboard: "27h 6m · 1634 mi" on a Shreveport job —
+ * "why is this showing here". The first fix read that as a falsehood and
+ * hunted the origin. It was not false: the owner was in Menlo Park and the
+ * figures were correct to the mile (geo.ts carries the corrected account).
  *
- * The bound lives in the HOOK rather than at each call site on purpose:
+ * The defect was that a 27-hour drive is not a commute. "How long is the
+ * drive" is a question a helpr asks when they are deciding whether a $120 job
+ * is worth the trip; past a few hundred miles it stops being that question and
+ * becomes trivia dressed as a commute estimate. So this hook declines to
+ * answer rather than answering uselessly — and it declines because of the
+ * TRIP, never because of the viewer. No coordinate is discarded here and none
+ * is called untrustworthy; the distance itself remains available to callers
+ * that want to state it plainly (the job detail's Where tile does).
+ *
+ * The gate lives in the HOOK rather than at each call site on purpose:
  * `useDrivingTime` is the single funnel every drive-time label in the app
  * passes through (JobCard's meta pill and the job detail's Where tile, via
- * useJobDetailData), so one gate here covers both, and any future caller
- * inherits it instead of having to remember it.
+ * useJobDetailData), so one rule here covers both and any future caller
+ * inherits it.
  *
- * `miles` is bounded too, not just the minutes: the heuristic branch derives
- * minutes FROM miles, so an out-of-bounds distance must not be allowed to
- * mint an in-bounds-looking duration on the way through. And the MapKit
- * branch answers with a real route, which can be absurd on its own even when
- * the straight line beside it looks sane — a ferry leg, a closed pass — so
- * the minutes are checked again on the way out.
+ * `commuteMinutes` is the second axis, and it is conditioned on the first:
+ * given a straight line already under COMMUTE_RANGE_MILES, a real MapKit route
+ * that claims more than 12 hours is contradicting its own straight line (a
+ * ferry leg, a closed pass, a routing error), so it is not shown either.
  */
-function boundedMinutes(miles: number | null, minutes: number | null): number | null {
-  if (plausibleTripMiles(miles) == null) return null;
-  return plausibleTripMinutes(minutes);
+function commuteEstimate(miles: number | null, minutes: number | null): number | null {
+  if (!isCommutableDistance(miles)) return null;
+  return commuteMinutes(minutes);
 }
 
 export function useDrivingTime(
@@ -83,7 +89,7 @@ export function useDrivingTime(
 ): number | null {
   const mapKitStatus = useMapKitJs();
   const [minutes, setMinutes] = useState<number | null>(() =>
-    miles == null ? null : boundedMinutes(miles, heuristicMinutes(miles)),
+    miles == null ? null : commuteEstimate(miles, heuristicMinutes(miles)),
   );
 
   useEffect(() => {
@@ -93,7 +99,7 @@ export function useDrivingTime(
       setMinutes(null);
       return;
     }
-    setMinutes(boundedMinutes(miles, heuristicMinutes(miles)));
+    setMinutes(commuteEstimate(miles, heuristicMinutes(miles)));
 
     if (
       mapKitStatus !== "ready" ||
@@ -109,7 +115,7 @@ export function useDrivingTime(
     );
     const cached = cache.get(key);
     if (typeof cached === "number") {
-      setMinutes(boundedMinutes(miles, cached));
+      setMinutes(commuteEstimate(miles, cached));
       return;
     }
 
@@ -138,7 +144,7 @@ export function useDrivingTime(
         if (typeof seconds === "number" && seconds > 0) {
           const m = Math.max(1, Math.round(seconds / SECONDS_PER_MIN));
           cache.set(key, m);
-          setMinutes(boundedMinutes(miles, m));
+          setMinutes(commuteEstimate(miles, m));
         }
       });
     } catch {

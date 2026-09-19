@@ -7,16 +7,24 @@
  * "28h 23m · 1731 mi" for jobs in Shreveport, New Iberia, Lafayette and Lake
  * Charles.
  *
- * `geo.trip.test.ts` proves those numbers follow from the coordinate that was
- * on the account's prod profile, and `useUserLocation.originTrust.test.tsx`
- * proves that coordinate can no longer be believed. This file is the last
- * line: even handed the bad origin directly, the card renders no chip.
+ * CORRECTION. The first fix read the owner's question as "this number is
+ * wrong" and blamed the origin. She then confirmed: "Yes I'm in Menlo Park
+ * rn." The numbers were RIGHT. Her question was the one she asked — why is
+ * this showing HERE — and the answer is that this row is the one-line scan a
+ * helpr uses to decide whether a job is worth the drive. A 1,634-mile trip is
+ * not that, and repeating it on all forty cards is noise.
  *
- * "why is this showing here it hasnt before" is also answered here: the chip
+ * So the card drops the pill past commuting range, and drops it because of the
+ * TRIP. It does not discard her coordinates, does not decide her location is
+ * unknown, and does not substitute a different place: `userLat/userLng` reach
+ * this component untouched and the radius filter still runs on them. The true
+ * figure is stated on the job detail sheet, where she has asked about that one
+ * job and there is room to answer properly.
+ *
+ * "why is this showing here it hasnt before" also has a second half: the chip
  * only renders when the job resolves to a parish centroid AND the viewer has
  * coordinates. The seeded listings minted on 2026-09-19 were the first with a
- * parish on them, so the chip had never had anything to draw on before — the
- * defect was not introduced that day, it became VISIBLE that day. The
+ * parish on them, so the chip had never had anything to draw on before. The
  * "no parish, no chip" case below is the half of that which is testable here.
  */
 import { describe, it, expect, vi } from "vitest";
@@ -81,7 +89,7 @@ function distanceChip() {
 }
 
 describe("the reported chip", () => {
-  it("does not render 1634 mi, or any distance, from the out-of-state origin", () => {
+  it("does not render 1634 mi, or any distance, for a trip that is not a commute", () => {
     renderCard(shreveportJob(), MENLO_PARK.lat, MENLO_PARK.lng);
     expect(screen.queryByText(/1634/)).toBeNull();
     expect(screen.queryByText(/\bmi\b/)).toBeNull();
@@ -95,7 +103,7 @@ describe("the reported chip", () => {
     expect(screen.queryByText(/\d+h\s*\d+m/)).toBeNull();
   });
 
-  it("still shows the city — the card is not blanked, only the impossible claim", () => {
+  it("still shows the city — the card is not blanked, only the non-commute pill", () => {
     renderCard(shreveportJob(), MENLO_PARK.lat, MENLO_PARK.lng);
     expect(screen.getByText(/Shreveport/)).toBeTruthy();
     expect(screen.getByText("Touch up the hallway paint")).toBeTruthy();
@@ -103,7 +111,7 @@ describe("the reported chip", () => {
 });
 
 describe("a legitimately long in-state trip still shows", () => {
-  it("renders Baton Rouge → Shreveport, the kind of drive this bound must not eat", () => {
+  it("renders Baton Rouge → Shreveport, the kind of drive this rule must not eat", () => {
     renderCard(shreveportJob(), BATON_ROUGE.lat, BATON_ROUGE.lng);
     const chip = distanceChip();
     expect(chip).not.toBeNull();

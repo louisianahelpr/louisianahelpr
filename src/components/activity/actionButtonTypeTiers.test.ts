@@ -200,8 +200,11 @@ describe("activity card action buttons — one type scale", () => {
 
   it("never re-declares the font family", () => {
     // Everything is Montserrat via tailwind.config.ts's `sans`. A button that
-    // names `font-display` or `font-serif` is the other half of the owner's
-    // report ("word size and FONT").
+    // names a display, serif or mono family is the other half of the owner's
+    // report ("word size and FONT"). The tokens are spelled only in the regex
+    // below, never in prose here: src/test/twoFontTypeSystem.test.tsx scans
+    // every file for the retired serif token as a bare literal, and a comment
+    // quoting it reads to that guard exactly like a call site would.
     const fonts = tags.flatMap((t) =>
       [...t.text.matchAll(/\bfont-(display|serif|mono)\b/g)].map((x) => `${t.where} → ${x[0]}`),
     );

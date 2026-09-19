@@ -237,7 +237,12 @@ describe("stalled-completion-reminder", () => {
   it("skips a job the moment either side marks it done", async () => {
     const fn = await load();
     seedStalled(STALLED_ESCALATE_AFTER_HOURS + 5, null);
-    (scenario.reads.jobs!.rows[0] as Record<string, unknown>).helper_completed_at =
+    // Assert rather than `!`: if seedStalled ever stops producing a row, this
+    // case would otherwise mark nothing done and then "pass" by asserting the
+    // sweep sent nothing — green for the wrong reason.
+    const seeded = scenario.reads.jobs?.rows?.[0];
+    expect(seeded).toBeDefined();
+    (seeded as Record<string, unknown>).helper_completed_at =
       new Date(Date.now() - HOUR).toISOString();
 
     const res = await fn.fetch(cronRequest(fn));

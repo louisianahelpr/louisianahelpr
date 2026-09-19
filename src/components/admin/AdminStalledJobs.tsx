@@ -21,6 +21,7 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { userFacingError } from "@/lib/userFacingError";
 import { formatPriceExact, formatShortDate, formatTimestamp } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { jobStartTimeLabel } from "@/lib/jobDate";
 import {
   awaitingHuman,
   isMissingRpc,
@@ -387,7 +388,15 @@ export const StalledJobRow = ({
         {row.date_needed && (
           <li className="text-ds-11 text-muted-foreground">
             Scheduled for {formatShortDate(row.date_needed)}
-            {row.start_time ? ` at ${row.start_time.slice(0, 5)}` : ""}
+            {/* ONE rule for "when" (src/lib/jobDate.ts) — the same one the
+                helper-facing card and detail sheet use, so an admin reading a
+                stalled job sees the hour in the form the two parties saw it.
+                This printed the RAW column (`14:30`); `jobStartTimeLabel`
+                answers "2:30 PM", or null (nothing) when there is no time. The
+                stalled-queue row carries no `is_flexible_schedule`, so the
+                flexible case simply cannot be claimed here — which is the safe
+                direction: it omits rather than invents. */}
+            {jobStartTimeLabel(row.start_time) ? ` at ${jobStartTimeLabel(row.start_time)}` : ""}
             {row.estimated_hours ? ` · ~${row.estimated_hours}h of work` : ""}
           </li>
         )}

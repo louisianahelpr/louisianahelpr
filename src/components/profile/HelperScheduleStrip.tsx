@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { queryKeys } from "@/lib/queryKeys";
 import { jobStatusLabel } from "@/lib/statusLabels";
+import { jobStartTimeLabel } from "@/lib/jobDate";
 import type { Database } from "@/integrations/supabase/types";
 
 type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
@@ -33,7 +34,7 @@ const WINDOW_DAYS = 7;
  */
 type StripJob = Pick<
   JobRow,
-  "id" | "title" | "date_needed" | "start_time" | "location" | "status"
+  "id" | "title" | "date_needed" | "start_time" | "location" | "status" | "is_flexible_schedule"
 >;
 
 /**
@@ -67,24 +68,18 @@ function buildWindow(now: Date = new Date()): {
 }
 
 /**
- * Render `HH:MM` (24h) or `HH:MM:SS` from Postgres `time` as a
- * locale-friendly `h:mm a`. Returns `null` for missing/garbled values so
- * the caller can fall back to "Anytime".
+ * "When does this job start" — the SHARED rule, not a private copy.
+ *
+ * This was a hand-rolled `formatTime(raw)` that returned `null` for a missing
+ * or garbled value. That half was right (the caller falls back to "Anytime"),
+ * but it had no way to say FLEXIBLE, because the strip never fetched
+ * `is_flexible_schedule`. Both halves now come from `jobStartTimeLabel`
+ * (src/lib/jobDate.ts), which is the one function every job-time surface in
+ * the app resolves through: a clock time, else the word "Flexible" when the
+ * poster ticked the flag, else `null` and nothing renders.
  */
-function formatTime(raw: string | null): string | null {
-  if (!raw) return null;
-  const match = /^(\d{1,2}):(\d{2})/.exec(raw);
-  if (!match) return null;
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
-  const d = new Date();
-  d.setHours(hour, minute, 0, 0);
-  return d.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
+const formatTime = (job: Pick<StripJob, "start_time" | "is_flexible_schedule">): string | null =>
+  jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
 
 interface HelperScheduleStripProps {
   helperId: string;
@@ -123,7 +118,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
       const rows = unwrap(
         await supabase
           .from("jobs")
-          .select("id, title, date_needed, start_time, location, status")
+          .select("id, title, date_needed, start_time, location, status, is_flexible_schedule")
           .eq("helper_id", helperId)
           .in("status", [...SCHEDULED_STATUSES])
           .gte("date_needed", startISO)
@@ -319,7 +314,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
                       </p>
                       <ul className="mt-1 space-y-1">
                         {dayJobs.slice(0, 2).map((j) => {
-                          const time = formatTime(j.start_time);
+                          const time = formatTime(j);
                           return (
                             <li
                               key={j.id}
@@ -380,7 +375,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
           />
           <ul className="space-y-2.5">
             {openDayJobs.map((j) => {
-              const time = formatTime(j.start_time);
+              const time = formatTime(j);
               return (
                 <li
                   key={j.id}

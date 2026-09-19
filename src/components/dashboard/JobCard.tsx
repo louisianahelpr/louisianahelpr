@@ -12,9 +12,9 @@ import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
-import { formatTime12 } from "@/components/TimePickerSelect";
+import { jobStartTimeLabel } from "@/lib/jobDate";
 import { getCity } from "@/lib/locationUtils";
-import { haversineMiles } from "@/lib/geo";
+import { haversineMiles, plausibleTripMiles } from "@/lib/geo";
 import { getParishCentroid, getCentroidFromLocation } from "@/lib/parishCentroids";
 import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
@@ -152,17 +152,40 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       ? getParishCentroid((job as { parish?: string | null }).parish) ??
         getCentroidFromLocation(job.location)
       : null;
-  const distanceMiles =
+  // BOUNDED, and the bound is not decoration. Owner, 2026-09-19: this pill
+  // read "27h 6m · 1634 mi" on a Shreveport job, because the viewer origin
+  // was 1,600 miles outside the state (geo.ts carries the reproduction). The
+  // origin defect is fixed in useUserLocation; this is the second line — a
+  // number this surface cannot possibly be right about does not render at
+  // all. plausibleTripMiles returns null rather than clamping, so an
+  // impossible distance degrades to the same quiet absence as an unknown one
+  // and the row simply reads as it does for a viewer with no location.
+  const distanceMiles = plausibleTripMiles(
     destCentroid && userLat != null && userLng != null
       ? haversineMiles(userLat, userLng, destCentroid.lat, destCentroid.lng)
-      : null;
+      : null,
+  );
+  // EVERY value here is approximate and the visible text now says so.
+  //
+  // It always was: open_jobs_browse masks precise job coordinates on purpose,
+  // so the destination is a PARISH CENTROID in every case — the pill has
+  // never been able to mean "1634 miles", only "about that far". The header
+  // comment above and the aria-label below both already said "~X mi" /
+  // "Approximately X away"; the pixels were the one place that claimed a
+  // measurement. A viewer cannot audit an origin, so the only honest answer
+  // is to mark the claim, and a tilde costs ~4px on the one no-wrap row.
+  // "<1 mi" keeps its own wording — "~<1 mi" reads as noise, and "less than a
+  // mile" is already a range rather than a point.
   const distanceLabel = distanceMiles == null
     ? null
     : distanceMiles < 1
       ? "<1 mi"
       : distanceMiles < 10
-        ? `${distanceMiles.toFixed(1)} mi`
-        : `${Math.round(distanceMiles)} mi`;
+        ? `~${distanceMiles.toFixed(1)} mi`
+        : `~${Math.round(distanceMiles)} mi`;
+  // The same figure without the typographic "~" — see the aria-label below.
+  const spokenDistance = distanceLabel?.replace(/^~/, "") ?? null;
+
   // Driving-time estimate — MapKit Directions when ready, heuristic
   // otherwise. Combined with the distance pill below to read "12 min ·
   // 4.5 mi" instead of just distance, which is more useful for a helpr
@@ -209,6 +232,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // formatTimeLeft owns "Expired" too — one rule for when a listing has closed.
   const expiryText = !showExpiry || !expiresAt ? null : formatTimeLeft(expiresAt, expiryNow);
   const isExpiringSoon = showExpiry && (isExpired || (hoursToExpiry !== null && hoursToExpiry < 24));
+
+  // WHEN the job starts, resolved ONCE by the one rule every surface shares:
+  // a clock time, the word "Flexible" if the poster ticked the flag, or null
+  // meaning the chip is not rendered. See src/lib/jobDate.ts.
+  const timeLabel = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
 
   // Stagger entry via CSS animation-delay — avoids pulling framer-motion into
   // the dashboard's hot list path (saves ~42KB on iOS cold start).
@@ -573,10 +601,15 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             </span>
             {distanceLabel && (
               <span role="img"
+                // Spoken from the UNTILDED label: the visible "~" is a
+                // typographic mark for "approximately", and the word itself
+                // is already in this sentence. Screen readers variously
+                // announce "tilde" or swallow it, and neither is what the
+                // sighted reader gets.
                 aria-label={
                   drivingLabel
-                    ? `Approximately ${drivingLabel} drive, ${distanceLabel} away`
-                    : `Approximately ${distanceLabel} away`
+                    ? `Approximately ${drivingLabel} drive, ${spokenDistance} away`
+                    : `Approximately ${spokenDistance} away`
                 }
                 className="inline-flex shrink-0 items-center gap-0.5 px-1.5 py-px rounded-full font-sans font-semibold whitespace-nowrap text-ds-9"
                 style={{
@@ -645,13 +678,19 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                       countdown, so it moves the clock to the same 430px floor:
                       with a radius active at 375, city + pill + date + clock is
                       already ~15px over the row, and the city is what gave. */}
-                  {job.date_needed && job.start_time && (
+                  {/* `timeLabel` is `jobStartTimeLabel` (src/lib/jobDate.ts) —
+                      the ONE rule: a clock time, else the word "Flexible" when
+                      the poster ticked `is_flexible_schedule`, else null and
+                      the chip (and its separator) are not rendered at all.
+                      Gating on `job.start_time` directly is what used to make
+                      a flexible-but-timeless job silently lose its "when". */}
+                  {job.date_needed && timeLabel && (
                     <span className={`shrink-0 opacity-30 hidden ${expiryText || distanceLabel ? "[@media(min-width:430px)]:inline" : "[@media(min-width:360px)]:inline"}`}>·</span>
                   )}
-                  {job.start_time && (
+                  {timeLabel && (
                     <span className={`shrink-0 hidden ${expiryText || distanceLabel ? "[@media(min-width:430px)]:flex" : "[@media(min-width:360px)]:flex"} items-center gap-1`}>
                       <Clock className="w-2.5 h-2.5 shrink-0" />
-                      <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
+                      <span className="font-sans whitespace-nowrap">{timeLabel}</span>
                     </span>
                   )}
                 </>

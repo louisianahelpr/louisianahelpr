@@ -138,3 +138,71 @@ export {
   confirmOpensMs,
   confirmDeadlineMs,
 } from "../../supabase/functions/_shared/confirmDeadline";
+
+/**
+ * The word a job wears when its poster said "whenever" instead of an hour.
+ * One spelling, so a test can look for it and a designer can change it once.
+ */
+export const FLEXIBLE_TIME_LABEL = "Flexible";
+
+/**
+ * ONE rule for "when does this job start", for EVERY surface that shows it.
+ *
+ * Owner, 2026-09-19, on the job-detail dialog: "they also need times unless
+ * they were checked off as flexible. but if it is flexible the time should
+ * show flexible bc rn its just an empty block."
+ *
+ * The three cases, and why the third is `null` rather than a dash:
+ *
+ *   1. `start_time` is a real clock value → print it on a 12-hour clock.
+ *   2. no clock value, but the job carries `is_flexible_schedule` → the word
+ *      FLEXIBLE. That is a promise the POSTER made ("start earlier or later
+ *      on the day"), so it may only be printed when they actually made it.
+ *   3. no clock value and no flag → `null`. The caller renders NOTHING.
+ *
+ * Case 3 is the one that had four different answers before this function
+ * existed, three of which were wrong:
+ *
+ *   - `formatTime12(null)` (TimePickerSelect) returns the literal string
+ *     "Flexible", so the profile Schedule tab printed a flexibility promise
+ *     on 184 prod jobs whose poster never made one (verified live on
+ *     `fncmgoasalhdgfwzhsqa` 2026-09-19: 184 jobs with `start_time IS NULL`,
+ *     ZERO with `is_flexible_schedule = true`).
+ *   - `JobCardMetaRow` did the same by hand, via its `flexibleLabel` prop.
+ *   - `JobStatTiles` dropped the tile, which is right, but its compact row
+ *     was still sized for three columns — so dropping it left the literal
+ *     empty block the owner photographed.
+ *
+ * A dash is deliberately NOT case 3: this file's own sibling learned that
+ * lesson on the Closes tile ("an empty '—' deadline read as a bug rather
+ * than 'no deadline'"). An unknown start hour is not a fact worth a row.
+ *
+ * `"flexible"` is also accepted IN the time column — a legacy sentinel that
+ * predates the boolean and still appears in fixtures and `calendarExport`.
+ *
+ * @param startTime `jobs.start_time` — "HH:MM", "HH:MM:SS", "flexible", or null.
+ * @param isFlexibleSchedule `jobs.is_flexible_schedule`.
+ * @returns the label to render, or `null` meaning render nothing at all.
+ */
+export function jobStartTimeLabel(
+  startTime: string | null | undefined,
+  isFlexibleSchedule?: boolean | null,
+): string | null {
+  const raw = typeof startTime === "string" ? startTime.trim() : "";
+  const flexible = raw.toLowerCase() === "flexible" || !!isFlexibleSchedule;
+  if (!raw || raw.toLowerCase() === "flexible") {
+    return flexible ? FLEXIBLE_TIME_LABEL : null;
+  }
+  const match = /^(\d{1,2}):(\d{2})/.exec(raw);
+  if (!match) return flexible ? FLEXIBLE_TIME_LABEL : null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  // A clock value the column could not hold (25:00) is not a time; fall back
+  // to the flag rather than rendering "25:00 AM".
+  if (!Number.isFinite(hour) || !Number.isFinite(minute) || hour > 23 || minute > 59) {
+    return flexible ? FLEXIBLE_TIME_LABEL : null;
+  }
+  const period = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${hour12}:${String(minute).padStart(2, "0")} ${period}`;
+}

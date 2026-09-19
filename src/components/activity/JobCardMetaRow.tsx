@@ -3,6 +3,7 @@ import { Calendar, Clock, MapPin, Timer, Users } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { useExpiryClock } from "@/lib/useExpiryClock";
+import { jobStartTimeLabel, FLEXIBLE_TIME_LABEL } from "@/lib/jobDate";
 import { getCity } from "@/lib/locationUtils";
 import { mapsSearchUrl } from "@/lib/mapsLink";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -81,8 +82,20 @@ export function JobHelprsChip({
 interface JobCardMetaRowProps {
   dateNeeded: string;
   startTime: string | null;
-  /** Text shown after the date when `startTime` is empty — Posted uses
-      "Flexible time", Applied uses "Flexible". */
+  /**
+   * `jobs.is_flexible_schedule` — the poster's own "start earlier or later on
+   * the day" tick. It is the ONLY thing that licenses the word Flexible here.
+   *
+   * This row used to print `flexibleLabel` whenever `startTime` was empty,
+   * which is not the same question: verified live on prod 2026-09-19, 184 of
+   * 260 jobs have a null `start_time` and ZERO have this flag set, so every
+   * one of those cards was making a scheduling promise on a poster's behalf
+   * that the poster never made. With no time and no flag the chip now drops
+   * out entirely — an unknown start hour is not a fact worth a chip.
+   */
+  isFlexibleSchedule?: boolean | null;
+  /** Wording used for the flexible case — Posted uses "Flexible time",
+      Applied uses "Flexible". */
   flexibleLabel?: string;
   location: string;
   /* Accepted but no longer read — the maps link uses the ADDRESS now (see the
@@ -145,7 +158,8 @@ interface JobCardMetaRowProps {
 export function JobCardMetaRow({
   dateNeeded,
   startTime,
-  flexibleLabel = "Flexible",
+  isFlexibleSchedule,
+  flexibleLabel = FLEXIBLE_TIME_LABEL,
   location,
   expiresAt,
   helpersNeeded,
@@ -156,6 +170,13 @@ export function JobCardMetaRow({
   const mapHref = mapsSearchUrl(location);
   // Re-renders the countdown the moment its text changes (incl. at expiry).
   const expiryNow = useExpiryClock([expiresAt]);
+
+  // ONE rule for "when" (src/lib/jobDate.ts). The shared helper answers with
+  // the canonical word "Flexible"; this row is allowed its own wording for
+  // that one case ("Flexible time" on My Posts), so it swaps the label and
+  // nothing else. `null` stays null and the chip does not render.
+  const resolvedTime = jobStartTimeLabel(startTime, isFlexibleSchedule);
+  const timeLabel = resolvedTime === FLEXIBLE_TIME_LABEL ? flexibleLabel : resolvedTime;
 
   /**
    * The map is opened by CLICKING A REAL ANCHOR, never `window.open`.
@@ -391,19 +412,20 @@ export function JobCardMetaRow({
           which fits, and the city gets ~60px back. Above 400 — and on every
           card without an expiry, which is most of them — nothing changes and
           the time is exactly where it was. */}
-      <span
-        className={`flex items-center gap-1.5 shrink-0 whitespace-nowrap${
-          expiresAt ? " [@media(max-width:399px)]:hidden" : ""
-        }`}
-      >
-        <Clock className="w-3 h-3 shrink-0" />
-        {!startTime
-          ? flexibleLabel
-          : new Date(`2000-01-01T${startTime}`).toLocaleTimeString(undefined, {
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-      </span>
+      {/* `jobStartTimeLabel` (src/lib/jobDate.ts) is the ONE rule: a clock
+          time, else the flexible wording when the poster actually ticked the
+          flag, else NULL — and null drops the whole chip, icon included,
+          rather than leaving a clock face with nothing beside it. */}
+      {timeLabel && (
+        <span
+          className={`flex items-center gap-1.5 shrink-0 whitespace-nowrap${
+            expiresAt ? " [@media(max-width:399px)]:hidden" : ""
+          }`}
+        >
+          <Clock className="w-3 h-3 shrink-0" />
+          {timeLabel}
+        </span>
+      )}
       {/* DIRECTLY RIGHT OF THE TIME (owner, 2026-08-30: "3 helprs needed goes
           to the right of time"), and before the expiry countdown, so the row
           reads place → day → hour → how many of us, which is the order the

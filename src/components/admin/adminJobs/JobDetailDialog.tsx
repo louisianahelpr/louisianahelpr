@@ -7,6 +7,7 @@ import { paymentStatusLabel } from "@/lib/statusLabels";
 import { categoryLabels, paymentColors, type Job } from "./types";
 import { formatJobDate } from "@/lib/dateUtils";
 import { formatTimestamp, formatCategory, formatPrice } from "@/lib/format";
+import { jobStartTimeLabel } from "@/lib/jobDate";
 
 interface JobDetailDialogProps {
   detailJob: Job | null;
@@ -122,10 +123,15 @@ export const JobDetailDialog = ({
                 <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Date Needed</p>
                 <p className="font-semibold text-foreground">{formatJobDate(detailJob.date_needed)}</p>
               </div>
-              {detailJob.start_time && (
+              {/* ONE rule for "when" (src/lib/jobDate.ts): a clock time, the
+                  word "Flexible" when the poster ticked the flag, else null
+                  and the whole panel is omitted. This printed the RAW column,
+                  so an admin comparing a dispute against what the two parties
+                  saw read "14:30:00" against their "2:30 PM". */}
+              {jobStartTimeLabel(detailJob.start_time, detailJob.is_flexible_schedule) && (
                 <div className="rounded-ds-sm bg-secondary/30 p-3">
                   <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Start Time</p>
-                  <p className="font-semibold text-foreground">{detailJob.start_time}</p>
+                  <p className="font-semibold text-foreground">{jobStartTimeLabel(detailJob.start_time, detailJob.is_flexible_schedule)}</p>
                 </div>
               )}
               {detailJob.estimated_hours && (

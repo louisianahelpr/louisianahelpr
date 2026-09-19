@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { formatTime12 } from "@/components/TimePickerSelect";
+import { jobStartTimeLabel, FLEXIBLE_TIME_LABEL } from "@/lib/jobDate";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -324,7 +324,23 @@ export function CheckoutStep({
               </span>
               <p className="flex-1 text-ds-13 text-foreground text-right">
                 {formatJobDate(dateNeeded)}
-                {isFlexibleSchedule ? " · Flexible" : startTime ? ` · ${formatTime12(startTime)}` : ""}
+                {/* Routed through the ONE rule (src/lib/jobDate.ts) so this
+                    summary can never disagree with the card and the detail
+                    sheet the poster is about to see. It used to read
+                    `isFlexibleSchedule ? "Flexible" : startTime ? … : ""`,
+                    which SWALLOWED a real start time the moment the poster
+                    also ticked Flexible — the review screen then hid the hour
+                    they had just chosen. Both facts are true, so both print:
+                    the hour, then the flexibility note. */}
+                {(() => {
+                  const timeLabel = jobStartTimeLabel(startTime, isFlexibleSchedule);
+                  // Both facts are true when a poster picks an hour AND ticks
+                  // Flexible, so both print. One expression, so the whole
+                  // "when" suffix has exactly one place it can be wrong.
+                  return `${timeLabel ? ` · ${timeLabel}` : ""}${
+                    isFlexibleSchedule && timeLabel !== FLEXIBLE_TIME_LABEL ? " · Flexible" : ""
+                  }`;
+                })()}
                 {estimatedHours ? ` · ${estimatedHours}h est.` : ""}
               </p>
             </div>

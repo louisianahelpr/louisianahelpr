@@ -3,7 +3,7 @@ import { MapPin, Calendar, Clock, Timer, Users } from "lucide-react";
 import { getCity } from "@/lib/locationUtils";
 import { formatJobDate, formatTimeLeft, parseLocalDate } from "@/lib/dateUtils";
 import { differenceInHours } from "date-fns";
-import { formatTime12 } from "@/components/TimePickerSelect";
+import { jobStartTimeLabel } from "@/lib/jobDate";
 import type { EnrichedJob } from "../types";
 import { JobLocationPreview } from "./JobLocationPreview";
 import { calendarEventUrl } from "@/lib/calendarLink";
@@ -84,6 +84,8 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           ? differenceInHours(new Date(job.expires_at), new Date())
           : null;
         const closesUrgent = hoursLeft != null && hoursLeft >= 0 && hoursLeft < 24;
+        // "a time, the word Flexible, or nothing" — one rule, every surface.
+        const timeLabel = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
         const tiles = [
           {
             Icon: MapPin,
@@ -113,14 +115,20 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           },
           // Time is its own tile (not a sub-line under Date) so the date
           // stops truncating and the start time reads as a first-class
-          // fact. Omitted when unset, matching Estimated/Closes below.
-          // 12-hour clock (e.g. "2:30 PM"), matching the feed card — not
-          // the raw "14:30:00" the DB column stores.
-          ...(job.start_time
+          // fact. 12-hour clock (e.g. "2:30 PM"), matching the feed card —
+          // not the raw "14:30:00" the DB column stores.
+          //
+          // `jobStartTimeLabel` is the ONE rule (src/lib/jobDate.ts): a clock
+          // time, else the word "Flexible" when the poster ticked the flag,
+          // else null — and null means the tile is not built at all, matching
+          // Closes below. What it must never do is print an empty tile, which
+          // is what the compact row's column count used to turn this omission
+          // into; see the `gridCols` note there.
+          ...(timeLabel
             ? [{
                 Icon: Clock,
                 label: "Time",
-                value: formatTime12(job.start_time),
+                value: timeLabel,
                 sub: null,
                 href: null,
                 onClick: undefined,
@@ -181,12 +189,22 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
         // job-dialog mockup: "it should be basically identical to this") —
         // each fact gets its own bordered box with the icon stacked above
         // the value, matching the Composite mockup's metacells treatment.
-        // Columns match the item count (3 or 4) so a job with no Helprs
-        // tile doesn't leave a dead empty cell.
+        //
+        // THE COLUMN COUNT IS THE ITEM COUNT, always. This used to read
+        // `rowItems.length === 4 ? "grid-cols-4" : "grid-cols-3"`, whose
+        // comment claimed "columns match the item count (3 or 4)" — it never
+        // considered TWO. Where + Date are the only unconditional entries, so
+        // a job with no start time and no Helprs count (184 of the 260 rows on
+        // prod have a null `start_time`) laid two tiles into three columns and
+        // left the third one empty: exactly the "empty block" the owner
+        // photographed on 2026-09-19. Deriving the count instead of listing it
+        // is what makes a future optional tile safe to add.
+        const gridCols =
+          rowItems.length >= 4 ? "grid-cols-4" : rowItems.length === 3 ? "grid-cols-3" : "grid-cols-2";
         const compactRow = (
           <div
             key="compact-meta"
-            className={`grid gap-1.5 ${rowItems.length === 4 ? "grid-cols-4" : "grid-cols-3"}`}
+            className={`grid gap-1.5 ${gridCols}`}
           >
             {rowItems.map(({ Icon, label, value, sub, href, onClick, expanded }) => {
               const Wrapper: ElementType = href ? "a" : onClick ? "button" : "div";

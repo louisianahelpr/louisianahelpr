@@ -24,7 +24,7 @@ import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { formatTime12 } from "@/components/TimePickerSelect";
+import { jobStartTimeLabel } from "@/lib/jobDate";
 import { inProgressBadgeTarget } from "@/components/dashboard/DashboardInProgressBadge";
 import { bucketPostedJob } from "@/pages/activity/activityFilters";
 import { exportJobRowToCalendar } from "@/lib/calendarExport";
@@ -136,7 +136,16 @@ const ScheduleCard = ({
 }) => {
   const navigate = useNavigate();
   const { to, destination } = scheduleRowTarget(job, isPosted);
-  const time = formatTime12(job.start_time);
+  // ONE rule for "when" (src/lib/jobDate.ts): a clock time, the word
+  // "Flexible" only when the poster ticked `is_flexible_schedule`, else null
+  // and the chip below does not render.
+  //
+  // This read `formatTime12(job.start_time)`, and `formatTime12` answers the
+  // literal string "Flexible" for a NULL time — so this row printed a
+  // scheduling promise on every timeless job. Verified live on prod
+  // 2026-09-19: 184 of 260 jobs have a null `start_time` and ZERO carry the
+  // flag, i.e. every one of those was a claim no poster had made.
+  const time = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
   // Whose money is this? On a job you POSTED the budget is what you pay, so
   // the raw figure is right. On a job you were ASSIGNED it is not your money —
   // your take-home is the budget minus the platform fee, and that is the
@@ -278,10 +287,16 @@ const ScheduleCard = ({
                 <Calendar className="w-3 h-3 shrink-0" />
                 {formatJobDate(job.date_needed)}
               </span>
-              <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                <Clock className="w-3 h-3 shrink-0" />
-                {time}
-              </span>
+              {/* Drops out entirely — icon included — when the job has neither
+                  a start time nor the flexible flag, exactly as the location
+                  chip above does for an anonymised job. A clock face with
+                  nothing beside it is the "empty block" this pass removed. */}
+              {time && (
+                <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                  <Clock className="w-3 h-3 shrink-0" />
+                  {time}
+                </span>
+              )}
             </div>
             {/* The one secondary action. Rendered unconditionally:
                 `useProfileSchedule` only ever fetches open / accepted /

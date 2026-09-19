@@ -2,8 +2,9 @@
 //
 // Rendered inside JobTracking from "on_the_way" until the job is marked done
 // (owner, 2026-09-14: "Keep map until done"), whenever the job_tracking row
-// carries a position. En route that position is live; after arrival it is the
-// last ping, and the helper pin says so.
+// carries a position. En route that position is live and the helper pin shows
+// it; once the arrival is SETTLED the helper pin is dropped and the job pin's
+// arrival label is the whole story (owner, 2026-09-19 — see `labelled`).
 //
 // APPLE MAPKIT JS (owner decision, 2026-09-19: one map provider everywhere).
 // This was the last Leaflet + OpenStreetMap surface in the app; BrowseMap,
@@ -176,12 +177,43 @@ export function TrackingMap({
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
 
   const mapRef = useRef<MKMap | null>(null);
-  const annotationsRef = useRef<{ helper: MKAnnotation; destination: MKAnnotation } | null>(null);
+  // `helper` is null once the arrival is settled — see `labelled` below.
+  const annotationsRef = useRef<{ helper: MKAnnotation | null; destination: MKAnnotation } | null>(
+    null,
+  );
   // Latest coordinates, readable from the annotation-building effect without
   // making it rebuild the elements every time a ping moves the helper.
   const coordsRef = useRef({ helperLat, helperLng, destLat, destLng });
   coordsRef.current = { helperLat, helperLng, destLat, destLng };
 
+  /**
+   * THE ARRIVAL IS SETTLED — the job pin is carrying one of the two settled
+   * arrival facts (`safeDestinationLabel`), which is the only thing that ever
+   * puts the pill on screen.
+   *
+   * It does two jobs, and they are the same fact:
+   *   • the camera shifts north to keep the pill in frame (`trackingRegion`);
+   *   • the HELPER PIN IS NOT DRAWN AT ALL (owner, 2026-09-19).
+   *
+   * Why the helper pin goes: once the helper is at the job, the two pins
+   * coincide, and with the pill stacked above them the 32px helper disc
+   * survives as a ~6px dark crescent between the pill and the orange drop-pin
+   * (measured at 375: helper y=596, job pin y=612). It reads as a compositing
+   * smudge, not a marker — and the `--olivewood` disc resolves near-black in
+   * the live theme, so it has no hue to separate it from the pill's shadow
+   * either. Nothing is lost: the job pin plus its arrival label already tell
+   * the whole story, and the helper pin's own name at that point is merely
+   * "your Helpr's LAST SHARED location".
+   *
+   * Derived from the `destinationLabel` prop this component already takes —
+   * no new prop, and no second opinion about what "arrived" means (JobTracking
+   * hands over `arrivalOnMap ? settledArrivalLabel : null`, so the label and
+   * the arrival are one decision made in one place).
+   *
+   * UN-ARRIVED IS UNTOUCHED: with no settled label this is false and every
+   * line below runs exactly as before — helper pin built, full opacity, same
+   * coordinate, same camera.
+   */
   const labelled = safeDestinationLabel(destinationLabel) !== null;
 
   // Watchdog — see MAP_LOAD_TIMEOUT_MS. Cleared the moment the map draws.
@@ -276,7 +308,9 @@ export function TrackingMap({
     const previous = annotationsRef.current;
     if (previous) {
       try {
-        map.removeAnnotations([previous.helper, previous.destination]);
+        map.removeAnnotations(
+          [previous.helper, previous.destination].filter((a): a is MKAnnotation => a !== null),
+        );
       } catch {
         // A pin we could not remove is a stale pin, not a broken tracker.
         // The rebuild below still runs, so the map stays correct-ish rather
@@ -288,11 +322,17 @@ export function TrackingMap({
     try {
       // Helper — the coordinate is the CENTRE of the disc, so no anchor
       // offset (Leaflet's `iconAnchor: [16, 16]`).
-      const helper = new mk.Annotation(
-        new mk.Coordinate(hLat, hLng),
-        () => helperMarkerElement(helperLive),
-        { calloutEnabled: false, enabled: false },
-      );
+      //
+      // NOT BUILT ONCE THE ARRIVAL IS SETTLED (see `labelled`). The element is
+      // never created, so its accessible name leaves with it — no orphan
+      // `role="img"` node, nothing to land focus on, nothing announced about a
+      // pin that isn't drawn.
+      const helper = labelled
+        ? null
+        : new mk.Annotation(new mk.Coordinate(hLat, hLng), () => helperMarkerElement(helperLive), {
+            calloutEnabled: false,
+            enabled: false,
+          });
       // Destination — the coordinate is the TIP at the element's bottom edge,
       // and MapKit centres an element on its coordinate, so lift it by half
       // the pin height (Leaflet's `iconAnchor: [12, 32]`).
@@ -306,7 +346,7 @@ export function TrackingMap({
           enabled: false,
         },
       );
-      map.addAnnotations([helper, destination]);
+      map.addAnnotations(helper ? [helper, destination] : [destination]);
       annotationsRef.current = { helper, destination };
     } catch (e) {
       report(e instanceof Error ? e : new Error("MapKit annotation build failed"), {
@@ -327,7 +367,7 @@ export function TrackingMap({
       }
     });
     return () => cancelAnimationFrame(raf);
-  }, [mapReady, destinationLabel, helperLive, isDark]);
+  }, [mapReady, destinationLabel, labelled, helperLive, isDark]);
 
   // Move the pins and re-frame the camera as new pings arrive.
   //
@@ -344,7 +384,11 @@ export function TrackingMap({
     const annotations = annotationsRef.current;
     try {
       if (annotations) {
-        annotations.helper.coordinate = new mk.Coordinate(helperLat, helperLng);
+        // `helper` is null once the arrival is settled (see `labelled`) —
+        // there is no pin to move, but the camera still frames both points.
+        if (annotations.helper) {
+          annotations.helper.coordinate = new mk.Coordinate(helperLat, helperLng);
+        }
         annotations.destination.coordinate = new mk.Coordinate(destLat, destLng);
       }
       map.setRegionAnimated(

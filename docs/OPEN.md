@@ -4045,3 +4045,58 @@ vanish on their own when `seed_jobs_hidden_publicly` flips to `true` in
 `platform_settings.feature_flags`; no deletion needed. If they must be destroyed, refund each `pi_`
 on the Stripe TEST dashboard first (each holds $96-$240 test escrow) — full id/PI table is in the
 second comment on #1617.
+
+### DONE 2026-09-19 — the 320px primary collapse (SHIP BLOCKER) — `70d276587`, `f0a34dab6`
+THE MEASUREMENT THAT WAS NEVER TAKEN: the row is `[data-job-step-row]`'s own width, NOT the
+viewport — 108-113px of page + card + step chrome. **212px @320**, 262 @375, 1035 @1440.
+```
+3 chips @320: 212 − 132 − 18 = 62px  OK
+4 chips @320: 212 − 176 − 24 = 12px  BROKEN   <- the doc block claimed "~56px", from a row width of
+                                                 256 that was STATED AND NEVER MEASURED
+5 controls at the 44px floor need 5×44 + 4×6 = 244px > 212px
+```
+**WORSE THAN THE BROWSER PASS FOUND:** poster `disputed` (5 chips) also gave a **12px primary at
+375**, and the GPS-retry pair got 53px against a ~55px need at 375 — both unreported, because the
+browser pass forced different states there. **375 was not fully correct.**
+
+THE FIX — the honest one: five labelled controls do not fit in 212px and no shape-work makes them,
+so the row KEEPS ITS SHAPE and loses a control. `allocateJobStepRow` computes capacity from the
+measured row width (every chip at 44px, the primary at its own longest word); chips that do not fit
+move into a new `JobStepOverflowChip` ("More", Radix Popover, 2-up grid inside). **Nothing is
+dropped.** It does not reintroduce a second shape because the overflow chip IS one of the chips —
+same class, tone, 11px label, icon-above-label, 44px floor — and takes one chip slot.
+`index.css` also floors `min-width: 44px` on every row child (verified in `dist/assets/*.css` after
+build, not the dev server): last-ditch, so a stale measurement clips inside the card's own
+`overflow-hidden` rather than painting a 12px control.
+
+**THE DOUBLE-PRIMARY DIAGNOSIS WAS WRONG IN MY BRIEF, and the lane corrected it.** Capping
+`claimPrimary` would have fixed nothing: `JobTracking.tsx:2765` renders `retryEl` and `ctaEl` as two
+children of a SINGLE `JobStepRowSlot`, so that row makes ONE claim and a counter sees nothing wrong.
+The allocation now reads how many controls are actually in the slot from the DOM and sizes it to
+`n × the widest + gaps` (equal flex children, so sizing to the sum still starves the wider one).
+29px/27px before -> 78px each at both 320 and 375. Nothing becomes a chip and nothing refuses to
+render: losing the GPS retry strands a helper at a failed gate, and "I'm On My Way" / "I'm Still On"
+are two distinct commitments.
+
+CHECK `src/test/jobStepRowWidthFloor.test.tsx` — 16 row states, BOTH sides, 3 widths, from a
+rendered inventory; asserts nothing lost, every chip >=44px, every primary-slot control >= max(44,
+its own longest word), and the total fits. Red-before, which is the shipped behaviour exactly:
+```
+helper Arrived, unverified @320: "Try My Location Again" gets 53.0px but needs 55.4px
+helper Disputed, evidence owed @320: "Withdraw Dispute" gets 12.0px but needs 57.2px
+poster Disputed @320: "Resolve & Pay" gets −38.0px but needs 52.2px
+```
+**ITS FIRST DRAFT SURVIVED ITS OWN MUTATION** — it imported `ROW_CONTROL_MIN_PX` and asserted
+against it, the same self-referential failure as the doc block it was written to replace. Fixed in
+`f0a34dab6`: the 44 is stated locally and witnessed by reading `index.css` off disk.
+375/1440 baselines unchanged (62px and 337px primaries, identical).
+
+### NEEDS AN OWNER LOOK / DECISION
+- **Chip ORDER decides what hides.** Overflow takes the LAST chips, so at 320 **Message lands in the
+  More panel on BOTH dispute rows** (`[photo, timeline, message, admin]` and
+  `[escalate, photos, timeline, message, admin]`). Not reordered — that is an unrequested visual
+  change — but Message may deserve promoting to the front.
+- **"Try My Location Again" is the widest primary label in the app** (~55px longest word) and is what
+  forces the on_site row to ZERO visible chips at 320. "Retry Location" would buy a chip back. Copy
+  change, so not made.
+- **The More popover itself is entirely unverified** — placement, width, and the 2-up grid inside it.

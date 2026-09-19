@@ -4371,3 +4371,57 @@ INVERSE is not reachable — `TimePickerWheel` has no clear affordance, so `star
 null->time in Edit. RECOMMENDED: add it, mirroring `hasHelper` (`:231` disables the time wheel once a
 helper is assigned — the flexible box must disable the same way), include it in the `scheduleChanged`
 comparison at `:90` so `expires_at` recomputes, and keep the `.select("id")`.
+
+### DONE 2026-09-19 — Messages: Active default, Unread tab removed, cancelled threads close, old threads age out — `0c64d4d04`
+**ACTIVE WOULD HAVE HIDDEN UNREAD, and the lane caught it before shipping.** Active =
+`LIVE_JOB_STATUSES` (`accepted, in_progress, revision_requested, disputed, pending_approval`) —
+**`open` is NOT live**, so an applicant's unread question on a job you have not awarded — the most
+common unread a poster gets — would not be in the tab the app now opens on. Worst on phone, where
+the strip is behind a disclosure so the counts are not even on screen, and there is no Unread tab
+left to fall back to. MITIGATION: a banner on Active, *"N unread conversations aren't in Active —
+show all"*, shown only when something is genuinely concealed. `hiddenUnreadCount` is derived from
+the SAME predicate the Active branch filters by, so the two cannot drift.
+**The "Show All" empty-state button was already a NO-OP** — wired to `DEFAULT_INBOX_TAB`, which as of
+today IS Active. New `UNFILTERED_INBOX_TAB` separates the two. Fixed and guarded.
+`inboxDefault.ts`'s header now records **two distinct removals of Unread** so they are never
+conflated: 2026-08-30 removed Unread-WHEN-UNREAD as the default RULE (it moved with read state);
+2026-09-19 removed the Unread TAB (redundant). Active is a function of job STATUS, not of what you
+have read, so reading or replying never relocates the landing tab.
+
+**CANCELLED THREADS NOW CLOSE IMMEDIATELY** — migration `20260919220233`. The bug, verified live:
+`job_messaging_closes_at` ended `AND j.status = 'completed'`, so a cancelled job returned NULL,
+`NULL > now()` is NULL, and `can_message_in_job`'s COALESCE fell through to `true` — **open forever.**
+Now a `CASE`: the `completed` arm is BYTE-IDENTICAL to what shipped; `cancelled` returns
+`COALESCE(cancelled_at, updated_at, created_at)`. Prod has **97 cancelled jobs, 0 with a null
+`cancelled_at`** — the guard is written anyway because "zero right now" is not a constraint, and
+`updated_at`/`created_at` are NOT NULL so the arm can never reach the fall-through.
+**`get_messaging_closes_at` carried the same completed-only filter** — fixing only the gate would
+have left the composer offering a Send the server refuses, the fail-on-tap anti-pattern this codebase
+has rejected. Both moved. PGlite 3x verbatim, ACLs identical before/after and matching prod, no DROP,
+every REVOKE restated `FROM PUBLIC, anon`, lockfile clean.
+**The closed-thread copy was WRONG for a cancellation** — it read *"Messaging ends 24 hours after a
+job is completed"*: a false rule about an event that never happened. Now *"This conversation is
+closed — the job was cancelled. You can still read everything here."* The refusal path **re-reads the
+job status** rather than trusting the one in hand, because the common case is the OTHER party
+cancelling mid-compose. **The draft was not lost but UNREACHABLE** (state stayed mounted, composer
+flipped) — worse than lost; the unsent text now renders beside the notice under a "Not sent" label.
+
+**AGE-OUT: 44 days, DERIVED** — `REVIEW_WINDOW_DAYS 30` (`can_review_job`, read live) +
+`REVIEW_BLIND_HOLD_DAYS 14` (`set_review_visibility`). Day 44 is the last day the product itself can
+send anyone back; the 72h dispute and revision windows close far earlier. Anchored on
+`messagingClosesAt` (server-derived), NOT `lastAt` — `lastAt` can predate completion by weeks.
+**No closing instant -> never hidden** (fail-open). **Unread exempt at any age. Nothing is written;
+`thread_archives` untouched** (that is the user's own explicit archive — conflating them would let an
+automatic rule silently undo a human's choice). Reachability verified three ways: search deliberately
+ignores the rule, All says *"…They're still here — search for the person or the job"*, and a deep
+link still resolves and renders its closed state.
+
+**TABS: `Active · All`** (narrow->wide, landing tab first). `inboxFilter` is component-local state,
+never persisted, never read from a URL — so nothing else produced `"unread"` — but `coerceInboxView`
+maps it and anything unknown to the DEFAULT rather than to `all`: landing on a filtered slice with
+the tab lit to say so is honest; silently widening is not.
+
+### >>> FOR THE VISUAL PASS: the unread dot is now the ONLY unread signal, and it is 8px <<<
+`w-2 h-2` burnt-sienna dot top-right plus a bolder preview weight. With the Unread tab gone this is
+the sole way unread surfaces in the list. **The lane called 8px subtle for that job and did not
+change it** (not asked, not its call). Needs an eyeball at 375 and 1440.

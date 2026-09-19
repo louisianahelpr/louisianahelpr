@@ -132,6 +132,31 @@ function PostedJobCardInner({
   const unfunded = shouldShowUnfundedNotice(job);
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
 
+  /* THE HELPR'S PROFILE TILE — built here, placed INSIDE the tracker (owner,
+     2026-09-16: the profile goes under the tracker and above the map).
+
+     It used to render in the card body above the tracker; it is now handed to
+     <JobTracking> as its `personTile` slot, which drops it between the step
+     rail and the map. The card still builds it, because the card is what holds
+     the id, the name and the avatar — the tracker owns only the position.
+
+     `trackerCarriesTile` is the SAME condition the tracker itself renders on.
+     Without it, a state that shows no tracker (an unfunded job, a cancelled
+     one that still has a helper) would silently lose the Helpr's profile
+     altogether — so in exactly those states the tile keeps its old spot in the
+     body. The two are mutually exclusive: the name is printed once either way. */
+  const helperTile = job.helper_id ? (
+    <PersonTile
+      userId={job.helper_id}
+      to={`/user/${job.helper_id}`}
+      name={helperName}
+      avatarUrl={helperAvatars?.[job.helper_id] ?? null}
+      eyebrow="Helpr"
+      onClick={(e) => e.stopPropagation()}
+    />
+  ) : null;
+  const trackerCarriesTile = showsTracker && !unfunded && !!job.helper_id;
+
   /**
    * Location · date · time — built ONCE and placed twice.
    *
@@ -375,17 +400,13 @@ function PostedJobCardInner({
                   No rating: the card's data carries the Helpr's name and avatar
                   only, and a second query per card is not worth a number the
                   profile one tap away already shows. Stops propagation so the
-                  tap opens the profile without also collapsing the card. */}
-              {job.helper_id && (
-                <PersonTile
-                  userId={job.helper_id}
-                  to={`/user/${job.helper_id}`}
-                  name={helperName}
-                  avatarUrl={helperAvatars?.[job.helper_id] ?? null}
-                  eyebrow="Helpr"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              )}
+                  tap opens the profile without also collapsing the card.
+
+                  MOVED (owner, 2026-09-16): when this card draws a tracker the
+                  tile rides inside it, under the steps and above the map — see
+                  `helperTile` / `trackerCarriesTile` above. This spot is now
+                  only the fallback for a state with no tracker to sit in. */}
+              {!trackerCarriesTile && helperTile}
 
               {/* Cancelled: show fee info if a fee was recorded */}
               {job.status === "cancelled" && (
@@ -504,7 +525,7 @@ function PostedJobCardInner({
                   {/* `embedded`: this card is already a JobCardShell glass card,
                       so the tracker renders without a box of its own (same fix
                       as HelperTrackerPanel; guard noNestedTrackerCard.test.ts). */}
-                  <JobTracking embedded includePostingSteps jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} helperArrivalNearMissAt={(job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
+                  <JobTracking embedded includePostingSteps personTile={helperTile} jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} helperArrivalNearMissAt={(job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
                 </div>
               )}
 

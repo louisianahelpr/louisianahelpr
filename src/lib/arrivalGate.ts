@@ -1,9 +1,9 @@
 /**
  * ONE rule for "has this helper's arrival been established?", shared by every
  * surface that gates on it — the payout CTA (`completeJob`), the tracker's
- * Working and Done steps, the tracker's Arrived step caption (the open
- * "Awaiting confirmation" question only), and the arrival label on the tracking
- * map's job pin.
+ * Working and Done steps, and the arrival label on the tracking map's job pin.
+ * (The Arrived step's own caption is gone — owner, 2026-09-16; see
+ * `arrivalStateLabel`.)
  *
  * THE RULE ITSELF lives in `supabase/functions/_shared/arrivalRule.ts` so the
  * app and create-payment's helper release read the same predicate. Owner,
@@ -53,22 +53,31 @@ export function arrivalState(job: ArrivalEvidence | null | undefined): ArrivalSt
 }
 
 /**
- * Caption under the tracker's Arrived step — the OPEN QUESTION only.
+ * Caption under the tracker's Arrived step. NOW ALWAYS `null`.
  *
- * It used to label all three states, so "Poster confirmed" / "Location
- * confirmed" sat under the Arrived step. Owner, 2026-09-14 (VN-20): "Location
- * confirmed does not need to show on the tracker, it should be on the map".
- * The settled facts live on the map's job pin (`arrivalMapLabel`) or, when no
- * map is drawn, in the status line under the rail. A pending action keeps its
- * caption: it is not a fact about the location, it is something the poster
- * still has to do.
+ * History: it used to label all three states, so "Poster confirmed" /
+ * "Location confirmed" sat under the Arrived step. Owner, 2026-09-14 (VN-20):
+ * "Location confirmed does not need to show on the tracker, it should be on
+ * the map" — the settled facts moved to the map's job pin
+ * (`arrivalMapLabel`), or to the status line under the rail when no map is
+ * drawn, leaving only the open question here. VN-33 then made a VERIFIED
+ * arrival a pending action too, so both `claimed` and `verified` read
+ * "Awaiting confirmation".
  *
- * VN-33 made a VERIFIED arrival a pending action too: the poster's
- * confirmation is now required, so a location-confirmed Helpr is still
- * "Awaiting confirmation". (Before VN-33 only a bare claim waited on the poster.)
+ * OWNER, 2026-09-16: "remove awaiting confirmedation from under confirmation.
+ * tehy can click arrived or toggle to see why its yellow" — the caption itself
+ * goes; the AMBER STEP COLOUR STAYS. The step's own colour is the signal now,
+ * and tapping the step tells the reader why. Nothing else about the arrival
+ * gate changed: `arrivalEstablished` still needs both stamps, and
+ * `arrivalMapLabel` still carries the settled fact on the map pin.
+ *
+ * Kept as a function (rather than deleted with its render branch) because the
+ * Arrived step's caption SLOT is unchanged — this is the one place that
+ * decides whether a label is owed, so a future label returns from here and
+ * nowhere else.
  */
-export function arrivalStateLabel(state: ArrivalState): string | null {
-  return state === "claimed" || state === "verified" ? "Awaiting confirmation" : null;
+export function arrivalStateLabel(_state: ArrivalState): string | null {
+  return null;
 }
 
 /**

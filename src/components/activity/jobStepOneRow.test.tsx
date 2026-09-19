@@ -275,10 +275,15 @@ const CASES: Array<{
     primary: ["Start Working"],
   },
   {
-    name: "Jobs · Arrived, legacy unverified arrival (Start Working + Try My Location Again share the slot)",
+    // The GREEN PRIMARY IS LAST (owner, 2026-09-16: the primary belongs on the
+    // right). The slot is a flex row, so source order is left-to-right: the
+    // outline retry first, the glossy "Start Working" right-most. Swapped from
+    // ["Start Working", "Try My Location Again"], which put the outline to the
+    // RIGHT of the primary on the one state that shows both.
+    name: "Jobs · Arrived, legacy unverified arrival (Try My Location Again + Start Working share the slot)",
     render: active(makeJob({ poster_confirmed_working_at: null }), "arrived"),
     minControls: 4,
-    primary: ["Start Working", "Try My Location Again"],
+    primary: ["Try My Location Again", "Start Working"],
   },
   {
     // The pair singlePrimaryCta.test.tsx pinned at 2: the tracker's "Mark Job
@@ -447,11 +452,16 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
         expect(g.closest("[data-job-step-primary]"), `${g.textContent?.trim()} is glossy but not the row's primary`).not.toBeNull();
       }
       // …and the primary IS the dark green one (owner: "primary action in the
-      // dark green (btn primary)") — not a tint or an outline in the lead slot.
+      // dark green (btn primary)") — not a tint or an outline.
+      //
+      // LAST, not first (owner, 2026-09-16: the green primary is the
+      // RIGHT-most control). The slot is a flex row, so its last child is its
+      // right-hand one; on every state but the legacy-arrival retry the slot
+      // holds a single control and first and last are the same element.
       if (c.primary.length > 0) {
         expect(
-          (primarySlot.firstElementChild as HTMLElement).classList.contains("btn-grad-primary"),
-          `the row's primary "${primaryLabels[0]}" does not wear btn-grad-primary`,
+          (primarySlot.lastElementChild as HTMLElement).classList.contains("btn-grad-primary"),
+          `the row's right-most primary "${primaryLabels[primaryLabels.length - 1]}" does not wear btn-grad-primary`,
         ).toBe(true);
       }
     });

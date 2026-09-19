@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
-import type { MouseEvent as ReactMouseEvent, CSSProperties } from "react";
+import type { MouseEvent as ReactMouseEvent, CSSProperties, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
@@ -352,9 +352,9 @@ export function deriveCurrentStatusIdx({
  * drawn as a label on the map's job pin. While that map is on screen, this
  * line saying "Arrival GPS-verified" / "Arrival confirmed by the person who posted it" a few pixels
  * above it is the same fact twice, so `arrivalShownOnMap` drops ONLY that
- * clause and keeps the location part ("Location shared · at the job"). With
- * no map drawn (no coordinates, or past the en-route step) the clause stays
- * here — this line is then the only place the fact appears.
+ * clause and keeps the location part ("Location shared · 3.2 mi from job").
+ * With no map drawn (no coordinates, or past the en-route step) the clause
+ * stays here — this line is then the only place the fact appears.
  */
 export type TrackingProofCaption = {
   text: string;
@@ -375,14 +375,18 @@ export function trackingProofCaption(
   /** Is the map rendering this arrival as a label on its job pin? See above. */
   arrivalShownOnMap = false,
 ): TrackingProofCaption {
+  // NO "at the job" CLAUSE (owner, 2026-09-16: "remove the at the job text").
+  // A ping inside the verification radius now says NOTHING about where — the
+  // clause is dropped exactly as the no-distance branches already drop it, so
+  // "Arrival GPS-verified · last ping at the job" reads "Arrival GPS-verified"
+  // and no dangling "·" is left behind (every consumer below builds the
+  // separator from `where`, never around it). The DISTANCE branch stays: the
+  // owner named only the "at the job" phrasing, and "1792 mi from job" is the
+  // headline fact this caption exists for.
   const where =
-    !hasPosition
+    !hasPosition || distanceMi == null || distanceMi < AT_JOB_MI
       ? null
-      : distanceMi == null
-        ? null
-        : distanceMi < AT_JOB_MI
-          ? "at the job"
-          : `${distanceMi < 10 ? distanceMi.toFixed(1) : Math.round(distanceMi)} mi from job`;
+      : `${distanceMi < 10 ? distanceMi.toFixed(1) : Math.round(distanceMi)} mi from job`;
 
   // No position at all. The absence is stated rather than left blank — a
   // self-reported arrival that rendered identically to a GPS-confirmed one
@@ -437,6 +441,21 @@ export function trackingProofCaption(
 const MAP_TRACKING_STATUSES = new Set(["on_the_way", "arrived", "working"]);
 
 /**
+ * THE CONTESTED SET (owner, 2026-09-16: "the tracker shoudl not go away for a
+ * dispute ir revisio").
+ *
+ * A job in `revision_requested` or `disputed` has already been submitted, so
+ * its tracking row carries `done` — which is why keeping the map for those two
+ * statuses needs BOTH halves: `markedDone` has to stop hiding it, and `done`
+ * has to be an allowed tracking status. With only the first half the map
+ * stayed hidden and the fix would have measured as a no-op.
+ *
+ * Deliberately NOT a change to the plain path: a normally-completed job still
+ * loses its map on the same terms as before.
+ */
+const CONTESTED_MAP_TRACKING_STATUSES = new Set([...MAP_TRACKING_STATUSES, "done"]);
+
+/**
  * Whether the map mounts. Shared by the render and by the arrival-label
  * placement (VN-20) so "the map shows the arrival" and "the map is on screen"
  * can never be two different answers.
@@ -447,20 +466,29 @@ const MAP_TRACKING_STATUSES = new Set(["on_the_way", "arrived", "working"]);
  * still stops at arrival exactly as before.
  *
  * `markedDone` hides it once completion is submitted or settled — the helper's
- * Done, the poster's approval, a completed job — including a job sent back for
- * revision or disputed after submission, where the rail clamps to Working but
- * the work was already handed in.
+ * Done, the poster's approval, a completed job.
+ *
+ * EXCEPT WHEN THE WORK IS CONTESTED (`contested`, owner 2026-09-16: "the
+ * tracker shoudl not go away for a dispute ir revisio"). This reverses the
+ * earlier reading that a job sent back for revision or disputed after
+ * submission should lose its map with every other done job. It should not: a
+ * revision or a dispute is the one moment where where the Helpr actually WENT
+ * is the evidence under discussion, and the rail is deliberately clamped to
+ * Working for exactly the same reason. The map goes with it.
  */
 export function shouldShowTrackingMap(
   tracking: Pick<TrackingData, "status" | "latitude" | "longitude"> | null | undefined,
   jobLatitude: number | null | undefined,
   jobLongitude: number | null | undefined,
   markedDone = false,
+  /** `jobStatus` is `revision_requested` or `disputed` — see above. Scoped to
+   *  those two statuses so a plainly-completed job is untouched. */
+  contested = false,
 ): boolean {
   return (
-    !markedDone &&
+    (contested || !markedDone) &&
     !!tracking &&
-    MAP_TRACKING_STATUSES.has(tracking.status) &&
+    (contested ? CONTESTED_MAP_TRACKING_STATUSES : MAP_TRACKING_STATUSES).has(tracking.status) &&
     tracking.latitude != null &&
     tracking.longitude != null &&
     jobLatitude != null &&
@@ -486,7 +514,9 @@ export type TrackingData = {
 export function JobTracking({
   jobId,
   helperId,
-  helperName,
+  // `helperName` is NOT destructured any more — nothing in here reads it since
+  // the name left the freshness stamp (owner, 2026-09-16). Still accepted on
+  // the type so the poster card's call site is unchanged.
   isHelper,
   isOwner: _isOwner,
   jobDateNeeded,
@@ -512,18 +542,19 @@ export function JobTracking({
   initialTracking,
   jobLatitude,
   jobLongitude,
+  personTile,
   includePostingSteps = false,
   embedded = false,
 }: {
   jobId: string;
   helperId: string | null;
   /**
-   * Display name of the assigned helper. Supplied by the poster-side card so
-   * the tracker can state WHO it is tracking. It is rendered as a caption on
-   * the progress bar — "Camille is on the way" — not as a row under the
-   * heading, where the owner read it as a second title stacked on the first.
-   * Optional: the helper-side mounts are tracking themselves and have no one
-   * to name.
+   * Display name of the assigned helper. NO LONGER RENDERED by this component
+   * (owner, 2026-09-16: "remove the name to the left of updated"): it used to
+   * open the freshness stamp — "Camille · Updated 4:12 PM" — and before that
+   * captioned the progress bar. The name is printed once now, by the
+   * `personTile` the card hands in. Still accepted, and still passed by the
+   * poster card, so no call site had to change with the caption.
    */
   helperName?: string | null;
   isHelper: boolean;
@@ -584,6 +615,19 @@ export function JobTracking({
    */
   jobLatitude?: number | null;
   jobLongitude?: number | null;
+  /**
+   * The other party's mini-profile, rendered BETWEEN the tracker and its map
+   * (owner, 2026-09-16: the profile belongs under the tracker and above the
+   * map). A SLOT, not a tile: this component owns only the position, never who
+   * is in it — the card that already holds the person's id, name and avatar
+   * builds the `<PersonTile>` and hands it in, so there is still exactly one
+   * profile treatment app-wide and no second query per card.
+   *
+   * It sits here rather than in the card body because the card body is above
+   * the tracker; the name is then printed once, in one place, on both sides of
+   * the job.
+   */
+  personTile?: ReactNode;
   /**
    * Poster-side only: prepend the pre-assignment steps ("Posted",
    * "Applicants") so an OPEN job — one with no helper yet — still shows where
@@ -1539,11 +1583,13 @@ export function JobTracking({
   // behaviour (`STATUSES` / `currentStatusIdx`); with them the row is offset by
   // the two prepended steps, and a job with nobody assigned yet sits on
   // "Posted" or — once at least one application is in — "Applicants".
-  // WHOSE job this is, for the tracker heading. It used to caption the current
-  // STEP, which cost every step column a third line to hold one word on one of
-  // them and moved down the row as the job advanced. A helpr tracking their own
-  // job needs no one named, hence the `isHelper` gate at the call site.
-  const firstName = helperName?.trim().split(/\s+/)[0] ?? null;
+  //
+  // `firstName` IS GONE (owner, 2026-09-16: "remove the name to the left of
+  // updated"). It existed only to open the freshness stamp with the Helpr's
+  // first name on the poster's card; nothing else read it. `helperName` is
+  // therefore no longer read by this component — the prop is kept on the type
+  // so its one caller keeps compiling, and the name is printed once, by the
+  // PersonTile the card now hands in as `personTile`.
 
   const arrivalEvidence = {
     helper_arrived_at: jobStamps.arrivedAt,
@@ -1552,7 +1598,8 @@ export function JobTracking({
     helper_arrival_near_miss_at: jobStamps.nearMissAt,
   };
   const currentArrivalState = arrivalState(arrivalEvidence);
-  // Rail caption: only the open "Awaiting confirmation" question (VN-20).
+  // Rail caption under the Arrived step. `null` in every state since
+  // 2026-09-16 — see `arrivalStateLabel`; the amber step colour is the signal.
   const arrivalCaption = arrivalStateLabel(currentArrivalState);
   // The settled arrival fact goes on the map's job pin when the map is drawn,
   // and falls back to the status line when it is not (VN-20).
@@ -1562,7 +1609,10 @@ export function JobTracking({
     !!jobStamps.posterCompletedAt ||
     jobStatus === "completed" ||
     jobStatus === "cancelled";
-  const mapShown = shouldShowTrackingMap(tracking, jobLatitude, jobLongitude, markedDone);
+  // The map survives a contested completion (owner, 2026-09-16) — see
+  // `shouldShowTrackingMap`. Same two statuses the rail clamps to Working.
+  const contested = jobStatus === "revision_requested" || jobStatus === "disputed";
+  const mapShown = shouldShowTrackingMap(tracking, jobLatitude, jobLongitude, markedDone, contested);
   const settledArrivalLabel = arrivalMapLabel(currentArrivalState);
   const arrivalOnMap = mapShown && settledArrivalLabel != null;
 
@@ -2004,18 +2054,21 @@ export function JobTracking({
                       row keeps the tight rhythm the heading-name move bought
                       it. `items-start` on the row means the taller column
                       hangs below the others rather than pushing them down. */}
-                  {/* ARRIVED CARRIES ONLY THE OPEN QUESTION NOW (owner,
-                      2026-09-14, VN-20: "Location confirmed does not need to
-                      show on the tracker, it should be on the map"). This
-                      reverses the earlier "light it when helpr says they
-                      arrived but poster has to confirm" caption for the two
-                      SETTLED states: "Poster confirmed" / "Location confirmed"
-                      moved to the map's job pin, or to the status line under
-                      the rail when no map is drawn. A claim still waiting on
-                      the poster keeps its amber "Awaiting confirmation" here — that
-                      is a pending action, not a fact about the location, and
-                      without it a poster could read "Working" while their card
-                      still asked them to confirm the arrival. */}
+                  {/* ARRIVED CARRIES NO CAPTION AT ALL NOW (owner,
+                      2026-09-16: "remove awaiting confirmedation from under
+                      confirmation. tehy can click arrived or toggle to see why
+                      its yellow"). The settled facts left first (VN-20:
+                      "Location confirmed does not need to show on the tracker,
+                      it should be on the map" — they ride on the map's job pin,
+                      or on the status line when no map is drawn); the open
+                      "Awaiting confirmation" question has now followed them.
+                      What is left saying it is the step's AMBER COLOUR, which
+                      is unchanged and deliberate, plus the step's own tap.
+
+                      The slot below is kept, not deleted: `arrivalStateLabel`
+                      is the one place that decides whether a caption is owed,
+                      so it returns `null` today and a future label would land
+                      here and nowhere else. */}
                   {/* Only while Arrived is still the CURRENT step. Once the
                       job progresses past it (Working, Done, …) the caption
                       went stale — a job sitting on "Working" still showed
@@ -2070,10 +2123,13 @@ export function JobTracking({
           it vouches for). */}
       {tracking && (
         <p className="text-ds-10 text-muted-foreground text-center">
-          {/* The helper's name opens the stamp — this line describes THEIR
-              last ping, and it is where the name landed when the heading row
-              was dropped (owner card only, same rule as before). */}
-          {!isHelper && firstName ? `${firstName} · ` : ""}
+          {/* NO NAME IN FRONT OF "Updated" (owner, 2026-09-16: "remove the
+              name to the left of updated"). The stamp used to open with the
+              Helpr's first name on the poster's card — "Hallie · Updated 4:12
+              PM" — from when the tracker's heading row was dropped and the
+              name had to land somewhere. It does not have to land here: the
+              expanded card now carries the Helpr as a PersonTile of their own
+              (VN-22), so this line was the second print of one name. */}
           Updated {new Date(tracking.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           {/* THE PROOF CLAUSE. Derived from `arrivalState()` — the same single
               input as the unverified-arrival toast, the completion gate and
@@ -2152,6 +2208,18 @@ export function JobTracking({
             </span>
           </p>
         )}
+
+      {/* THE OTHER PARTY, BETWEEN THE RAIL AND THE MAP (owner, 2026-09-16).
+          The card used to print this tile up in its body, above the tracker;
+          it now sits directly under the steps and directly above the map, so
+          the three things that answer "who, how far along, and where" read as
+          one block instead of being split by the description.
+
+          No box of its own is added around it — `PersonTile` is already the
+          shared tile and wears `glass-press`, not `liquid-glass`, so nothing
+          here nests a card inside the card (src/test/noNestedTrackerCard.test.ts).
+          Renders nothing at all when the caller passes nothing. */}
+      {personTile}
 
       {/* Tracking map — KEPT UNTIL DONE (owner, 2026-09-14: "Keep map until
           done"; was en-route only). Shown from On the Way through Arrived and
@@ -2474,9 +2542,18 @@ export function JobTracking({
           return (
             <>
               <JobStepRowSlot slot="note">{reasonEl}</JobStepRowSlot>
+              {/* GREEN LAST = GREEN RIGHT-MOST (owner, 2026-09-16: the primary
+                  belongs on the right). This slot is a flex ROW, so source
+                  order is left-to-right: with the CTA first, the OUTLINE
+                  "Try My Location Again" sat to the right of the glossy
+                  primary whenever the retry gate fired (helper, en_route /
+                  on_site / working). Only the two children swap — both
+                  elements, their gates, handlers and busy states are
+                  untouched, and `retryEl` still renders nothing at all unless
+                  the arrival is claimed-but-unverified. */}
               <JobStepRowSlot slot="primary">
-                {ctaEl}
                 {retryEl}
+                {ctaEl}
               </JobStepRowSlot>
               {doneDialog}
             </>

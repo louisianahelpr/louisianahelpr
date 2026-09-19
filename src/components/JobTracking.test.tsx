@@ -279,8 +279,11 @@ describe("trackingProofCaption", () => {
     expect(far.tone).toBe("warn");
 
     // Even standing on the job site, a claim nothing corroborates is a claim.
+    // The "at the job" clause itself is gone (owner, 2026-09-16: "remove the
+    // at the job text") — a ping inside the radius says nothing about where,
+    // and drops the separator with it rather than leaving a dangling "·".
     expect(trackingProofCaption("claimed", 0.02, true)).toEqual({
-      text: "Arrival not confirmed · at the job",
+      text: "Arrival not confirmed",
       tone: "warn",
     });
   });
@@ -296,7 +299,7 @@ describe("trackingProofCaption", () => {
     // Verified is a statement about the moment of arrival — stepping away
     // mid-job is normal, so the distance is reported, not held against them.
     expect(trackingProofCaption("verified", 0.05, true)).toEqual({
-      text: "Arrival GPS-verified · last ping at the job",
+      text: "Arrival GPS-verified",
       tone: "ok",
     });
     expect(trackingProofCaption("verified", 12, true).text).toBe(

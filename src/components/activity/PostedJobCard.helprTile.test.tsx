@@ -9,9 +9,17 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import type { ReactNode } from "react";
 import type { Job } from "./activityConstants";
 
-vi.mock("@/components/JobTracking", () => ({ JobTracking: () => <div data-testid="tracker" /> }));
+// The tracker now carries the Helpr tile in its `personTile` slot (owner,
+// 2026-09-16), so the double has to render what it is handed — a stub that
+// drops the slot would "prove" the tile is missing.
+vi.mock("@/components/JobTracking", () => ({
+  JobTracking: ({ personTile }: { personTile?: ReactNode }) => (
+    <div data-testid="tracker">{personTile}</div>
+  ),
+}));
 vi.mock("@/components/JobConfirmation", () => ({ JobConfirmation: () => null }));
 vi.mock("@/components/GroupJobHelpers", () => ({ GroupJobHelpers: () => null }));
 vi.mock("@/components/activity/SeriesStrip", () => ({ SeriesStrip: () => null }));
@@ -63,6 +71,13 @@ function renderCard(expanded: boolean, toggle = vi.fn()) {
   );
 }
 
+/**
+ * 2026-09-16 (owner): the tile MOVED again — out of the card body and INTO the
+ * tracker, between the step rail and the map ("the profile should be under the
+ * tracker and above the map"). It is still expanded-only, still exactly one
+ * profile link, and still after the description; what changed is that the
+ * tracker is now its parent, which is what puts it above the map.
+ */
 describe("Posts card shows the Helpr as a profile tile, expanded only (VN-22)", () => {
   it("collapsed: no Helpr name or profile link anywhere on the card", () => {
     renderCard(false);
@@ -70,15 +85,20 @@ describe("Posts card shows the Helpr as a profile tile, expanded only (VN-22)", 
     expect(document.querySelector('a[href="/user/helper-1"]')).toBeNull();
   });
 
-  it("expanded: a profile tile under the description, linking to /user/:id", () => {
+  it("expanded: a profile tile inside the tracker, linking to /user/:id", () => {
     renderCard(true);
     const name = screen.getByText("Hallie H.");
     const link = name.closest("a");
     expect(link).toHaveAttribute("href", "/user/helper-1");
     expect(link).toHaveTextContent("Helpr");
-    // Exactly one — the tiny row is gone, not merely hidden.
+    // Exactly one — the tiny row is gone, not merely hidden, and the body copy
+    // does not keep a second one now that the tracker carries it.
     expect(document.querySelectorAll('a[href="/user/helper-1"]')).toHaveLength(1);
-    // Under the description.
+    // INSIDE the tracker (owner, 2026-09-16): that is what puts it under the
+    // step rail and above the map, which the tracker renders below this slot.
+    const tracker = screen.getByTestId("tracker");
+    expect(tracker.contains(link!)).toBe(true);
+    // Still after the description — the tracker itself sits below it.
     const description = screen.getByText(/Front driveway/);
     expect(description.compareDocumentPosition(link!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });

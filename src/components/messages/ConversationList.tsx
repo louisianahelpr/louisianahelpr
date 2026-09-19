@@ -991,11 +991,43 @@ export function ConversationList({
             canTrigger={canTrigger}
             className="flex-1 min-h-0 px-3 py-3"
             style={{
-              // Mobile pads for the floating dock; the desktop split pane
-              // has no dock, so the 96px reserve would just be dead scroll
-              // space — trim it to a normal gutter when embedded.
-              paddingBottom: embedded
-                ? "1rem"
+              /* CLEARANCE FOR THE DOCK, AND ONLY WHERE THE DOCK EXISTS
+                 (owner, 2026-09-19: "messages need to fill the screen").
+
+                 96px is AppShell's `reserveBottomNav` clearance — the floating
+                 MobileNav pill plus the Post FAB, which ride in the same
+                 `.mobile-nav-frame`. On the desktop website that frame is
+                 `display: none !important` (index.css, `html.web-desktop
+                 .mobile-nav-frame`), so the reserve was holding open 96px of
+                 scroll for something that is not painted: the inbox ran out of
+                 threads ~96px above the panel's bottom edge, and since the
+                 panel itself runs flush to the viewport floor on desktop
+                 (pageCardSurfaces' zeroed bottom radii — owner, 2026-09-16,
+                 panels are NOT curved at the bottom), that reserve read as the
+                 list simply stopping short of the screen.
+
+                 This used to be keyed on `embedded`, which no production
+                 caller ever sets, so the trim never once ran. It is keyed on
+                 `useIsWebDesktop()` now — the SAME predicate that puts the
+                 `web-desktop` class on <html>, which is the only thing that
+                 hides the dock. Those are two separate literals in two files
+                 (useIsWebDesktop.ts and useAppShellViewport.ts), so a guard
+                 asserts they stay identical; if they ever drift, this padding
+                 would come off at a width where the dock is still painted and
+                 the last thread would hide behind it.
+
+                 Desktop keeps a real 1rem gutter rather than zero — the panel
+                 has no bottom edge there, so 0 would leave the final row
+                 sitting on the viewport floor. The safe-area term stays in:
+                 web-desktop is a BROWSER at >=900px, which includes an iPad in
+                 landscape with a home indicator.
+
+                 Phone and native are untouched: `isWebDesktop` is false at
+                 every phone width and on native at every size, so this is the
+                 same string it has always been there, and the dock clearance
+                 is load-bearing. */
+              paddingBottom: isWebDesktop
+                ? "calc(var(--safe-area-bottom, 0px) + 1rem)"
                 : "calc(var(--safe-area-bottom, 0px) + 96px)",
             }}
           >

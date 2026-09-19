@@ -3231,3 +3231,80 @@ Its code path is unchanged and is covered by the new guard.
   links. Every assertion proven red first, including the over-wide un-gate (4 reds) and the
   tile-follows-tracker mistake.
 - New: `AppliedJobCard.posterTile.test.tsx`, `PostedJobCard.contestedTracker.test.tsx`.
+
+### DONE 2026-09-19 — item 7 backend: the stuck-escrow sweep gap — commit `d738344c1`
+**The bug's own number (live prod):** `status='in_progress' AND helper_completed_at IS NULL AND
+poster_completed_at IS NULL AND payment_status='escrow' AND date_needed < today(America/Chicago)`
+-> **11 rows** (oldest `date_needed` 2026-09-09). **All 11 are `is_seed=true`; ZERO real users are
+in the trap.** 11 of the 17 `in_progress`+`escrow` jobs were stuck.
+The count stays 11 after the change **by design, not by miss**: the sweep is an edge function +
+pg_cron row that only exist on prod after merge -> `db-deploy`, and it scopes to `is_seed=false`
+(the same scope `arrival-confirm-reminder` and `money-reconciliation` use — escalating fixtures
+would page a real admin about test data). The number that moved is the class check's:
+**uncovered statuses `['in_progress']` -> `[]`**.
+
+**Thresholds, measured from the job's scheduled end** (anchor =
+`max(end of the job's local day, start_time + estimated_hours)`; every error errs LATE, because a
+premature nudge accuses a Helpr who is still working). Each asserted against its source so it
+cannot drift:
+- **+2h** nudge both — `cancellationFeePercent`'s harshest tier is `hoursUntilJob < 2`;
+  `arrivalNudge.SECOND_AFTER_HOURS = 2`. The app's finest "this is late" unit.
+- **+24h** nudge both — `escrowTiming.AUTO_COMPLETE_HOURS = 24`, already the window this app gives
+  a silent party.
+- **+48h** escalate to the admin queue — `escrowTiming.TOTAL_TO_PAYOUT_HOURS = 48`, the instant
+  funds WOULD have landed on the normal path. Owner's rule is that money never moves here, so at
+  that same moment a person is asked instead.
+Cron daily 14:00 UTC (9am CDT) — the anchor is the end of a calendar day, so a finer schedule only
+buys the ability to push someone at 2am. Reuses `arrivalNudge`'s `NudgeLedger` vocabulary and claim
+protocol but NOT `arrivalNudgeStage` (its stages measure from the first send; all three of these
+measure from one anchor, so a missed run cannot compress the ladder).
+
+**Migration** `20260919143637_stalled_completion_nudges.sql` (via `npm run migration:new`) adds
+`public.job_completion_nudges` (stage ledger AND the queue: `escalated_at` set + `resolved_at` null
+= awaiting a human), `admin_stalled_job_queue(boolean)`, `resolve_stalled_job_flag(uuid)`, the cron,
+and the `cron_work_expectations` row. PGlite prod-shaped, verbatim, **3x replay all OK**. No PUBLIC
+and no anon on the table or either function; both SECURITY DEFINER with `search_path=public`;
+non-admin gets 0 queue rows and `not authorized` on resolve. No new `jobs` column -> no `types.ts`
+regen, no `write-contract.snapshot.json` change. `git status package.json package-lock.json` clean.
+
+**CLASS CHECK** `src/test/edge/escrowSweepCoverage.test.ts` — *"no job state may hold escrow with
+no scheduled path out."* Three inventories derived from the world: statuses from
+`Constants.public.Enums.job_status`; sweeps from the migrations' own `cron.schedule` bodies (both
+URL shapes — 13 crons incl. `auto-expire-jobs` are only reachable via the
+`format('/functions/v1/%s')` VALUES table; cross-checked against prod's 25 live `cron.job` rows);
+predicates parsed from each sweep's AST and **EVALUATED** against a stranded job.
+The evaluation is the point: a status-literal scan would have **passed on the original bug**,
+because `auto-release-payment` does say `.in("status", ["in_progress", …])`. It only fails on the
+conjunct (`NULL <= anything` is NULL), so the evaluator models that. Red-before observed:
+`expected [ 'in_progress' ] to deeply equal []`. Two in-file cases keep it provable forever — one
+reconstructs the pre-fix world, one invents a future status (a new enum member fails by default).
+Plus `stalledCompletionStage.test.ts` (22) and `stalled-completion-reminder.test.ts` (7, real
+source through the harness) whose `assertNoMoneyMoved()` was itself proven red.
+
+### NEW — MEDIUM (same class, narrower): a confirmed `accepted` job >7 days past start is swept by nothing
+`auto_start_due_jobs` (SQL cron, verified live via `pg_get_functiondef`) carries
+`> now() - interval '7 days'` as a retro-start backstop, so a confirmed `accepted` job more than 7
+days past its start falls out of it and no other sweep matches. **Nothing is in that state on prod
+today.** Documented in the new check as `NO_EDGE_SWEEP_NEEDED.accepted`; NOT fixed.
+
+### SCOPE LIMIT on the new check (so the green is not over-read)
+The strong AST evaluation covers the 25 HTTP crons. The ~25 pure-SQL crons are NOT parsed —
+matching on a status literal there would rebuild the exact blind spot the file removes
+(`sweep_release_last_chance` names `in_progress` and would have "covered" this very bug). Statuses
+whose only path out is a SQL cron are listed with the live check that established it; today that is
+`accepted` alone.
+
+### Item 7 UI — data contract, ready for the card lane
+No new column, no extra fetch. From `supabase/functions/_shared/stalledCompletion.ts` (same pattern
+`src/lib/arrivalGate.ts` uses for `arrivalRule.ts`):
+`completionStalled(job, now): boolean` — needs `status, helper_completed_at, poster_completed_at,
+date_needed, start_time, estimated_hours`. True exactly when `in_progress`, both stamps null, and
+>=2h past scheduled end — the SAME predicate the cron runs, so the card can never imply a window
+the sweep does not enforce. Gate the DISABLED "Work Done"/Approve affordance on it (today
+`InProgressStep.tsx:82` renders nothing at all when `helper_completed_at` is null).
+`STALLED_APPROVE_DISABLED_LABEL` = "Waiting on the Helpr to mark it done".
+`STALLED_APPROVE_DISABLED_REASON` = "Your Helpr hasn't marked this job done yet, so there's nothing
+to approve. We've reminded them. If the work is finished, ask them to tap Mark Job Complete. Your
+payment stays in escrow — nothing is released or refunded until someone acts, and our team steps in
+if this stays stuck." Both role-neutral (pinned by `roleNeutralCopy.test.ts`) and quotable verbatim.
+`hoursPastScheduledEnd(job, now)` exported if the caption wants "3 days overdue".

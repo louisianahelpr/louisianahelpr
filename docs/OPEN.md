@@ -3713,3 +3713,49 @@ leaks** — ratchet proven red both ways.
 - `write-contract.snapshot.json` carries no metadata, so deploy-lag cannot be told from a real
   missing RPC offline. Add `appliedMigrations` on refresh (see the reverted-heuristic entry above).
 - 7 edge functions still leak error detail (recorded in the EF5 ratchet).
+
+### FINAL BROWSER GATE 2026-09-19 — arrival rework, admin queue, map pin, desktop title
+36 screenshots, 36 reviewed, `review:report` exit 0. Chromium + WebKit, **zero divergences**.
+Fit: `widest: null` and `scrollWidth === clientWidth` on EVERY page touched, at 375, 320 and 1440
+(frame 0-1192 = 1440-248, single right-rail inset). Fixture `bb2c3732` restored to an EXACT MATCH on
+all 15 touched columns and the stray `job_tracking` row deleted.
+**Correction to an assumption in the brief:** an admin session IS available (`admin-e2e`,
+`helpr-seed-admin-0912@louisianahelpr.com`, real `user_roles` row), so the admin queue was verified
+properly rather than partially.
+
+**SHIP-BLOCKER FOUND AND FIXED — `02847b150`.** See the commit: the new arrival copy promised a
+check-in that had not happened during the Vercel-vs-db-deploy gap, rebuilding the very deadlock this
+batch removed. **The lesson generalises: a UI shipped ahead of its migration must be honest about
+the old server's behaviour, not only the new one.** Worth a standing check — no lane had it in scope
+because every lane reasoned about the post-migration world.
+
+**Item B measured, the number moved:** the stalled note went 112px/7 lines at 375 and 128px/8 at 320
+-> **48px/3 lines at both**, in both engines. Reviewer's honest caveat: it no longer outranks the
+tracker (the problem the owner named, fixed), but it still sits directly above a 3-line disabled
+button saying the same thing in different words ("Your Helpr hasn't marked this job done yet" vs
+"Waiting on the Helpr to mark it done"). Duplication halved, not removed.
+
+### >>> FOR THE OWNER — the empty-header screenshot they asked for <<<
+`test-results/final-gate/E6-OWNER-empty-my-jobs-header-desktop-1440.png` (+ `E6b-...-crop.png`).
+Reviewer, blunt: *"it looks bad"* — a 1142x43 white strip holding one "Search jobs" magnifier at the
+far right, hairline rule below, no page name, no tabs. **Reads as a toolbar that failed to load,
+not as a deliberate minimal header.** Owner to decide: (a) show the title only when the page is
+empty (restore the 2026-09-07 QA exception), (b) put the empty-state message in the header
+(`ActivityHeader`/`ScreenHeaderRow`), (c) leave it.
+
+### NEW — MEDIUM (pre-existing): the ladder derives "Confirmed" from `status`, not from the stamps
+Fixture `bb2c3732` is `in_progress` with `helper_confirmed_at`, `poster_confirmed_at` and
+`helper_dayof_confirmed_at` ALL NULL. The tracker painted "Confirmed" complete and offered
+"I'm On My Way"; the server refused with `helper_not_confirmed`. **Any job reaching `in_progress`
+without those stamps offers a control that cannot work.** Same class as the deadlock — a control
+offered for an action that will be refused — and `controlReachability.test.ts` did NOT catch it,
+because its CHECK 3 only pairs copy-producers with control-producers that are pure exported
+functions over a column-shaped object; this gate reads `status`. Honest limit of the new guard,
+recorded rather than papered over.
+
+### NEW — LOW (from the same pass)
+- Arrival copy DENSITY on the claimed-no-GPS card: 10 lines of prose between the photo box and the
+  buttons (6 amber + 4 muted), and the two OVERLAP — both say "turn Location on", both name
+  "Try My Location Again". The amber block also LEADS with the GPS ask rather than the blocker,
+  blurring the amber-means-blocked / muted-means-advice separation the design rests on.
+- Seed rot: two `storage/v1/object/sign/proof-photos/...` URLs on seed job `e7e09075` return HTTP 400.

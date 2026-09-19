@@ -165,7 +165,5 @@
   "selfReferential": [
     "src/test/prodSeedGroupJobFixture.test.ts"
   ],
-  "survivingMutations": [
-    "src/test/shellConsistency.test.ts|src/pages/Profile.tsx|<AppShell\n      scrollable={false}"
-  ]
+  "survivingMutations": []
 }

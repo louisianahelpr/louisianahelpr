@@ -84,7 +84,16 @@ interface ConversationListProps {
    *  viewport shell, no title card) so the desktop Messages page can host
    *  it as the left pane of a list+thread split. Defaults to false —
    *  mobile/native render the full standalone PageScaffold exactly as
-   *  before. The selected thread is highlighted via `activeKey`. */
+   *  before. The selected thread is highlighted via `activeKey`.
+   *
+   *  NOTHING IN PRODUCTION PASSES `true` — the desktop list+thread split was
+   *  removed (Messages.tsx passes `embedded={false}` on both panes), so every
+   *  branch below still keyed on this prop is unreachable outside tests. The
+   *  desktop-website behaviours that DO have to ship (the inline tab strip,
+   *  the absent disclosure, the sr-only page name) are keyed on
+   *  `useIsWebDesktop()` instead. Left in place rather than deleted: it is a
+   *  public prop of a shared component and removing it is a separate change,
+   *  not a side effect of this one. */
   embedded?: boolean;
   /** `${jobId}_${otherUserId}` of the open thread — used to highlight the
    *  active row in the embedded (desktop split) layout. */
@@ -131,10 +140,12 @@ const DEFAULT_INBOX_TAB = defaultInboxTab(0);
  * The id the disclosure's `aria-controls` points at.
  *
  * Exactly ONE of the two tab placements renders at a time (the inline desktop
- * one under `embedded`, the phone row under `!embedded`), so a single id stays
- * unique and the attribute resolves on whichever surface is live. Activity hit
- * the opposite of this: its desktop chevron pointed at an id that only existed
- * in the phone branch, which axe flags `aria-valid-attr-value` critical.
+ * one under `isWebDesktop`, the phone row under `!isWebDesktop`), so a single
+ * id stays unique and the attribute resolves on whichever surface is live.
+ * Those two gates are exact complements of one value, which is the whole
+ * reason the id can be shared. Activity hit the opposite of this: its desktop
+ * chevron pointed at an id that only existed in the phone branch, which axe
+ * flags `aria-valid-attr-value` critical.
  */
 const INBOX_TABS_ID = "messages-inbox-tabs";
 
@@ -229,12 +240,22 @@ export function ConversationList({
      their six threads with nothing on screen saying why. The disclosure hides
      a control, never an active filter — ActivityHeader's rule, verbatim.
 
-     `embedded` (the desktop website's list+thread split) has no disclosure at
-     all: the tabs ride inline beside the screen name there, where there is
-     room for them, which is what `inlineFilters` does on Activity. */
+     THE DESKTOP WEBSITE (>=900px, non-native) has no disclosure at all: the
+     tabs ride inline beside the screen name there, where there is room for
+     them, which is what `inlineFilters` does on Activity (owner, 2026-09-19:
+     "in the top bar it should say all un read and active. that should not be
+     a drop down ... on phone it will still need to drop down").
+
+     Keyed on `useIsWebDesktop()` — the SAME hook Activity and the in-panel
+     header split below already read — and NOT on the `embedded` prop. That
+     prop is the old desktop two-pane split, which was removed: Messages.tsx
+     passes `embedded={false}` on both panes, so every branch keyed on it is
+     unreachable and the inline strip below had never once rendered in
+     production. `isWebDesktop` is false at every phone width and on native at
+     every size, so the phone rendering is byte-for-byte unchanged. */
   const isDefaultInboxFilter = (inboxFilter ?? DEFAULT_INBOX_TAB) === DEFAULT_INBOX_TAB;
   const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
-  const tabsOpen = embedded || tabsOpenPhone;
+  const tabsOpen = isWebDesktop || tabsOpenPhone;
   // A filter arriving LATER — the hamburger switching to Pinned / Recently
   // Deleted — has to be able to open the disclosure too, or the same
   // "filtered, but nothing says so" state comes back through the side door.
@@ -574,7 +595,7 @@ export function ConversationList({
 
   const inboxTabs = (
     <UnderlineTabs
-      dense={embedded}
+      dense={isWebDesktop}
       ariaLabel="Filter conversations"
       tabs={[
         { key: "all", label: "All", count: conversations.length },
@@ -712,7 +733,7 @@ export function ConversationList({
      leaving you to go hunting. Messages' tab-empty copy does the same (see
      noTabMatches below), and that is where the counts were owed. */
   const headerMeta =
-    embedded && hasThreads ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined;
+    isWebDesktop && hasThreads ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined;
 
   /* The trailing icon cluster.
      Search · hamburger · chevron, in that order (owner, 2026-09-14, VN-35:
@@ -801,14 +822,14 @@ export function ConversationList({
       </DropdownMenu>
       {/* THE DISCLOSURE — the same control, glyph and rotation My Posts / My
           Jobs use, so "collapsed when opened" is one behaviour across the three
-          screens rather than three near-misses. Not rendered when `embedded`:
-          the desktop split shows the tabs inline and a chevron there would hide
-          three short words to save nothing (ActivityHeader drops it under
-          `inlineFilters` for the same reason).
+          screens rather than three near-misses. Not rendered on the desktop
+          website: the tabs are inline in the header row there and a chevron
+          would hide three short words to save nothing (ActivityHeader drops it
+          under `inlineFilters` for the same reason).
 
           Gated on `hasThreads` alongside search — with no threads there is
           nothing to slice, and the empty state below already says so. */}
-      {!embedded && hasThreads && (
+      {!isWebDesktop && hasThreads && (
         <button
           type="button"
           onClick={() => { hapticLight(); setTabsOpenPhone((v) => !v); }}
@@ -905,7 +926,7 @@ export function ConversationList({
               screen opens at My Posts' / My Jobs' height instead of twice it.
               Still hidden while search or select mode has taken the row over:
               one control at a time. */}
-          {!embedded && hasThreads && tabsOpen && !searchOpen && !selectMode && (
+          {!isWebDesktop && hasThreads && tabsOpen && !searchOpen && !selectMode && (
             /* `-mx-1 px-1 pb-0.5`, not the `pt-1.5` this used to carry — these
                are ActivityHeader's exact classes, so the card matches My Posts
                / My Jobs at 118px EXPANDED as well as at 62px collapsed. (With

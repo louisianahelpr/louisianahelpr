@@ -3392,3 +3392,66 @@ a queue screen is wanted before those escalations land.
   one tap. Explicitly NOT chosen: warning that unverified arrivals count against them (reads as an
   accusation to someone with genuinely bad signal), and prompting on every attempt. Feeds the
   arrival-gate UI lane.
+
+### DONE 2026-09-19 — arrival gate, DATABASE half — commit `a83c5cd16`
+Migration `20260919155016_arrival_poster_confirm_always.sql`. VN-33's "no fix, no arrival" is
+reversed per the owner. `mark_helper_arrival` no longer RAISEs on `arrival_location_required` /
+`arrival_location_invalid` / `arrival_too_far`; one UPDATE always runs:
+`helper_arrived_at = COALESCE(helper_arrived_at, now)` and
+`helper_arrival_verified_at = CASE WHEN verified THEN COALESCE(...) ELSE helper_arrival_verified_at END`
+— **a claim can never clear or downgrade an existing verification.** Two no-write early returns for
+idempotence (`already_confirmed`, `already_verified`).
+
+"Working unlocks" lived in **SQL and client, both** — all four moved to poster-confirm-only:
+`enforce_job_tracking_arrival_gate`, `enforce_helper_completion_gates`, `rpc_helper_mark_done`'s
+pre-check, and `_shared/arrivalRule.ts` `arrivalEstablished()`. **Live drift found:**
+`rpc_helper_mark_done` never learned VN-33(b)'s near-miss stand-in, so a bad-pin arrival the trigger
+ACCEPTED was refused by the RPC — one predicate on both sides removes that class.
+PGlite 3x clean + 42/42 behaviour/ACL assertions. ACL verified on prod and post-replay: no PUBLIC,
+no anon; SECURITY DEFINER + `search_path=public`; migration restates the REVOKEs.
+`git status package.json package-lock.json` clean.
+
+**NET EFFECT ON MONEY SAFETY (the lane's framing, worth keeping):** the spoofable half
+(client-supplied coordinates) stops gating; the unfakeable half (a second human attesting) now
+gates every case.
+
+**JUDGEMENT CALLS THE LANE FLAGGED RATHER THAN BURIED:**
+- `accepted -> in_progress` now flips on ANY recorded arrival (previously verified-only; the
+  near-miss branch returned before the status flip). Judged acceptable because `jobs.status` is
+  coarse and the real "started working" markers are the tracker row + `poster_confirmed_working_at`
+  — but it IS a behaviour change.
+- The COMPLETION gate moved too. Leaving it on GPS while Working read only the poster would have
+  built a fresh deadlock one step down.
+- `arrival-confirm-reminder` re-anchored from `helper_arrival_verified_at`/near-miss to
+  `helper_arrived_at` — its old selector dropped exactly the Helprs who most need the poster nudged.
+
+**MAIN IS ONE ASSERTION RED until the UI lane lands:** `src/components/JobTracking.test.tsx:68`
+("stops at Arrived on HALF an arrival — VN-33"). Its SECOND assertion (poster-alone -> `arrived`)
+now fails `expected 5 to be 4` — which is the reversal working correctly: poster-alone must now
+paint Working. The FIRST assertion (GPS alone -> Arrived) still passes and must STAY.
+
+### CONTRACT for the arrival UI lane
+`arrivalEvidenceState(job)` (`src/lib/arrivalGate.ts`) -> `none | claimed | near_miss | verified |
+confirmed`. (`arrivalState()` is unchanged and still collapses claimed+near_miss into `claimed` —
+do NOT use it for the new copy.)
+- "Mark Arrived": **always enabled**, no location precondition; it can no longer fail on distance.
+- "Start Working" / Working step: `helperMayStartWorking(job)` == `poster_confirmed_arrival_at != null`.
+  **NOT** `helper_arrival_verified_at`.
+- "I'm Done": `helperMayMarkDone(job)`, same predicate.
+- Blocked copy: `arrivalGateMessage(job, "tracker" | "wrap-up")` — every unconfirmed branch names
+  "Confirm They Arrived"; none says "both are needed".
+- Poster's "Confirm They Arrived": `posterOwesArrivalConfirmation(job)` ==
+  `helper_arrived_at != null && poster_confirmed_arrival_at == null`. Do NOT gate on
+  `helper_arrival_verified_at` or the near-miss columns.
+- RPC return: parse with `arrivalVerdictFromRpc(data)`, render with `arrivalVerdictMessage(v)`.
+  Fields: `arrival_recorded, arrived_at, verified, basis, distance_ft, poster_confirmed,
+  poster_confirmation_required, arrival_established`. **`arrivalVerdictFromRpc` returns null for an
+  unreadable body — treat that as "silently did nothing", never as success.**
+- **Bridge to remove:** `poster_can_confirm = !verified` is set on every non-verified path purely so
+  the CURRENTLY SHIPPED JobTracking takes its truthful near-miss toast instead of an error toast.
+  The UI lane must switch to `arrivalVerdictFromRpc`/`arrivalVerdictMessage` and this goes away.
+
+### NEEDS ITS OWN BROWSER VERIFICATION
+The in-flight browser lane is verifying a build from `19555e010`, BEFORE this change. The arrival
+rework (DB + UI) must get its own verification pass once the UI half lands — do not let the earlier
+run stand as proof of it.

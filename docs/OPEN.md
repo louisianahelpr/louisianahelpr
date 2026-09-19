@@ -4217,7 +4217,7 @@ The durable fix is a `tags text[]` column plus a write path that stops joining t
 `CompletionPrompts.tsx:121`). Schema change, so reported not done; the display-side recovery above
 makes the card read correctly meanwhile.
 
-### DONE 2026-09-19 — the "1634 mi" pill: an IP-geolocated origin nothing checked — `fecdbf6e7`
+### ~~DONE 2026-09-19 — the "1634 mi" pill: an IP-geolocated origin~~ — MISDIAGNOSED, superseded by `030315f6e`
 **ROOT CAUSE, PROVEN: the origin was MENLO PARK, CALIFORNIA**, written into the OWNER'S OWN profile
 today. Live on prod: `lexilombas05@gmail.com` -> `latitude 37.47282350893211`,
 `longitude -122.2443517921565`, `location_captured_at 2026-09-19 21:00:08+00`, while `zip_code`
@@ -4257,12 +4257,12 @@ point, and the owner's — stamped today. **The owner is the only real account t
 persisted origin.** So the chip had no origin before, not (as I hypothesised) no job coordinates —
 the VIEWER side was what was new.
 
-### >>> NEEDS THE OWNER: the poisoned profile row is still on prod <<<
+### ~~NEEDS THE OWNER: the poisoned profile row~~ — WRONG, SUPERSEDED. See the correction below.
 The UI is correct regardless (the read-side gate rejects it), but the row still feeds
 `get_neighbor_hire_count` (a sub-mile neighbour test), applicant proximity and the saved-search
 radius tier **server-side**. One statement clears it, and it targets a REAL account so it was
 deliberately not run:
-`update profiles set latitude = null, longitude = null, location_captured_at = null where email = 'lexilombas05@gmail.com';`
+~~`update profiles set latitude = null, longitude = null, …`~~ **DO NOT RUN — SEE THE CORRECTION BELOW. The row is CORRECT.**
 
 ### NEW — a lane swept another lane's file into its commit
 `51e96257a` ("fix(job time)") contains the distance lane's `plausibleTripMiles` import and `~${…} mi`
@@ -4425,3 +4425,61 @@ the tab lit to say so is honest; silently widening is not.
 `w-2 h-2` burnt-sienna dot top-right plus a bolder preview weight. With the Unread tab gone this is
 the sole way unread surfaces in the list. **The lane called 8px subtle for that job and did not
 change it** (not asked, not its call). Needs an eyeball at 375 and 1440.
+
+## CORRECTION 2026-09-19 — the "1634 mi" diagnosis was WRONG. Commit `030315f6e` supersedes `fecdbf6e7`.
+**The owner is genuinely in Menlo Park.** Their exact words when shown the "poisoned row" finding:
+*"Yes I'm in Menlo Park rn."* The browser was not guessing from an IP. The coordinates
+(`37.47282350893211 / -122.2443517921565`, captured 2026-09-19 21:00:08) are **CORRECT**, the
+distances were **TRUE**, and **the row must NOT be cleared**. Every line above that calls it poisoned,
+and the SQL that nulls it, are struck.
+
+**HOW I GOT IT WRONG, because the shape matters more than the instance:** the evidence was all real —
+the numbers were internally consistent, the origin solved cleanly to Menlo Park, everything
+reproduced to the mile. What I never tested was the simplest explanation sitting in front of me:
+**that the user had travelled.** I reached for "the data is poisoned" over "the person moved", then
+built a gate to enforce that belief and a test to encode it. **A confident diagnosis that never
+considers the mundane explanation is how a correct system gets "fixed" into a broken one.**
+
+**AND THE FIX WAS WORSE THAN THE BUG.** `isWithinServiceArea`'s failure path did not fall back to
+"unknown" — it fell back to the **signup ZIP's Vermilion centroid**. So the app would have answered a
+user standing in California with **Erath, Louisiana**, and fed that invented origin to radius search,
+applicant proximity and `get_neighbor_hire_count`'s **sub-mile neighbour test**. Confidently wrong in
+place of noisily right. Red-before literally shows it: `expected 29.8732 to be 37.47282350893211`.
+
+**WHAT `030315f6e` DID**
+- **`isWithinServiceArea` DELETED**, write side and read side. A latitude cannot distinguish a
+  travelling Helpr from an IP guess, so no threshold on it has a correct value.
+- **`isPreciseFixAccuracy` (10 km) SURVIVES but is DEMOTED, and the lane was honest that it could not
+  verify it:** `profiles` has **no accuracy column**, so whether that fix would have passed 10 km is
+  **unanswerable from prod**. What changed is the COST of failing: before, a false negative discarded
+  the coordinates and substituted a point 1,600 mi away; now they are kept, cached, surfaced and
+  measured from, flagged `approximate`, and withheld only from `profiles.latitude/longitude` — which
+  are documented as "A PRECISE DEVICE FIX, and nothing else". Justified by asymmetric cost, not by a
+  claim about the data.
+- **The bounds keep their NUMBERS and lose their CLAIM.** `plausibleTripMiles/Minutes` ->
+  `isCommutableDistance` / `commuteMinutes`. My justification ("no trip this pill can describe exceeds
+  the state's diagonal") was true of DESTINATIONS and false of VIEWERS. The repaired one does not
+  mention the viewer: **500 mi is a statement about the TRIP** — past it nobody drives to a $120 odd
+  job, wherever they stand. It still clears Caddo<->Plaquemines (329.4) and the diagonal (421.7), so
+  it can never suppress a trip inside this marketplace. 720 min survives only BECAUSE it is
+  conditioned on the first: given a straight line under 500 mi, a route claiming >12h contradicts its
+  own straight line, which holds with the viewer anywhere on earth.
+
+**WHAT A VIEWER 1,634 MI AWAY NOW SEES** (rendered, not reasoned): browse card — **no pill**
+(`Shreveport · Fri, Sep 25`); job detail Where tile — **`Shreveport · ~1634 mi · Fri, Sep 25`**, the
+true distance with no ETA; an in-state control at 12.4 mi is unchanged
+(`Shreveport · 22 min drive · ~12 mi`). Reasoning: a "far from you" chip is one global fact stamped on
+forty cards. Absence on the scan row plus the truth on the detail sheet is the honest pair — the user
+opened that one job and asked. **Nothing claims the location is unknown**, and `userLat/userLng`
+reach the component untouched, so the radius filter still runs on them.
+`tripDistanceTrustAndBound.test.tsx` was **rewritten, not deleted** — it records the misdiagnosis and
+now asserts the corrected rule, plus a regression check that **no module in `src/` reintroduces a
+geography gate**. A guard that enshrines a wrong belief is worse than no guard.
+
+### STILL OPEN from this correction
+- **The feed-level line is the right answer and was NOT built** — telling a viewer once, at the top of
+  the browse feed, that they are 1,600 mi from these jobs is useful exactly once, unlike a per-card
+  chip. Outside that lane's ownership. **Assign it.**
+- `BrowseTasksFeed.tsx:323-328` drops `approximate`, and that flag is **live signal again** now a
+  coarse fix sets it. Nothing is currently dishonest (the `~` is unconditional), but it is the place a
+  future surface could quote a 45 km-accurate origin as a measurement.

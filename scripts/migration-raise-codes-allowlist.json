@@ -6,6 +6,24 @@
       "function": "public.report_helper_no_show",
       "code": "helper_marked_done",
       "reason": "Not dropped, replaced by a STRONGER guard: report_helper_no_show now refuses a no-show when the Helpr has arrived OR completed (RAISE 'helper_already_arrived'), a superset of the old completed-only check. The done-stamp-can't-be-undone protection is intact."
+    },
+    {
+      "migration": "20260919155016_arrival_poster_confirm_always.sql",
+      "function": "public.mark_helper_arrival",
+      "code": "arrival_too_far",
+      "reason": "REVERSED BY THE OWNER, 2026-09-19: 'if gps is not on, they can mark themselves as arrived but can not move on until the poster marks them arrived … even if gps does confirm they are there the poster still needs ro cfnrm wither way'. Refusing a far arrival wrote NOTHING, so helper_arrived_at stayed NULL and the poster's Confirm They Arrived control — gated on that stamp — never rendered, deadlocking the job. The guard is not lost, it MOVED: the distance is still measured server-side and still withholds helper_arrival_verified_at, and the real gate (poster_confirmed_arrival_at) is now required in every case, on the tracker's Working step and on completion alike. The refusal became a returned verdict: basis='too_far' with distance_ft."
+    },
+    {
+      "migration": "20260919155016_arrival_poster_confirm_always.sql",
+      "function": "public.mark_helper_arrival",
+      "code": "arrival_location_required",
+      "reason": "Same 2026-09-19 reversal. A phone with Location off is exactly the case the owner named: the Helpr may record the arrival, and the poster's confirmation is what unlocks work. Returned as basis='no_location' with verified=false, so nothing is verified and nothing is unlocked without the poster's tap."
+    },
+    {
+      "migration": "20260919155016_arrival_poster_confirm_always.sql",
+      "function": "public.mark_helper_arrival",
+      "code": "arrival_location_invalid",
+      "reason": "Same 2026-09-19 reversal. Out-of-range coordinates still prove nothing and still withhold helper_arrival_verified_at; they no longer refuse the claim. Returned as basis='location_invalid'."
     }
   ]
 }

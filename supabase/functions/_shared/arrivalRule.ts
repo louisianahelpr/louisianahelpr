@@ -3,52 +3,78 @@
 // Deno edge runtime (create-payment's helper release). ZERO imports, so vitest
 // and the edge-function harness load it straight from disk.
 //
-// OWNER, 2026-09-14 (VN-33): "both required: nearby by GPS AND poster
-// confirms. No fallback." Arrival is established only when BOTH are on the
-// job row:
+// OWNER, 2026-09-19 (pop-up, verbatim): "but they can not start working until
+// the poster confirms they are there. they shoud be aware of this so they dont
+// try to cheat the system. if gps is not on, they can mark themselves as
+// arrived but can not move on until the poster marks them arrived. so
+// encourgage to turn on gps. but even if gps does confirm they are there the
+// poster still needs ro cfnrm wither way"
 //
-//   helper_arrival_verified_at  — stamped only by mark_helper_arrival after the
-//                                 SERVER computed the coordinates the phone
-//                                 sent within 500ft of the job. (A Helpr can
-//                                 send any coordinates; the poster's tap is the
-//                                 half that cannot be faked.) Since
-//                                 20260915044137 that RPC refuses (and writes
-//                                 nothing) when they are further away or have
-//                                 no location, and it stamps helper_arrived_at
-//                                 in the same statement.
-//   poster_confirmed_arrival_at — the poster's "Confirm They Arrived" tap.
+// So arrival is established by ONE stamp:
 //
-// This replaced "verified OR confirmed", where either one alone unlocked wrap-up
-// and the poster's tap was the recourse for a Helpr whose phone had no fix.
-// That recourse is gone by the owner's decision. The same AND is enforced by
-// enforce_helper_completion_gates (the helper's completion write) and by the
-// job_tracking trigger (the tracker's Working step).
+//   poster_confirmed_arrival_at — the poster's "Confirm They Arrived" tap. The
+//                                 half that cannot be faked, and the owner
+//                                 requires it in EVERY case.
+//
+// GPS is EVIDENCE, not a gate:
+//
+//   helper_arrived_at           — the Helpr's claim. `mark_helper_arrival` now
+//                                 stamps it on every call (20260919155016), GPS
+//                                 or no GPS, near or far. It is what makes the
+//                                 poster's Confirm They Arrived control appear.
+//   helper_arrival_verified_at  — the server measured the coordinates the phone
+//                                 sent within 500 ft of the job. Shown to both
+//                                 parties as corroboration; unlocks nothing on
+//                                 its own.
+//   helper_arrival_near_miss_at — >500 ft but within a mile: the map pin is the
+//   helper_arrival_near_miss_ft   likely culprit. Evidence too; unlocks nothing.
+//
+// --- WHAT THIS REPLACED, AND WHY THE HISTORY MATTERS ------------------------
+// VN-33 (owner, 2026-09-14) had made it "verified AND confirmed. No fallback",
+// and `mark_helper_arrival` enforced the GPS half by REFUSING a far or fix-less
+// arrival and writing nothing at all. That is what deadlocked the job: with
+// helper_arrived_at NULL the poster's Confirm They Arrived never rendered,
+// while the Helpr's blocked CTA told them to ask the poster for exactly that
+// tap. VN-33(b) (20260915074058) patched only the within-a-mile case by letting
+// a near miss stand in for the GPS half.
+//
+// Before VN-33 the rule was "verified OR confirmed", where GPS alone unlocked
+// wrap-up. That is NOT what this is: GPS alone unlocks nothing now, and never
+// will — the owner's reversal removed the GPS requirement, not the poster's.
+// The anti-cheat concern VN-33 was written for (a Helpr can send any
+// coordinates) is answered by requiring the human attestation every time.
 
 export type ArrivalEvidence = {
   helper_arrived_at?: string | null;
   helper_arrival_verified_at?: string | null;
   poster_confirmed_arrival_at?: string | null;
-  /** VN-33(b): mark_helper_arrival found the Helpr >500ft but <=1 mile from the
-   *  pin. Stands in for the GPS half ONLY beside the poster's confirmation. */
+  /** >500 ft but within a mile of the job's map pin. Evidence, never a gate. */
   helper_arrival_near_miss_at?: string | null;
 };
 
-/** Does this job satisfy the arrival requirement for Working and for completion? */
+/**
+ * Does this job satisfy the arrival requirement for Working and for completion?
+ *
+ * ONE stamp, by the owner's 2026-09-19 decision. The same predicate is enforced
+ * server-side by `enforce_job_tracking_arrival_gate` (the tracker's Working
+ * step), `enforce_helper_completion_gates` and `rpc_helper_mark_done`
+ * (20260919155016). `src/test/jobsGuardRpcParity.test.ts` pins that agreement.
+ */
 export function arrivalEstablished(job: ArrivalEvidence | null | undefined): boolean {
-  // VN-33(b), owner 2026-09-14 ("poster can confirm anyway" when the map pin is
-  // wrong): a recorded near miss counts in place of the GPS stamp, never alone.
-  // Same rule as enforce_helper_completion_gates / the tracker trigger
-  // (20260915074058).
-  return (!!job?.helper_arrival_verified_at || !!job?.helper_arrival_near_miss_at) && !!job?.poster_confirmed_arrival_at;
+  return !!job?.poster_confirmed_arrival_at;
 }
 
 /** Which door the message is for: the payout request, or the tracker's next step. */
 export type ArrivalGateDoor = "wrap-up" | "tracker";
 
 /**
- * What to tell a Helpr blocked on the arrival rule. Every branch says that
- * BOTH are needed and names the half that is still missing, so the message is
- * never a dead end.
+ * What to tell a Helpr blocked on the arrival rule.
+ *
+ * EVERY branch names the poster's tap as the one thing still missing — because
+ * after 2026-09-19 it always is. The branches differ only in what the Helpr's
+ * own location did or did not corroborate, and in whether they still owe an
+ * arrival at all. None of them offers the Helpr's location as a way round the
+ * poster, because there is no way round the poster.
  */
 export function arrivalGateMessage(
   job: ArrivalEvidence | null | undefined,
@@ -58,19 +84,20 @@ export function arrivalGateMessage(
   const gps = !!job?.helper_arrival_verified_at;
   const poster = !!job?.poster_confirmed_arrival_at;
   const nearMiss = !!job?.helper_arrival_near_miss_at;
-  if (gps && poster) return "Arrival confirmed by your location and by the person who posted this job.";
-  if (nearMiss && poster) return "The person who posted this job confirmed you arrived.";
-  if (nearMiss && !gps) {
-    return `Your location was a little way from the job's map pin. If you're at the door, the person who posted this job can tap "Confirm They Arrived" ${unlocks}.`;
+
+  if (poster) {
+    return gps
+      ? "Arrival confirmed by your location and by the person who posted this job."
+      : "The person who posted this job confirmed you arrived.";
   }
   if (gps) {
-    return `Your location is confirmed. The person who posted this job also needs to tap "Confirm They Arrived" — both are needed ${unlocks}.`;
+    return `Your location is confirmed at the job. The person who posted this job still has to tap "Confirm They Arrived" ${unlocks}.`;
   }
-  if (poster) {
-    return `The person who posted this job confirmed you arrived, but your location hasn't. Tap "Try My Location Again" at the job site — both are needed ${unlocks}.`;
+  if (nearMiss) {
+    return `Your location was a little way from the job's map pin. You're checked in either way — the person who posted this job has to tap "Confirm They Arrived" ${unlocks}.`;
   }
   if (job?.helper_arrived_at) {
-    return `We couldn't confirm your location. Tap "Try My Location Again" at the job site, and the person who posted this job needs to tap "Confirm They Arrived" — both are needed ${unlocks}.`;
+    return `You're checked in, but we couldn't confirm your location. Turn Location on and tap "Try My Location Again" so they can see you're here — either way, the person who posted this job has to tap "Confirm They Arrived" ${unlocks}.`;
   }
-  return `Mark yourself arrived at the job site first. Your location has to show you there, and the person who posted this job confirms you arrived — both are needed ${unlocks}.`;
+  return `Mark yourself arrived at the job site first. The person who posted this job then taps "Confirm They Arrived" ${unlocks} — that's required whether or not your location confirms you.`;
 }

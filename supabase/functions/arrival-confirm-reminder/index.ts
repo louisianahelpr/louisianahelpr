@@ -1,23 +1,29 @@
 // arrival-confirm-reminder — nudges a poster to tap "Confirm They Arrived", then
 // escalates to admin (VN-33, owner 2026-09-14: "Nudge, then escalate").
 //
-// Since 20260915044137 a Helpr needs BOTH the server's GPS verification and the
-// poster's confirmation before they can work or be paid. Nothing asked the
-// poster: the only "has arrived" notice obeys their travel-update preference.
+// Since 20260919155016 (owner, 2026-09-19) the poster's confirmation is the ONLY
+// thing standing between a checked-in Helpr and their work — GPS-verified or
+// not. Nothing else asks the poster: the only "has arrived" notice obeys their
+// travel-update preference. So this runs off `helper_arrived_at`, the stamp the
+// arrival RPC now writes on EVERY check-in; anchoring it on the GPS stamp (as
+// it did until 2026-09-19) left exactly the Helprs who most need the tap — the
+// ones whose phone had no fix — with nobody ever nudged on their behalf.
 //
 //   0h  push + email the poster        (ledger.first_sent_at)
 //   2h  push + email them again         (ledger.second_sent_at)
 //   24h admin notification + ops alert  (ledger.escalated_at); the Helpr is told
 //       support has been asked to step in.
 //
-// VN-33(b) NEAR MISS (wrong map pin): a Helpr refused as too far but within a
-// mile has helper_arrival_near_miss_at and no GPS verification. The poster can
-// still confirm them, but only within 12h, and nothing else follows up. Same
-// ledger and stages, counted from the near miss (the FIRST tap of its 12h
-// window — re-tapping does not move it, 20260915074058): mark_helper_arrival already
-// told the poster, so "first" is claimed without a second send; the 2h nudge
-// goes out as usual; admin is escalated at 10h, while the confirmation can
-// still be given.
+// NEAR MISS (wrong map pin): a Helpr who checked in >500 ft but within a mile
+// of the pin has helper_arrival_near_miss_at and no GPS verification. The
+// poster's tap is no longer time-limited, but a wrong pin is an operational
+// problem worth an admin's eyes sooner, so admin is still escalated at 10h
+// rather than 24h. mark_helper_arrival already sent "Is your Helpr at the
+// door?" with the distance, so "first" is claimed without a second send.
+//
+// NO LOCATION AT ALL: the Helpr checked in with no usable fix. Nudged and
+// escalated on the ordinary 0h / 2h / 24h clock, because there is nothing
+// unusual about the job — only about their phone.
 //
 // Stage timing lives in _shared/arrivalNudge.ts (unit-tested). Each stage is
 // CLAIMED in public.job_arrival_confirm_nudges with a conditional write before
@@ -42,6 +48,7 @@ type DueJob = {
   title: string;
   customer_id: string | null;
   helper_id: string | null;
+  helper_arrived_at: string | null;
   helper_arrival_verified_at: string | null;
   helper_arrival_near_miss_at: string | null;
   helper_arrival_near_miss_ft: number | null;
@@ -117,14 +124,15 @@ Deno.serve(async (req) => {
     const scan = await scanAll<DueJob>("awaiting poster arrival confirm", (countOpt) =>
       supabase
         .from("jobs")
-        .select("id, title, customer_id, helper_id, helper_arrival_verified_at, helper_arrival_near_miss_at, helper_arrival_near_miss_ft", countOpt)
+        .select("id, title, customer_id, helper_id, helper_arrived_at, helper_arrival_verified_at, helper_arrival_near_miss_at, helper_arrival_near_miss_ft", countOpt)
         .order("id", { ascending: true })
         .in("status", ["accepted", "in_progress"])
         // Fixture rows are driven by test harnesses, never by a real poster;
         // nudging and escalating them would page admins about seed data (4 such
         // rows on prod at ship time). Same scope as money-reconciliation.
         .eq("is_seed", false)
-        .or("helper_arrival_verified_at.not.is.null,helper_arrival_near_miss_at.not.is.null")
+        // EVERY recorded check-in, not just the GPS-backed ones (20260919155016).
+        .not("helper_arrived_at", "is", null)
         .is("poster_confirmed_arrival_at", null)
         .not("customer_id", "is", null)
         .not("helper_id", "is", null),
@@ -146,9 +154,14 @@ Deno.serve(async (req) => {
 
     const counts = { first: 0, second: 0, escalate: 0, errors: 0 };
     for (const job of scan.rows) {
-      // A GPS-verified arrival wins; otherwise the near miss is the anchor.
-      const nearMiss = !job.helper_arrival_verified_at;
-      const anchor = (job.helper_arrival_verified_at ?? job.helper_arrival_near_miss_at)!;
+      // The check-in itself is the anchor: it is stamped on every call, and it
+      // is the moment the poster's tap became owed. (The GPS/near-miss stamps
+      // are written in the same statement, so this does not move the clock for
+      // an arrival that had either — it just stops dropping the ones with
+      // neither.)
+      const verified = !!job.helper_arrival_verified_at;
+      const nearMiss = !verified && !!job.helper_arrival_near_miss_at;
+      const anchor = (job.helper_arrived_at ?? job.helper_arrival_verified_at ?? job.helper_arrival_near_miss_at)!;
       const stage = nearMiss
         ? arrivalNudgeStage(anchor, ledgers.get(job.id) ?? null, now, NEAR_MISS_ESCALATE_AFTER_HOURS)
         : arrivalNudgeStage(anchor, ledgers.get(job.id) ?? null, now);
@@ -184,8 +197,10 @@ Deno.serve(async (req) => {
               a.user_id,
               nearMiss ? "Arrival near a wrong pin not confirmed" : "Arrival not confirmed in 24h",
               nearMiss
-                ? `"${job.title}" — the Helpr checked in ${job.helper_arrival_near_miss_ft ?? "?"} ft from the map pin ${NEAR_MISS_ESCALATE_AFTER_HOURS}h ago and the poster hasn't confirmed. The poster can confirm for 12h after that check-in; contact them, check the pin, or open a dispute.`
-                : `"${job.title}" — the Helpr's location was verified 24h ago and the poster hasn't confirmed. Confirm the arrival or open a dispute.`,
+                ? `"${job.title}" — the Helpr checked in ${job.helper_arrival_near_miss_ft ?? "?"} ft from the map pin ${NEAR_MISS_ESCALATE_AFTER_HOURS}h ago and the poster hasn't confirmed. Contact them, check the pin, or open a dispute.`
+                : verified
+                  ? `"${job.title}" — the Helpr's location was verified 24h ago and the poster hasn't confirmed. Confirm the arrival or open a dispute.`
+                  : `"${job.title}" — the Helpr checked in 24h ago with no usable location and the poster hasn't confirmed. Contact both, or open a dispute.`,
               `/admin?job=${job.id}`,
               "admin_alert",
             );
@@ -203,7 +218,9 @@ Deno.serve(async (req) => {
             title: nearMiss ? "Near-miss arrival not confirmed" : "Arrival not confirmed in 24h",
             message: nearMiss
               ? `Job ${job.id} — Helpr checked in ${job.helper_arrival_near_miss_ft ?? "?"} ft from the pin at ${job.helper_arrival_near_miss_at}; poster has not confirmed.`
-              : `Job ${job.id} — GPS arrival verified at ${job.helper_arrival_verified_at}; poster has not confirmed.`,
+              : verified
+                ? `Job ${job.id} — GPS arrival verified at ${job.helper_arrival_verified_at}; poster has not confirmed.`
+                : `Job ${job.id} — Helpr checked in at ${job.helper_arrived_at} with no usable location; poster has not confirmed.`,
             fields: { job_id: job.id },
             oncePerDayKey: `arrival-confirm-escalation:${job.id}`,
           });

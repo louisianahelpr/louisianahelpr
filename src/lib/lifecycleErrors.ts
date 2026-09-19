@@ -45,27 +45,28 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   // handed raw Postgres prose.
   dispute_needs_description:
     "Tell us what happened first — a dispute holds someone's payment, and an admin decides it from your description.",
-  // Arrival and completion, migration 20260915044137 (VN-33, owner 2026-09-14:
-  // "both required: nearby by GPS AND poster confirms. No fallback."). None of
-  // these may offer one half as a substitute for the other.
-  // mark_helper_arrival — refused, nothing written.
-  arrival_too_far:
-    "You're too far from the job to mark arrived — get within 500 ft of the job site and try again.",
-  arrival_location_required:
-    "Your location has to show you at the job site to mark arrived. Turn Location on and try again.",
-  arrival_location_invalid:
-    "We couldn't read your location. Try again from the job site.",
+  // Arrival and completion, migration 20260919155016 (owner, 2026-09-19: a
+  // Helpr may always record an arrival; the poster confirms it in EVERY case,
+  // GPS-verified or not). `mark_helper_arrival` no longer refuses a far or
+  // fix-less arrival at all, so arrival_too_far / arrival_location_required /
+  // arrival_location_invalid are gone from this table with the RAISEs that
+  // produced them — see scripts/migration-raise-codes-allowlist.json.
+  // None of the copy below may offer the Helpr's location as a way round the
+  // poster's tap, because there is no way round it.
   // enforce_helper_completion_gates — the Helpr's completion write.
   completion_requires_confirmed_arrival:
-    "Both are needed before you can mark the job complete: your location confirmed at the job site, and the person who posted this job tapping \"Confirm They Arrived\".",
+    "The person who posted this job has to tap \"Confirm They Arrived\" before you can mark it complete.",
   // enforce_job_tracking_arrival_gate — the tracker's next step.
   tracker_requires_arrival:
-    "Both are needed before you can start working: your location confirmed at the job site, and the person who posted this job tapping \"Confirm They Arrived\".",
+    "The person who posted this job has to tap \"Confirm They Arrived\" before you can start working.",
   tracker_requires_completion: "Mark the job complete first.",
   tracker_not_assigned_helper: "Only the Helpr assigned to this job can update its tracker.",
   // enforce_jobs_arrival_integrity — the poster's "Confirm They Arrived".
+  // Since 20260919155016 a Helpr's check-in always stamps helper_arrived_at, so
+  // this is reachable only by confirming a job whose Helpr has not tapped
+  // Arrived at all.
   arrival_confirm_before_arrival:
-    "Your Helpr hasn't marked arrived yet — you can confirm once their location shows them at the job.",
+    "Your Helpr hasn't marked arrived yet — you can confirm once they check in.",
   // open_dispute_as, migration 20260915034822. The new-dispute path used to
   // stamp `disputed` without checking the job was still disputable, so a filing
   // that raced a cancellation or a payout either froze an escrow that had
@@ -195,12 +196,10 @@ export const RPC_ERROR_COPY = {
     job_not_found: JOB_GONE,
     not_the_assigned_helper: NO_LONGER_BOOKED_STATUS,
     job_not_active: JOB_NOT_ACTIVE_STATUS,
-    // 20260915044137 (VN-33): refused, nothing written. JobTracking shows the
-    // distance-aware sentence from arrivalGate.ts first; these are the table
-    // copy for any other reader of the error.
-    arrival_too_far: LIFECYCLE_REASONS.arrival_too_far,
-    arrival_location_required: LIFECYCLE_REASONS.arrival_location_required,
-    arrival_location_invalid: LIFECYCLE_REASONS.arrival_location_invalid,
+    // 20260919155016: the RPC no longer refuses ANYTHING about the location —
+    // it records the arrival and returns a verdict (`arrivalVerdictFromRpc` in
+    // arrivalGate.ts). The three location codes that used to live here went
+    // with the RAISEs; only these three structural refusals remain.
   },
   // JobTracking — the Helpr's "I'm Done". The client pre-checks arrival, proof
   // and the 30-minute floor and shows those toasts first; these are the table

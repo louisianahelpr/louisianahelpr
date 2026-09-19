@@ -194,33 +194,126 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
       expect(guard).toContain("app.arrival_rpc");
     });
 
-    it("keeps helper_arrived_at out of the list too — only the arrival RPC writes it (VN-33)", () => {
+    it("keeps helper_arrived_at out of the list too — only the arrival RPC writes it", () => {
       // While it was on the list, a helper 2000 miles away could mark
-      // themselves arrived with a plain PATCH and no location at all, and
-      // mark_helper_arrival wrote it even when it refused to verify.
+      // themselves arrived with a plain PATCH and no location at all. That is
+      // STILL not allowed after the 2026-09-19 reversal: the RPC now records a
+      // far or fix-less arrival, but it records the DISTANCE with it, and only
+      // it may stamp the verification. A direct PATCH would launder a claim
+      // into a row with no measurement at all.
       expect(
         allowed,
         "jobs.helper_arrived_at is on the helper allow-list again. A helper can mark " +
-          "themselves arrived with a direct PATCH, skipping mark_helper_arrival's 500ft check.",
+          "themselves arrived with a direct PATCH, bypassing mark_helper_arrival's " +
+          "server-side distance measurement entirely.",
       ).not.toContain("helper_arrived_at");
       expect(guard).toMatch(/'helper_arrival_verified_at',\s*'helper_arrived_at'/);
-      const rpc = liveDefinition("mark_helper_arrival");
-      expect(rpc, "mark_helper_arrival no longer refuses a far arrival").toMatch(/RAISE EXCEPTION 'arrival_too_far'/);
-      expect(rpc, "mark_helper_arrival no longer refuses an arrival with no location").toMatch(/RAISE EXCEPTION 'arrival_location_required'/);
     });
 
-    it("gates helper completion on (GPS or a near miss) AND poster confirmation (VN-33, VN-33b)", () => {
+    /**
+     * THE OWNER'S 2026-09-19 REVERSAL, PINNED IN SQL.
+     *
+     * VN-33 (2026-09-14) made arrival take GPS **AND** the poster's confirm,
+     * and enforced the GPS half by having `mark_helper_arrival` REFUSE a far or
+     * fix-less arrival and write NOTHING. `helper_arrived_at` therefore stayed
+     * NULL — and the poster's "Confirm They Arrived" control renders only once
+     * that stamp exists, so the poster was never offered the tap the Helpr's
+     * own blocked CTA was telling them to go ask for. Deadlock.
+     *
+     * OWNER, 2026-09-19 (verbatim): "if gps is not on, they can mark themselves
+     * as arrived but can not move on until the poster marks them arrived … but
+     * even if gps does confirm they are there the poster still needs ro cfnrm
+     * wither way".
+     *
+     * These assertions exist because the reversal is only safe as a PAIR: the
+     * RPC must record, AND the gates must read one stamp. Shipping either half
+     * alone is a bug — record-without-regating leaves the old GPS gate on a
+     * Helpr who can now check in but never work; regate-without-recording
+     * leaves the poster with no control to tap.
+     */
+    it("mark_helper_arrival RECORDS every arrival instead of refusing it", () => {
+      const rpc = liveDefinition("mark_helper_arrival");
+      for (const code of ["arrival_too_far", "arrival_location_required", "arrival_location_invalid"]) {
+        expect(
+          rpc,
+          `mark_helper_arrival raises '${code}' again. A refusal writes nothing, so ` +
+            `helper_arrived_at stays NULL, the poster's "Confirm They Arrived" control ` +
+            `never renders, and the job deadlocks — the exact bug the owner reversed on ` +
+            `2026-09-19.`,
+        ).not.toMatch(new RegExp(`RAISE EXCEPTION '${code}'`));
+      }
+      // The claim is stamped on every path…
+      expect(
+        rpc,
+        "mark_helper_arrival no longer stamps helper_arrived_at unconditionally.",
+      ).toMatch(/helper_arrived_at\s*=\s*COALESCE\(helper_arrived_at, v_now\)/);
+      // …but the VERIFICATION is still conditional on the server's own verdict,
+      // and a later claim can never clear or move it.
+      expect(
+        rpc,
+        "helper_arrival_verified_at is no longer conditional on v_verified — a Helpr " +
+          "with Location off would now be recorded as GPS-verified.",
+      ).toMatch(/helper_arrival_verified_at\s*=\s*CASE\s+WHEN v_verified THEN COALESCE\(helper_arrival_verified_at, v_now\)/);
+      // The 500ft measurement itself is still done server-side.
+      expect(rpc, "the server no longer measures the distance at all").toMatch(/v_dist <= 500/);
+      // And the verdict tells the Helpr the poster is still owed.
+      expect(rpc).toMatch(/poster_confirmation_required/);
+    });
+
+    it("gates helper completion on the poster's confirmation ALONE (owner, 2026-09-19)", () => {
       const gates = liveDefinition("enforce_helper_completion_gates");
       expect(
         gates,
-        "enforce_helper_completion_gates lets completion through on only one arrival " +
-          "stamp. Owner, 2026-09-14: both are required.",
-      ).toMatch(
-        // VN-33(b), 2026-09-15: a within-a-mile near miss stands in for the GPS
-        // half, but the poster's confirmation is required either way.
-        /\(OLD\.helper_arrival_verified_at IS NULL AND OLD\.helper_arrival_near_miss_at IS NULL\)\s+OR OLD\.poster_confirmed_arrival_at IS NULL/,
-      );
+        "enforce_helper_completion_gates still reads a GPS stamp. The tracker's Working " +
+          "step no longer does, so a Helpr with Location off is waved into the work and " +
+          "then refused payment for a stamp nobody can produce.",
+      ).toMatch(/IF OLD\.poster_confirmed_arrival_at IS NULL THEN/);
+      expect(
+        gates,
+        "the superseded VN-33 predicate (GPS or near miss, AND poster) is back in the " +
+          "completion gate.",
+      ).not.toMatch(/OLD\.helper_arrival_verified_at IS NULL AND OLD\.helper_arrival_near_miss_at IS NULL/);
       expect(gates, "the pre-2026-08-28 grandfather clause is back").not.toMatch(/timestamptz '2026-08-28/);
+    });
+
+    it("gates the tracker's Working step on the same one stamp", () => {
+      const tracker = liveDefinition("enforce_job_tracking_arrival_gate");
+      const working = tracker.match(/IF NEW\.status = 'working'[\s\S]*?END IF;/);
+      expect(working, "the 'working' branch of enforce_job_tracking_arrival_gate is gone").toBeTruthy();
+      expect(
+        working![0],
+        "the Working step reads a GPS stamp again — the owner's rule is the poster's " +
+          "confirmation, GPS or no GPS.",
+      ).not.toMatch(/helper_arrival_verified_at|helper_arrival_near_miss_at/);
+      expect(working![0]).toMatch(/v_job\.poster_confirmed_arrival_at IS NULL/);
+      // A claim alone still has to exist before the tracker can say 'arrived'.
+      expect(tracker).toMatch(/NEW\.status = 'arrived' AND v_job\.helper_arrived_at IS NULL/);
+    });
+
+    it("rpc_helper_mark_done's pre-check matches the trigger it mirrors", () => {
+      // The pre-check and the trigger drifted before: the RPC never learned
+      // about VN-33(b)'s near-miss stand-in, so a bad-pin arrival the trigger
+      // accepted was refused here. One predicate on both sides removes the
+      // whole class — so assert they are the SAME predicate, not just that each
+      // is present.
+      const rpc = liveDefinition("rpc_helper_mark_done");
+      expect(rpc).toMatch(/v_job\.poster_confirmed_arrival_at IS NULL/);
+      expect(
+        rpc,
+        "rpc_helper_mark_done reads a GPS stamp the completion trigger does not, so it " +
+          "refuses completions the database would have allowed.",
+      ).not.toMatch(/v_job\.helper_arrival_verified_at IS NULL/);
+    });
+
+    it("the app's shared predicate agrees with the database", async () => {
+      // The app, create-payment and the two triggers must not be able to
+      // disagree about what "arrived" means. This is the TS half of the same
+      // rule; jobsGuardRpcParity owns the SQL half above.
+      const { arrivalEstablished } = await import("../../supabase/functions/_shared/arrivalRule");
+      const T = "2026-09-19T10:00:00Z";
+      expect(arrivalEstablished({ poster_confirmed_arrival_at: T })).toBe(true);
+      expect(arrivalEstablished({ helper_arrived_at: T, helper_arrival_verified_at: T })).toBe(false);
+      expect(arrivalEstablished({ helper_arrived_at: T, helper_arrival_near_miss_at: T })).toBe(false);
     });
 
     it("closes the side doors the VN-33 review found", () => {

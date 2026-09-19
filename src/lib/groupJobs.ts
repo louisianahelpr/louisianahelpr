@@ -22,7 +22,7 @@
  *       The `jobs` UPDATE policy is `USING (auth.uid() = helper_id)`
  *       (20260312010219); `mark_helper_arrival` and `helper_mark_on_the_way`
  *       raise `not_the_assigned_helper`; create-payment's `action:"release"`
- *       authorizes on `job.helper_id === user.id`.  → NOT FIXED.
+ *       authorizes on `job.helper_id === user.id`.  → FIXED, 20260919192559.
  *   (c) The job vanishes from their Activity the moment the roster fills —
  *       `get_jobs_for_my_applications` required `customer_id = me OR
  *       helper_id = me OR status = 'open'`, and the last accept flips the
@@ -37,14 +37,14 @@
  *       member's share on the platform balance with no retry.  → FIXED
  *       (refuses now, moves no money).
  *
- * ── WHY (b) AND (d) ARE NOT PATCHES ─────────────────────────────────────────
+ * ── WHY (b) AND (d) WERE NOT PATCHES ────────────────────────────────────────
  *
- * (b) is blocked on the DATA MODEL, not on a policy. `jobs` carries scalar
+ * (b) was blocked on the DATA MODEL, not on a policy. `jobs` carries scalar
  * `helper_confirmed_at` / `helper_on_the_way_at` / `helper_arrived_at` /
- * `helper_arrival_verified_at` / `helper_completed_at`. The schema cannot
- * represent N arrivals or N completions, so there is no answer to "does this
- * job complete when ALL helpers mark complete, or the first?" that the current
- * columns can even store.
+ * `helper_arrival_verified_at` / `helper_completed_at`. The schema could not
+ * represent N arrivals or N completions, so there was no answer to "does this
+ * job complete when ALL helpers mark complete, or the first?" that the columns
+ * could even store.
  *
  * And widening the UPDATE policy to the roster WITHOUT that model is worse than
  * the lockout. `enforce_helper_completion_gates` and
@@ -53,6 +53,19 @@
  * mark the job complete with no verified arrival, no proof photos and no
  * 30-minute work floor — and write arbitrary `jobs` columns on the way past.
  * That trades a lockout for an escrow hole.
+ *
+ * HOW (b) WAS CLOSED, 2026-09-19 (owner: "build it properly — move lifecycle
+ * onto the roster"). 20260919192559 puts a per-member mirror of those scalars
+ * on `group_job_helpers`, makes every one of them SERVER-OWNED (definer RPCs
+ * only, the H-001 mechanism), and applies the SAME three gates — poster-
+ * confirmed arrival, proof photos, 30-minute floor — PER MEMBER, off each
+ * member's own row. The `jobs` UPDATE policy is NOT widened and those two
+ * early returns are NOT touched: members 2..N never write `jobs` at all, so
+ * the trap above has no door to come back through. The job's own
+ * `helper_completed_at` is stamped only when the LAST slot finishes (owner
+ * semantic 1), which hands the job to the existing payout fan-out.
+ * Guard: `src/test/groupJobRosterLifecycle.test.ts`.
+ * Proof: `src/test/pglite/groupRosterLifecycle.pglite.mjs`.
  *
  * (d) needs UNIQUE (job_id, reviewer_id) to become
  * UNIQUE (job_id, reviewer_id, reviewee_id), which changes the inputs to the
@@ -75,5 +88,25 @@
  * change that unblocks (b): flipping it to `true` without per-member lifecycle
  * columns on `group_job_helpers` fails that test. (d) has no such tripwire —
  * it needs a deliberate decision about the review model.
+ *
+ * WHAT IS STILL REQUIRED, as of 2026-09-19 (phase 1 landed the data model):
+ *
+ *   1. (d), REVIEWS. Still UNIQUE (job_id, reviewer_id): a poster gets exactly
+ *      ONE review per job however many people worked it, and
+ *      `enforce_review_validity` + the INSERT policy both read the scalar
+ *      `jobs.helper_id`, so only the lead can be reviewed and only the lead can
+ *      review. OWNER DECISION, then a migration.
+ *   2. THE PAYOUT RELEASE. The even split already exists —
+ *      `process-scheduled-payouts` pays every roster member `budget /
+ *      helpers_needed` with its own transfer, ledger row and idempotency key,
+ *      and holds the job in payout_pending until all are settled. What is NOT
+ *      built is the owner's second semantic: each share releasing on THAT
+ *      member's own completion rather than on the whole job's. That needs
+ *      per-member payout state plus changes to create-payment,
+ *      auto-release-payment, release-payout and the payout cron.
+ *   3. THE UI. Crew tracker, per-member Done, and the poster's per-member
+ *      "Confirm They Arrived". The RPCs exist; nothing calls them yet.
+ *   4. `reject_new_group_jobs` must be dropped in the SAME migration that
+ *      flips this flag, or bundled builds stay refused by the server.
  */
 export const GROUP_JOBS_ENABLED = false;

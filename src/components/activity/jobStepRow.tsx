@@ -322,6 +322,49 @@ export function allocateJobStepRow({
   };
 }
 
+/**
+ * WHICH chips leave the row when they do not all fit — the ends never do.
+ *
+ * `allocateJobStepRow` answers HOW MANY. Until 2026-09-19 the shell then took
+ * the LAST `n`, which was fine while chip order was arbitrary. The owner then
+ * pinned both ends of the row:
+ *
+ *   "report a problem always all the way on the left"
+ *   "before and after photos should be to the left of the primary buttons"
+ *
+ * Taking from the end would now hide the photo chip — the control the owner
+ * had just asked to put beside the primary — and taking from the front would
+ * hide Report a Problem. So the overflow comes out of the MIDDLE, the `More`
+ * control sits where the missing chips came from, and the two pinned controls
+ * are always on screen at every width.
+ *
+ * WHICH END OF THE MIDDLE GOES FIRST: the right. The step files write their
+ * middles in the house order — the escape and safety controls first, then
+ * Message, then the ancillary read-only ones (Timeline & Evidence, Contact
+ * Admin, Directions) — so collapsing from the right sends the least
+ * consequential in first and keeps Message visible longest.
+ *
+ * WITH ROOM FOR ONLY ONE VISIBLE CHIP the LEAD pin wins. The leftmost chip is
+ * the escape (Report a Problem, Cancel, Escalate) — the one whose absence is a
+ * safety problem rather than an inconvenience — and the photo chip is still one
+ * tap away inside `More`, which is not true of nothing at all.
+ *
+ * Pure, and exported, so the rule is testable without a layout.
+ */
+export function partitionJobStepRowChips<T>(
+  chips: readonly T[],
+  visible: number,
+): { lead: T[]; overflow: T[]; trail: T[] } {
+  if (visible >= chips.length) return { lead: [...chips], overflow: [], trail: [] };
+  if (visible <= 0) return { lead: [], overflow: [...chips], trail: [] };
+  if (visible === 1) return { lead: [chips[0]], overflow: chips.slice(1), trail: [] };
+  const trail = [chips[chips.length - 1]];
+  // `visible - 1` because the trail pin takes one of the visible slots.
+  const lead = chips.slice(0, visible - 1);
+  const overflow = chips.slice(visible - 1, chips.length - 1);
+  return { lead, overflow, trail };
+}
+
 /** Width of `text`'s longest word in `like`'s font — or, with `lines`, the
  *  width the whole text needs to fit on that many lines (never less than its
  *  longest word). Measured by a detached, invisible span on <body> — never

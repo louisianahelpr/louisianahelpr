@@ -1,6 +1,12 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { JobStepRowContext, hasRenderable, measureJobStepRow, type JobStepRowLayout } from "./jobStepRow";
+import {
+  JobStepRowContext,
+  hasRenderable,
+  measureJobStepRow,
+  partitionJobStepRowChips,
+  type JobStepRowLayout,
+} from "./jobStepRow";
 import { useClaimedPersonTile } from "./jobCardPerson";
 import { JobStepOverflowChip } from "./JobActionRow";
 
@@ -262,6 +268,14 @@ export function JobStepCard({
   // jobCardPerson.tsx for why it is a claim and not a boolean.
   const personTile = useClaimedPersonTile();
 
+  /* Which chips stay in the row, and which go into `More`. `overflowChips` 0
+     means everything fits, and the partition then returns every chip as `lead`
+     — including in a test DOM or a hidden card, where nothing is measured. */
+  const rowChips = partitionJobStepRowChips(
+    chips,
+    layout.alloc.overflowChips > 0 ? layout.alloc.visibleChips : chips.length,
+  );
+
   return (
     <div
       className={
@@ -310,12 +324,20 @@ export function JobStepCard({
               chip slot and is the same object as the chips it holds. See
               `allocateJobStepRow`. With no measurement (a test DOM, a hidden
               card) `overflowChips` is 0 and every chip renders in place. */}
-          {layout.alloc.overflowChips > 0 ? chips.slice(0, layout.alloc.visibleChips) : chips}
-          {layout.alloc.overflowChips > 0 ? (
-            <JobStepOverflowChip count={layout.alloc.overflowChips}>
-              {chips.slice(layout.alloc.visibleChips)}
+          {/* THE ENDS ARE PINNED AND THE MIDDLE COLLAPSES (owner, 2026-09-19:
+              "report a problem always all the way on the left"; "before and
+              after photos should be to the left of the primary buttons"). The
+              allocator says how many chips fit;
+              `partitionJobStepRowChips` says which ones, and it never sends a
+              pinned end into the popover — the `More` control lands where the
+              chips it holds came from. */}
+          {rowChips.lead}
+          {rowChips.overflow.length > 0 ? (
+            <JobStepOverflowChip count={rowChips.overflow.length}>
+              {rowChips.overflow}
             </JobStepOverflowChip>
           ) : null}
+          {rowChips.trail}
           <div ref={setPrimaryHost} data-job-step-primary="" className="job-step-primary" />
         </div>
         {primaryHost && ownPrimary ? createPortal(ownPrimary, primaryHost) : null}

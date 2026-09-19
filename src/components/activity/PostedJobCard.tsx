@@ -158,7 +158,16 @@ function PostedJobCardInner({
 
      NOTHING WHILE COLLAPSED (V6, reaffirmed by the owner 2026-09-19): the tile
      is `null` unless `isExpanded`, gated HERE rather than downstream, because
-     this card is the only thing that knows its own expand state. */
+     this card is the only thing that knows its own expand state.
+
+     On THIS card that gate is defence-in-depth and says so honestly: both
+     render sites (the step card and the fallback below) already sit behind
+     `isExpanded`, so removing it changes nothing today — which is exactly why
+     it stays. The tile has moved three times in five days, and the rule
+     belongs to the tile rather than to wherever it currently happens to be
+     mounted. On the HELPER card the same line IS load-bearing, because that
+     card's step cards render while collapsed; the mutation register in
+     src/test/jobCardPersonTileAboveRow.test.tsx records that asymmetry. */
   const helperTile = isExpanded && job.helper_id ? (
     <PersonTile
       userId={job.helper_id}

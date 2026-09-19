@@ -49,7 +49,14 @@ export function WorkingStep({
          photo this step asks for exists, and nothing at all on a job the
          poster marked as needing no photos — so the row is 3-up or 4-up,
          never a hole. It LEADS the chips: it is the thing being asked for. */
-      actions={[<HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="working" />, messageChip, reportChip]}
+      /* CHIP ORDER IS PINNED AT BOTH ENDS (owner, 2026-09-19): "report a
+         problem always all the way on the left", and "before and after photos
+         should be to the left of the primary buttons". The primary is already
+         far right (V2/V3), so the row reads:
+           Report a Problem · …middle… · Before/After Photo · [green primary]
+         The ends are also what the overflow control may never take — see
+         `allocateJobStepRow`. */
+      actions={[reportChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="working" />]}
       escape={abortedNotice}
     />
   );

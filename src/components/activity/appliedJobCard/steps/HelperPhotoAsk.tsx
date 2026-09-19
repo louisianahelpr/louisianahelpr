@@ -37,9 +37,35 @@ import type { Job } from "../../activityConstants";
  *              helper would have no way to satisfy it) — it simply falls to
  *              second, so it only ever appears once the After exists.
  *   dispute  → chronological, Before then After: this is evidence, not a step.
+ *   revision → AFTER, ALWAYS. See below.
  *
  * Once a photo exists its ask is gone, so a satisfied job renders nothing here
- * and the row is one control shorter.
+ * and the row is one control shorter — with one deliberate exception, the
+ * revision.
+ *
+ * ── THE REVISION, AND WHY IT BREAKS THE "ONCE A PHOTO EXISTS" RULE ────────
+ * Owner, 2026-09-19, looking at a contested card: "here they have no way to
+ * submit the photos after the dispute or revision."
+ *
+ * Half of that was already true — the helper's DISPUTED card has carried this
+ * chip since item 10 this morning (DisputedSection). The other half was a real
+ * hole: `RevisionStep` mounted no photo control at all, on the documented
+ * grounds that "there is no photo ask in this state — one ask at a time, and
+ * this is the one". That reasoning was about the `ask` SLOT, which the
+ * revision panel rightly owns; it stopped being a reason for anything the
+ * moment the capture control became a chip in the row (owner, same day).
+ *
+ * A revision is a SECOND ROUND OF WORK on the same job, and the after photo is
+ * what the poster will judge the fix by — so the ask here is the After, and it
+ * does NOT disappear once an after photo exists. That is the whole point: the
+ * helper already uploaded one for the first submission, and gating on
+ * emptiness would mean the state that most needs a new photo is the one state
+ * that cannot take one. `PhotoProof` APPENDS to the array, so a second after
+ * photo joins the first rather than replacing it, and both are evidence.
+ *
+ * The Before still falls through when it is genuinely missing —
+ * `enforce_helper_completion_gates()` will refuse the job for it, so leaving it
+ * unreachable would be the same dead end in another place.
  */
 export function HelperPhotoAsk({
   jobId,
@@ -48,7 +74,7 @@ export function HelperPhotoAsk({
 }: {
   jobId: string;
   job: Job;
-  step: "on_site" | "working" | "dispute";
+  step: "on_site" | "working" | "dispute" | "revision";
 }) {
   // The poster's per-job answer (`jobs.require_photo_proof`). `?? true` because
   // a client running against a database that predates the column must keep
@@ -101,6 +127,14 @@ export function HelperPhotoAsk({
     />
   );
 
+  if (step === "revision") {
+    // ALWAYS offered. A revision is a second round of work and the new after
+    // photo is the evidence it happened; see the note above. The Before is
+    // still reachable when it is missing, because the completion trigger will
+    // refuse the job for it either way.
+    if (beforeUrls.length === 0) return beforeAsk;
+    return afterAsk;
+  }
   if (step === "working") {
     if (afterUrls.length === 0) return afterAsk;
     if (beforeUrls.length === 0) return beforeAsk;

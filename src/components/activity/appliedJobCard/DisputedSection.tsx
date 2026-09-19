@@ -413,8 +413,25 @@ export function DisputedSection({
      View Timeline / Message / Contact Admin — three peers, and the SHELL counts
      them, so this row is a 3-up for the same reason every other state's row is
      the width it is. */
+  /* THE PHOTO CHIP MOVES TO THE END (owner, 2026-09-19: "before and after
+     photos should be to the left of the primary buttons"). It led this array
+     until today. There is no Report a Problem chip on a disputed card — the
+     dispute IS the report — so only the trailing pin applies here. */
   const actions = [
-        photoChip,
+        /* MESSAGE LEADS. There is no Report a Problem chip on a disputed card
+           (the dispute IS the report), so the leftmost slot is free — and with
+           both ends pinned the middle is what collapses into `More` at 320
+           (partitionJobStepRowChips). Message is the control a Helpr in a
+           dispute actually needs; Timeline & Evidence and Contact Admin are
+           read-only destinations that survive a tap inside the popover. */
+        <JobActionChip
+          key="message"
+          icon={MessageSquare}
+          label="Message"
+          ariaLabel="Message them"
+          tone="message"
+          onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}
+        />,
         <JobActionChip
           key="timeline"
           // Its own icon, not the AlertTriangle Contact Admin also wore: on the
@@ -432,14 +449,6 @@ export function DisputedSection({
           onClick={() => onViewDispute(job)}
         />,
         <JobActionChip
-          key="message"
-          icon={MessageSquare}
-          label="Message"
-          ariaLabel="Message them"
-          tone="message"
-          onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}
-        />,
-        <JobActionChip
           key="admin"
           icon={LifeBuoy}
           label="Contact Admin"
@@ -451,7 +460,8 @@ export function DisputedSection({
              short id on the end lets support find the row. (Was the bare UUID,
              which the person could not recognise and 375 clipped mid-token.) */
           onClick={() => navigate(`/support?topic=report&subject=${encodeURIComponent(disputeSupportSubject({ id: app.job_id, title: job.title }))}`)}
-        />
+        />,
+        photoChip,
   ];
 
   return (

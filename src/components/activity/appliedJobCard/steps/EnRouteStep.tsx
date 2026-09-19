@@ -26,11 +26,18 @@ export function EnRouteStep({ job, tracker, messageChip, exitChip, reportChip, a
       side="helper"
       step="en_route"
       header={tracker}
+      /* CHIP ORDER IS PINNED AT BOTH ENDS (owner, 2026-09-19): "report a
+         problem always all the way on the left", and "before and after photos
+         should be to the left of the primary buttons". The primary is already
+         far right (V2/V3), so the row reads:
+           Report a Problem · …middle… · Before/After Photo · [green primary]
+         The ends are also what the overflow control may never take — see
+         `allocateJobStepRow`. */
       actions={[
+        reportChip,
         showDirections ? <DirectionsButton key="directions" location={job.location} /> : null,
         messageChip,
         exitChip,
-        reportChip,
       ]}
       escape={abortedNotice}
     />

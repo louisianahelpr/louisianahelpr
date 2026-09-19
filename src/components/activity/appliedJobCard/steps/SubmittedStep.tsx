@@ -83,7 +83,14 @@ export function SubmittedStep({
       step="submitted"
       header={tracker}
       notice={notice}
-      actions={[messageChip, reportChip]}
+      /* CHIP ORDER IS PINNED AT BOTH ENDS (owner, 2026-09-19): "report a
+         problem always all the way on the left", and "before and after photos
+         should be to the left of the primary buttons". The primary is already
+         far right (V2/V3), so the row reads:
+           Report a Problem · …middle… · Before/After Photo · [green primary]
+         The ends are also what the overflow control may never take — see
+         `allocateJobStepRow`. */
+      actions={[reportChip, messageChip]}
     />
   );
 }

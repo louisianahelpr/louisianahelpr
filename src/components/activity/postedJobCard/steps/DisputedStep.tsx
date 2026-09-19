@@ -135,7 +135,17 @@ export function DisputedStep(ctx: PosterStepCtx) {
            saying the proof is short. A poster deciding a dispute is deciding on
            exactly that. It renders itself only when the proof is actually
            missing, so it is mounted unconditionally. */
+        /* AUDIENCE: the poster (owner, 2026-09-19). This printed the HELPER's
+           sentence — "Before & after photos are required — they're the proof
+           that releases YOUR payment" — on the screen of the person the money
+           leaves, next to a row with no way to file a photo, because the
+           poster is not who uploads work proof. The rule and the missing-proof
+           test are untouched (one definition, src/lib/photoProofPolicy.ts);
+           only the sentence is aimed at the reader. The control that satisfies
+           it is on the Helpr's card, which carries this chip on its disputed
+           AND revision steps as of today. */
         <PhotoProofRequirementNote
+          audience="poster"
           budget={job.budget}
           beforeUrls={job.proof_before_urls || []}
           afterUrls={job.proof_after_urls || []}

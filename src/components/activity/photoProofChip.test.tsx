@@ -80,6 +80,8 @@ import { CompletedStep } from "./postedJobCard/steps/CompletedStep";
 import { InProgressStep } from "./postedJobCard/steps/InProgressStep";
 import { DisputedStep } from "./postedJobCard/steps/DisputedStep";
 import { AppliedJobCard } from "./AppliedJobCard";
+import { POSTER_PROOF_MISSING_NOTE } from "@/components/PhotoProof";
+import { requiredProof } from "@/lib/photoProofPolicy";
 
 const HELPER = "helper-1";
 const POSTER = "poster-1";
@@ -325,18 +327,31 @@ describe("item 10 — the before & after pictures are a button on the action row
  * money decision. Restored into the step's `notice` slot via the exported
  * `PhotoProofRequirementNote`, so the panel and the card share one definition
  * of the rule rather than the card re-deriving it.
+ *
+ * 2026-09-19, LATER THE SAME DAY: the line is still here and still gated the
+ * same way — what changed is WHO it is written to. It printed
+ * `requiredProof().reason`, the HELPER's sentence, ending "they're the proof
+ * that releases YOUR payment", on the screen of the person the money leaves,
+ * beside a row with no way to file a photo. `audience="poster"` gives it
+ * `POSTER_PROOF_MISSING_NOTE` instead. The assertions below therefore match
+ * the poster's wording, imported rather than retyped, and the "must not cry
+ * wolf" case is unchanged because the GATE is unchanged.
  */
 describe("the disputed card still says when the proof is short (item 10 regression)", () => {
   const disputed = (over: Record<string, unknown>) =>
     makeJob({ status: "disputed", dispute_status: "open", disputed_by: POSTER, dispute_reason: "x", ...over });
 
+  /** The poster's wording, read from the module that owns it. */
+  const posterLine = new RegExp(POSTER_PROOF_MISSING_NOTE.slice(0, 40));
+
   it("after-photos missing on a job that requires them: the red line is on the card", () => {
     wrap(<DisputedStep {...posterCtx(disputed({ budget: 100, proof_after_urls: [] }))} />);
-    expect(screen.getByText(/required/i)).toBeInTheDocument();
+    expect(screen.getByText(posterLine)).toBeInTheDocument();
   });
 
   it("proof complete: no red line — it must not cry wolf", () => {
     wrap(<DisputedStep {...posterCtx(disputed({ budget: 100 }))} />);
+    expect(screen.queryByText(posterLine)).toBeNull();
     expect(screen.queryByText(/photos are required|required for jobs/i)).toBeNull();
   });
 
@@ -345,6 +360,17 @@ describe("the disputed card still says when the proof is short (item 10 regressi
     // Visible before anything is opened — a poster must not have to press a
     // button to discover that the evidence they are judging is incomplete.
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByText(/required/i)).toBeVisible();
+    expect(screen.getByText(posterLine)).toBeVisible();
+  });
+
+  it("and it is NOT the Helpr's sentence — the poster cannot act on that one", () => {
+    wrap(<DisputedStep {...posterCtx(disputed({ budget: 100, proof_after_urls: [] }))} />);
+    const helperLine = requiredProof({}).reason;
+    expect(
+      screen.queryByText(new RegExp(helperLine.slice(0, 40).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))),
+      `the poster's disputed card prints the HELPER's sentence ("${helperLine}") — ` +
+        `"your payment" is the poster's money leaving, and no control on their card ` +
+        `could satisfy the requirement`,
+    ).toBeNull();
   });
 });

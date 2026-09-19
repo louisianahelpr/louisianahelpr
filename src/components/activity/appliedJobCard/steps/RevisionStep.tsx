@@ -3,6 +3,7 @@ import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { HelperRevisionCard } from "@/components/activity/HelperRevisionCard";
 import { JobStepCard } from "@/components/activity/JobStepCard";
 import { JobStepPrimaryButton } from "@/components/activity/JobActionRow";
+import { HelperPhotoAsk } from "./HelperPhotoAsk";
 import type { HelperStepProps } from "./stepContract";
 
 /**
@@ -10,8 +11,18 @@ import type { HelperStepProps } from "./stepContract";
  *
  * The ask is the revision itself (HelperRevisionCard owns the "I'll Fix It" /
  * "Discuss" decision and reads the `job_revisions` row, falling back to
- * `jobs.revision_note`). There is no photo ask in this state — one ask at a
- * time, and this is the one.
+ * `jobs.revision_note`). It is still the only thing in the `ask` SLOT — one
+ * ask at a time — but that was never a reason for the card to carry no photo
+ * CONTROL, and it read like one until today.
+ *
+ * THE PHOTO CHIP (owner, 2026-09-19: "here they have no way to submit the
+ * photos after the dispute or revision"). This step mounted none at all, so a
+ * Helpr told to redo the work had nowhere to put the evidence that they had —
+ * on the one state whose entire purpose is producing new proof for the poster
+ * to judge. It is a chip in the one action row, beside Message and Report a
+ * Problem, exactly as the on-site, working and disputed steps carry it; the
+ * revision panel keeps the `ask` slot to itself. `HelperPhotoAsk` offers the
+ * AFTER photo here and keeps offering it after one exists — see its note.
  *
  * ONE PRIMARY, THEN THE NEXT STEP. "Mark Fixed" appears only once the revision
  * has actually been accepted; before that, accept-the-work and declare-it-done
@@ -98,7 +109,14 @@ export function RevisionStep({
       ask={ask}
       notice={notice}
       primary={primary}
-      actions={[messageChip, reportChip]}
+      /* CHIP ORDER IS PINNED AT BOTH ENDS (owner, 2026-09-19): "report a
+         problem always all the way on the left", and "before and after photos
+         should be to the left of the primary buttons". The primary is already
+         far right (V2/V3), so the row reads:
+           Report a Problem · …middle… · Before/After Photo · [green primary]
+         The ends are also what the overflow control may never take — see
+         `allocateJobStepRow`. */
+      actions={[reportChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="revision" />]}
     />
   );
 }

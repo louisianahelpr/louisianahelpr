@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { defaultInboxTab } from "@/lib/inboxDefault";
@@ -26,7 +26,7 @@ import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 // (avatar + name/job/last-msg lines + timestamp + unread dot) so the
 // loading→loaded swap doesn't shift the row. See task #121.
 import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSkeleton";
-import { VirtualList } from "@/components/VirtualList";
+import { VirtualList, type VirtualListHandle } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
 import { SwipeableConversationRow } from "./SwipeableConversationRow";
 import { getPinnedSet, loadPins, pinnedKey, togglePinned } from "@/lib/pinnedConversations";
@@ -528,6 +528,44 @@ export function ConversationList({
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: async () => { if (userId) await loadConversations(userId); },
   });
+
+  /* "Messages should open to the unread messages" (owner, 2026-09-16) — the
+     LIST half of that ask. The in-thread half already lands on the first
+     unread message (chatView/useChatScroll.ts).
+
+     This is a SCROLL, not a filter: the tab default stays "all"
+     (src/lib/inboxDefault.ts — the owner removed the "Unread when there is
+     unread" tab default on 2026-08-30 and it is not coming back). The inbox
+     still shows everything; it just starts parked on the first thread that
+     wants a reply instead of on whatever was most recent.
+
+     Once per mount, and only when it buys something:
+       - the first row is already unread  → nothing to jump to;
+       - nothing is unread                → nothing to jump to;
+       - the first unread sits past the CONVO_LIMIT slice → that row is not
+         rendered yet, so scrolling to it would land on empty space.
+     Realtime delivering a new message never re-fires it: yanking the list out
+     from under someone who is reading it is worse than the stale position. */
+  const listHandleRef = useRef<VirtualListHandle | null>(null);
+  const didUnreadJumpRef = useRef(false);
+  useEffect(() => {
+    if (didUnreadJumpRef.current || loading) return;
+    const list = filteredConversations;
+    if (list.length === 0) return;
+    // One attempt per mount, taken or not — the conditions below are about
+    // this first paint, and re-evaluating them later is the re-yank we don't
+    // want.
+    didUnreadJumpRef.current = true;
+    const idx = list.findIndex((c) => c.unread > 0);
+    const rendered = showAllConvos ? list.length : Math.min(list.length, CONVO_LIMIT);
+    if (idx <= 0 || idx >= rendered) return;
+    // One frame so the virtualizer has its scrollMargin (measured in a layout
+    // effect on the row container) before it converts an index to an offset.
+    const raf = requestAnimationFrame(() => {
+      listHandleRef.current?.scrollToIndex(idx, { align: "start" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [loading, filteredConversations, showAllConvos]);
 
   // The title card holds the toolbar itself — the name, the Select/Search
   // cluster and (on phone) the Unread/Active/All tabs. It does NOT hold a
@@ -1045,6 +1083,16 @@ export function ConversationList({
                     getKey={(c) => `${c.jobId}_${c.otherUserId}`}
                     estimateSize={80}
                     overscan={6}
+                    /* /messages is an AppShell route, deliberately OFF
+                       DOCUMENT_SCROLL_ROUTES, so `html.app-shell` pins
+                       window.scrollY at 0 and a window virtualizer never
+                       advances. The inbox scrolls inside
+                       PullToRefreshWrapper — that is the scroll source.
+                       Measured before this prop: 16 of 29 threads mounted at
+                       375, unchanged after scrolling 1758px; the rest of the
+                       panel was blank. */
+                    scrollElementRef={containerRef}
+                    virtualizerRef={listHandleRef}
                     renderItem={(c) => {
                       const key = `${c.jobId}_${c.otherUserId}`;
                       const pinned = pinnedSetForRender.has(

@@ -4216,3 +4216,64 @@ The durable fix is a `tags text[]` column plus a write path that stops joining t
 — and **two byte-identical implementations to converge** (`ReviewForm.toggleQuickOption` and
 `CompletionPrompts.tsx:121`). Schema change, so reported not done; the display-side recovery above
 makes the card read correctly meanwhile.
+
+### DONE 2026-09-19 — the "1634 mi" pill: an IP-geolocated origin nothing checked — `fecdbf6e7`
+**ROOT CAUSE, PROVEN: the origin was MENLO PARK, CALIFORNIA**, written into the OWNER'S OWN profile
+today. Live on prod: `lexilombas05@gmail.com` -> `latitude 37.47282350893211`,
+`longitude -122.2443517921565`, `location_captured_at 2026-09-19 21:00:08+00`, while `zip_code`
+says `70528` (Erath, LA) and `parish` says Vermilion.
+`haversineMiles` from that point reproduces ALL FOUR displayed values to the mile — Caddo 1633.74
+(saw 1634), Iberia 1813.15 (1813), Lafayette 1796.52 (1797), Calcasieu 1731.37 (1731). The lane also
+solved for the origin INDEPENDENTLY from the four screenshot values before querying prod and landed
+at 37.3972/-122.2561, rms 0.29 mi — the same place. **The maths was never wrong.**
+
+**HOW IT GOT THERE — worth remembering, it is a whole bug class:** a browser that can see no GPS, no
+Wi-Fi and no cell does NOT call the geolocation ERROR callback. It calls **SUCCESS** with a position
+derived from the egress IP. `useUserLocation`'s `onSuccess` never read `coords.accuracy` and never
+asked whether the answer was anywhere this app serves, so a ~50km IP guess was cached as a device
+fix and `persistUserLocation` wrote it into the two columns whose own header says *"A PRECISE DEVICE
+FIX, and nothing else"*. Every later load re-read it through `deriveFallbackLocation` branch 1 as
+`source: "profile", approximate: false`. The 27h 6m was a REAL MapKit route for that distance.
+
+FIX: `isPreciseFixAccuracy` (10 km — above every radio fix: GPS <50 m, Wi-Fi 20-3000 m, cell 1-5 km;
+below every IP answer) and `isWithinServiceArea` (Louisiana + 2°, so Houston/Jackson/Mobile/Little
+Rock pass, Dallas/Memphis/California do not). Gated BEFORE the cache write and the profile write, and
+ALSO on the READ side of `deriveFallbackLocation` branch 1 — the poisoned row is already written and
+the user cannot clear it.
+**The destination is ALWAYS a parish centroid** (`open_jobs_browse` masks coords), so this pill could
+never mean a measurement. It now renders `~230 mi` **in the pixels**, not only in the aria-label.
+That makes the honesty structural rather than dependent on an `approximate` flag surviving a prop hop.
+
+SANITY BOUND, measured not guessed: **500 mi / 720 min**, returning **null rather than clamping**
+(a clamped "500 mi" is still a false claim). Widest pair of parish centroids — the widest trip this
+pill can describe — is Caddo<->Plaquemines **329.4 mi**; Louisiana's bbox diagonal is **421.7 mi**.
+500 leaves ~80 mi of slack past the diagonal so a viewer just outside the state line still gets a
+pill. The reported values were 3.3-3.6x the bound. The ETA bound lives inside `useDrivingTime`, the
+single funnel both surfaces pass through.
+
+**PRE-EXISTING, and today was simply the first time it had an origin to go wrong with.** Of **60**
+profiles on prod only **4** carry coordinates: the three seeded test accounts sharing one Baton Rouge
+point, and the owner's — stamped today. **The owner is the only real account that has ever had a
+persisted origin.** So the chip had no origin before, not (as I hypothesised) no job coordinates —
+the VIEWER side was what was new.
+
+### >>> NEEDS THE OWNER: the poisoned profile row is still on prod <<<
+The UI is correct regardless (the read-side gate rejects it), but the row still feeds
+`get_neighbor_hire_count` (a sub-mile neighbour test), applicant proximity and the saved-search
+radius tier **server-side**. One statement clears it, and it targets a REAL account so it was
+deliberately not run:
+`update profiles set latitude = null, longitude = null, location_captured_at = null where email = 'lexilombas05@gmail.com';`
+
+### NEW — a lane swept another lane's file into its commit
+`51e96257a` ("fix(job time)") contains the distance lane's `plausibleTripMiles` import and `~${…} mi`
+lines, landed **without `geo.ts` defining the symbol**, so main failed typecheck until `fecdbf6e7`.
+A `git add -A` in a shared tree. This is the `agent-path-slip-contamination` class — verify every
+diff before committing, and use `--only` with an explicit path list.
+
+### NEW — same origin-trust family, reported not fixed
+`JobTracking.tsx:2224` + `arrivalGate.formatArrivalDistance` render a live-GPS-to-job distance, and
+the comment at `JobTracking.tsx:967` records prod on 2026-09-14 showing **"2099 mi from job"**. That
+one is a real-fix-to-real-fix REFUSAL distance where the big number is arguably the message, so it
+was left alone — but it is the same family.
+Also still on the floor: `BrowseTasksFeed.tsx:323-328` reads the hook state and DISCARDS
+`approximate`. No longer user-visible (the `~` is unconditional now), but the flag is unused.

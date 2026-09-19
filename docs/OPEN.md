@@ -3159,3 +3159,50 @@ the work happened. The flag must be a queue item AWAITING an admin, never a fabr
   `.leaflet-*` CSS (careful — live `.browse-map-*` rules are interleaved); refresh the stale
   Leaflet comments at `JobTracking.tsx:26`, `:2162`, `PostedJobCard.tsx:518` and the stale
   "Awaiting confirmation" prose in `e2e/happy-path/state-matrix/stateMatrix.ts:481,516`.
+
+### DONE 2026-09-19 — VirtualList scroll-source bug + item 1(a) — commit `028fe3837`
+**The bug was REAL and worse than "blank space".** Proven live on PROD (no mocks) as `poster-e2e`
+with 29 real threads, Chrome, at 375 and 1440:
+
+| | mountedRows | idx range | container h | last row bottom |
+|---|---|---|---|---|
+| 375 top | 16 | 0-15 | 2320px | 1280px |
+| 375 after scrolling 1758px | **16** | **0-15** | 2320px | **1280px** |
+| 1440 top | 18 | 0-17 | 2320px | 1440px |
+| 1440 after scrolling 1698px | **18** | **0-17** | 2320px | **1440px** |
+
+Scrolling moved `scrollTop` 0 -> 1758 and changed NOTHING. 13 threads at 375 / 11 at 1440 were
+unreachable by any gesture; `before-375-bottom.png` is a **completely white panel**.
+AFTER: 375 -> rows 15-28, last row bottom **2336 == container 2336**; 1440 -> **2320 == 2320**.
+All 29 reachable. 9 `recordReview` entries in `test-results/review-log.jsonl`, every screenshot
+actually looked at.
+
+FIX: `VirtualList` now dispatches on a stable prop to `WindowVirtualList` / `ElementVirtualList`
+(unconditional hooks in each). Only TWO call sites exist in `src/`:
+- `ConversationList.tsx:1081` (`/messages`, AppShell, html-locked) -> **element**, via
+  `scrollElementRef={containerRef}` (`PullToRefreshWrapper`'s container is the only scroll surface).
+- `AdminUsers.tsx:416` (`/admin`, IS in `DOCUMENT_SCROLL_ROUTES`) -> **window, unchanged** —
+  flipping it would point the virtualizer at a non-scrolling element and render nothing.
+(`VirtualizedJobList.tsx` is a separate, already-correct element virtualizer, not a call site.)
+
+CLASS CHECK `src/test/virtualListScrollSource.test.ts` — **derived from the world, not a list**
+(the failure mode memory `registries-checked-against-themselves` warns about): it parses App.tsx's
+real `<Route>` table, resolves each page module, walks the import graph transitively to map files
+-> reachable routes, and parses the app-shell classification out of `useAppShellViewport.ts`
+(comments stripped, so a quoted non-member can't sneak in). A new call site on an html-locked
+route fails the day it is written. Red-before observed.
+
+**Item 1(a) SHIPPED**: the inbox lands on the first unread thread via
+`virtualizer.scrollToIndex(idx, {align:"start"})`. One attempt per mount (ref guard consumed
+either way), skipped when the first row is already unread, when nothing is unread, or when the
+first unread sits past `CONVO_LIMIT`; realtime never re-fires it. Measured with the first unread
+at UI index 7: entry `scrollTop` 0 -> **572** at both 375 and 1440, top row = the unread thread.
+With unmodified prod data (newest thread IS the unread one) entry `scrollTop` stays **0** — the
+skip works. The one `messages.read` flip used to stage this was on a test-owned row and was
+RESTORED and verified. `src/lib/inboxDefault.ts` untouched (owner's 2026-08-30 "always All").
+
+REPORT (inert, not changed): `AdminUsers.tsx:416` passes `className="space-y-2"` to VirtualList and
+`ConversationList` wraps its VirtualList in `<div className="space-y-2">` — every row is
+`position:absolute`, so `space-y` produces nothing on either.
+NOT verified live: `/admin`, because `scripts/test-signin-link.mjs` only mints poster/helper.
+Its code path is unchanged and is covered by the new guard.

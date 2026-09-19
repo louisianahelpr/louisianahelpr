@@ -4173,3 +4173,46 @@ user data.** Invisible to browse because cancelled. Worth flipping or deleting b
 Unlike `guest-listing-horizon.mjs`, an anon reader cannot verify this: `open_jobs_browse` runs
 `mask_job_location()` over the exact column being checked, so it needs the service role. It belongs
 on the credentialed leg of `e2e-real-backend.yml`.
+
+### DONE 2026-09-19 — review card reorganised + profile tile order — `67e68ab66`
+**`PublicReviewWall` IS MOUNTED NOWHERE** — only its own test imports it (`singleReviewList.test.ts`
+removed it from UserProfile). The app had TWO review designs and the one with the proper category
+chip was dead code, while `/user/:id` rendered the worse one. Both now share
+`src/components/profile/reviewCard.tsx`, with the chip and star row MOVED character-for-character
+(`data-testid="public-review-category"` kept so its 14-case suite still passes).
+**"Cleaning" was the CATEGORY, not a job title:** `useUserProfileData.ts:699` sets
+`jobTitle: formatCategory(r.job_category)`, so the field is a misnomer on that path and was being
+printed as `For: …` prose. `job_category` is populated 17/17; the "zero rows" note in
+`PublicReviewWall.tsx:262-265` was about a client-side fallback that is not the path in use.
+NEW ORDER: name -> stars + CHIP -> highlight -> prose -> date. Star row gained
+`role="img" aria-label="5 of 5 stars"` (ReviewsSection announced nothing before).
+**THE HIGHLIGHT IS HONEST, not summarisation:** `reviews` has no tags column —
+`ReviewForm.toggleQuickOption` (and a byte-identical duplicate in `CompletionPrompts.tsx:121`)
+concatenates quick-tags into `feedback` with `", "`. `splitReviewTags` peels a TRAILING run of parts
+matching the known vocabulary and rejoins the rest identically; mid-sentence "On time, but the gate
+was left open." stays prose. No model call.
+Tile order now Rating · Jobs completed · Jobs posted · **Worked together** · Cancelled.
+
+### NEW — HIGH (fairness): the profile stat tiles use THREE different denominators
+On `437de07d`, reconciled exactly against prod:
+- "Jobs completed 17" = `completed_jobs_as_helper` — completed only, **helper side only**
+- "Jobs posted 7" = `posted_jobs_total` — **all statuses**, poster side only
+- "Cancelled 35 of 70" = `jobs_total` — **all statuses, BOTH sides**
+So nothing reconciles with anything on screen. Worse: **32 of the 35 cancellations are helper-side —
+jobs the POSTER cancelled, counted against this person.** That is precisely the defect class the
+card's own comment gives as the reason "accept rate" was deleted: *"a tally of other people's
+decisions rendered as a property of this person."* Today every one of the 70 is `is_seed`, so the
+50% is an artifact — **but the denominator problem is real and will brand a genuine Helpr as 50%
+unreliable for other people's choices.** REPORTED, NOT FIXED: picking a denominator is a product
+decision. **Owner call needed.**
+
+### NEW — `[SWEEP]` prefixes are stranded prod data
+14 of 17 prod reviews carry `[SWEEP]` / `[E2E DO NOT ACCEPT]` / `SEED` prefixes and **no live writer
+of those strings remains in `scripts/`** — leftovers from a retired sweeper. Not fixable display-side;
+needs a one-off cleanup or the seed-flag flip already tracked above. Stored content was not rewritten.
+
+### NEW — quick-tags are concatenated into the review body (write-path)
+The durable fix is a `tags text[]` column plus a write path that stops joining them into `feedback`
+— and **two byte-identical implementations to converge** (`ReviewForm.toggleQuickOption` and
+`CompletionPrompts.tsx:121`). Schema change, so reported not done; the display-side recovery above
+makes the card read correctly meanwhile.

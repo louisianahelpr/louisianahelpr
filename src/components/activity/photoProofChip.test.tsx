@@ -20,9 +20,12 @@
  *      extraction, the `dialogs` slot, and the open state — and not just the
  *      button's existence.
  *
- * The UPLOAD ask is a different control and is deliberately untouched:
- * `appliedJobCard/steps/HelperPhotoAsk.tsx` still renders one `PhotoProofStep`
- * at a time from the tracker's current step.
+ * The UPLOAD ask is a DIFFERENT control and stays different. Since 2026-09-19
+ * it is on this same row (owner: "before and after buttons should also be on
+ * the same lines as the other buttons"), so the two now sit side by side on the
+ * disputed card — which is exactly why their labels differ: "Photos" opens the
+ * gallery of what exists, "Before Photo" / "After Photo" adds what does not.
+ * See src/test/beforePhotoCapture.test.tsx.
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";

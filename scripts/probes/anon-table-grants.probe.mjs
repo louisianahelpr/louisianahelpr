@@ -17,7 +17,11 @@
 //    sensitive table on SELECT + its unbacked writes; analytics/error on
 //    SELECT + UPDATE/DELETE but NOT INSERT (that one is policy-backed). An
 //    out-of-scope table (messages) with the same default-priv anon writes is
-//    NOT flagged — the rule is the curated high-value set, not blanket.
+//    NOT flagged — the WRITE rule is the curated high-value set, not blanket.
+//    The ZERO-POLICY rule (2026-09-19) is the one that is NOT a list: the
+//    policy-less notification_dedupe_suppressions is flagged for both client
+//    roles on all four privileges, while the equally policy-less
+//    edge_rate_limit_log, which holds no client grant, is not.
 // 2. AFTER (migration 3x): class check GREEN; anon has nothing on jobs, no
 //    SELECT on any sensitive table, INSERT-only on analytics/error; authenticated
 //    keeps its explicit grants (reads sensitive, writes jobs); guest browse via
@@ -38,6 +42,8 @@ try {
 import fs from "node:fs";
 const read = (p) => fs.readFileSync(new URL(p, import.meta.url), "utf8");
 const MIG = read("../../supabase/migrations/20260915055601_revoke_excess_anon_grants.sql");
+// The zero-policy rule's own migration: the table that rule was written for.
+const MIG_ZP = read("../../supabase/migrations/20260919172735_revoke_client_grants_on_dedupe_suppressions.sql");
 const CHECK = read("../ci/sensitive-anon-grants.sql");
 
 const OWNER = "vbypass"; // stands in for postgres: BYPASSRLS, not a superuser
@@ -104,6 +110,24 @@ ALTER TABLE public.${t} ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "${t}_insert" ON public.${t} FOR INSERT WITH CHECK (user_id IS NULL OR user_id = auth.uid());
 CREATE POLICY "${t}_admin_read" ON public.${t} FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));`).join("\n")}
 
+-- ZERO-POLICY fixture: the exact prod shape of notification_dedupe_suppressions
+-- before 20260919172735 — RLS on, NO policy at all (service-only, written by a
+-- definer trigger), and therefore handed anon+authenticated arwdx by the
+-- default-privilege rule above with nobody noticing. The old allowlist rules
+-- could not see it: it is not the jobs table and it is not one of the fourteen
+-- sensitive names.
+CREATE TABLE public.notification_dedupe_suppressions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, kind text);
+ALTER TABLE public.notification_dedupe_suppressions ENABLE ROW LEVEL SECURITY;
+
+-- Zero-policy CONTROL: same shape, but the client roles were never granted
+-- anything (prod's edge_rate_limit_log / retained_bans). Must NOT be flagged,
+-- or the rule is a blanket "every policy-less table is an offender".
+CREATE TABLE public.edge_rate_limit_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), bucket text);
+ALTER TABLE public.edge_rate_limit_log ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.edge_rate_limit_log FROM PUBLIC, anon, authenticated;
+
 -- Out-of-scope control: same default-priv anon writes, TO-authenticated policies.
 -- Must NOT be flagged — proves the write rule is scoped, not blanket.
 CREATE TABLE public.messages (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), sender_id uuid, body text);
@@ -159,13 +183,36 @@ const has = (rows, tbl, p, rule) => rows.some((r) => r.table === tbl && r.priv =
   expect(!has(rows, "analytics_events", "INSERT", "write:no-policy"),
     "analytics_events NOT flagged on INSERT (permissive anon INSERT policy backs it)");
   expect(!rows.some((r) => r.table === "messages"), "out-of-scope messages NOT flagged (rule is scoped, not blanket)");
+
+  // ── the ZERO-POLICY rule (2026-09-19) ────────────────────────────────────
+  // Both client roles, all four privileges, on a table no allowlist names.
+  for (const role of ["anon", "authenticated"]) {
+    for (const p of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
+      expect(
+        rows.some((r) => r.table === "notification_dedupe_suppressions" && r.role === role && r.priv === p
+          && r.rule === "zero-policy:client-grant"),
+        `notification_dedupe_suppressions flagged for ${role} ${p} (zero-policy)`,
+      );
+    }
+  }
+  expect(!rows.some((r) => r.table === "edge_rate_limit_log"),
+    "a policy-less table with NO client grant is NOT flagged (the rule is about grants, not about having no policy)");
+  // And no stale exception, because the exception list is empty.
+  expect(!rows.some((r) => r.rule === "stale-exception:zero-policy"),
+    "no stale zero-policy exception (the list is empty)");
 }
 
 {
   console.log("\n== 2. AFTER (migration 3x)");
-  const db = await fresh([MIG], 3);
+  const db = await fresh([MIG, MIG_ZP], 3);
   const rows = await checkRows(db);
   expect(rows.length === 0, `class check GREEN (${rows.length} rows)`);
+  for (const role of ["anon", "authenticated"]) {
+    for (const p of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
+      expect((await priv(db, role, "notification_dedupe_suppressions", p)) === false,
+        `${role} has NO ${p} on notification_dedupe_suppressions`);
+    }
+  }
 
   for (const p of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
     expect((await priv(db, "anon", "jobs", p)) === false, `anon has NO ${p} on jobs`);
@@ -208,9 +255,28 @@ const has = (rows, tbl, p, rule) => rows.some((r) => r.table === tbl && r.priv =
   ];
   for (const [name, sql] of BROKEN) {
     if (sql === MIG) { expect(false, `mutation did not apply: ${name}`); continue; }
-    const db = await fresh([sql]);
+    const db = await fresh([sql, MIG_ZP]);
     const rows = await checkRows(db);
     expect(rows.length > 0, `${name}: check red with ${rows.length} rows`);
+  }
+
+  // The zero-policy migration's own broken copies: revoking only from PUBLIC,
+  // or only from anon, must each leave the check red. `FROM PUBLIC` alone
+  // leaving a role's explicit grant is the repo's own scar
+  // (docs/lessons -> revoke-anon), so it is proven here rather than assumed.
+  const ZP_BROKEN = [
+    ["dedupe: anon revoke dropped", MIG_ZP.replace("REVOKE ALL ON TABLE public.notification_dedupe_suppressions FROM anon;", "")],
+    ["dedupe: authenticated revoke dropped", MIG_ZP.replace("REVOKE ALL ON TABLE public.notification_dedupe_suppressions FROM authenticated;", "")],
+    ["dedupe: only FROM PUBLIC", MIG_ZP
+      .replace("REVOKE ALL ON TABLE public.notification_dedupe_suppressions FROM anon;", "")
+      .replace("REVOKE ALL ON TABLE public.notification_dedupe_suppressions FROM authenticated;", "")],
+  ];
+  for (const [name, sql] of ZP_BROKEN) {
+    if (sql === MIG_ZP) { expect(false, `mutation did not apply: ${name}`); continue; }
+    const db = await fresh([MIG, sql]);
+    const rows = await checkRows(db);
+    expect(rows.some((r) => r.rule === "zero-policy:client-grant"),
+      `${name}: zero-policy rule still red (${rows.filter((r) => r.rule === "zero-policy:client-grant").length} rows)`);
   }
 }
 
@@ -227,7 +293,7 @@ const has = (rows, tbl, p, rule) => rows.some((r) => r.table === tbl && r.priv =
 
 {
   console.log("\n== 5. PG15 parse-safety (no bare MAINTAIN keyword)");
-  for (const [name, sql] of [["20260915055601", MIG], ["sensitive-anon-grants.sql", CHECK]]) {
+  for (const [name, sql] of [["20260915055601", MIG], ["20260919172735", MIG_ZP], ["sensitive-anon-grants.sql", CHECK]]) {
     const bare = sql.split("\n").filter((l) => !l.trim().startsWith("--") && /\bMAINTAIN\b/i.test(l) && !/'[^']*\bMAINTAIN\b[^']*'/i.test(l));
     expect(bare.length === 0, `${name}: no bare MAINTAIN${bare.length ? ` — ${bare.join(" | ")}` : ""}`);
   }

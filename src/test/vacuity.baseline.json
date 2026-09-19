@@ -17,7 +17,6 @@
     "src/test/advancedAnalyticsTierParity.test.ts",
     "src/test/alarmColourInvariant.test.ts",
     "src/test/alertPolicy.test.ts",
-    "src/test/anonGrantsClassCheck.test.ts",
     "src/test/appleIap.test.ts",
     "src/test/applicationContactLeakHidden.test.ts",
     "src/test/arrivalNudgeStage.test.ts",

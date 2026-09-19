@@ -1,13 +1,22 @@
 #!/usr/bin/env node
 /**
- * LIVE: the TABLE half of the excess-anon-grant class (check-updatable-views.mjs
- * is the view half). Two rules, read from the prod catalog:
+ * LIVE: the TABLE half of the excess-client-grant class (check-updatable-views.mjs
+ * is the view half). Three rules, read from the prod catalog:
  *
  *   WRITE (H-004): no RLS-enabled table in an exposed schema may carry an `anon`
  *   INSERT/UPDATE/DELETE grant that no policy backs for that command. public.jobs
  *   held anon UPDATE/INSERT/REFERENCES/DELETE with its DELETE policy TO
  *   authenticated only and its lock triggers stepping aside for a NULL uid — RLS
  *   the sole gate, one GRANT/policy away from a live hole.
+ *
+ *   ZERO-POLICY (2026-09-19): no table with RLS on and NO POLICY AT ALL may
+ *   carry a client grant — anon OR authenticated, on any of SELECT/INSERT/
+ *   UPDATE/DELETE. This is the rule that is derived from the catalog instead of
+ *   from a list, and it exists because the two below are lists and therefore
+ *   never looked at `notification_dedupe_suppressions`: RLS on, ZERO policies,
+ *   yet anon SELECT and authenticated SELECT+INSERT, live on prod. Not
+ *   exploitable while RLS denies all — which is exactly what a missing second
+ *   line of defence looks like, one `USING (true)` away from a live read.
  *
  *   READ (AUTHZ-02): no sensitive admin/money/trust table (allowlist in
  *   scripts/ci/sensitive-anon-grants.sql) may carry an `anon` SELECT grant.
@@ -80,18 +89,25 @@ if (!tablesChecked || !Array.isArray(offenders)) {
 
 if (process.argv.includes("--self-test")) {
   offenders.push({ schema: "public", table: "zz_fake_sensitive", role: "anon", priv: "SELECT", rule: "read:sensitive" });
+  offenders.push({ schema: "public", table: "zz_fake_service_only", role: "authenticated", priv: "INSERT", rule: "zero-policy:client-grant" });
 }
 
 console.log(`Checked ${tablesChecked} base tables in public/graphql_public.`);
 if (offenders.length) {
   for (const o of offenders) {
-    console.error(`::error::${o.schema}.${o.table} — anon holds ${o.priv} (${o.rule})`);
+    console.error(
+      o.rule === "stale-exception:zero-policy"
+        ? `::error::${o.schema}.${o.table} is declared as a zero-policy exception in scripts/ci/sensitive-anon-grants.sql but holds no client grant any more — remove the exception (the list may only shrink).`
+        : `::error::${o.schema}.${o.table} — ${o.role} holds ${o.priv} (${o.rule})`,
+    );
   }
   console.error(
-    "An anon write grant no policy backs, or an anon SELECT on a sensitive table, is a second-line-of-defence hole. " +
-      "Fix in the migration that owns the table: REVOKE ALL ON <table> FROM anon, PUBLIC (or REVOKE SELECT for a read-only offender), " +
-      "keeping authenticated's explicit grants. Default privileges re-grant on any recreation, so this check — not the one REVOKE — is the guarantee.",
+    "A client write grant no policy backs, an anon SELECT on a sensitive table, or ANY client grant on a table " +
+      "with zero policies, is a second-line-of-defence hole. Fix in the migration that owns the table: " +
+      "REVOKE ALL ON <table> FROM PUBLIC, anon, authenticated for a service-only table, or REVOKE the one privilege " +
+      "for a scoped offender, keeping the grants the app actually uses. Default privileges re-grant on any " +
+      "recreation, so this check — not the one REVOKE — is the guarantee.",
   );
   process.exit(1);
 }
-console.log("OK: no exposed-schema table carries an excess anon grant.");
+console.log("OK: no exposed-schema table carries an excess client grant.");

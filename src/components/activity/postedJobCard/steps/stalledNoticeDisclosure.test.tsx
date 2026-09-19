@@ -136,10 +136,19 @@ const draw = (job: Job) =>
   );
 
 describe("the stalled note is one sentence, and the rest is one tap away", () => {
-  it("shows ONLY the short sentence on the card", () => {
+  // WAS: asserted the note held exactly STALLED_APPROVE_DISABLED_REASON — the
+  // "trim to one sentence" pass. Owner, 2026-09-19, THIRD pass: "cut the
+  // note, let the button speak" — the disabled box (STALLED_APPROVE_DISABLED_LABEL,
+  // "Waiting on the Helpr to mark it done") already names who the row is
+  // waiting on, so the note above it was the same fact twice. Now the note is
+  // gone entirely and the reason lives only behind the "Why?" tap.
+  it("shows NO note on the card — the disabled button carries the reason", () => {
     const { container } = draw(stalledJob());
     const note = container.querySelector("[data-job-step-note]");
-    expect(note?.textContent ?? "").toBe(STALLED_APPROVE_DISABLED_REASON);
+    expect(note?.textContent ?? "").toBe("");
+    // The short sentence itself is not visible on the card either — only
+    // behind "Why?" now (see the reveal test below).
+    expect(container.textContent ?? "").not.toContain(STALLED_APPROVE_DISABLED_REASON);
     // The instruction and the escalation promise are NOT on the card.
     expect(container.textContent ?? "").not.toMatch(/Mark Job Complete/);
     expect(container.textContent ?? "").not.toMatch(/our team steps in/i);

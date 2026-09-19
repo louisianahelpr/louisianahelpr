@@ -51,7 +51,18 @@ export function PosterConfirmationPrimary({
   return (
     <>
       <JobStepRowSlot slot="note">
-        {rung.reason ? (
+        {/* OWNER, 2026-09-19, THIRD PASS: "cut the note, let the button
+            speak." The stalled rung's `reason` (STALLED_APPROVE_DISABLED_REASON)
+            is deliberately excluded here — the disabled box beside it already
+            names who the poster is waiting on (STALLED_APPROVE_DISABLED_LABEL,
+            "Waiting on the Helpr to mark it done"), so a note repeating the
+            same fact in more words was pure duplication. The string itself is
+            NOT deleted: it still lives in stalledCompletion.ts, the cron
+            reads it, and the "Why?" dialog in InProgressStep.tsx still shows
+            it as the first line of the detail. Every other rung (the arrival
+            gates above) keeps its note exactly as before — this only silences
+            the stalled one. */}
+        {rung.reason && !rung.stalled ? (
           <p
             className={`text-ds-11 text-center${rung.gate ? " font-semibold" : " text-muted-foreground"}`}
             style={rung.gate ? { color: "hsl(var(--amber-ink))" } : undefined}

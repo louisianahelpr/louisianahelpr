@@ -536,11 +536,13 @@ const CASES: Array<{
     primaryDisabled: true,
     // NOT the done tone: nothing here finished.
     primaryDone: false,
-    // The VISIBLE line only, and it is now one sentence — the escrow promise
-    // stays in it because that is the half the reader is anxious about.
-    // (Was /Your payment stays in escrow/ when the line opened on the Helpr's
-    // missing tap and ran to seven lines at 375.)
-    note: /your payment stays in escrow/i,
+    // NO `note` field (owner, 2026-09-19, THIRD pass: "cut the note, let the
+    // button speak"). The disabled primary label above already names who the
+    // row is waiting on, so the note repeating it in more words was pure
+    // duplication — it is gone from the card entirely now. (Was
+    // /your payment stays in escrow/i when the note still rendered one
+    // sentence above this same button; the sentence itself survives only in
+    // the "Why?" dialog, per stalledNoticeDisclosure.test.tsx.)
   },
   {
     // ITEM 6b — a job in `revision_requested` derives to THIS step, but both

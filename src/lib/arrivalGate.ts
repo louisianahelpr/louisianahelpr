@@ -284,23 +284,41 @@ export function formatArrivalDistance(distanceFt: number): string {
 }
 
 /**
- * The sentence shown under the Arrived step's button when the DEVICE could not
- * produce a location — the one case the client still handles before the RPC is
- * ever called. Since 2026-09-19 it never tells the Helpr they cannot check in:
- * they can, always. It says what Location buys them, and who unblocks them.
+ * The sentence shown when `mark_helper_arrival` REFUSED and wrote nothing.
+ *
+ * THIS IS THE DEPLOY-GAP PATH, and it must tell the truth about that gap.
+ * Since 20260919155016 the live RPC refuses nothing — a Helpr can always
+ * record an arrival. But Vercel ships this bundle independently of
+ * `db-deploy.yml`, so between a push and the migration landing, prod still
+ * runs the VN-33 definition that raises `arrival_too_far` /
+ * `arrival_location_required` and writes NOTHING.
+ *
+ * Browser verification on 2026-09-19 caught this copy promising the opposite:
+ * "You're still checked in" and "the person who posted this job has to tap
+ * Confirm They Arrived" — while `helper_arrived_at` stayed NULL, so the
+ * poster's control rendered DISABLED ("You'll be able to confirm this once
+ * your Helpr is at the job"). Each side was told to wait for the other: the
+ * very deadlock this batch removed, rebuilt out of reassuring words, and worse
+ * than the pre-batch copy which at least refused honestly.
+ *
+ * So every branch below says the check-in did NOT happen and names the one
+ * thing that fixes it. No branch may promise a poster confirmation, because in
+ * this state there is nothing for the poster to confirm.
  */
 export function arrivalRefusalMessage(
   refusal: ArrivalRefusal | { kind: "denied" },
 ): string {
-  const thenPoster = 'Either way, the person who posted this job has to tap "Confirm They Arrived" before you can start working.';
+  // Named once so no branch can drift into implying the check-in landed.
+  const notRecorded = "We couldn't check you in yet.";
+  const retry = 'Tap "Try My Location Again".';
   switch (refusal.kind) {
     case "too_far":
       return refusal.distanceFt != null
-        ? `Your location is about ${formatArrivalDistance(refusal.distanceFt)} from the job's map pin. You're still checked in. ${thenPoster}`
-        : `Your location is a little way from the job's map pin. You're still checked in. ${thenPoster}`;
+        ? `${notRecorded} Your location is about ${formatArrivalDistance(refusal.distanceFt)} from the job's map pin. If you're at the job, ${retry}`
+        : `${notRecorded} Your location is a little way from the job's map pin. If you're at the job, ${retry}`;
     case "denied":
-      return `Location is turned off for Louisiana Helpr. Allow it in Settings and tap Try My Location Again — it shows them you're at the job. ${thenPoster}`;
+      return `${notRecorded} Location is turned off for Louisiana Helpr — allow it in Settings, then ${retry}`;
     default:
-      return `We couldn't get your location. Turning it on shows them you're at the job. ${thenPoster}`;
+      return `${notRecorded} We couldn't get your location. Turn Location on, then ${retry}`;
   }
 }

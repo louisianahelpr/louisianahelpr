@@ -274,19 +274,42 @@ describe("legacy refusal parsing (pre-20260919155016 servers and queued errors)"
     expect(formatArrivalDistance(5280 * 2091.4)).toBe("2091 mi");
   });
 
-  it("no longer tells a Helpr that a missing location blocks the check-in", () => {
-    // The device-side branch the client still owns. Under VN-33 this said "your
-    // location has to show you at the job to mark arrived" — which is exactly
-    // the sentence that sent a Helpr to ask the poster for a button the poster
-    // could not see. It must now say they are checked in, and name the tap.
-    for (const kind of ["denied", "no_location"] as const) {
-      const copy = arrivalRefusalMessage({ kind });
-      expect(copy, kind).toContain("Confirm They Arrived");
-      expect(copy, kind).not.toMatch(/has to show you at the job to mark arrived|can't mark arrived/i);
+  it("the REFUSAL path says the check-in did not happen, and promises no poster tap", () => {
+    // This function runs on ONE path only: mark_helper_arrival raised, so it
+    // wrote NOTHING. Since 20260919155016 the live RPC raises none of these —
+    // but Vercel ships the bundle independently of db-deploy, so between a push
+    // and the migration landing, prod is still the VN-33 definition that
+    // refuses.
+    //
+    // Browser verification on 2026-09-19 caught the copy promising the opposite
+    // ("You're still checked in", "the person who posted this job has to tap
+    // Confirm They Arrived") while helper_arrived_at stayed NULL — so the
+    // poster's control rendered DISABLED and each side was told to wait for the
+    // other. That is the deadlock this batch removed, rebuilt out of reassuring
+    // words. The assertions below are inverted from the pre-fix version ON
+    // PURPOSE: naming the poster's tap is right for a RECORDED arrival and
+    // wrong here, because there is nothing for the poster to confirm.
+    const all = [
+      arrivalRefusalMessage({ kind: "denied" }),
+      arrivalRefusalMessage({ kind: "no_location" }),
+      arrivalRefusalMessage({ kind: "too_far", distanceFt: 1490 }),
+      arrivalRefusalMessage({ kind: "too_far", distanceFt: null }),
+    ];
+    for (const copy of all) {
+      // Never claim the check-in landed.
+      expect(copy).not.toMatch(/still checked in|you're checked in|checked in either way/i);
+      // Never send them to a poster control that cannot exist in this state.
+      expect(copy).not.toContain("Confirm They Arrived");
+      // Say plainly that it did not happen, and give the one way forward.
+      expect(copy).toMatch(/couldn't check you in/i);
+      expect(copy).toContain("Try My Location Again");
+      // And never re-introduce VN-33's dead end.
+      expect(copy).not.toMatch(/has to show you at the job to mark arrived|can't mark arrived/i);
     }
-    const far = arrivalRefusalMessage({ kind: "too_far", distanceFt: 1490 });
-    expect(far).toMatch(/still checked in/i);
-    expect(far).toContain("Confirm They Arrived");
+    // Through the formatter, not a hardcoded string: 1490 ft renders as miles,
+    // and pinning the literal would just re-encode the formatter's rule badly.
+    expect(arrivalRefusalMessage({ kind: "too_far", distanceFt: 1490 }))
+      .toContain(formatArrivalDistance(1490));
   });
 });
 

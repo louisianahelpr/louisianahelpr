@@ -633,10 +633,12 @@ describe("CHECK 1 (strong) — copy never names a control that does not exist", 
     // red would get the whole file disabled.
     const misses = NAMED.filter((n) => n.kind === "verb" && !resolveNamedControl(n.phrase, RENDERED.byLabel));
     if (misses.length) {
-       
-      console.log(
+      // stderr, not console.log: this repo's vitest setup silences console in
+      // tests, and an advisory nobody can read is not an advisory.
+      process.stderr.write(
         "[control-reachability] verb-form names with no matching control (advisory):\n" +
-          misses.map((m) => `  ${m.file}:${m.line}  "${m.phrase}"`).join("\n"),
+          misses.map((m) => `  ${m.file}:${m.line}  "${m.phrase}"`).join("\n") +
+          "\n",
       );
     }
     expect(Array.isArray(misses)).toBe(true);

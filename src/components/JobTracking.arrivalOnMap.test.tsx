@@ -383,7 +383,7 @@ describe("the map survives a dispute or a revision (owner, 2026-09-16)", () => {
  * SLOT: the card still builds the tile (it holds the id, name and avatar) and
  * the tracker owns only where it lands — under the step rail, above the map.
  */
-describe("the personTile slot renders under the rail and above the map", () => {
+describe("the tracker draws NO person tile of its own", () => {
   const withMap = {
     jobStatus: "in_progress",
     jobLatitude: JOB_LAT,
@@ -398,16 +398,20 @@ describe("the personTile slot renders under the rail and above the map", () => {
     },
   };
 
-  it("renders the tile, and renders it BEFORE the map", async () => {
-    renderTracker({ ...withMap, personTile: <div data-testid="person-tile">Hallie Helper</div> });
-    const tile = screen.getByTestId("person-tile");
-    const map = await screen.findByTestId("tracking-map");
-    expect(tile.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it("renders nothing of its own when the caller passes no tile", () => {
+  /* WHAT THIS BLOCK USED TO PIN, and why it changed (owner, 2026-09-19).
+     It asserted a `personTile` SLOT on <JobTracking>, rendered between the
+     step rail and the map — the owner's 2026-09-16 position for the other
+     party's profile. Three days later they moved it again: "the helpr or
+     posted by should be right above the buttons", so the slot is gone from
+     this component entirely and the tile is rendered by JobStepCard from
+     `JobCardPersonContext`. Its new POSITION is asserted on both cards in
+     src/test/jobCardPersonTileAboveRow.test.tsx — this block keeps only the
+     half that still belongs to the tracker: that it prints no profile of its
+     own, so a card cannot end up with two. */
+  it("renders no profile link between the rail and the map", async () => {
     renderTracker(withMap);
-    expect(screen.queryByTestId("person-tile")).toBeNull();
+    await screen.findByTestId("tracking-map");
+    expect(document.querySelectorAll('a[href^="/user/"]')).toHaveLength(0);
   });
 });
 

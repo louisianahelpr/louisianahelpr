@@ -12,6 +12,7 @@ import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
+import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "./jobCardPerson";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { formatPrice, formatPriceExact, formatRecurrenceInterval } from "@/lib/format";
 import { type PostedJobCardProps } from "./postedJobCard/types";
@@ -78,6 +79,11 @@ function PostedJobCardInner({
   // uses — see src/components/activity/useHighlightPulse.ts.
   useHighlightPulse(highlight, cardRef);
 
+  /* The person slot, opened BEFORE any branch in this component (rules of
+     hooks). The tile itself is built further down, once the card knows the
+     Helpr; `stepCarriesTile` is the step shell reporting that it took it. */
+  const { claim: personClaim, stepCarriesTile } = useJobCardPersonSlot();
+
   // `isFullyCompleted` used to live here and gated two things: whether the
   // card was expandable at all, and whether the collapsed-only Re-Post button
   // showed. Both are gone — every card expands, and every card hides its body
@@ -133,20 +139,27 @@ function PostedJobCardInner({
   const unfunded = shouldShowUnfundedNotice(job);
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
 
-  /* THE HELPR'S PROFILE TILE — built here, placed INSIDE the tracker (owner,
-     2026-09-16: the profile goes under the tracker and above the map).
+  /* THE HELPR'S PROFILE TILE — built here, rendered DIRECTLY ABOVE THE ACTION
+     ROW (owner, 2026-09-19: "the helpr or posted by should be right above the
+     buttons"). Third position in five days; jobCardPerson.tsx carries the
+     whole history and the reasoning.
 
-     It used to render in the card body above the tracker; it is now handed to
-     <JobTracking> as its `personTile` slot, which drops it between the step
-     rail and the map. The card still builds it, because the card is what holds
-     the id, the name and the avatar — the tracker owns only the position.
+     The card builds it because the card is what holds the id, the name and the
+     avatar. WHERE it lands is no longer the card's business: it is published
+     through `JobCardPersonContext` and the step shell (JobStepCard) renders it
+     as the last thing before its one row.
 
-     `trackerCarriesTile` is the SAME condition the tracker itself renders on.
-     Without it, a state that shows no tracker (an unfunded job, a cancelled
-     one that still has a helper) would silently lose the Helpr's profile
-     altogether — so in exactly those states the tile keeps its old spot in the
-     body. The two are mutually exclusive: the name is printed once either way. */
-  const helperTile = job.helper_id ? (
+     `stepCarriesTile` is the SHELL'S OWN ANSWER, not a second transcription of
+     which statuses draw a step card. PostedJobActions returns null outright for
+     `cancelled` and `pending_approval` (STATUS_RENDERS_ACTIONS), and an
+     un-expanded card draws no actions at all — in exactly those states nothing
+     claims the tile and the fallback below prints it, so the Helpr's profile
+     cannot silently vanish from a card again.
+
+     NOTHING WHILE COLLAPSED (V6, reaffirmed by the owner 2026-09-19): the tile
+     is `null` unless `isExpanded`, gated HERE rather than downstream, because
+     this card is the only thing that knows its own expand state. */
+  const helperTile = isExpanded && job.helper_id ? (
     <PersonTile
       userId={job.helper_id}
       to={`/user/${job.helper_id}`}
@@ -156,7 +169,7 @@ function PostedJobCardInner({
       onClick={(e) => e.stopPropagation()}
     />
   ) : null;
-  const trackerCarriesTile = showsTracker && !unfunded && !!job.helper_id;
+  const personCtx = personSlotValue(helperTile, personClaim);
 
   /* CONTESTED — a dispute or a revision request. Both are live decisions the
      poster is standing in front of, and both are where the owner reported the
@@ -174,17 +187,18 @@ function PostedJobCardInner({
      height to the pixel, because `contested` is the only thing that lets this
      through — and the card body itself is NOT un-gated, only the tracker.
 
-     `personTile` is gated on `isExpanded` INDEPENDENTLY of the tracker's own
-     gate: the Helpr's name must not appear on a collapsed card (V6, reaffirmed
-     by the owner 2026-09-19), so a collapsed contested card shows the tracker
-     WITHOUT the person box. Expanded, the tile is back in its slot between the
-     rail and the map. */
+     THE TRACKER NO LONGER CARRIES THE PERSON TILE. It did for three days
+     (owner, 2026-09-16); the owner has since moved the tile to directly above
+     the action row, so the `personTile` slot is gone from <JobTracking>
+     altogether. The V6 rule it existed to protect is unchanged and now lives
+     at `helperTile` above: nothing about the Helpr on a collapsed card, which
+     includes the collapsed CONTESTED card that draws this tracker. */
   const trackerBlock = showsTracker && !unfunded ? (
     <div onClick={(e) => e.stopPropagation()}>
       {/* `embedded`: this card is already a JobCardShell glass card,
           so the tracker renders without a box of its own (same fix
           as HelperTrackerPanel; guard noNestedTrackerCard.test.ts). */}
-      <JobTracking embedded includePostingSteps personTile={isExpanded ? helperTile : null} jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} helperArrivalNearMissAt={(job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
+      <JobTracking embedded includePostingSteps jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} helperArrivalNearMissAt={(job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
     </div>
   ) : null;
 
@@ -281,6 +295,11 @@ function PostedJobCardInner({
   );
 
   return (
+        /* The Helpr's tile, published to whichever JobStepCard this status
+           mounts (jobCardPerson.tsx). The provider wraps the WHOLE card, not
+           just the actions block, so the fallback below and the claim above it
+           are answering the same question. */
+        <JobCardPersonContext.Provider value={personCtx}>
         <div ref={cardRef}>
           <JobCardShell
             // EVERY card expands now, not just the ones with a description or
@@ -470,11 +489,16 @@ function PostedJobCardInner({
                   profile one tap away already shows. Stops propagation so the
                   tap opens the profile without also collapsing the card.
 
-                  MOVED (owner, 2026-09-16): when this card draws a tracker the
-                  tile rides inside it, under the steps and above the map — see
-                  `helperTile` / `trackerCarriesTile` above. This spot is now
-                  only the fallback for a state with no tracker to sit in. */}
-              {!trackerCarriesTile && helperTile}
+                  MOVED AGAIN (owner, 2026-09-19): it now sits directly above
+                  the action row, rendered by the step shell — see `helperTile`
+                  / `stepCarriesTile` above. This spot is the FALLBACK for the
+                  states that draw no action row at all (cancelled,
+                  pending_approval), so those cards keep the Helpr's profile
+                  rather than losing it with the row. Exactly one of the two
+                  ever renders: `stepCarriesTile` is the shell reporting that it
+                  took the tile, not a re-derivation of which statuses have a
+                  row. */}
+              {!stepCarriesTile && helperTile}
 
               {/* Cancelled: show fee info if a fee was recorded */}
               {job.status === "cancelled" && (
@@ -835,6 +859,7 @@ function PostedJobCardInner({
             )}
           </JobCardShell>
         </div>
+        </JobCardPersonContext.Provider>
   );
 }
 

@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { JobStepRowContext, hasRenderable, measureJobStepRow, type JobStepRowLayout } from "./jobStepRow";
+import { useClaimedPersonTile } from "./jobCardPerson";
 import { JobStepOverflowChip } from "./JobActionRow";
 
 /**
@@ -48,12 +49,44 @@ import { JobStepOverflowChip } from "./JobActionRow";
  *   - Where the tracker (or the day-of confirmation, or the revision) draws a
  *     next-step CTA, that CTA IS the primary: it portals into the row through
  *     `JobStepRowSlot` and the step's own `primary` is not rendered. Never two.
- *   - The ask and the notice stay ABOVE the row; a control's one-line reason
- *     ("Before & after photos are required…") sits directly above it.
+ *   - The ask and the notice stay ABOVE the row. THE ROW'S ONE EXPLANATION
+ *     LINE SITS BELOW IT, CENTRED — see the next block; this sentence used to
+ *     say "directly above it" and was the contract that moved.
  *
  * `src/components/activity/jobStepOneRow.test.tsx` renders every step of both
  * cards and fails if any control lands outside the single row;
  * `singlePrimaryCta.test.tsx` still holds the one-primary rule.
+ *
+ * ── ONE EXPLANATION LINE, BELOW THE ROW, CENTRED (owner, 2026-09-19) ───────
+ * "You'll be able to confirm this once your Helpr is at the job. should be
+ * under the buttons", and then "Approve to release payment — then you can
+ * review and tip. center under buttons".
+ *
+ * Those two strings are not the same KIND of sentence, and that is the point:
+ *
+ *   GATE REASON    — a control is disabled and this says why (the arrival
+ *                    ladder, the GPS/arrival block, the before-photo gate,
+ *                    the day-of confirmation deadline, the 30-minute payout
+ *                    floor). AMBER, because something is stopping you.
+ *   CONSEQUENCE    — the control is ENABLED and this says what happens when
+ *                    you press it ("Approve to release payment — then you can
+ *                    review and tip"). MUTED, because nothing is stopping you.
+ *
+ * The owner asked for both to sit under the buttons, so the rule is not
+ * "disabled reasons move"; it is EVERY one-line explanation attached to the
+ * row sits below it, centred, in the card's quiet type. The amber/muted split
+ * stays — it is the only thing distinguishing "you can't" from "you can, and
+ * here is what happens" once both live in the same place.
+ *
+ * AND THERE IS ONLY EVER ONE OF THEM. A gate reason and a consequence line can
+ * both apply at once (in-progress, poster: the Helpr has marked the job done
+ * so Approve is live and its footnote applies, while the arrival confirmation
+ * the poster never took is still sitting there disabled with its own reason).
+ * Two centred sentences under one row is worse than either alone, so THE GATE
+ * WINS: the `note` host is the reason the reader is reaching for right now,
+ * and the consequence of a DIFFERENT button can wait until the gate clears.
+ * `footnote` therefore renders only while the note host is empty — the same
+ * shape as the one-primary rule above, and for the same reason.
  *
  * THE SLOTS, in the order they always render:
  *
@@ -70,18 +103,27 @@ import { JobStepOverflowChip } from "./JobActionRow";
  *      "Marked Complete", deadlines. Never a control. It sits under the ask
  *      because on every state that has both (revision) the deadline is a
  *      property of the ask, not a preface to it.
- *   4. the row's note — one line explaining the primary, portalled in by the
- *      control that owns the reason.
+ *   4. THE PERSON TILE — who is on the other end of this job (the Helpr on
+ *      My Posts, "Posted by" on My Jobs). Not a prop: it arrives through
+ *      `JobCardPersonContext` (jobCardPerson.tsx), which also tells the card
+ *      whether a step card took it, so a state with no row still prints the
+ *      profile. Owner, 2026-09-19: "the helpr or posted by should be right
+ *      above the buttons."
  *   5. THE ROW — `actions` (chips) then `primary` (at most ONE, TRAILING on
  *      the right per owner V2/V3; its `flex:2` still makes it the widest slot).
  *      Callers pass `actions` as an array and may include `false`/`null` for
  *      an absent chip; `primary` may be null. A portalled CTA replaces
  *      `primary`.
- *   6. `footnote` — one quiet sentence explaining the row.
- *   7. `escape`  — quiet text below the row (e.g. the helper's after-cancel
+ *   6. the row's note — ONE centred line BELOW the row, portalled in by the
+ *      control that owns the reason (owner, 2026-09-19 — it was above until
+ *      today). Amber for a gate, muted for a wait.
+ *   7. `footnote` — one quiet centred sentence saying what the row's enabled
+ *      primary will DO. Stands down while the note host has something in it,
+ *      so the card never stacks two explanations under one row.
+ *   8. `escape`  — quiet text below the row (e.g. the helper's after-cancel
  *      notice). Report a Problem is NOT here any more: owner, 2026-09-14
  *      (VN-19) moved it into `actions` as a danger chip beside Message.
- *   8. `dialogs` — portalled confirms. Rendered last, occupies no layout.
+ *   9. `dialogs` — portalled confirms. Rendered last, occupies no layout.
  */
 export function JobStepCard({
   side,
@@ -112,8 +154,10 @@ export function JobStepCard({
   primary?: ReactNode;
   /** Chips for the row, beside the primary. Falsy entries are dropped. */
   actions?: ReactNode[];
-  /** One quiet sentence UNDER the row, explaining it — "Approve to release
-   *  payment — then you can review and tip." Never a control. */
+  /** One quiet CENTRED sentence under the row saying what its enabled primary
+   *  will do — "Approve to release payment — then you can review and tip."
+   *  Never a control, never amber (amber means a gate is stopping you), and
+   *  suppressed while the row's `note` host carries a gate reason. */
   footnote?: ReactNode;
   escape?: ReactNode;
   dialogs?: ReactNode;
@@ -125,6 +169,11 @@ export function JobStepCard({
   // update).
   const [primaryHost, setPrimaryHost] = useState<HTMLDivElement | null>(null);
   const [noteHost, setNoteHost] = useState<HTMLDivElement | null>(null);
+  // Does the note host currently hold a line? The footnote stands down when it
+  // does — see "ONE EXPLANATION LINE" above. Read from the DOM rather than from
+  // props because every note arrives by PORTAL, from a component that is not
+  // this one's child in the React tree that owns the prop.
+  const [noteFilled, setNoteFilled] = useState(false);
   const [claims, setClaims] = useState(0);
   const claimPrimary = useCallback(() => {
     setClaims((c) => c + 1);
@@ -195,6 +244,24 @@ export function JobStepCard({
     };
   }, []);
 
+  // THE ONE-EXPLANATION RULE, measured rather than declared. A portalled note
+  // is not visible to this component's props, and `createPortal` commits its
+  // children in the same pass, so the host's child count after layout is the
+  // only honest answer to "is there already a line under this row".
+  useLayoutEffect(() => {
+    if (!noteHost) return;
+    const read = () => setNoteFilled(noteHost.childElementCount > 0);
+    read();
+    const mo = typeof MutationObserver !== "undefined" ? new MutationObserver(read) : null;
+    mo?.observe(noteHost, { childList: true });
+    return () => mo?.disconnect();
+  }, [noteHost]);
+
+  // The other party's profile, handed in by the card through context. Claiming
+  // it here is what stands the card's own fallback copy down — see
+  // jobCardPerson.tsx for why it is a claim and not a boolean.
+  const personTile = useClaimedPersonTile();
+
   return (
     <div
       className={
@@ -218,7 +285,11 @@ export function JobStepCard({
         {header}
         {ask}
         {notice}
-        <div ref={setNoteHost} data-job-step-note="" className="space-y-1.5 empty:hidden" />
+        {/* WHO, directly above WHAT YOU CAN DO (owner, 2026-09-19). Last thing
+            before the controls on both cards; `empty:hidden` is unnecessary
+            because `useClaimedPersonTile` returns null rather than an empty
+            node when there is nobody to show (collapsed card, ownerless job). */}
+        {personTile}
         <div
           ref={rowRef}
           data-job-step-row=""
@@ -248,7 +319,25 @@ export function JobStepCard({
           <div ref={setPrimaryHost} data-job-step-primary="" className="job-step-primary" />
         </div>
         {primaryHost && ownPrimary ? createPortal(ownPrimary, primaryHost) : null}
-        {footnote}
+        {/* THE ROW'S ONE EXPLANATION, BELOW IT AND CENTRED (owner, 2026-09-19:
+            "should be under the buttons", "center under buttons"). It was
+            directly ABOVE the row until today, and the doc block at the top of
+            this file said so — the contract and the code moved together on
+            purpose, because a slot comment that contradicts its own render is
+            how the 320px row shipped as a 12px sliver.
+
+            `text-center` lives HERE, on the host, not on each of the four
+            components that portal into it: one alignment for the set is the
+            whole of the owner's second note, and a per-caller class is four
+            chances to drift. The callers keep their own COLOUR (amber for a
+            gate, muted for a wait or a consequence) because that distinction
+            is load-bearing and was tuned today. */}
+        <div ref={setNoteHost} data-job-step-note="" className="space-y-1.5 text-center empty:hidden" />
+        {/* …and never two. See "ONE EXPLANATION LINE" at the top of the file:
+            a gate reason and a consequence line can both apply on the poster's
+            in-progress card, and the gate is the one the reader is standing in
+            front of. */}
+        {noteFilled ? null : footnote}
         {escape}
         {dialogs}
       </JobStepRowContext.Provider>

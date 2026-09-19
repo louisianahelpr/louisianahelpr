@@ -9,16 +9,13 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import type { ReactNode } from "react";
 import type { Job } from "./activityConstants";
 
-// The tracker now carries the Helpr tile in its `personTile` slot (owner,
-// 2026-09-16), so the double has to render what it is handed — a stub that
-// drops the slot would "prove" the tile is missing.
+// The tracker no longer carries the tile at all (owner, 2026-09-19 — third
+// position in five days; see jobCardPerson.tsx). A marker, so the assertions
+// below can measure against it rather than against nothing.
 vi.mock("@/components/JobTracking", () => ({
-  JobTracking: ({ personTile }: { personTile?: ReactNode }) => (
-    <div data-testid="tracker">{personTile}</div>
-  ),
+  JobTracking: () => <div data-testid="tracker" />,
 }));
 vi.mock("@/components/JobConfirmation", () => ({ JobConfirmation: () => null }));
 vi.mock("@/components/GroupJobHelpers", () => ({ GroupJobHelpers: () => null }));
@@ -26,6 +23,12 @@ vi.mock("@/components/activity/SeriesStrip", () => ({ SeriesStrip: () => null })
 vi.mock("@/components/activity/JobCountdown", () => ({ JobCountdown: () => null }));
 vi.mock("./JobCardMetaRow", () => ({ JobCardMetaRow: () => <div data-testid="meta" /> }));
 vi.mock("./postedJobCard/PostedJobApplicants", () => ({ PostedJobApplicants: () => null }));
+// NULL ON PURPOSE, and it is what this file is now testing. With no action row
+// on the card nothing claims the Helpr tile, so what renders here is the CARD'S
+// FALLBACK — the path that keeps the profile on a cancelled or pending_approval
+// post, where PostedJobActions genuinely returns null. The tile's normal
+// position (directly above the row) is proved against the real actions in
+// src/test/jobCardPersonTileAboveRow.test.tsx.
 vi.mock("./postedJobCard/PostedJobActions", () => ({ PostedJobActions: () => null }));
 vi.mock("@/hooks/useFundExistingJob", () => ({ useFundExistingJob: () => ({ fundJob: vi.fn(), fundingJobId: null }) }));
 vi.mock("./useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
@@ -72,11 +75,15 @@ function renderCard(expanded: boolean, toggle = vi.fn()) {
 }
 
 /**
- * 2026-09-16 (owner): the tile MOVED again — out of the card body and INTO the
- * tracker, between the step rail and the map ("the profile should be under the
- * tracker and above the map"). It is still expanded-only, still exactly one
- * profile link, and still after the description; what changed is that the
- * tracker is now its parent, which is what puts it above the map.
+ * 2026-09-19 (owner): the tile MOVED AGAIN — out of the tracker and to directly
+ * above the action row ("the helpr or posted by should be right above the
+ * buttons"). It is still expanded-only, still exactly one profile link, and
+ * still after the description. What this file now pins is the half that is
+ * local to the CARD — the V6 collapsed gate, the exactly-one count, the
+ * no-toggle tap, and the FALLBACK for a status that draws no action row.
+ * Its position relative to the row is pinned in
+ * src/test/jobCardPersonTileAboveRow.test.tsx, which renders the real
+ * PostedJobActions and asserts with compareDocumentPosition.
  */
 describe("Posts card shows the Helpr as a profile tile, expanded only (VN-22)", () => {
   it("collapsed: no Helpr name or profile link anywhere on the card", () => {
@@ -85,7 +92,7 @@ describe("Posts card shows the Helpr as a profile tile, expanded only (VN-22)", 
     expect(document.querySelector('a[href="/user/helper-1"]')).toBeNull();
   });
 
-  it("expanded: a profile tile inside the tracker, linking to /user/:id", () => {
+  it("expanded: a profile tile linking to /user/:id, exactly one", () => {
     renderCard(true);
     const name = screen.getByText("Hallie H.");
     const link = name.closest("a");
@@ -94,11 +101,10 @@ describe("Posts card shows the Helpr as a profile tile, expanded only (VN-22)", 
     // Exactly one — the tiny row is gone, not merely hidden, and the body copy
     // does not keep a second one now that the tracker carries it.
     expect(document.querySelectorAll('a[href="/user/helper-1"]')).toHaveLength(1);
-    // INSIDE the tracker (owner, 2026-09-16): that is what puts it under the
-    // step rail and above the map, which the tracker renders below this slot.
-    const tracker = screen.getByTestId("tracker");
-    expect(tracker.contains(link!)).toBe(true);
-    // Still after the description — the tracker itself sits below it.
+    // NOT inside the tracker any more (owner, 2026-09-19). The tracker is a
+    // real element in this render, so this assertion can actually fail.
+    expect(screen.getByTestId("tracker").contains(link!)).toBe(false);
+    // Still after the description.
     const description = screen.getByText(/Front driveway/);
     expect(description.compareDocumentPosition(link!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });

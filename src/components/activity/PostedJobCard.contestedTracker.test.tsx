@@ -97,14 +97,24 @@ describe("a COLLAPSED contested Posts card still shows the tracker (item 13)", (
     },
   );
 
+  /* WHAT CHANGED HERE, 2026-09-19, and why it is not a weakening.
+     This case read "…the box inside the tracker", because on 2026-09-16 the
+     owner had put the Helpr tile in <JobTracking>'s `personTile` slot. Hours
+     later they moved it again — "the helpr or posted by should be right above
+     the buttons" — so the slot no longer exists and `contains` would now be
+     asserting a position the owner has ruled against. The half that belongs to
+     THIS file is unchanged and still asserted: on a contested card the tile
+     appears when expanded, exactly once, and never while collapsed (the case
+     above). Its position is asserted, by document order rather than by
+     containment, in src/test/jobCardPersonTileAboveRow.test.tsx. */
   it.each(["disputed", "revision_requested"])(
-    "%s: expanded shows the tracker AND the person box, the box inside the tracker",
+    "%s: expanded shows the tracker AND the person box, exactly once and outside the tracker",
     (status) => {
       renderCard(status, true);
       const tracker = screen.getByTestId("tracker");
       const link = screen.getByText("Hallie H.").closest("a");
       expect(link).toHaveAttribute("href", "/user/helper-1");
-      expect(tracker.contains(link!)).toBe(true);
+      expect(tracker.contains(link!)).toBe(false);
       expect(document.querySelectorAll('a[href="/user/helper-1"]')).toHaveLength(1);
     },
   );

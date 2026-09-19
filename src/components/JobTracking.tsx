@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
-import type { MouseEvent as ReactMouseEvent, CSSProperties, ReactNode } from "react";
+import type { MouseEvent as ReactMouseEvent, CSSProperties } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
@@ -568,7 +568,6 @@ export function JobTracking({
   initialTracking,
   jobLatitude,
   jobLongitude,
-  personTile,
   includePostingSteps = false,
   embedded = false,
 }: {
@@ -579,8 +578,9 @@ export function JobTracking({
    * (owner, 2026-09-16: "remove the name to the left of updated"): it used to
    * open the freshness stamp — "Camille · Updated 4:12 PM" — and before that
    * captioned the progress bar. The name is printed once now, by the
-   * `personTile` the card hands in. Still accepted, and still passed by the
-   * poster card, so no call site had to change with the caption.
+   * PersonTile the card hands in (now above the action row, not here — owner,
+   * 2026-09-19). Still accepted, and still passed by the poster card, so no
+   * call site had to change with the caption.
    */
   helperName?: string | null;
   isHelper: boolean;
@@ -641,19 +641,13 @@ export function JobTracking({
    */
   jobLatitude?: number | null;
   jobLongitude?: number | null;
-  /**
-   * The other party's mini-profile, rendered BETWEEN the tracker and its map
-   * (owner, 2026-09-16: the profile belongs under the tracker and above the
-   * map). A SLOT, not a tile: this component owns only the position, never who
-   * is in it — the card that already holds the person's id, name and avatar
-   * builds the `<PersonTile>` and hands it in, so there is still exactly one
-   * profile treatment app-wide and no second query per card.
-   *
-   * It sits here rather than in the card body because the card body is above
-   * the tracker; the name is then printed once, in one place, on both sides of
-   * the job.
-   */
-  personTile?: ReactNode;
+  /* `personTile` WAS HERE and is GONE (owner, 2026-09-19, third position for
+     this tile in five days): "the helpr or posted by should be right above the
+     buttons". It is no longer anywhere near the tracker, so a slot here would
+     be a prop nobody passes. Both cards now publish the tile through
+     `JobCardPersonContext` (src/components/activity/jobCardPerson.tsx) and the
+     step shell renders it directly above the action row. This component is
+     back to owning only the position. */
   /**
    * Poster-side only: prepend the pre-assignment steps ("Posted",
    * "Applicants") so an OPEN job — one with no helper yet — still shows where
@@ -1648,7 +1642,7 @@ export function JobTracking({
   // first name on the poster's card; nothing else read it. `helperName` is
   // therefore no longer read by this component — the prop is kept on the type
   // so its one caller keeps compiling, and the name is printed once, by the
-  // PersonTile the card now hands in as `personTile`.
+  // PersonTile the card renders directly above its action row.
 
   const arrivalEvidence = {
     helper_arrived_at: jobStamps.arrivedAt,
@@ -1954,8 +1948,28 @@ export function JobTracking({
               // defined AS the current step of a disputed job, so red simply
               // replaces the amber on that one dot — one "you are here"
               // marker, in the more urgent colour.
+              //
+              // THE GREEN IS THE BUTTON'S GREEN (owner, 2026-09-19: "the
+              // posted offered accepted etc buttons should all be the same
+              // primary green as the buttons not a different shade").
+              //
+              // It was `--success-ink` — `142 50% 30%`, an EMERALD — beside a
+              // primary button built from `--bark` `70 20% 33%`, an OLIVE.
+              // Two different hues, 72° apart, sitting 8px from each other on
+              // the same card; "a different shade" is generous.
+              //
+              // WHICH green, given the button is a radial GRADIENT
+              // (`.btn-grad-primary`: --bark-light 0% → --bark 46% →
+              // --bark-deep 100%)? `--bark`, the gradient's own dominant mid
+              // stop — not the class. Putting `.btn-grad-primary` on a 28px
+              // dot would paint it with a `125% 125% at 32% 22%` radial whose
+              // visible area is almost entirely the LIGHT stop, so the dot
+              // would read lighter than the button it is supposed to match.
+              // Matching the token the gradient is built from is what makes
+              // the two the same green to the eye. Guard:
+              // src/test/railGreenMatchesPrimary.test.ts.
               const currentTone = allDone
-                ? { fill: "hsl(var(--success-ink))", ring: "hsl(var(--success-ink) / 0.30)", ringEnd: "hsl(var(--success-ink) / 0)" }
+                ? { fill: "hsl(var(--bark))", ring: "hsl(var(--bark) / 0.30)", ringEnd: "hsl(var(--bark) / 0)" }
                 : { fill: "hsl(var(--amber-solid))", ring: "hsl(var(--amber-solid) / 0.30)", ringEnd: "hsl(var(--amber-solid) / 0)" };
               const Icon = s.icon;
               const ts = stepTimestamps[s.key];
@@ -2008,7 +2022,10 @@ export function JobTracking({
                             "--step-pulse-ring-end": currentTone.ringEnd,
                           } as CSSProperties)
                         : isPassed || (isActive && allDone)
-                          ? { background: "hsl(var(--success-ink))", color: "hsl(var(--parchment))" }
+                          /* COMPLETED = the primary button's green (owner,
+                             2026-09-19). See `currentTone` above for why it is
+                             the `--bark` token and not the gradient class. */
+                          ? { background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }
                           : isActive
                             ? { background: "hsl(var(--bark) / 0.18)", color: "hsl(var(--bark))" }
                             : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.80)" }
@@ -2275,17 +2292,10 @@ export function JobTracking({
           </p>
         )}
 
-      {/* THE OTHER PARTY, BETWEEN THE RAIL AND THE MAP (owner, 2026-09-16).
-          The card used to print this tile up in its body, above the tracker;
-          it now sits directly under the steps and directly above the map, so
-          the three things that answer "who, how far along, and where" read as
-          one block instead of being split by the description.
-
-          No box of its own is added around it — `PersonTile` is already the
-          shared tile and wears `glass-press`, not `liquid-glass`, so nothing
-          here nests a card inside the card (src/test/noNestedTrackerCard.test.ts).
-          Renders nothing at all when the caller passes nothing. */}
-      {personTile}
+      {/* THE OTHER PARTY IS NO LONGER DRAWN HERE. It sat between the rail and
+          the map for three days (owner, 2026-09-16) and the owner has moved it
+          again, to directly above the action row (2026-09-19). See the note
+          where the `personTile` prop used to be declared. */}
 
       {/* Tracking map — KEPT UNTIL DONE (owner, 2026-09-14: "Keep map until
           done"; was en-route only). Shown from On the Way through Arrived and

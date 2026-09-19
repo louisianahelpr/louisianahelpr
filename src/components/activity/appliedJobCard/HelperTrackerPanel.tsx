@@ -1,32 +1,22 @@
-import { createContext, useContext } from "react";
 import { JobConfirmation, helperDayOfConfirmation } from "@/components/JobConfirmation";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
-import { PersonTile } from "@/components/PersonTile";
 import { parseLocalDate } from "@/lib/dateUtils";
 import type { AppliedApp, Job } from "../activityConstants";
 
-/**
- * IS THE CARD THIS PANEL SITS IN EXPANDED?
+/* `CardExpandedContext` WAS HERE and is GONE.
  *
- * The poster's tracker is itself behind the expand, so anything inside it is
- * expanded-only for free. This panel is NOT: AppliedJobCard renders
- * ConfirmedSection / ActiveJobSection / DisputedSection with no expand gate, so
- * a COLLAPSED My Jobs card already mounts the whole tracker. Dropping the
- * poster's PersonTile into it unconditionally would therefore print the
- * poster's name on a collapsed card — exactly what V6 removed (owner,
- * 2026-09-15: nothing about the other party in the collapsed card, matching the
- * poster card's Helpr tile). Owner, 2026-09-19: keep it hidden when collapsed.
+ * It existed for exactly one consumer: the poster's PersonTile, which this
+ * panel handed to <JobTracking>'s `personTile` slot for three days (owner,
+ * 2026-09-16) and which needed its own expand gate because THIS card mounts
+ * its tracker on a collapsed card while the poster's does not.
  *
- * A CONTEXT rather than a prop because the three section components between the
- * card and this panel are owned by other lanes and may not be edited; the card
- * publishes its own expand state and this panel reads it, with the two files
- * that care importing nothing new from each other (AppliedJobCard already
- * reaches this module transitively, so there is no import cycle).
- *
- * Defaults to `false`: a caller that has not opted in shows no tile, which is
- * the state V6 asked for. Nothing else in this panel reads it.
- */
-export const CardExpandedContext = createContext(false);
+ * Owner, 2026-09-19: "the helpr or posted by should be right above the
+ * buttons." The tile no longer goes anywhere near the tracker, so the slot,
+ * the tile built here, and this context all go with it. The V6 rule it
+ * protected is unchanged and now lives in AppliedJobCard, which gates the tile
+ * on its own `isExpanded` before publishing it through `JobCardPersonContext`
+ * (src/components/activity/jobCardPerson.tsx) — one gate, in the one file that
+ * knows the answer, for both cards. */
 
 /**
  * ONE BOX, NOT TWO — the helper's live tracker with the day-of confirmation
@@ -106,33 +96,6 @@ export function HelperTrackerPanel({
   const hoursUntilJob =
     (parseLocalDate(job.date_needed).getTime() - Date.now()) / 3_600_000;
 
-  /* THE POSTER'S PROFILE TILE, handed to the tracker's `personTile` slot so it
-     lands UNDER the step rail and ABOVE the map (owner, 2026-09-19 — the same
-     move PostedJobCard made for the Helpr's tile in 9a39abbea). It is built
-     here, not in AppliedJobCard, because AppliedJobCard does not mount the
-     tracker: the three section components in between do, and this lane may not
-     edit them. Everything the tile needs is already in hand.
-
-     An ownerless job (`customer_id` nulled when the poster deleted their
-     account — 20260901033011) has no profile to link to, so the tile is
-     skipped rather than pointing at `/user/null`; the card body's fallback
-     copes with the same case the same way. No avatar url is carried on this
-     card's data, so PersonTile derives a monogram from the name.
-
-     `stopPropagation`, because the whole card is the expand/collapse target:
-     tapping the tile must open the profile, not fold the card. */
-  const cardExpanded = useContext(CardExpandedContext);
-  const posterTile =
-    cardExpanded && job.customer_id && app.posterName ? (
-      <PersonTile
-        userId={job.customer_id}
-        to={`/user/${job.customer_id}`}
-        name={app.posterName}
-        eyebrow="Posted by"
-        onClick={(e) => e.stopPropagation()}
-      />
-    ) : null;
-
   /**
    * Is the Confirmed step still the helper's to complete?
    *
@@ -188,7 +151,6 @@ export function HelperTrackerPanel({
           helper tap — both of which are strictly after this state. */}
       <JobTracking
         embedded
-        personTile={posterTile}
         jobId={app.job_id}
         helperId={userId}
         isHelper={!gateActive && !readOnly}

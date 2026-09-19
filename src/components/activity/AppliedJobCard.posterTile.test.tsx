@@ -1,15 +1,19 @@
 /**
- * ITEM 3, HELPER SIDE (owner, 2026-09-19): "the profile should be under the
- * tracker and above the map" — the same move PostedJobCard made for the Helpr's
- * tile in 9a39abbea, now on the Helpr's own My Jobs card for the POSTER.
+ * ITEM 2, HELPER SIDE (owner, 2026-09-19): "the helpr or posted by should be
+ * right above the buttons", and "these changes all apply to jobs also".
  *
- * Before: AppliedJobCard printed the "Posted by" PersonTile in the card body,
- * ABOVE the tracker. After: HelperTrackerPanel builds it and hands it to
- * <JobTracking> as `personTile`, the slot JobTracking renders between the step
- * rail and the map — so its vertical position relative to the map is
- * JobTracking's own contract (covered by JobTracking.arrivalOnMap.test.tsx),
- * and what THIS file proves is that the helper card fills that slot, fills it
- * exactly once, and fills it only when expanded.
+ * THE TILE HAS MOVED THREE TIMES IN FIVE DAYS and this file has been rewritten
+ * with it each time, so the history is worth keeping straight: card body under
+ * the description (VN-22) → inside the tracker between the rail and the map
+ * (2026-09-16, the version this comment replaces) → directly above the action
+ * row (now). `HelperTrackerPanel` no longer builds a tile at all and
+ * `CardExpandedContext` went with it; both cards publish one tile through
+ * `JobCardPersonContext` and the step shell renders it.
+ *
+ * What THIS file proves is the half local to the helper card: exactly one tile,
+ * only when expanded, not inside the tracker, and still present in the
+ * tracker-less states. Its position relative to the row is asserted with
+ * compareDocumentPosition in src/test/jobCardPersonTileAboveRow.test.tsx.
  *
  * THE EXPANDED GATE IS THE POINT. The poster's tracker is itself behind the
  * expand; the helper's is not (ConfirmedSection / ActiveJobSection /
@@ -21,16 +25,13 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import type { ReactNode } from "react";
 import type { AppliedApp, Job } from "./activityConstants";
 
-// The tracker carries the tile in its `personTile` slot, so the double has to
-// render what it is handed — a stub that drops the slot would "prove" the tile
-// is missing no matter what the card does.
+// The tracker no longer carries the tile (owner, 2026-09-19). A real marker
+// element, so "not in the tracker" and "the tracker is nevertheless mounted on
+// a collapsed card" are both assertions that can fail.
 vi.mock("@/components/JobTracking", () => ({
-  JobTracking: ({ personTile }: { personTile?: ReactNode }) => (
-    <div data-testid="tracker">{personTile}</div>
-  ),
+  JobTracking: () => <div data-testid="tracker" />,
 }));
 vi.mock("@/components/JobConfirmation", () => ({
   JobConfirmation: () => null,
@@ -118,7 +119,7 @@ function renderCard(expanded: boolean, toggle = vi.fn()) {
   );
 }
 
-describe("Jobs card shows the poster as a profile tile inside the tracker (item 3)", () => {
+describe("Jobs card shows the poster as a profile tile, expanded only (item 2)", () => {
   it("collapsed: no poster name or profile link anywhere on the card", () => {
     renderCard(false);
     // The tracker IS mounted while collapsed on this side — that is exactly why
@@ -129,7 +130,7 @@ describe("Jobs card shows the poster as a profile tile inside the tracker (item 
     expect(document.querySelector('a[href="/user/poster-1"]')).toBeNull();
   });
 
-  it("expanded: exactly one profile tile, and it is inside the tracker", () => {
+  it("expanded: exactly one profile tile, and it is NOT inside the tracker", () => {
     renderCard(true);
     const name = screen.getByText("Pierre B.");
     const link = name.closest("a");
@@ -138,10 +139,10 @@ describe("Jobs card shows the poster as a profile tile inside the tracker (item 
     // Exactly one — the body copy does not keep a second one now that the
     // tracker carries it.
     expect(document.querySelectorAll('a[href="/user/poster-1"]')).toHaveLength(1);
-    // INSIDE the tracker: that is what puts it under the step rail and above
-    // the map, which JobTracking renders below this slot.
-    expect(screen.getByTestId("tracker").contains(link!)).toBe(true);
-    // Still after the description — the tracker itself sits below it.
+    // OUT of the tracker (owner, 2026-09-19). The tracker is mounted in this
+    // render, so the assertion has something real to be false about.
+    expect(screen.getByTestId("tracker").contains(link!)).toBe(false);
+    // Still after the description.
     const description = screen.getByText(/Front driveway/);
     expect(description.compareDocumentPosition(link!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
@@ -155,12 +156,14 @@ describe("Jobs card shows the poster as a profile tile inside the tracker (item 
 });
 
 /**
- * THE FALLBACK. A state with no tracker has nowhere to put the tile, so it
- * keeps its old spot in the card body — exactly what PostedJobCard does for the
- * Helpr's tile. Without this the poster's profile would silently disappear from
- * every pending / offered / completed card, which is V6 in reverse.
+ * THE FALLBACK. A state that mounts no STEP CARD has no row for the tile to sit
+ * above, so the card body prints it — exactly what PostedJobCard does for the
+ * Helpr's tile on a cancelled post. Without it the poster's profile would
+ * silently disappear from every pending / offered / not-selected card, which is
+ * V6 in reverse. Five of this card's states are like that, which is why the
+ * mechanism is a CLAIM from the shell and not a hand-copied list of statuses.
  */
-describe("a card with no tracker keeps the tile in its body", () => {
+describe("a card with no step card keeps the tile in its body", () => {
   it("pending + expanded: one tile, and it is NOT inside a tracker", () => {
     const pendingApp = {
       ...app,

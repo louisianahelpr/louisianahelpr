@@ -778,7 +778,7 @@ export function ConversationList({
             type="button"
             onClick={() => setSearchQuery("")}
             aria-label="Clear search"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--olivewood)/0.10)] active:bg-[hsl(var(--olivewood)/0.16)] btn-press transition-colors"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:text-foreground ctl-tint btn-press transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -798,7 +798,7 @@ export function ConversationList({
         type="button"
         onClick={() => { hapticLight(); setSearchOpen(false); setSearchQuery(""); }}
         aria-label="Close search"
-        className="shrink-0 w-8 h-8 rounded-full inline-flex items-center justify-center btn-press transition-colors hover:bg-[hsl(var(--olivewood)/0.10)] active:bg-[hsl(var(--olivewood)/0.16)] relative after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:content-['']"
+        className="shrink-0 w-8 h-8 rounded-full inline-flex items-center justify-center btn-press transition-colors ctl-tint relative after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:content-['']"
         style={{ color: "hsl(var(--bark))" }}
       >
         <X className="w-4 h-4" />

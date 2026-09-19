@@ -353,7 +353,14 @@ describe("legacy refusal parsing (pre-20260919155016 servers and queued errors)"
       expect(copy).not.toContain("Confirm They Arrived");
       // Say plainly that it did not happen, and give the one way forward.
       expect(copy).toMatch(/couldn't check you in/i);
-      expect(copy).toContain("Try My Location Again");
+      // Was `toContain("Try My Location Again")` until 2026-09-19, when the
+      // owner removed that button and the pull-to-refresh gesture was wired to
+      // genuinely re-request a fix (src/lib/arrivalRefresh.ts). The assertion
+      // still exists for the same reason it always did — a refusal must name a
+      // way forward — it just names the one that exists now. Do NOT relax this
+      // to "mentions refresh"; the point is that the named thing is real.
+      expect(copy).toMatch(/pull down to refresh/i);
+      expect(copy).not.toContain("Try My Location Again");
       // And never re-introduce VN-33's dead end.
       expect(copy).not.toMatch(/has to show you at the job to mark arrived|can't mark arrived/i);
     }

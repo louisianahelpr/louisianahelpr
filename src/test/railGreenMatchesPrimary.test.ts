@@ -83,7 +83,9 @@ function resolveToken(name: string, which: "first" | "last"): string {
  * of source, because jsdom applies no stylesheet.
  */
 function greenToken(): string {
-  const block = /\n  green: \{[\s\S]*?fill: "hsl\(var\(--([\w-]+)\)\)"/.exec(RULE);
+  // ` {2}` not two literal spaces: eslint's no-regex-spaces is right that a run
+  // of spaces in a pattern is unreadable and easy to miscount.
+  const block = /\n {2}green: \{[\s\S]*?fill: "hsl\(var\(--([\w-]+)\)\)"/.exec(RULE);
   expect(
     block,
     "the `green` tone's fill is gone from jobRailTone.ts — re-read the rule before " +

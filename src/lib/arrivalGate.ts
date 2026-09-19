@@ -310,7 +310,19 @@ export function arrivalRefusalMessage(
 ): string {
   // Named once so no branch can drift into implying the check-in landed.
   const notRecorded = "We couldn't check you in yet.";
-  const retry = 'Tap "Try My Location Again".';
+  // The "Try My Location Again" button is GONE (owner, 2026-09-19: "you can
+  // remove the try my location again. they can pull the page to refresh"), and
+  // the pull-to-refresh gesture now genuinely re-requests a fix and re-calls
+  // mark_helper_arrival (src/lib/arrivalRefresh.ts) rather than only refetching
+  // rows. So this names the gesture that exists instead of a control that does
+  // not — the exact defect class this batch spent the day removing: copy
+  // telling someone to press something that isn't there.
+  //
+  // NOTE controlReachability.test.ts did NOT catch the dangling reference,
+  // because it looks for literal strings beside a label and this was a template
+  // constant interpolated into three other templates. Closing that hole is
+  // recorded in docs/OPEN.md.
+  const retry = "Pull down to refresh and we'll try again.";
   switch (refusal.kind) {
     case "too_far":
       return refusal.distanceFt != null

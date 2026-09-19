@@ -100,8 +100,10 @@ export function derivePosterStep(status: Job["status"]): PosterStepId | null {
  *
  *   - nothing to confirm yet (the Helpr has not arrived) — no box;
  *   - the tap already made — no box;
- *   - the Helpr's location check refused (VN-33) — no box, forever. See the
- *     deadlock note on `arrivalBlockedReason` below.
+ *   - the Helpr's location check refused (VN-33) — no box, forever. That third
+ *     state no longer exists: since 20260919155016 `mark_helper_arrival` records
+ *     the check-in on every call, so `helper_arrived_at` always lands and the
+ *     box always arrives. See the deadlock note on `arrivalBlockedReason` below.
  *
  * So this is ONE ladder with exactly ONE rung showing at a time, and a rung is
  * never missing while the ladder is live: disabled-with-a-reason before it can
@@ -111,8 +113,16 @@ export function derivePosterStep(status: Job["status"]): PosterStepId | null {
  *
  * WHAT THIS DOES NOT DO: it never enables a confirmation that was not already
  * enabled. Every `enabled: true` below is the step's own pre-existing gate,
- * moved here verbatim. The arrival gate is GPS **and** poster-confirm
- * (`src/lib/arrivalGate.ts`, VN-33) and stays that way.
+ * moved here verbatim.
+ *
+ * WHAT THE ARRIVAL BOX IS FOR, since the owner's 2026-09-19 reversal: it is now
+ * THE gate, not half of one. `posterOwesArrivalConfirmation`
+ * (`src/lib/arrivalGate.ts`) is `helper_arrived_at && !poster_confirmed_arrival_at`
+ * — and note what is NOT in it: `helper_arrival_verified_at` and the near-miss
+ * columns. This box must never be gated on either. A GPS-verified Helpr still
+ * needs this tap ("even if gps does confirm they are there the poster still
+ * needs ro cfnrm wither way"), and a Helpr with Location off must still be able
+ * to get it.
  */
 
 /** The poster's box, as the card should draw it right now. */
@@ -128,6 +138,18 @@ export interface PosterConfirmRung {
   /** A GATE (something must happen first) rather than an ordinary WAIT —
    *  amber, exactly as JobTracking styles its own blocked-CTA reasons. */
   gate: boolean;
+  /**
+   * THIS IS THE STALLED-JOB NOTICE, not a confirmation the poster could ever
+   * take. Set only by the owner-item-7 branch at the bottom of
+   * `posterConfirmationRung`.
+   *
+   * A discriminant rather than a label comparison, because a second control —
+   * the "Why?" chip that carries `STALLED_APPROVE_DISABLED_DETAIL` — has
+   * to appear on the SAME row under exactly this condition, and a card whose
+   * chip and whose box disagreed would offer an explanation of a notice that
+   * is not on screen (or hide the explanation of one that is).
+   */
+  stalled?: true;
 }
 
 /** VN-33(b): the Helpr was refused as a little too far from a pin that may be
@@ -142,18 +164,19 @@ export function recentArrivalNearMiss(job: Job): boolean {
 /**
  * WHY THE ARRIVAL BOX IS DISABLED — and it must be the truth.
  *
- * THE DEADLOCK THIS SURFACES (VN-33, `mark_helper_arrival` since
- * 20260915044137): a far or fix-less arrival is REFUSED and writes nothing, so
- * `helper_arrived_at` stays null. The Helpr's own next step is then blocked
- * with copy naming the poster's "Confirm They Arrived" tap as the way out —
- * while that control was gated on `helper_arrived_at` and so never rendered.
- * Each side sat waiting for the other, and the poster's side said nothing at
- * all.
+ * THE DEADLOCK THIS USED TO SURFACE (VN-33, `mark_helper_arrival` between
+ * 20260915044137 and 20260919155016): a far or fix-less arrival was REFUSED and
+ * wrote nothing, so `helper_arrived_at` stayed null. The Helpr's own next step
+ * was then blocked with copy naming the poster's "Confirm They Arrived" tap as
+ * the way out — while that control was gated on `helper_arrived_at` and so
+ * never rendered. Each side sat waiting for the other, and the poster's side
+ * said nothing at all.
  *
- * The box is still DISABLED: the gate is GPS **AND** poster-confirm, and
- * `src/lib/arrivalGate.test.ts` holds the refusal copy to never offer one as a
- * substitute for the other. What changes is that the poster can now see the
- * box and read why it is not theirs to tap yet.
+ * THE DEADLOCK IS GONE (owner's 2026-09-19 reversal): the RPC records every
+ * check-in, with or without a fix, so the only reason this box is still
+ * disabled is that the Helpr has not said they are there yet. The last branch's
+ * copy changed with it — it used to say "waiting on your Helpr's location
+ * check", which after the reversal is simply not what anyone is waiting for.
  */
 function arrivalBlockedReason(job: Job, step: PosterStepId): { reason: string; gate: boolean } {
   if (step === "scheduled" && !job.helper_confirmed_at) {
@@ -170,11 +193,17 @@ function arrivalBlockedReason(job: Job, step: PosterStepId): { reason: string; g
     };
   }
   return {
-    // The honest deadlock line. It names what is stuck, whose move it is, and
-    // what clears it — and it offers the poster no way around the location
-    // check, because there isn't one.
-    reason: "Waiting on your Helpr's location check — their phone hasn't put them at the job yet. They can retry it from their side, and this unlocks the moment it goes through.",
-    gate: true,
+    // On the way, not there yet. A WAIT, not a gate: nothing is stuck and
+    // nobody has to do anything about it — the Helpr taps "I've Arrived" when
+    // they get there and this box unlocks in the same moment.
+    //
+    // It used to read "Waiting on your Helpr's location check — their phone
+    // hasn't put them at the job yet", in amber, which was true only while a
+    // fix-less arrival was refused outright. After 2026-09-19 nothing waits on
+    // a location check, and telling a poster their Helpr's phone has failed
+    // something is a worry the app invented.
+    reason: "Your Helpr is on the way — you'll be able to confirm this the moment they mark themselves arrived.",
+    gate: false,
   };
 }
 
@@ -272,9 +301,9 @@ export function posterConfirmationRung(
    *      on always outranks a notice they cannot.
    *   2. a DISABLED confirmation still wins, because its reason names an
    *      EARLIER and more specific link in the same chain. On a job whose
-   *      Helpr never arrived, "waiting on your Helpr's location check" is the
-   *      truth and "your Helpr hasn't marked this job done yet, ask them to
-   *      tap Mark Job Complete" is close to a lie — nobody is there to tap it.
+   *      Helpr never arrived, "your Helpr is on the way" is the truth and
+   *      "your Helpr hasn't marked this job done yet" is close to a lie —
+   *      nobody ever turned up to mark anything.
    *      Replacing a precise blocker with a vaguer one downstream of it makes
    *      the card less honest, not more; and that poster is not left without a
    *      move, because No-Show is a chip on the same row.
@@ -306,9 +335,24 @@ export function posterConfirmationRung(
       // it stays that way. That is the same shape as the arrival deadlock
       // above, and the opposite of "the booking simply isn't settled yet".
       gate: true,
+      stalled: true,
     };
   }
   return rung;
+}
+
+/**
+ * Is the card showing the STALLED-JOB notice right now?
+ *
+ * Derived from the rung itself rather than re-deriving the condition, so the
+ * "Why?" chip that reveals `STALLED_APPROVE_DISABLED_DETAIL` and the
+ * disabled box it explains are decided by ONE predicate. (The same mistake the
+ * confirmation ladder was built to fix: two `show*` flags for one state.)
+ */
+export function posterStalledNotice(job: Job, now: Date = new Date()): boolean {
+  const step = derivePosterStep(job.status);
+  if (!step) return false;
+  return posterConfirmationRung(job, step, now)?.stalled === true;
 }
 
 /**

@@ -1,16 +1,22 @@
 import { useState } from "react";
-import { CheckCircle2, XCircle, AlertTriangle, MessageCircle, Image } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, MessageCircle, Image, HelpCircle } from "lucide-react";
 import { JobStepCard } from "@/components/activity/JobStepCard";
 import { JobActionChip } from "../../JobActionRow";
 import { SosShareButton } from "@/components/SosShareButton";
 import { PhotoProofDialog } from "@/components/PhotoProof";
+import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { CompletionChoiceSheet } from "@/components/activity/CompletionChoiceSheet";
 import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
 import { hasJobStarted } from "@/lib/dateUtils";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../../supabase/functions/_shared/escrowTiming";
+import {
+  STALLED_APPROVE_DETAIL_TITLE,
+  STALLED_APPROVE_DISABLED_DETAIL,
+  STALLED_APPROVE_DISABLED_REASON,
+} from "../../../../../supabase/functions/_shared/stalledCompletion";
 import { PosterConfirmationPrimary } from "./PosterConfirmationPrimary";
-import { recentArrivalNearMiss, type PosterStepCtx } from "./posterStepContract";
+import { posterStalledNotice, recentArrivalNearMiss, type PosterStepCtx } from "./posterStepContract";
 
 /**
  * POSTER STEP 3 — the job is underway (or in a revision).
@@ -39,6 +45,30 @@ export function InProgressStep(ctx: PosterStepCtx) {
   // owns its open state. It is the only state this step has: everything that
   // must outlive a re-render is still the container's (PosterStepCtx).
   const [photosOpen, setPhotosOpen] = useState(false);
+  /* ── OWNER ITEM 7, SECOND PASS (2026-09-19): "trim to one sentence. rest
+   *    behind the tap." ──────────────────────────────────────────────────────
+   *
+   * THE DESIGN PROBLEM: the control this notice explains is DISABLED, so it
+   * cannot be the thing that receives the tap — and making a disabled primary
+   * tappable is the anti-pattern this card already rejected twice (OpenStep's
+   * greyed Boost chip that "invited a tap and an explanation", PayoutPrimary's
+   * disabled twin carrying an instruction).
+   *
+   * THE HOUSE ANSWER, and it was decided on THIS step nine hours earlier: owner
+   * item 10 moved the proof gallery off a panel above the row and onto the row
+   * as a `Photos` chip that opens a dialog. Same shape here — a quiet chip
+   * beside the disabled box, opening a dialog from the shell's `dialogs` slot
+   * (portalled, zero layout cost). It reuses `JobActionChip` + `DialogHero`,
+   * adds no new control type, and keeps the VN-21 one-row contract: the row's
+   * ONE primary is still the disabled stalled box.
+   *
+   * WHY NOT AN INLINE EXPANDER (the `ApplyEarningsBreakdown` "see the math"
+   * pattern, which is the other house disclosure): its trigger is a button, and
+   * the only place to put it is the row's `note` host — which sits ABOVE
+   * `[data-job-step-row]`. A button there is a card control outside the single
+   * action row, which is exactly what `jobStepOneRow.test.tsx` fails on.
+   */
+  const [whyOpen, setWhyOpen] = useState(false);
   const {
     job,
     userId,
@@ -94,6 +124,10 @@ export function InProgressStep(ctx: PosterStepCtx) {
   const jobIsOver = !!job.poster_completed_at || !!job.helper_completed_at;
   const showSos = !!job.helper_arrived_at && !jobIsOver;
   const showApprove = !!job.helper_completed_at;
+  // The chip and the box it explains share ONE predicate (`posterStalledNotice`
+  // reads the rung itself), so the card can never offer an explanation of a
+  // notice that is not on screen — or hide the explanation of one that is.
+  const stalled = posterStalledNotice(job);
   // Dispute only where the shared predicate already allows it (an open revision
   // on the customer side) — no new dispute surface.
   const showDispute = shouldShowDisputeLink(job, "customer");
@@ -199,6 +233,20 @@ export function InProgressStep(ctx: PosterStepCtx) {
             onClick={() => setPhotosOpen(true)}
           />
         ) : null,
+        /* THE REST OF THE STALLED NOTICE, behind one tap (owner item 7, second
+           pass). `neutral` is the row's SUPPORTING tone — this neither decides
+           anything nor destroys anything, and it must not compete with the
+           No-Show chip beside it, which is the poster's real move here. */
+        stalled ? (
+          <JobActionChip
+            key="why"
+            icon={HelpCircle}
+            label="Why?"
+            ariaLabel="Why? — what happens next while this job waits, and what your payment is doing"
+            tone="neutral"
+            onClick={() => setWhyOpen(true)}
+          />
+        ) : null,
         <JobActionChip
           key="message"
           icon={MessageCircle}
@@ -246,6 +294,26 @@ export function InProgressStep(ctx: PosterStepCtx) {
             beforeUrls={job.proof_before_urls || []}
             afterUrls={job.proof_after_urls || []}
           />
+          {/* The stalled notice's detail. It REPEATS the visible sentence at
+              the top rather than only showing the remainder: someone who taps
+              "Why?" has usually stopped reading the line above it, and the two
+              halves are one explanation. Both strings come from the sweep's own
+              module, so the card and the cron can never tell different stories.
+              No action button — the whole point is that there is nothing for
+              the poster to do here; the dialog's own close is the way out. */}
+          <Dialog open={whyOpen} onOpenChange={setWhyOpen}>
+            <DialogContent>
+              <DialogHero title={STALLED_APPROVE_DETAIL_TITLE} />
+              <div className="space-y-2">
+                <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--ink-deep))" }}>
+                  {STALLED_APPROVE_DISABLED_REASON}
+                </p>
+                <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
+                  {STALLED_APPROVE_DISABLED_DETAIL}
+                </p>
+              </div>
+            </DialogContent>
+          </Dialog>
           {showApprove ? (
           <CompletionChoiceSheet
             open={completionSheetOpen}

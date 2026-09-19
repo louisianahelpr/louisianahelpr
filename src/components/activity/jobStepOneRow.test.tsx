@@ -457,15 +457,21 @@ const CASES: Array<{
     note: /once your Helpr is at the job/,
   },
   {
-    // THE BAD-GPS DEADLOCK, SURFACED (owner item 6c). Since VN-33
-    // `mark_helper_arrival` REFUSES a far or fix-less arrival and writes
-    // nothing, so `helper_arrived_at` stays null — while the Helpr's own
-    // blocked CTA names the poster's "Confirm They Arrived" tap as the way
-    // out. That control was gated on `helper_arrived_at`, so it never
-    // rendered and each side waited for the other. The gate is UNCHANGED (GPS
-    // and poster-confirm, arrivalGate.test.ts); what the poster gets is the
-    // box, disabled, saying what is actually stuck.
-    name: "Posts · In Progress, Helpr on the way but no location fix (disabled + the honest reason)",
+    /* THE BOX IS DRAWN BEFORE THE HELPR ARRIVES (owner item 6c), and it says
+       the truth about why it is not tappable yet.
+
+       WAS: "Helpr on the way but no location fix … the honest reason", pinned
+       on `/location check/i`. Between 20260915044137 and 20260919155016 a far
+       or fix-less arrival was REFUSED and wrote nothing, so `helper_arrived_at`
+       stayed null while the Helpr's blocked CTA told them to go ask for this
+       very tap — a deadlock, and the box existed to name it.
+
+       The owner ended that on 2026-09-19: `mark_helper_arrival` records every
+       check-in, so this row can only mean the ordinary thing — they are on
+       their way and have not tapped "I've Arrived" yet. "Waiting on your
+       Helpr's location check" is now a failure the app would be inventing, so
+       the copy and this pin moved with the rule. */
+    name: "Posts · In Progress, Helpr on the way, not arrived yet (disabled + the honest reason)",
     render: () =>
       wrap(
         <InProgressStep
@@ -475,7 +481,7 @@ const CASES: Array<{
     minControls: 2,
     primary: ["Confirm They Arrived"],
     primaryDisabled: true,
-    note: /location check/i,
+    note: /on the way/i,
   },
   {
     // ALREADY ACTIONED, STILL ON SCREEN (owner: "if it was clicked already it
@@ -521,12 +527,20 @@ const CASES: Array<{
           }))}
         />,
       ),
-    minControls: 3,
+    // FOUR controls since the trim (owner, 2026-09-19, second pass: "trim to
+    // one sentence. rest behind the tap"): the remainder of the notice moved
+    // onto the row as a quiet "Why?" chip, because the box it explains is
+    // disabled and cannot receive the tap itself.
+    minControls: 4,
     primary: [STALLED_APPROVE_DISABLED_LABEL],
     primaryDisabled: true,
     // NOT the done tone: nothing here finished.
     primaryDone: false,
-    note: /Your payment stays in escrow/,
+    // The VISIBLE line only, and it is now one sentence — the escrow promise
+    // stays in it because that is the half the reader is anxious about.
+    // (Was /Your payment stays in escrow/ when the line opened on the Helpr's
+    // missing tap and ran to seven lines at 375.)
+    note: /your payment stays in escrow/i,
   },
   {
     // ITEM 6b — a job in `revision_requested` derives to THIS step, but both

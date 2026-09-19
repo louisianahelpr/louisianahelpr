@@ -39,7 +39,7 @@ describe("the collapsed posted card's confirmation signal", () => {
   });
 
   it("stays silent while the box inside is merely disabled", () => {
-    // The Helpr's location check has not gone through: the expanded card shows
+    // The Helpr has not marked themselves arrived yet: the expanded card shows
     // the box with its reason, but nothing is owed, so the collapsed card must
     // not cry wolf.
     const { container } = render(<PosterConfirmationBadge job={job({})} />);

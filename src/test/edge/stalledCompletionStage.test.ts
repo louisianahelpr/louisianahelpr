@@ -19,6 +19,8 @@ import {
   stalledCompletionStage,
   STALLED_APPROVE_DISABLED_LABEL,
   STALLED_APPROVE_DISABLED_REASON,
+  STALLED_APPROVE_DISABLED_DETAIL,
+  STALLED_APPROVE_DETAIL_TITLE,
   STALLED_ESCALATE_AFTER_HOURS,
   STALLED_FIRST_AFTER_HOURS,
   STALLED_GAP_BEFORE_ESCALATE,
@@ -195,6 +197,8 @@ describe("the copy", () => {
     const all = [
       STALLED_APPROVE_DISABLED_LABEL,
       STALLED_APPROVE_DISABLED_REASON,
+      STALLED_APPROVE_DISABLED_DETAIL,
+      STALLED_APPROVE_DETAIL_TITLE,
       stalledNudgeBodyPosted("Mow the lawn", false),
       stalledNudgeBodyPosted("Mow the lawn", true),
       stalledNudgeBodyWorking("Mow the lawn", false),
@@ -209,10 +213,36 @@ describe("the copy", () => {
   it("tells the person who posted the job that their money is NOT moving", () => {
     // The owner's rule is that money never moves automatically here, so the
     // disabled control has to say so — an unexplained dead button reads as
-    // "something has gone wrong with my payment".
+    // "something has gone wrong with my payment". This is the ONE sentence the
+    // card shows, so it is where the escrow promise has to be.
     expect(STALLED_APPROVE_DISABLED_REASON).toMatch(/escrow/i);
-    expect(STALLED_APPROVE_DISABLED_REASON).toMatch(/nothing is released or refunded/i);
-    expect(STALLED_APPROVE_DISABLED_REASON).toMatch(/Mark Job Complete/);
+  });
+
+  it("the visible line is ONE sentence — owner, 2026-09-19: 'trim to one sentence'", () => {
+    /* It measured 112px / 7 lines at 375 and 128px / 8 lines at 320 in 11px
+     * semibold amber, above a three-line disabled button: ~23% of the viewport,
+     * reading louder than the tracker above it. A passive explanation of
+     * inaction must not outrank the job's own state.
+     *
+     * Sentence-counted rather than character-counted because the owner's rule
+     * is about sentences; the em-dash clause is deliberate and stays. */
+    const sentences = STALLED_APPROVE_DISABLED_REASON.split(/[.!?]+\s+/).filter(Boolean);
+    expect(sentences, STALLED_APPROVE_DISABLED_REASON).toHaveLength(1);
+    // A hard ceiling too, so "one sentence" cannot be satisfied by one very
+    // long one. The measured 7-line version was 236 characters.
+    expect(STALLED_APPROVE_DISABLED_REASON.length).toBeLessThanOrEqual(120);
+  });
+
+  it("the rest is kept, behind the tap — the trim is not a deletion", () => {
+    // Every fact the pre-trim line carried is still in one of the two strings:
+    // what to ask for, and that nothing moves until a person acts.
+    expect(STALLED_APPROVE_DISABLED_DETAIL).toMatch(/Mark Job Complete/);
+    expect(STALLED_APPROVE_DISABLED_DETAIL).toMatch(/nothing is released or refunded/i);
+    expect(STALLED_APPROVE_DISABLED_DETAIL).toMatch(/our team/i);
+    // The two halves must not repeat each other — that is what made the
+    // original long.
+    expect(STALLED_APPROVE_DISABLED_DETAIL).not.toMatch(/escrow/i);
+    expect(STALLED_APPROVE_DETAIL_TITLE.length).toBeLessThanOrEqual(40);
   });
 
   it("names the job in every message, so a notification is actionable on its own", () => {

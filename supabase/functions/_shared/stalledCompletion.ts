@@ -241,15 +241,41 @@ export function stalledCompletionStage(
 export const STALLED_APPROVE_DISABLED_LABEL = "Waiting on the Helpr to mark it done";
 
 /**
- * The reason shown under that disabled control. Says what is missing, what to
- * do about it, and — the part that matters most — that the money is not
- * quietly going anywhere while they wait.
+ * THE ONE SENTENCE shown under that disabled control.
+ *
+ * OWNER, 2026-09-19, on the first version of this line: "trim to one sentence.
+ * rest behind the tap."
+ *
+ * The first version said all four things at once — what is missing, what to ask
+ * for, that the escrow is held, and that support steps in — and it MEASURED
+ * 112px / 7 lines at 375 and 128px / 8 lines at 320, in 11px semibold amber,
+ * centred, directly above a three-line disabled button. Roughly a quarter of
+ * the viewport, and visually LOUDER than the tracker above it: a passive
+ * explanation of inaction outranking the job's own state.
+ *
+ * What survives the trim is chosen by what the reader is actually anxious
+ * about: whose move it is, that somebody has already chased it, and that their
+ * money has not gone anywhere. Everything that is an INSTRUCTION or a FUTURE
+ * step moved to {@link STALLED_APPROVE_DISABLED_DETAIL}, behind one tap.
  */
 export const STALLED_APPROVE_DISABLED_REASON =
-  "Your Helpr hasn't marked this job done yet, so there's nothing to approve. " +
-  "We've reminded them. If the work is finished, ask them to tap Mark Job Complete. " +
-  "Your payment stays in escrow — nothing is released or refunded until someone acts, " +
-  "and our team steps in if this stays stuck.";
+  "Your Helpr hasn't marked this job done yet — we've reminded them, and your payment stays in escrow.";
+
+/** Heading over the detail, wherever a surface puts it behind a tap. */
+export const STALLED_APPROVE_DETAIL_TITLE = "Why This Is Waiting";
+
+/**
+ * THE REST, behind the tap. Exported and pinned alongside the short line so the
+ * two halves cannot drift, and so the trim can never quietly become a deletion:
+ * every fact the long version carried is still in one of these two strings.
+ *
+ * Still says the money does not move by itself — that promise is the whole
+ * reason this notice exists (the owner's rule: a stalled job is released or
+ * refunded only by a human decision) — it just says it to someone who asked.
+ */
+export const STALLED_APPROVE_DISABLED_DETAIL =
+  "If the work is finished, ask your Helpr to tap Mark Job Complete. " +
+  "Nothing is released or refunded until someone acts, and our team steps in if this stays stuck.";
 
 /** First and second reminder to the person who posted the job. */
 export const STALLED_NUDGE_TITLE_POSTED = "Has this job been finished?";

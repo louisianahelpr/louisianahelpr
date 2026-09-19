@@ -53,7 +53,8 @@ describe("deriveCurrentStatusIdx", () => {
   });
 
   it("treats an ESTABLISHED arrival + in_progress as Working — there is no separate start stamp", () => {
-    // Established = GPS verified AND poster confirmed (VN-33).
+    // Established = the poster tapped "Confirm They Arrived" (owner,
+    // 2026-09-19). GPS alongside it is corroboration, not a second gate.
     expect(
       deriveCurrentStatusIdx({
         jobStatus: "in_progress",
@@ -65,8 +66,29 @@ describe("deriveCurrentStatusIdx", () => {
     ).toBe(STATUS_IDX.working);
   });
 
-  it("stops at Arrived on HALF an arrival — GPS alone, or the poster alone (VN-33)", () => {
-    // Both of these painted Working under the old "verified OR confirmed" rule.
+  it("stops at Arrived on GPS ALONE — the poster's tap is the gate (supersedes VN-33)", () => {
+    /* ── THE HISTORY, KEPT ON PURPOSE ─────────────────────────────────────
+     * This case was "stops at Arrived on HALF an arrival — GPS alone, or the
+     * poster alone (VN-33)": owner, 2026-09-14, had made it "verified AND
+     * confirmed. No fallback", so BOTH halves were required and either one
+     * alone stopped the rail at Arrived.
+     *
+     * OWNER, 2026-09-19 (verbatim): "they can not start working until the
+     * poster confirms they are there … if gps is not on, they can mark
+     * themselves as arrived but can not move on until the poster marks them
+     * arrived … but even if gps does confirm they are there the poster still
+     * needs ro cfnrm wither way".
+     *
+     * That REVERSES one half and one half only. The GPS requirement is gone —
+     * it deadlocked jobs (`mark_helper_arrival` refused a fix-less arrival and
+     * wrote nothing, so `helper_arrived_at` stayed NULL and the poster's
+     * "Confirm They Arrived" control never rendered, while the Helpr's blocked
+     * CTA told them to go ask for exactly that tap). The POSTER's requirement
+     * is not just kept but widened: it now applies even to a GPS-verified
+     * arrival. So the second half of the old assertion (poster alone → Arrived)
+     * is deliberately deleted and replaced by the one directly below it, and
+     * the first half — GPS alone is still not enough — stays exactly as it was.
+     */
     expect(
       deriveCurrentStatusIdx({
         jobStatus: "in_progress",
@@ -75,6 +97,13 @@ describe("deriveCurrentStatusIdx", () => {
         helperArrivalVerifiedAt: AT,
       }),
     ).toBe(STATUS_IDX.arrived);
+  });
+
+  it("paints Working on the POSTER'S TAP ALONE — no GPS anywhere on the row", () => {
+    // The owner's reversal, stated as its own case: a Helpr whose phone never
+    // produced a fix is unblocked by the human attestation and nothing else.
+    // `helper_arrival_verified_at` and the near-miss columns are absent, which
+    // is exactly the state a Location-off check-in leaves behind.
     expect(
       deriveCurrentStatusIdx({
         jobStatus: "in_progress",
@@ -82,7 +111,26 @@ describe("deriveCurrentStatusIdx", () => {
         helperArrivedAt: AT,
         posterConfirmedArrivalAt: AT,
       }),
+    ).toBe(STATUS_IDX.working);
+    // …and a near miss (>500ft, wrong map pin) is the same story: evidence on
+    // the row changes nothing, the tap does everything.
+    expect(
+      deriveCurrentStatusIdx({
+        jobStatus: "in_progress",
+        helperOnTheWayAt: AT,
+        helperArrivedAt: AT,
+        helperArrivalNearMissAt: AT,
+      }),
     ).toBe(STATUS_IDX.arrived);
+    expect(
+      deriveCurrentStatusIdx({
+        jobStatus: "in_progress",
+        helperOnTheWayAt: AT,
+        helperArrivedAt: AT,
+        helperArrivalNearMissAt: AT,
+        posterConfirmedArrivalAt: AT,
+      }),
+    ).toBe(STATUS_IDX.working);
   });
 
   it("stops a CLAIMED-only arrival at Arrived — the rail must not lead the evidence", () => {

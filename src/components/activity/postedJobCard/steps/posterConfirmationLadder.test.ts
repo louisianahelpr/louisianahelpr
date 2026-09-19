@@ -198,10 +198,22 @@ describe("item 6b — a revision job keeps its confirmations", () => {
   });
 });
 
-describe("item 6c — the bad-GPS deadlock is surfaced, not resolved", () => {
-  // Since VN-33 `mark_helper_arrival` REFUSES a far or fix-less arrival and
-  // writes nothing, so `helper_arrived_at` stays null — while the Helpr's own
-  // blocked CTA names the poster's "Confirm They Arrived" tap as the way out.
+describe("item 6c — the box is drawn before the Helpr arrives, and says the truth", () => {
+  /* THIS DESCRIBE WAS "the bad-GPS deadlock is surfaced, not resolved".
+   *
+   * Between 20260915044137 and 20260919155016, `mark_helper_arrival` REFUSED a
+   * far or fix-less arrival and wrote nothing, so `helper_arrived_at` stayed
+   * null — while the Helpr's own blocked CTA named the poster's "Confirm They
+   * Arrived" tap as the way out. This state was a real deadlock, and the box's
+   * job was to SAY so ("waiting on your Helpr's location check", amber).
+   *
+   * OWNER, 2026-09-19, ended it: the RPC now records the check-in on every
+   * call, so `helper_arrived_at` always lands. The only way to be in this state
+   * now is the ordinary one — the Helpr is on their way and has not tapped
+   * "I've Arrived" yet. So the box is still drawn and still disabled, but its
+   * reason is a WAIT, not a gate: nothing is stuck, and telling a poster their
+   * Helpr's phone has failed a check would be a worry the app invented.
+   */
   const stuck = job({
     status: "in_progress",
     helper_confirmed_at: T(48),
@@ -214,16 +226,18 @@ describe("item 6c — the bad-GPS deadlock is surfaced, not resolved", () => {
     expect(rung).toMatchObject({ action: "arrival", enabled: false, label: "Confirm They Arrived" });
   });
 
-  it("says what is actually stuck, and marks it a gate rather than a wait", () => {
+  it("says what is actually happening — on the way — and does not invent a failure", () => {
     const rung = posterConfirmationRung(stuck, "in_progress")!;
-    expect(rung.reason).toMatch(/location check/i);
-    expect(rung.gate).toBe(true);
+    expect(rung.reason).toMatch(/on the way/i);
+    expect(rung.reason, "no location check is pending any more").not.toMatch(/location check/i);
+    expect(rung.gate, "an ordinary wait, not a gate — nothing is stuck").toBe(false);
   });
 
-  it("never offers the poster's tap as a substitute for the location check", () => {
-    // The same rule arrivalGate.test.ts holds the Helpr's side to: the gate is
-    // GPS AND poster-confirm, so no copy on either side may imply one is
-    // enough. Changing that is an unresolved owner decision, not a fix.
+  it("still never offers the poster's tap as a way around anything", () => {
+    // The tap is now the WHOLE gate rather than half of one, so there is even
+    // less room for copy that hints at an override: there is nothing to
+    // override, and "confirm them anyway" would read as an invitation to vouch
+    // for a Helpr who has not said they are there.
     const rung = posterConfirmationRung(stuck, "in_progress")!;
     expect(rung.enabled).toBe(false);
     expect(rung.reason).not.toMatch(/confirm (it |them |they )?anyway|instead|override|skip/i);
@@ -351,7 +365,11 @@ describe("item 7 — the job nobody marked done", () => {
     );
     expect(rung?.label).toBe("Confirm They Arrived");
     expect(rung?.enabled).toBe(false);
-    expect(rung?.reason, "the location-check deadlock, not the generic stall line").toMatch(/location check/i);
+    // The Helpr never arrived, which is an EARLIER and more specific truth than
+    // "nobody marked this job done". (Was `/location check/i` until the owner's
+    // 2026-09-19 reversal made that sentence false — see the 6c block above.)
+    expect(rung?.reason, "the arrival is what is missing, not the completion").toMatch(/on the way/i);
+    expect(rung?.stalled, "this is the confirmation box, not the stalled notice").toBeUndefined();
   });
 
   it("never fires once either side has marked the job done", () => {

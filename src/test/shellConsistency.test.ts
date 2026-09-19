@@ -168,7 +168,34 @@ function routedPageFiles(): string[] {
     });
 }
 
+// @mutate src/pages/Profile.tsx | <AppShell\n      scrollable={false} | <div\n      data-was-appshell={false}
+// @mutate src/hooks/useAppShellViewport.ts | const DOCUMENT_SCROLL_ROUTES = [\n | const DOCUMENT_SCROLL_ROUTES = [\n  "/profile",\n
+// @mutate src/hooks/useAppShellViewport.ts | const DOCUMENT_SCROLL_ROUTES = [\n | const DOCUMENT_SCROLL_ROUTES = [\n] as string[];\nconst _EMPTIED = [\n
+
 describe("shell consistency", () => {
+  /**
+   * THE FLOOR. Every test below derives its inventory from `routedPageFiles()`,
+   * which is `readdirSync(src/pages)` ∩ `App.tsx` imports. If either side of
+   * that intersection came back empty — a moved directory, a rewritten App.tsx,
+   * a regex that stopped matching the lazy import form — every `for` loop below
+   * would iterate nothing, every `expect(offenders).toEqual([])` would pass, and
+   * this file would report green while checking no page at all.
+   *
+   * CLAUDE.md: "inventory from source, minus what was checked, must be empty,
+   * and every check must be shown able to fail." An empty inventory satisfies
+   * the first half and destroys the second.
+   */
+  it("the routed-page inventory is not empty", () => {
+    const routed = routedPageFiles();
+    expect(
+      routed.length,
+      `routedPageFiles() found ${routed.length} routed pages under ${PAGES_DIR}. ` +
+        `Every other test in this file iterates that list, so an empty or ` +
+        `near-empty inventory makes all of them pass vacuously. If pages really ` +
+        `did move, fix PAGES_DIR / the App.tsx import regex — do not lower this floor.`,
+    ).toBeGreaterThan(20);
+  });
+
   it("every routed page renders through a shared shell", () => {
     const offenders: string[] = [];
     for (const file of routedPageFiles()) {
@@ -198,6 +225,17 @@ describe("shell consistency", () => {
     // document instead. Nothing errors; it just stops being the shell it says
     // it is.
     const docRoutes = documentScrollRoutes();
+    // FLOOR. This test only ever reports a DISAGREEMENT — a fixed-shell page
+    // whose route is in docRoutes. An empty docRoutes therefore makes it pass
+    // no matter what the pages do, and `documentScrollRoutes()` parses the hook
+    // by string slicing, so a rename or a reformat empties it silently. The
+    // mutation runner (scripts/vacuity/) proved exactly that: emptying
+    // DOCUMENT_SCROLL_ROUTES left this test green.
+    expect(
+      docRoutes.length,
+      "documentScrollRoutes() parsed 0 routes out of src/hooks/useAppShellViewport.ts. " +
+        "That makes the agreement check below pass vacuously — fix the parse, don't lower this floor.",
+    ).toBeGreaterThan(5);
     const nativeShell = nativeAppShellRoutes();
     const disagreements: string[] = [];
     for (const file of routedPageFiles()) {

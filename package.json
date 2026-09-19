@@ -47,7 +47,10 @@
     "check:changed": "node scripts/check-changed.mjs",
     "changed-routes": "node scripts/changed-routes.mjs",
     "audit:press": "node scripts/audit/press-every-control.mjs",
-    "visual-notes:check": "node scripts/check-visual-notes.mjs"
+    "visual-notes:check": "node scripts/check-visual-notes.mjs",
+    "vacuity": "node scripts/vacuity/index.mjs",
+    "vacuity:all": "node scripts/vacuity/index.mjs --all",
+    "vacuity:report": "node scripts/vacuity/index.mjs --report --no-mutate"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",

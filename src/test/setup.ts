@@ -1,3 +1,5 @@
+import { appendFileSync } from "node:fs";
+import { afterEach, expect } from "vitest";
 import "@testing-library/jest-dom";
 
 Object.defineProperty(window, "matchMedia", {
@@ -35,4 +37,29 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     unobserve() {}
     disconnect() {}
   } as unknown as typeof ResizeObserver;
+}
+
+// ─── Vacuity tracer (scripts/vacuity/) ───────────────────────────────────────
+// Off unless LH_VACUITY_TRACE points at a file. When on, every test appends one
+// JSONL record with the number of assertions it ACTUALLY executed. A guard that
+// iterates an inventory and asserts per member reports 0 when the inventory is
+// empty — that is empty-inventory vacuity (class (a)) measured, not guessed.
+// Deliberately in the one setupFile every spec loads so no guard can opt out.
+if (process.env.LH_VACUITY_TRACE) {
+  const tracePath = process.env.LH_VACUITY_TRACE;
+  afterEach((ctx: { task?: { name?: string; file?: { name?: string } } }) => {
+    try {
+      const state = expect.getState() as { assertionCalls?: number; testPath?: string };
+      appendFileSync(
+        tracePath,
+        JSON.stringify({
+          file: ctx?.task?.file?.name ?? state.testPath ?? "?",
+          test: ctx?.task?.name ?? "?",
+          assertions: state.assertionCalls ?? 0,
+        }) + "\n",
+      );
+    } catch {
+      /* tracing must never fail a test */
+    }
+  });
 }

@@ -1,0 +1,107 @@
+name: Vacuity
+
+# "Completeness is proven, not claimed: inventory from source, minus what was
+# checked, must be empty, AND EVERY CHECK MUST BE SHOWN ABLE TO FAIL."
+#                                                              — CLAUDE.md
+#
+# The second half of that rule had no machinery behind it. On 2026-09-19 five
+# separate guards turned out to be incapable of failing — a badge test that
+# rendered the badge directly and survived deleting the line that mounts it; a
+# log-format test that asserted nothing because its gitignored corpus did not
+# exist; an edge mock that silently dropped read filters; Playwright browsers
+# that were not installed at all; a status-literal scan that passed on the
+# original bug. Every one looked like a guard and reported green.
+#
+# `npm run vacuity` makes the rule mechanical:
+#   - every guard in src/test registers a mutation, or is grandfathered in
+#     src/test/vacuity.baseline.json (which may only SHRINK);
+#   - each registered mutation BREAKS the guarded source, runs ONLY that guard,
+#     and fails if the guard stayed green;
+#   - static detectors catch the classes a parser can honestly decide
+#     (empty inventory, self-referential registry);
+#   - a preflight asks whether the harness is real (browsers installed, mock
+#     clauses actually recorded).
+#
+# PER-PUSH SCOPE is deliberate: the mutation set is limited to guards whose
+# guard file or guarded file changed vs origin/main, which keeps this job at a
+# couple of seconds on a normal commit. The FULL set runs nightly below.
+#
+# Linux runner (memory `github-actions-macos-billing`): macos-15 minutes are a
+# 10x multiplier and this is pure Node.
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "fastlane/metadata/**"
+      - "LICENSE"
+  pull_request:
+    branches: [main]
+  schedule:
+    # 06:10 UTC daily — the full mutation set, which is too slow for a push.
+    - cron: "10 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: vacuity-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  vacuity:
+    name: Guards shown able to fail
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        # Full history: the per-push scope is a diff against origin/main, and a
+        # shallow clone has no merge base to diff against.
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        # The harness preflight fails when playwright.config.ts asks for a
+        # browser that is not on disk. That check exists precisely because a
+        # machine with no browsers reported green nightlies, so CI must install
+        # them rather than let the check be "green because nothing ran".
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Vacuity gate
+        # Per push: ratchet + static scan + harness preflight + mutations for
+        # what changed. Nightly (schedule): every registered mutation.
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            npm run vacuity:all
+          else
+            npm run vacuity
+          fi
+
+      - name: Vacuity report
+        if: always()
+        run: npm run vacuity:report
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vacuity-report
+          path: docs/audit/vacuity-report.json
+          if-no-files-found: warn

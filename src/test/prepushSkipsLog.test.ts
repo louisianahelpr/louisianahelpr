@@ -42,10 +42,38 @@ function runScript(env: Record<string, string | undefined>) {
   }
 }
 
+// @mutate scripts/check-changed.mjs | );\n    process.exit(1);\n  }\n  logSkip(reason); | );\n    process.exit(0);\n  }\n  logSkip(reason);
+// @mutate scripts/check-changed.mjs | appendFileSync(SKIP_LOG, line); |
+
 describe("scripts/check-changed.mjs skip logging", () => {
   it("every existing log line matches the required format", () => {
-    for (const line of readLogLines()) {
+    // WHY THIS TEST MAKES ITS OWN CORPUS. docs/audit/prepush-skips.log is
+    // GITIGNORED. In a fresh worktree the file does not exist, readLogLines()
+    // returns [], and this loop asserted nothing while reporting green — which
+    // is how a genuinely malformed line stayed invisible AND how a "is this
+    // pre-existing?" worktree check gave a false answer (2026-09-19).
+    //
+    // An empty inventory passes every per-member assertion. So: drive the real
+    // script once to guarantee at least one line exists, assert the FLOOR
+    // before the loop, then restore the log to its prior state.
+    const before = readLogLines();
+    const status = runScript({
+      LH_SKIP_CHANGED_CHECK: "1",
+      LH_SKIP_REASON: "vitest prepushSkipsLog format corpus",
+    });
+    expect(status).toBe(0);
+
+    const lines = readLogLines();
+    expect(lines.length).toBeGreaterThan(before.length);
+    for (const line of lines) {
       expect(line).toMatch(LOG_LINE_RE);
+    }
+
+    mkdirSync(dirname(LOG_PATH), { recursive: true });
+    if (before.length) {
+      writeFileSync(LOG_PATH, before.join("\n") + "\n");
+    } else {
+      rmSync(LOG_PATH, { force: true });
     }
   });
 

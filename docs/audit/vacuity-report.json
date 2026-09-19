@@ -1,0 +1,546 @@
+{
+  "generated": "2026-09-19T17:22:33.365Z",
+  "guards": 134,
+  "registered": 3,
+  "unregistered": [
+    "src/test/aasaRouteParity.test.ts",
+    "src/test/adminDeepLinkContract.test.ts",
+    "src/test/adminDisputeSplitZero.test.tsx",
+    "src/test/adminDisputeUnsettledCard.test.tsx",
+    "src/test/adminEndpointAuthz.test.ts",
+    "src/test/adminJobsPaymentTone.test.ts",
+    "src/test/advancedAnalyticsTierParity.test.ts",
+    "src/test/alarmColourInvariant.test.ts",
+    "src/test/alertPolicy.test.ts",
+    "src/test/anonGrantsClassCheck.test.ts",
+    "src/test/appleIap.test.ts",
+    "src/test/applicationContactLeakHidden.test.ts",
+    "src/test/arrivalNudgeStage.test.ts",
+    "src/test/auditCatalogRoutes.test.ts",
+    "src/test/avatarRowObjectAgreement.test.ts",
+    "src/test/banEvasionSurface.test.ts",
+    "src/test/bannedAccountDeletion.test.tsx",
+    "src/test/blockedStorageBoot.test.ts",
+    "src/test/buttonHeightLedger.test.ts",
+    "src/test/capturedEscrow.test.ts",
+    "src/test/checkAuditEvidence.test.ts",
+    "src/test/checkTestAccountStrikes.test.ts",
+    "src/test/checkVercelUsage.test.ts",
+    "src/test/checkVisualNotes.test.ts",
+    "src/test/consequenceCopyParity.test.ts",
+    "src/test/controlReachability.test.ts",
+    "src/test/cronLivenessCoverage.test.ts",
+    "src/test/cronWatcherKeyContract.test.ts",
+    "src/test/desktopScreenNameIsSrOnly.test.tsx",
+    "src/test/destructiveDdlGate.test.ts",
+    "src/test/discardedQueryFilters.test.ts",
+    "src/test/disputeExecutionReadsFilterStatus.test.ts",
+    "src/test/disputeMarkersServerOwned.test.ts",
+    "src/test/droppedColumns.test.ts",
+    "src/test/e2eNoSupabaseMocks.test.ts",
+    "src/test/e2eSpecsReachableInCi.test.ts",
+    "src/test/earningsPaymentState.test.ts",
+    "src/test/edgeFilterColumnContract.test.ts",
+    "src/test/edgeTransfersCarryTransferGroup.test.ts",
+    "src/test/emailVerifyButton.test.ts",
+    "src/test/errorSurfacesReport.test.tsx",
+    "src/test/example.test.ts",
+    "src/test/expiryFormatterClass.test.ts",
+    "src/test/failedListLoadShowsError.test.tsx",
+    "src/test/fileInputsKeyboardReachable.test.ts",
+    "src/test/fixturePaymentStatus.test.ts",
+    "src/test/fixtureSchemaContract.test.ts",
+    "src/test/focusableHasVisibleFocus.test.ts",
+    "src/test/functionBodyDrift.test.ts",
+    "src/test/gateLockGlobalSetup.test.ts",
+    "src/test/giftCardNaming.test.ts",
+    "src/test/globalCssNoUtilityOverride.test.ts",
+    "src/test/glossyPrimaryInvariant.test.ts",
+    "src/test/helperWorkPhotos.test.tsx",
+    "src/test/helprNotHelperInCopy.test.ts",
+    "src/test/identityVerdictParity.test.ts",
+    "src/test/inboxRetryIdentity.test.ts",
+    "src/test/jobMatchPreferenceGate.test.ts",
+    "src/test/jobStatusExhaustive.test.ts",
+    "src/test/jobsGuardRpcParity.test.ts",
+    "src/test/jobsStateColumnGuard.test.ts",
+    "src/test/labelInName.test.tsx",
+    "src/test/lapsedSuspensionRouteGate.test.tsx",
+    "src/test/listboxOptionsNotTabbable.test.ts",
+    "src/test/literalRegistryGuard.test.ts",
+    "src/test/liveInkContrast.test.ts",
+    "src/test/liveSessionCache.test.ts",
+    "src/test/loginHonoursRedirectParam.test.ts",
+    "src/test/mapMarkerAccessibleName.test.ts",
+    "src/test/marketingDuplicateScan.test.ts",
+    "src/test/messageToneInvariant.test.ts",
+    "src/test/messagesNoSeparateTopPanel.test.tsx",
+    "src/test/migrationPrivilegeKeywords.test.ts",
+    "src/test/migrationRaiseCodesPreserved.test.ts",
+    "src/test/migrationRelationGrants.test.ts",
+    "src/test/migrationVersions.test.ts",
+    "src/test/mutationRowGuard.test.ts",
+    "src/test/newTabLinksNotRedirects.test.ts",
+    "src/test/noAriaLabelOnGenericElements.test.ts",
+    "src/test/noHardcodedTierLists.test.ts",
+    "src/test/noNestedComponentDefinitions.test.ts",
+    "src/test/noNestedTrackerCard.test.ts",
+    "src/test/noTestTrafficOnVercel.test.ts",
+    "src/test/notificationMasterSwitch.test.tsx",
+    "src/test/notificationPrefsScreen.test.tsx",
+    "src/test/notificationTypeRegistries.test.ts",
+    "src/test/offeredHelperPrivacy.test.ts",
+    "src/test/openJobsLocationMasking.test.ts",
+    "src/test/pagePanelRunsToTheBottom.test.ts",
+    "src/test/perkEnforcementParity.test.ts",
+    "src/test/playwrightTargetsExist.test.ts",
+    "src/test/popupShellInventory.test.ts",
+    "src/test/postJobLabelsTitleCase.test.ts",
+    "src/test/pressEveryControlRoutes.test.ts",
+    "src/test/pressProdSafety.test.ts",
+    "src/test/prodAuditSweeper.test.ts",
+    "src/test/prodSeedGroupJobFixture.test.ts",
+    "src/test/prodWorkflowSpacing.test.ts",
+    "src/test/profilesIdIsNotAUserId.test.ts",
+    "src/test/raceClassGuard.test.ts",
+    "src/test/realtimePublication.test.ts",
+    "src/test/releaseGate.test.ts",
+    "src/test/responseDeadlineDialog.test.tsx",
+    "src/test/reviewCriteriaDirection.test.ts",
+    "src/test/roleNeutralCopy.test.ts",
+    "src/test/rootPaddingVsAppShellFrame.test.ts",
+    "src/test/rpcCastsOnDeclaredRpcs.test.ts",
+    "src/test/rpcErrorCopyCoverage.test.ts",
+    "src/test/seedDataHeavy.test.ts",
+    "src/test/seedDisputeFixture.test.ts",
+    "src/test/segmentedControlInvariant.test.tsx",
+    "src/test/sentryRelease.test.ts",
+    "src/test/shareIconLinks.test.ts",
+    "src/test/signOutGoesThroughHelper.test.ts",
+    "src/test/slackAlertWorkflows.test.ts",
+    "src/test/slackAlertsPolicy.test.ts",
+    "src/test/staleBundleGuard.test.ts",
+    "src/test/staleRpcCastComments.test.ts",
+    "src/test/storageBucketLimits.test.ts",
+    "src/test/storageDeletionPaths.test.ts",
+    "src/test/storageOrphanSweep.test.ts",
+    "src/test/stripeIdentity.test.ts",
+    "src/test/supportRequestAlert.test.ts",
+    "src/test/threadOpenSingleLoader.test.ts",
+    "src/test/toastPlacement.test.tsx",
+    "src/test/twoFontTypeSystem.test.tsx",
+    "src/test/unknownZipIsNeverSilent.test.ts",
+    "src/test/urgentFeeAndJobMembershipGuards.test.ts",
+    "src/test/virtualListScrollSource.test.ts",
+    "src/test/writeContract.test.ts",
+    "src/test/zipRequiredAtSignup.test.ts"
+  ],
+  "classA_noInventoryFloor": [
+    "src/test/aasaRouteParity.test.ts",
+    "src/test/adminEndpointAuthz.test.ts",
+    "src/test/banEvasionSurface.test.ts",
+    "src/test/blockedStorageBoot.test.ts",
+    "src/test/e2eNoSupabaseMocks.test.ts",
+    "src/test/expiryFormatterClass.test.ts",
+    "src/test/jobMatchPreferenceGate.test.ts",
+    "src/test/jobsStateColumnGuard.test.ts",
+    "src/test/messageToneInvariant.test.ts",
+    "src/test/migrationPrivilegeKeywords.test.ts",
+    "src/test/migrationRelationGrants.test.ts",
+    "src/test/mutationRowGuard.test.ts",
+    "src/test/noHardcodedTierLists.test.ts",
+    "src/test/openJobsLocationMasking.test.ts",
+    "src/test/realtimePublication.test.ts",
+    "src/test/segmentedControlInvariant.test.tsx",
+    "src/test/slackAlertWorkflows.test.ts",
+    "src/test/storageBucketLimits.test.ts",
+    "src/test/twoFontTypeSystem.test.tsx",
+    "src/test/unknownZipIsNeverSilent.test.ts"
+  ],
+  "classD_selfReferential": [
+    {
+      "file": "src/test/prodSeedGroupJobFixture.test.ts",
+      "why": [
+        "rows (literal declared in this file) is both input and oracle"
+      ]
+    }
+  ],
+  "classB_mountWiring": [
+    {
+      "module": "src/components/activity/AppliedJobCard.tsx",
+      "tests": [
+        "src/pages/activity/activityBadgeListAgreement.test.tsx",
+        "src/components/activity/AppliedJobCard.posterTile.test.tsx",
+        "src/components/activity/photoProofChip.test.tsx"
+      ],
+      "parents": [
+        "src/components/activity/AppliedJobsTab.tsx"
+      ]
+    },
+    {
+      "module": "src/components/activity/PostedJobCard.tsx",
+      "tests": [
+        "src/components/activity/PostedJobCard.contestedTracker.test.tsx",
+        "src/components/activity/PostedJobCard.helprTile.test.tsx",
+        "src/components/activity/PostedJobCard.owesConfirmationBadge.test.tsx"
+      ],
+      "parents": [
+        "src/components/activity/PostedJobsTab.tsx"
+      ]
+    },
+    {
+      "module": "src/components/admin/AdminUserDetailDialog.tsx",
+      "tests": [
+        "src/components/admin/AdminUserDetailDialog.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminUsers.tsx"
+      ]
+    },
+    {
+      "module": "src/components/admin/BanDialog.tsx",
+      "tests": [
+        "src/components/admin/BanDialog.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminUsers.tsx"
+      ]
+    },
+    {
+      "module": "src/components/admin/DeleteUserDialog.tsx",
+      "tests": [
+        "src/components/admin/DeleteUserDialog.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminUsers.tsx"
+      ]
+    },
+    {
+      "module": "src/components/admin/EditEmailDialog.tsx",
+      "tests": [
+        "src/components/admin/EditEmailDialog.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminUsers.tsx"
+      ]
+    },
+    {
+      "module": "src/components/admin/FormalWarningDialog.tsx",
+      "tests": [
+        "src/components/admin/FormalWarningDialog.test.tsx",
+        "src/components/admin/adminDialogsInFlight.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminUsers.tsx"
+      ]
+    },
+    {
+      "module": "src/components/admin/ManualVerifyDialog.tsx",
+      "tests": [
+        "src/components/admin/ManualVerifyDialog.test.tsx",
+        "src/components/admin/adminDialogsInFlight.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminUsers.tsx"
+      ]
+    },
+    {
+      "module": "src/components/admin/ResetPasswordDialog.tsx",
+      "tests": [
+        "src/components/admin/ResetPasswordDialog.test.tsx",
+        "src/components/admin/adminDialogsInFlight.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminUsers.tsx"
+      ]
+    },
+    {
+      "module": "src/components/admin/ReuploadIdDialog.tsx",
+      "tests": [
+        "src/components/admin/ReuploadIdDialog.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminUsers.tsx"
+      ]
+    },
+    {
+      "module": "src/components/AppLockGate.tsx",
+      "tests": [
+        "src/components/AppLockGate.test.tsx"
+      ],
+      "parents": [
+        "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/components/dashboard/BrowseTasksFeed.tsx",
+      "tests": [
+        "src/test/failedListLoadShowsError.test.tsx"
+      ],
+      "parents": [
+        "src/pages/Dashboard.tsx"
+      ]
+    },
+    {
+      "module": "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx",
+      "tests": [
+        "src/components/dashboard/jobDetailDialog/JobDetailFooter.test.tsx"
+      ],
+      "parents": [
+        "src/components/dashboard/JobDetailDialog.tsx"
+      ]
+    },
+    {
+      "module": "src/components/ErrorBoundary.tsx",
+      "tests": [
+        "src/test/errorSurfacesReport.test.tsx"
+      ],
+      "parents": [
+        "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/components/ForceUpdateGate.tsx",
+      "tests": [
+        "src/components/ForceUpdateGate.test.tsx"
+      ],
+      "parents": [
+        "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/components/landing/HeroSection.tsx",
+      "tests": [
+        "src/test/twoFontTypeSystem.test.tsx"
+      ],
+      "parents": [
+        "src/pages/Index.tsx"
+      ]
+    },
+    {
+      "module": "src/components/messages/ChatView.tsx",
+      "tests": [
+        "src/components/messages/ChatView.layout.test.tsx"
+      ],
+      "parents": [
+        "src/pages/Messages.tsx"
+      ]
+    },
+    {
+      "module": "src/components/messages/ConversationList.tsx",
+      "tests": [
+        "src/test/desktopScreenNameIsSrOnly.test.tsx",
+        "src/test/failedListLoadShowsError.test.tsx",
+        "src/test/messagesNoSeparateTopPanel.test.tsx"
+      ],
+      "parents": [
+        "src/pages/Messages.tsx"
+      ]
+    },
+    {
+      "module": "src/components/postjob/AiJobBuilder.tsx",
+      "tests": [
+        "src/components/postjob/AiJobBuilder.test.tsx"
+      ],
+      "parents": [
+        "src/pages/postjob/EntryChoice.tsx"
+      ]
+    },
+    {
+      "module": "src/components/postjob/CityAutocomplete.tsx",
+      "tests": [
+        "src/components/postjob/CityAutocomplete.keyboard.test.tsx"
+      ],
+      "parents": [
+        "src/pages/CompleteProfile.tsx",
+        "src/pages/signup/SignupStep2.tsx",
+        "src/components/postjob/LogisticsSection.tsx"
+      ]
+    },
+    {
+      "module": "src/components/postjob/CurrentLocationPill.tsx",
+      "tests": [
+        "src/components/postjob/CurrentLocationPill.test.tsx"
+      ],
+      "parents": [
+        "src/components/postjob/LogisticsSection.tsx"
+      ]
+    },
+    {
+      "module": "src/components/postjob/PetPicker.tsx",
+      "tests": [
+        "src/components/postjob/PetPicker.test.tsx"
+      ],
+      "parents": [
+        "src/components/postjob/LogisticsSection.tsx"
+      ]
+    },
+    {
+      "module": "src/components/profile/EarningsForecastCard.tsx",
+      "tests": [
+        "src/components/profile/EarningsForecastCard.test.tsx"
+      ],
+      "parents": [
+        "src/components/profile/EarningsTab.tsx"
+      ]
+    },
+    {
+      "module": "src/components/profile/HelperStreakBadge.tsx",
+      "tests": [
+        "src/components/profile/HelperStreakBadge.test.tsx"
+      ],
+      "parents": [
+        "src/components/profile/EarningsTab.tsx"
+      ]
+    },
+    {
+      "module": "src/components/profile/HelperWorkPhotos.tsx",
+      "tests": [
+        "src/test/helperWorkPhotos.test.tsx"
+      ],
+      "parents": [
+        "src/pages/UserProfile.tsx"
+      ]
+    },
+    {
+      "module": "src/components/profile/profileEditForm/PhotoNameSection.tsx",
+      "tests": [
+        "src/components/profile/profileEditForm/PhotoNameSection.test.tsx"
+      ],
+      "parents": [
+        "src/components/profile/ProfileEditForm.tsx"
+      ]
+    },
+    {
+      "module": "src/components/profile/profileEditForm/SaveBar.tsx",
+      "tests": [
+        "src/components/profile/profileEditForm/SaveBar.test.tsx"
+      ],
+      "parents": [
+        "src/components/profile/ProfileEditForm.tsx"
+      ]
+    },
+    {
+      "module": "src/components/profile/ReferralExtras.tsx",
+      "tests": [
+        "src/lib/referralEarnings.test.tsx"
+      ],
+      "parents": [
+        "src/components/ReferralSection.tsx"
+      ]
+    },
+    {
+      "module": "src/components/profile/savedHelpersTab/SavedHelperCard.tsx",
+      "tests": [
+        "src/components/profile/savedHelpersTab/SavedHelperCard.test.tsx"
+      ],
+      "parents": [
+        "src/components/profile/SavedHelpersTab.tsx"
+      ]
+    },
+    {
+      "module": "src/components/ReportDialog.tsx",
+      "tests": [
+        "src/components/reportAndRestrictInFlight.test.tsx"
+      ],
+      "parents": [
+        "src/pages/Messages.tsx",
+        "src/pages/UserProfile.tsx",
+        "src/pages/userProfile/ReviewsSection.tsx",
+        "src/components/reviewPanel/ReviewList.tsx"
+      ]
+    },
+    {
+      "module": "src/components/RouteErrorBoundary.tsx",
+      "tests": [
+        "src/test/errorSurfacesReport.test.tsx",
+        "src/components/RouteErrorBoundary.recoveryInFlight.test.tsx"
+      ],
+      "parents": [
+        "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/components/ui/currency-input.tsx",
+      "tests": [
+        "src/components/ui/currency-input.test.tsx"
+      ],
+      "parents": [
+        "src/components/CompletionPrompts.tsx",
+        "src/components/TipDialog.tsx",
+        "src/components/postjob/BudgetSection.tsx"
+      ]
+    },
+    {
+      "module": "src/components/wallet/PayoutCelebration.tsx",
+      "tests": [
+        "src/components/wallet/PayoutCelebration.test.tsx"
+      ],
+      "parents": [
+        "src/components/profile/EarningsTab.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/dashboard/QuickApplyHandler.tsx",
+      "tests": [
+        "src/pages/dashboard/QuickApplyHandler.test.tsx"
+      ],
+      "parents": [
+        "src/pages/Dashboard.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/giftCards/RecipientPicker.tsx",
+      "tests": [
+        "src/pages/giftCards/RecipientPicker.test.tsx"
+      ],
+      "parents": [
+        "src/pages/GiftCard.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/ShortLinkRedirect.tsx",
+      "tests": [
+        "src/pages/ShortLinkRedirect.test.tsx"
+      ],
+      "parents": [
+        "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/userProfile/AtAGlanceCard.tsx",
+      "tests": [
+        "src/pages/userProfile/AtAGlanceCard.test.tsx"
+      ],
+      "parents": [
+        "src/pages/UserProfile.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/userProfile/RecognitionRow.tsx",
+      "tests": [
+        "src/pages/userProfile/RecognitionRow.test.tsx"
+      ],
+      "parents": [
+        "src/pages/UserProfile.tsx"
+      ]
+    }
+  ],
+  "edge_classA": [
+    "src/test/edge/error-leak-EF5.test.ts"
+  ],
+  "harness": [
+    {
+      "severity": "warn",
+      "id": "harness/mock-silent-clauses",
+      "msg": "src/test/edge/mocks/supabase.ts: is, lte, gte, lt, gt, limit, order are chainable no-ops that record nothing, yet 16 edge function(s) call .is(); 8 edge function(s) call .lte(); 8 edge function(s) call .gte(); 6 edge function(s) call .lt(); 4 edge function(s) call .gt(); 30 edge function(s) call .limit(); 16 edge function(s) call .order(). A test asserting the PRESENCE or ABSENCE of those clauses is green either way.",
+      "detail": "supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts\n  supabase/functions/stalled-completion-reminder/index.ts\n  supabase/functions/process-scheduled-payouts/index.ts\n  supabase/functions/payment-confirm-reminder/index.ts\n  supabase/functions/expiring-jobs-push/index.ts\n  supabase/functions/expire-subscriptions/index.ts\n  supabase/functions/execute-dispute-split/index.ts\n  supabase/functions/create-payment/index.ts"
+    },
+    {
+      "severity": "warn",
+      "id": "harness/vitest-pooloptions-dead",
+      "msg": "vitest.config.ts sets test.poolOptions.threads.maxThreads, which Vitest 4.1.11 REMOVED (\"DEPRECATED `test.poolOptions` was removed in Vitest 4\"). The 2-thread RAM cap that comment defends is not being applied; runs default to one worker per core on an 8 GB Mac.",
+      "detail": "Move maxThreads/minThreads to the top level of `test`."
+    }
+  ]
+}

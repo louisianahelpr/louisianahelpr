@@ -4331,3 +4331,43 @@ Notable activity entries: `ActivityHeader.tsx:221/237/275/286`, `PostedJobsTab.t
 REPORT, not task: `.link-standard`'s `transition` still names `transform` (dead entry), and
 `.hover\:-translate-y-px` is still emitted (~120 dead bytes) because Tailwind's content scanner reads
 the class name out of the explaining comment and the `@mutate` directive.
+
+### DONE 2026-09-19 — the Flexible checkbox was unusable; 0 of 260 jobs carried it — `f1883ef34`, `0f84eb876`, `5ae02e77a`
+The control existed and rendered (`LogisticsSection.tsx:419-433`), but **two places disagreed and the
+stricter won**: `useJobSubmit.ts:230` treated flexible as a SUBSTITUTE for a time, while
+`useJobDerived.ts:210` required `startTime` UNCONDITIONALLY and drove `submitDisabled`. So with
+Flexible ticked and no time the CTA stayed **disabled** reading *"Pick a Start Time to Continue"*,
+and the submit branch mentioning flexible was **unreachable from the UI**. Hence 0 of 260 flexible
+and 184 of 260 timeless. Owner's wording — *"unless they were checked off as flexible"* — is
+substitute, so that is what shipped: `(startTime || isFlexibleSchedule)`, the flag threaded from
+`usePostJobForm.ts:450` (the hook's only production caller), and the required `*` dropped from the
+Start Time label while ticked.
+NEW COPY, naming BOTH states so there is no second reading:
+> **Flexible Schedule** — any time that day works. Leave Start Time blank, or set one the Helpr can shift either way.
+blank + flag -> the flag stands IN PLACE of a time, card renders "Flexible". time + flag -> it stands
+BESIDE it as a preference, card renders the clock time (`jobStartTimeLabel` prefers a real time).
+Mutual exclusion deliberately NOT enforced — the ask was to SAY what the combination means, not to
+outlaw it.
+
+**THE GATE CAUGHT A NO-OP IN ITS OWN WORK.** The `FormStep.tsx` label edit initially **SURVIVED its
+mutation**: once `useJobDerived` accepts the flag, `logisticsComplete` is true, the entire
+`else if (!form.logisticsComplete)` ladder is skipped, and the start-time branch is never evaluated
+— so change #2 is a no-op given change #1. Kept anyway (a label ladder that independently demands a
+start time is literally how this bug happened) with a guard asserting the ladder on its own terms,
+`logisticsComplete` forced false. In that synthetic state the ladder falls through to
+*"That Start Time Has Passed"*, which is nonsense copy — **unreachable today**, reported not fixed.
+RED BEFORE: `expected false to be true` on `logisticsComplete`, and `expected 'Start Time *' to be
+'Start Time'`. The CTA assertion renders the REAL `FormStep` over the REAL `useJobDerived` and checks
+`toBeEnabled()`, `aria-disabled="false"`, the absence of every blocking label, then
+`buildJobInsertPayload` -> `start_time: null, is_flexible_schedule: true`. Inventory FLOOR scrapes
+the gate labels out of `FormStep.tsx` so a future gate is covered automatically.
+
+### FOLLOW-UP — `is_flexible_schedule` is IMMUTABLE after posting
+`EditJobDialog.tsx:93` omits it from `updateData`, so a poster who forgets the box must delete and
+repost — the same dead-end class as the bug just fixed. It also allows one inconsistency: a flexible
+job whose poster opens Edit and picks a time gets `start_time` set while the flag stays `true` (the
+row asserts both; display stays honest because `jobStartTimeLabel` prefers the clock time). The
+INVERSE is not reachable — `TimePickerWheel` has no clear affordance, so `start_time` can only go
+null->time in Edit. RECOMMENDED: add it, mirroring `hasHelper` (`:231` disables the time wheel once a
+helper is assigned — the flexible box must disable the same way), include it in the `scheduleChanged`
+comparison at `:90` so `expires_at` recomputes, and keep the `.select("id")`.

@@ -4003,3 +4003,45 @@ so it carries no hook") is still accurate but now describes a bigger hole. Add t
 Helper **Disputed with a photo owed**: four 44px icon chips leave the primary ~56px; "Withdraw"
 measures ~50px at 11px. **Inside by 4px.** If it breaks mid-word, drop the capture chip from the
 dispute card (one line in `DisputedSection.tsx`).
+
+### DONE 2026-09-19 — the guest marketplace is lit again — commit `94fd5b639`; issue #1617 CLOSED
+Queried **AS ANON** (publishable key, no service role), before -> after:
+`open_jobs_browse` `content-range: */0` -> `*/8`; `get_open_jobs_for_map` 8 rows;
+`get_public_open_jobs` (landing teaser) 6 rows; `guest-listing-horizon.mjs`
+`FAIL … ALREADY DARK` exit 1 -> `OK: 8 listing(s) today, 8 still standing in 3 day(s)` exit 0.
+Signed-out `/browse` rendered off a local `vite preview` of the build (NOT Vercel, per
+`noTestTrafficOnVercel`): 8 cards at 1440 and 375, 8 categories, 8 Louisiana cities, no overflow.
+Both screenshots looked at and `recordReview`'d.
+
+**8 listings at +31/+45/+59/+73/+88/+102/+117/+131 days.**
+- **+31 minimum** because the horizon check warns 3 days out and runs at worst every 2 days
+  (Fri->Sun gap) — a month is ten times that, so nobody has to touch this before launch.
+- **~14 days apart** because CLUSTERING CAUSED THE OUTAGE: the dead fixtures shared dates and the
+  last pair took browse from 2 to 0 in a single cron tick. Now at most one ages out at a time.
+- Dates are stored in the catalogue as **days from run, not stamped dates**, so the file cannot
+  become the next stale fixture.
+- Posters spread 3/3/2 (`enforce_open_job_limit()` caps each account at 5 open funded).
+  **`poster-e2e` deliberately left EMPTY** — it is the account the nightly money loop posts and
+  funds from, and filling it would have traded one red for another.
+- Non-seed rows created: **0**, verified by query.
+
+STRIPE TEST-MODE PROOF, recorded in the database rather than asserted: all 8 rows'
+`stripe_session_id` begin `cs_test_` (a live key only mints `cs_live_`). The minter also refuses to
+type a card into anything but a `cs_test_` session and logged that guard on all 8.
+
+ANON LEG RE-RUN GREEN (run 35462626219): `Anon surface contract` OK, `Uncovered real-backend
+surfaces` OK. #1617 auto-closed by the sync step with the full root cause — **the clock, not the
+code**: the SAME SHA `12fcd8541` was green at 03:34 and red at 15:26, because `auto-expire-jobs`
+(jobid 16) killed the last funded pair at 05:00:00.745.
+
+**The horizon check WAS already wired** — `.github/workflows/e2e-real-backend.yml:195`, `anon-surface`
+job, `if: always()`, on every push, every PR, and Sun/Mon/Wed/Fri 11:17 UTC. Worst unrun gap 2 days
+against a 3-day horizon. NOT duplicated; only its failure message now names the refill command.
+**But it has never executed in CI** — it is unpushed, and the green run predates it. Its first real
+run lands on the next push.
+
+**DO NOT remove these listings before launch** — removing them recreates the outage. At launch they
+vanish on their own when `seed_jobs_hidden_publicly` flips to `true` in
+`platform_settings.feature_flags`; no deletion needed. If they must be destroyed, refund each `pi_`
+on the Stripe TEST dashboard first (each holds $96-$240 test escrow) — full id/PI table is in the
+second comment on #1617.

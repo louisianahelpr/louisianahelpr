@@ -3206,3 +3206,28 @@ REPORT (inert, not changed): `AdminUsers.tsx:416` passes `className="space-y-2"`
 `position:absolute`, so `space-y` produces nothing on either.
 NOT verified live: `/admin`, because `scripts/test-signin-link.mjs` only mints poster/helper.
 Its code path is unchanged and is covered by the new guard.
+
+### DONE 2026-09-19 — item 3 helper side + item 13 collapsed tracker — commit `187f61c3f`
+- **Item 3 helper side**: `HelperTrackerPanel` now builds the poster's `<PersonTile>` ("Posted by")
+  and passes it to `JobTracking`'s `personTile` slot (between the step rail and the map), mirroring
+  `9a39abbea` on the poster side. No section file was edited: the expanded state reaches the panel
+  through a new `CardExpandedContext` **exported from `HelperTrackerPanel.tsx` and provided by
+  `AppliedJobCard.tsx`** — import direction card -> panel, which is already the transitive
+  direction, so no cycle, and `ConfirmedSection`/`ActiveJobSection`/`DisputedSection` pass the
+  provider through invisibly. Default `false`, so any other caller shows no tile.
+- **TRAP AVOIDED (deviation from the literal spec, and the right call):** the old body tile at
+  `AppliedJobCard.tsx:321-329` was NOT deleted — it became the **no-tracker fallback**
+  (`bodyCarriesTile`), mirroring the poster side's `trackerCarriesTile`. `HelperTrackerPanel` only
+  mounts under `isConfirmed || isActive || isDisputed`, so a flat delete would have removed the
+  poster's profile from every pending / offered / completed / reviewed / cancelled Jobs card. The
+  two branches are mutually exclusive: the name still prints exactly once, never while collapsed.
+- **Item 13 remainder**: the poster's tracker is now un-gated on COLLAPSED cards for `disputed` and
+  `revision_requested` only. The Helpr's PersonTile is gated on `isExpanded` **independently** of
+  the tracker's own gate, so a collapsed contested card shows the tracker WITHOUT the person box —
+  honouring V6 while still showing the dispute.
+- Acceptance proven in both directions (14 + 4 green): collapsed+contested -> tracker, no tile;
+  collapsed+ordinary (`accepted`/`in_progress`/`completed`/`open`) -> no tracker, height unchanged;
+  expanded+contested -> tracker AND exactly one `/user/:id` link; helper collapsed -> zero poster
+  links. Every assertion proven red first, including the over-wide un-gate (4 reds) and the
+  tile-follows-tracker mistake.
+- New: `AppliedJobCard.posterTile.test.tsx`, `PostedJobCard.contestedTracker.test.tsx`.

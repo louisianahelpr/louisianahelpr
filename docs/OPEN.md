@@ -3113,3 +3113,49 @@ untouched after a further window, flag into the admin queue for a HUMAN decision
 auto-release to the Helpr and NOT auto-refund the poster — nobody can prove from the data whether
 the work happened. The flag must be a queue item AWAITING an admin, never a fabricated
 `admin_audit_log` row (every such row names a real `admin_id`). Lane dispatched.
+
+### DONE 2026-09-19 — JobTracking lane (items 3-poster, 4a, 4b, 8-partial, 11, 12, 13) — commit `9a39abbea`
+- **Item 11 RESOLVED as a restatement of 4a.** The line was `{firstName · }Updated {h:mm}` —
+  "Updated" was already left of the time; the NAME was what sat left of it. `grep -niE "updated"`
+  over `src/**.tsx` finds exactly one visible label and nowhere does a time precede the word.
+  Nothing was reordered.
+- **Item 4b**: the at-the-job case now omits the `where` clause entirely, like the existing null
+  branches → "Arrival GPS-verified" / "Arrival not confirmed" / "Location shared". Every consumer
+  builds the separator FROM `where`, so no dangling `·` is possible. `N mi from job` untouched.
+  LEFT ALONE (different string/surface, reported): the retry success toast `JobTracking.tsx:1015`
+  "checked in at the job site", and the refusal copy at `arrivalGate.ts:150,152`.
+- **Item 13 had TWO load-bearing halves** — fixing only `markedDone` would have measured as a
+  no-op, because a submitted job's tracking row status is already `done`. Both fixed.
+- **Item 3 (poster side)**: `JobTracking` gained a `personTile` slot rendered directly above the
+  map; `PostedJobCard` builds the tile and passes it. `PostedJobCard.tsx:570`'s null-coords notice
+  was judged NOT a second name print (it renders only when no map exists, and removing it would
+  leave the poster with no explanation at all).
+
+### OWNER DECISIONS 2026-09-19 (second batch) — collapsed-card behaviour
+- **Item 3, helper side: the person box stays HIDDEN when collapsed.** V6 (owner-approved
+  2026-09-15) deliberately put the poster tile behind the expand; moving the tile into the tracker
+  would have reversed that, because the helper's tracker — unlike the poster's — renders on a
+  collapsed card. The helper lane must gate the tile on `isExpanded` so both sides match.
+- **Item 13, poster side: un-gate the tracker on COLLAPSED cards for contested jobs only**
+  (`disputed` + `revision_requested`). `PostedJobCard.tsx:329` currently keeps the whole tracker
+  behind the expand, so a collapsed disputed card shows no tracker at all — which is literally
+  where the owner would have seen it "go away". Scoped to contested statuses so ordinary cards
+  keep their current collapsed height.
+
+### STILL OPEN from the 2026-09-16 batch
+- Item 3 HELPER side — blocked on file ownership, needs `appliedJobCard/HelperTrackerPanel.tsx`
+  + `ConfirmedSection` / `ActiveJobSection` / `DisputedSection`. The helper's tracker is NOT
+  mounted by `AppliedJobCard.tsx`. `HelperTrackerPanel` already holds `app`+`job`
+  (`job.customer_id`, `app.posterName`) so it can build the tile itself — one file changes.
+- Item 7 UI (disabled "Work Done" with the reason) — waiting on the escrow lane's data contract.
+- Item 10 (before/after photos → a chip on the action row) — needs the `PhotoProof.tsx:418-454`
+  dialog extracted to an exported `PhotoProofDialog`, then a chip added to each step's `actions`
+  array with the dialog in the `dialogs` slot. Adding a 4th chip to poster `completed` will trip
+  `measureJobStepRow`'s icon-only compaction — expected, not a bug.
+- **Pre-existing red on main, lead-owned:** `jobStepOneRow.test.tsx > Jobs · Confirmed` —
+  "expected at least 4 controls, got [Directions | Message | I'm On My Way]". Reproduced on a
+  pristine detached HEAD, so it predates this batch.
+- Lockfile batch: remove `leaflet`, `react-leaflet`, `@types/leaflet`; delete the dead
+  `.leaflet-*` CSS (careful — live `.browse-map-*` rules are interleaved); refresh the stale
+  Leaflet comments at `JobTracking.tsx:26`, `:2162`, `PostedJobCard.tsx:518` and the stale
+  "Awaiting confirmation" prose in `e2e/happy-path/state-matrix/stateMatrix.ts:481,516`.

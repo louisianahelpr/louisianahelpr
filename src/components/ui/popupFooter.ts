@@ -197,7 +197,7 @@ export const POPUP_FOOTER_ROW =
  */
 export const POPUP_SECONDARY_CLS =
   "basis-[calc(50%-6px)] grow !min-w-max px-4 border-0 shadow-none " +
-  "bg-[hsl(var(--olivewood)/0.06)] hover:bg-[hsl(var(--olivewood)/0.11)] " +
+  "bg-[hsl(var(--olivewood)/0.06)] ctl-tint " +
   "text-[hsl(var(--olivewood))]";
 
 /**

@@ -1804,8 +1804,14 @@ html.web-desktop.desktop-rail:not(.app-shell) #root:has(.app-shell-frame) {
   }
   @media (hover: hover) {
     .link-standard:hover {
+      /* The underline appearing IS the affordance. `transform:
+         translateY(-1px)` used to ride along with it and was removed on
+         2026-09-19 with every other hover movement in the app: a link that
+         hops up a pixel moves the text the cursor is arriving at, and inside
+         a paragraph it nudges the line it sits on. `filter: brightness` is
+         the link's arm of the one filled-surface treatment — see "THE ONE
+         INTERACTION TREATMENT" further down. */
       text-decoration-color: currentColor;
-      transform: translateY(-1px);
       filter: brightness(1.1);
     }
   }
@@ -2150,13 +2156,119 @@ button,
   -webkit-touch-callout: none;
 }
 .btn-press:active {
-  transform: scale(0.96);
+  /* 0.97, not the 0.96 this started at. The button primitive's ELEV_FILLED
+     presses at `active:scale-[0.97]` and is by far the most-rendered control
+     in the app; `.btn-press` is the second. Two shared press primitives
+     disagreeing by a percent is the whole complaint in miniature, and a
+     percent is the cheapest possible way to end it. */
+  transform: scale(0.97);
 }
 @media (prefers-reduced-motion: reduce) {
   .btn-press,
   .btn-press:active {
     transition: none;
     transform: none;
+  }
+}
+
+
+/* ── THE ONE INTERACTION TREATMENT ─────────────────────────────────────────
+   Owner, 2026-09-19: "some back buttons or any button moves on hover, some
+   has a square grey background on hover, etc. all of these need to be
+   consistent."
+
+   They were right, and it was worse than it looked. Measured across the 308
+   controls in src/: 33 distinct hover tints spelling ONE intent ("this
+   neutral control is hovered"), in four token families — olivewood, bark,
+   secondary, sidebar-accent — at five alphas (0.04 / 0.06 / 0.08 / 0.10 /
+   0.12). Two adjacent icon buttons could differ by two percent of a grey for
+   no reason anyone could reconstruct. On top of that, 13 controls physically
+   MOVED on hover, 31 grew a shadow or a border, and 12 faded.
+
+   THE RULE. Hover changes the TINT of a control and nothing else.
+
+   Two mechanisms, and which one you get is decided by the SURFACE, never by
+   taste — so the KIND of change is identical everywhere even though the
+   CSS property cannot be:
+
+     unfilled surface  (ghost, outline, icon button, nav row, back button,
+                        list row — anything transparent or translucent)
+       -> background-color steps to one of the three tones below.
+
+     filled surface    (anything carrying its own paint — above all
+                        `btn-grad-primary`, which any `bg-*` utility would
+                        overwrite and blank out; see the note on that class)
+       -> `hover:brightness-110`. A gradient fill can only be tinted by
+          filtering it. This is the ONE case where a different property is
+          allowed, and it is allowed because the surface leaves no choice.
+
+   Both read to the eye as "the surface darkened one step". That is the kind.
+   Only the tone varies, and only from this closed set of three.
+
+   WHY NOTHING MOVES. A control that lifts or grows on hover moves the target
+   out from under a cursor that is still arriving at it — a Fitts's-law
+   regression, worse on a trackpad where the pointer is already imprecise, and
+   at the bottom of a list it can shove the row you were aiming at into the
+   one below. Movement is the one hover affordance that makes a control HARDER
+   to hit than not having it. A glyph INSIDE a control may still slide (the
+   `group-hover:translate-x-*` arrows, and the global `.lucide-arrow-right`
+   rule further down): the target itself holds still, so that costs nothing.
+
+   TOUCH. The whole block is inside `@media (hover: hover)`. A touch device
+   reports `hover: none`, so it never matches and a tap can never leave a
+   control stuck in its hover tint after the finger lifts — the "why is that
+   button still grey" bug. Touch feedback is `:active` (`.btn-press`), which
+   is correct on both.
+
+   REDUCED MOTION. There is nothing to suppress: the treatment is a colour
+   change, and colour is not motion. The transition is still shortened under
+   `prefers-reduced-motion: reduce` below, matching how the rest of this
+   stylesheet treats a transition it does not want to remove outright.
+
+   FOCUS is the same defect class and is handled by the global
+   `:focus-visible` rule above (2px `--ring`, offset 2). Do not restate it
+   per control; do not swap its colour.
+
+   Guarded by src/test/controlInteractionSameness.test.ts. */
+/* The fade lives in `@layer components` ON PURPOSE, while the `:hover` colour
+   rules below are unlayered. Layered rules are emitted BEFORE Tailwind's
+   utilities, so an element that already declares its own `transition-[...]`
+   utility (the button primitive declares transform + box-shadow + filter, and
+   needs all three for its press) keeps it instead of having it clobbered by
+   this shorthand. Elements with no transition utility of their own — most
+   icon buttons and nav rows — still get the fade. The `:hover` rules
+   themselves must WIN, so they stay unlayered. */
+@layer components {
+  .ctl-tint,
+  .ctl-tint-brand,
+  .ctl-tint-danger {
+    transition: background-color 120ms var(--ease-out);
+  }
+}
+@media (hover: hover) {
+  /* Neutral — the default for every control that is not carrying a tone of
+     its own. `--olivewood` is redefined per theme (near-black on light,
+     near-white on dark), so one declaration gives a dark wash on a light
+     surface and a light wash on a dark one without a `.dark` override. */
+  .ctl-tint:hover {
+    background-color: hsl(var(--olivewood) / 0.08);
+  }
+  /* Brand — for a control that is already reading as the primary action in
+     its row without being a filled CTA. */
+  .ctl-tint-brand:hover {
+    background-color: hsl(var(--bark) / 0.08);
+  }
+  /* Danger — destructive affordances. Slightly stronger because the hue is
+     doing semantic work, not just signalling "hovered". */
+  .ctl-tint-danger:hover {
+    background-color: hsl(var(--destructive) / 0.1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ctl-tint,
+  .ctl-tint-brand,
+  .ctl-tint-danger {
+    transition-duration: 0.001ms;
   }
 }
 

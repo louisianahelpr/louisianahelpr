@@ -377,7 +377,7 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); }}
               aria-label="Close photo viewer"
-              className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+              className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center ctl-tint active:scale-[0.97]"
               style={{
                 backgroundColor: "rgba(255, 255, 255, 0.12)",
                 backdropFilter: "blur(20px) saturate(150%)",

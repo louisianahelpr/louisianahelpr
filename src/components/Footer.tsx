@@ -252,7 +252,7 @@ const Footer = () => {
               href={FACEBOOK_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:brightness-110"
               aria-label="Follow us on Facebook (opens in a new tab)"
               title="Follow us on Facebook"
             >

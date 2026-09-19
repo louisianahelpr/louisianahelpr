@@ -8,9 +8,9 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        default: "border-transparent bg-primary text-primary-foreground hover:brightness-110",
+        secondary: "border-transparent bg-secondary text-secondary-foreground hover:brightness-95",
+        destructive: "border-transparent bg-destructive text-destructive-foreground hover:brightness-110",
         // Burnt-sienna accent chip for DECORATIVE / informational badges
         // (status tags, counts, "new") — the calm on-brand alternative to
         // `secondary`. Reserve `destructive` (mauve) for genuinely
@@ -20,7 +20,7 @@ const badgeVariants = cva(
         sienna:
           // text uses --accent-ink (same as --burnt-sienna in light, lifted to 66% in dark)
           // so the chip clears 4.5:1 on dark tinted surfaces without moving light mode.
-          "border-transparent bg-[hsl(var(--burnt-sienna)/0.12)] text-[hsl(var(--accent-ink))] hover:bg-[hsl(var(--burnt-sienna)/0.18)]",
+          "border-transparent bg-[hsl(var(--burnt-sienna)/0.12)] text-[hsl(var(--accent-ink))] hover:brightness-95",
         outline: "text-foreground",
       },
     },

@@ -629,7 +629,7 @@ const NotificationPanel = () => {
                 onClick={markAllRead}
                 aria-label="Mark all as read"
                 title="Mark all as read"
-                className="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-full transition-colors hover:bg-[hsl(var(--bark)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] focus-visible:ring-offset-1"
+                className="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-full ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] focus-visible:ring-offset-2"
                 style={{ color: "hsl(var(--bark))" }}
               >
                 <CheckCheck className="w-[18px] h-[18px]" strokeWidth={2.25} />
@@ -979,7 +979,7 @@ const NotificationPanel = () => {
           <button
             type="button"
             onClick={enablePush}
-            className="shrink-0 w-full h-11 inline-flex items-center justify-center gap-1.5 text-ds-12 font-sans font-semibold border-t border-[hsl(var(--olivewood)/0.12)] transition-colors hover:bg-[hsl(var(--bark)/0.06)]"
+            className="shrink-0 w-full h-11 inline-flex items-center justify-center gap-1.5 text-ds-12 font-sans font-semibold border-t border-[hsl(var(--olivewood)/0.12)] ctl-tint"
             style={{
               color: "hsl(var(--bark))",
               marginBottom: "var(--safe-area-bottom, 0px)",

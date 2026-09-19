@@ -55,7 +55,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         weekday: "rounded-md w-9 font-sans uppercase text-ds-10 tracking-[0.18em] text-[hsl(var(--burnt-sienna)/0.78)]",
         week: "flex w-full mt-2",
         day: "h-11 w-11 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-        day_button: cn(buttonVariants({ variant: "ghost" }), "h-11 w-11 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] hover:bg-[hsl(var(--bark)/0.10)] aria-selected:opacity-100 rounded-full"),
+        day_button: cn(buttonVariants({ variant: "ghost" }), "h-11 w-11 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] aria-selected:opacity-100 rounded-full"),
         range_end: "day-range-end",
         selected:
           "!bg-[hsl(var(--bark))] !text-[hsl(var(--parchment))] hover:!bg-[hsl(var(--bark))] focus:!bg-[hsl(var(--bark))] shadow-[0_1px_2px_hsl(var(--bark)/0.18)] font-sans font-bold",

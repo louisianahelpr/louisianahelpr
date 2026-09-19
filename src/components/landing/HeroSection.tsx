@@ -195,7 +195,7 @@ const HeroSection = () => {
             asChild
             size="xl"
             variant="outline"
-            className="group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-all duration-200 hover:-translate-y-0.5 text-ds-17"
+            className="group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-all duration-200 text-ds-17"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,

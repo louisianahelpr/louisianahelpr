@@ -509,7 +509,7 @@ const DialogContent = React.forwardRef<
         // = 17px, so glyph and title are now inset by the same amount and the
         // header row is symmetric. The 44px hit box still spans the padding
         // gutter, which is deliberate.
-        className={`absolute right-1 z-10 ${topRightSlot ? "top-2" : "top-[7px]"} group p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none`}
+        className={`absolute right-1 z-10 ${topRightSlot ? "top-2" : "top-[7px]"} group p-0 box-border rounded-md btn-press ctl-tint flex items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none`}
         style={{ width: "44px", height: "44px", minWidth: "44px", minHeight: "44px" }}
       >
         {/* 16px BESIDE OTHER ICONS, 18px ALONE. The chrome icons a caller puts

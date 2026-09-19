@@ -35,21 +35,43 @@ const ELEV_OUTLINE =
   "shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.08),0_2px_6px_hsl(var(--ink-deep)/0.10),0_4px_12px_-2px_hsl(var(--ink-deep)/0.06)] " +
   "active:scale-[0.97] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.10)]";
 
-// Premium hover shared by ALL green primary CTAs (default / hero / bark) so the
-// hover never drifts between buttons (some used to only brighten, others also
-// slid an arrow). One effect everywhere: brighten + a 1px lift + a soft
-// bark-tinted glow. The `active:` press (scale + shadow collapse) from
-// ELEV_FILLED still wins on tap because Tailwind orders `active` after `hover`.
-const GREEN_CTA_HOVER =
-  "hover:brightness-110 hover:-translate-y-px " +
-  "hover:shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_6px_18px_-6px_hsl(var(--bark)/0.55),0_12px_28px_-12px_hsl(var(--ink-deep)/0.22)]";
+// Hover shared by ALL green primary CTAs. `hover:brightness-110` and nothing
+// else — the filled-surface arm of the one interaction treatment (see "THE ONE
+// INTERACTION TREATMENT" in src/index.css). A gradient fill cannot take a
+// `bg-*` utility without being overwritten, so brightening it is the only way
+// to tint it; that is the whole reason two mechanisms exist.
+//
+// WHAT THIS USED TO BE, and why it is gone (owner, 2026-09-19: "some back
+// buttons or any button moves on hover, some has a square grey background on
+// hover, etc. all of these need to be consistent"):
+//
+//   hover:-translate-y-px  — REMOVED. This is the single most-rendered control
+//     in the app, so it was the largest source of the complaint. A control
+//     that lifts moves the target out from under a cursor still arriving at
+//     it: a Fitts's-law regression, worse on a trackpad, and in a stacked
+//     footer it nudges the button you were aiming at. It also made the primary
+//     the ONLY variant that moved — ghost, outline and secondary swapped a
+//     background and held still — which is precisely the inconsistency named.
+//
+//   hover:shadow-[...bark glow...]  — REMOVED. A second, competing treatment
+//     on the same gesture: the primary grew a glow while every other variant
+//     did not. The resting 3-layer ELEV_FILLED shadow already says "this is
+//     raised"; restating it louder on hover said nothing new.
+//
+// The `active:` press (scale + shadow collapse) from ELEV_FILLED is untouched
+// and still wins on tap, because Tailwind orders `active` after `hover`.
+const GREEN_CTA_HOVER = "hover:brightness-110";
 
 const buttonVariants = cva(
   // transition covers transform + box-shadow so the press collapse and
-  // spring-back animate together. duration-150 on the press (fast, snappy)
+  // spring-back animate together, plus `filter` (the filled-surface hover
+  // tint) and `background-color` (the unfilled-surface hover tint, applied by
+  // `.ctl-tint` on ghost/outline). All four are named here because this
+  // utility overrides `.ctl-tint`'s own transition — see the note beside
+  // `.ctl-tint` in src/index.css. duration-150 on the press (fast, snappy)
   // and the spring easing bounces back on release without needing two
   // separate durations — `ease-ds-spring` (--ease-spring) is our brand spring.
-  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-ds-md text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
+  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-ds-md text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -87,15 +109,33 @@ const buttonVariants = cva(
           "bg-destructive !text-[hsl(var(--destructive-foreground))] [&_*]:!text-[hsl(var(--destructive-foreground))] hover:brightness-110 " + ELEV_FILLED,
         // Outline: shadow #1 ONLY — outlines stay clean and minimal, no
         // inner highlight, no gradient.
+        //
+        // Hover was `hover:bg-secondary hover:text-secondary-foreground` — a
+        // SOLID sand fill that replaced the translucent background outright,
+        // which is the "square grey background on hover" the owner reported.
+        // `.ctl-tint` is the unfilled-surface arm of the one treatment: an
+        // 8% olivewood wash, the same wash every other unfilled control in
+        // the app now gets. The text colour no longer changes with it — an
+        // outline button inherits its ink and had no reason to restate it.
         outline:
-          "border border-border/60 bg-background/70 backdrop-blur-md hover:bg-secondary hover:text-secondary-foreground " +
+          "ctl-tint border border-border/60 bg-background/70 backdrop-blur-md " +
           ELEV_OUTLINE,
         // Secondary / parchment-tint: shadow + highlight + press, no gradient.
+        //
+        // This one is FILLED (sand), so it takes the filled arm — a tint by
+        // filter, because a `bg-*` on hover would swap the fill rather than
+        // tint it. `brightness-95` darkens, where the old `hover:bg-secondary/80`
+        // went more transparent and therefore LIGHTER over the parchment page.
+        // Darker is the direction every unfilled control moves under
+        // `.ctl-tint`, so this is what makes secondary agree with ghost and
+        // outline rather than reading as a different species of button.
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 " + ELEV_FILLED,
+          "bg-secondary text-secondary-foreground hover:brightness-95 " + ELEV_FILLED,
         // Ghost / link: intentionally FLAT. No elevation — these read as
         // tertiary affordances and must not compete with filled CTAs.
-        ghost: "hover:bg-secondary hover:text-secondary-foreground",
+        // Same `.ctl-tint` wash as outline: a ghost and an outline button side
+        // by side must not hover differently, and they used to.
+        ghost: "ctl-tint",
         link: "link-standard text-primary shadow-none",
       },
       size: {

@@ -168,7 +168,7 @@ const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
     // h-11 w-11 (44x44), matching DialogContent. It was
     // h-10 w-10 with a 20px glyph — a third size and a third glyph in a set of
     // three controls that do one job.
-    className="absolute inline-flex h-11 w-11 items-center justify-center rounded-md ring-offset-background transition-colors hover:text-foreground active:scale-[0.94] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none"
+    className="absolute inline-flex h-11 w-11 items-center justify-center rounded-md ring-offset-background ctl-tint hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none"
     style={{
       top,
       right,

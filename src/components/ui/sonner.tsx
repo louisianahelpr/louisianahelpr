@@ -180,7 +180,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "!w-7 !h-7 !min-h-0 !min-w-0 !p-0 !rounded-full " +
             "!flex !items-center !justify-center after:absolute after:content-[''] after:-inset-2 " +
             "!bg-transparent !border-0 !shadow-none !text-[hsl(var(--olivewood)/0.65)] " +
-            "hover:!bg-[hsl(var(--olivewood)/0.10)] hover:!text-[hsl(var(--ink-deep))] " +
+            "hover:!bg-[hsl(var(--olivewood)/0.08)] hover:!text-[hsl(var(--ink-deep))] " +
             "!transition-colors !duration-150 focus-visible:!ring-2 focus-visible:!ring-[hsl(var(--bark)/0.45)]",
           cancelButton:
             "!bg-transparent !text-[hsl(var(--olivewood)/0.8)] !font-sans !font-semibold !rounded-full !px-3 !h-8",

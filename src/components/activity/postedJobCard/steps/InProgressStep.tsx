@@ -4,7 +4,7 @@ import { JobStepCard } from "@/components/activity/JobStepCard";
 import { JobActionChip } from "../../JobActionRow";
 import { SosShareButton } from "@/components/SosShareButton";
 import { PhotoProofDialog } from "@/components/PhotoProof";
-import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHero, DialogSecondaryAction } from "@/components/ui/dialog";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { CompletionChoiceSheet } from "@/components/activity/CompletionChoiceSheet";
 import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
@@ -299,8 +299,11 @@ export function InProgressStep(ctx: PosterStepCtx) {
               "Why?" has usually stopped reading the line above it, and the two
               halves are one explanation. Both strings come from the sweep's own
               module, so the card and the cron can never tell different stories.
-              No action button — the whole point is that there is nothing for
-              the poster to do here; the dialog's own close is the way out. */}
+              There is nothing for the poster to DO here, so the footer holds a
+              dismiss and nothing else — the shared shape's "dismiss only" case,
+              not an exemption from it. Leaving the X as the sole exit would
+              have made this the one popup in the app without a 44px way out,
+              which is the same inconsistency the owner reported in item 9. */}
           <Dialog open={whyOpen} onOpenChange={setWhyOpen}>
             <DialogContent>
               <DialogHero title={STALLED_APPROVE_DETAIL_TITLE} />
@@ -312,6 +315,9 @@ export function InProgressStep(ctx: PosterStepCtx) {
                   {STALLED_APPROVE_DISABLED_DETAIL}
                 </p>
               </div>
+              <DialogFooter>
+                <DialogSecondaryAction onClick={() => setWhyOpen(false)}>Close</DialogSecondaryAction>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
           {showApprove ? (

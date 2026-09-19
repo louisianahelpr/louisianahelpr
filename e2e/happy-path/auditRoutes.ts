@@ -336,6 +336,12 @@ export const ADMIN_VIEWS = [
   // narrow manual_review/failed appeal queue that replaced it (2026-08-29).
   "tiers", "idvreview", "marketing", "credentials",
   "exceptions",
+  // stalled — the Stuck Jobs queue (2026-09-19). A job left `in_progress` with
+  // no completion stamp on either side matched no sweep at all and held escrow
+  // indefinitely; the new cron escalates it here at +48h for a HUMAN decision.
+  // It is in this list because a queue about held money that no sweep ever
+  // renders is exactly the blind spot that produced it.
+  "stalled",
   // banreview — the queue the message-violation ladder escalates into now that
   // a permanent ban is a person's decision instead of something the offender's
   // own client handed itself (2026-08-25).

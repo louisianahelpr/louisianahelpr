@@ -206,7 +206,12 @@ export function enumKeyedMapHoles(files = productSources()): EnumMapHole[] {
  * a value the UI has never been told about.
  */
 export function enumMemberBranches(files = productSources()): Map<string, string[]> {
-  const members = new Set(Object.values(Constants.public.Enums).flatMap((m) => [...m]));
+  // Widened to Set<string> on purpose: inference gives the narrow union of
+  // every enum member, so `has(someString)` is a compile error. The whole job
+  // here is to ask about strings that may NOT be members.
+  const members: Set<string> = new Set(
+    Object.values(Constants.public.Enums).flatMap((m) => [...m] as string[]),
+  );
   const out = new Map<string, string[]>();
   const add = (m: string, site: string) => {
     if (!members.has(m)) return;

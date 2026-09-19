@@ -32,14 +32,16 @@ export default defineConfig({
     // instead. Deliberately NOT raising testTimeout/waitFor timeouts — that
     // would paper over genuine hangs, which is the failure mode we still want
     // to see. Override with VITEST_MAX_THREADS when you know the box is idle.
+    //
+    // 2026-09-19: these were nested under `poolOptions.threads` until today,
+    // which Vitest 4 REMOVED — it prints "`test.poolOptions` was removed in
+    // Vitest 4" and ignores the block. So the cap above was DEAD CONFIG and
+    // this 8-core box has been running 8 jsdom workers, which is precisely the
+    // condition the paragraph above describes. Top-level is the v4 home.
     pool: "threads",
-    poolOptions: {
-      threads: {
-        maxThreads: Number(process.env.VITEST_MAX_THREADS) ||
-          Math.min(2, Math.max(1, Math.floor(cpus().length / 2))),
-        minThreads: 1,
-      },
-    },
+    maxThreads: Number(process.env.VITEST_MAX_THREADS) ||
+      Math.min(2, Math.max(1, Math.floor(cpus().length / 2))),
+    minThreads: 1,
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     globalSetup: ["./src/test/gateLockGlobalSetup.ts"],

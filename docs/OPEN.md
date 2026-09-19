@@ -3808,3 +3808,57 @@ unreachable in every state, i.e. a deletion dressed as a gate.
 `arrivalGateMessage <-> posterConfirmationRung` pair — **the exact pair the 2026-09-19 deadlock lived
 in**; (2) dropping the near-miss read shrank the pair's state space and lost the path by which the
 poster's control IS enabled without `helper_arrived_at`. Both restored with the reason beside them.
+
+### DONE 2026-09-19 — the four other nightly reds, triaged and cleared
+**#1618 prod-audit was TWO DAYS FROM AN OUTAGE.** The sweep was green; the *strike check* failed.
+The contact-smuggling spec deleted its message but NOT what `apply_message_scan_consequence` wrote,
+and `message_violation_ladder` escalates on the COUNT of `user_violations` — so it climbed a rung a
+night: 09-15 `warning` -> 09-17 `final_warning` (ban_status stamped). **The next run would have put a
+7-day restriction on the account every prod workflow signs in as.** Spec now undoes the consequence
+ladder and proves it; prod repaired (2 violations + 18 fraud flags deleted, ban_status -> active).
+
+**#1597 a11y-webkit-prod COULD NEVER PASS.** Both sweep legs were green every night; the required
+diff job died in 2s with `usage:` and exit 2, because
+`files = args.filter(a => !a.startsWith("--"))` counted **`--out`'s VALUE** as a third report path.
+**Five nights of WKWebView evidence captured, uploaded, and never compared.** Fixed via VALUE_FLAGS;
+proven by re-running the fixed diff against run 35351014180's own artifacts -> exit 0.
+
+**#1582 press-every-control:** every teardown DELETE was 403. `return=representation` with no
+`select=` means `RETURNING jobs.*`, and `authenticated` holds SELECT on 109 of 110 columns
+(`offered_to_helper_id` withheld). **26 fixture jobs leaked onto prod** and were swept. Same
+forwarder class fixed in `harness.ts restAs`, `prod-audit-sweeper del()`, `audit-capture.mjs`,
+`create-app-review-demo-account.mjs`.
+
+**#1595 e2e-journeys:** 2 stale spec + 2 environmental. `TimePickerWheel.tsx:192` swapped to a native
+`<input type="time">` on web desktop on 2026-09-07 and took three chained specs down;
+`pickStartTime()` now drives whichever control the viewport renders. One `waitForTimeout(1_500)`
+raced the fixture's own 3-8s injected latency.
+
+**THE MECHANISM** `.github/workflows/nightly-red-age.yml`: the alerting was never broken — #1582 had
+EIGHT "Still red" comments. It failed at the last mile: **an unassigned issue is a list nobody is
+forced to read**, and these workflows run only on a schedule, so a push never reveals them. The new
+workflow FAILS THE NEXT PUSH on any `nightly-red`/`prod-down` issue open >24h, naming each with age
+and run URL. Escape hatch `nightly-red-ack`. `issues: read` only. Proven: the live list returns all
+five, oldest 158h.
+4 new guards, `npm run vacuity` 8/8 killed. **The representation guard took two passes — it was
+first satisfied by the COMMENT explaining the bug, then by a regex that only ASKED whether a select
+was present.** Same trap as the `font-serif` comment and the `poolOptions` comment earlier today.
+
+### NEW — user-facing: "Not Now" on the push prompt tells the user notifications are off
+`NotificationPanel.tsx:399` — pressing **"Not Now"** raises *"Notifications are off…"*. 20 a night in
+the sweep, and it hits **any real user who ever blocked notifications**. Decider is
+`pushPermissionNudge.ts:149`, which treats an already-`denied` browser state as "the browser refused"
+when the user dismissed OUR dialog. `useRequestPushPermission` (`nativePush.ts:504-522`) already
+computes the right answer and discards it. NOT FIXED — another lane owns those files.
+
+### NEW — prod profile load really is over budget
+`useCurrentUser.ts:230` + `ProtectedRoute.tsx:328-345`: 31 failures a night are one thing — a missed
+**6s** profile deadline painting "We couldn't load your account." Measured max **6237.9ms** against a
+6000ms budget. The auto-heal runs only AFTER the card paints. Decision needed: raise the budget, or
+make the heal pre-empt the error card.
+
+### NEW — LOW: `MobileNav.tsx:791` needs `aria-current="page"` on the FAB. One line, real a11y gain.
+
+### LOST FILE (disclosed by the lane, not discovered)
+`e2e/happy-path/zz-tmp-probe.spec.ts` — untracked, swept up in another lane's cleanup line and
+unrecoverable. Reported rather than hoped-over.

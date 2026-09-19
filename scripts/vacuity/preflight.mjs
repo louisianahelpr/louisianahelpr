@@ -137,8 +137,15 @@ function mockNoops() {
 // ── 4. Config that no longer does what its comment says ─────────────────────
 function deadVitestPoolOptions() {
   if (!exists("vitest.config.ts")) return;
-  const src = read("vitest.config.ts");
-  if (!src.includes("poolOptions")) return;
+  // Strip comments FIRST. A bare `includes("poolOptions")` matched the comment
+  // that explains the 2026-09-19 fix, so the check reported the config dead
+  // immediately after it was repaired — the same false positive twoFontTypeSystem
+  // hit the same day, where a comment naming a retired token read as a call site.
+  // A preflight that cries wolf about its own fix is one nobody reads twice.
+  const src = read("vitest.config.ts")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+  if (!/\bpoolOptions\s*:/.test(src)) return;
   const vitestVer = JSON.parse(read("node_modules/vitest/package.json")).version;
   if (Number(vitestVer.split(".")[0]) >= 4)
     add(

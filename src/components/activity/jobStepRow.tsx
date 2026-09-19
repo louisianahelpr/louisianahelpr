@@ -75,17 +75,36 @@ export const LABELLED_CHIP_MIN_PX = 68;
 /** The primary takes this many chip-widths while labels are showing. */
 export const PRIMARY_FLEX = 2;
 /**
- * An icon-only chip beside a primary — EXACTLY the 44px tap target.
+ * THE TAP TARGET IS A WIDTH FLOOR TOO — 44px, for every control in the row.
+ *
+ * `index.css` floors `min-height: 44px` on every button and floors NOTHING on
+ * the width, which is the hole a 12px primary shipped through: the row simply
+ * divided the pixels it had and painted the loser's label onto the card.
+ * Measured on prod 2026-09-19, both engines, at 320: helper `disputed`
+ * "Withdraw Dispute" 12px wide with 43px of label outside it; poster
+ * `disputed` "Resolve & Pay" 12px with 31px outside — the control that
+ * releases escrow.
+ *
+ * Nothing in CSS can fix that, because CSS has no way to say "and if they do
+ * not all fit, take one out". The floor is therefore enforced where the count
+ * is decided — `allocateJobStepRow` below — and `index.css` carries the same
+ * 44px as a last-ditch `min-width` so a stale measurement yields a clipped row
+ * inside the card's own `overflow-hidden` rather than a legible-looking
+ * control that is 12px wide.
+ */
+export const ROW_CONTROL_MIN_PX = 44;
+/**
+ * An icon-only chip beside a primary — EXACTLY the 44px tap target, the same
+ * number as {@link ROW_CONTROL_MIN_PX} because it IS that number.
  *
  * It was 48px, which is where the last type tier came from: four 48px chips at
  * 320px left the primary 40px, too narrow for "Resolve", so the row grew a
  * `[data-tight]` rung that stepped the primary down to 12px and stripped its
  * icon — a THIRD size and a THIRD shape, on the one control that most needs to
- * look like the others. At 44px the same row leaves the primary 56px, which
- * fits every primary label this app has at 11px, so the rung is gone (owner,
- * 2026-09-19: one treatment, tone and position are the only variables).
+ * look like the others. The rung is gone (owner, 2026-09-19: one treatment,
+ * tone and position are the only variables) and 44px is the floor instead.
  */
-export const ICON_CHIP_PX = 44;
+export const ICON_CHIP_PX = ROW_CONTROL_MIN_PX;
 
 /**
  * Should the secondary chips drop to icon-only?
@@ -124,18 +143,27 @@ export function shouldCompactJobStepRow({
 }
 
 /**
- * Once the chips are icon-only, how much room is left for the primary?
+ * Once the chips are icon-only, how much room is left for the primary SLOT?
  *
- * This used to be `shouldTightenJobStepPrimary`, a THIRD rung that answered
- * "is the primary still short?" by shrinking it — 12px type, no icon, no side
- * padding. That was the row's own answer to the owner's complaint being
- * written into the CSS: the main move ended up a different size and a
- * different shape from the chips beside it precisely when the row was most
- * crowded. The rung is deleted; `ICON_CHIP_PX` came down to the 44px tap floor
- * instead, which buys the primary the same pixels without changing what it is.
+ * This is not a policy, it is a transcription of what the browser does with
+ * `index.css`'s compact rung: each chip is `flex: 0 1 44px`, the primary slot
+ * is `flex: 1 0 …`, so the slot gets whatever the chips and the gaps leave.
+ * `chips` is the number of chip SLOTS actually rendered — after
+ * {@link allocateJobStepRow} has moved any that do not fit into the overflow
+ * control, and counting that control itself as one.
  *
- * Kept as a measurement so a future label that genuinely cannot fit is a
- * FAILING NUMBER somebody can read, not a silent step-down.
+ * ── THE NUMBER THIS DOC BLOCK USED TO ASSERT WAS FALSE ─────────────────────
+ * It said "four 44px icon chips at 320px leave the primary ~56px", from a row
+ * width of 256 that was stated and never measured. The row measures 212px at
+ * 320 (measured on prod, 2026-09-19, helper and poster `disputed`), so four
+ * chips leave 212 − 176 − 24 = **12px**, and that is exactly what shipped:
+ *
+ *     3 chips @320:  212 − 132 − 18 = 62px   ✓ fits "Withdraw"
+ *     4 chips @320:  212 − 176 − 24 = 12px   ✗ 43px of label on the card
+ *
+ * A wrong number in a comment is how this shipped past a green suite, so the
+ * arithmetic is now a test as well as a sentence — see
+ * `src/test/jobStepRowWidthFloor.test.tsx`.
  */
 export function primaryRoomAfterCompaction({
   width,
@@ -146,6 +174,152 @@ export function primaryRoomAfterCompaction({
 }): number {
   if (!width) return 0;
   return width - chips * ICON_CHIP_PX - JOB_STEP_ROW_GAP_PX * chips;
+}
+
+/**
+ * The width ONE control in the primary slot must have before its label starts
+ * painting onto the card: its longest word plus the control's own padding,
+ * never below the tap floor.
+ *
+ * Deliberately the LONGEST WORD and not the two-line ideal that
+ * `primaryNeedPx` measures for the compaction decision. Those are two
+ * different questions: "would this look squeezed?" (compaction, may say yes
+ * generously) versus "is this broken?" (this, must say yes only when a word
+ * genuinely cannot fit). Using the generous number here would take controls
+ * out of rows that render correctly today at 375.
+ */
+export function primaryControlFloorPx(longestWordPx: number): number {
+  return Math.max(ROW_CONTROL_MIN_PX, longestWordPx);
+}
+
+export interface JobStepRowAllocation {
+  /** Chips that stay in the row. */
+  visibleChips: number;
+  /** Chips that move into the overflow control. 0 when everything fits. */
+  overflowChips: number;
+  /** Chip SLOTS the row draws — `visibleChips` plus the overflow control. */
+  chipSlots: number;
+  /** Width the whole primary slot ends up with, 0 when there is no primary. */
+  primaryPx: number;
+  /** Width EACH control inside the primary slot ends up with (they are equal
+   *  flex children), 0 when there is no primary. */
+  perPrimaryPx: number;
+  /** Width each chip ends up with. */
+  chipPx: number;
+}
+
+/**
+ * HOW MANY CONTROLS THIS ROW CAN ACTUALLY HOLD, and what each one gets.
+ *
+ * The row is ONE row that never wraps (owner, VN-21) and every control in it
+ * is the same object (owner, 2026-09-19). Both of those are kept. What is no
+ * longer pretended is that a row of any length fits: at 320 the row measures
+ * 212px, and FIVE controls at the 44px tap floor need
+ * `5×44 + 4×6 = 244px`. They do not fit, and no amount of shape-work makes
+ * them — the honest answer is that one of them has to leave the row.
+ *
+ *     capacity(212, primary needing 56px) = 3 chips  → 4 controls
+ *     capacity(262, primary needing 56px) = 4 chips  → 5 controls  (375)
+ *     capacity(1035, …)                   = no limit in practice   (1440)
+ *
+ * So: when the step wants more chips than fit, the last of them move into an
+ * overflow control (`JobStepOverflowChip`) that takes ONE chip slot and opens
+ * them in a panel. Nothing is dropped, nothing shrinks below the tap target,
+ * the row stays one row, and the overflow control is the same object as every
+ * other chip — one shape, still.
+ *
+ * WHAT THIS DELIBERATELY IS NOT: a second size, a second stack direction, or a
+ * `[data-tight]`-style rung. Those all answer "it does not fit" by making the
+ * control smaller, which is the bug this replaces.
+ *
+ * ── THE PRIMARY SLOT MAY HOLD MORE THAN ONE CONTROL ────────────────────────
+ * `primaryNeeds` is one entry per control in the slot, because two of them
+ * land there today: JobTracking portals "Try My Location Again" AND its
+ * next-step CTA through a single `JobStepRowSlot`, and on a day-of confirmation
+ * JobTracking's CTA and JobConfirmation's "I'm Still On" arrive through two
+ * separate ones. They are equal flex children (`index.css`), so the slot is
+ * sized to `n × the widest of them` — sizing it to the SUM would still leave
+ * the wider control short of its own need.
+ *
+ * `width` 0 means "not laid out" (hidden, or a test DOM): allocate nothing and
+ * take nothing out of the row, exactly as `shouldCompactJobStepRow` does.
+ */
+export function allocateJobStepRow({
+  width,
+  chips,
+  compact,
+  primaryNeeds,
+}: {
+  width: number;
+  chips: number;
+  /** The row's measured mode — the labelled layout has its own arithmetic and
+   *  only ever applies when everything already fits. */
+  compact: boolean;
+  /** Longest-word floor per control in the primary slot; empty = no primary. */
+  primaryNeeds: number[];
+}): JobStepRowAllocation {
+  const primaries = primaryNeeds.length;
+  const none: JobStepRowAllocation = {
+    visibleChips: chips,
+    overflowChips: 0,
+    chipSlots: chips,
+    primaryPx: 0,
+    perPrimaryPx: 0,
+    chipPx: 0,
+  };
+  if (!width) return none;
+
+  if (!compact) {
+    // Labelled. By construction `shouldCompactJobStepRow` said every chip's
+    // longest word and the primary's own need already fit their shares, so
+    // nothing leaves the row; report the geometry the shares produce.
+    const items = chips + (primaries ? 1 : 0);
+    const shares = chips + (primaries ? PRIMARY_FLEX : 0);
+    if (!shares) return none;
+    const share = (width - JOB_STEP_ROW_GAP_PX * Math.max(0, items - 1)) / shares;
+    const primaryPx = primaries ? share * PRIMARY_FLEX : 0;
+    return {
+      ...none,
+      primaryPx,
+      perPrimaryPx: primaries
+        ? (primaryPx - JOB_STEP_ROW_GAP_PX * (primaries - 1)) / primaries
+        : 0,
+      chipPx: share,
+    };
+  }
+
+  const floor = primaries ? Math.max(...primaryNeeds.map(primaryControlFloorPx)) : 0;
+  const primaryBlock = primaries
+    ? primaries * floor + JOB_STEP_ROW_GAP_PX * (primaries - 1)
+    : 0;
+  const roomForChips = width - primaryBlock - (primaries ? JOB_STEP_ROW_GAP_PX : 0);
+  const capacity =
+    roomForChips < ROW_CONTROL_MIN_PX
+      ? 0
+      : Math.floor((roomForChips + JOB_STEP_ROW_GAP_PX) / (ROW_CONTROL_MIN_PX + JOB_STEP_ROW_GAP_PX));
+
+  let visibleChips = chips;
+  let overflowChips = 0;
+  if (chips > capacity) {
+    // One of the slots goes to the overflow control itself. `capacity` 0 is
+    // the degenerate row — not reachable by any state in the app today, and
+    // `src/test/jobStepRowWidthFloor.test.tsx` fails if one arrives — so it
+    // still shows the overflow control rather than silently losing the chips.
+    visibleChips = Math.max(0, capacity - 1);
+    overflowChips = chips - visibleChips;
+  }
+  const chipSlots = visibleChips + (overflowChips ? 1 : 0);
+  const primaryPx = primaries ? primaryRoomAfterCompaction({ width, chips: chipSlots }) : 0;
+  return {
+    visibleChips,
+    overflowChips,
+    chipSlots,
+    primaryPx,
+    perPrimaryPx: primaries
+      ? (primaryPx - JOB_STEP_ROW_GAP_PX * (primaries - 1)) / primaries
+      : 0,
+    chipPx: ROW_CONTROL_MIN_PX,
+  };
 }
 
 /** Width of `text`'s longest word in `like`'s font — or, with `lines`, the
@@ -207,29 +381,66 @@ function primaryNeedPx(primaryHost: Element): number {
   return per.reduce((a, b) => a + b, 0) + JOB_STEP_ROW_GAP_PX * (buttons.length - 1);
 }
 
+/** The BREAKING point, per control in the primary slot: the longest single
+ *  word plus the control's padding. Below this a word paints outside its own
+ *  box — which is the defect, not a squeeze. (`primaryNeedPx` above answers
+ *  the softer "would this look squeezed?" for the compaction decision.) */
+function primaryWordNeeds(primaryHost: Element): number[] {
+  return [...primaryHost.children].map(
+    (b) => longestWordPx(b, (b.textContent || "").trim(), undefined, "11px") + 12,
+  );
+}
+
 export interface JobStepRowLayout {
   compact: boolean;
   hasPrimary: boolean;
   empty: boolean;
+  /** How the row's width divides up — and, when it does not go round, how
+   *  many chips move into the overflow control. */
+  alloc: JobStepRowAllocation;
 }
 
-/** Read the row as laid out and decide its mode. Called by JobStepCard on
- *  mount, on resize, and whenever the row's contents change. */
-export function measureJobStepRow(row: HTMLElement): JobStepRowLayout {
+/**
+ * Read the row as laid out and decide its mode. Called by JobStepCard on
+ * mount, on resize, and whenever the row's contents change.
+ *
+ * `wantedChips` is how many chips the STEP asked for, which is not always how
+ * many are in the DOM: once some have moved into the overflow control they are
+ * no longer children of the row. Measuring the DOM count instead would make
+ * the allocation oscillate (take chips out → more room → put them back).
+ */
+export function measureJobStepRow(row: HTMLElement, wantedChips: number): JobStepRowLayout {
   const primaryHost = row.querySelector<HTMLElement>(":scope > [data-job-step-primary]");
   const hasPrimary = !!primaryHost && primaryHost.childElementCount > 0;
   const chipEls = [...row.children].filter((c) => c !== primaryHost);
   const width = row.getBoundingClientRect().width;
   const empty = !hasPrimary && chipEls.length === 0;
-  if (!width) return { compact: false, hasPrimary, empty };
+  const idle: JobStepRowAllocation = {
+    visibleChips: wantedChips,
+    overflowChips: 0,
+    chipSlots: wantedChips,
+    primaryPx: 0,
+    perPrimaryPx: 0,
+    chipPx: 0,
+  };
+  if (!width) return { compact: false, hasPrimary, empty, alloc: idle };
   const chipNeed = chipEls.reduce((m, c) => Math.max(m, chipNeedPx(c)), 0) || LABELLED_CHIP_MIN_PX;
   const primaryNeed = hasPrimary && primaryHost ? primaryNeedPx(primaryHost) : 0;
+  // Compaction is decided on what the step WANTS in the row, for the same
+  // reason the allocation is: deciding it on the post-overflow count would let
+  // the labels come back, which would re-crowd the row that just made space.
   const compact = shouldCompactJobStepRow({
     width,
-    chips: chipEls.length,
+    chips: wantedChips,
     hasPrimary,
     chipNeedPx: chipNeed,
     primaryNeedPx: primaryNeed,
   });
-  return { compact, hasPrimary, empty };
+  const alloc = allocateJobStepRow({
+    width,
+    chips: wantedChips,
+    compact,
+    primaryNeeds: hasPrimary && primaryHost ? primaryWordNeeds(primaryHost) : [],
+  });
+  return { compact, hasPrimary, empty, alloc };
 }

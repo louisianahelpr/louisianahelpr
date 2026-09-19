@@ -3845,6 +3845,28 @@ html.senior-mode *::after {
   flex: 1 1 0%;
   min-width: 0;
 }
+/* THE TAP TARGET IS A WIDTH FLOOR TOO — the hole a 12px primary shipped
+   through. The `:where(button)` block at the top of this file floors
+   `min-height: 44px` and floors NOTHING on the width, so when the row ran out
+   of pixels it simply divided what it had: measured on prod at 320 on
+   2026-09-19, "Withdraw Dispute" and "Resolve & Pay" each rendered 12px wide
+   with their labels painted onto the card behind them.
+
+   CSS cannot be the real fix — it has no way to say "and if they do not all
+   fit, take one out", which is the only honest answer at 212px (see
+   `allocateJobStepRow` in jobStepRow.tsx, and the arithmetic in
+   src/test/jobStepRowWidthFloor.test.tsx). This is the last ditch: if the
+   measurement is ever stale or absent, the row overflows INSIDE the card's own
+   `overflow-hidden` clip rather than rendering a control that is 12px wide and
+   a label that is not. It beats `min-w-0` on the control's own class because
+   the two attribute selectors out-rank a utility.
+
+   These two selectors are the row's complete child set: the primary slot's
+   controls, and every chip. */
+[data-job-step-row] > [data-job-step-primary] > *,
+[data-job-step-row] > :not([data-job-step-primary]) {
+  min-width: 44px;
+}
 /* NOTHING SIZES THE PRIMARY FROM HERE ANY MORE (owner, 2026-09-19, second
    report: "the buttons need to have the same size font and everything").
 

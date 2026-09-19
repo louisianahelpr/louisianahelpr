@@ -766,19 +766,23 @@ describe("VN-21 — icon-only chips instead of a second row", () => {
     // 1440: the row is ~1000px.
     expect(shouldCompactJobStepRow({ width: 1000, chips: 3, hasPrimary: true })).toBe(false);
     expect(shouldCompactJobStepRow({ width: 1000, chips: 4, hasPrimary: true })).toBe(false);
-    // 375: the row is ~311px. Primary + 2 chips still fits labels…
+    // 311px — near the real 375 row (262px, measured on prod 2026-09-19).
+    // Primary + 2 chips still fits labels…
     expect(shouldCompactJobStepRow({ width: 311, chips: 2, hasPrimary: true })).toBe(false);
     // …and 3–4 chips with no primary do too (Open: Share · Boost · Edit · Cancel).
     expect(shouldCompactJobStepRow({ width: 311, chips: 4, hasPrimary: false })).toBe(false);
   });
 
   it("drops chips to icon-only when 3–4 buttons would squeeze a label at 375 and 320", () => {
-    // 375: primary + 3 chips (Confirmed, On the Way).
+    // Widths are the function's arguments; the app's rows measure 262 at 375
+    // and 212 at 320. Primary + 3 chips (Confirmed, On the Way).
     expect(shouldCompactJobStepRow({ width: 311, chips: 3, hasPrimary: true })).toBe(true);
     // 375: primary + 4 chips (poster Disputed).
     expect(shouldCompactJobStepRow({ width: 311, chips: 4, hasPrimary: true })).toBe(true);
-    // 320: primary + 2 chips.
+    // A narrower row still, primary + 2 chips.
     expect(shouldCompactJobStepRow({ width: 256, chips: 2, hasPrimary: true })).toBe(true);
+    // …and the REAL 320 row is narrower than either of those.
+    expect(shouldCompactJobStepRow({ width: 212, chips: 3, hasPrimary: true })).toBe(true);
   });
 
   it("measures WORDS: short labels stay labelled in a row a long word would not fit", () => {
@@ -796,15 +800,23 @@ describe("VN-21 — icon-only chips instead of a second row", () => {
     // stripping its icon, which is how the row ended up with three type sizes
     // and two shapes. `ICON_CHIP_PX` came down from 48 to the 44px tap floor
     // instead, so the primary gets the pixels without changing what it is.
-    // 375, three icon-only chips: 311 - 3×44 - 18 = 161px for the primary.
+    //
+    // THE WIDTHS BELOW ARE THE FUNCTION'S ARGUMENTS, NOT THE APP'S ROW.
+    // 311 and 256 were written here as "375" and "320" and were never
+    // measured; the row is 262px at 375 and 212px at 320 (measured on prod,
+    // 2026-09-19). At the real 212, four icon chips leave the primary 12px —
+    // which is what shipped, and what `src/test/jobStepRowWidthFloor.test.tsx`
+    // now fails on. These cases stay as pure arithmetic over the formula.
     expect(primaryRoomAfterCompaction({ width: 311, chips: 3 })).toBe(161);
-    // 320, FOUR icon-only chips — the widest row in the app (poster Disputed,
-    // helper Disputed with the photo capture): 256 - 4×44 - 24 = 56px. Every
-    // primary label this app has fits its longest word in that at 11px.
     expect(primaryRoomAfterCompaction({ width: 256, chips: 4 })).toBe(56);
     // At 48px chips the same row left 40px, which is where the 12px rung came
     // from. The constant is the fix; this pins that it moved.
     expect(primaryRoomAfterCompaction({ width: 256, chips: 4 })).toBeGreaterThan(40);
+    // …and the REAL 320 row, which is the number that matters: four chips
+    // leave 12px, so a row of five controls cannot be drawn at 320 at all.
+    // `allocateJobStepRow` is what stops it being drawn anyway.
+    expect(primaryRoomAfterCompaction({ width: 212, chips: 4 })).toBe(12);
+    expect(primaryRoomAfterCompaction({ width: 212, chips: 3 })).toBe(62);
     expect(primaryRoomAfterCompaction({ width: 0, chips: 4 })).toBe(0);
   });
 

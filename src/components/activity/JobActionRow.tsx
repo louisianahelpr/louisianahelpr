@@ -1,6 +1,7 @@
-import type { CSSProperties, ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
+import { useState, type CSSProperties, type ReactNode } from "react";
+import { MoreHorizontal, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 /**
  * The icon-over-label action row shared by the activity job cards.
@@ -434,6 +435,61 @@ export function JobStepPrimaryButton({
       <Icon className={`w-4 h-4${iconClassName ? ` ${iconClassName}` : ""}`} />
       <span className={JOB_ROW_LABEL_CLASS}>{label}</span>
     </Button>
+  );
+}
+
+/**
+ * THE OVERFLOW CHIP — where the chips go that the row cannot hold.
+ *
+ * At 320 the job step card's action row measures 212px. Five controls at the
+ * 44px tap floor need `5×44 + 4×6 = 244px`; they do not fit, and every way of
+ * making them fit is a second size or a second shape — which is the thing the
+ * owner has now asked twice to be rid of. So the row keeps its shape and loses
+ * a control instead: `allocateJobStepRow` decides how many chips fit, the last
+ * ones move in here, and this takes ONE of the chip slots.
+ *
+ * It is the same object as the chips it holds — `JOB_ACTION_CHIP_CLASS`, the
+ * neutral tone, the 11px label, the icon above it — because it IS one of them
+ * for layout purposes. Nothing about the row's one-shape rule is special-cased
+ * for it.
+ *
+ * The panel closes on any click inside it, so a chip in there behaves exactly
+ * as it does in the row: one tap, the action happens. (Its own dialogs live in
+ * the card's `dialogs` slot, outside this panel, so they open against the card
+ * as usual.)
+ */
+export function JobStepOverflowChip({ count, children }: { count: number; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={JOB_ACTION_CHIP_CLASS}
+          style={jobActionChipStyle("neutral")}
+          // Counted as a chip by the density gate, which is what it is.
+          data-job-action-chip=""
+          // How a test — and the shell's own measurement — tells this control
+          // apart from the chips the step asked for.
+          data-job-step-overflow=""
+          aria-label={`More — ${count} more action${count === 1 ? "" : "s"} for this job`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MoreHorizontal className="w-4 h-4" />
+          <span className={JOB_ROW_LABEL_CLASS}>More</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="w-[min(17rem,calc(100vw-1.5rem))] p-2"
+        onClick={() => setOpen(false)}
+      >
+        {/* Two up, so each chip keeps a readable label rather than the
+            icon-only treatment the crowded row forced on it. */}
+        <div className="grid grid-cols-2 gap-1.5">{children}</div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

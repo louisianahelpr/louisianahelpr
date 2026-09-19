@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { JobStepRowContext, hasRenderable, measureJobStepRow, type JobStepRowLayout } from "./jobStepRow";
+import { JobStepOverflowChip } from "./JobActionRow";
 
 /**
  * JobStepCard — the ONE structure every state of BOTH activity job cards is
@@ -142,16 +143,34 @@ export function JobStepCard({
     compact: false,
     empty: chips.length === 0 && !hasRenderable(primary),
     hasPrimary: hasRenderable(primary),
+    alloc: {
+      visibleChips: chips.length,
+      overflowChips: 0,
+      chipSlots: chips.length,
+      primaryPx: 0,
+      perPrimaryPx: 0,
+      chipPx: 0,
+    },
   });
+  // How many chips the STEP wants in the row, read from the DOM but corrected
+  // for the ones currently parked in the overflow control — measuring the raw
+  // DOM count would oscillate (take chips out, find room, put them back).
+  const overflowCountRef = useRef(0);
+  overflowCountRef.current = layout.alloc.overflowChips;
   useLayoutEffect(() => {
     const row = rowRef.current;
     if (!row) return;
     const measure = () => {
-      const next = measureJobStepRow(row);
+      const inRow = [...row.children].filter(
+        (c) => !c.hasAttribute("data-job-step-primary") && !c.hasAttribute("data-job-step-overflow"),
+      ).length;
+      const next = measureJobStepRow(row, inRow + overflowCountRef.current);
       setLayout((prev) =>
         prev.compact === next.compact &&
         prev.empty === next.empty &&
-        prev.hasPrimary === next.hasPrimary
+        prev.hasPrimary === next.hasPrimary &&
+        prev.alloc.visibleChips === next.alloc.visibleChips &&
+        prev.alloc.overflowChips === next.alloc.overflowChips
           ? prev
           : next,
       );
@@ -214,7 +233,18 @@ export function JobStepCard({
               rightmost. Its `flex: 2` (index.css) still makes it the widest
               slot — now on the right — so the hierarchy VN-21 set is kept,
               only the side changes. */}
-          {chips}
+          {/* WHAT THE ROW CAN HOLD, not what the step asked for. At 320 the
+              row is 212px and five controls at the 44px tap floor need 244px;
+              the last chips move into the overflow control, which takes one
+              chip slot and is the same object as the chips it holds. See
+              `allocateJobStepRow`. With no measurement (a test DOM, a hidden
+              card) `overflowChips` is 0 and every chip renders in place. */}
+          {layout.alloc.overflowChips > 0 ? chips.slice(0, layout.alloc.visibleChips) : chips}
+          {layout.alloc.overflowChips > 0 ? (
+            <JobStepOverflowChip count={layout.alloc.overflowChips}>
+              {chips.slice(layout.alloc.visibleChips)}
+            </JobStepOverflowChip>
+          ) : null}
           <div ref={setPrimaryHost} data-job-step-primary="" className="job-step-primary" />
         </div>
         {primaryHost && ownPrimary ? createPortal(ownPrimary, primaryHost) : null}

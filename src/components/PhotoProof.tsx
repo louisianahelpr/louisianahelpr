@@ -377,6 +377,42 @@ type PhotoProofGroupProps = {
   budget?: number;
 };
 
+/**
+ * "Before & after photos are required on this job" — the one red line that says
+ * a job is short of the proof its budget demands.
+ *
+ * It used to live inside PhotoProofGroup's panel. Item 10 (owner, 2026-09-19)
+ * replaced that panel on the job cards with a Photos chip + PhotoProofDialog,
+ * and the dialog shows photos and nothing else — so on the DISPUTED card the
+ * line silently disappeared. That is the one card where it matters most: a
+ * poster weighing a dispute is weighing exactly this evidence, and its absence
+ * reads as "proof is fine" rather than "proof is missing".
+ *
+ * Exported so the panel and the cards share ONE definition of the rule instead
+ * of the cards re-deriving it. Renders nothing when the proof requirement is
+ * met or not in force, so a host can mount it unconditionally.
+ */
+export const PhotoProofRequirementNote = ({
+  budget = 0,
+  beforeUrls,
+  afterUrls,
+  className = "",
+}: {
+  budget?: number;
+  beforeUrls: string[];
+  afterUrls: string[];
+  className?: string;
+}) => {
+  if (hasRequiredProof({ budget }, beforeUrls, afterUrls)) return null;
+  const { reason } = requiredProof({ budget });
+  if (!reason) return null;
+  return (
+    <p className={`text-ds-11 text-[hsl(var(--destructive-ink))] flex items-center gap-1 ${className}`}>
+      <Camera className="w-3 h-3" /> {reason}
+    </p>
+  );
+};
+
 export const PhotoProofGroup = ({
   jobId, beforeUrls, afterUrls, onUploaded = () => {}, canUpload = true, canUploadBefore, canUploadAfter, requireAfter = false, budget = 0,
 }: PhotoProofGroupProps) => {
@@ -473,10 +509,16 @@ export const PhotoProofGroup = ({
             photoProofPolicy): before & after on every job. The old note said
             "After-photos required for jobs $50+" — a rule none of the gates
             actually applied. */}
-        {requireAfter && !hasRequiredProof({ budget }, beforeUrls, afterUrls) && (
-          <p className="text-ds-11 text-[hsl(var(--destructive-ink))] flex items-center gap-1 mt-2">
-            <Camera className="w-3 h-3" /> {requiredProof({ budget }).reason}
-          </p>
+        {/* `requireAfter` stays the panel's own gate — the note decides only
+            whether the proof is short, not whether this host cares. Dropping it
+            here would start warning on panels that never asked to. */}
+        {requireAfter && (
+          <PhotoProofRequirementNote
+            budget={budget}
+            beforeUrls={beforeUrls}
+            afterUrls={afterUrls}
+            className="mt-2"
+          />
         )}
       </>
 

@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2, DollarSign, History, Image, LifeBuoy, Mess
 import { JobStepCard } from "@/components/activity/JobStepCard";
 import { JobActionChip, JobStepPrimaryButton } from "../../JobActionRow";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { PhotoProofDialog } from "@/components/PhotoProof";
+import { PhotoProofDialog, PhotoProofRequirementNote } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { posterDisputeControls } from "../posterDisputeControls";
 import { disputeSupportSubject } from "@/lib/supportSubject";
@@ -127,6 +127,19 @@ export function DisputedStep(ctx: PosterStepCtx) {
             }}
           />
         ) : null
+      }
+      notice={
+        /* The red requirement line survives the move to a chip. Item 10 sent
+           the photo PANEL away, and the dialog that replaced it shows photos
+           and nothing else — so this card, of all cards, lost the sentence
+           saying the proof is short. A poster deciding a dispute is deciding on
+           exactly that. It renders itself only when the proof is actually
+           missing, so it is mounted unconditionally. */
+        <PhotoProofRequirementNote
+          budget={job.budget}
+          beforeUrls={job.proof_before_urls || []}
+          afterUrls={job.proof_after_urls || []}
+        />
       }
       actions={[
         canEscalate ? (

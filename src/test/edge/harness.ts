@@ -486,6 +486,20 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/escrowTiming.ts";`,
   );
 
+  // Stalled-completion ladder: `_shared/stalledCompletion.ts` is pure TS whose
+  // only imports are other pure `_shared` modules (cancellationFee for the
+  // zone-correct anchor, arrivalNudge for the ledger type), so pointing at the
+  // REAL file resolves those naturally from its own directory. It is the one
+  // rule for "in_progress and nobody ever marked it done" that the sweep and
+  // the job card both read, so the sweep must be tested against the real one.
+  //
+  // The import list is matched across NEWLINES (`[^}]*` includes them) because
+  // this one is long enough to be wrapped and carries `type` members.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stalledCompletion\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stalledCompletion.ts";`,
+  );
+
   return out;
 }
 

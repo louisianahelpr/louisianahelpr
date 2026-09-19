@@ -404,7 +404,14 @@ export function LogisticsSection({
         aria-labelledby="start-time-label"
         aria-describedby={scheduleInPast ? "start-time-error" : undefined}
       >
-        <Label id="start-time-label">Start Time <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+        {/* The `*` is conditional because the requirement is. Ticking
+            "Flexible Schedule" below IS the answer to "when does this start?",
+            so a red required-marker over a field the form has stopped asking
+            for is the form contradicting itself. See the checkbox copy. */}
+        <Label id="start-time-label">
+          Start Time
+          {!isFlexibleSchedule && <span className="text-[hsl(var(--destructive-ink))]">{" *"}</span>}
+        </Label>
         <TimePickerWheel value={startTime} onChange={setStartTime} ariaLabel="Start time" />
         {/* Live, not submit-only: this clears the moment the poster moves the
             date or the time, so fixing it visibly changes the screen. */}
@@ -427,8 +434,21 @@ export function LogisticsSection({
           checked={isFlexibleSchedule}
           onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
         />
+        {/* COPY MOVED WITH THE BEHAVIOUR (2026-09-19). This used to read
+            "Helpr can start earlier or later on the scheduled day" — which
+            describes a job that HAS a time, i.e. a pure modifier. The box is
+            now a SUBSTITUTE for the start time (owner: "they also need times
+            unless they were checked off as flexible"), so that sentence was
+            wrong for the case it now enables, and the box would have been
+            the only thing on the screen still claiming a time was required.
+
+            Both readings are named on purpose, because both stay legal: with
+            Start Time left blank the flag stands IN PLACE OF a time (the job
+            card renders "Flexible" — see jobStartTimeLabel), and with a time
+            set it stands BESIDE it as a preference (the card renders the clock
+            time). One sentence, no second reading to guess at. */}
         <span className="text-ds-11 text-muted-foreground leading-snug">
-          <span className="font-medium text-foreground">Flexible Schedule</span> — Helpr can start earlier or later on the scheduled day
+          <span className="font-medium text-foreground">Flexible Schedule</span> — any time that day works. Leave Start Time blank, or set one the Helpr can shift either way.
         </span>
       </label>
 

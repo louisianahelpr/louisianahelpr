@@ -448,6 +448,9 @@ export function usePostJobForm() {
     zipCode,
     dateNeeded,
     startTime,
+    // Flexible stands IN PLACE OF a start time, so the completion check needs
+    // to see it — see UseJobDerivedParams.isFlexibleSchedule.
+    isFlexibleSchedule,
     parish,
     // Only a credit the server would actually accept feeds the money math.
     // An unusable one must quote FULL price, not $0 — being under-quoted and

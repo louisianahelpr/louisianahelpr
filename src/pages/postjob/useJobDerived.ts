@@ -40,6 +40,16 @@ export interface UseJobDerivedParams {
   zipCode: string;
   dateNeeded: string;
   startTime: string;
+  /**
+   * "Flexible Schedule" — the poster is NOT naming a start time at all; any
+   * time on the chosen day is fine. It is a SUBSTITUTE for `startTime`, not a
+   * modifier on one (owner, 2026-09-19: "they also need times unless they were
+   * checked off as flexible"), which is why `logisticsComplete` below accepts
+   * either. Leaving it out of this hook is what made the checkbox a no-op: the
+   * submit handler already treated it as a substitute, this file did not, and
+   * the stricter of the two won — 0 of 260 prod jobs ever carried the flag.
+   */
+  isFlexibleSchedule: boolean;
   parish: string | null;
   /**
    * Value of the gift card riding on this post, in dollars, or
@@ -107,6 +117,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
     zipCode,
     dateNeeded,
     startTime,
+    isFlexibleSchedule,
     parish,
     giftCardAmount = null,
   } = params;
@@ -207,7 +218,13 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // itself, drop its price, and name the field that is blocking it, all
   // through the machinery that already existed for the other required fields.
   const scheduleInPast = useScheduleInPast(dateNeeded, startTime);
-  const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime && !scheduleInPast);
+  // `startTime || isFlexibleSchedule`, not `startTime`. A flexible job has no
+  // start time BY DEFINITION, so requiring one here made the checkbox
+  // unreachable: it left the CTA disabled and reading "Pick a Start Time to
+  // Continue" for exactly the poster who had just said they did not have one.
+  // `isScheduleInThePast` returns false on an empty time, so the past-schedule
+  // conjunct below stays correct without a second branch.
+  const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && (startTime || isFlexibleSchedule) && !scheduleInPast);
   // The budget is always required now. It used to be optional in "Accept bids"
   // mode, where helpers named the price — that mode is gone
   // (PRICING_MODE_REMOVED in BudgetSection).

@@ -45,7 +45,10 @@ export function FormStep({ form }: FormStepProps) {
     if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
       submitLabel = "Add the Address to Continue";
     else if (!form.dateNeeded) submitLabel = "Pick a Date to Continue";
-    else if (!form.startTime) submitLabel = "Pick a Start Time to Continue";
+    // Only ask for a time when the poster has not said they don't have one.
+    // Ticking "Flexible Schedule" IS the answer to this question, so keeping
+    // the label here left the CTA demanding a field the form no longer wants.
+    else if (!form.startTime && !form.isFlexibleSchedule) submitLabel = "Pick a Start Time to Continue";
     // The schedule is filled in but has already gone by. This branch is why
     // `scheduleInPast` is surfaced separately from `logisticsComplete`: the
     // button used to read "Review & Pay · $72" in exactly this state and then

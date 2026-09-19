@@ -241,8 +241,13 @@ describe("Activity — whose move is it", () => {
     // used to read as "waiting" for applicants who can no longer come.
     expect(postedActivityBucket({ status: "open", date_needed: fmt(-2) }, 0)).toBe("needs_you");
 
-    // DAY granularity, not minute: today is never overdue, however late it is.
-    expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(0) })).toBe("scheduled");
+    // DAY granularity, not minute: today is never OVERDUE, however late it is.
+    // But it is LIVE — and since the owner's 2026-09-19 reorder put Scheduled
+    // below Waiting, a job happening today cannot sit in the calmer of the two
+    // buckets. Today lands in Needs You (see `jobIsLive`); Scheduled now means
+    // strictly "agreed, and still ahead of you". This assertion read
+    // "scheduled" until that reorder.
+    expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(0) })).toBe("needs_you");
     expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(1) })).toBe("scheduled");
 
     // Terminal states are unaffected — there is nothing left to chase.

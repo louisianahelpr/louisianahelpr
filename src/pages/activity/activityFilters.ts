@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { isPastDue } from "@/lib/jobDate";
+import { isPastDue, jobDateMs, todayMs } from "@/lib/jobDate";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 
@@ -68,15 +68,26 @@ const BUCKET_LABEL: Record<ActivityBucket, string> = {
 };
 
 /**
- * ORDER: Needs you · Scheduled · Waiting · Done · Cancelled (owner).
+ * ORDER: Needs you · Waiting · Scheduled · Done · Cancelled (owner, 2026-09-19).
  *
- * Not the lifecycle order — it runs by how much of the reader's attention each
- * one deserves. What is being asked of you comes first, what you have committed
- * to second, what you can do nothing about third, what is over fourth, and
- * what never happened last — it deserves the least attention of all five.
+ * It runs the job's own story: something is asked of you, then you are waiting
+ * on somebody else, then it is agreed and upcoming, then it is over, then it
+ * never happened. The two UNRESOLVED buckets sit together, then the settled
+ * one, then the two terminal ones.
+ *
+ * Supersedes Needs you · Scheduled · Waiting · Done · Cancelled (owner,
+ * 2026-08-30), which ranked by how much attention each deserved and put
+ * Scheduled second because a commitment outranks a wait.
+ *
+ * WHY THE SWAP IS SAFE NOW, AND WAS NOT BEFORE: the objection to demoting
+ * Scheduled was that it also held jobs happening TODAY and jobs already
+ * underway — putting a job that starts in an hour below a bucket that by
+ * definition needs nothing from you. `bucketFor` no longer files those under
+ * Scheduled at all (see `jobIsLive`); Scheduled is now purely "agreed and still
+ * ahead of you", which genuinely is the calmer of the two.
  */
 const BUCKET_FILTERS: StatusFilter[] = (
-  ["needs_you", "scheduled", "waiting", "done", "cancelled"] as ActivityBucket[]
+  ["needs_you", "waiting", "scheduled", "done", "cancelled"] as ActivityBucket[]
 ).map((key) => ({ key, label: BUCKET_LABEL[key], color: ALL_FILTER_COLOR }));
 
 export const POSTED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
@@ -143,6 +154,55 @@ function jobIsOverdue(j: { status?: string | null; date_needed?: string | null }
 }
 
 
+/**
+ * Is this job's day HERE — today, or already underway?
+ *
+ * The owner's 2026-09-19 reorder moved Scheduled below Waiting, and the one
+ * real objection was that Scheduled held today's work as well as next week's.
+ * A job starting in an hour is not a calm commitment, it is the thing most
+ * likely to need you — so it belongs in Needs You, and Scheduled keeps its
+ * plain meaning of "agreed, and still ahead of you".
+ *
+ * Day-grained and resolved in the PLATFORM's zone, exactly like `jobIsOverdue`
+ * above — `todayMs()` is America/Chicago midnight. The two rules are adjacent
+ * on purpose: together they say a job's day is either ahead of you (Scheduled),
+ * here (Needs You), or behind you (Needs You). There is no fourth answer, and
+ * nothing falls between them.
+ */
+function jobIsLive(j: { status?: string | null; date_needed?: string | null }): boolean {
+  if (j.status === "completed" || j.status === "cancelled") return false;
+  // THE DAY, not the status. An earlier draft also treated any `in_progress`
+  // job as live whatever its date, which re-broke the bucket-jumping bug the
+  // owner reported on 2026-08-28 ("My post jumps a lot between needs you and
+  // scheduled"): a job sitting `in_progress` with a revision back in the
+  // helper's hands would have been dragged into Needs You even though nothing
+  // was on the poster's desk. `jobIsOverdue` above already catches a job whose
+  // day has gone, so status adds nothing here that the calendar does not say.
+  const ms = jobDateMs(j.date_needed);
+  return ms !== null && ms === todayMs();
+}
+
+/**
+ * The poster asked for changes and the helper has not resubmitted.
+ *
+ * The exact inverse of the tail of {@link submissionAwaitingPoster}, kept
+ * separate because it answers a different question: not "is a submission
+ * waiting on me" but "is the ball demonstrably in the other court". Today's
+ * live rule must not override that — a job can be happening today and still be
+ * entirely somebody else's move.
+ */
+function workIsBackWithHelper(j: {
+  helper_completed_at?: string | null;
+  revision_requested_at?: string | null;
+}): boolean {
+  if (!j.revision_requested_at) return false;
+  const sentBack = Date.parse(j.revision_requested_at);
+  if (Number.isNaN(sentBack)) return false;
+  const submitted = j.helper_completed_at ? Date.parse(j.helper_completed_at) : NaN;
+  // No resubmission, or one that predates the send-back, means it is still out.
+  return Number.isNaN(submitted) || submitted <= sentBack;
+}
+
 /** Same comparison as the feed: expired once `expires_at <= now`. */
 export function listingHasExpired(expiresAt: string | null | undefined, now: Date = new Date()): boolean {
   if (!expiresAt) return false;
@@ -190,6 +250,21 @@ export function postedActivityBucket(
   // move is the poster's: chase the helpr, close it out, or re-post it. See
   // jobIsOverdue for why this is not a bucket of its own.
   if (jobIsOverdue(j)) return "needs_you";
+  // Today, or already underway. Scheduled is a promise about a day still
+  // AHEAD of you; once that day arrives the job is the most live thing on the
+  // screen and the reorder (owner, 2026-09-19) puts Scheduled below Waiting,
+  // so leaving it here would rank a job starting in an hour under one that
+  // needs nothing at all. An UNCONFIRMED booking stays Waiting even today —
+  // the move is still the helpr's, and the day arriving does not change whose.
+  if (
+    jobIsLive(j) &&
+    // An UNCONFIRMED booking stays Waiting even today — the move is still the
+    // helpr's, and the day arriving does not change whose it is.
+    (j.status !== "accepted" || j.helper_confirmed_at) &&
+    !workIsBackWithHelper(j)
+  ) {
+    return "needs_you";
+  }
   if (j.status === "in_progress") return "scheduled";
   if (j.status === "accepted") {
     // Booked and confirmed is scheduled; booked and unconfirmed is me waiting

@@ -82,9 +82,22 @@ export function forwarderSites(src: string): Array<{ line: number; context: stri
   return sites;
 }
 
-/** Does the forwarder name (or derive) the columns it asks back? */
+/**
+ * Does the forwarder name (or derive) the columns it asks back?
+ *
+ * COMMENTS ARE STRIPPED FIRST. The doc comment explaining this very bug sits
+ * directly above the code it explains and mentions `select=id`, so a naive
+ * grep read the explanation as the fix: `npm run vacuity` broke the derivation
+ * in pressProdSafety.mjs and this guard stayed green. A check that a comment
+ * can satisfy is not a check.
+ */
 export function namesItsColumns(context: string): boolean {
-  return /select=/.test(context);
+  const code = context
+    .split("\n")
+    .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l))
+    .map((l) => l.replace(/\/\/.*$/, ""))
+    .join("\n");
+  return /select=/.test(code);
 }
 
 // @mutate scripts/audit/pressProdSafety.mjs | `${pathAndQuery}${pathAndQuery.includes("?") ? "&" : "?"}select=id` | pathAndQuery

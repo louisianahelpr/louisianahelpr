@@ -467,4 +467,70 @@ describe("auto-release-payment edge function", () => {
     });
   });
 
+  /**
+   * THE DUE QUERY'S SCOPE, ASSERTED DIRECTLY.
+   *
+   * This could not be written before 2026-09-19. `.is()` was a chainable no-op
+   * in the Supabase double — its entire body was `return this;` — so a test
+   * asserting the presence OR the absence of `.is("revision_requested_at", null)`
+   * was green either way. The test directly above says so in its own comment:
+   * "Production relies on this: the due query excludes revision rows via
+   * `.is("revision_requested_at", null)`" — and then proves it only indirectly,
+   * through a seeded row count, because the clause itself was invisible.
+   *
+   * That guard is not decoration. Without it this sweep auto-completes and pays
+   * out a job the poster formally sent back for a revision, against a UI that
+   * has just promised them a 72-hour fix window and "Payment stays held until
+   * you confirm". The money is gone and the poster's revision request is the
+   * reason they were not watching.
+   *
+   * So the clause is now asserted as a clause. Deleting it from
+   * `auto-release-payment/index.ts` turns this red; nothing else in the repo
+   * goes red with it.
+   */
+  describe("the due query's scope", () => {
+    const dueRead = () =>
+      scenario.readQueries.find(
+        (q) => q.table === "jobs" && q.cols.includes("platform_fee_amount"),
+      );
+
+    it("excludes jobs with a revision in flight", async () => {
+      seedDueJob(scenario);
+      seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
+      const fn = await load();
+      await fn.fetch(cronRequest(fn));
+
+      const read = dueRead();
+      expect(read, "phase 1 never read the jobs table").toBeDefined();
+      expect(
+        read!.filters,
+        "The payout sweep must exclude jobs with a revision in flight, or it pays " +
+          "out work the poster formally sent back. Expected .is(\"revision_requested_at\", null) among:\n" +
+          JSON.stringify(read!.filters, null, 2),
+      ).toContainEqual({ op: "is", column: "revision_requested_at", value: null });
+    });
+
+    it("is scoped to escrowed, in-flight, non-seed jobs past the hold", async () => {
+      seedDueJob(scenario);
+      seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
+      const fn = await load();
+      await fn.fetch(cronRequest(fn));
+
+      const read = dueRead()!;
+      // Every clause of the WHERE, each one load-bearing: the status set and
+      // payment_status keep it off jobs that are not in escrow at all, is_seed
+      // keeps the nightly money journeys out of a real payout run, and the
+      // .or() is the 24h hold itself.
+      expect(read.filters).toContainEqual({
+        op: "in",
+        column: "status",
+        value: ["in_progress", "revision_requested", "accepted"],
+      });
+      expect(read.filters).toContainEqual({ op: "eq", column: "payment_status", value: "escrow" });
+      expect(read.filters).toContainEqual({ op: "eq", column: "is_seed", value: false });
+      const hold = read.filters.find((f) => f.op === "or");
+      expect(String(hold?.value)).toMatch(/poster_completed_at\.lte\..+helper_completed_at\.lte\./);
+    });
+  });
+
 });

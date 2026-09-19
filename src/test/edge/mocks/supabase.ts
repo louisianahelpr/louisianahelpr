@@ -14,6 +14,54 @@ import { vi } from "vitest";
 
 type Row = Record<string, unknown>;
 
+/**
+ * Every PostgREST clause this double records, by name.
+ *
+ * The list used to be `eq | neq | in | or` and everything else — `is`, `lte`,
+ * `gte`, `lt`, `gt`, `not`, `ilike` — was a chainable method whose whole body
+ * was `return this;`. `npm run vacuity`'s harness preflight measured what that
+ * cost: 16 edge functions call `.is()`, 8 call `.lte()`, 8 `.gte()`, 6 `.lt()`,
+ * 4 `.gt()`, so any test asserting the PRESENCE or the ABSENCE of one of those
+ * clauses was green either way. That is the same hole that made
+ * `stalled-completion-reminder`'s `.eq("is_seed", false)` — a sweep scoped so
+ * it could never touch the eleven prod rows it was written for — untestable
+ * until `readQueries` landed; it just moved one method along.
+ *
+ * `not` and `ilike` were worse than absent: they recorded themselves AS `neq`
+ * and `eq`, so a test reading the record could not tell `.not("x","is",null)`
+ * from `.neq("x", null)`, or an `ilike` pattern from an equality scope.
+ *
+ * Recording is ADDITIVE — the scenario still decides every result by table
+ * name, so no existing test changes behaviour; the clauses simply become
+ * visible.
+ */
+export type FilterOp =
+  | "eq"
+  | "neq"
+  | "in"
+  | "or"
+  | "is"
+  | "not"
+  | "ilike"
+  | "lt"
+  | "lte"
+  | "gt"
+  | "gte";
+
+export interface RecordedFilter {
+  op: FilterOp;
+  column: string;
+  value: unknown;
+  /** Only `not`, which is `(column, operator, value)` in PostgREST. */
+  operator?: string;
+}
+
+/** `.order(column, { ascending })`, in the order the chain applied them. */
+export interface RecordedOrder {
+  column: string;
+  ascending: boolean;
+}
+
 export interface TableResult {
   /** Rows to return for a read (.single / .maybeSingle / awaited select). */
   rows?: Row[];
@@ -101,7 +149,7 @@ export interface SupabaseScenario {
     table: string;
     op: "insert" | "update" | "delete";
     payload: unknown;
-    filters: Array<{ op: "eq" | "neq" | "in" | "or"; column: string; value: unknown }>;
+    filters: RecordedFilter[];
     /**
      * The column list passed to the write's trailing `.select(...)`, or null
      * when the write did not end in one.
@@ -127,9 +175,24 @@ export interface SupabaseScenario {
    * written for — all of them fixtures. Nothing in the harness could tell that
    * query from an unscoped one, because filters are no-ops for matching here.
    *
-   * Only the filter methods that record (`eq`/`neq`/`in`/`or`) appear; `is`,
-   * `lte` and friends are still chainable no-ops, so assert ABSENCE of an
-   * equality scope, never absence of every possible clause.
+   * EVERY filter clause the builder implements now records here: `eq`, `neq`,
+   * `in`, `or`, `is`, `not`, `ilike`, `lt`, `lte`, `gt`, `gte` — each under its
+   * OWN op, so `.not("x","is",null)` no longer reads back as a `neq` and an
+   * `ilike` pattern no longer reads back as an equality scope. `limit` and
+   * `order` record too, in their own fields below, because "did this sweep cap
+   * itself at 50 rows" and "did it take the oldest first" are behaviours, not
+   * decoration.
+   *
+   * WHAT STILL DOES NOT RECORD, so nobody assumes more than is true:
+   *   - `.range(from, to)`, which is not a filter — it really slices, and a
+   *     test asserts it through the rows it gets back;
+   *   - `.single()` / `.maybeSingle()` / `.csv()`-style terminators;
+   *   - anything the builder does not implement at all. A chain that calls a
+   *     method missing from this class throws, which is loud, not silent —
+   *     see the `.not` / `.ilike` notes below.
+   *   - filters are still NOT used for MATCHING. The scenario decides the
+   *     result by table name, so recording tells you what the code ASKED for,
+   *     never what the server would have returned for it.
    *
    * Additive: no existing scenario reads this, and an unused recording changes
    * no result.
@@ -137,7 +200,11 @@ export interface SupabaseScenario {
   readQueries: Array<{
     table: string;
     cols: string;
-    filters: Array<{ op: "eq" | "neq" | "in" | "or"; column: string; value: unknown }>;
+    filters: RecordedFilter[];
+    /** `.limit(n)`, or null when the read asked for no cap. */
+    limit: number | null;
+    /** `.order(...)` calls, in chain order. Empty when the read asked for none. */
+    order: RecordedOrder[];
   }>;
   /** Optional override: table name -> error to return on write. */
   writeErrors: Record<string, { message: string; code?: string }>;
@@ -229,9 +296,16 @@ export function resetSupabaseMock() {
 }
 
 /**
- * Chainable query builder. Filter methods (`eq`, `in`, `neq`...) are no-ops
- * for matching purposes — the scenario decides the result by table name —
- * but they ARE chainable and thenable so the function code runs unchanged.
+ * Chainable query builder. Filter methods are no-ops for MATCHING — the
+ * scenario decides the result by table name — but every one of them RECORDS
+ * what the code asked for (see `FilterOp`), and all are chainable and thenable
+ * so the function code runs unchanged.
+ *
+ * The distinction matters when reading an assertion: `readQueries`/`writes`
+ * answer "what did this function ask the database for", never "what would the
+ * database have answered". `.range()` is the single exception — it really
+ * slices, because `_shared/paginate.ts` decides it has reached the end of a
+ * table by getting a SHORT page back.
  */
 class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   private op: "select" | "insert" | "update" | "delete" = "select";
@@ -241,7 +315,11 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   private cols = "";
   /** Column list passed to a WRITE's trailing `.select(...)`. */
   private writeSelectCols: string | null = null;
-  private filters: Array<{ op: "eq" | "neq" | "in" | "or"; column: string; value: unknown }> = [];
+  private filters: RecordedFilter[] = [];
+  /** `.limit(n)`. Null means the chain asked for no cap. */
+  private limitValue: number | null = null;
+  /** `.order(column, opts)` calls, in chain order. */
+  private orders: RecordedOrder[] = [];
   /** Set by `.select(cols, { count: "exact" })`. */
   private wantsCount = false;
   /** Set by `.select(cols, { head: true })` — a count with no rows. */
@@ -320,7 +398,15 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
     this.filters.push({ op: "or", column: "", value: expression });
     return this;
   }
-  is() {
+  /**
+   * `.is(column, value)` — PostgREST's `IS` (null / true / false), and the only
+   * correct way to test for NULL. RECORDED, because it is very often the whole
+   * scope of a sweep: `.is("reminded_at", null)` is what stops a cron re-sending
+   * to everyone it already reminded, and an unrecorded one is a guard no test
+   * could assert either way. 16 edge functions call it.
+   */
+  is(column?: string, value?: unknown) {
+    this.filters.push({ op: "is", column: column ?? "", value });
     return this;
   }
   /**
@@ -335,7 +421,7 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
    * not be loaded by this harness at all.
    */
   ilike(column?: string, value?: unknown) {
-    this.filters.push({ op: "eq", column: column ?? "", value });
+    this.filters.push({ op: "ilike", column: column ?? "", value });
     return this;
   }
   /**
@@ -348,26 +434,53 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
    * saw a plausible-looking failure envelope instead of the behaviour it meant
    * to assert. `expire-subscriptions` opens with two `.not()` calls.
    */
-  not(column?: string, _operator?: string, value?: unknown) {
-    this.filters.push({ op: "neq", column: column ?? "", value });
+  not(column?: string, operator?: string, value?: unknown) {
+    this.filters.push({ op: "not", column: column ?? "", value, operator });
     return this;
   }
-  lte() {
+  /**
+   * The range comparators. All four RECORD, for the same reason `.is()` does:
+   * a sweep's window IS its behaviour. `auto-release-payment` is only correct
+   * because of `.lte("auto_release_at", now)`; a test that could not see that
+   * clause could not tell it from a sweep that releases everything, today.
+   * Measured callers: 8 `.lte()`, 8 `.gte()`, 6 `.lt()`, 4 `.gt()`.
+   */
+  lte(column?: string, value?: unknown) {
+    this.filters.push({ op: "lte", column: column ?? "", value });
     return this;
   }
-  gte() {
+  gte(column?: string, value?: unknown) {
+    this.filters.push({ op: "gte", column: column ?? "", value });
     return this;
   }
-  lt() {
+  lt(column?: string, value?: unknown) {
+    this.filters.push({ op: "lt", column: column ?? "", value });
     return this;
   }
-  gt() {
+  gt(column?: string, value?: unknown) {
+    this.filters.push({ op: "gt", column: column ?? "", value });
     return this;
   }
-  limit() {
+  /**
+   * `.limit(n)` — recorded, NOT applied. 30 edge functions call it, and the
+   * number is load-bearing in both directions: a batch cap that is too low
+   * silently leaves a backlog undrained, and one applied to a read the code
+   * then treats as the whole table is a silently short answer. The rows the
+   * scenario hands back are still the rows it seeded, so a test that wants to
+   * exercise truncation seeds fewer rows or sets `count` above `rows.length` —
+   * this records the ASK.
+   */
+  limit(n?: number) {
+    this.limitValue = typeof n === "number" ? n : null;
     return this;
   }
-  order() {
+  /**
+   * `.order(column, { ascending })` — recorded, NOT applied. 16 edge functions
+   * call it; "oldest first" is the difference between a drain that clears a
+   * backlog and one that starves it.
+   */
+  order(column?: string, opts?: { ascending?: boolean }) {
+    this.orders.push({ column: column ?? "", ascending: opts?.ascending !== false });
     return this;
   }
   /**
@@ -392,6 +505,8 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
         table: this.table,
         cols: this.cols,
         filters: this.filters,
+        limit: this.limitValue,
+        order: this.orders,
       });
       const base = scenario.reads[this.table] ?? {};
       const override = base.selectOverrides?.find((o) => this.cols.includes(o.includes));

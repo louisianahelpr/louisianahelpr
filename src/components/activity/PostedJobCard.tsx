@@ -157,6 +157,36 @@ function PostedJobCardInner({
   ) : null;
   const trackerCarriesTile = showsTracker && !unfunded && !!job.helper_id;
 
+  /* CONTESTED — a dispute or a revision request. Both are live decisions the
+     poster is standing in front of, and both are where the owner reported the
+     tracker "going away" (2026-09-19). 9a39abbea fixed the half of that inside
+     the tracker (the MAP vanished on a submitted-then-contested job); this is
+     the other half — the whole tracker is behind the expand, so a COLLAPSED
+     contested card showed none of it at all. */
+  const contested = job.status === "disputed" || job.status === "revision_requested";
+
+  /* THE TRACKER, BUILT ONCE AND PLACED IN ONE OF TWO SPOTS.
+     Expanded it stays exactly where it has always been, below the brief and the
+     state chips. Collapsed it renders ONLY for a contested job, directly under
+     the title (owner, 2026-09-19: un-gate it for `disputed` and
+     `revision_requested`, nothing else). Every other status keeps its collapsed
+     height to the pixel, because `contested` is the only thing that lets this
+     through — and the card body itself is NOT un-gated, only the tracker.
+
+     `personTile` is gated on `isExpanded` INDEPENDENTLY of the tracker's own
+     gate: the Helpr's name must not appear on a collapsed card (V6, reaffirmed
+     by the owner 2026-09-19), so a collapsed contested card shows the tracker
+     WITHOUT the person box. Expanded, the tile is back in its slot between the
+     rail and the map. */
+  const trackerBlock = showsTracker && !unfunded ? (
+    <div onClick={(e) => e.stopPropagation()}>
+      {/* `embedded`: this card is already a JobCardShell glass card,
+          so the tracker renders without a box of its own (same fix
+          as HelperTrackerPanel; guard noNestedTrackerCard.test.ts). */}
+      <JobTracking embedded includePostingSteps personTile={isExpanded ? helperTile : null} jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} helperArrivalNearMissAt={(job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
+    </div>
+  ) : null;
+
   /**
    * Location · date · time — built ONCE and placed twice.
    *
@@ -316,6 +346,29 @@ function PostedJobCardInner({
                   Payment on hold
                 </span>
               </div>
+            )}
+            {/* THE TRACKER SURVIVES THE COLLAPSE — for a contested job only.
+                (owner, 2026-09-19: "the tracker should not go away for a
+                dispute or revision".)
+
+                9a39abbea kept the MAP alive through both statuses, but the
+                tracker as a whole still sat behind the expand, so the collapsed
+                Posts card for a disputed job — the card the owner was looking
+                at, the one that also carries the "Dispute open" badge directly
+                above — showed no tracker at all. A poster judging submitted
+                work needs the history in front of them, not one tap away.
+
+                SCOPED TIGHTLY: `contested` only. Every other status collapses
+                to exactly the height it does today, and nothing else from the
+                expanded body is un-gated — this is the tracker, alone. The
+                padding lives here rather than in `trackerBlock` so the expanded
+                placement inside `px-4 py-2.5` is byte-for-byte unchanged.
+
+                No person tile: `trackerBlock` passes `personTile` only when
+                expanded, so the Helpr's name still never prints on a collapsed
+                card (V6). */}
+            {!isExpanded && contested && trackerBlock && (
+              <div className="px-4 py-2.5">{trackerBlock}</div>
             )}
             {/* The series, made visible — parents only (see SeriesStrip). */}
             {!job.parent_job_id && (
@@ -519,15 +572,9 @@ function PostedJobCardInner({
                   designed — and the tracker is the better of the two, because
                   it also shows the ORDER the steps happen in. */}
 
-              {/* Visible live tracking */}
-              {showsTracker && !unfunded && (
-                <div onClick={(e) => e.stopPropagation()}>
-                  {/* `embedded`: this card is already a JobCardShell glass card,
-                      so the tracker renders without a box of its own (same fix
-                      as HelperTrackerPanel; guard noNestedTrackerCard.test.ts). */}
-                  <JobTracking embedded includePostingSteps personTile={helperTile} jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} helperArrivalNearMissAt={(job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
-                </div>
-              )}
+              {/* Visible live tracking — built once above (`trackerBlock`),
+                  because a CONTESTED job also draws it while collapsed. */}
+              {trackerBlock}
 
               {/* WHY THERE IS NO MAP — the honest state for an un-geocoded job.
                   (owner: "this should show map tracker when they're on the way")

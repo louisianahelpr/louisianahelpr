@@ -26,6 +26,7 @@ import { JobAddressLine } from "./appliedJobCard/JobAddressLine";
 import { ConfirmedSection } from "./appliedJobCard/ConfirmedSection";
 import { ActiveJobSection } from "./appliedJobCard/ActiveJobSection";
 import { DisputedSection } from "./appliedJobCard/DisputedSection";
+import { CardExpandedContext } from "./appliedJobCard/HelperTrackerPanel";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -156,9 +157,24 @@ function AppliedJobCardInner({
      block, collapsed or not), so counting it here would reserve a padded band
      for a child that no longer renders — the same empty-band defect
      STATUS_RENDERS_ACTIONS exists to stop on the poster's card. */
+  /* WHO CARRIES THE POSTER'S TILE — the tracker, or the body.
+     (owner, 2026-09-19: the profile goes under the tracker and above the map.)
+
+     Mirrors PostedJobCard's `trackerCarriesTile` exactly. These three booleans
+     are the SAME ones that mount a section containing HelperTrackerPanel, a few
+     rows down — ConfirmedSection / ActiveJobSection / DisputedSection — which
+     is the only place a tracker exists on this card. In every other state
+     (pending, offered, completed, reviewed, cancelled) there is no tracker for
+     the tile to sit in, so it keeps its old spot in the body; dropping it
+     outright there would delete the poster's profile from those cards, which is
+     V6 in reverse. The two are mutually exclusive: the name prints exactly once
+     either way, and never at all while collapsed. */
+  const trackerCarriesTile = isConfirmed || isActive || isDisputed;
+  const bodyCarriesTile = !trackerCarriesTile && !!(isExpanded && posterId && app.posterName);
   // The expanded body also has to render for the poster PersonTile (V6), even
-  // on a job with no description of its own to show.
-  const hasCardBody = showDescription || !!(isExpanded && posterId && app.posterName);
+  // on a job with no description of its own to show — but only while the body
+  // is the one printing it.
+  const hasCardBody = showDescription || bodyCarriesTile;
 
   /**
    * Location · date · time — built once, placed twice. Desktop puts it on the
@@ -195,7 +211,13 @@ function AppliedJobCardInner({
   );
 
   return (
-    <>
+    /* The card publishes its own expand state to HelperTrackerPanel, which sits
+       three files down (ConfirmedSection / ActiveJobSection / DisputedSection
+       are between them and are owned elsewhere). It reads ONE thing from it:
+       whether to hand the poster's PersonTile to the tracker. The sections
+       render with no expand gate, so without this the tile would print on a
+       COLLAPSED card — see the note on CardExpandedContext. */
+    <CardExpandedContext.Provider value={isExpanded}>
         <div ref={cardRef}>
         <JobCardShell
           expandable={!isMinimalCard}
@@ -317,8 +339,15 @@ function AppliedJobCardInner({
                 (`posterId` null after the poster deleted their account) has a
                 name to print but no profile, so it is skipped rather than
                 linking to `/user/null`. Avatar url isn't carried on this card's
-                data, so PersonTile derives a monogram from the name. */}
-            {isExpanded && posterId && app.posterName && (
+                data, so PersonTile derives a monogram from the name.
+
+                MOVED (owner, 2026-09-19): when this card draws a tracker the
+                tile rides INSIDE it, under the steps and above the map — see
+                `trackerCarriesTile` above and the `personTile` slot in
+                HelperTrackerPanel, which builds the identical tile because this
+                card is not what mounts the tracker. This spot is now only the
+                fallback for a state with no tracker to sit in. */}
+            {bodyCarriesTile && posterId && app.posterName && (
               <PersonTile
                 userId={posterId}
                 to={`/user/${posterId}`}
@@ -619,7 +648,7 @@ function AppliedJobCardInner({
           )}
         </JobCardShell>
         </div>
-    </>
+    </CardExpandedContext.Provider>
   );
 }
 

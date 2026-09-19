@@ -3564,3 +3564,65 @@ that hides a broken link behind a redirect and would silently re-route the arriv
   dialog would close the loop — needs a decision on which path is canonical.
 - **No rail badge count on the Stuck Jobs queue.** `getBadge` is fed by `Admin.tsx`'s stats loader,
   which only runs on the home view; a live count needs a new prod query. Flagged, not guessed.
+
+## THE CHECKING GAP — owner, 2026-09-19: "correct the checking to where this kind of thing is not missed. period." / "they're connected or complete... otherwise they're pointless"
+
+### THE STANDARD (now the rule; `CLAUDE.md` update pending)
+**Every check must demonstrate ONE of two things, mechanically, or it does not count:**
+1. **CONNECTED** — breaking the thing it guards makes it go red. A test that renders a component
+   directly proves the component; it proves NOTHING about the code that mounts it.
+2. **COMPLETE** — its inventory is derived from the world and provably covers it, with a non-empty
+   floor. A guard that iterates an empty set passes trivially.
+A check that shows neither is decoration, and worse than nothing: it occupies the space where a
+real check would go and makes the area look guarded.
+
+### WHY EACH OF TODAY'S FIVE WAS INVISIBLE (the diagnosis, not excuses)
+| Defect | Why no audit could see it | Class |
+|---|---|---|
+| Inbox hid 13 of 29 threads | Audits screenshot the TOP of a page; the blank was below the fold, after scrolling. JSDOM has no layout, so no unit test could see it either. | below-fold / post-interaction |
+| Escrow held forever | Every sweep had tests proving IT does what it says. Nothing asked "is every state covered by SOME sweep?" You cannot screenshot an absence. | absence / exhaustiveness |
+| Bad-GPS deadlock | Both halves correct, both tested. `arrivalGate.test.ts` asserted the copy NAMES the poster's tap — and passed — never asking whether that tap was reachable. | composition / reachability |
+| 14 of 34 admin links dead | A test PINNED the link string. It proved the link equalled a constant, never that it resolved. | pinned-but-unverified |
+| Nightlies possibly false-green | Playwright's browsers were not installed; the suite reported success without running one. | harness vacuity |
+**The single thread: we test that things are CORRECT, not that they are CONNECTED or COMPLETE.
+Four of the five had a passing test sitting right next to the bug.**
+
+### LANES BUILDING THE FIX (dispatched 2026-09-19)
+- **Anti-vacuity gate** — can each of the 132 `src/test/` guards actually fail? Covers: empty-inventory
+  vacuity, mount-wiring vacuity, harness vacuity, self-referential inventory, literal-vs-semantic.
+- **Reachability guard** — every instruction the app gives must name something reachable from that state.
+- **Exhaustiveness registry** — declared dimensions that must have no holes, both sides derived from source.
+All three were told: **the list of violations they find is the deliverable, not a green run.**
+
+### DONE — the dead-admin-link class — commit `0bf3fb1c5`
+**14 of 34 admin links emitted by edge functions were dead**, not the 2 we knew about: `?job=` ×2 and
+`?tab=payouts`/`?tab=disputes` ×12 (`tab` is read only by `AdminUsers`, and only for
+pending/approved/denied — `?tab=payouts` never routed anywhere). Fixed to real `?view=` targets.
+Guard `src/test/adminDeepLinkContract.test.ts` derives BOTH sides from the world: a comment-aware TS
+literal scanner over `supabase/functions/**` (a scan desync FAILS the guard rather than silently
+shrinking its input — it fired for real on a JSX template) vs Admin.tsx's real `View` union AND
+`VIEW_LABELS` keys parsed separately (drift between them fails) plus every `searchParams.get()`
+across `src/components/admin/**`. Anti-vacuity asserts the param list came from the components.
+**A NEAR-MISS WORTH KEEPING:** a stricter third rule was written, went red on
+`auto-resolve-disputes`' five `?view=disputes&job=<id>` links, and the "fix" (dropping `&job=`) was
+caught by `auto-resolve-disputes.test.ts` as a REAL regression — the param is part of
+`reminderKey(userId, title, link)`, so flattening it would make one job's reminder suppress every
+other job's for 24h. Rule dropped, reasoning recorded. **A param can be load-bearing for something
+other than routing.**
+HAND-BACK: `AdminDisputes.tsx` should copy `AdminJobs.tsx:161-171` (read `?job=`, open it, strip the
+param); then those five links open the dispute and the guard enforces it automatically.
+
+### REVERTED — a "deploy lag is not a defect" heuristic that masked a real defect
+`writeContract.test.ts` rejected `AdminStalledJobs`' two brand-new RPCs, whose only escape hatch is
+`write-contract.baseline.json` — the KNOWN DEFECTS list. Filing deploy lag there is wrong twice: it
+is not a defect, and it trains the habit of dropping real rejects in the same file to get green.
+I added a `pending` class (RPC defined in a local migration, absent from the prod snapshot).
+**Within minutes it swallowed `rpc_add_dispute_evidence`, a REAL baselined defect** — that function
+DOES exist on prod (verified live: `any_overload=1`) with a different signature, and the snapshot
+simply lacks the name. It also broke the suite's own can-fail proof by reclassifying a deliberately
+deleted function as `pending`. **Reverted rather than tuned** — the honest signal is "is the defining
+migration applied to prod?", and the snapshot carries NO metadata (keys: `functions`, `tables` only),
+so it cannot be computed offline.
+**PROPER FIX, open:** add `appliedMigrations` (from `supabase_migrations.schema_migrations`) to the
+snapshot on refresh (`.github/workflows/write-contract-refresh.yml`), then `pending` becomes exact.
+Until then the two RPCs are baselined, and this line is their OPEN.md entry.

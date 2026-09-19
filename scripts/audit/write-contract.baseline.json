@@ -1,6 +1,8 @@
 {
   "//": "Rejections accepted as KNOWN open defects. Every entry must have a line in docs/OPEN.md under Audit gaps; the vitest guard fails if an entry stops reproducing (stale) so this list can only shrink.",
   "accepted": [
-    "src/components/DisputeTimelineDialog.tsx|rpc|rpc_add_dispute_evidence|rpc_missing|function public.rpc_add_dispute_evidence does not exist"
+    "src/components/DisputeTimelineDialog.tsx|rpc|rpc_add_dispute_evidence|rpc_missing|function public.rpc_add_dispute_evidence does not exist",
+    "src/components/admin/AdminStalledJobs.tsx|rpc|admin_stalled_job_queue|rpc_missing|function public.admin_stalled_job_queue does not exist",
+    "src/components/admin/AdminStalledJobs.tsx|rpc|resolve_stalled_job_flag|rpc_missing|function public.resolve_stalled_job_flag does not exist"
   ]
 }

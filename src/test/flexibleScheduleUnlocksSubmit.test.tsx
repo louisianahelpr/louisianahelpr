@@ -220,6 +220,6 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
 });
 
 // The three edits that make Flexible a substitute, each proven load-bearing.
-// @mutate src/pages/postjob/useJobDerived.ts | (startTime || isFlexibleSchedule) | startTime
+// @mutate src/pages/postjob/useJobDerived.ts | (startTime \|\| isFlexibleSchedule) | startTime
 // @mutate src/pages/postjob/FormStep.tsx | !form.startTime && !form.isFlexibleSchedule | !form.startTime
 // @mutate src/components/postjob/LogisticsSection.tsx | {!isFlexibleSchedule && <span | {true && <span

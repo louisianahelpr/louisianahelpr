@@ -8,6 +8,35 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## Seed-fixture realism — address done (96bc774bc), three follow-ups OPEN (2026-09-19)
+Owner: "when i click directions, it gives directions to the town but not the actual
+address." The app was correct end to end (verified live: `get_jobs_for_my_applications`
+returns the full `location` to the hired helper, masked to the town for a pending
+applicant). The FIXTURE was the bug — 210 of 257 `is_seed` jobs held only a town.
+DONE: seven seed generators now write a real street address, 210 prod rows backfilled
+(`scripts/probes/seed-job-address-realism.prod.mjs`, is_seed-only; re-queried 257/257),
+and `src/test/seedFixtureAddressRealism.test.ts` + `src/test/enRouteAddressVisible.test.tsx`
+hold the line (7 `@mutate` registrations, all `killed`). Still open:
+
+- **The e2e address fixture is `"100 Audit Way, Baton Rouge, LA 99999"`** — a street
+  that does not exist and a ZIP that is not Louisiana's. 37 seeded rows carry it. It
+  PASSES `hasStreetAddress()`, so no guard catches it, and Directions on one of those
+  rows resolves to nothing. It is typed into the Street Address combobox by
+  `e2e/prod-lifecycle.spec.ts:159`, `e2e/journeys/fixtures.ts:264`,
+  `e2e/journeys/02-marketplace.spec.ts:227`, `e2e/prod-audit/interruptions.spec.ts:468`,
+  so changing it means re-proving the address autocomplete still resolves the new
+  value. Left alone deliberately; needs the e2e lane.
+- **The runtime half of the address check is not in CI.** It needs the service role,
+  because the anon `open_jobs_browse` view runs `mask_job_location()` over exactly the
+  column being checked — so it cannot be credential-free the way
+  `scripts/ci/guest-listing-horizon.mjs` is. Either add it to the credentialed leg of
+  `e2e-real-backend.yml`, or run it by hand after any seeding.
+- **Three `is_seed = false` jobs on prod are fixtures** (`4c44aa1b`, `c4d3df74`,
+  `24dd5b6b`, all created 2026-07-25 18:15:55, all `cancelled`, all town-only). They
+  pre-date the seed flag and are invisible to browse because they are cancelled, but
+  they are counted as real data by every `is_seed` sweep. See memory
+  `seed-flag-flip-is-the-launch-switch`.
+
 ## DONE 2026-09-15 (late) — V1–V6 visual batch (owner live-QA; owner: "do all six"). ALL SHIPPED + verified live on prod data at 375.
 Authed-session reuse method: memory handoff-2026-09-15-visual-batch-v1-v6 (test-signin-link → localStorage inject; reach the 375 map via Filters → VIEW → Map).
 - [x] **V1** (e6e9f7352) map pin-preview is a pin-anchored POPOVER, not a bottom sheet (owner decision). Placement computed each frame in the selected-pin sync loop from the pin's live screen point + card size; centred on the pin, clamped inside the map edges, prefers ABOVE and flips below when no room (dock band excluded); caret points at the pin. No close button to collide (closes on deselect/Escape). BrowseMap.tsx.

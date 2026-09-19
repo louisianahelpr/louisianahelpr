@@ -45,7 +45,16 @@
  * geometry (16px dots, measured to fit a 212px card at 320) is asserted in
  * `src/test/compactRailFits.test.ts`.
  *
+ * ALL THREE SECTIONS ARE MUTATED, because each mounts its own tracker and its
+ * own action row and a change could un-gate one of them alone. The first pass
+ * registered only `isConfirmed` and it SURVIVED — the fixture below is an
+ * in_progress job, which routes to ActiveJobSection, so un-gating the confirmed
+ * one changed nothing it rendered. That is the mutation doing its job: a case
+ * per section now exists, and each has a mutation that reaches it.
+ *
  * @mutate src/components/activity/AppliedJobCard.tsx | {isConfirmed && isExpanded && ( | {isConfirmed && (
+ * @mutate src/components/activity/AppliedJobCard.tsx | {isActive && isExpanded && ( | {isActive && (
+ * @mutate src/components/activity/AppliedJobCard.tsx | {isDisputed && isExpanded && ( | {isDisputed && (
  * @mutate src/components/activity/AppliedJobCard.tsx | {isDisputed && !isExpanded && (\n            <DisputeOpenBadge | {isDisputed && false && (\n            <DisputeOpenBadge
  * @mutate src/components/activity/AppliedJobCard.tsx | {!isMinimalCard && !isExpanded && (isOffered || isConfirmed || isActive || isDisputed) && ( | {false && (
  * @mutate src/components/activity/PostedJobCard.tsx | {!isExpanded && !contested && showsTracker && !unfunded && ( | {false && (
@@ -226,6 +235,21 @@ describe("Jobs: a collapsed card hides the tracker and the action row", () => {
     expect(row(), "the step card's action row is on a collapsed Jobs card").toBeNull();
   });
 
+  it("collapsed: the same holds for a CONFIRMED job (ConfirmedSection)", () => {
+    // One case per section. The three mount separate trackers and separate
+    // action rows, so a change can un-gate one of them on its own — which the
+    // mutation register caught when this file covered only the active one.
+    renderApplied(makeApp({}, { status: "accepted", helper_on_the_way_at: null, helper_arrived_at: null }), false);
+    expect(screen.queryByTestId("tracker"), "ConfirmedSection's tracker is on a collapsed card").toBeNull();
+    expect(row(), "ConfirmedSection's action row is on a collapsed card").toBeNull();
+  });
+
+  it("expanded: a confirmed card gets them back too", () => {
+    renderApplied(makeApp({}, { status: "accepted", helper_on_the_way_at: null, helper_arrived_at: null }), true);
+    expect(screen.getByTestId("tracker")).toBeInTheDocument();
+    expect(row()).not.toBeNull();
+  });
+
   it("expanded: both are back — the collapse hid them, it did not delete them", () => {
     renderApplied(makeApp(), true);
     expect(screen.getByTestId("tracker")).toBeInTheDocument();
@@ -246,6 +270,7 @@ describe("Jobs: a collapsed card hides the tracker and the action row", () => {
     expect(document.querySelector("[data-dispute-open-badge]")).not.toBeNull();
     expect(screen.getByText(/Payment on hold/i)).toBeInTheDocument();
     expect(row(), "the dispute's action row is on a collapsed card").toBeNull();
+    expect(screen.queryByTestId("tracker"), "DisputedSection's tracker is on a collapsed card").toBeNull();
   });
 
   it("collapsed + pending: the 'Seen' chip stays, Edit and Withdraw do not", () => {

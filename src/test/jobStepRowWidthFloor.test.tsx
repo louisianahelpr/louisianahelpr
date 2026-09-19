@@ -155,6 +155,19 @@ beforeAll(() => {
  */
 const ROW_PX: Record<string, number> = { "320": 212, "375": 262, "1440": 1035 };
 
+/**
+ * THE TAP TARGET, STATED HERE AND NOT IMPORTED — 44pt, Apple HIG, the same
+ * number `index.css` has floored `min-height` at since the app existed.
+ *
+ * Importing `ROW_CONTROL_MIN_PX` and then asserting against it would make this
+ * guard its own oracle: the day someone lowers the constant, every assertion
+ * lowers with it and the file stays green. (`npm run vacuity` caught exactly
+ * that — the `44 → 12` mutation SURVIVED the first draft of this file.) So the
+ * number is written out here, `index.css`'s own declaration is read off disk as
+ * the external witness, and the module's constant is checked against both.
+ */
+const TAP_TARGET_PX = 44;
+
 // ── THE 11px LABEL TYPE, AS A MODEL ─────────────────────────────────────────
 /**
  * jsdom resolves no font, so the shell's real probe (`longestWordPx`) measures
@@ -575,6 +588,22 @@ describe("every control in a job step row is at least as wide as its own label",
     expect(Object.keys(ROW_PX).length).toBe(3);
   });
 
+  it("the 44px floor is the app's own, and the row module has not quietly lowered it", () => {
+    // THE EXTERNAL WITNESS. `index.css` floors every button's HEIGHT at 44px
+    // (Apple HIG 44pt) and floors nothing on the width — the hole this guard
+    // exists for. Read off disk rather than imported, so the row module cannot
+    // move the number and take this file's assertions with it.
+    const css = readFileSync(join(ROOT, "src/index.css"), "utf8");
+    const heightFloors = [...css.matchAll(/min-height:\s*(\d+)px/g)].map((m) => Number(m[1]));
+    expect(heightFloors.length, "index.css declares no min-height floor at all").toBeGreaterThan(0);
+    expect(heightFloors, "index.css no longer floors a control at 44px").toContain(TAP_TARGET_PX);
+    // …and the same 44 is now floored on WIDTH, which is what shipped missing.
+    const widthFloors = [...css.matchAll(/min-width:\s*(\d+)px/g)].map((m) => Number(m[1]));
+    expect(widthFloors, "index.css floors no control WIDTH — the 12px hole is open again").toContain(TAP_TARGET_PX);
+    // The row's own constant must BE that number, not merely be consulted.
+    expect(ROW_CONTROL_MIN_PX, "the row module lowered the tap target").toBe(TAP_TARGET_PX);
+  });
+
   /** Everything this guard asserts about one state at one width. */
   function check(where: string, inv: RowInventory, width: number) {
     const chips = inv.chipLabels.length;
@@ -618,14 +647,16 @@ describe("every control in a job step row is at least as wide as its own label",
     if (alloc.chipSlots > 0) {
       expect(
         Math.round(alloc.chipPx * 10) / 10,
-        `${where}: chips get ${alloc.chipPx.toFixed(1)}px, under the ${ROW_CONTROL_MIN_PX}px tap target`,
-      ).toBeGreaterThanOrEqual(ROW_CONTROL_MIN_PX);
+        `${where}: chips get ${alloc.chipPx.toFixed(1)}px, under the ${TAP_TARGET_PX}px tap target`,
+      ).toBeGreaterThanOrEqual(TAP_TARGET_PX);
     }
 
     // 4. EVERY CONTROL IN THE PRIMARY SLOT CLEARS THE TAP TARGET **AND** ITS
     //    OWN LONGEST WORD. This is the assertion that shipped 12px.
     for (const label of inv.primaryLabels) {
-      const floor = primaryControlFloorPx(controlNeedPx(label));
+      // `Math.max` with the LOCAL 44, not just whatever `primaryControlFloorPx`
+      // decides — see TAP_TARGET_PX for why the oracle is not imported.
+      const floor = Math.max(TAP_TARGET_PX, primaryControlFloorPx(controlNeedPx(label)));
       expect(
         Math.round(alloc.perPrimaryPx * 10) / 10,
         `${where}: "${label}" gets ${alloc.perPrimaryPx.toFixed(1)}px but needs ${floor.toFixed(1)}px ` +

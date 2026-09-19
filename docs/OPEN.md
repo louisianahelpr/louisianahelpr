@@ -3862,3 +3862,82 @@ make the heal pre-empt the error card.
 ### LOST FILE (disclosed by the lane, not discovered)
 `e2e/happy-path/zz-tmp-probe.spec.ts` — untracked, swept up in another lane's cleanup line and
 unrecoverable. Reported rather than hoped-over.
+
+### DONE 2026-09-19 — group jobs PHASE 1: per-member lifecycle on the roster
+Commits `315fb0c72`, `951843598`, `cb942ea51`, `9f7bf02ea`. Migration
+`20260919192559_group_roster_per_member_lifecycle.sql`. **`GROUP_JOBS_ENABLED` is still `false`.**
+
+**THE TRAP IS REMOVED STRUCTURALLY, NOT GUARDED AGAINST.** The `jobs` UPDATE policy was NOT widened
+and neither `OLD.helper_id` early return was touched — **members 2..N never write `jobs` at all.**
+13 lifecycle columns on `group_job_helpers`, ALL server-owned via H-001's
+`current_user NOT IN ('authenticated','anon')` mechanism, plus 6 SECURITY DEFINER RPCs
+(`REVOKE ALL FROM PUBLIC, anon`, `GRANT TO authenticated, service_role`, `SET search_path`).
+`enforce_group_member_completion_gates` applies the SAME three gates per member — poster-confirmed
+arrival of THAT member, that member's own before/after photos, that member's own 30-minute floor —
+and **contains no `OLD.helper_id` test at all**, so it cannot be walked past by being someone else.
+That is the whole difference from the `jobs` triggers.
+**Owner semantic 1 built:** `rpc_group_member_mark_done` stamps `jobs.helper_completed_at` only when
+every slot is filled AND finished, under `FOR UPDATE` so two simultaneous finishers cannot both
+think they were last.
+
+**FOUND LIVE, WRITTEN DOWN NOWHERE — and PGlite missed it:** `enforce_job_tracking_arrival_gate`
+raises `tracker_not_assigned_helper` on `v_job.helper_id IS DISTINCT FROM NEW.helper_id` and
+early-returns only on `is_server_context()`. A SECURITY DEFINER RPC called BY a crew member is not a
+server context (`auth.uid()` is still theirs), so members 2..N could not have a tracker row at all.
+The live read caught what the local replay could not.
+
+**Four things `groupJobs.ts` (2026-09-01) did not know:** `helper_completed_at` is now server-owned
+(H-001), so half the (b) trap is already shut — but the column-whitelist half is fully live;
+`admin_release_dispute` now REFUSES a multi-member roster, so the "(b) releases money" framing is
+stale; today's arrival reversal changed the rule out from under it; and the roster grew two triggers.
+
+**1-HELPER PATH PROVEN UNCHANGED** (this was the thing that must not regress): the only
+single-helper object rewritten is `enforce_helper_completion_gates`, restated byte-for-byte from
+`pg_get_functiondef` plus one early return conjoined on `OLD.is_group_job IS TRUE` AND a
+transaction-local flag only the roll-up sets. PGlite 3x verbatim, 3 red before / 18 pass after;
+ACLs asserted against the catalog, not the file. `git status package.json package-lock.json` clean.
+`jobsGuardRpcParity` went RED when the crew branch was placed first — its Working assertion is a
+non-greedy first-match — so branch ORDER is now asserted with that reason attached.
+
+**PAYOUT — the even split ALREADY EXISTS and is correct.** `process-scheduled-payouts` fans escrow
+across the roster: one transfer, one idempotency key, one ledger row per member at
+`budget / helpers_needed` (urgent fee divided too), holding `payout_pending` until every member
+settles. `release-payout`, `admin_release_dispute` and `execute-dispute-split` all REFUSE a
+multi-member roster rather than pay 1-of-N.
+**What is missing is the TRIGGER, not the arithmetic.** Owner semantic 2 (each share releases on that
+member's own completion) is blocked on `payment_status` being a JOB-LEVEL scalar: it needs
+`payout_status`/`payout_scheduled_at` on the roster row, `auto-release-payment` + the payout cron
+selecting ROSTER ROWS not jobs, manual `release` paying one share, and the job's `payment_status`
+becoming a derived rollover — which changes what `money-reconciliation` calls stranded. **Four money
+functions. NONE built, as instructed.**
+
+### BREAKAGE (d) — reviews. OWNER DECISIONS NEEDED (verified live, not attempted)
+`UNIQUE (job_id, reviewer_id)`; `enforce_review_validity`, the INSERT policy and `can_review_job` all
+read the scalar `jobs.helper_id`. On a 3-person crew the poster gets ONE review and it may only name
+the lead; members 2..N can neither be reviewed nor review.
+**THE SILENT BREAKAGE:** `set_review_visibility` (the 14-day double-blind) finds a reciprocal by
+`reviewee_id = NEW.reviewer_id … LIMIT 1`. On a crew, the poster reviewing member B matches member
+A's review of the poster and **reveals both early**. Not a constraint change — the reciprocal must be
+keyed on the pair.
+**THE LADDER INFLATES:** `get_helper_tiers` counts reviews per `reviewee_id` with no per-job cap, so
+a 4-person crew job yields 4 helper reviews instead of 1 — "25 reviews -> Elite" arrives on a
+quarter of the jobs. Same shape in `get_public_profile_stats`.
+DECIDE: (i) does a poster write N reviews or one crew review — if N, does one bad member drag the
+others; (ii) does each member review the poster separately (N reviews of the same poster from one
+job); (iii) is a crew review worth 1/N toward a tier or a full 1; (iv) when does the double-blind
+window close when four people review at different times.
+
+### NEW — pre-existing, unrelated to crews: the review gate disagrees with itself
+`can_review_job` requires `payment_status = 'released'`; the INSERT policy allows `released` OR
+`payout_pending`. **The UI can hide the review control on a job the database would accept a review
+for.**
+
+### STILL REQUIRED before `GROUP_JOBS_ENABLED` can flip
+1. (d) reviews — owner decision above, then a migration. **No tripwire exists for it.**
+2. Per-member payout release (owner semantic 2) — the four-function design above.
+3. The crew UI — per-member Done, crew tracker, poster's per-member "Confirm They Arrived". The RPCs
+   exist; **nothing calls them.**
+4. **Drop `reject_new_group_jobs` in the SAME migration that flips the flag** — otherwise every
+   already-installed `.ipa`/`.apk` stays refused by the server.
+5. Deploy, then a prod xmin race proof of the roll-up — it cannot be run until the migration is live.
+Also: 13 new columns mean `src/integrations/supabase/types.ts` is stale after deploy.

@@ -3379,3 +3379,16 @@ are still chainable no-ops, so assert the absence of an EQUALITY scope, never of
 escalations only as `admin_alert` notifications and a Slack ops alert; no screen renders the queue.
 With fixtures now in scope, 11 seed jobs will escalate into a queue nobody can open. Decide whether
 a queue screen is wanted before those escalations land.
+
+### OWNER DECISIONS 2026-09-19 (fourth batch)
+- **Admin stalled-job queue: BUILD THE SCREEN.** `admin_stalled_job_queue()` and
+  `resolve_stalled_job_flag()` already exist (migration `20260919143637`) and have no call site.
+  Add a real admin-surface screen listing escalated stuck jobs with the resolve action wired to the
+  existing RPC. Rationale the owner accepted: an escalation is a notification that scrolls away, and
+  the decision it asks for is about HELD MONEY — it needs a durable worklist, not an alert.
+  QUEUED behind the browser-verification lane (it touches `src/pages/` + route registration).
+- **GPS encouragement: explain the benefit, do NOT block or nag.** Tell the Helpr plainly that a
+  GPS-verified arrival protects them in a dispute and gets confirmed faster, and make enabling it
+  one tap. Explicitly NOT chosen: warning that unverified arrivals count against them (reads as an
+  accusation to someone with genuinely bad signal), and prompting on every attempt. Feeds the
+  arrival-gate UI lane.

@@ -32,8 +32,20 @@
  *
  * @mutate src/components/activity/JobStepCard.tsx | {personTile}\n        <div\n          ref={rowRef} | <div\n          ref={rowRef}
  * @mutate src/components/activity/jobCardPerson.tsx | return present ? tile : null; | return null;
- * @mutate src/components/activity/PostedJobCard.tsx | const helperTile = isExpanded && job.helper_id ? ( | const helperTile = job.helper_id ? (
+ * @mutate src/components/activity/PostedJobCard.tsx | {!stepCarriesTile && helperTile} | {helperTile}
  * @mutate src/components/activity/AppliedJobCard.tsx | const bodyCarriesTile = !stepCarriesTile && posterTile !== null; | const bodyCarriesTile = posterTile !== null;
+ * @mutate src/components/activity/AppliedJobCard.tsx | const posterTile =\n    isExpanded && posterId && app.posterName ? ( | const posterTile =\n    posterId && app.posterName ? (
+ *
+ * A NOTE ON WHAT THE MUTATIONS PROVE, because the two cards are NOT symmetric
+ * here and one of them says so out loud. Dropping `isExpanded` from the tile on
+ * the HELPER card kills this file — its step cards render on a collapsed card,
+ * so that gate is the only thing holding V6. Dropping it on the POSTER card
+ * does NOT kill, and that is correct rather than a hole: every render site on
+ * that card (the step card and the body fallback) already sits behind
+ * `isExpanded`, so the gate there is defence-in-depth for the NEXT time the
+ * tile moves. The poster-side mutation therefore targets the mechanism that IS
+ * load-bearing on that card — the fallback standing down when the shell has
+ * claimed the tile, i.e. the "exactly once" rule.
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";

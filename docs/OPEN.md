@@ -3350,3 +3350,32 @@ shown the tradeoff — fake jobs in front of whoever works the admin queue — a
 chose it). `arrival-confirm-reminder` and `money-reconciliation` KEEP their
 `is_seed` scoping. The 11 currently-stuck seed jobs will be nudged and escalated
 on the first cron run after merge. Lane dispatched.
+
+### DONE 2026-09-19 — sweep scope: fixtures are swept too — commit `3f054566a`
+Owner overruled the `is_seed=false` scope for THIS sweep only. Exactly ONE place carried it:
+`supabase/functions/stalled-completion-reminder/index.ts:173` `.eq("is_seed", false)` — removed.
+The shared predicate (`_shared/stalledCompletion.ts`) never read `is_seed`; `admin_stalled_job_queue`
+and `resolve_stalled_job_flag` join on `escalated_at IS NOT NULL` + `has_role(...,'admin')` only.
+**No SQL object changed, so no migration was needed and none was written.**
+`arrival-confirm-reminder/index.ts:126` and `money-reconciliation/index.ts:337` KEEP their scope —
+now locked by an assertion so a future "consistency" edit fails CI. There is no shared scoping
+helper; each sweep writes its own filter, so nothing could have flipped all three at once.
+LIVE: the 11 stuck jobs re-confirmed today (11 seed, 0 real, 45h-237h past their local day end).
+The sweep does NOT exist on prod yet (`to_regclass('job_completion_nudges')` null, 0 cron rows,
+no `20260919143637` in `schema_migrations`) — `d738344c1` is unpushed. After merge -> db-deploy,
+cron daily 14:00 UTC: run 1 all 11 hit `first` (the ladder returns `first` whenever `first_sent_at`
+is null however old the row — the anti-compression guard), run 2 `second`, run 3 `escalate` ->
+11 queue rows + an `admin_alert` per admin per job + a Slack ops alert each. Money moves at no stage.
+
+### NEW — HARNESS GAP FOUND AND FIXED (why a seed-scoped sweep was untestable)
+The edge Supabase mock **recorded write filters but silently dropped READ filters**, so nothing in
+the harness could tell a seed-scoped sweep from an unscoped one — any test asserting what a sweep
+reads on was passing vacuously. Added `scenario.readQueries` (table, cols, recorded
+`eq`/`neq`/`in`/`or`), purely additive, all 797 edge tests green. **Documented caveat: `is`/`lte`
+are still chainable no-ops, so assert the absence of an EQUALITY scope, never of every clause.**
+
+### NEW — MEDIUM: the admin stalled-job queue has NO UI
+`admin_stalled_job_queue()` exists but has **no call site anywhere in `src/`**. Admins will see
+escalations only as `admin_alert` notifications and a Slack ops alert; no screen renders the queue.
+With fixtures now in scope, 11 seed jobs will escalate into a queue nobody can open. Decide whether
+a queue screen is wanted before those escalations land.

@@ -29,6 +29,41 @@ export const THREAD_CLOSED_TOAST =
   "This conversation closed 24 hours after the job was completed, so the message wasn't sent.";
 
 /**
+ * The CANCELLED variants (owner, 2026-09-19: a cancelled job's thread closes
+ * immediately, migration 20260919220233).
+ *
+ * A separate string, not a parameterised one, for a reason that is not
+ * stylistic: the completed copy states a RULE ("messaging ends 24 hours
+ * after a job is completed") and that rule is false for a cancellation —
+ * there is no 24-hour window and the job was never completed. Telling
+ * somebody whose job was just cancelled that it "was completed" is the kind
+ * of wrong that makes a user doubt everything else on the screen.
+ *
+ * Both say the same reassuring thing the completed pair says, because it is
+ * equally true and it is the question the reader actually has: the messages
+ * are still here. Nothing is deleted (see components/messages/threadAgeOut.ts
+ * for why that is a hard rule).
+ */
+export const THREAD_CANCELLED_NOTICE =
+  "This conversation is closed — the job was cancelled. You can still read everything here.";
+export const THREAD_CANCELLED_TOAST =
+  "This job was cancelled, so the conversation is closed and the message wasn't sent.";
+
+/**
+ * Pick the honest pair for a thread. `jobStatus` is the job's status as the
+ * inbox loaded it; anything that is not an explicit `cancelled` falls back to
+ * the completion copy, which is the only other way a thread can close today.
+ */
+export function threadClosedCopy(jobStatus: string | null | undefined): {
+  notice: string;
+  toast: string;
+} {
+  return jobStatus === "cancelled"
+    ? { notice: THREAD_CANCELLED_NOTICE, toast: THREAD_CANCELLED_TOAST }
+    : { notice: THREAD_CLOSED_NOTICE, toast: THREAD_CLOSED_TOAST };
+}
+
+/**
  * Slack for a refusal that lands a moment before the closing instant in
  * server time: request latency between the refused INSERT and the fresh
  * `server_now` read. Clock skew itself is corrected, not tolerated.

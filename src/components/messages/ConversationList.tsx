@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
-import { defaultInboxTab } from "@/lib/inboxDefault";
+import { coerceInboxView, defaultInboxTab, UNFILTERED_INBOX_TAB } from "@/lib/inboxDefault";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { CheckSquare, ChevronDown, Menu, MessageSquare, Pin, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -37,6 +37,8 @@ import {
   unarchiveConversation,
 } from "@/lib/archivedConversations";
 import type { Conversation } from "./types";
+import { serverNow } from "@/lib/messagingLockout";
+import { isThreadAgedOut, THREAD_AGE_OUT_DAYS } from "./threadAgeOut";
 
 /**
  * Job states that mean "this work is still running", for the Active inbox tab.
@@ -125,14 +127,24 @@ function byLastAtDesc(a: Conversation, b: Conversation): number {
 const MESSAGES_HEADER_PADDING = "!py-1.5 lg:!py-2";
 
 /**
- * The tab this inbox calls "unfiltered", read from the same function the
- * default-tab effect below seeds its state with — so the disclosure and the
- * seeding rule can never disagree about what "unfiltered" means. Mirrors
- * ActivityHeader's DEFAULT_STATUS_FILTER for exactly the same reason.
+ * The tab the inbox LANDS on, and the tab that means UNFILTERED — since
+ * 2026-09-19 these are two different values and the difference matters.
  *
- * The argument is the unread count; `defaultInboxTab` ignores it and always
- * answers "all" (owner, 2026-08-30 — see lib/inboxDefault.ts), so 0 is a
- * truthful stand-in for "whatever the rule says with nothing unread".
+ * The owner asked Messages to open on a slice with something in it and, shown
+ * the 2026-08-30 "the default view moved around depending on read state"
+ * history, chose Active over Unread (see lib/inboxDefault.ts for the full
+ * reasoning). So:
+ *
+ *   DEFAULT_INBOX_TAB    = "active" — where a visit starts.
+ *   UNFILTERED_INBOX_TAB = "all"    — where "show me everything" goes.
+ *
+ * Before today these were the same constant, and every "Show All" affordance
+ * was wired to the default. Leaving them conflated would have turned the
+ * empty-state button into a no-op that sets the tab it is already on.
+ *
+ * The argument to `defaultInboxTab` is the unread count; the rule ignores it
+ * (deliberately — that is what makes the landing tab stable), so 0 is a
+ * truthful stand-in for "whatever the rule says".
  */
 const DEFAULT_INBOX_TAB = defaultInboxTab(0);
 
@@ -214,8 +226,9 @@ export function ConversationList({
   // a pure local filter over `conversations`, so no debounce needed.
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  /* Which slice of the inbox. All is the default (owner, 2026-08-30) — see
-     defaultInboxTab in lib/inboxDefault.ts. Resolved once, on mount, from
+  /* Which slice of the inbox. ACTIVE is the default (owner, 2026-09-19) —
+     see defaultInboxTab in lib/inboxDefault.ts for why Active and not the
+     Unread rule that was removed on 2026-08-30. Resolved once, on mount, from
      the first load; changing tabs after that is the user's business.
 
      `null` means "not chosen yet" so the effect below can seed it as soon as
@@ -253,7 +266,16 @@ export function ConversationList({
      unreachable and the inline strip below had never once rendered in
      production. `isWebDesktop` is false at every phone width and on native at
      every size, so the phone rendering is byte-for-byte unchanged. */
-  const isDefaultInboxFilter = (inboxFilter ?? DEFAULT_INBOX_TAB) === DEFAULT_INBOX_TAB;
+  /* EVERY read of the filter goes through the coercion, never through the raw
+     state. `inboxFilter` is component-local and un-persisted, so today the
+     only writers are the tab strip, the overflow menu and the seeding effect
+     — but `"unread"` was a legal value until 2026-09-19 and this is a shipped
+     app: a session open across the change must not be left staring at a tab
+     that no longer exists, highlighted-nothing and empty. Unknown coerces to
+     the default (see coerceInboxView). `null` is preserved by the seeding
+     effect below, which owns the "not chosen yet" distinction. */
+  const inboxTab = coerceInboxView(inboxFilter);
+  const isDefaultInboxFilter = inboxTab === DEFAULT_INBOX_TAB;
   const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
   const tabsOpen = isWebDesktop || tabsOpenPhone;
   // A filter arriving LATER — the hamburger switching to Pinned / Recently
@@ -331,18 +353,52 @@ export function ConversationList({
   // substring match on the other person's name and the last-message
   // snippet — the two fields a user scans when hunting for a thread.
   // Empty query is a no-op (returns the full ordered list).
+  /* THE ALL TAB'S OWN SLICE — "everything, minus finished work old enough
+     that nothing can send you back to it" (owner, 2026-09-19: keep the
+     threads, auto-hide after a while, NEVER delete).
+
+     The rule, the 44-day derivation, the unread exemption and the three ways
+     an aged-out thread is still reachable all live in threadAgeOut.ts. Two
+     things are true here and nowhere else:
+
+       - It is applied ONLY to the All branch below. Active already excludes
+         finished work by status (LIVE_JOB_STATUSES), Unread is the exemption
+         itself, and Pinned / Recently Deleted are explicit human choices an
+         automatic age rule has no business overruling.
+       - `serverNow()`, never `Date.now()`. The closing instant it is measured
+         against was stamped by the server; comparing it to a device clock is
+         the same mistake the lockout notice was careful not to make.
+
+     `conversations` is already the archive-filtered inbox, so this composes
+     with the user's own archive rather than fighting it. Nothing is written. */
+  const allTabConversations = useMemo(() => {
+    const now = serverNow();
+    return orderedConversations.filter((c) => !isThreadAgedOut(c, now));
+  }, [orderedConversations]);
+
+  /* How many finished threads the age rule is currently holding back. Drives
+     the one line of copy that keeps "hidden" from reading as "lost" — see the
+     aged-out note rendered above the list. */
+  const agedOutCount = orderedConversations.length - allTabConversations.length;
+
   const filteredConversations = useMemo(() => {
-    // Tab first, then the search box. Searching inside the slice you are
-    // looking at is what a two-control list is expected to do; searching the
-    // whole inbox while a tab says "Unread" would make the tab a lie.
+    /* Tab first, then the search box. Searching inside the slice you are
+       looking at is what a two-control list is expected to do; searching the
+       whole inbox while a tab says "Active" would make the tab a lie.
+
+       THE ONE EXCEPTION is the age rule. A search that could not find a
+       finished thread would not be "hiding" it, it would be deleting it with
+       extra steps (threadAgeOut.ts names search as reachability path #1), so
+       when the search box has text the All branch reads the untrimmed list.
+       The age rule is about what a RESTING inbox shows, not about what the
+       app is willing to admit exists. */
+    const searching = !!searchQuery.trim();
     const byTab =
-      inboxFilter === "unread"
-        ? orderedConversations.filter((c) => c.unread > 0)
-        : inboxFilter === "active"
-          ? orderedConversations.filter(
-              (c) => c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus),
-            )
-          : inboxFilter === "pinned"
+      inboxTab === "active"
+        ? orderedConversations.filter(
+            (c) => c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus),
+          )
+        : inboxTab === "pinned"
             ? (() => {
                 // Real filter, not a stub: pin state already exists
                 // (swipe-to-pin, see orderedConversations above) — the
@@ -353,7 +409,7 @@ export function ConversationList({
                   pinnedSet.has(pinnedKey(c.jobId, c.otherUserId)),
                 );
               })()
-            : inboxFilter === "recentlyDeleted"
+            : inboxTab === "recentlyDeleted"
               ? (() => {
                   // Real filter, not a stub: archiving already exists (swipe
                   // action → archivedConversations.ts) and useMessagesData
@@ -368,7 +424,10 @@ export function ConversationList({
                     .filter((c) => isConvoArchived(userId, c.jobId, c.otherUserId, c.lastAt))
                     .sort(byLastAtDesc);
                 })()
-              : orderedConversations;
+              : /* ALL — the only tab the age rule trims, and only at rest. */
+                searching
+                ? orderedConversations
+                : allTabConversations;
     const q = searchQuery.trim().toLowerCase();
     if (!q) return byTab;
     return byTab.filter((c) => {
@@ -377,19 +436,23 @@ export function ConversationList({
       const title = c.jobTitle?.toLowerCase() ?? "";
       return name.includes(q) || snippet.includes(q) || title.includes(q);
     });
-  }, [orderedConversations, searchQuery, inboxFilter, userId, pinNonce, allConversations, archiveNonce]);
-  const isRecentlyDeletedView = inboxFilter === "recentlyDeleted";
+  }, [orderedConversations, allTabConversations, searchQuery, inboxTab, userId, pinNonce, allConversations, archiveNonce]);
+  const isRecentlyDeletedView = inboxTab === "recentlyDeleted";
   // Pinned and Recently Deleted both read a different source than the
   // default inbox (see filteredConversations above), so an empty default
   // inbox must not blank either of them out — see the render-gate comment
   // below where this is used.
-  const isSpecialFilterView = inboxFilter === "pinned" || isRecentlyDeletedView;
+  const isSpecialFilterView = inboxTab === "pinned" || isRecentlyDeletedView;
 
   // Seed the default tab from the FIRST loaded page, once. See the state decl.
   // The rule itself lives in `defaultInboxTab` so the app and its tests read it
-  // from ONE place: Unread when there IS unread, otherwise All. Opening a
-  // caught-up inbox on an empty Unread tab hid every thread the user had behind
-  // "You're all caught up", with nothing to say the tab had moved.
+  // from ONE place. Since 2026-09-19 that rule is a constant — Active — and it
+  // deliberately does NOT consult the count passed to it: a landing tab that
+  // depended on read state was what the owner removed on 2026-08-30.
+  //
+  // The count is still computed and still passed, because the module's
+  // contract is "ask this function, with the inbox's state, which tab to open
+  // on" — the day the rule needs state again, it is already here.
   useEffect(() => {
     if (inboxFilter !== null || conversations.length === 0) return;
     const unreadCount = conversations.reduce((n, c) => n + (c.unread > 0 ? 1 : 0), 0);
@@ -403,7 +466,8 @@ export function ConversationList({
 
   /* And the same thing for a TAB that filters everything out.
      `hasThreads` asks whether the whole inbox has anything, so it stayed true
-     while the Unread tab was showing nothing — and the list column rendered as a
+     while a narrow tab was showing nothing (it was the Unread tab at the time,
+     since removed; Active reproduces it exactly) — and the list column rendered as a
      blank white panel with no message at all. A caught-up inbox is a good
      outcome; it should say so rather than look broken. */
   const noTabMatches =
@@ -492,7 +556,7 @@ export function ConversationList({
   );
 
   // Are there threads to ACT ON? This gates every control on the page — the
-  // Unread/Active/All tabs, the Select/Search cluster, and the select-mode
+  // Active/All tabs, the Select/Search cluster, and the select-mode
   // action bar — none of which have anything to operate on without them.
   //
   // Note what it is NOT: the negation of "is the inbox empty". The gate used to
@@ -518,31 +582,40 @@ export function ConversationList({
   // band above the empty state.
   const hasThreads = !loading && !loadError && conversations.length > 0;
 
-  // Header second line, matching the Activity pages ("My Jobs" / "All · 4").
-  //
-  // Messages has no status filter, so there is no filter label to hoist — but
-  // an inbox does have one number worth stating up front, which is how much is
-  // waiting on you. Threads, not messages: "2 unread" means two conversations
-  // need a reply, which is the actionable unit here.
-  //
-  // Omitted entirely at zero rather than rendering "0 unread" — a caught-up
-  // inbox should say nothing, not report an absence.
-  const unreadThreads = conversations.filter((c) => c.unread > 0).length;
+  /* There used to be a whole-inbox `unreadThreads` count here, feeding the
+     "2 unread" header caption and then the Unread tab's badge. Both are gone
+     (the caption when the tabs landed, the tab on 2026-09-19), and a total
+     that is never rendered is a total that can quietly go wrong. The only
+     unread number the inbox still states is `hiddenUnreadCount` below, which
+     is a narrower question: how many unread threads is the CURRENT view
+     concealing. Unread itself is shown per-row, where it always was. */
   /* The inbox had no filter at all — a single undifferentiated list, with
      "2 unread" printed beside the title as the only acknowledgement that some
      threads want you and the rest don't (owner: "i think unread should be the
      default tab??" and "where are the other options?").
 
-     Three slices, and they answer three different questions: who is waiting on
-     me, which conversations belong to work that is still running, and
-     everything. Same control My Posts / My Jobs use — literally the same
-     component — because "which slice of this list am I looking at" is one idea
-     and the app should express it one way.
+     It grew to three slices, and on 2026-09-19 settled at TWO: which
+     conversations belong to work that is still running, and everything. Same
+     control My Posts / My Jobs use — literally the same component — because
+     "which slice of this list am I looking at" is one idea and the app should
+     express it one way.
 
-     The count beside "Unread" is what "2 unread" used to say, so that caption
-     comes out rather than sitting next to a tab that already says it. */
+     The third slice (Unread) was removed the same day: it answered a question
+     the row's own unread mark and the on-entry unread scroll already answer.
+     See the tab strip below and lib/inboxDefault.ts. The "2 unread" caption
+     it replaced does NOT come back — its job is now the hidden-unread banner,
+     which says the same number only when it is actually being hidden. */
   const activeThreads = conversations.filter(
     (c) => c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus),
+  ).length;
+
+  /* Unread threads the ACTIVE slice does not show — the number the banner
+     below prints. Derived from the SAME predicate the Active branch filters
+     by, not a restatement of it, so the two cannot drift into claiming
+     different things. An unread thread on an `open` posting is the common
+     case; a completed or cancelled one that is still unread is the other. */
+  const hiddenUnreadCount = conversations.filter(
+    (c) => c.unread > 0 && !(c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus)),
   ).length;
 
   // Pull-to-refresh: swiping down on the list re-runs loadConversations.
@@ -554,11 +627,17 @@ export function ConversationList({
      LIST half of that ask. The in-thread half already lands on the first
      unread message (chatView/useChatScroll.ts).
 
-     This is a SCROLL, not a filter: the tab default stays "all"
-     (src/lib/inboxDefault.ts — the owner removed the "Unread when there is
-     unread" tab default on 2026-08-30 and it is not coming back). The inbox
-     still shows everything; it just starts parked on the first thread that
-     wants a reply instead of on whatever was most recent.
+     This is a SCROLL, not a filter, and that distinction now carries real
+     weight: on 2026-09-19 the Unread TAB was removed precisely BECAUSE this
+     effect already does its job (lib/inboxDefault.ts). The list parks on the
+     first thread that wants a reply instead of on whatever was most recent.
+
+     It scrolls within whatever slice is showing (`filteredConversations`), so
+     since the default became Active it lands on the first unread LIVE thread.
+     Unread threads outside that slice are not scrolled to and not shown —
+     which is exactly what the hidden-unread banner below exists to say out
+     loud. Do not "fix" this by widening the effect to `conversations`: it
+     would scroll to a row the current tab is not rendering.
 
      Once per mount, and only when it buys something:
        - the first row is already unread  → nothing to jump to;
@@ -589,7 +668,7 @@ export function ConversationList({
   }, [loading, filteredConversations, showAllConvos]);
 
   // The title card holds the toolbar itself — the name, the Select/Search
-  // cluster and (on phone) the Unread/Active/All tabs. It does NOT hold a
+  // cluster and (on phone) the Active/All tabs. It does NOT hold a
   // "N threads" chip: that restated the thread list directly beneath it, the
   // same count box My Posts / My Jobs dropped.
 
@@ -597,12 +676,30 @@ export function ConversationList({
     <UnderlineTabs
       dense={isWebDesktop}
       ariaLabel="Filter conversations"
+      /* TWO tabs, Active then All (owner, 2026-09-19, confirmed twice).
+         Narrow to wide, and the tab the inbox lands on comes first — "here,
+         or everything", rather than the old strip's "All, and some filters".
+
+         THE UNREAD TAB IS DELIBERATELY GONE, and it is redundant three times
+         over: Active is the default so the landing view is already filtered
+         to live conversations; unread is marked on the ROW itself (the dot +
+         bold treatment in ConversationRow); and the list already SCROLLS to
+         the first unread thread on entry (028fe3837, the effect just above).
+         A filter that duplicates what the list already shows is chrome.
+
+         This reverses the owner's own earlier ask the same afternoon ("in the
+         top bar it should say all unread and active", 9b0eb1fc8). The other
+         half of that commit — inline on desktop, disclosure on phone — is
+         untouched and must stay. Only the third entry went.
+
+         All's count is `allTabConversations`, NOT `conversations`: the age
+         rule trims that tab (threadAgeOut.ts), and a tab whose number does
+         not match the list under it is a worse lie than no number. */
       tabs={[
-        { key: "all", label: "All", count: conversations.length },
-        { key: "unread", label: "Unread", count: unreadThreads },
         { key: "active", label: "Active", count: activeThreads },
+        { key: "all", label: "All", count: allTabConversations.length },
       ]}
-      value={inboxFilter ?? "all"}
+      value={inboxTab}
       onChange={setInboxFilter}
     />
   );
@@ -611,7 +708,7 @@ export function ConversationList({
   // tabs (both are reached via the hamburger instead), so with either
   // active none of the underline tabs highlight — this chip is the only
   // thing telling the user why the list shrank and how to get back.
-  const pinnedFilterChip = (inboxFilter === "pinned" || inboxFilter === "recentlyDeleted") && (
+  const pinnedFilterChip = (inboxTab === "pinned" || inboxTab === "recentlyDeleted") && (
     <div className="shrink-0">
       <button
         type="button"
@@ -619,8 +716,8 @@ export function ConversationList({
         className="flex items-center gap-1.5 px-4 py-1.5 text-ds-11 font-sans font-semibold"
         style={{ color: "hsl(var(--burnt-sienna))" }}
       >
-        {inboxFilter === "pinned" ? <Pin className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
-        {inboxFilter === "pinned" ? "Showing pinned only" : "Showing recently deleted"}
+        {inboxTab === "pinned" ? <Pin className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
+        {inboxTab === "pinned" ? "Showing pinned only" : "Showing recently deleted"}
         <X className="w-3 h-3" />
       </button>
       {/* Two honesty notes, since "Recently Deleted" as a name implies both
@@ -629,7 +726,7 @@ export function ConversationList({
           restore it, not just for N days), and very old archives can fall
           outside the 200-message fetch window (see the onClick refresh
           above) and simply not be resolvable here yet. */}
-      {inboxFilter === "recentlyDeleted" && (
+      {inboxTab === "recentlyDeleted" && (
         <p className="px-4 pb-1 text-ds-10 font-sans" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
           Hidden threads stay here until restored — not on a timer. Very old ones may take a refresh to appear.
         </p>
@@ -1032,6 +1129,69 @@ export function ConversationList({
             }}
           >
           <div className="space-y-2">
+          {/* ── THE HIDDEN-UNREAD BANNER ────────────────────────────────────
+              The price of landing on Active (owner, 2026-09-19), paid openly.
+
+              Active is `LIVE_JOB_STATUSES`, which does NOT include `open` —
+              so an applicant's unread question about a posting you have not
+              awarded yet, the single most common unread thread a poster gets,
+              is NOT in the tab the inbox now opens on. "Opens to Active" must
+              never mean "hides something you have not read".
+
+              This is the only place that can say so, and it matters most on
+              PHONE: the tab strip lives behind a disclosure that starts
+              collapsed, so the "All N" count is not even on screen. There is
+              no Unread tab to fall back on any more either — it was removed
+              the same day.
+
+              Shown only when there is genuinely something concealed: on
+              Active, not searching, with at least one unread thread outside
+              the live slice. It sends the reader to All (the widest view),
+              not to a filter, because the point is to stop hiding. */}
+          {!loading && inboxTab === "active" && !searchQuery.trim() && hiddenUnreadCount > 0 && (
+            <button
+              type="button"
+              onClick={() => { hapticLight(); setInboxFilter(UNFILTERED_INBOX_TAB); }}
+              className="w-full flex items-center gap-2 rounded-ds-md px-3 py-2.5 btn-press transition-colors text-left"
+              style={{
+                background: "hsl(var(--amber-tint) / 0.10)",
+                border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
+              }}
+            >
+              <span
+                className="shrink-0 w-2 h-2 rounded-full"
+                style={{ background: "hsl(var(--burnt-sienna))" }}
+                aria-hidden="true"
+              />
+              <span
+                className="font-sans text-ds-13 leading-snug"
+                style={{ color: "hsl(var(--olivewood) / 0.9)" }}
+              >
+                {hiddenUnreadCount === 1
+                  ? "1 unread conversation isn't in Active — show all"
+                  : `${hiddenUnreadCount} unread conversations aren't in Active — show all`}
+              </span>
+            </button>
+          )}
+          {/* ── THE AGED-OUT NOTE ───────────────────────────────────────────
+              "Keep them, auto-hide after a while. Never delete" (owner,
+              2026-09-19). Hiding silently is how "hidden" becomes "I lost my
+              messages", so All says how many finished threads it is holding
+              back and how to reach them. The answer is the search box, which
+              deliberately ignores the age rule (see filteredConversations).
+              Not a button: there is no "show them all" tab to send anyone to,
+              and inventing one would undo the decision. */}
+          {!loading && inboxTab === "all" && !searchQuery.trim() && agedOutCount > 0 && (
+            <p
+              role="status"
+              className="font-sans text-ds-12 leading-snug px-3 py-2"
+              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            >
+              {agedOutCount === 1
+                ? `1 finished conversation is older than ${THREAD_AGE_OUT_DAYS} days and is tucked away. It's still here — search for the person or the job to open it.`
+                : `${agedOutCount} finished conversations are older than ${THREAD_AGE_OUT_DAYS} days and are tucked away. They're still here — search for the person or the job to open one.`}
+            </p>
+          )}
           {loading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4].map((i) => (
@@ -1053,7 +1213,10 @@ export function ConversationList({
                 className="font-display italic font-bold text-ds-16"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
-                {inboxFilter === "unread" ? "You're all caught up" : "Nothing here right now"}
+                {/* The "You're all caught up" variant went with the Unread
+                    tab on 2026-09-19 — it was that tab's empty state and
+                    nothing else can reach it now. */}
+                Nothing here right now
               </p>
               <p
                 className="font-sans text-ds-13 max-w-[240px]"
@@ -1065,13 +1228,20 @@ export function ConversationList({
                     reader: the list below is empty, so it cannot show them,
                     and "Switch to All" without a number asks you to go and
                     check whether there is anything over there at all. */}
-                {inboxFilter === "unread"
-                  ? "Every thread has been read — nothing is waiting on you."
-                  : inboxFilter === "pinned"
-                    ? "No conversations are pinned. Swipe a thread right to pin it."
-                    : inboxFilter === "recentlyDeleted"
-                      ? "Nothing hidden. Swipe a thread left to hide it — it stays here, not deleted."
-                      : "No conversations belong to a job that's still running."}
+                {inboxTab === "pinned"
+                  ? "No conversations are pinned. Swipe a thread right to pin it."
+                  : inboxTab === "recentlyDeleted"
+                    ? "Nothing hidden. Swipe a thread left to hide it — it stays here, not deleted."
+                    : inboxTab === "active"
+                      /* THE ACTIVE EMPTY STATE, and the one the Active
+                         default made common: a user whose jobs have all
+                         finished now LANDS here, where All would have shown
+                         them threads. It has to read as "nothing is running",
+                         never as "your inbox is broken" — so it names the
+                         reason, and the button beneath it names the number
+                         waiting under All. */
+                      ? "No conversations belong to a job that's still running. Finished ones are under All."
+                      : "No conversations match this view."}
               </p>
               {/* THE COUNT, and a way to ACT on it — the "Show Waiting (3)"
                   button My Jobs puts under the same copy, which is where that
@@ -1083,12 +1253,23 @@ export function ConversationList({
                   number HERE rather than in the sentence also keeps the prose
                   from saying "All" twice in one line.
 
-                  Only for the two tabs whose fix really is "switch to All".
+                  Only for Active, the one tab whose fix really is "switch to
+                  All" (Unread, the other one, was removed on 2026-09-19).
                   Pinned and Recently Deleted are told to swipe instead: there
-                  is nothing under All to send them to. */}
-              {(inboxFilter === "unread" || inboxFilter === "active") && conversations.length > 0 && (
-                <BarkPillButton onClick={() => { hapticLight(); setInboxFilter(DEFAULT_INBOX_TAB); }}>
-                  Show All ({conversations.length})
+                  is nothing under All to send them to.
+
+                  The count is `allTabConversations`, the same number the All
+                  tab prints — promising "Show All (12)" and then rendering 9
+                  because the age rule trimmed three would be a fresh lie.
+
+                  UNFILTERED_INBOX_TAB, not DEFAULT_INBOX_TAB. Those were the
+                  same constant until 2026-09-19, when the landing tab became
+                  Active; a button labelled "Show All" that set the default
+                  would, from the Active empty state, set Active again and do
+                  nothing at all. */}
+              {inboxTab === "active" && allTabConversations.length > 0 && (
+                <BarkPillButton onClick={() => { hapticLight(); setInboxFilter(UNFILTERED_INBOX_TAB); }}>
+                  Show All ({allTabConversations.length})
                 </BarkPillButton>
               )}
             </div>
@@ -1120,7 +1301,7 @@ export function ConversationList({
                     "zero X match this search," which is a different claim
                     when X is Pinned or Recently Deleted specifically. */}
                 {isSpecialFilterView
-                  ? `Try a different name or keyword, or clear the search to see all ${inboxFilter === "pinned" ? "pinned" : "hidden"} threads.`
+                  ? `Try a different name or keyword, or clear the search to see all ${inboxTab === "pinned" ? "pinned" : "hidden"} threads.`
                   : "Try a different name or keyword."}
               </p>
             </div>

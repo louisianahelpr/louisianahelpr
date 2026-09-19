@@ -122,6 +122,26 @@ afterEach(() => {
   setWebDesktop(false);
 });
 
+/**
+ * UPDATED 2026-09-19, LATER THE SAME DAY — the owner removed the Unread tab
+ * (confirmed twice, knowing it reverses their own afternoon request). This
+ * file previously asserted `["All", "Unread", "Active"]`.
+ *
+ * WHAT CHANGED AND WHY:
+ *   - Unread is gone: Active is now the default tab (lib/inboxDefault.ts), so
+ *     the landing view is already filtered to live conversations; unread is
+ *     marked on the ROW; and the list already scrolls to the first unread
+ *     thread on entry (028fe3837). The filter duplicated the list.
+ *   - Order is Active then All: narrow to wide, landing tab first.
+ *   - What did NOT change: the inline-on-desktop / disclosure-on-phone split
+ *     this file was written for. That is still the contract under test.
+ *
+ * The assertion is still EXACT — the full set, in order — and NOT weakened to
+ * "some tabs exist". An accidental third tab, a rename, or a reorder must all
+ * fail here.
+ */
+const EXPECTED_TABS = ["Active", "All"];
+
 describe("Messages inbox filter tabs — inline on desktop, disclosure on phone", () => {
   it("the inventory is real: this fixture produces a non-empty inbox", () => {
     // Every assertion below is gated on `hasThreads`. An empty fixture would
@@ -133,11 +153,11 @@ describe("Messages inbox filter tabs — inline on desktop, disclosure on phone"
     expect(screen.getByRole("heading", { level: 1, name: "Messages" })).toBeTruthy();
   });
 
-  it("desktop website (>=900px): All / Unread / Active are visible in the top bar, with no disclosure", () => {
+  it("desktop website (>=900px): Active / All are visible in the top bar, with no disclosure", () => {
     setWebDesktop(true);
     renderInbox();
 
-    expect(filterTabs()).toEqual(["All", "Unread", "Active"]);
+    expect(filterTabs()).toEqual(EXPECTED_TABS);
     expect(
       disclosure(),
       "the desktop website must not hide three visible words behind a chevron",
@@ -179,6 +199,6 @@ describe("Messages inbox filter tabs — inline on desktop, disclosure on phone"
     expect(filterTabs(), "Messages opens COLLAPSED on phone").toEqual([]);
 
     fireEvent.click(chevron!);
-    expect(filterTabs()).toEqual(["All", "Unread", "Active"]);
+    expect(filterTabs()).toEqual(EXPECTED_TABS);
   });
 });

@@ -7,7 +7,7 @@ import { requireOnline } from "@/lib/requireOnline";
 import type { Conversation, Message } from "@/components/messages/types";
 import { logViolation } from "../logViolation";
 import {
-  THREAD_CLOSED_TOAST,
+  threadClosedCopy,
   fetchMessagingClosesAt,
   isLockoutRefusal,
 } from "@/lib/messagingLockout";
@@ -142,7 +142,8 @@ export function createSendHandlers({
     if (error || !data) {
       // Keep the text on screen and let the user retry it.
       hapticError();
-      // 24h post-completion lockout. RLS refuses with 42501 and no reason, so
+      // Thread closed — 24h after completion, or immediately on cancellation
+      // (20260919220233). RLS refuses with 42501 and no reason, so
       // ask the server when this thread closes (the local value can be stale:
       // loaded before the job completed, or a device clock behind the
       // server's). If that explains the refusal, say so and flip the thread
@@ -151,9 +152,32 @@ export function createSendHandlers({
         const closesAt =
           (await fetchMessagingClosesAt([optimistic.job_id])).get(optimistic.job_id) ?? null;
         if (isLockoutRefusal(error, closesAt)) {
-          toast.error(THREAD_CLOSED_TOAST);
+          /* RE-READ THE STATUS, do not trust the one in hand.
+             Both ways a thread closes need DIFFERENT copy (the completed
+             wording names a 24-hour rule that is false of a cancellation),
+             and the locally-held `jobStatus` is exactly the field that is
+             stale here: the common case is the OTHER party cancelling while
+             this one was typing, so `activeConvo.jobStatus` still says
+             `in_progress` and the copy would confidently report a completion
+             that never happened.
+             One extra read, on an error path that has already made one, in
+             exchange for never telling somebody their cancelled job was
+             completed. Errors are ignored deliberately — the fallback is the
+             status already in hand, and a failed status read must not turn a
+             handled refusal into an unhandled one. `.select("status")` with
+             `maybeSingle()` returns null rather than throwing when RLS hides
+             the row. */
+          const { data: jobRow } = await supabase
+            .from("jobs")
+            .select("status")
+            .eq("id", optimistic.job_id)
+            .maybeSingle();
+          const closedStatus = jobRow?.status ?? activeConvo?.jobStatus ?? null;
+          toast.error(threadClosedCopy(closedStatus).toast);
           const patch = (c: Conversation) =>
-            c.jobId === optimistic.job_id ? { ...c, messagingClosesAt: closesAt } : c;
+            c.jobId === optimistic.job_id
+              ? { ...c, messagingClosesAt: closesAt, jobStatus: closedStatus }
+              : c;
           setConversations((prev) => prev.map(patch));
           setActiveConvo?.((prev) => (prev ? patch(prev) : prev));
           // `refused`, not `failed`: the bubble keeps the text but offers no

@@ -3,7 +3,7 @@ import { Lock, X } from "lucide-react";
 import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
 import { assertWritable } from "@/hooks/useImpersonation";
-import { THREAD_CLOSED_NOTICE } from "@/lib/messagingLockout";
+import { threadClosedCopy } from "@/lib/messagingLockout";
 import { RECIPIENT_RESTRICTED_NOTICE } from "@/lib/recipientGate";
 import type { Conversation, Message } from "../types";
 
@@ -87,8 +87,10 @@ export function ChatComposer({
   onCancelReply,
 }: {
   composerLocked: boolean;
-  /** True once the thread has passed its 24h post-completion close
-      (src/lib/messagingLockout.ts). Replaces the composer with a notice. */
+  /** True once this thread has passed its closing instant — 24h after the
+      job completed, or IMMEDIATELY on cancellation (migration
+      20260919220233). Replaces the composer with a read-only notice, whose
+      wording follows which of the two it was. See lib/messagingLockout.ts. */
   threadClosed?: boolean;
   /** True when the server's receiver gate refuses this recipient for this
       viewer (src/lib/recipientGate.ts). Replaces the composer with a notice. */
@@ -112,12 +114,19 @@ export function ChatComposer({
   onCancelReply?: () => void;
 }) {
   if (threadClosed) {
-    /* 24h post-completion lockout — applies to everyone on the job. The
-       server refuses new messages from the same instant
-       (can_message_in_job, 20260914201350), so this replaces the whole
-       composer with a read-only notice rather than offering a send that
-       would bounce. Checked before the poster-first lock: once the thread
-       is closed, who may open it is moot. */
+    /* Thread closed — applies to everyone on the job. TWO ways in:
+         - completed, 24h after completion (can_message_in_job, 20260914201350);
+         - cancelled, IMMEDIATELY (20260919220233; before that migration a
+           cancelled job's thread stayed open forever).
+       The server refuses new messages from the same instant either way, so
+       this replaces the whole composer with a read-only notice rather than
+       offering a send that would bounce — the fail-on-tap pattern this
+       codebase rejects. Checked before the poster-first lock: once the thread
+       is closed, who may open it is moot.
+
+       The WORDING is chosen from the job's status, because the completed copy
+       names a rule ("messaging ends 24 hours after a job is completed") that
+       is simply untrue of a cancellation. */
     return (
       <div
         className="pt-2 pb-3 glass-dock sticky bottom-0"
@@ -134,9 +143,47 @@ export function ChatComposer({
         >
           <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} strokeWidth={2} aria-hidden="true" />
           <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-            {THREAD_CLOSED_NOTICE}
+            {threadClosedCopy(activeConvo.jobStatus).notice}
           </p>
         </div>
+        {/* ── THE DRAFT THAT WAS MID-SENTENCE ──────────────────────────────
+            Cancelling is something a HUMAN does in the moment, and the other
+            party may be typing when it happens — the thread can close under
+            an open keyboard. Before this, the composer simply vanished and
+            took the text with it: `draft` lives in ChatView's `useState`,
+            which is still mounted, so the string was not lost, merely
+            unreachable, which is worse than losing it.
+
+            So the unsent text is rendered, selectable, beside the notice. No
+            Send (there is nothing to send it to) and no promise to keep it —
+            it is exactly as durable as it was a second ago, which is "until
+            you leave this screen". It is here so the reader can copy it,
+            re-read it, or paste it somewhere that is still open.
+
+            Only when there IS one: an empty draft gets no empty box. */}
+        {draft.trim().length > 0 && (
+          <div
+            className="mt-2 rounded-ds-md px-3.5 py-2.5"
+            style={{
+              background: "hsl(var(--olivewood) / 0.04)",
+              border: "0.5px dashed hsl(var(--olivewood) / 0.22)",
+            }}
+            data-testid="thread-closed-unsent-draft"
+          >
+            <p
+              className="font-sans text-ds-11 uppercase tracking-wide mb-1"
+              style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+            >
+              Not sent
+            </p>
+            <p
+              className="font-sans text-ds-13 leading-relaxed whitespace-pre-wrap break-words select-text"
+              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              {draft}
+            </p>
+          </div>
+        )}
       </div>
     );
   }

@@ -63,10 +63,17 @@ export type Conversation = {
       see at a glance whether they're discussing an open posting, an
       awarded job, or a completed one. */
   jobStatus?: string | null;
-  /** When this thread closes to new messages (24h after the job was
-      completed), as reported by the server's `get_messaging_closes_at` — the
-      same instant the messages INSERT policy starts refusing. Null/absent
-      when the job is not completed or the RPC is not deployed.
+  /** When this thread closes to new messages, as reported by the server's
+      `get_messaging_closes_at` — the same instant the messages INSERT policy
+      starts refusing. TWO ways a thread gets one (migration 20260919220233):
+      24h after the job was COMPLETED, or, for a CANCELLED job, the moment of
+      cancellation — already in the past, so the thread is closed on arrival.
+      Null/absent when the job is neither completed nor cancelled, when the
+      caller is not a party to it, or when the RPC is not deployed.
+
+      Also the age anchor for the All tab's auto-hide rule
+      (components/messages/threadAgeOut.ts), which is why "absent" must keep
+      meaning "never hidden".
       See src/lib/messagingLockout.ts. */
   messagingClosesAt?: string | null;
   /** Set when a send in this thread was refused by the server's receiver gate

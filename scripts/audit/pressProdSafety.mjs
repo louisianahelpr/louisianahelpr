@@ -301,8 +301,27 @@ export async function snapshotProfile(s) {
   try { return (await prodSelect(s, `profiles?select=*&user_id=eq.${s.userId}`))[0] ?? null; } catch { return null; }
 }
 
+/**
+ * `Prefer: return=representation` with no explicit `select=` is `RETURNING *`,
+ * and `authenticated` has NO table-level SELECT on public.jobs — only 109 of
+ * its 110 columns, with `offered_to_helper_id` withheld (20260915045110;
+ * verified live 2026-09-19 with has_table_privilege + column_privileges). So
+ * `*` raises 42501 and PostgREST answers 403 — the DELETE never runs.
+ *
+ * That is why every nightly press teardown logged
+ *   `delete matched 0 rows (HTTP 403); poster_cancel_job HTTP 400`
+ * and left its fixture jobs on prod (26 of them by 2026-09-19, one per shard
+ * per night since the grant was revoked). createPressJob already works around
+ * this for its INSERT; `del` never got the same treatment.
+ *
+ * Pinning `select=id` keeps the row count this function reports while asking
+ * for only a column every role can read.
+ */
 async function del(s, pathAndQuery) {
-  const r = await fetch(`${supabaseUrl()}/rest/v1/${pathAndQuery}`, { method: "DELETE", headers: headers(s, { Prefer: "return=representation" }) });
+  const withSelect = /[?&]select=/.test(pathAndQuery)
+    ? pathAndQuery
+    : `${pathAndQuery}${pathAndQuery.includes("?") ? "&" : "?"}select=id`;
+  const r = await fetch(`${supabaseUrl()}/rest/v1/${withSelect}`, { method: "DELETE", headers: headers(s, { Prefer: "return=representation" }) });
   const body = await r.text();
   let n = null;
   try { const p = JSON.parse(body); if (Array.isArray(p)) n = p.length; } catch { /* non-array */ }
@@ -377,9 +396,22 @@ async function unwindJob(s, j) {
     }
     return { ok: r.ok, note: `cancel_escrow HTTP ${r.status}` };
   }
-  if (j.status !== "open" || j.status === "cancelled") {
+  if (j.status === "cancelled") {
+    // TERMINAL. `cancelled` is never a SOURCE in enforce_job_status_transition's
+    // allowed matrix (verified live with pg_get_functiondef, 2026-09-19), so the
+    // walk-back below can only ever 400, and the DELETE policy requires
+    // `status = 'open'`, so the poster can never remove it either. The old code
+    // fired that doomed PATCH, swallowed the 400 with `.catch()` (fetch does not
+    // reject on 4xx, so the catch caught nothing anyway) and then reported the
+    // row as RESIDUE every night. It is unpaid, is_seed and already terminal:
+    // there is nothing left to unwind, and scripts/e2e/prod-audit-sweeper.mjs
+    // (service role, wired into this workflow's cleanup job) is what removes it.
+    return { ok: true, note: "already cancelled (terminal, unpaid) — the service-role sweeper removes it" };
+  }
+  if (j.status !== "open") {
     // Walk it back to open (poster UPDATE policy has no status condition) so the DELETE policy applies.
-    await fetch(`${base}/rest/v1/jobs?id=eq.${j.id}`, { method: "PATCH", headers: headers(s), body: JSON.stringify({ status: "open", helper_id: null }) }).catch(() => {});
+    const p = await fetch(`${base}/rest/v1/jobs?id=eq.${j.id}`, { method: "PATCH", headers: headers(s), body: JSON.stringify({ status: "open", helper_id: null }) }).catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
+    if (!p.ok) return { ok: false, note: `could not reopen ${j.status} for delete: HTTP ${p.status} ${(await p.text()).slice(0, 120)}` };
   }
   if (j.stripe_session_id && j.payment_status === "unpaid") {
     // Minted a Checkout Session, never paid: the DELETE policy refuses it; cancel through the product's own RPC.

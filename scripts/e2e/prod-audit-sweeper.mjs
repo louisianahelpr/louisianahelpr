@@ -69,6 +69,22 @@ import { removeJobMediaRest } from "../lib/jobMediaRest.mjs";
 
 /** Bracket-free: see "WHY THE TITLE FILTER HAS NO BRACKETS" above. */
 export const JOB_TITLE_MARKER = "E2E-PRODAUDIT";
+/**
+ * The press harness leaves the SAME residue, for the same reason, and could
+ * not be cleaned by any of the poster-run sweepers either.
+ *
+ * scripts/audit/pressProdSafety.mjs titles its fixture jobs
+ * "[PRESS DO NOT ACCEPT] …" and cancels what it cannot delete. `cancelled` is
+ * terminal (never a SOURCE in enforce_job_status_transition, verified live
+ * 2026-09-19) and the poster DELETE policy requires `status = 'open'`, so the
+ * poster's own teardown can NEVER remove those rows — 26 of them had piled up
+ * by 2026-09-19, one per shard per night. This is the service-role path that
+ * can. Bracket-free for the same reason as above: the marker with brackets
+ * still CONTAINS this substring, so matching on it is strictly more inclusive.
+ */
+export const PRESS_TITLE_MARKER = "PRESS DO NOT ACCEPT";
+/** Every marker this sweeper owns. main() runs one pass per marker. */
+export const JOB_TITLE_MARKERS = [JOB_TITLE_MARKER, PRESS_TITLE_MARKER];
 /** e2e/prod-audit/harness.ts POSTER_ID / HELPER_ID — the only two accounts that suite signs in as. */
 export const POSTER_ID = "71c56dfb-b326-4010-b960-b18dd3966e7f";
 export const HELPER_ID = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
@@ -103,8 +119,8 @@ function readEnv() {
  * would silently break (as the bracketed marker did for the sweeper it
  * replaces).
  */
-export function candidateJobsQuery() {
-  const titleLike = encodeURIComponent(`*${JOB_TITLE_MARKER}*`);
+export function candidateJobsQuery(marker = JOB_TITLE_MARKER) {
+  const titleLike = encodeURIComponent(`*${marker}*`);
   const custIn = encodeURIComponent(`(${TEST_POSTER_IDS.join(",")})`);
   return (
     "jobs?select=id,title,customer_id,helper_id,is_seed,status,payment_status,created_at" +
@@ -124,11 +140,11 @@ export function candidateJobsQuery() {
  * bracketed title shapes, since that mismatch is the exact defect this file
  * exists to fix.
  */
-export function matchesFilter(job) {
+export function matchesFilter(job, marker = JOB_TITLE_MARKER) {
   return (
     !!job &&
     typeof job.title === "string" &&
-    job.title.includes(JOB_TITLE_MARKER) &&
+    job.title.includes(marker) &&
     TEST_POSTER_IDS.includes(job.customer_id) &&
     job.is_seed === true
   );
@@ -161,7 +177,12 @@ async function main() {
     return r.json();
   };
   const del = async (table, q) => {
-    const r = await fetch(`${base}/rest/v1/${table}?${q}`, {
+    // Never `RETURNING *` on a caller-supplied path: see the note in
+    // e2e/prod-audit/harness.ts restAs. Service role is not subject to the
+    // column grant that broke the press teardown, but the rule is uniform so
+    // the next forwarder cannot quietly reintroduce it.
+    const query = /(^|&)select=/.test(q) ? q : `${q}&select=id`;
+    const r = await fetch(`${base}/rest/v1/${table}?${query}`, {
       method: "DELETE",
       headers: { ...headers, Prefer: "return=representation" },
       signal: AbortSignal.timeout(20_000),
@@ -177,23 +198,32 @@ async function main() {
     return { ok: r.ok, status: r.status, removed: rows?.length ?? null, body: body.slice(0, 200) };
   };
 
-  let candidates;
-  try {
-    candidates = await get(candidateJobsQuery());
-  } catch (e) {
-    console.error(`[prod-audit-sweeper] could not list candidate jobs: ${e.message}`);
-    process.exit(2);
-  }
-  const jobs = candidates.filter(matchesFilter);
-  if (jobs.length !== candidates.length) {
-    console.warn(`[prod-audit-sweeper] PostgREST returned ${candidates.length} row(s) but only ${jobs.length} passed the client-side re-check — the query and matchesFilter have drifted. Investigate before trusting either.`);
-  }
-
+  // One pass per marker, de-duplicated by id: a title could in principle carry
+  // both, and deleting the same row twice would report a false failure
+  // (removed=0 on the second pass).
   console.log(`[prod-audit-sweeper] ${base}`);
-  console.log(`[prod-audit-sweeper] ${jobs.length} matching job(s)${DRY ? "  (DRY RUN)" : ""}:`);
+  const byId = new Map();
+  for (const marker of JOB_TITLE_MARKERS) {
+    let candidates;
+    try {
+      candidates = await get(candidateJobsQuery(marker));
+    } catch (e) {
+      console.error(`[prod-audit-sweeper] could not list candidate jobs for "${marker}": ${e.message}`);
+      process.exit(2);
+    }
+    const passed = candidates.filter((j) => matchesFilter(j, marker));
+    if (passed.length !== candidates.length) {
+      console.warn(`[prod-audit-sweeper] "${marker}": PostgREST returned ${candidates.length} row(s) but only ${passed.length} passed the client-side re-check — the query and matchesFilter have drifted. Investigate before trusting either.`);
+    }
+    console.log(`[prod-audit-sweeper] "${marker}": ${passed.length} matching job(s)${DRY ? "  (DRY RUN)" : ""}`);
+    for (const j of passed) byId.set(j.id, j);
+  }
+  const jobs = [...byId.values()];
   for (const j of jobs) console.log(`  ${j.id}  status=${j.status} payment=${j.payment_status} title="${j.title}"`);
 
   try {
+    // The cap is over the UNION: the whole point is "this filter is wrong",
+    // and a per-marker cap would let two markers quietly pass 2x the ceiling.
     checkCap(jobs);
   } catch (e) {
     console.error(`[prod-audit-sweeper] ${e.message}`);

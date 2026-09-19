@@ -658,6 +658,23 @@ async function main() {
               el.getAttribute("data-state") === "checked" ||
               el.getAttribute("aria-current") === "page")
             .catch(() => false);
+          // Is this a SUBMIT button whose own form is already invalid? The
+          // browser then refuses the submit and paints a NATIVE validation
+          // bubble ("Please fill out this field.") — chrome the page's DOM does
+          // not contain, so `snapshot()` cannot see it and the press reads as
+          // "moved focus only". The press worked and the product behaved: the
+          // form is simply incomplete. /reset-password › "Update Password"
+          // failed for exactly this reason every night (both inputs are
+          // `required`; ResetPassword.tsx). Read BEFORE the click, like
+          // alreadyActive, and narrowed to a control that actually owns a form.
+          const blockedByValidation = await target
+            .evaluate((el) => {
+              const form = el.form ?? el.closest("form");
+              if (!form || typeof form.checkValidity !== "function") return false;
+              const submits = el.type === "submit" || el.getAttribute("type") === "submit";
+              return submits && !form.checkValidity();
+            })
+            .catch(() => false);
           const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length;
           try {
             await target.scrollIntoViewIfNeeded({ timeout: 2500 }).catch(() => {});
@@ -700,12 +717,12 @@ async function main() {
             after.hash !== before.hash ? `changed the DOM (${after.body - before.body >= 0 ? "+" : ""}${after.body - before.body} chars)` :
             after.focused !== before.focused ? "moved focus only" :
             "";
-          if (!alreadyActive) {
+          if (!alreadyActive && !blockedByValidation) {
             if (!changed) problems.push("no observable change");
             else if (changed === "moved focus only") problems.push("no observable change (focus moved, nothing else)");
           }
 
-          entry.outcome = changed || "nothing";
+          entry.outcome = changed || (blockedByValidation ? "native form validation blocked the submit (invisible to the DOM)" : "nothing");
           if (problems.length) {
             entry.result = "FAIL"; entry.why = problems.join("; ");
             rec.failed++; failedPresses++;

@@ -180,7 +180,17 @@ export async function sweepField(page: Page, field: Locator, ctx: string, opts: 
 
 /** REST call as a test account. RLS decides what that account may touch; nothing here escalates. */
 export async function restAs(api: APIRequestContext, s: Session, method: "get" | "post" | "patch" | "delete", pathAndQuery: string, data?: unknown) {
-  return api[method](`${SUPABASE_URL}/rest/v1/${pathAndQuery}`, {
+  // `return=representation` with no `select=` is RETURNING *, and
+  // `authenticated` has no table-level SELECT on public.jobs — 109 of its 110
+  // columns, `offered_to_helper_id` withheld (20260915045110, verified live
+  // 2026-09-19). `*` then raises 42501 and PostgREST answers 403 WITHOUT
+  // running the write. That is how press-every-control's teardown leaked 26
+  // fixture jobs onto prod (#1582); every write caller here already passes
+  // `&select=id`, and this makes the next one that forgets safe too.
+  // RPC paths are left alone: `select=` on an rpc call is not a column list.
+  const needsSelect = method !== "get" && !pathAndQuery.startsWith("rpc/") && !/[?&]select=/.test(pathAndQuery);
+  const url = needsSelect ? `${pathAndQuery}${pathAndQuery.includes("?") ? "&" : "?"}select=id` : pathAndQuery;
+  return api[method](`${SUPABASE_URL}/rest/v1/${url}`, {
     headers: rest(s, method === "get" ? {} : { Prefer: "return=representation" }),
     ...(data === undefined ? {} : { data }),
   });

@@ -475,7 +475,12 @@ async function restPatchById(env, table, id, row) {
   const body = { ...row };
   delete body.id;
   delete body.created_at;
-  const res = await fetch(`${env.supabaseUrl}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+  // `return=representation` with no `select=` is RETURNING *, and a role that
+  // lacks SELECT on even one column of the target table then gets 42501 → 403
+  // and the write never runs (public.jobs withholds offered_to_helper_id from
+  // `authenticated`, 20260915045110). `select=id` keeps the row count this
+  // function checks while asking only for a column every role can read.
+  const res = await fetch(`${env.supabaseUrl}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}&select=id`, {
     method: 'PATCH',
     headers: {
       apikey: env.serviceKey,

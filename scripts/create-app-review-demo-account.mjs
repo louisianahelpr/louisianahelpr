@@ -101,7 +101,12 @@ async function restQuery(table, params) {
 }
 
 async function restUpdate(table, filter, body) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, {
+  // `return=representation` with no `select=` is RETURNING *, and a role that
+  // lacks SELECT on even one column of the target table then gets 42501 → 403
+  // and the write never runs (public.jobs withholds offered_to_helper_id from
+  // `authenticated`, 20260915045110). `select=id` keeps the row count this
+  // function checks while asking only for a column every role can read.
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}${/(^|&)select=/.test(filter) ? "" : "&select=id"}`, {
     method: "PATCH",
     headers: { ...adminHeaders, Prefer: "return=representation" },
     body: JSON.stringify(body),
@@ -111,7 +116,12 @@ async function restUpdate(table, filter, body) {
 }
 
 async function restInsert(table, body) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+  // `return=representation` with no `select=` is RETURNING *, and a role that
+  // lacks SELECT on even one column of the target table then gets 42501 → 403
+  // and the write never runs (public.jobs withholds offered_to_helper_id from
+  // `authenticated`, 20260915045110). `select=id` keeps the row count this
+  // function checks while asking only for a column every role can read.
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=id`, {
     method: "POST",
     headers: { ...adminHeaders, Prefer: "return=representation,resolution=merge-duplicates" },
     body: JSON.stringify(body),

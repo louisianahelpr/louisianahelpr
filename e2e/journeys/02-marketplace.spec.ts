@@ -77,9 +77,49 @@ function slotAhead(minutesAhead: number) {
       .formatToParts(t)
       .map((p) => [p.type, p.value]),
   );
-  return { at: t, monthDay: `${parts.month} ${parts.day}`, hour: parts.hour, minute: parts.minute, ampm: parts.dayPeriod as "AM" | "PM" };
+  // hh24 is for the NATIVE <input type="time"> (see pickStartTime): hour12:false
+  // renders midnight as "24", which no native time field accepts, so ask for
+  // hourCycle h23 explicitly rather than deriving it from the 12-hour parts.
+  const hh24 = new Intl.DateTimeFormat("en-US", { timeZone: ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(t);
+  return { at: t, monthDay: `${parts.month} ${parts.day}`, hour: parts.hour, minute: parts.minute, ampm: parts.dayPeriod as "AM" | "PM", hh24 };
 }
 const SLOT = slotAhead(100);
+
+/**
+ * Set the post-job start time on whichever control this viewport renders.
+ *
+ * The form has TWO real start-time controls, and which one exists is a
+ * viewport decision, not a preference:
+ *
+ *   web desktop (>=900px, not native) → a native <input type="time" step=300>
+ *   everything else                   → the Hour / Minute wheels + AM-PM radios
+ *
+ * TimePickerWheel.tsx:192 (`if (isWebDesktop && variant === "auto")`), gated by
+ * useIsWebDesktop (`!isNativePlatform && matchMedia("(min-width: 900px)")`);
+ * LogisticsSection.tsx:408 passes the default variant, so the post-job form is
+ * on that fork. Landed 2026-09-07 and narrowed to `variant === "auto"` on
+ * 2026-09-11 — this spec still drove only the wheels.
+ *
+ * That is why e2e-journeys (#1595) was red in BOTH engines from 2026-09-14:
+ * rotationFor() deals the scenario row by weekday, not by project, and on a
+ * `desktop-1440` day this step waited 20s for a `listbox` named "Hour" that
+ * the desktop form does not render — taking the apply / hire / do-the-job
+ * specs down with it (they chain off the job this one posts).
+ *
+ * Drive the control that is on screen. Never force `variant="wheels"` in the
+ * app to suit the test.
+ */
+async function pickStartTime(page: Page, slot: ReturnType<typeof slotAhead>) {
+  const native = page.locator('input[type="time"][aria-label="Start time"]');
+  if (await native.count()) {
+    await native.fill(slot.hh24);
+    await expect(native, "the native time field did not take the value").toHaveValue(slot.hh24);
+    return;
+  }
+  await page.getByRole("listbox", { name: "Hour" }).getByRole("option", { name: slot.hour, exact: true }).click();
+  await page.getByRole("listbox", { name: "Minute" }).getByRole("option", { name: slot.minute, exact: true }).click();
+  await page.getByRole("radiogroup", { name: "AM or PM" }).getByRole("radio", { name: slot.ampm }).click();
+}
 
 /** True if the locator becomes visible within `ms` (isVisible's timeout option does not wait). */
 async function appears(locator: ReturnType<Page["locator"]>, ms: number) {
@@ -199,9 +239,7 @@ test.describe.serial("marketplace chain", () => {
       const slot = SLOT;
       const cell = page.getByRole("button", { name: new RegExp(slot.monthDay.replace(" ", ".*")) }).or(page.getByRole("gridcell", { name: new RegExp(slot.monthDay.replace(" ", ".*")) })).first();
       await cell.click();
-      await page.getByRole("listbox", { name: "Hour" }).getByRole("option", { name: slot.hour, exact: true }).click();
-      await page.getByRole("listbox", { name: "Minute" }).getByRole("option", { name: slot.minute, exact: true }).click();
-      await page.getByRole("radiogroup", { name: "AM or PM" }).getByRole("radio", { name: slot.ampm }).click();
+      await pickStartTime(page, slot);
       await assertHealthy(page, "logistics");
     });
 

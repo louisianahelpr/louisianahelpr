@@ -419,7 +419,31 @@ test.describe("post a job", () => {
         .formatToParts(t)
         .map((p) => [p.type, p.value]),
     );
-    return { monthDay: `${parts.month} ${parts.day}`, hour: parts.hour, minute: parts.minute, ampm: parts.dayPeriod as "AM" | "PM" };
+    // hh24 is for the NATIVE <input type="time"> the desktop form renders
+    // (hour12:false gives "24" at midnight, which the control rejects).
+    const hh24 = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(t);
+    return { monthDay: `${parts.month} ${parts.day}`, hour: parts.hour, minute: parts.minute, ampm: parts.dayPeriod as "AM" | "PM", hh24 };
+  }
+
+  /**
+   * Set the start time on whichever control this viewport renders.
+   *
+   * TimePickerWheel.tsx:192 swaps the Hour/Minute wheels for a native
+   * <input type="time"> on web desktop (>=900px, not native — useIsWebDesktop).
+   * The prod-audit project is pinned to 375 today, so only the wheels appear;
+   * this is here so widening the project cannot silently break the post leg the
+   * way it broke e2e-journeys (#1595, red from 2026-09-14 in both engines).
+   */
+  async function pickStartTime(page: Page, slot: ReturnType<typeof slotAhead>) {
+    const native = page.locator('input[type="time"][aria-label="Start time"]');
+    if (await native.count()) {
+      await native.fill(slot.hh24);
+      await expect(native, "the native time field did not take the value").toHaveValue(slot.hh24);
+      return;
+    }
+    await page.getByRole("listbox", { name: "Hour" }).getByRole("option", { name: slot.hour, exact: true }).click();
+    await page.getByRole("listbox", { name: "Minute" }).getByRole("option", { name: slot.minute, exact: true }).click();
+    await page.getByRole("radiogroup", { name: "AM or PM" }).getByRole("radio", { name: slot.ampm }).click();
   }
 
   /**
@@ -450,9 +474,7 @@ test.describe("post a job", () => {
     const slot = slotAhead(100);
     const day = new RegExp(slot.monthDay.replace(" ", ".*"));
     await page.getByRole("button", { name: day }).or(page.getByRole("gridcell", { name: day })).first().click();
-    await page.getByRole("listbox", { name: "Hour" }).getByRole("option", { name: slot.hour, exact: true }).click();
-    await page.getByRole("listbox", { name: "Minute" }).getByRole("option", { name: slot.minute, exact: true }).click();
-    await page.getByRole("radiogroup", { name: "AM or PM" }).getByRole("radio", { name: slot.ampm }).click();
+    await pickStartTime(page, slot);
     await page.getByRole("textbox", { name: "Job budget in dollars" }).fill("25");
     await shoot(page, info, "post-step-logistics");
 

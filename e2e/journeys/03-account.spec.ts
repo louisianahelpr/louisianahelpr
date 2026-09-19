@@ -243,15 +243,38 @@ test(j7, async ({ browser, request, journey }) => {
     await openFromProfile(hp, /^Notifications/, "Notifications");
     const digest = hp.getByRole("switch", { name: "Daily match digest" });
     const was = await digest.getAttribute("aria-checked");
+    /**
+     * Wait for the WRITE, never a fixed timeout.
+     *
+     * NotificationPreferences.tsx:240 flips local state optimistically BEFORE
+     * :244 awaits the upsert, so the `not.toHaveAttribute` two lines down is
+     * satisfied by local state alone and proves nothing about the server. The
+     * old `waitForTimeout(1_500)` then reloaded the page — and on the `slow`
+     * rotation row the fixture injects 3-8s of latency into EVERY Supabase
+     * call (fixtures.ts:205), so the reload tore the context down before the
+     * POST ever reached PostgREST. The toggle "did not persist" because it was
+     * never sent. e2e-journeys #1595, both engines, every `slow` night.
+     *
+     * The availability step 20 lines above already does this correctly; this
+     * was the last bare timeout in the file. Register the listener BEFORE the
+     * click, or a fast response can land first.
+     */
+    const savedPref = () =>
+      hp.waitForResponse(
+        (r) => r.request().method() === "POST" && r.url().includes("/rest/v1/notification_preferences") && r.ok(),
+        { timeout: 60_000 },
+      );
+    let wrote = savedPref();
     await digest.click();
     await expect(digest).not.toHaveAttribute("aria-checked", String(was));
     await assertHealthy(hp, "toggle flipped");
-    await hp.waitForTimeout(1_500);
+    await wrote;
     await hp.reload();
     await expect(hp.getByRole("switch", { name: "Daily match digest" }), "the toggle did not persist").not.toHaveAttribute("aria-checked", String(was), { timeout: 30_000 });
     await journey.milestone(hp, "notification-toggled");
+    wrote = savedPref();
     await hp.getByRole("switch", { name: "Daily match digest" }).click();
-    await hp.waitForTimeout(1_500);
+    await wrote;
     await hp.reload();
     await expect(hp.getByRole("switch", { name: "Daily match digest" }), "the toggle was not restored").toHaveAttribute("aria-checked", String(was), { timeout: 30_000 });
   });

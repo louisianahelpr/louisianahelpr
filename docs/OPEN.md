@@ -3308,3 +3308,45 @@ to approve. We've reminded them. If the work is finished, ask them to tap Mark J
 payment stays in escrow — nothing is released or refunded until someone acts, and our team steps in
 if this stays stuck." Both role-neutral (pinned by `roleNeutralCopy.test.ts`) and quotable verbatim.
 `hoursPastScheduledEnd(job, now)` exported if the caption wants "3 days overdue".
+
+### OWNER DECISIONS 2026-09-19 (third batch)
+
+**1. ARRIVAL GATE — VN-33 is being reversed, deliberately. Owner, verbatim:**
+> "but they can not start working until the poster confirms they are there. they
+> shoud be aware of this so they dont try to cheat the system. if gps is not on,
+> they can mark themselves as arrived but can not move on until the poster marks
+> them arrived. so encourgage to turn on gps. but even if gps does confirm they
+> are there the poster still needs ro cfnrm wither way"
+
+The rule to build:
+- The Helpr may ALWAYS record an arrival — GPS fix or not, near or far. Today
+  `mark_helper_arrival` (since `20260915044137`, VN-33) REFUSES a far/fix-less
+  arrival and **writes nothing**, which is what creates the deadlock: the Helpr
+  is blocked with copy naming the poster's "Confirm They Arrived" tap, while
+  that control is itself gated on `helper_arrived_at` and never renders.
+- The Helpr CANNOT start working until `poster_confirmed_arrival_at` is set.
+- **Poster confirmation is required in EVERY case, including a GPS-verified
+  arrival.** (Before: GPS **AND** poster. After: poster ALWAYS, GPS = evidence.)
+  Net effect is a relaxation of the arrival evidence bar and a tightening of the
+  poster-confirmation requirement.
+- The Helpr must be able to SEE that poster confirmation is required, so they do
+  not believe they can slip past it, and GPS must be actively ENCOURAGED.
+- The schema already distinguishes these: `helper_arrived_at` (claimed),
+  `helper_arrival_verified_at` (GPS), `helper_arrival_near_miss_at/_ft`, and
+  `arrivalState` already has `claimed` | `verified`. Build on those, do not add
+  a parallel concept.
+- **This contradicts `src/lib/arrivalGate.test.ts`'s current invariant** ("refusal
+  copy never offers one as a substitute for the other") — that test encodes the
+  OLD rule and must be rewritten to the new one, not deleted.
+- **HELD until the browser-verification lane finishes.** Landing UI changes under
+  a running verification would invalidate the run.
+- Note this does NOT conflict with item 12: the caption "Awaiting confirmation"
+  stays removed; the Helpr's awareness comes from the DISABLED Start Working
+  CTA's reason line, which already names the poster's tap.
+
+**2. STALLED-COMPLETION SWEEP — sweep everything, fixtures included.**
+Owner overruled the `is_seed = false` scoping for THIS sweep only (they were
+shown the tradeoff — fake jobs in front of whoever works the admin queue — and
+chose it). `arrival-confirm-reminder` and `money-reconciliation` KEEP their
+`is_seed` scoping. The 11 currently-stuck seed jobs will be nudged and escalated
+on the first cron run after merge. Lane dispatched.

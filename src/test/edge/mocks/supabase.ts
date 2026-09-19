@@ -116,6 +116,29 @@ export interface SupabaseScenario {
      */
     selectCols: string | null;
   }>;
+  /**
+   * Every READ, in order, with the filters that were chained onto it.
+   *
+   * Writes have been assertable this way for a while; reads were not, and a
+   * read's WHERE clause is sometimes the entire behaviour. The case that forced
+   * it (owner, 2026-09-19, pop-up: "Sweep everything, fixtures included"):
+   * `stalled-completion-reminder` shipped scoped to `.eq("is_seed", false)`,
+   * which made it a sweep that could never touch the eleven prod rows it was
+   * written for — all of them fixtures. Nothing in the harness could tell that
+   * query from an unscoped one, because filters are no-ops for matching here.
+   *
+   * Only the filter methods that record (`eq`/`neq`/`in`/`or`) appear; `is`,
+   * `lte` and friends are still chainable no-ops, so assert ABSENCE of an
+   * equality scope, never absence of every possible clause.
+   *
+   * Additive: no existing scenario reads this, and an unused recording changes
+   * no result.
+   */
+  readQueries: Array<{
+    table: string;
+    cols: string;
+    filters: Array<{ op: "eq" | "neq" | "in" | "or"; column: string; value: unknown }>;
+  }>;
   /** Optional override: table name -> error to return on write. */
   writeErrors: Record<string, { message: string; code?: string }>;
   /**
@@ -181,6 +204,7 @@ export function freshScenario(): SupabaseScenario {
     rpcCalls: [],
     clients: [],
     writes: [],
+    readQueries: [],
     writeErrors: {},
     writeSelectRows: {},
     storage: {
@@ -362,6 +386,13 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
 
   private resolveValue(): { data: unknown; error: unknown; count?: number | null } {
     if (this.op === "select") {
+      // Recorded before the result is resolved, so a read that errors is still
+      // visible to a test asserting what it asked for.
+      (scenario.readQueries ??= []).push({
+        table: this.table,
+        cols: this.cols,
+        filters: this.filters,
+      });
       const base = scenario.reads[this.table] ?? {};
       const override = base.selectOverrides?.find((o) => this.cols.includes(o.includes));
       const t = override ? override.result : base;

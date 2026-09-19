@@ -23,6 +23,14 @@
 // `helper_completed_at`. Eleven such rows were sitting on prod when this was
 // written (all `is_seed`, but the trap is real and catches the first live one).
 //
+// AND THOSE ELEVEN ARE SWEPT. This rule has no seed notion at all —
+// `StalledEvidence` carries no `is_seed` column and nothing below reads one —
+// and since the owner's 2026-09-19 pop-up ("Sweep everything, fixtures
+// included.") neither does the sweep's own query. A fixture job in this trap is
+// nudged and escalated like any other. `arrival-confirm-reminder` and
+// `money-reconciliation` keep their `is_seed = false` scope; that decision was
+// about THIS sweep only.
+//
 // ═══════════════════════════════════════════════════════════════════════════
 // THE DECISION (owner, 2026-09-19, pop-up: "Nudge both, then admin queue.
 // Never move money automatically.")

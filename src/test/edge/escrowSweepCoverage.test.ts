@@ -371,14 +371,19 @@ const UUID = "00000000-0000-0000-0000-000000000001";
  * `accepted` onward, because since 20260915044137 a job cannot BE in_progress
  * without them — which is precisely why `arrival-confirm-reminder` (whose
  * predicate is `poster_confirmed_arrival_at IS NULL`) never covered it.
+ *
+ * `seed` flips `is_seed`. It is a parameter rather than a constant because the
+ * eleven rows the owner reported are ALL fixtures: a matrix that only ever asks
+ * about `is_seed = false` cannot see whether the sweep written for those rows
+ * would actually touch them.
  */
-function strandedShape(status: string): Shape {
+function strandedShape(status: string, seed = false): Shape {
   const assigned = status !== "open" && status !== "pending_approval";
   const started = status === "in_progress" || status === "revision_requested" || status === "disputed";
   return {
     status,
     payment_status: "escrow",
-    is_seed: false,
+    is_seed: seed,
     date_needed: PAST_DATE,
     created_at: PAST_TS,
     updated_at: PAST_TS,
@@ -483,8 +488,8 @@ function admitsStatus(chain: Chain, shape: Shape): boolean {
 }
 
 /** Which scheduled sweeps admit this stranded job. */
-function sweepsCovering(status: string, chains = sweepChains): string[] {
-  const shape = strandedShape(status);
+function sweepsCovering(status: string, chains = sweepChains, seed = false): string[] {
+  const shape = strandedShape(status, seed);
   return chains
     .filter((c) => chainMatches(c, shape) !== false && admitsStatus(c, shape))
     .map((c) => `${c.file}:${c.line}`);
@@ -525,6 +530,78 @@ describe("escrow sweep coverage — no job state may hold escrow with no schedul
     const covering = sweepsCovering("in_progress");
     expect(covering.length).toBeGreaterThan(0);
     expect(covering.join(" ")).toContain("stalled-completion-reminder");
+  });
+
+  /**
+   * ─────────────────────────────────────────────────────────────────────────
+   * SEED ROWS ARE SWEPT (owner, 2026-09-19, pop-up, verbatim: "Sweep
+   * everything, fixtures included.")
+   * ─────────────────────────────────────────────────────────────────────────
+   *
+   * The sweep shipped scoped to `is_seed = false`, following
+   * arrival-confirm-reminder and money-reconciliation. That made it a fix
+   * nothing on prod could exercise: all eleven rows in the trap are fixtures
+   * (verified live on fncmgoasalhdgfwzhsqa, 2026-09-19 — 11 matching rows, 11
+   * of them `is_seed = true`, 0 real). The owner was shown the cost — a fake
+   * job reaching the admin queue — and took it.
+   */
+  it("a SEED job in the same trap is swept too — the owner's 2026-09-19 decision", () => {
+    const covering = sweepsCovering("in_progress", sweepChains, true);
+    expect(
+      covering.join(" "),
+      "a fixture job stuck in_progress with escrow held must be nudged and escalated like any other",
+    ).toContain("stalled-completion-reminder");
+    // Seed and real must be covered by exactly the same sweeps: the point is
+    // that this path has no seed notion at all, not that seed has its own one.
+    expect(covering).toEqual(sweepsCovering("in_progress", sweepChains, false));
+  });
+
+  it("RED before that decision: an is_seed=false conjunct strands the fixture again", () => {
+    // The pre-decision world, reconstructed by putting the filter back on this
+    // lane's own chains — the literal line that was deleted from the source.
+    const scoped = sweepChains.map((c) =>
+      c.file.includes("stalled-completion-reminder")
+        ? {
+            ...c,
+            preds: [
+              ...c.preds,
+              { kind: "cmp" as const, column: "is_seed", op: "eq", value: false, negated: false },
+            ],
+          }
+        : c,
+    );
+    expect(sweepsCovering("in_progress", scoped, true)).toEqual([]);
+    // …and the reconstruction is exact rather than a chain that stopped
+    // matching anything: the same world still covers a non-seed job.
+    expect(sweepsCovering("in_progress", scoped, false).join(" ")).toContain(
+      "stalled-completion-reminder",
+    );
+  });
+
+  it("the other sweeps keep their is_seed scope — the decision was about this sweep only", () => {
+    // CODE only. Each of these files EXPLAINS its seed scope (or its lack of
+    // one) in a header comment that quotes the very call being asserted, so a
+    // raw text match would read a comment as a filter.
+    const codeOnly = (s: string) =>
+      s
+        .split("\n")
+        .filter((l) => !l.trim().startsWith("//") && !l.trim().startsWith("*"))
+        .join("\n");
+    const src = (name: string) =>
+      codeOnly(fs.readFileSync(path.join(FUNCTIONS_DIR, name, "index.ts"), "utf8"));
+    // Untouched: escalating a fixture is acceptable in the stalled-completion
+    // queue because a human triages it; silently RECONCILING or nudging one is
+    // a different bargain, and the owner did not change it.
+    expect(src("arrival-confirm-reminder")).toMatch(/\.eq\(\s*["']is_seed["']\s*,\s*false\s*\)/);
+    expect(src("money-reconciliation")).toMatch(/\.eq\(\s*["']is_seed["']\s*,\s*false\s*\)/);
+    // And this sweep carries no seed clause anywhere, in any shape.
+    expect(src("stalled-completion-reminder")).not.toMatch(/\.eq\(\s*["']is_seed["']/);
+    // The shared rule declares no `is_seed` field either — `StalledEvidence` is
+    // what the app's card reads, and a seed notion there would put the card and
+    // the cron back in disagreement.
+    expect(
+      codeOnly(fs.readFileSync(path.join(FUNCTIONS_DIR, "_shared", "stalledCompletion.ts"), "utf8")),
+    ).not.toMatch(/is_seed/);
   });
 
   it("RED before the fix: with stalled-completion-reminder removed, in_progress is stranded", () => {

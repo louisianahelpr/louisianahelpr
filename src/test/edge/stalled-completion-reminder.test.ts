@@ -172,6 +172,49 @@ describe("stalled-completion-reminder", () => {
     assertNoMoneyMoved();
   });
 
+  /**
+   * SEED JOBS ARE SWEPT (owner, 2026-09-19, pop-up, verbatim: "Sweep
+   * everything, fixtures included.").
+   *
+   * This sweep shipped with `.eq("is_seed", false)`, copied from
+   * arrival-confirm-reminder and money-reconciliation. On prod that made it a
+   * fix with nothing to fix: the query below returned 11 rows on 2026-09-19 and
+   * ALL ELEVEN are `is_seed = true`. The owner was shown what removing the
+   * scope costs — a fixture job landing in the admin queue a person works — and
+   * chose it. The other two sweeps keep their scope.
+   *
+   * Asserted on the QUERY, because the harness hands every seeded row to the
+   * function regardless of filters: a behavioural "did it nudge?" assertion
+   * cannot tell a scoped sweep from an unscoped one. `readQueries` records the
+   * equality filters the real PostgREST would have applied.
+   */
+  it("scans jobs with NO is_seed scope — fixtures are nudged like any other job", async () => {
+    const fn = await load();
+    seedStalled(STALLED_FIRST_AFTER_HOURS + 1, null);
+    (scenario.reads.jobs!.rows![0] as Record<string, unknown>).is_seed = true;
+
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).toBe(200);
+
+    const jobScans = scenario.readQueries.filter((q) => q.table === "jobs");
+    // Guard against a vacuous pass: the scan must have happened at all.
+    expect(jobScans.length).toBeGreaterThan(0);
+    for (const q of jobScans) {
+      expect(
+        q.filters.map((f) => f.column),
+        "the stalled-completion scan must not scope itself to non-seed jobs",
+      ).not.toContain("is_seed");
+    }
+    // The filters it DOES carry are still there — this is a removal, not a
+    // sweep that quietly stopped constraining anything.
+    const scanCols = jobScans[0].filters.map((f) => `${f.column}=${String(f.value)}`);
+    expect(scanCols).toContain("status=in_progress");
+    expect(scanCols).toContain("payment_status=escrow");
+    // …and the seed row was actually nudged, both sides.
+    expect(notifs().map((n) => n.user_id).sort()).toEqual([POSTED_BY, WORKED_BY].sort());
+    assertNoMoneyMoved();
+  });
+
   it("sends nothing at all before the grace has run out", async () => {
     const fn = await load();
     seedStalled(STALLED_FIRST_AFTER_HOURS - 0.5, null);
@@ -192,6 +235,12 @@ describe("stalled-completion-reminder", () => {
       second_sent_at: new Date(Date.now() - (hoursAgo - STALLED_SECOND_AFTER_HOURS) * HOUR).toISOString(),
       escalated_at: null,
     });
+    // A FIXTURE row, deliberately: the eleven jobs in this trap on prod are all
+    // `is_seed`, and since the owner's 2026-09-19 decision they escalate to the
+    // admin queue like any other job. What proves the row would actually reach
+    // this code is the query assertion above (the harness applies no filters);
+    // what this pins is that nothing downstream of the scan branches on it.
+    (scenario.reads.jobs!.rows![0] as Record<string, unknown>).is_seed = true;
 
     const res = await fn.fetch(cronRequest(fn));
     expect(res.status).toBe(200);

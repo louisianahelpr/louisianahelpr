@@ -28,10 +28,14 @@
 // write before anything is sent, so two overlapping runs cannot double-send; a
 // claim matching zero rows means another run took it.
 //
-// SEED ROWS ARE SKIPPED (`is_seed=false`), the same scope
-// arrival-confirm-reminder and money-reconciliation use: fixture jobs are
-// driven by harnesses, and escalating one would page a real admin about test
-// data.
+// SEED ROWS ARE SWEPT TOO — no `is_seed` filter anywhere on this path (owner,
+// 2026-09-19, pop-up, verbatim: "Sweep everything, fixtures included."). This
+// deliberately DIVERGES from arrival-confirm-reminder and money-reconciliation,
+// which both keep `.eq("is_seed", false)`; the owner was shown the tradeoff —
+// escalating a fixture puts a fake job in front of whoever works the admin
+// queue — and chose it anyway. It is also the only way this sweep can be seen
+// working at all: all eleven rows in the trap on prod are `is_seed = true`.
+// Do not "restore consistency" with the other two sweeps here.
 //
 // Auth: CRON_SECRET or service-role bearer. Schedule: daily at 14:00 UTC
 // (9am CDT / 8am CST) — see the migration. A daily run is deliberate: the
@@ -170,7 +174,8 @@ Deno.serve(async (req) => {
         .order("id", { ascending: true })
         .eq("status", "in_progress")
         .eq("payment_status", "escrow")
-        .eq("is_seed", false)
+        // No `is_seed` clause, on purpose — see the header. Seed jobs are
+        // nudged and escalated exactly like real ones.
         .is("helper_completed_at", null)
         .is("poster_completed_at", null)
         .lte("date_needed", today)

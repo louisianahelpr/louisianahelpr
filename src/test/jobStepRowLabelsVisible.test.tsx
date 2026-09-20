@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { act } from "@testing-library/react";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 /**
@@ -67,6 +67,10 @@ import { join, resolve } from "node:path";
 // @mutate src/index.css |   flex: 0 1 var(--job-row-chip, 44px);\n} |   flex: 0 1 var(--job-row-chip, 44px);\n}\n[data-job-step-row][data-tight="true"] > :not([data-job-step-primary]) span {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  clip: rect(0, 0, 0, 0);\n}
 // @mutate src/components/activity/jobStepRow.tsx | const chipPx = chipControlFloorPx(chipNeed); | const chipPx = ROW_CONTROL_MIN_PX;
 // @mutate src/components/activity/JobStepCard.tsx | data-tight={layout.tight ? "true" : "false"} | data-compact={layout.tight ? "true" : "false"}
+//   4. Severing the note portal — the question the visual pass asked when it
+//      found `[data-job-step-note]` 0×0 on every card it opened. Part 4 must
+//      go red: four states fill it today, and the guard must notice if none do.
+// @mutate src/components/activity/jobStepRow.tsx | const host = slot === "primary" ? ctx.primaryHost : ctx.noteHost; | const host = slot === "primary" ? ctx.primaryHost : null;
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -409,4 +413,71 @@ describe("the phone widths get the same treatment as 1440, not a lesser one", ()
     expect(alloc.overflowChips).toBe(0);
     expect(alloc.chipPx).toBeGreaterThanOrEqual(chipNeed);
   });
+});
+
+// ── PART 4: THE CENTRED REASON LINE UNDER THE ROW ──────────────────────────
+
+/**
+ * A visual pass on prod found `[data-job-step-note]` EMPTY — 0×0 — on every
+ * card it opened, and asked whether the 2026-09-19 move (the line went from
+ * above the row to centred below it) had broken the wiring.
+ *
+ * It had not, and this is the record of that rather than an assertion in a
+ * report. The host carries `empty:hidden`, so a state with no gate and no
+ * consequence collapses it to nothing — which is what a reader should see —
+ * and the pass had opened `disputed`, `completed` and `open`, three states
+ * that have neither. Four states DO fill it, and this drives all sixteen so
+ * the number cannot quietly fall to zero.
+ *
+ * `src/test/jobStepReasonBelowRow.test.tsx` owns the placement rule (below the
+ * row, centred by the host, at most one line). This owns the REACHABILITY: is
+ * there any state left that can put a line in it at all.
+ */
+describe("the centred explanation line under the row is wired, and reachable", () => {
+  it("every producer in the source is a `slot=\"note\"` portal, and there are several", () => {
+    // INVENTORY FROM THE WORLD: every file that portals into the note host,
+    // scanned out of the tree rather than listed here. A producer that is
+    // deleted or renamed changes this number.
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir)) {
+        const full = join(dir, entry);
+        if (statSync(full).isDirectory()) walk(full);
+        else if (/\.tsx?$/.test(full) && !full.includes(".test.")) files.push(full);
+      }
+    };
+    walk(join(ROOT, "src"));
+    const producers = files.filter((f) => /<JobStepRowSlot\s+slot="note"/.test(readFileSync(f, "utf8")));
+    expect(
+      producers.length,
+      "nothing portals into [data-job-step-note] any more — the reason line has no source",
+    ).toBeGreaterThanOrEqual(4);
+  });
+
+  it("the host is on every card, and at least four states actually fill it", async () => {
+    let hosts = 0;
+    let filled = 0;
+    const filledNames: string[] = [];
+    for (const c of CASES) {
+      const { container } = c.render();
+      await act(async () => { await Promise.resolve(); });
+      await act(async () => { await Promise.resolve(); });
+      const host = container.querySelector("[data-job-step-note]");
+      if (host) hosts++;
+      const text = (host?.textContent ?? "").trim();
+      if (text) {
+        filled++;
+        filledNames.push(`${c.side}:${c.name}`);
+        // …and it is centred BY THE HOST, not by whoever portalled into it —
+        // one alignment for the set (JobStepCard).
+        expect(host!.className, "the note host stopped centring its line").toContain("text-center");
+      }
+    }
+    expect(hosts, "some step card renders no note host at all").toBe(CASES.length);
+    expect(
+      filled,
+      `only ${filled} of ${CASES.length} states put a line under the row — the portals have come ` +
+        `unwired. Filled: [${filledNames.join(" | ")}]`,
+    ).toBeGreaterThanOrEqual(4);
+  }, 30_000);
 });

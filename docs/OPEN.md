@@ -224,26 +224,58 @@ card's geometry. `src/test/loadingStateShape.test.ts` gained four registered
 - `auto_tip` — renders two full-width cards at 24/1168. The earlier scan's
   card selector simply did not match them; the tab is fine.
 
-## OPEN — /legal's search field is 107px at 320 (2026-09-20, found while fixing the Activity header)
+## CLOSED — /legal's search field clears the typable floor (fixed 2026-09-20 in f148bb5c6, verified independently the same day)
 
-The same class as the Activity and Messages header fields, on the one surface
-no lane owned that night. Measured by
-`e2e/prod-audit/expanding-search-geometry.spec.ts`, signed in:
+Was 107px at 320: the same class as the Activity and Messages header fields,
+on the one surface no lane owned that night.
 
     /legal  320   leading tabs "Terms Rules Privacy" 25…132   field 140…247 = 107px
     /legal  375   leading tabs 25…160                         field 168…302 = 135px
 
-76px of the field is the magnifier (`pl-9`) and the ✕ (`pr-10`), so 107px
-leaves ~31px of typing area. The fix is the one already shipped twice: the
-leading content yields while the field is open (ScreenHeaderRow's
-`narrowTitleStepsAside` does exactly this for a title; /legal's leading item is
-a tab row, so it needs the equivalent). NOT done here — /legal is a different
-row shape and was outside the lane that found it.
+76px of the field is the magnifier (`pl-9`) and the ✕ (`pr-10`), so 107px left
+~31px of typing area.
 
-GUARDED MEANWHILE, not waived: the spec's check (d) pins /legal at its measured
-107px (`minFieldPx: 107` on its SURFACES entry), so the surface cannot get any
-narrower without going red, and every other surface is held to the real
-`MIN_TYPABLE_FIELD_PX` floor of 120.
+THE FIX (`src/pages/Legal.tsx`): the Terms/Rules/Privacy group steps aside
+below 500px while the field is open, and the field carries
+`minWidth: MIN_TYPABLE_FIELD_PX` inline — the app's own constant, imported, not
+a literal restated on the row. Same BEHAVIOUR as ScreenHeaderRow's
+`narrowTitleStepsAside`, deliberately NOT the same prop: that one hides the
+visible twin of an `sr-only` h1, and this row has no title at all — its leading
+content is navigation, which `ScreenHeaderRow` would take as `leading`, a slot
+documented as content that STAYS. Its licence is its own: a live query renders
+all three policies at once with origin chips, so the tab selection is inert
+exactly while the field is up, `hidden` keeps the TabsList mounted so Radix's
+selection survives, and one press of the ✕ brings the tabs straight back.
+
+VERIFIED INDEPENDENTLY (different lane from the one that wrote it) on the
+PRODUCTION BUILD — `npm run build` + `vite preview`, prod Supabase, signed in,
+Chromium, both themes, "arbitration" typed into the field. Open-field width,
+before → after:
+
+    /legal   320    107px → 222px        /legal   414    154px → 316px
+    /legal   375    135px → 277px        /legal  1440    320px → 320px (tabs stay)
+
+`documentElement.scrollWidth == clientWidth` at all four. 24 screenshots at
+320/375/414/1440 × light/dark × closed/open/before, every one looked at and in
+the review log.
+
+WHY 500px AND NOT /legal's OWN ~344px, where the field would first dip under
+the floor: the "before" column above is the same live page with only the
+step-aside class removed, so it prices the alternative. At 375 and 414 the
+pre-fix row DID clear the 120px floor (135px, 154px) and still truncated
+"arbitration" to "arbitra" and "arbitratio" — screenshotted, both themes. The
+floor is a floor, not a target. At 320 the row was worse than narrow: the tabs
+had 107px for ~170px of label and rendered as one smear ("erm:RulePrivacy"),
+so raising the field alone (the obvious one-line fix) would have squeezed them
+to 94px and made the visible half of the defect worse.
+
+The spec's `minFieldPx: 107` pin on the /legal SURFACES entry is GONE. The
+surface takes the shared `MIN_TYPABLE_FIELD_PX` like every other row in
+`e2e/prod-audit/expanding-search-geometry.spec.ts`, so a regression under 120
+fails instead of being recorded. Re-run 2026-09-20: 16 passed, 2 skipped;
+/legal reads 222/277/320 against the 120 floor, the ✕-vs-magnifier overlap is
+0px at all three, and deleting `[data-search-trigger-slot]` from the live DOM
+brings 44px of overlap straight back, so (c) is still falsifiable here.
 
 ## OPEN — the Messages empty inbox still hides its tabs and its Select/Search cluster (2026-09-20)
 
@@ -4878,8 +4910,9 @@ Known, measured, unfixed:
   measurement that is true about an element nobody can see.
 - **414 breakpoint contradicts its own contract** — the lane documented short labels
   below 390px and full words at 414; the rendered DOM shows `You / Soon / Cancel` at 414.
-- Still open from that lane: `/legal` field is 107px at 320 (pinned, not fixed); the
-  **Messages empty inbox hides its tabs and search trigger** the same way Activity did.
+- From that lane: `/legal` field was 107px at 320 (pinned, not fixed) — CLOSED 2026-09-20,
+  f148bb5c6, 222px at 320 and the pin removed; see the /legal section above. Still open:
+  the **Messages empty inbox hides its tabs and search trigger** the same way Activity did.
 
 ### 2026-09-20 lead verification of the final two lanes — ALL VERIFIED BY EYE
 - **Activity tabs FIXED and confirmed on the BUILT app** (`npx vite preview`, not the dev
@@ -4914,7 +4947,9 @@ Known, measured, unfixed:
   cause as Activity: that gate is itself the answer to an earlier owner report about the
   thread area jumping 57px when the empty result lands. Two owner positions pull opposite
   ways. Third option, unpriced: reserve the row's height and render in both outcomes.
-- `/legal` search field is 107px at 320 — pinned so it cannot worsen, not fixed.
+- `/legal` search field is 107px at 320 — FIXED 2026-09-20 (f148bb5c6): the tab group steps
+  aside below 500px, 222px at 320, the `minFieldPx: 107` pin removed so the surface takes the
+  shared floor. Verified independently on the production build, both themes, 24 shots reviewed.
 - `TAB_TITLES.wrapped` drifts ("Helpr Wrapped" vs "Your 2026 so far") — SEASON lives
   inside the lazy chunk.
 - `/my-jobs` applied-card pitch unverified — both test accounts had zero live applications.

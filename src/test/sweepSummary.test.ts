@@ -7,6 +7,12 @@
  *
  * These cases are built from that exact run's rows, so the first one fails on
  * the old flat string and passes only on a line that names what was left.
+ *
+ * The mutation restores the exact bug: a sweeper that reports OK the moment it
+ * has a `listed` count, whatever it had to leave behind. That is the line the
+ * nightlies printed over five escrowed rows for five days.
+ *
+ * @mutate scripts/e2e/sweepSummary.mjs |   if (!deferred.length) return { ok: true, stale: [], line: "OK — all stranded rows unwound." }; |   return { ok: true, stale: [], line: "OK — all stranded rows unwound." };
  */
 import { describe, expect, it } from "vitest";
 // @ts-expect-error — plain .mjs helper shared with the sweeper script

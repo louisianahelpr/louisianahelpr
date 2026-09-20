@@ -7,11 +7,11 @@
  * the landing's title was the last place they did not. Measured at 1440,
  * signed in, on the built app before the fix:
  *
- *     /profile (landing)     h1 left = 145     first card left = 24
- *     /profile?tab=<any>     h1 left =  72     first card left = 24
+ *     /profile (landing)     h1 left = 145     column edge = 24
+ *     /profile?tab=<any>     h1 left =  72     column edge = 24
  *
- * and at 375, 141 against 68 with cards at 20. The cards already agreed; only
- * the title did not.
+ * and at 375, 141 against 68 with the column at 20 on both. The bodies already
+ * agreed; only the title did not.
  *
  * ─── WHY A BROWSER HAS TO SAY IT ───────────────────────────────────────────
  * Because nothing in the source does. The landing's 145 was not a margin
@@ -25,11 +25,30 @@
  * how the first build of the fix was caught landing the landing at 68.
  *
  * ─── THE CLAIM ─────────────────────────────────────────────────────────────
- * At 1440 and 375: the landing's `<h1>` starts at exactly the same x as every
- * Profile TAB's `<h1>`, and every tab agrees with every other tab. Exact
- * equality, not a tolerance — a 4px disagreement is what this exists to
- * catch. The first content card is checked on the same pass, because "the
- * title moved and took the body with it" must not pass as agreement.
+ * At 1440 and 375, on every Profile surface — the landing and all 25 tabs —
+ * TWO exact numbers:
+ *
+ *   1. `.page-measure`'s CONTENT-BOX left, the shared column edge every
+ *      Profile surface is drawn inside. 24 at 1440, 20 at 375. (Content-box,
+ *      not border-box: the tab scroller is `px-3 -mx-3`, so its border edge is
+ *      12px out and its content edge is the same 24 the landing's is.)
+ *   2. `h1.left` MINUS that edge. 48 everywhere — the back slot (36) plus
+ *      `gap-3` (12).
+ *
+ * Exact equality, not a tolerance: a 4px disagreement is what this exists to
+ * catch. Two numbers rather than one because the title's absolute x can be
+ * made to agree by dragging the whole column sideways, and that is not what
+ * the owner asked for.
+ *
+ * WHAT IT DELIBERATELY DOES NOT MEASURE: "the first content card". That was
+ * tried first and is not a sound invariant — the 25 tabs draw their bodies
+ * with genuinely different components, so a generic "first rounded painted
+ * box" finds the outer panel on Notifications (24), an inner record card on
+ * Home History (44), a pill INSIDE the card on Support at 375 (12), and
+ * nothing at all on Support at 1440. Those are four different things, not four
+ * gutters, and a guard that reds on them would be a false-positive machine.
+ * The column edge above is the same element on every surface, which is what
+ * makes it assertable.
  *
  * The tab inventory is the app's own `Tab` union (src/pages/profile/types.ts),
  * so a tab added tomorrow is measured tomorrow, and the parse is floored so a
@@ -37,10 +56,10 @@
  *
  * ─── VACUITY ───────────────────────────────────────────────────────────────
  * Every leg would pass by measuring nothing, so: the parse must yield at
- * least 20 tabs; each surface must produce BOTH an h1 and a card box or that
- * surface fails by name; and the run ends by shifting the landing's title 4px
- * in its own DOM and asserting the comparison goes red — the same 4px that
- * actually shipped for one build.
+ * least 20 tabs; each surface must produce BOTH an `<h1>` with real text and a
+ * `.page-measure` column or that surface fails by name; and the run ends by
+ * shifting the landing's title 4px in its own DOM and asserting the compared
+ * number moves — the same 4px that actually shipped for one build.
  *
  * Read-only against prod: navigates, measures, and mutates only its own last
  * page's DOM for the vacuity leg. Writes no row.
@@ -91,8 +110,10 @@ test("the tab inventory is the app's own, and is not empty", () => {
 interface TitleBox {
   /** The page's first `<h1>` — the page title on every Profile surface. */
   h1: { left: number; text: string } | null;
-  /** The first content card under it. */
-  card: { left: number } | null;
+  /** `.page-measure`'s CONTENT-box left: the shared column edge. */
+  column: number | null;
+  /** h1.left − column. The number the back slot and `gap-3` decide. */
+  indent: number | null;
   /** Horizontal overflow, because a title that fits by pushing the page does not fit. */
   overflow: number;
 }
@@ -100,27 +121,19 @@ interface TitleBox {
 function readTitle(): TitleBox {
   const h1 = document.querySelector("h1");
   const hr = h1?.getBoundingClientRect();
-  // The first real content card: a rounded, painted box wide enough to be a
-  // card and below the top of the viewport. Deliberately NOT a class name —
-  // the landing and the tabs draw their cards with different classes, and the
-  // question is where the content edge IS.
-  const card = Array.from(document.querySelectorAll("div,section"))
-    .filter((e) => {
-      const cs = getComputedStyle(e);
-      const b = e.getBoundingClientRect();
-      return (
-        parseFloat(cs.borderTopLeftRadius) >= 8 &&
-        b.width > 150 &&
-        b.height > 40 &&
-        b.top > 0 &&
-        (cs.backgroundColor !== "rgba(0, 0, 0, 0)" || cs.backgroundImage !== "none")
-      );
-    })
-    .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
-  const cr = card?.getBoundingClientRect();
+  // `.page-measure` is the one element every Profile surface shares — the
+  // landing wraps its scroller in it, every tab wraps its own. Its CONTENT
+  // edge is the column: the tab scroller carries `px-3 -mx-3`, so its border
+  // edge sits 12px outside the column it actually draws into.
+  const pm = document.querySelector(".page-measure");
+  const pr = pm?.getBoundingClientRect();
+  const column =
+    pm && pr ? Math.round(pr.left + parseFloat(getComputedStyle(pm).paddingLeft)) : null;
+  const left = hr ? Math.round(hr.left) : null;
   return {
-    h1: hr ? { left: Math.round(hr.left), text: (h1!.textContent || "").trim().slice(0, 40) } : null,
-    card: cr ? { left: Math.round(cr.left) } : null,
+    h1: hr ? { left: left!, text: (h1!.textContent || "").trim().slice(0, 40) } : null,
+    column,
+    indent: left !== null && column !== null ? left - column : null,
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
   };
 }
@@ -166,7 +179,10 @@ async function measure(page: Page, url: string, tag: string): Promise<TitleBox> 
   await page.waitForTimeout(900);
   const box = await page.evaluate(readTitle);
   expect(box.h1, `${tag}: no <h1> on the page at all`).not.toBeNull();
-  expect(box.card, `${tag}: no content card — nothing to measure the title against`).not.toBeNull();
+  expect(
+    box.column,
+    `${tag}: no .page-measure column — nothing to measure the title against`,
+  ).not.toBeNull();
   return box;
 }
 
@@ -174,31 +190,32 @@ for (const vw of WIDTHS) {
   test(`every Profile title starts on the same x @${vw}`, async ({ browser }, info) => {
     const { ctx, page } = await authedPage(browser, vw, info.project.use.baseURL);
     try {
+      const say = (tag: string, b: TitleBox) => {
+        const line =
+          `${tag}@${vw} h1="${b.h1!.text}" left=${b.h1!.left} column=${b.column} indent=${b.indent}`;
+        info.annotations.push({ type: "profile-title", description: line });
+        console.log(`[profile-title] ${line}`);
+      };
+
       const landing = await measure(page, "/profile", `landing@${vw}`);
       if (SHOTS) await page.screenshot({ path: join(SHOTS, `landing-${vw}.png`) });
-      info.annotations.push({
-        type: "profile-title",
-        description: `landing@${vw} h1="${landing.h1!.text}" left=${landing.h1!.left} card=${landing.card!.left}`,
-      });
-      console.log(
-        `[profile-title] landing@${vw} h1="${landing.h1!.text}" left=${landing.h1!.left} card=${landing.card!.left}`,
-      );
+      say("landing", landing);
       expect(landing.overflow, `landing@${vw}: the page scrolls sideways`).toBeLessThanOrEqual(0);
 
       const disagree: string[] = [];
       for (const tab of TABS) {
         const box = await measure(page, `/profile?tab=${tab}`, `?tab=${tab}@${vw}`);
-        console.log(
-          `[profile-title] ?tab=${tab}@${vw} h1="${box.h1!.text}" left=${box.h1!.left} card=${box.card!.left}`,
-        );
-        if (box.h1!.left !== landing.h1!.left) {
+        say(`?tab=${tab}`, box);
+        if (box.column !== landing.column) {
           disagree.push(
-            `?tab=${tab} title at x=${box.h1!.left} against the landing's ${landing.h1!.left}`,
+            `?tab=${tab} draws into a column starting at x=${box.column} against the ` +
+              `landing's ${landing.column}`,
           );
         }
-        if (box.card!.left !== landing.card!.left) {
+        if (box.indent !== landing.indent) {
           disagree.push(
-            `?tab=${tab} first card at x=${box.card!.left} against the landing's ${landing.card!.left}`,
+            `?tab=${tab} title sits ${box.indent}px into its column against the landing's ` +
+              `${landing.indent}px (absolute x=${box.h1!.left} against ${landing.h1!.left})`,
           );
         }
         expect(box.overflow, `?tab=${tab}@${vw}: the page scrolls sideways`).toBeLessThanOrEqual(0);

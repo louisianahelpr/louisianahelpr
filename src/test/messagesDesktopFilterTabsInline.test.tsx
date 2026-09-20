@@ -4,25 +4,50 @@
  * for desktop. on phone it will still need to drop down but the top will say
  * messages".
  *
- * THE CLASS, not the instance: a filter row that is inline on the desktop
- * website and behind a disclosure on phone must be keyed on the SAME value in
- * both places, and that value must be one the running app actually sets.
- * Messages failed that twice over — the inline strip was written but gated on
- * `embedded`, a prop no production caller passes (Messages.tsx passes
- * `embedded={false}` on both panes since the two-pane split was removed), so
- * the desktop branch had never once rendered and the chevron shipped at every
- * width. Both halves are now keyed on `useIsWebDesktop()`, the same gate
- * Activity and the in-panel header split use.
+ * OWNER, LATER THE SAME DAY — TWO CHANGES, and this file now asserts BOTH:
+ *   1. The Unread tab is gone (confirmed twice). Two tabs, Active then All.
+ *   2. The DISCLOSURE IS GONE TOO, at every width. The phone no longer drops
+ *      the filter down behind a chevron; it renders the SAME inline strip the
+ *      desktop website does, in the same header row, beside the same screen
+ *      name. The phone TITLE CARD stays — that is a separate thing the owner
+ *      asked for explicitly, and the <h1> assertions below hold it in place.
  *
- * The two assertions are exact complements, so neither can be satisfied by a
- * component that renders both placements or neither.
+ * THE CLASS, not the instance: ONE control must have ONE placement. The
+ * original bug was that the inline strip was gated on `embedded`, a prop no
+ * production caller passes, so the desktop branch never rendered. The fix
+ * keyed both halves on `useIsWebDesktop()` — correct, but it left a real
+ * two-layout split behind: inline at >=900px, behind a chevron below it. This
+ * file now forbids BOTH failure modes at once, by asserting the identical
+ * thing at both widths.
  *
- * @mutate src/components/messages/ConversationList.tsx | isWebDesktop && hasThreads ? <div id={INBOX_TABS_ID}> | embedded && hasThreads ? <div id={INBOX_TABS_ID}>
- * @mutate src/components/messages/ConversationList.tsx | {!isWebDesktop && hasThreads && (\n        <button | {!embedded && hasThreads && (\n        <button
- * @mutate src/components/messages/ConversationList.tsx | {!isWebDesktop && hasThreads && tabsOpen && !searchOpen && !selectMode && ( | {false && hasThreads && tabsOpen && !searchOpen && !selectMode && (
+ * WHAT CHANGED IN THIS FILE, precisely:
+ *   - The old "phone / native: the tabs stay behind the disclosure" case is
+ *     inverted, not deleted: phone must now show the tabs INLINE and must
+ *     have NO disclosure button in either of its two labels.
+ *   - The "tabs sit INSIDE the header row" case runs at BOTH widths instead
+ *     of desktop only.
+ *   - EXPECTED_TABS is unchanged and still EXACT — the full set, in order. An
+ *     accidental third tab, a rename or a reorder still fails here. It is NOT
+ *     weakened to "tabs exist somewhere": every assertion names the set, the
+ *     order, and the container the strip must live in.
+ *   - `disclosure()` is kept (not removed) so the absence is asserted by the
+ *     same query that used to assert the presence.
+ *
+ * WHY THE TABS FIT THE PHONE ROW NOW AND DID NOT BEFORE — measured on the
+ * production build at three widths, poster account, 6 threads:
+ *      320: row 240px wide — tabs 104, controls 92, title 88 in the 132 left.
+ *      375: row 295px wide — tabs 104, controls 92, title 88 in the 187 left.
+ *     1440: unchanged from 9b0eb1fc8.
+ *   Zero truncation of the <h1> at either width, `scrollWidth <= clientWidth`
+ *   on <html> at both. Two tabs instead of three and two icon buttons instead
+ *   of three is what bought the room; see ConversationList's placement note.
+ *
+ * @mutate src/components/messages/ConversationList.tsx | const headerMeta = hasThreads ? inboxTabs : undefined; | const headerMeta = undefined;
+ * @mutate src/components/messages/ConversationList.tsx | const headerMeta = hasThreads ? inboxTabs : undefined; | const headerMeta = isWebDesktop && hasThreads ? inboxTabs : undefined;
+ * @mutate src/components/messages/ConversationList.tsx | { key: "active", label: "Active", count: activeThreads }, | { key: "active", label: "Unread", count: activeThreads },
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
-import { render, screen, cleanup, within, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -123,82 +148,88 @@ afterEach(() => {
 });
 
 /**
- * UPDATED 2026-09-19, LATER THE SAME DAY — the owner removed the Unread tab
- * (confirmed twice, knowing it reverses their own afternoon request). This
- * file previously asserted `["All", "Unread", "Active"]`.
- *
- * WHAT CHANGED AND WHY:
- *   - Unread is gone: Active is now the default tab (lib/inboxDefault.ts), so
- *     the landing view is already filtered to live conversations; unread is
- *     marked on the ROW; and the list already scrolls to the first unread
- *     thread on entry (028fe3837). The filter duplicated the list.
- *   - Order is Active then All: narrow to wide, landing tab first.
- *   - What did NOT change: the inline-on-desktop / disclosure-on-phone split
- *     this file was written for. That is still the contract under test.
- *
- * The assertion is still EXACT — the full set, in order — and NOT weakened to
- * "some tabs exist". An accidental third tab, a rename, or a reorder must all
- * fail here.
+ * The exact set, in the exact order. Active then All: narrow to wide, and the
+ * tab the inbox lands on comes first ("here, or everything", rather than the
+ * old strip's "All, and some filters"). Unread went because it was redundant
+ * three times over — Active is the default so the landing view is already
+ * filtered to live conversations; unread is marked on the ROW (the dot + bold
+ * preview in ConversationRow); and the list already scrolls to the first
+ * unread thread on entry (028fe3837).
  */
 const EXPECTED_TABS = ["Active", "All"];
 
-describe("Messages inbox filter tabs — inline on desktop, disclosure on phone", () => {
+/** The two widths the strip must be IDENTICAL at. */
+const WIDTHS: Array<[label: string, webDesktop: boolean]> = [
+  ["desktop website (>=900px)", true],
+  ["phone / native", false],
+];
+
+describe("Messages inbox filter tabs — ONE inline placement at every width", () => {
   it("the inventory is real: this fixture produces a non-empty inbox", () => {
     // Every assertion below is gated on `hasThreads`. An empty fixture would
-    // render no tabs and no chevron on BOTH surfaces and pass the desktop
-    // "no chevron" half vacuously.
+    // render no tabs and no chevron at EITHER width, and would pass both
+    // "no disclosure" halves vacuously.
     setWebDesktop(false);
     renderInbox();
     expect(THREADS.length).toBeGreaterThan(1);
     expect(screen.getByRole("heading", { level: 1, name: "Messages" })).toBeTruthy();
   });
 
-  it("desktop website (>=900px): Active / All are visible in the top bar, with no disclosure", () => {
-    setWebDesktop(true);
-    renderInbox();
+  for (const [label, webDesktop] of WIDTHS) {
+    it(`${label}: Active / All are visible in the top bar, with no disclosure`, () => {
+      setWebDesktop(webDesktop);
+      renderInbox();
 
-    expect(filterTabs()).toEqual(EXPECTED_TABS);
-    expect(
-      disclosure(),
-      "the desktop website must not hide three visible words behind a chevron",
-    ).toBeNull();
-  });
+      expect(filterTabs()).toEqual(EXPECTED_TABS);
+      expect(
+        disclosure(),
+        "no width may hide two visible words behind a chevron — one control, one placement",
+      ).toBeNull();
+    });
 
-  it("desktop website: the tabs sit INSIDE the header row, beside the screen name", () => {
-    setWebDesktop(true);
-    const { container } = renderInbox();
+    it(`${label}: the tabs sit INSIDE the header row, beside the screen name`, () => {
+      setWebDesktop(webDesktop);
+      const { container } = renderInbox();
 
-    // The row is the shared ScreenHeaderRow — identified by the one <h1> it
-    // owns, not by a class, so this keeps holding if the styling moves.
-    const h1 = screen.getByRole("heading", { level: 1, name: "Messages" });
-    const row = h1.closest("div.flex.items-center");
-    expect(row, "the screen name should live in the shared header row").not.toBeNull();
+      // The row is the shared ScreenHeaderRow — identified by the one <h1> it
+      // owns, not by a class, so this keeps holding if the styling moves.
+      const h1 = screen.getByRole("heading", { level: 1, name: "Messages" });
+      const row = h1.closest("div.flex.items-center");
+      expect(row, "the screen name should live in the shared header row").not.toBeNull();
 
-    const group = tabGroup();
-    expect(group).not.toBeNull();
-    expect(
-      row!.contains(group!),
-      "the filter tabs must be in the top bar itself, not on a second line below it",
-    ).toBe(true);
-    // And they are the header row's `meta` slot, not a stray match elsewhere
-    // in the page: the row is the only thing between them and the <h1>.
-    expect(container.querySelectorAll('[role="group"][aria-label="Filter conversations"]')).toHaveLength(1);
-  });
+      const group = tabGroup();
+      expect(group).not.toBeNull();
+      expect(
+        row!.contains(group!),
+        "the filter tabs must be in the top bar itself, not on a second line below it",
+      ).toBe(true);
+      // And they are the header row's `meta` slot, not a stray match elsewhere
+      // in the page: exactly one strip exists, at either width.
+      expect(container.querySelectorAll('[role="group"][aria-label="Filter conversations"]')).toHaveLength(1);
+    });
+  }
 
-  it("phone / native: the tabs stay behind the disclosure, and the top says Messages", () => {
+  /**
+   * The half of the owner's ask that did NOT change: the phone keeps its
+   * visible "Messages" title card, and the desktop website keeps that name
+   * sr-only (the app bar and side rail already say where you are). Asserted
+   * here so "make the tabs inline everywhere" cannot be satisfied by also
+   * making the two title treatments identical.
+   */
+  it("the phone keeps its VISIBLE screen name; the desktop website keeps it sr-only", () => {
     setWebDesktop(false);
     renderInbox();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Messages" }).className.includes("sr-only"),
+      "phone has no app bar, so the title card is the only thing naming the screen",
+    ).toBe(false);
 
-    // The screen name is VISIBLE here (no app bar exists to carry it).
-    const h1 = screen.getByRole("heading", { level: 1, name: "Messages" });
-    expect(h1.className.includes("sr-only")).toBe(false);
-
-    const chevron = disclosure();
-    expect(chevron, "phone keeps the dropdown").not.toBeNull();
-    expect(chevron!.getAttribute("aria-expanded")).toBe("false");
-    expect(filterTabs(), "Messages opens COLLAPSED on phone").toEqual([]);
-
-    fireEvent.click(chevron!);
-    expect(filterTabs()).toEqual(EXPECTED_TABS);
+    cleanup();
+    setWebDesktop(true);
+    renderInbox();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Messages" }).className.includes("sr-only"),
+      "the desktop website's app bar and side rail already name the screen",
+    ).toBe(true);
   });
 });

@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { coerceInboxView, defaultInboxTab, UNFILTERED_INBOX_TAB } from "@/lib/inboxDefault";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { CheckSquare, ChevronDown, Menu, MessageSquare, Pin, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { CheckSquare, Menu, MessageSquare, Pin, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -145,21 +145,15 @@ const MESSAGES_HEADER_PADDING = "!py-1.5 lg:!py-2";
  * The argument to `defaultInboxTab` is the unread count; the rule ignores it
  * (deliberately — that is what makes the landing tab stable), so 0 is a
  * truthful stand-in for "whatever the rule says".
- */
-const DEFAULT_INBOX_TAB = defaultInboxTab(0);
-
-/**
- * The id the disclosure's `aria-controls` points at.
  *
- * Exactly ONE of the two tab placements renders at a time (the inline desktop
- * one under `isWebDesktop`, the phone row under `!isWebDesktop`), so a single
- * id stays unique and the attribute resolves on whichever surface is live.
- * Those two gates are exact complements of one value, which is the whole
- * reason the id can be shared. Activity hit the opposite of this: its desktop
- * chevron pointed at an id that only existed in the phone branch, which axe
- * flags `aria-valid-attr-value` critical.
+ * There is no `DEFAULT_INBOX_TAB` constant here any more, and no
+ * `INBOX_TABS_ID` either: both existed only for the phone disclosure — the
+ * first to darken the chevron's ink while a non-default slice was on, the
+ * second as its `aria-controls` target. The strip is inline at every width as
+ * of 2026-09-19 (owner), so there is no control to label and no panel to
+ * point at. `defaultInboxTab` itself is still read, once, by the seeding
+ * effect below.
  */
-const INBOX_TABS_ID = "messages-inbox-tabs";
 
 /**
  * The header row's icon buttons — search, the tab disclosure, the overflow
@@ -234,38 +228,36 @@ export function ConversationList({
      `null` means "not chosen yet" so the effect below can seed it as soon as
      the first page of threads lands. */
   const [inboxFilter, setInboxFilter] = useState<string | null>(null);
-  /* ── The tab row's disclosure ──────────────────────────────────────────
-     Messages opens COLLAPSED, exactly like My Posts / My Jobs (owner, from a
-     device: "Messages should also be collapsed when opened, add that"). It was
-     the only one of the three that opened with its filter row already down,
-     which made this title card 122px against their 62px — measured at 320 /
-     375 / 393 / 768 before the change.
+  /* ── The filter strip is INLINE AT EVERY WIDTH ────────────────────────
+     OWNER, 2026-09-19 (after the Unread tab was cut): the desktop website
+     showed `Active · All` inline in the header row while phone hid the SAME
+     control behind a chevron — two layouts for one control, and the one the
+     reader has to discover was the phone's. It is inline everywhere now.
 
-     Deliberately the SAME shape as ActivityHeader's `tabsOpenPhone`, not a new
-     invention: a plain component-local `useState`, so the state is per-visit
-     and never persisted, and a chevron that only rotates (no height tween) —
-     if the two screens remembered their disclosure differently, "the same
-     control" would be a lie the second time you opened one.
+     WHY IT FITS NOW AND DID NOT BEFORE. The disclosure was built for THREE
+     tabs (All / Unread / Active) plus a visible "Messages" title plus a
+     three-icon action cluster, and that genuinely did not fit a 320px row —
+     the tabs went on their own line under the toolbar, which made this title
+     card 122px against My Posts' 62px, which is why the chevron was added.
+     Unread is gone (two tabs) and the chevron itself is gone (two icons), so
+     the row has room it never had. Measured, not assumed — see
+     src/test/messagesDesktopFilterTabsInline.test.tsx and the numbers in its
+     header.
 
-     It starts open only when a NON-default filter is active. Collapsing a
-     screen that is silently showing you a subset (the hamburger's Pinned /
-     Recently Deleted views land here) would leave the reader looking at two of
-     their six threads with nothing on screen saying why. The disclosure hides
-     a control, never an active filter — ActivityHeader's rule, verbatim.
+     The tabs are `dense` at EVERY width now, which is what keeps this card at
+     My Posts' / My Jobs' 62px: the non-dense `py-[13px]` that used to carry
+     the phone row's touch area would make the header row 62px on its own and
+     the card ~82px. The tab labels sit ~16px apart horizontally, so WCAG
+     2.5.8's spacing exception carries the target size (the same call the
+     desktop strip has shipped under since 9b0eb1fc8).
 
-     THE DESKTOP WEBSITE (>=900px, non-native) has no disclosure at all: the
-     tabs ride inline beside the screen name there, where there is room for
-     them, which is what `inlineFilters` does on Activity (owner, 2026-09-19:
-     "in the top bar it should say all un read and active. that should not be
-     a drop down ... on phone it will still need to drop down").
-
-     Keyed on `useIsWebDesktop()` — the SAME hook Activity and the in-panel
-     header split below already read — and NOT on the `embedded` prop. That
-     prop is the old desktop two-pane split, which was removed: Messages.tsx
-     passes `embedded={false}` on both panes, so every branch keyed on it is
-     unreachable and the inline strip below had never once rendered in
-     production. `isWebDesktop` is false at every phone width and on native at
-     every size, so the phone rendering is byte-for-byte unchanged. */
+     WHAT WENT WITH IT: `tabsOpenPhone` / `tabsOpen` (component-local
+     disclosure state), the effect that force-opened the row when a
+     non-default filter arrived — an always-visible strip can never be
+     "silently filtered" — and `isDefaultInboxFilter`, which existed only to
+     darken the chevron's ink. `pinnedFilterChip` still covers Pinned /
+     Recently Deleted, which are reached from the hamburger and highlight no
+     tab. */
   /* EVERY read of the filter goes through the coercion, never through the raw
      state. `inboxFilter` is component-local and un-persisted, so today the
      only writers are the tab strip, the overflow menu and the seeding effect
@@ -275,15 +267,6 @@ export function ConversationList({
      the default (see coerceInboxView). `null` is preserved by the seeding
      effect below, which owns the "not chosen yet" distinction. */
   const inboxTab = coerceInboxView(inboxFilter);
-  const isDefaultInboxFilter = inboxTab === DEFAULT_INBOX_TAB;
-  const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
-  const tabsOpen = isWebDesktop || tabsOpenPhone;
-  // A filter arriving LATER — the hamburger switching to Pinned / Recently
-  // Deleted — has to be able to open the disclosure too, or the same
-  // "filtered, but nothing says so" state comes back through the side door.
-  useEffect(() => {
-    if (!isDefaultInboxFilter) setTabsOpenPhone(true);
-  }, [isDefaultInboxFilter]);
   // Bump this nonce after a pin/unpin so the derived order re-reads
   // sessionStorage (the pin set is read directly to avoid a parallel
   // state branch). Cheap, scoped to a paint.
@@ -674,7 +657,11 @@ export function ConversationList({
 
   const inboxTabs = (
     <UnderlineTabs
-      dense={isWebDesktop}
+      /* Dense at EVERY width: this strip rides inside the 44px header row on
+         phone as well as on the desktop website now, and the non-dense
+         `py-[13px]` would make that row 62px on its own. See the placement
+         note above the state block. */
+      dense
       ariaLabel="Filter conversations"
       /* TWO tabs, Active then All (owner, 2026-09-19, confirmed twice).
          Narrow to wide, and the tab the inbox lands on comes first — "here,
@@ -806,31 +793,20 @@ export function ConversationList({
     </>
   ) : null;
 
-  /* What sits beside the screen name: on the DESKTOP website, the tabs
-     themselves — exactly as they do on My Posts / My Jobs, where there is width
-     to spare beside the name and nothing needs to hide behind a chevron.
-     Nothing at all on phone.
+  /* What sits beside the screen name, AT EVERY WIDTH: the tabs themselves —
+     exactly as they do on My Posts / My Jobs. ONE placement, no complement
+     pair, no second line under the toolbar.
 
-     WHAT ABOUT THE COUNTS the collapsed row folds away ("All 2 · Unread 1 ·
-     Active")? A "1 unread" caption beside the title was the obvious answer and
-     it was wrong, measured: at 393 the row is 353px of card, the three 44px
-     controls and their gaps take 144 of it, and the caption plus its gap takes
-     73 more — which leaves 96px for a title that needs 101. The screen's own
-     NAME truncated to "Messag…" to make room for a number. That is a worse
-     trade than the one it was fixing, and it showed up at 375 and 393, the two
-     widths that matter most.
-
-     It is also a number the reader already has three ways over. The dock's
-     Messages tab carries a live unread badge on every screen in the app; each
-     unread thread in the list below wears its own dot and bold ink; and "All N"
-     is just the length of that list. My Posts and My Jobs make the same call —
-     neither surfaces its collapsed counts on the row. Where they DO surface
-     them is the one place the list cannot speak for itself: an empty view,
-     where My Jobs says "you have 3 in Waiting and 2 in Done" rather than
-     leaving you to go hunting. Messages' tab-empty copy does the same (see
-     noTabMatches below), and that is where the counts were owed. */
-  const headerMeta =
-    isWebDesktop && hasThreads ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined;
+     The counts ride on the tabs ("Active 3 · All 6"), which is what makes this
+     affordable. An earlier attempt put a separate "1 unread" caption here
+     BESIDE a three-tab row, and that did not fit: at 393 the row is 353px of
+     card, three 44px controls and their gaps took 144, the caption and its gap
+     73 more, leaving 96px for a title needing 101 — the screen's own name
+     truncated to "Messag…". Two tabs carrying their own numbers, and two icon
+     buttons instead of three, is a different budget. Measured at 320/375/393
+     before shipping; the numbers are in
+     src/test/messagesDesktopFilterTabsInline.test.tsx. */
+  const headerMeta = hasThreads ? inboxTabs : undefined;
 
   /* The trailing icon cluster.
      Search · hamburger · chevron, in that order (owner, 2026-09-14, VN-35:
@@ -917,39 +893,12 @@ export function ConversationList({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {/* THE DISCLOSURE — the same control, glyph and rotation My Posts / My
-          Jobs use, so "collapsed when opened" is one behaviour across the three
-          screens rather than three near-misses. Not rendered on the desktop
-          website: the tabs are inline in the header row there and a chevron
-          would hide three short words to save nothing (ActivityHeader drops it
-          under `inlineFilters` for the same reason).
-
-          Gated on `hasThreads` alongside search — with no threads there is
-          nothing to slice, and the empty state below already says so. */}
-      {!isWebDesktop && hasThreads && (
-        <button
-          type="button"
-          onClick={() => { hapticLight(); setTabsOpenPhone((v) => !v); }}
-          aria-expanded={tabsOpen}
-          /* Only while the panel EXISTS. The tabs unmount when collapsed, so
-             emitting this unconditionally points at a missing id — axe flags it
-             `aria-valid-attr-value` critical, and it is a real lie to a screen
-             reader. */
-          aria-controls={tabsOpen ? INBOX_TABS_ID : undefined}
-          aria-label={tabsOpen ? "Hide conversation filters" : "Filter conversations"}
-          className={`${HEADER_ICON_BUTTON_CLASS} ${
-            // No filled pill: the chevron's ROTATION already carries
-            // open/closed. The ink darkens while a non-default slice is on, so
-            // a filtered inbox is never silent even with the row folded away.
-            isDefaultInboxFilter ? "" : "!text-[hsl(var(--bark))]"
-          }`}
-        >
-          <ChevronDown
-            className={`w-4 h-4 transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
-            strokeWidth={2.25}
-          />
-        </button>
-      )}
+      {/* NO DISCLOSURE. The chevron that used to sit here — third in the
+          cluster, after search and the hamburger — is gone at every width
+          (owner, 2026-09-19): the Active / All strip is inline in this row
+          now, on phone as well as on the desktop website, so there is nothing
+          left for it to fold away. Removing it also bought back the ~48px
+          this row needed to seat the strip at 320. */}
     </>
   );
 
@@ -1017,26 +966,13 @@ export function ConversationList({
           >
             {rowTakeover}
           </ScreenHeaderRow>
-          {/* PHONE: the same tabs, on their own line under the toolbar — there
-              is no room for them beside a visible "Messages" title and the
-              action cluster. Behind the disclosure now (see tabsOpen), so this
-              screen opens at My Posts' / My Jobs' height instead of twice it.
-              Still hidden while search or select mode has taken the row over:
-              one control at a time. */}
-          {!isWebDesktop && hasThreads && tabsOpen && !searchOpen && !selectMode && (
-            /* `-mx-1 px-1 pb-0.5`, not the `pt-1.5` this used to carry — these
-               are ActivityHeader's exact classes, so the card matches My Posts
-               / My Jobs at 118px EXPANDED as well as at 62px collapsed. (With
-               the top pad it measured 122 against their 118: four pixels, but
-               four pixels of nothing, on the one screen the owner had just
-               asked to stop being the odd one out.) The negative margin keeps
-               the tabs' focus rings inside the scroller rather than clipped by
-               it; the scroller itself is insurance for 320px, where three
-               labels are already comfortable. */
-            <div id={INBOX_TABS_ID} className="shrink-0 -mx-1 px-1 pb-0.5 overflow-x-auto scrollbar-hide">
-              {inboxTabs}
-            </div>
-          )}
+          {/* NOTHING ON A SECOND LINE. The phone tab row that used to live
+              here — the same `inboxTabs`, in a `-mx-1 px-1 pb-0.5` horizontal
+              scroller, gated on the disclosure — is gone (owner, 2026-09-19).
+              The strip is the header row's `meta` slot at every width now, so
+              this card is 62px on phone in every state instead of 62 collapsed
+              / 118 expanded, and search and select mode take the whole row
+              over without a stranded filter line beneath them. */}
           {!searchOpen && !selectMode && pinnedFilterChip}
     </>
   );

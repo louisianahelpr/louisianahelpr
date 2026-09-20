@@ -8,6 +8,69 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## DONE 2026-09-20 — Profile tab gutter + every Profile loading state (owner, 2026-09-19)
+
+Landed on main as `d31991d0c..be7de51c7` (6 commits). Both owner reports
+measured before and after at 375 and 1440 on prod, screenshots inspected and
+`recordReview`-ed (25 entries).
+
+**1. Gift card was the odd one out.** `18baad8c0` had added `px-3` to
+GiftCard.tsx, so gift_card rendered at title 84 / card 36 against every other
+tab's 72 / 24 (80/32 vs 68/20 at 375). Fixed at the root: all 25 tab bodies,
+seven inline router branches and AppPage now render ONE component,
+`src/components/profile/ProfileTabBody.tsx`, which takes no `className` and no
+`style`. AFTER: all 24 non-landing tabs at 72/24 (1440) and 68/20 (375), zero
+horizontal overflow. `profileTabShell.test.ts` rewritten — inventory derived
+from the `Tab` union and from "every file that renders a ProfileTabHeader",
+exact match not `.includes`, proven red on the original `px-3` and two more
+mutations.
+
+**2. Loading states.** `TabFallback` now reserves ONE SCREENFUL under the
+tab's REAL header (owner's pop-up ruling: "skeleton fills the screen, grows
+below"); short tabs settle flat because the reserve is empty canvas, not drawn
+bones. Profile's boot branch stopped painting the LANDING skeleton for 23 of
+24 tabs, and its container stopped sitting 12px low. One `JobCardSkeleton`
+instead of two. `/user/:id` and `/my-jobs` placeholders now import their real
+card's geometry. `src/test/loadingStateShape.test.ts` gained four registered
+`@mutate` assertions; `npm run vacuity` 11/11 killed, 0 survivors.
+
+### OPEN, found in this lane, NOT fixed (reported, not touched)
+
+- **`TAB_TITLES.wrapped` still drifts from the rendered h1.** The registry says
+  "Helpr Wrapped"; HelprWrapped.tsx renders `Your ${SEASON.title}` ("Your 2026
+  so far"). types.ts's own rule is that the two must agree, and the browser tab
+  title is wrong today. `legal` had the same drift and was fixed here
+  ("Legal" -> "Legal & Policies"); `wrapped` cannot be, because SEASON lives
+  inside the lazy chunk. Needs a decision: hoist SEASON to a non-lazy module,
+  or accept the placeholder refining the word.
+- **The Profile LANDING sits at a different gutter from every tab**: root
+  [40,40] at 1440 and [36,36] at 375, against the tabs' [24,24] / [20,20], and
+  its title is at x=145 against 72. That is its PullToRefresh wrapper, not the
+  tab body. The owner's report named the TABS, so this was measured and left
+  alone. If the landing is supposed to line up with its own tabs, it is a
+  one-line change and a screenshot.
+- **`/my-jobs` applied-card pitch is unverified against a populated list.**
+  Both shared test accounts have zero live applications tonight (poster: none;
+  helper: all Cancelled), so the loaded frame is the empty state on both. The
+  placeholder's SHAPE is now correct by construction (it imports
+  JobCardShell's frame, rail, tab slot and tab clearance), but the bone-pitch
+  vs row-pitch comparison the other skeletons got has not been made.
+- **`vitest run` is flaky in this tree under parallel load**, three different
+  single-file failures across four full runs, all green in isolation, one of
+  them a real race: `vacuityGate.test.ts` creates and deletes
+  `src/test/fixtures/vacuitySelfTest/` while `discardedQueryFilters.test.ts`
+  walks the repo, so the latter can ENOENT mid-scan. Worth making that fixture
+  a temp dir outside `src/`.
+
+### Verified intentional, not defects (the three anomalies flagged for triage)
+
+- `wrapped` card at x=386 — a deliberately centred poster-shaped share card;
+  its BODY is at 24 like everyone else.
+- `schedule` card right edge at 504 — the left column of a two-column layout
+  at 1440; the body still spans 24 to 1168.
+- `auto_tip` — renders two full-width cards at 24/1168. The earlier scan's
+  card selector simply did not match them; the tab is fine.
+
 ## OPEN — /legal's search field is 107px at 320 (2026-09-20, found while fixing the Activity header)
 
 The same class as the Activity and Messages header fields, on the one surface

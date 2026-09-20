@@ -513,17 +513,41 @@ test.describe("My Posts — card density + header", () => {
     // this gate exists to catch. `[data-job-action-chip]` is the hook that
     // separates the two (JobActionRow.tsx).
     //
-    // A chip in a row the shell has marked `data-compact="true"` is icon-only
-    // BY DESIGN (owner, 2026-09-14, VN-21: never a second row; when labels do
-    // not fit the chips drop them) — its label is visually hidden and stays as
-    // the accessible name, so it is not a truncation and is skipped here.
+    // NO EXEMPTION FOR THE TIGHT ROW ANY MORE, 2026-09-19. This filter used to
+    // skip every chip inside `[data-job-step-row][data-compact="true"]`,
+    // because such a chip was icon-only BY DESIGN — its label was clipped to
+    // 1×1 by index.css and survived only as the accessible name. That design
+    // is what the owner reported twice: at 414 and below every non-primary
+    // label was screen-reader-only while the primary kept its own, so a phone
+    // row was four anonymous icon squares beside one green button.
+    //
+    // Labels win now (`allocateJobStepRow`): a chip that cannot show its label
+    // LEAVES THE ROW, into `More`, where it is labelled two-up. So every chip
+    // that IS in the row must show its label in full, at 320, and this gate
+    // holds them all to it.
     const clipped = await page.evaluate(() =>
       Array.from(document.querySelectorAll<HTMLElement>("[data-job-action-chip] span"))
-        .filter((el) => !el.closest('[data-job-step-row][data-compact="true"]'))
         .filter((el) => el.scrollWidth > el.clientWidth + 1)
         .map((el) => el.textContent ?? ""),
     );
     expect(clipped, `truncated action labels at 320px: ${clipped.join(", ")}`).toEqual([]);
+    // …AND THE LABEL IS ACTUALLY PAINTED. A clipped-to-1×1 label is not a
+    // truncation — `scrollWidth <= clientWidth` on a 1px box — so the check
+    // above passed on the shipped bug. This is the one that would not have.
+    const invisible = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>("[data-job-step-row] [data-job-action-chip] span"))
+        .filter((el) => (el.textContent ?? "").trim().length > 0)
+        .filter((el) => {
+          const r = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          return r.width < 8 || r.height < 6 || cs.clip === "rect(0px, 0px, 0px, 0px)" || cs.visibility === "hidden";
+        })
+        .map((el) => `${el.textContent} (${el.getBoundingClientRect().width}x${el.getBoundingClientRect().height})`),
+    );
+    expect(
+      invisible,
+      `chip labels rendered screen-reader-only at 320px: ${invisible.join(", ")}`,
+    ).toEqual([]);
     // …and the gate must actually have chips to look at, or it passes vacuously
     // the day someone drops the attribute. Two, not the three the row shows:
     // SOS is a SosShareButton, not a JobActionChip, so it carries no hook. The

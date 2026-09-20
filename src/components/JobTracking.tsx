@@ -1703,7 +1703,32 @@ export function JobTracking({
         row.getBoundingClientRect().left +
         row.scrollLeft -
         (row.clientWidth - step.offsetWidth) / 2;
-      const left = Math.max(0, Math.min(target, max));
+      // LAND THE LEFT EDGE IN A GUTTER, NEVER THROUGH A DOT (owner,
+      // 2026-09-19: "the expanded tracker clips mid-dot at 320 … reading as
+      // broken rather than scrollable").
+      //
+      // The comment above this row claims a step "can only ever be cut between
+      // steps, never through one". That was true of the step BOX and of the
+      // LABEL (which `clippedSteps` blanks) and was never true of the 28px DOT
+      // inside it: a centring offset is whatever `(clientWidth - 60) / 2`
+      // happens to be, so the viewport's left edge lands at an arbitrary point
+      // inside a column and a half-circle sits against the card edge.
+      //
+      // The PITCH is measured, not assumed — two siblings' `offsetLeft`
+      // difference, which cancels the positioned-ancestor offset the paragraph
+      // above warns about, and which `grow` can change at wide widths. Snapped
+      // to it, the left edge is always in the 4px gap between two columns.
+      //
+      // The far-right end is exempt: `max` is a real boundary (the last step's
+      // right edge) and rounding away from it would cut the last step to make
+      // room for nothing.
+      const pitch =
+        row.children.length > 1
+          ? (row.children[1] as HTMLElement).offsetLeft - (row.children[0] as HTMLElement).offsetLeft
+          : 0;
+      const raw = Math.max(0, Math.min(target, max));
+      const left =
+        pitch > 0 && raw < max ? Math.min(Math.round(raw / pitch) * pitch, max) : raw;
       if (Math.abs(row.scrollLeft - left) < 1) return;
       row.scrollTo({
         left,
@@ -1963,6 +1988,25 @@ export function JobTracking({
                   // hold their width and scroll — `shrink-0` is what keeps a
                   // label from being squeezed into a hyphenated column.
                   className="w-[60px] shrink-0 grow snap-center flex flex-col items-center gap-1 relative"
+                  /* A STEP THE VIEWPORT CUTS IS NOT PAINTED AT ALL — dot
+                     included (owner, 2026-09-19: "clips mid-dot at 320").
+                     `opacity: 0` lived on the LABEL span below and nowhere
+                     else, so a half-cut column still drew half a 28px circle
+                     against the card edge, which reads as a rendering fault
+                     rather than as "there is more, scroll".
+
+                     Still `opacity`, and still not `visibility`/conditional
+                     rendering, for the reason the label's own comment gives:
+                     this row is a labelled `role="group"` whose only text is
+                     these labels, and both of those would drop the step out of
+                     the accessibility tree — a screen reader would hear six
+                     steps of eight, changing as the row scrolls.
+
+                     The left edge cannot cut a column at all now (the scroll
+                     offset is snapped to the column pitch above); this covers
+                     the RIGHT edge, where the row's own width decides where
+                     the cut falls and no offset can move it. */
+                  style={isClipped ? { opacity: 0 } : undefined}
                 >
                   <Wrapper
                     {...(showTooltip
@@ -2091,8 +2135,11 @@ export function JobTracking({
                         : isActive
                           ? "hsl(var(--ink-deep))"
                           : "hsl(var(--olivewood) / 0.80)",
-                      // Half a word is not a label — see `clippedSteps`.
-                      opacity: isClipped ? 0 : undefined,
+                      /* The `opacity: isClipped ? 0 : undefined` that used to
+                         sit here moved UP to the column (see its comment): a
+                         blanked label over a half-painted dot was still a
+                         half-painted dot. Nothing replaces it here — two
+                         places deciding the same thing is how they drift. */
                     }}
                   >
                     {s.label}

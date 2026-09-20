@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   JobStepRowContext,
@@ -48,10 +48,13 @@ import { JobStepOverflowChip } from "./JobActionRow";
  *     (PRIMARY_FLEX shares) with its label.
  *   - Every other action is an equal-width chip beside it (icon over label, as
  *     JobActionChip draws it).
- *   - When the labelled layout would squeeze a chip under LABELLED_CHIP_MIN_PX
- *     (3–4 buttons at 375), the chips drop to icon-only — the label stays as
- *     their accessible name — and the primary keeps its label. Measured, not
- *     guessed: see `shouldCompactJobStepRow`.
+ *   - EVERY CONTROL KEEPS ITS VISIBLE LABEL, at every width (owner,
+ *     2026-09-19, second phone report). When the roomy 2:1 share would squeeze
+ *     a chip under the width its longest label word needs, the row goes TIGHT:
+ *     each chip is pinned to exactly that width and the ones that no longer
+ *     fit move into `More` — labelled, two up. A chip NEVER becomes an
+ *     anonymous icon square. Measured, not guessed: see
+ *     `shouldTightenJobStepRow` and `allocateJobStepRow`.
  *   - Where the tracker (or the day-of confirmation, or the revision) draws a
  *     next-step CTA, that CTA IS the primary: it portals into the row through
  *     `JobStepRowSlot` and the step's own `primary` is not rendered. Never two.
@@ -195,9 +198,11 @@ export function JobStepCard({
   // a portalled CTA never passes through this component's props.
   const rowRef = useRef<HTMLDivElement | null>(null);
   const [layout, setLayout] = useState<JobStepRowLayout>({
-    compact: false,
+    tight: false,
     empty: chips.length === 0 && !hasRenderable(primary),
     hasPrimary: hasRenderable(primary),
+    rowPx: 0,
+    chipNeedPx: 0,
     alloc: {
       visibleChips: chips.length,
       overflowChips: 0,
@@ -212,6 +217,14 @@ export function JobStepCard({
   // DOM count would oscillate (take chips out, find room, put them back).
   const overflowCountRef = useRef(0);
   overflowCountRef.current = layout.alloc.overflowChips;
+  // THE CHIPS' WIDEST LABEL WORD, AS A HIGH-WATER MARK. Same problem as the
+  // count above and the same shape of answer: a chip parked in `More` is not a
+  // child of the row, so re-reading the DOM would forget it needed 58px, find
+  // room, put it back, and take it out again next frame. The mark is reset
+  // when the wanted-chip COUNT changes, so a genuinely different set of chips
+  // is measured fresh rather than inheriting the old set's widest word.
+  const chipNeedRef = useRef(0);
+  const wantedRef = useRef(-1);
   useLayoutEffect(() => {
     const row = rowRef.current;
     if (!row) return;
@@ -219,11 +232,19 @@ export function JobStepCard({
       const inRow = [...row.children].filter(
         (c) => !c.hasAttribute("data-job-step-primary") && !c.hasAttribute("data-job-step-overflow"),
       ).length;
-      const next = measureJobStepRow(row, inRow + overflowCountRef.current);
+      const wanted = inRow + overflowCountRef.current;
+      if (wanted !== wantedRef.current) {
+        wantedRef.current = wanted;
+        chipNeedRef.current = 0;
+      }
+      const next = measureJobStepRow(row, wanted, chipNeedRef.current);
+      chipNeedRef.current = next.chipNeedPx;
       setLayout((prev) =>
-        prev.compact === next.compact &&
+        prev.tight === next.tight &&
         prev.empty === next.empty &&
         prev.hasPrimary === next.hasPrimary &&
+        prev.rowPx === next.rowPx &&
+        prev.alloc.chipPx === next.alloc.chipPx &&
         prev.alloc.visibleChips === next.alloc.visibleChips &&
         prev.alloc.overflowChips === next.alloc.overflowChips
           ? prev
@@ -231,8 +252,9 @@ export function JobStepCard({
       );
     };
     measure();
-    // WIDTH changes only. Compaction changes the row's HEIGHT (labels hide),
-    // and re-measuring on that would feed the decision back into itself.
+    // WIDTH changes only. Tightening changes the row's HEIGHT (a primary
+    // wraps onto fewer lines once it is given the room), and re-measuring on
+    // that would feed the decision back into itself.
     let lastWidth = row.getBoundingClientRect().width;
     const onResize = () => {
       const w = row.getBoundingClientRect().width;
@@ -307,10 +329,20 @@ export function JobStepCard({
         <div
           ref={rowRef}
           data-job-step-row=""
-          data-compact={layout.compact ? "true" : "false"}
+          data-tight={layout.tight ? "true" : "false"}
           data-has-primary={layout.hasPrimary ? "true" : "false"}
           data-empty={layout.empty ? "true" : "false"}
           className="job-step-row flex flex-nowrap items-stretch gap-1.5"
+          /* THE CHIPS' OWN LABELLED WIDTH, handed to CSS rather than declared
+             in it. The tight rung pins every chip to the width its longest
+             label word needs, and that number is MEASURED (the font decides
+             it) — a stylesheet cannot know it. `index.css` reads this var and
+             falls back to the 44px tap floor if it is ever absent. */
+          style={
+            layout.tight && layout.alloc.chipPx
+              ? ({ "--job-row-chip": `${layout.alloc.chipPx}px` } as CSSProperties)
+              : undefined
+          }
         >
           {/* Chips lead, the primary TRAILS on the right (owner, 2026-09-15,
               V2/V3: "primary buttons should be RIGHT"). DOM order = visual
@@ -333,7 +365,19 @@ export function JobStepCard({
               chips it holds came from. */}
           {rowChips.lead}
           {rowChips.overflow.length > 0 ? (
-            <JobStepOverflowChip count={rowChips.overflow.length}>
+            <JobStepOverflowChip
+              count={rowChips.overflow.length}
+              /* THE PANEL IS THE ROW'S BOX, not the viewport's. Anchored to
+                 the trigger and sized by `w-[min(17rem,calc(100vw-1.5rem))]`
+                 it was 272px wide inside a 244px card at 320, so Radix's
+                 collision detection shoved it to x=12 — off the card, over the
+                 page, pointing at nothing. Anchored to the ROW and given the
+                 ROW's width it lands exactly over the controls it came from,
+                 inside the card, at every width, and collision detection has
+                 nothing left to correct. */
+              anchorRef={rowRef}
+              width={layout.rowPx}
+            >
               {rowChips.overflow}
             </JobStepOverflowChip>
           ) : null}

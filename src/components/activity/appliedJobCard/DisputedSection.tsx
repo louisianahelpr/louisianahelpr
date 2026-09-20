@@ -415,39 +415,28 @@ export function DisputedSection({
      the width it is. */
   /* THE PHOTO CHIP MOVES TO THE END (owner, 2026-09-19: "before and after
      photos should be to the left of the primary buttons"). It led this array
-     until today. There is no Report a Problem chip on a disputed card — the
-     dispute IS the report — so only the trailing pin applies here. */
+     until today. */
+  /* ── THE LEAD SLOT IS THE ESCAPE, ON THIS SIDE TOO (owner, 2026-09-19,
+     second phone report: "the escape chip is not consistently pinned left …
+     the pin rule is not holding on the helper side") ────────────────────────
+     The poster's disputed row leads with `Escalate` — its danger-tone way out
+     of the dispute. This row led with `Message`, so the two sides of the same
+     dispute put different KINDS of control in the slot the reader's thumb
+     lands on first, which is the inconsistency that was reported.
+
+     There is no Report a Problem chip on a disputed card — the dispute IS the
+     report — so the Helpr's way out is `Contact Admin`: the one control here
+     that reaches a human who can end it. It leads; Message follows; the two
+     read-only destinations (Timeline & Evidence, and Contact Admin's old
+     place) come after, which is the house order
+     `partitionJobStepRowChips` documents (escape, then Message, then the
+     ancillary read-only ones).
+
+     WHAT THIS COSTS, said plainly: at 320 the row holds ONE labelled chip
+     beside `More` and the primary, so `Message` is now inside `More` there
+     rather than in the row. It is one tap away and it is LABELLED, which is
+     more than it was when the row kept it and stripped its label. */
   const actions = [
-        /* MESSAGE LEADS. There is no Report a Problem chip on a disputed card
-           (the dispute IS the report), so the leftmost slot is free — and with
-           both ends pinned the middle is what collapses into `More` at 320
-           (partitionJobStepRowChips). Message is the control a Helpr in a
-           dispute actually needs; Timeline & Evidence and Contact Admin are
-           read-only destinations that survive a tap inside the popover. */
-        <JobActionChip
-          key="message"
-          icon={MessageSquare}
-          label="Message"
-          ariaLabel="Message them"
-          tone="message"
-          onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}
-        />,
-        <JobActionChip
-          key="timeline"
-          // Its own icon, not the AlertTriangle Contact Admin also wore: on the
-          // one row at 375 these chips are icon-only (VN-21), and two
-          // identical triangles could not be told apart.
-          icon={History}
-          // "View Timeline & Add Evidence" wanted 169px in a 110px chip at
-          // 375px and still overflowed by 45px at 1440. The chip wraps now,
-          // but a four-word label in a three-up row is three lines of 11px
-          // type — the label carries the same meaning at a third the width,
-          // and the full phrasing survives in the spoken name below.
-          label="Timeline & Evidence"
-          ariaLabel="View dispute timeline and add evidence"
-          tone="neutral"
-          onClick={() => onViewDispute(job)}
-        />,
         <JobActionChip
           key="admin"
           icon={LifeBuoy}
@@ -460,6 +449,31 @@ export function DisputedSection({
              short id on the end lets support find the row. (Was the bare UUID,
              which the person could not recognise and 375 clipped mid-token.) */
           onClick={() => navigate(`/support?topic=report&subject=${encodeURIComponent(disputeSupportSubject({ id: app.job_id, title: job.title }))}`)}
+        />,
+        <JobActionChip
+          key="message"
+          icon={MessageSquare}
+          label="Message"
+          ariaLabel="Message them"
+          tone="message"
+          onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}
+        />,
+        <JobActionChip
+          key="timeline"
+          // Its own icon, not the AlertTriangle Contact Admin also wore. The
+          // reason has changed but the rule has not: these chips are never
+          // icon-only any more (2026-09-19), yet two identical triangles under
+          // two different words is still two controls that look the same.
+          icon={History}
+          // "View Timeline & Add Evidence" wanted 169px in a 110px chip at
+          // 375px and still overflowed by 45px at 1440. The chip wraps now,
+          // but a four-word label in a three-up row is three lines of 11px
+          // type — the label carries the same meaning at a third the width,
+          // and the full phrasing survives in the spoken name below.
+          label="Timeline & Evidence"
+          ariaLabel="View dispute timeline and add evidence"
+          tone="neutral"
+          onClick={() => onViewDispute(job)}
         />,
         photoChip,
   ];

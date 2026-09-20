@@ -1,7 +1,7 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { MoreHorizontal, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 /**
  * The icon-over-label action row shared by the activity job cards.
@@ -48,16 +48,17 @@ const COLS: Record<number, string> = {
  *             one, done tint for one already taken (jobActionChipStyle);
  *   POSITION  the primary trails on the right (owner V2/V3).
  *
- * WHY STACKED AND NOT INLINE. The row must hold FIVE controls at 320px without
- * wrapping (the poster's disputed card: Escalate · Timeline · Message ·
- * Contact Admin + Resolve & Pay). At 320 the row measures ~256px, so five
- * slots and four 6px gaps leave ~46px each. An inline icon-beside-label
- * control needs the icon (18px) + its gap + the longest word at 14px
- * ("Working" ≈ 54px) ≈ 76px before it can show a single word — it cannot fit,
- * which is exactly why the inline primary had grown a 12px `[data-tight]`
- * step-down and a THIRD type size. Stacked gives the whole 46px to the label
- * and lets it wrap: "Working" at 11px is ~42px. One shape, one size, no
- * step-down.
+ * WHY STACKED AND NOT INLINE. At 320 the row measures 212px — measured on
+ * prod, both engines, 2026-09-19; the "~256px" this paragraph used to assert
+ * was stated and never measured, and is the wrong number that let a 12px
+ * primary ship. In 212px an inline icon-beside-label control needs the icon
+ * (18px) + its gap + the longest word at 14px ("Working" ≈ 54px) ≈ 76px
+ * before it can show a single word, so three of them and a primary already
+ * overflow — which is exactly why the inline primary had grown a 12px
+ * `[data-tight]` step-down and a THIRD type size. Stacked, the whole slot
+ * goes to the label and it may wrap: "Working" at 11px is ~42px, "Evidence"
+ * ~58px. One shape, one size, no step-down — and the count of controls, not
+ * their size or their labels, is what gives at 320 (allocateJobStepRow).
  *
  * Exported because ShareJobButton, SosShareButton and DirectionsButton render
  * their own <Button>/<a> (native-share fallback chains and an anchor the OS
@@ -441,27 +442,58 @@ export function JobStepPrimaryButton({
 /**
  * THE OVERFLOW CHIP — where the chips go that the row cannot hold.
  *
- * At 320 the job step card's action row measures 212px. Five controls at the
- * 44px tap floor need `5×44 + 4×6 = 244px`; they do not fit, and every way of
- * making them fit is a second size or a second shape — which is the thing the
+ * At 320 the job step card's action row measures 212px. FIVE LABELLED
+ * controls do not fit it — the poster's disputed row wants a 52px primary and
+ * five chips whose widest label word ("Evidence") needs 58px, which is
+ * `5×58 + 5×6 + 52 = 372px` against 212 — and every way of making them fit is
+ * a second size, a second shape, or a stripped label, all three of which the
  * owner has now asked twice to be rid of. So the row keeps its shape and loses
- * a control instead: `allocateJobStepRow` decides how many chips fit, the last
- * ones move in here, and this takes ONE of the chip slots.
+ * a CONTROL instead: `allocateJobStepRow` decides how many labelled chips fit,
+ * the rest move in here, and this takes ONE of the chip slots.
  *
  * It is the same object as the chips it holds — `JOB_ACTION_CHIP_CLASS`, the
  * neutral tone, the 11px label, the icon above it — because it IS one of them
  * for layout purposes. Nothing about the row's one-shape rule is special-cased
- * for it.
+ * for it, INCLUDING the label: a chip goes in here precisely so it can keep
+ * one (owner, 2026-09-19, second phone report). Icon-only is not a fallback
+ * any more; it is not a state the row has.
  *
  * The panel closes on any click inside it, so a chip in there behaves exactly
  * as it does in the row: one tap, the action happens. (Its own dialogs live in
  * the card's `dialogs` slot, outside this panel, so they open against the card
  * as usual.)
  */
-export function JobStepOverflowChip({ count, children }: { count: number; children: ReactNode }) {
+export function JobStepOverflowChip({
+  count,
+  children,
+  anchorRef,
+  width,
+}: {
+  count: number;
+  children: ReactNode;
+  /**
+   * THE ROW, not this button. Radix positions a popover against its trigger
+   * unless an explicit anchor is given, and this trigger sits in the MIDDLE of
+   * the row — so a panel as wide as the card, aligned to the trigger's end,
+   * hung off the card's left edge and was then shoved back by Radix's
+   * collision detection to wherever the VIEWPORT allowed. Measured on prod at
+   * 320 on 2026-09-19: `x=12, right=284` in a 320px viewport — a panel sitting
+   * on the page, outside the card, pointing at nothing. Its contents and its
+   * 2-up grid were correct; only the placement was wrong.
+   *
+   * Anchored to the row and sized to the row, the panel is the row's own box:
+   * inside the card by construction, at every width, with nothing left for
+   * collision detection to correct.
+   */
+  anchorRef?: RefObject<HTMLElement | null>;
+  /** The row's measured width, 0 before the first measurement. */
+  width?: number;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <Popover open={open} onOpenChange={setOpen}>
+      {/* Renders nothing; it only tells Radix what to measure against. */}
+      {anchorRef ? <PopoverAnchor virtualRef={anchorRef} /> : null}
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -481,12 +513,17 @@ export function JobStepOverflowChip({ count, children }: { count: number; childr
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        align="end"
+        align="center"
+        // The class is the FALLBACK, for the frame before the row is measured
+        // and for any DOM that never lays out; the inline width is the row's
+        // own and wins when it exists.
         className="w-[min(17rem,calc(100vw-1.5rem))] p-2"
+        style={width ? { width } : undefined}
+        data-job-step-overflow-panel=""
         onClick={() => setOpen(false)}
       >
-        {/* Two up, so each chip keeps a readable label rather than the
-            icon-only treatment the crowded row forced on it. */}
+        {/* Two up, so each chip keeps a readable label — the same label it
+            keeps in the row it came out of. */}
         <div className="grid grid-cols-2 gap-1.5">{children}</div>
       </PopoverContent>
     </Popover>

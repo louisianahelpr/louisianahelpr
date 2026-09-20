@@ -3936,10 +3936,16 @@ html.senior-mode *::after {
 
    - The row never wraps (`flex-nowrap` on the element).
    - The primary leads at 2 shares, every chip is 1 equal share.
-   - `data-compact="true"` (measured by the shell, see shouldCompactJobStepRow)
-     hides each chip's visible label — it stays in the accessibility tree as
-     the chip's name — and, when there is a primary, sets the chips to an
-     equal 44px (the tap floor) so the primary keeps the room for its own label.
+   - `data-tight="true"` (measured by the shell, see shouldTightenJobStepRow)
+     pins every chip to `--job-row-chip` — THE WIDTH ITS OWN LABEL NEEDS,
+     measured in the real font — and gives the primary the remainder. Chips
+     that no longer fit are not in the row at all; they are in `More`.
+   - NOTHING HERE HIDES A LABEL. There used to be a third rule in this block
+     that made every chip's <span> screen-reader-only under `data-compact`, so
+     a phone row was four anonymous icon squares beside one green button while
+     1440 showed five labelled chips — three visual treatments, which is what
+     the owner reported twice. Deleted, not weakened: a chip that cannot show
+     its label leaves the row (allocateJobStepRow), it does not go anonymous.
    - There is NO third rung. The primary is the same stacked 11px control as
      the chips (JOB_ROW_CONTROL_SHAPE), so it releases its own `h-11`/nowrap
      in its own class and a long label ("Try My Location Again") wraps inside
@@ -4017,25 +4023,25 @@ html.senior-mode *::after {
    also silently beat the class's `px-1` (a two-class selector out-ranks a
    utility), which is exactly the drift it was supposed to prevent.
 
-   What survives is the COMPACTION rung, and it is the only one: when a label's
-   longest word will not fit its share, the chips go icon-only at the 44px tap
-   floor and the primary keeps its label in the room that frees up. The
-   `[data-tight]` rung under this — a 12px primary with its icon stripped — is
-   deleted with it; see ICON_CHIP_PX in jobStepRow.tsx. */
-[data-job-step-row][data-compact="true"][data-has-primary="true"] > [data-job-step-primary] {
+   What survives is the TIGHT rung, and it is the only one: when a label's
+   longest word will not fit its 2:1 share, every chip is pinned to the width
+   its own label needs (`--job-row-chip`, measured by the shell in the real
+   font) and the primary keeps its label in the room that is left. The chips
+   that no longer fit are moved into `More` by `allocateJobStepRow` — they are
+   not squeezed, and they are not stripped.
+
+   THE `[data-compact]` SR-ONLY RULE THAT USED TO CLOSE THIS BLOCK IS GONE.
+   It set `position:absolute; width:1px; height:1px; clip:rect(0,0,0,0)` on
+   every chip's label span, which is the sr-only recipe: measured on prod
+   2026-09-19 at 414/390/375/360/320 every non-primary label rendered 1×1 while
+   the primary kept its own. `src/test/jobStepRowLabelsVisible.test.tsx` reads
+   THIS FILE and fails if the recipe comes back inside a row selector. */
+[data-job-step-row][data-tight="true"][data-has-primary="true"] > [data-job-step-primary] {
   flex: 1 1 0%;
 }
-[data-job-step-row][data-compact="true"][data-has-primary="true"] > :not([data-job-step-primary]) {
-  flex: 0 1 44px;
-}
-[data-job-step-row][data-compact="true"] > :not([data-job-step-primary]) span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
+/* `--job-row-chip` is set inline by JobStepCard from the measured label width;
+   the 44px fallback is the tap floor, for the frame before the first
+   measurement and for any DOM that never lays out. */
+[data-job-step-row][data-tight="true"][data-has-primary="true"] > :not([data-job-step-primary]) {
+  flex: 0 1 var(--job-row-chip, 44px);
 }

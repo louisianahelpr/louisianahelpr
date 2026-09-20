@@ -31,7 +31,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { partitionJobStepRowChips, allocateJobStepRow } from "@/components/activity/jobStepRow";
+import { partitionJobStepRowChips, allocateJobStepRow, shouldTightenJobStepRow } from "@/components/activity/jobStepRow";
 
 const ROOT = resolve(__dirname, "../..");
 const STEP_DIRS = [
@@ -188,36 +188,64 @@ describe("overflow never takes a pinned end", () => {
     expect(trail).toEqual([]);
   });
 
-  it("THE 320 ROW: four chips + a primary keeps both pins on screen", () => {
+  it("THE 320 ROW: one labelled chip, the lead pin, and More", () => {
     /* The measured numbers, not stated ones. The row is 212px at a 320px
        viewport (measured on prod 2026-09-19, helper and poster `disputed`),
-       and "Resolve" needs 56px in the primary slot:
+       "Resolve" needs 56px in the primary slot, and the widest chip word in
+       this set is "Directions" — 62px with the chip's own padding:
 
-         room for chips = 212 - 56 - 6            = 150px
-         capacity       = floor((150 + 6) / 50)   = 3 chip slots
-         4 chips > 3    -> 2 visible + the More control
-         controls drawn = 2 chips + More + primary = 4
-                        = 4*44 + 3*6 = 194px <= 212  OK
-         primary gets   = 212 - 3*44 - 3*6 = 62px >= 56  OK
+         room for chips = 212 - 56 - 6              = 150px
+         capacity       = floor((150 + 6) / (62+6)) = 2 chip slots
+         4 chips > 2    -> 1 visible + the More control
+         controls drawn = 1 chip + More + primary   = 3
+                        = 2*62 + 76 + 2*6 = 212px    exactly the row
+         primary gets   = 212 - 2*62 - 2*6 = 76px >= 56  OK
 
-       So at 320 the row is: Report a Problem - More(2) - Photo - [primary].
-       Message and Directions are inside More. That is the honest answer: five
-       controls at the 44px tap floor need 244px and the row has 212. */
-    const alloc = allocateJobStepRow({ width: 212, chips: 4, compact: true, primaryNeeds: [56] });
-    expect(alloc.visibleChips).toBe(2);
-    expect(alloc.overflowChips).toBe(2);
+       So at 320 the row is: Report a Problem · More(3) · [primary], and the
+       PHOTO chip is inside More with Message and Directions.
+
+       THE TRAIL PIN GIVES WAY AT THIS WIDTH, deliberately. With room for one
+       chip the LEAD pin wins (`partitionJobStepRowChips`) — the escape is the
+       control whose absence is a safety problem rather than an inconvenience,
+       and the photo chip is one labelled tap away inside More.
+
+       WHAT CHANGED, 2026-09-19: this used to read `2 visible + More + photo`
+       at a flat 44px a chip, which only fit because the chips had had their
+       LABELS TAKEN AWAY — four anonymous icon squares. Labels win now, a chip
+       is as wide as its own longest word, and the row therefore holds fewer of
+       them. That is the trade, written down. */
+    const alloc = allocateJobStepRow({ width: 212, chips: 4, tight: true, primaryNeeds: [56], chipNeed: 62 });
+    expect(alloc.visibleChips).toBe(1);
+    expect(alloc.overflowChips).toBe(3);
+    expect(alloc.chipSlots).toBe(2);
+    expect(alloc.chipPx).toBe(62);
+    expect(alloc.primaryPx).toBe(76);
+
+    const { lead, overflow, trail } = partitionJobStepRowChips(chips, alloc.visibleChips);
+    expect(lead).toEqual(["report"]);
+    expect(trail).toEqual([]);
+    expect(overflow).toEqual(["message", "directions", "photo"]);
+    // Nothing is lost — that is the whole contract of the overflow control.
+    expect([...lead, ...overflow, ...trail].sort()).toEqual([...chips].sort());
+  });
+
+  it("THE 375 ROW: both pins on screen, the middle in More", () => {
+    /* room = 262 - 56 - 6 = 200; capacity = floor(206 / 68) = 3 chip slots;
+       4 chips > 3 -> 2 visible + More. Both pins survive:
+       Report a Problem · More(2) · Photo · [primary]. */
+    const alloc = allocateJobStepRow({ width: 262, chips: 4, tight: true, primaryNeeds: [56], chipNeed: 62 });
     expect(alloc.chipSlots).toBe(3);
-    expect(alloc.primaryPx).toBe(62);
-
+    expect(alloc.visibleChips).toBe(2);
     const { lead, overflow, trail } = partitionJobStepRowChips(chips, alloc.visibleChips);
     expect(lead).toEqual(["report"]);
     expect(trail).toEqual(["photo"]);
     expect(overflow).toEqual(["message", "directions"]);
   });
 
-  it("THE 375 ROW: the same four chips all fit, no More at all", () => {
-    // room = 262 - 56 - 6 = 200; capacity = floor(206/50) = 4; 4 chips fit.
-    const alloc = allocateJobStepRow({ width: 262, chips: 4, compact: true, primaryNeeds: [56] });
+  it("THE 1440 ROW: roomy, so all four chips are in the row with their labels", () => {
+    // 1035px measured on prod. Nothing is tight, nothing overflows.
+    expect(shouldTightenJobStepRow({ width: 1035, chips: 4, hasPrimary: true, chipNeedPx: 62, primaryNeedPx: 80 })).toBe(false);
+    const alloc = allocateJobStepRow({ width: 1035, chips: 4, tight: false, primaryNeeds: [56], chipNeed: 62 });
     expect(alloc.overflowChips).toBe(0);
     expect(partitionJobStepRowChips(chips, alloc.visibleChips).overflow).toEqual([]);
   });

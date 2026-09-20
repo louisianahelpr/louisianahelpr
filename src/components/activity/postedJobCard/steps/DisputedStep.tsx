@@ -185,9 +185,10 @@ export function DisputedStep(ctx: PosterStepCtx) {
           />
         ) : null,
         /* Distinct ICONS for the three non-message chips (was one
-           AlertTriangle each). On the one row at 375 these chips are
-           icon-only (VN-21), and three identical triangles were three
-           buttons nobody could tell apart. */
+           AlertTriangle each). Three identical triangles were three buttons
+           nobody could tell apart — which mattered doubly while this row went
+           icon-only at 375, and still matters now that it never does
+           (2026-09-19: a chip that cannot show its label leaves the row). */
         <JobActionChip
           key="timeline"
           icon={History}

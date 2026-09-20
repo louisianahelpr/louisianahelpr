@@ -81,7 +81,7 @@ import { OpenStep } from "./postedJobCard/steps/OpenStep";
 import { CompletedStep } from "./postedJobCard/steps/CompletedStep";
 import { DisputedStep } from "./postedJobCard/steps/DisputedStep";
 import { JobStepCard } from "./JobStepCard";
-import { JobStepRowSlot, shouldCompactJobStepRow, primaryRoomAfterCompaction } from "./jobStepRow";
+import { JobStepRowSlot, shouldTightenJobStepRow, primaryRoomAfterTightening } from "./jobStepRow";
 // The sweep's own copy, never a retyped copy of it (owner item 7).
 import { STALLED_APPROVE_DISABLED_LABEL } from "../../../supabase/functions/_shared/stalledCompletion";
 
@@ -768,73 +768,75 @@ describe("V2/V3 — the green primary trails, the destructive one never does", (
   });
 });
 
-describe("VN-21 — icon-only chips instead of a second row", () => {
-  it("keeps labels while every chip has room for one", () => {
+describe("VN-21 — the TIGHT rung instead of a second row (and never icon-only)", () => {
+  it("keeps the roomy 2:1 shares while every chip has room for its label", () => {
     // 1440: the row is ~1000px.
-    expect(shouldCompactJobStepRow({ width: 1000, chips: 3, hasPrimary: true })).toBe(false);
-    expect(shouldCompactJobStepRow({ width: 1000, chips: 4, hasPrimary: true })).toBe(false);
+    expect(shouldTightenJobStepRow({ width: 1000, chips: 3, hasPrimary: true })).toBe(false);
+    expect(shouldTightenJobStepRow({ width: 1000, chips: 4, hasPrimary: true })).toBe(false);
     // 311px — near the real 375 row (262px, measured on prod 2026-09-19).
     // Primary + 2 chips still fits labels…
-    expect(shouldCompactJobStepRow({ width: 311, chips: 2, hasPrimary: true })).toBe(false);
+    expect(shouldTightenJobStepRow({ width: 311, chips: 2, hasPrimary: true })).toBe(false);
     // …and 3–4 chips with no primary do too (Open: Share · Boost · Edit · Cancel).
-    expect(shouldCompactJobStepRow({ width: 311, chips: 4, hasPrimary: false })).toBe(false);
+    expect(shouldTightenJobStepRow({ width: 311, chips: 4, hasPrimary: false })).toBe(false);
   });
 
-  it("drops chips to icon-only when 3–4 buttons would squeeze a label at 375 and 320", () => {
+  it("tightens when 3–4 buttons would squeeze a label at 375 and 320", () => {
     // Widths are the function's arguments; the app's rows measure 262 at 375
     // and 212 at 320. Primary + 3 chips (Confirmed, On the Way).
-    expect(shouldCompactJobStepRow({ width: 311, chips: 3, hasPrimary: true })).toBe(true);
+    expect(shouldTightenJobStepRow({ width: 311, chips: 3, hasPrimary: true })).toBe(true);
     // 375: primary + 4 chips (poster Disputed).
-    expect(shouldCompactJobStepRow({ width: 311, chips: 4, hasPrimary: true })).toBe(true);
+    expect(shouldTightenJobStepRow({ width: 311, chips: 4, hasPrimary: true })).toBe(true);
     // A narrower row still, primary + 2 chips.
-    expect(shouldCompactJobStepRow({ width: 256, chips: 2, hasPrimary: true })).toBe(true);
+    expect(shouldTightenJobStepRow({ width: 256, chips: 2, hasPrimary: true })).toBe(true);
     // …and the REAL 320 row is narrower than either of those.
-    expect(shouldCompactJobStepRow({ width: 212, chips: 3, hasPrimary: true })).toBe(true);
+    expect(shouldTightenJobStepRow({ width: 212, chips: 3, hasPrimary: true })).toBe(true);
   });
 
-  it("measures WORDS: short labels stay labelled in a row a long word would not fit", () => {
+  it("measures WORDS: short labels stay roomy in a row a long word would not fit", () => {
     // Open at 375 (Share · Boost · Edit · Cancel, ~62px each): the longest word
-    // needs ~48px, so the labels stay — the fixed 68px floor would have dropped them.
-    expect(shouldCompactJobStepRow({ width: 267, chips: 4, hasPrimary: false, chipNeedPx: 48 })).toBe(false);
-    expect(shouldCompactJobStepRow({ width: 267, chips: 4, hasPrimary: false, chipNeedPx: 72 })).toBe(true);
-    // A primary that would need three lines at two shares forces icon-only chips.
-    expect(shouldCompactJobStepRow({ width: 267, chips: 2, hasPrimary: true, chipNeedPx: 57, primaryNeedPx: 140 })).toBe(true);
+    // needs ~48px, so the shares hold — the fixed 68px floor would not have.
+    expect(shouldTightenJobStepRow({ width: 267, chips: 4, hasPrimary: false, chipNeedPx: 48 })).toBe(false);
+    expect(shouldTightenJobStepRow({ width: 267, chips: 4, hasPrimary: false, chipNeedPx: 72 })).toBe(true);
+    // A primary that would need three lines at two shares tightens the row.
+    expect(shouldTightenJobStepRow({ width: 267, chips: 2, hasPrimary: true, chipNeedPx: 57, primaryNeedPx: 140 })).toBe(true);
   });
 
-  it("leaves the primary real room once the chips are icon-only — there is no third rung", () => {
+  it("leaves the primary real room once the row is tight — there is no third rung", () => {
     // This replaced `shouldTightenJobStepPrimary` (owner, 2026-09-19): the old
     // rung answered "is the primary short?" by stepping it down to 12px and
     // stripping its icon, which is how the row ended up with three type sizes
-    // and two shapes. `ICON_CHIP_PX` came down from 48 to the 44px tap floor
-    // instead, so the primary gets the pixels without changing what it is.
+    // and two shapes.
     //
-    // THE WIDTHS BELOW ARE THE FUNCTION'S ARGUMENTS, NOT THE APP'S ROW.
-    // 311 and 256 were written here as "375" and "320" and were never
-    // measured; the row is 262px at 375 and 212px at 320 (measured on prod,
-    // 2026-09-19). At the real 212, four icon chips leave the primary 12px —
-    // which is what shipped, and what `src/test/jobStepRowWidthFloor.test.tsx`
-    // now fails on. These cases stay as pure arithmetic over the formula.
-    expect(primaryRoomAfterCompaction({ width: 311, chips: 3 })).toBe(161);
-    expect(primaryRoomAfterCompaction({ width: 256, chips: 4 })).toBe(56);
-    // At 48px chips the same row left 40px, which is where the 12px rung came
-    // from. The constant is the fix; this pins that it moved.
-    expect(primaryRoomAfterCompaction({ width: 256, chips: 4 })).toBeGreaterThan(40);
-    // …and the REAL 320 row, which is the number that matters: four chips
-    // leave 12px, so a row of five controls cannot be drawn at 320 at all.
-    // `allocateJobStepRow` is what stops it being drawn anyway.
-    expect(primaryRoomAfterCompaction({ width: 212, chips: 4 })).toBe(12);
-    expect(primaryRoomAfterCompaction({ width: 212, chips: 3 })).toBe(62);
-    expect(primaryRoomAfterCompaction({ width: 0, chips: 4 })).toBe(0);
+    // THE WIDTHS BELOW ARE THE FUNCTION'S ARGUMENTS, NOT THE APP'S ROW. 311 and
+    // 256 were written here as "375" and "320" and were never measured; the row
+    // is 262px at 375 and 212px at 320 (measured on prod, 2026-09-19).
+    //
+    // `chipPx` is now an ARGUMENT rather than a 44px constant, because a chip
+    // is as wide as its own label needs (owner, 2026-09-19, second phone
+    // report: a chip that cannot show its label leaves the row instead of
+    // going anonymous). At the 44px tap floor the numbers are the old ones:
+    expect(primaryRoomAfterTightening({ width: 311, chipSlots: 3, chipPx: 44 })).toBe(161);
+    expect(primaryRoomAfterTightening({ width: 256, chipSlots: 4, chipPx: 44 })).toBe(56);
+    expect(primaryRoomAfterTightening({ width: 256, chipSlots: 4, chipPx: 44 })).toBeGreaterThan(40);
+    // …and the REAL 320 row, which is the number that matters: four 44px chip
+    // slots leave 12px — which is what shipped. `allocateJobStepRow` is what
+    // stops four slots being drawn there at all.
+    expect(primaryRoomAfterTightening({ width: 212, chipSlots: 4, chipPx: 44 })).toBe(12);
+    expect(primaryRoomAfterTightening({ width: 212, chipSlots: 3, chipPx: 44 })).toBe(62);
+    // At the LABELLED width the same row holds fewer slots and the primary is
+    // better off for it: two 58px chips (the "Evidence" word) leave 84px.
+    expect(primaryRoomAfterTightening({ width: 212, chipSlots: 2, chipPx: 58 })).toBe(84);
+    expect(primaryRoomAfterTightening({ width: 0, chipSlots: 4, chipPx: 44 })).toBe(0);
   });
 
-  it("never compacts an unmeasured row or a lone button", () => {
-    expect(shouldCompactJobStepRow({ width: 0, chips: 4, hasPrimary: true })).toBe(false);
-    expect(shouldCompactJobStepRow({ width: 200, chips: 1, hasPrimary: false })).toBe(false);
-    expect(shouldCompactJobStepRow({ width: 200, chips: 0, hasPrimary: true })).toBe(false);
+  it("never tightens an unmeasured row or a lone button", () => {
+    expect(shouldTightenJobStepRow({ width: 0, chips: 4, hasPrimary: true })).toBe(false);
+    expect(shouldTightenJobStepRow({ width: 200, chips: 1, hasPrimary: false })).toBe(false);
+    expect(shouldTightenJobStepRow({ width: 200, chips: 0, hasPrimary: true })).toBe(false);
   });
 
-  it("the shell measures its row and marks it compact, so CSS hides chip labels (not the primary's)", async () => {
-    // jsdom lays nothing out: give the row the 375 width and every measured
+  it("the shell measures its row, marks it TIGHT, and every chip left in it KEEPS ITS LABEL", async () => {
+    // jsdom lays nothing out: give the row the 375-ish width and every measured
     // label word (the shell's off-screen probe span) a 60px width — about
     // "Directions" at 11px, which needs 72px with the chip's padding.
     const widthSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
@@ -847,12 +849,27 @@ describe("VN-21 — icon-only chips instead of a second row", () => {
       await act(async () => { await Promise.resolve(); });
       const row = container.querySelector<HTMLElement>("[data-job-step-row]")!;
       expect(row.getAttribute("data-has-primary")).toBe("true");
-      expect(row.getAttribute("data-compact"), "4 buttons in 311px must drop the chips to icon-only").toBe("true");
-      // The label is still the chip's accessible name — only its paint is hidden.
+      expect(row.getAttribute("data-tight"), "4 labelled controls in 311px must tighten the row").toBe("true");
+      // …and the row is marked tight WITHOUT a `data-compact` anywhere: that
+      // attribute is what `index.css` hung the sr-only label rule off, and the
+      // rule and the attribute went together.
+      expect(row.hasAttribute("data-compact"), "the icon-only rung is back").toBe(false);
+      // Every chip STILL IN THE ROW carries visible text, not just a name.
       const chips = [...row.children].filter((ch) => !ch.hasAttribute("data-job-step-primary"));
-      expect(chips.length).toBe(3);
+      expect(chips.length).toBeGreaterThanOrEqual(1);
       for (const chip of chips) {
-        expect((chip.getAttribute("aria-label") || chip.textContent || "").trim(), "an icon-only chip with no name").not.toBe("");
+        const span = [...chip.querySelectorAll("span")].find(
+          (sp) => (sp.textContent || "").trim() && !sp.classList.contains("sr-only"),
+        );
+        expect(
+          (span?.textContent || "").trim(),
+          `a chip in the row has no VISIBLE label — [${(chip.getAttribute("aria-label") || chip.textContent || "").trim()}]`,
+        ).not.toBe("");
+      }
+      // …and the chips that did not fit are reachable, labelled, behind `More`.
+      const more = row.querySelector("[data-job-step-overflow]");
+      if (more) {
+        expect((more.textContent || "").trim()).toContain("More");
       }
     } finally {
       widthSpy.mockRestore();

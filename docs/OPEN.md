@@ -57,6 +57,74 @@ both return 0 rows on prod; `check-test-account-strikes.mjs` reports all 6 share
 accounts active with no strikes or violations. The 96 `[E2E DO NOT ACCEPT]` rows are
 all `is_seed = true` and invisible to real browse.
 
+## DONE 2026-09-20 — Profile landing title on the tab line + Messages row reserved (owner pop-up, 2026-09-20)
+
+Two owner rulings, both measured before and after at 1440 and 375, light and
+dark, on the BUILT app against prod with the real test accounts. 32
+screenshots inspected and `recordReview`-ed; `npm run review:report` shows
+zero unreviewed in this lane's directories.
+
+**1. "Align the landing title to x=72."** BEFORE: landing h1 at 145 (1440) /
+141 (375) against every one of the 25 tabs at 72 / 68; cards already agreed at
+24 / 20. What set the 145 was the avatar in front of it — card gutter 24 + the
+identity card's own `p-4` 17 + the 88px avatar + `gap-4` 16 — so the title
+could not move to 72 while it lived in that row. It was also the LAST title
+still on the pre-2026-08-29 inline `clamp(1.4rem, 2vw + 0.4rem, 1.75rem)`, the
+exact declaration the eighteen tabs were converged off; the tabs converged and
+the landing was left behind. FIX: the name is now the `title` of the same
+`<PageHeader>` the tabs render through, with `hideBack` + a new named
+`reserveBackSlot` (the landing is a bottom-nav root — the chevron's box is held
+open empty rather than collapsed, which is what keeps the title on the line).
+Profile.tsx's landing-only `pt-3 lg:pt-5` went with it, in the loaded shell,
+the boot shell and ProfileRouteSkeleton together, and `ProfilePageSkeleton`
+grew the title row so the identity card does not sit 75px above the screen
+that replaces it. AFTER: all 25 surfaces at column 24/20 and indent 48 —
+absolute 72 / 68 — at both widths.
+
+**2. "Keep the row's height reserved whether or not there are threads, and
+render the tabs in both cases."** The inbox's Active/All strip and its
+magnifier were gated on `conversations.length > 0`, so an empty inbox painted
+"Messages · hamburger" and nothing else. That gate was itself the fix for the
+earlier 57px-jump report, and its note argued the screen could not be jump-free
+in both directions; the ruling removes the guess instead of making it. AFTER,
+driving two real accounts (0 messages vs 129): at 375 the empty inbox's thread
+area moved 83 → 127 and the populated one stayed at 127 — the 44px step is 0;
+at 1440 both 130. `hasThreads` survives only for "Select messages" and the
+select-mode bar, neither of which is on the screen at rest.
+
+**Checks.** `e2e/prod-audit/profile-title-alignment.spec.ts` (new) drives all
+25 surfaces at 1440 and 375 and asserts two exact numbers — `.page-measure`'s
+content-box left, and `h1.left` minus it. Proven red on the original: landing
+`indent=121, x=145` against every tab's `48 / 72`. `activity-tabs-visible.spec.ts`
+gained /messages at 320/375/414/1440: the strip + magnifier on a genuinely
+empty inbox (the `admin` seed account, zero rows in `messages`; emptiness
+re-read off the rendered page so it cannot pass vacuously), and thread-area y
+equality between the two accounts. Proven red on the original: 7 of 8 legs,
+naming the 44px jump. `src/test/profileTitleLine.test.ts` (new, 5 `@mutate`
+directives) is the per-commit half. `npm run vacuity`: 20/20 killed, 0
+survivors.
+
+**Found while doing it, NOT touched (reports):**
+
+- **`BACK_BUTTON_BOX_CLASS` was 4px smaller than the button it describes.** It
+  read `w-10 h-10` (40px) and rendered at 44 for as long as only a `<button>`
+  wore it, because `:where(button …)` in index.css floors every button at 44
+  and a width utility does not beat a min-width. Fixed here (declaration now
+  `w-11 h-11`, rendered size unchanged) because the reserved slot depends on
+  it — but the same hole exists anywhere else a non-button reserves a button's
+  box from its classes.
+- **A generic "first content card" is not a Profile-wide invariant.** Over the
+  25 tabs it finds four different things: the outer panel on Notifications
+  (24), an inner record card on Home History (44), a pill inside the card on
+  Support at 375 (12), and nothing at all on Support at 1440. Not defects —
+  but any future guard that measures "the card" this way will red on them.
+- **`src/components/activity/appliedJobCard/ConfirmedSection.test.tsx` failed
+  2 of 5 on main** while this lane ran. Reproduced identically at `2127dfbd2`
+  in a clean detached worktree, so it predated this lane — and the nightly-reds
+  lane landed the cause and the fix meanwhile (`cd55ef0e5`, a job-day fixture
+  that ages into the past). Recorded only so the red in this lane's first
+  repo-wide run is not mistaken for its own.
+
 ## DONE 2026-09-20 — Profile tab gutter + every Profile loading state (owner, 2026-09-19)
 
 Landed on main as `d31991d0c..be7de51c7` (6 commits). Both owner reports

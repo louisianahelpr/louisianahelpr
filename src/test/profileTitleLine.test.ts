@@ -46,7 +46,7 @@ import { BACK_BUTTON_BOX_CLASS } from "@/components/BackButton";
 // @mutate src/components/PageHeader.tsx | <span className={`${BACK_BUTTON_BOX_CLASS} block`} /> | <span className="w-10 h-10 -ml-2 block" />
 // @mutate src/components/SkeletonLoaders.tsx | <span className={`${BACK_BUTTON_BOX_CLASS} block shrink-0`} aria-hidden="true" /> | <span className="w-10 h-10 -ml-2 block shrink-0" aria-hidden="true" />
 // @mutate src/components/BackButton.tsx | export const BACK_BUTTON_BOX_CLASS = "w-11 h-11 -ml-2"; | export const BACK_BUTTON_BOX_CLASS = "w-10 h-10 -ml-2";
-// @mutate src/components/profile/ProfileLanding.tsx | reserveBackSlot | hideBack
+// @mutate src/components/profile/ProfileLanding.tsx | hideBack\n          reserveBackSlot | hideBack
 // @mutate src/components/profile/profileLanding/IdentityHeader.tsx | <div className="flex-1 min-w-0 text-left"> | <div className="flex-1 min-w-0 text-left"><h1>{displayName}</h1>
 
 const ROOT = resolve(__dirname, "../..");
@@ -103,20 +103,40 @@ describe("the Profile title line has one definition", () => {
   });
 
   it("everything that reserves the back slot reads that one constant", () => {
+    /* The SHAPE of the box class, with every number generalised — so this
+       matches a hand-typed copy at ANY size, including the `w-10 h-10 -ml-2`
+       the box was declared as until 2026-09-20. Derived from the constant
+       rather than written out, for two reasons: it cannot drift from the real
+       declaration, and no Tailwind class literal is spelled in this file. That
+       second one is not fussiness — a guard that interpolates a class into a
+       string puts that string into Tailwind's content scan and can create or
+       destroy rules in the build (src/test/arbitraryWidthVariantsCompile.test.ts,
+       2026-09-20). */
+    const handTyped = new RegExp(
+      BACK_BUTTON_BOX_CLASS.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/\d+/g, "\\d+")
+        .replace(/\s+/g, "\\s+"),
+    );
+
     for (const [name, src] of [
       ["src/components/PageHeader.tsx", PAGE_HEADER],
       ["src/components/SkeletonLoaders.tsx", SKELETONS],
     ] as const) {
+      // NOT `src.includes(name-of-the-constant)`: the import line alone
+      // satisfies that, which is exactly how the first version of this guard
+      // stayed green while the reserved slot was hand-typed beside it.
+      expect(
+        handTyped.test(src),
+        `${name} hand-types the back button's box instead of reading ` +
+          `BACK_BUTTON_BOX_CLASS. A <button> is widened to the 44px tap-target floor and a ` +
+          `reserved <span> is not, so a copied class string reserves a box 4px narrower than ` +
+          `the real one and the Profile landing's title lands off the line every tab sits ` +
+          `on. That shipped, at 68 against 72.`,
+      ).toBe(false);
       expect(
         src.includes("BACK_BUTTON_BOX_CLASS"),
-        `${name} reserves the back button's box without reading BACK_BUTTON_BOX_CLASS — ` +
-          `a second copy of that geometry is how the 4px landed.`,
+        `${name} reserves the back button's box without reading BACK_BUTTON_BOX_CLASS`,
       ).toBe(true);
-      // …and does not ALSO hand-type the box beside it.
-      expect(
-        / w-1\d h-1\d -ml-2/.test(src),
-        `${name} still hand-types the back button's box next to the shared constant`,
-      ).toBe(false);
     }
   });
 

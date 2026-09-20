@@ -57,7 +57,7 @@
  * in both directions: a guard satisfiable OR breakable by the prose explaining
  * it is not checking anything.
  *
- * @mutate src/components/BackButton.tsx | -ml-2 ctl-exit flex | -ml-2 rounded-md flex
+ * @mutate src/components/BackButton.tsx | BACK_BUTTON_BOX_CLASS} ctl-exit flex | BACK_BUTTON_BOX_CLASS} rounded-md flex
  * @mutate src/components/ui/dialog.tsx | flex items-center justify-center text-muted-foreground | flex items-center justify-center text-muted-foreground hover:-translate-y-px
  */
 import { describe, expect, it } from "vitest";

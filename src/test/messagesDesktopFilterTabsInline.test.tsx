@@ -46,9 +46,9 @@
  *   - `disclosure()` is kept (not removed) so the absence is asserted by the
  *     same query that used to assert the presence.
  *
- * @mutate src/components/messages/ConversationList.tsx | {!isWebDesktop && hasThreads && !searchOpen && !selectMode && ( | {!isWebDesktop && hasThreads && false && !searchOpen && !selectMode && (
- * @mutate src/components/messages/ConversationList.tsx | const headerMeta = isWebDesktop && hasThreads ? inboxTabs : undefined; | const headerMeta = undefined;
- * @mutate src/components/messages/ConversationList.tsx | { key: "active", label: "Active", count: activeThreads }, | { key: "active", label: "Unread", count: activeThreads },
+ * @mutate src/components/messages/ConversationList.tsx | {!isWebDesktop && !searchOpen && !selectMode && ( | {!isWebDesktop && false && !searchOpen && !selectMode && (
+ * @mutate src/components/messages/ConversationList.tsx | const headerMeta = isWebDesktop ? inboxTabs : undefined; | const headerMeta = undefined;
+ * @mutate src/lib/inboxDefault.ts | active: "Active", | active: "Unread",
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, within } from "@testing-library/react";

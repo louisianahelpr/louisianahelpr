@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { isGhostJob, GHOST_GRACE_MINUTES, GHOST_JOB_FLAG, detectFlags } from "./adminJobsHelpers";
 import type { Job } from "./types";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /**
  * A GHOST is a job that is open to helpers with no money behind it.
@@ -25,7 +26,7 @@ const job = (o: Partial<Job> = {}): Job =>
     status: "open",
     payment_status: "unpaid",
     created_at: new Date(Date.now() - 24 * 3600_000).toISOString(),
-    date_needed: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10),
+    date_needed: jobLocalDateISO(7), // Central, not UTC — see src/test/helpers/jobLocalDate.ts
     ...o,
   }) as unknown as Job;
 

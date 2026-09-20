@@ -90,17 +90,25 @@ const RULES: Rule[] = [
       "scripts/probes/dispute-open-race.prod.mjs": "creates a bare job with no uploads (evidence urls are example.invalid strings, never storage objects); the weekly storage-orphan-sweep is the net",
       "scripts/probes/settle-dispute-race.prod.mjs": "creates a bare job with no uploads; the weekly storage-orphan-sweep is the net",
       "scripts/probes/completion-race.prod.mjs": "creates a bare job with no uploads; the weekly storage-orphan-sweep is the net",
+      "scripts/probes/messages-inbox-states.prod.mjs": "creates two bare `unpaid` jobs for the inbox screenshot states and deletes them in `restore`; the POST body carries no photo column and nothing in the file ever touches storage, so those job ids own no object. The weekly storage-orphan-sweep is the net",
     },
   },
   {
     name: "messages row delete removes its attachment",
     hits: (src) =>
       /from\(\s*["']messages["']\s*\)(?:(?!;)[\s\S]){0,120}?\.delete\(/.test(src) ||
-      /rest\/v1\/messages\?[^`]*`,\s*\{\s*method:\s*["']DELETE["']/.test(src) ||
+      // The REST spelling, with or without the `rest/v1/` prefix. The prefixed
+      // form was the only one here until 2026-09-19, when
+      // `messages-inbox-states.prod.mjs` landed a bare `rest(\`messages?…\`,
+      // { method: "DELETE" })` — a real hit this rule walked straight past.
+      // Only the JOBS rule caught that file, and only because its own matcher
+      // already had the unprefixed form. Same shape as the jobs one now.
+      /messages\?[^`"']*`[^)]*\{\s*method:\s*["']DELETE["']/.test(src) ||
       /\bdel\(\s*(?:s,\s*)?[`"']messages[?"'`]/.test(src),
     removal: /removeMessageAttachment|collectMessageAttachments|removeJobMedia/,
     exempt: {
       "scripts/audit/two-account-journey.mjs": "deletes only text messages it typed (content marker); it sends no attachment",
+      "scripts/probes/messages-inbox-states.prod.mjs": "deletes only the messages it INSERTED itself, on the two jobs it created; its insert body is { job_id, sender_id, receiver_id, content, read } — no attachment_url, so those rows own no object",
     },
   },
   {

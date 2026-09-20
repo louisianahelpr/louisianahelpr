@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ActiveJobSection } from "./ActiveJobSection";
 import type { AppliedApp, Job } from "../activityConstants";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /**
  * ONE primary action per card.
@@ -74,7 +75,14 @@ const HELPER = "helper-1";
 const NOW = Date.now();
 const ago = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
 /** Yesterday, so the tracker's "actions unlock 2h before start" gate is open. */
-const JOB_DAY = new Date(NOW - 24 * 3_600_000).toISOString().slice(0, 10);
+// The job's day in AMERICA/CHICAGO, the zone every clock gate on these cards
+// resolves in (`jobLocalStartMs` / `todayMs()` / `completionStalled`). These
+// were `.toISOString().slice(0, 10)` — the UTC day — which after 19:00 Pacific
+// names the NEXT Central day, so a "yesterday" fixture was really today and a
+// "today" fixture was really tomorrow. Eight specs went red on that on
+// 2026-09-19 with the product entirely correct; see
+// src/test/helpers/jobLocalDate.ts.
+const JOB_DAY = jobLocalDateISO(-1);
 
 function makeJob(over: Partial<Job> & { status: string }): Job & { revision_note?: string | null } {
   return {

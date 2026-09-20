@@ -24,6 +24,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Job } from "../../activityConstants";
 import type { PosterStepCtx } from "./posterStepContract";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -71,8 +72,18 @@ beforeAll(() => {
 
 const NOW = Date.now();
 const ago = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
-const YESTERDAY = new Date(NOW - 24 * 3_600_000).toISOString().slice(0, 10);
-const TODAY = new Date(NOW).toISOString().slice(0, 10);
+// `date_needed` is the job's day IN AMERICA/CHICAGO (jobLocalDateISO's header).
+// These were `new Date(NOW - 24h).toISOString().slice(0, 10)` — the UTC day —
+// which after 19:00 Pacific names the CURRENT Central day, so the "stalled"
+// fixture was a job whose day is not over and `completionStalled` (correctly)
+// returned false: no disabled box, no "Why?" chip.
+//
+// TWO days back, not one: `scheduledEndMs` is the end of the job's DAY, so a
+// job dated Central-yesterday is only stalled once 02:00 Central has passed
+// (STALLED_FIRST_AFTER_HOURS = 2). Two days back is past that gate at every
+// hour of the clock, which is what "the scheduled end is long behind us" means.
+const DAY_LONG_PAST = jobLocalDateISO(-2);
+const TODAY = jobLocalDateISO(0);
 
 /** In progress, both vouches given, and NOBODY marked it done. */
 const stalledJob = (over: Partial<Record<string, unknown>> = {}): Job =>
@@ -80,7 +91,7 @@ const stalledJob = (over: Partial<Record<string, unknown>> = {}): Job =>
     id: "job-1",
     title: "Mow the lawn",
     status: "in_progress",
-    date_needed: YESTERDAY,
+    date_needed: DAY_LONG_PAST,
     start_time: "09:00",
     estimated_hours: 2,
     budget: 100,

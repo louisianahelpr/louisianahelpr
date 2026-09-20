@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
 import type { AppliedApp, Job } from "./activityConstants";
 import type { PosterStepCtx } from "./postedJobCard/steps/posterStepContract";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /**
  * VN-21 — EVERY BUTTON ON A STEP CARD SITS ON ONE ROW (owner, 2026-09-14).
@@ -95,8 +96,20 @@ const POSTER = "poster-1";
 const NOW = Date.now();
 const ago = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
 const ahead = (h: number) => new Date(NOW + h * 3_600_000).toISOString();
-const YESTERDAY = new Date(NOW - 24 * 3_600_000).toISOString().slice(0, 10);
-const TODAY = new Date(NOW).toISOString().slice(0, 10);
+// `date_needed` is the job's day IN AMERICA/CHICAGO — same doctrine as
+// `jobClock` below, which this pair predates and contradicted. They were
+// `new Date(...).toISOString().slice(0, 10)`, i.e. the UTC day, which after
+// 19:00 Pacific names the NEXT Central day: "start already passed" became a
+// start two hours in the future (so Cancel Job was still correctly offered,
+// four controls not three), and the stalled fixture became a job whose day is
+// not over (so `completionStalled` was correctly false, three controls not
+// four). Green all morning, red after 19:00 — the product was right both times.
+const YESTERDAY = jobLocalDateISO(-1);
+const TODAY = jobLocalDateISO(0);
+/** Two days back, so the job's scheduled END (the end of its DAY) is past
+ *  `STALLED_FIRST_AFTER_HOURS` at every hour of the clock. One day back is
+ *  only stalled after 02:00 Central. */
+const DAY_LONG_PAST = jobLocalDateISO(-2);
 
 /**
  * A `date_needed` + `start_time` pair `h` hours from now, resolved in the JOB's
@@ -540,7 +553,7 @@ const CASES: Array<{
       wrap(
         <InProgressStep
           {...posterCtx(makeJob({
-            date_needed: YESTERDAY,
+            date_needed: DAY_LONG_PAST,
             poster_confirmed_arrival_at: ago(26),
             poster_confirmed_working_at: ago(25),
             helper_completed_at: null,

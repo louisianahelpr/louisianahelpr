@@ -89,11 +89,19 @@ import { DisputedStep } from "./postedJobCard/steps/DisputedStep";
 import { AppliedJobCard } from "./AppliedJobCard";
 import { POSTER_PROOF_MISSING_NOTE } from "@/components/PhotoProof";
 import { requiredProof } from "@/lib/photoProofPolicy";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const HELPER = "helper-1";
 const POSTER = "poster-1";
 const ago = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
-const TODAY = new Date().toISOString().slice(0, 10);
+// The job's day in AMERICA/CHICAGO, the zone every clock gate on these cards
+// resolves in (`jobLocalStartMs` / `todayMs()` / `completionStalled`). These
+// were `.toISOString().slice(0, 10)` — the UTC day — which after 19:00 Pacific
+// names the NEXT Central day, so a "yesterday" fixture was really today and a
+// "today" fixture was really tomorrow. Eight specs went red on that on
+// 2026-09-19 with the product entirely correct; see
+// src/test/helpers/jobLocalDate.ts.
+const TODAY = jobLocalDateISO(0);
 
 const BEFORE = ["https://example.test/before-1.jpg"];
 const AFTER = ["https://example.test/after-1.jpg", "https://example.test/after-2.jpg"];

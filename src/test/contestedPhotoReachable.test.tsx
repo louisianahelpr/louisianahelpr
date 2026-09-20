@@ -90,6 +90,7 @@ import { DisputedStep } from "@/components/activity/postedJobCard/steps/Disputed
 import { InProgressStep } from "@/components/activity/postedJobCard/steps/InProgressStep";
 import { POSTER_PROOF_MISSING_NOTE } from "@/components/PhotoProof";
 import { requiredProof } from "@/lib/photoProofPolicy";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});
@@ -120,7 +121,7 @@ function makeJob(over: Record<string, unknown> = {}): Job {
     budget: 180,
     category: "moving",
     status: "revision_requested",
-    date_needed: new Date().toISOString().slice(0, 10),
+    date_needed: jobLocalDateISO(0), // Central, not UTC — see src/test/helpers/jobLocalDate.ts
     start_time: "09:00",
     proof_before_urls: [],
     proof_after_urls: [],

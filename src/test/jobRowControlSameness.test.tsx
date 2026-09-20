@@ -117,6 +117,7 @@ import { ScheduledStep } from "@/components/activity/postedJobCard/steps/Schedul
 import { OpenStep } from "@/components/activity/postedJobCard/steps/OpenStep";
 import { CompletedStep } from "@/components/activity/postedJobCard/steps/CompletedStep";
 import { DisputedStep } from "@/components/activity/postedJobCard/steps/DisputedStep";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});
@@ -128,8 +129,15 @@ const POSTER = "poster-1";
 const NOW = Date.now();
 const ago = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
 const ahead = (h: number) => new Date(NOW + h * 3_600_000).toISOString();
-const YESTERDAY = new Date(NOW - 24 * 3_600_000).toISOString().slice(0, 10);
-const TODAY = new Date(NOW).toISOString().slice(0, 10);
+// The job's day in AMERICA/CHICAGO, the zone every clock gate on these cards
+// resolves in (`jobLocalStartMs` / `todayMs()` / `completionStalled`). These
+// were `.toISOString().slice(0, 10)` — the UTC day — which after 19:00 Pacific
+// names the NEXT Central day, so a "yesterday" fixture was really today and a
+// "today" fixture was really tomorrow. Eight specs went red on that on
+// 2026-09-19 with the product entirely correct; see
+// src/test/helpers/jobLocalDate.ts.
+const YESTERDAY = jobLocalDateISO(-1);
+const TODAY = jobLocalDateISO(0);
 
 /** A start `h` hours out, resolved in the JOB's zone — every clock gate on
  *  these cards runs in America/Chicago (see jobStepOneRow.test.tsx). */

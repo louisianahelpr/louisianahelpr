@@ -10,6 +10,7 @@ import {
 } from "./activityFilters";
 import { AppliedJobCard } from "@/components/activity/AppliedJobCard";
 import type { AppliedApp } from "@/components/activity/activityConstants";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /**
  * The tab badge and the list under it must agree.
@@ -91,7 +92,13 @@ function fixture(
               customer_id: "poster-1",
               budget: 100,
               category: "yard_work",
-              date_needed: new Date().toISOString().slice(0, 10),
+              // TODAY in AMERICA/CHICAGO, the zone the bucketing resolves in
+              // (`todayMs()`, src/lib/jobDate.ts). This was
+              // `new Date().toISOString().slice(0, 10)` — the UTC day — so after
+              // 19:00 Pacific every fixture was dated Central-TOMORROW and
+              // "today is live" (owner, 2026-09-19) correctly did not fire: the
+              // four rows below bucketed to Scheduled, not Needs You.
+              date_needed: jobLocalDateISO(0),
               start_time: "09:00",
               helper_id: null,
               helper_confirmed_at: null,
@@ -130,7 +137,7 @@ const FIXTURES: Fixture[] = [
   // assertion for `scheduled` would compare 0 to 0 and prove nothing.
   fixture("confirmed booking, still ahead", "scheduled", "accepted", {
     status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(20),
-    date_needed: new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10),
+    date_needed: jobLocalDateISO(6),
   }),
   fixture("confirmed booking", "needs_you", "accepted", {
     status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(20),

@@ -129,6 +129,7 @@ import type { AppliedApp, Job } from "@/components/activity/activityConstants";
 import { ActiveJobSection } from "@/components/activity/appliedJobCard/ActiveJobSection";
 import { requiredProof } from "@/lib/photoProofPolicy";
 import { BEFORE_PHOTO_GATE_REASON } from "@/lib/lifecycleErrors";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 // Read as TEXT, not imported: LIFECYCLE_REASONS is module-private on purpose,
 // and the thing being checked is that the CODE the trigger raises is a key in
@@ -156,7 +157,14 @@ const HELPER = "helper-1";
 const POSTER = "poster-1";
 const NOW = Date.now();
 const ago = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
-const YESTERDAY = new Date(NOW - 24 * 3_600_000).toISOString().slice(0, 10);
+// The job's day in AMERICA/CHICAGO, the zone every clock gate on these cards
+// resolves in (`jobLocalStartMs` / `todayMs()` / `completionStalled`). These
+// were `.toISOString().slice(0, 10)` — the UTC day — which after 19:00 Pacific
+// names the NEXT Central day, so a "yesterday" fixture was really today and a
+// "today" fixture was really tomorrow. Eight specs went red on that on
+// 2026-09-19 with the product entirely correct; see
+// src/test/helpers/jobLocalDate.ts.
+const YESTERDAY = jobLocalDateISO(-1);
 
 function makeJob(over: Record<string, unknown>): Job {
   return {

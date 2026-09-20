@@ -21,6 +21,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useDashboardFilters } from "./useDashboardFilters";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 // The viewer's position, and whether we have one at all, is what selects
 // between the three branches — so it is the thing each test varies.
@@ -71,7 +72,7 @@ function makeJob(id: string, lat: number | null, lng: number | null): EnrichedJo
     location: "Somewhere, LA",
     latitude: lat,
     longitude: lng,
-    date_needed: new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 10),
+    date_needed: jobLocalDateISO(1), // Central, not UTC — see src/test/helpers/jobLocalDate.ts
     status: "open",
     is_urgent: false,
     isBoosted: false,

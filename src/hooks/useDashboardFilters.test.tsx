@@ -13,6 +13,7 @@ import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
 import { useDashboardFilters } from "./useDashboardFilters";
 import { displayedPayDollars } from "@/lib/jobDisplayPay";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 // Smart-sort is now the persisted default. Wipe the storage key between
 // tests so each renderHook starts from a clean slate and existing tests
@@ -55,7 +56,7 @@ function makeJob(overrides: Partial<EnrichedJob> = {}): EnrichedJob {
     budget: 50,
     location: "New Orleans",
     parish: "Orleans",
-    date_needed: new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 10),
+    date_needed: jobLocalDateISO(1), // Central, not UTC — see src/test/helpers/jobLocalDate.ts
     start_time: "flexible",
     status: "open",
     is_urgent: false,

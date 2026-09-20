@@ -8,6 +8,29 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN — `messages-thread.spec.ts` (c) flakes in the FULL happy-path run only (2026-09-20)
+
+Found while fixing the two red happy-path smokes (a305479e7, fa5759ec9); NOT
+caused by them and not in their diff.
+
+- `e2e/happy-path/messages-thread.spec.ts:97` — "(c) hardware/gesture back from
+  a thread lands on the LIST with its nav" failed once in a full
+  `npm run test:e2e:happy` run: `getByRole("button", { name: "Back to
+  conversations" })` expected hidden, `14 × locator resolved to … "visible"`
+  over the 5s timeout. It is the `page.goBack()` leg, so the suspect is the
+  history pop racing the route commit under whole-suite load.
+- **Passes 14/14 in isolation** (`npx playwright test --project=happy-path
+  e2e/happy-path/messages-thread.spec.ts`), immediately after the failing full
+  run, same build. So it is a flake, not a regression — but it is a flake on a
+  REQUIRED check, which means it can red main at random.
+- Not yet reproduced a second time; frequency unknown (1 of 1 full runs). Next
+  step is to run the full suite a few times to get a rate, then either await
+  the nav-hidden flag rather than the button, or make the back leg wait on the
+  list's own landmark instead of the thread control disappearing.
+- The other lane's `ConversationList.tsx` work landed in the same window
+  (b43ac5d89, 0c5a89383) and is untested against this; worth checking whether
+  the rate changes now that it is in.
+
 ## OPEN — the four long-red nightlies, diagnosed 2026-09-20 (issues #1582 #1595 #1597 #1618)
 
 All four read at the failing run, not the title. **None is environmental**, so none

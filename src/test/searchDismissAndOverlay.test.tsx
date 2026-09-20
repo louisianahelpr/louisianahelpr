@@ -479,7 +479,10 @@ describe("Browse title row — the trigger unmounts while search is open", () =>
     const src = stripComments(
       readFileSync(path.join(SRC, "components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx"), "utf8"),
     );
-    expect(src).toMatch(/data-search-trigger/);
+    // The exact attribute TOKEN. A loose /data-search-trigger/ also matches
+    // `data-search-trigger-renamed`, which is precisely the rename this arm
+    // exists to catch (it survived that mutation once).
+    expect(src).toMatch(/data-search-trigger(?![\w-])/);
     expect(src).toMatch(/aria-label="Search jobs"/);
   });
 });

@@ -348,48 +348,6 @@ function PostedJobCardInner({
               meta={metaRow}
             />
 
-            {/* WHAT THIS CARD IS WAITING ON — ONE STRIP, AND THE ONLY THING
-                A COLLAPSED CARD SAYS ABOUT STATE.
-                (owner, 2026-09-19: "in the box to the left of the dots should
-                show what we are waiting on, like if the person is on their way
-                or confirmed but now you need to confirm etc, remove the dots",
-                and on the look: "similar to how dispute open displays.")
-
-                IT REPLACES FOUR BLOCKS THAT USED TO STAND HERE, and each of
-                them was this same idea written once more:
-
-                  · the collapsed DISPUTE badge (sienna, "Dispute open …
-                    Payment on hold") — now `tone: "alarm"`, same words, same
-                    tokens, same `data-dispute-open-badge` hook;
-                  · the collapsed CONFIRMATION badge ("Needs your OK … Confirm
-                    They Arrived") — now the `confirm_arrival` /
-                    `confirm_working` lines, same rung, same
-                    `data-poster-owes-confirmation` hook;
-                  · the CONTESTED card's full tracker, un-gated that morning so
-                    a dispute was visible without a tap — the owner has since
-                    seen it and ruled the other way: the strip is the signal,
-                    the tracker is detail, and detail lives behind the expand
-                    (see PostedJobCard.contestedTracker.test.tsx);
-                  · the compact 16px-dot rail, chosen hours earlier because the
-                    labelled rail could not fit 212px — superseded outright.
-                    Eight anonymous dots give a position on a track; this gives
-                    the reader their next move.
-
-                A COLLAPSED CARD NOW CONTAINS NO TRACKER AT ALL, on any status.
-                That also takes <JobTracking>'s realtime channel and its
-                queries off every row of the list — the strip is a pure render
-                over columns this card already holds, and the list's own
-                freshness never came from the tracker.
-
-                The rule this strip reads is NOT a new one: `posterStatusLine`
-                takes its eyebrow from `postedActivityBucket` (the same word as
-                the tab above the list) and its sentence from the confirmation
-                ladder and the bucket's own predicates. See jobStatusLine.ts. */}
-            {!isExpanded && (
-              <JobStatusStrip
-                line={posterStatusLine(job, pendingApplicantCounts?.[job.id] ?? 0)}
-              />
-            )}
             {/* The series, made visible — parents only (see SeriesStrip). */}
             {!job.parent_job_id && (
               <SeriesStrip
@@ -872,6 +830,59 @@ function PostedJobCardInner({
                 onActionComplete={onActionComplete}
               />
             </div>
+            )}
+            {/* WHAT THIS CARD IS WAITING ON — ONE STRIP AT THE CARD'S BOTTOM
+                EDGE, AND THE ONLY THING A COLLAPSED CARD SAYS ABOUT STATE.
+                (owner, 2026-09-19: "in the box to the left of the dots should
+                show what we are waiting on, like if the person is on their way
+                or confirmed but now you need to confirm etc, remove the dots",
+                and on the look: "similar to how dispute open displays.")
+
+                IT REPLACES FOUR BLOCKS THAT USED TO STAND HERE, and each of
+                them was this same idea written once more:
+
+                  · the collapsed DISPUTE badge (sienna, "Dispute open …
+                    Payment on hold") — now `tone: "alarm"`, same words, same
+                    tokens, same `data-dispute-open-badge` hook;
+                  · the collapsed CONFIRMATION badge ("Needs your OK … Confirm
+                    They Arrived") — now the `confirm_arrival` /
+                    `confirm_working` lines, same rung, same
+                    `data-poster-owes-confirmation` hook;
+                  · the CONTESTED card's full tracker, un-gated that morning so
+                    a dispute was visible without a tap — the owner has since
+                    seen it and ruled the other way: the strip is the signal,
+                    the tracker is detail, and detail lives behind the expand
+                    (see PostedJobCard.contestedTracker.test.tsx);
+                  · the compact 16px-dot rail, chosen hours earlier because the
+                    labelled rail could not fit 212px — superseded outright.
+                    Eight anonymous dots give a position on a track; this gives
+                    the reader their next move.
+
+                A COLLAPSED CARD NOW CONTAINS NO TRACKER AT ALL, on any status.
+                That also takes <JobTracking>'s realtime channel and its
+                queries off every row of the list — the strip is a pure render
+                over columns this card already holds, and the list's own
+                freshness never came from the tracker.
+
+                WHY THE BOTTOM EDGE AND NOT UNDER THE TITLE, where the dispute
+                badge sat: "in the box TO THE LEFT OF THE DOTS" — the dots were
+                at the bottom, so that is the slot the owner is pointing at.
+                It is also the same slot on the Helpr's card, and these two
+                cards sit in two tabs of one screen: a status line that lived
+                at the top of one and the bottom of the other would be the
+                "assembled rather than designed" defect this card keeps having
+                removed. The dispute is no less visible for it — it is still a
+                full-width tinted band on the collapsed card, unmissable
+                without a tap, which was the whole of the 2026-09-06 finding.
+
+                The rule this strip reads is NOT a new one: `posterStatusLine`
+                takes its eyebrow from `postedActivityBucket` (the same word as
+                the tab above the list) and its sentence from the confirmation
+                ladder and the bucket's own predicates. See jobStatusLine.ts. */}
+            {!isExpanded && (
+              <JobStatusStrip
+                line={posterStatusLine(job, pendingApplicantCounts?.[job.id] ?? 0)}
+              />
             )}
           </JobCardShell>
         </div>

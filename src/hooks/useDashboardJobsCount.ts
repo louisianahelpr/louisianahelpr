@@ -64,6 +64,23 @@ export interface DashboardJobsCountFilters {
    */
   appliedJobIds: string[];
   blockedUserIds: string[];
+  /**
+   * Ids the viewer swiped away with "Not interested" (localStorage
+   * `helpr_dismissed_jobs`). The feed has always hidden these; this count did
+   * not, which is the 2026-09-19 "map shows 7 jobs, list shows 4" report —
+   * the list had three dismissed jobs culled out from under a header and a
+   * map that still counted them. Purely client-side state, so it can only
+   * arrive here by being threaded down. See
+   * `src/pages/dashboard/viewerFeedExclusions.ts`.
+   */
+  dismissedJobIds: string[];
+  /**
+   * The "Only saved jobs" toggle: `null` when it is OFF, otherwise the ids to
+   * restrict to. An EMPTY array means the toggle is ON and nothing is saved —
+   * the honest count is 0, NOT "unfiltered" (collapsing those two is exactly
+   * how a list-only filter starts lying in the header again).
+   */
+  savedOnlyJobIds: string[] | null;
 }
 
 // Escape the characters that are structurally significant inside a
@@ -77,14 +94,14 @@ export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
   const {
     userId, selectedCategory, searchQuery, minBudget, maxBudget,
     urgentOnly, boostedOnly, expiresWithin, earlyAccessTier,
-    appliedJobIds, blockedUserIds,
+    appliedJobIds, blockedUserIds, dismissedJobIds, savedOnlyJobIds,
   } = filters;
 
   return useQuery({
     queryKey: [
       "dashboardJobsCount", userId, selectedCategory, searchQuery, minBudget, maxBudget,
       urgentOnly, boostedOnly, expiresWithin, earlyAccessTier,
-      appliedJobIds, blockedUserIds,
+      appliedJobIds, blockedUserIds, dismissedJobIds, savedOnlyJobIds,
     ],
     queryFn: async () => {
       const now = new Date();
@@ -127,6 +144,22 @@ export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
       }
       if (blockedUserIds.length > 0 && blockedUserIds.length <= MAX_EXCLUDE) {
         query = query.not("customer_id", "in", `(${blockedUserIds.join(",")})`);
+      }
+      // "Not interested" — same cull, same guard rails as applied/blocked.
+      if (dismissedJobIds.length > 0 && dismissedJobIds.length <= MAX_EXCLUDE) {
+        query = query.not("id", "in", `(${dismissedJobIds.join(",")})`);
+      }
+      // "Only saved jobs". A non-null empty set is a real answer — zero — and
+      // must short-circuit: PostgREST rejects an empty `in.()`, and treating
+      // it as "no filter" would print the whole board's count over an empty
+      // list, which is the exact lie this hook exists to stop.
+      if (savedOnlyJobIds !== null) {
+        if (savedOnlyJobIds.length === 0) return 0;
+        // Past MAX_EXCLUDE we fall back to the documented over-count rather
+        // than blow the request URL — same trade as the exclusions above.
+        if (savedOnlyJobIds.length <= MAX_EXCLUDE) {
+          query = query.in("id", savedOnlyJobIds);
+        }
       }
       // Cast: `category` is a narrow generated enum; the filter value here
       // is free-text state from the URL/UI, not one of the literal members.

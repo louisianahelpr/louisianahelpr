@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from "react";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { toast } from "sonner";
@@ -46,6 +46,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
 import { usePrefetchUserData } from "@/hooks/usePrefetchUserData";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
+import type { ViewerFeedExclusions } from "@/pages/dashboard/viewerFeedExclusions";
 import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useJobRef } from "@/hooks/useJobRef";
@@ -118,13 +119,56 @@ const Dashboard = () => {
   // Warm Referral / Activity / Jobs caches in the background — makes the next tap feel instant.
   usePrefetchUserData(user?.id);
 
+  // Saved / dismissed job-id state, and the "Only saved jobs" lens.
+  //
+  // Saving a job used to have no destination at all — the bookmark on every
+  // card wrote to a list nobody could open (owner: "how can they see saved
+  // jobs?").
+  //
+  // Declared HERE, ahead of useDashboardFilters, because every one of these
+  // is a viewer-local cull the LIST, the HEADER COUNT and the MAP must apply
+  // identically. `savedOnly` is a filter on the feed rather than a separate
+  // screen: a saved job is still a job you might apply to, so it belongs in
+  // the surface that knows how to apply to it. Not persisted — a lens you
+  // look through and step back out of, not a layout preference.
+  const {
+    giftCardCount,
+    savedJobIds, setSavedJobIds, dismissedJobIds, setDismissedJobIds,
+  } = useDashboardSideQueries({ userId: user?.id, userEmail: user?.email, allJobs });
+  const [savedOnly, setSavedOnly] = useState(false);
+  const toggleSavedOnly = useCallback(() => setSavedOnly((v) => !v), []);
+
+  /**
+   * ONE object, three surfaces. See src/pages/dashboard/viewerFeedExclusions.ts.
+   *
+   * The list, the header count and the map each build their set from a
+   * different source (a paginated view read, a `count: exact` query, and the
+   * map RPC), and every divergence the owner has reported on this screen has
+   * been a cull that reached one of them and not the others — applied jobs on
+   * 2026-09-15, dismissed jobs on 2026-09-19 ("map shows 7 jobs. list shows
+   * 4"). Passing the whole object rather than a prop per rule is what keeps
+   * the next one from repeating it.
+   */
+  const exclusions = useMemo<ViewerFeedExclusions>(() => ({
+    appliedJobIds,
+    blockedUserIds,
+    dismissedJobIds,
+    // null = the toggle is off. An EMPTY set (toggle on, nothing saved) is a
+    // real answer — zero matches — and must not collapse into "no filter".
+    savedOnlyJobIds: savedOnly ? savedJobIds : null,
+  }), [appliedJobIds, blockedUserIds, dismissedJobIds, savedOnly, savedJobIds]);
+
   const filters = useDashboardFilters({
     allJobs, userId: user?.id, profile, helprTier, helperAvailability: helperAvailability as HelperAvailabilitySlot[],
     // Same rate the feed cards render with (`effectiveFee` below is this
     // value) — the pay sorts have to order by the number on the card.
     effectiveFee: platformFee,
-    // Threaded into the header count so it excludes what the feed hides (B1).
+    // Threaded into the header count so it excludes what the feed hides (B1),
+    // and now into `filteredJobs` itself so the rendered list, the count and
+    // the map are all built from the same exclusions (2026-09-19).
     appliedJobIds, blockedUserIds,
+    dismissedJobIds,
+    savedOnlyJobIds: exclusions.savedOnlyJobIds,
   });
 
   // The greeting card's "stat of the day" line was removed — it added a
@@ -218,21 +262,6 @@ const Dashboard = () => {
   });
 
   /**
-   * Show only saved jobs.
-   *
-   * Saving a job had no destination at all — the bookmark on every card wrote
-   * to a list nobody could open (owner: "how can they see saved jobs?"). This
-   * is deliberately a FILTER on the feed rather than a new screen: a saved job
-   * is still a job you might apply to, and it should sit in the surface that
-   * knows how to apply to it, with the same cards and the same actions.
-   *
-   * Not persisted — unlike the map pane, this is a lens you look through and
-   * step back out of, not a layout preference.
-   */
-  const [savedOnly, setSavedOnly] = useState(false);
-  const toggleSavedOnly = useCallback(() => setSavedOnly((v) => !v), []);
-
-  /**
    * Is the map column showing? Desktop website only.
    *
    * The map is a second way to read the same board, not a required half of the
@@ -285,10 +314,6 @@ const Dashboard = () => {
   // a `recipient_id` once claimed, so an unclaimed one is invisible by id.
   // (This was keyed off the user's parish, which matched nothing — see the
   // query's comment in useDashboardSideQueries.)
-  const {
-    giftCardCount,
-    savedJobIds, setSavedJobIds, dismissedJobIds, setDismissedJobIds,
-  } = useDashboardSideQueries({ userId: user?.id, userEmail: user?.email, allJobs });
 
   // Profile-completion is no longer nudged on the home feed — the full
   // "Finish your profile" card pushed the job feed below the fold. The
@@ -692,7 +717,7 @@ const Dashboard = () => {
                     fetchNextPage={fetchNextPage}
                     hoveredJobId={hoveredJobId}
                     setHoveredJobId={setHoveredJobId}
-                    appliedJobIds={appliedJobIds}
+                    exclusions={exclusions}
                   />
                 </div>
                 {/* Web-desktop only: the map rides alongside the feed in its
@@ -738,11 +763,12 @@ const Dashboard = () => {
                         // same job (caught 2026-08-31 at 1440). Same value the
                         // list's JobCards use — one number per job, everywhere.
                         effectiveFee={effectiveFee}
-                        // Drop pins for jobs already applied to, so the map
-                        // agrees with the feed (which hides them) and the
-                        // header count (B1/B3). Optimistic apply updates the
-                        // set, so a pin vanishes the moment you apply.
-                        appliedJobIds={appliedJobIds}
+                        // Every viewer-local cull the feed applies — applied,
+                        // dismissed, "Only saved" — so the pins, the cards and
+                        // the header count describe ONE set. Optimistic apply
+                        // and dismiss both update it, so a pin vanishes the
+                        // moment the card does.
+                        exclusions={exclusions}
                       />
                     </Suspense>
                   </div>

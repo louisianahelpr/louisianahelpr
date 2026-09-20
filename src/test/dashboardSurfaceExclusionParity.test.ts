@@ -1,0 +1,283 @@
+// CLASS GUARD — every /dashboard surface that COUNTS or SHOWS open jobs must
+// apply the same viewer-local exclusions.
+//
+// THE CLASS, from the owner's own reports:
+//   2026-09-15  "1 job" in the header, map pinned it, list said "Nothing
+//               today."  →  `appliedJobIds` reached the feed and nothing else.
+//   2026-09-19  "map shows 7 jobs. list shows 4."
+//               →  `dismissedJobIds` reached BrowseTasksFeed and nothing else.
+//
+// Both were the SAME defect wearing a different field name, and the guard
+// written for the first one could not see the second: it asserted that the
+// count matched the list *for the applied-job cull*, which is a statement
+// about one rule, not about the class. A guard for the class has to fail for
+// a rule that does not exist yet.
+//
+// HOW THIS ONE DOES THAT. Nothing here is a hand-kept list of rules:
+//   1. The INVENTORY of exclusion rules is parsed out of the
+//      `ViewerFeedExclusions` interface in
+//      src/pages/dashboard/viewerFeedExclusions.ts. Add a field there and it
+//      appears here on the next run, un-evidenced, and this file goes red
+//      naming the surfaces that have not been taught about it.
+//   2. The INVENTORY of surfaces is derived from the WORLD, not declared:
+//      we walk /dashboard's own import graph and find every module that reads
+//      an open-job source (`open_jobs_browse` or `get_open_jobs_for_map`).
+//      A fourth surface appearing on this screen fails the test until it is
+//      given a chain and its evidence.
+//   3. Each (surface, rule) pair needs EVIDENCE in that surface's source, or
+//      an exemption with a written reason. There is exactly one exemption and
+//      it is a privacy guarantee, not an oversight.
+//
+// Behavioural proof that the evidence is real lives beside each surface:
+// src/hooks/useDashboardJobsCount.test.tsx (the count's own numbers move) and
+// src/components/BrowseMap.test.tsx (pins actually disappear). This file is
+// the completeness half — "no rule is missing from any surface."
+//
+// @mutate src/hooks/useDashboardJobsCount.ts | query = query.not("id", "in", `(${dismissedJobIds.join(",")})`); | void dismissedJobIds;
+// @mutate src/components/BrowseMap.tsx | return filtered.filter((j) => !isJobExcludedForViewer(j, exclusions)); | return filtered;
+// @mutate src/pages/dashboard/viewerFeedExclusions.ts | if (x.dismissedJobIds.has(job.id)) return true; | if (false) return true;
+
+import { describe, it, expect } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import {
+  EMPTY_VIEWER_FEED_EXCLUSIONS,
+  isJobExcludedForViewer,
+  type ViewerFeedExclusions,
+} from "@/pages/dashboard/viewerFeedExclusions";
+
+const REPO = path.resolve(__dirname, "../..");
+const read = (rel: string) => fs.readFileSync(path.join(REPO, rel), "utf8");
+const exists = (rel: string) => fs.existsSync(path.join(REPO, rel));
+
+const REGISTRY = "src/pages/dashboard/viewerFeedExclusions.ts";
+const DASHBOARD_ENTRY = "src/pages/Dashboard.tsx";
+
+/**
+ * The two things a /dashboard surface can read the open-job board from —
+ * matched at the CALL, not as a substring, so a mention in a comment or in
+ * the generated types file is not mistaken for a surface.
+ */
+const OPEN_JOB_READS = [
+  /\.from\(\s*["']open_jobs_browse["']\s*\)/,
+  /\.rpc\(\s*["']get_open_jobs_for_map["']\s*\)/,
+];
+
+/**
+ * A read narrowed to ONE job (`.eq("id", …).maybeSingle()`) is a lookup, not a
+ * board: opening a tapped pin, resolving a `?quickApply=` deep link. It counts
+ * and shows nothing, so the exclusions do not apply to it — the surface that
+ * offered the id already applied them. Classified, not ignored: the test below
+ * asserts this bucket is non-empty, so the classifier cannot quietly swallow a
+ * real surface.
+ */
+const SINGLE_ROW_READ = /\.(maybeSingle|single)\(\)/;
+
+// ── 1. Inventory of RULES — parsed from the interface, never listed here ────
+function exclusionFields(): string[] {
+  const src = read(REGISTRY);
+  const start = src.indexOf("export interface ViewerFeedExclusions {");
+  expect(start, `${REGISTRY} must declare "export interface ViewerFeedExclusions"`).toBeGreaterThan(-1);
+  const body = src.slice(start, src.indexOf("\n}", start));
+  // Field declarations only: `name: Type;` at one indent level, comments and
+  // JSDoc skipped by the leading-whitespace + colon shape.
+  const fields = [...body.matchAll(/^ {2}(\w+):/gm)].map((m) => m[1]);
+  return [...new Set(fields)];
+}
+
+// ── 2. Inventory of SURFACES — walked out of the dashboard's import graph ───
+function resolveImport(spec: string, fromRel: string): string | null {
+  let base: string;
+  if (spec.startsWith("@/")) base = path.posix.join("src", spec.slice(2));
+  else if (spec.startsWith(".")) base = path.posix.normalize(path.posix.join(path.posix.dirname(fromRel), spec));
+  else return null;
+  for (const ext of [".ts", ".tsx", "/index.ts", "/index.tsx"]) {
+    if (exists(base + ext)) return base + ext;
+  }
+  return exists(base) && /\.tsx?$/.test(base) ? base : null;
+}
+
+/**
+ * Another PAGE is another screen, not part of this one. `/browse`
+ * (DashboardGuest) and `/jobs/:id` (JobDetail) each read the same view and
+ * each answer for themselves; walking into them would make this guard about
+ * the whole app. Dashboard's OWN subtree (src/pages/dashboard/**) is not a
+ * page boundary and is still walked.
+ */
+const isOtherPage = (rel: string) =>
+  rel !== DASHBOARD_ENTRY && /^src\/pages\/[^/]+\.tsx$/.test(rel);
+
+/** Every non-test module reachable from /dashboard, this screen only. */
+function dashboardImportGraph(): string[] {
+  const seen = new Set<string>();
+  const queue = [DASHBOARD_ENTRY];
+  while (queue.length) {
+    const rel = queue.shift()!;
+    if (seen.has(rel) || /\.test\.tsx?$/.test(rel) || isOtherPage(rel)) continue;
+    seen.add(rel);
+    const src = read(rel);
+    // static `from "…"` plus the lazy `import("…")` the map is loaded through.
+    for (const m of src.matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)) {
+      const next = resolveImport(m[1], rel);
+      if (next) queue.push(next);
+    }
+  }
+  return [...seen].sort();
+}
+
+/**
+ * Surface chains. The FILES are declared; which files must be covered is not —
+ * step 2b below diffs these against what the import walk actually found, so a
+ * new open-job reader on this screen cannot go unnoticed.
+ */
+const SURFACE_CHAINS: Record<string, string[]> = {
+  list: [
+    "src/hooks/useDashboardData.ts",
+    "src/hooks/useDashboardFilters.ts",
+    "src/components/dashboard/BrowseTasksFeed.tsx",
+  ],
+  count: ["src/hooks/useDashboardJobsCount.ts"],
+  map: ["src/components/BrowseMap.tsx", "src/components/browseMap/mapFilter.ts"],
+};
+
+/**
+ * What counts as a surface honouring a rule. A regex per (surface, rule):
+ * a rule with no entry is UNEVIDENCED and fails, which is exactly what
+ * happens the moment a new field is added to the registry.
+ *
+ * `null` = exempt, and every exemption carries its reason in EXEMPTIONS.
+ */
+const EXEMPTIONS: Record<string, string> = {
+  "map:blockedUserIds":
+    "get_open_jobs_for_map deliberately omits customer_id (the PII-safe row), " +
+    "so the map has no field to match a blocked poster on. Widening the RPC to " +
+    "close this gap is forbidden — the privacy guarantee outranks a pin count " +
+    "that is off by one blocked poster's open jobs.",
+};
+
+/**
+ * A surface honours a rule if its chain either names the field outright, or
+ * routes the whole registry object through the shared predicate (which is
+ * itself proven complete, per-field, by the first describe block below).
+ */
+function honours(surface: string, field: string): boolean {
+  const chain = SURFACE_CHAINS[surface].map(read).join("\n");
+  if (chain.includes(field)) return true;
+  return /isJobExcludedForViewer\s*\(/.test(chain) && /ViewerFeedExclusions/.test(chain);
+}
+
+describe("viewer-feed exclusions — the shared predicate is complete", () => {
+  const FIELDS = exclusionFields();
+
+  // Non-empty floor. Four rules exist today; a parse that silently returned
+  // [] would make every assertion below vacuously green.
+  it("parses a non-empty rule inventory out of the registry", () => {
+    expect(FIELDS.length).toBeGreaterThanOrEqual(4);
+    expect(FIELDS).toContain("appliedJobIds");
+    expect(FIELDS).toContain("dismissedJobIds");
+  });
+
+  // One fixture per rule, keyed by field name. A rule with no fixture fails
+  // the coverage assertion below rather than being quietly skipped.
+  const JOB = { id: "j-1", customer_id: "c-1" };
+  const FIXTURES: Record<string, Partial<ViewerFeedExclusions>> = {
+    appliedJobIds: { appliedJobIds: new Set(["j-1"]) },
+    blockedUserIds: { blockedUserIds: new Set(["c-1"]) },
+    dismissedJobIds: { dismissedJobIds: new Set(["j-1"]) },
+    savedOnlyJobIds: { savedOnlyJobIds: new Set(["some-other-job"]) },
+  };
+
+  it("has a fixture for every rule in the inventory", () => {
+    expect(FIELDS.filter((f) => !(f in FIXTURES))).toEqual([]);
+  });
+
+  it("keeps a job no rule excludes", () => {
+    expect(isJobExcludedForViewer(JOB, EMPTY_VIEWER_FEED_EXCLUSIONS)).toBe(false);
+  });
+
+  for (const field of FIELDS) {
+    it(`excludes the job when ${field} says so`, () => {
+      const x = { ...EMPTY_VIEWER_FEED_EXCLUSIONS, ...FIXTURES[field] };
+      expect(isJobExcludedForViewer(JOB, x)).toBe(true);
+    });
+  }
+
+  it("treats an EMPTY savedOnlyJobIds as zero matches, not as 'no filter'", () => {
+    // The distinction that makes "Only saved" honest when nothing is saved.
+    const x = { ...EMPTY_VIEWER_FEED_EXCLUSIONS, savedOnlyJobIds: new Set<string>() };
+    expect(isJobExcludedForViewer(JOB, x)).toBe(true);
+  });
+});
+
+describe("every /dashboard open-job surface applies every exclusion rule", () => {
+  const FIELDS = exclusionFields();
+  const GRAPH = dashboardImportGraph();
+
+  it("walks a real import graph off /dashboard", () => {
+    // Floor: without this the readers scan below could find nothing and the
+    // coverage diff would pass on an empty world.
+    expect(GRAPH.length).toBeGreaterThan(50);
+    expect(GRAPH).toContain("src/hooks/useDashboardJobsCount.ts");
+  });
+
+  // 2b. World → declaration diff. Every module on this screen that reads an
+  // open-job source must belong to a declared surface chain.
+  it("knows about every module on this screen that reads the open-job board", () => {
+    const boards: string[] = [];
+    const lookups: string[] = [];
+    for (const rel of GRAPH) {
+      const src = read(rel);
+      if (!OPEN_JOB_READS.some((re) => re.test(src))) continue;
+      (SINGLE_ROW_READ.test(src) ? lookups : boards).push(rel);
+    }
+    // Floors on BOTH buckets: an empty board list would pass the diff below
+    // vacuously, and an empty lookup list would mean the classifier is dead.
+    expect(boards.length).toBeGreaterThanOrEqual(2);
+    expect(lookups.length).toBeGreaterThanOrEqual(1);
+    const readers = boards;
+
+    const declared = new Set(Object.values(SURFACE_CHAINS).flat());
+    const undeclared = readers.filter((r) => !declared.has(r));
+    expect(
+      undeclared,
+      "a new /dashboard surface reads the open-job board but is not in " +
+        "SURFACE_CHAINS — give it a chain and evidence for every exclusion rule",
+    ).toEqual([]);
+  });
+
+  it("declares only chain files that exist", () => {
+    const missing = Object.values(SURFACE_CHAINS).flat().filter((f) => !exists(f));
+    expect(missing).toEqual([]);
+  });
+
+  for (const surface of Object.keys(SURFACE_CHAINS)) {
+    for (const field of FIELDS) {
+      const key = `${surface}:${field}`;
+      const reason = EXEMPTIONS[key];
+      it(`${surface} honours ${field}${reason ? " — EXEMPT" : ""}`, () => {
+        if (reason) {
+          // An exemption must say why, at length. A one-word reason is how an
+          // oversight gets filed as a decision.
+          expect(reason.length).toBeGreaterThan(40);
+          return;
+        }
+        expect(
+          honours(surface, field),
+          `the ${surface} surface (${SURFACE_CHAINS[surface].join(", ")}) never ` +
+            `mentions "${field}" and does not route ViewerFeedExclusions through ` +
+            `isJobExcludedForViewer — so it counts/shows jobs the other surfaces hide. ` +
+            `Either apply the rule there or add "${key}" to EXEMPTIONS with a reason.`,
+        ).toBe(true);
+      });
+    }
+  }
+
+  // The exemption table is not a place to park work: every key in it must
+  // name a surface and a rule that actually exist.
+  it("has no stale exemptions", () => {
+    const valid = new Set(
+      Object.keys(SURFACE_CHAINS).flatMap((s) => FIELDS.map((f) => `${s}:${f}`)),
+    );
+    expect(Object.keys(EXEMPTIONS).filter((k) => !valid.has(k))).toEqual([]);
+  });
+});

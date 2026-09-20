@@ -43,6 +43,11 @@ function makeBuilder() {
     }
     return builder;
   };
+  builder.in = (col: string, vals: string[]) => {
+    const keep = new Set(vals);
+    rows = rows.filter((r) => keep.has((r as Record<string, string>)[col]));
+    return builder;
+  };
   builder.then = (resolve: (v: { count: number; error: null }) => void) =>
     resolve({ count: rows.length, error: null });
   return builder;
@@ -66,6 +71,8 @@ function baseFilters(over: Partial<DashboardJobsCountFilters> = {}): DashboardJo
     earlyAccessTier: null,
     appliedJobIds: [],
     blockedUserIds: [],
+    dismissedJobIds: [],
+    savedOnlyJobIds: null,
     ...over,
   };
 }
@@ -110,6 +117,44 @@ describe("useDashboardJobsCount — applied/blocked exclusion (B1)", () => {
     // With empty sets the builder's `.not` must never be called with `in` —
     // proven indirectly: the count is the full set and no error is thrown.
     const { result } = run(baseFilters());
+    await waitFor(() => expect(result.current.data).toBe(3));
+  });
+});
+
+describe("useDashboardJobsCount — dismissed / saved-only exclusion (owner 2026-09-19)", () => {
+  // "map shows 7 jobs. list shows 4". Verified live on prod as the owner's
+  // account: the map RPC and `open_jobs_browse` returned the SAME 8 ids, so
+  // nothing diverged server-side. The three missing cards were
+  // `helpr_dismissed_jobs` — a localStorage-only cull that BrowseTasksFeed
+  // applied and this count did not.
+  it("EXCLUDES jobs the viewer dismissed — the count matches the shorter list", async () => {
+    const { result } = run(baseFilters({ dismissedJobIds: ["j-applied", "j-blocked"] }));
+    // Before the fix this returned 3: the header counted both dismissed jobs
+    // the feed below it had already removed.
+    await waitFor(() => expect(result.current.data).toBe(1));
+  });
+
+  it("stacks with the applied/blocked culls rather than replacing them", async () => {
+    const { result } = run(
+      baseFilters({ appliedJobIds: ["j-applied"], dismissedJobIds: ["j-visible"] }),
+    );
+    await waitFor(() => expect(result.current.data).toBe(1));
+  });
+
+  it("counts ONLY saved jobs while the 'Only saved' lens is on", async () => {
+    const { result } = run(baseFilters({ savedOnlyJobIds: ["j-visible"] }));
+    await waitFor(() => expect(result.current.data).toBe(1));
+  });
+
+  it("answers ZERO — not the whole board — when 'Only saved' is on with nothing saved", async () => {
+    // The distinction an empty array carries. Treating it as "no filter" is
+    // how a list-only lens starts lying in the header: 3 jobs over 0 cards.
+    const { result } = run(baseFilters({ savedOnlyJobIds: [] }));
+    await waitFor(() => expect(result.current.data).toBe(0));
+  });
+
+  it("applies no saved restriction when the lens is off (null, not [])", async () => {
+    const { result } = run(baseFilters({ savedOnlyJobIds: null }));
     await waitFor(() => expect(result.current.data).toBe(3));
   });
 });

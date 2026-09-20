@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { BellRing, MapPin, MapPinOff, Loader2 } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
+import { isJobExcludedForViewer, type ViewerFeedExclusions } from "@/pages/dashboard/viewerFeedExclusions";
 import {
   LA_BOUNDS,
   MAP_DOCK_CLEARANCE,
@@ -122,15 +123,27 @@ interface BrowseMapProps {
    */
   hoveredJobId?: string | null;
   /**
-   * Job ids the viewer has already applied to. The list feed hides these rows
-   * (useDashboardData), so the map must drop their pins too — otherwise an
-   * applied job kept a pin on the map and the detail opened from it still
-   * offered "Apply Now" (B1/B3). The RPC exposes `id` but not `customer_id`,
-   * so applied-exclusion is possible here while blocked-poster exclusion is
-   * not (that stays the documented map-only gap). Empty/omitted for the guest
-   * dashboard, which has no applied set.
+   * The viewer-local culls the list feed applies — applied-to, dismissed,
+   * "Only saved" — as ONE object rather than a prop per rule.
+   *
+   * This started as a lone `appliedJobIds` prop (B1/B3): the list hid applied
+   * jobs and the map kept their pins, so a pin opened a detail still offering
+   * "Apply Now". Fixing that one rule did not fix the class — on 2026-09-19
+   * the owner reported "map shows 7 jobs. list shows 4", which was
+   * `dismissedJobIds`, a cull that at the time existed only inside
+   * BrowseTasksFeed. Taking the whole `ViewerFeedExclusions` object means a
+   * newly added rule arrives here automatically and the parity guard
+   * (src/test/dashboardSurfaceExclusionParity.test.ts) names this file if it
+   * is not honoured.
+   *
+   * `blockedUserIds` is the one field this surface CANNOT apply:
+   * `get_open_jobs_for_map` deliberately omits `customer_id` (PII-safe row),
+   * so there is nothing to match on. Documented, exempted by name in the
+   * guard, and NOT to be fixed by widening the RPC.
+   *
+   * Omitted on the guest dashboard, which has none of these.
    */
-  appliedJobIds?: ReadonlySet<string>;
+  exclusions?: ViewerFeedExclusions;
 }
 
 /** Placement of the pin-anchored preview popover, in `mapBoxRef` pixels.
@@ -155,7 +168,7 @@ function readIsDark(): boolean {
   return document.documentElement.getAttribute("data-theme") === "dark";
 }
 
-export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId, appliedJobIds }: BrowseMapProps) {
+export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId, exclusions }: BrowseMapProps) {
   const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";
   const mapKitStatus = useMapKitJs();
   const [jobs, setJobs] = useState<MapJob[]>([]);
@@ -210,14 +223,15 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   const visibleJobs = useMemo(
     () => {
       const filtered = filters ? jobs.filter(buildMapJobFilter(filters)) : jobs;
-      // Drop pins for jobs the viewer has already applied to — the list feed
-      // hides them, so the map must agree (B1/B3). No-op when the set is empty
-      // (guest, or nobody applied yet).
-      return appliedJobIds && appliedJobIds.size > 0
-        ? filtered.filter((j) => !appliedJobIds.has(j.id))
-        : filtered;
+      // Drop pins for anything the list feed hides for THIS viewer — applied,
+      // dismissed, outside "Only saved". One shared predicate, so the map
+      // cannot fall behind the list the next time a cull is added. The map row
+      // carries no `customer_id`, so the blocked-poster field of the same
+      // object is a documented no-op here (see the prop's comment).
+      if (!exclusions) return filtered;
+      return filtered.filter((j) => !isJobExcludedForViewer(j, exclusions));
     },
-    [jobs, filters, appliedJobIds],
+    [jobs, filters, exclusions],
   );
   const filtersActive = !!filters && isAnyFilterActive(filters);
   // Filters the narrow map row has no field to evaluate. Named in the UI

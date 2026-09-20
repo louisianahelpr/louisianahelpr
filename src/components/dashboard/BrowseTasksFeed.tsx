@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
+import type { ViewerFeedExclusions } from "@/pages/dashboard/viewerFeedExclusions";
 
 // Lazy-load BrowseMap so the map chunk (and the MapKit JS script it pulls
 // from Apple's CDN) only loads when an authenticated user toggles to map
@@ -248,9 +249,18 @@ interface BrowseTasksFeedProps {
   /** Desktop split-screen hover sync — the hovered job's map pin scales up. */
   hoveredJobId?: string | null;
   setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
-  /** Jobs the viewer has applied to — forwarded to the map so it drops their
-   *  pins, matching the list feed and the header count (B1/B3). */
-  appliedJobIds?: ReadonlySet<string>;
+  /**
+   * The viewer-local culls (applied / dismissed / "Only saved"), forwarded
+   * whole to the map so its pins match this list and the header count.
+   *
+   * `filters.filteredJobs` ALREADY has them applied — useDashboardFilters
+   * owns them now — so this component no longer re-applies any of them to the
+   * feed. It used to, and that was the 2026-09-19 "map shows 7 jobs. list
+   * shows 4": dismissing three jobs culled them here, one layer below the
+   * header count and the map, which both still counted them.
+   * See src/pages/dashboard/viewerFeedExclusions.ts.
+   */
+  exclusions?: ViewerFeedExclusions;
 }
 
 /**
@@ -293,7 +303,7 @@ export function BrowseTasksFeed({
   fetchNextPage,
   hoveredJobId,
   setHoveredJobId,
-  appliedJobIds,
+  exclusions,
 }: BrowseTasksFeedProps) {
   // Personalize the signed-in empty state — greet by first name instead of
   // the generic "neighbor" the guest screen uses. Falls back to "neighbor"
@@ -359,12 +369,16 @@ export function BrowseTasksFeed({
   // dependency change rather than on every render (dialog toggles, expand
   // state, banners all re-render this component). Pure derivation.
   const { visibleJobs, recommendedVisible } = useMemo(() => {
+    // NO dismissed / saved-only cull here any more, deliberately.
+    //
+    // Both used to run on this line, and NOWHERE else — so `filteredJobs`,
+    // the set the header count falls back to and the set the map is measured
+    // against, still held every dismissed job. Owner, 2026-09-19: "map shows
+    // 7 jobs. list shows 4" — three dismissed jobs, culled here and counted
+    // everywhere else. They live in useDashboardFilters now, one layer up,
+    // where every surface reads them. Re-adding either here would not
+    // reinforce anything; it would re-open the same divergence.
     const visible = filters.filteredJobs
-      .filter(j => !dismissedJobIds.has(j.id))
-      // Saved-only runs BEFORE the recommended/nearby de-dup below, so the
-      // saved list is a plain flat list rather than a saved job vanishing
-      // because it also happened to be a recommendation.
-      .filter(j => !savedOnly || savedJobIds.has(j.id))
       .filter(j => {
         // Hide jobs already rendered by the Recommended section above.
         //
@@ -411,7 +425,7 @@ export function BrowseTasksFeed({
           .sort((a, b) => filters.sortBy === "smart" ? 0 : compareJobsBySortMode(a, b, filters.sortBy, effectiveFee))
       : [];
     return { visibleJobs: visible, recommendedVisible: recommended };
-  }, [filters.filteredJobs, filters.hasFilters, filters.sortBy, recommendedJobs, dismissedJobIds, savedOnly, savedJobIds, effectiveFee]);
+  }, [filters.filteredJobs, filters.hasFilters, filters.sortBy, recommendedJobs, dismissedJobIds, savedOnly, effectiveFee]);
 
   // ONE list — recommended picks first, then everything else — EXCEPT
   // boosted jobs, which pin above everything (including recommended) while
@@ -526,8 +540,8 @@ export function BrowseTasksFeed({
               // Same fee the cards below use — so a pin popup and the card for
               // the same job print the same take-home, not gross vs net.
               effectiveFee={effectiveFee}
-              // Drop applied jobs' pins so the map matches the list (B1/B3).
-              appliedJobIds={appliedJobIds}
+              // Every cull the feed applies, applied to the pins too.
+              exclusions={exclusions}
             />
           </Suspense>
         </div>

@@ -67,11 +67,26 @@ interface UseDashboardFiltersOptions {
    */
   appliedJobIds?: Set<string>;
   blockedUserIds?: Set<string>;
+  /**
+   * Jobs the viewer swiped away with "Not interested" (localStorage
+   * `helpr_dismissed_jobs`). This cull used to live ONLY in BrowseTasksFeed,
+   * which meant `filteredJobs` — the set the header falls back to counting,
+   * and the set the map is supposed to agree with — still contained them.
+   * Owner, 2026-09-19: "map shows 7 jobs. list shows 4."
+   * See `src/pages/dashboard/viewerFeedExclusions.ts`.
+   */
+  dismissedJobIds?: ReadonlySet<string>;
+  /**
+   * "Only saved jobs": `null`/omitted = the toggle is off; a set = show only
+   * those ids. An EMPTY set means the toggle is on and nothing is saved.
+   * Also previously list-only, for the same reason.
+   */
+  savedOnlyJobIds?: ReadonlySet<string> | null;
 }
 
 const EMPTY_ID_SET: ReadonlySet<string> = new Set();
 
-export function useDashboardFilters({ allJobs, userId, profile, helperAvailability, effectiveFee, appliedJobIds = EMPTY_ID_SET as Set<string>, blockedUserIds = EMPTY_ID_SET as Set<string> }: UseDashboardFiltersOptions) {
+export function useDashboardFilters({ allJobs, userId, profile, helperAvailability, effectiveFee, appliedJobIds = EMPTY_ID_SET as Set<string>, blockedUserIds = EMPTY_ID_SET as Set<string>, dismissedJobIds = EMPTY_ID_SET, savedOnlyJobIds = null }: UseDashboardFiltersOptions) {
   // Browse state lives in the URL, not only in React state.
   //
   // It used to be plain `useState`, which made every history entry for the
@@ -265,6 +280,13 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   const filteredJobs = useMemo(() => browsableJobs
     .filter((job) => {
       if (userId && job.customer_id === userId) return false;
+      // Viewer-local culls, applied HERE rather than in BrowseTasksFeed, so
+      // that `filteredJobs` is the set actually on screen. The header count
+      // falls back to `filteredJobs.length` whenever the server count can't
+      // be trusted, and the map is measured against this list — both of which
+      // silently over-reported while these two lived one layer further down.
+      if (dismissedJobIds.has(job.id)) return false;
+      if (savedOnlyJobIds !== null && !savedOnlyJobIds.has(job.id)) return false;
       // Drop stale posts whose needed date has already passed — a job
       // wanted yesterday is noise in the browse feed. date_needed is a
       // "YYYY-MM-DD" date string, so a lexicographic compare against
@@ -399,7 +421,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
         }
         default: return compareJobsBySortMode(a, b, sortBy, effectiveFee);
       }
-    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate, effectiveFee]);
+    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate, effectiveFee, dismissedJobIds, savedOnlyJobIds]);
 
   // The same filter state, shaped for the Browse map. The map runs its own
   // (unpaginated) fetch against a narrow PII-safe row, so it can't reuse
@@ -439,6 +461,13 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   // one cache entry. Sorting makes the key order-independent across refetches.
   const appliedIdsKey = useMemo(() => [...appliedJobIds].sort(), [appliedJobIds]);
   const blockedIdsKey = useMemo(() => [...blockedUserIds].sort(), [blockedUserIds]);
+  const dismissedIdsKey = useMemo(() => [...dismissedJobIds].sort(), [dismissedJobIds]);
+  // `null` (toggle off) must survive the trip — an empty ARRAY is a distinct,
+  // meaningful state ("Only saved" on, nothing saved → the count is 0).
+  const savedOnlyIdsKey = useMemo(
+    () => (savedOnlyJobIds === null ? null : [...savedOnlyJobIds].sort()),
+    [savedOnlyJobIds],
+  );
 
   const { data: totalMatchingCount, isLoading: totalMatchingCountLoading } = useDashboardJobsCount({
     userId,
@@ -452,6 +481,8 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     earlyAccessTier,
     appliedJobIds: appliedIdsKey,
     blockedUserIds: blockedIdsKey,
+    dismissedJobIds: dismissedIdsKey,
+    savedOnlyJobIds: savedOnlyIdsKey,
   });
 
   const nearbyJobs = useMemo(() => {

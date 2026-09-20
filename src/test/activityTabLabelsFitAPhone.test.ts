@@ -73,13 +73,25 @@ import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 //      screen that rendered one magnifier and nothing else. Part 3 must go red.
 //   7. The edge fade is unhooked from the scroller, leaving the hard cut at the
 //      card's corner this row shipped with.
+//   8. The phone disclosure goes back to opening COLLAPSED on the default
+//      filter — the exact line that shipped, and the screen the owner saw on
+//      2026-09-20: "My Posts · 🔍 · ⌄" and no tab row at 320/375/414. Part 4
+//      must go red. (Parts 1–3 stay green on that mutation, which is the
+//      whole reason Part 4 had to exist.)
+// Part 4's compiled-CSS leg is covered by mutation 2 (the breakpoint constant
+// moves to 290, so the rule the guard looks for at SHORT_LABEL_BELOW_PX is not
+// one the compiler emits) — and it has to be, for a reason worth writing down:
+// a mutation that edits the CLASS LITERAL cannot make that leg red, because
+// the `@mutate` directive below restates the class in a file Tailwind scans,
+// which keeps the rule alive on its own. The directives are content too.
 // @mutate src/pages/activity/ActivityHeader.tsx | shortLabel: inlineFilters ? undefined : f.shortLabel, | shortLabel: undefined,
-// @mutate src/components/ui/UnderlineTabs.tsx | export const SHORT_LABEL_BELOW_PX = 390; | export const SHORT_LABEL_BELOW_PX = 290;
+// @mutate src/lib/shortLabelBreakpoint.ts | export const SHORT_LABEL_BELOW_PX = 390; | export const SHORT_LABEL_BELOW_PX = 290;
 // @mutate src/pages/activity/ActivityHeader.tsx | tight={!inlineFilters} | tight={false}
 // @mutate src/pages/activity/ActivityHeader.tsx | narrowTitleStepsAside: true, | narrowTitleStepsAside: false,
 // @mutate src/pages/activity/ActivityHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | triggerWidth: inlineFilters ? "28px" : "88px",
 // @mutate src/pages/Activity.tsx | activeStatusFilters={activeStatusFilters} | activeStatusFilters={[]}
 // @mutate src/pages/activity/ActivityHeader.tsx | style={tabFadeStyle} | style={undefined}
+// @mutate src/pages/activity/ActivityHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(true); | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
 
 const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
@@ -196,6 +208,42 @@ const COUNT_GAP = gapPx(TABS, /items-baseline gap-(\d+)/, 1);
 const PHONE_IS_TIGHT = /tight=\{!inlineFilters\}/.test(HEADER);
 const PHONE_GETS_SHORT_LABELS = /shortLabel:[^,]*\bf\.shortLabel\b/.test(HEADER);
 
+/**
+ * THE SHORT-WORD BREAKPOINT'S CLASS NAME, SPELLED WITHOUT EVER WRITING IT.
+ *
+ * ─── THIS IS NOT SUPERSTITION, IT IS THE BUG THIS FILE SHIPPED ─────────────
+ * Tailwind reads every file in `content` as raw TEXT and treats anything
+ * class-shaped as a candidate — test files included, because `./src/**` is
+ * one of the globs. The first version of this guard asserted the breakpoint
+ * by interpolating the constant into the class name:
+ *
+ *     expect(TABS).toContain(`min-` + `[${SHORT_LABEL_BELOW_PX}px]:hidden`);
+ *
+ * which put the literal text `min-<dollar>{SHORT_LABEL_BELOW_PX}px]:hidden`
+ * into a scanned file. Tailwind extracted that as an arbitrary `min-[…]`
+ * variant with an unparseable value, and then emitted NO RULE for the whole
+ * `min-[…]` variant family anywhere in the project. Reproduced from a
+ * one-line file, 2026-09-20: with it, zero `@media (min-width: 390px)` blocks
+ * in the build; without it, the rules come back. Measured blast radius — 40
+ * distinct `min-[Npx]:` utilities across the app (NotificationPreferences'
+ * whole 360px layer, Footer's 500/620 grid, and these two) compiling to
+ * nothing.
+ *
+ * So the guard asserting the breakpoint is what DELETED the breakpoint, and
+ * it stayed green throughout, because the class name really was in the source
+ * — which is the entire lesson of this file restated in one line: a name in a
+ * file is not a rule in a stylesheet.
+ *
+ * `String.fromCharCode(91)` is the bracket. Ugly on purpose: the two
+ * characters `min-` and `[` must never end up adjacent in this file's text
+ * again, and a reader who is about to "tidy" this back into a template
+ * literal has the reason right here.
+ */
+const BR_OPEN = String.fromCharCode(91);
+const BR_CLOSE = String.fromCharCode(93);
+const shortVariantClass = (util: string) =>
+  `min-${BR_OPEN}${SHORT_LABEL_BELOW_PX}px${BR_CLOSE}:${util}`;
+
 // ── THE TAB INVENTORY, FROM THE BUCKET DEFINITIONS ──────────────────────────
 /** The row drops the legacy catch-all and shows every real bucket. */
 const tabsOf = (filters: typeof POSTED_STATUS_FILTERS) =>
@@ -263,10 +311,13 @@ describe("the Activity status tabs fit a phone", () => {
       PHONE_GETS_SHORT_LABELS,
       "ActivityHeader no longer passes f.shortLabel through to the tabs",
     ).toBe(true);
-    // The breakpoint constant and the Tailwind literal beside the title must
-    // agree, or the swap happens at a width nobody declared.
-    expect(TABS).toContain(`min-[${SHORT_LABEL_BELOW_PX}px]:hidden`);
-    expect(TABS).toContain(`min-[${SHORT_LABEL_BELOW_PX}px]:inline`);
+    // The breakpoint constant and the two Tailwind literals must agree, or the
+    // swap happens at a width nobody declared. Whether those literals COMPILE
+    // to anything is a separate question with its own answer — see "the
+    // breakpoint is a rule in the stylesheet" below. This one only says the
+    // component and the constant tell the same story.
+    expect(TABS).toContain(shortVariantClass("hidden"));
+    expect(TABS).toContain(shortVariantClass("inline"));
   });
 
   it("the row still says so when a label IS past the edge", () => {
@@ -385,4 +436,116 @@ describe("an empty Activity list still shows its tabs", () => {
         "in the screen, not an action on its rows.",
     ).toBe("activeStatusFilters");
   });
+});
+
+// ── PART 4: THE ROW IS ON THE SCREEN AT ALL, AND ITS BREAKPOINT IS REAL ─────
+/**
+ * WHAT WIDTH ALONE COULD NOT CATCH, AND WHY THIS FILE NEEDED BOTH.
+ *
+ * Parts 1–3 measure how much room the five labels need against the room the
+ * scroller gives them. All three were GREEN on 2026-09-20 while the owner,
+ * signed in on a phone, saw no tab row at all:
+ *
+ *     375  /my-posts   chevron aria-expanded="false"   visible tab words: []
+ *     414  /my-posts   chevron aria-expanded="false"   visible tab words: []
+ *
+ * A width check cannot tell a row that FITS from a row that is NOT RENDERED:
+ * in both cases nothing is past the clip edge. Two claims were missing, and
+ * they are the two ways a correct measurement can be true of something nobody
+ * can see.
+ *
+ *   (a) THE ROW IS NOT BEHIND A DISCLOSURE AT FIRST PAINT. It used to open
+ *       collapsed whenever the live filter was the default one — i.e. on
+ *       every arrival. Asserted here on the source, and on a REAL BOX in a
+ *       real browser (non-zero `getBoundingClientRect`, both routes, every
+ *       bucket, 320/375/414/1440) by
+ *       e2e/prod-audit/activity-tabs-visible.spec.ts, which also presses the
+ *       chevron afterwards to prove the measurement can still go red.
+ *
+ *   (b) THE BREAKPOINT IS A RULE IN THE STYLESHEET, not a class name in a
+ *       file. `min-[390px]:inline` was in the source, asserted by this very
+ *       guard, and compiled to NOTHING — so the owner's five long words were
+ *       `display: none` at every width up to 900 and a 414 phone showed
+ *       "You / Soon / Cancel". See `shortVariantClass` for the cause: this
+ *       file's own assertion string was poisoning Tailwind's extractor.
+ *
+ * (b) is checked by running the app's REAL Tailwind over the app's REAL
+ * content globs and looking for the rule in the output — the same compiler
+ * the build uses, not a restatement of what it ought to do.
+ */
+describe("the status tabs survive first paint, and their breakpoint is a real rule", () => {
+  it("the phone disclosure starts OPEN, so arriving on the screen shows the tabs", () => {
+    const SEED_RE = /const \[tabsOpenPhone, setTabsOpenPhone\] = useState\(([^)]*)\)/;
+    expect(
+      HEADER,
+      "ActivityHeader no longer seeds the phone disclosure state at all — find the " +
+        "useState behind `tabsOpenPhone`.",
+    ).toMatch(SEED_RE);
+    const seed = HEADER.match(SEED_RE)![1].trim();
+    expect(
+      seed,
+      `ActivityHeader opens the phone status tabs collapsed (useState(${seed})). ` +
+        "That is the screen the owner reported on 2026-09-20: plain /my-posts at 375 and " +
+        "414 painted \"My Posts · 🔍 · ⌄\" and no tab row, because the seed was " +
+        "`!isDefaultFilter` and the default filter is what every arrival lands on. Note " +
+        "the obvious wrong guess, ruled out by measurement that day: it was never about " +
+        "the bucket being EMPTY — /my-jobs' default bucket had rows and hid its tabs too. " +
+        "The tabs are navigation; they open with the screen.",
+    ).toBe("true");
+  });
+
+  it("the short-word breakpoint compiles to an actual media query", async () => {
+    /* THE APP'S OWN COMPILER, THE APP'S OWN CONTENT GLOBS.
+       Importing the config object (rather than handing Tailwind a path) is
+       what keeps this honest: the `content` array under test is the exact one
+       the Vite build feeds PostCSS, so a file anywhere in `./src/**` that
+       poisons the extractor fails HERE, in vitest, on the commit that adds
+       it — which is the leg that was missing when it happened. */
+    /* The config comes in by PATH, not by a static specifier: tailwind.config.ts
+       is not a file tsconfig.app.json lists, and adding it there to satisfy one
+       import would put the build's config inside the app's type program. A
+       variable specifier is resolved by the runtime and left alone by tsc. */
+    const configPath = resolve(ROOT, "tailwind.config.ts");
+    const [{ default: postcss }, { default: tailwindcss }, { default: config }] = await Promise.all([
+      import("postcss"),
+      import("tailwindcss"),
+      import(/* @vite-ignore */ configPath) as Promise<{ default: unknown }>,
+    ]);
+    const css = (
+      await postcss([tailwindcss(config as never)]).process("@tailwind utilities;", {
+        from: undefined,
+      })
+    ).css;
+
+    // The escaped selector Tailwind emits for the class, assembled the same
+    // bracket-free way (see shortVariantClass) so this assertion cannot
+    // become the next thing that breaks what it is asserting.
+    const selector = (util: string) =>
+      `.min-\\${BR_OPEN}${SHORT_LABEL_BELOW_PX}px\\${BR_CLOSE}\\:${util}`;
+
+    for (const util of ["hidden", "inline"] as const) {
+      expect(
+        css,
+        `${shortVariantClass(util)} is in the source and compiles to NO CSS RULE. ` +
+          "Tailwind reads every file matched by `content` as raw text, so a class-shaped " +
+          "string ANYWHERE in ./src (a test's assertion, a comment, a string constant) " +
+          "with an unparseable arbitrary value silently disables that whole variant " +
+          "family for the entire app. When this last happened the five Activity tab " +
+          "labels rendered as their short stand-ins at every width up to 900, and 40 " +
+          "other `min-[Npx]:` utilities across NotificationPreferences and Footer went " +
+          "dead with them — with every source-level guard green. Search ./src for a " +
+          "`min-` immediately followed by a bracket that is not a literal pixel value.",
+      ).toContain(selector(util));
+      expect(
+        css,
+        `${shortVariantClass(util)} exists but not under a @media (min-width: ` +
+          `${SHORT_LABEL_BELOW_PX}px) — the swap fires at a width nobody declared.`,
+      ).toMatch(
+        new RegExp(
+          `@media\\s*\\(min-width:\\s*${SHORT_LABEL_BELOW_PX}px\\)[\\s\\S]{0,4000}?` +
+            selector(util).replace(/[.\\[\]:]/g, "\\$&"),
+        ),
+      );
+    }
+  }, 60_000);
 });

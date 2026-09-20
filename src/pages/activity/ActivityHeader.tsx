@@ -88,16 +88,39 @@ export function ActivityHeader({
   const inlineStatusFilters = activeStatusFilters.filter((f) => f.key !== "all");
 
   /**
-   * The status tabs are behind a disclosure now (owner: "add a dropdown arrow
-   * next to search so these aren't always showing, but then always open to
-   * needs you"). Four labelled buttons with counts sat permanently above the
-   * cards to express one choice that is usually left on its default.
+   * THE TAB ROW STARTS OPEN. ALWAYS, AT EVERY WIDTH, IN EVERY BUCKET.
    *
-   * It starts OPEN when the filter is not the default. Collapsing a screen
-   * that is silently showing you a subset — arrived at by a deep link, or by
-   * back/forward restoring `?filter=` — would mean looking at four of your
-   * twelve jobs with nothing on screen saying why. The disclosure hides a
-   * control, never an active filter.
+   * There is a disclosure chevron beside search (owner, 2026-09-19: "add a
+   * dropdown arrow next to search so these aren't always showing, but then
+   * always open to needs you"), and it still works — one press folds the row
+   * away for a reader who wants the extra 41px of cards. What it no longer
+   * does is decide what a phone sees FIRST.
+   *
+   * ── WHAT SHIPPING IT CLOSED-BY-DEFAULT ACTUALLY DID ──────────────────────
+   * The initial state used to be `!isDefaultFilter`, i.e. closed whenever the
+   * live filter was the one the screen opens on — which is the state every
+   * phone arrives in. Measured on prod, signed in, 2026-09-20, plain
+   * `/my-posts` with no query string:
+   *
+   *     320 / 375 / 414   chevron aria-expanded="false"   tab words: []
+   *     1440              tabs in the header row          all five words
+   *
+   * The owner's report was that "Cancelled" was clipping to "Ca…" at 375 —
+   * four of five words readable. After the disclosure landed it was ZERO of
+   * five until you found and pressed a chevron. The same complaint, worse.
+   *
+   * ── AND IT WAS NEVER ABOUT EMPTINESS ─────────────────────────────────────
+   * Worth stating because it is the obvious wrong guess and it costs a lane:
+   * /my-posts' default bucket happened to be empty that morning and /my-jobs'
+   * default bucket was NOT, and both hid their tabs. The predicate was the
+   * filter's IDENTITY, not the list's length.
+   *
+   * ── WHY OPEN IS THE RIGHT DEFAULT ────────────────────────────────────────
+   * These five words are not an action on the rows, they are WHERE YOU ARE in
+   * the screen — the same reason `activeStatusFilters` is passed whole on an
+   * empty list (see Part 3 of activityTabLabelsFitAPhone). A screen that
+   * opens with its navigation folded away reads as broken, and the row is
+   * one line of 11px type that now fits 320 without scrolling.
    */
   /* ONE PRESS OUT, AND THE FOCUS COMES BACK.
      Owner, 2026-09-19 (/my-posts): "the x on search needed to be clicked 3
@@ -130,7 +153,7 @@ export function ActivityHeader({
   };
 
   const isDefaultFilter = statusFilter === DEFAULT_STATUS_FILTER;
-  const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
+  const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
   // On the wide screen the tabs simply STAY UP — there is room for them beside
   // the title, so hiding four short words behind a chevron buys nothing and
   // costs a press (owner: "drop down not needed on the wide screen, the
@@ -138,9 +161,13 @@ export function ActivityHeader({
   // where the row genuinely cannot hold both.
   const tabsOpen = inlineFilters || tabsOpenPhone;
   const setTabsOpen = setTabsOpenPhone;
-  // A filter arriving later (deep link resolving, or a tab switch that resets
-  // it) has to be able to open the disclosure too — otherwise the same
-  // "filtered, but nothing says so" state comes back through the side door.
+  // A FILTER ARRIVING LATER RE-OPENS A ROW THE READER FOLDED AWAY.
+  // The disclosure may hide a control; it may never hide an ACTIVE filter. A
+  // deep link resolving, back/forward restoring `?filter=`, or a tab switch
+  // that changes the bucket all land the same way: looking at four of your
+  // twelve jobs with nothing on screen saying why. The initial state is now
+  // open regardless, so this only ever fires on a row the reader collapsed
+  // themselves.
   useEffect(() => {
     if (!isDefaultFilter) setTabsOpen(true);
   }, [isDefaultFilter]);

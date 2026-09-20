@@ -377,9 +377,20 @@ describe("CI crosses the mock boundary", () => {
     // Guards the classifier. If `mocksSupabase` stopped matching, every spec
     // would read as unmocked and the assertion below would pass for the worst
     // possible reason.
+    //
+    // A FLOOR, NOT A MAJORITY. This used to require the mocked specs to
+    // OUTNUMBER the unmocked ones, which was true when it was written and is
+    // a ratio the owner's standing order is deliberately driving to zero ("no
+    // mock mode ever" — every new suite is real-backend, and the mocked ones
+    // are being migrated). It tipped to exactly half on 2026-09-20 when one
+    // prod-audit spec was added, and a guard that goes red because the repo
+    // moved the way it was told to is a guard that will be edited without
+    // being read. What it is actually for is the classifier: a broken
+    // `mocksSupabase` reads ~0, and the membership checks below pin both
+    // answers by name.
     const mocked = reached.filter(mocksSupabase);
     expect(reached.length).toBeGreaterThan(10);
-    expect(mocked.length).toBeGreaterThan(reached.length / 2);
+    expect(mocked.length).toBeGreaterThan(10);
     expect(mocked).toContain("happy-path/customer-post-job.spec.ts");
     expect(mocksSupabase("auth.spec.ts")).toBe(false);
     // popupFooterFit installs no stubs but reaches no backend either — it runs

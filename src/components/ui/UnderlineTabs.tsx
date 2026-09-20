@@ -46,38 +46,24 @@ export interface UnderlineTab {
   count?: number;
 }
 
-/**
- * THE WIDTH BELOW WHICH `shortLabel` REPLACES `label`.
- *
- * Measured on /my-posts, not chosen. The five long words at `tight` density
- * (11px labels, 12px gaps) measure 333px of content — down from 372px at the
- * 12px/16px the row shipped with. The scroller they sit in is the title card
- * bled to its edges, so it clears `viewport - 42px`: 278px at 320, 333px at
- * 375, 372px at 414.
- *
- * 333 into 333 is a fit with ZERO margin, and the scroller's own trailing
- * padding eats it — which is why 375 takes the short words even though the
- * arithmetic says the long ones "fit". One Dynamic Type step, a second digit
- * in a count, or a longer future word would each erase it again. 414 clears
- * the long words by 39px and keeps them.
- *
- * 390 is the phone width between those two (iPhone 14/15/16 at 390, SE at
- * 375), so the rule reads as a device rule: SE-class and Android-360/320
- * phones take the short words, everything from a modern iPhone up keeps the
- * owner's five.
- *
- * Exported because the guard that proves the labels fit derives the breakpoint
- * from here rather than restating it — see
- * `src/test/activityTabLabelsFitAPhone.test.ts`.
- */
-export const SHORT_LABEL_BELOW_PX = 390;
+/* The breakpoint lives in its own leaf module so the browser check can import
+   the same number without dragging this component's runtime deps into the e2e
+   tsconfig — see src/lib/shortLabelBreakpoint.ts for the measurements behind
+   390 and for what happened when the classes built from it compiled to
+   nothing. Re-exported here because this is where a reader of the control
+   will look for it. */
+export { SHORT_LABEL_BELOW_PX } from "@/lib/shortLabelBreakpoint";
 
 /* The two halves of that swap, written out so Tailwind's scanner can see
    them. They are LITERALS, not built from SHORT_LABEL_BELOW_PX: Tailwind reads
    this file as text and generates nothing for a class it cannot see spelled
-   out, and a `min-[${n}px]` template would compile to a rule that does not
-   exist — the short word would then show at EVERY width, silently. The guard
-   asserts the three stay in step. */
+   out. A `min-` glued to a bracketed INTERPOLATION rather than a literal pixel
+   value is worse than useless: it compiles to nothing AND it takes every
+   other arbitrary min-width class in the app down with it, project-wide, in
+   silence. That is not hypothetical — it shipped on 2026-09-20 from a
+   template literal in this row's own guard. The short word then showed at
+   EVERY width. src/test/activityTabLabelsFitAPhone.test.ts now checks the
+   compiled stylesheet, not the class name. */
 const SHORT_ONLY_CLASS = "min-[390px]:hidden";
 const LONG_ONLY_CLASS = "hidden min-[390px]:inline";
 

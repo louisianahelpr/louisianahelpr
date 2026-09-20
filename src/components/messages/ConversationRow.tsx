@@ -62,7 +62,7 @@ interface ConversationRowProps {
    the one hue in the token set no status chip uses, it is the universal inbox
    convention for "new", it has a dark sibling tuned for the dark canvas, and
    it cannot be confused with the --live green presence dot further down the
-   row. Resolved: rgb(54,120,186) light / rgb(110,163,216) dark, against the
+   row. Resolved: rgb(54,120,186) light / rgb(97,153,209) dark, against the
    nearest chip ink rgb(156,65,22) — see src/test/unreadRowIsLegible.test.tsx,
    which resolves both out of index.css rather than comparing token names.
 

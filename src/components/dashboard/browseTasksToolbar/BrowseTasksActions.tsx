@@ -114,6 +114,12 @@ export function BrowseTasksActions({
       <Button
         variant="ghost"
         size="icon"
+        /* The anchor the dismiss focuses back to. This button UNMOUNTS while
+           search is open (DashboardTitleBar gives the whole row to the field),
+           so no ref inside this component survives the round trip — the marker
+           is an attribute and the row that swapped it out does the focusing.
+           See DashboardTitleBar's `searchBar` handling. */
+        data-search-trigger
         onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
         className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.searchOpen || filters.searchQuery ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
         aria-label="Search jobs"

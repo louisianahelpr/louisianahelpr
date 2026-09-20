@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/NotificationPanel";
@@ -116,6 +117,27 @@ export function DashboardTitleBar({
   actions,
   searchBar,
 }: DashboardTitleBarProps) {
+  /* ONE PRESS OUT, AND THE FOCUS COMES BACK.
+     This row is the only expanding search in the app whose TRIGGER unmounts
+     while the field is open — the field takes the whole bar, so the magnifier
+     in `actions` is gone for the duration and no ref inside BrowseTasksActions
+     survives the round trip. So the row that performed the swap is what hands
+     focus back: on the render where `searchBar` goes away, focus the marked
+     trigger inside the actions cluster that has just come back.
+     Without it the ✕ dropped `document.activeElement` on <body>, which for a
+     keyboard or screen-reader user means being returned to the top of the
+     document by the control whose whole job is "put me back where I was". */
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const hadSearchBarRef = useRef(!!searchBar);
+  useEffect(() => {
+    if (hadSearchBarRef.current && !searchBar) {
+      actionsRef.current
+        ?.querySelector<HTMLElement>("[data-search-trigger]")
+        ?.focus();
+    }
+    hadSearchBarRef.current = !!searchBar;
+  }, [searchBar]);
+
   if (searchBar) {
     // Same row height, one control. Nothing else renders — a field sharing the
     // bar with the emblem and the bell has ~150px to work with on a 375px
@@ -161,7 +183,7 @@ export function DashboardTitleBar({
           reclaims 8px — small, but this row is decided by single-digit
           margins: at 375 the actions overran the card by 16px and the bell,
           being last, was the part that fell off the edge. */}
-      <div className={`flex items-center gap-1.5 sm:gap-2 shrink-0${trailing ? "" : " -mr-2"}`}>
+      <div ref={actionsRef} className={`flex items-center gap-1.5 sm:gap-2 shrink-0${trailing ? "" : " -mr-2"}`}>
         {status}
         {actions}
         {/* Only the DEFAULT bell (no custom `trailing` passed) is hidden on

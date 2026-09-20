@@ -220,6 +220,23 @@ export function ConversationList({
   // a pure local filter over `conversations`, so no debounce needed.
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the same dismiss contract
+     ActivityHeader states (see the note there, owner 2026-09-19). The field
+     unmounts under the caret, so without this `document.activeElement` falls
+     to <body>: the keyboard user who pressed the X is dropped at the top of
+     the document with the inbox they were filtering gone. Escape is wired to
+     the identical call, so "get me out of search" has a keyboard spelling. */
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
+  const wasSearchOpenRef = useRef(searchOpen);
+  useEffect(() => {
+    if (wasSearchOpenRef.current && !searchOpen) searchTriggerRef.current?.focus();
+    wasSearchOpenRef.current = searchOpen;
+  }, [searchOpen]);
+  const closeSearch = () => {
+    hapticLight();
+    setSearchQuery("");
+    setSearchOpen(false);
+  };
   /* Which slice of the inbox. ACTIVE is the default (owner, 2026-09-19) —
      see defaultInboxTab in lib/inboxDefault.ts for why Active and not the
      Unread rule that was removed on 2026-08-30. Resolved once, on mount, from
@@ -756,6 +773,9 @@ export function ConversationList({
           placeholder="Search conversations…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          /* Escape is the keyboard's X — same single activation, same return
+             to the pre-open state, same focus hand-back. */
+          onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
           spellCheck={false}
           className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
         />
@@ -788,7 +808,7 @@ export function ConversationList({
           the clear-search button above uses. */}
       <button
         type="button"
-        onClick={() => { hapticLight(); setSearchOpen(false); setSearchQuery(""); }}
+        onClick={closeSearch}
         aria-label="Close search"
         className="shrink-0 w-8 h-8 rounded-full inline-flex items-center justify-center btn-press transition-colors ctl-tint relative after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:content-['']"
         style={{ color: "hsl(var(--bark))" }}
@@ -829,7 +849,9 @@ export function ConversationList({
           false. */}
       {(hasThreads || isSpecialFilterView) && (
         <button
+          ref={searchTriggerRef}
           type="button"
+          data-search-trigger
           onClick={() => { hapticLight(); setSearchOpen(true); }}
           aria-label="Search conversations"
           className={HEADER_ICON_BUTTON_CLASS}

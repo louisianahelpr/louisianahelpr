@@ -192,6 +192,17 @@ export function BrowseSearchBar({
             }}
             // Delayed so a mousedown on a suggestion row still lands.
             onBlur={() => window.setTimeout(() => setFocused(false), 150)}
+            /* Escape is the keyboard's X. In the title-card form it is the
+               whole dismiss — query cleared AND field closed, one activation,
+               the same thing the ✕ does (the focus hand-back to the magnifier
+               is DashboardTitleBar's, because the trigger unmounts with this
+               row). Embedded there is nothing to close, so it clears only. */
+            onKeyDown={(e) => {
+              if (e.key !== "Escape") return;
+              e.preventDefault();
+              filters.setSearchQuery("");
+              if (!embedded) filters.setSearchOpen(false);
+            }}
             // `pr-10` reserves the lane the trailing ✕ sits in — so it is only
             // reserved when the ✕ is actually rendered (see below), otherwise
             // an empty embedded field carries 40px of dead right margin.

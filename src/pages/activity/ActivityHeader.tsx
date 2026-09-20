@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
@@ -99,6 +99,36 @@ export function ActivityHeader({
    * twelve jobs with nothing on screen saying why. The disclosure hides a
    * control, never an active filter.
    */
+  /* ONE PRESS OUT, AND THE FOCUS COMES BACK.
+     Owner, 2026-09-19 (/my-posts): "the x on search needed to be clicked 3
+     times to close the search bar". The state machine was never the problem —
+     instrumented, the X already does query-clear + close in a single
+     activation and the `?q=` mirror does not re-open it (transition trail in
+     src/test/searchDismissAndOverlay.test.tsx).
+     What it did NOT do was give the focus back. The field unmounts under the
+     caret, so `document.activeElement` fell to <body>: a keyboard user pressing
+     the X landed nowhere and had to Tab from the top of the page to find search
+     again, and a screen-reader user lost the row entirely. Every dismiss on
+     this screen now goes through `closeSearch()`, which is the whole pre-open
+     state in one call — query cleared, field closed, focus back on the
+     magnifier that opened it. Escape does the same thing, which is what the X
+     already implied and the keyboard had no way to ask for. */
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
+  /* Focus AFTER the commit that unmounts the field — the trigger does not
+     exist yet at the moment the click handler runs. An effect keyed on the
+     open flag is the only place both facts are true, and it fires only on a
+     true->false transition so it can never steal focus on first paint. */
+  const wasOpenRef = useRef(searchOpen);
+  useEffect(() => {
+    if (wasOpenRef.current && !searchOpen) searchTriggerRef.current?.focus();
+    wasOpenRef.current = searchOpen;
+  }, [searchOpen]);
+  const closeSearch = () => {
+    hapticLight();
+    setSearchQuery("");
+    setSearchOpen(false);
+  };
+
   const isDefaultFilter = statusFilter === DEFAULT_STATUS_FILTER;
   const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
   // On the wide screen the tabs simply STAY UP — there is room for them beside
@@ -211,6 +241,9 @@ export function ActivityHeader({
               spellCheck={false}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              /* Escape is the keyboard's X. Same single activation, same
+                 pre-open state, same focus return — see closeSearch above. */
+              onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
               className="w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
             />
             {/* The X lives INSIDE the field, on its right (owner). Always
@@ -220,7 +253,7 @@ export function ActivityHeader({
                 in one press — the two things "done searching" means. */}
             <button
               type="button"
-              onClick={() => { hapticLight(); setSearchQuery(""); setSearchOpen(false); }}
+              onClick={closeSearch}
               aria-label="Close search"
               className="absolute right-2.5 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
             >
@@ -273,7 +306,9 @@ export function ActivityHeader({
           actions={
             <>
               <button
+                ref={searchTriggerRef}
                 type="button"
+                data-search-trigger
                 onClick={() => { hapticLight(); setSearchOpen(true); }}
                 aria-label="Search jobs"
                 className={`rounded-ds-md flex items-center justify-center btn-press transition text-muted-foreground hover:text-foreground hover:bg-secondary/60 ${

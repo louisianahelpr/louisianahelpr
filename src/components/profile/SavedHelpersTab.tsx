@@ -6,7 +6,7 @@
 // container) so the back button, top padding, and dock alignment
 // stay consistent with every other Profile sub-tab.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Heart, Search, ArrowUpDown, ListFilter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,12 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const navigate = useNavigate();
   // Closed by default — see the note on the header icon below.
   const [searchOpen, setSearchOpen] = useState(false);
+  /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the dismiss contract every
+     expanding search on this app now shares (ActivityHeader states it in
+     full, owner 2026-09-19). Here the trigger and the dismiss are the SAME
+     button, so a mouse press already leaves focus on it; Escape from inside
+     the field did not, and dropped the caret on <body>. */
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const { user } = useCurrentUser();
   const {
     helpers,
@@ -58,6 +64,14 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
     filtered,
     activeSortLabel,
   } = useSavedHelpers({ user });
+
+  /* Declared after the hook that owns `setSearch`, so the dismiss reads in
+     source order rather than relying on the closure to outrun the TDZ. */
+  const closeSearch = () => {
+    setSearch("");
+    setSearchOpen(false);
+    searchTriggerRef.current?.focus();
+  };
 
   // The count that used to sit on a line of its own beneath the controls.
   // It is the READOUT of the two menus beside it — it changes when you
@@ -97,10 +111,12 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
         rightSlot={
           helpers.length > 0 ? (
             <button
+              ref={searchTriggerRef}
               type="button"
+              data-search-trigger
               onClick={() => {
-                if (searchOpen) setSearch("");
-                setSearchOpen((v) => !v);
+                if (searchOpen) { closeSearch(); return; }
+                setSearchOpen(true);
               }}
               aria-label={searchOpen ? "Close search" : "Search saved Helprs"}
               aria-expanded={searchOpen}
@@ -154,6 +170,9 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 spellCheck={false}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                /* Escape is the keyboard's X — same single activation, same
+                   return to the pre-open state, same focus hand-back. */
+                onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
                 className={`w-full pl-9 ${search.length > 0 ? "pr-10" : "pr-3"} h-11 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground`}
               />
               {search.length > 0 && (

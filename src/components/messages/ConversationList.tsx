@@ -228,36 +228,41 @@ export function ConversationList({
      `null` means "not chosen yet" so the effect below can seed it as soon as
      the first page of threads lands. */
   const [inboxFilter, setInboxFilter] = useState<string | null>(null);
-  /* ── The filter strip is INLINE AT EVERY WIDTH ────────────────────────
+  /* ── THE FILTER STRIP IS ALWAYS VISIBLE. THERE IS NO DISCLOSURE ───────
      OWNER, 2026-09-19 (after the Unread tab was cut): the desktop website
      showed `Active · All` inline in the header row while phone hid the SAME
-     control behind a chevron — two layouts for one control, and the one the
-     reader has to discover was the phone's. It is inline everywhere now.
+     control behind a chevron — and the one the reader has to discover was the
+     phone's. The chevron is gone at every width. The strip is always on
+     screen, and `pinnedFilterChip` aside there is no longer any way for this
+     inbox to be filtered without the filter being visible.
 
-     WHY IT FITS NOW AND DID NOT BEFORE. The disclosure was built for THREE
-     tabs (All / Unread / Active) plus a visible "Messages" title plus a
-     three-icon action cluster, and that genuinely did not fit a 320px row —
-     the tabs went on their own line under the toolbar, which made this title
-     card 122px against My Posts' 62px, which is why the chevron was added.
-     Unread is gone (two tabs) and the chevron itself is gone (two icons), so
-     the row has room it never had. Measured, not assumed — see
-     src/test/messagesDesktopFilterTabsInline.test.tsx and the numbers in its
-     header.
+     WHERE IT SITS IS DECIDED BY MEASUREMENT, NOT BY TASTE, and the header row
+     does not have the width on a phone. Measured on the production build
+     (`vite preview`), poster-e2e, 31 threads, with the chevron already
+     removed so the cluster is two buttons and not three:
 
-     The tabs are `dense` at EVERY width now, which is what keeps this card at
-     My Posts' / My Jobs' 62px: the non-dense `py-[13px]` that used to carry
-     the phone row's touch area would make the header row 62px on its own and
-     the card ~82px. The tab labels sit ~16px apart horizontally, so WCAG
-     2.5.8's spacing exception carries the target size (the same call the
-     desktop strip has shipped under since 9b0eb1fc8).
+                     row    actions  gaps  strip   left for "Messages"  needs
+       320 (title card 238px)   92     20    106            20            88  ✗
+       375 (title card 293px)   92     20    106            75            88  ✗
+       1440 (in-panel 1102px)   92     20    106           884            78  ✓
 
-     WHAT WENT WITH IT: `tabsOpenPhone` / `tabsOpen` (component-local
-     disclosure state), the effect that force-opened the row when a
-     non-default filter arrived — an always-visible strip can never be
-     "silently filtered" — and `isDefaultInboxFilter`, which existed only to
-     darken the chevron's ink. `pinnedFilterChip` still covers Pinned /
-     Recently Deleted, which are reached from the hamburger and highlight no
-     tab. */
+     At 375 the screen's own name rendered "Messa…"; at 320 it rendered "M.".
+     Dropping the tab COUNTS buys ~25px and still misses 320 by 43. So on
+     phone the strip keeps its own line under the toolbar, which is the only
+     placement with room — the same split ActivityHeader makes under
+     `inlineFilters`, not a Messages-only invention.
+
+     WHAT THAT COSTS, stated plainly: this title card is ~118px on phone in
+     every state now, where the disclosure made it 62px closed and 118px open
+     (owner, from a device: "Messages should also be collapsed when opened").
+     The always-visible strip is the newer instruction and it wins; the older
+     one is what the 62px bought.
+
+     WHAT WENT WITH THE CHEVRON: `tabsOpenPhone` / `tabsOpen`, the effect that
+     force-opened the row when a non-default filter arrived (an always-visible
+     strip can never be "silently filtered"), `isDefaultInboxFilter`, which
+     existed only to darken the chevron's ink, and `INBOX_TABS_ID`, its
+     `aria-controls` target. */
   /* EVERY read of the filter goes through the coercion, never through the raw
      state. `inboxFilter` is component-local and un-persisted, so today the
      only writers are the tab strip, the overflow menu and the seeding effect
@@ -657,11 +662,11 @@ export function ConversationList({
 
   const inboxTabs = (
     <UnderlineTabs
-      /* Dense at EVERY width: this strip rides inside the 44px header row on
-         phone as well as on the desktop website now, and the non-dense
-         `py-[13px]` would make that row 62px on its own. See the placement
-         note above the state block. */
-      dense
+      /* Dense ONLY inline in the desktop header row, which is already 44px
+         tall for its icon buttons. On phone the strip has its own line and
+         the non-dense `py-[13px]` is what carries the 44px touch target —
+         see UnderlineTabs' own note. */
+      dense={isWebDesktop}
       ariaLabel="Filter conversations"
       /* TWO tabs, Active then All (owner, 2026-09-19, confirmed twice).
          Narrow to wide, and the tab the inbox lands on comes first — "here,
@@ -793,20 +798,19 @@ export function ConversationList({
     </>
   ) : null;
 
-  /* What sits beside the screen name, AT EVERY WIDTH: the tabs themselves —
-     exactly as they do on My Posts / My Jobs. ONE placement, no complement
-     pair, no second line under the toolbar.
+  /* What sits beside the screen name ON THE DESKTOP WEBSITE: the tabs
+     themselves, exactly as they do on My Posts / My Jobs, where the row is
+     1102px wide and the name is `sr-only` anyway. On phone this slot stays
+     empty and the strip takes its own line below — see the placement note
+     above the state block for the widths that decided it.
 
-     The counts ride on the tabs ("Active 3 · All 6"), which is what makes this
-     affordable. An earlier attempt put a separate "1 unread" caption here
-     BESIDE a three-tab row, and that did not fit: at 393 the row is 353px of
-     card, three 44px controls and their gaps took 144, the caption and its gap
-     73 more, leaving 96px for a title needing 101 — the screen's own name
-     truncated to "Messag…". Two tabs carrying their own numbers, and two icon
-     buttons instead of three, is a different budget. Measured at 320/375/393
-     before shipping; the numbers are in
-     src/test/messagesDesktopFilterTabsInline.test.tsx. */
-  const headerMeta = hasThreads ? inboxTabs : undefined;
+     It is not just the tabs that do not fit here on a phone. An earlier
+     attempt put a separate "1 unread" caption in this slot and that missed
+     too: at 393 the row is 353px of card, the controls and their gaps took
+     144, the caption and its gap 73 more, leaving 96px for a title needing
+     101 — "Messag…". This slot has never had room on a phone for anything at
+     all, which is the finding, not a coincidence. */
+  const headerMeta = isWebDesktop && hasThreads ? inboxTabs : undefined;
 
   /* The trailing icon cluster.
      Search · hamburger · chevron, in that order (owner, 2026-09-14, VN-35:
@@ -966,13 +970,23 @@ export function ConversationList({
           >
             {rowTakeover}
           </ScreenHeaderRow>
-          {/* NOTHING ON A SECOND LINE. The phone tab row that used to live
-              here — the same `inboxTabs`, in a `-mx-1 px-1 pb-0.5` horizontal
-              scroller, gated on the disclosure — is gone (owner, 2026-09-19).
-              The strip is the header row's `meta` slot at every width now, so
-              this card is 62px on phone in every state instead of 62 collapsed
-              / 118 expanded, and search and select mode take the whole row
-              over without a stranded filter line beneath them. */}
+          {/* PHONE / NATIVE: the same strip, on its own line under the
+              toolbar, and ALWAYS — no chevron, no collapsed state, nothing to
+              discover. The header row beside a visible "Messages" and the
+              action cluster has 20px to spare at 320 and 75 at 375 against a
+              title that needs 88, measured; this line is the placement that
+              has room. Still hidden while search or select mode has taken the
+              row over: one control at a time. */}
+          {!isWebDesktop && hasThreads && !searchOpen && !selectMode && (
+            /* `-mx-1 px-1 pb-0.5` are ActivityHeader's exact classes, so this
+               card matches My Posts / My Jobs. The negative margin keeps the
+               tabs' focus rings inside the scroller rather than clipped by it;
+               the scroller itself is insurance for 320px, where two labels are
+               already comfortable. */
+            <div className="shrink-0 -mx-1 px-1 pb-0.5 overflow-x-auto scrollbar-hide">
+              {inboxTabs}
+            </div>
+          )}
           {!searchOpen && !selectMode && pinnedFilterChip}
     </>
   );

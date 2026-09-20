@@ -6,44 +6,48 @@
  *
  * OWNER, LATER THE SAME DAY — TWO CHANGES, and this file now asserts BOTH:
  *   1. The Unread tab is gone (confirmed twice). Two tabs, Active then All.
- *   2. The DISCLOSURE IS GONE TOO, at every width. The phone no longer drops
- *      the filter down behind a chevron; it renders the SAME inline strip the
- *      desktop website does, in the same header row, beside the same screen
- *      name. The phone TITLE CARD stays — that is a separate thing the owner
- *      asked for explicitly, and the <h1> assertions below hold it in place.
+ *   2. THE DISCLOSURE IS GONE, at every width. The phone no longer hides the
+ *      filter behind a chevron; the strip is always on screen. The phone
+ *      TITLE CARD stays — a separate thing the owner asked for explicitly,
+ *      held in place by the <h1> assertions below.
  *
- * THE CLASS, not the instance: ONE control must have ONE placement. The
- * original bug was that the inline strip was gated on `embedded`, a prop no
- * production caller passes, so the desktop branch never rendered. The fix
- * keyed both halves on `useIsWebDesktop()` — correct, but it left a real
- * two-layout split behind: inline at >=900px, behind a chevron below it. This
- * file now forbids BOTH failure modes at once, by asserting the identical
- * thing at both widths.
+ * THE CLASS, not the instance: ONE control must have ONE STATE. The original
+ * bug was that the inline strip was gated on `embedded`, a prop no production
+ * caller passes, so the desktop branch never rendered. The fix keyed both
+ * halves on `useIsWebDesktop()` — correct, but it left the phone's filter
+ * behind a chevron the reader had to find. Now neither surface hides it.
+ *
+ * WHERE IT SITS IS STILL SPLIT, AND THAT SPLIT IS MEASURED, NOT CHOSEN.
+ * Inline in the header row is only possible where the row has the width.
+ * On the production build (`vite preview`, prod backend, poster-e2e, 31
+ * threads), with the chevron already removed so the cluster is two buttons:
+ *
+ *                   row     actions  gaps  strip   left for "Messages"  needs
+ *     320 (card 238px)  92      20    106            20            88   ✗ "M."
+ *     375 (card 293px)  92      20    106            75            88   ✗ "Messa…"
+ *     1440 (panel 1102) 92      20    106           884            78   ✓
+ *
+ * So the phone strip keeps its own line under the toolbar — the same split
+ * ActivityHeader makes under `inlineFilters`. What this file forbids is the
+ * DISCLOSURE, at either width, and it asserts the exact same tab set and
+ * order at both.
  *
  * WHAT CHANGED IN THIS FILE, precisely:
- *   - The old "phone / native: the tabs stay behind the disclosure" case is
- *     inverted, not deleted: phone must now show the tabs INLINE and must
- *     have NO disclosure button in either of its two labels.
- *   - The "tabs sit INSIDE the header row" case runs at BOTH widths instead
- *     of desktop only.
+ *   - The old "the tabs stay behind the disclosure … opens COLLAPSED" case is
+ *     inverted, not deleted: phone must now render the tabs on first paint
+ *     with no click, and must have NO disclosure button in either of its two
+ *     accessible names.
+ *   - The desktop "tabs sit INSIDE the header row" case is unchanged, and it
+ *     gains its phone complement: on phone the strip exists but is NOT in the
+ *     header row, which is what keeps the title from truncating.
  *   - EXPECTED_TABS is unchanged and still EXACT — the full set, in order. An
  *     accidental third tab, a rename or a reorder still fails here. It is NOT
- *     weakened to "tabs exist somewhere": every assertion names the set, the
- *     order, and the container the strip must live in.
+ *     weakened to "tabs exist somewhere".
  *   - `disclosure()` is kept (not removed) so the absence is asserted by the
  *     same query that used to assert the presence.
  *
- * WHY THE TABS FIT THE PHONE ROW NOW AND DID NOT BEFORE — measured on the
- * production build at three widths, poster account, 6 threads:
- *      320: row 240px wide — tabs 104, controls 92, title 88 in the 132 left.
- *      375: row 295px wide — tabs 104, controls 92, title 88 in the 187 left.
- *     1440: unchanged from 9b0eb1fc8.
- *   Zero truncation of the <h1> at either width, `scrollWidth <= clientWidth`
- *   on <html> at both. Two tabs instead of three and two icon buttons instead
- *   of three is what bought the room; see ConversationList's placement note.
- *
- * @mutate src/components/messages/ConversationList.tsx | const headerMeta = hasThreads ? inboxTabs : undefined; | const headerMeta = undefined;
- * @mutate src/components/messages/ConversationList.tsx | const headerMeta = hasThreads ? inboxTabs : undefined; | const headerMeta = isWebDesktop && hasThreads ? inboxTabs : undefined;
+ * @mutate src/components/messages/ConversationList.tsx | {!isWebDesktop && hasThreads && !searchOpen && !selectMode && ( | {!isWebDesktop && hasThreads && false && !searchOpen && !selectMode && (
+ * @mutate src/components/messages/ConversationList.tsx | const headerMeta = isWebDesktop && hasThreads ? inboxTabs : undefined; | const headerMeta = undefined;
  * @mutate src/components/messages/ConversationList.tsx | { key: "active", label: "Active", count: activeThreads }, | { key: "active", label: "Unread", count: activeThreads },
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
@@ -164,7 +168,7 @@ const WIDTHS: Array<[label: string, webDesktop: boolean]> = [
   ["phone / native", false],
 ];
 
-describe("Messages inbox filter tabs — ONE inline placement at every width", () => {
+describe("Messages inbox filter tabs — always visible, never behind a disclosure", () => {
   it("the inventory is real: this fixture produces a non-empty inbox", () => {
     // Every assertion below is gated on `hasThreads`. An empty fixture would
     // render no tabs and no chevron at EITHER width, and would pass both
@@ -180,34 +184,56 @@ describe("Messages inbox filter tabs — ONE inline placement at every width", (
       setWebDesktop(webDesktop);
       renderInbox();
 
+      // On FIRST PAINT, with no click: the phone half of this used to require
+      // `fireEvent.click(chevron)` to see anything at all.
       expect(filterTabs()).toEqual(EXPECTED_TABS);
       expect(
         disclosure(),
-        "no width may hide two visible words behind a chevron — one control, one placement",
+        "no width may hide two visible words behind a chevron — one control, one state",
       ).toBeNull();
     });
 
-    it(`${label}: the tabs sit INSIDE the header row, beside the screen name`, () => {
+    it(`${label}: exactly ONE strip renders — never both placements, never neither`, () => {
       setWebDesktop(webDesktop);
       const { container } = renderInbox();
-
-      // The row is the shared ScreenHeaderRow — identified by the one <h1> it
-      // owns, not by a class, so this keeps holding if the styling moves.
-      const h1 = screen.getByRole("heading", { level: 1, name: "Messages" });
-      const row = h1.closest("div.flex.items-center");
-      expect(row, "the screen name should live in the shared header row").not.toBeNull();
-
-      const group = tabGroup();
-      expect(group).not.toBeNull();
       expect(
-        row!.contains(group!),
-        "the filter tabs must be in the top bar itself, not on a second line below it",
-      ).toBe(true);
-      // And they are the header row's `meta` slot, not a stray match elsewhere
-      // in the page: exactly one strip exists, at either width.
-      expect(container.querySelectorAll('[role="group"][aria-label="Filter conversations"]')).toHaveLength(1);
+        container.querySelectorAll('[role="group"][aria-label="Filter conversations"]'),
+      ).toHaveLength(1);
     });
   }
+
+  /**
+   * The placement split, asserted as exact complements so it cannot be
+   * satisfied by a component that renders the strip in both places or in
+   * neither. Desktop: inside the shared header row (the row has 884px to
+   * spare there). Phone: NOT in that row — the row has 20px at 320 against a
+   * title needing 88, so putting it there is what truncated "Messages" to
+   * "M.". See the measurement table at the top of this file.
+   */
+  it("desktop website: the strip is INSIDE the header row, beside the screen name", () => {
+    setWebDesktop(true);
+    renderInbox();
+    // The row is the shared ScreenHeaderRow — identified by the one <h1> it
+    // owns, not by a class, so this keeps holding if the styling moves.
+    const h1 = screen.getByRole("heading", { level: 1, name: "Messages" });
+    const row = h1.closest("div.flex.items-center");
+    expect(row, "the screen name should live in the shared header row").not.toBeNull();
+    expect(row!.contains(tabGroup()!)).toBe(true);
+  });
+
+  it("phone / native: the strip is on its OWN line, not crammed into the header row", () => {
+    setWebDesktop(false);
+    renderInbox();
+    const h1 = screen.getByRole("heading", { level: 1, name: "Messages" });
+    const row = h1.closest("div.flex.items-center");
+    expect(row).not.toBeNull();
+    const group = tabGroup();
+    expect(group, "the phone strip must still render").not.toBeNull();
+    expect(
+      row!.contains(group!),
+      "at 320 the header row has 20px beside a title that needs 88 — the strip may not go in it",
+    ).toBe(false);
+  });
 
   /**
    * The half of the owner's ask that did NOT change: the phone keeps its

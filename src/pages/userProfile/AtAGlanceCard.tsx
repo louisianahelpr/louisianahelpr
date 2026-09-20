@@ -1,8 +1,9 @@
+// `Sprout` went with the new-member fallback (2026-09-19) — see the block
+// where it used to render, below the cells array.
 import {
   Star,
   ClipboardList,
   Hammer,
-  Sprout,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,21 +29,29 @@ import type { ProfileStatsShape, ReplyLatency } from "./types";
  *    and the cell is not a button, because expanding it leads to an empty
  *    panel.
  *
- * 2. **No more "0 Completed" on a pure poster.** The posted/completed pair was
- *    fixed at three tiles for everyone, so someone who only ever posts jobs was
- *    shown a zero for a role they do not play. Cells are now emitted only for
- *    the sides of the marketplace this person is actually on, and the labels
- *    say which side ("Jobs posted" / "Jobs completed").
+ * 2. **The labels say WHICH SIDE** — "Jobs posted" / "Jobs completed" — rather
+ *    than a bare "Posted" / "Completed" that left the reader to guess.
+ *
+ *    SUPERSEDED, kept so the history reads: this point used to say cells were
+ *    "emitted only for the sides of the marketplace this person is actually
+ *    on", so a pure poster was not shown "0 Completed". Owner, 2026-09-19,
+ *    looking at the result: "this should display 4 boxes always. even if it
+ *    has zero data yet bc rn it looks empty." Self-hiding cells left a dead
+ *    column in the `sm:grid-cols-4` track, which reads worse than the zero it
+ *    was avoiding. All four tiles render unconditionally now — see the cells
+ *    array.
  *
  * 3. **Cancel rate is no longer the visual climax.** It rendered burnt-sienna
  *    from 15% up, which made a 1-in-6 rate the loudest thing on a stranger's
  *    profile after their name. The alarm now starts at 30% and it sits LAST,
  *    after the things this person did well, instead of alone in its own card.
  *
- * Every cell is self-hiding, and when nothing at all qualifies the card falls
- * through to a deliberate new-member state rather than an empty scaffold — a
- * brand-new account is the common case in a young marketplace and must look
- * intentional, not broken.
+ * The card always renders the same four tiles — Rating · Jobs completed ·
+ * Jobs posted · Worked together — zeros included, so a brand-new account
+ * (the common case in a young marketplace) shows a complete grid of honest
+ * zeros rather than a part-filled row. There is no self-hiding cell and no
+ * separate new-member state any more; both are explained at their old sites
+ * below.
  */
 
 type Cell = {
@@ -140,7 +149,10 @@ const MetricCell = ({ cell, className }: { cell: Cell; className?: string }) => 
 type Props = {
   isOwnProfile: boolean;
   displayName: string;
-  /** e.g. "Aug 2026" — used only by the new-member state. */
+  /**
+   * e.g. "Aug 2026". Fed the new-member state, which is deleted — accepted
+   * and unread now; see the destructuring below.
+   */
   memberSinceLabel: string | null;
   stats: ProfileStatsShape;
   postedJobsCount: number;
@@ -161,8 +173,11 @@ type Props = {
   repeatHirePercent: number | null;
   /**
    * Completed jobs the VIEWER and this member have done together. Its own
-   * tile, second only to the rating (owner, 2026-09-14, VN-16). Never shown on
-   * your own profile, and hidden at 0.
+   * tile, FOURTH (owner, 2026-09-19; it was second from VN-16, 2026-09-14).
+   * ALWAYS rendered, including at 0 and on your own profile — 0 is what
+   * almost everyone sees, and the own-profile view exists to show the
+   * stranger's card. Already 0 by construction on your own profile and for a
+   * signed-out visitor (`wantsMutual`, useUserProfileData.ts).
    */
   mutualJobsCount: number;
   showReviews: boolean;
@@ -174,9 +189,13 @@ type Props = {
 };
 
 export const AtAGlanceCard = ({
-  isOwnProfile,
-  displayName,
-  memberSinceLabel,
+  // Accepted and NOT read any more — see the "FOUR TILES, ALWAYS" block below.
+  // Both only ever fed the new-member fallback, which is unreachable now that
+  // the grid always emits four cells. Kept on the props so UserProfile.tsx is
+  // unchanged, same convention as the four metric props above.
+  isOwnProfile: _isOwnProfile,
+  displayName: _displayName,
+  memberSinceLabel: _memberSinceLabel,
   stats,
   postedJobsCount,
   workedJobsCount,
@@ -192,80 +211,96 @@ export const AtAGlanceCard = ({
   onTogglePosted,
   onToggleWorked,
 }: Props) => {
-  const cells: Cell[] = [];
+  /* ── FOUR TILES, ALWAYS, ZEROS INCLUDED ──────────────────────────────
+     Owner, 2026-09-19, from a live /user/… screenshot: "this should display 4
+     boxes always. even if it has zero data yet bc rn it looks empty."
 
-  // ── Rating ───────────────────────────────────────────────────────────
-  // At zero it still says something — "no reviews yet" is a material fact
-  // about a stranger — but it says it in words, not as "★ —" beside real
-  // figures, and it is not a button, because expanding it opens nothing.
-  // It is pushed only when there is at least one other cell to sit beside;
-  // on its own it would be the lonely placeholder the new-member state below
-  // exists to replace.
-  const hasRating = stats.reviewCount > 0;
-  if (hasRating) {
-    cells.push({
-      key: "rating",
-      icon: Star,
-      value: stats.avgRating.toFixed(1),
-      label: `${stats.reviewCount} review${stats.reviewCount === 1 ? "" : "s"}`,
-      onClick: onToggleReviews,
-      selected: showReviews,
-    });
-  }
+     What it was: every cell was `push`ed behind its own `> 0` guard, so a
+     zero silently REMOVED a tile while the `sm:grid-cols-4` track kept its
+     fourth column — the screenshot that prompted this showed three tiles and
+     a dead quarter of whitespace, which reads as a value that failed to load
+     rather than as a number that is genuinely zero. A zero is a fact about
+     this person; withholding it is not neutral, it just looks broken.
 
-  // ── The two sides of the marketplace, only where they apply ──────────
-  // Completed before posted (most-to-least-important order): work someone
-  // actually did for other people outranks how often they posted.
-  if (workedJobsCount > 0) {
-    cells.push({
+     So the array below is POSITIONAL, not built by push-then-unshift: four
+     entries, in the order the owner set, every render. The consequences are
+     handled here rather than left as branches nothing can take —
+
+       - the `cells.length === 0` new-member state is DELETED (it can no
+         longer be reached; see the block where it used to live);
+       - the odd-count `col-span-2` rule is DELETED (four is never odd);
+       - the old `hasRating` / `unshift` pair is gone — the rating cell is
+         simply the first element, in one of its two forms.
+
+     A zero tile is deliberately NOT a button. MetricCell's rule stands: a
+     stat that expands nothing must not be focusable or announced as a
+     control, so `onClick` is attached only where there is a panel behind it.
+     That is why the interactive props are spread conditionally rather than
+     passed unconditionally. */
+  const cells: Cell[] = [
+    // ── 1. Rating ──
+    // At zero it still says something — "no reviews yet" is a material fact
+    // about a stranger — but it says it in words, not as "★ —" beside real
+    // figures, and it is not a button, because expanding it opens nothing.
+    stats.reviewCount > 0
+      ? {
+          key: "rating",
+          icon: Star,
+          value: stats.avgRating.toFixed(1),
+          label: `${stats.reviewCount} review${stats.reviewCount === 1 ? "" : "s"}`,
+          onClick: onToggleReviews,
+          selected: showReviews,
+        }
+      : { key: "rating", icon: Star, value: "New", label: "No reviews yet" },
+
+    // ── 2. Jobs completed ──
+    // Completed before posted (most-to-least-important order): work someone
+    // actually did for other people outranks how often they posted.
+    {
       key: "worked",
       icon: Hammer,
       value: String(workedJobsCount),
       label: "Jobs completed",
-      onClick: onToggleWorked,
-      selected: showWorkedJobs,
-    });
-  }
-  if (postedJobsCount > 0) {
-    cells.push({
+      ...(workedJobsCount > 0 ? { onClick: onToggleWorked, selected: showWorkedJobs } : {}),
+    },
+
+    // ── 3. Jobs posted ──
+    {
       key: "posted",
       icon: ClipboardList,
       value: String(postedJobsCount),
       label: "Jobs posted",
-      onClick: onTogglePosted,
-      selected: showPostedJobs,
-    });
-  }
+      ...(postedJobsCount > 0 ? { onClick: onTogglePosted, selected: showPostedJobs } : {}),
+    },
 
-  // ── Worked together ─────────────────────────────────────────────────
-  // FOURTH, after this person's own record — not second.
-  //
-  // Owner, 2026-09-19: "the correct order for the profile should be review,
-  // jobs completed, jobs posted, worked together, cancelled." It sat second
-  // from VN-16 (2026-09-14) until then.
-  //
-  // The reason the new order is better, worth keeping so nobody "restores" the
-  // old one: the first three tiles are what this PERSON did — their rating,
-  // the jobs they finished, the jobs they posted. "Worked together" is not
-  // about them at all, it is about the VIEWER's relationship with them, so it
-  // belongs after their own record rather than interrupting it. Cancelled
-  // stays last because it is the caveat on everything above it.
-  //
-  // Not a button — there is no panel behind it. It used to be a quiet line
-  // under the bio in ProfileHeaderCard.
-  if (!isOwnProfile && mutualJobsCount > 0) {
-    cells.push({
-      key: "together",
-      icon: Users,
-      value: String(mutualJobsCount),
-      label: "Worked together",
-    });
-  }
+    // ── 4. Worked together ──
+    // FOURTH, after this person's own record — not second.
+    //
+    // Owner, 2026-09-19: "the correct order for the profile should be review,
+    // jobs completed, jobs posted, worked together, cancelled." It sat second
+    // from VN-16 (2026-09-14) until then.
+    //
+    // The reason the order is right, worth keeping so nobody "restores" the
+    // old one: the first three tiles are what this PERSON did — their rating,
+    // the jobs they finished, the jobs they posted. "Worked together" is not
+    // about them at all, it is about the VIEWER's relationship with them, so
+    // it belongs after their own record rather than interrupting it.
+    //
+    // NO `!isOwnProfile` GATE, and no preview-only wording. Owner, 2026-09-19
+    // (pop-up): 0 is what almost everyone sees — anyone who has not hired you
+    // yet — so it is the honest default and needs no caveat. `mutualJobsCount`
+    // is already 0 by construction on your own profile and for a signed-out
+    // visitor (`wantsMutual` in useUserProfileData.ts), so this tile shows the
+    // stranger's view on the preview without a branch, which is the whole
+    // point of /user/<your own id> ("How others see you").
+    //
+    // Not a button — there is no panel behind it. It used to be a quiet line
+    // under the bio in ProfileHeaderCard.
+    { key: "together", icon: Users, value: String(mutualJobsCount), label: "Worked together" },
+  ];
 
-  /* ── FOUR TILES, IN THIS ORDER ───────────────────────────────────────
-     Rating · Jobs completed · Jobs posted · Worked together, and nothing
-     else. See the "Worked together" block above for why it moved from 2nd to
-     4th, and the CANCELLED block below for why there is no fifth.
+  /* ── WHY FOUR AND NOT FIVE ───────────────────────────────────────────
+     See the CANCELLED block below for why there is no fifth.
 
      Superseded, kept so the history reads: owner, 2026-09-19 had five —
      Rating · Jobs completed · Jobs posted · Worked together · Cancelled.
@@ -351,96 +386,55 @@ export const AtAGlanceCard = ({
      `jobs_total` / `cancelled_jobs` / `cancellation_rate` columns) went with
      it — see useUserProfileData.ts. */
 
-  // See the note on `hasRating`: the zero-state review cell goes FIRST, and
-  // only alongside real company.
-  if (!hasRating && cells.length > 0) {
-    cells.unshift({
-      key: "rating",
-      icon: Star,
-      value: "New",
-      label: "No reviews yet",
-    });
-  }
-
   /* No section heading, no "tap a highlighted figure" hint and no
      "not enough history yet" line here any more — all three deleted by the
      owner (2026-09-11: "delete", pointing at each). The tiles stand alone;
      the section keeps an `aria-label` so the landmark stays named for
      assistive tech now that the visible heading it used to point at is gone. */
 
-  // ── NEW MEMBER ───────────────────────────────────────────────────────
-  // Nothing measurable yet. Say so, in the person's own terms, and say what
-  // will appear here — a young marketplace shows this state constantly and it
-  // has to read as a profile that is simply new, not as a page that broke.
-  if (cells.length === 0) {
-    return (
-      <section aria-label="At a glance">
-        <div
-          className="rounded-ds-md px-4 py-3.5 flex items-start gap-3"
-          style={{ background: "hsl(var(--olivewood) / 0.05)" }}
-        >
-          <Sprout
-            className="w-4 h-4 shrink-0 mt-0.5"
-            style={{ color: "hsl(var(--bark) / 0.7)" }}
-            aria-hidden
-          />
-          <div className="min-w-0">
-            <p
-              className="font-sans font-semibold text-ds-13"
-              style={{ color: "hsl(var(--ink-deep))" }}
-            >
-              {isOwnProfile ? "You're new here" : "New to Helpr"}
-            </p>
-            <p
-              className="font-sans text-ds-13 leading-relaxed mt-0.5 max-w-[60ch]"
-              style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-            >
-              {/* Two different promises, because the two readers see two
-                  different cards. Reply time is owner-only, so telling a
-                  visitor it will appear here is a promise the page cannot
-                  keep — the previous copy made it to both. */}
-              {isOwnProfile
-                ? "Your rating, job history and reply time will appear here as you work and answer messages."
-                : `${displayName} joined${memberSinceLabel ? ` in ${memberSinceLabel}` : ""} and hasn't built a public record yet. Ratings and job history appear here after their first job.`}
-            </p>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  /* ── THE NEW-MEMBER STATE IS DELETED, NOT HIDDEN ─────────────────────
+     A `cells.length === 0` branch used to return a "You're new here" /
+     "New to Helpr" Sprout panel instead of the grid, because every cell
+     self-hid at zero and a brand-new account produced an empty scaffold.
+
+     With four tiles emitted unconditionally, `cells.length` is the literal
+     4 on every render and that branch is unreachable — and a branch that
+     cannot be taken is not a state, it is dead code that reads as though the
+     screen still has an empty case to worry about. It is removed rather than
+     left guarded so the next reader is not misled about what this card can
+     render.
+
+     Nothing is lost by it: a brand-new member now shows "New · No reviews
+     yet" beside three honest zeros, which is the same fact the panel spelled
+     out in prose, in the shape the rest of the card already uses. The one
+     thing that did go is the owner-only promise ("…and reply time will appear
+     here"), which was a second reason to drop it — on /user/<your own id>,
+     whose entire job is to show what a STRANGER sees, a sentence only you can
+     ever read is the wrong thing to render. */
 
   return (
     <section aria-label="At a glance">
-      {/* At most FOUR tiles now that Cancelled is gone: two-up on a phone,
-          one row of four from `sm`. The `md:grid-cols-5` track and its
-          fifth-tile span went with it — a five-tile row is no longer
-          reachable, and a branch that cannot be taken is not a layout.
+      {/* EXACTLY FOUR TILES: two-up on a phone, one row of four from `sm`.
+          The `md:grid-cols-5` track and its fifth-tile span went with
+          Cancelled — a five-tile row is no longer reachable, and a branch
+          that cannot be taken is not a layout.
 
-          AN ODD COUNT STILL SPANS. Three tiles two-up leaves the third
-          stranded half-width beside an empty cell, which is the same ragged
-          row the five-tile case was given `col-span-2` to avoid; the rule was
-          only ever gated on `>= 5` because that was the only odd count the
-          card could produce at the time. It is now stated once, for every odd
-          count, which is what it always meant.
+          THE ODD-COUNT `col-span-2` RULE WENT THE SAME WAY (2026-09-19). It
+          existed so a ragged last tile would span both phone columns at an
+          odd count; `cells` is now a fixed four-element array, so no odd
+          count is reachable either. Both rows are full two-up, and the rule
+          would be another unreachable branch dressed as a layout.
 
           `auto-rows-fr`: every tile is as tall as the tallest, across rows
           too. Two-up at 375, a label that wraps ("31 of 61 jobs cancelled")
           made row 2 70.3px under a 58px row 1 (OPEN.md; guarded by
           e2e/journeys/stat-tile-heights.spec.ts) — that label was the
           Cancelled tile's and is gone, but the invariant stays: the four
-          surviving labels are all one or two words, so no tile wraps past the
-          two lines its neighbours use. */}
+          labels are all one or two words, so no tile wraps past the two lines
+          its neighbours use. */}
       <div className="grid grid-cols-2 auto-rows-fr gap-2 sm:grid-cols-4">
-        {cells.map((c, i) => (
-          <MetricCell
-            key={c.key}
-            cell={c}
-            className={
-              i === cells.length - 1 && cells.length % 2 === 1
-                ? "col-span-2 sm:col-span-1"
-                : undefined
-            }
-          />
+        {cells.map((c) => (
+          <MetricCell key={c.key} cell={c} />
         ))}
       </div>
     </section>

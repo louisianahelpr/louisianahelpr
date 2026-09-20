@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Briefcase, MapPin } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
+import { PROFILE_BADGE_PILL_BOX } from "./ProfileBadge";
 import type { Database } from "@/integrations/supabase/types";
 import type { LastActiveLabel } from "./types";
 
@@ -333,15 +334,39 @@ export const ProfileHeaderCard = ({
               </p>
             )}
 
-            {/* WHAT THEY DO */}
-            {/* WHAT THEY DO — deliberately NOT pill-shaped. Owner,
-                2026-09-11: the skills row sat directly under the badge row in
-                the same rounded-full tinted pill, so at a glance it read as
-                six more badges. Skills are self-declared; badges are earned,
-                and the profile must not dress the two the same. So this is a
-                labelled, comma-separated text list on a square-cornered
-                hairline strip: no radius, no per-item box, no icon, normal
-                weight, and a caption naming what it is. */}
+            {/* ── WHAT THEY DO — PILLS, like every other labelled group on
+                this card (owner, 2026-09-19: "i also dont like how the
+                categories show on the profile", deciding pills over dropping
+                the headings).
+
+                What it was, and why it changed: this printed
+                `skills.join(", ")` as a paragraph under a "SKILLS" caption,
+                sitting immediately above RecognitionRow's "VERIFIED" and
+                "DOING JOBS" captions — identical caption, pills underneath.
+                Three labelled sections in a row wearing two different shapes,
+                so the block read as two components that happened to land next
+                to each other rather than one masthead.
+
+                SUPERSEDED, kept so the history reads: owner, 2026-09-11 had
+                the opposite ruling — the skills row was made deliberately NOT
+                pill-shaped because it then sat in the SAME rounded-full
+                TINTED pill as the badges and read as "six more badges". That
+                problem is real and is still solved, by TREATMENT rather than
+                by SHAPE: an earned badge is a filled, coloured chip; a
+                self-declared skill is a hairline OUTLINE chip with no icon.
+                Same box, same size, same rhythm — different weight of claim.
+                It is the same filled-vs-outline distinction ProfileEditForm
+                already uses for a picked vs unpicked skill preset. Do not
+                give these a fill.
+
+                `PROFILE_BADGE_PILL_BOX`, not a hand-rolled pill: it is the
+                one box every badge on this card wears, so the two rows cannot
+                drift on padding, radius or type. It is a <span> not a
+                <button> — a skill expands nothing, so it must not be focusable
+                or announced as a control (same rule MetricCell follows in
+                AtAGlanceCard). `whitespace-normal break-words max-w-full`
+                because a skill can be uncapped free text from the "Other"
+                field, and it has to wrap at 375 rather than overflow. */}
             {skills.length > 0 && (
               <div
                 className="mt-3 pt-2.5"
@@ -353,12 +378,23 @@ export const ProfileHeaderCard = ({
                 >
                   Skills
                 </p>
-                <p
-                  className="font-sans text-ds-13 leading-relaxed max-w-[62ch]"
-                  style={{ color: "hsl(var(--ink-deep) / 0.85)" }}
-                >
-                  {skills.join(", ")}
-                </p>
+                {/* A list, semantically: it is N discrete declared skills, not
+                    one sentence — which is also what a screen reader was told
+                    before, when the comma string was read as prose. */}
+                <ul className="flex flex-wrap items-center gap-1.5 max-w-[62ch]">
+                  {skills.map((skill) => (
+                    <li
+                      key={skill}
+                      className={`${PROFILE_BADGE_PILL_BOX} whitespace-normal break-words max-w-full`}
+                      style={{
+                        border: "0.5px solid hsl(var(--olivewood) / 0.35)",
+                        color: "hsl(var(--ink-deep) / 0.85)",
+                      }}
+                    >
+                      {skill}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>

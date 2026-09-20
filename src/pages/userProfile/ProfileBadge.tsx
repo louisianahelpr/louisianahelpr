@@ -41,11 +41,30 @@ import { TIER_PERKS, tierDisplayName, toSubscriptionTier } from "@/lib/subscript
  * reachable through the trigger button.
  */
 
+/**
+ * The pill BOX — geometry and type only, with nothing that assumes the pill is
+ * pressable. Split out (2026-09-19) so the SKILLS row on the same masthead can
+ * wear the same pill as the badges below it without a second recipe: owner,
+ * pointing at a live profile, "i also dont like how the categories show on the
+ * profile" — SKILLS printed as comma text directly above VERIFIED and DOING
+ * JOBS printed as pills, three labelled sections in two shapes.
+ *
+ * Keep the SIZING here and the BEHAVIOUR below. A caller that wants a static
+ * pill takes this; anything pressable takes `PROFILE_BADGE_PILL`, which is the
+ * same box plus nowrap, the hover/press transition and the 44px tap target.
+ * `whitespace-nowrap` is deliberately NOT in the box: a badge label is one or
+ * two words, but a skill can be free text a Helpr typed with no length cap
+ * (ProfileEditForm's "Other" field), and that must wrap rather than run off a
+ * 375 screen.
+ */
+export const PROFILE_BADGE_PILL_BOX =
+  "inline-flex items-center gap-1 rounded-ds-pill px-2 py-1 text-ds-11 font-sans font-semibold leading-none";
+
 // One step smaller (owner, 2026-09-14, VN-17: "the badges also need to be
 // smaller") — was px-2.5 py-1.5 text-ds-12 with a 14px icon. The 44px tap
 // target (`after:h-11`) is unchanged.
 export const PROFILE_BADGE_PILL =
-  "inline-flex items-center gap-1 rounded-ds-pill px-2 py-1 text-ds-11 font-sans font-semibold leading-none whitespace-nowrap " +
+  `${PROFILE_BADGE_PILL_BOX} whitespace-nowrap ` +
   "transition-opacity active:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
   "relative after:absolute after:inset-x-0 after:top-1/2 after:-translate-y-1/2 after:h-11 after:content-['']";
 

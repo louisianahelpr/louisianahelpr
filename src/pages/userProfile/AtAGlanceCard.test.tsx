@@ -2,7 +2,11 @@
  * THE TILE SET AND ITS ORDER, asserted exactly.
  *
  * TODAY (owner, 2026-09-19): Rating · Jobs completed · Jobs posted · Worked
- * together. FOUR tiles.
+ * together. FOUR tiles, ALWAYS — zeros included, on a stranger's view and on
+ * your own preview alike ("this should display 4 boxes always. even if it has
+ * zero data yet bc rn it looks empty"). Two assertions in this file used to
+ * say the opposite (a hidden Worked-together tile, an odd-count span); both
+ * are replaced below with a note naming what changed and why.
  *
  * ── WHAT WAS REMOVED, AND WHY, so nobody re-adds it ────────────────────────
  *
@@ -43,15 +47,22 @@ import { render, screen } from "@testing-library/react";
 import { AtAGlanceCard } from "./AtAGlanceCard";
 
 const noop = () => {};
-function renderCard(over: { isOwnProfile?: boolean; mutualJobsCount?: number } = {}) {
+type Over = {
+  isOwnProfile?: boolean;
+  mutualJobsCount?: number;
+  postedJobsCount?: number;
+  workedJobsCount?: number;
+  stats?: { completedJobs: number; avgRating: number; reviewCount: number };
+};
+function renderCard(over: Over = {}) {
   return render(
     <AtAGlanceCard
       isOwnProfile={over.isOwnProfile ?? false}
       displayName="Hallie H."
       memberSinceLabel="Aug 2026"
-      stats={{ completedJobs: 16, avgRating: 5, reviewCount: 1 }}
-      postedJobsCount={4}
-      workedJobsCount={16}
+      stats={over.stats ?? { completedJobs: 16, avgRating: 5, reviewCount: 1 }}
+      postedJobsCount={over.postedJobsCount ?? 4}
+      workedJobsCount={over.workedJobsCount ?? 16}
       replyLatency={{ medianReplyMinutes: null, replySample: 0, measured: false }}
       onTimeArrivalRate={null}
       revisionFrequency={null}
@@ -100,32 +111,96 @@ describe("AtAGlanceCard — four tiles, most to least important", () => {
     expect(screen.queryByText(/%$/)).toBeNull();
   });
 
-  it("hides the Worked together tile at 0 and on your own profile", () => {
+  /**
+   * REPLACES "hides the Worked together tile at 0 and on your own profile"
+   * (2026-09-19). That assertion is now the DEFECT, not the contract: owner,
+   * "this should display 4 boxes always. even if it has zero data yet bc rn it
+   * looks empty", and, in the pop-up choosing what the fourth tile says at
+   * zero, that 0 is what almost everyone sees — anyone who has not hired you
+   * yet — so it is the honest default and needs no preview-only wording.
+   *
+   * The own-profile case is the same assertion inverted for the same reason:
+   * /user/<your own id> exists to show what a STRANGER sees, so a tile that
+   * disappears because you are looking at yourself is a lie about the page.
+   * `mutualJobsCount` is already 0 by construction there (`wantsMutual` in
+   * useUserProfileData.ts), so the honest answer renders with no branch.
+   */
+  it("shows Worked together at 0, and on your own profile", () => {
     const { unmount } = renderCard({ mutualJobsCount: 0 });
-    expect(tileLabels()).not.toContain("Worked together");
-    expect(tileLabels()).toHaveLength(3);
+    expect(tileLabels()).toEqual([
+      "1 review",
+      "Jobs completed",
+      "Jobs posted",
+      "Worked together",
+    ]);
     unmount();
-    renderCard({ isOwnProfile: true, mutualJobsCount: 3 });
-    expect(tileLabels()).not.toContain("Worked together");
+    renderCard({ isOwnProfile: true, mutualJobsCount: 0 });
+    expect(tileLabels()).toContain("Worked together");
   });
 
-  it("four tiles wrap two-up on a phone, one row of four from sm", () => {
-    renderCard();
-    const grid = screen.getByRole("region", { name: "At a glance" }).querySelector(".grid")!;
-    expect(grid.className).toContain("grid-cols-2");
-    expect(grid.className).toContain("sm:grid-cols-4");
-    // Even count: nothing spans, because nothing is stranded.
-    expect(grid.lastElementChild!.className).not.toContain("col-span-2");
-    // No five-column track survives — a five-tile row is unreachable now.
-    expect(grid.className).not.toContain("grid-cols-5");
+  /**
+   * THE OWNER'S ACTUAL SCREENSHOT, as a test: a member with a zero somewhere
+   * still gets four boxes, never three and a dead column. Every count zeroed
+   * is the hardest version of it — a brand-new account.
+   */
+  it("renders FOUR tiles with every count at zero — no empty scaffold", () => {
+    renderCard({ stats: { completedJobs: 0, avgRating: 0, reviewCount: 0 }, postedJobsCount: 0, workedJobsCount: 0, mutualJobsCount: 0 });
+    expect(tileLabels()).toEqual([
+      "No reviews yet",
+      "Jobs completed",
+      "Jobs posted",
+      "Worked together",
+    ]);
+    // The zeros are printed, not withheld.
+    expect(screen.getAllByText("0")).toHaveLength(3);
+    expect(screen.getByText("New")).toBeInTheDocument();
+    // And no separate new-member panel replaces the grid (that fallback is
+    // deleted — with four cells always emitted it was unreachable).
+    expect(screen.queryByText(/New to Helpr|You're new here/)).toBeNull();
   });
 
-  it("an ODD count spans its last tile so no tile is stranded half-width", () => {
-    renderCard({ mutualJobsCount: 0 });      // rating + completed + posted = 3
+  /**
+   * A zero tile expands nothing, so it must not be a control — the rule
+   * MetricCell has carried since the old grid left zero-count tiles in the tab
+   * order doing nothing. Only the tiles with a panel behind them are buttons.
+   */
+  it("zero tiles are not buttons; populated ones are", () => {
+    const { unmount } = renderCard({ stats: { completedJobs: 0, avgRating: 0, reviewCount: 0 }, postedJobsCount: 0, workedJobsCount: 0, mutualJobsCount: 0 });
     const grid = screen.getByRole("region", { name: "At a glance" }).querySelector(".grid")!;
-    expect(grid.children).toHaveLength(3);
-    const last = grid.lastElementChild!;
-    expect(last.className).toContain("col-span-2");
-    expect(last.className).toContain("sm:col-span-1");
+    expect(Array.from(grid.children).map((el) => el.tagName)).toEqual(["DIV", "DIV", "DIV", "DIV"]);
+    unmount();
+    renderCard();                       // rating 1 review, worked 16, posted 4, together 3
+    const grid2 = screen.getByRole("region", { name: "At a glance" }).querySelector(".grid")!;
+    expect(Array.from(grid2.children).map((el) => el.tagName)).toEqual(["BUTTON", "BUTTON", "BUTTON", "DIV"]);
+  });
+
+  /**
+   * REPLACES "an ODD count spans its last tile…" (2026-09-19). `cells` is a
+   * fixed four-element array now, so no odd count is reachable and the
+   * `col-span-2` rule it asserted was deleted as an unreachable branch. The
+   * assertion that replaces it is the reason the rule is safe to delete:
+   * the count is ALWAYS four, whatever the data.
+   */
+  it("is always four tiles, two-up on a phone and one row of four from sm", () => {
+    for (const over of [
+      {},
+      { mutualJobsCount: 0 },
+      { postedJobsCount: 0, workedJobsCount: 0 },
+      { stats: { completedJobs: 0, avgRating: 0, reviewCount: 0 }, postedJobsCount: 0, workedJobsCount: 0, mutualJobsCount: 0 },
+    ]) {
+      const { unmount } = renderCard(over);
+      const grid = screen.getByRole("region", { name: "At a glance" }).querySelector(".grid")!;
+      expect(grid.children).toHaveLength(4);
+      expect(grid.className).toContain("grid-cols-2");
+      expect(grid.className).toContain("sm:grid-cols-4");
+      // `auto-rows-fr` is load-bearing: equal tile heights two-up at 375,
+      // pinned by e2e/journeys/stat-tile-heights.spec.ts.
+      expect(grid.className).toContain("auto-rows-fr");
+      // Nothing spans: an even, fixed count strands nothing.
+      for (const el of Array.from(grid.children)) expect(el.className).not.toContain("col-span-2");
+      // No five-column track survives — a five-tile row is unreachable.
+      expect(grid.className).not.toContain("grid-cols-5");
+      unmount();
+    }
   });
 });

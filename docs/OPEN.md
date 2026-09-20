@@ -4483,3 +4483,76 @@ geography gate**. A guard that enshrines a wrong belief is worse than no guard.
 - `BrowseTasksFeed.tsx:323-328` drops `approximate`, and that flag is **live signal again** now a
   coarse fix sets it. Nothing is currently dishonest (the `~` is unconditional), but it is the place a
   future surface could quote a 45 km-accurate origin as a measurement.
+
+## OWNER LIVE REVIEW 2026-09-19 (late) — rulings + lanes
+
+- **Search: magnifier moves INSIDE the open field, left edge; ✕ stays right.** Owner
+  ruling via pop-up ("the magnifier should move to the left and the x stay"). The
+  magnifier stops being a button while open, so the ✕ is the only control in the
+  field. Declined: magnifier at far-left of row; magnifier merely first in the icon
+  cluster. Fixes BOTH the 3-tap ✕ (26px hit-box overlap at 375, root-caused — the
+  state machine was innocent) and the desktop home strip unmounting the count +
+  whole icon cluster on open. Lane live.
+- **Profile: FOUR tiles always, zeros included** — Rating · Jobs completed · Jobs
+  posted · Worked together. Owner picked "0 · Worked together" for the 4th because
+  0 is what almost every visitor actually sees. Declined: "Member since", and a
+  "varies by viewer" hint. Preview profile = the stranger's view, by definition
+  (owner: "the whole point of preview profile is to see what it looks like to
+  others") — anything rendering differently under `isOwnProfile` there is a bug.
+  Cancelled tile stays DELETED. Lane live.
+- **Profile: skills become pills.** Owner picked pills over "one row, no headings"
+  and over "drop the headings". SKILLS was plain comma text next to VERIFIED /
+  DOING JOBS pill badges — two shapes in one block. Headings stay. Lane live.
+- **Profile tabs: no side gutter**, matching Gift Card / Home History. Owner's own
+  structural read, likely correct: those two are their own ROUTES, the rest render
+  inside Profile's container — two shells, two paddings. Fix in ONE shared place,
+  as a prop, never per-tab padding. Lane live.
+- **Back buttons: ONE hover, everywhere. SECOND report** — "some have a square
+  background on hover, some circle on hover and some move on hover... fix it or i
+  wont say it again." Three behaviours in the wild. Inventory from the world, pick
+  the shape on evidence (tally), rule lives in one place. Lane live.
+- **Loading states: they jump and don't match their content.** Two defects: layout
+  shift (skeleton box ≠ real box) and wrong SHAPE (placeholder lies about what is
+  coming). Full inventory, measure both boxes per surface, rank worst-first. Lane live.
+- **Two addresses on the job card** — full address must REPLACE the city in the meta
+  row, not print on its own line. Entitlement is already server-side; client must NOT
+  gate on status. Lane live (job-card lane).
+
+### Landed this round, not yet pushed
+- Map 7 / list 4: `dismissedJobIds` was applied only inside `BrowseTasksFeed`; the
+  map and the header count never knew the feature existed. 8 open − 1 applied = 7
+  pins; 7 − 3 dismissed = 4 cards. The LIST was right. One shared registry
+  (`src/pages/dashboard/viewerFeedExclusions.ts`) now feeds list, count and map.
+  Distance/radius was ruled OUT — `get_open_jobs_for_map` has no distance predicate.
+- Search dismiss contract: one activation → closed, query cleared, **focus handed
+  back to the trigger**. Focus return was broken on EVERY expanding search — the
+  field unmounts under the caret, dropping keyboard/SR users at `<body>`.
+
+### Handed back / still open
+- `ScreenHeaderRow` should own an `expandingSearch` slot — three callers hand-roll
+  the open state on top of it today. Assigned to the search lane.
+- Stale `@mutate` find-strings failing vacuity in job-card WIP:
+  `collapsedJobCardIsASummary` (3), `enRouteAddressVisible` (3),
+  `dialogCornerLaneIsReserved` (1).
+
+### Lead visual verification 2026-09-19 late (signed in, local dev, prod data)
+VERIFIED WORKING, eyes on:
+- Map/list/header parity: 5/5/5, then 4/4/4 after one dismissal — all three move together.
+- `/my-posts` collapsed cards: dots gone, replaced by `WAITING · No applicants yet`.
+- Full street address renders ONCE, where the city used to be. Clean at 375; wraps
+  to two centered lines at 320 with the street number intact. Zero page overflow at both.
+- Activity tab ORDER correct: Needs You · Waiting · Scheduled · Done · Cancelled.
+- Search dismiss on `/my-posts`: one click closes AND returns focus to the magnifier.
+
+NEW DEFECTS FOUND IN THE SAME PASS:
+- **Status tab row overflows the phone viewport.** `flex items-baseline gap-4 shrink-0
+  min-w-max` measures **372px inside a 320 viewport** (and clips at 375 too): "Cancelled"
+  reads as "Ca…" at 375, "Done" as "Do…" at 320. It scrolls horizontally, so the PAGE
+  has zero overflow and every overflow guard passes — but there is no scroll affordance,
+  so on a phone the last tab is simply invisible. The owner chose this exact five-tab
+  order; two of the five cannot be seen on a phone.
+- **Desktop Browse search still drops focus to `<body>`** on close (`/my-posts` is
+  correct). Sent to the search lane with measurements.
+- **`/my-jobs` empty state renders a header bar with no tabs and no title** — just a
+  magnifier floating in an empty strip.
+- Minor: at 320 the wrapped address is CENTRED while the date beneath it is left-aligned.

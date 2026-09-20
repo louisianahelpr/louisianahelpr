@@ -350,7 +350,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
        NOT AppPage — AppPage is AppShell + this header, and Profile.tsx already
        owns the AppShell. Same shape PetProfiles, WorkRecord, HomeHistory,
        StrSettings, AutoTip and HelprWrapped use. */
-    <div className="space-y-4">
+    <div className="space-y-4 px-3">
       <ProfileTabHeader title="Gift Card" onBack={onBack} />
         {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
         {/* Spans full width above the split so the status is visible regardless

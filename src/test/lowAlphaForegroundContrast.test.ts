@@ -110,6 +110,7 @@ describe("low-alpha foreground contrast", () => {
     expect(rows.length, "no alpha'd foreground declarations found at all").toBeGreaterThan(300);
   });
 
+  // @mutate src/components/profile/ReviewsTab.tsx | <span aria-hidden="true" className="mr-2">·</span> | <span aria-hidden="true" className="mr-2" style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
   it("the four `·` separators inherit their line and clear AA", () => {
     // The original bug, named. `hsl(var(--burnt-sienna) / 0.5)` as a FOREGROUND
     // is the exact shape that failed; it must not come back anywhere.
@@ -120,6 +121,7 @@ describe("low-alpha foreground contrast", () => {
     ).toEqual([]);
   });
 
+  // @mutate src/components/profile/savedHelpersTab/SavedHelperCard.tsx | <span aria-hidden="true">·</span> | <span aria-hidden="true" style={{ color: "hsl(var(--bark) / 0.4)" }}>·</span>
   it("no low-contrast foreground colour that a human has not dispositioned", () => {
     const seen = new Map<string, number>();
     for (const r of failing) seen.set(keyOf(r), (seen.get(keyOf(r)) ?? 0) + 1);
@@ -146,6 +148,7 @@ describe("low-alpha foreground contrast", () => {
     ).toEqual([]);
   });
 
+  // @mutate src/components/TrustRow.tsx | hsl(var(--burnt-sienna) / 0.35) | hsl(var(--burnt-sienna))
   it("the accepted list does not rot", () => {
     const seen = new Set(failing.map(keyOf));
     const stale = [...ACCEPTED.keys()].filter((k) => !seen.has(k));

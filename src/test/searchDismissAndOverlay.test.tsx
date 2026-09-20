@@ -51,7 +51,16 @@
  * @mutate src/pages/activity/ActivityHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | 
  * @mutate src/components/messages/ConversationList.tsx | triggerWidth: "44px", | 
  * @mutate src/components/profile/SavedHelpersTab.tsx | <SearchTriggerSlot /> | <span />
- * @mutate src/pages/Legal.tsx | {searchOpen && <SearchTriggerSlot width="40px" />} | {false && <SearchTriggerSlot width="40px" />}
+ * NO @mutate FOR pages/Legal.tsx. There was one — deleting the page's
+ * `{searchOpen && <SearchTriggerSlot width="40px" />}` — and it had always
+ * SURVIVED, because this file lists `pages/Legal.tsx` under NOT_EXERCISED with
+ * a written reason. The registration claimed coverage the same file explicitly
+ * disclaims two hundred lines below. It went unnoticed because vacuity only
+ * mutates registrations whose target changed since origin/main, and nothing had
+ * touched Legal.tsx since it was added; it surfaced the first time that page was
+ * edited (2026-09-20). A registration that cannot fail is worse than none: it
+ * reports coverage that does not exist. /legal's slot is carried by the browser
+ * pass — see NOT_EXERCISED below.
  * @mutate src/pages/Dashboard.tsx | className="ml-auto" | className=""
  * @mutate src/pages/Dashboard.tsx | data-feed-strip | data-feed-strip-renamed
  */
@@ -579,7 +588,7 @@ const NOT_EXERCISED: Record<string, string> = {
   "pages/Dashboard.tsx":
     "the desktop feed strip — pinned by its own describe block below, from source, because the page is 900 lines behind a dozen data hooks and the fact under test is structural",
   "pages/Legal.tsx":
-    "document-scroll marketing page: the field replaces nothing, the tab group holds its own width (Legal.tsx's searchBar note). Browser pass owes 320/375 here",
+    "document-scroll marketing page: the field replaces nothing. The old reason added 'the tab group holds its own width' — it did not, and that was the bug: at 320 the tabs and the field were both flex-1 at 107px, the three tab labels overlapped, and the field sat under the typable floor. Fixed 2026-09-20 by stepping the tab group aside below 500px while the field is open. The 320/375 the browser pass owed is now paid: e2e/prod-audit/expanding-search-geometry.spec.ts runs /legal at 320, 375 and 1440 against the shared MIN_TYPABLE_FIELD_PX, with no per-surface pin",
 };
 
 describe("coverage", () => {
@@ -630,7 +639,14 @@ describe("desktop Browse strip — opening search unmounts nothing but the field
 
   it("the feed strip is findable, so the assertions below are about something", () => {
     const src = dashboard();
-    expect(src).toMatch(/data-feed-strip/);
+    // `(?![-\w])` is load-bearing. A bare /data-feed-strip/ is a SUBSTRING
+    // match, so renaming the attribute to `data-feed-strip-renamed` — i.e.
+    // exactly the mutation this file registers for it on line 65 — still
+    // matched, and this guard reported the strip "findable" when nothing could
+    // find it. It SURVIVED its own mutation from the day it was written; it
+    // only showed up on 2026-09-20 because vacuity mutates a registration when
+    // its target changes, and nothing had touched the pair since.
+    expect(src).toMatch(/data-feed-strip(?![-\w])/);
     expect(src, "the strip must still render the live jobs count").toMatch(/totalMatchingCount/);
   });
 

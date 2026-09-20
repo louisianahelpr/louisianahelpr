@@ -32,6 +32,7 @@ import {
   SUPPORT_TOPICS,
   type SupportTopicKey as SupportCategory,
 } from "@/lib/supportTopics";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 // Topic copy (labels, descriptions, placeholders, submit labels, admin-facing
 // reportLabel) is SHARED with the public /support page via
@@ -252,7 +253,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
   }
 
   return (
-    <div className="space-y-3">
+    <ProfileTabBody>
       <ProfileTabHeader title="Help & Support" onBack={onBack} />
 
       <form
@@ -468,6 +469,6 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
         </p>
         <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0" />
       </Link>
-    </div>
+    </ProfileTabBody>
   );
 }

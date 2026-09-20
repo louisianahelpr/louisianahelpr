@@ -21,6 +21,7 @@ import { PetCard } from "./petProfiles/PetCard";
 import { PetRailRow } from "./petProfiles/PetRailRow";
 import { PetDetail } from "./petProfiles/PetDetail";
 import { fetchPetProfiles, petProfilesQueryKey } from "./petProfiles/petProfilesQuery";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ import { fetchPetProfiles, petProfilesQueryKey } from "./petProfiles/petProfiles
  * the whole reason it looked like a different screen from its siblings. Owner:
  * "anything in profile tab should not be a stand alone tab."
  *
- * Renders the canonical tab body — `space-y-4` under a ProfileTabHeader — and
+ * Renders the canonical tab body — <ProfileTabBody> under a ProfileTabHeader — and
  * NOT AppPage. AppPage is AppShell + that header, and Profile.tsx already owns
  * the AppShell; keeping it here would nest two 100dvh viewport locks.
  */
@@ -153,7 +154,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
   };
 
   return (
-    // The canonical Profile tab body: `space-y-4` under a ProfileTabHeader,
+    // The canonical Profile tab body: <ProfileTabBody> under a ProfileTabHeader,
     // matching every other tab. NOT AppPage — that is AppShell + this header,
     // and Profile.tsx already owns the AppShell.
     //
@@ -164,7 +165,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
     // the rail rows nor the detail pane carry an add action). `hidden lg:*`
     // because mobile already has its own "Add a Pet" affordances below the
     // list and inside the empty state.
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader
         title="My Pets"
         onBack={onBack}
@@ -388,7 +389,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
         }}
         secondaryLabel="Cancel"
       />
-    </div>
+    </ProfileTabBody>
   );
 };
 

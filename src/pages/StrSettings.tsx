@@ -6,7 +6,7 @@
  *
  * Was the standalone route `/str-settings` until 2026-09-02. It was only ever
  * reached FROM Profile's own chrome, so it was a Profile tab wearing a route's
- * clothes. It renders the canonical tab body — `space-y-4` under a
+ * clothes. It renders the canonical tab body — <ProfileTabBody> under a
  * ProfileTabHeader — and NOT AppPage: AppPage is AppShell + that header, and
  * Profile.tsx already owns the AppShell, so keeping it would nest two 100dvh
  * viewport locks. No longer a route, so the DOCUMENT_SCROLL_ROUTES question
@@ -33,6 +33,7 @@ import { cardStyle } from "./strSettings/strSettingsHelpers";
 import { ConnectionCard } from "./strSettings/ConnectionCard";
 import { AddCalendarForm, validateCleaningBudget } from "./strSettings/AddCalendarForm";
 import { userFacingError } from "@/lib/userFacingError";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 // ---------------------------------------------------------------------------
 // Main page
@@ -223,7 +224,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
     "affected.";
 
   return (
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader title="Host Automation" onBack={onBack} />
 
         {/* ONE card, every breakpoint (owner, 2026-08-29: "merge into 1"). This
@@ -411,6 +412,6 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
         }}
         secondaryLabel="Cancel"
       />
-    </div>
+    </ProfileTabBody>
   );
 }

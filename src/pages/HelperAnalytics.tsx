@@ -15,7 +15,7 @@
 // wearing a route's clothes, and the odd one out among its siblings because it
 // was the document-scroll kind (`min-h-screen bg-premium-page pb-safe-nav` +
 // PageHeader) rather than an AppPage. It now renders the canonical tab body:
-// `space-y-4` under a ProfileTabHeader. Profile.tsx owns the AppShell, the
+// <ProfileTabBody> under a ProfileTabHeader. Profile.tsx owns the AppShell, the
 // viewport lock, the scroll container and the safe-area inset, so a
 // `min-h-screen` / `pb-safe-nav` / page background here would fight it.
 //
@@ -46,6 +46,7 @@ import { ApplicationsPanel } from "@/components/analytics/ApplicationsPanel";
 import { CategoryPanel } from "@/components/analytics/CategoryPanel";
 import { DemandPanel } from "@/components/analytics/DemandPanel";
 import { EarningsFeePanel } from "@/components/analytics/EarningsFeePanel";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 /** The one body wrapper, shared by every state so the column never resizes.
  *  Gap only — the measure and the gutters belong to Profile.tsx's tab
@@ -95,10 +96,10 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
   // through `wrap`, so the tab shell is written once and no early return can
   // ship its own competing wrapper.
   const wrap = (inner: React.ReactNode) => (
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader title="Analytics" onBack={onBack} />
       <Body>{inner}</Body>
-    </div>
+    </ProfileTabBody>
   );
 
   if (userLoading || isLoading) {

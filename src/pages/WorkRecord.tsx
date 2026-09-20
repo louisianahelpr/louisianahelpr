@@ -39,6 +39,7 @@ import {
   resolveWorkDayRange,
   type WorkRecordDocumentInput,
 } from "@/lib/workRecordDocument";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 // jobs.offered_to_helper_id is not selectable (20260915045110): named columns.
 type Job = ReadableJobRow;
@@ -109,7 +110,7 @@ const canPrintDocument =
  * reached from Profile's own chrome, so it was a Profile tab implemented as a
  * route.
  *
- * Renders the canonical tab body — `space-y-4` under a ProfileTabHeader — and
+ * Renders the canonical tab body — <ProfileTabBody> under a ProfileTabHeader — and
  * NOT AppPage. AppPage is AppShell + that header, and Profile.tsx already owns
  * the AppShell; keeping it here would nest two 100dvh viewport locks.
  */
@@ -332,12 +333,12 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
   }
 
   return (
-    // The canonical Profile tab body: `space-y-4` under a ProfileTabHeader,
+    // The canonical Profile tab body: <ProfileTabBody> under a ProfileTabHeader,
     // matching every other tab. NOT AppPage — that is AppShell + this header,
     // and Profile.tsx already owns the AppShell. The old "Employment &
     // Earnings" eyebrow has no equivalent on this header; the document card
     // below already prints "Employment & Earnings Record" as its own heading.
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader title="Work Record" onBack={onBack} />
       {/* `space-y-5` preserved from the old body wrapper — it spaces the
           document card from the share/print controls under it. */}
@@ -727,7 +728,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
           </>
         )}
       </div>
-    </div>
+    </ProfileTabBody>
   );
 };
 

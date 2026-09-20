@@ -66,6 +66,7 @@ import { RecipientPicker } from "./giftCards/RecipientPicker";
 import type { RecipientMatch } from "./giftCards/RecipientPicker";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 // Client-side shape check only — the edge function is the authority (it also
 // enforces the bounds and the self-gift block server-side). We mirror the
@@ -346,11 +347,11 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     hasValidRecipient;
 
   return (
-    /* The canonical Profile-tab body: `space-y-4` under a ProfileTabHeader.
+    /* The canonical Profile-tab body: <ProfileTabBody> under a ProfileTabHeader.
        NOT AppPage — AppPage is AppShell + this header, and Profile.tsx already
        owns the AppShell. Same shape PetProfiles, WorkRecord, HomeHistory,
        StrSettings, AutoTip and HelprWrapped use. */
-    <div className="space-y-4 px-3">
+    <ProfileTabBody>
       <ProfileTabHeader title="Gift Card" onBack={onBack} />
         {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
         {/* Spans full width above the split so the status is visible regardless
@@ -785,6 +786,6 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
             </div>
           </section>
         </div>
-    </div>
+    </ProfileTabBody>
   );
 }

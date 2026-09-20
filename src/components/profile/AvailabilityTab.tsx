@@ -40,6 +40,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 /** "17:00" → "5:00 PM". The grid stores wall-clock strings, not instants, so
  *  this formats the string itself rather than round-tripping through a Date
@@ -250,7 +251,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader
         title="Availability"
         onBack={onBack}
@@ -295,7 +296,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
           (measured 7 nested pairs at 375 and 1440). The day cards are the
           cards; HelperAvailability supplies its own spacing. */}
       <HelperAvailability userId={userId} />
-    </div>
+    </ProfileTabBody>
   );
 }
 

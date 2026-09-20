@@ -1,80 +1,161 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { PROFILE_TAB_BODY_CLASS } from "./ProfileTabBody";
 
 /**
- * EVERY Profile tab wears the SAME shell. Asserted against the router, which
- * is where the shells actually live.
+ * EVERY Profile tab renders into the SAME box — enforced on the primitive,
+ * not on a string every tab is trusted to retype correctly.
  *
- * The previous version of this test globbed `src/components/profile/*Tab.tsx`
- * and checked each file's own wrapper. All thirteen passed — and the tabs were
- * still visibly inconsistent, because SEVEN of them do not have a `*Tab.tsx`
- * file at all: their wrapper is written inline in ProfileTabPanels. Scanning
- * the components proved something true about the wrong set of files, and the
- * owner reported the same defect more than ten times while the suite stayed
- * green. Found by dumping the router's actual wrappers:
+ * THE REPORT THIS VERSION EARNS (owner, 2026-09-19, after the previous fix
+ * shipped): "do all profile tabs share the same shell as gift card and home
+ * history? bc those 2 pages dont have the gaps like the other pages and i
+ * dont want the other profile tabs to have that."
  *
- *   space-y-3 .............................................. schedule, warnings
- *   space-y-5 .............................................. referral
- *   h-full min-h-0 flex flex-col gap-3 overflow-hidden ...... notifications
- *   space-y-4 .............................................. credentials
+ * Measured at 1440 the next morning: twenty-four tabs put their content at a
+ * 24px gutter and gift_card put it at 36px, because commit 18baad8c0 had
+ * added `px-3` to GiftCard.tsx's own copy of the wrapper div. THIS FILE WAS
+ * GREEN THROUGHOUT. Three separate holes let it through, and all three are
+ * closed below:
  *
- * Four different shells. So this reads ProfileTabPanels.tsx and requires every
- * `{tab === "…" && (<div className="…">` to be exactly SHELL — no allowance
- * for "contains", which is what let `space-y-4 pb-4` and friends through.
+ *   1. It read a HAND-TYPED list of eleven `*Tab.tsx` filenames. GiftCard.tsx
+ *      is in src/pages/ and was never in the list — as were seven other tabs.
+ *      A list that must be remembered is a list that will be forgotten, so the
+ *      inventory now comes from the `Tab` union itself and from the files that
+ *      render a ProfileTabHeader, both derived at run time.
+ *   2. It asserted `wrapper.split(/\s+/).includes(SHELL)` — a CONTAINS. The
+ *      offending wrapper was `"space-y-4 px-3"`, which contains `space-y-4`
+ *      and passed. Containment cannot see an addition, and an addition is the
+ *      entire defect class.
+ *   3. It checked a string in each file. Twenty-five copies of a string held
+ *      together by a comment is not a shared shell; the first edit to any one
+ *      of them splits the app and nothing notices. There is now one component,
+ *      ProfileTabBody, and what this file checks is that every tab goes
+ *      through it and that it has no escape hatch to go around it with.
+ *
+ * The pixel half lives in e2e/journeys/profile-tab-shell-parity.spec.ts, which
+ * measures the rendered gutters in a real browser against the real backend.
+ * This half runs in CI on every commit, which is the half that was missing.
  */
-const SHELL = "space-y-4";
 
-const SRC = readFileSync(
-  resolve(__dirname, "../../pages/profile/ProfileTabPanels.tsx"),
-  "utf8",
-);
+const HERE = __dirname;
+const ROOT = resolve(HERE, "../../..");
+const PANELS_PATH = resolve(ROOT, "src/pages/profile/ProfileTabPanels.tsx");
+const PANELS = readFileSync(PANELS_PATH, "utf8");
 
-/** Every tab branch in the router, with the wrapper class it opens with. */
-function routerWrappers(): Array<{ tab: string; wrapper: string }> {
-  const re = /\{tab === "([a-z_]+)"[^&]*&&[^(]*\(\s*\n\s*<div className="([^"]*)"/g;
-  const out: Array<{ tab: string; wrapper: string }> = [];
-  for (const m of SRC.matchAll(re)) out.push({ tab: m[1], wrapper: m[2] });
-  return out;
+/** Every `?tab=` value, from the union the router actually switches on. */
+function tabsFromRegistry(): string[] {
+  const src = readFileSync(resolve(ROOT, "src/pages/profile/types.ts"), "utf8");
+  const union = src.match(/export type Tab\s*=\s*([^;]+);/)?.[1] ?? "";
+  return [...union.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
 }
 
-describe("Profile tabs share one shell", () => {
-  it("finds the tab branches at all (guards the regex rotting)", () => {
-    // If the router is refactored and this stops matching, the test would
-    // vacuously pass on an empty list — which is exactly how the old one hid a
-    // real defect. Fail loudly instead.
-    expect(routerWrappers().length).toBeGreaterThanOrEqual(5);
-  });
-
-  it("every tab rendered by the router uses the shared shell exactly", () => {
-    const wrong = routerWrappers()
-      .filter((r) => r.wrapper !== SHELL)
-      .map((r) => `${r.tab}: "${r.wrapper}"`);
-    expect(wrong, `tabs off the shared shell ("${SHELL}")`).toEqual([]);
-  });
-
-  it("tabs that own their wrapper use it too", () => {
-    // The other half: components that render their own ProfileTabHeader.
-    const names = [
-      "AccessibilityTab", "AvailabilityTab", "CredentialsTab", "EarningsTab",
-      "LegalTab", "ReviewsTab", "SavedHelpersTab", "ScheduleTab",
-      "SecurityTab", "SubscriptionTab", "WarningsTab",
-    ];
-    const wrong: string[] = [];
-    for (const name of names) {
-      let src: string;
-      try {
-        src = readFileSync(resolve(__dirname, `${name}.tsx`), "utf8");
-      } catch {
-        wrong.push(`${name}: file missing — update this list`);
+/**
+ * Every file in the app that renders a Profile tab header — i.e. every file
+ * that owns a tab body. Found by what it DOES (renders `<ProfileTabHeader`),
+ * never by a list, so a tab added tomorrow is checked tomorrow.
+ */
+function filesRenderingATabHeader(): string[] {
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = resolve(dir, e.name);
+      if (e.isDirectory()) {
+        if (e.name === "node_modules") continue;
+        walk(p);
         continue;
       }
-      const at = src.indexOf("<ProfileTabHeader");
-      if (at === -1) continue;
-      const opens = [...src.slice(0, at).matchAll(/<div[^>]*className="([^"]*)"/g)];
-      const wrapper = opens.length ? opens[opens.length - 1][1] : "";
-      if (!wrapper.split(/\s+/).includes(SHELL)) wrong.push(`${name}: "${wrapper}"`);
+      if (!e.name.endsWith(".tsx")) continue;
+      if (e.name.includes(".test.")) continue;
+      // The header component's own definition renders its own tag name, and
+      // the body primitive names both of them in its doc comment.
+      if (p.endsWith("ProfileTabHeader.tsx")) continue;
+      if (p.endsWith("ProfileTabBody.tsx")) continue;
+      // Comments blanked: prose that names the tag is not a render of it.
+      if (stripComments(readFileSync(p, "utf8")).includes("<ProfileTabHeader")) out.push(p);
     }
-    expect(wrong, `tab components off the shared shell`).toEqual([]);
+  };
+  walk(resolve(ROOT, "src"));
+  return out.sort();
+}
+
+/** Source with line and block comments blanked, so prose can never match. */
+function stripComments(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, " "));
+}
+
+/** Any Tailwind utility that moves or narrows a box HORIZONTALLY. */
+const HORIZONTAL = /^(?:-?(?:px|pl|pr|mx|ml|mr|inset-x|left|right)-|max-w-|min-w-|w-)/;
+
+describe("Profile tabs share one shell", () => {
+  it("the inventory is the app's own, and is not empty", () => {
+    const tabs = tabsFromRegistry();
+    // FLOOR: a parse that silently returns nothing must fail, never pass.
+    expect(tabs.length, "no ?tab= values parsed out of src/pages/profile/types.ts").toBeGreaterThanOrEqual(20);
+    expect(tabs, "the tabs the owner named must be in the inventory").toEqual(
+      expect.arrayContaining(["gift_card", "home_history", "landing"]),
+    );
+    const files = filesRenderingATabHeader();
+    expect(files.length, "no tab-body files found — the scan has rotted").toBeGreaterThanOrEqual(15);
+  });
+
+  it("the shared body adds NOTHING horizontal", () => {
+    // The whole defect in one assertion: the shell may set vertical rhythm and
+    // nothing else, because the horizontal inset belongs to Profile.tsx's
+    // panel one layer up, which is what keeps Profile agreeing with Dashboard,
+    // My Posts, My Jobs and Messages.
+    const offenders = PROFILE_TAB_BODY_CLASS.split(/\s+/).filter((c) => HORIZONTAL.test(c));
+    expect(offenders, `ProfileTabBody's own class moves the box sideways`).toEqual([]);
+    expect(PROFILE_TAB_BODY_CLASS).toBe("space-y-4");
+  });
+
+  it("the shared body has no escape hatch to fork it with", () => {
+    // `px-3` got in because every tab hand-wrote its own div. If the
+    // replacement accepts an arbitrary `className` or `style`, the next one
+    // gets in exactly the same way — through the prop instead of the div.
+    const src = stripComments(readFileSync(resolve(HERE, "ProfileTabBody.tsx"), "utf8"));
+    const props = src.match(/export interface ProfileTabBodyProps \{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(props.length, "ProfileTabBodyProps not found — this guard has rotted").toBeGreaterThan(0);
+    for (const banned of ["className", "style"]) {
+      expect(props.includes(banned), `ProfileTabBody must not accept \`${banned}\``).toBe(false);
+    }
+  });
+
+  it("every tab body goes through the primitive, none hand-rolls a wrapper", () => {
+    const wrong: string[] = [];
+    for (const file of filesRenderingATabHeader()) {
+      const src = stripComments(readFileSync(file, "utf8"));
+      const rel = file.slice(ROOT.length + 1);
+      if (!src.includes("<ProfileTabBody")) {
+        wrong.push(`${rel}: renders a ProfileTabHeader but no <ProfileTabBody>`);
+        continue;
+      }
+      // …and the header must sit INSIDE it, not under a div of the file's own.
+      const at = src.indexOf("<ProfileTabHeader");
+      const before = src.slice(0, at);
+      const lastBody = before.lastIndexOf("<ProfileTabBody");
+      const lastDiv = before.lastIndexOf("<div");
+      if (lastDiv > lastBody) {
+        const opened = before.slice(lastDiv).split("\n").slice(0, 3).join(" ").trim();
+        wrong.push(`${rel}: a hand-rolled wrapper sits between the body and the header — ${opened}`);
+      }
+    }
+    expect(wrong, "tab bodies off the shared primitive").toEqual([]);
+  });
+
+  it("the router opens every tab branch with the primitive", () => {
+    // The other half of the surface: seven tabs have no `*Tab.tsx` file at all
+    // — their body is written inline in ProfileTabPanels.
+    const src = stripComments(PANELS);
+    const re = /\{\(?tab === "[a-z_]+"[\s\S]{0,160}?&&[^(]*\(\s*\n\s*<(\w+)/g;
+    const opens = [...src.matchAll(re)].map((m) => m[1]);
+    // FLOOR: the regex rotting must fail, not vacuously pass on an empty list.
+    expect(opens.length, "no tab branches parsed out of ProfileTabPanels.tsx").toBeGreaterThanOrEqual(5);
+    expect(
+      opens.filter((tag) => tag === "div"),
+      "router tab branches that open a hand-rolled <div> instead of <ProfileTabBody>",
+    ).toEqual([]);
   });
 });

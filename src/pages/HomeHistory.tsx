@@ -26,6 +26,7 @@ import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 // jobs.offered_to_helper_id is not selectable (20260915045110): named columns.
 type Job = ReadableJobRow;
@@ -106,7 +107,7 @@ function groupByYear(jobs: CompletedJobWithHelper[]): { year: number; jobs: Comp
  *
  * Was the standalone route `/home-history` until 2026-09-02. It was only ever
  * reached FROM Profile's own chrome, so it was a Profile tab implemented as a
- * route. It now renders the canonical tab body — `space-y-4` under a
+ * route. It now renders the canonical tab body — <ProfileTabBody> under a
  * ProfileTabHeader — and NOT AppPage: AppPage is AppShell + that header, and
  * Profile.tsx already owns the AppShell, so keeping it would nest two 100dvh
  * viewport locks. The record grows without bound (every completed job, for the
@@ -293,10 +294,10 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
   }
 
   return (
-    // The canonical Profile tab body: `space-y-4` under a ProfileTabHeader,
+    // The canonical Profile tab body: <ProfileTabBody> under a ProfileTabHeader,
     // matching every other tab. Profile.tsx owns the AppShell and the centered
     // content column that used to come from AppPage.
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader title="Home History" onBack={onBack} />
       {/* `space-y-5` preserved from the old body wrapper — it separates the
           per-year timeline sections. */}
@@ -536,7 +537,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
           </section>
         ))}
       </div>
-    </div>
+    </ProfileTabBody>
   );
 };
 

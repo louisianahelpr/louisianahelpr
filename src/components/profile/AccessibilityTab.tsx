@@ -3,6 +3,7 @@ import type { Theme } from "@/hooks/useDarkMode";
 import { Sun, Moon, Monitor, Type } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 /** "Auto" is the visible label for `system` because the track is three cells
  *  wide on a phone; the accessible name spells it out. */
@@ -22,7 +23,7 @@ export function AccessibilityTab({ seniorMode, onToggleSeniorMode, onBack }: Acc
   const { theme, setTheme } = useDarkMode();
 
   return (
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader title="Accessibility" onBack={onBack} />
 
       <div className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3 flex flex-col gap-2">
@@ -82,6 +83,6 @@ export function AccessibilityTab({ seniorMode, onToggleSeniorMode, onBack }: Acc
           </button>
         </div>
       )}
-    </div>
+    </ProfileTabBody>
   );
 }

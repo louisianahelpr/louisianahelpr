@@ -28,6 +28,7 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { inProgressBadgeTarget } from "@/components/dashboard/DashboardInProgressBadge";
 import { bucketPostedJob } from "@/pages/activity/activityFilters";
 import { exportJobRowToCalendar } from "@/lib/calendarExport";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 // jobs.offered_to_helper_id is not client-selectable (20260915045110).
 type Job = ReadableJobRow;
@@ -494,7 +495,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
   const upcomingJobs = upcomingSource.filter((j) => j.date_needed >= today).sort((a, b) => a.date_needed.localeCompare(b.date_needed)).slice(0, 10);
 
   return (
-    <div className="space-y-4">
+    <ProfileTabBody>
       {!hideHeader && (
         <ProfileTabHeader
           title="Schedule"
@@ -859,6 +860,6 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
           </div>
         </div>
       )}
-    </div>
+    </ProfileTabBody>
   );
 }

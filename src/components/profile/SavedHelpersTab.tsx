@@ -27,6 +27,7 @@ import { sortOptions } from "@/components/profile/savedHelpersTab/types";
 import type { SavedHelpersTabProps } from "@/components/profile/savedHelpersTab/types";
 import { useSavedHelpers } from "@/components/profile/savedHelpersTab/useSavedHelpers";
 import { SavedHelperCard } from "@/components/profile/savedHelpersTab/SavedHelperCard";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 const CATEGORY_FILTER_OPTIONS = Object.entries(JOB_CATEGORY_LABELS) as [JobCategory, string][];
 
@@ -95,7 +96,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
       : `${filtered.length} of ${helpers.length} saved`;
 
   return (
-    // Canonical Profile tab body: `space-y-4` under a ProfileTabHeader, with
+    // Canonical Profile tab body: <ProfileTabBody> under a ProfileTabHeader, with
     // NO scroll container of its own. This tab used to be
     // `h-full flex flex-col overflow-hidden` wrapping its own
     // `overflow-y-auto` pane — a second scroller nested inside the tab
@@ -103,7 +104,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
     // its own scrollbar, a search row pinned while the list moved under it,
     // and a 12px rhythm where every sibling tab uses 16px: the concrete
     // reason this screen read as built by someone else.
-    <div className="space-y-4">
+    <ProfileTabBody>
       {/* SEARCH IS AN ICON THAT OPENS A FIELD, like every other screen that
           has search (owner, 2026-09-11: "any other screen have a search bar
           like this? no then this one shouldnt either").
@@ -469,7 +470,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
           </div>
         )}
       </div>
-    </div>
+    </ProfileTabBody>
   );
 }
 

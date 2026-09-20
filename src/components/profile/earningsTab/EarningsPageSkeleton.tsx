@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 /**
  * ONE skeleton for Earnings & Payouts (VN-3, owner 2026-09-15: "One skeleton.
@@ -17,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boolean }) {
   return (
-    <div className="space-y-4" aria-hidden data-testid="earnings-page-skeleton">
+    <ProfileTabBody aria-hidden data-testid="earnings-page-skeleton">
       {withHeader && (
         <>
           <div className="flex items-center gap-3 h-11">
@@ -60,7 +61,7 @@ export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boole
           ))}
         </div>
       </section>
-    </div>
+    </ProfileTabBody>
   );
 }
 

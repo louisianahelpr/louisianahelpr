@@ -34,6 +34,7 @@ import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
 import { report } from "@/lib/errorLogger";
 import { userFacingError } from "@/lib/userFacingError";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 interface LoginHistoryRow {
   id: string;
@@ -309,7 +310,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader
         title="Account Security"
         onBack={onBack}
@@ -706,7 +707,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       {/* Delete Account moved to the landing tab, directly under
           Sign out — keeps all destructive account actions grouped at
           the bottom of the profile rather than buried in Security. */}
-    </div>
+    </ProfileTabBody>
   );
 }
 

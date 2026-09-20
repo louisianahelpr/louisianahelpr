@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { hapticLight } from "@/lib/haptics";
 import { formatPrice, formatPriceExact } from "@/lib/format";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 type Mode = "off" | "percent" | "fixed";
 
@@ -68,7 +69,7 @@ const FIELD_BASE =
  *
  * A Profile tab, not a route. Was the standalone `/auto-tip` until 2026-09-02,
  * reached only from Profile's own chrome. It renders the canonical tab body —
- * `space-y-4` under a ProfileTabHeader — and NOT AppPage: AppPage is AppShell
+ * <ProfileTabBody> under a ProfileTabHeader — and NOT AppPage: AppPage is AppShell
  * + that header, and Profile.tsx already owns the AppShell, so keeping it here
  * would nest two 100dvh viewport locks.
  */
@@ -202,7 +203,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
   const captionStyle = { color: "hsl(var(--olivewood) / 0.8)" } as const;
 
   return (
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader title="After a Job" onBack={onBack} />
       {/* Profile.tsx owns the shell — AppShell plus the single centered content
           column. This tab contributes nothing but its own vertical rhythm;
@@ -478,7 +479,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
             means we confirm the tip rather than auto-charge it — was folded
             into the opening paragraph rather than lost. */}
       </div>
-    </div>
+    </ProfileTabBody>
   );
 };
 

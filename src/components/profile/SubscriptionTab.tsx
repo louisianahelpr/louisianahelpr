@@ -26,6 +26,7 @@ import {
   type IapTier,
   type IapCadence,
 } from "@/lib/iap";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -223,7 +224,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
        the rest, and `min-h-full` stretched the tab to the panel even when its
        content was short (owner, twice: "all profile tabs should share the same
        shell"). Guarded by profileTabShell.test.ts. */
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader
         title="Membership"
         onBack={onBack}
@@ -877,6 +878,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           </button>
         </div>
       )}
-    </div>
+    </ProfileTabBody>
   );
 };

@@ -19,6 +19,7 @@ type ProfileTip = { amount: number; job_id: string; created_at: string };
 // Every other tab panel and the rarely-opened dialogs are code-split so the
 // Profile route chunk stays small — each is fetched the first time it shows.
 import { EarningsPageSkeleton } from "@/components/profile/earningsTab/EarningsPageSkeleton";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 const SecurityTab = lazy(() => import("@/components/profile/SecurityTab").then(m => ({ default: m.SecurityTab })));
 const ProfileEditForm = lazy(() => import("@/components/profile/ProfileEditForm").then(m => ({ default: m.ProfileEditForm })));
 const SupportInline = lazy(() => import("@/components/profile/SupportInline").then(m => ({ default: m.SupportInline })));
@@ -224,7 +225,7 @@ export const ProfileTabPanels = ({
           shell shape below stays intact for profileTabShell.test.ts. */}
       {(tab === "earnings" || tab === "payment") && !user && <EarningsPageSkeleton />}
       {(tab === "earnings" || tab === "payment") && user && (
-        <div className="space-y-3">
+        <ProfileTabBody>
           {earningsQuery.isError && (
             <ProfileSectionError section="your earnings" onRetry={() => { earningsQuery.refetch(); }} />
           )}
@@ -238,12 +239,12 @@ export const ProfileTabPanels = ({
               helperName={profile?.full_name || user.email || "Helpr"}
             />
           </Suspense>
-        </div>
+        </ProfileTabBody>
       )}
 
       {tab === "schedule" && !user && <TabFallback />}
       {tab === "schedule" && user && (
-        <div className="space-y-4">
+        <ProfileTabBody>
           {scheduleQuery.isError && (
             <ProfileSectionError section="your schedule" onRetry={() => { scheduleQuery.refetch(); }} />
           )}
@@ -256,7 +257,7 @@ export const ProfileTabPanels = ({
               onBack={onBackFromTab}
             />
           </Suspense>
-        </div>
+        </ProfileTabBody>
       )}
 
       {tab === "availability" && (!user ? <TabFallback /> : (
@@ -342,7 +343,7 @@ export const ProfileTabPanels = ({
       )}
 
       {tab === "notifications" && (
-        <div className="space-y-4">
+        <ProfileTabBody>
           <ProfileTabHeader
             title="Notifications"
             onBack={onBackFromTab}
@@ -350,7 +351,7 @@ export const ProfileTabPanels = ({
           <Suspense fallback={<TabFallback />}>
             <NotificationPreferences />
           </Suspense>
-        </div>
+        </ProfileTabBody>
       )}
 
       {tab === "security" && (
@@ -365,7 +366,7 @@ export const ProfileTabPanels = ({
         // straight into its "no reviews yet" empty state — telling a helper
         // nobody has reviewed them when in truth the query died. Mirrors the
         // warnings tab below.
-        <div className="space-y-3">
+        <ProfileTabBody>
           {reviewsQuery.isError && (
             <ProfileSectionError
               section="your reviews"
@@ -375,12 +376,12 @@ export const ProfileTabPanels = ({
           <Suspense fallback={<TabFallback />}>
             <ReviewsTab reviews={reviews} loading={reviewsQuery.isPending} avgRating={avgRating} reviewCount={reviewCount} onBack={onBackFromTab} />
           </Suspense>
-        </div>
+        </ProfileTabBody>
       )}
 
       {tab === "referral" && !user && <TabFallback />}
       {tab === "referral" && user && (
-        <div className="space-y-4">
+        <ProfileTabBody>
           <ProfileTabHeader
             title="Referrals"
             onBack={onBackFromTab}
@@ -388,7 +389,7 @@ export const ProfileTabPanels = ({
           <Suspense fallback={<TabFallback />}>
             <ReferralSection userId={user.id} />
           </Suspense>
-        </div>
+        </ProfileTabBody>
       )}
 
       {tab === "legal" && (
@@ -398,7 +399,7 @@ export const ProfileTabPanels = ({
       )}
 
       {tab === "warnings" && (
-        <div className="space-y-4">
+        <ProfileTabBody>
           {violationsQuery.isError && (
             <ProfileSectionError
               section="your warnings & strikes"
@@ -408,16 +409,16 @@ export const ProfileTabPanels = ({
           <Suspense fallback={<TabFallback />}>
             <WarningsTab violations={violations} loading={violationsQuery.isPending} onBack={onBackFromTab} />
           </Suspense>
-        </div>
+        </ProfileTabBody>
       )}
 
       {tab === "credentials" && !user && <TabFallback />}
       {tab === "credentials" && user && (
-        <div className="space-y-4">
+        <ProfileTabBody>
           <Suspense fallback={<TabFallback />}>
             <CredentialsTab userId={user.id} onBack={onBackFromTab} />
           </Suspense>
-        </div>
+        </ProfileTabBody>
       )}
     </>
   );

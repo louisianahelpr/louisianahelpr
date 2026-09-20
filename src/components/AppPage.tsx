@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import AppShell from "@/components/AppShell";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 /**
  * AppPage — the shell every signed-in sub-screen wears.
@@ -95,15 +96,16 @@ function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps
             `overflow` clip. */}
         <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
           <div className="animate-ds-page-in">
-            {/* `space-y-4` is the shared tab shell — the same wrapper every
-                Profile tab uses, asserted byte-for-byte by
-                profileTabShell.test.ts. ProfileTabHeader's `-mb-4` is keyed to
-                this exact value to cancel the margin it would otherwise add
-                below the title. */}
-            <div className="space-y-4">
+            {/* The shared tab shell — literally the same component every
+                Profile tab renders through, not a copy of its class string.
+                This used to be a hand-typed `space-y-4` div "asserted
+                byte-for-byte"; byte-for-byte is what `space-y-4 px-3` passed
+                on 2026-09-19. ProfileTabHeader's `-mb-4` is keyed to
+                PROFILE_TAB_BODY_CLASS's 16px. */}
+            <ProfileTabBody>
               <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} />
               {children}
-            </div>
+            </ProfileTabBody>
           </div>
         </div>
       </div>

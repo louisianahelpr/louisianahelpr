@@ -44,6 +44,7 @@ import { WalletCard } from "@/components/profile/earningsTab/WalletCard";
 import { PayoutHistory } from "@/components/profile/earningsTab/PayoutHistory";
 import { RecentTransfers } from "@/components/profile/earningsTab/RecentTransfers";
 import { EarningHistory } from "@/components/profile/earningsTab/EarningHistory";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 // MERGED IN 2026-08-19 (owner request, stated three times): "My earnings",
 // "Earnings & Analytics" (/analytics) and "Payout & Payments" were three
 // separate Profile entry points onto three screens about the same subject —
@@ -328,7 +329,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   );
 
   return (
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader
         title="Earnings & Payouts"
         onBack={onBack}
@@ -680,6 +681,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         onOpenChange={setPayoutDialogOpen}
         onSuccess={handleRefresh}
       />
-    </div>
+    </ProfileTabBody>
   );
 }

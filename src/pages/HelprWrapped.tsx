@@ -13,6 +13,7 @@ import { formatCategory, formatPrice, formatPriceFloor, wrappedSeasonLabel } fro
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { jobLocalMidnightMs } from "../../supabase/functions/_shared/cancellationFee";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 const YEAR = new Date().getFullYear();
 // "Wrapped" in December, "so far" the rest of the year (see LH-39).
@@ -253,7 +254,7 @@ const StatCard = ({ label, value }: StatCardProps) => (
  *
  * Was the standalone route `/wrapped` until 2026-09-02. It was only ever
  * reached FROM Profile's own chrome, so it was a Profile tab wearing a route's
- * clothes. Renders the canonical tab body — `space-y-4` under a
+ * clothes. Renders the canonical tab body — <ProfileTabBody> under a
  * ProfileTabHeader — and NOT AppPage: AppPage is AppShell + that header, and
  * Profile.tsx already owns the AppShell, so keeping it here would nest two
  * 100dvh viewport locks.
@@ -438,7 +439,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
   const loadFailed = isError || (!!stats?.incomplete && !hasActivity);
 
   return (
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader title={`Your ${SEASON.title}`} onBack={onBack} />
       {/* Profile.tsx owns the shell (AppShell + the one centered content
           column), so this tab adds only the card's own centering. No
@@ -586,7 +587,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
           )}
         </div>
       </div>
-    </div>
+    </ProfileTabBody>
   );
 };
 

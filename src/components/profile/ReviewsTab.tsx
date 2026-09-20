@@ -26,6 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 interface Review {
   rating: number;
@@ -74,7 +75,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
   const ActiveSortIcon = activeSort.icon;
 
   return (
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader
         title="My Reviews"
         onBack={onBack}
@@ -335,6 +336,6 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
           )}
         </div>
       )}
-    </div>
+    </ProfileTabBody>
   );
 }

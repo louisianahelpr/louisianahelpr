@@ -24,6 +24,7 @@ interface WarningsTabProps {
 //   2nd strike — final warning
 //   3rd strike — 7-day account restriction while an admin reviews it
 import { CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 const STRIKE_LABELS = ["Written warning", "Final warning", "7-day restriction"] as const;
 
@@ -65,7 +66,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
   const strikesOf3 = hasBan || hasSuspension ? 3 : Math.min(strikeCount, 3);
 
   return (
-    <div className="space-y-4">
+    <ProfileTabBody>
       <ProfileTabHeader
         title="Warnings &amp; Strikes"
         onBack={onBack}
@@ -212,6 +213,6 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
           )}
         </>
       )}
-    </div>
+    </ProfileTabBody>
   );
 }

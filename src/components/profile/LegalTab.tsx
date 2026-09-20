@@ -12,6 +12,7 @@ import {
   TAB_LABELS,
   TAB_ICONS,
 } from "@/pages/legal/legalSections";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 // THIS TAB STATES NO POLICY OF ITS OWN. It composes the three policy
 // documents (the GDPR/CCPA data export lives inside the Privacy one).
@@ -129,16 +130,11 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
     // the MobileNav dock + FAB on iPhone without leaving a large empty
     // dead-zone below it.
     //
-    // The `space-y-4` on this wrapper is the shared Profile-tab shell and is
-    // asserted byte-for-byte by profileTabShell.test.ts, which locates the last
-    // className-bearing div opened above the tab header element. Keep the class
-    // exactly `space-y-4`, keep this div immediately above that header, and do
-    // not write the header's tag name inside a comment — the test's indexOf
-    // would find the comment instead and read the wrong wrapper.
-    <div
-      className="space-y-4"
-      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}
-    >
+    // The shell itself is ProfileTabBody, shared with every other tab; the
+    // clearance is its one named prop, because a vertical inset cannot reopen
+    // the horizontal gutter the owner reported on 2026-09-19. Asserted by
+    // profileTabShell.test.ts.
+    <ProfileTabBody bottomClearance="calc(env(safe-area-inset-bottom, 0px) + 6rem)">
       <ProfileTabHeader
         title="Legal &amp; Policies"
         onBack={onBack}
@@ -241,6 +237,6 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           support" link. The export now lives inside the Privacy Policy
           (`DataExportCard`, rendered by PrivacyContent), so on this tab it is
           in the Privacy panel, and `/data-rights` redirects to its anchor. */}
-    </div>
+    </ProfileTabBody>
   );
 }

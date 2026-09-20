@@ -13,6 +13,7 @@ import CredentialBadge from "@/components/CredentialBadge";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { queryKeys } from "@/lib/queryKeys";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 interface CredentialFields {
   is_licensed: boolean;
@@ -596,7 +597,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   };
 
   return (
-    <div className="space-y-4">
+    <ProfileTabBody>
       {/* Header lives HERE, like every other Profile tab. It used to be
           rendered by ProfileTabPanels on this tab's behalf — same pixels, but a
           second ownership model for the same element, which is why the tabs
@@ -875,7 +876,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           Documents are reviewed by Helpr admins before badges go live. We never share them publicly.
         </p>
       </div>
-    </div>
+    </ProfileTabBody>
   );
 }
 

@@ -17,6 +17,7 @@ import { PhotoNameSection } from "@/components/profile/profileEditForm/PhotoName
 import { RecentWorkSection } from "@/components/profile/profileEditForm/RecentWorkSection";
 import { SaveBar } from "@/components/profile/profileEditForm/SaveBar";
 import { isProfileEditDirty } from "@/components/profile/profileEditForm/isProfileEditDirty";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
 
@@ -154,7 +155,7 @@ export function ProfileEditForm({
     // `var(--safe-area-bottom)` for the same reason as SaveBar's own padding:
     // a bare env() reads 0 under <PageTransition>'s promoted ancestor, so the
     // clearance quietly lost the home-indicator allowance.
-    <div className="space-y-3" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 6.5rem)" }}>
+    <ProfileTabBody bottomClearance="calc(var(--safe-area-bottom, 0px) + 6.5rem)">
       <ProfileTabHeader
         title="Edit Profile"
         onBack={onBack}
@@ -412,7 +413,7 @@ export function ProfileEditForm({
         onBack={onBack}
         onSave={onSave}
       />
-    </div>
+    </ProfileTabBody>
   );
 }
 

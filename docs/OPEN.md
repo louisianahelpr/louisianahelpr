@@ -118,6 +118,19 @@ survivors.
   (24), an inner record card on Home History (44), a pill inside the card on
   Support at 375 (12), and nothing at all on Support at 1440. Not defects —
   but any future guard that measures "the card" this way will red on them.
+- **Three more `burnt-sienna / 0.5` separators are the same live AA failure.**
+  `ReviewsTab.tsx:321`, `earningsTab/RecentTransfers.tsx:48` and
+  `savedHelpersTab/SavedHelperCard.tsx` all render the same decorative "·" at
+  `hsl(var(--burnt-sienna) / 0.5)` = #cea08b, which measures 2.33:1 on a white
+  card against a 4.5:1 requirement. `EarningHistory.tsx`'s copy was fixed here
+  only because the changed-route a11y sweep visits `/profile?tab=earnings` and
+  blocked this lane's push; the other three sit on routes it does not visit, so
+  they are live on prod right now and will block whichever lane touches them
+  next. The fix is the one applied here — drop the tint, inherit the line
+  (7.11:1). NOTE for whoever takes it: `aria-hidden` does NOT clear the gate
+  (axe's contrast rule matches on visual visibility, not the a11y tree), so do
+  not try that first as this lane did.
+
 - **`src/components/activity/appliedJobCard/ConfirmedSection.test.tsx` failed
   2 of 5 on main** while this lane ran. Reproduced identically at `2127dfbd2`
   in a clean detached worktree, so it predated this lane — and the nightly-reds

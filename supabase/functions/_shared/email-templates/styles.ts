@@ -72,15 +72,49 @@ export const brand = {
  */
 
 /**
- * Wordmark image URL.
+ * Brand mark image URL — THE H MARK, and it carries a VERSION for a reason.
  *
  * Served by the `brand-asset` edge function rather than by the marketing site:
  * www.louisianahelpr.com sits behind Vercel's security checkpoint, and Gmail's
  * and Apple Mail's image proxies both receive a 429 challenge page instead of
  * the PNG. Confirmed from two separate networks.
+ *
+ * ── WHY THE `?v=` IS LOAD-BEARING ────────────────────────────────────────
+ * The owner asked for the H mark instead of the wordmark on 2026-08-27, and
+ * `32d670c9f` delivered it — by swapping the BYTES behind this URL while
+ * deliberately keeping the URL itself stable ("only the bytes changed"), so
+ * that every caller kept working.
+ *
+ * That is precisely what made the fix invisible. `brand-asset` answers with
+ *
+ *     cache-control: public, max-age=31536000, immutable
+ *
+ * A YEAR, and `immutable` — which tells a cache never to revalidate, not even
+ * with an If-None-Match. Gmail does not hotlink an email image; it proxies and
+ * caches it under googleusercontent.com, keyed by URL. Every proxy that had
+ * fetched the wordmark before the swap therefore went on serving the wordmark,
+ * and would have done for a year.
+ *
+ * So the origin was right and the inbox was wrong, which is why the owner
+ * reported it again on 2026-09-20 having already reported it once: verified
+ * that day, the live URL returns the 160×138 H mark, while mail sent that same
+ * morning still rendered the old wordmark.
+ *
+ * ── THE RULE ─────────────────────────────────────────────────────────────
+ * `immutable` and a stable URL are a correct pairing ONLY if the bytes never
+ * change. They do change. So the URL carries the version instead:
+ *
+ *   **If you change what `brand-asset` serves, bump this token in the same
+ *   commit.** A new token is a new cache key, which is the only thing that
+ *   reaches an inbox that has already cached the old image.
+ *
+ * `src/test/emailLogoIsVersioned.test.ts` fails if this is missing, and pins
+ * the token to the bytes the function actually serves.
  */
+export const LOGO_VERSION = 'h-mark-2026-08-27'
+
 export const LOGO_URL =
-  'https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset'
+  `https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset?v=${LOGO_VERSION}`
 
 /** Body face. Montserrat is the app's sans; degrades to the usual grotesques. */
 const bodyFontStack =

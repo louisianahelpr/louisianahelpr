@@ -102,6 +102,7 @@ const Messages = () => {
     refreshActiveThread,
     loadOlderMessages,
     patchConversationForMessage,
+    applyJobStatusAnnouncement,
     sendMessage,
     retryMessage,
   } = useMessagesData({
@@ -225,6 +226,11 @@ const Messages = () => {
     setMessages,
     scrollToBottom,
     patchConversationForMessage,
+    // A job-status announcement closes the open thread IN PLACE — see
+    // useMessagesData.applyJobStatusAnnouncement. Without this the composer
+    // stayed enabled after the other party cancelled and only the Send tap
+    // discovered it, which is the fail-on-tap pattern this app rejects.
+    onJobStatusAnnouncement: applyJobStatusAnnouncement,
     // Backfill the outage. The realtime channel is the only thing that
     // delivers an inbound message, so anything sent while it was down exists
     // only in the database — reconnecting alone would leave a silent hole in

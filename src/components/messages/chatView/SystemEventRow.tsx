@@ -11,6 +11,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { JobSystemEventKind } from "@/lib/jobSystemEvents";
+/* The glyph stripper lives with the status derivation (jobStatusAnnouncement)
+   so the icon this file picks and the status the thread closes on are read
+   off the SAME normalised text. Two copies of that regex could drift, and a
+   drift there is a row that renders "Job cancelled" beside an open composer. */
+import { stripSystemGlyphs } from "../jobStatusAnnouncement";
 
 /**
  * ONE treatment for every "the app is speaking" row in a thread.
@@ -52,19 +57,6 @@ export function iconForEventKind(kind: JobSystemEventKind): LucideIcon {
   return EVENT_ICONS[kind];
 }
 
-/**
- * Leading run of non-letter, non-digit characters — the `✓ ` / `▶ ` / `✕ ` /
- * `⚠ ` prefixes the DB trigger writes, plus any emoji-presentation variant
- * (`▶️`) or stray spacing around them.
- *
- * Stripped at RENDER rather than migrated in the database on purpose: rows
- * already written to `public.messages` carry the glyph, so a trigger-only
- * change would fix new threads and leave every existing one mixed. Doing it
- * here covers both, and the trigger's copy stays the single source of the
- * wording.
- */
-const LEADING_GLYPHS = /^[^\p{L}\p{N}]+/u;
-
 /** Keyword → icon for stored system rows, matched against the stripped text.
  *  Order matters: "Job completed" must not be caught by a broader rule. */
 const STORED_ICON_RULES: { matches: RegExp; icon: LucideIcon }[] = [
@@ -80,7 +72,7 @@ export function normalizeStoredSystemMessage(content: string | null | undefined)
   label: string;
   icon: LucideIcon;
 } {
-  const label = (content ?? "").replace(LEADING_GLYPHS, "").trim();
+  const label = stripSystemGlyphs(content);
   const rule = STORED_ICON_RULES.find((r) => r.matches.test(label));
   return { label, icon: rule?.icon ?? Info };
 }

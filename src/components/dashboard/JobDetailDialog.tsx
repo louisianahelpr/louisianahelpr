@@ -1,6 +1,6 @@
 import { useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHero, DialogBody, DIALOG_TOP_RIGHT_RESERVE } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogBody } from "@/components/ui/dialog";
 import {
   Repeat, Rocket, Zap, Bookmark, Flag, Star,
 } from "lucide-react";
@@ -61,6 +61,36 @@ interface JobDetailDialogProps {
    *  which navigates to signup itself. */
   applyForm?: ReactNode;
 }
+
+/* ── THE SHEET'S TOP-RIGHT LANE, IN PIXELS ─────────────────────────────────
+   Exported so a guard can diff it against the geometry dialog.tsx actually
+   declares, instead of against a copy of these numbers. See
+   src/test/dialogCornerLaneIsReserved.test.ts — it re-derives every input
+   below by reading dialog.tsx and the icon button, and fails when this falls
+   short, which is how the 2026-09-19 overlap was caught. */
+export const DIALOG_CLOSE_X_RIGHT = 4;   // dialog.tsx: the X's `right-1`
+export const DIALOG_CLOSE_X_BOX = 44;    // dialog.tsx: its stated 44x44 box
+export const DIALOG_SLOT_ROW_RIGHT = 56; // dialog.tsx: `right-[56px]`
+export const DIALOG_SLOT_ICON = 44;      // IconActionButton/ShareJobButton `bare`
+export const DIALOG_SLOT_GAP = 8;        // dialog.tsx: `gap-2`
+
+/**
+ * How much of the sheet's right edge the close X — plus `iconCount` chrome
+ * icons to its left — occupies. Anything drawn in that top band must reserve
+ * it or it paints over the buttons.
+ */
+export function cornerIconLaneReservePx(iconCount: number): number {
+  if (iconCount <= 0) return DIALOG_CLOSE_X_RIGHT + DIALOG_CLOSE_X_BOX;
+  return (
+    DIALOG_SLOT_ROW_RIGHT +
+    iconCount * DIALOG_SLOT_ICON +
+    (iconCount - 1) * DIALOG_SLOT_GAP
+  );
+}
+
+/** Below this much reserved lane, the longest category label cannot fit on a
+ *  320px sheet and steps aside for its glyph. */
+export const CROWDED_RAIL_RESERVE_PX = 200;
 
 const JobDetailDialog = ({
   job, effectiveFee, allJobs: _allJobs, isSaved, onToggleSave, userLat, userLng, onClose, onApply, onReport, onSelect: _onSelect, guest = false, applyForm,
@@ -214,18 +244,49 @@ const JobDetailDialog = ({
      anything else goes stale the moment an icon is added or hidden, which is
      how the row came to depend on the badges happening to be short.
 
-     The WIDTHS now come from dialog.tsx (DIALOG_TOP_RIGHT_RESERVE) rather than
-     being restated here. They were literals in this file, computed by hand from
-     dialog.tsx's `right-[52px]`, its 44px X and its row gap — three numbers in
-     another file. Evening up that row's pitch on 2026-09-02 changed the gap and
-     left these 12px short with nothing to catch it. */
+     ── WHY THIS IS ARITHMETIC AND NO LONGER DIALOG_TOP_RIGHT_RESERVE ────────
+     Measured at 320 on 2026-09-19 (test-results/messages-lane/tiles-neither-320.png):
+     a PLAIN yard-work job — no Recommended, no Urgent, no Boosted — painted its
+     "Yard Work" corner tab over the Share glyph. The tab ran x=20..135 while
+     the Share button's box starts at x=99.5, a 35px overlap on a sheet 290px
+     wide.
+
+     The reserve was not ignored; it was WRONG. dialog.tsx's table
+     (54 / 88 / 128 / 168) is the 32px-icon arithmetic: `right-[56px]` + n*32 +
+     (n-1)*8. On 2026-09-11 every caller's chrome icons went to the full 44px
+     HIG box (IconActionButton / ShareJobButton `bare` without `compact` →
+     `h-11 w-11`) and that table was never recomputed, so it under-reserves by
+     12px per icon — 36px at three, which is the measured overlap. The table
+     lives in src/components/ui/dialog.tsx and is reported, not edited, here.
+
+     So the lane is computed from the geometry itself, from the three numbers
+     dialog.tsx actually declares:
+       · the close X:  `right-1` (4px) + a stated 44x44 box;
+       · the slot row: `absolute right-[56px] ... gap-2` (8px);
+       · its children: 44px each (the `bare`, non-`compact` icon box).
+     src/test/dialogCornerLaneIsReserved.test.ts re-derives all three by
+     reading those files and fails if this reserve is ever short again —
+     including for the 32px table, which is how it was shown red. */
   const cornerIconCount = guest
     ? 0
     : (viewerUserId !== job.customer_id ? 1 : 0) + (onToggleSave ? 1 : 0) + 1;
-  const iconLaneReserve =
-    DIALOG_TOP_RIGHT_RESERVE[
-      Math.min(cornerIconCount, 3) as keyof typeof DIALOG_TOP_RIGHT_RESERVE
-    ];
+  const iconLaneReservePx = cornerIconLaneReservePx(cornerIconCount);
+
+  /* THE WORD STEPS ASIDE WHEN THE RAIL CANNOT HOLD IT.
+     Below 400px the sheet is ~290px wide, so a correctly-reserved three-icon
+     lane (204px) leaves 86px — and the tab's own chrome (14px glyph + 6px gap
+     + 14/12px padding) is 46px of that, so the longest labels ("Yard Work",
+     "Storm Prep", ~72px) cannot fit and would render as "Yard…". A one-letter
+     label is worse than none: the glyph is unique per category and the title
+     directly below says what the work is.
+
+     This used to key on the extra badges alone, which is why the plain job in
+     the screenshot kept its word and overflowed instead. The badges are not
+     the only thing that crowds this rail — the icon lane does too, and it is
+     now measured rather than assumed. */
+  const railIsCrowded =
+    isRecommended || job.is_urgent || job.isBoosted ||
+    iconLaneReservePx >= CROWDED_RAIL_RESERVE_PX;
 
   return (
     <Dialog open={!!job} onOpenChange={() => onClose()}>
@@ -575,10 +636,13 @@ const JobDetailDialog = ({
             Save at 320. It was never "three pills are one too many"; it was
             chrome positioned by hope.
             The fix has three parts and needs all of them:
-              · RESERVE — `iconLaneReserve` below is the icon cluster's real
-                measured width, derived from the same conditions that decide
-                which icons `cornerActions` renders, so the badges cannot enter
-                the lane no matter how many of either render.
+              · RESERVE — `iconLaneReservePx` above is the icon cluster's real
+                width, computed from dialog.tsx's own offsets and the 44px icon
+                box, under the same conditions that decide which icons
+                `cornerActions` renders — so the badges cannot enter the lane no
+                matter how many of either render, and the number cannot fall
+                behind a change to the icons' size (which is exactly what it did
+                between 2026-09-11 and 2026-09-19).
               · POINTER-EVENTS-NONE — the reserve keeps the PILLS out of the
                 lane, but this row is a stretched grid item, so its (empty,
                 transparent) box still spans the full sheet width at z-20 and
@@ -606,7 +670,11 @@ const JobDetailDialog = ({
             because the collision was measured at 768 too. */}
         <div
           data-frame-chrome="true"
-          className={`relative order-first z-20 pointer-events-none flex flex-nowrap items-stretch min-w-0 -mt-4 -mx-4 sm:-mt-5 sm:-mx-5 ${iconLaneReserve}`}
+          className="relative order-first z-20 pointer-events-none flex flex-nowrap items-stretch min-w-0 -mt-4 -mx-4 sm:-mt-5 sm:-mx-5"
+          // Inline, not a `pr-*` class: the lane is a px geometry that does not
+          // change with the breakpoint, and it is computed above rather than
+          // looked up in a table that can fall behind the icons' real size.
+          style={{ paddingRight: `${iconLaneReservePx}px` }}
         >
           <span
             className={`inline-flex min-w-0 shrink items-center gap-1.5 pl-3.5 pr-3 py-1.5 rounded-tl-lg text-ds-13 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
@@ -626,7 +694,7 @@ const JobDetailDialog = ({
                 word steps aside and the icon carries it. Uncrowded rails and
                 wider phones keep the word. */}
             <span
-              className={`font-sans truncate ${isRecommended || job.is_urgent || job.isBoosted ? "max-[399px]:sr-only" : ""}`}
+              className={`font-sans truncate ${railIsCrowded ? "max-[399px]:sr-only" : ""}`}
             >
               {categoryLabels[job.category] || formatCategory(job.category)}
             </span>

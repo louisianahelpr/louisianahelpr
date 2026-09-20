@@ -21,6 +21,7 @@ import {
   type JobTimestamps,
 } from "@/lib/jobSystemEvents";
 import type { Conversation, Message } from "@/components/messages/types";
+import { patchThreadForAnnouncement } from "@/components/messages/jobStatusAnnouncement";
 import { CHAT_OPEN_PATH, CHAT_PAGE_SIZE, THREAD_OPEN_STATE } from "./constants";
 import {
   buildDeepLinkPlaceholder,
@@ -629,6 +630,39 @@ export function useMessagesData({
     setLoadingMore(false);
   };
 
+  /**
+   * CLOSE THE THREAD IN PLACE WHEN THE JOB MOVES — before anybody taps Send.
+   *
+   * Called for every `is_system` row the realtime channel delivers, on both
+   * sides of a thread (the trigger writes the announcement with the poster as
+   * sender and the other participant as receiver, so the poster's copy arrives
+   * on the `sender_id` listener and the helpr's on the `receiver_id` one —
+   * this has to be wired into both or it fixes the defect for exactly one of
+   * the two people in the conversation).
+   *
+   * The patch is derived from the announcement row itself — a server-written,
+   * server-stamped EVENT — never from the `jobStatus` already in hand, which
+   * is precisely the field that is stale in the case this exists for (the
+   * other party cancelled while this one was typing, so the local copy still
+   * says `in_progress`). See components/messages/jobStatusAnnouncement.ts.
+   *
+   * `messagingClosesAt` is only ever WRITTEN, never cleared: a transition that
+   * puts no clock on the thread (awarded, started, disputed) must not wipe a
+   * deadline an earlier one set.
+   *
+   * No refetch, no poll. `activeConvo.messagingClosesAt` is what ChatView's
+   * `threadClosed` reads and what ChatHeader's chip follows, so patching the
+   * conversation swaps the composer for the read-only notice and flips the
+   * chip in the same commit — and ChatView's `draft` state is untouched, which
+   * is what puts the half-typed message into ChatComposer's dashed "Not sent"
+   * box instead of into a failed bubble.
+   */
+  const applyJobStatusAnnouncement = useCallback((msg: Message) => {
+    const apply = (c: Conversation) => patchThreadForAnnouncement(c, msg);
+    setConversations((prev) => prev.map(apply));
+    setActiveConvo((prev) => (prev ? apply(prev) : prev));
+  }, [setConversations]);
+
   const {
     patchConversationForMessage,
     sendMessage,
@@ -672,6 +706,7 @@ export function useMessagesData({
     refreshActiveThread,
     loadOlderMessages,
     patchConversationForMessage,
+    applyJobStatusAnnouncement,
     sendMessage,
     retryMessage,
   };

@@ -23,6 +23,7 @@ export function useMessagesRealtime({
   setMessages,
   scrollToBottom,
   patchConversationForMessage,
+  onJobStatusAnnouncement,
   onRecovered,
 }: {
   userId: string | null;
@@ -30,6 +31,20 @@ export function useMessagesRealtime({
   setMessages: (updater: (prev: Message[]) => Message[]) => void;
   scrollToBottom: (behavior?: ScrollBehavior) => void;
   patchConversationForMessage: (msg: Message) => void;
+  /**
+   * Fold a `messages` row flagged `is_system` — the job-status announcement
+   * the DB trigger writes in the same transaction as the transition — back
+   * into the thread's status and closing instant.
+   *
+   * REQUIRED, not optional, and wired into BOTH message listeners below. The
+   * trigger writes the announcement with the poster as `sender_id` and the
+   * other participant as `receiver_id`, so exactly one of the two listeners
+   * sees it for each party: hooking only one closes the thread in place for
+   * the helpr and leaves the poster on the fail-on-tap path (or the reverse).
+   * An optional prop is a hole a future caller reopens by omission — the same
+   * reasoning as `onRecovered` below.
+   */
+  onJobStatusAnnouncement: (msg: Message) => void;
   /**
    * Re-read the inbox and the open thread after the channel comes back.
    *
@@ -58,6 +73,11 @@ export function useMessagesRealtime({
         (payload) => {
           const msg = payload.new as Message;
           const active = activeConvoRef.current;
+          // A status announcement closes (or re-dates) the thread BEFORE the
+          // user touches anything. Unconditional on the active thread: the
+          // inbox row's chip has to move too, and this is the only delivery
+          // path that says the job changed.
+          if (msg.is_system) onJobStatusAnnouncement(msg);
           // Same-job is not enough: a poster can have several applicant
           // threads on ONE job, and a message from applicant B must not be
           // appended into (or marked read by) applicant A's open thread.
@@ -133,6 +153,11 @@ export function useMessagesRealtime({
         },
         (payload) => {
           const msg = payload.new as Message;
+          // The POSTER's copy of a status announcement lands here, not on the
+          // receiver listener above: the trigger stamps `sender_id` with
+          // `NEW.customer_id` (migration 20260720130000). Same call, so the
+          // thread closes in place for whichever side of it you are on.
+          if (msg.is_system) onJobStatusAnnouncement(msg);
           // Only echo into the active thread — sender's own conversation
           // list refresh happens in the optimistic sendMessage flow.
           const active = activeConvoRef.current;

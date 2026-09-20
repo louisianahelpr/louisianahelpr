@@ -33,6 +33,53 @@ interface ConversationRowProps {
   onToggleSelect?: () => void;
 }
 
+/* ── THE UNREAD SIGNAL ──────────────────────────────────────────────────────
+   The Unread TAB was removed on 2026-09-19, which made whatever this row
+   paints the ONLY way to tell a read thread from an unread one. Measured on
+   prod the same day, the row it left behind carried almost no signal:
+
+     - the 8px dot resolved to rgb(156,65,22) — the EXACT ink of the
+       `IN PROGRESS` chip sitting 91px to its left on the same line, because
+       the dot took --burnt-sienna and the chip takes --sienna-ink, which are
+       byte-identical in light mode. It read as a bullet separating the chip
+       from the date, not as a state;
+     - it sat at x=187 of a 231px row — 81% across, the TRAILING edge — while
+       the only other unread cue (the bolder preview) starts at the LEADING
+       edge. At 1440 those two halves of one signal are ~1400px apart;
+     - the NAME, the first thing anyone scans, was font-weight 600 on read and
+       unread rows alike.
+
+   So: the mark moves to where the scan starts and where the bold text is (the
+   avatar's leading corner), the name joins the preview in carrying weight, and
+   the mark stops borrowing a status chip's ink.
+
+   COLOUR. Every job-status chip ink in this row comes from `jobStatusColor`,
+   and between them they use the whole warm half of the palette: olivewood
+   (open, cancelled), --sage-ink (accepted, completed), --sienna-ink
+   (in_progress, disputed), --amber-ink (revision_requested,
+   pending_approval). Unread is not a job STATUS — it is a property of the
+   reader — so it deliberately does not live in that family. --info-tint is
+   the one hue in the token set no status chip uses, it is the universal inbox
+   convention for "new", it has a dark sibling tuned for the dark canvas, and
+   it cannot be confused with the --live green presence dot further down the
+   row. Resolved: rgb(54,120,186) light / rgb(110,163,216) dark, against the
+   nearest chip ink rgb(156,65,22) — see src/test/unreadRowIsLegible.test.tsx,
+   which resolves both out of index.css rather than comparing token names.
+
+   SIZE. 10px, not the 8px that shipped: iOS uses ~10 and the audit was
+   explicit that 8 was not the defect. Ringed in the surface tone so it reads
+   as a badge ON the avatar rather than a hole punched in it.
+   ─────────────────────────────────────────────────────────────────────────── */
+const UNREAD_MARK = {
+  background: "hsl(var(--info-tint))",
+  boxShadow: "0 0 0 2px hsl(var(--ivory-sand))",
+} as const;
+
+/** Name weight: unread rows are heavier than read ones. Two values, and the
+ *  guard asserts they DIFFER — a single weight is the bug this replaces. */
+const NAME_WEIGHT_UNREAD = 700;
+const NAME_WEIGHT_READ = 600;
+
 /**
  * Tiny 32×32 image preview for the conversation-row "Photo" case.
  *
@@ -108,8 +155,9 @@ function LastMessageImageThumb({
  * iMessage-style preview ("You: " prefix when you sent it, photo
  * thumbnail when the last message was an image attachment), and a job-title
  * subtitle. The name line carries the job-status chip beside the name (same
- * placement as ChatHeader) and, in the top-right corner, the unread dot and
- * the relative timestamp.
+ * placement as ChatHeader) and the relative timestamp in the top-right
+ * corner. The unread mark is NOT up there — it rides the avatar's leading
+ * corner, beside the bold name it agrees with (see UNREAD_MARK).
  *
  * The row carries no per-row ⋮ overflow menu. Everything it used to hold
  * is reachable elsewhere: mute / report / block from the thread header,
@@ -182,7 +230,8 @@ const ConversationRowBase = ({
   //   32×32 thumbnail to the left of the preview and swaps the text body
   //   for "Photo" (no emoji — house brand voice).
   // - `hasUnreadFromOther`: there's an inbound message we haven't read
-  //   yet. Drives the 8px sienna dot pinned to the far-right of the row.
+  //   yet. Drives the LEADING unread badge on the avatar, the name's
+  //   heavier weight, and the preview's weight + ink (see UNREAD_MARK).
   const sentByMe = !!currentUserId && c.lastMessageSenderId === currentUserId;
   const lastIsImage =
     !!c.lastMessageAttachmentPath && isImageMime(c.lastMessageAttachmentMime);
@@ -297,14 +346,29 @@ const ConversationRowBase = ({
           storage answers 400) painted the browser's broken-image glyph on
           every row of the inbox. UserAvatar keeps the hashed gradient
           monogram underneath and only fades the photo in once it loads. */}
-      <UserAvatar
-        userId={c.otherUserId}
-        src={c.otherUserAvatarUrl}
-        name={c.otherUserName}
-        pixelSize={44}
-        className="w-11 h-11 shrink-0 self-center"
-        fallbackClassName="text-ds-13"
-      />
+      {/* `relative` so the unread badge can be pinned to the avatar's leading
+          corner without costing the row any layout — a reserved gutter would
+          have shifted every READ row sideways, and in select mode the leading
+          space already belongs to the checkbox. */}
+      <div className="relative shrink-0 self-center">
+        <UserAvatar
+          userId={c.otherUserId}
+          src={c.otherUserAvatarUrl}
+          name={c.otherUserName}
+          pixelSize={44}
+          className="w-11 h-11"
+          fallbackClassName="text-ds-13"
+        />
+        {hasUnreadFromOther && (
+          <span
+            aria-label={`${c.unread} unread message${c.unread === 1 ? "" : "s"}`}
+            role="status"
+            data-testid="unread-mark"
+            className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 rounded-full"
+            style={UNREAD_MARK}
+          />
+        )}
+      </div>
       <button
         onClick={(e) => {
           // In select mode a tap toggles selection instead of opening the
@@ -316,8 +380,8 @@ const ConversationRowBase = ({
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
-            {/* Name line — name, then the job-status pill, then the right
-                cluster (unread dot + relative time) pinned to the corner.
+            {/* Name line — name, then the job-status pill, then the
+                relative time pinned to the corner.
 
                 The pill sits beside the NAME, not on the job-title line below,
                 so this row and the thread header it opens agree: ChatHeader
@@ -348,9 +412,21 @@ const ConversationRowBase = ({
                 cutting the name at the default scale) and at both widths in
                 Senior Mode. */}
             <div className="flex flex-wrap items-center gap-x-1.5">
+              {/* The name carries weight too. It is the first thing the eye
+                  lands on, and it used to be 600 whether or not the thread had
+                  anything in it — so the one cue that DID move (the preview)
+                  was three lines down. `font-semibold` is gone from the
+                  className because an inline fontWeight and a Tailwind weight
+                  class on the same element is one declaration fighting
+                  another; the value is set in exactly one place. */}
               <p
-                className="font-sans font-semibold truncate min-w-0 basis-[5.5rem] grow text-ds-15"
-                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                data-testid="row-name"
+                className="font-sans truncate min-w-0 basis-[5.5rem] grow text-ds-15"
+                style={{
+                  color: "hsl(var(--ink-deep))",
+                  letterSpacing: "-0.012em",
+                  fontWeight: hasUnreadFromOther ? NAME_WEIGHT_UNREAD : NAME_WEIGHT_READ,
+                }}
               >
                 {c.otherUserName}
               </p>
@@ -362,28 +438,26 @@ const ConversationRowBase = ({
                 // the thread itself renders a "Job cancelled" system event,
                 // so the chip doesn't need to intercept taps to explain it.)
                 <span
+                  data-testid="row-status-chip"
                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
                   style={{ color: statusChip.color, backgroundColor: statusChip.bg, letterSpacing: "0.08em" }}
                 >
                   {statusChip.label}
                 </span>
               )}
-              {/* Right cluster — unread dot, then the relative timestamp,
-                  in the row's TOP-RIGHT corner. It used to be centred against
-                  the full three-line row; on the name line it aligns with the
-                  thing it timestamps (the conversation) and matches the
-                  iOS Messages inbox. Still INSIDE the open-thread button, so
-                  the corner opens the conversation rather than being a dead
-                  gutter. */}
+              {/* Right cluster — the relative timestamp, in the row's
+                  TOP-RIGHT corner. It used to be centred against the full
+                  three-line row; on the name line it aligns with the thing it
+                  timestamps (the conversation) and matches the iOS Messages
+                  inbox. Still INSIDE the open-thread button, so the corner
+                  opens the conversation rather than being a dead gutter.
+
+                  The unread dot USED to live here, immediately right of the
+                  status chip and in the same ink — see UNREAD_MARK for what
+                  that cost. It is on the avatar now; nothing replaced it here,
+                  deliberately, because two marks for one state is how the
+                  trailing one got read as punctuation in the first place. */}
               <span className="ml-auto shrink-0 flex items-center gap-1.5">
-                {hasUnreadFromOther && (
-                  <span
-                    aria-label={`${c.unread} unread message${c.unread === 1 ? "" : "s"}`}
-                    role="status"
-                    className="shrink-0 w-2 h-2 rounded-full"
-                    style={{ background: "hsl(var(--burnt-sienna))" }}
-                  />
-                )}
                 <span
                   className="text-ds-11 whitespace-nowrap"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
@@ -484,6 +558,7 @@ const ConversationRowBase = ({
                   second line rather than showing less of the sentence. iOS
                   Messages shows two lines here as well. */}
               <p
+                data-testid="row-preview"
                 className="text-ds-12 truncate senior-clamp-2 min-w-0 flex-1"
                 style={{
                   color: hasUnreadFromOther ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",

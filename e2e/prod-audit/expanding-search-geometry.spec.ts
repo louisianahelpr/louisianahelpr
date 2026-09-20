@@ -60,6 +60,9 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { getSession, type Session } from "./harness";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
+/* The floor is the app's own constant, not a number restated here — see
+   MIN_TYPABLE_FIELD_PX for what it is and the widths it was derived from. */
+import { MIN_TYPABLE_FIELD_PX } from "../../src/lib/searchFieldFloor";
 
 const SHOTS = process.env.LH_SEARCH_SHOTS;
 /**
@@ -186,9 +189,10 @@ async function assertSurface(
     closeSel: string;
     rowSel?: string;
     soloRow?: string;
+    minFieldPx?: number;
   },
 ) {
-  const { name, vw, triggerSel, fieldSel, closeSel, rowSel, soloRow } = opts;
+  const { name, vw, triggerSel, fieldSel, closeSel, rowSel, soloRow, minFieldPx } = opts;
   const tag = `${name}@${vw}`;
 
   // ── the magnifier at rest. This is the rect (c) is measured against. ──
@@ -294,6 +298,28 @@ async function assertSurface(
     `${tag}: removing the landing slot did NOT bring the overlap back, so the 0px above proves nothing about the slot. Re-derive the geometry before believing this check.`,
   ).toBeGreaterThan(0);
 
+  // ── (d) THE FIELD IS WIDE ENOUGH TO READ WHAT YOU TYPED ───────────────────
+  //
+  // (a) proves the field covers nothing and (c) proves the ✕ clears the
+  // magnifier — and BOTH were true, on every surface, of a field 42px wide.
+  // Measured on 2026-09-19 at 320: my-posts 76px, my-jobs 76px, messages 42px,
+  // with the magnifier (pl-9) and the ✕ (pr-10) claiming 76px before a
+  // character is drawn. "oak tree" typed into the 375 field rendered as "ree".
+  //
+  // The field is the ONLY flexible item on these rows — the title, the
+  // held-open slot, the icon cluster and the gaps are all fixed — so it is
+  // where every new claimant's width comes from, silently. That is the class
+  // this assertion exists for, and neither (a) nor (c) can see it.
+  const fieldFloor = minFieldPx ?? MIN_TYPABLE_FIELD_PX;
+  note(info, { type: `${tag} (d)`, description: `field ${Math.round(geom!.item.w)}px vs floor ${fieldFloor}px` });
+  expect(
+    Math.round(geom!.item.w),
+    `${tag}: the open search field is ${Math.round(geom!.item.w)}px wide, under the ${fieldFloor}px ` +
+      `floor. 76px of it is the magnifier and the ✕, so what is left cannot show the word being ` +
+      `typed. Take the width out of a FIXED item on the row — the visible title is the one that ` +
+      `yields on a phone (ScreenHeaderRow's narrowTitleStepsAside) — never out of the field.`,
+  ).toBeGreaterThanOrEqual(fieldFloor);
+
   if (SHOTS) {
     await page.screenshot({ path: join(SHOTS, `${name}-${vw}-${SCHEME}-open.png`), fullPage: false });
   }
@@ -382,6 +408,13 @@ const SURFACES: {
   /** Why this field legitimately has no row siblings. Declared, never inferred. */
   soloRow?: string;
   minWidth?: number;
+  /**
+   * A field floor BELOW MIN_TYPABLE_FIELD_PX, for a surface that has not been
+   * fixed yet. Declared with its reason and its open-work line, never a quiet
+   * exemption: the number is the measurement this surface is pinned at, so it
+   * can get worse and this spec will say so.
+   */
+  minFieldPx?: number;
 }[] = [
   {
     name: "browse-desktop-strip",
@@ -441,6 +474,14 @@ const SURFACES: {
     triggerSel: 'button[aria-label="Search all policies"]',
     fieldSel: 'input[aria-label="Search all policies"]',
     closeSel: 'button[aria-label="Close search"]',
+    /* PINNED AT ITS MEASURED WIDTH, NOT WAIVED. /legal at 320 gives the open
+       field 107px — under the 120px floor, because its leading Terms/Rules/
+       Privacy tab row (25…132) holds full width the way My Posts' title used
+       to. It is the same defect and the same one-line fix, on a surface no
+       lane owns tonight; it is on the open-work list (docs/OPEN.md,
+       "legal search field at 320"). 107 is where it is today, so any further
+       squeeze still fails here. */
+    minFieldPx: 107,
   },
 ];
 
@@ -463,6 +504,7 @@ for (const vw of [320, 375, 1440] as const) {
           closeSel: surface.closeSel,
           rowSel: surface.rowSel,
           soloRow: surface.soloRow,
+          minFieldPx: surface.minFieldPx,
         });
       } finally {
         await ctx.close();

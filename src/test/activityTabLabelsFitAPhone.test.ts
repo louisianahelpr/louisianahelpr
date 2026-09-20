@@ -7,10 +7,8 @@ import {
   BUCKET_LABEL,
 } from "@/pages/activity/activityFilters";
 import { SHORT_LABEL_BELOW_PX } from "@/components/ui/UnderlineTabs";
-import {
-  NARROW_TITLE_ASIDE_PX,
-  MIN_TYPABLE_FIELD_PX,
-} from "@/components/ui/ScreenHeaderRow";
+import { NARROW_TITLE_ASIDE_PX } from "@/components/ui/ScreenHeaderRow";
+import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 
 /**
  * THE ACTIVITY HEADER'S PHONE WIDTH BUDGET — both claims on one row.

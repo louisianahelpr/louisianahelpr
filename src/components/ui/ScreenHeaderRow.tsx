@@ -89,24 +89,10 @@ export const SEARCH_TRIGGER_SLOT_WIDTH = "44px";
  * compiles to no rule at all and would hide the title at every width.
  */
 export const NARROW_TITLE_ASIDE_PX = 500;
-/**
- * THE FLOOR: a field narrower than this cannot show a word while you type it.
- *
- * The field carries the magnifier at `pl-9` and the ✕ at `pr-10`, so 76px of
- * its width is chrome before a character is drawn. 120px therefore leaves
- * ~44px of text — about six characters at the field's 13px — which is the
- * least that can still be read back. The row as shipped gives the field
- * `rowWidth - 104` once the title steps aside: 134px at 320, 189px at 375,
- * 228px at 414, and 220px at 500 where the title comes back.
- *
- * What it is really guarding is the REGRESSION, not the aesthetics: before the
- * title stepped aside the same field measured 76px at 320 and 95px at 375,
- * with the ✕ drawn ON TOP of the magnifier at 320 (a -26px gap between them),
- * and "oak tree" typed into it rendered as "ree". Any new fixed-width item on
- * this row takes its width from the field, because the field is the only
- * flexible thing on it — so the floor is where that shows up.
- */
-export const MIN_TYPABLE_FIELD_PX = 120;
+/* The floor lives in its own leaf module so the browser check can import the
+   same number — see src/lib/searchFieldFloor.ts. Re-exported here because this
+   is where a reader of the row will look for it. */
+export { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 
 export function SearchTriggerSlot({
   width = SEARCH_TRIGGER_SLOT_WIDTH,

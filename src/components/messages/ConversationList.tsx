@@ -1016,6 +1016,26 @@ export function ConversationList({
               /* HEADER_ICON_BUTTON_CLASS is `h-11 w-11`. The slot reserves the
                  magnifier's real box, not a guess — see SearchTriggerSlot. */
               triggerWidth: "44px",
+              /* THE NAME STEPS ASIDE ON A NARROW PHONE, exactly as it does on
+                 My Posts / My Jobs — same row component, same arithmetic, and
+                 this row was the WORSE of the two. Measured at this commit's
+                 parent, signed in, by
+                 e2e/prod-audit/expanding-search-geometry.spec.ts:
+
+                   320   title 41…129 (88px)   field 137…179  =  42px
+                   375   title 41…129 (88px)   field 141…230  =  89px
+
+                 42px of field, and the magnifier at `pl-9` plus the ✕ at
+                 `pr-10` already claim 76px of it — so at 320 the two glyphs
+                 were drawn on top of each other and there was no typing area
+                 at all. The `<h1>` is `sr-only` in this state either way, so
+                 nothing is lost to a screen reader; only the visible twin
+                 steps aside, only while the field is open, only below 500px.
+                 The comment on the tab strip below already said this row "has
+                 20px to spare at 320 … against a title that needs 88" — that
+                 was true of the CLOSED row, and the open one had no such
+                 spare. */
+              narrowTitleStepsAside: true,
               actions: headerActionsWithoutSearch,
             }}
           >

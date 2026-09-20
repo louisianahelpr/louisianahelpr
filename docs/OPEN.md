@@ -8,6 +8,27 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN — /legal's search field is 107px at 320 (2026-09-20, found while fixing the Activity header)
+
+The same class as the Activity and Messages header fields, on the one surface
+no lane owned that night. Measured by
+`e2e/prod-audit/expanding-search-geometry.spec.ts`, signed in:
+
+    /legal  320   leading tabs "Terms Rules Privacy" 25…132   field 140…247 = 107px
+    /legal  375   leading tabs 25…160                         field 168…302 = 135px
+
+76px of the field is the magnifier (`pl-9`) and the ✕ (`pr-10`), so 107px
+leaves ~31px of typing area. The fix is the one already shipped twice: the
+leading content yields while the field is open (ScreenHeaderRow's
+`narrowTitleStepsAside` does exactly this for a title; /legal's leading item is
+a tab row, so it needs the equivalent). NOT done here — /legal is a different
+row shape and was outside the lane that found it.
+
+GUARDED MEANWHILE, not waived: the spec's check (d) pins /legal at its measured
+107px (`minFieldPx: 107` on its SURFACES entry), so the surface cannot get any
+narrower without going red, and every other surface is held to the real
+`MIN_TYPABLE_FIELD_PX` floor of 120.
+
 ## Seed-fixture realism — address done (96bc774bc), three follow-ups OPEN (2026-09-19)
 Owner: "when i click directions, it gives directions to the town but not the actual
 address." The app was correct end to end (verified live: `get_jobs_for_my_applications`

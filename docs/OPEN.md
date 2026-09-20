@@ -21,12 +21,20 @@ is `nightly-red-ack`. Full evidence is in each issue's 2026-09-20 comment.
 | #1595 | e2e-journeys | 2 browse failures were a TRUE report of an empty `open_jobs_browse`; 8 rows seeded 2026-09-19 19:25 have since fixed it. 2 real defects remain. | 2 OPEN |
 
 ### Owner decision needed — #1618
-`admin@louisianahelpr.com` **cannot reach `/admin` in the live app** (avatar_url NULL,
-`is_legacy_user = false`, `/admin` not in `PROFILE_GATE_ALLOWED`). Either upload a
-profile photo on that account, or repoint `PLAYWRIGHT_ADMIN_EMAIL` at
-`helpr-seed-admin-0912@louisianahelpr.com` (the account
-`scripts/check-test-account-strikes.mjs` already treats as the shared admin). Not done
-here: one is the owner's own profile data, the other a shared credential.
+Verified by re-run [35535464894](https://github.com/louisianahelpr/louisianahelpr/actions/runs/35535464894):
+`bounced off /admin (view=home) to /complete-profile — the profile gate, not the admin gate`.
+
+Three accounts hold `role='admin'`. `lexilombas05@gmail.com` and
+`helpr-seed-admin-0912@louisianahelpr.com` both pass the Big-7 gate — **the owner's own
+admin access is fine.** Only `admin@louisianahelpr.com` fails it (`avatar_url` NULL,
+`is_legacy_user = false`, `/admin` not in `PROFILE_GATE_ALLOWED`), and this run failed
+the Big-7 gate, so that is what `PLAYWRIGHT_ADMIN_EMAIL` points at.
+
+Either repoint `PLAYWRIGHT_ADMIN_EMAIL` at `helpr-seed-admin-0912@louisianahelpr.com`
+(what `prod-audit.yml`'s own header says this workflow uses, and what
+`scripts/check-test-account-strikes.mjs` names as the shared admin), or set an
+`avatar_url` on `admin@louisianahelpr.com`. Either clears all 26. Not done here: one is
+live profile data, the other a shared credential.
 
 ### Blocked, deliberately not touched — #1597(b)
 The four `·` separators are `src/components/profile/earningsTab/EarningHistory.tsx:180`,

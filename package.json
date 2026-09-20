@@ -48,6 +48,9 @@
     "changed-routes": "node scripts/changed-routes.mjs",
     "audit:press": "node scripts/audit/press-every-control.mjs",
     "visual-notes:check": "node scripts/check-visual-notes.mjs",
+    "loading-states:inventory": "node scripts/loading-state-inventory.mjs",
+    "loading-states:measure": "node scripts/audit/measure-loading-states.mjs",
+    "check:loading-states": "node scripts/check-loading-state-shape.mjs",
     "vacuity": "node scripts/vacuity/index.mjs",
     "vacuity:all": "node scripts/vacuity/index.mjs --all",
     "vacuity:report": "node scripts/vacuity/index.mjs --report --no-mutate"

@@ -75,6 +75,31 @@ const UNREAD_MARK = {
   boxShadow: "0 0 0 2px hsl(var(--ivory-sand))",
 } as const;
 
+/**
+ * This row's geometry, in ONE place, exported for its loading placeholder.
+ *
+ * Owner, 2026-09-19: loading states "jump and are not consistent with their
+ * info". This row was one of them. `MessageThreadSkeleton` had been hand-drawn
+ * beside this file as `p-3 rounded-ds-md liquid-glass` inside a `space-y-2`
+ * list — a raised glass CARD per row, 12px of padding and an 8px gap — while
+ * the real row is a flat `px-3 py-2.5` strip with no card, no rounding and no
+ * gap, separated only by the inset hairline below. Measured on the built app at
+ * 375 against prod: four bones at a 76px pitch gave way to rows at a 64px
+ * pitch, so every row below the first slid up, and where four bones stood, ten
+ * rows arrived. The skeleton's own doc comment claimed it sat "on the same
+ * liquid-glass surface as the real row" — it never did; trust the declaration,
+ * never the comment beside it.
+ *
+ * Exported rather than copied so the two CANNOT drift again: change the padding
+ * here and the placeholder changes with it in the same commit.
+ */
+export const CONVERSATION_ROW_FRAME =
+  "relative w-full text-left px-3 py-2.5 flex items-center gap-2.5";
+/** 44px — the avatar box, and the floor under the row's height. */
+export const CONVERSATION_ROW_AVATAR = "w-11 h-11";
+/** Where the inset hairline starts: row padding + avatar + gap. */
+export const CONVERSATION_ROW_HAIRLINE_INSET = "calc(0.75rem + 2.75rem + 0.625rem)";
+
 /** Name weight: unread rows are heavier than read ones. Two values, and the
  *  guard asserts they DIFFER — a single weight is the bug this replaces. */
 const NAME_WEIGHT_UNREAD = 700;
@@ -261,7 +286,7 @@ const ConversationRowBase = ({
   })();
   return (
     <div
-      className="relative w-full text-left px-3 py-2.5 flex items-center gap-2.5 transition-colors"
+      className={`${CONVERSATION_ROW_FRAME} transition-colors`}
       onClick={selectMode ? onToggleSelect : undefined}
       role={selectMode ? "button" : undefined}
       aria-pressed={selectMode ? selected : undefined}
@@ -307,7 +332,7 @@ const ConversationRowBase = ({
           className="absolute bottom-0 right-0 h-px"
           style={{
             // 0.75rem row padding + 2.75rem avatar (w-11) + 0.625rem gap.
-            left: "calc(0.75rem + 2.75rem + 0.625rem)",
+            left: CONVERSATION_ROW_HAIRLINE_INSET,
             background: "hsl(var(--olivewood) / 0.10)",
           }}
         />
@@ -356,7 +381,7 @@ const ConversationRowBase = ({
           src={c.otherUserAvatarUrl}
           name={c.otherUserName}
           pixelSize={44}
-          className="w-11 h-11"
+          className={CONVERSATION_ROW_AVATAR}
           fallbackClassName="text-ds-13"
         />
         {hasUnreadFromOther && (

@@ -21,6 +21,14 @@ import { useDrivingTime } from "@/hooks/useDrivingTime";
 import { prefetchJobDialog } from "./prefetchJobDialog";
 import { JobPrice, computeNet } from "./JobPrice";
 import type { EnrichedJob } from "./types";
+import {
+  JOB_CARD_BADGE_ROW,
+  JOB_CARD_BODY,
+  JOB_CARD_CLIP,
+  JOB_CARD_META,
+  JOB_CARD_RAIL,
+  JOB_CARD_TITLE_ROW,
+} from "@/components/job/cardGeometry";
 
 interface JobCardProps {
   job: EnrichedJob;
@@ -333,13 +341,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           continuous shape. `bare` still clips (the callout bubble itself is
           rounded, and the category rail/tab need SOME edge to align to) but
           carries no paint of its own. */}
-      <div className={`relative h-full overflow-hidden ${bare ? "rounded-lg" : "rounded-2xl"}`}>
+      <div className={bare ? "relative h-full overflow-hidden rounded-lg" : JOB_CARD_CLIP}>
         {/* Category rail — vertical color stripe down the left edge. The
             tab below sits flush on top of it (same left edge) so the tab's
             flat left side flows straight into the rail with no gap. */}
         <span
           aria-hidden
-          className={`absolute left-0 top-0 bottom-0 w-1.5 ${catStyle.dot}`}
+          className={`${JOB_CARD_RAIL} ${catStyle.dot}`}
         />
         {/* ── BADGE RAIL ───────────────────────────────────────────────
             ONE row holding EVERY badge this card can render, sharing one
@@ -385,7 +393,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             the rail can never become two chips tall and shove the title
             down — which is exactly what it did at 320px with Recommended
             present before this change. */}
-        <div className="relative z-20 flex items-stretch gap-1">
+        <div className={JOB_CARD_BADGE_ROW}>
           {/* 1. Category tab — flat left edge (squared) continuing the
                  vertical rail, rounded nose on the right. The poster avatar
                  moved to the job-detail view (JobPosterCard) so the feed
@@ -523,7 +531,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             it — the rail is in flow above, so this padding no longer has to
             guess how tall a badge chip is (the guess it replaces, `pt-6`,
             was already wrong in senior mode). */}
-        <div className="w-full px-3.5 pt-2 pb-2.5">
+        <div className={JOB_CARD_BODY}>
         {/* Title + price share the top row — price chip is vertically
             centered against the title. The location/date/time meta spans
             the full card width below.
@@ -534,7 +542,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             the virtualized feed's measureElement never has to reconcile a
             short-vs-tall run of cards. `min-w-0` lets it shrink/truncate
             inside the flex row at all. */}
-        <div className="flex items-center justify-between gap-3">
+        <div className={JOB_CARD_TITLE_ROW}>
           {/* h2, not h3: these cards sit DIRECTLY under the page <h1>
               ("Browse Jobs", "My Posts"), with no intervening section
               heading, so an h3 skipped a level and failed axe's
@@ -562,7 +570,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
 
         {/* Meta row — category lives in the badge above, so this leads
             with location. */}
-        <div className="mt-1.5 flex flex-col gap-0.5 text-ds-11 text-muted-foreground leading-tight">
+        <div className={`${JOB_CARD_META} text-muted-foreground`}>
           {/* Row 1 — where + when. The expiry countdown deliberately does NOT
               live here: this row is flex-nowrap, so every extra chip steals
               width from the city, which has min-w-0 and collapses first. With

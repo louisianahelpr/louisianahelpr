@@ -1,6 +1,7 @@
 import { categoryColors, categoryLabels } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatCategory } from "@/lib/format";
+import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
 
 /**
  * JobCategoryTab — the corner tab that names a job's category.
@@ -48,7 +49,7 @@ export function JobCategoryTab({
   const catStyle = categoryColors[category] ?? categoryColors.other;
   return (
     <span
-      className={`inline-flex items-center gap-1 ${flexible ? "min-w-0 max-w-[52%]" : ""} pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-ds-10 font-semibold leading-none shadow-sm ${catStyle.badge}${className ? ` ${className}` : ""}`}
+      className={`${JOB_CATEGORY_TAB_FRAME}${flexible ? " min-w-0 max-w-[52%]" : ""} ${catStyle.badge}${className ? ` ${className}` : ""}`}
     >
       <CategoryIcon
         category={category}

@@ -1,69 +1,99 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  JOB_CARD_BADGE_ROW,
+  JOB_CARD_BODY,
+  JOB_CARD_CLIP,
+  JOB_CARD_FRAME,
+  JOB_CARD_META,
+  JOB_CARD_RAIL,
+  JOB_CARD_TITLE_ROW,
+  JOB_CATEGORY_TAB_FRAME,
+} from "@/components/job/cardGeometry";
 
 /**
- * JobCardSkeleton — shape-matched placeholder for the browse-feed job
- * card (see `src/components/dashboard/JobCard.tsx`). Loading-state
- * transitions for the dashboard feed used to "thump" — a single grey
- * rectangle gave way to a 3-column row with an avatar, title block, and
- * a price tile. This skeleton mirrors that layout so the swap is
- * visually stable (no CLS): a 1px category rail down the left edge, a
- * 44px avatar circle on the left, title + meta lines in the center,
- * and the price tile on the right.
+ * JobCardSkeleton — the placeholder for the browse-feed job card
+ * (`src/components/dashboard/JobCard.tsx`).
  *
- * The shimmer comes from the inner <Skeleton/> primitives — keep the
- * outer card static (overlapping sweeps read as moiré).
+ * It does not re-draw that card's frame; it IMPORTS it. Frame, clip, rail,
+ * badge row, body padding, title row and meta block all come from JobCard's
+ * own exported geometry, and the category tab's box comes from
+ * `JobCategoryTab`. The reserved space is therefore the real space by
+ * construction, and neither side can be changed without the other following.
+ *
+ * Owner, 2026-09-19: loading states "jump and are not consistent with their
+ * info". This one did both, in four ways at once:
+ *
+ *   - it drew a 44px AVATAR circle. The card has not had a poster avatar
+ *     since that moved to JobPosterCard, so the bone promised a face that
+ *     never arrived — the "not consistent with their info" defect exactly.
+ *   - body padding `py-3` against the card's `pt-2 pb-2.5`.
+ *   - rail `w-1` against `w-1.5`.
+ *   - no category tab at all, while every real card leads with one in flow.
+ *
+ * Measured on the built app at 375 against prod, the feed's bones and its
+ * cards did not share a row height, so the list stepped as it filled.
+ *
+ * The bones inside are deliberately fewer than the card's parts. A
+ * placeholder holds the shape and gets out of the way: one title bar, one
+ * price tile, two meta lines. Nothing stands in for the Urgent / Boosted /
+ * Just-in chips, which are conditional on the real card — drawing them would
+ * be inventing content. What has to match is the RESERVATION, and it does.
  */
 export function JobCardSkeleton() {
   return (
-    <div
-      className="relative rounded-2xl border border-border/60 bg-card overflow-hidden shadow-[var(--card-shadow)]"
-      aria-hidden
-    >
-      {/* Category rail — vertical 1px stripe down the left edge,
-          matching the colored rail on the real card. Neutral
-          olivewood tint while loading; the real card recolors per
-          category. */}
-      <span
-        className="absolute left-0 top-0 bottom-0 w-1"
-        style={{ background: "hsl(var(--olivewood) / 0.18)" }}
-      />
-      <div className="w-full px-3.5 py-3 flex items-center gap-3">
-        {/* Avatar (44px) + faint category-icon chip overlay. */}
-        <div className="relative shrink-0">
-          <Skeleton
-            className="w-11 h-11 rounded-full"
-            style={{ background: "hsl(var(--olivewood) / 0.12)" }}
-          />
-          <Skeleton
-            className="absolute -top-0.5 -left-0.5 w-4 h-4 rounded-full ring-2 ring-card"
-            style={{ background: "hsl(var(--olivewood) / 0.16)" }}
-          />
+    <div className={JOB_CARD_FRAME} aria-hidden>
+      <div className={JOB_CARD_CLIP}>
+        {/* Category rail — neutral olivewood while loading; the real card
+            recolours it per category. */}
+        <span
+          className={JOB_CARD_RAIL}
+          style={{ background: "hsl(var(--olivewood) / 0.18)" }}
+        />
+        {/* Badge rail. An empty tab in the real tab's own box, so the ~20px
+            this row occupies is reserved rather than guessed — omitting it
+            left every bone a tab shorter than the card it stood in for. */}
+        <div className={JOB_CARD_BADGE_ROW}>
+          <span
+            className={JOB_CATEGORY_TAB_FRAME}
+            style={{
+              background: "hsl(var(--olivewood) / 0.10)",
+              borderColor: "hsl(var(--olivewood) / 0.14)",
+              color: "transparent",
+            }}
+          >
+            <Skeleton
+              className="h-2.5 w-14 rounded"
+              style={{ background: "hsl(var(--olivewood) / 0.16)" }}
+            />
+          </span>
         </div>
-
-        {/* Center: title + meta row. Title gets ~70% width to match
-            the real card's leading display title, meta row ~50%. */}
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <Skeleton
-            className="h-4 w-[70%] rounded"
-            style={{ background: "hsl(var(--olivewood) / 0.14)" }}
-          />
-          <Skeleton
-            className="h-3 w-[50%] rounded"
-            style={{ background: "hsl(var(--olivewood) / 0.10)" }}
-          />
-        </div>
-
-        {/* Right: price tile + small badge above (mirrors the
-            urgent/boosted cluster on the real card). */}
-        <div className="relative shrink-0 flex flex-col items-end gap-1">
-          <Skeleton
-            className="absolute -top-1 -right-1 h-3.5 w-12 rounded-full"
-            style={{ background: "hsl(var(--olivewood) / 0.16)" }}
-          />
-          <Skeleton
-            className="h-12 w-16 rounded-ds-md"
-            style={{ background: "hsl(var(--olivewood) / 0.12)" }}
-          />
+        <div className={JOB_CARD_BODY}>
+          {/* Title + price share the top row, price chip centred against the
+              title — the card's own arrangement. */}
+          <div className={JOB_CARD_TITLE_ROW}>
+            <Skeleton
+              className="h-5 flex-1 min-w-0 max-w-[70%] rounded"
+              style={{ background: "hsl(var(--olivewood) / 0.14)" }}
+            />
+            <Skeleton
+              className="h-9 w-16 shrink-0 rounded-ds-md"
+              style={{ background: "hsl(var(--olivewood) / 0.12)" }}
+            />
+          </div>
+          {/* Meta — location · date on one line, in the card's own meta block
+              so the `mt-1.5` and the line height are not restated here. */}
+          <div className={JOB_CARD_META}>
+            <div className="flex items-center gap-x-2">
+              <Skeleton
+                className="h-3 w-24 rounded"
+                style={{ background: "hsl(var(--olivewood) / 0.10)" }}
+              />
+              <Skeleton
+                className="h-3 w-20 rounded"
+                style={{ background: "hsl(var(--olivewood) / 0.10)" }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -71,53 +101,40 @@ export function JobCardSkeleton() {
 }
 
 /**
- * RecommendedJobCardSkeleton — shape-matched to the "Picked for you"
- * card in BrowseTasksFeed. Recommended cards lead with a sienna-tinted
- * category rail (it's the highlighted section), a longer title (~80%),
- * a 2-line description hint, and a slightly taller price tile. The
- * skeleton mirrors that ratio so the swap doesn't shove the list down.
+ * RecommendedJobCardSkeleton — the "Picked for you" card in BrowseTasksFeed.
+ *
+ * The recommended card is the SAME JobCard with `recommended` set, which adds
+ * one chip to the badge rail and changes nothing about the card's box. It used
+ * to be a second hand-drawn skeleton here with its own padding (`pt-6 pb-3`),
+ * its own rail width (`w-1.5` vs the plain one's `w-1`) and its own price tile
+ * (`h-11 w-[52px]`) — two approximations of one card, already disagreeing with
+ * each other as well as with the card.
+ *
+ * So it is the same skeleton plus the chip it actually adds.
  */
 export function RecommendedJobCardSkeleton() {
   return (
-    <div
-      className="relative rounded-2xl border border-border/60 bg-card overflow-hidden shadow-[var(--card-shadow)]"
-      aria-hidden
-    >
-      {/* Recommended-section accent rail — a touch warmer than the
-          neutral skeleton (matches the sienna eyebrow above). */}
+    <div className="relative" aria-hidden>
+      <JobCardSkeleton />
+      {/* The secondary chip rides in the badge rail beside the category tab;
+          it is drawn here as an overlay at that rail's own offset so the
+          shared skeleton above stays the single description of the card. */}
       <span
-        className="absolute left-0 top-0 bottom-0 w-1.5"
-        style={{ background: "hsl(var(--burnt-sienna) / 0.22)" }}
-      />
-      {/* Category-tab placeholder + tiny "New" chip. */}
-      <span
-        className="absolute top-0 left-0 z-10 inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-br-lg"
-        style={{ background: "hsl(var(--burnt-sienna) / 0.10)" }}
+        className={JOB_CATEGORY_TAB_FRAME}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: "calc(0.25rem + 6.5rem)",
+          background: "hsl(var(--burnt-sienna) / 0.10)",
+          borderColor: "hsl(var(--burnt-sienna) / 0.20)",
+          color: "transparent",
+        }}
       >
-        <Skeleton className="h-2 w-12 rounded" style={{ background: "hsl(var(--burnt-sienna) / 0.20)" }} />
+        <Skeleton
+          className="h-2.5 w-12 rounded"
+          style={{ background: "hsl(var(--burnt-sienna) / 0.20)" }}
+        />
       </span>
-      <div className="w-full px-3.5 pt-6 pb-3 flex items-start gap-3">
-        <div className="min-w-0 flex-1 space-y-2">
-          {/* Title — recommended cards get more vertical room because
-              the "best match" framing wants a longer headline. */}
-          <Skeleton className="h-4 w-[80%] rounded" style={{ background: "hsl(var(--olivewood) / 0.14)" }} />
-          <Skeleton className="h-3 w-[55%] rounded" style={{ background: "hsl(var(--olivewood) / 0.10)" }} />
-          {/* Meta row — location · date · stars */}
-          <div className="flex gap-2 pt-0.5">
-            <Skeleton className="h-2.5 w-14 rounded" style={{ background: "hsl(var(--olivewood) / 0.09)" }} />
-            <Skeleton className="h-2.5 w-10 rounded" style={{ background: "hsl(var(--olivewood) / 0.09)" }} />
-            <Skeleton className="h-2.5 w-8 rounded" style={{ background: "hsl(var(--olivewood) / 0.09)" }} />
-          </div>
-        </div>
-        {/* Price chip — compact, matching the real card's px-2.5 py-1.5
-            amount tile. Kept small on purpose: a larger box read like a
-            photo thumbnail, which the feed cards don't have. */}
-        <div className="shrink-0">
-          <Skeleton className="h-11 w-[52px] rounded-ds-md" style={{ background: "hsl(var(--bark) / 0.12)" }} />
-        </div>
-      </div>
     </div>
   );
 }
-
-

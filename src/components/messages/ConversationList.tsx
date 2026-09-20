@@ -1165,8 +1165,21 @@ export function ConversationList({
             </p>
           )}
           {loading ? (
-            <div className="space-y-2">
-              {[1, 2, 3, 4].map((i) => (
+            /* No `space-y` here on purpose. The real list stacks
+               ConversationRows flush and divides them with each row's own
+               inset hairline; an 8px gap between bones put the placeholder
+               list at a 76px pitch against the real 64px, so every row below
+               the first slid up when the inbox landed. The bones carry the
+               same hairline and stack the same way.
+
+               SIX, not four. The panel is ~600px tall at 375 and a 64px row
+               fills it six times over — four bones left a third of the list
+               blank and then filled in, which reads as the page growing. Six
+               is a FLOOR, not a promise: the real count is unknowable while
+               the query is out, so reserve what the viewport will hold and let
+               a longer list extend past the fold, where nothing is displaced. */
+            <div>
+              {[1, 2, 3, 4, 5, 6].map((i) => (
                 <MessageThreadSkeleton key={i} />
               ))}
             </div>

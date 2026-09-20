@@ -1,0 +1,461 @@
+{
+  "note": "Loading-state clusters that were already wrong when the check landed (owner report, 2026-09-19). MAY ONLY SHRINK: scripts/check-loading-state-shape.mjs fails on an entry that no longer breaches, so this list cannot rot into a permanent excuse. Delete a line when its surface is fixed and re-measured.",
+  "generated": "2026-09-20T06:29:49.630Z",
+  "allow": [
+    {
+      "key": "anon / #0",
+      "kind": "jump",
+      "was": "row 128px → 1502px (+1374px)"
+    },
+    {
+      "key": "anon / #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 7 real"
+    },
+    {
+      "key": "customer /signup #0",
+      "kind": "rows",
+      "was": "4 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /signup #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 6 real"
+    },
+    {
+      "key": "customer /signup-pending #0",
+      "kind": "rows",
+      "was": "4 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /signup-pending #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 6 real"
+    },
+    {
+      "key": "customer /complete-profile #0",
+      "kind": "rows",
+      "was": "4 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /complete-profile #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 6 real"
+    },
+    {
+      "key": "customer /account-pending #0",
+      "kind": "rows",
+      "was": "4 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /account-pending #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 6 real"
+    },
+    {
+      "key": "customer /account-denied #0",
+      "kind": "rows",
+      "was": "4 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /account-denied #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 6 real"
+    },
+    {
+      "key": "customer /account-banned #0",
+      "kind": "rows",
+      "was": "4 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /account-banned #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 6 real"
+    },
+    {
+      "key": "customer /forgot-password #0",
+      "kind": "jump",
+      "was": "row 128px → 193px (+65px)"
+    },
+    {
+      "key": "customer /forgot-password #0",
+      "kind": "rows",
+      "was": "4 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /profile #0",
+      "kind": "jump",
+      "was": "row 75px → 117px (+42px)"
+    },
+    {
+      "key": "customer /profile #0",
+      "kind": "media",
+      "was": "2 avatar/media bone(s) → 5 real"
+    },
+    {
+      "key": "customer /profile?tab=schedule #0",
+      "kind": "jump",
+      "was": "row 506px → 1207px (+701px)"
+    },
+    {
+      "key": "customer /profile?tab=security #0",
+      "kind": "rows",
+      "was": "2 placeholder row(s) → 3 real row(s)"
+    },
+    {
+      "key": "customer /profile?tab=security #1",
+      "kind": "jump",
+      "was": "row 104px → 44px (-60px)"
+    },
+    {
+      "key": "customer /profile?tab=security #1",
+      "kind": "rows",
+      "was": "2 placeholder row(s) → 3 real row(s)"
+    },
+    {
+      "key": "customer /profile?tab=security #1",
+      "kind": "media",
+      "was": "1 avatar/media bone(s) → 5 real"
+    },
+    {
+      "key": "customer /profile?tab=reviews #0",
+      "kind": "jump",
+      "was": "row 54px → 86px (+32px)"
+    },
+    {
+      "key": "customer /profile?tab=reviews #0",
+      "kind": "rows",
+      "was": "2 placeholder row(s) → 3 real row(s)"
+    },
+    {
+      "key": "customer /profile?tab=reviews #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 2 real"
+    },
+    {
+      "key": "customer /profile?tab=notifications #2",
+      "kind": "jump",
+      "was": "row 31px → 64px (+33px)"
+    },
+    {
+      "key": "customer /profile?tab=notifications #2",
+      "kind": "media",
+      "was": "2 avatar/media bone(s) → 0 real"
+    },
+    {
+      "key": "customer /profile?tab=warnings #0",
+      "kind": "jump",
+      "was": "row 188px → 243px (+55px)"
+    },
+    {
+      "key": "customer /profile?tab=warnings #0",
+      "kind": "rows",
+      "was": "3 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /profile?tab=warnings #1",
+      "kind": "jump",
+      "was": "row 188px → 243px (+55px)"
+    },
+    {
+      "key": "customer /profile?tab=warnings #1",
+      "kind": "rows",
+      "was": "3 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /profile?tab=warnings #2",
+      "kind": "jump",
+      "was": "row 188px → 243px (+55px)"
+    },
+    {
+      "key": "customer /profile?tab=warnings #2",
+      "kind": "rows",
+      "was": "3 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /profile?tab=saved_helpers #0",
+      "kind": "jump",
+      "was": "row 270px → 398px (+128px)"
+    },
+    {
+      "key": "customer /profile?tab=saved_helpers #0",
+      "kind": "media",
+      "was": "4 avatar/media bone(s) → 7 real"
+    },
+    {
+      "key": "customer /profile?tab=accessibility #0",
+      "kind": "jump",
+      "was": "row 118px → 76px (-42px)"
+    },
+    {
+      "key": "customer /profile?tab=accessibility #0",
+      "kind": "rows",
+      "was": "2 placeholder row(s) → 3 real row(s)"
+    },
+    {
+      "key": "customer /profile?tab=accessibility #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 5 real"
+    },
+    {
+      "key": "customer /profile?tab=accessibility #1",
+      "kind": "jump",
+      "was": "row 118px → 76px (-42px)"
+    },
+    {
+      "key": "customer /profile?tab=accessibility #1",
+      "kind": "rows",
+      "was": "2 placeholder row(s) → 3 real row(s)"
+    },
+    {
+      "key": "customer /profile?tab=accessibility #1",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 5 real"
+    },
+    {
+      "key": "customer /profile?tab=pets #0",
+      "kind": "jump",
+      "was": "row 118px → 216px (+98px)"
+    },
+    {
+      "key": "customer /profile?tab=pets #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 3 real"
+    },
+    {
+      "key": "customer /profile?tab=pets #1",
+      "kind": "jump",
+      "was": "row 118px → 216px (+98px)"
+    },
+    {
+      "key": "customer /profile?tab=pets #1",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 3 real"
+    },
+    {
+      "key": "customer /profile?tab=work_record #0",
+      "kind": "jump",
+      "was": "row 118px → 830px (+712px)"
+    },
+    {
+      "key": "customer /profile?tab=work_record #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 2 real"
+    },
+    {
+      "key": "customer /profile?tab=work_record #1",
+      "kind": "jump",
+      "was": "row 118px → 830px (+712px)"
+    },
+    {
+      "key": "customer /profile?tab=work_record #1",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 2 real"
+    },
+    {
+      "key": "customer /profile?tab=home_history #0",
+      "kind": "jump",
+      "was": "row 118px → 3477px (+3359px)"
+    },
+    {
+      "key": "customer /profile?tab=home_history #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 16 real"
+    },
+    {
+      "key": "customer /profile?tab=home_history #1",
+      "kind": "jump",
+      "was": "row 118px → 3477px (+3359px)"
+    },
+    {
+      "key": "customer /profile?tab=home_history #1",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 16 real"
+    },
+    {
+      "key": "customer /profile?tab=str_settings #0",
+      "kind": "jump",
+      "was": "row 118px → 508px (+390px)"
+    },
+    {
+      "key": "customer /profile?tab=str_settings #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 2 real"
+    },
+    {
+      "key": "customer /profile?tab=str_settings #1",
+      "kind": "jump",
+      "was": "row 118px → 508px (+390px)"
+    },
+    {
+      "key": "customer /profile?tab=str_settings #1",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 2 real"
+    },
+    {
+      "key": "customer /profile?tab=auto_tip #0",
+      "kind": "jump",
+      "was": "row 118px → 559px (+441px)"
+    },
+    {
+      "key": "customer /profile?tab=auto_tip #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 2 real"
+    },
+    {
+      "key": "customer /profile?tab=auto_tip #1",
+      "kind": "jump",
+      "was": "row 118px → 559px (+441px)"
+    },
+    {
+      "key": "customer /profile?tab=auto_tip #1",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 2 real"
+    },
+    {
+      "key": "customer /profile?tab=wrapped #0",
+      "kind": "jump",
+      "was": "row 118px → 751px (+633px)"
+    },
+    {
+      "key": "customer /profile?tab=wrapped #1",
+      "kind": "jump",
+      "was": "row 118px → 751px (+633px)"
+    },
+    {
+      "key": "customer /profile?tab=analytics #0",
+      "kind": "jump",
+      "was": "row 118px → 447px (+329px)"
+    },
+    {
+      "key": "customer /profile?tab=analytics #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 2 real"
+    },
+    {
+      "key": "customer /profile?tab=analytics #1",
+      "kind": "jump",
+      "was": "row 118px → 447px (+329px)"
+    },
+    {
+      "key": "customer /profile?tab=analytics #1",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 2 real"
+    },
+    {
+      "key": "customer /profile?tab=gift_card #0",
+      "kind": "jump",
+      "was": "row 118px → 1348px (+1230px)"
+    },
+    {
+      "key": "customer /profile?tab=gift_card #1",
+      "kind": "jump",
+      "was": "row 118px → 1348px (+1230px)"
+    },
+    {
+      "key": "customer /my-jobs #0",
+      "kind": "rows",
+      "was": "0 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /my-jobs #1",
+      "kind": "jump",
+      "was": "row 206px → 154px (-52px)"
+    },
+    {
+      "key": "customer /my-jobs #1",
+      "kind": "rows",
+      "was": "4 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /my-jobs #1",
+      "kind": "media",
+      "was": "4 avatar/media bone(s) → 1 real"
+    },
+    {
+      "key": "customer /user/test #0",
+      "kind": "jump",
+      "was": "row 152px → 141px (-11px)"
+    },
+    {
+      "key": "customer /user/test #1",
+      "kind": "jump",
+      "was": "row 326px → 141px (-185px)"
+    },
+    {
+      "key": "customer /user/71c56dfb-b326-4010-b960-b18dd3966e7f #0",
+      "kind": "media",
+      "was": "1 avatar/media bone(s) → 3 real"
+    },
+    {
+      "key": "customer /user/71c56dfb-b326-4010-b960-b18dd3966e7f #1",
+      "kind": "jump",
+      "was": "row 326px → 247px (-79px)"
+    },
+    {
+      "key": "customer /user/71c56dfb-b326-4010-b960-b18dd3966e7f #1",
+      "kind": "media",
+      "was": "1 avatar/media bone(s) → 3 real"
+    },
+    {
+      "key": "customer /messages #0",
+      "kind": "rows",
+      "was": "4 placeholder row(s) → 2 real row(s)"
+    },
+    {
+      "key": "customer /messages #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 45 real"
+    },
+    {
+      "key": "anon /messages #0",
+      "kind": "jump",
+      "was": "row 128px → 62px (-66px)"
+    },
+    {
+      "key": "anon /messages #0",
+      "kind": "rows",
+      "was": "4 placeholder row(s) → 3 real row(s)"
+    },
+    {
+      "key": "customer /data-rights #0",
+      "kind": "jump",
+      "was": "row 58px → 1301px (+1243px)"
+    },
+    {
+      "key": "customer /data-rights #0",
+      "kind": "media",
+      "was": "4 avatar/media bone(s) → 2 real"
+    },
+    {
+      "key": "customer /jobs/e7e09075-a8c6-44b0-9c11-4ee42b8849ea #0",
+      "kind": "jump",
+      "was": "row 58px → 44px (-14px)"
+    },
+    {
+      "key": "customer /jobs/e7e09075-a8c6-44b0-9c11-4ee42b8849ea #0",
+      "kind": "rows",
+      "was": "2 placeholder row(s) → 5 real row(s)"
+    },
+    {
+      "key": "customer /jobs/e7e09075-a8c6-44b0-9c11-4ee42b8849ea #0",
+      "kind": "media",
+      "was": "5 avatar/media bone(s) → 0 real"
+    },
+    {
+      "key": "anon /browse #0",
+      "kind": "jump",
+      "was": "row 36px → 27px (-9px)"
+    },
+    {
+      "key": "customer /rules #0",
+      "kind": "rows",
+      "was": "4 placeholder row(s) → 0 real row(s)"
+    },
+    {
+      "key": "customer /rules #0",
+      "kind": "media",
+      "was": "0 avatar/media bone(s) → 4 real"
+    }
+  ]
+}

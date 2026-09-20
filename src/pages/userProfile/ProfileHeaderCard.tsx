@@ -5,6 +5,26 @@ import { PROFILE_BADGE_PILL_BOX } from "./ProfileBadge";
 import type { Database } from "@/integrations/supabase/types";
 import type { LastActiveLabel } from "./types";
 
+/**
+ * THE HERO CARD'S OWN GEOMETRY, exported so its placeholder can IMPORT the
+ * frame instead of redrawing it.
+ *
+ * UserProfile's loading bones used to restate these classes from memory and
+ * had drifted: the bones were `flex flex-col sm:flex-row` — a centred stack
+ * at 375 — under a comment claiming they mirrored this card, while the card
+ * itself is `flex flex-row` at EVERY width. Measured at 375, the placeholder
+ * put a 96px avatar centred above the name and the real card put an 80px one
+ * to its left, so the whole identity block relaid out on arrival. Trust the
+ * declaration, never the comment beside it; better still, share the
+ * declaration, as JobCardSkeleton does with cardGeometry.
+ */
+export const PROFILE_HERO_CARD = "rounded-2xl liquid-glass overflow-hidden";
+export const PROFILE_HERO_PAD = "p-5 sm:p-6 lg:p-7";
+export const PROFILE_HERO_ROW = "flex flex-row items-start gap-4";
+export const PROFILE_HERO_AVATAR = "w-20 h-20 sm:w-28 sm:h-28 rounded-ds-avatar squircle";
+/** The record strip below the hairline — where the stat grid lands. */
+export const PROFILE_HERO_RECORD = "px-5 py-4 sm:px-6 sm:py-5 lg:px-7";
+
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 type Props = {
@@ -166,15 +186,15 @@ export const ProfileHeaderCard = ({
 
   return (
     <div
-      className="rounded-2xl liquid-glass overflow-hidden"
+      className={PROFILE_HERO_CARD}
       style={{
         backgroundImage:
           "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
           "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
       }}
     >
-      <div className="p-5 sm:p-6 lg:p-7">
-        <div className="flex flex-row items-start gap-4">
+      <div className={PROFILE_HERO_PAD}>
+        <div className={PROFILE_HERO_ROW}>
           {/* ── Avatar ── */}
           <div className="relative inline-block shrink-0">
             {/* The bark hairline moves onto the Avatar ROOT so it frames the
@@ -192,7 +212,7 @@ export const ProfileHeaderCard = ({
               initials={initials}
               pixelSize={112}
               alt={`${displayName} profile picture`}
-              className="w-20 h-20 sm:w-28 sm:h-28 rounded-ds-avatar squircle"
+              className={PROFILE_HERO_AVATAR}
               // `rounded-ds-avatar squircle` is repeated on the FALLBACK, not
               // just the root: `AvatarFallback` ships `rounded-full`, so
               // without it the gradient is a circle sitting inside a squircle
@@ -409,7 +429,7 @@ export const ProfileHeaderCard = ({
           as one masthead rather than two widgets stacked by accident. */}
       {atAGlance && (
         <div
-          className="px-5 py-4 sm:px-6 sm:py-5 lg:px-7"
+          className={PROFILE_HERO_RECORD}
           style={{
             borderTop: "0.5px solid hsl(var(--olivewood) / 0.14)",
             background: "hsl(var(--parchment) / 0.35)",

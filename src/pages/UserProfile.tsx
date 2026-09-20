@@ -18,7 +18,14 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
-import { ProfileHeaderCard } from "./userProfile/ProfileHeaderCard";
+import {
+  ProfileHeaderCard,
+  PROFILE_HERO_AVATAR,
+  PROFILE_HERO_CARD,
+  PROFILE_HERO_PAD,
+  PROFILE_HERO_RECORD,
+  PROFILE_HERO_ROW,
+} from "./userProfile/ProfileHeaderCard";
 import BackgroundCheckCard from "@/components/profile/BackgroundCheckCard";
 import { AtAGlanceCard } from "./userProfile/AtAGlanceCard";
 import { RecognitionRow } from "./userProfile/RecognitionRow";
@@ -242,29 +249,46 @@ const UserProfile = () => {
                 </p>
               </div>
             )}
-            {/* Mirrors ProfileHeaderCard: below sm one centred stack, at sm+ a
-                fixed identity column beside the record. */}
-            <div className="rounded-2xl liquid-glass p-5 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-5">
-              <div className="flex flex-col items-center sm:items-start gap-2 sm:w-[212px] sm:shrink-0">
-                <div className="w-24 h-24 rounded-ds-avatar squircle bg-muted motion-safe:animate-pulse" />
-                <div className="h-6 w-40 bg-muted motion-safe:animate-pulse rounded" />
-                <div className="h-4 w-24 bg-muted motion-safe:animate-pulse rounded" />
+            {/* The hero card's frame is IMPORTED from ProfileHeaderCard, not
+                restated. These bones used to carry their own copy of it under
+                a comment claiming they mirrored that card — and the copy had
+                drifted: `flex flex-col sm:flex-row` here (a centred stack at
+                375, with a 96px avatar) against `flex flex-row` and an 80px
+                avatar there, at every width. Measured at 375 the whole
+                identity block relaid out on arrival and the card went 326px
+                to 309px. Same fix JobCardSkeleton got from cardGeometry:
+                share the declaration so neither side can move alone. */}
+            <div className={PROFILE_HERO_CARD}>
+              <div className={PROFILE_HERO_PAD}>
+                <div className={PROFILE_HERO_ROW}>
+                  <div className={`${PROFILE_HERO_AVATAR} shrink-0 bg-muted motion-safe:animate-pulse`} />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="h-6 w-40 max-w-full bg-muted motion-safe:animate-pulse rounded" />
+                    <div className="h-4 w-32 max-w-full bg-muted motion-safe:animate-pulse rounded" />
+                    <div className="h-4 w-28 max-w-full bg-muted motion-safe:animate-pulse rounded" />
+                  </div>
+                </div>
               </div>
-              <div className="flex-1 space-y-3 w-full">
-                <div className="h-4 w-full bg-muted motion-safe:animate-pulse rounded" />
-                <div className="h-4 w-5/6 bg-muted motion-safe:animate-pulse rounded" />
-                <div className="h-16 w-full bg-muted motion-safe:animate-pulse rounded" />
+              {/* THE RECORD strip, inside the same card and behind the same
+                  hairline the card draws it behind — a 2x2 stat grid. It used
+                  to be a 3-up row of separate cards BELOW the hero, standing
+                  in for something this page does not have: the stats live
+                  inside the masthead. */}
+              <div
+                className={PROFILE_HERO_RECORD}
+                style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.14)" }}
+              >
+                <div className="grid grid-cols-2 gap-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="rounded-ds-md p-3 space-y-2" style={{ background: "hsl(var(--olivewood) / 0.05)" }}>
+                      <div className="h-5 w-16 bg-muted motion-safe:animate-pulse rounded" />
+                      <div className="h-3 w-20 bg-muted motion-safe:animate-pulse rounded" />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="space-y-5">
-              <div className="grid grid-cols-3 gap-2">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="rounded-ds-md liquid-glass p-3 space-y-2">
-                    <div className="h-7 w-10 bg-muted motion-safe:animate-pulse mx-auto rounded" />
-                    <div className="h-3 w-12 bg-muted motion-safe:animate-pulse mx-auto rounded" />
-                  </div>
-                ))}
-              </div>
               {/* Endorsements, availability and portfolio each run their OWN
                   fetch and return null until it lands, so they arrive in a
                   second wave after this skeleton is already gone. One bone

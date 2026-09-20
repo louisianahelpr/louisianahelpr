@@ -93,9 +93,13 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
     const branch = src.slice(src.indexOf("if (loading) {"), src.indexOf("const displayName"));
     expect(branch.length, "Profile.tsx's loading branch was not found — this guard has rotted").toBeGreaterThan(100);
     expect(branch, "the boot skeleton must render the tab's own placeholder").toContain("ProfileTabFallback");
+    // The PAIRING, not the presence of either half: `/tab === "landing"/`
+    // on its own is satisfied by the container's `pt-3` gate a few lines up
+    // in the same branch. What must hold is that ProfilePageSkeleton is what
+    // the landing test selects.
     expect(
-      /tab === "landing"/.test(branch),
-      "the landing skeleton must be gated on the landing tab, not used as the default",
+      /tab === "landing"\s*\?\s*\(\s*<ProfilePageSkeleton/.test(branch),
+      "the LANDING skeleton must be what the landing test selects, not the default",
     ).toBe(true);
   });
 });

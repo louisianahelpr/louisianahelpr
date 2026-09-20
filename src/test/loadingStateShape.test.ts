@@ -129,7 +129,7 @@ describe("loading states: the Profile tab placeholder fills the screen", () => {
     expect(src, "and applied as a min-height, so short tabs collapse empty space").toMatch(/minHeight/);
   });
 
-  // @mutate src/pages/Profile.tsx | {tab === "landing" ? ( | {false ? (
+  // @mutate src/pages/Profile.tsx | {tab === "landing" ? (\n              <ProfilePageSkeleton /> | {false ? (\n              <ProfilePageSkeleton />
   it("boots into the TAB's placeholder, never the landing's", () => {
     // A cold deep link into ?tab=gift_card used to paint an avatar hero and
     // three stat tiles, because the boot branch special-cased one tab.
@@ -137,7 +137,16 @@ describe("loading states: the Profile tab placeholder fills the screen", () => {
     const branch = src.slice(src.indexOf("if (loading) {"), src.indexOf("const displayName"));
     expect(branch.length, "Profile.tsx's loading branch not found - guard rotted").toBeGreaterThan(100);
     expect(branch).toContain("ProfileTabFallback");
-    expect(branch, "the landing skeleton must be gated on the landing tab").toMatch(/tab === "landing"/);
+    // The PAIRING, not the presence of either half. `/tab === "landing"/`
+    // alone was satisfied by the container's own `pt-3` gate a few lines up
+    // in the same branch, so the vacuity run's mutation of the skeleton
+    // ternary left this green: a guard reading the right file and the wrong
+    // expression. What must hold is that ProfilePageSkeleton is what the
+    // landing test selects.
+    expect(
+      branch,
+      "the LANDING skeleton must be what `tab === \"landing\"` selects",
+    ).toMatch(/tab === "landing"\s*\?\s*\(\s*<ProfilePageSkeleton/);
   });
 });
 

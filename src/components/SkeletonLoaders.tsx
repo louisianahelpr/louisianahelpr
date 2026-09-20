@@ -1,38 +1,22 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export const JobCardSkeleton = () => (
-  // Glass-tinted skeleton shaped like a real job card — chip row at top
-  // (urgent/category), title + price line, two columns of metadata, then
-  // bottom apply-button placeholder. Each surface uses the .skeleton-glass
-  // utility (champagne base + soft sweep) so the loading state matches
-  // the real liquid-glass card visual language.
-  <div className="rounded-2xl overflow-hidden skeleton-glass" style={{ borderRadius: "1rem" }}>
-    {/* Header row: title + price tile */}
-    <div className="px-4 pt-3 pb-2 flex items-start justify-between gap-3">
-      <div className="flex-1 space-y-2">
-        <div className="flex gap-1.5">
-          <Skeleton className="h-3.5 w-14 rounded-full" />
-          <Skeleton className="h-3.5 w-16 rounded-full" />
-        </div>
-        <Skeleton className="h-4 w-3/4 rounded" />
-      </div>
-      <Skeleton className="h-9 w-14 rounded-ds-md" />
-    </div>
-    {/* Metadata grid */}
-    <div className="px-4 pb-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
-      <Skeleton className="h-3 w-24 rounded" />
-      <Skeleton className="h-3 w-20 rounded" />
-      <Skeleton className="h-3 w-28 rounded" />
-      <Skeleton className="h-3 w-16 rounded" />
-    </div>
-    {/* Footer: location + apply button */}
-    <div className="px-4 py-2.5 flex items-center justify-between" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.08)" }}>
-      <Skeleton className="h-3 w-32 rounded" />
-      <Skeleton className="h-7 w-20 rounded-full" />
-    </div>
-  </div>
-);
-
+/**
+ * `JobCardSkeleton` LIVED HERE and does not any more (2026-09-20).
+ *
+ * There were TWO components with that name in this repo: this one, and
+ * src/components/ui/skeletons/JobCardSkeleton.tsx — which is the real one,
+ * built by IMPORTING JobCard's own exported geometry so the reserved space is
+ * the real space by construction. This copy was a hand-drawn approximation of
+ * a job card with a chip row, a metadata grid and an apply-button footer, and
+ * its only two callers were Home History and Work Record, where what actually
+ * arrives is a service-record card and a one-page letterhead document. Two
+ * different shapes under one name, neither matching what it stood in for.
+ *
+ * Both callers now render ProfileTabBodyReserve — the same placeholder they
+ * had shown a moment earlier while the tab's chunk loaded. Import
+ * `JobCardSkeleton` from @/components/ui/skeletons/JobCardSkeleton; there is
+ * exactly one now.
+ */
 
 export const ActivityCardSkeleton = () => (
   // Glass-tinted skeleton shaped like a real activity card. Matches the

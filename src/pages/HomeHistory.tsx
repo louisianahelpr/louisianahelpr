@@ -22,7 +22,7 @@ import {
 } from "@/lib/homeHistoryDocument";
 import { categoryColors, categoryLabels } from "@/components/activity/activityConstants";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
-import { JobCardSkeleton } from "@/components/SkeletonLoaders";
+import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
@@ -302,11 +302,12 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
       {/* `space-y-5` preserved from the old body wrapper — it separates the
           per-year timeline sections. */}
       <div className="space-y-5">
-        {loading && (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => <JobCardSkeleton key={i} />)}
-          </div>
-        )}
+        {/* The SAME placeholder this tab showed a moment ago while its chunk
+            loaded — not a second, differently-shaped one. It used to be three
+            JobCardSkeletons: job-card rows with badge chips, a price tile and
+            an apply-button footer, standing in for content that is nothing of
+            the kind. See ProfileTabBodyReserve. */}
+        {loading && <ProfileTabBodyReserve />}
 
         {isError && !loading && (
           <ErrorState

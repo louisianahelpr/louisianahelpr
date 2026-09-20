@@ -74,7 +74,22 @@ export interface ProfileTabFallbackProps {
   onBack?: () => void;
 }
 
-export const ProfileTabFallback = ({ tab, onBack }: ProfileTabFallbackProps) => {
+/**
+ * The placeholder WITHOUT the header — two bone cards over a one-screenful
+ * reserve.
+ *
+ * Exported because a tab waits twice: once for its chunk (this file's default
+ * export covers that, header included) and again for its data, inside a body
+ * whose header is already painted. Home History and Work Record both spent
+ * that second wait on a job-card-shaped skeleton — three rows with badge
+ * chips, a price tile and an apply-button footer — while what arrived was, in
+ * Work Record's case, ONE letterhead document, and in Home History's a single
+ * record card measured at 309px against the bone's 76px. Nothing in the
+ * placeholder corresponded to anything in the content: "not consistent with
+ * their info", verbatim. Both now wait in the same clothes they waited in a
+ * moment earlier, so the sequence is one placeholder, not two.
+ */
+export const ProfileTabBodyReserve = () => {
   const ref = useRef<HTMLDivElement>(null);
   const [reserve, setReserve] = useState<number | undefined>(undefined);
 
@@ -89,28 +104,32 @@ export const ProfileTabFallback = ({ tab, onBack }: ProfileTabFallbackProps) => 
   }, []);
 
   return (
-    <ProfileTabBody>
-      <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} />
-      <div
-        ref={ref}
-        style={{ minHeight: reserve }}
-        aria-hidden
-        data-testid="profile-tab-fallback"
-        className="space-y-4"
-      >
-        <div className="rounded-2xl liquid-glass p-5 space-y-3">
-          <Skeleton className="h-5 w-32 rounded" />
-          <Skeleton className="h-4 w-2/3 rounded" />
-          <Skeleton className="h-4 w-1/2 rounded" />
-        </div>
-        <div className="rounded-2xl liquid-glass p-5 space-y-3">
-          <Skeleton className="h-4 w-1/3 rounded" />
-          <Skeleton className="h-4 w-3/4 rounded" />
-          <Skeleton className="h-4 w-1/2 rounded" />
-        </div>
+    <div
+      ref={ref}
+      style={{ minHeight: reserve }}
+      aria-hidden
+      data-testid="profile-tab-fallback"
+      className="space-y-4"
+    >
+      <div className="rounded-2xl liquid-glass p-5 space-y-3">
+        <Skeleton className="h-5 w-32 rounded" />
+        <Skeleton className="h-4 w-2/3 rounded" />
+        <Skeleton className="h-4 w-1/2 rounded" />
       </div>
-    </ProfileTabBody>
+      <div className="rounded-2xl liquid-glass p-5 space-y-3">
+        <Skeleton className="h-4 w-1/3 rounded" />
+        <Skeleton className="h-4 w-3/4 rounded" />
+        <Skeleton className="h-4 w-1/2 rounded" />
+      </div>
+    </div>
   );
 };
+
+export const ProfileTabFallback = ({ tab, onBack }: ProfileTabFallbackProps) => (
+  <ProfileTabBody>
+    <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} />
+    <ProfileTabBodyReserve />
+  </ProfileTabBody>
+);
 
 export default ProfileTabFallback;

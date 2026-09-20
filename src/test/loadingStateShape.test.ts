@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 /**
@@ -138,5 +138,56 @@ describe("loading states: the Profile tab placeholder fills the screen", () => {
     expect(branch.length, "Profile.tsx's loading branch not found - guard rotted").toBeGreaterThan(100);
     expect(branch).toContain("ProfileTabFallback");
     expect(branch, "the landing skeleton must be gated on the landing tab").toMatch(/tab === "landing"/);
+  });
+});
+
+
+/**
+ * ONE NAME, ONE SKELETON.
+ *
+ * Found in the same 2026-09-19 sweep: `JobCardSkeleton` was exported from TWO
+ * files with two completely different shapes — src/components/SkeletonLoaders
+ * (a hand-drawn job card with a chip row, a metadata grid and an apply-button
+ * footer) and src/components/ui/skeletons/JobCardSkeleton (the real one, built
+ * by importing JobCard's own exported geometry). Which one a screen got
+ * depended on which import line it happened to carry, and the two callers of
+ * the hand-drawn copy — Home History and Work Record — render a service-record
+ * card and a letterhead document, neither of which is a job card.
+ *
+ * A duplicate placeholder name is not a style problem; it is how a screen ends
+ * up reserving the wrong shape and nobody notices, because the name reads
+ * right at the call site. So: every placeholder component in `src/` has a
+ * unique name.
+ */
+describe("loading states: no two placeholders share a name", () => {
+  const SKEL_NAME = /^\s*export\s+(?:const|function)\s+([A-Z]\w*(?:Skeleton|Fallback|Placeholder))\b/gm;
+
+  const walk = (dir: string, out: string[] = []): string[] => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = resolve(dir, e.name);
+      if (e.isDirectory()) { if (e.name !== "node_modules") walk(p, out); continue; }
+      if (/\.tsx?$/.test(e.name) && !e.name.includes(".test.")) out.push(p);
+    }
+    return out;
+  };
+
+  // @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | export function JobCardSkeleton() { | export function ProfilePageSkeleton() {} export function JobCardSkeleton() {
+  it("every exported placeholder name is defined in exactly one file", () => {
+    const files = walk(resolve(REPO, "src"));
+    // FLOOR: a scan that matches nothing must fail, never pass quietly.
+    expect(files.length, "the source walk found nothing").toBeGreaterThan(200);
+    const byName = new Map<string, string[]>();
+    for (const f of files) {
+      const src = readFileSync(f, "utf8");
+      for (const m of src.matchAll(SKEL_NAME)) {
+        const rel = f.slice(REPO.length + 1);
+        byName.set(m[1], [...(byName.get(m[1]) ?? []), rel]);
+      }
+    }
+    expect(byName.size, "no placeholder exports matched — this guard has rotted").toBeGreaterThan(10);
+    const dupes = [...byName.entries()]
+      .filter(([, files]) => new Set(files).size > 1)
+      .map(([name, files]) => `${name}: ${[...new Set(files)].join(" + ")}`);
+    expect(dupes, "two placeholders answering to one name").toEqual([]);
   });
 });

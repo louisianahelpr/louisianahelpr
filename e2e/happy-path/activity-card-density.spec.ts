@@ -920,10 +920,21 @@ test.describe("My Posts — card density + header", () => {
       // Still exactly one heading — the indicator is a span, never an h2.
       await assertOneH1(page);
       if (filter === "needs_you") {
-        // The HEADER CARD itself, not the viewport — a plain screenshot here
-        // caught wherever the list happened to be scrolled to and showed no
-        // header at all.
-        await page.locator("h1").locator("../..").screenshot({ path: `${SHOTS}/header-filter-needs-you-375.png` });
+        /* The HEADER CARD itself, not the viewport — a plain screenshot here
+           caught wherever the list happened to be scrolled to and showed no
+           header at all.
+
+           `h1`'s grandparent (`../..`) is NOT that card: it captured the title
+           and the two icon buttons and cropped the tab row straight off, so
+           the evidence for this test showed none of what the test asserts.
+           Anchored on the two things that must BOTH be in frame instead —
+           the innermost element holding the heading and the tab group. */
+        await page
+          .locator("div")
+          .filter({ has: page.locator("h1") })
+          .filter({ has: page.getByRole("group", { name: "Filter by status" }) })
+          .last()
+          .screenshot({ path: `${SHOTS}/header-filter-needs-you-375.png` });
       }
     }
   });

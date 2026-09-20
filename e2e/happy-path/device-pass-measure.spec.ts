@@ -639,25 +639,80 @@ test.describe("device pass — measured", () => {
     await settleAnimations(page);
     await expandAllSections(page);
 
+    // Heights are measured COLLAPSED, which is how both cards arrive — see
+    // the affordance note below. That is the density question this test is
+    // named for: two summaries sharing one 812px screen.
     const cards = await measureCardHeights(page, CARD);
     const stack = cards.slice(0, 2).reduce((a, c) => a + c.height, 0);
-    const withdraws = await page.getByRole("button", { name: "Withdraw application" }).count();
-    const edits = await page.getByRole("button", { name: "Edit your application" }).count();
+    await page.screenshot({ path: `${SHOTS}/${LABEL}-applied-pair-375.png`, fullPage: true });
+
+    /* EDIT AND WITHDRAW ARE BEHIND THE CARD'S EXPAND, ONE CARD AT A TIME.
+       Owner, 2026-09-19: "jobs should open collapsed just like post does"
+       (7e76e2a3b). A collapsed applied card is a SUMMARY — it signals state
+       ("Waiting · They haven't replied yet") and offers no controls, exactly
+       as the collapsed card on /my-posts does. Nothing today's activity-header
+       work did; verified by blaming the `isExpanded` gate on the JobActionRow.
+
+       So this used to count Withdraw buttons across the whole PAGE, and on the
+       shipped app that count is 0 — not because the two cards disagree, but
+       because neither is open. The invariant the owner asked for is unchanged
+       and still fully asserted: two applications in the same state offer the
+       same affordances. It is now checked PER CARD, by opening each one and
+       reading its own action row.
+
+       That is stronger than the page-wide count it replaces, which a single
+       card holding both buttons would have satisfied while the other held
+       none — the precise defect the assertion existed to catch. */
+    // Keyed by INDEX, not by title: measureCardHeights reads an `h3` and the
+    // applied card has none, so every title here is "" and two entries keyed
+    // on it would be indistinguishable in both the record and the diff.
+    const offered: { card: number; withdraw: number; edit: number }[] = [];
+    for (let i = 0; i < 2; i++) {
+      const toggles = page.getByRole("button", { name: /Expand Job Details/ });
+      const toggle = toggles.nth(0);
+      // Activate the way a keyboard user does: the control is sr-only, so a
+      // hit-test click needs { force: true } and proves less.
+      await toggle.focus();
+      await toggle.press("Enter");
+      const open = page.locator(CARD).filter({
+        has: page.getByRole("button", { name: "Collapse Job Details" }),
+      });
+      await expect(open, `card ${i} did not open`).toHaveCount(1);
+      offered.push({
+        card: i,
+        withdraw: await open.getByRole("button", { name: "Withdraw application" }).count(),
+        edit: await open.getByRole("button", { name: "Edit your application" }).count(),
+      });
+      // Close it again so the next iteration's `.nth(0)` is the OTHER card.
+      const close = page.getByRole("button", { name: "Collapse Job Details" }).first();
+      await close.focus();
+      await close.press("Enter");
+    }
+
     record({
       kind: "applied-pair",
       cards,
       firstTwoStack: stack,
       viewportH: 812,
-      withdrawButtons: withdraws,
-      editButtons: edits,
+      perCardAffordances: offered,
     });
-    await page.screenshot({ path: `${SHOTS}/${LABEL}-applied-pair-375.png`, fullPage: true });
 
     if (LABEL === "after") {
       expect(cards.length, "expected two applied cards").toBeGreaterThanOrEqual(2);
-      // Two cards in the same state must offer the SAME affordances.
-      expect(withdraws, "both cards must offer Withdraw").toBe(cards.length);
-      expect(edits, "both cards must offer Edit").toBe(cards.length);
+      // Two cards in the same state must offer the SAME affordances — each
+      // card asked for its own, rather than a total that cannot tell them
+      // apart.
+      // Spelled out rather than derived from `offered` itself: an expectation
+      // built by mapping over the actual is the shape that passes on an EMPTY
+      // list, which is how a check that reads a control quietly stops reading
+      // anything at all.
+      expect(
+        offered,
+        "each expanded pending application must offer exactly one Withdraw and one Edit",
+      ).toEqual([
+        { card: 0, withdraw: 1, edit: 1 },
+        { card: 1, withdraw: 1, edit: 1 },
+      ]);
     }
   });
 

@@ -47,6 +47,7 @@
 //   SUPABASE_URL=… SUPABASE_ANON_KEY=… POSTER_ACCESS_TOKEN=… \
 //     node scripts/e2e/prod-lifecycle-sweeper.mjs [--dry-run]
 import { removeJobMediaRest } from "../lib/jobMediaRest.mjs";
+import { summariseSweep } from "./sweepSummary.mjs";
 
 const BASE = (process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
 const ANON = process.env.SUPABASE_ANON_KEY || "";
@@ -156,6 +157,14 @@ console.log(`Prod lifecycle sweeper — ${BASE}`);
 console.log(`Stranded jobs matching "${E2E_TITLE_MARKER}": ${jobs.length}${DRY ? "  (DRY RUN)" : ""}\n`);
 
 const failures = [];
+/* Rows this run deliberately did NOT unwind: hired AND funded, where
+   cancel_escrow answers 409 useCancelJob and poster_cancel_job would record a
+   cancel_with_helper strike on poster-e2e. They are left to settle forward.
+   They are tracked because the closing line used to say "all stranded rows
+   unwound" no matter how many were left here — 2026-09-20 prod held five such
+   rows in escrow, the oldest from 2026-09-15, none of which had settled
+   forward in five days, and every nightly log had reported OK. */
+const deferred = [];
 for (const job of jobs) {
   /* A Checkout Session id proves a session was MINTED, not that it was paid —
      it is set by create-payment before the poster ever sees the card form. This
@@ -240,6 +249,7 @@ for (const job of jobs) {
          hired, funded leftover settles FORWARD (auto-release, or the next
          run's release) — reported, never a failure. */
       console.log(`    left to settle forward: ${job.id} is hired and funded (cancel_escrow 409 useCancelJob)`);
+      deferred.push(job);
     } else if (!r.ok) failures.push(`cancel_escrow ${job.id}: HTTP ${r.status} ${r.body}`);
   } else {
     // Walk the status back to 'open' first when the run got as far as hiring or
@@ -267,4 +277,16 @@ if (failures.length) {
   );
   process.exit(1);
 }
-console.log(jobs.length ? "\nOK — all stranded rows unwound." : "\nOK — nothing stranded.");
+const summary = summariseSweep({ listed: jobs.length, deferred });
+console.log(`\n${summary.line}`);
+if (!summary.ok) {
+  // A warning, never an exit code: the rows are real residue, but the sweeper
+  // is deliberately not allowed to unwind them (a poster_cancel_job here
+  // strikes poster-e2e), so failing would red a nightly for something this
+  // script cannot fix. It must still be VISIBLE — that is the whole defect
+  // this replaces.
+  console.log(
+    `::warning title=Stranded funded test jobs are not settling forward::${summary.stale.length} ` +
+      `test-owned job(s) have sat in escrow past 48h: ${summary.stale.map((r) => r.id).join(", ")}`,
+  );
+}

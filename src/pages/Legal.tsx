@@ -8,6 +8,7 @@ import AppShell from "@/components/AppShell";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { PolicySearchContext, PolicyTabContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { TermsContent } from "./legal/TermsSection";
@@ -113,6 +114,22 @@ const Legal = () => {
     setSearchOpen(false);
     setQuery("");
   };
+  /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the dismiss contract every
+     expanding search in this app shares (ActivityHeader states it in full,
+     owner 2026-09-19). Measured here at 320 / 375 / 1440 before this:
+     pressing the field's ✕ closed the field in a single press and dropped
+     `document.activeElement` on <body>, so a keyboard reader was returned to
+     the top of a very long policy document by the control whose whole job is
+     "put me back where I was". The magnifier does not exist while the field is
+     open, so the focus has to move on the render that brings it back — hence
+     an effect keyed on the flag rather than a call inside the click handler.
+     Only on a true->false transition, so it can never steal focus on load. */
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
+  const wasSearchOpenRef = useRef(searchOpen);
+  useEffect(() => {
+    if (wasSearchOpenRef.current && !searchOpen) searchTriggerRef.current?.focus();
+    wasSearchOpenRef.current = searchOpen;
+  }, [searchOpen]);
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   // The sticky Terms/Rules/Privacy band, so a tab switch can scroll to the
@@ -368,6 +385,7 @@ const Legal = () => {
   // hold their size whichever state this slot is in — they simply sit further
   // left when there is more room.
   const searchBar = (
+    <>
     <div
       className={
         searchOpen
@@ -419,7 +437,9 @@ const Legal = () => {
         </>
       ) : (
         <button
+          ref={searchTriggerRef}
           type="button"
+          data-search-trigger
           onClick={() => setSearchOpen(true)}
           aria-label="Search all policies"
           aria-expanded={searchOpen}
@@ -435,6 +455,18 @@ const Legal = () => {
         </button>
       )}
     </div>
+    {/* THE MAGNIFIER'S LANDING SLOT. This row collapses the search slot back
+        to a 40px button the moment the field closes, and the field's ✕ is
+        anchored to that same trailing edge — so without the slot the ✕ sits
+        exactly on top of the button that replaces it (measured: 44px of
+        overlap at every width), and one press to dismiss is immediately
+        followed by a press that re-opens. Held open, the field stops one
+        icon-width short of where the magnifier comes back to, which is the
+        owner's "open slightly to the left of the icon so it doesn't cover
+        anything" applied to the policy search. `h-10 w-10` is the trigger's
+        own box below — the slot reserves the real width, not a guess. */}
+    {searchOpen && <SearchTriggerSlot width="40px" />}
+    </>
   );
 
   // The one control row, shared verbatim by the native and web branches below

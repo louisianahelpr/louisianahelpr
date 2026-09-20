@@ -1,6 +1,7 @@
 import type { Ref } from "react";
 import { Bookmark, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 
 export interface BrowseTasksActionsProps {
@@ -111,14 +112,30 @@ export function BrowseTasksActions({
           so the row is now emblem + search + filter + bell: 156px of controls
           against 201px of room at 320, and 158px of slack at 375 — the hole
           this fills. */}
+      {/* THE MAGNIFIER MOVES INTO THE FIELD (owner, 2026-09-19: "the magnifier
+          should move to the left and the x stay"). While search is open it is
+          not a button in this cluster at all — BrowseSearchBar renders the
+          glyph inside the field's left edge, and the ✕ on the right is the
+          only control in it.
+          Its 40px slot is held OPEN in its place, by whichever row is
+          rendering this cluster. That is not spare decoration: the ✕ is
+          anchored to the field's trailing edge, so without the slot the field
+          grows 44px further right and the ✕ lands squarely on the box this
+          button comes back to — close, re-open, close, the owner's three
+          clicks. See SearchTriggerSlot in ScreenHeaderRow for the arithmetic.
+          The phone brand row (DashboardTitleBar) unmounts this whole cluster
+          instead, so nothing of it is near the ✕ there. */}
+      {filters.searchOpen ? (
+        <SearchTriggerSlot width="40px" />
+      ) : (
       <Button
         variant="ghost"
         size="icon"
         /* The anchor the dismiss focuses back to. This button UNMOUNTS while
-           search is open (DashboardTitleBar gives the whole row to the field),
-           so no ref inside this component survives the round trip — the marker
-           is an attribute and the row that swapped it out does the focusing.
-           See DashboardTitleBar's `searchBar` handling. */
+           search is open, so no ref inside this component survives the round
+           trip — the marker is an attribute and the row that swapped it out
+           does the focusing. See DashboardTitleBar's `searchBar` handling and
+           Dashboard's desktop feed strip. */
         data-search-trigger
         onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
         className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.searchOpen || filters.searchQuery ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
@@ -127,6 +144,7 @@ export function BrowseTasksActions({
       >
         <Search className="w-5 h-5" />
       </Button>
+      )}
       <Button
         ref={filtersButtonRef}
         variant="ghost"

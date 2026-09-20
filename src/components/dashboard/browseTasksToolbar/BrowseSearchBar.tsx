@@ -32,6 +32,7 @@ export function BrowseSearchBar({
   filters,
   embedded = false,
   floatRecents = false,
+  className = "",
 }: {
   filters: ReturnType<typeof useDashboardFilters>;
   /**
@@ -58,6 +59,19 @@ export function BrowseSearchBar({
    * there would be clipped to the card — it keeps the in-flow list.
    */
   floatRecents?: boolean;
+  /**
+   * Extra classes for the field's own wrapper.
+   *
+   * The desktop Browse strip passes `ml-auto`: that row keeps the jobs count
+   * AND the trailing icon cluster mounted while search is open, so without it
+   * flexbox leaves the free space AFTER the field and the field opens hard
+   * against the count — which is the owner's original report
+   * ("the search bar on home opens on the left right on top of the number of
+   * jobs"). `ml-auto` puts the slack in front of it instead, so it grows
+   * LEFTWARD out of the cluster the magnifier came from and stops before the
+   * count.
+   */
+  className?: string;
 }) {
   // Snapshot history when the field opens and refresh after each push, so the
   // list doesn't mutate under the user mid-typing.
@@ -158,7 +172,7 @@ export function BrowseSearchBar({
     // the whole column"): `lg:max-w-md` on desktop; phone stays full-width.
     // `spellCheck={false}` on the input — a search query is not prose the
     // browser should be second-guessing with red squiggles.
-    <div className="relative flex-1 min-w-0 lg:max-w-md">
+    <div className={`relative flex-1 min-w-0 lg:max-w-md ${className}`}>
       <div className="flex items-center gap-2">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />

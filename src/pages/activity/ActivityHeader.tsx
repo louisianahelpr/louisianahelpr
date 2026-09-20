@@ -197,93 +197,114 @@ export function ActivityHeader({
            title"). It used to swap the whole row for the input, so the screen
            you were on lost its name the moment you tapped search — the one
            piece of context you need while typing into it.
-           `origin-right` + a width transition means the animation reads as the
-           button opening out, rather than a panel appearing from nowhere. */
-        <ScreenHeaderRow title={title} titleSrOnly={titleSrOnly}>
-          {/* The screen keeps its NAME while you type into it. ScreenHeaderRow's
-              `children` branch renders the h1 sr-only, so this is a <span>, not
-              a second heading — the row still has exactly one h1.
-              `shrink-0` on the name and `flex-1 min-w-0` on the field is what
-              makes the field grow leftward INTO the empty middle of the row and
-              stop at the title, rather than over it. */}
-          {!titleSrOnly && (
-            <span
-              aria-hidden
-              className="font-display font-bold text-foreground text-ds-20 leading-none shrink-0 max-w-[40%] truncate"
-            >
-              {title}
-            </span>
-          )}
-          {/* DESKTOP: THE TABS STAY UP WHILE SEARCHING, and the field is
-              capped (owner, 2026-09-14, VN-31: "search does not need to open
-              that large. also the chevron on the right is useless here").
-              The field used to take the whole ~1500px row and swap the tabs
-              out, leaving the chevron as the only way back to them. On the
-              desktop website (`inlineFilters`) there is room for both, so the
-              tabs keep their place on the left, the field sits at the right
-              capped at `max-w-md`, and the chevron is not rendered. Phone is
-              unchanged: full-width field, tabs on their own line, chevron. */}
-          {inlineFilters && (
-            <div id="activity-status-tabs" className="flex-1 min-w-0 overflow-x-auto scrollbar-hide">
-              {statusTabs}
-            </div>
-          )}
-          <div className={`relative flex-1 min-w-0 ${inlineFilters ? "max-w-md" : ""} origin-right motion-safe:animate-in motion-safe:slide-in-from-right-4 motion-safe:duration-200`}>
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input
-              autoFocus
-              type="search"
-              aria-label="Search jobs"
-              /* No placeholder (owner). The magnifier already says what the
-                 field is, and greyed placeholder text inside a field that only
-                 exists because you just tapped search is repeating it. */
-              placeholder=""
-              spellCheck={false}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              /* Escape is the keyboard's X. Same single activation, same
-                 pre-open state, same focus return — see closeSearch above. */
-              onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
-              className="w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
-            />
-            {/* The X lives INSIDE the field, on its right (owner). Always
-                present, not only once you have typed: it is the way OUT of
-                search, so hiding it until there is a query left an empty
-                search bar with no visible dismiss. Clears the query and closes
-                in one press — the two things "done searching" means. */}
-            <button
-              type="button"
-              onClick={closeSearch}
-              aria-label="Close search"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center ctl-exit text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
-            >
-              <X className="w-4 h-4" strokeWidth={2.25} />
-            </button>
-          </div>
-          {/* An X, not the word "Cancel" (owner). It sits beside the status
-              chevron, which STAYS available while searching — the two filters
-              are independent, and making you leave search to change a status
-              filter you can see the results of is a needless round trip.
-              Phone only — on desktop the tabs are already beside the field
-              (VN-31, above). */}
-          {!inlineFilters && (
-          <button
-            type="button"
-            onClick={() => { hapticLight(); setTabsOpen((v) => !v); }}
-            aria-expanded={tabsOpen}
-            aria-controls={tabsOpen ? "activity-status-tabs" : undefined}
-            aria-label={tabsOpen ? "Hide status filters" : "Filter by status"}
-            className={`shrink-0 rounded-ds-md flex items-center justify-center btn-press transition hover:bg-secondary/60 h-11 w-11 ${
-              !isDefaultFilter ? "text-[hsl(var(--bark))]" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <ChevronDown
-              className={`w-4 h-4 transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
-              strokeWidth={2.25}
-            />
-          </button>
-          )}
-        </ScreenHeaderRow>
+
+           This state is the SHARED <ScreenHeaderRow expandingSearch> slot now,
+           not a hand-rolled `children` arrangement on top of it. The slot owns
+           the three facts this row used to own alone: the name stays (visible
+           AND as the h1), the field takes free space rather than a sibling's,
+           and — the three-click fix — the magnifier's place in the trailing
+           cluster is HELD OPEN while the field is up, so the ✕ at the field's
+           trailing edge can never sit on the control that replaces it. See
+           SearchTriggerSlot for the arithmetic. */
+        <ScreenHeaderRow
+          title={title}
+          titleSrOnly={titleSrOnly}
+          expandingSearch={{
+            open: true,
+            /* DESKTOP: THE TABS STAY UP WHILE SEARCHING, and the field is
+               capped (owner, 2026-09-14, VN-31: "search does not need to open
+               that large. also the chevron on the right is useless here").
+               The field used to take the whole ~1500px row and swap the tabs
+               out, leaving the chevron as the only way back to them. On the
+               desktop website (`inlineFilters`) there is room for both, so the
+               tabs keep their place on the left, the field sits at the right
+               capped at `max-w-md`, and the chevron is not rendered. Phone is
+               unchanged: full-width field, tabs on their own line, chevron. */
+            leading: inlineFilters ? (
+              <div id="activity-status-tabs" className="flex-1 min-w-0 overflow-x-auto scrollbar-hide">
+                {statusTabs}
+              </div>
+            ) : undefined,
+            /* The held-open slot must match the trigger's OWN box, which this
+               row sizes by width: `h-7 w-7` on the desktop website, `h-11 w-11`
+               on phone. A slot narrower than the button it reserves hands the
+               overlap straight back. */
+            triggerWidth: inlineFilters ? "28px" : "44px",
+            field: (
+              <div className={`relative flex-1 min-w-0 ${inlineFilters ? "max-w-md" : ""} origin-right motion-safe:animate-in motion-safe:slide-in-from-right-4 motion-safe:duration-200`}>
+                {/* THE MAGNIFIER IS IN THE FIELD (owner, 2026-09-19: "the
+                    magnifier should move to the left and the x stay"). Not a
+                    button — the field is already open, so a second control
+                    that opens it would do nothing — just the glyph that says
+                    what this box is. */}
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <input
+                  autoFocus
+                  type="search"
+                  aria-label="Search jobs"
+                  /* No placeholder (owner). The magnifier already says what the
+                     field is, and greyed placeholder text inside a field that only
+                     exists because you just tapped search is repeating it. */
+                  placeholder=""
+                  spellCheck={false}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  /* Escape is the keyboard's X. Same single activation, same
+                     pre-open state, same focus return — see closeSearch above. */
+                  onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
+                  className="w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+                />
+                {/* The X lives INSIDE the field, on its right (owner), and with
+                    the magnifier gone it is the ONLY control in the field.
+                    Always present, not only once you have typed: it is the way
+                    OUT of search, so hiding it until there is a query left an
+                    empty search bar with no visible dismiss. Clears the query
+                    and closes in one press — the two things "done searching"
+                    means.
+
+                    `!min-h-0 !min-w-0` — index.css's bare
+                    `button { min-height: 44px; min-width: 44px }` HIG rule
+                    otherwise wins over `h-7 w-7` and renders this 44x44 inside
+                    a 36px-tall bar, spilling past its top and bottom edge. The
+                    classes here said 28px and the box measured 44 (the same
+                    trap already documented on the toast close button and on
+                    BrowseSearchBar's ✕); a control whose real hit area is 16px
+                    wider than it looks is how a mis-tap lands on whatever is
+                    next to it. */}
+                <button
+                  type="button"
+                  onClick={closeSearch}
+                  aria-label="Close search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 flex items-center justify-center ctl-exit text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+                >
+                  <X className="w-4 h-4" strokeWidth={2.25} />
+                </button>
+              </div>
+            ),
+            /* The status chevron STAYS available while searching — the two
+               filters are independent, and making you leave search to change a
+               status filter you can see the results of is a needless round
+               trip. Phone only: on desktop the tabs are already beside the
+               field (VN-31, above). */
+            actions: !inlineFilters ? (
+              <button
+                type="button"
+                onClick={() => { hapticLight(); setTabsOpen((v) => !v); }}
+                aria-expanded={tabsOpen}
+                aria-controls={tabsOpen ? "activity-status-tabs" : undefined}
+                aria-label={tabsOpen ? "Hide status filters" : "Filter by status"}
+                className={`shrink-0 rounded-ds-md flex items-center justify-center btn-press transition hover:bg-secondary/60 h-11 w-11 ${
+                  !isDefaultFilter ? "text-[hsl(var(--bark))]" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
+                  strokeWidth={2.25}
+                />
+              </button>
+            ) : undefined,
+          }}
+        />
       ) : (
         /* Normal mode — title + action buttons. */
         <ScreenHeaderRow

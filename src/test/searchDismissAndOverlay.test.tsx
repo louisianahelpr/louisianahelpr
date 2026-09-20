@@ -46,6 +46,14 @@
  * @mutate src/components/profile/SavedHelpersTab.tsx | searchTriggerRef.current?.focus(); | void 0;
  * @mutate src/components/dashboard/DashboardTitleBar.tsx | ?.querySelector<HTMLElement>("[data-search-trigger]") | ?.querySelector<HTMLElement>("[data-no-such-trigger]")
  * @mutate src/components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx | data-search-trigger | data-search-trigger-renamed
+ * @mutate src/components/ui/ScreenHeaderRow.tsx | data-search-trigger-slot | data-search-trigger-slot-renamed
+ * @mutate src/components/ui/ScreenHeaderRow.tsx | className="shrink-0 pointer-events-none" | className="shrink-0"
+ * @mutate src/pages/activity/ActivityHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | 
+ * @mutate src/components/messages/ConversationList.tsx | triggerWidth: "44px", | 
+ * @mutate src/components/profile/SavedHelpersTab.tsx | <SearchTriggerSlot /> | <span />
+ * @mutate src/pages/Legal.tsx | {searchOpen && <SearchTriggerSlot width="40px" />} | {false && <SearchTriggerSlot width="40px" />}
+ * @mutate src/pages/Dashboard.tsx | className="ml-auto" | className=""
+ * @mutate src/pages/Dashboard.tsx | data-feed-strip | data-feed-strip-renamed
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -569,7 +577,7 @@ const NOT_EXERCISED: Record<string, string> = {
   "pages/Activity.tsx":
     "owns the state ActivityHeader renders; the transitions are exercised through the header",
   "pages/Dashboard.tsx":
-    "OWNED BY ANOTHER LANE — see the KNOWN RED case below",
+    "the desktop feed strip — pinned by its own describe block below, from source, because the page is 900 lines behind a dozen data hooks and the fact under test is structural",
   "pages/Legal.tsx":
     "document-scroll marketing page: the field replaces nothing, the tab group holds its own width (Legal.tsx's searchBar note). Browser pass owes 320/375 here",
 };
@@ -587,14 +595,12 @@ describe("coverage", () => {
   });
 });
 
-/* ─────────────── OPEN: the desktop Browse strip (another lane's file) ─────────────── */
+/* ─────────────── the desktop Browse strip: CLOSED, and pinned ─────────────── */
 
 /**
- * THE ORIGINAL REPORT, and the one thing in the inventory this pass could not
- * fix: `src/pages/Dashboard.tsx` belongs to the lane diagnosing the map/list
- * count divergence, so the change is handed back rather than made.
+ * THE ORIGINAL REPORT, now fixed — and this is what keeps it fixed.
  *
- * What the source says today (Dashboard.tsx, the web-desktop feed strip):
+ * What the source used to say (Dashboard.tsx, the web-desktop feed strip):
  *
  *     {filters.searchOpen ? (
  *       <BrowseSearchBar filters={filters} floatRecents />
@@ -602,57 +608,167 @@ describe("coverage", () => {
  *       <>  <span …>{totalMatchingCount} jobs…</span>  …actions… </>
  *     )}
  *
- * The count lives ONLY in the alternate. Open search and it is unmounted, and
- * the field — `flex-1 min-w-0 lg:max-w-md`, the row's first child — starts at
- * the row's LEFT edge, which is the count's place. That is the owner's "opens
- * on the left right on top of the number of jobs": to the reader there is no
- * difference between a field drawn over a label and a field that took its
- * place, and the rule is the same either way.
+ * The count and the WHOLE trailing cluster lived only in the alternate. Open
+ * search and all of it unmounted, and the field — `flex-1 min-w-0
+ * lg:max-w-md`, the row's first child — started at the row's LEFT edge, which
+ * is the count's place. That is the owner's "opens on the left right on top of
+ * the number of jobs": to the reader there is no difference between a field
+ * drawn over a label and a field that took its place. It is also why "open
+ * slightly to the left of the icon" was not merely unimplemented but
+ * impossible — the icon itself disappeared.
  *
- * THE CHANGE, which is one hoist and two classes:
- *   - lift the count OUT of the ternary so it renders in BOTH states;
- *   - give it `shrink-0` alongside its existing `min-w-0 truncate`;
- *   - give the open field `ml-auto`, so it grows LEFTWARD out of the trailing
- *     cluster the magnifier sits in and stops before the count.
- * That is ActivityHeader's exact geometry, which is already the owner-approved
- * shape ("search should expand to the left if it's selected without coloring
- * the title"), so Browse stops being the screen that does it differently.
- *
- * Marked `it.fails` deliberately: it asserts the defect is STILL THERE, so
- * main stays green while it is open AND this line turns red the moment the
- * dashboard lane lands the hoist — at which point delete `.fails`. A skipped
- * test would rot silently; this one cannot.
+ * Read from source rather than by rendering, deliberately: Dashboard is a
+ * 900-line page behind a dozen data hooks, and the fact under test is
+ * structural ("what does opening search unmount?"). The BEHAVIOUR at real
+ * widths — that the field covers neither the count nor the cluster, and that
+ * the ✕ clears the magnifier's landing box — is measured in a browser by
+ * e2e/prod-audit/expanding-search-geometry.spec.ts, which is where geometry
+ * belongs.
  */
-it.fails(
-  "KNOWN RED — desktop Browse strip drops the jobs count when search opens (dashboard lane owns the file)",
-  () => {
-    const src = stripComments(readFileSync(path.join(SRC, "pages/Dashboard.tsx"), "utf8"));
-    const start = src.indexOf("{filters.searchOpen ? (");
-    expect(start, "the desktop Browse strip's search ternary must still be findable").toBeGreaterThan(-1);
+describe("desktop Browse strip — opening search unmounts nothing but the field", () => {
+  const dashboard = () => stripComments(readFileSync(path.join(SRC, "pages/Dashboard.tsx"), "utf8"));
 
-    // Walk the braces to the end of that JSX expression, so "inside the
-    // ternary" is the real region and not a character count.
-    let depth = 0;
-    let end = start;
-    for (let i = start; i < src.length; i++) {
-      if (src[i] === "{") depth++;
-      else if (src[i] === "}") {
-        depth--;
-        if (depth === 0) { end = i; break; }
+  it("the feed strip is findable, so the assertions below are about something", () => {
+    const src = dashboard();
+    expect(src).toMatch(/data-feed-strip/);
+    expect(src, "the strip must still render the live jobs count").toMatch(/totalMatchingCount/);
+  });
+
+  it("no search ternary swaps the row out any more", () => {
+    // The exact shape the defect had. Its absence IS the fix; a regression
+    // would have to re-introduce a branch on the flag around the row.
+    expect(
+      dashboard(),
+      "the desktop feed strip must not gate its contents on searchOpen — only the FIELD is conditional",
+    ).not.toMatch(/\{\s*filters\.searchOpen\s*\?\s*\(/);
+  });
+
+  it("the count and the icon cluster are OUTSIDE everything searchOpen gates", () => {
+    const src = dashboard();
+    // Collect every `filters.searchOpen && (…)` region into ONE string, and
+    // assert about that string rather than looping a local array: the region
+    // is read out of Dashboard.tsx, so the SOURCE is the oracle here, but a
+    // `for (const x of localArray)` shape reads to the vacuity scanner as a
+    // list that is both input and oracle. One haystack, no loop.
+    const needle = "filters.searchOpen && (";
+    let guardedRegions = "";
+    let regionCount = 0;
+    for (let i = src.indexOf(needle); i !== -1; i = src.indexOf(needle, i + 1)) {
+      let depth = 0;
+      for (let j = i; j < src.length; j++) {
+        if (src[j] === "(") depth++;
+        else if (src[j] === ")") {
+          depth--;
+          if (depth === 0) { guardedRegions += src.slice(i, j); regionCount++; break; }
+        }
       }
     }
-    const ternary = src.slice(start, end);
-    const consequentEnd = ternary.indexOf(") : (");
-    expect(consequentEnd, "the ternary must have both branches").toBeGreaterThan(-1);
-    const whileSearchOpen = ternary.slice(0, consequentEnd);
-    const whileSearchClosed = ternary.slice(consequentEnd);
-
-    // The count must not be something only the CLOSED state has.
-    const inOpen = /totalMatchingCount/.test(whileSearchOpen);
-    const inClosed = /totalMatchingCount/.test(whileSearchClosed);
+    // Vacuity floor: if nothing is gated on the flag, this proves nothing.
     expect(
-      inClosed && !inOpen,
-      "the jobs count must not be unmounted by opening search — the field has to grow into free space beside it",
-    ).toBe(false);
-  },
-);
+      regionCount,
+      "no `filters.searchOpen && (` guard found — the strip no longer renders a conditional field, so this check is vacuous",
+    ).toBeGreaterThan(0);
+    expect(
+      guardedRegions,
+      "opening search must not unmount the jobs count — the field has to grow into free space beside it",
+    ).not.toMatch(/totalMatchingCount/);
+    expect(
+      guardedRegions,
+      "opening search must not unmount the filters / saved / map cluster",
+    ).not.toMatch(/BrowseTasksActions/);
+  });
+
+  it("the open field is anchored RIGHT, so the slack lands in front of it", () => {
+    // `ml-auto` is the difference between "grows leftward out of the cluster"
+    // and "opens on the left on top of the count". Without it flexbox parks
+    // the row's free space AFTER a capped field.
+    expect(
+      dashboard(),
+      "the desktop strip's BrowseSearchBar must carry ml-auto",
+    ).toMatch(/<BrowseSearchBar[^>]*className="ml-auto"/);
+  });
+
+  it("the strip hands focus back to the magnifier, like every other surface", () => {
+    // Measured live at 1400 before this: the ✕ closed search in one click and
+    // left `document.activeElement` on <body>.
+    expect(dashboard()).toMatch(/desktopStripRef\.current[\s\S]{0,120}data-search-trigger/);
+  });
+});
+
+/* ─────────────── the landing slot, on every surface that has one ─────────────── */
+
+/**
+ * THE THREE-CLICK FIX, as a source contract.
+ *
+ * Owner, 2026-09-19 (/my-posts): "the x on search needed to be clicked 3 times
+ * to close the search bar". The ✕ is anchored to the open field's trailing
+ * edge; dropping the magnifier from the right-aligned cluster while the field
+ * is up lets the field grow into the space the magnifier will come back to, so
+ * the ✕ ends up sitting ON the magnifier's box — measured 26px of overlap at
+ * 375 on /my-posts, with the ✕'s visual centre inside it. One tap closes, the
+ * magnifier appears under the finger, the next tap re-opens.
+ *
+ * The fix is `SearchTriggerSlot`: the row holds the magnifier's slot OPEN
+ * while the field is up. jsdom cannot see the pixels — the overlap going from
+ * N to 0 at 320/375/1440 is measured in
+ * e2e/prod-audit/expanding-search-geometry.spec.ts, which also DELETES the
+ * slot from the live DOM and fails unless the overlap comes straight back.
+ * What this file pins is that every surface still HAS one, derived from the
+ * inventory above rather than from a list written beside it.
+ */
+
+/**
+ * The surfaces whose open state does NOT need to reserve the trigger's box,
+ * and why. Everything else in the DERIVED inventory must — the list of
+ * surfaces that DO is computed as "the world minus these", never written
+ * down, so a new expanding search is asserted on the day it lands rather than
+ * on the day someone remembers to add it here.
+ */
+const NO_SLOT_NEEDED: Record<string, string> = {
+  "components/dashboard/BrowseTasksToolbar.tsx":
+    "renders no row and no trigger — it only passes the shared flag to the filter sheet",
+  "components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx":
+    "the FIELD, not a row: it carries the magnifier inside its left edge and the ✕ inside its right. The slot belongs to whichever row renders it (BrowseTasksActions on desktop; the phone brand row unmounts its whole cluster instead, so nothing of it is near the ✕)",
+  "components/dashboard/DashboardTitleBar.tsx":
+    "the phone brand row gives the WHOLE bar to the field, so the entire cluster — magnifier included — is unmounted and none of it is adjacent to the ✕. Measured at 375: the magnifier returns third from the right, clear of the ✕ by 50px",
+  "pages/Activity.tsx":
+    "owns the state ActivityHeader renders; it holds no row of its own",
+  "pages/Dashboard.tsx":
+    "renders the strip whose slot BrowseTasksActions supplies — pinned by the describe block above",
+};
+
+/** The world, minus the written exclusions. Input and oracle are different things. */
+const MUST_RESERVE_THE_SLOT = deriveExpandingSearchFiles().filter((f) => !(f in NO_SLOT_NEEDED));
+
+describe("every expanding search holds the magnifier's landing slot open", () => {
+  it("the exclusions are real files, and something is left to assert", () => {
+    const derived = deriveExpandingSearchFiles();
+    for (const file of Object.keys(NO_SLOT_NEEDED)) {
+      expect(derived, `${file} is excluded but is not in the inventory — stale exclusion`).toContain(file);
+      expect(NO_SLOT_NEEDED[file].length, `${file} needs a real reason`).toBeGreaterThan(30);
+    }
+    // The floor. If the exclusions ever swallowed the whole inventory the
+    // it.each below would iterate nothing and this file would still be green.
+    expect(
+      MUST_RESERVE_THE_SLOT.length,
+      "every expanding search got excluded — the slot contract would be asserted about nothing",
+    ).toBeGreaterThanOrEqual(4);
+  });
+
+  it.each(MUST_RESERVE_THE_SLOT)("%s renders a SearchTriggerSlot", (file) => {
+    const src = stripComments(readFileSync(path.join(SRC, file), "utf8"));
+    expect(
+      src,
+      `${file} opens a search field but never holds the magnifier's slot — the ✕ will land on the trigger`,
+    ).toMatch(/<SearchTriggerSlot[\s/>]|triggerWidth:/);
+  });
+
+  it("the slot carries the marker the browser probe addresses it by", () => {
+    const src = stripComments(readFileSync(path.join(SRC, "components/ui/ScreenHeaderRow.tsx"), "utf8"));
+    // The exact attribute TOKEN, not a prefix — a loose match also accepts a
+    // rename, which is the mutation this arm exists to catch.
+    expect(src).toMatch(/data-search-trigger-slot(?![\w-])/);
+    expect(src, "the slot must be inert: it is held-open space, never a control").toMatch(/pointer-events-none/);
+    expect(src, "and invisible to assistive tech").toMatch(/aria-hidden/);
+  });
+});

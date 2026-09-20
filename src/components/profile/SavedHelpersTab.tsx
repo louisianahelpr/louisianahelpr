@@ -6,7 +6,7 @@
 // container) so the back button, top padding, and dock alignment
 // stay consistent with every other Profile sub-tab.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Heart, Search, ArrowUpDown, ListFilter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/popover";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
+import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -35,9 +36,10 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the dismiss contract every
      expanding search on this app now shares (ActivityHeader states it in
-     full, owner 2026-09-19). Here the trigger and the dismiss are the SAME
-     button, so a mouse press already leaves focus on it; Escape from inside
-     the field did not, and dropped the caret on <body>. */
+     full, owner 2026-09-19). The trigger and the dismiss used to be the SAME
+     button, which hid the focus problem behind the mouse and created a worse
+     one: see the header slot below. They are two controls now, so the caret
+     has to be handed back deliberately. */
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const { user } = useCurrentUser();
   const {
@@ -70,8 +72,19 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const closeSearch = () => {
     setSearch("");
     setSearchOpen(false);
-    searchTriggerRef.current?.focus();
   };
+  /* Focus AFTER the commit that re-mounts the trigger. The magnifier no longer
+     exists while the field is open — its slot is held empty (see the header
+     below) — so `searchTriggerRef.current` is null at the moment the ✕'s click
+     handler runs and a focus() call there lands on nothing, dropping the caret
+     on <body>. An effect keyed on the open flag is the only place both facts
+     are true, and it fires only on a true->false transition so it can never
+     steal focus on first paint. */
+  const wasSearchOpenRef = useRef(searchOpen);
+  useEffect(() => {
+    if (wasSearchOpenRef.current && !searchOpen) searchTriggerRef.current?.focus();
+    wasSearchOpenRef.current = searchOpen;
+  }, [searchOpen]);
 
   // The count that used to sit on a line of its own beneath the controls.
   // It is the READOUT of the two menus beside it — it changes when you
@@ -110,21 +123,36 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
         onBack={onBack}
         rightSlot={
           helpers.length > 0 ? (
+            /* THE MAGNIFIER OPENS; THE ✕ IN THE FIELD CLOSES (owner,
+               2026-09-19: "the magnifier should move to the left and the x
+               stay").
+
+               This one button used to be BOTH — a magnifier that became an X
+               in the same 44px box. That is the three-click shape in its
+               purest form: press the X, the field goes, and the magnifier
+               materialises under the finger that is still on the pixel, so the
+               next press re-opens what you just dismissed. Now it only ever
+               opens, the dismiss lives inside the field where the owner put it
+               on every other screen, and while the field is up this slot is
+               held OPEN rather than filled with a different control — so the
+               header does not shift and nothing tappable is standing where the
+               magnifier is about to come back. */
+            searchOpen ? (
+              <SearchTriggerSlot />
+            ) : (
             <button
               ref={searchTriggerRef}
               type="button"
               data-search-trigger
-              onClick={() => {
-                if (searchOpen) { closeSearch(); return; }
-                setSearchOpen(true);
-              }}
-              aria-label={searchOpen ? "Close search" : "Search saved Helprs"}
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search saved Helprs"
               aria-expanded={searchOpen}
               className="w-11 h-11 inline-flex items-center justify-center rounded-full transition-colors hover:bg-[hsl(var(--bark)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
               style={{ color: "hsl(var(--olivewood))" }}
             >
-              {searchOpen ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
+              <Search className="w-5 h-5" />
             </button>
+            )
           ) : undefined
         }
       />
@@ -173,23 +201,32 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 /* Escape is the keyboard's X — same single activation, same
                    return to the pre-open state, same focus hand-back. */
                 onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
-                className={`w-full pl-9 ${search.length > 0 ? "pr-10" : "pr-3"} h-11 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground`}
+                className="w-full pl-9 pr-10 h-11 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
               />
-              {search.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  aria-label="Clear search"
-                  // `!min-h-0 !min-w-0` — index.css's bare
-                  // `button { min-height: 44px; min-width: 44px }` tap-target
-                  // rule otherwise wins over `h-7 w-7` and spills a 44px box
-                  // past the field's edges. The field itself is the 44px
-                  // target; this is a glyph inside it.
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
-                >
-                  <X className="w-4 h-4" strokeWidth={2.25} />
-                </button>
-              )}
+              {/* ALWAYS PRESENT, because it is the way OUT of search — the
+                  field exists only while `searchOpen`, so hiding the ✕ until
+                  there was text to clear left an open search bar with no
+                  visible dismiss and pushed people back to the header icon
+                  (which is exactly the press that used to re-open it). One
+                  press clears the query AND closes the field AND hands focus
+                  back, the same single activation Escape performs and the same
+                  contract every other expanding search in the app keeps.
+                  `pr-10` is unconditional for the same reason: the lane the ✕
+                  sits in is now always occupied.
+
+                  `.ctl-exit` is the app's one exit shape. `!min-h-0 !min-w-0`
+                  because index.css's bare 44px HIG floor on every `button`
+                  otherwise wins over `h-7 w-7` and spills a 44px box past the
+                  field's edges — the field itself is the 44px target; this is
+                  a glyph inside it. */}
+              <button
+                type="button"
+                onClick={closeSearch}
+                aria-label="Close search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 ctl-exit inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+              >
+                <X className="w-4 h-4" strokeWidth={2.25} />
+              </button>
             </div>
             )}
 

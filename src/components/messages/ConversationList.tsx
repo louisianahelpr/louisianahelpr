@@ -743,12 +743,15 @@ export function ConversationList({
     </div>
   );
 
-  /* Select mode and search mode each take the WHOLE row over. ScreenHeaderRow's
-     `children` branch is precisely that escape hatch: it keeps the row geometry
-     and still renders the page's h1 `sr-only`, so Messages never has zero
-     headings while a text input is standing in for its name. Null in the normal
-     state, which is what puts the row back on its title / meta / actions
-     branch. */
+  /* SELECT mode takes the whole row over. ScreenHeaderRow's `children` branch
+     is precisely that escape hatch: it keeps the row geometry and still renders
+     the page's h1 `sr-only`, so Messages never has zero headings while
+     something is standing in for its name. Null in the normal state, which is
+     what puts the row back on its title / meta / actions branch.
+
+     SEARCH mode does NOT come through here any more — it is the shared
+     `expandingSearch` slot below, which is the one arrangement every screen
+     with an expanding search now uses. */
   const rowTakeover = selectMode ? (
     /* Select mode — the row is just the page name's stand-in. The live
        "N/3 selected" count lives in the floating action bar at the bottom of
@@ -757,66 +760,63 @@ export function ConversationList({
     <span className="flex-1 text-ds-13 font-medium" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
       {selectedKeys.size}/{MAX_SELECT} selected
     </span>
-  ) : searchOpen ? (
-    /* Search mode — input replaces the row inline (iOS pattern).
-       Capped at `lg:max-w-md` on desktop (owner, 2026-09-14, VN-35: "search
-       shouldn't open that large for messages either") — the same cap as the
-       Browse search (VN-5) and My Posts / My Jobs (VN-31). Phone stays
-       full-width. */
-    <>
-      <div className="relative flex-1 min-w-0 lg:max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-        <input
-          autoFocus
-          type="search"
-          aria-label="Search conversations"
-          placeholder="Search conversations…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          /* Escape is the keyboard's X — same single activation, same return
-             to the pre-open state, same focus hand-back. */
-          onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
-          spellCheck={false}
-          className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
-        />
-        {searchQuery && (
-          // Fixed 24×24 circle, inset a touch further than the old bare icon
-          // so its hover/active/focus-visible ring stays inside the field's
-          // rounded-ds-md edge instead of poking past it. The old version had
-          // no explicit box — just an icon glyph — so the browser's default
-          // focus outline and any hover fill drew flush against (and past)
-          // the field boundary.
-          <button
-            type="button"
-            onClick={() => setSearchQuery("")}
-            aria-label="Clear search"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:text-foreground ctl-tint btn-press transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-      {/* AN ICON, NOT THE WORD (owner, 2026-09-11: "put x icon remoce cancel
-          its eing cut off"). "Cancel" is a text button in a row that also
-          holds a full-width search field, so on a narrow list column it was
-          the thing that gave — clipped against the column edge. An icon has a
-          fixed width the row can always afford.
+  ) : null;
 
-          44px tap target via the `after:` overlay rather than a 44px BOX: the
-          visible control stays a 32px circle so it sits level with the search
-          field beside it, while the hit area extends past it. Same technique
-          the clear-search button above uses. */}
+  /* SEARCH MODE — the shared shape, not a third arrangement of it.
+     Capped at `lg:max-w-md` on desktop (owner, 2026-09-14, VN-35: "search
+     shouldn't open that large for messages either") — the same cap as the
+     Browse search (VN-5) and My Posts / My Jobs (VN-31). Phone stays
+     full-width.
+
+     THE MAGNIFIER IS IN THE FIELD and the ✕ is the field's only control
+     (owner, 2026-09-19: "the magnifier should move to the left and the x
+     stay"). The dismiss used to be a 32px circle OUTSIDE the field, with a
+     SECOND ✕ inside it for "clear" once you had typed: two X's a few pixels
+     apart doing nearly the same thing, and the outer one sitting exactly where
+     the magnifier comes back to. One ✕ now, inside the field on the right,
+     clearing and closing in a single press — the two things "done searching"
+     means — with the magnifier's slot in the cluster held open beside it so
+     the press can never land on the control that replaces it.
+
+     `ml-auto` is load-bearing above `lg`, where the `max-w-md` cap stops the
+     field growing to fill the row. Measured at 1440 without it: the field
+     capped at 448px and flexbox parked the remaining ~600px of slack AFTER
+     it, so the field sat hard against the screen name with a dead band
+     between it and the cluster — the field opening on the LEFT, which is the
+     shape of the owner's Home report. Below `lg` the field fills the row and
+     this is a no-op. */
+  const searchField = (
+    <div className="relative flex-1 min-w-0 lg:max-w-md ml-auto">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+      <input
+        autoFocus
+        type="search"
+        aria-label="Search conversations"
+        placeholder="Search conversations…"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        /* Escape is the keyboard's X — same single activation, same return
+           to the pre-open state, same focus hand-back. */
+        onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
+        spellCheck={false}
+        className="w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+      />
+      {/* `.ctl-exit` is the app's one exit shape and `.ctl-tint` its sanctioned
+          hover tone — both kept from the control-sameness pass that put them
+          on this button when it lived outside the field.
+          `!min-h-0 !min-w-0` because index.css's bare 44px HIG floor on every
+          `button` otherwise wins over `h-7 w-7`, rendering a 44x44 hit box
+          inside a 36px-tall field and spilling past its edges. */}
       <button
         type="button"
         onClick={closeSearch}
         aria-label="Close search"
-        className="shrink-0 w-8 h-8 ctl-exit inline-flex items-center justify-center btn-press transition-colors ctl-tint relative after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:content-['']"
-        style={{ color: "hsl(var(--bark))" }}
+        className="absolute right-2.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 ctl-exit inline-flex items-center justify-center text-muted-foreground hover:text-foreground ctl-tint btn-press transition"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" strokeWidth={2.25} />
       </button>
-    </>
-  ) : null;
+    </div>
+  );
 
   /* What sits beside the screen name ON THE DESKTOP WEBSITE: the tabs
      themselves, exactly as they do on My Posts / My Jobs, where the row is
@@ -841,24 +841,32 @@ export function ConversationList({
      All three share ONE class, and it is ActivityHeader's: the chevron cannot
      be a different ink from the search glyph beside it, and Messages' cluster
      should not be a different ink from the identical cluster on My Jobs. */
-  const headerActions = (
+  /* THE MAGNIFIER, kept separate from the rest of the cluster.
+     While the field is open it is not here at all — it is inside the field, on
+     its left — and ScreenHeaderRow holds its 44px slot open in its place. The
+     split is what makes that possible without also unmounting the hamburger
+     beside it: opening search must hide no other control. */
+  const searchTriggerButton = (hasThreads || isSpecialFilterView) && (
+    /* Pinned/Recently Deleted read a different source than the default
+       inbox (see isSpecialFilterView above), so they can have their own
+       threads to search even when hasThreads (the DEFAULT inbox) is
+       false. */
+    <button
+      ref={searchTriggerRef}
+      type="button"
+      data-search-trigger
+      onClick={() => { hapticLight(); setSearchOpen(true); }}
+      aria-label="Search conversations"
+      className={HEADER_ICON_BUTTON_CLASS}
+    >
+      <Search className="w-4 h-4" />
+    </button>
+  );
+
+  /* Everything in the cluster that is NOT the magnifier. Stays mounted in both
+     states — see the `expandingSearch` contract on ScreenHeaderRow. */
+  const headerActionsWithoutSearch = (
     <>
-      {/* Pinned/Recently Deleted read a different source than the default
-          inbox (see isSpecialFilterView above), so they can have their own
-          threads to search even when hasThreads (the DEFAULT inbox) is
-          false. */}
-      {(hasThreads || isSpecialFilterView) && (
-        <button
-          ref={searchTriggerRef}
-          type="button"
-          data-search-trigger
-          onClick={() => { hapticLight(); setSearchOpen(true); }}
-          aria-label="Search conversations"
-          className={HEADER_ICON_BUTTON_CLASS}
-        >
-          <Search className="w-4 h-4" />
-        </button>
-      )}
       {/* Hamburger — the OVERFLOW MENU, not the disclosure. It opens Select
           messages / Pinned / Recently Deleted: one bulk action and two views
           onto data the three tabs do not cover. It stays exactly as it was —
@@ -928,6 +936,16 @@ export function ConversationList({
     </>
   );
 
+  /* The cluster as the RESTING row renders it: magnifier first, then the
+     overflow menu. One definition, so the open and closed states cannot drift
+     on which controls exist. */
+  const headerActions = (
+    <>
+      {searchTriggerButton}
+      {headerActionsWithoutSearch}
+    </>
+  );
+
   /* THE TITLE CARD, on phone and native (owner, 2026-08-27).
      Messages used to render its name INSIDE the content panel, under a
      hairline, so the whole screen was one tall box while Home, My Posts and
@@ -989,6 +1007,17 @@ export function ConversationList({
             }}
             meta={rowTakeover ? undefined : headerMeta}
             actions={rowTakeover ? undefined : headerActions}
+            /* Search is the SHARED slot. `open` is false whenever select mode
+               has the row (the two takeovers are mutually exclusive and select
+               mode wins), which puts the row back on `children`. */
+            expandingSearch={{
+              open: searchOpen && !selectMode,
+              field: searchField,
+              /* HEADER_ICON_BUTTON_CLASS is `h-11 w-11`. The slot reserves the
+                 magnifier's real box, not a guess — see SearchTriggerSlot. */
+              triggerWidth: "44px",
+              actions: headerActionsWithoutSearch,
+            }}
           >
             {rowTakeover}
           </ScreenHeaderRow>

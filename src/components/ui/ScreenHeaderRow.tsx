@@ -31,6 +31,68 @@ import { cn } from "@/lib/utils";
  */
 const SCREEN_HEADER_ROW_MIN_HEIGHT = "44px";
 
+/**
+ * THE MAGNIFIER'S LANDING SLOT — the whole of the three-click fix.
+ *
+ * Owner, 2026-09-19 (/my-posts): "the x on search needed to be clicked 3 times
+ * to close the search bar". The state machine was never the problem (proved by
+ * instrumentation, see src/test/searchDismissAndOverlay.test.tsx): one press
+ * already clears the query and closes the field. The problem is WHERE the
+ * magnifier comes back.
+ *
+ * The arithmetic, and it is invariant — it does not depend on how many icons
+ * the cluster holds. Write `W` for the magnifier's box, `cg` for the cluster's
+ * own gap and `g` for the gap between the field and the cluster. The trailing
+ * cluster is right-aligned, so dropping the magnifier from it while the field
+ * is open pulls every remaining icon `W + cg` to the right, and the field's
+ * trailing edge follows:
+ *
+ *     fieldRight      = closedCluster.left + W + cg - g
+ *     magnifier.left  = closedCluster.left
+ *     ✕.right         = fieldRight - inset            (inset ≈ 10px)
+ *
+ * so ✕.right - magnifier.left = W + cg - g - inset, which for this app's own
+ * numbers (44 + 4 - 12 - 10) is +26px of OVERLAP, with the ✕'s visual centre
+ * landing INSIDE the magnifier's box. One tap closes; the magnifier
+ * materialises under the finger; the next tap re-opens. Close, re-open, close
+ * — three taps for one intent. Measured at 375 on /my-posts before this
+ * change: ✕ at 224…268, the trigger returning at 242…286.
+ *
+ * Shrinking the ✕ cannot fix it: the ✕ is anchored to the field's RIGHT edge,
+ * so a narrower box moves its left edge, never its right. The only lever is
+ * the field's trailing edge — so the row HOLDS THE MAGNIFIER'S SLOT OPEN while
+ * the field is up. The field then stops exactly where the magnifier will come
+ * back to, which is also, word for word, what the owner asked for on Home:
+ * "it needs to open where it was clicked, open slightly to the left of the
+ * icon so it doesn't cover anything."
+ *
+ * `width` must match the trigger's own box — 44px for a HIG icon button, 40px
+ * for the Browse cluster's `h-10 w-10`, 28px for the desktop-website row's
+ * `h-7 w-7`. Pass the trigger's actual size, not a guess: the clearance this
+ * buys is `width + clusterGap - rowGap - inset`, and a slot that is too narrow
+ * hands the overlap straight back.
+ *
+ * Measured after, at 320 / 375 / 1440 on every surface that has one, by
+ * e2e/prod-audit/expanding-search-geometry.spec.ts — which also deletes this
+ * element from the live DOM and fails unless the overlap comes straight back.
+ */
+export const SEARCH_TRIGGER_SLOT_WIDTH = "44px";
+
+export function SearchTriggerSlot({
+  width = SEARCH_TRIGGER_SLOT_WIDTH,
+}: {
+  width?: string;
+}) {
+  return (
+    <div
+      aria-hidden
+      data-search-trigger-slot
+      className="shrink-0 pointer-events-none"
+      style={{ width, alignSelf: "stretch" }}
+    />
+  );
+}
+
 export interface ScreenHeaderRowProps {
   /** The screen's name — rendered as its single `<h1>`. */
   title: string;
@@ -52,6 +114,53 @@ export interface ScreenHeaderRowProps {
   actions?: ReactNode;
   /** Inline-search content, replacing title + actions for that state. */
   children?: ReactNode;
+  /**
+   * THE EXPANDING SEARCH, as one shape for every screen that has one.
+   *
+   * Three screens used to hand-roll this state on top of the row — My Posts /
+   * My Jobs through `children`, the Messages inbox through its `rowTakeover`,
+   * and the Browse desktop strip through a ternary that swapped the whole row
+   * out. Three arrangements of the same idea is how the ✕ ended up over the
+   * magnifier on one of them and over the jobs count on another.
+   *
+   * What this slot guarantees, and what none of the three did on its own:
+   *
+   *   1. the screen KEEPS ITS NAME while you type into it (the h1 goes
+   *      `sr-only`, and a visible `<span>` stands in unless the screen has no
+   *      visible title at all);
+   *   2. the field takes FREE SPACE, growing leftward out of the trailing
+   *      cluster — it never takes a sibling's place, and `leading` content
+   *      stays mounted beside it;
+   *   3. the magnifier's slot in the cluster is HELD OPEN — see
+   *      {@link SearchTriggerSlot} for why that is the whole three-click fix;
+   *   4. the rest of the cluster (filters · map · saved · the status chevron)
+   *      stays exactly where it was. Opening search hides no other control.
+   *
+   * Takes precedence over `children` when open, so a screen with BOTH a
+   * search takeover and another one (Messages' select mode) keeps the other
+   * on `children`.
+   */
+  expandingSearch?: {
+    /** True while the field is up. False renders the ordinary title row. */
+    open: boolean;
+    /**
+     * Content that stays mounted beside the field — the desktop status tabs,
+     * the Browse jobs count. `shrink-0` is the caller's job: it is what makes
+     * the field yield first.
+     */
+    leading?: ReactNode;
+    /**
+     * The field. The magnifier lives INSIDE it on the left and the ✕ inside it
+     * on the right (owner, 2026-09-19: "the magnifier should move to the left
+     * and the x stay") — so while search is open the ✕ is the only control in
+     * the field, and the magnifier is not in the cluster at all.
+     */
+    field: ReactNode;
+    /** Width of the held-open magnifier slot. MUST match the trigger's box. */
+    triggerWidth?: string;
+    /** The cluster minus the magnifier. Never unmounted by search. */
+    actions?: ReactNode;
+  };
   className?: string;
   style?: CSSProperties;
 }
@@ -62,9 +171,43 @@ export function ScreenHeaderRow({
   meta,
   actions,
   children,
+  expandingSearch,
   className,
   style,
 }: ScreenHeaderRowProps) {
+  if (expandingSearch?.open) {
+    return (
+      <div
+        className={cn("flex items-center gap-3", className)}
+        style={{ minHeight: SCREEN_HEADER_ROW_MIN_HEIGHT, ...style }}
+      >
+        {/* Exactly one h1 per screen, in EVERY state. Swapping a visible
+            heading for a text input used to leave the screen with zero
+            headings for as long as search was open. */}
+        <h1 className="sr-only">{title}</h1>
+        {/* And the screen keeps its name on SCREEN too, for everyone else —
+            the one piece of context you need while typing into it. `shrink-0`
+            + a 40% cap so the field yields first and the name truncates rather
+            than pushing the field off the row. `aria-hidden` because the h1
+            above is already the accessible name; this is its visible twin, not
+            a second heading. */}
+        {!titleSrOnly && (
+          <span
+            aria-hidden
+            className="font-display font-bold text-foreground text-ds-20 leading-none shrink-0 max-w-[40%] truncate"
+          >
+            {title}
+          </span>
+        )}
+        {expandingSearch.leading}
+        {expandingSearch.field}
+        <div className="flex items-center gap-1 shrink-0">
+          <SearchTriggerSlot width={expandingSearch.triggerWidth} />
+          {expandingSearch.actions}
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       className={cn("flex items-center gap-3", className)}

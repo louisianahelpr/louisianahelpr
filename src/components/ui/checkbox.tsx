@@ -46,7 +46,7 @@ const Checkbox = React.forwardRef<
         "data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground",
         // Smooth transition for fill and border color.
         "transition-colors duration-150",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood))] focus-visible:ring-offset-2",
+        "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood))] focus-visible:ring-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}

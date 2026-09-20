@@ -1,17 +1,12 @@
 import {
   Star,
-  XCircle,
   ClipboardList,
   Hammer,
   Sprout,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type {
-  ProfileStatsShape,
-  ReplyLatency,
-  CancellationRate,
-} from "./types";
+import type { ProfileStatsShape, ReplyLatency } from "./types";
 
 /**
  * AT A GLANCE — every number this profile can honestly show, in ONE grid.
@@ -157,7 +152,6 @@ type Props = {
   replyLatency: ReplyLatency;
   onTimeArrivalRate: number | null;
   revisionFrequency: number | null;
-  cancellationRate: CancellationRate;
   /**
    * % of this helper's clients who hired them again. NULL below three
    * distinct clients — ungated, one returning customer published a boldfaced
@@ -189,7 +183,6 @@ export const AtAGlanceCard = ({
   replyLatency: _replyLatency,
   onTimeArrivalRate: _onTimeArrivalRate,
   revisionFrequency: _revisionFrequency,
-  cancellationRate,
   repeatHirePercent: _repeatHirePercent,
   mutualJobsCount,
   showReviews,
@@ -269,10 +262,13 @@ export const AtAGlanceCard = ({
     });
   }
 
-  /* ── FIVE TILES, IN THIS ORDER ───────────────────────────────────────
-     Owner, 2026-09-19: Rating · Jobs completed · Jobs posted · Worked
-     together · Cancelled, and nothing else. See the "Worked together" block
-     above for why it moved from 2nd to 4th.
+  /* ── FOUR TILES, IN THIS ORDER ───────────────────────────────────────
+     Rating · Jobs completed · Jobs posted · Worked together, and nothing
+     else. See the "Worked together" block above for why it moved from 2nd to
+     4th, and the CANCELLED block below for why there is no fifth.
+
+     Superseded, kept so the history reads: owner, 2026-09-19 had five —
+     Rating · Jobs completed · Jobs posted · Worked together · Cancelled.
 
      Superseded, kept so the history reads: owner, 2026-09-14 (VN-16) had
      Rating · Worked together · Jobs completed · Jobs posted · Cancelled,
@@ -327,28 +323,33 @@ export const AtAGlanceCard = ({
      `poster_avg_rating` remains in the RPC and is untouched — it carries a
      3-review floor and was returning null here anyway. */
 
-  /* CANCEL RATE — last, and no longer alarming at one-in-six.
-     Neutral on your own profile: being shown your worst number in red every
-     time you open your own preview is punishment, not information, so the
-     owner sees plain ink and the underlying count. Visitors keep a graded
-     colour — that IS the trust signal they came for — but the thresholds now
-     start the warning at 30%, not 15%. */
-  if (cancellationRate.rate !== null) {
-    cells.push({
-      key: "cancel",
-      icon: XCircle,
-      value: `${cancellationRate.rate.toFixed(0)}%`,
-      label: isOwnProfile
-        ? `${cancellationRate.cancelled} of ${cancellationRate.total} jobs cancelled`
-        : `Cancelled · ${cancellationRate.cancelled} of ${cancellationRate.total} jobs`,
-      tone:
-        isOwnProfile || cancellationRate.rate < 15
-          ? "hsl(var(--ink-deep))"
-          : cancellationRate.rate < 30
-          ? "hsl(var(--gold-warm))"
-          : "hsl(var(--burnt-sienna))",
-    });
-  }
+  /* ── CANCELLED: DELETED, NOT RELABELLED OR RECOMPUTED ─────────────────
+     Owner's call, 2026-09-19, from a live profile reading
+     "50% · Cancelled · 35 of 70 jobs". Reconciled against prod: 32 of those
+     35 cancellations were made BY THE POSTER, and every one of them was
+     counted against the HELPER whose profile was printing the 50%.
+
+     That is the SAME defect accept rate was deleted for, and the note above
+     already names it — "a tally of other people's decisions rendered as a
+     property of this person". A poster who books and then calls it off moves
+     a number on the helper's page, and the helper has no lever to move it
+     back. There is no honest label for that, so this is a deletion.
+
+     Recomputing it was considered and rejected on top of the above, because
+     the row it sat in did not reconcile with itself either: the three tiles
+     counted three different universes — `Jobs completed` is helper-side only,
+     `Jobs posted` is poster-side and every status, and `Cancelled` was BOTH
+     sides and every status. "35 of 70" therefore shared no denominator with
+     any other figure on the card, so a reader comparing them was comparing
+     nothing.
+
+     DO NOT RE-ADD IT. A corrected cancelled-by-this-person rate is a new
+     metric with a new definition and needs the owner's sign-off, not a
+     restoration of this one.
+
+     `cancellationRate` (the prop, the hook field and `get_public_profile_stats`'s
+     `jobs_total` / `cancelled_jobs` / `cancellation_rate` columns) went with
+     it — see useUserProfileData.ts. */
 
   // See the note on `hasRating`: the zero-state review cell goes FIRST, and
   // only alongside real company.
@@ -410,29 +411,33 @@ export const AtAGlanceCard = ({
 
   return (
     <section aria-label="At a glance">
-      {/* Up to four tiles: two-up on a phone, one row of four from `sm`.
-          FIVE (only when "Worked together" joins — see "FIVE TILES" above):
-          two-up on a phone with the fifth tile spanning the last row, so no
-          tile is stranded half-width beside an empty cell; one row of five
-          from `md`, where each tile still has room for its label. A six-column
-          track would have stranded tiles in part of a desktop frame.
+      {/* At most FOUR tiles now that Cancelled is gone: two-up on a phone,
+          one row of four from `sm`. The `md:grid-cols-5` track and its
+          fifth-tile span went with it — a five-tile row is no longer
+          reachable, and a branch that cannot be taken is not a layout.
+
+          AN ODD COUNT STILL SPANS. Three tiles two-up leaves the third
+          stranded half-width beside an empty cell, which is the same ragged
+          row the five-tile case was given `col-span-2` to avoid; the rule was
+          only ever gated on `>= 5` because that was the only odd count the
+          card could produce at the time. It is now stated once, for every odd
+          count, which is what it always meant.
+
           `auto-rows-fr`: every tile is as tall as the tallest, across rows
           too. Two-up at 375, a label that wraps ("31 of 61 jobs cancelled")
           made row 2 70.3px under a 58px row 1 (OPEN.md; guarded by
-          e2e/journeys/stat-tile-heights.spec.ts). */}
-      <div
-        className={cn(
-          "grid grid-cols-2 auto-rows-fr gap-2",
-          cells.length >= 5 ? "md:grid-cols-5" : "sm:grid-cols-4",
-        )}
-      >
+          e2e/journeys/stat-tile-heights.spec.ts) — that label was the
+          Cancelled tile's and is gone, but the invariant stays: the four
+          surviving labels are all one or two words, so no tile wraps past the
+          two lines its neighbours use. */}
+      <div className="grid grid-cols-2 auto-rows-fr gap-2 sm:grid-cols-4">
         {cells.map((c, i) => (
           <MetricCell
             key={c.key}
             cell={c}
             className={
-              cells.length >= 5 && i === cells.length - 1 && cells.length % 2 === 1
-                ? "col-span-2 md:col-span-1"
+              i === cells.length - 1 && cells.length % 2 === 1
+                ? "col-span-2 sm:col-span-1"
                 : undefined
             }
           />

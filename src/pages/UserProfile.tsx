@@ -102,7 +102,6 @@ const UserProfile = () => {
     credentialTier,
     canReadReviewText,
     replyLatency,
-    cancellationRate,
     mutualJobsCount,
     onTimeArrivalRate,
     revisionFrequency,
@@ -580,7 +579,6 @@ const UserProfile = () => {
                 replyLatency={replyLatency}
                 onTimeArrivalRate={onTimeArrivalRate}
                 revisionFrequency={revisionFrequency}
-                cancellationRate={cancellationRate}
                 repeatHirePercent={data?.repeatHirePercent ?? null}
                 // Moved here from the header line (owner, 2026-09-14, VN-16).
                 mutualJobsCount={mutualJobsCount}

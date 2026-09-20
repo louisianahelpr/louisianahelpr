@@ -495,7 +495,7 @@ export function AnchoredPanelHeader({
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="shrink-0 w-11 h-11 -mr-1 inline-flex items-center justify-center rounded-full ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] focus-visible:ring-offset-2"
+          className="shrink-0 w-11 h-11 -mr-1 inline-flex items-center justify-center rounded-full ctl-tint ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] focus-visible:ring-offset-2"
           style={{ color: "hsl(var(--olivewood))" }}
         >
           <X className="w-[18px] h-[18px]" strokeWidth={2.25} />

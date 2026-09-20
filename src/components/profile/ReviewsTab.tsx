@@ -1,6 +1,21 @@
 import { useState, useMemo } from "react";
 import { Star, Info, ArrowDownAZ, ArrowUpAZ, CalendarClock } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+/* The SHARED star row, not a third hand-rolled `Array.from({length: 5})` loop.
+   `reviewCard.tsx` is the one file allowed to draw a review's parts
+   (reviewCardOneDesign.test.tsx), and this tab was the renderer that file's
+   own header calls out as "not covered, deliberately, and reported instead".
+   The per-review row is now the shared one — same 3.5px glyph, same `--accent`
+   ink, and it gains the `role="img"` + "N of 5 stars" label this tab never
+   had, so a screen reader stops hearing five unnamed images.
+
+   NOT adopted here, and why: the rebuilt `/user/:id` card also puts the
+   reviewer's NAME above the stars and renders a `ReviewCategoryChip`. This
+   tab's rows carry no category at all — `useProfileReviews` selects
+   `jobs(id, title)` and never `category` — so the chip would render for
+   nobody. Closing that gap is a data change to a shared hook on a screen the
+   owner did not name; reported rather than guessed at. */
+import { ReviewStars } from "@/components/profile/reviewCard";
 import { formatTimestamp } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
@@ -259,18 +274,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
             <div key={`${review.created_at}-${review.reviewerName}`} className="rounded-ds-md liquid-glass p-4 space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-0.5">
-                    {Array.from({ length: 5 }).map((_, s) => (
-                      <Star
-                        key={s}
-                        className="w-3.5 h-3.5"
-                        style={{
-                          color: s < review.rating ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
-                          fill: s < review.rating ? "hsl(var(--burnt-sienna))" : "transparent",
-                        }}
-                      />
-                    ))}
-                  </div>
+                  <ReviewStars rating={review.rating} />
                   <span className="font-sans font-bold tabular-nums text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
                     {review.rating}/5
                   </span>
@@ -290,10 +294,32 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   &ldquo;{review.feedback}&rdquo;
                 </p>
               )}
-              <div className="flex items-center gap-2 font-sans pt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                <span>By <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{review.reviewerName}</span></span>
-                <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
-                <span>{review.jobTitle}</span>
+              {/* THE ATTRIBUTION LINE. Three flex children — "By NAME", a
+                  separator, and the job title — with no wrapping and no
+                  `min-w-0` was a ragged column at 375: the title took the room
+                  and "By Hallie H." was squeezed to its min-content width,
+                  breaking across THREE lines ("By" / "Hallie" / "H.") beside a
+                  two-line title, with the "·" stranded on a line of its own.
+
+                  Two fixes, and both are needed:
+                    `flex-wrap` + `gap-y`  — the row may take a second LINE
+                        rather than a second COLUMN, which is what turned one
+                        long title into a narrow squeeze on the name.
+                    `whitespace-nowrap` on the name, `min-w-0` on the title —
+                        which of the two absorbs the squeeze is now stated, not
+                        left to min-content. A person's name is the thing that
+                        must never be broken; a job title may wrap.
+
+                  The separator moved INSIDE the title so it can never be
+                  orphaned: wherever the title goes, its dot leads it. `mr-2`
+                  restores the 8px the row's `gap-x-2` used to put on that side,
+                  so the spacing is unchanged from before. */}
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 font-sans pt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <span className="whitespace-nowrap">By <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{review.reviewerName}</span></span>
+                <span className="min-w-0 break-words">
+                  <span aria-hidden="true" className="mr-2" style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
+                  {review.jobTitle}
+                </span>
               </div>
             </div>
           ))}

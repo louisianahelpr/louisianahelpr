@@ -548,28 +548,24 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         reviewCount: int(publicStats?.review_count) ?? reviewsRes.count ?? allRatings.length,
       };
 
-      // Cancellation-rate metric (#30) — separate posted-side vs worked-side
-      // rates so the badge can read "the right" rate for the audience. We
-      // compute the combined rate inline at the render site. A minimum
-      // sample size of 5 prevents "1 of 1 cancelled = 100%" cliffs on
-      // fresh accounts.
+      /* CANCELLATION RATE — GONE. The tile it fed was deleted by the owner on
+         2026-09-19; see the CANCELLED block in AtAGlanceCard.tsx for the
+         reasoning and the 32-of-35 prod reconciliation behind it. Nothing
+         renders a cancellation figure on this page any more, so the derived
+         `cancellationRate` object and the hook field that carried it are gone
+         rather than left computing a number nobody reads.
+
+         WHAT IS DELIBERATELY STILL HERE, and why it is not dead by my hand:
+         `totalJobsCount` below still feeds `statSamples.jobs`, and
+         `get_public_profile_stats` still returns `jobs_total` /
+         `cancelled_jobs` / `cancellation_rate` — an RPC with other callers,
+         not this page's to change. `statSamples` itself has had ZERO consumers
+         since before this edit (reported, not removed: noticed dead code is a
+         report). If that is cleared, the four `head: true` count queries above
+         (`posted_total`, `posted_cancelled`, `worked_total`,
+         `worked_cancelled`) go with it. */
       const clientTotalJobsCount = (postedTotalRes.count ?? 0) + (workedTotalRes.count ?? 0);
-      const clientTotalCancelledCount =
-        (postedCancelledRes.count ?? 0) + (workedCancelledRes.count ?? 0);
-      // The >= 5 floor now lives in SQL (one rule, not two), so `rate` arrives
-      // already NULL below it. The counts come back too, so the card can still
-      // say WHY it is withholding — "after 5 jobs" — instead of just vanishing.
       const totalJobsCount = int(publicStats?.jobs_total) ?? clientTotalJobsCount;
-      const totalCancelledCount = int(publicStats?.cancelled_jobs) ?? clientTotalCancelledCount;
-      const cancellationRate = {
-        total: totalJobsCount,
-        cancelled: totalCancelledCount,
-        rate: publicStats
-          ? num(publicStats.cancellation_rate)
-          : totalJobsCount >= 5
-          ? (totalCancelledCount / totalJobsCount) * 100
-          : null,
-      };
 
       // Mutual jobs (#1) — silently degrade to 0 if the count read errored
       // (RLS, unexpected schema). The badge hides itself at 0.
@@ -821,7 +817,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         postedJobs,
         workedJobs,
         replyLatency,
-        cancellationRate,
         mutualJobsCount,
         canMessage,
         onTimeArrivalRate,
@@ -1083,7 +1078,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
   };
   const replyLatency: ReplyLatency =
     data?.replyLatency ?? { medianReplyMinutes: null, replySample: 0, measured: false };
-  const cancellationRate = data?.cancellationRate ?? { total: 0, cancelled: 0, rate: null as number | null };
   const mutualJobsCount = data?.mutualJobsCount ?? 0;
   // Deny while the fetch is still in flight: the Message button appearing and
   // then vanishing a beat later is worse than it arriving a beat late, and
@@ -1123,7 +1117,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     canReadReviewText,
     statSamples,
     replyLatency,
-    cancellationRate,
     mutualJobsCount,
     canMessage,
     onTimeArrivalRate,

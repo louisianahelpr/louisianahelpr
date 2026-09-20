@@ -68,11 +68,10 @@ export type ReplyLatency = {
   measured: boolean;
 };
 
-export type CancellationRate = {
-  total: number;
-  cancelled: number;
-  rate: number | null;
-};
+/* `CancellationRate` lived here until 2026-09-19. It was deleted with the
+   Cancelled tile — see the CANCELLED block in AtAGlanceCard.tsx. It is named
+   here rather than silently dropped so a reader looking for it finds the
+   reason instead of re-adding it. */
 
 export type LastActiveLabel = { text: string; isLive: boolean };
 

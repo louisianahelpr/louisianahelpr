@@ -137,11 +137,21 @@ export function SavedHelperCard({
                   {h.completed_jobs_together} job{h.completed_jobs_together === 1 ? "" : "s"} together
                 </span>
               )}
-              {/* `aria-hidden` on the separator below, for the same reason as
-                  EarningHistory's copy of it — see the note there. Same omission,
-                  same 2.33:1 against white if it ever reaches the a11y tree. */}
+              {/* The separator below has no colour of its own — same fix as
+                  EarningHistory.tsx (92d448a8d), see the long note there.
+
+                  The old note here said this was 2.33:1 "if it ever reaches the
+                  a11y tree". That was wrong about the mechanism, and the wrong
+                  half is why this copy stayed live: `aria-hidden` does not take
+                  a glyph out of the contrast measurement, because axe's rule
+                  matches VISUAL visibility. It was failing the whole time.
+                  MEASURED on this route on the production build against prod
+                  data, 2026-09-20: 2.33:1 light, 2.15:1 dark, against 4.5:1.
+
+                  It now inherits the row's own `--olivewood / 0.8` — 7.14:1
+                  light, 7.96:1 dark — and nothing else about the row changes. */}
               {h.completed_jobs_together > 0 && h.last_job_at && (
-                <span aria-hidden="true" style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
+                <span aria-hidden="true">·</span>
               )}
               {h.last_job_at && (
                 <span>

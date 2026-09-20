@@ -45,7 +45,23 @@ export function RecentTransfers({ payoutLedger }: RecentTransfersProps) {
                         any copied receipt. */}
                     {t.stripe_transfer_id && (
                       <>
-                        <span aria-hidden className="mx-1.5" style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
+                        {/* No colour of its own — the fourth and last copy of
+                            the separator first fixed in EarningHistory.tsx
+                            (92d448a8d). It was `hsl(var(--burnt-sienna) / 0.5)`
+                            = 2.33:1 light / 2.15:1 dark against a 4.5:1 AA
+                            requirement, measured on THIS screen
+                            (/profile?tab=earnings&view=payouts — the ledger
+                            lives behind the payouts sub-view, which is why a
+                            capture of the earnings tab alone never saw it) on
+                            the production build against prod data, 2026-09-20,
+                            on all 13 rows at once.
+
+                            `aria-hidden` does not clear it: axe measures visual
+                            visibility, not the accessibility tree. The glyph now
+                            inherits the line it punctuates (`--olivewood / 0.8`,
+                            7.14:1 light / 7.96:1 dark). `mx-1.5` is untouched,
+                            so the geometry is identical. */}
+                        <span aria-hidden className="mx-1.5">·</span>
                         <span className="text-ds-10 font-mono opacity-60" title="Stripe transfer ID">{t.stripe_transfer_id.slice(-8)}</span>
                       </>
                     )}

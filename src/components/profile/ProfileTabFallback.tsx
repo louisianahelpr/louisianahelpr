@@ -41,11 +41,17 @@ import { TAB_TITLES, type Tab } from "@/pages/profile/types";
  *     `<ProfileTabHeader>` means the h1 is in its final position from the
  *     first frame, the back chevron WORKS while the chunk loads — it did not
  *     before — and the lazy component's own identical header replaces it in
- *     place with nothing moving. One tab refines its title rather than
- *     keeping it: `wrapped` renders `Your ${SEASON.title}` ("Your 2026 so
- *     far"), which is computed inside the lazy chunk, so the placeholder
- *     shows the static "Helpr Wrapped". Same box, same y — the word changes,
- *     the layout does not.
+ *     place with nothing moving — INCLUDING the word, now.
+ *
+ *     `wrapped` used to be the one tab where the word DID change: the
+ *     placeholder showed the static "Helpr Wrapped" and the loaded screen
+ *     showed "Your 2026 so far", on the claim that the season label was
+ *     "computed inside the lazy chunk" and so unreachable from here. That was
+ *     false — only the `SEASON` binding is in the chunk; `wrappedSeasonLabel`
+ *     is in `src/lib/format.ts`, which anything may import. `TAB_TITLES.wrapped`
+ *     now calls it, and HelprWrapped reads `TAB_TITLES.wrapped` back, so the
+ *     placeholder header, the loaded h1 and `document.title` are one string
+ *     from one expression.
  *
  *  2. THE RESERVE IS ONE SCREENFUL, measured rather than guessed: the
  *     element's own distance from the top of the viewport, subtracted from

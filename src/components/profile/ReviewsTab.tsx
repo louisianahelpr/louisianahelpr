@@ -318,7 +318,27 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 font-sans pt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <span className="whitespace-nowrap">By <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{review.reviewerName}</span></span>
                 <span className="min-w-0 break-words">
-                  <span aria-hidden="true" className="mr-2" style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
+                  {/* No colour of its own — see EarningHistory.tsx, which was
+                      the first of these four to be fixed (92d448a8d). It was
+                      `hsl(var(--burnt-sienna) / 0.5)`: MEASURED on this route
+                      on the production build against prod data, 2026-09-20,
+                      2.33:1 in light and 2.15:1 in dark against a 4.5:1 AA
+                      requirement.
+
+                      `aria-hidden` does NOT clear this — axe's colour-contrast
+                      rule matches VISUAL visibility, not the accessibility
+                      tree, and this span already carried the attribute while
+                      failing. It stays because it is independently right (a
+                      screen reader announcing a bare "·" between a name and a
+                      job title is noise), but it is not the fix.
+
+                      Inheriting the line it punctuates (`--olivewood / 0.8`,
+                      7.14:1 light / 7.96:1 dark) removes a magic value instead
+                      of replacing it with another, and is the smallest change
+                      that clears AA: keeping sienna would have needed ~0.85
+                      alpha, a colour nobody chose. `mr-2` is untouched, so not
+                      one pixel moves — only the glyph's ink. */}
+                  <span aria-hidden="true" className="mr-2">·</span>
                   {review.jobTitle}
                 </span>
               </div>

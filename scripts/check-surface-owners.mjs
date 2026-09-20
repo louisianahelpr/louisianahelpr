@@ -167,7 +167,13 @@ for (const m of readFileSync("src/App.tsx", "utf8").matchAll(/path="([^"]+)"/g))
 if (existsSync("src/pages/profile/types.ts")) {
   const t = readFileSync("src/pages/profile/types.ts", "utf8");
   const i = t.indexOf("TAB_TITLES");
-  for (const m of t.slice(i, t.indexOf("};", i)).matchAll(/^\s*(\w+):\s*"/gm)) enumerated.push(`?tab=${m[1]}`);
+  // The opening quote may be `"` or a BACKTICK. It used to require `"`, which
+  // silently assumed every tab's title is a typed-in literal — so the moment
+  // `wrapped` became a template computed from `wrappedSeasonLabel()`, the tab
+  // dropped out of the enumeration entirely and this script reported it as a
+  // surface that "no longer exists in the app". The tab was fine; the parser
+  // was reading values when all it needs is KEYS.
+  for (const m of t.slice(i, t.indexOf("};", i)).matchAll(/^\s*(\w+):\s*["'`]/gm)) enumerated.push(`?tab=${m[1]}`);
 }
 
 // ── enumerate: post-job entry paths ────────────────────────────────────────

@@ -14,6 +14,13 @@ import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { jobLocalMidnightMs } from "../../supabase/functions/_shared/cancellationFee";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+// The tab's NAME comes from the registry, not from a template rebuilt here.
+// Both used to compute it independently and the two disagreed: the registry
+// said the literal "Helpr Wrapped", this screen said "Your 2026 so far", and
+// the loading header rendered the first while the loaded screen rendered the
+// second — in the same box, one frame apart. Now there is one expression, in
+// TAB_TITLES, and this screen reads it.
+import { TAB_TITLES } from "./profile/types";
 
 const YEAR = new Date().getFullYear();
 // "Wrapped" in December, "so far" the rest of the year (see LH-39).
@@ -265,7 +272,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
   // to drop the suffix AND reorder the words ("Helpr Wrapped 2026"), so the
   // one month the feature is at its most shareable was the one month its tab
   // stopped looking like the rest of the app.
-  usePageTitle(`Your ${SEASON.title} — Helpr`);
+  usePageTitle(`${TAB_TITLES.wrapped} — Helpr`);
   // `isReady` is still read below to tell "auth is resolving" apart from
   // "resolved, no user" in the query gate — but the redirect that used to live
   // here is gone. It bounced to /login once auth resolved with no user, which
@@ -440,7 +447,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
 
   return (
     <ProfileTabBody>
-      <ProfileTabHeader title={`Your ${SEASON.title}`} onBack={onBack} />
+      <ProfileTabHeader title={TAB_TITLES.wrapped} onBack={onBack} />
       {/* Profile.tsx owns the shell (AppShell + the one centered content
           column), so this tab adds only the card's own centering. No
           `page-measure`/gutter wrapper here — that would be a second

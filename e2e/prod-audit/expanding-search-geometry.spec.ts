@@ -474,14 +474,21 @@ const SURFACES: {
     triggerSel: 'button[aria-label="Search all policies"]',
     fieldSel: 'input[aria-label="Search all policies"]',
     closeSel: 'button[aria-label="Close search"]',
-    /* PINNED AT ITS MEASURED WIDTH, NOT WAIVED. /legal at 320 gives the open
-       field 107px — under the 120px floor, because its leading Terms/Rules/
-       Privacy tab row (25…132) holds full width the way My Posts' title used
-       to. It is the same defect and the same one-line fix, on a surface no
-       lane owns tonight; it is on the open-work list (docs/OPEN.md,
-       "legal search field at 320"). 107 is where it is today, so any further
-       squeeze still fails here. */
-    minFieldPx: 107,
+    /* NO LONGER PINNED BELOW THE FLOOR — FIXED 2026-09-20.
+       This carried `minFieldPx: 107`, a pin that recorded the defect instead
+       of failing on it: at 320 the open field was 107px against the 120px
+       floor, and the Terms/Rules/Privacy tab group beside it was 107px for
+       ~170px of label, so all three tab names overlapped into one smear. Both
+       are `flex-1`, so the shortfall was split and both lost.
+       `tabBar` now steps the tab group aside below 500px while the field is
+       open — the same behaviour as ActivityHeader, for a stronger reason: a
+       live query renders all three policies at once, so the tabs are inert
+       exactly then. Measured after, on the production build against prod, in
+       both themes: 320 → 107px becomes 222px; 375 → 135px becomes 277px; 1440
+       unchanged at 320px, because there the tabs stay and nothing moved.
+       The surface therefore takes the SHARED floor now, like every other row
+       here: no `minFieldPx` override, so `MIN_TYPABLE_FIELD_PX` applies and a
+       regression below 120 fails instead of being recorded. */
   },
 ];
 

@@ -142,3 +142,9 @@ e2e-artifacts/
 
 # Stripe test-mode webhook endpoint id (scripts/e2e/stripe-sandbox-on.sh); lives in $HOME, never committed
 .lh-stripe-test-webhook-id
+
+# Audit screenshots for the a11y separator lane (2026-09-20). The measurements
+# beside them ARE committed; the PNGs are 2x device-scale captures of up to
+# 805KB each and check-asset-weight.mjs is right to refuse them — git keeps
+# every revision of a binary forever. They live in the run, not the tree.
+docs/audit/a11y-separators/**/*.png

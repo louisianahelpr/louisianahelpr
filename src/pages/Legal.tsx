@@ -9,6 +9,8 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { PolicySearchContext, PolicyTabContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
+import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
+import { cn } from "@/lib/utils";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { TermsContent } from "./legal/TermsSection";
@@ -396,6 +398,14 @@ const Legal = () => {
           : "relative self-center shrink-0"
       }
       data-print-hide
+      /* THE FLOOR, belt to the tab group's braces. Stepping the tabs aside is
+         what actually buys the room; this is what stops the next claimant on
+         this row taking it back without anyone noticing. It is the app's own
+         number, imported — not a 120 retyped here — so the row and the browser
+         check (e2e/prod-audit/expanding-search-geometry) argue from one value.
+         `minWidth` as an inline style rather than a Tailwind class for the same
+         reason: a class would have to restate the literal. */
+      style={searchOpen ? { minWidth: MIN_TYPABLE_FIELD_PX } : undefined}
     >
       {searchOpen ? (
         <>
@@ -476,10 +486,59 @@ const Legal = () => {
   // them and never replaces them. It used to be magnifier-right on a phone and
   // magnifier-left from `sm` up, and opening dropped the field under the tabs
   // on a phone but beside them on desktop. On a phone the tab icons hide while
-  // the field is open so all three labels still fit on the one line.
+  // the field is open — and below 500px the whole tab group steps aside, which
+  // is where the labels-still-fit claim above finally became true: at 320 they
+  // did not fit and had not for as long as the row existed (see `tabBar`).
+  //
+  // WHY THIS IS NOT ScreenHeaderRow's `expandingSearch.narrowTitleStepsAside`,
+  // which solves the same arithmetic on Activity. That prop hides the VISIBLE
+  // TWIN OF AN `sr-only` h1 — the row keeps its heading, a screen-reader user
+  // still hears where they are, and nothing is lost but a duplicate label. It
+  // acts on `title`. This row has no title at all: its leading content is the
+  // Terms/Rules/Privacy tab group, which `ScreenHeaderRow` would take as
+  // `leading` — a slot documented as content that STAYS beside the field, with
+  // `shrink-0` the caller's job. Pointing that prop at this row would either do
+  // nothing (no title to hide) or, if `leading` were made to obey it, hide
+  // NAVIGATION rather than a duplicate. The behaviour is shared; the prop
+  // cannot be, and the justification is different too — the tabs may go
+  // because search renders all three policies at once, not because something
+  // else is still announcing them.
   const controlRow = (
     <div className="flex items-center gap-2 p-1 sm:gap-4">
-      <div className="flex-1 min-w-0">{tabBar}</div>
+      {/* THE TAB GROUP STEPS ASIDE WHILE THE FIELD IS OPEN, BELOW 500px.
+          Same behaviour as ActivityHeader's `narrowTitleStepsAside`, reached by
+          the same arithmetic — but not the same prop; see below for why it
+          cannot be.
+
+          ── WHAT THIS ROW ACTUALLY HAD, MEASURED AT 320 ───────────────────
+          tabs 107px · field 107px. 107px of tab for three labels needing
+          ~170px, so "Terms", "Rules" and "Privacy" overlapped into one
+          unreadable smear with the active pill clipping the first of them;
+          and 107px of field against the 120px floor, of which 76px is the
+          magnifier-and-✕ inset, leaving ~31px to type into. Both claimants
+          are `flex-1`, so the shortfall was split and BOTH lost. Raising only
+          the field would have driven the tabs to ~94px and made the visible
+          half of the defect worse.
+
+          THE CLASS GOES ON THIS WRAPPER, NOT ON THE TabsList INSIDE IT. Put on
+          the list, the tabs stopped overlapping and the field still did not
+          grow: this `flex-1` wrapper went on claiming half the row for a
+          control that was no longer drawn — measured 120px field at 320 and an
+          unchanged 135px at 375, with the rest dead. Reserving half a row for
+          something that is not there is the defect the search slot below was
+          already rewritten once to avoid.
+
+          Hiding the tabs is safe rather than merely convenient: once a query is
+          typed, `isSearching` renders ALL THREE policies at once, each result
+          carrying its own origin chip, so the tab selection is inert exactly
+          when the field is up. `hidden` keeps the TabsList mounted, so Radix's
+          selection survives and the ✕ brings the tabs straight back.
+
+          `min-[500px]:block` is a LITERAL, never built from
+          NARROW_TITLE_ASIDE_PX by template: Tailwind scans src/ as raw text,
+          so an interpolated class compiles to no rule at all and would hide
+          the tabs at EVERY width. */}
+      <div className={cn("flex-1 min-w-0", searchOpen && "hidden min-[500px]:block")}>{tabBar}</div>
       {searchBar}
     </div>
   );

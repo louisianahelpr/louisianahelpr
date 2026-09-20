@@ -1,4 +1,5 @@
 import type { Database } from "@/integrations/supabase/types";
+import { wrappedSeasonLabel } from "@/lib/format";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -53,7 +54,22 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   home_history: "Home History",
   str_settings: "Host Automation",
   auto_tip: "After a Job",
-  wrapped: "Helpr Wrapped",
+  // ONE ANSWER IN BOTH PLACES, and it is computed, not typed.
+  //
+  // This said the literal "Helpr Wrapped" while the screen's own <h1> said
+  // "Your 2026 so far" — so the loading header, the browser tab and the
+  // heading disagreed on what the tab is called, which is precisely what the
+  // rule at the top of this file exists to prevent.
+  //
+  // The reason given for the drift was that `SEASON` is "computed inside the
+  // lazy chunk". That premise was false: `SEASON` is only ASSIGNED in
+  // HelprWrapped.tsx — the function behind it, `wrappedSeasonLabel`, lives in
+  // `src/lib/format.ts`, a dependency-free leaf that this module can import
+  // as cheaply as the lazy chunk does. So there is no mechanism to invent and
+  // no wording to choose: both sides call the same function, and the label
+  // keeps flipping itself between "2026 so far" and "2026 Wrapped" in
+  // December exactly as the screen already does.
+  wrapped: `Your ${wrappedSeasonLabel().title}`,
   analytics: "Analytics",
   // Was the standalone route /gift-card until 2026-09-11 — the last Profile
   // sibling that was still a route of its own.

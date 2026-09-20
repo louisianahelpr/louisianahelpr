@@ -1,0 +1,2102 @@
+[
+  {
+    "screen": "reviews",
+    "vp": "320",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/reviews-320-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@37,375",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "earnings",
+    "vp": "320",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/earnings-320-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@140,694",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@140,820",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@140,946",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@94,1072",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@95,1198",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@95,1324",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@140,1450",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@95,1576",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@140,1702",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,1828",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@95,1954",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@95,2080",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,2206",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@95,2332",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@140,2458",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,2602",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@95,2728",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@95,2854",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@75,2980",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@137,3106",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@140,3249",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@93,3375",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@140,3501",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@155,3627",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@87,3753",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "earnings_payouts",
+    "vp": "320",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/earnings_payouts-320-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": true
+    },
+    "separators": [
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@113,741",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@113,848",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@113,954",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@109,1061",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@109,1168",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@109,1275",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@109,1381",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@108,1488",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@108,1595",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@108,1702",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@108,1808",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@108,1915",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@108,2022",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "saved_helpers",
+    "vp": "320",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/saved_helpers-320-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x17@203,173",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "legal",
+    "vp": "320",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/legal-320-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "field": {
+      "fieldPx": 222,
+      "fieldBox": "222x40@25,89",
+      "tabsPx": 0,
+      "docScrollW": 320,
+      "docClientW": 320
+    }
+  },
+  {
+    "screen": "reviews",
+    "vp": "375",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/reviews-375-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@115,321",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "earnings",
+    "vp": "375",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/earnings-375-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,688",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,814",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,940",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@75,1066",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,1192",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@291,1301",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,1445",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@291,1553",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,1697",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@280,1805",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,1949",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@291,2057",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@280,2183",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,2327",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@95,2453",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@280,2561",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,2705",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@291,2813",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@247,2939",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@73,3056",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,3182",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@74,3308",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@76,3435",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@75,3561",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@35,3687",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "earnings_payouts",
+    "vp": "375",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/earnings_payouts-375-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": true
+    },
+    "separators": [
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@113,741",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@113,848",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@113,954",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@109,1061",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@109,1168",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@109,1275",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@109,1381",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@108,1488",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@108,1595",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@108,1702",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@108,1808",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@108,1915",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@108,2022",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "saved_helpers",
+    "vp": "375",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/saved_helpers-375-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x17@203,176",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "legal",
+    "vp": "375",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/legal-375-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "field": {
+      "fieldPx": 277,
+      "fieldBox": "277x40@25,89",
+      "tabsPx": 0,
+      "docScrollW": 375,
+      "docClientW": 375
+    }
+  },
+  {
+    "screen": "reviews",
+    "vp": "1440",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/reviews-1440-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@119,393",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "earnings",
+    "vp": "1440",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/earnings-1440-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@295,657",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@309,739",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@284,821",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@273,904",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@306,986",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@295,1068",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@309,1150",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@295,1232",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@309,1314",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@284,1396",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@306,1479",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@295,1561",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@284,1643",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@306,1725",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@283,1807",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@284,1905",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@306,1987",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@295,2069",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@251,2151",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@271,2234",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@284,2316",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@269,2398",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@284,2480",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@299,2562",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@265,2644",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "earnings_payouts",
+    "vp": "1440",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/earnings_payouts-1440-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": true
+    },
+    "separators": [
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@117,788",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@117,869",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@117,949",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@113,1029",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@113,1109",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@113,1190",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@113,1270",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@112,1350",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@112,1430",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@112,1511",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@112,1591",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@112,1671",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x15@112,1751",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "saved_helpers",
+    "vp": "1440",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/saved_helpers-1440-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(46, 47, 34, 0.8)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 7.14,
+        "box": "3x17@207,248",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "legal",
+    "vp": "1440",
+    "theme": "light",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/legal-1440-light.png",
+    "ctx": {
+      "theme": "light",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "field": {
+      "fieldPx": 320,
+      "fieldBox": "320x40@763,167",
+      "tabsPx": 694,
+      "docScrollW": 1440,
+      "docClientW": 1440
+    }
+  },
+  {
+    "screen": "reviews",
+    "vp": "320",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/reviews-320-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@37,375",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "earnings",
+    "vp": "320",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/earnings-320-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@140,694",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@140,820",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@140,946",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@94,1072",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@95,1198",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@95,1324",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@140,1450",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@95,1576",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@140,1702",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,1828",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@95,1954",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@95,2080",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,2206",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@95,2332",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@140,2458",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,2602",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@95,2728",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@95,2854",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@75,2980",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@137,3106",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@140,3249",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@93,3375",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@140,3501",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@155,3627",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@87,3753",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "earnings_payouts",
+    "vp": "320",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/earnings_payouts-320-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": true
+    },
+    "separators": [
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@113,741",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@113,848",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@113,954",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@109,1061",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@109,1168",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@109,1275",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@109,1381",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@108,1488",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@108,1595",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@108,1702",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@108,1808",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@108,1915",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@108,2022",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "saved_helpers",
+    "vp": "320",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/saved_helpers-320-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x17@203,173",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "legal",
+    "vp": "320",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/legal-320-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "field": {
+      "fieldPx": 222,
+      "fieldBox": "222x40@25,89",
+      "tabsPx": 0,
+      "docScrollW": 320,
+      "docClientW": 320
+    }
+  },
+  {
+    "screen": "reviews",
+    "vp": "375",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/reviews-375-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@115,321",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "earnings",
+    "vp": "375",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/earnings-375-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,688",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,814",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,940",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@75,1066",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,1192",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@291,1301",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,1445",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@291,1553",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,1697",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@280,1805",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,1949",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@291,2057",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@280,2183",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,2327",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@95,2453",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@280,2561",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,2705",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@291,2813",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@247,2939",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@73,3056",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,3182",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@74,3308",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@76,3435",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@75,3561",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@35,3687",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "earnings_payouts",
+    "vp": "375",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/earnings_payouts-375-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": true
+    },
+    "separators": [
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@113,741",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@113,848",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@113,954",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@109,1061",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@109,1168",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@109,1275",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@109,1381",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@108,1488",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@108,1595",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@108,1702",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@108,1808",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@108,1915",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@108,2022",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "saved_helpers",
+    "vp": "375",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/saved_helpers-375-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x17@203,176",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "legal",
+    "vp": "375",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/legal-375-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "field": {
+      "fieldPx": 277,
+      "fieldBox": "277x40@25,89",
+      "tabsPx": 0,
+      "docScrollW": 375,
+      "docClientW": 375
+    }
+  },
+  {
+    "screen": "reviews",
+    "vp": "1440",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/reviews-1440-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@119,393",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "earnings",
+    "vp": "1440",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/earnings-1440-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@295,657",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@309,739",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@284,821",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@273,904",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@306,986",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@295,1068",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@309,1150",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@295,1232",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@309,1314",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@284,1396",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@306,1479",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@295,1561",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@284,1643",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@306,1725",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@283,1807",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@284,1905",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@306,1987",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@295,2069",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@251,2151",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@271,2234",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@284,2316",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@269,2398",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@284,2480",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@299,2562",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@265,2644",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "earnings_payouts",
+    "vp": "1440",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/earnings_payouts-1440-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": true
+    },
+    "separators": [
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@117,788",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@117,869",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@117,949",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@113,1029",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@113,1109",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@113,1190",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@113,1270",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@112,1350",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@112,1430",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@112,1511",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@112,1591",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@112,1671",
+        "ariaHidden": "true"
+      },
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x15@112,1751",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "saved_helpers",
+    "vp": "1440",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/saved_helpers-1440-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "separators": [
+      {
+        "color": "rgba(212, 206, 196, 0.8)",
+        "bg": "rgb(18,18,18)",
+        "ratio": 7.96,
+        "box": "3x17@207,248",
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  {
+    "screen": "legal",
+    "vp": "1440",
+    "theme": "dark",
+    "png": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a45b0211b25e1bca9/docs/audit/a11y-separators/after/legal-1440-dark.png",
+    "ctx": {
+      "theme": "dark",
+      "signedOut": false,
+      "recentTransfers": false
+    },
+    "field": {
+      "fieldPx": 320,
+      "fieldBox": "320x40@763,167",
+      "tabsPx": 694,
+      "docScrollW": 1440,
+      "docClientW": 1440
+    }
+  }
+]

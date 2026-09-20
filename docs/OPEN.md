@@ -4556,3 +4556,32 @@ NEW DEFECTS FOUND IN THE SAME PASS:
 - **`/my-jobs` empty state renders a header bar with no tabs and no title** — just a
   magnifier floating in an empty strip.
 - Minor: at 320 the wrapped address is CENTRED while the date beneath it is left-aligned.
+
+### STILL OPEN after the 2026-09-19 late session (pushed @b1ed083bd)
+
+**LOST WORK — REDO REQUIRED.** The search lane (magnifier into the open field,
+the 3-tap ✕, the desktop home strip) had reported "all 16 green, pre-fix overlap
+proven to return on every surface" but had **not committed**, and its worktree was
+removed during cleanup while it was still running. The work is gone. The SPEC
+survives in full, above, under "OWNER LIVE REVIEW 2026-09-19 (late)" — redo it from
+there. Root cause of the loss: a resumed lane was treated as finished during a bulk
+worktree cleanup. Lanes must commit before any cleanup touches their tree.
+
+Known, measured, unfixed:
+- **Status tab row overflows the phone viewport** — 372px inside a 320 viewport.
+  "Cancelled" clips to "Ca…" at 375, "Done" to "Do…" at 320. It scrolls, so the page
+  reports ZERO overflow and every overflow guard passes; there is no scroll
+  affordance, so two of the owner's five tabs are invisible on a phone.
+- **Desktop Browse search drops focus to `<body>`** on close (`/my-posts` is correct).
+- **`/my-jobs` empty state** renders a header bar with no tabs and no title.
+- **TabFallback stands in for all 23 Profile tabs** with one 230px placeholder —
+  `home_history` lands 3359px taller, `gift_card` 1230px. Needs per-tab reserved
+  heights; owner-visible tradeoff.
+- **Two different components are both named `JobCardSkeleton`** (SkeletonLoaders.tsx
+  and ui/skeletons/), different shapes, so /dashboard paints two unrelated skeletons
+  in sequence before content.
+- `ApplicationCardSkeleton` vs `JobCardShell` (/my-jobs, −52px); `/user/:id`
+  `IdentityHeroSkeleton` (326px reserved, 141px arrives).
+- At 320 the wrapped address is CENTRED while the date beneath is left-aligned.
+- Dialog-corner WIP was RED and is NOT committed — backed up at
+  `~/lh-dialog-corner-WIP-2026-09-19.patch`.

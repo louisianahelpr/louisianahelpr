@@ -4606,3 +4606,26 @@ Known, measured, unfixed:
 - At 320 the wrapped address is CENTRED while the date beneath is left-aligned.
 - Dialog-corner WIP was RED and is NOT committed — backed up at
   `~/lh-dialog-corner-WIP-2026-09-19.patch`.
+
+### 2026-09-20 lead visual verification of the overnight lanes
+- **Search (`10f00eebc`) VERIFIED at 1440** — tabs stay mounted, magnifier inside the
+  field's left edge, ✕ right, ~450px field. Correct, and it is the owner's ruling.
+- **Search at 375 was BROKEN on landing** — field collapsed to 95px holding only the
+  magnifier and the ✕, no room to type. Routed and FIXED: field now 134 / 189 / 228 /
+  448 at 320 / 375 / 414 / 1440, all four measured by the lead.
+- **The search lane's work was NOT lost** (an earlier OPEN.md note said it was —
+  struck). It survived the worktree deletion, rebuilt in a fresh tree, and landed.
+- **Activity tabs STILL NOT FIXED after `e24ed9535`.** The labels now fit, but the row
+  is COLLAPSED BY DEFAULT on phone: at 375 and 414 `aria-expanded="false"` and zero tab
+  words render; tapping the chevron reveals `You · Waiting · Soon · Done · Cancel`.
+  Before that commit four of five were visible; now none are. Same complaint, worse.
+  Possible trigger: the selected bucket being EMPTY (plain `/my-posts` = Needs You with
+  0 rows collapsed; `?filter=waiting` with 3 rows did not). Reopened in a new lane.
+- **`activityTabLabelsFitAPhone` is GREEN on a screen with no tabs on it** — it measures
+  the row's WIDTH and cannot see that the row is not displayed. The lane must add the
+  visible-without-interaction claim. This is the night's recurring defect class: a
+  measurement that is true about an element nobody can see.
+- **414 breakpoint contradicts its own contract** — the lane documented short labels
+  below 390px and full words at 414; the rendered DOM shows `You / Soon / Cancel` at 414.
+- Still open from that lane: `/legal` field is 107px at 320 (pinned, not fixed); the
+  **Messages empty inbox hides its tabs and search trigger** the same way Activity did.

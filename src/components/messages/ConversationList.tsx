@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
-import { coerceInboxView, defaultInboxTab, UNFILTERED_INBOX_TAB } from "@/lib/inboxDefault";
+import { coerceInboxView, defaultInboxTab, INBOX_TAB_LABEL, INBOX_TAB_ORDER, UNFILTERED_INBOX_TAB } from "@/lib/inboxDefault";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { CheckSquare, Menu, MessageSquare, Pin, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -723,10 +723,17 @@ export function ConversationList({
          All's count is `allTabConversations`, NOT `conversations`: the age
          rule trims that tab (threadAgeOut.ts), and a tab whose number does
          not match the list under it is a worse lie than no number. */
-      tabs={[
-        { key: "active", label: "Active", count: activeThreads },
-        { key: "all", label: "All", count: allTabConversations.length },
-      ]}
+      /* The ORDER and the WORDS come from lib/inboxDefault.ts, which already
+         owns which tabs exist and which one the inbox lands on; only the
+         counts are computed here, because only here knows them. They used to
+         be two object literals typed out in this JSX, which meant the guard
+         that asserts the strip is on the screen had to keep its own copy of
+         the answer — a list checked against itself. */
+      tabs={INBOX_TAB_ORDER.map((key) => ({
+        key,
+        label: INBOX_TAB_LABEL[key],
+        count: key === "active" ? activeThreads : allTabConversations.length,
+      }))}
       value={inboxTab}
       onChange={setInboxFilter}
     />

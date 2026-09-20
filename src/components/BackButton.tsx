@@ -11,19 +11,30 @@ interface BackButtonProps {
 }
 
 /**
- * The back button's BOX — the 40px tap target and the -8px optical overhang
- * that pulls the bare arrow out to the content edge. Its rendered width is
- * 40 - 8 = 32px plus the icon's own centring, and with `PageHeader`'s
- * `gap-3` that is what puts every page title on the app's title line
- * (measured 2026-09-20: back slot 36px + 12px gap = title at gutter + 48,
- * i.e. x=72 at 1440 and x=68 at 375).
+ * The back button's BOX — a 44px tap target and the -8px optical overhang that
+ * pulls the bare arrow out to the content edge. Rendered width is therefore
+ * 44 - 8 = 36px, and with `PageHeader`'s `gap-3` that is what puts every page
+ * title on the app's title line: gutter + 36 + 12, i.e. x=72 at 1440 and x=68
+ * at 375 (measured 2026-09-20).
+ *
+ * IT SAYS 44 BECAUSE IT IS 44. This read `w-10 h-10` (40px) until 2026-09-20
+ * and rendered at 44x44 the whole time: the `:where(button …)` floor at the
+ * top of src/index.css sets `min-height: 44px; min-width: 44px`, and a `w-10`
+ * utility sets WIDTH, which does not beat a min-width. The declaration was
+ * 4px smaller than the button. That cost nothing while only the button used
+ * it — and exactly 4px the moment something else reserved the same box from
+ * the same classes: the Profile landing's title came out at x=68 against the
+ * tabs' x=72 on the first build of this change, because a `<span>` gets no
+ * tap-target floor. Trust the declaration, never the comment beside it — so
+ * the declaration now matches the pixels, and nothing depends on an invisible
+ * global to agree with it. The rendered size is unchanged either way.
  *
  * Exported because `PageHeader` RESERVES this same box on a page that has no
  * back button — the Profile landing, a nav root — so its title lands on the
- * same line as the 25 Profile tabs' titles do. Two copies of "w-10 h-10 -ml-2"
- * would drift the day this one changed; one constant cannot.
+ * same line as the 25 Profile tabs' titles do. Two copies of the string would
+ * drift the day one changed; one constant cannot.
  */
-export const BACK_BUTTON_BOX_CLASS = "w-10 h-10 -ml-2";
+export const BACK_BUTTON_BOX_CLASS = "w-11 h-11 -ml-2";
 
 /**
  * In-content back button placed to the left of a page's H1.

@@ -137,3 +137,27 @@ export const UNFILTERED_INBOX_TAB: InboxTab = "all";
 export function defaultInboxTab(_unreadCount: number): InboxTab {
   return "active";
 }
+
+/**
+ * THE STRIP, AS DATA — the order the two tabs are painted in, and the word on
+ * each.
+ *
+ * It lived as two object literals inside ConversationList's JSX until
+ * 2026-09-20, which meant nothing outside that file could state what the
+ * inbox's navigation IS without copying it. The guard that now asserts the
+ * row is on the screen for an empty inbox has to know which words to expect,
+ * and a guard holding its own copy of the answer is a guard checking a list
+ * against itself. So the list lives here, in the leaf module that already
+ * owns which tabs exist, and both the strip and the guard read it.
+ *
+ * Narrow to wide, and the tab the inbox lands on comes first — see
+ * `defaultInboxTab` above for why that is Active. The COUNTS are not here:
+ * they are two different queries (the live slice, and the age-trimmed All),
+ * and they belong where the data is.
+ */
+export const INBOX_TAB_ORDER: readonly InboxTab[] = ["active", "all"];
+
+export const INBOX_TAB_LABEL: Record<InboxTab, string> = {
+  active: "Active",
+  all: "All",
+};

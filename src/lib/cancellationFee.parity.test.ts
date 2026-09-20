@@ -13,6 +13,7 @@ import {
   hoursUntilJob,
   jobLocalMidnightMs,
 } from "../../supabase/functions/_shared/cancellationFee";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 // Mirror of the client ladder in CancellationDialog.tsx (display-only there).
 function clientPercent(hasHelper: boolean, hoursUntilJob: number): number {
@@ -302,7 +303,7 @@ describe("fee ladder anchors on start_time, not midnight", () => {
     expect(
       computeCancellationFee({
         budget: 400,
-        date_needed: "2026-09-06",
+        date_needed: jobLocalDateISO(-14),
         start_time: "18:00:00",
         cancelled_at: "2026-09-05T06:00:00Z",
         helper_id: "h",

@@ -26,6 +26,7 @@ vi.mock("./HelperTrackerPanel", () => ({
 }));
 
 import { DisputedSection } from "./DisputedSection";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const job = {
   id: "job-1",
@@ -36,7 +37,7 @@ const job = {
   dispute_reason: "Left half the driveway",
   customer_id: "poster-1",
   helper_id: "helper-1",
-  date_needed: "2026-09-10",
+  date_needed: jobLocalDateISO(-10),
 } as unknown as Job;
 const app = { id: "app-1", job_id: "job-1", helper_id: "helper-1", status: "accepted" } as unknown as AppliedApp;
 

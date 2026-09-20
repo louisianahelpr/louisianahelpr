@@ -57,6 +57,7 @@ vi.mock("./useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
 
 import { AppliedJobCard } from "./AppliedJobCard";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const job = {
   id: "job-1",
@@ -70,7 +71,7 @@ const job = {
   customer_id: "poster-1",
   helper_id: "helper-1",
   location: "123 Main St, Lafayette, LA 70503",
-  date_needed: "2026-09-20",
+  date_needed: jobLocalDateISO(0),
   start_time: "09:00",
   helper_confirmed_at: "2026-09-18T12:00:00Z",
   payment_status: "escrow",

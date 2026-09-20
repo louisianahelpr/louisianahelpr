@@ -12,6 +12,7 @@ import {
   sortJobsSmart,
   type HelperLocation,
 } from "./smartSort";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 // A reference "now" so tests are deterministic regardless of when CI runs.
 const NOW = new Date("2026-05-20T12:00:00.000Z").getTime();
@@ -25,7 +26,7 @@ function makeJob(overrides: Partial<EnrichedJob> & { id: string }): EnrichedJob 
     description: "D",
     category: "other",
     budget: 50,
-    date_needed: "2026-06-20",
+    date_needed: jobLocalDateISO(-92),
     location: "Baton Rouge",
     customer_id: "c1",
     status: "open",
@@ -60,7 +61,7 @@ describe("smartScore", () => {
   });
 
   it("log-scales budget — $100 > $50 > $20 but $5000 is not 100x $50", () => {
-    const base = { created_at: new Date(NOW).toISOString(), date_needed: "2026-06-20" };
+    const base = { created_at: new Date(NOW).toISOString(), date_needed: jobLocalDateISO(-92) };
     const cheap = smartScore(makeJob({ id: "20", budget: 20, ...base }), null, NOW);
     const mid = smartScore(makeJob({ id: "50", budget: 50, ...base }), null, NOW);
     const rich = smartScore(makeJob({ id: "100", budget: 100, ...base }), null, NOW);
@@ -80,10 +81,10 @@ describe("smartScore", () => {
     // separate hard override in useDashboardFilters — both are gone.
     // Same created_at/budget/coords means these two must score IDENTICALLY
     // regardless of urgent_fee, is_urgent, or an imminent date_needed.
-    const base = makeJob({ id: "base", date_needed: "2026-06-20" });
+    const base = makeJob({ id: "base", date_needed: jobLocalDateISO(-92) });
     const urgent = makeJob({
       id: "urg",
-      date_needed: "2026-05-21", // within the old 48h window
+      date_needed: jobLocalDateISO(-122), // within the old 48h window
       urgent_fee: 25,
       is_urgent: true,
     });
@@ -95,7 +96,7 @@ describe("smartScore", () => {
     // tier (+0.3); a job ~20mi away should land in the 25mi tier (+0.15);
     // a job 100mi away gets no bonus.
     const helper: HelperLocation = { lat: 30.45, lng: -91.15 };
-    const base = { created_at: new Date(NOW).toISOString(), date_needed: "2026-06-20", budget: 50 };
+    const base = { created_at: new Date(NOW).toISOString(), date_needed: jobLocalDateISO(-92), budget: 50 };
 
     const noCoords = makeJob({ id: "no-coords", ...base });
     const near = makeJob({ id: "near", latitude: 30.46, longitude: -91.14, ...base });
@@ -115,7 +116,7 @@ describe("smartScore", () => {
   it("is pure-recency-plus-budget when helper has no location", () => {
     // With helperLocation null, two jobs at identical timestamps and budgets
     // should score identically regardless of their geographic spread.
-    const base = { created_at: new Date(NOW).toISOString(), date_needed: "2026-06-20", budget: 75 };
+    const base = { created_at: new Date(NOW).toISOString(), date_needed: jobLocalDateISO(-92), budget: 75 };
     const here = makeJob({ id: "here", latitude: 30.45, longitude: -91.15, ...base });
     const there = makeJob({ id: "there", latitude: 47.6, longitude: -122.3, ...base });
     expect(smartScore(here, null, NOW)).toBeCloseTo(smartScore(there, null, NOW), 6);
@@ -161,7 +162,7 @@ describe("sortJobsSmart", () => {
 
   it("uses proximity as a tiebreaker when other signals are equal", () => {
     const helper: HelperLocation = { lat: 30.45, lng: -91.15 };
-    const base = { created_at: new Date(NOW).toISOString(), date_needed: "2026-06-20", budget: 50 };
+    const base = { created_at: new Date(NOW).toISOString(), date_needed: jobLocalDateISO(-92), budget: 50 };
     const far = makeJob({ id: "far", latitude: 32.5, longitude: -93.7, ...base });
     const near = makeJob({ id: "near", latitude: 30.46, longitude: -91.14, ...base });
 

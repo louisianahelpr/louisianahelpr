@@ -51,6 +51,7 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock, type TableResult } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const CRON_SECRET = "cron-secret";
 
@@ -85,7 +86,7 @@ function seriesParent(overrides: Record<string, unknown> = {}) {
     special_requirements: null,
     photos: null,
     is_flexible_schedule: false,
-    date_needed: "2026-08-28",
+    date_needed: jobLocalDateISO(-23),
     recurrence_days: [5],
     recurrence_weeks: 4,
     recurring_helper_id: HELPER_ID,
@@ -101,7 +102,7 @@ function seriesParent(overrides: Record<string, unknown> = {}) {
 function inertSeries(id: string) {
   return seriesParent({
     id,
-    date_needed: "2026-08-01",
+    date_needed: jobLocalDateISO(-50),
     recurrence_days: [6],
     recurrence_weeks: 1,
   });

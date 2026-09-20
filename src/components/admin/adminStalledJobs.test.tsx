@@ -51,6 +51,7 @@ vi.mock("@/lib/adminAudit", () => ({ logAdminAction: vi.fn(async () => {}) }));
 
 import AdminStalledJobs from "./AdminStalledJobs";
 import type { StalledQueueRow } from "./adminStalledJobs/stalledQueue";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const JOB_ID = "6f1c3d12-0a4c-4f2f-9f2d-5c1f0b8a7e21";
 
@@ -60,7 +61,7 @@ const queueRow = (over: Partial<StalledQueueRow> = {}): StalledQueueRow => ({
   customer_id: "poster-1",
   helper_id: "helper-1",
   budget: 240,
-  date_needed: "2026-09-15",
+  date_needed: jobLocalDateISO(-5),
   start_time: "09:00:00",
   estimated_hours: 3,
   status: "in_progress",

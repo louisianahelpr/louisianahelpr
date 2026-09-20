@@ -120,6 +120,7 @@ vi.mock("@/integrations/supabase/client", () => makeSupabase());
 
 import { PostedJobCard } from "@/components/activity/PostedJobCard";
 import { AppliedJobCard } from "@/components/activity/AppliedJobCard";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});
@@ -150,7 +151,7 @@ const baseJob = {
   customer_id: POSTER,
   helper_id: HELPER,
   location: "Lafayette, LA",
-  date_needed: "2026-09-20",
+  date_needed: jobLocalDateISO(0),
   start_time: "09:00",
   payment_status: "escrow",
   helper_confirmed_at: ago(48),

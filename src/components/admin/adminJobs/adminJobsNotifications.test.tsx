@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AdminJobs from "../AdminJobs";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /**
  * The two things an admin job action's notification has to get right, and got
@@ -42,7 +43,7 @@ const job = {
   category: "Yard Work",
   description: "Front yard only.",
   created_at: "2026-08-29T12:00:00Z",
-  date_needed: "2026-08-29",
+  date_needed: jobLocalDateISO(-22),
   flag_reasons: null,
 };
 

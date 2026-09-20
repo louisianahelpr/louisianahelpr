@@ -9,6 +9,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { AppliedApp, Job } from "../activityConstants";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: vi.fn() } }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn() } }));
@@ -25,7 +26,18 @@ const job = {
   status: "accepted",
   location: "123 Main St, Lafayette, LA 70503",
   customer_id: "poster-1",
-  date_needed: "2026-09-20",
+  /* RELATIVE, never a calendar literal. This was hardcoded "2026-09-20" —
+     comfortably future when the spec was written on 2026-09-14, and TODAY on
+     2026-09-20, at which point the 09:00 start had passed and `hasJobStarted`
+     correctly hid the Cancel chip. Both tests above went red on a product that
+     was behaving exactly as specified; the fixture had simply aged into the
+     window the section is supposed to suppress.
+
+     `jobLocalDateISO` resolves the day in the PLATFORM's zone (America/Chicago),
+     which is the same clock `hasJobStarted` and `helper_cancel_booking` use — a
+     UTC-built date would reintroduce the off-by-one-day bug that made eight
+     other specs green all morning and red after 19:00 Pacific. */
+  date_needed: jobLocalDateISO(7),
   start_time: "09:00",
   helper_confirmed_at: "2026-09-14T12:00:00Z",
 } as unknown as Job;

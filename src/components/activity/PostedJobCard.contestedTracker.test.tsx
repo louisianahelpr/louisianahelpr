@@ -62,6 +62,7 @@ vi.mock("@/hooks/useFundExistingJob", () => ({ useFundExistingJob: () => ({ fund
 vi.mock("./useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
 
 import { PostedJobCard } from "./PostedJobCard";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const baseJob = {
   id: "job-1",
@@ -72,7 +73,7 @@ const baseJob = {
   customer_id: "poster-1",
   helper_id: "helper-1",
   location: "Lafayette, LA",
-  date_needed: "2026-09-20",
+  date_needed: jobLocalDateISO(0),
   payment_status: "escrow",
 } as unknown as Job;
 

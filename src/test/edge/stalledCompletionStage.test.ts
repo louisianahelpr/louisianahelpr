@@ -38,13 +38,14 @@ import {
   TOTAL_TO_PAYOUT_HOURS,
 } from "../../../supabase/functions/_shared/escrowTiming";
 import { SECOND_AFTER_HOURS } from "../../../supabase/functions/_shared/arrivalNudge";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /** A job on 2026-09-15, 09:00 Central, estimated at 3 hours. */
 const JOB: StalledEvidence = {
   status: "in_progress",
   helper_completed_at: null,
   poster_completed_at: null,
-  date_needed: "2026-09-15",
+  date_needed: jobLocalDateISO(-5),
   start_time: "09:00:00",
   estimated_hours: 3,
 };

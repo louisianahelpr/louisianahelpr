@@ -89,6 +89,7 @@ vi.mock("@/components/activity/useHighlightPulse", () => ({ useHighlightPulse: (
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
 
 import { AppliedJobCard } from "@/components/activity/AppliedJobCard";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const ADDRESS = "1103 Center St, New Iberia, LA 70560";
 
@@ -102,7 +103,7 @@ const baseJob = {
   customer_id: "poster-1",
   helper_id: "helper-1",
   location: ADDRESS,
-  date_needed: "2026-09-20",
+  date_needed: jobLocalDateISO(0),
   start_time: "09:00",
   helper_confirmed_at: "2026-09-19T12:00:00Z",
   payment_status: "escrow",

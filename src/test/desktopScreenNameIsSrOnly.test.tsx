@@ -81,6 +81,7 @@ vi.mock("@/hooks/useActivityData", () => ({
 
 import Activity from "@/pages/Activity";
 import { ConversationList } from "@/components/messages/ConversationList";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /** The exact gate `useIsWebDesktop` reads (min-width: 900px, non-native). */
 function setWebDesktop(on: boolean) {
@@ -106,9 +107,9 @@ const ROW = {
   title: "Mow the lawn",
   status: "open",
   created_at: "2026-09-19T12:00:00.000Z",
-  date_needed: "2026-09-20",
+  date_needed: jobLocalDateISO(0),
   budget: 60,
-  jobs: { id: "job-1", title: "Mow the lawn", status: "open", date_needed: "2026-09-20" },
+  jobs: { id: "job-1", title: "Mow the lawn", status: "open", date_needed: jobLocalDateISO(0) },
 };
 
 function renderActivity(tab: "posted" | "applied") {

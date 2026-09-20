@@ -67,6 +67,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
 
 import Admin from "@/pages/Admin";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const ROOT = resolve(__dirname, "../../..");
 
@@ -76,14 +77,20 @@ const QUEUE_ROW = {
   customer_id: "poster-1",
   helper_id: "helper-1",
   budget: 240,
-  date_needed: "2026-09-15",
+  date_needed: jobLocalDateISO(-5),
   start_time: "09:00:00",
   estimated_hours: 3,
   status: "in_progress",
   payment_status: "escrow",
-  first_sent_at: "2026-09-16T14:00:00Z",
-  second_sent_at: "2026-09-17T14:00:00Z",
-  escalated_at: "2026-09-18T14:00:00Z",
+  /* Relative, and anchored to the SAME day as `date_needed` above. These were
+     absolute ("2026-09-16/17/18") and coherent with a hardcoded date_needed of
+     2026-09-15 — one, two and three days after the job. The moment date_needed
+     became relative, the cluster drifted apart, because half of it still named
+     a fixed calendar and half of it moved with today. The whole ladder has to
+     travel together or the row stops being an escalated one. */
+  first_sent_at: `${jobLocalDateISO(-4)}T14:00:00Z`,
+  second_sent_at: `${jobLocalDateISO(-3)}T14:00:00Z`,
+  escalated_at: `${jobLocalDateISO(-2)}T14:00:00Z`,
   resolved_at: null,
 };
 

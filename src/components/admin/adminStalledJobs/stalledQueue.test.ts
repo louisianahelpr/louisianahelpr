@@ -21,6 +21,7 @@ import {
   STALLED_ESCALATE_AFTER_HOURS,
   scheduledEndMs,
 } from "../../../../supabase/functions/_shared/stalledCompletion";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const row = (over: Partial<StalledQueueRow> = {}): StalledQueueRow => ({
   job_id: "11111111-1111-4111-8111-111111111111",
@@ -28,7 +29,7 @@ const row = (over: Partial<StalledQueueRow> = {}): StalledQueueRow => ({
   customer_id: "poster-1",
   helper_id: "helper-1",
   budget: 120,
-  date_needed: "2026-09-15",
+  date_needed: jobLocalDateISO(-5),
   start_time: "09:00:00",
   estimated_hours: 3,
   status: "in_progress",

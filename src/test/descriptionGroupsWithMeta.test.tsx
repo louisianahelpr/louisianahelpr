@@ -94,6 +94,7 @@ vi.mock("@/integrations/supabase/client", () => makeSupabase());
 
 import { AppliedJobCard } from "@/components/activity/AppliedJobCard";
 import { PostedJobCard } from "@/components/activity/PostedJobCard";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});
@@ -132,7 +133,7 @@ const baseJob = {
   id: "job-1", title: "Trim the crepe myrtles", description: DESCRIPTION,
   category: "yard_work", budget: 120, status: "in_progress",
   customer_id: POSTER, helper_id: HELPER, location: "Lafayette, LA",
-  date_needed: "2026-09-20", start_time: "09:00", payment_status: "escrow",
+  date_needed: jobLocalDateISO(0), start_time: "09:00", payment_status: "escrow",
   helper_confirmed_at: ago(48), helper_dayof_confirmed_at: ago(30),
   poster_confirmed_at: ago(47), helper_on_the_way_at: ago(7), helper_arrived_at: ago(6),
   proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"],

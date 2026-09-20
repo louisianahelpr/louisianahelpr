@@ -39,6 +39,7 @@ vi.mock("@/lib/haptics", () => ({ hapticLight: vi.fn() }));
 
 import JobCard from "./JobCard";
 import type { EnrichedJob } from "./types";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /** Verbatim from prod `profiles` for the reporting account, 2026-09-19. */
 const MENLO_PARK = { lat: 37.47282350893211, lng: -122.2443517921565 };
@@ -55,7 +56,7 @@ function shreveportJob(overrides: Partial<EnrichedJob> = {}): EnrichedJob {
     budget: 120,
     location: "Shreveport, LA",
     parish: "Caddo",
-    date_needed: "2026-09-25",
+    date_needed: jobLocalDateISO(5),
     start_time: null,
     created_at: new Date("2026-09-19T12:00:00Z").toISOString(),
     expires_at: new Date("2026-10-03T12:00:00Z").toISOString(),

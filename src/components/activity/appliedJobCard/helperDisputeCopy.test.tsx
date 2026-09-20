@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { helperDisputeCopy } from "./helperDisputeCopy";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /**
  * THE HELPER'S DISPUTE PANEL MUST NOT SPEAK IN THE POSTER'S VOICE.
@@ -254,7 +255,7 @@ describe("the poster's collapsed card announces the dispute", () => {
     const job = {
       id: "job-d", title: "Pressure wash the driveway", description: "Front drive.",
       category: "cleaning", budget: 120, customer_id: "poster-1", helper_id: "helper-1",
-      location: "Lafayette, LA", date_needed: "2026-09-20", payment_status: "escrow",
+      location: "Lafayette, LA", date_needed: jobLocalDateISO(0), payment_status: "escrow",
       status: "disputed", dispute_status: "open",
     } as unknown as import("../activityConstants").Job;
     render(
@@ -336,7 +337,7 @@ describe("the poster's collapsed card announces the dispute", () => {
     // from a real disputed application rather than from a hand-set prop.
     const app = {
       id: "app-d", job_id: "job-d", helper_id: "helper-1", status: "accepted",
-      job: { id: "job-d", status: "disputed", dispute_status: "open", date_needed: "2026-09-20" },
+      job: { id: "job-d", status: "disputed", dispute_status: "open", date_needed: jobLocalDateISO(0) },
     } as unknown as import("../activityConstants").AppliedApp;
     // Scoped to THIS render's container — the poster case above leaves its own
     // card in the document, and a document-wide query would find two.

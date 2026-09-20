@@ -132,4 +132,70 @@ describe("a job day is Central, never UTC", () => {
         "(src/test/helpers/jobLocalDate.ts)",
     ).toEqual([]);
   });
+
+  /* ── THE SECOND WAY A JOB DAY GOES WRONG: IT AGES ────────────────────────
+     The UTC check above is about the ZONE. This one is about the CALENDAR.
+
+     `ConfirmedSection.test.tsx` hardcoded `date_needed: "2026-09-20"`. On
+     2026-09-14, when it was written, that was comfortably in the future and
+     both of its tests passed. On 2026-09-20 it became TODAY, its 09:00 start
+     passed, `hasJobStarted` correctly hid the Cancel Job chip, and two tests
+     went red against a product doing exactly what it was specified to do.
+
+     Nothing caught it, because a literal date is not a timezone bug and the
+     file is otherwise perfectly written. It is a TIME BOMB: green on the day
+     it lands, red on a date nobody chose, in a file nobody touched, blamed on
+     whatever commit happens to be passing through.
+
+     The rule: a job day that must be in the future is written RELATIVE.
+     A clearly-historical literal (2020-01-01) or a clearly-absurd one
+     (2099-01-01) is fine and common — those are deliberately, permanently on
+     one side of now, and ConfirmedSection's own "past start" and "future job"
+     cases use exactly those. What is banned is the middle: a real date near
+     the era the repo is being written in, which is future today and past
+     later. */
+  const DATE_LITERAL = /\bdate_needed\s*[:=]\s*["'`](\d{4})-(\d{2})-(\d{2})["'`]/g;
+
+  /* Safe means "cannot cross now", and that is a distance from TODAY, not a
+     fixed year — a hardcoded year threshold would itself age. A literal is
+     safe if it is already more than a year in the past (it can never become
+     future) or more than five years out (it will not arrive while this code
+     lives). Everything between is the time-bomb window. */
+  const DAY_MS = 86_400_000;
+  const nowMs = Date.now();
+  const PAST_SAFE_MS = nowMs - 365 * DAY_MS;
+  const FUTURE_SAFE_MS = nowMs + 5 * 365 * DAY_MS;
+  const isTimeBomb = (y: string, m: string, d: string) => {
+    const t = Date.parse(`${y}-${m}-${d}T00:00:00Z`);
+    return Number.isFinite(t) && t > PAST_SAFE_MS && t < FUTURE_SAFE_MS;
+  };
+
+  it("no job day is a hardcoded date that will age from future to past", () => {
+    const offenders: string[] = [];
+    for (const f of JOB_DAY_FILES) {
+      for (const m of stripComments(read(f)).matchAll(DATE_LITERAL)) {
+        if (!isTimeBomb(m[1], m[2], m[3])) continue;
+        offenders.push(`${f}: date_needed: "${m[1]}-${m[2]}-${m[3]}"`);
+      }
+    }
+    expect(
+      offenders,
+      "a job day literal in the present era is a time bomb: future when written, past " +
+        "later, red on a day nobody chose. Use jobLocalDateISO(n) for a relative day, or a " +
+        "literal more than a year past / more than five years out when the test needs a " +
+        "fixed side of now:\n  " + offenders.join("\n  "),
+    ).toEqual([]);
+  });
+
+  it("that matcher can actually fail, and does not cry wolf on the safe literals", () => {
+    // Floors: the check is worthless if it matches nothing or matches everything.
+    const bomb = 'date_needed: "2026-09-20"';
+    const past = 'date_needed: "2020-01-01"';
+    const future = 'date_needed: "2099-01-01"';
+    const hits = (src: string) =>
+      [...src.matchAll(DATE_LITERAL)].filter((m) => isTimeBomb(m[1], m[2], m[3])).length;
+    expect(hits(bomb), "the real 2026-09-20 bomb must be caught").toBe(1);
+    expect(hits(past), "a permanently-historical literal is legitimate").toBe(0);
+    expect(hits(future), "a permanently-future literal is legitimate").toBe(0);
+  });
 });

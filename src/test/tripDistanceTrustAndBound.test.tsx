@@ -81,6 +81,7 @@ import { join, relative, resolve } from "node:path";
 import { render, renderHook, screen, waitFor } from "@testing-library/react";
 import { COMMUTE_RANGE_MILES } from "@/lib/geo";
 import JobCard from "@/components/dashboard/JobCard";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "idle" }));
 vi.mock("@/lib/haptics", () => ({ hapticLight: vi.fn() }));
@@ -361,7 +362,7 @@ function OwnerCard({ userLat, userLng }: { userLat: number; userLng: number }) {
           budget: 120,
           location: "Shreveport, LA",
           parish: "Caddo",
-          date_needed: "2026-09-25",
+          date_needed: jobLocalDateISO(5),
           start_time: null,
           created_at: new Date("2026-09-19T12:00:00Z").toISOString(),
           expires_at: new Date("2026-10-03T12:00:00Z").toISOString(),

@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { JobStatTiles } from "./JobStatTiles";
 import type { EnrichedJob } from "../types";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /**
  * THE EMPTY BLOCK the owner photographed on 2026-09-19 ("rn its just an empty
@@ -29,7 +30,7 @@ function makeJob(overrides: Partial<EnrichedJob> = {}): EnrichedJob {
     category: "moving",
     budget: 100,
     // The owner's screenshot: Lake Charles, Wed Dec 30, no time.
-    date_needed: "2026-12-30",
+    date_needed: jobLocalDateISO(101),
     location: "1 Ryan St, Lake Charles, LA 70601",
     customer_id: "poster",
     status: "open",

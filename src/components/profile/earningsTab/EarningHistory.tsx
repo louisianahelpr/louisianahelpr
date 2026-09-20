@@ -178,18 +178,34 @@ export function EarningHistory({
                     </div>
                     <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       {job.location}{" "}
-                      {/* Decorative separator, `aria-hidden` like every other one in
-                          the app (ReviewsTab, RecentTransfers). It is sienna at 0.5 =
-                          #cea08b on white = 2.33:1, so axe files it as a WCAG AA text
-                          contrast failure the moment it is in the a11y tree — measured
-                          on DEPLOYED prod, 2026-09-20, by the changed-route a11y sweep.
-                          The two siblings that already carry this attribute do not fail;
-                          these two had simply omitted it. Hiding it is the right fix
-                          rather than darkening it: the glyph carries no information (the
-                          location and the date on either side each read alone), and a
-                          screen reader announcing a bare "·" between them is noise.
-                          Zero pixels change. */}
-                      <span aria-hidden="true" style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>{" "}
+                      {/* THE SEPARATOR HAS NO COLOUR OF ITS OWN ANY MORE. It used to be
+                          `hsl(var(--burnt-sienna) / 0.5)` = #cea08b on this white card =
+                          2.33:1 against a 4.5:1 requirement — a live WCAG AA failure,
+                          reproduced on DEPLOYED prod on 2026-09-20 by the changed-route
+                          a11y sweep, not introduced by the change that surfaced it.
+
+                          `aria-hidden` alone does NOT fix it and was tried first: axe's
+                          colour-contrast rule matches on VISUAL visibility, so a glyph
+                          that is out of the a11y tree is still measured (it came back
+                          under the same selector with `[aria-hidden="true"]` appended).
+                          The attribute stays because it is independently right — a
+                          screen reader announcing a bare "·" between a street address
+                          and a date is noise — but the ratio is what the gate is about.
+
+                          So the tint is gone and the glyph inherits the line it
+                          punctuates (`hsl(var(--olivewood) / 0.8)`, 7.11:1, already on
+                          the location and the date either side of it). Inheriting
+                          removes a magic value rather than replacing it with another,
+                          and it is the smallest change that clears AA: the sienna would
+                          have needed ~0.85 alpha (measured ladder 0.5 → 2.33, 0.8 →
+                          4.32, 1.0 → 6.61), i.e. a new colour nobody chose.
+
+                          THREE SIBLINGS STILL CARRY THE OLD TINT — ReviewsTab.tsx:321,
+                          RecentTransfers.tsx:48, SavedHelperCard.tsx. They are the same
+                          latent failure and were left alone deliberately: they are not
+                          this lane's screens, and only this one was swept. Filed in
+                          docs/OPEN.md. */}
+                      <span aria-hidden="true">·</span>{" "}
                       {formatShortDate(job.date_needed)}
                     </p>
                   </div>

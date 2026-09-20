@@ -2,6 +2,29 @@ import { type ReactNode } from "react";
 import { categoryColors } from "./activityConstants";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 
+/**
+ * THE SHELL'S OWN GEOMETRY, exported so a placeholder can IMPORT the frame
+ * rather than redraw it — the same contract ConversationRow now gives
+ * MessageThreadSkeleton and JobCard gives JobCardSkeleton.
+ *
+ * ApplicationCardSkeleton used to hand-draw `rounded-2xl liquid-glass
+ * overflow-hidden` and stop there, so it reserved a card with NO category
+ * rail and NO category tab while every real applied card leads with both.
+ * Those are not decoration: the tab overlays the top of the card, which is
+ * why JobCardTitleBar switches from `py-2.5` to `pt-6 pb-2.5` whenever a
+ * category is present. A placeholder that omits the tab is a placeholder
+ * that is a title-bar's worth of padding too short, on every row.
+ */
+export const JOB_CARD_SHELL_FRAME =
+  "relative rounded-2xl liquid-glass overflow-hidden";
+/** The full-height category stripe down the left edge. */
+export const JOB_CARD_SHELL_RAIL = "absolute left-0 top-0 bottom-0 w-1.5 z-10";
+/** Where the category tab sits, overlaying the card's top-left corner. */
+export const JOB_CARD_SHELL_TAB_SLOT = "absolute top-0 left-0 z-20 flex items-stretch";
+/** The title row's padding — `pt-6` is the clearance for that tab. */
+export const JOB_CARD_TITLE_PAD_WITH_TAB = "w-full px-4 pt-6 pb-2.5";
+
+
 interface JobCardShellProps {
   /** When false, the card is non-interactive (no expand-on-click, no keyboard role). */
   expandable: boolean;
@@ -40,7 +63,7 @@ export function JobCardShell({
     : "";
   return (
     <div
-      className={`relative rounded-2xl liquid-glass overflow-hidden hover:shadow-md transition-all duration-200 ${interactiveClass} ${className ?? ""}`.trim()}
+      className={`${JOB_CARD_SHELL_FRAME} hover:shadow-md transition-all duration-200 ${interactiveClass} ${className ?? ""}`.trim()}
       onClick={expandable ? onToggle : undefined}
     >
       {/* Category rail — the full-height colour stripe down the left edge,
@@ -51,7 +74,7 @@ export function JobCardShell({
           Purely decorative, hence aria-hidden — the category is announced by
           the text chip in JobCardTitleBar, not by this. The card body is
           padded px-4 (16px) against this 6px rail, so nothing shifts. */}
-      <span aria-hidden className={`absolute left-0 top-0 bottom-0 w-1.5 z-10 ${railClass}`} />
+      <span aria-hidden className={`${JOB_CARD_SHELL_RAIL} ${railClass}`} />
       {/* Category tab — top-left, exactly as Browse / Home render it (owner:
           "for post and jobs the category should be in the top left just like
           home dashboard is"). Squared on the left so it continues the rail with
@@ -64,7 +87,7 @@ export function JobCardShell({
           title, which starts at the very top of the card on these surfaces
           (Browse has the same arrangement via its own `pt-6`). */}
       {category ? (
-        <div className="absolute top-0 left-0 z-20 flex items-stretch">
+        <div className={JOB_CARD_SHELL_TAB_SLOT}>
           {/* ONE component, shared with the Browse feed card — see
               JobCategoryTab. Both files used to draw this by hand. */}
           <JobCategoryTab category={category} />

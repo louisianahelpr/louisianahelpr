@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { MoneyChip } from "@/components/job/MoneyChip";
+import { JOB_CARD_TITLE_PAD_WITH_TAB } from "@/components/activity/JobCardShell";
 
 interface JobCardTitleBarProps {
   title: string;
@@ -36,7 +37,7 @@ export function JobCardTitleBar({ title, category, amount, amountTitle, meta }: 
       // `pt-6` clears the category tab JobCardShell paints over the card's
       // top-left corner. Without it the tab sits on top of the job title.
       // Same trick, same reason, as Browse's JobCard (`px-3.5 pt-6 pb-2.5`).
-      className={`w-full px-4 text-left ${category ? "pt-6 pb-2.5" : "py-2.5"}`}
+      className={category ? `${JOB_CARD_TITLE_PAD_WITH_TAB} text-left` : "w-full px-4 py-2.5 text-left"}
       style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
     >
       <div className="flex items-center justify-between">

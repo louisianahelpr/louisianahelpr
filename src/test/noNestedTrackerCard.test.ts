@@ -44,13 +44,40 @@ function walkFiles(dir: string, out: string[] = []): string[] {
 const parse = (file: string, source: string) =>
   ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
+/**
+ * Module-scope `const NAME = "…"` string constants in a file, so a className
+ * that is an IDENTIFIER still yields its classes.
+ *
+ * Without this the detector went blind the moment a component moved its
+ * frame into a shared constant — which is exactly what JobCardShell did on
+ * 2026-09-20, so that its placeholder could import the frame instead of
+ * redrawing it. `classText` saw an identifier, produced "", and JobCardShell
+ * stopped counting as a card component: the nested-card check would have
+ * passed on the poster shape it exists to catch. A guard that reads only
+ * literals fails silently the first time anyone does the right thing.
+ */
+function stringConsts(sf: ts.SourceFile): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const st of sf.statements) {
+    if (!ts.isVariableStatement(st)) continue;
+    for (const d of st.declarationList.declarations) {
+      if (!ts.isIdentifier(d.name) || !d.initializer) continue;
+      if (ts.isStringLiteral(d.initializer) || ts.isNoSubstitutionTemplateLiteral(d.initializer)) {
+        out.set(d.name.text, d.initializer.text);
+      }
+    }
+  }
+  return out;
+}
+
 /** Every string fragment a className expression could produce. */
-function classText(expr: ts.Node | undefined): string {
+function classText(expr: ts.Node | undefined, consts?: Map<string, string>): string {
   if (!expr) return "";
   const parts: string[] = [];
   const visit = (n: ts.Node) => {
     if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) parts.push(n.text);
     else if (ts.isTemplateHead(n) || ts.isTemplateMiddle(n) || ts.isTemplateTail(n)) parts.push(n.text);
+    else if (ts.isIdentifier(n) && consts?.has(n.text)) parts.push(consts.get(n.text)!);
     ts.forEachChild(n, visit);
   };
   visit(expr);
@@ -75,6 +102,7 @@ const openingOf = (n: ts.Node): ts.JsxOpeningLikeElement | null =>
  */
 export function findCardComponents(file: string, source: string): string[] {
   const sf = parse(file, source);
+  const consts = stringConsts(sf);
   const names: string[] = [];
   const rootIsGlass = (body: ts.Node): boolean => {
     let found: ts.JsxOpeningLikeElement | null = null;
@@ -93,7 +121,7 @@ export function findCardComponents(file: string, source: string): string[] {
     visit(body);
     if (!found) return false;
     const el = found as ts.JsxOpeningLikeElement;
-    return /^[a-z]/.test(el.tagName.getText()) && GLASS.test(classText(attrs(el).get("className")?.initializer));
+    return /^[a-z]/.test(el.tagName.getText()) && GLASS.test(classText(attrs(el).get("className")?.initializer, consts));
   };
   const consider = (name: string | undefined, fn: ts.Node | undefined) => {
     if (name && /^[A-Z]/.test(name) && fn && rootIsGlass(fn)) names.push(name);
@@ -133,6 +161,7 @@ export type NestedCardViolation = { file: string; line: number; panel: string; w
 
 export function findNestedPanelCards(file: string, source: string, cardComponents: Set<string>) {
   const sf = parse(file, source);
+  const consts = stringConsts(sf);
   const uses: Array<{ line: number; panel: string }> = [];
   const violations: NestedCardViolation[] = [];
   const visit = (n: ts.Node) => {
@@ -145,7 +174,7 @@ export function findNestedPanelCards(file: string, source: string, cardComponent
         while (p && !ts.isFunctionLike(p)) {
           if (ts.isJsxElement(p)) {
             const tag = p.openingElement.tagName.getText();
-            const cls = classText(attrs(p.openingElement).get("className")?.initializer);
+            const cls = classText(attrs(p.openingElement).get("className")?.initializer, consts);
             const wrapper = /^[a-z]/.test(tag)
               ? GLASS.test(cls) ? `<${tag} className="${cls.trim()}">` : null
               : cardComponents.has(tag) ? `<${tag}> (card component)` : null;

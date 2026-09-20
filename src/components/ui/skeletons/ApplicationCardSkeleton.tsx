@@ -1,27 +1,72 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  JOB_CARD_SHELL_FRAME,
+  JOB_CARD_SHELL_RAIL,
+  JOB_CARD_SHELL_TAB_SLOT,
+  JOB_CARD_TITLE_PAD_WITH_TAB,
+} from "@/components/activity/JobCardShell";
+import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
 
 /**
- * ApplicationCardSkeleton — shape-matched placeholder for the helper-
- * side application card (see `src/components/activity/AppliedJobCard.tsx`).
+ * ApplicationCardSkeleton — the placeholder for the helper-side application
+ * card (`src/components/activity/AppliedJobCard.tsx`).
  *
- * Mirrors the real card's three-section layout:
- *   1. Header row: italic display title on the left, a payout chip on
- *      the right, separated by a hairline rule.
- *   2. Summary block: a date/location meta row + a one-line description
- *      preview + a "Posted by" attribution line.
- *   3. Action footer: a single action button row (the real card swaps
- *      this for Accept/Decline pairs depending on state — we use a
- *      single full-width bar as the average shape).
+ * It does not re-draw that card's frame; it IMPORTS it. Frame, category rail,
+ * category-tab slot and the title row's tab clearance all come from
+ * `JobCardShell`'s own exported geometry, so the reserved space is the real
+ * space by construction and neither side can move without the other. Same
+ * contract `MessageThreadSkeleton` has with `ConversationRow` and
+ * `JobCardSkeleton` has with `cardGeometry`.
  *
- * Wraps the same `liquid-glass` surface as the real card so the
- * loading-to-loaded swap is visually stable.
+ * Owner, 2026-09-19: loading states "jump and are not consistent with their
+ * info". This one omitted two things every real applied card leads with:
+ *
+ *   - THE CATEGORY RAIL, the 6px colour stripe down the left edge. Absent
+ *     here, so the bone was a plain card and the real card arrived wearing a
+ *     coloured edge.
+ *   - THE CATEGORY TAB, which overlays the card's top-left corner. That is
+ *     not decoration either: JobCardTitleBar switches from `py-2.5` to
+ *     `pt-6 pb-2.5` whenever a category is present, precisely to clear it.
+ *     Omitting the tab made the placeholder a title-bar's worth of padding
+ *     too short on every row, which is the size half of the report.
+ *
+ * The bones inside stay deliberately fewer than the card's parts. A
+ * placeholder holds the shape and gets out of the way: a title bar, a payout
+ * chip, a meta row, two description lines, an attribution line and one
+ * action bar. Nothing stands in for the Accept/Decline pair or the tracker
+ * panel — both conditional on the real card's state, and drawing them would
+ * be inventing content. What has to match is the RESERVATION.
  */
 export function ApplicationCardSkeleton() {
   return (
-    <div className="rounded-2xl liquid-glass overflow-hidden" aria-hidden>
-      {/* Header — title + payout pill. */}
+    <div className={JOB_CARD_SHELL_FRAME} aria-hidden>
+      {/* Category rail — neutral olivewood while loading; the real card
+          recolours it per category. */}
+      <span
+        className={JOB_CARD_SHELL_RAIL}
+        style={{ background: "hsl(var(--olivewood) / 0.18)" }}
+      />
+      {/* Category tab, in the real tab's own box, so the ~20px it occupies is
+          reserved rather than guessed. */}
+      <div className={JOB_CARD_SHELL_TAB_SLOT}>
+        <span
+          className={JOB_CATEGORY_TAB_FRAME}
+          style={{
+            background: "hsl(var(--olivewood) / 0.10)",
+            borderColor: "hsl(var(--olivewood) / 0.14)",
+            color: "transparent",
+          }}
+        >
+          <Skeleton
+            className="h-2.5 w-14 rounded"
+            style={{ background: "hsl(var(--olivewood) / 0.16)" }}
+          />
+        </span>
+      </div>
+
+      {/* Title row — the card's own padding, tab clearance included. */}
       <div
-        className="w-full px-4 py-2.5 flex items-center justify-between"
+        className={`${JOB_CARD_TITLE_PAD_WITH_TAB} flex items-center justify-between`}
         style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
       >
         <Skeleton

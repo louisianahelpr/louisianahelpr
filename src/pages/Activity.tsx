@@ -437,15 +437,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
      "Nothing needs you" is also good news, and worth seeing. */
 
-  // "Truly empty" — the underlying list has zero items (not merely
-  // filtered down to none). When there's nothing at all, the secondary
-  // "Posted tasks / Open" header with its search + status-filter has
-  // nothing to act on, and the "0 tasks" count chip is pure noise. Both
-  // are hidden so the empty state reads as a single, clean panel. When
-  // items exist but the active filter hides them all, we keep the header
-  // so the user can clear/change the filter that's hiding their tasks.
-  const sourceCount = tab === "posted" ? postedJobs.length : appliedApps.length;
-  const isTrulyEmpty = sourceCount === 0;
+  /* "Truly empty" — the underlying list has zero items, not merely filtered
+     down to none — USED TO STRIP THE HEADER'S CONTROLS. It no longer strips
+     anything; see the note on `activeStatusFilters` below for the screen that
+     produced. The distinction itself still matters to the empty-state copy
+     (ActivityEmptyState already takes both counts and works it out), so
+     nothing here needs to hold it any more. */
 
   const isWebDesktop = useIsWebDesktop();
   const skeletonShownRef = useRef(false);
@@ -502,8 +499,27 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       // Desktop has room for the tabs beside the screen name; phone puts them
       // on their own line under it. Same tabs either way.
       inlineFilters={isWebDesktop}
-      // Empty list => no tabs and no count; see the note above headerEl.
-      activeStatusFilters={isTrulyEmpty ? [] : activeStatusFilters}
+      // THE TABS ARE THE NAVIGATION, so they stay up on an empty list too.
+      //
+      // This used to be `isTrulyEmpty ? [] : activeStatusFilters`, on the
+      // reasoning quoted above: a filter with nothing to filter has nothing to
+      // act on. What that produced on /my-jobs for an account with no
+      // applications — screenshotted 2026-09-19, 1440 — was a header strip
+      // holding a single magnifier and nothing else: the title is sr-only on
+      // the desktop website and the tabs were gone, so the row was empty
+      // chrome above an empty panel and the screen read as broken rather than
+      // as empty. /my-posts on the same account showed all five tabs and the
+      // "No jobs in this view" card, because it HAS posts and was merely
+      // filtered to none; the difference was never a difference between the
+      // two pages, but it looked like one.
+      //
+      // A tab row is not an action on the list, it is where you are in the
+      // screen. Empty is a legitimate place to be, and seeing "Needs You"
+      // underlined over "No applications yet" says which emptiness this is —
+      // whereas a row with the tabs removed says the screen failed to load.
+      // It also keeps the header's HEIGHT identical whether the list has rows
+      // or not, which is the same stability argument that kept the title.
+      activeStatusFilters={activeStatusFilters}
       activeCounts={activeCounts}
       statusFilter={statusFilter}
       setStatusFilter={setStatusFilter}

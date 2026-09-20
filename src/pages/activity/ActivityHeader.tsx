@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
@@ -145,6 +145,65 @@ export function ActivityHeader({
     if (!isDefaultFilter) setTabsOpen(true);
   }, [isDefaultFilter]);
 
+  /* LAYER THREE: IF A LABEL IS STILL PAST THE EDGE, SAY SO.
+     ────────────────────────────────────────────────────────────────────────
+     The first two layers (11px type + 12px gaps, and the short words below
+     390px) are what make the five labels FIT. This one is the insurance for
+     every width they cannot be measured at: Dynamic Type at its largest, a
+     future sixth bucket, a translation, a three-digit count. In all of those
+     the row goes back to scrolling — and a scroller with no affordance is
+     exactly the defect that shipped, because a hard cut at a card edge reads
+     as the end of the row, not as more of it.
+     A MASK, not an overlay gradient: the card behind this row is
+     liquid-glass, so a gradient painted in a surface colour would be a pale
+     rectangle sitting on translucency in one theme and a dark one in the
+     other. Fading the CONTENT's own alpha is right in both themes and on any
+     surface, and it costs no element.
+     Only while there IS something past that edge, and on the side it is on —
+     a permanent fade would dim "Cancelled" on a 414 phone where it is fully
+     on screen, which is a cost paid for nothing. */
+  const tabScrollerRef = useRef<HTMLDivElement>(null);
+  const [tabEdges, setTabEdges] = useState({ start: false, end: false });
+  useEffect(() => {
+    const el = tabScrollerRef.current;
+    if (!el) {
+      setTabEdges({ start: false, end: false });
+      return;
+    }
+    const measure = () => {
+      const slack = el.scrollWidth - el.clientWidth;
+      setTabEdges({
+        start: slack > 1 && el.scrollLeft > 1,
+        end: slack > 1 && el.scrollLeft < slack - 1,
+      });
+    };
+    measure();
+    el.addEventListener("scroll", measure, { passive: true });
+    // The width that decides this is the ELEMENT's, not the window's: the
+    // desktop rail opening and closing changes it with no resize event at all.
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    ro?.observe(el);
+    return () => {
+      el.removeEventListener("scroll", measure);
+      ro?.disconnect();
+    };
+    // `statusFilter` is in here because selecting a tab scrolls the row to it
+    // (UnderlineTabs' own scrollIntoView), which moves both edges.
+  }, [tabsOpen, inlineFilters, inlineStatusFilters.length, statusFilter]);
+
+  const TAB_FADE_PX = 28;
+  const tabFadeStyle: CSSProperties | undefined =
+    tabEdges.start || tabEdges.end
+      ? (() => {
+          const gradient =
+            `linear-gradient(to right, ` +
+            `${tabEdges.start ? "transparent 0px, #000 " + TAB_FADE_PX + "px" : "#000 0px"}, ` +
+            `${tabEdges.end ? `#000 calc(100% - ${TAB_FADE_PX}px), transparent 100%` : "#000 100%"})`;
+          // Both spellings: WebKit is the engine the app actually ships in.
+          return { WebkitMaskImage: gradient, maskImage: gradient };
+        })()
+      : undefined;
+
   /* THE TABS, built once and placed twice.
 
      On the desktop website they ride in the header row's `meta` slot beside
@@ -169,10 +228,20 @@ export function ActivityHeader({
       /* Inline in the header row on the desktop website; on its own line on
          phone, where the taps need a real target. */
       dense={inlineFilters}
+      /* PHONE PAYS FOR THE WIDTH, DESKTOP DOES NOT. `tight` drops the labels
+         to 11px and the gap to 12px, and `shortLabel` swaps three of the five
+         words below 390px — both only on the phone row, where five tabs, a
+         title and a search button share 320 to 414px. The desktop row has
+         ~1100px and keeps the owner's words at their own size. */
+      tight={!inlineFilters}
       ariaLabel="Filter by status"
       tabs={inlineStatusFilters.map((f) => ({
         key: f.key,
         label: f.label,
+        // Desktop has the room, so it never takes the short word — passing it
+        // only on the phone row is what keeps the swap a width decision and
+        // not a second source of truth about what a bucket is called.
+        shortLabel: inlineFilters ? undefined : f.shortLabel,
         count: activeCounts[f.key] || 0,
       }))}
       value={statusFilter}
@@ -385,9 +454,20 @@ export function ActivityHeader({
           that showed no Cancelled. Clipping at the card's rounded edge instead
           lets the fifth label peek, cut by the card, which is the one signal
           that says "this scrolls". `scroll-px-5` keeps a tab you scroll to
-          from landing under the padding. */}
+          from landing under the padding.
+
+          THAT PEEK IS NO LONGER THE PLAN, it is the fallback. The five labels
+          now FIT this scroller at 320 and up (11px type, 12px gaps, and the
+          short words below 390px), so on a phone there is normally nothing
+          past either edge and no fade. `tabFadeStyle` is what happens when
+          there is anyway — see the note beside it. */}
       {!inlineFilters && tabsOpen && (
-        <div id="activity-status-tabs" className="-mx-5 px-5 scroll-px-5 pb-0.5 overflow-x-auto scrollbar-hide">
+        <div
+          id="activity-status-tabs"
+          ref={tabScrollerRef}
+          style={tabFadeStyle}
+          className="-mx-5 px-5 scroll-px-5 pb-0.5 overflow-x-auto scrollbar-hide"
+        >
           {statusTabs}
         </div>
       )}

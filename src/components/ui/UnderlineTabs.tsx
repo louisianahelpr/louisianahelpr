@@ -27,9 +27,52 @@ import { hapticLight } from "@/lib/haptics";
 export interface UnderlineTab {
   key: string;
   label: string;
+  /**
+   * A SHORTER WORD FOR THE SAME TAB, shown only on the narrowest phones.
+   *
+   * Opt-in per tab and per call site: a tab with no `shortLabel` wears `label`
+   * at every width, which is every tab on every screen but Activity's five
+   * buckets. See `SHORT_LABEL_BELOW_PX` for the width it swaps at and why the
+   * swap is CSS rather than JS.
+   *
+   * The accessible name follows the eye: the hidden variant is `display: none`
+   * and so is out of the accessibility tree, which means the button is named
+   * by whichever word is actually painted. That is what keeps WCAG 2.5.3
+   * (label in name) true at every width without an `aria-label` — a voice
+   * user can always say the word they can see.
+   */
+  shortLabel?: string;
   /** Rendered beside the label. Omitted (not rendered as "0") at zero. */
   count?: number;
 }
+
+/**
+ * THE WIDTH BELOW WHICH `shortLabel` REPLACES `label`.
+ *
+ * Measured, not chosen. Activity's five buckets at `tight` density
+ * (11px labels, 12px gaps) need 331px of content; the title card gives the
+ * scroller `viewport - 42px` (two 5px page gutters and the card's own `px-5`
+ * each side). So the long words need a 373px viewport to sit inside their
+ * clip, which 375 clears by 2px — a margin that a single Dynamic Type step,
+ * one more digit in a count, or a longer future word erases. 390 is the next
+ * real phone width above that, so every device narrower than a 390pt iPhone
+ * (SE at 375, and 360/320 Androids) takes the short words, and the widths with
+ * genuine room keep the owner's five.
+ *
+ * Exported because the guard that proves the labels fit derives the breakpoint
+ * from here rather than restating it — see
+ * `src/test/activityTabLabelsFitAPhone.test.ts`.
+ */
+export const SHORT_LABEL_BELOW_PX = 390;
+
+/* The two halves of that swap, written out so Tailwind's scanner can see
+   them. They are LITERALS, not built from SHORT_LABEL_BELOW_PX: Tailwind reads
+   this file as text and generates nothing for a class it cannot see spelled
+   out, and a `min-[${n}px]` template would compile to a rule that does not
+   exist — the short word would then show at EVERY width, silently. The guard
+   asserts the three stay in step. */
+const SHORT_ONLY_CLASS = "min-[390px]:hidden";
+const LONG_ONLY_CLASS = "hidden min-[390px]:inline";
 
 export function UnderlineTabs({
   tabs,
@@ -38,12 +81,27 @@ export function UnderlineTabs({
   ariaLabel,
   className,
   dense = false,
+  tight = false,
 }: {
   tabs: UnderlineTab[];
   value: string;
   onChange: (key: string) => void;
   ariaLabel: string;
   className?: string;
+  /**
+   * PHONE DENSITY: 11px labels and a 12px gap instead of 12px and 16px.
+   *
+   * Opt-in, because this control is also the Messages inbox filter and that
+   * row is three short words with room to spare — tightening it would cost
+   * legibility to solve a problem it does not have. Activity's row is five
+   * words and a title on a 320px screen, which is the only place in the app
+   * where the type has to give something back.
+   *
+   * It is the FIRST of three layers, and the cheapest: it costs one type step
+   * and 16px of total gap, and it buys ~41px. `shortLabel` (second) and the
+   * scroller's edge fade (third) pick up what it cannot.
+   */
+  tight?: boolean;
   /**
    * Inline in a header row beside the screen name — the desktop placement,
    * where the row is already 44px tall for its icon buttons and a tab that
@@ -77,7 +135,7 @@ export function UnderlineTabs({
       ref={rootRef}
       role="group"
       aria-label={ariaLabel}
-      className={`flex items-baseline gap-4 shrink-0 min-w-max${className ? ` ${className}` : ""}`}
+      className={`flex items-baseline ${tight ? "gap-3" : "gap-4"} shrink-0 min-w-max${className ? ` ${className}` : ""}`}
     >
       {tabs.map((t) => {
         const isActive = value === t.key;
@@ -109,7 +167,7 @@ export function UnderlineTabs({
             }}
           >
             <span
-              className="font-sans text-ds-12 leading-none whitespace-nowrap"
+              className={`font-sans ${tight ? "text-ds-11" : "text-ds-12"} leading-none whitespace-nowrap`}
               style={{
                 fontWeight: isActive ? 700 : 600,
                 borderBottom: isActive
@@ -118,7 +176,24 @@ export function UnderlineTabs({
                 paddingBottom: "3px",
               }}
             >
-              {t.label}
+              {/* THE SWAP IS CSS, NOT JS. Both words are in the DOM and a
+                  media query decides which one has a box, so the right word is
+                  painted on the FIRST frame at every width — a JS width branch
+                  would paint the long word, measure, and swap, which is the
+                  visible reflow this row already suffers from enough. It also
+                  keeps the two variants impossible to disagree about: there is
+                  no state that can be stale.
+                  `display: none` also removes the hidden one from the
+                  accessibility tree, so the button's name is always the word on
+                  screen (see `shortLabel`). */}
+              {t.shortLabel ? (
+                <>
+                  <span className={SHORT_ONLY_CLASS}>{t.shortLabel}</span>
+                  <span className={LONG_ONLY_CLASS}>{t.label}</span>
+                </>
+              ) : (
+                t.label
+              )}
             </span>
             {/* The count is 9px — the smallest text in the app — and it was
                 the faintest: 0.45 idle measured 2.59:1 and 0.55 active 3.66:1.

@@ -18,6 +18,8 @@ import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 export interface StatusFilter {
   key: string;
   label: string;
+  /** The narrow-phone stand-in for `label` — see BUCKET_SHORT_LABEL. */
+  shortLabel?: string;
   color: string;
 }
 
@@ -75,6 +77,42 @@ export const BUCKET_LABEL: Record<ActivityBucket, string> = {
 };
 
 /**
+ * THE SAME FIVE BUCKETS IN FEWER LETTERS, for phones narrower than 390pt.
+ *
+ * ── WHY THERE IS A SECOND VOCABULARY AT ALL ────────────────────────────────
+ * Measured on prod 2026-09-19: the five tabs need 372px of content, and a 320
+ * viewport gives the scroller 278px. The row scrolls, so nothing overflowed
+ * the PAGE and every overflow guard in the repo passed — while "Done" was cut
+ * to "Do" and "Cancelled" was not on the screen at all. Two of the five tabs
+ * were invisible on the narrowest phones with no affordance saying so.
+ *
+ * Three layers fix it (owner, 2026-09-19, asked for all three): tighter type
+ * and gap first, these words second, the scroller's edge fade third. This is
+ * the layer that only the narrowest widths pay for — at 390 and up the tighter
+ * type alone fits, and the owner's own five words stay on screen.
+ *
+ * ── WHY THESE WORDS ────────────────────────────────────────────────────────
+ * Each is the part of its own label that carries the meaning, so the two
+ * vocabularies never contradict: "You" and "Cancel" are literally inside
+ * "Needs You" and "Cancelled". "Soon" is not inside "Scheduled" and is the one
+ * real substitution — "Sched" and "Sch." are abbreviations, and an abbreviated
+ * word in a 11px tab reads as a rendering fault rather than a name.
+ * "Waiting" and "Done" are already short enough that shortening them would
+ * only cost clarity.
+ *
+ * Nothing here is allowed to drift from BUCKET_LABEL: the key set is the same
+ * `ActivityBucket` union, so a new bucket cannot be added without the compiler
+ * asking for its short word too.
+ */
+export const BUCKET_SHORT_LABEL: Record<ActivityBucket, string> = {
+  needs_you: "You",
+  waiting: "Waiting",
+  scheduled: "Soon",
+  done: "Done",
+  cancelled: "Cancel",
+};
+
+/**
  * ORDER: Needs you · Waiting · Scheduled · Done · Cancelled (owner, 2026-09-19).
  *
  * It runs the job's own story: something is asked of you, then you are waiting
@@ -95,7 +133,12 @@ export const BUCKET_LABEL: Record<ActivityBucket, string> = {
  */
 const BUCKET_FILTERS: StatusFilter[] = (
   ["needs_you", "waiting", "scheduled", "done", "cancelled"] as ActivityBucket[]
-).map((key) => ({ key, label: BUCKET_LABEL[key], color: ALL_FILTER_COLOR }));
+).map((key) => ({
+  key,
+  label: BUCKET_LABEL[key],
+  shortLabel: BUCKET_SHORT_LABEL[key],
+  color: ALL_FILTER_COLOR,
+}));
 
 export const POSTED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
 export const APPLIED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;

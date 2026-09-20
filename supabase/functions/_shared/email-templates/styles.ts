@@ -180,8 +180,8 @@ export const EMAIL_CSS = `
 `
 
 /**
- * Wordmark IMAGE styling. The wordmark is an <Img>, not text — see the note
- * above for why. Width is set on the element too (Outlook ignores CSS width on
+ * H mark IMAGE styling. It is an <Img>, not text — see the note above for
+ * why. Width is set on the element too (Outlook ignores CSS width on
  * images), and `display:block` kills the baseline gap.
  */
 export const logo = {
@@ -190,7 +190,7 @@ export const logo = {
   // sets (Outlook ignores CSS width on images, so both must agree). This was
   // 150px — nearly double the intended size — so any client honouring CSS
   // over the HTML attribute (Mailinator's renderer, some webmail) rendered
-  // the wordmark oversized.
+  // the H mark oversized.
   width: '80px',
   maxWidth: '80px',
   height: 'auto' as const,

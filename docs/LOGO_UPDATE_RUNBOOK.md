@@ -32,8 +32,10 @@ public/apple-touch-icon.png      # 1024×1024 source for iOS app icon (required)
 public/favicon.ico               # multi-size .ico (16/32/48 sizes inside)
 public/favicon-16.png            # browser tab favicon
 public/favicon-32.png            # browser tab favicon
-public/helpr-splash-icon.png     # web splash screen
-public/helpr-wordmark.png        # EMAIL header logo - see 2d, do NOT skip
+public/helpr-splash-icon.png     # web splash screen; ALSO the source PNG for the
+                                  #   email H mark baked into brand-asset - see 2d
+public/helpr-wordmark.png        # marketing/OG wordmark PNG (index.html, vite.config.ts
+                                  #   social images) — NOT read for email anymore, see 2d
 ```
 
 The iOS Icon Sync workflow uses `public/apple-touch-icon.png` as the
@@ -160,21 +162,28 @@ account credentials to log in and replace assets.
 
 **Where:** https://resend.com/domains
 
-- **THERE IS A LOGO TO UPDATE — `public/helpr-wordmark.png`.** This
-  section used to claim Helpr emails were text-branded with no image
-  asset. That is false, and was false when written: **11 edge functions**
-  embed `<img src="https://www.louisianahelpr.com/helpr-wordmark.png">`
-  in their header — including `send-notification-email`,
-  `admin-user-actions`, `send-business-invite-email` and
-  `engagement-automations`.
-- Because it is loaded by absolute URL from the deployed site (not
-  imported, not hashed), it is invisible to any `src/` grep — which is
-  exactly how this error survived. Replace the file at
-  `public/helpr-wordmark.png`, keep the filename, and redeploy; every
-  email picks it up with no function change.
-- Skipping it leaves every transactional email showing the OLD wordmark
-  after a rebrand, which is the single most visible place a stale logo
-  can appear.
+- **THERE IS A LOGO TO UPDATE, and it is NOT a file swap in `public/`.**
+  This section used to claim Helpr emails were text-branded with no
+  image asset, then (after that was found false) that the fix was
+  replacing `public/helpr-wordmark.png` and redeploying the site. Both
+  are wrong now. Since 2026-08-27 (owner: "this should just be h logo
+  no word mark"), every template's `<img>` points at the `brand-asset`
+  Supabase edge function (`supabase/functions/brand-asset/index.ts`),
+  which serves the **H mark**, not a wordmark, from a base64 constant
+  (`H_MARK_BASE64`) baked into that file at build time — it does not
+  read `public/helpr-wordmark.png`, or any file, at request time.
+- To update it: re-encode the new PNG as base64
+  (`base64 -i public/helpr-splash-icon.png` or the new source image),
+  paste the result into `H_MARK_BASE64`, bump `LOGO_VERSION` in
+  `supabase/functions/_shared/email-templates/styles.ts` (Gmail caches
+  the old bytes for a year under `immutable` otherwise — see
+  `src/test/emailLogoIsVersioned.test.ts`), and redeploy the function
+  (`supabase functions deploy brand-asset`, or let it ride the next
+  `main` merge). Replacing `public/helpr-wordmark.png` does nothing for
+  email — that file only feeds the marketing site's OG/social images.
+- Skipping the redeploy leaves every transactional email showing the
+  OLD H mark after a rebrand, which is the single most visible place a
+  stale logo can appear.
 
 ### 2e. Google Cloud Console (Google Sign In OAuth)
 

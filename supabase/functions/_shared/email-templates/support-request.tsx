@@ -12,10 +12,10 @@
 //     left-aligned and stretched to the full reading-pane width. `<Container>`
 //     inside `BaseLayout` renders as a centred `<table>`, which Word can
 //     actually centre.
-//   • The hand-rolled wordmark `<img>` had `width="80"` fighting
+//   • The hand-rolled logo `<img>` had `width="80"` fighting
 //     `style="width:150px"`, so it rendered at two different sizes depending on
 //     whether the client honoured the attribute or the CSS. `BaseLayout` owns
-//     the wordmark now and the two agree.
+//     the H mark now and the two agree.
 //
 // The `e-text` / `e-footer` / `e-h1` class names are what the shared dark-mode
 // stylesheet in `styles.ts` keys off; without them a forced-inversion client

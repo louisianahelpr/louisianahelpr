@@ -10,7 +10,7 @@
 // left-aligned and stretched to the reading-pane width there. `BaseLayout`'s
 // `<Container>` is a centred `<table>`, which Word can actually centre — and it
 // carries the viewport meta, the preheader and the dark-mode palette the
-// hand-built version was missing, plus one wordmark at one size (the old markup
+// hand-built version was missing, plus one H mark at one size (the old markup
 // had `width="80"` fighting `style="width:150px"`).
 //
 // Copy is passed in as DATA, not as markup. Every admin-authored value (the

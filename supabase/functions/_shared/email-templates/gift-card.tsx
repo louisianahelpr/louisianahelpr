@@ -7,7 +7,7 @@
 // with the WORD engine, which does not implement `margin:0 auto` on a block
 // element, so this email left-aligned and stretched to the reading-pane width
 // there. `BaseLayout`'s `<Container>` is a centred `<table>` — the layout Word
-// can actually centre — and it owns the wordmark, so the old hand-rolled <img>
+// can actually centre — and it owns the H mark, so the old hand-rolled <img>
 // with `width="80"` fighting `style="width:150px"` (two sizes depending on the
 // client) is gone.
 //

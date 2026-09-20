@@ -60,12 +60,14 @@ export const EmailHead = () => (
 )
 
 /**
- * The wordmark. The `width` attribute and the CSS width agree here (80px).
- * They used to disagree — `width="80"` against `style="width:150px"` in ten
- * places — so the same logo rendered at two sizes depending on whether the
- * client honoured the attribute (Outlook) or the CSS (most webmail).
+ * The H mark, not a wordmark (owner, 2026-08-27: "this should just be h logo
+ * no word mark" — see `LOGO_URL`'s comment in styles.ts for the full story).
+ * The `width` attribute and the CSS width agree here (80px). They used to
+ * disagree — `width="80"` against `style="width:150px"` in ten places — so
+ * the same logo rendered at two sizes depending on whether the client
+ * honoured the attribute (Outlook) or the CSS (most webmail).
  */
-export const Wordmark = () => (
+export const HMark = () => (
   <img src={LOGO_URL} alt="Louisiana Helpr" width="80" height="auto" style={logo} />
 )
 
@@ -264,7 +266,7 @@ export const BaseLayout = ({ preheader, children, footer, trailing }: BaseLayout
     <Preview>{preheader}</Preview>
     <Body className="e-bg" style={main}>
       <Container className="e-card" style={container}>
-        <Wordmark />
+        <HMark />
         {children}
         {footer}
       </Container>

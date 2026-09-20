@@ -576,15 +576,34 @@ export function ConversationList({
   // Phrased as a positive — "we KNOW there are threads" — loading is treated as
   // "not yet", so nothing appears that later has to be taken away.
   //
-  // This cannot be made jump-free in both directions: the loading frame has to
-  // guess one of the two outcomes, and whichever it guesses, the other one moves
-  // by the tab row's height. It now guesses "no controls", so the empty inbox —
-  // the reported bug, and the case where a control genuinely disappears — is
-  // stable from first paint, and the populated inbox instead gains the tab row
-  // once, in the same frame its four skeletons are replaced by real rows.
-  // Reserving the height instead would not help the empty case at all: it would
-  // collapse on load exactly as it does today, or keep a permanent 57px dead
-  // band above the empty state.
+  // WHAT IT NO LONGER GATES, AND WHY (owner ruling, 2026-09-20).
+  // The paragraph that used to sit here said this could not be made jump-free
+  // in both directions, because the loading frame has to guess one of the two
+  // outcomes and the other one then moves by the tab row's height. That is
+  // true of a row that is CONDITIONAL. It is not true of a row that is not:
+  // the owner's ruling is "keep the row's height reserved whether or not there
+  // are threads, and render the tabs in both cases", which removes the guess
+  // instead of making it. The strip renders on the loading frame, on the empty
+  // inbox and on the populated one, so there is no frame it has to appear in
+  // or disappear from, and the old paragraph's "permanent dead band above the
+  // empty state" is not dead: it holds the tabs and the search the owner asked
+  // to be able to see on an empty inbox — the same "looks broken" shape just
+  // fixed on /my-posts and /my-jobs.
+  //
+  // Measured on the built app, prod data, before → after:
+  //   375  empty inbox   thread area y=83  → y=127      tabs: none → 293x42
+  //   375  populated     thread area y=127 → y=127      tabs: 293x42 (unchanged)
+  //   1440 empty inbox   thread area y=130 → y=130      tabs: none → 106x20
+  //   1440 populated     thread area y=130 → y=130      tabs: 106x20 (unchanged)
+  // i.e. the 44px the empty inbox used to sit above the populated one at 375
+  // is now zero, and the number that moved is the empty state's, not the
+  // populated one's. Guarded in e2e/prod-audit/activity-tabs-visible.spec.ts,
+  // which drives both accounts and fails on any difference at all.
+  //
+  // `hasThreads` survives for the things that genuinely have nothing to
+  // operate on without threads — "Select messages" and the select-mode action
+  // bar. Those live in a menu and in a mode; neither is on the screen at rest,
+  // so neither can move the thread area.
   const hasThreads = !loading && !loadError && conversations.length > 0;
 
   /* There used to be a whole-inbox `unreadThreads` count here, feeding the
@@ -830,7 +849,11 @@ export function ConversationList({
      144, the caption and its gap 73 more, leaving 96px for a title needing
      101 — "Messag…". This slot has never had room on a phone for anything at
      all, which is the finding, not a coincidence. */
-  const headerMeta = isWebDesktop && hasThreads ? inboxTabs : undefined;
+  /* UNCONDITIONAL on whether the inbox has threads — the owner's 2026-09-20
+     ruling, see the note on `hasThreads`. Still conditional on the desktop
+     website, because on a phone this slot has no room for anything at all
+     (the widths are measured in the note above). */
+  const headerMeta = isWebDesktop ? inboxTabs : undefined;
 
   /* The trailing icon cluster.
      Search · hamburger · chevron, in that order (owner, 2026-09-14, VN-35:
@@ -846,11 +869,16 @@ export function ConversationList({
      its left — and ScreenHeaderRow holds its 44px slot open in its place. The
      split is what makes that possible without also unmounting the hamburger
      beside it: opening search must hide no other control. */
-  const searchTriggerButton = (hasThreads || isSpecialFilterView) && (
-    /* Pinned/Recently Deleted read a different source than the default
-       inbox (see isSpecialFilterView above), so they can have their own
-       threads to search even when hasThreads (the DEFAULT inbox) is
-       false. */
+  /* ALWAYS. It used to be `hasThreads || isSpecialFilterView` — the second
+     half because Pinned/Recently Deleted read a different source than the
+     default inbox (see isSpecialFilterView above) and can have threads of
+     their own when the default inbox has none. Both halves are now moot: the
+     owner's 2026-09-20 ruling is that the inbox's controls are on the screen
+     whether or not there are threads, and a magnifier that vanishes on an
+     empty inbox is half of the "looks broken" shape they reported. It costs
+     nothing to leave: pressing it on an empty inbox opens a field that finds
+     nothing, which is an honest answer, not a dead end. */
+  const searchTriggerButton = (
     <button
       ref={searchTriggerRef}
       type="button"
@@ -1047,8 +1075,15 @@ export function ConversationList({
               action cluster has 20px to spare at 320 and 75 at 375 against a
               title that needs 88, measured; this line is the placement that
               has room. Still hidden while search or select mode has taken the
-              row over: one control at a time. */}
-          {!isWebDesktop && hasThreads && !searchOpen && !selectMode && (
+              row over: one control at a time.
+
+              AND ALWAYS means always: not gated on `hasThreads` any more
+              (owner, 2026-09-20). This is the row whose height the ruling
+              reserves — at 375 it is the 42px strip, and its presence in both
+              outcomes is what makes the empty inbox's thread area start at the
+              same y as the populated one's (127 either way, measured; it used
+              to be 83 against 127). */}
+          {!isWebDesktop && !searchOpen && !selectMode && (
             /* `-mx-1 px-1 pb-0.5` are ActivityHeader's exact classes, so this
                card matches My Posts / My Jobs. The negative margin keeps the
                tabs' focus rings inside the scroller rather than clipped by it;
@@ -1071,7 +1106,7 @@ export function ConversationList({
               keeps its padding, because rows do need to clear the panel edge.
               Same defect and same fix as Activity's empty state. */}
           {!loading && loadError && conversations.length === 0 ? (
-            <div className="flex-1 min-h-0 flex">
+            <div className="flex-1 min-h-0 flex" data-thread-area>
               <ErrorState
                 title="We couldn't load your messages."
                 onRetry={() => { void retryInbox(); }}
@@ -1086,7 +1121,7 @@ export function ConversationList({
             // meant archiving your one thread made Recently Deleted
             // permanently show "No messages yet" instead of the thread you
             // just hid — the exact thing that view exists to surface.
-            <div className="flex-1 min-h-0 flex">
+            <div className="flex-1 min-h-0 flex" data-thread-area>
               <EmptyState
                 icon={MessageSquare}
                 illustration={<EmptyStateIllustration variant="inbox" />}
@@ -1102,6 +1137,7 @@ export function ConversationList({
             </div>
           ) : (
           <PullToRefreshWrapper
+            data-thread-area
             ref={containerRef}
             pullDistance={pullDistance}
             refreshing={refreshing}

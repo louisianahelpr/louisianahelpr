@@ -11,6 +11,21 @@ interface BackButtonProps {
 }
 
 /**
+ * The back button's BOX — the 40px tap target and the -8px optical overhang
+ * that pulls the bare arrow out to the content edge. Its rendered width is
+ * 40 - 8 = 32px plus the icon's own centring, and with `PageHeader`'s
+ * `gap-3` that is what puts every page title on the app's title line
+ * (measured 2026-09-20: back slot 36px + 12px gap = title at gutter + 48,
+ * i.e. x=72 at 1440 and x=68 at 375).
+ *
+ * Exported because `PageHeader` RESERVES this same box on a page that has no
+ * back button — the Profile landing, a nav root — so its title lands on the
+ * same line as the 25 Profile tabs' titles do. Two copies of "w-10 h-10 -ml-2"
+ * would drift the day this one changed; one constant cannot.
+ */
+export const BACK_BUTTON_BOX_CLASS = "w-10 h-10 -ml-2";
+
+/**
  * In-content back button placed to the left of a page's H1.
  *
  * Per project convention, back buttons live in the main content area,
@@ -72,7 +87,7 @@ const BackButton = ({ to, className, onClick }: BackButtonProps) => {
       type="button"
       onClick={handleClick}
       aria-label="Go back"
-      className={`w-10 h-10 -ml-2 ctl-exit flex items-center justify-center ctl-tint active:scale-[0.97] shrink-0 ${className ?? ""}`}
+      className={`${BACK_BUTTON_BOX_CLASS} ctl-exit flex items-center justify-center ctl-tint active:scale-[0.97] shrink-0 ${className ?? ""}`}
       style={{ color: "hsl(var(--olivewood))" }}
     >
       <ArrowLeft className="w-5 h-5" strokeWidth={2.25} />

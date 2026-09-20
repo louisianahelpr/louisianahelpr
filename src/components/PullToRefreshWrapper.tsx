@@ -14,11 +14,33 @@ interface PullToRefreshWrapperProps {
    *  (custom safe-area padding on the inner scroll, for example). */
   style?: React.CSSProperties;
   children: React.ReactNode;
+  /** Measurement hook. The inbox marks whichever of its three thread-area
+   *  branches is live (`data-thread-area`) so a guard can measure the ONE
+   *  box whose `y` must not move between the empty and populated inbox —
+   *  see e2e/prod-audit/activity-tabs-visible.spec.ts. Not styling. */
+  "data-thread-area"?: boolean;
 }
 
 const PullToRefreshWrapper = forwardRef<HTMLDivElement, PullToRefreshWrapperProps>(
-  ({ pullDistance, refreshing, isPulling, canTrigger = false, className = "", style, children }, ref) => (
-    <div ref={ref} className={`relative overflow-auto ${className}`} style={style}>
+  (
+    {
+      pullDistance,
+      refreshing,
+      isPulling,
+      canTrigger = false,
+      className = "",
+      style,
+      children,
+      "data-thread-area": threadArea,
+    },
+    ref,
+  ) => (
+    <div
+      ref={ref}
+      className={`relative overflow-auto ${className}`}
+      style={style}
+      data-thread-area={threadArea}
+    >
       {(isPulling || refreshing) && (
         <div
           // Height tracks `pullDistance`, which is written once per rAF frame

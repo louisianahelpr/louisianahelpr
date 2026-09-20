@@ -1,3 +1,4 @@
+import PageHeader from "@/components/PageHeader";
 import { useStripeConnectStatus } from "@/hooks/useStripeConnectStatus";
 import type { ProfileLandingProps } from "./profileLanding/types";
 import { useProfileLandingDerived } from "./profileLanding/useProfileLandingDerived";
@@ -36,6 +37,49 @@ export function ProfileLanding({
 
   return (
     <>
+      {/* ── THE PAGE TITLE ──────────────────────────────────────────
+          The member's name, on the SAME title line as all 25 Profile tabs
+          (owner, 2026-09-20: "align the landing title to x=72"). Measured at
+          1440 before the change: tab titles x=72, landing x=145; at 375,
+          68 against 141. The cards already agreed (24 / 20); the title was
+          the last Profile surface that did not.
+
+          Why it lands there BY CONSTRUCTION and not by a nudge: this is the
+          same `<PageHeader>` the tabs render through (via ProfileTabHeader),
+          with the same two load-bearing options — `width="none"` because
+          Profile.tsx has already applied the app container + `page-measure`
+          one layer up, and `topInsetHandled` because AppShell's `pt-safe-top`
+          has already cleared the notch. The x is then the header's own back
+          slot (36) + `gap-3` (12) off the gutter, which is the same arithmetic
+          every tab title is subject to.
+
+          `hideBack` + `reserveBackSlot`: the landing is a bottom-nav ROOT —
+          there is nothing to go back to and a chevron here would navigate out
+          of the tab — so the slot is held open EMPTY rather than filled. See
+          the prop's note in PageHeader.tsx.
+
+          The nudge that was NOT taken: a one-off left margin on the old
+          in-card `<h1>`. It would have matched the number and matched nothing
+          else — the landing would still have been the one Profile screen with
+          no page title, still on the pre-2026-08-29 inline `clamp()` type
+          ramp, and still free to drift the next time the back slot changed
+          width.
+
+          `-mb-3 lg:-mb-4` cancels the LANDING COLUMN's own `gap-3 lg:gap-4`
+          (Profile.tsx), the same way ProfileTabHeader's `-mb-4` cancels the
+          tab shell's `space-y-4` — so the air under this title equals the air
+          above it, which is PageHeader's app-wide rule. It is keyed to that
+          gap and moves with it; it is NOT keyed to PageHeader's padding. */}
+      <div className="-mb-3 lg:-mb-4">
+        <PageHeader
+          title={displayName || "Welcome back"}
+          hideBack
+          reserveBackSlot
+          width="none"
+          topInsetHandled
+        />
+      </div>
+
       <IdentityHeader
         profile={profile}
         userId={userId}

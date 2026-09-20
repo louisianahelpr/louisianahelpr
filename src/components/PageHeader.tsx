@@ -1,4 +1,4 @@
-import BackButton from "@/components/BackButton";
+import BackButton, { BACK_BUTTON_BOX_CLASS } from "@/components/BackButton";
 import HelprMark from "@/components/HelprMark";
 import type { CSSProperties, ReactNode } from "react";
 
@@ -45,6 +45,21 @@ interface PageHeaderProps {
    */
   titleActions?: ReactNode;
   hideBack?: boolean;
+  /**
+   * Keep the back button's BOX when `hideBack` is set, empty and inert.
+   *
+   * A page title's x is the back slot plus `gap-3` — 36 + 12 — so a page that
+   * simply drops the chevron drops 48px too and its title lands at the gutter
+   * while every page around it starts at gutter + 48. That is the Profile
+   * landing's whole defect (owner, 2026-09-20: the landing's title sat at
+   * x=145 while all 25 Profile tab titles sat at x=72). The landing is a
+   * bottom-nav ROOT, so it must not grow a chevron that navigates somewhere;
+   * reserving the slot is how it joins the same title line without one.
+   *
+   * Only meaningful together with `hideBack`. The reserved box is the SAME
+   * `BACK_BUTTON_BOX_CLASS` the real button wears, so the two cannot drift.
+   */
+  reserveBackSlot?: boolean;
   /** Render the pinned brand top-nav (HelprMark on the left, matching the
    *  dashboard's top bar) above the title block. Use on standalone flows
    *  like Post a Task so the app's top nav is present, not just a bare
@@ -177,7 +192,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
 // `meta` stays destructured-but-unpainted per the 2026-08-13 owner decision
 // recorded in the retirement note below (title only; ~15 call sites still pass it).
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hideBack = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
+const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hideBack = false, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
   // `eyebrow` is accepted by PageHeaderProps for call-site compatibility but
   // intentionally not destructured/rendered — see the removal note below.
   const { outer, inner } = WIDTH_CLASS[width];
@@ -273,6 +288,15 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hide
             {!hideBack && (
               <div className="shrink-0">
                 <BackButton onClick={onBack} to={backTo} />
+              </div>
+            )}
+            {/* The chevron's box, held open on a page that has no chevron —
+                see `reserveBackSlot`. `aria-hidden` and no focusable child, so
+                it is invisible to a screen reader and to the tab order: it is
+                a column of empty space, not a control. */}
+            {hideBack && reserveBackSlot && (
+              <div className="shrink-0" aria-hidden="true">
+                <span className={`${BACK_BUTTON_BOX_CLASS} block`} />
               </div>
             )}
             {/* No `mb-1` — see the equal-air note above; the space below the

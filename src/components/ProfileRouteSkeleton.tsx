@@ -31,8 +31,15 @@ const ProfileRouteSkeleton = () => (
       contentClassName="overflow-hidden"
       className="bg-premium-page pt-safe-top"
     >
+      {/* The container string stays CHARACTER-FOR-CHARACTER Profile.tsx's, and
+          on 2026-09-20 it lost `pt-3 lg:pt-5` there: the landing now renders
+          its own `<PageHeader>` (the owner's "align the landing title to
+          x=72"), so every Profile surface owns its top gap through PageHeader
+          and the container contributes none. Keeping the padding here would
+          paint this first frame 12px below the two that follow it — the
+          three-frames-two-shapes defect this file exists to stop. */}
       <div
-        className="container mx-auto px-5 lg:px-6 xl:px-6 pt-3 lg:pt-5 pb-4 flex-1 min-h-0 overflow-y-auto"
+        className="container mx-auto px-5 lg:px-6 xl:px-6 pb-4 flex-1 min-h-0 overflow-y-auto"
         aria-hidden
       >
         <div className="page-measure mx-auto">

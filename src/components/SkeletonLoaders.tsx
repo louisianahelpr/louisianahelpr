@@ -1,3 +1,4 @@
+import { BACK_BUTTON_BOX_CLASS } from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
@@ -123,12 +124,36 @@ const MenuGroupCardSkeleton = () => (
 );
 
 /**
- * Full Profile-page skeleton — identity hero + 3-up menu grid.
+ * The landing's PAGE TITLE, as bones.
+ *
+ * The landing grew a real `<PageHeader>` on 2026-09-20 (the owner's "align
+ * the landing title to x=72"), and a skeleton that does not have one puts the
+ * identity card 75px higher than the screen that replaces it — the same
+ * header jump Profile.tsx's own note records being measured and fixed at 12px
+ * on the tabs. So the bones carry the row too.
+ *
+ * The horizontal half cannot drift: the reserved chevron slot is the SAME
+ * `BACK_BUTTON_BOX_CLASS` PageHeader reserves, and `gap-3` is PageHeader's own
+ * title-row gap, so the bar starts on the app's title line like the real one.
+ * The vertical literals (`pt-4 pb-4 sm:pt-6 sm:pb-6`) are copied from
+ * PageHeader's "equal air above and below" block; `h-7` is the measured height
+ * of a rendered `.text-page-title` (27px at 1440, 25px at 375).
+ */
+const LandingTitleSkeleton = () => (
+  <div className="pt-4 pb-4 sm:pt-6 sm:pb-6 flex items-center gap-3">
+    <span className={`${BACK_BUTTON_BOX_CLASS} block shrink-0`} aria-hidden="true" />
+    <Skeleton className="h-7 w-44 rounded-md" />
+  </div>
+);
+
+/**
+ * Full Profile-page skeleton — page title + identity hero + 3-up menu grid.
  * Bottom action row is intentionally omitted; the top + bottom nav are
  * rendered solid by the shell so they appear instantly.
  */
 export const ProfilePageSkeleton = () => (
   <div className="space-y-3">
+    <LandingTitleSkeleton />
     <IdentityHeroSkeleton />
     <div className="grid grid-cols-3 gap-2.5">
       <MenuGroupCardSkeleton />

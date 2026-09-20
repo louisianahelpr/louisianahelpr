@@ -584,16 +584,21 @@ const ProfilePage = () => {
         contentClassName="overflow-hidden"
         className="bg-premium-page pt-safe-top"
       >
-        {/* `pt-3 lg:pt-5` is gated on the landing tab, EXACTLY as the loaded
-            container below gates it (line ~680). It used to be unconditional
-            here while the loaded shell applied it only to the landing — so
-            every one of the twenty-four tabs booted 12px lower than the
-            content that replaced it and then hopped up. Measured at 375 on a
-            cold deep link into ?tab=gift_card: skeleton h1 at y=38, real h1 at
-            y=26. The comment above claimed this shell "mirrors the loaded
-            state's shell so there's no header jump"; the declaration did not.
-            Trust the declaration, never the comment beside it. */}
-        <div className={`container mx-auto px-5 lg:px-6 xl:px-6 ${tab === "landing" ? "pt-3 lg:pt-5" : ""} pb-4 flex-1 min-h-0 overflow-y-auto`}>
+        {/* NO top padding, EXACTLY as the loaded container below has none
+            (2026-09-20). Both used to gate `pt-3 lg:pt-5` on the landing tab,
+            because the landing was the one Profile surface with no PageHeader
+            of its own to own that gap; it has one now, so both dropped the
+            condition together. They must move as a pair: this shell used to
+            apply the padding unconditionally while the loaded one applied it
+            only to the landing, and every one of the twenty-four tabs booted
+            12px lower than the content that replaced it and then hopped up.
+            Measured at 375 on a cold deep link into ?tab=gift_card: skeleton
+            h1 at y=38, real h1 at y=26. The comment above claimed this shell
+            "mirrors the loaded state's shell so there's no header jump"; the
+            declaration did not. Trust the declaration, never the comment
+            beside it — which is also why `ProfilePageSkeleton` now draws the
+            landing's title row. */}
+        <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-4 flex-1 min-h-0 overflow-y-auto">
           <div className="page-measure mx-auto">
             {/* THE PLACEHOLDER MUST BE THE SCREEN YOU ASKED FOR. This line
                 used to read `isEarningsTabUrl() ? <EarningsPageSkeleton /> :
@@ -685,8 +690,17 @@ const ProfilePage = () => {
           title against a clean 16px below it. The landing tab has no
           PageHeader of its own (ProfileLanding renders straight into this
           container), so it still needs this padding to match its
-          PageScaffold siblings — hence the split rather than a flat removal. */}
-      <div className={`container mx-auto px-5 lg:px-6 xl:px-6 ${tab === "landing" ? "pt-3 lg:pt-5" : ""} pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}>
+          PageScaffold siblings — hence the split rather than a flat removal.
+
+          2026-09-20: THE SPLIT IS GONE, and with it the condition. The landing
+          now renders its own `<PageHeader>` too (ProfileLanding.tsx — the
+          owner's "align the landing title to x=72"), so all 26 Profile
+          surfaces own their top gap through the one component that owns it
+          everywhere else in the app, and this container contributes none. The
+          landing-only `pt-3 lg:pt-5` would now be the second gap the note
+          above describes removing — 20px here plus PageHeader's 16 — on the
+          one screen it used to be correct for. */}
+      <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
         {tab === "landing" ? (
           /* Landing scrolls inside a PullToRefreshWrapper so swiping
              down re-syncs the profile, Stripe status, stats + reviews. */

@@ -219,19 +219,32 @@ export function IdentityHeader({
             )}
           </div>
 
-          {/* Name + tier + location, vertically centered against the avatar */}
+          {/* Tier + location, vertically centered against the avatar.
+              THE NAME IS NOT HERE ANY MORE (owner, 2026-09-20: "align the
+              landing title to x=72"). It used to be this column's `<h1>`, and
+              the avatar in front of it is what set its indent: card gutter 24
+              + the card's own `p-4` 17 + the 88px avatar + `gap-4` 16 = x=145,
+              against x=72 for the title of all 25 Profile TABS. The cards on
+              both already agreed at 24; the title was the last Profile surface
+              that did not.
+
+              It was also the last title still carrying the PRE-convergence
+              Profile treatment — `font-display italic` with an inline
+              `clamp(1.4rem, 2vw + 0.4rem, 1.75rem)`, the exact declaration
+              ProfileTabHeader's note says the eighteen tabs were moved OFF on
+              2026-08-29 in favour of the shared `.text-page-title`. The tabs
+              converged; the landing was left behind.
+
+              So the name moved to a real page title (ProfileLanding.tsx →
+              PageHeader, the same component and the same `width="none"` the
+              tabs use), which lands it on the shared title line by
+              construction rather than by a margin, and it picks up
+              `.text-page-title` with it. Guarded at the pixel by
+              e2e/prod-audit/profile-title-alignment.spec.ts.
+
+              Nothing else in this row moved. */}
           <div className="flex-1 min-w-0 text-left">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1
-                className="font-display italic font-bold leading-tight"
-                style={{
-                  fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.75rem)",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.025em",
-                }}
-              >
-                {displayName || "Welcome back"}
-              </h1>
               {/* Subscription tier badge — only shown when tier is not free.
                   ONE derived chip. This was three copies of the same markup
                   keyed on basic/pro/elite, so a Plus member's header showed no

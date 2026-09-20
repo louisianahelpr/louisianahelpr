@@ -32,6 +32,16 @@ import {
 } from "./fixtures";
 import { settleAnimations } from "./auditRoutes";
 import { SEED_JOBS, SEED_APPLICATIONS, CUSTOMER_ID, HELPER_ID } from "./seedData";
+/* THE TAB VOCABULARY COMES FROM THE APP, NEVER FROM A COPY IN HERE.
+   Two words exist per bucket and which one is painted depends on the viewport
+   (see SHORT_LABEL_BELOW_PX). A spec that hand-typed either spelling would go
+   red the next time a breakpoint or a word moves — which is exactly how this
+   test broke: it named "Needs You"/"Scheduled" while a 375 phone paints
+   "You"/"Soon". `activityBuckets` and `shortLabelBreakpoint` are leaf modules
+   with no React imports precisely so specs can read them.
+   Same reason e2e/prod-audit/activity-tabs-visible.spec.ts imports them. */
+import { BUCKET_LABEL, BUCKET_SHORT_LABEL, type ActivityBucket } from "../../src/lib/activityBuckets";
+import { SHORT_LABEL_BELOW_PX } from "../../src/lib/shortLabelBreakpoint";
 
 const SHOTS = "/tmp/ui-review/activity-density";
 mkdirSync(SHOTS, { recursive: true });
@@ -852,12 +862,19 @@ test.describe("My Posts — card density + header", () => {
     // "all" is gone from the chip set and deliberately NOT asserted here: it
     // still resolves as a filter VALUE so notification deep links keep working,
     // but it has no chip and therefore no label to name.
-    for (const [filter, label] of [
-      ["needs_you", "Needs You"],
-      ["scheduled", "Scheduled"],
-      ["waiting", "Waiting"],
-      ["done", "Done"],
-    ] as const) {
+    /* The word this viewport actually paints, read off the app's own two
+       vocabularies rather than spelled out here. The project runs at 375,
+       which is below SHORT_LABEL_BELOW_PX (390) — so the tabs say
+       "You · Waiting · Soon · Done", not "Needs You · Waiting · Scheduled ·
+       Done". Derived from the live viewport, not the number 375, so moving
+       either the project viewport or the breakpoint keeps this honest. */
+    const vw = page.viewportSize()?.width ?? 0;
+    expect(vw, "viewport width is needed to know which vocabulary paints").toBeGreaterThan(0);
+    const wordFor = (key: ActivityBucket) =>
+      vw < SHORT_LABEL_BELOW_PX ? BUCKET_SHORT_LABEL[key] : BUCKET_LABEL[key];
+
+    for (const filter of ["needs_you", "scheduled", "waiting", "done"] as const) {
+      const label = wordFor(filter);
       await page.goto(`/my-posts?filter=${filter}`);
       await page.waitForSelector("h1");
       await settle(page);
@@ -872,19 +889,30 @@ test.describe("My Posts — card density + header", () => {
          that the deep link SELECTS the right tab.
 
          The tabs then went BEHIND A CHEVRON next to search (owner: "add a
-         dropdown arrow next to search so these aren't always showing"). A
-         non-default `?filter=` is supposed to open that disclosure on its own,
-         precisely so a filtered screen never hides why it is filtered — but
-         `needs_you` IS the default, so that one arrives collapsed and has to be
-         opened here. Asserting the toggle's state first is what proves the
-         auto-open rule rather than silently papering over it. */
+         dropdown arrow next to search so these aren't always showing, but then
+         always open to needs you").
+
+         THE ROW NOW SEEDS OPEN AT EVERY WIDTH IN EVERY BUCKET (owner,
+         2026-09-20; ActivityHeader's `tabsOpenPhone` is `useState(true)`).
+         This used to assert the opposite — open only for a NON-default
+         `?filter=`, so `needs_you` had to be clicked open here. That rule
+         shipped and measured: at 320/375/414 a plain /my-posts painted ZERO of
+         the five words until the reader found a chevron. The owner's original
+         complaint was "Cancelled" clipping to "Ca…" — four of five readable —
+         so the disclosure made the reported bug worse.
+
+         Asserting the state BEFORE touching anything is still the point, and
+         it is now a strictly stronger claim than it was: the row must be open
+         for EVERY filter, where the old assertion let the default arrive
+         folded. Nothing is skipped — a regression back to seeding closed goes
+         red here, on all four buckets. The click is gone because there is
+         nothing left to open, and pressing the toggle now would CLOSE the row
+         and hide the tab this test exists to read. */
       const toggle = page.getByRole("button", { name: /Filter by status|Hide status filters/ }).first();
-      const alreadyOpen = (await toggle.getAttribute("aria-expanded")) === "true";
       expect(
-        alreadyOpen,
-        `filter=${filter}: a non-default filter must open the disclosure itself`,
-      ).toBe(filter !== "needs_you");
-      if (!alreadyOpen) await toggle.click();
+        await toggle.getAttribute("aria-expanded"),
+        `filter=${filter}: the tab row must already be open — no interaction, at every width`,
+      ).toBe("true");
 
       const tab = page.getByRole("group", { name: "Filter by status" }).getByRole("button", { name: new RegExp(`^${label}`) });
       await expect(tab, `filter=${filter} tab is present`).toBeVisible();

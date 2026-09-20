@@ -92,6 +92,41 @@ GUARDED MEANWHILE, not waived: the spec's check (d) pins /legal at its measured
 narrower without going red, and every other surface is held to the real
 `MIN_TYPABLE_FIELD_PX` floor of 120.
 
+## OPEN — the Messages empty inbox still hides its tabs and its Select/Search cluster (2026-09-20)
+
+Raised beside the Activity tab-row fix, checked, and DELIBERATELY NOT CHANGED
+there, because it is the same SYMPTOM with a different cause and the change is
+an owner call, not a lane call.
+
+  · Activity (fixed 2026-09-20): the phone tab row was collapsed behind a
+    chevron whenever the live filter was the DEFAULT one — i.e. on arrival.
+    Nothing to do with the list being empty; /my-jobs hid its tabs with rows
+    in the bucket and /my-posts hid them without.
+  · Messages (still open): `ConversationList.tsx` gates the Active/All tabs,
+    the Select button and the search trigger on
+    `hasThreads = !loading && !loadError && conversations.length > 0`. An
+    empty inbox therefore renders a title and nothing else.
+
+WHY IT IS NOT A ONE-LINE FIX. That gate is itself the answer to an owner
+report — "Messages opens different then realized there are no messages and
+changes the view of the screen" — and the note beside it records the
+measurement: the thread area sat at y=122 while loading and snapped to y=65
+when the empty result landed, a 57px jump. Phrasing the gate positively made
+the EMPTY inbox stable from first paint at the cost of the controls not being
+there at all. Flipping it back re-introduces the jump the owner complained
+about.
+
+So there are two owner positions pulling opposite ways — "don't let the screen
+change under me" (2026-09-19, Messages) and "tabs are navigation, they are
+visible without interaction" (2026-09-20, Activity) — and the resolution needs
+the owner. The third option nobody has priced: reserve the tab row's height
+during load and render the tabs in BOTH outcomes, which costs a fixed 41px
+above an empty inbox and no jump in either direction.
+
+NOT GUARDED YET. `e2e/prod-audit/activity-tabs-visible.spec.ts` asserts the
+visible-without-interaction claim for /my-posts and /my-jobs only; extending
+its `ROUTES` to /messages is the whole change once the owner has picked.
+
 ## Seed-fixture realism — address done (96bc774bc), three follow-ups OPEN (2026-09-19)
 Owner: "when i click directions, it gives directions to the town but not the actual
 address." The app was correct end to end (verified live: `get_jobs_for_my_applications`

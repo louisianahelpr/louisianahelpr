@@ -100,6 +100,9 @@ type TabShot = {
   tabs: { word: string; w: number; h: number; selected: boolean }[];
   /** Any status disclosure left closed in front of the row. */
   collapsedBy: string | null;
+  /** The count beside the LIVE tab. 0 when the bucket is empty — UnderlineTabs
+   *  omits the number entirely at zero rather than printing "0". */
+  liveCount: number;
 };
 
 /**
@@ -152,10 +155,13 @@ async function readTabs(page: Page): Promise<TabShot> {
         b.getAttribute("aria-expanded") === "false" &&
         /status|filter/i.test(b.getAttribute("aria-label") || ""),
     );
+    const live = group?.querySelector('button[aria-pressed="true"]');
+    const num = live?.querySelector(".tabular-nums");
     return {
       group: box(group),
       tabs,
       collapsedBy: closed ? closed.getAttribute("aria-label") : null,
+      liveCount: num ? Number((num.textContent || "0").trim()) || 0 : 0,
     };
   }, GROUP);
 }
@@ -202,7 +208,7 @@ async function openActivity(page: Page, url: string) {
   // control rather than the list: an empty bucket never paints a card, and
   // waiting for one would time out on exactly the state under test.
   await page.waitForSelector("[data-search-trigger]", { state: "visible", timeout: 45_000 });
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(1500);
 }
 
 /**
@@ -324,20 +330,15 @@ test("every bucket on both Activity screens keeps its tabs, empty or full @375",
       for (const key of BUCKETS) {
         await openActivity(page, `${route.url}?filter=${key}`);
         const shot = await readTabs(page);
-        // "Populated" is read off the row itself: UnderlineTabs omits the
-        // count entirely at zero, so a selected tab with no number beside it
-        // is an empty bucket. Derived from the rendered row, not declared —
-        // and deliberately counted ACROSS both screens, because which of the
-        // two has rows is a property of the test account on the day, not of
-        // the claim. On 2026-09-20 the poster's /my-posts had rows in all
-        // five and its /my-jobs in none, which is the pair this needs.
-        const count = await page.evaluate((groupSel) => {
-          const live = document
-            .querySelector(groupSel)
-            ?.querySelector('button[aria-pressed="true"]');
-          const num = live?.querySelector(".tabular-nums");
-          return num ? Number((num.textContent || "0").trim()) : 0;
-        }, GROUP);
+        // "Populated" is read off the row itself, in the SAME DOM snapshot as
+        // the boxes above (a second evaluate later races the count query and
+        // read numbers that did not match the row on screen). UnderlineTabs
+        // omits the count entirely at zero, so a live tab with no number
+        // beside it is an empty bucket. Counted ACROSS both screens, because
+        // which of the two has rows is a property of the test account on the
+        // day, not of the claim: on 2026-09-20 the poster's /my-posts had
+        // rows and its /my-jobs had none, which is the pair this needs.
+        const count = shot.liveCount;
         if (count > 0) sawFull++;
         else sawEmpty++;
         note(

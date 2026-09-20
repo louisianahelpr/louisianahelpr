@@ -494,58 +494,16 @@ describe("the status tabs survive first paint, and their breakpoint is a real ru
     ).toBe("true");
   });
 
-  it("the short-word breakpoint compiles to an actual media query", async () => {
-    /* THE APP'S OWN COMPILER, THE APP'S OWN CONTENT GLOBS.
-       Importing the config object (rather than handing Tailwind a path) is
-       what keeps this honest: the `content` array under test is the exact one
-       the Vite build feeds PostCSS, so a file anywhere in `./src/**` that
-       poisons the extractor fails HERE, in vitest, on the commit that adds
-       it — which is the leg that was missing when it happened. */
-    /* The config comes in by PATH, not by a static specifier: tailwind.config.ts
-       is not a file tsconfig.app.json lists, and adding it there to satisfy one
-       import would put the build's config inside the app's type program. A
-       variable specifier is resolved by the runtime and left alone by tsc. */
-    const configPath = resolve(ROOT, "tailwind.config.ts");
-    const [{ default: postcss }, { default: tailwindcss }, { default: config }] = await Promise.all([
-      import("postcss"),
-      import("tailwindcss"),
-      import(/* @vite-ignore */ configPath) as Promise<{ default: unknown }>,
-    ]);
-    const css = (
-      await postcss([tailwindcss(config as never)]).process("@tailwind utilities;", {
-        from: undefined,
-      })
-    ).css;
-
-    // The escaped selector Tailwind emits for the class, assembled the same
-    // bracket-free way (see shortVariantClass) so this assertion cannot
-    // become the next thing that breaks what it is asserting.
-    const selector = (util: string) =>
-      `.min-\\${BR_OPEN}${SHORT_LABEL_BELOW_PX}px\\${BR_CLOSE}\\:${util}`;
-
-    for (const util of ["hidden", "inline"] as const) {
-      expect(
-        css,
-        `${shortVariantClass(util)} is in the source and compiles to NO CSS RULE. ` +
-          "Tailwind reads every file matched by `content` as raw text, so a class-shaped " +
-          "string ANYWHERE in ./src (a test's assertion, a comment, a string constant) " +
-          "with an unparseable arbitrary value silently disables that whole variant " +
-          "family for the entire app. When this last happened the five Activity tab " +
-          "labels rendered as their short stand-ins at every width up to 900, and 40 " +
-          "other `min-[Npx]:` utilities across NotificationPreferences and Footer went " +
-          "dead with them — with every source-level guard green. Search ./src for a " +
-          "`min-` immediately followed by a bracket that is not a literal pixel value.",
-      ).toContain(selector(util));
-      expect(
-        css,
-        `${shortVariantClass(util)} exists but not under a @media (min-width: ` +
-          `${SHORT_LABEL_BELOW_PX}px) — the swap fires at a width nobody declared.`,
-      ).toMatch(
-        new RegExp(
-          `@media\\s*\\(min-width:\\s*${SHORT_LABEL_BELOW_PX}px\\)[\\s\\S]{0,4000}?` +
-            selector(util).replace(/[.\\[\]:]/g, "\\$&"),
-        ),
-      );
-    }
-  }, 60_000);
+  /* AND THE OTHER HALF OF (b) IS NOT HERE ON PURPOSE.
+     Whether these two classes are RULES rather than names is asserted by
+     src/test/arbitraryWidthVariantsCompile.test.ts, which runs the app's real
+     Tailwind over the app's real content globs against the WHOLE inventory of
+     `min-[Npx]:` / `max-[Npx]:` classes the app writes — these two included,
+     since UnderlineTabs is under src/components.
+     It lives there rather than here for two reasons. The defect was never
+     Activity-specific: one poisoned candidate took 40 classes across ten files
+     down at once, and a guard scoped to this row would have reported one
+     fortieth of it. And a Tailwind compile is the most expensive thing in the
+     vitest suite; doing it twice put this file over its timeout under the full
+     parallel run on an 8 GB machine, which is its own kind of false red. */
 });

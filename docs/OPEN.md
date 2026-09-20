@@ -8,6 +8,47 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN — the four long-red nightlies, diagnosed 2026-09-20 (issues #1582 #1595 #1597 #1618)
+
+All four read at the failing run, not the title. **None is environmental**, so none
+is `nightly-red-ack`. Full evidence is in each issue's 2026-09-20 comment.
+
+| # | workflow | cause | state |
+|---|---|---|---|
+| #1618 | prod-audit | `PLAYWRIGHT_ADMIN_EMAIL` → `admin@louisianahelpr.com`, whose `avatar_url` is NULL, so the Big-7 profile gate bounces it to `/complete-profile` before `AdminRoute` ever runs. 26 tests never touched the admin surface. | **owner decision** (below) |
+| #1582 | press-every-control | `Profile request timed out` (`PROFILE_QUERY_TIMEOUT_MS = 6000`) paints an **error boundary on load** on `/user/:id` and `/jobs/:id` for all three roles. Survives the 75b3753a6 auto-heal. Prod query itself is 0.865 ms. | OPEN |
+| #1597 | a11y-webkit-prod | (a) diff CLI `--out` — FIXED 10461897f, never re-run; (b) WebKit: 11 contrast failures, all one `·` at `hsl(var(--burnt-sienna) / 0.5)` = 2.33:1; (c) Chromium: `h-7` renders 29.6 px on the JobTracking step dot. | (a) done, (b) **blocked**, (c) OPEN |
+| #1595 | e2e-journeys | 2 browse failures were a TRUE report of an empty `open_jobs_browse`; 8 rows seeded 2026-09-19 19:25 have since fixed it. 2 real defects remain. | 2 OPEN |
+
+### Owner decision needed — #1618
+`admin@louisianahelpr.com` **cannot reach `/admin` in the live app** (avatar_url NULL,
+`is_legacy_user = false`, `/admin` not in `PROFILE_GATE_ALLOWED`). Either upload a
+profile photo on that account, or repoint `PLAYWRIGHT_ADMIN_EMAIL` at
+`helpr-seed-admin-0912@louisianahelpr.com` (the account
+`scripts/check-test-account-strikes.mjs` already treats as the shared admin). Not done
+here: one is the owner's own profile data, the other a shared credential.
+
+### Blocked, deliberately not touched — #1597(b)
+The four `·` separators are `src/components/profile/earningsTab/EarningHistory.tsx:180`,
+`ReviewsTab.tsx:321`, `earningsTab/RecentTransfers.tsx:48`,
+`savedHelpersTab/SavedHelperCard.tsx:141`. All under `src/components/profile/**`, which
+another lane is editing right now. `aria-hidden` does not exempt them — the gate
+measures composited contrast.
+
+### Still open from #1595 / #1582
+- "Daily match digest" switch does not survive a reload (`03-account.spec.ts:251`).
+- The post flow's `Hour` listbox never offers `5` (`02-marketplace.spec.ts:202`); time-of-day dependent.
+- "Not Now" on the push rationale still toasts an error when permission was **already** denied. `requestPush()` returns a bare boolean, so it cannot tell a user's decline from an OS denial (`src/lib/pushPermissionNudge.ts:148`) — fix the signal, not the predicate.
+
+### Landed in this pass — e7e7b4b0d
+- `scripts/e2e/sweepSummary.mjs` + `src/test/sweepSummary.test.ts`: the lifecycle sweeper said *"OK — all stranded rows unwound."* over rows it had just deferred. Prod holds **5** `[E2E DO NOT ACCEPT]` jobs in escrow, oldest 2026-09-15 — "settles forward" is not happening. Now named, aged, and warned past 48 h (warning, not an exit code: the sweeper is not allowed to unwind them).
+- `e2e/prod-audit/admin-views.spec.ts`: the bounce now names the account, the landing path, and which gate answered.
+
+**Checked and clean:** no leak, no strike. `PRESS DO NOT ACCEPT` and `E2E-PRODAUDIT`
+both return 0 rows on prod; `check-test-account-strikes.mjs` reports all 6 shared
+accounts active with no strikes or violations. The 96 `[E2E DO NOT ACCEPT]` rows are
+all `is_seed = true` and invisible to real browse.
+
 ## DONE 2026-09-20 — Profile tab gutter + every Profile loading state (owner, 2026-09-19)
 
 Landed on main as `d31991d0c..be7de51c7` (6 commits). Both owner reports

@@ -141,7 +141,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName, deferred = false }: BirthdayPop
                 <button
                   type="button"
                   onClick={dismiss}
-                  className="absolute top-1 right-1 inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors active:opacity-70"
+                  className="absolute top-1 right-1 inline-flex h-11 w-11 items-center justify-center ctl-exit ctl-tint transition-colors active:opacity-70"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   aria-label="Close"
                 >

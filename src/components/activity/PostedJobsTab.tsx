@@ -155,7 +155,7 @@ function LocationPressHint({ onDismiss }: { onDismiss: () => void }) {
         type="button"
         onClick={() => { hapticLight(); onDismiss(); }}
         aria-label="Dismiss tip about opening the map"
-        className="shrink-0 -my-2.5 -mr-2.5 p-2.5 rounded-ds-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+        className="shrink-0 -my-2.5 -mr-2.5 p-2.5 ctl-exit text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
       >
         <X className="w-3.5 h-3.5" strokeWidth={2.25} />
       </button>

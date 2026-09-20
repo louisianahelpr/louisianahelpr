@@ -106,13 +106,21 @@ export function ChatHeader({
              control more visual weight than the name it sits next to. Same
              call already made for `BackButton`, `SheetContent`'s close, and
              `DialogContent`'s close: the header paints its own ground, so the
-             disc bought nothing but chrome. `rounded-md` now only shapes the
-             focus ring.
+             disc bought nothing but chrome.
+
+             `.ctl-exit` (src/index.css) shapes the hover wash and the focus
+             ring. It replaces a local `rounded-md`, which — on top of
+             `ghost`'s own `.ctl-tint` — is precisely the SQUARE GREY
+             BACKGROUND the owner reported on 2026-09-19, next to
+             `BackButton`'s disc doing the same job one screen away. The class
+             is unlayered so it beats `buttonVariants`' `rounded-ds-md`, which
+             a ghost Button cannot drop. Guarded by
+             src/test/backControlSameness.test.ts.
 
              The h-10/w-10 box stays: it is the tap target, not the paint. The
              global `button { min-height/min-width: 44px }` rule in index.css
              floors the hit box at 44px regardless of what is drawn inside. */
-          className="rounded-md h-10 w-10 shrink-0"
+          className="ctl-exit h-10 w-10 shrink-0"
           onClick={onBack}
           aria-label="Back to conversations"
         >

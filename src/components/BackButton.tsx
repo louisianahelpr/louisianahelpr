@@ -22,6 +22,10 @@ interface BackButtonProps {
  * (iOS uses a bare chevron for the same reason). The 40px box is kept for the
  * tap target even though nothing is painted around the icon, and hover paints
  * a faint wash so the hit area is still discoverable on pointer devices.
+ *
+ * That wash is a DISC, and the shape is `.ctl-exit` rather than a local
+ * `rounded-full` on purpose: it is the same shape every other way out of a
+ * surface wears, declared once in src/index.css. See the note there.
  */
 const BackButton = ({ to, className, onClick }: BackButtonProps) => {
   const navigate = useNavigate();
@@ -68,7 +72,7 @@ const BackButton = ({ to, className, onClick }: BackButtonProps) => {
       type="button"
       onClick={handleClick}
       aria-label="Go back"
-      className={`w-10 h-10 -ml-2 rounded-full flex items-center justify-center ctl-tint active:scale-[0.97] shrink-0 ${className ?? ""}`}
+      className={`w-10 h-10 -ml-2 ctl-exit flex items-center justify-center ctl-tint active:scale-[0.97] shrink-0 ${className ?? ""}`}
       style={{ color: "hsl(var(--olivewood))" }}
     >
       <ArrowLeft className="w-5 h-5" strokeWidth={2.25} />

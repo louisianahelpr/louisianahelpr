@@ -337,7 +337,7 @@ export function CompletionChoiceSheet({
               <button
                 type="button"
                 onClick={() => setMode("choice")}
-                className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-full active:opacity-70 -ml-1.5"
+                className="h-9 w-9 shrink-0 inline-flex items-center justify-center ctl-exit ctl-tint active:opacity-70 -ml-1.5"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 aria-label="Back to choices"
               >

@@ -132,7 +132,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus,
         <Button
           variant="ghost"
           size="sm"
-          className="shrink-0 text-ds-11 min-h-[44px] min-w-[44px] px-2 rounded-full"
+          className="shrink-0 text-ds-11 min-h-[44px] min-w-[44px] px-2 ctl-exit"
           onClick={() => setShowEta(false)}
           aria-label="Cancel"
         >

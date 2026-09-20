@@ -2260,7 +2260,8 @@ button,
 @layer components {
   .ctl-tint,
   .ctl-tint-brand,
-  .ctl-tint-danger {
+  .ctl-tint-danger,
+  .ctl-tint-invert {
     transition: background-color 120ms var(--ease-out);
   }
 }
@@ -2296,13 +2297,68 @@ button,
   .ctl-tint-on-tint:hover {
     background-color: hsl(var(--olivewood) / 0.14);
   }
+  /* THE FIFTH TONE: chrome on a PERMANENTLY dark ground — a photo lightbox's
+     scrim, the bark selection bar in Messages and My Posts.
+
+     Every tone above is built on a theme-flipped token (`--olivewood` is
+     near-black on light and near-white on dark, which is what lets one
+     declaration serve both). A surface that is black in BOTH themes breaks
+     that: on the lightbox, `--olivewood` resolves near-black in light mode,
+     so `.ctl-tint` paints a black wash onto a black scrim and the hover is
+     invisible. This tone is therefore literal white, and it is the ONLY one
+     that is — because the ground it sits on is literal, not themed. Same 8-
+     point logic measured from those controls' own rest of white/0.12. */
+  .ctl-tint-invert:hover {
+    background-color: rgb(255 255 255 / 0.22);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .ctl-tint,
   .ctl-tint-brand,
-  .ctl-tint-danger {
+  .ctl-tint-danger,
+  .ctl-tint-invert {
     transition-duration: 0.001ms;
   }
+}
+
+/* ── .ctl-exit — THE ONE SHAPE FOR LEAVING A SURFACE ───────────────────────
+   Owner, 2026-09-19, twice, the second time with a deadline attached: "you
+   need to thoroughly check back buttons bc some have a square background on
+   hover, some circle on hover and some move on hover, this needs to be
+   consistent. fix it or i wont say it again."
+
+   All three were real. `<Button variant="ghost">` inherits `rounded-ds-md`
+   from `buttonVariants` and `ghost` IS `.ctl-tint`, so ChatHeader's back
+   chevron, DialogContent's x, SheetContent's x and five more painted the wash
+   as a rounded SQUARE; `BackButton` and fourteen others painted the identical
+   wash as a DISC; DialogContent's x additionally lifted its glyph 2px
+   (`group-hover:-translate-y-0.5`) and PhotoLightbox's close grew 5%.
+
+   THE CIRCLE WON ON THE COUNT, not on taste: 18 of 29 bare-glyph exits were
+   already round (15 spelled `rounded-full`, 3 more delegating to
+   `BackButton`), against 9 square-ish and 2 painting no box at all. It is
+   also the shape the owner did NOT name as wrong.
+
+   WHY A CLASS AND NOT `rounded-full` AT EACH SITE: `rounded-full` repeated 26
+   times is 26 independent decisions that happen to agree today, which is
+   exactly how they came to disagree. This is the one declaration; the sites
+   reference it. Changing the app's exit shape is now one edit here.
+
+   WHY IT IS UNLAYERED AND SITS HERE, after `@tailwind utilities`: it has to
+   WIN over `buttonVariants`' own `rounded-ds-md`, which a ghost `<Button>`
+   used as a close control cannot drop. Same mechanism, same position in the
+   file, and for the same reason as `.ctl-tint:hover` above — see the cascade-
+   order note in "THE ONE INTERACTION TREATMENT". Verified against
+   dist/assets/*.css after `npm run build`, never the dev server.
+
+   It carries SHAPE only. The TONE stays a separate class (`.ctl-tint*`) so
+   there is still exactly one place each value lives, and so a control on a
+   dark ground can take `.ctl-tint-invert` without forking the shape.
+
+   Guarded by src/test/backControlSameness.test.ts, whose inventory is
+   derived from the source rather than listed. */
+.ctl-exit {
+  border-radius: 9999px;
 }
 
 

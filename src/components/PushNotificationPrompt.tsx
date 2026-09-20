@@ -146,7 +146,7 @@ export const PushNotificationPrompt = () => {
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss"
-          className="shrink-0 h-10 w-10 -my-2 -mr-2 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/50 active:scale-[0.95] transition"
+          className="shrink-0 h-10 w-10 -my-2 -mr-2 inline-flex items-center justify-center ctl-exit text-muted-foreground hover:text-foreground hover:bg-secondary/50 active:scale-[0.95] transition"
         >
           <X className="w-4 h-4" />
         </button>

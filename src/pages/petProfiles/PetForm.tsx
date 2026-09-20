@@ -497,7 +497,7 @@ export function PetForm({
             <button
               type="button"
               onClick={requestClose}
-              className="w-10 h-10 flex items-center justify-center rounded-full active:bg-secondary/60 transition-colors"
+              className="w-10 h-10 flex items-center justify-center ctl-exit ctl-tint active:bg-secondary/60 transition-colors"
               aria-label="Close"
             >
               <X className="w-5 h-5 text-muted-foreground" />

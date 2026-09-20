@@ -132,6 +132,7 @@ import { JobStatusStrip } from "@/components/activity/JobStatusStrip";
 import { AppliedJobCard } from "@/components/activity/AppliedJobCard";
 import { PostedJobCard } from "@/components/activity/PostedJobCard";
 import { glyphPx } from "./jobStepRowCases";
+import { Constants } from "@/integrations/supabase/types";
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});
@@ -366,11 +367,13 @@ describe("every state a collapsed card can be in has a sentence", () => {
   });
 
   it("every job_status the DB can hold is exercised by the matrix", () => {
-    // The states come from the enum, not from a list somebody kept up to date.
-    const STATUSES = [
-      "open", "accepted", "in_progress", "revision_requested",
-      "completed", "cancelled", "disputed", "pending_approval",
-    ];
+    // DERIVED, not transcribed. This used to be an eight-entry array with a
+    // comment above it claiming the states "come from the enum" — they did
+    // not, and `literalRegistryGuard` / `jobStatusExhaustive` both caught the
+    // lie the moment this file landed. A hand-kept copy of a database-owned
+    // set cannot fail when the database gains a ninth status: the list and
+    // the oracle would be the same object.
+    const STATUSES: readonly string[] = Constants.public.Enums.job_status;
     const posterStatuses = new Set(POSTER_WAIT_IDS.map((id) => POSTER_FIXTURES[id].job.status as string));
     const helperStatuses = new Set(
       HELPER_WAIT_IDS.map((id) => HELPER_FIXTURES[id].job?.status as string).filter(Boolean),

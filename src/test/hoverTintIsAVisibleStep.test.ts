@@ -115,7 +115,13 @@ export function squeezed(file: string, src: string): Squeezed[] {
       // change, which reads as a change whatever the alphas are.
       if (r[1] !== toneToken(tone)) continue;
       const rest = Number(r[2]);
-      if (Math.abs(hover - rest) < MIN_DELTA) out.push({ file, tone, rest, hover });
+      // SIGNED, not absolute. `Math.abs` caught a step that is too SMALL and
+      // missed one in the wrong DIRECTION: a control resting darker than its
+      // own hover tone gets PALER on hover, which is backwards against the
+      // single rule ("the surface darkened one step") and reads as no feedback
+      // at all. It also let this file survive its own mutation — raising the
+      // rest to 0.30 against a 0.14 hover produced |−0.16| and looked healthy.
+      if (hover - rest < MIN_DELTA) out.push({ file, tone, rest, hover });
     }
   }
   return out;

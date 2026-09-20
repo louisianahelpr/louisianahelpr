@@ -41,7 +41,7 @@
  * inherited from a framework default.
  *
  * @mutate src/components/ui/dialog.tsx | hover:text-foreground ring-offset-background focus-visible:outline-none | hover:text-foreground focus-visible:outline-none
- * @mutate src/components/ui/anchoredPanel.tsx | rounded-full ctl-tint ring-offset-background focus-visible:outline-none | rounded-full ctl-tint focus-visible:outline-none
+ * @mutate src/components/ui/anchoredPanel.tsx | ctl-exit ctl-tint ring-offset-background focus-visible:outline-none | ctl-exit ctl-tint focus-visible:outline-none
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";

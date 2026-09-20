@@ -57,7 +57,7 @@ export function DirectOfferBanner({
           variant="ghost"
           size="icon"
           onClick={onCancel}
-          className="rounded-ds-md h-10 w-10 shrink-0"
+          className="ctl-exit h-10 w-10 shrink-0"
           aria-label="Cancel direct offer"
         >
           <X className="w-4 h-4" />

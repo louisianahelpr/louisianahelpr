@@ -85,7 +85,7 @@ const BroadcastBanner = () => {
           >
             <button
               onClick={() => dismiss(b.id)}
-              className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute top-2.5 right-2.5 inline-flex items-center justify-center ctl-exit ctl-tint text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Dismiss"
             >
               <X className="w-4 h-4" />

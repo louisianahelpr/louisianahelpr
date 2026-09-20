@@ -371,9 +371,21 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
         type="button"
         onClick={(e) => { e.stopPropagation(); setLightboxIndex(null); }}
         aria-label="Close photo viewer"
-        className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+        // NO `hover:scale-105`. It grew the target under a cursor that was
+        // still arriving at it — the "some move on hover" half of the owner's
+        // 2026-09-19 report. The disc now tints instead, like every other way
+        // out of a surface.
+        //
+        // The rest fill moved OFF `style` and onto a class for a reason that
+        // is not cosmetic: an inline `backgroundColor` beats every stylesheet
+        // rule, so a hover tint declared in CSS could never land. That is the
+        // same latent bug MessageAttachment's copy of this button had — it
+        // already carried `.ctl-tint` and painted nothing, because its own
+        // inline fill was overriding it. Same computed value, now overridable.
+        // `.ctl-tint-invert` is the tone for chrome on a permanently dark
+        // ground (src/index.css).
+        className="absolute top-3 right-3 w-10 h-10 ctl-exit bg-white/[0.12] ctl-tint-invert flex items-center justify-center transition-all active:scale-95"
         style={{
-          backgroundColor: "rgba(255, 255, 255, 0.12)",
           backdropFilter: "blur(20px) saturate(150%)",
           WebkitBackdropFilter: "blur(20px) saturate(150%)",
           border: "0.5px solid rgba(255, 255, 255, 0.2)",

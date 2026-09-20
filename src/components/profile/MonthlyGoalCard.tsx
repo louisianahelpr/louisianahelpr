@@ -211,7 +211,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
           </button>
           <button
             onClick={() => setEditing(false)}
-            className="p-1.5 rounded-full bg-foreground/5 hover:bg-foreground/10"
+            className="p-1.5 ctl-exit bg-foreground/5 hover:bg-foreground/10"
             aria-label="Cancel"
           >
             <X className="w-4 h-4 text-muted-foreground" />

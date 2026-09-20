@@ -454,7 +454,7 @@ export function FilterSheet({
                 // SheetCloseButton — the panel paints its own surface, so the
                 // frosted disc that primitive dropped is not wanted here
                 // either. The global 44px button floor supplies the tap target.
-                className="-mr-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-ds-md btn-press transition-colors hover:bg-[hsl(var(--bark)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+                className="-mr-2 inline-flex h-10 w-10 shrink-0 items-center justify-center ctl-exit btn-press transition-colors hover:bg-[hsl(var(--bark)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
                 style={{ color: "hsl(var(--olivewood))" }}
               >
                 <X className="h-5 w-5" strokeWidth={2} />

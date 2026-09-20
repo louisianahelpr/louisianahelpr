@@ -50,11 +50,12 @@ export function BulkDismissBar({
             type="button"
             onClick={() => { hapticLight(); onCancel(); }}
             aria-label="Cancel selection"
-            className="h-9 w-9 rounded-ds-md inline-flex items-center justify-center btn-press transition"
-            style={{
-              color: "hsl(var(--parchment) / 0.85)",
-              background: "hsl(var(--parchment) / 0.06)",
-            }}
+            // Rest fill as a CLASS, not inline — see the identical control in
+            // ConversationList: an inline background beats the stylesheet, so
+            // the hover tint could never paint. `.ctl-exit` + the dark-ground
+            // tone, both declared once in src/index.css.
+            className="h-9 w-9 ctl-exit bg-[hsl(var(--parchment)/0.06)] ctl-tint-invert inline-flex items-center justify-center btn-press transition"
+            style={{ color: "hsl(var(--parchment) / 0.85)" }}
           >
             <X className="w-4 h-4" />
           </button>

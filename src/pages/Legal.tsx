@@ -411,7 +411,7 @@ const Legal = () => {
             type="button"
             onClick={closeSearch}
             aria-label="Close search"
-            className="absolute right-0 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-full btn-press"
+            className="absolute right-0 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center ctl-exit ctl-tint btn-press"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             <X className="w-4 h-4" />

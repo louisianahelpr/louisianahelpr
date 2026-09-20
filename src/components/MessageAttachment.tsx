@@ -377,9 +377,14 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); }}
               aria-label="Close photo viewer"
-              className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center ctl-tint active:scale-[0.97]"
+              // `.ctl-tint-invert` on a class-based rest fill, not `.ctl-tint`
+              // over an inline `backgroundColor`. Two bugs in one line before:
+              // the inline fill beat the stylesheet so the hover NEVER
+              // painted, and `--olivewood` resolves near-black in light mode,
+              // which is invisible on a black lightbox scrim even when it
+              // does. Same computed rest, working hover. See src/index.css.
+              className="absolute top-3 right-3 w-10 h-10 ctl-exit bg-white/[0.12] flex items-center justify-center ctl-tint-invert active:scale-[0.97]"
               style={{
-                backgroundColor: "rgba(255, 255, 255, 0.12)",
                 backdropFilter: "blur(20px) saturate(150%)",
                 WebkitBackdropFilter: "blur(20px) saturate(150%)",
                 border: "0.5px solid rgba(255, 255, 255, 0.2)",

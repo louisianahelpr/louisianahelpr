@@ -485,10 +485,22 @@ const DialogContent = React.forwardRef<
           gutter, so it needs that exemption. */}
       {!hasDismiss && !closeDisabled && (
       <DialogPrimitive.Close
-        // `group` + the icon's own hover transform match the small lift every
-        // other chrome icon (Share/Save/Flag) gets on hover (owner,
-        // 2026-08-30: "make x do the same globally") — applied here since
-        // this X is the one shared by every dialog in the app.
+        // NO HOVER LIFT. The icon used to carry `group-hover:-translate-y-0.5`
+        // to match the small rise the chrome icons (Share/Save/Flag) get
+        // (owner, 2026-08-30: "make x do the same globally"). That made it the
+        // same as three flourish icons and DIFFERENT from every other way out
+        // of a surface, which is the half of the 2026-09-19 report that reads
+        // "some move on hover". On a bare-glyph control the glyph is the whole
+        // visible body, so the general "a glyph inside a still control may
+        // slide" exemption does not apply here — the target itself appears to
+        // move. It tints, in a disc, and holds still. Guarded by
+        // src/test/backControlSameness.test.ts.
+        //
+        // `.ctl-exit`, not `rounded-md`: the one exit shape, declared in
+        // src/index.css, so this x and BackButton's arrow cannot drift apart
+        // again. It also still shapes the focus ring, which is what the
+        // `rounded-md` it replaced was doing.
+        //
         // `focus-visible:`, not `focus:` (owner, 2026-08-31: "there
         // shouldn't be a box around it when it's clicked") — plain
         // `focus:` fires the ring on every mouse click, not just keyboard
@@ -509,7 +521,7 @@ const DialogContent = React.forwardRef<
         // = 17px, so glyph and title are now inset by the same amount and the
         // header row is symmetric. The 44px hit box still spans the padding
         // gutter, which is deliberate.
-        className={`absolute right-1 z-10 ${topRightSlot ? "top-2" : "top-[7px]"} group p-0 box-border rounded-md btn-press ctl-tint flex items-center justify-center text-muted-foreground hover:text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none`}
+        className={`absolute right-1 z-10 ${topRightSlot ? "top-2" : "top-[7px]"} group p-0 box-border ctl-exit btn-press ctl-tint flex items-center justify-center text-muted-foreground hover:text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none`}
         style={{ width: "44px", height: "44px", minWidth: "44px", minHeight: "44px" }}
       >
         {/* 16px BESIDE OTHER ICONS, 18px ALONE. The chrome icons a caller puts
@@ -535,7 +547,7 @@ const DialogContent = React.forwardRef<
             If you "fix" this back to h-4 w-4 to match the other icons on
             paper, you are reintroducing the complaint. */}
         <X
-          className={`${topRightSlot ? "h-5 w-5" : "h-[18px] w-[18px]"} transition-transform duration-300 group-hover:-translate-y-0.5`}
+          className={topRightSlot ? "h-5 w-5" : "h-[18px] w-[18px]"}
           strokeWidth={topRightSlot ? 2.5 : 2}
         />
         <span className="sr-only">Close</span>

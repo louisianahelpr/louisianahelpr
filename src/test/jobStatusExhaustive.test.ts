@@ -235,6 +235,36 @@ describe("the assertNever rollout list stays honest", () => {
     expect(stale, "the rollout list has drifted:\n  " + stale.join("\n  ")).toEqual([]);
   });
 
+  /**
+   * The switch's REAL body, brace-matched from its opening `{`.
+   *
+   * This used to be `src.slice(i, i + 900)` — a fixed window — and that is a
+   * guard that silently stops working as code grows. `derivePosterWait` and
+   * `deriveHelperWait` (src/components/activity/jobStatusLine.ts) both run
+   * past 900 characters, so their `default: return assertNever(...)` sat
+   * OUTSIDE the window and the guard reported two false offenders against
+   * switches that were correctly guarded all along.
+   *
+   * A fixed window fails in the more dangerous direction too: a genuinely
+   * unguarded switch that happens to sit within 900 characters of an
+   * unrelated `assertNever` further down the file would be waved through.
+   * Matching braces answers the question actually being asked.
+   */
+  function switchBody(src: string, switchIndex: number): string {
+    const open = src.indexOf("{", switchIndex);
+    if (open === -1) return src.slice(switchIndex);
+    let depth = 0;
+    for (let i = open; i < src.length; i++) {
+      const c = src[i];
+      if (c === "{") depth++;
+      else if (c === "}") {
+        depth--;
+        if (depth === 0) return src.slice(switchIndex, i + 1);
+      }
+    }
+    return src.slice(switchIndex);
+  }
+
   it("no NEW status switch lands without an exhaustiveness guard", () => {
     // A `switch` whose scrutinee is a status and which leans on `default` is
     // the exact construct that shipped the defect twice. New ones must carry
@@ -251,7 +281,7 @@ describe("the assertNever rollout list stays honest", () => {
       if (listed.has(file)) continue;
       const src = readFileSync(resolve(ROOT, file), "utf8");
       for (const m of src.matchAll(/switch\s*\(\s*([\w.?]*\bstatus\b[\w.]*)\s*\)/gi)) {
-        const body = src.slice(m.index!, m.index! + 900);
+        const body = switchBody(src, m.index!);
         if (/assertNever/.test(body)) continue;
         // Does it actually branch on job_status literals? A `switch (tone)`
         // that happens to have "status" in the name is not this defect.

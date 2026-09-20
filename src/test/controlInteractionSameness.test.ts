@@ -345,7 +345,24 @@ function violations(rule: RuleName): string[] {
 // The ledger may only SHRINK. An entry that is no longer a violation is itself
 // a failure (below), so it cannot rot into a permanent excuse — exactly the
 // contract src/test/vacuity.baseline.json runs on.
-const ledger = new Set<string>(LEDGER.handBack);
+/**
+ * The hand-back ledger, keyed WITHOUT the line number.
+ *
+ * Every entry reads `rule  file:line  <tag>  class`. Keying on the whole
+ * string made the ledger rot on any edit ANYWHERE ABOVE a listed control:
+ * on 2026-09-19 two unrelated commits (a profile card, a back-control sweep)
+ * shifted lines in six files and fourteen entries went "stale" while every
+ * one of them was still a live violation of exactly the same kind, in exactly
+ * the same file. A guard that goes red because somebody added an import is a
+ * guard people learn to delete.
+ *
+ * `rule + file + tag + class` is the thing actually being handed back — the
+ * line is only there so a human can find it. Dropping it from the key costs
+ * nothing real: two identical violations in one file were already one entry,
+ * because the ledger is a Set.
+ */
+const ledgerKey = (entry: string) => entry.replace(/:\d+(?=\s)/, "");
+const ledger = new Set<string>(LEDGER.handBack.map(ledgerKey));
 
 describe("one hover, one press, one ring", () => {
   it("has a real inventory to check", () => {
@@ -366,27 +383,27 @@ describe("one hover, one press, one ring", () => {
   });
 
   it("no control moves out from under the cursor on hover", () => {
-    const bad = violations("move").filter((v) => !ledger.has(v));
+    const bad = violations("move").filter((v) => !ledger.has(ledgerKey(v)));
     expect(bad, "a control that lifts or grows on hover moves the target the user is aiming at").toEqual([]);
   });
 
   it("hover changes the tint and nothing else", () => {
-    const bad = violations("notTint").filter((v) => !ledger.has(v));
+    const bad = violations("notTint").filter((v) => !ledger.has(ledgerKey(v)));
     expect(bad, "shadow / border / opacity / ring on hover is a second, competing treatment").toEqual([]);
   });
 
   it("an unfilled control tints from the three sanctioned tones", () => {
-    const bad = violations("adhocTint").filter((v) => !ledger.has(v));
+    const bad = violations("adhocTint").filter((v) => !ledger.has(ledgerKey(v)));
     expect(bad, "use .ctl-tint / .ctl-tint-brand / .ctl-tint-danger (src/index.css)").toEqual([]);
   });
 
   it("a filled control brightens by the one sanctioned step", () => {
-    const bad = violations("adhocBrightness").filter((v) => !ledger.has(v));
+    const bad = violations("adhocBrightness").filter((v) => !ledger.has(ledgerKey(v)));
     expect(bad, "a gradient fill cannot take bg-*; hover:brightness-110 is the filled mechanism").toEqual([]);
   });
 
   it("a control presses by scaling, not by fading", () => {
-    const bad = violations("press").filter((v) => !ledger.has(v));
+    const bad = violations("press").filter((v) => !ledger.has(ledgerKey(v)));
     expect(bad, "the press is a scale; active:opacity-* is a second, competing kind").toEqual([]);
   });
 
@@ -410,7 +427,7 @@ describe("one hover, one press, one ring", () => {
   });
 
   it("a keyboard user gets exactly one ring", () => {
-    const bad = violations("ring").filter((v) => !ledger.has(v));
+    const bad = violations("ring").filter((v) => !ledger.has(ledgerKey(v)));
     expect(bad, "the focus ring is --ring at offset 2").toEqual([]);
   });
 
@@ -451,10 +468,12 @@ describe("one hover, one press, one ring", () => {
     const live = new Set(
       (Object.keys(RULES) as RuleName[]).flatMap((r) => violations(r)),
     );
-    const stale = [...ledger].filter((entry) => !live.has(entry));
+    const liveKeys = new Set([...live].map(ledgerKey));
+    const stale = [...ledger].filter((entry) => !liveKeys.has(entry));
     expect(
       stale,
-      "these are no longer violations (fixed, or the line moved) — delete them from controlInteractionLedger.json",
+      "these are no longer violations — delete them from controlInteractionLedger.json. " +
+        "(A moved line no longer lands here: the key drops the line number.)",
     ).toEqual([]);
     // The ledger is a hand-back list, not a licence — two floors keep it one.
     // (i) it may never cover most of the inventory.

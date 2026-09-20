@@ -810,7 +810,7 @@ export function ConversationList({
         type="button"
         onClick={closeSearch}
         aria-label="Close search"
-        className="shrink-0 w-8 h-8 rounded-full inline-flex items-center justify-center btn-press transition-colors ctl-tint relative after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:content-['']"
+        className="shrink-0 w-8 h-8 ctl-exit inline-flex items-center justify-center btn-press transition-colors ctl-tint relative after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:content-['']"
         style={{ color: "hsl(var(--bark))" }}
       >
         <X className="w-4 h-4" />
@@ -1466,11 +1466,13 @@ export function ConversationList({
                     type="button"
                     onClick={exitSelectMode}
                     aria-label="Cancel selection"
-                    className="h-9 w-9 rounded-ds-md inline-flex items-center justify-center btn-press transition"
-                    style={{
-                      color: "hsl(var(--parchment) / 0.85)",
-                      background: "hsl(var(--parchment) / 0.06)",
-                    }}
+                    // Rest fill as a CLASS, not inline: an inline background
+                    // beats the stylesheet, so no hover tint could ever land
+                    // on it. Same computed value, and `.ctl-tint-invert` (the
+                    // tone for chrome on a permanently dark ground) can now
+                    // paint. `.ctl-exit` is the one exit shape — src/index.css.
+                    className="h-9 w-9 ctl-exit bg-[hsl(var(--parchment)/0.06)] ctl-tint-invert inline-flex items-center justify-center btn-press transition"
+                    style={{ color: "hsl(var(--parchment) / 0.85)" }}
                   >
                     <X className="w-4 h-4" />
                   </button>

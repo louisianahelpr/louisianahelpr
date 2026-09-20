@@ -470,7 +470,7 @@ export function ChatView({
                   default) means any slight bleed above/below is fine. */}
               <button
                 onClick={dismissBanner}
-                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-[44px] min-w-[44px] text-accent/60 hover:text-accent"
+                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-[44px] min-w-[44px] ctl-exit ctl-tint text-accent/60 hover:text-accent"
                 aria-label="Dismiss safety reminder"
               >
                 <X className="w-3 h-3" />

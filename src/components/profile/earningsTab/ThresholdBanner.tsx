@@ -72,7 +72,7 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss"
-        className="shrink-0 -mr-1 -mt-1 w-10 h-10 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground active:bg-secondary/40 transition-colors"
+        className="shrink-0 -mr-1 -mt-1 w-10 h-10 inline-flex items-center justify-center ctl-exit ctl-tint text-muted-foreground hover:text-foreground active:bg-secondary/40 transition-colors"
       >
         <X className="w-4 h-4" />
       </button>

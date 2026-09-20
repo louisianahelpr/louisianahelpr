@@ -227,7 +227,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
               e.stopPropagation();
               dismiss();
             }}
-            className="absolute top-2 right-2 p-1 rounded-full transition-colors active:opacity-70"
+            className="absolute top-2 right-2 p-1 ctl-exit ctl-tint transition-colors active:opacity-70"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             aria-label="Dismiss"
           >

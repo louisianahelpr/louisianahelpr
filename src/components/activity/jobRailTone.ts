@@ -122,37 +122,11 @@ export function railStepPaint(args: Parameters<typeof railStepTone>[0]): RailSte
   return { tone, ...PAINT[tone] };
 }
 
-/**
- * THE COMPACT RAIL'S GEOMETRY — owner, 2026-09-19: "16px dots, no labels".
- *
- * MEASURED, not chosen. The card's inner width is its `px-4` box inside
- * `JobCardShell`, which is the same box `[data-job-step-row]` occupies — and
- * that row was measured on prod on both engines (see
- * src/test/jobStepRowWidthFloor.test.tsx): 212px at a 320 viewport, 262px at
- * 375, 1035px at 1440.
- *
- *   full rail, 8 steps:  8×28 + 7×6 = 266px  >  212  ✗ overflows and scrolls
- *   compact,   8 steps:  8×16 + 7×6 = 170px  ≤  212  ✓ fits, 42px to spare
- *   compact,   7 steps:  7×16 + 6×6 = 148px  ≤  212  ✓
- *
- * WHY THE DOTS CARRY NO TAP TARGET. The full rail's dots are buttons (they
- * open a timestamp tooltip) and defeat the 44px floor with an invisible 44px
- * overlay. These are not controls at all: the whole collapsed card is one
- * expand target, and tapping the rail opens the card, which shows the full
- * labelled rail with its tooltips. So the compact rail is decorative
- * (`aria-hidden`) with one screen-reader sentence beside it — three 16px
- * buttons per row would fail WCAG 2.5.5 and there is nothing to gain.
- */
-export const COMPACT_DOT_PX = 16;
-export const COMPACT_GAP_PX = 6;
-/** The current step is drawn larger — SIZE is one of the two non-colour
- *  channels that separate it from a completed dot (the other is its ring). */
-export const COMPACT_CURRENT_DOT_PX = 20;
-
-/** Width the compact rail needs for `steps` dots. Pure, so the fit is a test. */
-export function compactRailWidthPx(steps: number): number {
-  if (steps <= 0) return 0;
-  // The current dot is the widest; assume it is present, which is the widest
-  // the rail can ever be.
-  return (steps - 1) * COMPACT_DOT_PX + COMPACT_CURRENT_DOT_PX + (steps - 1) * COMPACT_GAP_PX;
-}
+/* THE COMPACT RAIL'S GEOMETRY USED TO LIVE HERE — COMPACT_DOT_PX / _GAP_PX /
+   _CURRENT_DOT_PX and `compactRailWidthPx`, the 16px-dot arithmetic the owner
+   picked on 2026-09-19 because the labelled rail could not fit a 212px card.
+   They are gone with `JobStepRailCompact` itself: the owner saw the dots and
+   asked for words instead ("remove the dots"), so a collapsed card now carries
+   a SENTENCE (src/components/activity/jobStatusLine.ts) and no second rail.
+   This module is back to what it was for — ONE colour rule, read by the one
+   remaining rail in JobTracking.tsx. */

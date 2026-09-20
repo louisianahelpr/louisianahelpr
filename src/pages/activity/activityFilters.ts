@@ -59,7 +59,14 @@ const ALL_FILTER_COLOR = "bg-[hsl(var(--olivewood)/0.08)] text-[hsl(var(--olivew
  */
 export type ActivityBucket = "needs_you" | "waiting" | "scheduled" | "done" | "cancelled";
 
-const BUCKET_LABEL: Record<ActivityBucket, string> = {
+/**
+ * The word each bucket wears. EXPORTED since 2026-09-19 because the collapsed
+ * job card's status line uses it as its eyebrow — "whose move is it" is the
+ * question both the tab and the card answer, and answering it twice in two
+ * vocabularies is how "Needs you" on a tab ends up over "Waiting on them" on a
+ * card inside it. See `src/components/activity/jobStatusLine.ts`.
+ */
+export const BUCKET_LABEL: Record<ActivityBucket, string> = {
   needs_you: "Needs You",
   waiting: "Waiting",
   scheduled: "Scheduled",
@@ -148,7 +155,7 @@ export const APPLIED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
  * Terminal states are checked BEFORE this in both bucketers: a job that
  * completed or was cancelled has nothing left to chase, whatever its date.
  */
-function jobIsOverdue(j: { status?: string | null; date_needed?: string | null }): boolean {
+export function jobIsOverdue(j: { status?: string | null; date_needed?: string | null }): boolean {
   if (j.status === "completed" || j.status === "cancelled") return false;
   return isPastDue(j.date_needed);
 }
@@ -191,7 +198,7 @@ function jobIsLive(j: { status?: string | null; date_needed?: string | null }): 
  * live rule must not override that — a job can be happening today and still be
  * entirely somebody else's move.
  */
-function workIsBackWithHelper(j: {
+export function workIsBackWithHelper(j: {
   helper_completed_at?: string | null;
   revision_requested_at?: string | null;
 }): boolean {
@@ -210,7 +217,7 @@ export function listingHasExpired(expiresAt: string | null | undefined, now: Dat
   return !Number.isNaN(t) && t <= now.getTime();
 }
 
-function submissionAwaitingPoster(j: {
+export function submissionAwaitingPoster(j: {
   helper_completed_at?: string | null;
   poster_completed_at?: string | null;
   revision_requested_at?: string | null;

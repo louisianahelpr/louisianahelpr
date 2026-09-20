@@ -5,6 +5,7 @@ import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import { jobStartTimeLabel, FLEXIBLE_TIME_LABEL } from "@/lib/jobDate";
 import { getCity } from "@/lib/locationUtils";
+import { hasStreetAddress } from "./appliedJobCard/JobAddressLine";
 import { mapsSearchUrl } from "@/lib/mapsLink";
 import { useLongPress } from "@/hooks/useLongPress";
 import { hapticImpactForce } from "@/lib/haptics";
@@ -149,6 +150,32 @@ interface JobCardMetaRowProps {
    * onClick toggles it. One expand path, not two.
    */
   locationPressToMap?: boolean;
+  /**
+   * Print the FULL street address in the location slot instead of the city.
+   *
+   * Owner, 2026-09-19, with a screenshot of /my-jobs: "this shouldnt show 2
+   * addresses. once they are at the correct state, the full address should
+   * replace the city in the job card. not be on a whole nother line. the full
+   * address needs to go where the city place is."
+   *
+   * The Helpr's card used to print the city HERE and the whole address again on
+   * a row of its own below (`JobAddressLine`, VN-55). That row is gone and this
+   * is where it went.
+   *
+   * OPT-IN, because "may this reader see the street?" is the CALLER's question,
+   * not this row's. The poster always may (it is their job); the Helpr may only
+   * in the four states the deleted address row was gated on, and that gate moved
+   * to the call site verbatim. The server is the real gate —
+   * `user_may_see_job_address` hands a pending applicant a masked "City, ST" —
+   * and this flag is the second lock, which is not redundant now that the row
+   * prints `location` whole rather than `getCity(location)`.
+   *
+   * OFF, or on a location with no street part (`hasStreetAddress` — a digit in
+   * the first comma-segment, the one test that works because masking is
+   * undetectable by comparison: mask("New Iberia, LA") is "New Iberia, LA"),
+   * this row behaves EXACTLY as it always has and prints the city.
+   */
+  showFullAddress?: boolean;
 }
 
 /**
@@ -166,6 +193,7 @@ export function JobCardMetaRow({
   children,
   trailing,
   locationPressToMap = false,
+  showFullAddress = false,
 }: JobCardMetaRowProps) {
   const mapHref = mapsSearchUrl(location);
   // Re-renders the countdown the moment its text changes (incl. at expiry).
@@ -221,7 +249,39 @@ export function JobCardMetaRow({
     onLongPress: openMapOnHold,
   });
 
-  const city = getCity(location);
+  /**
+   * THE PLACE, and how much of it. A street address when the caller says this
+   * reader may have one and the row actually holds one; the city otherwise.
+   */
+  const fullAddress = showFullAddress && hasStreetAddress(location);
+  const city = fullAddress ? location.trim() : getCity(location);
+
+  /* ── WHY A STREET ADDRESS TAKES A WHOLE LINE, WITH THE ARITHMETIC ─────────
+   *
+   * The row is 212px at a 320 viewport and 262px at 375 (measured on prod,
+   * both engines — src/test/jobStepRowWidthFloor.test.tsx). At 320 the date
+   * chip ("Thu, Sep 17") needs ~77px and the time chip ("12:00 PM") ~62px,
+   * plus two 8px gaps: 155px of the 212. That leaves 57px for the location,
+   * of which the pin and its gap take 16 — 41px of text, about seven
+   * characters. "1103 Center St, New Iberia, LA 70560" would render as
+   * "1103 C…".
+   *
+   * An address clipped to seven characters is not a shorter address, it is a
+   * different one. So the address does not compete for the line: `basis-full`
+   * puts it on its OWN row inside the same wrapping flex container, with the
+   * whole 212px (196px of text after the pin — enough for ~35 characters, and
+   * it wraps rather than clips beyond that), and the date/time/countdown flow
+   * underneath exactly as they always have MINUS the city they used to share
+   * with. The card is no taller than it was: the separate `JobAddressLine`
+   * row this replaces cost a line of its own, at a LARGER size (ds-13).
+   *
+   * Truncation direction matters even so and is unchanged — `truncate`
+   * ellipsizes at the END, so the street NUMBER, the part that identifies the
+   * house, is the last thing that could ever be lost. And the map link is
+   * built from `location` whole, never from what is painted, so no amount of
+   * visual shortening can send anyone to the wrong door.
+   */
+
   // LOCATION OUTRANKS THE EXPIRY COUNTDOWN (owner, 2026-09-11 / 2026-09-13).
   // With a countdown on the row the city does not shrink at all — the
   // countdown (shrink-[100], min-w-0, truncate) gives instead. Weighting alone
@@ -229,7 +289,16 @@ export function JobCardMetaRow({
   // ellipsized "New Iber…", and any loss on a short city name is an ellipsis.
   // The 50% cap keeps a very long place name from pushing the date out. With
   // no countdown the city is still the row's only shrinker, exactly as before.
-  const cityFlex = expiresAt ? "shrink-0 max-w-[50%]" : "shrink";
+  //
+  // A FULL ADDRESS OPTS OUT OF THE CONTEST ENTIRELY (`basis-full`): it is on
+  // its own line, so there is nothing to out-rank and no shrink weight worth
+  // setting. The rule above is untouched for every card that shows a city,
+  // which is every card on which it was ever measured.
+  const cityFlex = fullAddress
+    ? "basis-full shrink-0 max-w-full"
+    : expiresAt
+      ? "shrink-0 max-w-[50%]"
+      : "shrink";
 
   return (
     /* `gap-x-5`, not `gap-2.5` (owner: "space location day and time out
@@ -265,7 +334,11 @@ export function JobCardMetaRow({
           "Metairie" rendered as a single visible character beside its pin. The
           rule that says the location ellipsizes assumes an ellipsis a reader
           can act on; one character is not that. */}
-      <div className="job-meta-row flex items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 flex-1 overflow-hidden">
+      <div
+        className={`job-meta-row flex items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 min-w-0 flex-1 overflow-hidden ${
+          fullAddress ? "flex-wrap gap-y-1" : "flex-nowrap"
+        }`}
+      >
       {/* Location → date → time, matching the home feed ("Browse Tasks")
           card order so the two surfaces read consistently. */}
       {/* NO ADDRESS → NO CHIP. `location` is "" for a job whose poster deleted
@@ -328,11 +401,14 @@ export function JobCardMetaRow({
                points at the visible "Hold for map" hint, so the sighted and the
                non-sighted affordance are the same sentence. `title` gives the
                desktop pointer user the same line on hover. */
-            aria-label={`${city} — tap to expand this job`}
+            aria-label={`${fullAddress ? "Job address: " : ""}${city} — tap to expand this job`}
             title={`${city} — tap to expand, hold for the map`}
           >
             <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate">{city}</span>
+            {/* The noun the deleted `JobAddressLine` used to carry. A street
+                address read aloud with no label is a string of digits. */}
+            {fullAddress && <span className="sr-only">Job address: </span>}
+            <span className={fullAddress ? "whitespace-normal break-words" : "truncate"}>{city}</span>
           </button>
           {/* THE ACCESSIBLE MAP ACTION, and the thing the hold actually clicks.
 
@@ -388,7 +464,8 @@ export function JobCardMetaRow({
           className={`flex items-center gap-1.5 py-2 -my-2 hover:text-primary transition-colors min-w-0 ${cityFlex}`}
         >
           <MapPin className="w-3 h-3 shrink-0" />
-          <span className="truncate">{city}</span>
+          {fullAddress && <span className="sr-only">Job address: </span>}
+          <span className={fullAddress ? "whitespace-normal break-words" : "truncate"}>{city}</span>
         </a>
       ))}
       <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">

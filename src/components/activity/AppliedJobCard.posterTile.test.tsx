@@ -136,10 +136,12 @@ describe("Jobs card shows the poster as a profile tile, expanded only (item 2)",
        own gate — see the file header.
 
        The gate and the reason for it both still stand, so the assertion is
-       re-pointed rather than dropped: the collapsed card now draws the COMPACT
-       rail, which is a real element carrying the same job's progress, so this
-       case still cannot pass by the card simply rendering nothing. */
-    expect(document.querySelector("[data-job-rail-compact]")).toBeInTheDocument();
+       re-pointed rather than dropped: the collapsed card now draws the STATUS
+       STRIP, which is a real element saying what this same job is waiting on,
+       so this case still cannot pass by the card simply rendering nothing.
+       (It was the compact 16px rail for a few hours on 2026-09-19; the owner
+       replaced the dots with the sentence the same day.) */
+    expect(document.querySelector("[data-job-status-strip]")).toBeInTheDocument();
     expect(screen.queryByTestId("tracker"), "the full tracker is back on a collapsed card").toBeNull();
     expect(screen.queryByText("Pierre B.")).toBeNull();
     expect(document.querySelector('a[href="/user/poster-1"]')).toBeNull();

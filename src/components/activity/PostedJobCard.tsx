@@ -6,9 +6,9 @@ import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
-import { JobTracking, deriveCurrentStatusIdx, railDisplayIdx, railStepLabels } from "@/components/JobTracking";
-import { JobStepRailCompact } from "./JobStepRailCompact";
-import { DisputeOpenBadge } from "./DisputeOpenBadge";
+import { JobTracking } from "@/components/JobTracking";
+import { JobStatusStrip } from "./JobStatusStrip";
+import { posterStatusLine } from "./jobStatusLine";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "./JobCardShell";
@@ -18,7 +18,6 @@ import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "./j
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { formatPrice, formatPriceExact, formatRecurrenceInterval } from "@/lib/format";
 import { type PostedJobCardProps } from "./postedJobCard/types";
-import { PosterConfirmationBadge } from "./postedJobCard/PosterConfirmationBadge";
 import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { useHighlightPulse } from "./useHighlightPulse";
@@ -38,6 +37,7 @@ function PostedJobCardInner({
   job,
   highlight = false,
   applicantCounts,
+  pendingApplicantCounts,
   expandedJobIds,
   toggleExpandedJobId,
   helperNames,
@@ -182,28 +182,28 @@ function PostedJobCardInner({
   ) : null;
   const personCtx = personSlotValue(helperTile, personClaim);
 
-  /* CONTESTED — a dispute or a revision request. Both are live decisions the
-     poster is standing in front of, and both are where the owner reported the
-     tracker "going away" (2026-09-19). 9a39abbea fixed the half of that inside
-     the tracker (the MAP vanished on a submitted-then-contested job); this is
-     the other half — the whole tracker is behind the expand, so a COLLAPSED
-     contested card showed none of it at all. */
-  const contested = job.status === "disputed" || job.status === "revision_requested";
+  /* THE TRACKER — EXPANDED ONLY, ON EVERY STATUS INCLUDING A CONTESTED ONE.
+     (owner, 2026-09-19, later the same day: "the live tracker should also be
+     collapsed for disputes unless its clicked to expand it".)
 
-  /* THE TRACKER, BUILT ONCE AND PLACED IN ONE OF TWO SPOTS.
-     Expanded it stays exactly where it has always been, below the brief and the
-     state chips. Collapsed it renders ONLY for a contested job, directly under
-     the title (owner, 2026-09-19: un-gate it for `disputed` and
-     `revision_requested`, nothing else). Every other status keeps its collapsed
-     height to the pixel, because `contested` is the only thing that lets this
-     through — and the card body itself is NOT un-gated, only the tracker.
+     THIS SUPERSEDES ITEM 13 FROM THAT MORNING, and the reversal is the owner's,
+     not a regression. `187f61c3f` un-gated the tracker on a COLLAPSED card for
+     `disputed` and `revision_requested` only, so a dispute was visible without
+     a tap. They have now seen it: the STATUS STRIP is the signal a dispute is
+     open (it says so, in sienna, with "Payment on hold"), and the eight-step
+     tracker plus its map is detail — which on this card lives behind the
+     expand, like everything else. `PostedJobCard.contestedTracker.test.tsx`
+     records the whole arc and now pins the new contract.
+
+     So there is exactly ONE placement again, and a collapsed card mounts no
+     <JobTracking> at all — which also means no realtime channel and no
+     per-card queries on a list that can be long.
 
      THE TRACKER NO LONGER CARRIES THE PERSON TILE. It did for three days
      (owner, 2026-09-16); the owner has since moved the tile to directly above
      the action row, so the `personTile` slot is gone from <JobTracking>
      altogether. The V6 rule it existed to protect is unchanged and now lives
-     at `helperTile` above: nothing about the Helpr on a collapsed card, which
-     includes the collapsed CONTESTED card that draws this tracker. */
+     at `helperTile` above: nothing about the Helpr on a collapsed card. */
   const trackerBlock = showsTracker && !unfunded ? (
     <div onClick={(e) => e.stopPropagation()}>
       {/* `embedded`: this card is already a JobCardShell glass card,
@@ -253,6 +253,13 @@ function PostedJobCardInner({
                 // thing on tap. Opt-in per card so My Jobs is untouched — see
                 // the prop's note in JobCardMetaRow.
                 locationPressToMap
+                /* THE FULL ADDRESS GOES WHERE THE CITY WAS (owner, 2026-09-19,
+                   pointing at /my-jobs: "the full address needs to go where the
+                   city place is"). The poster is always entitled to their own
+                   job's address — `user_may_see_job_address` lists them first —
+                   so this is unconditional here, where on the Helpr's card it
+                   rides the same gate the old address LINE did. */
+                showFullAddress
                 latitude={job.latitude}
                 longitude={job.longitude}
                 expiresAt={!job.helper_id && job.status !== "cancelled" ? job.expires_at : null}
@@ -341,109 +348,47 @@ function PostedJobCardInner({
               meta={metaRow}
             />
 
-            {/* AN OPEN DISPUTE IS NOT A DETAIL BEHIND A TAP.
-                External QA, 2026-09-06: the poster's collapsed card for a
-                disputed job showed the title, the price and nothing else — same
-                card, same "$120", no badge — while a 72-hour clock ran behind
-                it toward an automatic release of that money. Everything this
-                card knows about the dispute lives in PostedJobActions, and
-                every action block on this card is gated on `isExpanded` (see
-                the note at the "Additional details" block below), so the poster
-                had to open the card to learn a dispute existed at all.
+            {/* WHAT THIS CARD IS WAITING ON — ONE STRIP, AND THE ONLY THING
+                A COLLAPSED CARD SAYS ABOUT STATE.
+                (owner, 2026-09-19: "in the box to the left of the dots should
+                show what we are waiting on, like if the person is on their way
+                or confirmed but now you need to confirm etc, remove the dots",
+                and on the look: "similar to how dispute open displays.")
 
-                The helper's side already did this: DisputedSection is rendered
-                OUTSIDE AppliedJobCard's expand gate, which is why their card
-                reads "DISPUTE OPEN" at the top level. This is the same badge,
-                same words, same treatment — the two ends of one dispute now
-                announce it identically.
+                IT REPLACES FOUR BLOCKS THAT USED TO STAND HERE, and each of
+                them was this same idea written once more:
 
-                Collapsed only. Expanded, PostedJobActions renders the full
-                panel a few rows down and this would be the same sentence
-                twice. This is the exception to "NO STATUS STRIPE" below, and it
-                earns it: the filter tabs cannot carry this one, because
-                `disputed` has no chip of its own — the job buckets to "Needs
-                you", alongside every ordinary job awaiting a decision. */}
-            {!isExpanded && job.status === "disputed" && (
-              /* LIFTED INTO A SHARED COMPONENT, 2026-09-19. The markup was
-                 written out here and the comment above claimed the helper side
-                 "already did this" — true until the same day's collapse ruling
-                 put AppliedJobCard's dispute panel behind its expand. Rather
-                 than hand-write a second strip over there, both cards mount
-                 this one: one dispute, one treatment, on both ends of it. */
-              <DisputeOpenBadge escalated={job.dispute_status === "escalated"} />
-            )}
-            {/* 6e — the collapsed card says you OWE a confirmation.
-                (owner, 2026-09-19: controls stay inside the expanded card, but
-                the collapsed card must signal that one is waiting.) The poster
-                reported "no button to confirm they arrived" while the controls
-                were in fact rendering — behind the expand. A poster who never
-                opens the card never learns they are the one holding the job up.
-                Self-gating on `posterOwesConfirmation`; renders no control, so
-                the one-row action contract is untouched. */}
-            {!isExpanded && <PosterConfirmationBadge job={job} />}
-            {/* THE TRACKER SURVIVES THE COLLAPSE — for a contested job only.
-                (owner, 2026-09-19: "the tracker should not go away for a
-                dispute or revision".)
+                  · the collapsed DISPUTE badge (sienna, "Dispute open …
+                    Payment on hold") — now `tone: "alarm"`, same words, same
+                    tokens, same `data-dispute-open-badge` hook;
+                  · the collapsed CONFIRMATION badge ("Needs your OK … Confirm
+                    They Arrived") — now the `confirm_arrival` /
+                    `confirm_working` lines, same rung, same
+                    `data-poster-owes-confirmation` hook;
+                  · the CONTESTED card's full tracker, un-gated that morning so
+                    a dispute was visible without a tap — the owner has since
+                    seen it and ruled the other way: the strip is the signal,
+                    the tracker is detail, and detail lives behind the expand
+                    (see PostedJobCard.contestedTracker.test.tsx);
+                  · the compact 16px-dot rail, chosen hours earlier because the
+                    labelled rail could not fit 212px — superseded outright.
+                    Eight anonymous dots give a position on a track; this gives
+                    the reader their next move.
 
-                9a39abbea kept the MAP alive through both statuses, but the
-                tracker as a whole still sat behind the expand, so the collapsed
-                Posts card for a disputed job — the card the owner was looking
-                at, the one that also carries the "Dispute open" badge directly
-                above — showed no tracker at all. A poster judging submitted
-                work needs the history in front of them, not one tap away.
+                A COLLAPSED CARD NOW CONTAINS NO TRACKER AT ALL, on any status.
+                That also takes <JobTracking>'s realtime channel and its
+                queries off every row of the list — the strip is a pure render
+                over columns this card already holds, and the list's own
+                freshness never came from the tracker.
 
-                SCOPED TIGHTLY: `contested` only. Every other status collapses
-                to exactly the height it does today, and nothing else from the
-                expanded body is un-gated — this is the tracker, alone. The
-                padding lives here rather than in `trackerBlock` so the expanded
-                placement inside `px-4 py-2.5` is byte-for-byte unchanged.
-
-                No person tile: `trackerBlock` passes `personTile` only when
-                expanded, so the Helpr's name still never prints on a collapsed
-                card (V6). */}
-            {!isExpanded && contested && trackerBlock && (
-              <div className="px-4 py-2.5">{trackerBlock}</div>
-            )}
-            {/* AND ON EVERY OTHER STATUS, THE COMPACT RAIL AT THE BOTTOM
-                (owner, 2026-09-19: "should we [move] posted, offered accepted
-                confirmed etc ones like this to the bottom of the collapsed
-                card and when they want to see more info then they click in to
-                expand"). The four names in that sentence are this rail's own
-                step labels.
-
-                16px dots, no labels — measured, not chosen: the full rail with
-                the posting steps wants 8x28 + 7x6 = 266px and this card's
-                inner box is 212px at a 320 viewport, which is why the labelled
-                rail scrolls there today. The compact one is 170px and fits
-                outright at 320, 375 and 1440 alike.
-
-                NOT ON A CONTESTED CARD: that one keeps the FULL tracker while
-                collapsed (owner, the same day — "the tracker should not go
-                away for a dispute or revision"), and drawing both would be the
-                same rail twice on one card. The two conditions are exact
-                complements, so every collapsed card with a helper shows
-                exactly one of them.
-
-                `includePostingSteps` matches the expanded tracker directly
-                above it, so the collapsed and expanded rails have the same
-                number of dots in the same order — it is one rail at two
-                densities, which is the whole of the owner's ask. */}
-            {!isExpanded && !contested && showsTracker && !unfunded && (
-              <div className="px-4 pb-2.5 pt-0.5 flex justify-center">
-                <JobStepRailCompact
-                  steps={railStepLabels(true)}
-                  displayIdx={railDisplayIdx({
-                    currentStatusIdx: deriveCurrentStatusIdx({
-                      trackingStatus: initialTracking?.status ?? null,
-                      jobStatus: job.status,
-                      helperCompletedAt: job.helper_completed_at,
-                    }),
-                    includePostingSteps: true,
-                    helperId: job.helper_id,
-                  })}
-                  jobStatus={job.status}
-                />
-              </div>
+                The rule this strip reads is NOT a new one: `posterStatusLine`
+                takes its eyebrow from `postedActivityBucket` (the same word as
+                the tab above the list) and its sentence from the confirmation
+                ladder and the bucket's own predicates. See jobStatusLine.ts. */}
+            {!isExpanded && (
+              <JobStatusStrip
+                line={posterStatusLine(job, pendingApplicantCounts?.[job.id] ?? 0)}
+              />
             )}
             {/* The series, made visible — parents only (see SeriesStrip). */}
             {!job.parent_job_id && (
@@ -456,22 +401,25 @@ function PostedJobCardInner({
               />
             )}
 
-            {/* Where this job stands — a full-width band directly under the
-                title divider, not a pill floating in the body padding. Active
-                folds several statuses into one list, so without this a job
-                awaiting a reply, one whose offer was just declined, and one
-                already underway all look alike. Unlike the old pill this also
-                colours the terminal statuses, so a Completed / Cancelled /
-                Disputed card is identifiable at a glance too. */}
-            {/* NO STATUS STRIPE. Owner: "can be removed so we can better
-                organize on the top by active / completed / cancelled etc" —
-                the filter tabs above the list carry the status now, so a
-                coloured band on every card repeated the tab the reader is
-                standing in, once per card, all the way down the page. What
-                the band said that a tab cannot, each card still says better:
-                an assigned job shows the tracker sitting on its real step, an
-                open one shows its applicant count, a cancelled one leads with
-                "Re-Post This Job". */}
+            {/* THE OLD STATUS STRIPE IS STILL GONE, AND THE STRIP ABOVE IS NOT
+                IT COMING BACK — read this before assuming the ruling reversed.
+
+                Owner, earlier: "can be removed so we can better organize on the
+                top by active / completed / cancelled etc". The band that was
+                removed printed the job's STATUS ENUM, in colour, on every card
+                — i.e. it repeated the filter tab the reader was already
+                standing in, once per card, all the way down the page. The
+                dispute badge was then carved out as the documented EXCEPTION to
+                that rule, because a 72-hour clock on someone's money is not
+                something a tab can carry.
+
+                That exception is now the rule (owner, 2026-09-19: "similar to
+                how dispute open displays"), and it is a different claim: the
+                strip says WHAT THE CARD IS WAITING ON and WHOSE MOVE IT IS —
+                "Confirm they arrived", "Your Helpr is on the way", "Approve &
+                release pay". No tab can say any of that, and its eyebrow is
+                taken from the tab's own bucket precisely so it can never
+                contradict the one the reader is in. */}
 
             {/* Summary — BEHIND THE EXPAND (owner, 2026-08-27).
                 Collapsed, a posted card is its title, its price and its meta

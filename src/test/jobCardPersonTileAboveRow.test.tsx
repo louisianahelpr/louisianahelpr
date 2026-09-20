@@ -272,19 +272,24 @@ describe("Posts card: the Helpr tile is the last thing before the action row", (
     expect(profileLinks(`/user/${HELPER}`)).toHaveLength(0);
   });
 
-  it("collapsed + disputed: the FULL tracker is on the card, the tile is NOT", () => {
-    // The one collapsed state that draws the full tracker on this card
-    // (187f61c3f) — and the state where a tile riding inside the tracker would
-    // leak, which is why V6 is gated on the tile itself and not the tracker.
-    // Every other collapsed status gets the compact rail instead; the two are
-    // exact complements, asserted below.
+  it("collapsed + disputed: the STATUS STRIP is on the card, the tile is NOT", () => {
+    /* This asserted the opposite for part of 2026-09-19. `187f61c3f` un-gated
+       the full tracker on a collapsed CONTESTED card, and this case pinned it
+       — because a tile riding inside the tracker would then have leaked the
+       Helpr's name onto a collapsed card, which is why V6 is gated on the tile
+       itself and not on the tracker.
+
+       The owner reversed that the same day ("the live tracker should also be
+       collapsed for disputes unless its clicked to expand it"), so no
+       collapsed card mounts a tracker at all. The V6 claim is unchanged and is
+       what this case is for; the element it is measured against is the status
+       strip, which is what a collapsed contested card draws instead. */
     renderPosted({ ...baseJob, status: "disputed" } as Job, false);
-    expect(screen.getByTestId("tracker")).toBeInTheDocument();
+    expect(screen.queryByTestId("tracker"), "the tracker is back on a collapsed card").toBeNull();
     expect(
-      document.querySelector("[data-job-rail-compact]"),
-      "a contested collapsed card drew the full tracker AND the compact rail — the same " +
-        "rail twice on one card",
-    ).toBeNull();
+      document.querySelector("[data-job-status-strip]"),
+      "no tracker AND no status line — the collapsed contested card says nothing at all",
+    ).not.toBeNull();
     expect(profileLinks(`/user/${HELPER}`)).toHaveLength(0);
   });
 
@@ -318,14 +323,14 @@ describe("Jobs card: the Posted-by tile is the last thing before the action row"
     expect(screen.getByTestId("tracker").contains(tile)).toBe(false);
   });
 
-  it("collapsed: the compact rail renders but the poster's name does NOT (V6)", () => {
+  it("collapsed: the status strip renders but the poster's name does NOT (V6)", () => {
     renderApplied(makeApp(), false);
     /* The helper's FULL tracker used to render on a collapsed card, which is
        why the tile needed its own gate. Owner, 2026-09-19 put it behind the
-       expand and replaced it with the 16px rail, so the assertion moves to
-       that — the collapsed card is still drawing this job's progress, so this
-       case cannot pass by the card rendering nothing at all. */
-    expect(document.querySelector("[data-job-rail-compact]")).toBeInTheDocument();
+       expand; the collapsed card carried a 16px dot rail for a few hours and
+       now carries the STATUS STRIP. The assertion tracks whatever is actually
+       there, so this case cannot pass by the card rendering nothing at all. */
+    expect(document.querySelector("[data-job-status-strip]")).toBeInTheDocument();
     expect(screen.queryByTestId("tracker"), "the full tracker is back on a collapsed card").toBeNull();
     expect(screen.queryByText("Pierre B.")).toBeNull();
     expect(profileLinks(`/user/${POSTER}`)).toHaveLength(0);

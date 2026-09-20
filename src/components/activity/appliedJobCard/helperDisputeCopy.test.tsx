@@ -237,14 +237,50 @@ describe("helper dispute panel — copy is aimed at whoever filed", () => {
  * DisputedSection is rendered OUTSIDE AppliedJobCard's expand gate.
  */
 describe("the poster's collapsed card announces the dispute", () => {
-  it("PostedJobCard renders a dispute badge when collapsed", () => {
-    const src = readFileSync(resolve(__dirname, "../PostedJobCard.tsx"), "utf8");
+  it("PostedJobCard announces a dispute on a COLLAPSED card", async () => {
+    /* RE-POINTED, NOT WEAKENED (2026-09-19). This matched the source text
+       `!isExpanded && job.status === "disputed"` — the one-off dispute badge
+       the poster's card carried. That badge and the poster's confirmation
+       badge were folded into a single `JobStatusStrip` the same day (owner:
+       "similar to how dispute open displays"), so the literal is gone and the
+       claim is not. It now RENDERS the card and reads the DOM, which is
+       strictly stronger than matching a string. */
+    const { render } = await import("@testing-library/react");
+    const { MemoryRouter } = await import("react-router-dom");
+    const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query");
+    const { PostedJobCard } = await import("../PostedJobCard");
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const noop = () => {};
+    const job = {
+      id: "job-d", title: "Pressure wash the driveway", description: "Front drive.",
+      category: "cleaning", budget: 120, customer_id: "poster-1", helper_id: "helper-1",
+      location: "Lafayette, LA", date_needed: "2026-09-20", payment_status: "escrow",
+      status: "disputed", dispute_status: "open",
+    } as unknown as import("../activityConstants").Job;
+    render(
+      <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <PostedJobCard
+          job={job} applicantCounts={{}} expandedJobIds={new Set()} toggleExpandedJobId={noop}
+          helperNames={{}} helperAvatars={{}} completedJobMeta={{}} userId="poster-1"
+          onBoost={noop} onEdit={noop} onCancel={noop} onComplete={noop} completingJobId={null}
+          onRevision={noop} onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop}
+          onReport={noop} onViewDispute={noop} onConfirmArrival={noop} confirmingArrivalJobId={null}
+          onConfirmWorking={noop} confirmingWorkingJobId={null} onLoadApplications={noop}
+          onLoadInlineApplicants={noop} inlineApplicants={{}} loadingApplicants={{}}
+          applicantErrors={{}} onActionComplete={noop}
+        />
+      </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const strip = document.querySelector("[data-dispute-open-badge]");
     expect(
-      /!isExpanded && job\.status === "disputed"/.test(src),
-      "PostedJobCard no longer shows a collapsed-card dispute badge. A poster " +
-        "scrolling My Posts cannot tell that one of these jobs has a 72-hour clock " +
-        "running on their money.",
-    ).toBe(true);
+      strip,
+      "PostedJobCard no longer announces a dispute on a collapsed card. A poster scrolling " +
+        "My Posts cannot tell that one of these jobs has a 72-hour clock running on their money.",
+    ).not.toBeNull();
+    expect(strip!.textContent).toContain("Dispute open");
+    expect(strip!.textContent).toContain("Payment on hold");
   });
 
   /* WHAT THIS CASE ASSERTED, AND WHY IT CHANGED — read this before touching it.
@@ -266,33 +302,46 @@ describe("the poster's collapsed card announces the dispute", () => {
      matching source text, and it also pins the panel's disappearance, so a
      card that showed neither badge nor panel fails here too. */
   it("a collapsed helper card still announces an open dispute, which is the bar being matched", async () => {
-    const { render, screen } = await import("@testing-library/react");
-    const { DisputeOpenBadge } = await import("../DisputeOpenBadge");
+    const { render } = await import("@testing-library/react");
+    const { JobStatusStrip } = await import("../JobStatusStrip");
+    const { helperStatusLine } = await import("../jobStatusLine");
     const src = readFileSync(resolve(__dirname, "../AppliedJobCard.tsx"), "utf8");
 
-    // The badge on the collapsed card, and the panel only once expanded.
+    /* THE SIGNAL ON THE COLLAPSED CARD, and the panel only once expanded.
+       The signal used to be a dedicated `<DisputeOpenBadge>` mounted on
+       `isDisputed && !isExpanded`; since 2026-09-19 it is one value of the
+       card's single status strip, which every collapsed card wears. So the
+       source match moves to the strip's own mount — still the thing that would
+       have to be deleted for a Helpr to lose the signal. */
     expect(
-      /\{isDisputed && !isExpanded && \(\s*<DisputeOpenBadge/.test(src),
-      "AppliedJobCard no longer shows a collapsed-card dispute badge. A Helpr scrolling " +
+      /\{!isMinimalCard && !isExpanded && <JobStatusStrip/.test(src),
+      "AppliedJobCard no longer draws a collapsed-card status strip. A Helpr scrolling " +
         "My Jobs cannot tell that one of these jobs has a 72-hour clock running on their pay.",
     ).toBe(true);
     expect(
       /\{isDisputed && isExpanded && \(\s*<DisputedSection/.test(src),
       "AppliedJobCard's dispute panel is no longer rendered on `isDisputed` at all — the " +
-        "badge is a signal, not a replacement for the panel behind the tap.",
+        "strip is a signal, not a replacement for the panel behind the tap.",
     ).toBe(true);
 
     // BOTH CARDS MOUNT THE SAME COMPONENT, so the two ends of one dispute
     // cannot drift into two vocabularies again.
     const posted = readFileSync(resolve(__dirname, "../PostedJobCard.tsx"), "utf8");
     expect(
-      /<DisputeOpenBadge/.test(posted),
-      "PostedJobCard no longer mounts the shared DisputeOpenBadge",
+      /<JobStatusStrip/.test(posted),
+      "PostedJobCard no longer mounts the shared JobStatusStrip",
     ).toBe(true);
 
-    // And it actually says the two things that matter, rendered.
-    render(<DisputeOpenBadge escalated={false} />);
-    expect(screen.getByText(/Dispute open/i)).toBeInTheDocument();
-    expect(screen.getByText(/Payment on hold/i)).toBeInTheDocument();
+    // And the disputed value of it says the two things that matter, rendered
+    // from a real disputed application rather than from a hand-set prop.
+    const app = {
+      id: "app-d", job_id: "job-d", helper_id: "helper-1", status: "accepted",
+      job: { id: "job-d", status: "disputed", dispute_status: "open", date_needed: "2026-09-20" },
+    } as unknown as import("../activityConstants").AppliedApp;
+    // Scoped to THIS render's container — the poster case above leaves its own
+    // card in the document, and a document-wide query would find two.
+    const { container } = render(<JobStatusStrip line={helperStatusLine(app)} />);
+    expect(container.textContent).toMatch(/Dispute open/i);
+    expect(container.textContent).toMatch(/Payment on hold/i);
   });
 });

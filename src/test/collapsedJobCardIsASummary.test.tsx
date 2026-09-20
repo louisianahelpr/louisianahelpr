@@ -38,12 +38,16 @@
  *     confirmation ladder ("controls stay inside the expanded card, but the
  *     collapsed card must signal that one is waiting").
  *
- * ── AND THE RAIL IS THE SAME RAIL, ONLY DENSER ────────────────────────────
- * Not a second progress vocabulary: `JobStepRailCompact` and the full rail
- * both paint from `railStepPaint`, and this file asserts the compact one draws
- * the SAME steps in the SAME order as the labelled one it replaces. The
- * geometry (16px dots, measured to fit a 212px card at 320) is asserted in
- * `src/test/compactRailFits.test.ts`.
+ * ── AND WHAT THE COLLAPSED CARD SAYS INSTEAD IS A SENTENCE ────────────────
+ * For a few hours on 2026-09-19 it was a compact 16px-dot rail, and this file
+ * asserted it drew the same steps in the same order as the labelled rail. The
+ * owner saw it and asked for words: "in the box to the left of the dots should
+ * show what we are waiting on… remove the dots." So the section below asserts
+ * the STRIP — one line, naming whose move it is — in the same three places the
+ * rail was asserted, plus the thing the dots could not do: it is present on
+ * every state and it says something different to each side of the job.
+ * The inventory, the honesty rule and the 320/375 arithmetic all live in
+ * `src/test/collapsedStatusSentence.test.tsx`; this file's job is the CARD.
  *
  * ALL THREE SECTIONS ARE MUTATED, because each mounts its own tracker and its
  * own action row and a change could un-gate one of them alone. The first pass
@@ -55,9 +59,8 @@
  * @mutate src/components/activity/AppliedJobCard.tsx | {isConfirmed && isExpanded && ( | {isConfirmed && (
  * @mutate src/components/activity/AppliedJobCard.tsx | {isActive && isExpanded && ( | {isActive && (
  * @mutate src/components/activity/AppliedJobCard.tsx | {isDisputed && isExpanded && ( | {isDisputed && (
- * @mutate src/components/activity/AppliedJobCard.tsx | {isDisputed && !isExpanded && (\n            <DisputeOpenBadge | {isDisputed && false && (\n            <DisputeOpenBadge
- * @mutate src/components/activity/AppliedJobCard.tsx | {!isMinimalCard && !isExpanded && (isOffered || isConfirmed || isActive || isDisputed) && ( | {false && (
- * @mutate src/components/activity/PostedJobCard.tsx | {!isExpanded && !contested && showsTracker && !unfunded && ( | {false && (
+ * @mutate src/components/activity/AppliedJobCard.tsx | {!isMinimalCard && !isExpanded && <JobStatusStrip line={helperStatusLine(app)} />} | {false && <JobStatusStrip line={helperStatusLine(app)} />}
+ * @mutate src/components/activity/PostedJobCard.tsx | {!isExpanded && (\n              <JobStatusStrip | {false && (\n              <JobStatusStrip
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -121,7 +124,6 @@ vi.mock("@/integrations/supabase/client", () => makeSupabase());
 
 import { AppliedJobCard } from "@/components/activity/AppliedJobCard";
 import { PostedJobCard } from "@/components/activity/PostedJobCard";
-import { railStepLabels } from "@/components/JobTracking";
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});
@@ -218,7 +220,7 @@ function renderPosted(job: Job, expanded: boolean) {
   );
 }
 
-const rail = () => document.querySelector("[data-job-rail-compact]");
+const strip = () => document.querySelector("[data-job-status-strip]");
 const row = () => document.querySelector("[data-job-step-row]");
 
 // ===========================================================================
@@ -286,51 +288,64 @@ describe("Jobs: a collapsed card hides the tracker and the action row", () => {
 });
 
 // ===========================================================================
-// C — the rail at the bottom of the collapsed card
+// C — the status line at the bottom of the collapsed card
 // ===========================================================================
-describe("the collapsed card carries the progress rail, on both tabs", () => {
-  it("Jobs: the compact rail is on the collapsed card and gone once expanded", () => {
+describe("the collapsed card says what it is waiting on, on both tabs", () => {
+  it("Jobs: the strip is on the collapsed card and gone once expanded", () => {
     renderApplied(makeApp(), false);
-    expect(rail(), "no rail on a collapsed Jobs card").not.toBeNull();
+    expect(strip(), "no status line on a collapsed Jobs card").not.toBeNull();
     renderApplied(makeApp(), true);
-    // Two cards are now in the document; the expanded one must not add a rail.
+    // Two cards are now in the document; the expanded one must not add one.
     expect(
-      document.querySelectorAll("[data-job-rail-compact]"),
-      "the expanded card drew the compact rail as well as the full one",
+      document.querySelectorAll("[data-job-status-strip]"),
+      "the expanded card drew the strip as well as the full tracker below it",
     ).toHaveLength(1);
   });
 
-  it("Posts: the compact rail is on the collapsed card", () => {
+  it("Posts: the strip is on the collapsed card", () => {
     renderPosted(baseJob, false);
-    expect(rail(), "no rail on a collapsed Posts card").not.toBeNull();
+    expect(strip(), "no status line on a collapsed Posts card").not.toBeNull();
   });
 
-  it("Posts: a CONTESTED collapsed card keeps the full tracker and draws no compact rail", () => {
-    // The two conditions are exact complements — one rail per card, never two.
+  it("Posts: a CONTESTED collapsed card draws the strip and NO tracker", () => {
+    /* INVERTED ON 2026-09-19 BY THE OWNER, and the inversion is recorded in
+       full in PostedJobCard.contestedTracker.test.tsx. This case used to
+       assert a contested card kept the FULL tracker while collapsed and drew
+       no rail. It now asserts the other half of the same concern: the card is
+       not silent, it just says it in one line instead of an eight-step rail.
+       "the live tracker should also be collapsed for disputes unless its
+       clicked to expand it." */
     renderPosted({ ...baseJob, status: "disputed" } as Job, false);
-    expect(screen.getByTestId("tracker")).toBeInTheDocument();
-    expect(rail(), "the same rail twice on one card").toBeNull();
+    expect(screen.queryByTestId("tracker"), "the tracker is back on a collapsed contested card").toBeNull();
+    expect(strip()!.textContent).toContain("Dispute open");
   });
 
-  it("it is the SAME rail: same steps, same order, same count as the labelled one", () => {
-    // Not a second progress vocabulary. The poster's card includes the posting
-    // steps and the helper's does not — exactly as their expanded trackers do.
+  it("it says something DIFFERENT to each side of the same job", () => {
+    // Not a second copy of the job's status: the line is about whose move it
+    // is, and that is the one thing the two ends of a job never share. Eight
+    // identical dots on both cards was exactly the failure this replaced.
     renderPosted(baseJob, false);
-    expect(Number(rail()!.getAttribute("data-step-count"))).toBe(railStepLabels(true).length);
+    const posted = strip()!.textContent;
     document.body.innerHTML = "";
     renderApplied(makeApp(), false);
-    expect(Number(rail()!.getAttribute("data-step-count"))).toBe(railStepLabels(false).length);
+    expect(strip()!.textContent, `both cards read "${posted}"`).not.toBe(posted);
   });
 
-  it("it announces WHERE the job is in one sentence, for a screen reader", () => {
-    // Eight unlabelled dots say nothing; this says more than the labelled rail
-    // manages, which announces as a group of eight icon buttons.
+  it("it announces as ONE sentence, and the rail's old aria-label is gone", () => {
     renderApplied(makeApp(), false);
-    expect(screen.getByText(/Job progress: step \d+ of \d+, /)).toBeInTheDocument();
+    const el = strip()!;
+    // Eight unlabelled dots announced as "Job progress: step 5 of 8, Working" —
+    // a position on a track, which is what the owner replaced.
+    expect(document.body.textContent).not.toMatch(/Job progress: step/);
+    expect(el.textContent!.trim().length).toBeGreaterThan(8);
+    expect(el.querySelectorAll("button, a[href]"), "the status line grew a control").toHaveLength(0);
   });
 
-  it("a not-selected or cancelled card draws no rail — there is no progress to show", () => {
+  it("a not-selected or cancelled card draws no strip — its body says it in prose", () => {
+    // `describeCancellation` names WHO cancelled, which a strip cannot carry.
+    // Recorded as a decision here so it reads as a choice, not a gap.
     renderApplied(makeApp({ status: "rejected" }, { status: "cancelled" }), false);
-    expect(rail()).toBeNull();
+    expect(strip()).toBeNull();
+    expect(screen.getByText(/^Cancelled/), "the minimal card says nothing either").toBeInTheDocument();
   });
 });

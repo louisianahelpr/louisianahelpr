@@ -168,12 +168,21 @@ describe("the progress rail's colour rule", () => {
       "JobTracking.tsx no longer calls railStepPaint — the full rail is painting its own " +
         "colours again and this file is asserting a rule nothing renders",
     ).toMatch(/railStepPaint\(/);
-    const COMPACT = repoFile("src/components/activity/JobStepRailCompact.tsx");
+    /* THERE IS ONE RAIL AGAIN. A second, denser rail (`JobStepRailCompact`,
+       16px dots) painted from this same rule for a few hours on 2026-09-19 and
+       was asserted here beside the full one. The owner replaced the dots with
+       a sentence the same day ("remove the dots"), so the file and its
+       assertion are gone together — a collapsed card now carries
+       `JobStatusStrip`, which draws no dots and reads no rail tone.
+
+       This is the ONLY place that may weaken: if a third rail ever appears, it
+       must be added here, and `src/test/collapsedStatusSentence.test.tsx`
+       asserts no compact rail comes back to either card. */
     expect(
-      COMPACT,
-      "JobStepRailCompact.tsx no longer calls railStepPaint — the collapsed rail has grown " +
-        "its own colour vocabulary, which is the 'two different green' defect in a new place",
-    ).toMatch(/railStepPaint\(/);
+      existsSync(resolve(ROOT, "src/components/activity/JobStepRailCompact.tsx")),
+      "JobStepRailCompact.tsx is back. It is a second rail painting these dots — add it to the " +
+        "assertion above, or the 'two different green' defect has a new place to live.",
+    ).toBe(false);
     const RULE = repoFile("src/components/activity/jobRailTone.ts");
     expect(RULE, "the alarm tone no longer paints --destructive").toMatch(/hsl\(var\(--destructive\)\)/);
     expect(RULE, "the current-step tone no longer paints --amber-solid").toMatch(/hsl\(var\(--amber-solid\)\)/);

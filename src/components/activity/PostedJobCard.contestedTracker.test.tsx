@@ -1,23 +1,37 @@
 /**
- * ITEM 13, remainder (owner, 2026-09-19): "the tracker should not go away for a
- * dispute or revision."
+ * NO TRACKER ON A COLLAPSED CARD — CONTESTED INCLUDED. THE STRIP SAYS IT.
  *
- * 9a39abbea fixed the half INSIDE the tracker — the map vanished on a
- * submitted-then-contested job, because `markedDone` covers a submitted job and
- * the tracking row's status reads `done`. This file covers the other half: the
- * whole tracker sat behind the Posts card's expand, so a COLLAPSED disputed job
- * showed no tracker at all — which is where a poster scanning their list would
- * have seen it "go away".
+ * ── THIS FILE REVERSED ITS OWN CONTRACT ON 2026-09-19, BY THE OWNER ───────
+ * Read this before "fixing" it back.
  *
- * SCOPE IS THE WHOLE POINT. Only `disputed` and `revision_requested` get the
- * tracker while collapsed; every other status keeps its collapsed height
- * exactly, and nothing else from the expanded body is un-gated.
+ * MORNING (item 13): "the tracker should not go away for a dispute or
+ * revision." `187f61c3f` un-gated the whole tracker on a COLLAPSED Posts card
+ * for `disputed` and `revision_requested` only, and this file pinned exactly
+ * that carve-out.
  *
- * AND THE PERSON BOX STAYS BEHIND THE EXPAND. The Helpr's PersonTile is passed
- * INTO the tracker (item 3), so un-gating the tracker would otherwise have put
- * the Helpr's name on a collapsed card — the same V6 rule the owner reaffirmed
- * on the helper side the same day. The tile's gate is `isExpanded`,
- * independently of the tracker's own gate.
+ * SAME DAY, with the result on screen: "similar to how dispute open displays.
+ * but the live tracker should also be collapsed for disputes unless its
+ * clicked to expand it."
+ *
+ * Both instructions are about the same thing and the second is not a
+ * contradiction of the first — it is a better answer to it. What the owner
+ * wanted was for a collapsed contested card to SAY SOMETHING; what item 13
+ * bought was an eight-step rail and a map jammed under the title. The
+ * `JobStatusStrip` says it in one sentence ("Dispute open · Payment on hold",
+ * "Waiting · They're making the fix"), and the tracker goes back behind the
+ * expand where every other card's detail lives.
+ *
+ * SO THE CLAIM IS INVERTED AND KEPT, NOT DELETED: a collapsed contested card
+ * shows NO tracker AND a strip that names the dispute. Asserting the absence
+ * alone would pass on a card that renders nothing at all — which is the
+ * defect item 13 existed to fix, and the one this must never reintroduce.
+ *
+ * AND THE PERSON BOX IS UNCHANGED (V6): never on a collapsed card, exactly
+ * once on an expanded one, outside the tracker. That half of this file
+ * survived both rulings untouched.
+ *
+ * @mutate src/components/activity/PostedJobCard.tsx | {!isExpanded && (\n              <JobStatusStrip | {false && (\n              <JobStatusStrip
+ * @mutate src/components/activity/PostedJobCard.tsx | <div className="pt-3" data-job-card-tracker-gap="">{trackerBlock}</div> | <div className="pt-3" data-job-card-tracker-gap="">{null}</div>
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -88,17 +102,41 @@ function renderCard(status: string, expanded: boolean) {
   );
 }
 
-describe("a COLLAPSED contested Posts card still shows the tracker (item 13)", () => {
-  it.each(["disputed", "revision_requested"])("%s: tracker present while collapsed", (status) => {
+describe("a COLLAPSED contested Posts card says it in the STRIP, not the tracker", () => {
+  it.each(["disputed", "revision_requested"])("%s: no tracker while collapsed", (status) => {
     renderCard(status, false);
-    expect(screen.getByTestId("tracker")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("tracker"),
+      "the collapsed card mounts <JobTracking> — its eight-step rail, its map and a realtime " +
+        "channel, on every row of the list",
+    ).toBeNull();
   });
 
   it.each(["disputed", "revision_requested"])(
-    "%s: collapsed shows the tracker WITHOUT the Helpr's person box (V6)",
+    "%s: but it is NOT silent — the strip names what the card is waiting on",
+    (status) => {
+      // The half that makes the absence above safe. Item 13's report was a
+      // collapsed disputed card that said nothing; this is what replaced it.
+      renderCard(status, false);
+      const strip = document.querySelector("[data-job-status-strip]");
+      expect(strip, `${status}: no tracker AND no strip — the card says nothing at all`).not.toBeNull();
+      expect(strip!.textContent!.trim().length).toBeGreaterThan(8);
+    },
+  );
+
+  it("disputed: the strip carries the dispute's own words and its consequence", () => {
+    renderCard("disputed", false);
+    const strip = document.querySelector("[data-job-status-strip]")!;
+    expect(strip.textContent).toContain("Dispute open");
+    expect(strip.textContent, "the money claim is gone — 'Dispute open' alone does not say " +
+      "that a 72-hour clock is running on the poster's escrow").toContain("Payment on hold");
+    expect(strip.getAttribute("data-dispute-open-badge"), "the shared dispute hook is gone").not.toBeNull();
+  });
+
+  it.each(["disputed", "revision_requested"])(
+    "%s: collapsed shows NO Helpr person box (V6, unchanged through both rulings)",
     (status) => {
       renderCard(status, false);
-      expect(screen.getByTestId("tracker")).toBeInTheDocument();
       expect(screen.queryByText("Hallie H.")).toBeNull();
       expect(document.querySelector('a[href="/user/helper-1"]')).toBeNull();
     },
@@ -126,22 +164,31 @@ describe("a COLLAPSED contested Posts card still shows the tracker (item 13)", (
     },
   );
 
-  // THE SCOPE. Every ordinary status collapses to exactly what it did before —
-  // the un-gate is `contested` and nothing wider. Without this the test above
-  // would pass just as happily on a card that always draws its tracker.
+  // THE SCOPE, NOW THE OTHER WAY UP. There is no carve-out left: every status
+  // collapses identically, which is what "the collapsed card is a summary"
+  // means. Without this the cases above would pass on a card that had simply
+  // stopped rendering a tracker anywhere.
   it.each(["accepted", "in_progress", "completed", "open"])(
-    "%s: no tracker while collapsed (unchanged)",
+    "%s: no tracker while collapsed (and now the contested ones agree)",
     (status) => {
       renderCard(status, false);
       expect(screen.queryByTestId("tracker")).toBeNull();
     },
   );
 
-  it.each(["accepted", "in_progress", "completed", "open"])(
-    "%s: tracker still there when expanded (the un-gate took nothing away)",
+  it.each(["accepted", "in_progress", "completed", "open", "disputed", "revision_requested"])(
+    "%s: tracker IS there when expanded — the re-gate hid it, it did not delete it",
     (status) => {
       renderCard(status, true);
       expect(screen.getByTestId("tracker")).toBeInTheDocument();
+    },
+  );
+
+  it.each(["disputed", "revision_requested", "in_progress"])(
+    "%s: expanded, the strip stands down — the body says all of it below",
+    (status) => {
+      renderCard(status, true);
+      expect(document.querySelector("[data-job-status-strip]")).toBeNull();
     },
   );
 });

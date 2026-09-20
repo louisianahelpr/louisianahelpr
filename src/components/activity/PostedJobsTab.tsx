@@ -28,6 +28,9 @@ interface PostedJobsTabProps {
    */
   highlightJobId?: string | null;
   applicantCounts: Record<string, number>;
+  /** Applications still AWAITING a decision, per job id. Forwarded to the card
+   *  for its collapsed status strip — see PostedJobCardProps. */
+  pendingApplicantCounts?: Record<string, number>;
   expandedJobIds: Set<string>;
   toggleExpandedJobId: (id: string) => void;
   helperNames: Record<string, string>;
@@ -276,7 +279,7 @@ function ListTail({
 }
 
 export const PostedJobsTab = ({
-  jobs, highlightJobId, applicantCounts, expandedJobIds, toggleExpandedJobId,
+  jobs, highlightJobId, applicantCounts, pendingApplicantCounts, expandedJobIds, toggleExpandedJobId,
   helperNames, helperAvatars, completedJobMeta,
   latestTracking, groupHelpersByJob, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
@@ -347,6 +350,7 @@ export const PostedJobsTab = ({
         job={job}
         highlight={!!highlightJobId && highlightJobId === job.id}
         applicantCounts={applicantCounts}
+        pendingApplicantCounts={pendingApplicantCounts}
         expandedJobIds={expandedJobIds}
         toggleExpandedJobId={toggleExpandedJobId}
         helperNames={helperNames}

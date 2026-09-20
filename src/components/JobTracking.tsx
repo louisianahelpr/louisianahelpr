@@ -64,9 +64,15 @@ type TrackerStep = {
 };
 
 /** The step LABELS, in order, for a surface that draws the rail without
- *  mounting this component — the collapsed card's compact rail
- *  (JobStepRailCompact). Exported as labels rather than the whole array so the
- *  icons and the action phrasing stay private to the full rail. */
+ *  mounting this component. Exported as labels rather than the whole array so
+ *  the icons and the action phrasing stay private to the full rail.
+ *
+ *  REPORTED, NOT DELETED (2026-09-19): its only consumer was the collapsed
+ *  card's compact 16px rail, and the owner replaced those dots with a sentence
+ *  the same day ("remove the dots") — so this and `railDisplayIdx` below now
+ *  have no caller in `src/`. They are a small, pure, correct public API of this
+ *  module and deleting an export is not this change's business; flagged here
+ *  so the next reader knows they are unused rather than assuming otherwise. */
 export function railStepLabels(includePostingSteps: boolean): string[] {
   return (includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES).map((s) => s.label);
 }
@@ -1959,11 +1965,13 @@ export function JobTracking({
               // EXTRACTED, 2026-09-19. The rule used to be written out here
               // and TRANSCRIBED into alarmColourInvariant.test.ts, which said
               // so and carried a second test to notice when the copy went
-              // stale. The collapsed card now paints the same dots at 16px
-              // (JobStepRailCompact), and a second rail meant a third copy —
-              // so both rails and the guard read `railStepPaint`
-              // (src/components/activity/jobRailTone.ts). "Same colour
-              // vocabulary as the expanded rail" is now true by construction.
+              // stale. A second, denser rail on the collapsed card then made
+              // that a third copy, so the rule moved to `railStepPaint`
+              // (src/components/activity/jobRailTone.ts) and both rails read
+              // it. The compact rail is gone again (the owner replaced the
+              // dots with a sentence the same day), so this is the ONE rail —
+              // but the rule stays extracted and the guard stays imported:
+              // that is what made it un-driftable in the first place.
               const paint = railStepPaint({
                 idx,
                 displayIdx,

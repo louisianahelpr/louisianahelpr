@@ -28,9 +28,25 @@
  * which proves nothing about what the guard checks (scripts/vacuity/README.md,
  * "a mutation that is too weak still kills a guard and tells you nothing").
  *
- * @mutate src/components/activity/AppliedJobCard.tsx | <JobAddressLine location={job.location} /> | <></>
- * @mutate src/components/activity/AppliedJobCard.tsx | {(isOffered || isConfirmed || isActive || isDisputed) && ( | {(true) && (
- * @mutate src/components/activity/appliedJobCard/JobAddressLine.tsx | {location.trim()} |
+ * ── THE ADDRESS MOVED INTO THE META ROW, AND SO DID THIS FILE'S TARGET ────
+ * Owner, 2026-09-19, later the same day, with a screenshot: "this shouldnt
+ * show 2 addresses… the full address needs to go where the city place is. not
+ * be on a whole nother line." `JobAddressLine` printed the street address on a
+ * row of its own while `JobCardMetaRow` printed the city directly above it, so
+ * an en-route Helpr's card said the place twice. The row is deleted and the
+ * address now fills the meta row's location slot.
+ *
+ * Every claim here survives that move unchanged — the address is still on the
+ * COLLAPSED card, a pending applicant is still shown none of it, and Directions
+ * still points at the address and never at coordinates. What changes is that
+ * this file may no longer STUB the meta row: it used to, precisely because the
+ * row could only print a city and stubbing it proved the assertion was reading
+ * the address line. Now the meta row IS the address line, so it renders for
+ * real and the mutations below are what stop this passing vacuously.
+ *
+ * @mutate src/components/activity/AppliedJobCard.tsx | showFullAddress={isOffered || isConfirmed || isActive || isDisputed} | showFullAddress={false}
+ * @mutate src/components/activity/AppliedJobCard.tsx | showFullAddress={isOffered || isConfirmed || isActive || isDisputed} | showFullAddress
+ * @mutate src/components/activity/JobCardMetaRow.tsx | const fullAddress = showFullAddress && hasStreetAddress(location); | const fullAddress = false;
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -62,9 +78,13 @@ vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticLight: vi.fn(), ha
 vi.mock("@/components/activity/JobCountdown", () => ({ JobCountdown: () => null }));
 vi.mock("@/components/activity/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
 vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null, PhotoProofDialog: () => null }));
-// The meta row prints the CITY (and only the city) — stub it, so nothing below
-// can pass on the meta row's text instead of the address line's.
-vi.mock("@/components/activity/JobCardMetaRow", () => ({ JobCardMetaRow: () => <div data-testid="meta" /> }));
+/* THE META ROW IS NO LONGER STUBBED. It used to be, so that nothing here could
+   pass on the row's city instead of the address line's street. The address
+   line is gone and the row is where the street now prints, so stubbing it
+   would stub the very thing under test. What stops this passing vacuously is
+   the mutation register above: the two `showFullAddress` mutations flip the
+   card's own gate in both directions, and the third makes the row print a city
+   whatever it is handed. */
 vi.mock("@/components/activity/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
 
@@ -154,26 +174,32 @@ describe("the helper can read the job's street address at the en-route moment", 
      card to see where they are going."
 
      So the address assertion is byte-for-byte what it was. What moves is the
-     element it is measured against: the collapsed card now draws the compact
-     16px rail where the full tracker used to be, and the address must still
-     come before it and sit outside it. That is the same structural claim —
-     the address is the CARD's own line, not the progress block's — against
-     the element that is actually there. */
-  it("confirmed + COLLAPSED: the full address is on the card, above the progress rail", () => {
+     element it is measured against: the collapsed card now carries a STATUS
+     STRIP where the full tracker used to be, and the address must still come
+     before it and sit outside it. That is the same structural claim — the
+     address is the CARD's own line, not the progress block's — against the
+     element that is actually there. (It was the compact 16px dot rail for a
+     few hours on 2026-09-19; the owner replaced the dots with the sentence.) */
+  it("confirmed + COLLAPSED: the full address is on the card, above the status line", () => {
     renderCard(baseJob);
     // A progress block IS mounted — this is genuinely the en-route card, not
     // some state that happens to print an address.
-    const rail = document.querySelector("[data-job-rail-compact]")!;
-    expect(rail, "no progress rail on the collapsed card — re-check the fixture").not.toBeNull();
+    const progress = document.querySelector("[data-job-status-strip]")!;
+    expect(progress, "no status line on the collapsed card — re-check the fixture").not.toBeNull();
     expect(screen.queryByTestId("tracker"), "the full tracker is back on a collapsed card").toBeNull();
     const line = screen.getByText(ADDRESS);
     expect(line).toBeInTheDocument();
-    // Not inside the progress block, and before it: the address is the card's
-    // own line, so it survives whatever the progress block is doing.
-    expect(rail.contains(line)).toBe(false);
-    expect(line.compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // Announced, not just drawn.
+    // Not inside the progress block, and before it.
+    expect(progress.contains(line)).toBe(false);
+    expect(line.compareDocumentPosition(progress) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Announced, not just drawn — the noun the deleted row's sr-only carried.
     expect(screen.getByText("Job address:")).toBeInTheDocument();
+    // AND IT IS SAID ONCE. The whole report was that it was said twice: the
+    // city in the meta row and the street on a row of its own beneath it.
+    expect(
+      screen.getAllByText((_t, el) => el?.textContent?.trim() === ADDRESS && el.children.length === 0),
+      "the address is printed more than once on one card",
+    ).toHaveLength(1);
   });
 
   it("in progress + COLLAPSED: still on the card", () => {
@@ -212,9 +238,11 @@ describe("the helper can read the job's street address at the en-route moment", 
     // What every seeded job looked like before 2026-09-19. The line is not
     // drawn empty and the pin is not drawn beside nothing.
     renderCard({ ...baseJob, location: "New Iberia, LA" } as unknown as Job);
-    // The card DID render its progress block — so "no address line" is a
+    // The card DID render its progress block — so "no street address" is a
     // decision about the address, not a card that failed to mount.
-    expect(document.querySelector("[data-job-rail-compact]")).toBeInTheDocument();
+    expect(document.querySelector("[data-job-status-strip]")).toBeInTheDocument();
     expect(screen.queryByText("Job address:")).toBeNull();
+    // The town is still printed, exactly as it always was.
+    expect(screen.getByText("New Iberia")).toBeInTheDocument();
   });
 });

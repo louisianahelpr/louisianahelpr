@@ -14,6 +14,20 @@ export interface PostedJobCardProps {
    */
   highlight?: boolean;
   applicantCounts: Record<string, number>;
+  /**
+   * Applications STILL AWAITING A DECISION, per job id — NOT the total.
+   *
+   * The collapsed card's status strip needs the same number the Activity tab's
+   * own bucketing uses (`postedActivityBucket`'s `pendingApplicantCount`),
+   * because the two must agree about whether an open job is waiting on the
+   * poster or on the world. `applicantCounts` above is the TOTAL, which is the
+   * right number for the "Applicants (3)" button and the wrong one here: a job
+   * whose every applicant was declined is not asking the poster for anything.
+   *
+   * Optional, and absent means zero — a card handed no counts says "No
+   * applicants yet" rather than inventing a queue.
+   */
+  pendingApplicantCounts?: Record<string, number>;
   expandedJobIds: Set<string>;
   toggleExpandedJobId: (id: string) => void;
   helperNames: Record<string, string>;

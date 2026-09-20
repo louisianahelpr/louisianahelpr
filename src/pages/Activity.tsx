@@ -601,6 +601,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               jobs={filteredPostedJobs}
               highlightJobId={highlightJobId}
               applicantCounts={applicantCounts}
+              pendingApplicantCounts={pendingApplicantCounts}
               expandedJobIds={actions.expandedJobIds}
               toggleExpandedJobId={actions.toggleExpandedJobId}
               helperNames={helperNames}

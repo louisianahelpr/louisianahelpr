@@ -22,14 +22,12 @@ import { deriveAppliedJobCardState, describeCancellation } from "./appliedJobCar
 import { CancellationFeePill } from "./appliedJobCard/CancellationFeePill";
 import { PendingApplicationSection } from "./appliedJobCard/PendingApplicationSection";
 import { OfferedActions } from "./appliedJobCard/OfferedActions";
-import { JobAddressLine } from "./appliedJobCard/JobAddressLine";
 import { ConfirmedSection } from "./appliedJobCard/ConfirmedSection";
 import { ActiveJobSection } from "./appliedJobCard/ActiveJobSection";
 import { DisputedSection } from "./appliedJobCard/DisputedSection";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "./jobCardPerson";
-import { JobStepRailCompact } from "./JobStepRailCompact";
-import { DisputeOpenBadge } from "./DisputeOpenBadge";
-import { deriveCurrentStatusIdx, railDisplayIdx, railStepLabels } from "@/components/JobTracking";
+import { JobStatusStrip } from "./JobStatusStrip";
+import { helperStatusLine } from "./jobStatusLine";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -244,6 +242,26 @@ function AppliedJobCardInner({
         /* An anonymised job carries no address (see `posterId` above); the
            location chip's own normaliser already treats "" as absent. */
         location={job.location ?? ""}
+        /* THE FULL ADDRESS TAKES THE CITY'S PLACE (owner, 2026-09-19, with a
+           screenshot of /my-jobs: "this shouldnt show 2 addresses... the full
+           address needs to go where the city place is. not be on a whole
+           nother line").
+
+           The card used to print BOTH - `getCity(location)` in this row, and
+           the whole street address again on a row of its own below it
+           (`JobAddressLine`, VN-55). That second row is deleted and its
+           condition moved here VERBATIM: the same four states, so nothing is
+           newly revealed and nothing that was visible is lost.
+
+           WHY A CLIENT GATE AT ALL, when the server already masks. It is not
+           an entitlement check - `get_jobs_for_my_applications` rewrites
+           `location` through `user_may_see_job_address` and hands a pending
+           applicant "City, ST" - it is the SECOND lock this card has always
+           had. Until today the meta row could only ever print a city, so a
+           server that leaked could not leak through it; printing `location`
+           whole removes that. Keeping the old mount's condition keeps it.
+           src/test/enRouteAddressVisible.test.tsx pins both halves. */
+        showFullAddress={isOffered || isConfirmed || isActive || isDisputed}
         latitude={job.latitude}
         longitude={job.longitude}
         expiresAt={isPending && !job.helper_id ? job.expires_at : null}
@@ -515,7 +533,7 @@ function AppliedJobCardInner({
                   a `JobActionRow` — and the standing rule on the other card is
                   that controls live inside the expanded card while the
                   collapsed card only SIGNALS (that is exactly what
-                  PosterConfirmationBadge does on My Posts). The "Seen" chip is
+                  the collapsed status strip does on My Posts). The "Seen" chip is
                   the opposite: information, no tap, and the single most
                   useful thing a waiting applicant can learn at a glance. So
                   the chip stays collapsed and the pair does not.
@@ -551,12 +569,6 @@ function AppliedJobCardInner({
 
           {/* === ACTION SECTIONS === */}
 
-          {/* The full street address once this Helpr is offered or hired
-              (VN-55). The server only sends it to someone allowed to see it. */}
-          {(isOffered || isConfirmed || isActive || isDisputed) && (
-            <JobAddressLine location={job.location} />
-          )}
-
           {/* Offered: accept/decline — celebratory framing since this
               is a poster reaching out directly. Gold-warm accent
               surfaces the "you were picked" moment without shouting. */}
@@ -578,16 +590,20 @@ function AppliedJobCardInner({
 
              Gated now, which is what makes the collapsed card a summary. Two
              things deliberately stay outside the gate:
-               · JobAddressLine, directly below — a Helpr heading out must not
-                 have to expand a card to see where they are going (owner's
-                 explicit carve-out; src/test/enRouteAddressVisible.test.tsx
-                 stands as written);
+               · THE STREET ADDRESS — a Helpr heading out must not have to
+                 expand a card to see where they are going (owner's explicit
+                 carve-out; src/test/enRouteAddressVisible.test.tsx). It is no
+                 longer a row of its own: it took the city's place in the meta
+                 row above (owner, the same day: "this shouldnt show 2
+                 addresses"), which is on the collapsed card either way;
                · OfferedActions — Accept/Decline on a direct offer is a
                  time-boxed decision, not a detail, and the owner did not ask
                  for it to move.
 
-             What replaces the rail on a collapsed card is the COMPACT rail at
-             the bottom of this card — 16px dots, no labels. */}
+             What a collapsed card says about state is the STATUS STRIP at the
+             bottom of this card — one sentence, naming whose move it is. It
+             replaces the 16px-dot rail that stood there for a few hours
+             (owner: "remove the dots"). */}
           {/* Confirmed: show tracking + message */}
           {isConfirmed && isExpanded && (
             <ConfirmedSection
@@ -615,20 +631,6 @@ function AppliedJobCardInner({
                  2026-09-14, VN-28: no report once done). */
               onOpenDispute={() => onDispute(job)}
               navigate={navigate}
-            />
-          )}
-
-          {/* AN OPEN DISPUTE SURVIVES THE COLLAPSE (the panel does not).
-              The section below went behind the expand with the other two
-              (owner, 2026-09-19), and `helperDisputeCopy.test.ts` exists
-              precisely to fail when that hides a live dispute from the Helpr —
-              it did, immediately. The poster's card already had the answer:
-              the CONTROLS go behind the expand, the SIGNAL does not. Same
-              badge, same words, same treatment, now literally the same
-              component on both ends of one dispute. */}
-          {isDisputed && !isExpanded && (
-            <DisputeOpenBadge
-              escalated={(job as { dispute_status?: string | null }).dispute_status === "escalated"}
             />
           )}
 
@@ -799,43 +801,37 @@ function AppliedJobCardInner({
               )}
             </div>
           )}
-          {/* THE COLLAPSED CARD'S PROGRESS, AT ITS BOTTOM EDGE (owner,
-              2026-09-19: "should we [move] posted, offered accepted confirmed
-              etc ones like this to the bottom of the collapsed card and when
-              they want to see more info then they click in to expand").
+          {/* WHAT THIS CARD IS WAITING ON — one sentence, at the card's bottom
+              edge (owner, 2026-09-19: "should show what we are waiting on...
+              remove the dots", and on the look: "similar to how dispute open
+              displays").
 
-              16px dots, no labels — measured, not chosen: the full rail wants
-              8x28 + 7x6 = 266px and this card's inner box is 212px at a 320
-              viewport, so the labelled rail could only ever scroll there. The
-              compact one is 170px and fits outright at every width.
+              THE SAME STRIP THE POSTER'S CARD WEARS, written from the HELPR's
+              point of view — one job, two readers, two sentences. "Approve &
+              release pay" over there is "With them for approval" here.
 
-              PURE RENDER — no query, no realtime channel. It reads the stamps
-              this card already holds through `deriveCurrentStatusIdx`, which
-              matters because the alternative (mounting <JobTracking> on every
-              collapsed card) would open one subscription per row of the list.
-              That is also what this change REMOVES: until today the three
-              sections above mounted the FULL tracker on every collapsed card.
+              IT ABSORBS THE COLLAPSED DISPUTE BADGE. That badge was the one
+              thing a collapsed disputed card said, and it survives verbatim as
+              `tone: "alarm"` — same words ("Dispute open" / "Admin reviewing"
+              ... "Payment on hold"), same sienna, same `data-dispute-open-badge`
+              hook, so `helperDisputeCopy` still pins that a Helpr scrolling My
+              Jobs can see a 72-hour clock on their pay. The PANEL stays behind
+              the expand, which was already the ruling: controls in, signal out.
 
-              Not on a minimal card — a not-selected or cancelled application
-              has no progress worth drawing — and not while expanded, where the
-              full labelled rail is a few rows up. */}
-          {!isMinimalCard && !isExpanded && (isOffered || isConfirmed || isActive || isDisputed) && (
-            <div className="px-4 pb-2.5 pt-1 flex justify-center">
-              <JobStepRailCompact
-                steps={railStepLabels(false)}
-                displayIdx={railDisplayIdx({
-                  currentStatusIdx: deriveCurrentStatusIdx({
-                    trackingStatus: initialTracking?.status ?? null,
-                    jobStatus: job.status,
-                    helperCompletedAt: job.helper_completed_at,
-                  }),
-                  includePostingSteps: false,
-                  helperId: job.helper_id,
-                })}
-                jobStatus={job.status}
-              />
-            </div>
-          )}
+              PURE RENDER — no query, no realtime channel, no tracker. It reads
+              columns this card already holds. That is also what the compact
+              rail bought and this keeps: until this morning the three sections
+              above mounted a full JobTracking on every collapsed card, one
+              subscription per row of the list.
+
+              NOT ON A MINIMAL CARD. A not-selected or cancelled application
+              already leads its body with exactly this statement, in prose that
+              says WHO cancelled (`describeCancellation`) — which is more than
+              a strip can carry. Two of them would be the duplication this card
+              keeps having removed. `deriveHelperWait` still answers for those
+              states (`not_selected` / `cancelled` / `job_gone`); the card
+              chooses not to draw a second copy. */}
+          {!isMinimalCard && !isExpanded && <JobStatusStrip line={helperStatusLine(app)} />}
         </JobCardShell>
         </div>
     </JobCardPersonContext.Provider>

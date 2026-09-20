@@ -1,33 +1,38 @@
-import { MapPin } from "lucide-react";
-
 /**
- * The job's full street address, as text (VN-55, owner 2026-09-14: "they need
- * to be able to actually see the full address when the offer is sent to the
- * helpr, not just in the map").
+ * IS THIS LOCATION A STREET ADDRESS, OR JUST A TOWN?
  *
- * The card's meta row only ever prints the city, so an offered or hired Helpr
- * could read the address nowhere but the map pin. This line prints it. It adds
- * no access: `get_jobs_for_my_applications` returns the full `location` only
- * when `user_may_see_job_address` allows it (poster, hired Helpr, pending
- * direct offer, accepted application) and the masked city otherwise — so a
- * location with no street part renders nothing.
+ * ── THE COMPONENT THAT USED TO LIVE HERE IS GONE ──────────────────────────
+ * `JobAddressLine` printed the job's full street address on a row of its own,
+ * below the card's meta row (VN-55, owner 2026-09-14: "they need to be able to
+ * actually see the full address when the offer is sent to the helpr, not just
+ * in the map"). The meta row printed the CITY, so a hired Helpr's card showed
+ * the place twice:
+ *
+ *     📍 New Iberia   📅 Thu, Sep 17   🕐 12:00 PM
+ *     📍 1103 Center St, New Iberia, LA 70560
+ *
+ * Owner, 2026-09-19, with that screenshot: "this shouldnt show 2 addresses.
+ * once they are at the correct state, the full address should replace the city
+ * in the job card. not be on a whole nother line. the full address needs to go
+ * where the city place is. fix this."
+ *
+ * So the address moved INTO the meta row's location slot — `JobCardMetaRow`'s
+ * `showFullAddress` prop, which carries the arithmetic for why it takes a line
+ * of its own there rather than competing with the date and time at 320. The
+ * mount's entitlement condition moved with it, verbatim.
+ *
+ * ── THIS PREDICATE STAYS, AND IS THE POINT OF THE FILE ────────────────────
+ * It is the only workable test for "did the server give me the real address or
+ * the masked one", because masking is UNDETECTABLE BY COMPARISON:
+ * `mask_job_location('New Iberia, LA')` returns `'New Iberia, LA'`, identical
+ * in and out. A digit in the first comma-segment is the street number.
+ *
+ * It is imported by `JobCardMetaRow` (which decides what to paint) and by
+ * `src/test/seedFixtureAddressRealism.test.ts` (which holds the seed scripts'
+ * own transcription of it to exactly this answer). The path is unchanged so
+ * neither import had to move.
  */
 export function hasStreetAddress(location: string | null | undefined): location is string {
   const first = (location ?? "").split(",")[0]?.trim() ?? "";
   return /\d/.test(first) && (location ?? "").includes(",");
-}
-
-export function JobAddressLine({ location }: { location: string | null | undefined }) {
-  if (!hasStreetAddress(location)) return null;
-  return (
-    // `px-4` matches the card's other sections, so the pin lines up with the
-    // meta row above instead of sitting on the card's category border.
-    <p className="px-4 pt-2 pb-1 flex items-start gap-1.5 text-ds-13 leading-snug select-text" style={{ color: "hsl(var(--ink-deep))" }}>
-      <MapPin className="w-3.5 h-3.5 shrink-0 mt-[3px]" aria-hidden style={{ color: "hsl(var(--olivewood))" }} />
-      <span>
-        <span className="sr-only">Job address: </span>
-        {location.trim()}
-      </span>
-    </p>
-  );
 }

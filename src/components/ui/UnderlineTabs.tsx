@@ -49,15 +49,22 @@ export interface UnderlineTab {
 /**
  * THE WIDTH BELOW WHICH `shortLabel` REPLACES `label`.
  *
- * Measured, not chosen. Activity's five buckets at `tight` density
- * (11px labels, 12px gaps) need 331px of content; the title card gives the
- * scroller `viewport - 42px` (two 5px page gutters and the card's own `px-5`
- * each side). So the long words need a 373px viewport to sit inside their
- * clip, which 375 clears by 2px — a margin that a single Dynamic Type step,
- * one more digit in a count, or a longer future word erases. 390 is the next
- * real phone width above that, so every device narrower than a 390pt iPhone
- * (SE at 375, and 360/320 Androids) takes the short words, and the widths with
- * genuine room keep the owner's five.
+ * Measured on /my-posts, not chosen. The five long words at `tight` density
+ * (11px labels, 12px gaps) measure 333px of content — down from 372px at the
+ * 12px/16px the row shipped with. The scroller they sit in is the title card
+ * bled to its edges, so it clears `viewport - 42px`: 278px at 320, 333px at
+ * 375, 372px at 414.
+ *
+ * 333 into 333 is a fit with ZERO margin, and the scroller's own trailing
+ * padding eats it — which is why 375 takes the short words even though the
+ * arithmetic says the long ones "fit". One Dynamic Type step, a second digit
+ * in a count, or a longer future word would each erase it again. 414 clears
+ * the long words by 39px and keeps them.
+ *
+ * 390 is the phone width between those two (iPhone 14/15/16 at 390, SE at
+ * 375), so the rule reads as a device rule: SE-class and Android-360/320
+ * phones take the short words, everything from a modern iPhone up keeps the
+ * owner's five.
  *
  * Exported because the guard that proves the labels fit derives the breakpoint
  * from here rather than restating it — see

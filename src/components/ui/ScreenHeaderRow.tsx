@@ -78,6 +78,36 @@ const SCREEN_HEADER_ROW_MIN_HEIGHT = "44px";
  */
 export const SEARCH_TRIGGER_SLOT_WIDTH = "44px";
 
+/**
+ * The width below which `narrowTitleStepsAside` takes the visible title out of
+ * the open-search row, and the floor that decision is made against.
+ *
+ * Exported for the guard that proves the field stays typable
+ * (`src/test/activityHeaderPhoneWidthBudget.test.ts`), which derives both from
+ * here rather than restating them. The Tailwind class beside the title is a
+ * LITERAL — `min-[500px]:block` — because a template built from this constant
+ * compiles to no rule at all and would hide the title at every width.
+ */
+export const NARROW_TITLE_ASIDE_PX = 500;
+/**
+ * THE FLOOR: a field narrower than this cannot show a word while you type it.
+ *
+ * The field carries the magnifier at `pl-9` and the ✕ at `pr-10`, so 76px of
+ * its width is chrome before a character is drawn. 120px therefore leaves
+ * ~44px of text — about six characters at the field's 13px — which is the
+ * least that can still be read back. The row as shipped gives the field
+ * `rowWidth - 104` once the title steps aside: 134px at 320, 189px at 375,
+ * 228px at 414, and 220px at 500 where the title comes back.
+ *
+ * What it is really guarding is the REGRESSION, not the aesthetics: before the
+ * title stepped aside the same field measured 76px at 320 and 95px at 375,
+ * with the ✕ drawn ON TOP of the magnifier at 320 (a -26px gap between them),
+ * and "oak tree" typed into it rendered as "ree". Any new fixed-width item on
+ * this row takes its width from the field, because the field is the only
+ * flexible thing on it — so the floor is where that shows up.
+ */
+export const MIN_TYPABLE_FIELD_PX = 120;
+
 export function SearchTriggerSlot({
   width = SEARCH_TRIGGER_SLOT_WIDTH,
 }: {
@@ -158,6 +188,32 @@ export interface ScreenHeaderRowProps {
     field: ReactNode;
     /** Width of the held-open magnifier slot. MUST match the trigger's box. */
     triggerWidth?: string;
+    /**
+     * ON A NARROW PHONE THE NAME STEPS ASIDE, so the field is typable.
+     *
+     * ── WHAT THE ROW ACTUALLY HAD, MEASURED AT 375 ON /my-posts ────────────
+     *     title 0…132 · field 135…230 (95px) · slot 242…286 · chevron 286…330
+     *
+     * 95px of field, and the magnifier and the ✕ live INSIDE it (a 36px inset
+     * between them), so the typing area was ~59px: you could not see the word
+     * you were searching for. Every other claimant on that row is fixed-width
+     * — a 20px display title at its natural size, a 44px held-open slot, a
+     * 44px status chevron and three 12px gaps — so the field, the one flexible
+     * item, absorbs the whole shortfall. It is the only thing that can.
+     *
+     * The name is not dropped: the `<h1>` is `sr-only` in this state either
+     * way, so the screen keeps exactly one heading and a screen-reader user
+     * still hears where they are. What steps aside is its VISIBLE twin, and
+     * only while the field is open, and only below 500px — which is where
+     * the arithmetic says the field falls under 200px with the title present
+     * (132 + 36 of gaps + 88 of cluster + 200 = 456, plus the 42px the page
+     * gutters and card padding take = 498). At 500 and up nothing changes.
+     *
+     * Opt-in, not automatic: Browse's strip has no title in this state at all
+     * and the Messages inbox is its own measurement. A row that has not been
+     * measured does not get a behaviour change on a guess.
+     */
+    narrowTitleStepsAside?: boolean;
     /** The cluster minus the magnifier. Never unmounted by search. */
     actions?: ReactNode;
   };
@@ -194,7 +250,14 @@ export function ScreenHeaderRow({
         {!titleSrOnly && (
           <span
             aria-hidden
-            className="font-display font-bold text-foreground text-ds-20 leading-none shrink-0 max-w-[40%] truncate"
+            className={cn(
+              "font-display font-bold text-foreground text-ds-20 leading-none shrink-0 max-w-[40%] truncate",
+              // A media query, not a JS width branch: the right arrangement is
+              // painted on the first frame, and there is no width state that
+              // can go stale behind a resize. The literal is spelled out so
+              // Tailwind's scanner can see it (see NARROW_TITLE_ASIDE_PX).
+              expandingSearch.narrowTitleStepsAside && "hidden min-[500px]:block",
+            )}
           >
             {title}
           </span>

@@ -171,10 +171,21 @@ export function ActivityHeader({
       return;
     }
     const measure = () => {
-      const slack = el.scrollWidth - el.clientWidth;
+      /* THE PREDICATE IS "A LABEL IS PAST THE EDGE", not "the box scrolls".
+         `scrollWidth - clientWidth` is the second thing, and at 320 the two
+         disagree: this scroller carries the card's own `px-5` (it bleeds with
+         `-mx-5`), and Chrome counts the trailing 20px of that padding in
+         scrollWidth. So a row whose five labels all fit still reported 6px of
+         slack and faded the tail of "Cancel 1" for nothing. Measuring the tab
+         GROUP's box against the scroller's asks the question the fade is
+         actually for. */
+      const content = el.firstElementChild;
+      if (!content) return;
+      const box = el.getBoundingClientRect();
+      const inner = content.getBoundingClientRect();
       setTabEdges({
-        start: slack > 1 && el.scrollLeft > 1,
-        end: slack > 1 && el.scrollLeft < slack - 1,
+        start: inner.left < box.left - 1,
+        end: inner.right > box.right + 1,
       });
     };
     measure();
@@ -299,6 +310,15 @@ export function ActivityHeader({
                on phone. A slot narrower than the button it reserves hands the
                overlap straight back. */
             triggerWidth: inlineFilters ? "28px" : "44px",
+            /* THE SAME 320–414 BUDGET THE TAB LABELS ARE FIGHTING FOR.
+               This row has to make two claims true on a phone: five legible
+               tab labels while search is closed, and a field you can read what
+               you typed in while it is open. The tabs pay with type and with
+               shorter words; the open field has no such lever — every other
+               item on the row is fixed-width — so what yields is the visible
+               page name, below 500px only. Measured at 375 on /my-posts: the
+               field goes 95px → 233px. See `narrowTitleStepsAside`. */
+            narrowTitleStepsAside: true,
             field: (
               <div className={`relative flex-1 min-w-0 ${inlineFilters ? "max-w-md" : ""} origin-right motion-safe:animate-in motion-safe:slide-in-from-right-4 motion-safe:duration-200`}>
                 {/* THE MAGNIFIER IS IN THE FIELD (owner, 2026-09-19: "the

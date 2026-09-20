@@ -37,7 +37,10 @@
 // @mutate src/components/BrowseMap.tsx | return filtered.filter((j) => !isJobExcludedForViewer(j, exclusions)); | return filtered;
 // @mutate src/pages/dashboard/viewerFeedExclusions.ts | if (x.dismissedJobIds.has(job.id)) return true; | if (false) return true;
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import { createElement } from "react";
+import { renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -45,6 +48,73 @@ import {
   isJobExcludedForViewer,
   type ViewerFeedExclusions,
 } from "@/pages/dashboard/viewerFeedExclusions";
+import { useDashboardJobsCount } from "@/hooks/useDashboardJobsCount";
+
+// ── A PostgREST-shaped stub that really narrows ────────────────────────────
+// The count surface is probed BEHAVIOURALLY below, not by looking for its
+// field names in the source: a mutation that deletes the `.not("id","in",…)`
+// line leaves the identifier behind in the interface and the destructure, so
+// a text oracle stays green over a count that no longer culls anything. Only
+// the number moving proves the rule is applied.
+const COUNT_ROWS = [
+  { id: "j-1", customer_id: "c-1" },
+  { id: "j-2", customer_id: "c-2" },
+  { id: "j-3", customer_id: "c-3" },
+];
+
+function makeCountBuilder() {
+  let rows = [...COUNT_ROWS];
+  const b: Record<string, unknown> = {};
+  for (const m of ["select", "neq", "or", "lte", "eq", "gte", "gt"]) b[m] = () => b;
+  b.not = (col: string, op: string, val: string) => {
+    if (op === "in") {
+      const ids = new Set(val.slice(1, -1).split(",").filter(Boolean));
+      rows = rows.filter((r) => !ids.has((r as Record<string, string>)[col]));
+    }
+    return b;
+  };
+  b.in = (col: string, vals: string[]) => {
+    const keep = new Set(vals);
+    rows = rows.filter((r) => keep.has((r as Record<string, string>)[col]));
+    return b;
+  };
+  b.then = (resolve: (v: { count: number; error: null }) => void) =>
+    resolve({ count: rows.length, error: null });
+  return b;
+}
+
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: { from: () => makeCountBuilder() },
+}));
+
+/** Run the REAL count hook for a given exclusion set and return its number. */
+async function countFor(x: ViewerFeedExclusions): Promise<number> {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const { result } = renderHook(
+    () =>
+      useDashboardJobsCount({
+        userId: undefined,
+        selectedCategory: null,
+        searchQuery: "",
+        minBudget: "",
+        maxBudget: "",
+        urgentOnly: false,
+        boostedOnly: false,
+        expiresWithin: "",
+        earlyAccessTier: null,
+        appliedJobIds: [...x.appliedJobIds],
+        blockedUserIds: [...x.blockedUserIds],
+        dismissedJobIds: [...x.dismissedJobIds],
+        savedOnlyJobIds: x.savedOnlyJobIds === null ? null : [...x.savedOnlyJobIds],
+      }),
+    {
+      wrapper: ({ children }) =>
+        createElement(QueryClientProvider, { client: queryClient }, children),
+    },
+  );
+  await waitFor(() => expect(result.current.data).toBeTypeOf("number"));
+  return result.current.data as number;
+}
 
 const REPO = path.resolve(__dirname, "../..");
 const read = (rel: string) => fs.readFileSync(path.join(REPO, rel), "utf8");
@@ -166,6 +236,22 @@ function honours(surface: string, field: string): boolean {
   return /isJobExcludedForViewer\s*\(/.test(chain) && /ViewerFeedExclusions/.test(chain);
 }
 
+// One fixture per rule, keyed by field name. Every fixture excludes j-1 and
+// only j-1 out of COUNT_ROWS, so a surface honouring the rule answers 2 where
+// an unfiltered one answers 3. A rule with no fixture fails the coverage
+// assertion below rather than being quietly skipped.
+const JOB = { id: "j-1", customer_id: "c-1" };
+const FIXTURES: Record<string, Partial<ViewerFeedExclusions>> = {
+  appliedJobIds: { appliedJobIds: new Set(["j-1"]) },
+  blockedUserIds: { blockedUserIds: new Set(["c-1"]) },
+  dismissedJobIds: { dismissedJobIds: new Set(["j-1"]) },
+  savedOnlyJobIds: { savedOnlyJobIds: new Set(["j-2", "j-3"]) },
+};
+const withRule = (field: string): ViewerFeedExclusions => ({
+  ...EMPTY_VIEWER_FEED_EXCLUSIONS,
+  ...FIXTURES[field],
+});
+
 describe("viewer-feed exclusions — the shared predicate is complete", () => {
   const FIELDS = exclusionFields();
 
@@ -177,16 +263,6 @@ describe("viewer-feed exclusions — the shared predicate is complete", () => {
     expect(FIELDS).toContain("dismissedJobIds");
   });
 
-  // One fixture per rule, keyed by field name. A rule with no fixture fails
-  // the coverage assertion below rather than being quietly skipped.
-  const JOB = { id: "j-1", customer_id: "c-1" };
-  const FIXTURES: Record<string, Partial<ViewerFeedExclusions>> = {
-    appliedJobIds: { appliedJobIds: new Set(["j-1"]) },
-    blockedUserIds: { blockedUserIds: new Set(["c-1"]) },
-    dismissedJobIds: { dismissedJobIds: new Set(["j-1"]) },
-    savedOnlyJobIds: { savedOnlyJobIds: new Set(["some-other-job"]) },
-  };
-
   it("has a fixture for every rule in the inventory", () => {
     expect(FIELDS.filter((f) => !(f in FIXTURES))).toEqual([]);
   });
@@ -197,8 +273,7 @@ describe("viewer-feed exclusions — the shared predicate is complete", () => {
 
   for (const field of FIELDS) {
     it(`excludes the job when ${field} says so`, () => {
-      const x = { ...EMPTY_VIEWER_FEED_EXCLUSIONS, ...FIXTURES[field] };
-      expect(isJobExcludedForViewer(JOB, x)).toBe(true);
+      expect(isJobExcludedForViewer(JOB, withRule(field))).toBe(true);
     });
   }
 
@@ -254,11 +329,27 @@ describe("every /dashboard open-job surface applies every exclusion rule", () =>
     for (const field of FIELDS) {
       const key = `${surface}:${field}`;
       const reason = EXEMPTIONS[key];
-      it(`${surface} honours ${field}${reason ? " — EXEMPT" : ""}`, () => {
+      it(`${surface} honours ${field}${reason ? " — EXEMPT" : ""}`, async () => {
         if (reason) {
           // An exemption must say why, at length. A one-word reason is how an
           // oversight gets filed as a decision.
           expect(reason.length).toBeGreaterThan(40);
+          return;
+        }
+        // The count surface is probed by RUNNING it: source text cannot tell
+        // a live `NOT IN` from a leftover identifier. The other two carry
+        // their behavioural halves in their own test files (BrowseMap.test.tsx
+        // and useDashboardFilters.test.tsx); here they are checked for the
+        // wiring that makes the rule reach them at all.
+        if (surface === "count") {
+          const baseline = await countFor(EMPTY_VIEWER_FEED_EXCLUSIONS);
+          expect(baseline).toBe(COUNT_ROWS.length);
+          const narrowed = await countFor(withRule(field));
+          expect(
+            narrowed,
+            `the header count does not move when ${field} excludes a job — it ` +
+              `would print ${baseline} over a list of ${narrowed}.`,
+          ).toBeLessThan(baseline);
           return;
         }
         expect(

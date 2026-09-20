@@ -70,7 +70,7 @@ function makeJob(overrides: Partial<EnrichedJob> = {}): EnrichedJob {
 
 const baseProfile = { parish: "Orleans" } as unknown as Profile;
 
-function setup(allJobs: EnrichedJob[], opts: Partial<{ userId: string; profile: Profile | null; helprTier: string | null; effectiveFee: number }> = {}) {
+function setup(allJobs: EnrichedJob[], opts: Partial<{ userId: string; profile: Profile | null; helprTier: string | null; effectiveFee: number; dismissedJobIds: ReadonlySet<string>; savedOnlyJobIds: ReadonlySet<string> | null }> = {}) {
   // Fresh client per test — retry: false so a would-be network failure
   // (there shouldn't be any real queries left; useDashboardJobsCount is
   // mocked above) doesn't retry-loop and slow the suite down.
@@ -83,6 +83,8 @@ function setup(allJobs: EnrichedJob[], opts: Partial<{ userId: string; profile: 
       helprTier: opts.helprTier ?? null,
       helperAvailability: [],
       effectiveFee: opts.effectiveFee ?? 12,
+      dismissedJobIds: opts.dismissedJobIds,
+      savedOnlyJobIds: opts.savedOnlyJobIds ?? null,
     }),
     // The hook now mirrors its filters into the URL (so a history entry
     // carries the view it represents), which needs a router in scope. It
@@ -563,5 +565,38 @@ describe("useDashboardFilters — nearbyJobs (substring location match)", () => 
     const jobs = [makeJob({ id: "any" })];
     const { result } = setup(jobs, { profile: { location: null } as unknown as Profile });
     expect(result.current.nearbyJobs).toEqual([]);
+  });
+});
+
+// Owner, 2026-09-19: "map shows 7 jobs. list shows 4." Both culls below used
+// to live in BrowseTasksFeed alone, one layer BELOW `filteredJobs` — so the
+// header count (which falls back to `filteredJobs.length`) and the map (which
+// is measured against this list) both still counted jobs the feed had removed.
+// They belong here, where every surface reads them.
+describe("useDashboardFilters — viewer-local culls reach filteredJobs", () => {
+  it("hides a job the viewer dismissed", () => {
+    const jobs = [makeJob({ id: "kept" }), makeJob({ id: "gone" })];
+    const { result } = setup(jobs, { dismissedJobIds: new Set(["gone"]) });
+    expect(result.current.filteredJobs.map((j) => j.id)).toEqual(["kept"]);
+  });
+
+  it("shows ONLY saved jobs while the 'Only saved' lens is on", () => {
+    const jobs = [makeJob({ id: "saved" }), makeJob({ id: "unsaved" })];
+    const { result } = setup(jobs, { savedOnlyJobIds: new Set(["saved"]) });
+    expect(result.current.filteredJobs.map((j) => j.id)).toEqual(["saved"]);
+  });
+
+  it("shows NOTHING — not everything — when the lens is on with nothing saved", () => {
+    // An empty set is a real answer. Treating it as "no filter" is how a
+    // list-only lens starts printing the whole board's count over an empty list.
+    const jobs = [makeJob({ id: "a" }), makeJob({ id: "b" })];
+    const { result } = setup(jobs, { savedOnlyJobIds: new Set() });
+    expect(result.current.filteredJobs).toEqual([]);
+  });
+
+  it("leaves the feed untouched when the lens is off (null, not an empty set)", () => {
+    const jobs = [makeJob({ id: "a" }), makeJob({ id: "b" })];
+    const { result } = setup(jobs, { savedOnlyJobIds: null });
+    expect(result.current.filteredJobs).toHaveLength(2);
   });
 });

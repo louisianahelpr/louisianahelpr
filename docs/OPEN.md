@@ -259,6 +259,19 @@ before → after:
 320/375/414/1440 × light/dark × closed/open/before, every one looked at and in
 the review log.
 
+THE OBVIOUS FIX WAS THE WRONG ONE, recorded because this entry used to propose
+it. "Raise the field alone" — which the original OPEN entry described, and
+which a follow-up lane was briefed to build — was priced on the live page by
+stripping only the step-aside class: it leaves the field 120px and the TABS
+94px for ~170px of label at 320, rendering them as one smear, `erm:RulePrivacy`,
+with the field still truncating "arbitration" to "arbit". It would have made
+the visible half worse while the measured number improved.
+
+And the floor is a floor, not a target: at 375 and 414 the pre-fix row already
+CLEARED `MIN_TYPABLE_FIELD_PX` (135px, 154px) and still cut the query to
+"arbitra" / "arbitratio". That is why the threshold is 500px rather than
+/legal's own ~344px.
+
 WHY 500px AND NOT /legal's OWN ~344px, where the field would first dip under
 the floor: the "before" column above is the same live page with only the
 step-aside class removed, so it prices the alternative. At 375 and 414 the

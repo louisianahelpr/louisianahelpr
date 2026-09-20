@@ -4727,3 +4727,42 @@ Known, measured, unfixed:
   below 390px and full words at 414; the rendered DOM shows `You / Soon / Cancel` at 414.
 - Still open from that lane: `/legal` field is 107px at 320 (pinned, not fixed); the
   **Messages empty inbox hides its tabs and search trigger** the same way Activity did.
+
+### 2026-09-20 lead verification of the final two lanes — ALL VERIFIED BY EYE
+- **Activity tabs FIXED and confirmed on the BUILT app** (`npx vite preview`, not the dev
+  server — the dev server disagreed at 414, which is exactly why the project rule says
+  verify CSS against `dist/assets/*.css`):
+  375 → `You · Waiting 3 · Soon · Done 1 · Cancel 1`, all visible, nothing clipped.
+  414 → `Needs You · Waiting 3 · Scheduled · Done 1 · Cancelled 1`, full words.
+  1440 → full words. Zero overflow at every width. Chevron now opens expanded.
+- **Root cause of the hidden row was filter IDENTITY, not emptiness** — the disclosure
+  seeded `useState(!isDefaultFilter)`, so it collapsed on every arrival. Proven by data:
+  `/my-posts` default bucket had 15 rows and still hid its tabs.
+- **A TEST FILE HAD DISABLED TAILWIND'S ENTIRE `min-[Npx]:` VARIANT FAMILY.** A guard
+  asserting the breakpoint contained an interpolated candidate string; Tailwind scans
+  `./src/**` as raw text, so the guard asserting the breakpoint is what deleted it.
+  40 of 42 arbitrary-width classes across TEN files compiled to nothing — ScheduleTab's
+  whole 1024px desktop layer, Footer's 500/620 grid, NotificationPreferences' 360px rows,
+  ScreenHeaderRow's `min-[500px]:block` title, and more. Every source-level guard stayed
+  green. **Lead re-verified in the built CSS: all eight arbitrary breakpoints (330/360/
+  390/480/500/620/1024/1280) now emit real media queries; before, there were zero.**
+- **Gift card gutter FIXED** — 72/24 at 1440, matching all 24 other tabs, eyeballed.
+  Root cause: yesterday's fix for the FIRST gutter report added `px-3` and shipped with
+  no screenshot. Now structurally prevented: one shared body component taking no
+  `className` and no `style`.
+- **Loading header stability CONFIRMED** — `h1` present at y=26 while loading AND at
+  y=26 loaded. Zero title shift. Previously no header existed during load at all.
+
+### Still open for the owner
+- **Profile LANDING sits at a different gutter from its own tabs** — landing `h1` at
+  x=145, every tab `h1` at x=72 (cards agree at 24). Same class as the reported defect,
+  but the landing is not a tab and was not named, so NOT changed. One line either way.
+- **Messages empty inbox hides its tabs + search** — checked and it is NOT the same root
+  cause as Activity: that gate is itself the answer to an earlier owner report about the
+  thread area jumping 57px when the empty result lands. Two owner positions pull opposite
+  ways. Third option, unpriced: reserve the row's height and render in both outcomes.
+- `/legal` search field is 107px at 320 — pinned so it cannot worsen, not fixed.
+- `TAB_TITLES.wrapped` drifts ("Helpr Wrapped" vs "Your 2026 so far") — SEASON lives
+  inside the lazy chunk.
+- `/my-jobs` applied-card pitch unverified — both test accounts had zero live applications.
+- `vacuityGate.test.ts` races `discardedQueryFilters.test.ts` over a fixture in `src/`.

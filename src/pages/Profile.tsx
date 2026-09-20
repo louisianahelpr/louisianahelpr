@@ -9,6 +9,7 @@ import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
 import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
+import { ProfileTabFallback } from "@/components/profile/ProfileTabFallback";
 import { EarningsPageSkeleton, isEarningsTabUrl } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 import AppShell from "@/components/AppShell";
 import { toast } from "sonner";
@@ -583,9 +584,39 @@ const ProfilePage = () => {
         contentClassName="overflow-hidden"
         className="bg-premium-page pt-safe-top"
       >
-        <div className="container mx-auto px-5 lg:px-6 xl:px-6 pt-3 lg:pt-5 pb-4 flex-1 min-h-0 overflow-y-auto">
+        {/* `pt-3 lg:pt-5` is gated on the landing tab, EXACTLY as the loaded
+            container below gates it (line ~680). It used to be unconditional
+            here while the loaded shell applied it only to the landing — so
+            every one of the twenty-four tabs booted 12px lower than the
+            content that replaced it and then hopped up. Measured at 375 on a
+            cold deep link into ?tab=gift_card: skeleton h1 at y=38, real h1 at
+            y=26. The comment above claimed this shell "mirrors the loaded
+            state's shell so there's no header jump"; the declaration did not.
+            Trust the declaration, never the comment beside it. */}
+        <div className={`container mx-auto px-5 lg:px-6 xl:px-6 ${tab === "landing" ? "pt-3 lg:pt-5" : ""} pb-4 flex-1 min-h-0 overflow-y-auto`}>
           <div className="page-measure mx-auto">
-            {isEarningsTabUrl() ? <EarningsPageSkeleton /> : <ProfilePageSkeleton />}
+            {/* THE PLACEHOLDER MUST BE THE SCREEN YOU ASKED FOR. This line
+                used to read `isEarningsTabUrl() ? <EarningsPageSkeleton /> :
+                <ProfilePageSkeleton />`, which special-cased exactly ONE tab
+                and gave the other twenty-three the LANDING's shape — so a cold
+                deep link into ?tab=gift_card painted an avatar hero and three
+                stat tiles before the gift-card form arrived (owner, 2026-09-19:
+                loading states are "not consistent with their info"). It was
+                also the middle of three loading screens on that path: splash,
+                landing bones, tab bones, tab.
+
+                Now the landing gets the landing's skeleton, earnings keeps its
+                own true per-tab one, and every other tab gets the SAME
+                placeholder its Suspense boundary uses — one screenful, under
+                that tab's real title — so the deep link paints one loading
+                screen instead of three and it is the right one. */}
+            {tab === "landing" ? (
+              <ProfilePageSkeleton />
+            ) : isEarningsTabUrl() ? (
+              <EarningsPageSkeleton />
+            ) : (
+              <ProfileTabFallback tab={tab} onBack={backFromTab} />
+            )}
           </div>
         </div>
       </AppShell>

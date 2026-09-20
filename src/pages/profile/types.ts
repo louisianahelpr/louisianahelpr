@@ -29,7 +29,12 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   // therefore carries that screen's title rather than one of its own.
   payment: "Earnings & Payouts",
   security: "Account Security",
-  legal: "Legal",
+  // "Legal", not "Legal & Policies", until 2026-09-19 — a drift this file's
+  // own rule forbids, found when ProfileTabFallback started rendering these
+  // titles as the loading header: the placeholder said "Legal" and LegalTab
+  // then said "Legal & Policies" in the same box. The browser tab was wrong
+  // too, for as long as it had drifted.
+  legal: "Legal & Policies",
   reviews: "My Reviews",
   referral: "Referrals",
   subscription: "Membership",

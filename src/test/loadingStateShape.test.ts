@@ -90,3 +90,53 @@ describe("loading states: no placeholder lies about size or shape", () => {
     expect(ev.base).toBeTruthy();
   });
 });
+
+
+/**
+ * THE PROFILE-TAB PLACEHOLDER, held to the owner's ruling — "skeleton fills
+ * the screen, grows below" (2026-09-19, decided in a pop-up).
+ *
+ * The measured half of this lane lives above and is gated on the real-browser
+ * evidence file. These three are the SOURCE half, because all three defects
+ * they pin live in a branch that runs before any query resolves — a boot
+ * skeleton and a Suspense fallback — where the evidence run cannot reach them
+ * without holding a module back by hand.
+ *
+ * The behavioural counterpart (every tab's title actually rendering, the
+ * reserve actually resolving to a screenful) is
+ * src/components/profile/ProfileTabFallback.test.tsx, which renders all 24.
+ */
+describe("loading states: the Profile tab placeholder fills the screen", () => {
+  const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+  const FALLBACK = resolve(REPO, "src/components/profile/ProfileTabFallback.tsx");
+  const PROFILE = resolve(REPO, "src/pages/Profile.tsx");
+
+  // @mutate src/components/profile/ProfileTabFallback.tsx | <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} /> | <span />
+  it("paints the tab's REAL header, so the h1 does not arrive late", () => {
+    // Measured at 375 on prod with each tab's module held back: no <h1> in the
+    // loading frame, an <h1> at y=26 once loaded - every tab's whole body slid
+    // down by a header's height on arrival.
+    const src = strip(readFileSync(FALLBACK, "utf8"));
+    expect(src, "the placeholder must render the header component itself").toContain("<ProfileTabHeader");
+    expect(src, "and take its title from the registry, never invent one").toContain("TAB_TITLES[tab]");
+  });
+
+  // @mutate src/components/profile/ProfileTabFallback.tsx | window.innerHeight - top | 118
+  it("reserves ONE SCREENFUL, taken from the viewport, not a constant", () => {
+    // It reserved 118px against real content of 447-3,477px.
+    const src = strip(readFileSync(FALLBACK, "utf8"));
+    expect(src, "the reserve must be measured from the viewport").toMatch(/window\.innerHeight/);
+    expect(src, "and applied as a min-height, so short tabs collapse empty space").toMatch(/minHeight/);
+  });
+
+  // @mutate src/pages/Profile.tsx | {tab === "landing" ? ( | {false ? (
+  it("boots into the TAB's placeholder, never the landing's", () => {
+    // A cold deep link into ?tab=gift_card used to paint an avatar hero and
+    // three stat tiles, because the boot branch special-cased one tab.
+    const src = strip(readFileSync(PROFILE, "utf8"));
+    const branch = src.slice(src.indexOf("if (loading) {"), src.indexOf("const displayName"));
+    expect(branch.length, "Profile.tsx's loading branch not found - guard rotted").toBeGreaterThan(100);
+    expect(branch).toContain("ProfileTabFallback");
+    expect(branch, "the landing skeleton must be gated on the landing tab").toMatch(/tab === "landing"/);
+  });
+});

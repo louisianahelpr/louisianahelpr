@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { UseQueryResult } from "@tanstack/react-query";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileTabFallback } from "@/components/profile/ProfileTabFallback";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import type { ReadableJobRow } from "@/lib/jobColumns";
@@ -51,20 +51,15 @@ const NotificationPreferences = lazy(() => import("@/components/NotificationPref
 const AccessibilityTab = lazy(() => import("@/components/profile/AccessibilityTab").then(m => ({ default: m.AccessibilityTab })));
 const ReferralSection = lazy(() => import("@/components/ReferralSection"));
 
-const TabFallback = () => (
-  <div className="space-y-4">
-    <div className="rounded-2xl liquid-glass p-5 space-y-3">
-      <Skeleton className="h-5 w-32 rounded" />
-      <Skeleton className="h-4 w-2/3 rounded" />
-      <Skeleton className="h-4 w-1/2 rounded" />
-    </div>
-    <div className="rounded-2xl liquid-glass p-5 space-y-3">
-      <Skeleton className="h-4 w-1/3 rounded" />
-      <Skeleton className="h-4 w-3/4 rounded" />
-      <Skeleton className="h-4 w-1/2 rounded" />
-    </div>
-  </div>
-);
+/**
+ * The Suspense fallback for every tab, thin: it exists only to narrow `tab`
+ * away from "landing" (which is not a lazy panel and has its own skeleton in
+ * Profile.tsx) before handing off to the shared placeholder. Everything about
+ * what the placeholder IS — the real header, the one-screenful reserve, and
+ * why that reserve is empty below the bones — lives in ProfileTabFallback.
+ */
+const TabFallback = ({ tab, onBack }: { tab: Tab; onBack: () => void }) =>
+  tab === "landing" ? null : <ProfileTabFallback tab={tab} onBack={onBack} />;
 
 export interface ProfileTabPanelsProps {
   tab: Tab;
@@ -180,7 +175,7 @@ export const ProfileTabPanels = ({
     <>
       {/* PROFILE TAB */}
       {tab === "profile" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <ProfileEditForm
             profile={profile}
             firstName={firstName}
@@ -242,13 +237,13 @@ export const ProfileTabPanels = ({
         </ProfileTabBody>
       )}
 
-      {tab === "schedule" && !user && <TabFallback />}
+      {tab === "schedule" && !user && <TabFallback tab={tab} onBack={onBackFromTab} />}
       {tab === "schedule" && user && (
         <ProfileTabBody>
           {scheduleQuery.isError && (
             <ProfileSectionError section="your schedule" onRetry={() => { scheduleQuery.refetch(); }} />
           )}
-          <Suspense fallback={<TabFallback />}>
+          <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
             <ScheduleTab
               postedJobs={schedulePostedJobs}
               assignedJobs={scheduleAssignedJobs}
@@ -260,80 +255,80 @@ export const ProfileTabPanels = ({
         </ProfileTabBody>
       )}
 
-      {tab === "availability" && (!user ? <TabFallback /> : (
-        <Suspense fallback={<TabFallback />}>
+      {tab === "availability" && (!user ? <TabFallback tab={tab} onBack={onBackFromTab} /> : (
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <AvailabilityTab userId={user.id} onBack={onBackFromTab} />
         </Suspense>
       ))}
 
       {tab === "subscription" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <SubscriptionTab profile={profile} user={user} onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "support" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <SupportInline userId={user?.id} onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "saved_helpers" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <SavedHelpersTab onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "work_record" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <WorkRecordTab onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "home_history" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <HomeHistoryTab onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "str_settings" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <StrSettingsTab onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "auto_tip" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <AutoTipTab onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "wrapped" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <WrappedTab onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "analytics" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <AnalyticsTab onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "gift_card" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <GiftCardTab onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "pets" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <PetsTab onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "accessibility" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <AccessibilityTab
             seniorMode={seniorMode}
             onToggleSeniorMode={onToggleSeniorMode}
@@ -342,20 +337,26 @@ export const ProfileTabPanels = ({
         </Suspense>
       )}
 
+      {/* Suspense wraps the WHOLE tab, header included. It used to sit inside,
+          under a header the router painted itself — so the fallback (which now
+          carries the tab's real header) would have drawn a second one. Every
+          branch in this file is the same shape for that reason: one Suspense,
+          around everything, with ProfileTabFallback supplying the header while
+          the chunk is in flight and the branch below supplying it after. */}
       {tab === "notifications" && (
-        <ProfileTabBody>
-          <ProfileTabHeader
-            title="Notifications"
-            onBack={onBackFromTab}
-          />
-          <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
+          <ProfileTabBody>
+            <ProfileTabHeader
+              title="Notifications"
+              onBack={onBackFromTab}
+            />
             <NotificationPreferences />
-          </Suspense>
-        </ProfileTabBody>
+          </ProfileTabBody>
+        </Suspense>
       )}
 
       {tab === "security" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <SecurityTab email={user?.email} onBack={onBackFromTab} />
         </Suspense>
       )}
@@ -373,27 +374,27 @@ export const ProfileTabPanels = ({
               onRetry={() => { reviewsQuery.refetch(); }}
             />
           )}
-          <Suspense fallback={<TabFallback />}>
+          <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
             <ReviewsTab reviews={reviews} loading={reviewsQuery.isPending} avgRating={avgRating} reviewCount={reviewCount} onBack={onBackFromTab} />
           </Suspense>
         </ProfileTabBody>
       )}
 
-      {tab === "referral" && !user && <TabFallback />}
+      {tab === "referral" && !user && <TabFallback tab={tab} onBack={onBackFromTab} />}
       {tab === "referral" && user && (
-        <ProfileTabBody>
-          <ProfileTabHeader
-            title="Referrals"
-            onBack={onBackFromTab}
-          />
-          <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
+          <ProfileTabBody>
+            <ProfileTabHeader
+              title="Referrals"
+              onBack={onBackFromTab}
+            />
             <ReferralSection userId={user.id} />
-          </Suspense>
-        </ProfileTabBody>
+          </ProfileTabBody>
+        </Suspense>
       )}
 
       {tab === "legal" && (
-        <Suspense fallback={<TabFallback />}>
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <LegalTab onBack={onBackFromTab} />
         </Suspense>
       )}
@@ -406,16 +407,16 @@ export const ProfileTabPanels = ({
               onRetry={() => { violationsQuery.refetch(); }}
             />
           )}
-          <Suspense fallback={<TabFallback />}>
+          <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
             <WarningsTab violations={violations} loading={violationsQuery.isPending} onBack={onBackFromTab} />
           </Suspense>
         </ProfileTabBody>
       )}
 
-      {tab === "credentials" && !user && <TabFallback />}
+      {tab === "credentials" && !user && <TabFallback tab={tab} onBack={onBackFromTab} />}
       {tab === "credentials" && user && (
         <ProfileTabBody>
-          <Suspense fallback={<TabFallback />}>
+          <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
             <CredentialsTab userId={user.id} onBack={onBackFromTab} />
           </Suspense>
         </ProfileTabBody>

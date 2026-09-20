@@ -122,6 +122,12 @@ scripts/seed_test_data.sql
 sim-sweep.png
 .claude-scratch/
 
+# vacuityGate.test.ts's end-to-end self-test writes a pid+random-suffixed
+# fixture dir under src/test/fixtures/ so concurrent runs never collide, and
+# deletes it in a finally on every pass and failure. This is a safety net
+# only, for the rare case a run is killed (SIGKILL) before the finally runs.
+src/test/fixtures/vacuitySelfTest-*/
+
 # Audit artifacts from background agents — never commit
 tmp/audit/
 .audit-out/

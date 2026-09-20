@@ -292,7 +292,19 @@ export function listFiles(roots = ROOTS, repo = REPO) {
     for (const entry of entries) {
       if (SKIP_DIRS.has(entry)) continue;
       const full = join(dir, entry);
-      const st = statSync(full);
+      // A live tree, not a snapshot: other suites (e.g. src/test/vacuityGate's
+      // end-to-end mutation self-test) create and delete real files under
+      // src/** while this walk is in flight. A file that existed at
+      // readdirSync() time can be gone by the time we stat it — that is a
+      // benign race, not a scan failure, so treat "vanished mid-walk" as
+      // "was never here" instead of letting ENOENT crash the whole scan.
+      let st;
+      try {
+        st = statSync(full);
+      } catch (e) {
+        if (e.code === "ENOENT") continue;
+        throw e;
+      }
       if (st.isDirectory()) walk(full);
       else if (EXTS.some((e) => entry.endsWith(e))) out.push(full);
     }
@@ -305,7 +317,16 @@ export function scan(roots = ROOTS, repo = REPO) {
   const hits = [];
   for (const file of listFiles(roots, repo)) {
     const rel = relative(repo, file);
-    hits.push(...hitsInSource(rel, readFileSync(file, "utf8")));
+    // Same benign race as above: the file listed a moment ago may have been
+    // deleted by a concurrently-running test before we get to read it.
+    let source;
+    try {
+      source = readFileSync(file, "utf8");
+    } catch (e) {
+      if (e.code === "ENOENT") continue;
+      throw e;
+    }
+    hits.push(...hitsInSource(rel, source));
   }
   return hits;
 }

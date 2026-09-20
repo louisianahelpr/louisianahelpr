@@ -114,10 +114,30 @@ describe("the vacuity gate can itself fail", () => {
     // End-to-end: a guard that asserts nothing about its target, and a target
     // that gets broken. The runner must call this SURVIVED, because that is
     // the single verdict the whole gate exists to produce.
-    const dir = join(process.cwd(), "src", "test", "fixtures", "vacuitySelfTest");
+    //
+    // The fixture MUST live under src/: runMutations() spawns a real `vitest
+    // run` on guardRel, and vitest's own config only discovers test files
+    // matching `src/**/*.{test,spec}.{ts,tsx}` — a temp dir elsewhere would
+    // never be picked up. But src/** is exactly what
+    // discardedQueryFilters.test.ts's guard.scan() walks in the same suite
+    // run, and a scan reading a file at the instant this test's `finally`
+    // deletes it throws ENOENT (proven: `npx vitest run
+    // src/test/vacuityGate.test.ts src/test/discardedQueryFilters.test.ts`
+    // failed discardedQueryFilters with "ENOENT ... vacuitySelfTest/
+    // planted.spec.ts" before this fix). A fixed directory name also means
+    // two overlapping runs of THIS file (retries, sharding) can stomp each
+    // other's fixture mid-run. Suffixing the directory with the pid and a
+    // random id makes every run's fixture a distinct path, so no concurrent
+    // reader or writer — this test's own retries included — can ever collide
+    // on it; scripts/check-discarded-query-filters.mjs additionally treats a
+    // file vanishing mid-scan as "not present" rather than a crash, which is
+    // the other half of the fix (a scanner walking a live tree must tolerate
+    // that regardless of any one fixture's naming).
+    const runId = `${process.pid}-${Math.random().toString(36).slice(2)}`;
+    const dir = join(process.cwd(), "src", "test", "fixtures", `vacuitySelfTest-${runId}`);
     mkdirSync(dir, { recursive: true });
-    const target = "src/test/fixtures/vacuitySelfTest/target.ts";
-    const guardRel = "src/test/fixtures/vacuitySelfTest/planted.spec.ts";
+    const target = `src/test/fixtures/vacuitySelfTest-${runId}/target.ts`;
+    const guardRel = `src/test/fixtures/vacuitySelfTest-${runId}/planted.spec.ts`;
     writeFileSync(join(process.cwd(), target), "export const LOAD_BEARING = true;\n");
     writeFileSync(
       join(process.cwd(), guardRel),

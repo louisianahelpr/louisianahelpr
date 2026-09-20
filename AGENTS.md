@@ -164,7 +164,7 @@ recorded version. Cowork has tooling for this (see the
 | `db-smoke.yml` | PR with migration changes | Boots a Supabase Postgres, applies all migrations, fires the post-job trigger, fails on regressions. |
 | `migration-lint.yml` | PR with migration changes | RLS / CHECK / DROP / reserved-schema lint. |
 | `db-deploy.yml` | Push to `main` with migration changes | `supabase db push --linked --include-all` against prod. Concurrency-locked. |
-| `db-drift-detect.yml` | Nightly 06:00 UTC | Diffs local migration files vs prod's `schema_migrations`, opens/closes a labeled GitHub issue. |
+| `db-drift-detect.yml` | Daily 05:17 UTC | Diffs local migration files vs prod's `schema_migrations`, opens/closes a labeled GitHub issue. |
 
 **All four need three repo secrets to function:**
 `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,

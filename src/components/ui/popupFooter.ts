@@ -197,7 +197,11 @@ export const POPUP_FOOTER_ROW =
  */
 export const POPUP_SECONDARY_CLS =
   "basis-[calc(50%-6px)] grow !min-w-max px-4 border-0 shadow-none " +
-  "bg-[hsl(var(--olivewood)/0.06)] ctl-tint " +
+  // `ctl-tint-on-tint`, not `ctl-tint`: this control RESTS on olivewood/0.06,
+  // so the 8-point wash moved it only by the difference — a four-unit step the
+  // owner correctly called invisible. The fourth tone applies the same 8 points
+  // from this control's own rest. See the block beside it in index.css.
+  "bg-[hsl(var(--olivewood)/0.06)] ctl-tint-on-tint " +
   "text-[hsl(var(--olivewood))]";
 
 /**

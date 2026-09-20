@@ -376,6 +376,19 @@
      So: no size class → 44px. An explicit `min-h-*`/`min-w-*` → that value.
      `h-7` alone does NOT set min-height, so it still gets the 44px floor.
      e2e/happy-path/buttonGeometry.ts measures both halves in the sweep. */
+  /* A ring OFFSET with no colour is Tailwind's preflight `#fff`. In dark mode
+     that paints a pure-white halo around any control declaring
+     `focus-visible:ring-offset-2` without pinning the token — measured on
+     page rgb(20,22,26): `rgb(255,255,255) 0 0 0 2px` instead of the page.
+     It is invisible in light mode (15/13/11 units of difference), which is
+     exactly why 13 components carried it unnoticed. Set once, globally, so a
+     component cannot forget: the offset is the surface behind the control. */
+  *,
+  ::before,
+  ::after {
+    --tw-ring-offset-color: hsl(var(--background));
+  }
+
   :where(
     button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]),
     [role="button"],
@@ -2268,6 +2281,20 @@ button,
      doing semantic work, not just signalling "hovered". */
   .ctl-tint-danger:hover {
     background-color: hsl(var(--destructive) / 0.1);
+  }
+  /* THE FOURTH TONE: for a control that already RESTS on a tint.
+     (Owner, 2026-09-19, on the dialog footer's secondary: the hover was
+     "technically darker, visually nothing".)
+
+     Measured against the built CSS: `.ctl-tint` is an 8-point wash, which is a
+     real step from ZERO — but a control resting on `olivewood/0.06` moves only
+     by the difference, so `rgba(46,47,34,0.06) -> 0.08` composites
+     rgb(228,230,232) -> rgb(225,227,229): a FOUR-UNIT step nobody can see.
+     0.14 gives that control the same 8 points measured from its own rest
+     (-> rgb(213,215,215), ~16 units). Same mechanism, same direction, no
+     movement — it is the identical rule applied from the right baseline. */
+  .ctl-tint-on-tint:hover {
+    background-color: hsl(var(--olivewood) / 0.14);
   }
 }
 @media (prefers-reduced-motion: reduce) {

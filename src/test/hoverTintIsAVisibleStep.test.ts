@@ -127,7 +127,12 @@ export function squeezed(file: string, src: string): Squeezed[] {
  * `.ctl-tint-on-tint` exists in src/index.css and `POPUP_SECONDARY_CLS` uses
  * it. MAY ONLY SHRINK.
  */
-const LEDGER = ["src/components/ui/popupFooter.ts"];
+// EMPTY, and it earned it: `.ctl-tint-on-tint` landed in index.css on
+// 2026-09-19 and popupFooter.ts now uses it, so the only entry is gone. The
+// ledger may only shrink — a re-added entry needs a reason, and an entry that
+// stops being a violation fails the case below rather than lingering as an
+// excuse.
+const LEDGER: string[] = [];
 
 const FILES = walk("src");
 const found = FILES.flatMap((f) => squeezed(f, readFileSync(f, "utf8")));
@@ -179,10 +184,31 @@ describe("a hover tint is a step a person can see", () => {
     }
   });
 
-  it("the ledgered entry is the measurement this file documents", () => {
-    const popup = found.find((s) => s.file === "src/components/ui/popupFooter.ts");
-    expect(popup, "the popup dismiss is no longer detected — re-measure before editing the ledger").toBeTruthy();
-    expect(popup!.rest).toBe(0.06);
-    expect(popup!.hover).toBe(0.08);
+  it("the control that documented this now uses the fourth tone, and it is a real step", () => {
+    // This case used to pin the DEFECT's measurement (popupFooter resting on
+    // 0.06 and hovering to 0.08 — a four-unit step). The fix landed, so an
+    // assertion that the violation still exists would be asserting a bug.
+    // It now pins the FIX, and still fails in both directions: revert the
+    // class and the first expect goes red; revert the index.css tone and the
+    // second does.
+    // Comments stripped FIRST. The file's own note explains the change by
+    // naming the old class, and a bare scan reads that prose as a call site —
+    // the same trap that bit twoFontTypeSystem, the vacuity preflight and the
+    // hover cva scan today. A guard satisfied (or failed) by a comment is not
+    // reading the code.
+    const src = readFileSync("src/components/ui/popupFooter.ts", "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+    expect(
+      src,
+      "the popup dismiss must use the on-tint tone — it rests on a tint, so the plain wash moves it four units",
+    ).toContain("ctl-tint-on-tint");
+    expect(src).not.toMatch(/\bctl-tint\b(?!-on-tint)/);
+
+    const css = readFileSync("src/index.css", "utf8");
+    const rule = /\.ctl-tint-on-tint:hover\s*\{[^}]*?hsl\(var\(--olivewood\)\s*\/\s*([\d.]+)\)/.exec(css);
+    expect(rule, "the fourth tone is not in index.css").toBeTruthy();
+    // 0.14 against a 0.06 rest is the same 8 points `.ctl-tint` gives from zero.
+    expect(Number(rule![1]) - 0.06).toBeCloseTo(0.08, 5);
   });
 });

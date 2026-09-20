@@ -137,8 +137,11 @@ export function SavedHelperCard({
                   {h.completed_jobs_together} job{h.completed_jobs_together === 1 ? "" : "s"} together
                 </span>
               )}
+              {/* `aria-hidden` on the separator below, for the same reason as
+                  EarningHistory's copy of it — see the note there. Same omission,
+                  same 2.33:1 against white if it ever reaches the a11y tree. */}
               {h.completed_jobs_together > 0 && h.last_job_at && (
-                <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
+                <span aria-hidden="true" style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
               )}
               {h.last_job_at && (
                 <span>

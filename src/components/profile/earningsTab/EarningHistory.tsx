@@ -177,7 +177,20 @@ export function EarningHistory({
                       <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${jobStatusColorClasses(job.status)}`}>{jobStatusLabel(job.status)}</span>
                     </div>
                     <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                      {job.location} <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span> {formatShortDate(job.date_needed)}
+                      {job.location}{" "}
+                      {/* Decorative separator, `aria-hidden` like every other one in
+                          the app (ReviewsTab, RecentTransfers). It is sienna at 0.5 =
+                          #cea08b on white = 2.33:1, so axe files it as a WCAG AA text
+                          contrast failure the moment it is in the a11y tree — measured
+                          on DEPLOYED prod, 2026-09-20, by the changed-route a11y sweep.
+                          The two siblings that already carry this attribute do not fail;
+                          these two had simply omitted it. Hiding it is the right fix
+                          rather than darkening it: the glyph carries no information (the
+                          location and the date on either side each read alone), and a
+                          screen reader announcing a bare "·" between them is noise.
+                          Zero pixels change. */}
+                      <span aria-hidden="true" style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>{" "}
+                      {formatShortDate(job.date_needed)}
                     </p>
                   </div>
                   <div className="text-right shrink-0">

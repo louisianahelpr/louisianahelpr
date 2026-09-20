@@ -348,7 +348,7 @@ const CASES: Array<{
         <ConfirmedSection
           app={makeApp(makeJob({}))}
           job={makeJob({
-            status: "accepted", date_needed: TODAY, start_time: "23:59",
+            status: "accepted", date_needed: jobClock(3).date, start_time: jobClock(3).time,
             helper_confirmed_at: ago(72), helper_dayof_confirmed_at: null,
             helper_on_the_way_at: null, helper_arrived_at: null, poster_confirmed_working_at: null,
           })}

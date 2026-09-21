@@ -274,3 +274,10 @@ test("dismissing the sheet abandons the apply", async ({ helperPage: page }) => 
   expect(await page.locator('[role="dialog"],[role="alertdialog"]').count()).toBe(0);
   await expect(page.getByRole("button", { name: /^apply now$/i })).toHaveCount(0);
 });
+
+// "Apply Now" is the sheet's one primary, and primaries wear the gradient
+// (CLAUDE.md: gloss tests assert the computed background-image, never the
+// class name — which is what line ~121 does). Handing the Button an `outline`
+// variant strips the gradient while leaving the class list plausible, so a
+// class-name assertion would sail straight past it.
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | onClick={handleConfirm} | variant="outline" onClick={handleConfirm}

@@ -361,3 +361,9 @@ for (const { width, height, label } of [
     }
   });
 }
+
+// The fix is the CONDITION, not the class: `.sheet-sticky-actions` carries a
+// negative bottom margin built for a sheet that overflows, and applying it to
+// one that FITS is what dragged the submit row 6px up over the payout-gate
+// notice. Making it unconditional replays the original defect exactly.
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | hostScrolls ? "sheet-sticky-actions | true ? "sheet-sticky-actions

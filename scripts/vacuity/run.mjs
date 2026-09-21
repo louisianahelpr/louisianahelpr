@@ -84,6 +84,74 @@ function runVitest(guards, extraEnv = {}) {
   return { green: r.status === 0, out: (r.stdout || "") + (r.stderr || "") };
 }
 
+/**
+ * PLAYWRIGHT GUARDS. `runVitest` cannot execute a spec under `e2e/` — vitest's
+ * `include` does not match it, so the run dies with "No test files found",
+ * exit 1, and every e2e registration came back `inconclusive`: the gate
+ * reporting "nothing proven" for the 60 specs that cover the rendered app.
+ * Registering a mutation the gate cannot run is the same "green while blind"
+ * defect one level up, so e2e guards are dispatched to the Playwright CLI.
+ *
+ * THE TRAP THIS EXISTS TO AVOID. The happy-path project loads the app from
+ * `vite preview` of `dist/`, NOT from `src/`. Mutating a source file and
+ * running the spec therefore tests the PREVIOUS bundle, and every mutation
+ * would report SURVIVED for a reason that has nothing to do with the spec.
+ * So a mutation whose target is bundle-affecting (anything under `src/`)
+ * forces `npm run build` before the spec runs. `PLAYWRIGHT_WEB_SERVER=1` with
+ * CI unset means the config's webServer block reuses the already-running
+ * preview instead of rebuilding a second time; vite preview stats each file
+ * per request, so the fresh `dist/` is picked up without a restart.
+ *
+ * One browser at a time: e2e/globalSetup.ts takes ~/.lh-browser.lock, and
+ * these runs are sequential by construction.
+ */
+export const isPlaywrightGuard = (rel) => rel.startsWith("e2e/");
+
+/** Bundle-affecting: the browser only sees it after a rebuild. */
+export const needsRebuild = (target) => target.startsWith("src/");
+
+const PW_PROJECT = (rel) => {
+  const m = /^e2e\/([^/]+)\//.exec(rel);
+  const dir = m?.[1];
+  return ["happy-path", "journeys", "prod-audit", "a11y-prod"].includes(dir) ? dir : "chromium";
+};
+
+function runBuild() {
+  const r = spawnSync("npm", ["run", "build"], {
+    cwd: REPO, encoding: "utf8", timeout: 600_000,
+    env: { ...process.env, CI: "" },
+  });
+  return { ok: r.status === 0, out: (r.stdout || "") + (r.stderr || "") };
+}
+
+function runPlaywright(guard, { rebuild = false } = {}) {
+  if (rebuild) {
+    const b = runBuild();
+    if (!b.ok) return { green: false, out: "npm run build FAILED before the spec ran:\n" + b.out.slice(-4000) };
+  }
+  const r = spawnSync(
+    process.execPath,
+    [path.join(REPO, "node_modules", "@playwright", "test", "cli.js"),
+     "test", guard, `--project=${PW_PROJECT(guard)}`, "--reporter=line", "--workers=1"],
+    {
+      cwd: REPO, encoding: "utf8", timeout: 900_000,
+      env: {
+        ...process.env,
+        PLAYWRIGHT_WEB_SERVER: "1",
+        // NOT CI: `reuseExistingServer: !CI` is what stops a second build.
+        CI: "",
+        LH_VACUITY_TRACE: "",
+      },
+    },
+  );
+  return { green: r.status === 0, out: (r.stdout || "") + (r.stderr || "") };
+}
+
+/** Dispatch one guard to the engine that can actually execute it. */
+function runGuard(guard, { rebuild = false } = {}) {
+  return isPlaywrightGuard(guard) ? runPlaywright(guard, { rebuild }) : runVitest([guard]);
+}
+
 /** Collect every registered mutation, plus every registration error. */
 export function collectMutations(guards = guardFiles()) {
   const mutations = [];
@@ -131,12 +199,23 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
   // running each guard twice would double the wall clock for no information.
   const guards = [...new Set(mutations.map((m) => m.guard))];
   const baselineRed = new Set();
-  if (guards.length) {
-    const b = runVitest(guards);
+  // Playwright guards cannot be batched into one vitest invocation; each is
+  // its own CLI run against the built preview.
+  const pw = guards.filter(isPlaywrightGuard);
+  const vt = guards.filter((g) => !isPlaywrightGuard(g));
+  if (vt.length) {
+    const b = runVitest(vt);
     if (!b.green) {
       // Narrow: find which ones are red, one at a time, only when the batch is red.
-      for (const g of guards) if (!runVitest([g]).green) baselineRed.add(g);
+      for (const g of vt) if (!runVitest([g]).green) baselineRed.add(g);
     }
+  }
+  // The FIRST playwright baseline builds dist/ (the preview may be stale or
+  // absent); the rest reuse it, since nothing is mutated yet.
+  let builtOnce = false;
+  for (const g of pw) {
+    if (!runPlaywright(g, { rebuild: !builtOnce }).green) baselineRed.add(g);
+    builtOnce = true;
   }
 
   for (const m of mutations) {
@@ -158,7 +237,7 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
     const mutated = Buffer.from(original.toString("utf8").replace(m.find, m.replace));
     try {
       fs.writeFileSync(abs, mutated);
-      const r = runVitest([m.guard]);
+      const r = runGuard(m.guard, { rebuild: isPlaywrightGuard(m.guard) && needsRebuild(m.target) });
       verdict = r.green ? "SURVIVED" : "killed";
       if (r.green) why = "guard stayed GREEN with the mutation applied";
     } finally {
@@ -185,4 +264,4 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
   return results;
 }
 
-export { runVitest };
+export { runVitest, runPlaywright, runGuard };

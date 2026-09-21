@@ -171,3 +171,9 @@ test.describe("detectButtonGeometry — sibling mismatch", () => {
     expect(r.requestedNotRendered).toEqual(['"3" asks h-7 (28px), renders 60.0px']);
   });
 });
+
+// The detector's equality tolerance is the whole thing: widen it and the
+// /complete-profile repro (49.5px on 60px) stops being a mismatch, so the one
+// true positive this file exists for goes silent while the exclusion cases
+// stay green. That asymmetry is exactly what a fixture suite is for.
+// @mutate e2e/happy-path/buttonGeometry.ts | Math.abs(a.height - b.height) <= 1 | Math.abs(a.height - b.height) <= 100

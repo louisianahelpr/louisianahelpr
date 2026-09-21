@@ -152,3 +152,4 @@ docs/audit/a11y-separators/**/*.png
 # Review log — proof a human looked at a screenshot. Must NOT live under
 # test-results/, which Playwright wipes each run. See e2e/reviewLog.ts.
 .review/
+.review-log.jsonl

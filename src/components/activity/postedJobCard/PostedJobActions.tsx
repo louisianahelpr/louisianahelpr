@@ -288,6 +288,25 @@ export function PostedJobActions({
       confirmConsequential("Dispute resolved — payment released to your Helpr.");
       onActionComplete();
     } finally {
+      /*
+       * CLEAR THE RE-ENTRY REF, not just the spinner.
+       *
+       * This `finally` released `disputeActing` (which re-enables the button)
+       * and left `disputeInFlight.current` TRUE forever. So after any failed
+       * Resolve & Pay the poster saw an enabled button that silently did
+       * nothing — the guard at the top of this function returned immediately,
+       * for the life of the component. Not a rare path: the comment above
+       * records that this exact call failed 100% of the time for six days.
+       *
+       * The only thing that un-stuck it was ESCALATING, because
+       * `escalateDispute`'s finally clears the same ref — so the lockout's one
+       * escape was a different, irreversible action that hands the decision to
+       * an admin.
+       *
+       * Its sibling has always done both (see escalateDispute); this one was
+       * the asymmetry. Found 2026-09-21 by the guard burn-down.
+       */
+      disputeInFlight.current = false;
       setDisputeActing(false);
     }
   };

@@ -3162,6 +3162,13 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [x] **Nightly WebKit + real-backend run.** e83876cc5 `nightly-webkit.yml` runs the whole happy-path suite in real WebKit (helper-apply 2/2 locally; first CI run dispatched). Real backend already nightly in e2e-real-backend.yml.
 
 
+### Two test files for one module (2026-09-21)
+
+- [ ] **`src/lib/cppRouting.test.ts` AND `src/lib/cppRouting.test.tsx` both exist**, both cover `cppRouting`, and both sit in the vacuity denominator. Not redundant — each has coverage the other lacks, which is why neither can simply be deleted:
+  - only `.ts` (Jul 8): asserts the redirect TARGETS (`?cpp=poster` → `/post-job`, `?cpp=helper` → `/signup?intent=helper`), that PPO attribution is recorded from the search string, and that a user on a deep link is NOT redirected even with a valid variant.
+  - only `.tsx` (Sep 21): `sessionStorage` throwing (private mode / SSR), and the `?ppid=` path.
+  The hazard is divergence: someone hardening one will not know the other exists, and a rule changed in one file stays asserted the old way in the other. Merge into one file, keeping every case from both.
+
 ### Route catalog overstates coverage (2026-09-21) — found by the burn-down
 
 - [ ] **7 route names render ONE screen, and every sweep counts them as 7.** Measured over 92 screens: **15 routes (16%) land somewhere other than where they were asked for**, and seven of them land on the same page — `/availability`, `/earnings`, `/gift-card`, `/saved-helpers`, `/saved-helprs`, `/schedule`, `/settings` all render `/profile`. So `empty-state-sweep` audited `/profile` seven times and reported seven routes audited. A catalog defect (`e2e/happy-path/auditRoutes.ts`), not a sweep defect.

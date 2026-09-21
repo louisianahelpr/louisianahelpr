@@ -14,10 +14,25 @@ hand-edit the numbers.*
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
 | **`src/test/*.test.ts*`** | 193 | **193 — COMPLETE** | **0** |
-| `src/test/edge/` (money) | 53 | 35 | 18 |
+| `src/test/edge/` (money) | 53 | 41 | 12 |
 | Playwright `e2e/**` | 60 | 0 | 60 |
 | colocated beside components | 336 | 3 | 333 |
-| **total** | **642** | **231** | **411** |
+| **total** | **642** | **237** | **405** |
+
+### Hollow guards found in the edge row so far
+
+| guard | what was deletable with every test still green |
+|---|---|
+| `stripe-idv-webhook` | **the entire signature check.** A forged unsigned POST would have been processed as a genuine Stripe Identity event, able to drive `profiles.idv_status` to `verified` for any `user_id` it named. 4/4 green. |
+| `saved-helper-availability-push` | `.eq("saved_helper_availability", true)` — the opt-in gate. Live: 311 rows, **0 opted in**; that one clause is all that stands between a 6-hourly cron and 311 people. |
+| `expire-subscriptions` | `.lt("subscription_expires_at", now)` on the WRITE — the only thing stopping a member who renews mid-sweep from having their paid tier nulled *and* being emailed "your membership ended". 12/12 green. |
+| `stalled-completion-reminder` | `.is(col, null)` — the idempotency mark. Two overlapping runs would both escalate, paging admin and both parties twice. |
+| `auto-release-payment` | `if (pi.status !== "succeeded")` — the only check between an uncaptured charge and paying the helper money the platform never collected. All 53 edge guards stayed green, 818 tests. |
+| `sharedImports` | its own comment stripper destroyed 53 of 96 edge files, so it covered whichever happened to survive. |
+
+The pattern has held every single time: **the guard was blind, the deployed
+system was correct.** Every one was verified live against prod before the claim
+was made.
 
 **Row 1 is done: 191 of 191, and 25 of them were hollow — one in seven.**
 

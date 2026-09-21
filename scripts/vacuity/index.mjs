@@ -166,8 +166,36 @@ if (!NO_MUTATE && !REPORT_ONLY && scoped.length) {
       `${BASELINE_PATH}.survivingMutations is stale — these mutations now KILL their guard. Remove them:\n` +
         nowKilled.map((r) => `    ${key(r)}`).join("\n"),
     );
-  if (!newSurvivors.length && results.length)
-    ok(`mutation: ${results.filter((r) => r.verdict === "killed").length}/${results.length} killed, ${known.length} known-vacuous, ${results.filter((r) => /skip|inconc/.test(r.verdict)).length} not run`);
+  /*
+   * AN INCONCLUSIVE BATCH IS NOT A PASS.
+   *
+   * `inconclusive` means the guard was already RED before anything was broken,
+   * so breaking the code told us nothing. The commonest cause is environmental:
+   * in an agent worktree with no resolvable vitest, EVERY registration comes
+   * back inconclusive — and until now the run still printed a green
+   * "mutation: 0/6 killed … 6 not run" and exited 0. Reported 2026-09-21 by a
+   * lane that hit exactly that and had to symlink node_modules to get real
+   * verdicts.
+   *
+   * The gate whose entire purpose is "every check must be shown able to fail"
+   * was itself reporting green while blind, in the environment where most agent
+   * work happens. That is the same defect it exists to find, one level up.
+   *
+   * `skipped` is different and stays green: it means the target file has
+   * uncommitted changes and another lane may own it — a deliberate refusal to
+   * act, not a failure to observe.
+   */
+  const inconclusive = results.filter((r) => /inconc/.test(r.verdict));
+  if (inconclusive.length)
+    fail(
+      `mutation: ${inconclusive.length} of ${results.length} registration(s) INCONCLUSIVE — the guard was ` +
+        `already red before any mutation, so nothing was proven. This is usually the environment (no ` +
+        `resolvable vitest in this worktree), not the code. A run that could not observe anything is not ` +
+        `a run that found nothing:\n` +
+        inconclusive.map((r) => `    ${r.guard} ⟵ ${r.target}  (${r.why ?? "unknown"})`).join("\n"),
+    );
+  else if (!newSurvivors.length && results.length)
+    ok(`mutation: ${results.filter((r) => r.verdict === "killed").length}/${results.length} killed, ${known.length} known-vacuous, ${results.filter((r) => /skip/.test(r.verdict)).length} not run`);
 } else if (!scoped.length) {
   ok("mutation: nothing in scope (no guard or guarded file changed since origin/main)");
 }

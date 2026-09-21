@@ -242,3 +242,7 @@ describe("postSlackOpsAlert: non-critical always-post kinds have an hourly ceili
     expect(slackPosts()).toHaveLength(1);
   });
 });
+
+// Proof this guard can fail: lift the hourly ceiling and an unauthenticated
+// support form can bury the critical pages this channel exists for.
+// @mutate supabase/functions/_shared/slack-alerts.ts | const ALWAYS_POST_HOURLY_CAP = 12 | const ALWAYS_POST_HOURLY_CAP = 100000

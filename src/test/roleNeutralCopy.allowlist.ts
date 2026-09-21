@@ -20,11 +20,13 @@ export type RoleCopyException = {
 };
 
 export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
-  {
-    file: "src/",
-    text: "Louisiana Helpr",
-    reason: "brand name — the company, not a role anyone holds.",
-  },
+  // REMOVED 2026-09-20: { file: "src/", text: "Louisiana Helpr" }. It excused
+  // nothing — "Helpr" on its own is never a finding, only identity
+  // constructions are — while standing open over EVERY string in src/ that
+  // mentions the company by name, so "Louisiana Helpr connects posters with
+  // Helprs" would have shipped unchallenged. The liveness half of
+  // "every allowlist entry ... still matches something" now fails on any entry
+  // in this state.
   {
     file: "src/components/admin/",
     reason:

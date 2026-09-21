@@ -144,14 +144,24 @@ function isInternalOnly(node: ts.Node): boolean {
 }
 
 /** The reason this string is a finding, or null when it is clean. */
-function verdict(relFile: string, trimmed: string): string | null {
-  if (isAllowedRoleCopy(relFile, trimmed)) return null;
+function verdict(trimmed: string): string | null {
   if (IDENTITY.some((re) => re.test(trimmed))) return "names a role as an identity";
   if (ROLE_NOUN.test(trimmed)) return "addresses or names a party by role";
   return null;
 }
 
-export function findRoleCopy(fileName: string, source: string): string[] {
+export type RoleCopyHit = { file: string; line: number; why: string; text: string };
+
+/**
+ * Every role-naming string in this file, BEFORE the allowlist is applied.
+ *
+ * The allowlist is subtracted by `findRoleCopy`. Keeping the raw scan separate
+ * is what lets the allowlist itself be checked: an entry that no longer
+ * suppresses anything is a standing exemption over copy that has since been
+ * rewritten or deleted, and it would silently widen the next time that file
+ * grew a role word.
+ */
+export function scanRoleCopy(fileName: string, source: string): RoleCopyHit[] {
   const sf = ts.createSourceFile(
     fileName,
     source,
@@ -160,7 +170,7 @@ export function findRoleCopy(fileName: string, source: string): string[] {
     fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   );
   const relFile = path.relative(ROOT, fileName);
-  const hits: string[] = [];
+  const hits: RoleCopyHit[] = [];
   const check = (node: ts.Node, text: string) => {
     const trimmed = text.trim().replace(/\s+/g, " ");
     if (!trimmed) return;
@@ -173,11 +183,11 @@ export function findRoleCopy(fileName: string, source: string): string[] {
       /^(Posters?|Customers?|Helprs?|Helpers?)$/.test(trimmed) ||
       (/^(posters?|customers?|helprs?|helpers?)$/i.test(trimmed) && isInterpolatedIntoText(node));
     if (!isCopy) return;
-    const why = verdict(relFile, trimmed);
+    const why = verdict(trimmed);
     if (!why) return;
     if (isInternalOnly(node)) return;
     const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
-    hits.push(`${relFile}:${line + 1}: ${why} — ${trimmed.slice(0, 120)}`);
+    hits.push({ file: relFile, line: line + 1, why, text: trimmed });
   };
   const visit = (node: ts.Node) => {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return;
@@ -188,6 +198,21 @@ export function findRoleCopy(fileName: string, source: string): string[] {
   };
   visit(sf);
   return hits;
+}
+
+/** The findings: every role-naming string the allowlist does not excuse. */
+export function findRoleCopy(fileName: string, source: string): string[] {
+  return scanRoleCopy(fileName, source)
+    .filter((h) => !isAllowedRoleCopy(h.file, h.text))
+    .map((h) => `${h.file}:${h.line}: ${h.why} — ${h.text.slice(0, 120)}`);
+}
+
+/** Every file the guard scans, derived from the tree — never a hand-typed list. */
+function scannedFiles(): string[] {
+  const files: string[] = [];
+  for (const d of SCAN_DIRS) walk(path.join(ROOT, d), files);
+  files.push(...SCAN_FILES.map((p) => path.join(ROOT, p)));
+  return files;
 }
 
 describe("user-visible copy names what someone did on a job, never a role", () => {
@@ -271,15 +296,28 @@ describe("user-visible copy names what someone did on a job, never a role", () =
   });
 
   it("every allowlist entry carries a reason and still matches something", () => {
+    // The title used to promise the second half and the body only checked the
+    // first, so a stale exemption could not fail: once the copy an entry was
+    // written for is rewritten or deleted, the entry stays, standing open over
+    // whatever that file (or path prefix) grows next. Both halves now hold.
+    const raw = scannedFiles().flatMap((file) => scanRoleCopy(file, readFileSync(file, "utf8")));
+    expect(raw.length, "raw scan found nothing — the allowlist check would pass vacuously").toBeGreaterThan(10);
     for (const e of ROLE_COPY_ALLOWLIST) {
       expect(e.reason.trim().length, `allowlist entry for ${e.file} needs a reason`).toBeGreaterThan(20);
+      const suppressed = raw.filter(
+        (h) => h.file.startsWith(e.file) && (e.text === undefined || h.text.includes(e.text)),
+      );
+      expect(
+        suppressed.length,
+        `the allowlist entry for ${e.file}${e.text ? ` ("${e.text}")` : ""} no longer excuses any copy.\n` +
+          `Delete it: a standing exemption over copy that no longer exists silently widens\n` +
+          `the moment that file grows a role word again.`,
+      ).toBeGreaterThan(0);
     }
   });
 
   it("no source file ships copy that names a role", () => {
-    const files: string[] = [];
-    for (const d of SCAN_DIRS) walk(path.join(ROOT, d), files);
-    files.push(...SCAN_FILES.map((p) => path.join(ROOT, p)));
+    const files = scannedFiles();
     expect(files.length).toBeGreaterThan(500);
     const hits = files.flatMap((file) => findRoleCopy(file, readFileSync(file, "utf8")));
     expect(
@@ -290,3 +328,7 @@ describe("user-visible copy names what someone did on a job, never a role", () =
     ).toEqual([]);
   });
 });
+
+// Proof this guard can fail: restore the owner-reported defect verbatim — the
+// lifecycle error that named a role instead of what the person did on the job.
+// @mutate src/lib/lifecycleErrors.ts |   not_authorized: "Only the person who posted this job can do that.", |   not_authorized: "Only the poster can do that.",

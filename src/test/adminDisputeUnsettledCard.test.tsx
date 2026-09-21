@@ -183,3 +183,7 @@ describe("the split panel an admin decides in", () => {
     expect(text()).toMatch(/Poster 0%\$0\.00refunded/);
   });
 });
+
+// Proof this guard can fail: make the unsettled predicate answer "no" and the
+// card goes back to the green DECIDED badge with no ids, reason or retry.
+// @mutate src/components/admin/adminDisputes/unsettled.ts | return record.execution_status !== "executed"; | return false;

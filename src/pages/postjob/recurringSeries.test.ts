@@ -157,3 +157,14 @@ describe("recurring series wiring", () => {
     ).toBeGreaterThan(0);
   });
 });
+
+// Shown able to fail:
+// The end date is DERIVED from the expanded series, never the typed field —
+// a stale typed value bills visits past the date the listing says it ends.
+// @mutate src/pages/postjob/jobSubmitHelpers.ts | ? (seriesDates[seriesDates.length - 1] ?? (recurrenceEndDate \|\| null)) | ? (recurrenceEndDate \|\| null)
+// The recurring columns are OMITTED, not written null, when there is no day
+// set — an empty series is a listing nothing can ever charge for.
+// @mutate src/pages/postjob/jobSubmitHelpers.ts | ...(isRecurring && seriesDays.length > 0 | ...(isRecurring
+// The card must be saved for a series: every later visit is charged
+// off-session, so without it the poster books twelve visits and gets one.
+// @mutate src/pages/postjob/useJobSubmit.ts | saveCardForFuture: saveCardForFuture \|\| isRecurring | saveCardForFuture: saveCardForFuture

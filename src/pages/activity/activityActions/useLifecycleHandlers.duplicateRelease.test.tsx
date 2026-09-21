@@ -172,3 +172,13 @@ describe("completeJob — duplicate release response", () => {
     });
   });
 });
+
+// Shown able to fail:
+// The idempotent-replay guard. create-payment answers a duplicate release with
+// `alreadyReleased` AND `bothDone: true` (for old clients), so without this
+// check the bothDone branch below replays the confetti, the success moment and
+// the poster's tip prompt for a completion that already fired them.
+// @mutate src/pages/activity/activityActions/useLifecycleHandlers.ts | if (data?.alreadyReleased \|\| data?.alreadyConfirmed) { | if (false) {
+// Both halves: `alreadyConfirmed` (only this party had confirmed) arrives with
+// bothDone FALSE, so an `alreadyReleased`-only check still misses it.
+// @mutate src/pages/activity/activityActions/useLifecycleHandlers.ts | data?.alreadyReleased \|\| data?.alreadyConfirmed | data?.alreadyReleased && data?.alreadyConfirmed

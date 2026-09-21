@@ -28,6 +28,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 
 let mapKitStatus = "idle";
+/** Routes MapKit actually answered. The waiting tests wait on THIS, not on an
+ *  emptiness their first paint already satisfies — see the note below. */
+let routesAnswered = 0;
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => mapKitStatus }));
 
 import { useDrivingTime } from "./useDrivingTime";
@@ -40,6 +43,7 @@ const BATON_ROUGE = { lat: 30.4515, lng: -91.1871 };
 
 beforeEach(() => {
   mapKitStatus = "idle";
+  routesAnswered = 0;
   delete (window as unknown as { mapkit?: unknown }).mapkit;
 });
 
@@ -111,7 +115,10 @@ describe("MapKit branch", () => {
           route: (
             _opts: unknown,
             cb: (err: unknown, data: { routes: Array<{ expectedTravelTime: number }> }) => void,
-          ) => cb(null, { routes: [{ expectedTravelTime: seconds }] }),
+          ) => {
+            routesAnswered++;
+            cb(null, { routes: [{ expectedTravelTime: seconds }] });
+          },
         });
       },
     };
@@ -159,10 +166,31 @@ describe("MapKit branch", () => {
     const first = renderHook(() =>
       useDrivingTime(BATON_ROUGE.lat, BATON_ROUGE.lng, 29.9511, -90.0715, 80),
     );
-    await waitFor(() => expect(first.result.current).toBeNull());
+    // WAIT FOR THE DATA, THEN ASSERT THE ABSENCE. This used to be
+    // `waitFor(() => expect(first.result.current).toBeNull())`, which returns
+    // on poll #1 for any hook that has not produced a value yet — so it could
+    // not distinguish "MapKit answered 19h and the rule refused it" from
+    // "MapKit never answered at all", and the cache it was written to populate
+    // might never have been written. The positive condition is the route
+    // coming back; only then is the null meaningful.
+    await waitFor(() => expect(routesAnswered).toBeGreaterThan(0));
+    expect(first.result.current).toBeNull();
+    const answeredBefore = routesAnswered;
     const second = renderHook(() =>
       useDrivingTime(BATON_ROUGE.lat, BATON_ROUGE.lng, 29.9511, -90.0715, 80),
     );
+    // Served from the module cache — no second route call — and still refused.
+    expect(routesAnswered).toBe(answeredBefore);
     expect(second.result.current).toBeNull();
   });
 });
+
+// Shown able to fail:
+// The distance gate itself — without it the hook mints "35h 24m" for the
+// 1,634-mile trip on the owner's card.
+// @mutate src/hooks/useDrivingTime.ts | if (!isCommutableDistance(miles)) return null; | if (false) return null;
+// The second axis: a real MapKit route that contradicts its own straight line.
+// @mutate src/lib/geo.ts | return minutes > MAX_COMMUTE_MINUTES ? null : minutes; | return minutes;
+// The rule must be re-applied on the way OUT of the module route cache, or the
+// first card in a scroll refuses the number and the second one shows it.
+// @mutate src/hooks/useDrivingTime.ts | setMinutes(commuteEstimate(miles, cached)); | setMinutes(cached);

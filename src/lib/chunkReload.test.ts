@@ -196,3 +196,17 @@ describe("hardReloadBypassCache follow-ups", () => {
     expect(sessionStorage.getItem("helpr_chunk_reload_count")).toBe("0");
   });
 });
+
+// Shown able to fail:
+// The cap itself. Without it a tab whose chunk keeps 404ing reloads forever.
+// @mutate src/lib/chunkReload.ts | if (count >= CHUNK_RELOAD_MAX_ATTEMPTS) { | if (count >= 99) {
+// The cap's VALUE, checked independently of the constant the tests import —
+// test (b) asserts `toHaveBeenCalledTimes(CHUNK_RELOAD_MAX_ATTEMPTS)`, so the
+// constant is both input and oracle there; this one is not.
+// @mutate src/lib/chunkReload.ts | export const CHUNK_RELOAD_MAX_ATTEMPTS = 2; | export const CHUNK_RELOAD_MAX_ATTEMPTS = 5;
+// The offline guard. A chunk that failed because the device is offline is not
+// stale, and hardReloadBypassCache deletes the precache that serves offline.html.
+// @mutate src/lib/chunkReload.ts | if (isOffline()) return false; | if (false) return false;
+// Fail-closed with no usable sessionStorage: without the counter there is no
+// cap across reloads, so the `_v` cache-buster is the only thing left.
+// @mutate src/lib/chunkReload.ts | if (count > 0 \|\| landedFromRecentRecoveryReload()) return false; | if (count > 0) return false;

@@ -199,6 +199,21 @@ describe("useKeyboardInset", () => {
     expect(vv).toBeDefined();
   });
 
+  it("web: reports an already-open keyboard on mount, before any event fires", async () => {
+    // HOLLOW UNTIL 2026-09-21: every web assertion above fired a `resize`
+    // first, so deleting the hook's own `update()` call at subscribe time left
+    // all of them green. That call is the whole reason the chat input is not
+    // buried on mount — navigating to a thread with the keyboard already up
+    // (tap "Message" from a card, iOS keeps the keyboard) fires no resize at
+    // all, so the only reading the hook ever gets is this one.
+    installFakeVisualViewport(500, 0); // diff = 300, keyboard already up
+    const { result } = renderHook(() => useKeyboardInset());
+    await flushAsync();
+    // No vvListeners.resize.forEach(...) here, deliberately.
+    expect(vvListeners.resize.length).toBeGreaterThan(0); // subscribed...
+    expect(result.current).toBe(300); // ...and it read the viewport itself.
+  });
+
   it("web: removes both visualViewport listeners on unmount", async () => {
     const vv = installFakeVisualViewport(800, 0);
     const { unmount } = renderHook(() => useKeyboardInset());
@@ -208,3 +223,14 @@ describe("useKeyboardInset", () => {
     expect(vv.removeEventListener).toHaveBeenCalledWith("scroll", expect.any(Function));
   });
 });
+
+// Shown able to fail:
+// The 80px threshold is what separates a real keyboard from Safari's own
+// collapsing toolbar; without it every scroll nudge would pad the chat by a
+// few pixels. Dropping it leaves the 50px "tiny offset" case reporting 50.
+// @mutate src/hooks/useKeyboardInset.ts | setInset(diff > 80 ? diff : 0) | setInset(diff)
+// The offsetTop subtraction: a viewport scrolled 50px down is not 50px of
+// keyboard, and double-counting it lifts the input bar off the keyboard.
+// @mutate src/hooks/useKeyboardInset.ts | window.innerHeight - vv.height - vv.offsetTop | window.innerHeight - vv.height
+// The subscribe-time read — the only reading a keyboard-already-open mount gets.
+// @mutate src/hooks/useKeyboardInset.ts | vv.addEventListener("scroll", update);\n    update(); | vv.addEventListener("scroll", update);

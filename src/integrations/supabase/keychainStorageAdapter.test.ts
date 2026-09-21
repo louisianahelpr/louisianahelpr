@@ -177,6 +177,87 @@ describe("keychainStorageAdapter — native (isNativePlatform=true)", () => {
     expect(prefsRemoveMock).not.toHaveBeenCalled();
   });
 
+  it("setItem does not resolve until the native mirror write has landed", async () => {
+    // HOLLOW UNTIL 2026-09-21. Every assertion above only checked THAT
+    // Preferences.set was called, so turning the awaited mirror write back
+    // into fire-and-forget (`void Preferences.set(...)`) left this whole file
+    // green — while re-opening the exact session-loss race the file header
+    // documents: GoTrueClient._saveSession awaits this method, so a token
+    // rotation that returns before the NSUserDefaults write lands can be
+    // suspended by iOS with the OLD refresh token still on disk. Next cold
+    // boot hydrates that stale token and Supabase rejects it as reuse.
+    prefsKeysMock.mockResolvedValue({ keys: [] });
+    let landNativeWrite!: () => void;
+    prefsSetMock.mockImplementation(
+      () => new Promise<void>((resolve) => { landNativeWrite = () => resolve(); }),
+    );
+    const { keychainStorageAdapter } = await loadAdapter();
+
+    let settled = false;
+    const write = keychainStorageAdapter.setItem(AUTH_KEY, "rotated-jwt").then(() => {
+      settled = true;
+    });
+    // Drain every microtask: a fire-and-forget mirror resolves inside this.
+    for (let i = 0; i < 50; i++) await Promise.resolve();
+    expect(prefsSetMock).toHaveBeenCalledWith({ key: AUTH_KEY, value: "rotated-jwt" });
+    expect(settled).toBe(false); // still waiting on the durable copy
+
+    landNativeWrite();
+    await write;
+    expect(settled).toBe(true);
+  });
+
+  it("removeItem does not resolve until the native mirror delete has landed", async () => {
+    // Same contract on the sign-out side: a removeItem that returns before
+    // NSUserDefaults is cleared leaves a signed-out device holding a token
+    // that the next hydrate restores.
+    prefsKeysMock.mockResolvedValue({ keys: [] });
+    let landNativeDelete!: () => void;
+    prefsRemoveMock.mockImplementation(
+      () => new Promise<void>((resolve) => { landNativeDelete = () => resolve(); }),
+    );
+    const { keychainStorageAdapter } = await loadAdapter();
+
+    let settled = false;
+    const gone = keychainStorageAdapter.removeItem(AUTH_KEY).then(() => { settled = true; });
+    for (let i = 0; i < 50; i++) await Promise.resolve();
+    expect(prefsRemoveMock).toHaveBeenCalledWith({ key: AUTH_KEY });
+    expect(settled).toBe(false);
+
+    landNativeDelete();
+    await gone;
+    expect(settled).toBe(true);
+  });
+
+  it("hydrate gives up on a bridge call that NEVER settles, so launch is never blocked", async () => {
+    // HOLLOW UNTIL 2026-09-21. The only hydrate-failure test above used a
+    // REJECTION, which the try/catch handles — so deleting the Promise.race
+    // timeout cap entirely left the file green. A rejection is not the state
+    // this cap exists for: client.ts does `await hydratePromise` at TOP LEVEL
+    // on native, in front of createRoot().render(<App/>), so a Capacitor
+    // bridge call issued during module evaluation that never settles at all
+    // freezes the app on index.html's #boot-loader forever, with no error
+    // anywhere. Timeout literal mirrors HYDRATE_TIMEOUT_MS in the source.
+    vi.useFakeTimers();
+    try {
+      prefsKeysMock.mockImplementation(() => new Promise<never>(() => { /* never settles */ }));
+      const mod = await import("./keychainStorageAdapter");
+      let settled = false;
+      void mod.hydratePromise.then(() => { settled = true; });
+
+      await vi.advanceTimersByTimeAsync(1_999);
+      expect(settled).toBe(false); // the cap has not fired yet...
+      await vi.advanceTimersByTimeAsync(2);
+      expect(settled).toBe(true); // ...and at 2000ms it lets the app boot.
+
+      // And the adapter still works, falling back to localStorage.
+      localStorage.setItem(AUTH_KEY, "ls-only");
+      expect(mod.keychainStorageAdapter.getItem(AUTH_KEY)).toBe("ls-only");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("isAuthTokenKey requires both prefix AND suffix — partial matches not mirrored", async () => {
     prefsKeysMock.mockResolvedValue({ keys: [] });
     const { keychainStorageAdapter } = await loadAdapter();
@@ -188,3 +269,14 @@ describe("keychainStorageAdapter — native (isNativePlatform=true)", () => {
     expect(prefsSetMock).not.toHaveBeenCalled();
   });
 });
+
+// Shown able to fail:
+// The awaited native mirror write. Fire-and-forget re-opens the rotated-token
+// session loss documented in the source header.
+// @mutate src/integrations/supabase/keychainStorageAdapter.ts | try { await Preferences.set({ key, value }); } | try { void Preferences.set({ key, value }); }
+// The hard cap in front of `await hydratePromise` in client.ts. Without it a
+// bridge call that never settles freezes the app on the boot loader forever.
+// @mutate src/integrations/supabase/keychainStorageAdapter.ts | await Promise.race([\n      hydrate,\n      new Promise<void>((resolve) => setTimeout(resolve, HYDRATE_TIMEOUT_MS)),\n    ]); | await hydrate;
+// Both halves of isAuthTokenKey — a looser test would mirror every
+// localStorage key this app writes into NSUserDefaults.
+// @mutate src/integrations/supabase/keychainStorageAdapter.ts | key.startsWith('sb-') && key.endsWith('-auth-token') | key.startsWith('sb-') \|\| key.endsWith('-auth-token')

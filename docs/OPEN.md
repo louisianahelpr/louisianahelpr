@@ -8,6 +8,41 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN — vacuity's mutation phase cannot run in an agent worktree (2026-09-20)
+
+Found while registering two new guards. `scripts/vacuity/run.mjs` spawns
+`node_modules/vitest/vitest.mjs`, but an agent worktree under
+`.claude/worktrees/` has an (almost) empty `node_modules` and resolves vitest
+up to the main checkout. So every baseline run returns non-zero and vacuity
+reports **`guard is RED before any mutation` / `inconclusive`** for every
+registration in that tree — including ones that are green on their own.
+
+- Measured: `src/test/e2eViewportForkedControls.test.ts`,
+  `src/test/readNamedRpcsAreNotVolatile.test.ts` and
+  `src/test/giftAmountIsWholeCents.test.ts` all pass under `npx vitest run`
+  and all three came back inconclusive. `npm run vacuity` still exits 0, so
+  nothing goes red — the proof simply never runs.
+- Same cause reds `src/test/vacuityGate.test.ts` > "reports SURVIVED when a
+  planted guard does not notice its target breaking"
+  (`expected 'inconclusive' to be 'SURVIVED'`) in any worktree. That is a
+  REQUIRED check failing for an environment reason, not a code one.
+- Consequence: "every check must be shown able to fail" is enforced on the
+  main checkout and in CI, but silently skipped in the trees where most agent
+  work happens. Each of the three above was proven red BY HAND instead.
+- Fix is probably one line: resolve the vitest entry with
+  `require.resolve("vitest/vitest.mjs")` (or spawn `npx vitest`) instead of
+  joining `REPO/node_modules`.
+
+## HEADS-UP — the explore now reaches four screens it never reached (2026-09-20)
+
+`e2e/prod-audit/harness.ts`'s write firewall used to refuse read RPCs, so
+/my-jobs, /profile?tab=saved_helpers, /profile?tab=earnings and
+/admin?view=payouts sat in their own error states with no controls to press.
+They are explored for real now, so their `credits/*.json` files grow. If
+`messy-input.spec.ts`'s coverage test (":624") starts reporting **"listed as a
+gap but actually exercised"**, that is why, and the answer is to remove the
+stale `GAPS` entry, not to re-narrow the firewall.
+
 ## OPEN — `messages-thread.spec.ts` (c) flakes in the FULL happy-path run only (2026-09-20)
 
 Found while fixing the two red happy-path smokes (a305479e7, fa5759ec9); NOT

@@ -260,9 +260,30 @@ test.describe("targeted rules", () => {
       const amt = page.locator('input[type="number"]').first();
       await amt.fill(amount);
       await amt.press("Tab");
-      await page.locator('input[type="email"]').first().fill("friend@example.com").catch(() => {});
+      // THE RECIPIENT IS HALF OF `canDonate` (GiftCard.tsx). There is no
+      // `input[type="email"]` on this screen any more: RecipientPicker renders
+      // ONE `type="text" inputMode="email"` field labelled "Recipient — name or
+      // email" and routes what you type — an "@" anywhere switches it to email
+      // mode, anything else runs a name search. The old
+      // `locator('input[type="email"]')` matched nothing, `.catch(() => {})`
+      // swallowed it, so no recipient was ever named, `canDonate` stayed false
+      // and the Continue button stayed disabled. That reported as
+      // "a valid amount must start checkout — Received: 0", i.e. as if gift-card
+      // checkout were broken. It is not (measured 2026-09-20).
+      const recipient = page.getByRole("textbox", { name: "Recipient — name or email" });
+      await expect(recipient, "the gift-card recipient field is gone or renamed").toBeVisible({ timeout: 10_000 });
+      await recipient.fill("friend@example.com");
       await assertHealthy(page, info, `gift-${amount}-typed`);
       const send = page.getByRole("button", { name: /send|continue|pay|checkout/i }).last();
+      // A valid amount with a valid recipient MUST arm the control. Asserting
+      // it here names the real failure; the old `if (isEnabled)` skipped
+      // silently and let the assertion below blame the network instead.
+      if (ok === true) {
+        await expect(
+          send,
+          `$${amount} with a valid recipient left the checkout button disabled — canDonate is false`,
+        ).toBeEnabled({ timeout: 10_000 });
+      }
       if (await send.isEnabled().catch(() => false)) await send.click();
       await page.waitForTimeout(800);
       if (ok === false) {
@@ -499,10 +520,39 @@ test.describe("explore dialog-gated forms from real records", () => {
       const { ctx, page } = await open(browser, { url, as: ex.as });
       const blocked = await writeFirewall(ctx);
       const wsEsc = JSON.stringify(WS).slice(1, -1);
+      // How many calls the firewall had refused BEFORE this page load started.
+      // Everything after it belongs to THIS load — including the calls the
+      // screen fires on mount, which is where `stripe-payouts` is refused and
+      // the Payouts tab's error state comes from. Sampling this AFTER the
+      // navigation instead would miss exactly those and is the off-by-one that
+      // makes the allowance useless.
+      let blockedBeforeLoad = 0;
       const load = async () => {
+        blockedBeforeLoad = blocked.length;
         await page.goto(url);
         await settle(page, 400);
       };
+      /**
+       * A LOAD-FAILURE SCREEN IS NOT A DEFECT WHEN THIS TEST CAUSED IT.
+       *
+       * The firewall refuses every write, and that includes some READS it
+       * cannot tell apart from writes — the `stripe-payouts` edge function is
+       * the live example: the Payouts view calls it on mount to read a
+       * balance, it is refused, and the tab renders "We couldn't load your
+       * payout data." Judging that as a defect is judging the test's own
+       * handiwork.
+       *
+       * The allowance used to be "did a refusal happen DURING this press",
+       * which is the wrong clock: a call refused at page load poisons the
+       * screen for the rest of its life, and the press three steps later got
+       * the blame (measured 2026-09-20 on profile-earnings, and on the four
+       * /my-jobs cases before the read RPCs were let through).
+       */
+      const firewallAllow = () =>
+        blocked.length > blockedBeforeLoad ? ["generic failure copy", "section/data load failure"] : [];
+      /** What the firewall refused on this page load, for a failure message. */
+      const refusedHere = () =>
+        blocked.slice(blockedBeforeLoad).map((b) => b.split(" ").slice(0, 2).join(" ")).join(", ") || "nothing";
       const seen = new Set<string>();
       let fieldsSwept = 0;
       let shots = 0;
@@ -560,21 +610,26 @@ test.describe("explore dialog-gated forms from real records", () => {
       // introduced and never resolves is a finding; one already on screen
       // (the job map's own 15s watchdog) is not.
       const checkAfterPress = async (trail: string, baseline: Baseline) => {
-        const before = blocked.length;
         await page.waitForTimeout(350);
         await sweepNewFields(trail);
-        // A firewalled write shows the app's own failure copy; that is the firewall, not a defect.
-        const allow = blocked.length > before ? ["generic failure copy", "section/data load failure"] : [];
-        const p = await health(page, `${ex.name} › ${trail}`, { layout: true, allow, settleMs: 0, baseline });
+        // A firewalled call shows the app's own failure copy; that is the
+        // firewall, not a defect. Measured from the last LOAD, not this press.
+        const p = await health(page, `${ex.name} › ${trail}`, { layout: true, allow: firewallAllow(), settleMs: 0, baseline });
         if (p.length) {
-          problems.push(...p);
+          // NAME WHAT WAS REFUSED. Without this a firewall-caused screen reads
+          // as a production defect in the CI log, which is exactly how seven
+          // explore cases were filed on 2026-09-20.
+          problems.push(...p.map((x) => `${x}\n      refused at the wire on this load: ${refusedHere()}`));
           if (shots++ < 6) await shoot(page, info, `FAIL-${ex.name}-${trail}`);
         }
       };
 
       await load();
-      const base = await health(page, `${ex.name} on load`, { layout: true });
-      expect(base, `${ex.name} broken before any input`).toEqual([]);
+      const base = await health(page, `${ex.name} on load`, { layout: true, allow: firewallAllow() });
+      expect(
+        base,
+        `${ex.name} broken before any input\n      refused at the wire on this load: ${refusedHere()}`,
+      ).toEqual([]);
       await sweepNewFields("page");
 
       // App chrome (header, bottom nav, side rail) is pressed by

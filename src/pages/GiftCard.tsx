@@ -113,7 +113,25 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
   const occasion = GIFT_OCCASIONS.find((o) => o.id === occasionId) ?? DEFAULT_OCCASION;
   const design = occasion.designs[0];
 
-  const effectiveAmount = selectedAmount ?? (customAmount ? parseFloat(customAmount) : null);
+  /**
+   * The gift amount, IN WHOLE CENTS — the smallest thing money comes in.
+   *
+   * The custom-amount field is `type="number"` with no `step`, so "10.555" is
+   * a value a person can type, and this used to pass it through untouched:
+   * the client sent `amount: 10.555`, the card preview said $10.555, and
+   * `create-gift-card-checkout` did `Math.round(amountDollars * 100)` = 1056.
+   * The buyer was charged $10.56 having been shown $10.555, and nothing on
+   * screen ever said so. Measured on prod's build 2026-09-20; it had been
+   * invisible because the audit that checks it could not reach the button at
+   * all (the recipient selector it typed into no longer exists).
+   *
+   * Rounding HERE, with the server's own rule, means the number the screen
+   * shows, the number the bounds are checked against and the number Stripe
+   * charges are one number. It cannot change any whole-dollar preset.
+   */
+  const rawAmount = selectedAmount ?? (customAmount ? parseFloat(customAmount) : null);
+  const effectiveAmount =
+    rawAmount == null || !Number.isFinite(rawAmount) ? rawAmount : Math.round(rawAmount * 100) / 100;
   const trimmedRecipient = recipientEmail.trim().toLowerCase();
   const emailValid = EMAIL_RE.test(trimmedRecipient);
   const isSelfGiftEmail = !!myEmail && trimmedRecipient === myEmail;

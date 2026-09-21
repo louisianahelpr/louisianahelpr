@@ -179,5 +179,25 @@ test.describe("helper browse-and-apply happy path", () => {
     // Match all entry-point labels so the test stays valid across both shapes.
     const applyBtn = page.getByRole("button", { name: /^(apply|continue|book)\b/i }).first();
     await expect(applyBtn).toBeVisible({ timeout: 10_000 });
+
+    // ...and it ACTUALLY ACCEPTS THE TAP. Visibility alone was the whole
+    // assertion until 2026-09-21, and visibility is equally true of a
+    // permanently disabled button: a dead CTA is drawn exactly like a live
+    // one, so this passed a helpr who could see Apply and never use it.
+    // "Reach an Apply affordance" has to mean reach one that works.
+    await expect(
+      applyBtn,
+      "the Apply affordance renders but is disabled — a helpr can see it and not use it",
+    ).toBeEnabled();
   });
 });
+
+// WHICH control this spec actually measures, because it is NOT the obvious one.
+// JobDetailDialog renders `showInlineApply ? applyForm : <JobDetailFooter/>`,
+// and for an authed helpr on an untiered job showInlineApply is TRUE — so the
+// footer's CTA slot is never mounted on this path at all. A mutation aimed at
+// JobDetailFooter therefore comes back SURVIVED for a reason with nothing to do
+// with this guard (measured, 2026-09-21). The control under test is ApplyBody's
+// own submit. Disabling it leaves a button that still renders and still reads
+// "Apply Now" — the dead-CTA shape the toBeEnabled assertion above exists for.
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | disabled={applyLoading} | disabled={true}

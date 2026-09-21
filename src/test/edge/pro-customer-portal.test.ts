@@ -132,3 +132,8 @@ describe("pro-customer-portal — picking the customer that holds the subscripti
     expect(stripeMock.billingPortal.sessions.create).not.toHaveBeenCalled();
   });
 });
+
+// Proof this guard can fail: put `limit: 1` back on the customer lookup and the
+// portal reopens on an arbitrary duplicate record — a paying member staring at
+// an empty portal with no way to stop the charge.
+// @mutate supabase/functions/pro-customer-portal/index.ts | email: user.email, limit: 100 | email: user.email, limit: 1

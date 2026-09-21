@@ -319,3 +319,8 @@ describe("money-reconciliation edge function", () => {
     expect(scenario.writes).toHaveLength(0);
   });
 });
+
+// Proof this guard can fail: null out the jobs-scan truncation verdict and the
+// reconciler goes back to reporting a clean 200 over a fifth of the money —
+// exactly the unsatisfiable alarm this file was written to replace.
+// @mutate supabase/functions/money-reconciliation/index.ts | const jobsCap = scanDefect("jobs", jobScan); | const jobsCap = null;

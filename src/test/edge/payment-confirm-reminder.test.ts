@@ -213,3 +213,8 @@ describe("payment-confirm-reminder edge function", () => {
     expect(notifWrites()).toHaveLength(0);
   });
 });
+
+// Proof this guard can fail: disarm the zero-row branch on the idempotency mark
+// and a silent `{ data: [], error: null }` UPDATE reports success, so the poster
+// is nudged again on every tick about a job they may already have confirmed.
+// @mutate supabase/functions/payment-confirm-reminder/index.ts | if (!markErr && (marked?.length ?? 0) === 0) { | if (false) {

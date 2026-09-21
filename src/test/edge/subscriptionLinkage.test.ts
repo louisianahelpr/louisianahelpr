@@ -143,3 +143,7 @@ describe("what the Membership card is allowed to say", () => {
     expect(renewalLabel({ billingCycle: "quarterly", cancelAtPeriodEnd: false })).toBe("Access through");
   });
 });
+
+// Proof this guard can fail: remove the cancellation branch and the Membership
+// card tells a member who has just cancelled that they will be charged again.
+// @mutate src/lib/subscriptionRenewalLabel.ts | if (cancelAtPeriodEnd === true) return "Ends"; | 

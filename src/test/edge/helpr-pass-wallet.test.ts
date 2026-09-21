@@ -127,3 +127,8 @@ describe("helpr-pass-wallet — the entitlement gate", () => {
     expect(body.error).toContain("Helpr Pass");
   });
 });
+
+// Proof this guard can fail: make a NULL expiry read as a lapsed one and SC-014
+// returns — an Elite member on a comped grant is 402'd and told to buy the tier
+// they already hold.
+// @mutate supabase/functions/helpr-pass-wallet/index.ts | profile.subscription_expires_at,\n      "helprPass", | profile.subscription_expires_at ?? "1999-01-01T00:00:00.000Z",\n      "helprPass",

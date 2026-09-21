@@ -195,7 +195,26 @@ describe("expire-subscriptions edge function", () => {
       // later resubscribe.
       expect(Object.keys(payload)).not.toContain("stripe_customer_id");
       // The expiry predicate is re-asserted on the WRITE, not just the read.
+      //
+      // Both halves, and the `.lt` is the load-bearing one. `.in("user_id")`
+      // only repeats what the SELECT already decided; the `.lt` re-checks that
+      // decision at write time, and it is the ONLY thing standing between a
+      // member who renewed in the gap and having their fresh, paid-for tier
+      // nulled. This block used to assert the `.in` alone — so deleting the
+      // `.lt` from the UPDATE left all twelve tests in this file green
+      // (measured 2026-09-21), the two renewal-race tests below included,
+      // because the Supabase double records filters without matching on them
+      // and both of those pin their outcome through `writeSelectRows`.
       expect(write.filters.some((f) => f.op === "in" && f.column === "user_id")).toBe(true);
+      const ltGuard = write.filters.find(
+        (f) => f.op === "lt" && f.column === "subscription_expires_at",
+      );
+      expect(ltGuard, "the UPDATE must re-assert .lt(subscription_expires_at, now)").toBeDefined();
+      // …and against this run's own `now`, not a constant: a stale or future
+      // bound would match rows the SELECT never intended to clear.
+      const ltAt = Date.parse(String(ltGuard!.value));
+      expect(ltAt).toBeGreaterThan(Date.now() - 60_000);
+      expect(ltAt).toBeLessThanOrEqual(Date.now());
     });
 
     it("counts what the WRITE actually cleared, not what the read found", async () => {
@@ -258,3 +277,8 @@ describe("expire-subscriptions edge function", () => {
     });
   });
 });
+
+// Proof this guard can fail: drop the `.lt` re-assertion from the UPDATE and a
+// member who renewed between the SELECT and the write has their fresh, paid-for
+// tier nulled and is emailed that their membership ended.
+// @mutate supabase/functions/expire-subscriptions/index.ts | .in("user_id", userIds)\n      .lt("subscription_expires_at", now) | .in("user_id", userIds)

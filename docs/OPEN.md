@@ -27,7 +27,7 @@ the next one.
   `docs/audit/review-log.jsonl`, or `test-results/../.review-log.jsonl` — and
   append rather than assume the directory persists.
 
-## OPEN — vacuity's mutation phase cannot run in an agent worktree (2026-09-20)
+## CLOSED — vacuity's mutation phase could not run in an agent worktree (fixed 2026-09-20)
 
 Found while registering two new guards. `scripts/vacuity/run.mjs` spawns
 `node_modules/vitest/vitest.mjs`, but an agent worktree under
@@ -48,9 +48,15 @@ registration in that tree — including ones that are green on their own.
 - Consequence: "every check must be shown able to fail" is enforced on the
   main checkout and in CI, but silently skipped in the trees where most agent
   work happens. Each of the three above was proven red BY HAND instead.
-- Fix is probably one line: resolve the vitest entry with
-  `require.resolve("vitest/vitest.mjs")` (or spawn `npx vitest`) instead of
-  joining `REPO/node_modules`.
+- **FIXED** in `scripts/vacuity/run.mjs`: resolve `vitest/package.json`
+  through `createRequire` and join `vitest.mjs` beside it, falling back to the
+  old path so a failure still names what it looked for. (`vitest/vitest.mjs`
+  cannot be resolved directly — it is not one of vitest's `exports`
+  subpaths, which is why the obvious one-liner throws
+  ERR_PACKAGE_PATH_NOT_EXPORTED.)
+- After: `npm run vacuity` in this worktree reports **3/4 killed** where it
+  reported 0/4 and four `inconclusive`, and `src/test/vacuityGate.test.ts`
+  passes 5/5 here.
 
 ## HEADS-UP — the explore now reaches four screens it never reached (2026-09-20)
 

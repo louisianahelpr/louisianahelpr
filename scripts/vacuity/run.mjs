@@ -19,8 +19,39 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { REPO, guardFiles, parseDirectives, gitIsClean, c } from "./lib.mjs";
+
+/**
+ * Vitest's CLI entry, RESOLVED rather than guessed.
+ *
+ * This was `path.join(REPO, "node_modules", "vitest", "vitest.mjs")`. An agent
+ * worktree under `.claude/worktrees/` has an (almost) empty `node_modules` and
+ * resolves its dependencies up to the main checkout, so that path does not
+ * exist there: every baseline run died with MODULE_NOT_FOUND, every guard
+ * looked "RED before any mutation", and the mutation phase reported
+ * `inconclusive` for all of them while still exiting 0. "Every check must be
+ * shown able to fail" was therefore enforced on the main checkout and in CI
+ * and silently skipped in the trees where most agent work happens (measured
+ * 2026-09-20: three registrations in one worktree, each green on its own).
+ *
+ * It also red `src/test/vacuityGate.test.ts` in any worktree — a REQUIRED
+ * check failing for an environment reason rather than a code one.
+ */
+const VITEST_BIN = (() => {
+  const local = path.join(REPO, "node_modules", "vitest", "vitest.mjs");
+  if (fs.existsSync(local)) return local;
+  // Resolve the PACKAGE, then join the CLI entry: `vitest/vitest.mjs` is not
+  // one of vitest's `exports` subpaths, so asking for it directly throws
+  // ERR_PACKAGE_PATH_NOT_EXPORTED. `vitest/package.json` is.
+  try {
+    const pkg = createRequire(path.join(REPO, "package.json")).resolve("vitest/package.json");
+    const hoisted = path.join(path.dirname(pkg), "vitest.mjs");
+    if (fs.existsSync(hoisted)) return hoisted;
+  } catch { /* fall through to the local path, so the spawn names what it looked for */ }
+  return local;
+})();
 
 const live = new Map(); // abs path -> original bytes
 
@@ -42,7 +73,7 @@ function runVitest(guards, extraEnv = {}) {
   const list = Array.isArray(guards) ? guards : [guards];
   const r = spawnSync(
     process.execPath,
-    [path.join(REPO, "node_modules", "vitest", "vitest.mjs"), "run", "--silent=true", "--maxWorkers=1", ...list],
+    [VITEST_BIN, "run", "--silent=true", "--maxWorkers=1", ...list],
     {
       cwd: REPO,
       encoding: "utf8",

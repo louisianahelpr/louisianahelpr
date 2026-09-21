@@ -147,3 +147,8 @@ describe("sendMessage — client-flagged content, honest strike wording", () => 
     expect(calls[1]).not.toMatch(/first warning/i);
   });
 });
+
+// The rung that records the strike. Without this call the message is still
+// blocked on this device, but apply_message_violation_consequence is never
+// asked, so nothing is recorded and no verdict copy is ever shown.
+// @mutate src/pages/messages/messagesData/sendHandlers.ts | await logViolation(userId, cachedUser, violationDesc, content); | void 0;

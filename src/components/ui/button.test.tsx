@@ -17,6 +17,29 @@ import { Button } from "./button";
  * Tailwind arbitrary-value classes are emitted verbatim; this is enough to
  * lock the contract that future edits don't accidentally regress an entire
  * variant family back to flat.
+ *
+ * WHAT THIS FILE CANNOT SEE — stated here rather than left for a green run to
+ * imply. jsdom loads no stylesheet and computes no style, so every assertion
+ * below is a CLASS-NAME PROXY, never a rendered-pixel fact:
+ *
+ *   - `btn-grad-primary` is a hand-written rule in src/index.css. This file
+ *     proves the class is APPLIED. It cannot prove a gradient paints: delete
+ *     the rule from index.css, or let the minifier drop it, and every test
+ *     here stays green while the CTA renders as a near-white pill — which is
+ *     precisely the regression the comments below record as having shipped.
+ *     That the RULE exists and declares a gradient is checked separately, by
+ *     reading the stylesheet (`src/test/railGreenMatchesPrimary.test.ts`);
+ *     that a real element actually computes one is checked only in a browser
+ *     (`e2e/happy-path/apply-single-sheet.spec.ts`, the `getComputedStyle`
+ *     `backgroundImage` read). Neither of those is this file.
+ *   - the arbitrary `shadow-[…]` / `active:scale-[…]` strings likewise prove
+ *     only that Tailwind was ASKED for the treatment, not that the JIT emitted
+ *     it. CLAUDE.md's rule — verify CSS against `dist/assets/*.css` after a
+ *     build, never the dev server — applies to all four treatments.
+ *
+ * So the job here is narrow and still worth doing: no variant family silently
+ * loses its depth contract to a refactor of button.tsx. Anything about how the
+ * button LOOKS belongs in the browser checks named above.
  */
 describe("Button", () => {
   it("renders children and forwards onClick", () => {
@@ -130,3 +153,9 @@ describe("Button", () => {
     });
   });
 });
+
+// The filled-variant depth contract, which five variants share. Deleting the
+// 3-layer shadow regresses primary/default/destructive/secondary/shimmer back
+// to flat in one edit. (Class names only — see the header on what this cannot
+// see.)
+// @mutate src/components/ui/button.tsx | "shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12),0_4px_12px_-2px_hsl(var(--ink-deep)/0.08)] " + | "" +

@@ -138,3 +138,8 @@ describe("admin rail registry — every id is a view that renders", () => {
     expect(missing, "rail rows that render nothing — tapping them looks like a dead button").toEqual([]);
   });
 });
+
+// Rename the switch case and the rail row still exists, the h1 still renders
+// from VIEW_LABELS, and /admin?view=stalled quietly shows the dashboard —
+// exactly the dead-button shape both halves of this file police.
+// @mutate src/pages/Admin.tsx | case "stalled": return <AdminStalledJobs />; | case "stalled_gone": return <AdminStalledJobs />;

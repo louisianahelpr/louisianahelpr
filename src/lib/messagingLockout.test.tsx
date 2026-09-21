@@ -145,3 +145,8 @@ describe("lockout gate, client RPC and constant share one clock", () => {
     expect(latestBody("job_messaging_closes_at").replace(/\s+/g, " ")).toMatch(/COALESCE\( j\.completed_at,/);
   });
 });
+
+// Drop the server-clock correction and every "is this thread closed" question
+// is answered on the DEVICE clock: a fast phone hides a composer the server
+// still accepts, a slow one offers a composer the server already refuses.
+// @mutate src/lib/messagingLockout.ts | return Date.now() + serverClockOffsetMs; | return Date.now();

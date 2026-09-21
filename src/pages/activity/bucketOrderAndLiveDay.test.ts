@@ -152,3 +152,7 @@ describe("bucket order + the live-day rule are one change", () => {
     ).toBe("scheduled");
   });
 });
+
+// The live-day rule itself: strip it and today's jobs fall back into the
+// demoted Scheduled bucket on BOTH tabs — the owner's objection, come true.
+// @mutate src/pages/activity/activityFilters.ts | return ms !== null && ms === todayMs(); | return false;

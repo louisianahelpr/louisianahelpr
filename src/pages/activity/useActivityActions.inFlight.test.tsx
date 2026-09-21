@@ -139,3 +139,8 @@ describe("useActivityActions money handlers — same-frame double tap", () => {
     await waitFor(() => expect(confirmUpdateMock).toHaveBeenCalledTimes(2));
   });
 });
+
+// The synchronous ref guard on the release-payment handler. Without it two
+// taps in one frame both read the React state as null and both invoke
+// create-payment { action: "release" }.
+// @mutate src/pages/activity/activityActions/useLifecycleHandlers.ts | if (completeInFlight.current.has(jobId)) return; | if (false) return;

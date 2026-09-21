@@ -71,10 +71,22 @@ describe("group jobs — withdrawal gate", () => {
     //
     // What must hold is narrow and survives renaming: the "group" option may
     // only be produced by an expression guarded on GROUP_JOBS_ENABLED.
+    //
+    // POLARITY, NOT PROXIMITY. The first version of this assertion was
+    //   /GROUP_JOBS_ENABLED\s*\?[\s\S]{0,120}?["']group["']/
+    // — "the flag is mentioned somewhere near the word group". Measured by
+    // mutation 2026-09-21: swapping the ternary's arms to
+    //   GROUP_JOBS_ENABLED ? [] : [{ value: "group", label: "Group" }]
+    // ships the WITHDRAWN segment to every poster precisely because the flag
+    // is off, and all four tests stayed green. A proximity match cannot tell
+    // a gate from its inverse. So pin both arms: the consequent is the array
+    // that CONTAINS the group option, and the alternate is empty.
     expect(
       logistics,
-      'the "group" segment must be produced only behind GROUP_JOBS_ENABLED',
-    ).toMatch(/GROUP_JOBS_ENABLED\s*\?[\s\S]{0,120}?["']group["']/);
+      'the "group" segment must be the TRUE arm of GROUP_JOBS_ENABLED, with an empty false arm',
+    ).toMatch(
+      /GROUP_JOBS_ENABLED\s*\?\s*\(?\[[\s\S]{0,80}?["']group["'][\s\S]{0,80}?\]\s*(?:as const\s*)?\)?\s*:\s*\[\s*\]/,
+    );
     expect(logistics).toContain("{GROUP_JOBS_ENABLED && isGroupJob && (");
     expect(submit).toContain("is_group_job: GROUP_JOBS_ENABLED && isGroupJob,");
     expect(submit).toContain(
@@ -123,3 +135,7 @@ describe("group jobs — withdrawal gate", () => {
     );
   });
 });
+
+// Un-gate the Group segment: the withdrawn feature comes straight back into
+// the post-a-job form while the flag still reads false.
+// @mutate src/components/postjob/LogisticsSection.tsx | ...(GROUP_JOBS_ENABLED ? ([{ value: "group", label: "Group" }] as const) : []), | ...([{ value: "group", label: "Group" }] as const),

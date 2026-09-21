@@ -60,18 +60,41 @@ const SRC = cardFiles(CARD_DIR).map((f) => readFileSync(f, "utf8")).join("\n");
 const code = blankComments(SRC);
 
 /**
- * The terminal state — poster has approved — and everything the card says
- * after it. It used to be found by slicing at the literal condition
+ * The terminal state — poster has approved — and ONLY what the card says in it.
+ *
+ * It used to be found by slicing at the literal condition
  * `job.helper_completed_at && job.poster_completed_at`; the split named that
  * condition (`fullyComplete`) and moved it into SubmittedStep, so the slice
  * silently returned the WHOLE file and the assertions below passed for the
- * wrong reason before they failed for the right one. Anchor on the named
- * branch, and fail loudly if the anchor itself ever disappears.
+ * wrong reason before they failed for the right one.
+ *
+ * AND THEN IT KEPT DOING EXACTLY THAT. The re-anchor to `const fullyComplete`
+ * landed on the DECLARATION — two lines into the component — and still ran to
+ * the end of the file, so the slice still contained the not-yet-approved arm.
+ * Measured by mutation 2026-09-21: deleting the terminal sentence outright
+ * ("Approved. Your payout releases {PAYOUT_HOLD_HOURS} hours after approval…")
+ * left all six tests GREEN, because `PAYOUT_HOLD_HOURS` and the word "payout"
+ * were still inside the slice four times over — from the other branch. The one
+ * regression this file says hurt most, silence in the completed state, was the
+ * one it could not see.
+ *
+ * So take the branch itself: the parenthesised consequent of
+ * `fullyComplete ? ( … )`, matched by paren depth on the comment-blanked copy
+ * so a `(` in the prose above cannot move the boundary.
  */
 function terminalBranch(): string {
-  const at = SRC.indexOf("const fullyComplete");
-  expect(at, "SubmittedStep no longer names its terminal branch `fullyComplete`").toBeGreaterThan(-1);
-  return SRC.slice(at);
+  const cond = code.indexOf("fullyComplete ? (");
+  expect(cond, "SubmittedStep no longer branches its notice on `fullyComplete ? (`").toBeGreaterThan(-1);
+  const open = code.indexOf("(", cond + "fullyComplete ?".length);
+  let depth = 0;
+  for (let i = open; i < code.length; i += 1) {
+    if (code[i] === "(") depth += 1;
+    else if (code[i] === ")") {
+      depth -= 1;
+      if (depth === 0) return SRC.slice(open + 1, i);
+    }
+  }
+  throw new Error("SubmittedStep's `fullyComplete ? (` never closes");
 }
 
 describe("the helper is told when the money actually moves", () => {
@@ -126,3 +149,9 @@ describe("the schedule the copy describes is the one the cron runs", () => {
     expect(PAYOUT_HOLD_HOURS).toBe(24);
   });
 });
+
+// SILENCE IN THE COMPLETED STATE — the regression this file exists for. Until
+// 2026-09-21 this exact mutation SURVIVED (terminalBranch() ran to the end of
+// the file and read the other branch's copy); it now fails on the missing
+// PAYOUT_HOLD_HOURS inside the approved arm.
+// @mutate src/components/activity/appliedJobCard/steps/SubmittedStep.tsx | Approved. Your payout releases {PAYOUT_HOLD_HOURS} hours after approval, | Approved.

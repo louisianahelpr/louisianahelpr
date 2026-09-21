@@ -6,7 +6,7 @@
  * fails on any inventory file with neither a credit nor a reason here.
  */
 import type { Page } from "@playwright/test";
-import type { Account } from "./harness";
+import { TEXTLIKE, type Account } from "./harness";
 
 export interface FormSpec {
   name: string;
@@ -44,8 +44,13 @@ const pressIfPresent = async (page: Page, name: RegExp) => {
 const openSearch = async (page: Page) => {
   const trigger = page.locator("[data-search-trigger]").first();
   if (await trigger.isVisible().catch(() => false)) await trigger.click();
-  // The field mounts and animates open; the sweep must not race the mount.
-  await page.locator('[data-search-trigger-slot] input, input[type="search"]').first().waitFor({ timeout: 5_000 }).catch(() => {});
+  // The field mounts and animates open, so the sweep must not race it. Waited
+  // for by TEXTLIKE — the sweep's OWN definition of a field — rather than a
+  // per-page selector: /legal carries its own trigger and a plain text input,
+  // while the ScreenHeaderRow surfaces put a type=search inside the slot, and
+  // a wait that only knew one of those shapes would silently time out on the
+  // other and hand the sweep a half-open field.
+  await page.locator(TEXTLIKE).filter({ visible: true }).first().waitFor({ timeout: 5_000 }).catch(() => {});
 };
 
 export const FORMS: FormSpec[] = [

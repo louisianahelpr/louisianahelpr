@@ -14,12 +14,14 @@ hand-edit the numbers.*
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
 | **`src/test/*.test.ts*`** | 193 | **193 — COMPLETE** | **0** |
-| `src/test/edge/` (money) | 53 | 41 | 12 |
+| **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
 | Playwright `e2e/**` | 60 | 0 | 60 |
 | colocated beside components | 336 | 3 | 333 |
-| **total** | **642** | **237** | **405** |
+| **total** | **642** | **249** | **393** |
 
-### Hollow guards found in the edge row so far
+**ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
+
+### The seven hollow guards found in the edge row
 
 | guard | what was deletable with every test still green |
 |---|---|
@@ -29,6 +31,12 @@ hand-edit the numbers.*
 | `stalled-completion-reminder` | `.is(col, null)` — the idempotency mark. Two overlapping runs would both escalate, paging admin and both parties twice. |
 | `auto-release-payment` | `if (pi.status !== "succeeded")` — the only check between an uncaptured charge and paying the helper money the platform never collected. All 53 edge guards stayed green, 818 tests. |
 | `sharedImports` | its own comment stripper destroyed 53 of 96 edge files, so it covered whichever happened to survive. |
+| `slack-ops-alert` | the **entire Slack-rejection branch**. 9/9 green with it gone — so in the one component whose job is to tell a human things are broken, a revoked token, a renamed channel or an uninvited bot was indistinguishable from a delivered alert. |
+
+Also closed along the way, as *missing* guards rather than blind ones: the
+`claimPayout` zero-row insert (`{ data: [], error: null }` — believing you hold
+a claim you do not hold, which is the double-transfer the protocol exists to
+stop), and client/server whole-cent parity on the tip paths.
 
 The pattern has held every single time: **the guard was blind, the deployed
 system was correct.** Every one was verified live against prod before the claim

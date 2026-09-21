@@ -138,6 +138,10 @@ export function ProfileBadge({
         </button>
       </PopoverTrigger>
       <PopoverContent
+        // role="dialog" with no name announces as bare "dialog", which for a
+        // per-badge explainer tells the user nothing about WHICH badge they
+        // just opened. The trigger already names it; mirror that.
+        aria-label={`${label} — what this means`}
         align="start"
         sideOffset={6}
         className="w-64 rounded-2xl shadow-lg"

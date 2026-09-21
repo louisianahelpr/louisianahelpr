@@ -487,3 +487,8 @@ describe("useCurrentUser", () => {
     expect(mocks.fromMock).not.toHaveBeenCalled();
   });
 });
+
+// "We could not determine your role" reported as "you are not an admin" — the
+// 2026-08-31 outage that bounced a real admin to /dashboard with nothing on
+// screen to say a lookup had failed. One flipped field is the whole regression.
+// @mutate src/hooks/useCurrentUser.ts | adminCheckFailed: !adminResult.ok | adminCheckFailed: false

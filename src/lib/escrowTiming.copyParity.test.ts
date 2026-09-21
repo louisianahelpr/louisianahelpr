@@ -391,3 +391,9 @@ describe("escrow/dispute/revision windows — copy must not restate the clock", 
     ).toMatch(/(?:^|\n)\s*import\s[\s\S]*?from\s+["'][^"']*_shared\/escrowTiming["']/);
   });
 });
+
+// THE WINDOW MOVING is half of what this file is for (the other half is a new
+// literal appearing). Shorten the dispute clock in the trigger that enforces
+// it and every "72-hour window" sentence in the app becomes a false promise —
+// the dispute card that said "72 hours" beside a 48-hour countdown, exactly.
+// @mutate supabase/migrations/20260330201452_be56defe-6968-411c-8c3d-167785e905be.sql | NEW.dispute_deadline := NEW.disputed_at + interval '72 hours'; | NEW.dispute_deadline := NEW.disputed_at + interval '48 hours';

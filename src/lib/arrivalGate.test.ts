@@ -390,3 +390,9 @@ describe("server refusal copy (lifecycleErrors) — one stamp, named plainly", (
     }
   });
 });
+
+// THE RULE ITSELF, in the one place both runtimes read it. Swapping the
+// poster's stamp for the Helpr's own claim is the pre-VN-33 world where a
+// Helpr could unlock Working and Done by tapping Arrived — the exact cheat
+// the owner's 2026-09-19 decision names.
+// @mutate supabase/functions/_shared/arrivalRule.ts | return !!job?.poster_confirmed_arrival_at; | return !!job?.helper_arrived_at;

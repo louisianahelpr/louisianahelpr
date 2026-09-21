@@ -82,7 +82,10 @@ vi.mock("@/hooks/useMapKitJs", () => ({
 
 /** Every MapStub the component constructs, newest last — lets a test assert
  *  what the camera was actually told to do. */
-const mapInstances: Array<{ setRegionAnimated: ReturnType<typeof vi.fn> }> = [];
+const mapInstances: Array<{
+  setRegionAnimated: ReturnType<typeof vi.fn>;
+  addAnnotations: ReturnType<typeof vi.fn>;
+}> = [];
 
 /** The smallest `window.mapkit` the component's lifecycle can run against. */
 function installMapKitStub() {
@@ -104,7 +107,7 @@ function installMapKitStub() {
     annotationForCluster?: (c: unknown) => unknown;
     constructor(el: HTMLElement) {
       this.element = el;
-      mapInstances.push(this as unknown as { setRegionAnimated: ReturnType<typeof vi.fn> });
+      mapInstances.push(this as unknown as (typeof mapInstances)[number]);
     }
     addAnnotations = vi.fn();
     removeAnnotations = vi.fn();
@@ -191,14 +194,31 @@ describe("BrowseMap pins", () => {
   // badge was later removed too (redundant with the list-view toolbar's "N
   // jobs" label) — this test now just verifies loaded RPC rows render as
   // map markers instead of an empty-state.
+  //
+  // THIS TEST USED TO WAIT FOR NOTHING. It was
+  // `await waitFor(() => expect(screen.queryByText("Empty map for now."))
+  // .not.toBeInTheDocument())` — and the map's FIRST paint, before the RPC has
+  // resolved, has no empty-state card either (`loading` renders the surface,
+  // not the card). So the callback passed on poll #1 and the assertion proved
+  // only that React mounted; it was on the GRANDFATHERED list in
+  // `src/test/waitForEmptyIsVacuous.test.ts` for exactly that reason.
+  //
+  // Wait for the DATA instead: the rows reach MapKit as annotations, and only
+  // once `addAnnotations` has been handed three of them is the absence of the
+  // empty state a statement about this component's behaviour.
   it("renders pins for the loaded RPC rows instead of the empty state", async () => {
     rpcResolver.value = [makeJob(1), makeJob(2), makeJob(3)];
     const { BrowseMap } = await import("./BrowseMap");
     render(<BrowseMap />);
 
-    await waitFor(() => {
-      expect(screen.queryByText("Empty map for now.")).not.toBeInTheDocument();
-    });
+    await screen.findByTestId("browse-map-surface");
+    await waitFor(() => expect(mapInstances.length).toBeGreaterThan(0));
+    const map = mapInstances[mapInstances.length - 1];
+    await waitFor(() => expect(map.addAnnotations).toHaveBeenCalled());
+    const calls = map.addAnnotations.mock.calls;
+    const pinned = calls[calls.length - 1]?.[0] as unknown[];
+    expect(pinned).toHaveLength(3);
+    expect(screen.queryByText("Empty map for now.")).not.toBeInTheDocument();
   });
 });
 
@@ -462,3 +482,8 @@ describe("BrowseMap pin popup — reuses JobCard via mapJobToEnrichedJob", () =>
     expect(await screen.findByText("Urgent")).toBeInTheDocument();
   });
 });
+
+// B1/B3 + 2026-09-19: the map's viewer-local cull. Drop it and applied,
+// dismissed and not-saved jobs pin the board again while the list hides them —
+// "map shows 7 jobs. list shows 4."
+// @mutate src/components/BrowseMap.tsx | return filtered.filter((j) => !isJobExcludedForViewer(j, exclusions)); | return filtered;

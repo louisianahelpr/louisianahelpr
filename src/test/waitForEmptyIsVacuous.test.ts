@@ -136,7 +136,6 @@ function testFiles(): string[] {
  */
 const GRANDFATHERED: readonly string[] = [
   "src/components/AppLockGate.test.tsx",
-  "src/components/BrowseMap.test.tsx",
   "src/components/profile/PublicReviewWall.test.tsx",
   "src/hooks/useAuthReady.test.tsx",
   "src/hooks/useDrivingTime.bound.test.tsx",

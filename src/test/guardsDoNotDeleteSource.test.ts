@@ -55,7 +55,6 @@ const GRANDFATHERED: readonly string[] = [
   "src/components/profile/ProfileTabFallback.test.tsx",
   "src/components/profile/profileTabShell.test.ts",
   "src/components/ui/dialogShell.test.ts",
-  "src/config/showSeedJobs.parity.test.ts",
   "src/lib/referralEarnings.test.tsx",
   "src/test/aasaRouteParity.test.ts",
   "src/test/activityTabLabelsFitAPhone.test.ts",

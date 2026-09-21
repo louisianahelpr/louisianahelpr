@@ -186,6 +186,13 @@ describe("fetchPostedActivityDetail — My Posts decoration", () => {
     // fails if anyone removes it: the mock returns nothing for the paid query,
     // exactly as prod would when the only row is pending.
     setResponse("tips|select,in:job_id=j1,eq:tipper_id=u1,eq:payment_status=paid", { data: [], error: null });
+    // AND the read the query BECOMES if the `paid` predicate is dropped, with
+    // the abandoned pending row still in it. Without this line the mutation
+    // this test exists to catch produced an UNCONFIGURED key, the mock's
+    // `{ data: [], error: null }` default answered it, and `tipped` came back
+    // false anyway — the test passed either way and proved nothing about the
+    // filter. The registered pending row is what makes the removal visible.
+    setResponse("tips|select,in:job_id=j1,eq:tipper_id=u1", { data: [{ job_id: "j1" }], error: null });
     setResponse("reviews|select,in:job_id=j1,eq:reviewer_id=u1", { data: [], error: null });
     const inputs = postedDetailInputs([job({ id: "j1", status: "completed", helper_id: "helper-1" })]);
     const result = await fetchPostedActivityDetail("u1", inputs);
@@ -370,3 +377,8 @@ describe("fetchAppliedActivityDetail — My Jobs decoration", () => {
     expect(result.latestTracking).toEqual({});
   });
 });
+
+// The `paid` predicate on the tips read. Without it the abandoned `pending`
+// row create-payment writes before Stripe counts as a tip, locking the Tip
+// button to a disabled "Tipped" forever.
+// @mutate src/hooks/useActivityData.ts | .eq("payment_status", "paid") |

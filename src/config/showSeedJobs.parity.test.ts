@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { blankNonCode } from "../test/helpers/blankNonCode";
+
 import {
   SEED_GATED_SURFACES,
   SEED_VISIBILITY_AUTHORITY,
@@ -389,8 +391,17 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // it comes back as live code, this file's whole premise is wrong.
     // Comments are stripped first: showSeedJobs.ts names the retired constant
     // in prose on purpose, so the next reader can find out where it went.
-    const stripComments = (src: string) =>
-      src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[^\n"'`]*\/\/.*$/gm, "");
+    //
+    // WAS a two-regex stripper (`/\/\*[\s\S]*?\*\//g`, then a line-comment
+    // pass). A regex does not know it is inside a string, so the `/` + `*` in
+    // a regex literal or a URL opened a "comment" that ran to the next `*` +
+    // `/` anywhere later in the file and DELETED everything between — 157 of
+    // 1,054 source files in this repo lose real code to that chain. A scan
+    // over an emptied file finds nothing and reports green, which is this
+    // guard's own failure mode pointed inward. `blankNonCode` is a single
+    // string-aware pass that BLANKS rather than deletes (and blanks string
+    // bodies too, so the identifier only counts as live code), so no file this
+    // walker visits can be silently emptied before it is searched.
     const srcDir = resolve(__dirname, "..");
     const offenders: string[] = [];
     const walk = (dir: string) => {
@@ -410,7 +421,7 @@ describe("fixture-job visibility — one switch, every surface", () => {
           } catch {
             continue;
           }
-          if (stripComments(content).includes("SHOW_SEED_JOBS_PUBLICLY")) {
+          if (blankNonCode(content).includes("SHOW_SEED_JOBS_PUBLICLY")) {
             offenders.push(path);
           }
         }
@@ -420,3 +431,9 @@ describe("fixture-job visibility — one switch, every surface", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// The seed gate on the anon landing teaser — the surface whose omission WAS
+// the 2026-09-02 bug. Its latest definition is 20260904203654; strip the gate
+// there and the flag flips every other surface quiet while the public page
+// keeps advertising fixture jobs.
+// @mutate supabase/migrations/20260904203654_browse_hides_jobs_above_helper_credential_tier.sql | AND (NOT j.is_seed OR NOT public.seed_jobs_hidden_publicly()) |

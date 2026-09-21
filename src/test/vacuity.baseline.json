@@ -81,7 +81,6 @@
     "src/lib/locationUtils.test.ts",
     "src/lib/pricingGuide.test.ts",
     "src/lib/recurringSchedule.parity.test.ts",
-    "src/lib/routePrefetch.test.ts",
     "src/lib/simpleMode.test.ts",
     "src/lib/voiceNoteLimitMatchesBucket.test.ts",
     "src/pages/activity/ActivityEmptyState.loadError.test.tsx",

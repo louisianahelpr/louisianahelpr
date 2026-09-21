@@ -24,6 +24,7 @@
  * anywhere in the repo — it was created outside migrations — which is exactly
  * why the second, live guard exists.)
  */
+// @mutate supabase/migrations/20260914192035_alert_followups_support_cron_coverage_client_origin.sql | ('extend-boosts-hourly',   interval '3 hours'),\n    ('prune-cron-run-details', interval '30 hours') | ('extend-boosts-hourly',   interval '3 hours')
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";

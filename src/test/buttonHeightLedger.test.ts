@@ -5,6 +5,7 @@
  *   2. its legacy ledger only shrinks — a listed file that no longer hand-sets
  *      a Button height must be removed from the list.
  */
+// @mutate scripts/eslint-rules/no-button-height-override.js | h-(?:\d\|\[) | h-(?:\d)
 import { describe, expect, it } from "vitest";
 import { ESLint, RuleTester } from "eslint";
 import tseslint from "typescript-eslint";

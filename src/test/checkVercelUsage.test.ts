@@ -12,6 +12,7 @@
  * findRecentDuplicate (supabase/functions/_shared/marketing/meta.ts) does —
  * stubbed globally, per src/test/marketingDuplicateScan.test.ts.
  */
+// @mutate scripts/lib/vercelUsage.mjs | const warn = anyCritical(evals); | const warn = false;
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   METRICS,

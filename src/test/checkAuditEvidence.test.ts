@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+// @mutate scripts/check-audit-evidence.mjs | ["screenshot", /[\w./-]+\.(?:png\|jpg\|jpeg\|webp\|gif)\b/i], | // removed
 // @ts-expect-error - plain .mjs tool script, no types
 import { analyzeReport } from "../../scripts/check-audit-evidence.mjs";
 

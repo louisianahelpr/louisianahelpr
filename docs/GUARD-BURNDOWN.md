@@ -10,11 +10,11 @@ means youre fixing it for good."*
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| `src/test/*.test.ts*` (the ratchet) | 190 | **77** | **113** |
+| `src/test/*.test.ts*` (the ratchet) | 190 | **88** | **102** |
 | `src/test/edge/` | 53 | 0 | 53 |
 | Playwright `e2e/**/*.spec.ts` | 60 | 0 | 60 |
 | colocated beside components | 336 | 0 | 336 |
-| **total** | **639** | **77** | **562** |
+| **total** | **639** | **88** | **551** |
 
 Only the first row is enforced today (`.github/workflows/vacuity.yml`, on every push
 and PR, plus a full mutation sweep nightly at 06:10 UTC). The ratchet's baseline may
@@ -28,7 +28,7 @@ there is not even listed as unproven.
 | MONEY | 4 | **DONE** — 129 → 125. Two real vacuities found. |
 | BROWSE | 5 | **DONE** — 125 → 120. One real vacuity found. |
 | VISUAL | 7 | **DONE** — 120 → 113. One real vacuity + one false-positive-prone guard fixed. |
-| AUTHZ | 11 | running (6 + 5) |
+| AUTHZ | 11 | **DONE** — 113 → 102. Three more real vacuities, two of them the worst found. |
 | SCHEMA | 13 | |
 | OTHER | 89 | |
 
@@ -68,6 +68,33 @@ Same bucket: `twoFontTypeSystem` scanned raw lines, so prose naming `font-serif`
 reported itself — the false positive that bit this repo earlier in the month. Now
 blanks comments while preserving line numbers, and has an inventory floor; an empty
 `walk()` would have passed both of its scans vacuously.
+
+**AUTHZ found the two worst.**
+
+`adminEndpointAuthz` passed **16/16** with the entire admin check replaced by
+`const isAdmin = true` — an endpoint that deletes ANY account for ANY caller
+holding ANY valid JWT. It was satisfied by a `// Use has_role RPC` comment above
+the hole plus an error string naming has_role. Now strips comments and requires a
+real `.rpc()` call.
+
+`banEvasionSurface` passed **6/6** with the whole pardon-release `DELETE FROM
+public.retained_bans` removed — so an admin lifting a ban leaves the fingerprints
+on file and the pardoned person is silently re-banned at next signup, quoting the
+original reason. Its `liveDefinition()` returned the WHOLE migration file, and a
+repair block elsewhere supplied the strings. Now bounded at the function's own
+`$$…$$` body.
+
+A seventh: `roleNeutralCopy`'s allowlist test was named "carries a reason AND still
+matches something" but the second half was never implemented, so a stale exemption
+could not fail. It went red immediately on an entry standing open over every string
+in `src/` naming the company.
+
+LIVE STATE VERIFIED for all of them — the guards were blind, the systems were
+correct: `job_tracking`'s INSERT policy carries the job-membership check; the
+urgent-fee constraints are intact; `enforce_retained_ban` carries the pardon
+release and the email/phone checks; the deployed `admin-delete-user` makes a real
+`has_role` RPC call and writes `admin_audit_log`; prod holds 0 stuck seed splits;
+the real CTA computes to a genuine `radial-gradient`.
 
 Also recorded: `giftCardNaming.test.ts` is a regex for a retired product name. It
 never sees an amount and **could not have caught** the same-day bug where the client

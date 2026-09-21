@@ -75,7 +75,7 @@ async function churnSearchInput(page: Page, count: number, prefix: string): Prom
   await expect(input).toBeVisible();
 
   await input.evaluate(
-    (el: HTMLInputElement, args: { count: number; prefix: string }) => {
+    async (el: HTMLInputElement, args: { count: number; prefix: string }) => {
       const nativeSetter = Object.getOwnPropertyDescriptor(
         window.HTMLInputElement.prototype,
         "value",
@@ -88,11 +88,58 @@ async function churnSearchInput(page: Page, count: number, prefix: string): Prom
         const value = i % 2 === 0 ? `${args.prefix}${i}` : `${args.prefix}`;
         nativeSetter.call(el, value);
         el.dispatchEvent(new Event("input", { bubbles: true }));
+        // YIELD TO THE EVENT LOOP BETWEEN KEYSTROKES — load-bearing.
+        //
+        // Without this the whole loop is ONE synchronous task, so React 18's
+        // automatic batching collapses all `count` setState calls into a
+        // SINGLE render and a single commit. `useSearchParamMirror` then sees
+        // one state change and performs ONE write, not `count` of them: the
+        // "burst" this helper exists to create never happened, the circuit
+        // breaker is never approached, and every assertion below passes on a
+        // hook that has effectively done nothing. Measured 2026-09-21 by
+        // mutating the breaker to `const tripped = false` — the spec stayed
+        // green, because there was no burst to throttle.
+        //
+        // A real person typing produces one macrotask per keystroke. A
+        // `setTimeout(0)` per value reproduces that: 90 values still land in
+        // well under a second, far inside the hook's 10s rolling window.
+        await new Promise((r) => setTimeout(r, 0));
       }
     },
     { count, prefix },
   );
 }
+
+/**
+ * Count real `history.replaceState` calls. Installed as an init script so it
+ * is in place before any bundle code runs, and survives client-side nav.
+ *
+ * This is what makes the breaker OBSERVABLE from outside the app. The crash it
+ * prevents is WebKit-only (SecurityError past ~100 calls), and the happy-path
+ * project is Chromium — which throttles silently rather than throwing. So a
+ * spec that only asserts "the route did not crash" cannot fail in Chromium no
+ * matter what the hook does. Counting the navigator calls asserts the actual
+ * mechanism — the rate limiter limits the rate — on the engine this project
+ * runs, and leaves the crash assertions to prove the consequence under
+ * `happy-path-webkit` (nightly-webkit.yml).
+ */
+async function countReplaceState(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __rsCount?: number };
+    w.__rsCount = 0;
+    const orig = history.replaceState.bind(history);
+    history.replaceState = function (...args: Parameters<typeof orig>) {
+      w.__rsCount = (w.__rsCount ?? 0) + 1;
+      return orig(...args);
+    };
+  });
+}
+
+const readReplaceStateCount = (page: Page): Promise<number> =>
+  page.evaluate(() => (window as unknown as { __rsCount?: number }).__rsCount ?? 0);
+
+/** Mirrors WRITE_HARD_STOP in src/hooks/useSearchParamMirror.ts. */
+const WRITE_HARD_STOP = 60;
 
 test.describe("F-2 replaceState churn — circuit breaker holds under a real burst", () => {
   test("single session: rapid search + filter churn on /my-posts never crashes the route", async ({
@@ -101,14 +148,39 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
   }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
+    await countReplaceState(page);
     const { pageErrors, consoleErrors } = collectErrors(page);
 
     await page.goto("/my-posts");
     await expect(page.getByRole("heading", { name: /my posts/i })).toBeVisible({ timeout: 15_000 });
 
+    const rsBefore = await readReplaceStateCount(page);
+
     // Burst #1: search box, 90 distinct values well inside a 10s window —
     // comfortably past WRITE_HARD_STOP (60) if the breaker did not exist.
     await churnSearchInput(page, 90, "burst");
+
+    // The burst was REAL, and the breaker capped it.
+    //
+    // Lower bound: without a genuine per-keystroke burst (see churnSearchInput)
+    // React batches the whole loop into one write and everything below passes
+    // vacuously. Requiring the mirror to have reached its own reporting
+    // threshold proves the hook was actually driven.
+    //
+    // Upper bound: this IS the circuit breaker's contract. 90 distinct values
+    // were typed inside one 10s window; past WRITE_HARD_STOP (60) the hook must
+    // stop calling the navigator. A handful of extra calls are allowed for
+    // react-router's own navigations (the initial route render, the search
+    // panel opening) which do not pass through the mirror.
+    const rsAfterSearch = (await readReplaceStateCount(page)) - rsBefore;
+    expect(
+      rsAfterSearch,
+      "the churn really reached the mirror (no React batching collapse)",
+    ).toBeGreaterThanOrEqual(25);
+    expect(
+      rsAfterSearch,
+      `circuit breaker capped the burst at WRITE_HARD_STOP (${WRITE_HARD_STOP}) + router overhead`,
+    ).toBeLessThanOrEqual(WRITE_HARD_STOP + 10);
 
     // Burst #2, immediately after: hammer the status-filter chips too, so the
     // mirror is fighting on BOTH state entries it owns (filter AND q) in the
@@ -186,3 +258,8 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     await helperCtx.close();
   });
 });
+
+// Proof this guard can fail: neuter the circuit breaker so the 90-write burst
+// reaches the navigator unthrottled, which is the exact pre-fix condition that
+// unmounted /my-posts into the error boundary.
+// @mutate src/hooks/useSearchParamMirror.ts | const tripped = times.length > WRITE_HARD_STOP; | const tripped = false;

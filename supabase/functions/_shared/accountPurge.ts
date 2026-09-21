@@ -106,7 +106,11 @@ const IDENTITY_BUCKETS = [
   "avatars",
   "id-documents",
   "user-documents",
-  "profile-videos",
+  // `profile-videos` removed 2026-09-21 along with the bucket itself
+  // (20260921212141). The helper intro-video feature was deleted long before,
+  // but its bucket outlived it: world-readable and open to any authenticated
+  // upload. Both loops below already tolerate a missing bucket, so this entry
+  // was harmless — just dead.
   "application-attachments",
 ] as const;
 

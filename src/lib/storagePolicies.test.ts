@@ -60,7 +60,7 @@ function deriveUpsertBuckets(): { buckets: string[]; unresolved: string[] } {
       if (!/upsert:\s*true/.test(src.slice(i, end === -1 ? i + 400 : end))) continue;
       const owner = froms.filter((f) => f.at < i).pop();
       if (!owner) { unresolved.push(`${rel}: .upload() with no storage.from() before it`); continue; }
-      let bucket = owner.literal;
+      let bucket: string | undefined = owner.literal;
       if (!bucket && owner.ident) {
         bucket = new RegExp(`\\b${owner.ident}\\s*=\\s*["']([^"']+)["']`).exec(src)?.[1];
       }

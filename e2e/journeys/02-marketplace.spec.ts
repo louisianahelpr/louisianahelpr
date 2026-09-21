@@ -667,8 +667,15 @@ test.describe.serial("marketplace chain", () => {
       const seen: string[] = [];
       for (let i = 0; i < 8; i++) {
         const c = await card(hp, "/my-jobs", "Needs You");
-        const before = c.getByText("Add a before photo", { exact: true });
-        const after = c.getByText("Add an after photo", { exact: true });
+        // "Before Photo" / "After Photo" — the PhotoProofCaptureChip labels.
+        // These read "Add a before photo" / "Add an after photo" until
+        // 2026-09-21, which is PhotoProofStep's title; that panel has ZERO call
+        // sites in src/, so this loop was watching for words nothing renders.
+        // The same stale pair had already cost the production money loop a
+        // 30-second timeout that read like a broken completion flow. Guarded
+        // now by src/test/e2eExactLocatorsMatchRealCopy.test.ts.
+        const before = c.getByText("Before Photo", { exact: true });
+        const after = c.getByText("After Photo", { exact: true });
         const start = c.getByRole("button", { name: /^Start Working$/ });
         // "Mark Job Complete" (owner, 2026-09-14; was "Request My Payout"). Since
         // VN-21 the tracker's Done CTA is the card's ONE primary and the
@@ -688,7 +695,7 @@ test.describe.serial("marketplace chain", () => {
           await dialog.getByRole("button", { name: "Upload" }).click();
           await expect(dialog, `${label} photo dialog never closed`).toBeHidden({ timeout: 45_000 });
           await expect(
-            c.getByText(label === "Before" ? "Add a before photo" : "Add an after photo", { exact: true }),
+            c.getByText(label === "Before" ? "Before Photo" : "After Photo", { exact: true }),
             `the ${label.toLowerCase()} photo ask is still on the card 30s after the upload dialog closed`,
           ).toBeHidden({ timeout: 30_000 });
           await assertHealthy(hp, `${label} photo`);

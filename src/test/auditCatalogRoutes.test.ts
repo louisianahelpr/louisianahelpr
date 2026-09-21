@@ -82,14 +82,16 @@ function resolveRoute(url: string): string | null {
   return null;
 }
 
-function screensIn(listName: string): { name: string; url: string }[] {
+function screensIn(listName: string): { name: string; url: string; redirectsTo?: string }[] {
   const block = new RegExp(
     `export const ${listName}[^=]*=\\s*\\[([\\s\\S]*?)\\n\\];`,
   ).exec(catalogSrc);
   if (!block) throw new Error(`${listName} not found in auditRoutes.ts`);
-  return [...block[1].matchAll(/name:\s*"([^"]+)"[\s\S]*?url:\s*"([^"]+)"/g)].map(
-    (m) => ({ name: m[1], url: m[2] }),
-  );
+  return [
+    ...block[1].matchAll(
+      /name:\s*"([^"]+)"[\s\S]*?url:\s*"([^"]+)"(?:\s*,\s*redirectsTo:\s*"([^"]+)")?/g,
+    ),
+  ].map((m) => ({ name: m[1], url: m[2], redirectsTo: m[3] }));
 }
 
 /**
@@ -133,7 +135,53 @@ function elementFor(path: string): string | null {
   return null;
 }
 
+/**
+ * Is this route element an UNCONDITIONAL forward?
+ *
+ * Two shapes count: a literal `<Navigate …>` at the route, and a wrapper
+ * component whose whole body is one (ActivityLegacyRedirect, DataRightsRedirect,
+ * ShortLinkRedirect).
+ *
+ * `<MarketingRedirect>` is the shape that must NOT count, and the reason the
+ * test below is derived rather than name-matched: it takes `children` and
+ * renders them for a guest, so `/` and `/browse` genuinely paint the screens
+ * their catalog rows name. The discriminator is exactly that — a wrapper that
+ * can render children is a conditional gate; one that cannot is a redirect.
+ */
+function isUnconditionalRedirect(element: string): boolean {
+  if (/<Navigate\b/.test(element)) return true;
+  for (const m of element.matchAll(/<(\w*Redirect)\b/g)) {
+    const name = m[1];
+    const importLine = new RegExp(
+      `(?:import\\s+${name}\\s+from|const ${name} = lazy\\(\\(\\) => import\\()\\s*"([^"]+)"`,
+    ).exec(appSrc);
+    if (!importLine) continue;
+    const rel = importLine[1].replace(/^@\//, "src/").replace(/^\.\//, "src/");
+    let src: string;
+    try {
+      src = readFileSync(resolve(repoRoot, `${rel}.tsx`), "utf8");
+    } catch {
+      try {
+        src = readFileSync(resolve(repoRoot, `${rel}.ts`), "utf8");
+      } catch {
+        continue;
+      }
+    }
+    // Renders whatever it was given → it is a gate around a real screen.
+    if (/\bchildren\b/.test(src)) continue;
+    if (/<Navigate\b|\bnavigate\(/.test(src)) return true;
+  }
+  return false;
+}
+
 // @mutate src/App.tsx | <Route path="/help" | <Route path="/helpdesk"
+// Proves the alias classification is load-bearing: drop the declaration off a
+// row whose route is a <Navigate> and it goes back to being counted as an
+// independently audited screen.
+// @mutate e2e/happy-path/auditRoutes.ts | { name: "settings", url: "/settings", redirectsTo: "/profile" }, | { name: "settings", url: "/settings" },
+// Proves reclassification cannot open a hole: remove the row that actually
+// audits the gift_card tab and /gift-card's alias target is orphaned.
+// @mutate e2e/happy-path/auditRoutes.ts | { name: "profile-gift-card", url: "/profile?tab=gift_card" }, | 
 describe("audit catalog matches the real route table", () => {
   it("every ANON screen resolves to a registered, publicly reachable route", () => {
     const broken = screensIn("ANON_SCREENS")
@@ -214,6 +262,73 @@ describe("audit catalog matches the real route table", () => {
     expect(
       wrong,
       `UNSWEPT_ROUTES entries that no longer describe the app:\n  - ${wrong.join("\n  - ")}`,
+    ).toEqual([]);
+  });
+
+  /**
+   * ALIASES MUST BE DECLARED AS ALIASES.
+   *
+   * A catalog row whose route is a `<Navigate>` does not render a screen of its
+   * own — it renders somebody else's. Until 2026-09-21 nothing said so, and the
+   * sweeps counted each one as an independently audited screen: measured over 92
+   * screens, 15 landed somewhere other than the route requested and six of those
+   * were a second name for a screen the catalog already had a row for. Every
+   * sweep report therefore overstated its own coverage, in the one direction a
+   * green run cannot reveal.
+   *
+   * This is derived from App.tsx, not from the catalog, so it is not a list
+   * checked against itself: if a route BECOMES a redirect, the row that points
+   * at it starts failing until somebody classifies it.
+   */
+  it("every catalog row pointing at a router redirect declares redirectsTo", () => {
+    const rows = [
+      ...screensIn("ANON_SCREENS"),
+      ...screensIn("AUTHED_SCREENS"),
+      ...screensIn("ADMIN_SCREENS"),
+    ];
+    const undeclared = rows
+      .map((s) => {
+        const r = resolveRoute(s.url);
+        if (!r) return null;
+        const el = elementFor(r);
+        if (!el || !isUnconditionalRedirect(el)) return null;
+        if (s.redirectsTo) return null;
+        return `${s.name} (${s.url}) → its route element is a redirect (${el.trim().slice(0, 50)}…) but the row claims to audit a screen of its own`;
+      })
+      .filter(Boolean);
+
+    expect(
+      undeclared,
+      "Catalog rows that silently audit a DIFFERENT screen than they name. Add " +
+        "`redirectsTo: \"<destination>\"` to each so it stops being counted as " +
+        `coverage of its own route:\n  - ${undeclared.join("\n  - ")}`,
+    ).toEqual([]);
+  });
+
+  /**
+   * The failure mode reclassification itself creates. `/gift-card` was the ONLY
+   * row rendering the Profile gift_card tab; marking it an alias without adding
+   * `profile-gift-card` would have turned an overstated count into a real hole,
+   * silently. So every alias target must have a row of its own, and that row
+   * must not itself be an alias.
+   */
+  it("every redirectsTo target is audited by a real (non-alias) row", () => {
+    const rows = [
+      ...screensIn("ANON_SCREENS"),
+      ...screensIn("AUTHED_SCREENS"),
+      ...screensIn("ADMIN_SCREENS"),
+    ];
+    const real = new Set(rows.filter((s) => !s.redirectsTo).map((s) => s.url));
+    const orphaned = rows
+      .filter((s) => s.redirectsTo && !real.has(s.redirectsTo))
+      .map(
+        (s) =>
+          `${s.name} forwards to ${s.redirectsTo}, and no non-alias catalog row audits that URL — the destination screen is now swept by nothing`,
+      );
+
+    expect(
+      orphaned,
+      `Alias destinations with no row of their own:\n  - ${orphaned.join("\n  - ")}`,
     ).toEqual([]);
   });
 

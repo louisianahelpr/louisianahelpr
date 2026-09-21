@@ -54,6 +54,70 @@ export interface ScreenSpec {
    * copies of any finding. Marked here rather than maintaining a second list.
    */
   seededOnly?: boolean;
+  /**
+   * This row's URL is a permanent router forward, and the value is where it
+   * forwards TO. The row is still visited — the redirect is a contract worth
+   * regressing on, and several of these URLs are live inbound links — but it
+   * renders the DESTINATION's screen, so it is not coverage of a screen of its
+   * own and must not be counted as one.
+   *
+   * WHY THIS FIELD EXISTS (measured 2026-09-21)
+   * Across 92 audited screens, 15 routes landed somewhere other than the route
+   * requested, and the catalog counted every one of them as an independently
+   * audited screen. Seven resolved into the Profile shell:
+   *
+   *     /settings        -> /profile                      (= `profile-landing`)
+   *     /earnings        -> /profile?tab=earnings          (= `profile-earnings`)
+   *     /schedule        -> /profile?tab=schedule          (= `profile-schedule`)
+   *     /availability    -> /profile?tab=availability      (= `profile-availability`)
+   *     /saved-helprs    -> /profile?tab=saved_helpers     (= `profile-saved-helpers`)
+   *     /saved-helpers   -> /saved-helprs -> same tab      (= `profile-saved-helpers`)
+   *     /gift-card       -> /profile?tab=gift_card         (= `profile-gift-card`)
+   *
+   * Six of those seven are a SECOND name for a screen the catalog already has
+   * a row for, so every sweep report said "N screens audited" with six of the N
+   * being re-renders of screens it had already measured. A headline coverage
+   * number that counts the same screen twice is the same defect as a row that
+   * renders NotFound and reports clean — the number flatters, silently.
+   *
+   * NOTHING IS DELETED. Every one of these is a live inbound link:
+   * `_shared/giftCardEmail.ts` mails `/gift-card?claim=<token>`;
+   * `ActivityLegacyRedirect` exists specifically because a bare <Navigate>
+   * dropped the query string off links already in the wild; App.tsx documents
+   * `/saved-helpers` as the US spelling people type and `/data-rights` as a URL
+   * published in the Privacy Policy and the App Store listing. Deleting the row
+   * would stop regressing a redirect real users depend on. Reclassifying it
+   * keeps the visit and stops the double count.
+   *
+   * `auditCatalogRoutes.test.ts` derives the truth from App.tsx rather than from
+   * this field, so a row that redirects and does NOT declare it fails, and a
+   * declared target with no row of its own fails too.
+   */
+  redirectsTo?: string;
+}
+
+/**
+ * The screens a catalog list actually AUDITS: one row per rendered screen, with
+ * the redirecting aliases removed. Use this for any "N screens" number. The
+ * full list is still what gets visited — see `redirectsTo`.
+ */
+export function distinctScreens(rows: ScreenSpec[]): ScreenSpec[] {
+  return rows.filter((s) => !s.redirectsTo);
+}
+
+/**
+ * Where the router is expected to land for a given catalog URL, or undefined
+ * when it should not move at all. One source of truth for every sweep that
+ * asserts it did not silently audit a different screen — empty-state-sweep and
+ * overlay-sweep each hand-maintained their own copy of this map, which is
+ * exactly how the catalog and the sweeps drift apart.
+ */
+export function expectedLandingFor(url: string): string | undefined {
+  // Every signed-in visitor to a job detail is forwarded to the dashboard
+  // (src/pages/JobDetail.tsx), so this cannot be a per-row literal.
+  if (url.startsWith("/jobs/")) return "/dashboard";
+  const row = [...ANON_SCREENS, ...AUTHED_SCREENS, ...ADMIN_SCREENS].find((s) => s.url === url);
+  return row?.redirectsTo;
 }
 
 /**
@@ -140,7 +204,10 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // an ANON sweep it lands on /login (the destination is behind
   // ProtectedRoute), exactly as it did before the merge. The real screen is
   // covered by `profile-legal` in AUTHED_SCREENS below.
-  { name: "data-rights", url: "/data-rights" },
+  // ALIAS. DataRightsRedirect forwards to /privacy (anon) — see redirectsTo.
+  // Kept because the Privacy Policy and the App Store listing both publish this
+  // URL, so it must keep proving it does not 404.
+  { name: "data-rights", url: "/data-rights", redirectsTo: "/privacy" },
   { name: "browse-guest", url: "/browse" },
   // The GUEST job preview — the page a shared `/jobs/{id}?ref=share` link opens.
   //
@@ -236,7 +303,10 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // every remaining route is enumerated here. Dynamic segments get concrete
   // fixture values; a route that redirects (many of these do, depending on
   // profile state) still gets audited, just as whatever it lands on.
-  { name: "activity", url: "/activity" },
+  // ALIAS. ActivityLegacyRedirect -> /my-posts, preserving the query string
+  // (a bare <Navigate> dropped it, which is why the wrapper component exists —
+  // i.e. there are live links in the wild carrying params).
+  { name: "activity", url: "/activity", redirectsTo: "/my-posts" },
   // RESTORED 2026-09-01. It was removed on 2026-08-23 because /analytics had
   // become a <Navigate> to /profile?tab=earnings, so the row would have audited
   // the Earnings tab under the wrong name and counted it twice. /analytics is a
@@ -247,8 +317,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // and both want auditing; the seeded audit helper is Elite.
   { name: "analytics", url: "/profile?tab=analytics" },
   { name: "auto-tip", url: "/profile?tab=auto_tip" },
-  { name: "availability", url: "/availability" },
-  { name: "earnings", url: "/earnings" },
+  { name: "availability", url: "/availability", redirectsTo: "/profile?tab=availability" },
+  { name: "earnings", url: "/earnings", redirectsTo: "/profile?tab=earnings" },
   // REMOVED 2026-08-23: Family & Care is behind FAMILY_ENABLED, which is off
   // (owner: "it seems pointless — you literally just post the job on their
   // behalf"). With the routes unregistered both rows rendered NotFound and
@@ -290,14 +360,27 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "user-profile-missing", url: "/user/10000000-0000-4000-8000-00000000dead" },
   // Both were listed as ANON until 2026-08-22, where ProtectedRoute meant they
   // rendered the login screen and the sweep filed it under their name.
-  { name: "gift-card", url: "/gift-card" },
+  // ALIAS, and the one that mattered most: `_shared/giftCardEmail.ts` mails
+  // /gift-card?claim=<token>, so this URL is in sent email. It forwards into
+  // the Profile Gift Card tab CARRYING the query (App.tsx builds the target by
+  // hand for exactly that reason). Reclassifying it revealed that the tab it
+  // lands on had no row of its own — `profile-gift-card` below is new, and
+  // until it existed the gift_card tab was audited only by accident, through
+  // an alias nobody had noticed was an alias.
+  { name: "gift-card", url: "/gift-card", redirectsTo: "/profile?tab=gift_card" },
+  { name: "profile-gift-card", url: "/profile?tab=gift_card" },
   // "benefits" (/benefits) removed 2026-08-31 with the page and its route —
   // the path now renders NotFound, which `not-found` already covers once.
   { name: "pets", url: "/profile?tab=pets" },
-  { name: "saved-helprs", url: "/saved-helprs" },
-  { name: "saved-helpers", url: "/saved-helpers" },
-  { name: "schedule", url: "/schedule" },
-  { name: "settings", url: "/settings" },
+  { name: "saved-helprs", url: "/saved-helprs", redirectsTo: "/profile?tab=saved_helpers" },
+  // Double hop: /saved-helpers -> /saved-helprs -> /profile?tab=saved_helpers.
+  // The US spelling of the brand's "helpr"; App.tsx keeps it because people
+  // type it. `redirectsTo` names the FINAL landing, which is what a sweep sees.
+  { name: "saved-helpers", url: "/saved-helpers", redirectsTo: "/profile?tab=saved_helpers" },
+  { name: "schedule", url: "/schedule", redirectsTo: "/profile?tab=schedule" },
+  // The only one of the seven that lands on BARE /profile — App.tsx deliberately
+  // does not pin it to a tab. So it is a duplicate of `profile-landing`.
+  { name: "settings", url: "/settings", redirectsTo: "/profile" },
   { name: "str-settings", url: "/profile?tab=str_settings" },
   { name: "work-record", url: "/profile?tab=work_record" },
   { name: "wrapped", url: "/profile?tab=wrapped" },

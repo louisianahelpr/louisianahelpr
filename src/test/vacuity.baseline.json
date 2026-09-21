@@ -9,7 +9,6 @@
   "generated": "2026-09-19",
   "unregistered": [
     "src/test/aasaRouteParity.test.ts",
-    "src/test/adminDeepLinkContract.test.ts",
     "src/test/adminDisputeSplitZero.test.tsx",
     "src/test/adminDisputeUnsettledCard.test.tsx",
     "src/test/adminJobsPaymentTone.test.ts",

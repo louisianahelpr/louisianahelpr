@@ -51,6 +51,21 @@ import { join, resolve } from "node:path";
  * So a new alert pointing at a view that does not exist, or hanging an
  * invented param on a real one, fails the day it is written — with no list for
  * anyone to remember to update.
+ *
+ * SHOWN ABLE TO FAIL, 2026-09-20. Both sides of the contract were mutated and
+ * both went red: re-introducing the original `/admin?job=<id>` bug in
+ * stalled-completion-reminder, and deleting the `?job=` READER in AdminJobs —
+ * which is what makes rule 2 derived from the world rather than from a list in
+ * this file.
+ *
+ * COVERAGE LIMIT, on the record: this is a source contract. It proves a link
+ * CAN resolve, not that the deployed function emits it or that the console
+ * renders it; and the deliberately-dropped third rule (the param must be read
+ * by the component THAT view mounts) means `/admin?view=people&job=x` passes
+ * while opening nothing. See the "not yet honoured" note at the foot.
+ *
+ * @mutate supabase/functions/stalled-completion-reminder/index.ts | `/admin?view=stalled` | `/admin?job=${job.id}`
+ * @mutate src/components/admin/AdminJobs.tsx | const target = searchParams.get("job"); | const target = searchParams.get("jobIdParamRemoved");
  */
 
 const REPO = resolve(__dirname, "..", "..");

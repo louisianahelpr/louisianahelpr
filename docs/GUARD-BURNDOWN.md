@@ -36,11 +36,16 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| **`src/test/*.test.ts*`** | 196 | **196 — COMPLETE** | **0** |
+| **`src/test/*.test.ts*`** | 199 | **199 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
-| Playwright `e2e/**` | 59 | 24 | 35 |
-| colocated beside components | 336 | 166 | 170 |
-| **total** | **644** | **439** | **205** |
+| Playwright `e2e/**` | 59 | 27 | 32 |
+| colocated beside components | 340 | 238 | 102 |
+| **total** | **651** | **517** | **134** |
+
+*Zero known-vacuous, zero `@mutate-exempt`: every one of the 517 carries a real
+registered mutation that was executed and killed it. The denominator moves as
+lanes add guards and as scaffolding is excluded — it is derived from
+`git ls-files`, never maintained by hand.*
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -127,6 +132,33 @@ registered mutation SURVIVED — it reversed a scan direction in another file,
 which is that file's property, not this one's. Registering the WRONG mutation
 is its own quiet failure mode: the guard leaves the burn-down counted as proven
 while nothing about it was tested.
+
+## Security coverage: 10 of 12 biometric gates were unobserved
+
+`requireBiometric()` short-circuits `if (!isNativePlatform) return true`, so
+under vitest it ALWAYS succeeds. A test that does not mock
+`@/lib/biometricGate` cannot see the gate at all — the whole Face ID
+confirmation is deletable with the suite green. It shipped that way twice, both
+in front of an account-takeover primitive: deleting a member's account (4/4
+green with the gate gone) and repointing a user's LOGIN EMAIL (5/5 green).
+
+Measured: twelve components call it, **two** drove a refusal. The other ten
+guard instant cash-outs, referral cash-outs, four payout-account operations,
+refunds, dispute settlements, single AND BULK payout runs, granting and
+removing admin, bans, and the login-email change.
+
+Worse than absent: **three of the five files that DID mock the gate mocked it
+to `true`** — which is not coverage but its opposite, removing the gate from
+the test's world so the surrounding assertions pass. Anyone counting "files
+that mock biometricGate" would have called this covered.
+
+**Every gate turned out to be present and correctly obeyed** — call count
+equalled guard count at all eight sites checked so far. Nothing was reachable
+without confirmation. The defect was purely that none of it was observable,
+which is its own kind of exposure: a gate nobody can see removed is a gate
+waiting to be removed.
+
+Ratcheted by `src/test/biometricGatesAreProven.test.ts`; 10 → 4 and falling.
 
 ## Two specs that are not checks at all
 

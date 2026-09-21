@@ -20,7 +20,17 @@
  * mock does not apply PostgREST filters, so the far-out job IS handed to the
  * function — which is exactly the point: the assertion is on the decision the
  * function makes, not on a query string.
+ *
+ * PROVEN ABLE TO FAIL 2026-09-21. Restoring the PRE-FIX decision — every
+ * candidate row expires, no `date_needed` predicate at all — un-books the
+ * five-days-out helper and the just-accepted one: 3 failed, 1 passed.
+ *
+ * The mutation deliberately targets the SWEEP's decision, not
+ * `CONFIRM_WINDOW_HOURS` in `_shared/confirmDeadline.ts`: this file imports
+ * that constant as its own oracle, so moving it moves both sides at once and
+ * proves nothing.
  */
+// @mutate supabase/functions/auto-expire-jobs/index.ts | return confirmDeadlineMs(j.date_needed, j.accepted_at) <= nowMs; | return true;
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

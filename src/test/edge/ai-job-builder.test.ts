@@ -10,7 +10,11 @@
  *
  * Runs the REAL function source through the edge harness. Auth and rate limit
  * were already present; these tests cover the new input bounds.
+ *
+ * PROVEN ABLE TO FAIL 2026-09-21. Widening the item bound from 8 to 800 — the
+ * free-relay hole reopened — lets nine messages through: 1 failed, 4 passed.
  */
+// @mutate supabase/functions/ai-job-builder/index.ts | const MAX_MESSAGES = 8; | const MAX_MESSAGES = 800;
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

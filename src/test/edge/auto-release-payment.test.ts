@@ -22,7 +22,22 @@
  *
  * Runs the REAL function source via the edge harness — only Stripe, Supabase,
  * the shared alert helpers, and the Deno runtime are doubles.
+ *
+ * PROVEN ABLE TO FAIL 2026-09-21, twice.
+ *
+ *   1. Deleting `.is("revision_requested_at", null)` from the due query — the
+ *      sweep pays out work the poster formally sent back — goes red:
+ *      1 failed, 13 passed.
+ *   2. Neutralising the Stripe capture gate goes red on the two tests added
+ *      that day. It did NOT before: measured 2026-09-21, replacing
+ *      `if (pi.status !== "succeeded")` with `if (false)` left ALL 53 edge
+ *      guards green (818 passed), so the one check standing between an
+ *      authorised-but-uncaptured charge and `payout_pending` was unasserted
+ *      anywhere in the repo. That is now two behavioural tests, and the
+ *      mutation below is the tripwire.
  */
+// @mutate supabase/functions/auto-release-payment/index.ts | .is("revision_requested_at", null)\n      .or(`poster_completed_at | .or(`poster_completed_at
+// @mutate supabase/functions/auto-release-payment/index.ts | if (pi.status !== "succeeded") { | if (false) {
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -287,6 +302,61 @@ describe("auto-release-payment edge function", () => {
         column: "payment_status",
         value: "escrow",
       });
+    });
+
+    /**
+     * THE CAPTURE GATE, ASSERTED.
+     *
+     * Step 2 re-reads the PaymentIntent and refuses to release anything whose
+     * charge is not `succeeded`. Nothing in this repo asserted it: measured
+     * 2026-09-21, replacing `if (pi.status !== "succeeded")` with `if (false)`
+     * left ALL 53 edge guards green (818 tests), so the sweep could be made to
+     * flip an authorised-but-uncaptured, a `requires_payment_method` or a
+     * cancelled job to payout_pending — and `process-scheduled-payouts` then
+     * transfers the helper money the platform never collected. The preview
+     * parity block below pins the FIGURE; this pins whether money moves at all.
+     */
+    it("does NOT release a job whose charge was never captured", async () => {
+      seedDueJob(scenario);
+      seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
+      // Authorised, not captured: the platform holds no money for this job.
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1",
+        status: "requires_capture",
+      });
+
+      const fn = await load();
+      const res = await fn.fetch(cronRequest(fn));
+      expect(res.status).toBe(200);
+      const out = await json(res);
+      expect(out.released).toBe(0);
+      // and the row is untouched — no payout_pending, so the payout cron never
+      // sees it.
+      expect(scenario.writes.filter((w) => w.table === "jobs" && w.op === "update")).toHaveLength(0);
+      expect(out.results).toContainEqual(
+        expect.objectContaining({ job_id: "job-1", status: "pi_status_requires_capture", skipped: true }),
+      );
+    });
+
+    it("fails CLOSED when the charge cannot be read at all", async () => {
+      seedDueJob(scenario);
+      seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("stripe down"));
+
+      const fn = await load();
+      const res = await fn.fetch(cronRequest(fn));
+      const out = await json(res);
+      // Unknown money state is never a release.
+      expect(out.released).toBe(0);
+      expect(scenario.writes.filter((w) => w.table === "jobs" && w.op === "update")).toHaveLength(0);
+      expect(out.results).toContainEqual(
+        expect.objectContaining({ job_id: "job-1", status: "verify_failed" }),
+      );
+      // And it is PAGED, not swallowed: an escrow the sweep cannot read is a
+      // defect, so the run answers 500 through cronResult — the one channel
+      // sweep_cron_http_failures() watches.
+      expect(res.status).toBe(500);
+      expect((out.defectReasons as string[]).join(" ")).toContain("verify_failed job-1");
     });
 
     it("notifies both parties", async () => {

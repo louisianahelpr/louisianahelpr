@@ -24,7 +24,16 @@
  *     the partial index 20260824230000 created for exactly that question.
  *
  * Runs the REAL function source via the edge harness.
+ *
+ * PROVEN ABLE TO FAIL 2026-09-21. The mutation targets defect 3's own blind
+ * spot — the "green because it measured nothing" shape. A split row claimed
+ * with a NULL `execution_started_at` is MORE alarming than an old one, so the
+ * age filter counts it as stuck; flipping that one branch to `return false`
+ * silently drops exactly the rows nobody is watching (prod's own stuck split,
+ * dispute c7a12050, carries `execution_started_at: null`) and the sweep then
+ * answers a cheerful 200 with `stuck_splits: []`. Red: 3 failed, 51 passed.
  */
+// @mutate supabase/functions/auto-resolve-disputes/index.ts | if (!startedAt) return true; | if (!startedAt) return false;
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

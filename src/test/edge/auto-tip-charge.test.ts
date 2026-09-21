@@ -18,7 +18,20 @@
  * nothing anywhere says so.
  *
  * Runs the REAL function source via the edge harness.
+ *
+ * PROVEN ABLE TO FAIL 2026-09-21. Restoring the exact defect this file was
+ * written for — a zero-row claim release treated as a success, so the
+ * surviving claim row removes the job from `auto_tip_candidates` forever and
+ * nothing says so — goes red: 1 failed, 10 passed.
+ *
+ * UNCOVERED CLASS (reported 2026-09-21, not a gap in any test here): the claim
+ * row is written `amount: tipDollars` (raw) while Stripe is charged
+ * `Math.round(tipDollars * 100)`. `profiles_auto_tip_valid` only bounds
+ * `auto_tip_value` to 1..500 on a bare `numeric`, so a `fixed` preference of
+ * 10.555 charges $10.56 and records 10.555 in the ledger. Nothing pins the two
+ * to agree; every test here uses a whole-dollar tip.
  */
+// @mutate supabase/functions/auto-tip-charge/index.ts | if (!released || released.length === 0) { | if (false) {
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

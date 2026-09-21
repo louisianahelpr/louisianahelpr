@@ -19,7 +19,13 @@
  * What these prove: a lapsed undelivered revision opens exactly one dispute; a
  * still-in-window one opens none; the sweep never releases money on that row;
  * and a second sweep does not open a second dispute.
+ *
+ * PROVEN ABLE TO FAIL 2026-09-21. Attributing the platform's filing to a party
+ * instead of NULL — which is what lets one side unilaterally withdraw a
+ * dispute neither of them opened, stranding the escrow again — goes red:
+ * 1 failed, 3 passed.
  */
+// @mutate supabase/functions/auto-release-payment/index.ts | _opener_id: null, | _opener_id: j.id,
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

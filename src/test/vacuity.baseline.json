@@ -20,7 +20,6 @@
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "e2e/happy-path/zz-recurring-picker.spec.ts",
     "e2e/happy-path/zz-runtime-probe.spec.ts",
-    "e2e/happy-path/zz-senior-probe.spec.ts",
     "e2e/journeys/01-browse.spec.ts",
     "e2e/journeys/02-marketplace.spec.ts",
     "e2e/journeys/03-account.spec.ts",

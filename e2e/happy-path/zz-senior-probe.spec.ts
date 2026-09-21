@@ -1,4 +1,9 @@
 /**
+ * @scratch-probe — measurement scaffolding, not a guard. Declared explicitly
+ * so the vacuity denominator does not count it: 542 lines, 8 tests, exactly
+ * one expect() (that it visited every route). Delete this marker and it must
+ * be proven able to fail like anything else.
+ *
  * SCRATCH probe — senior-mode / reduced-transparency measurement sweep.
  * Untracked scaffolding for the accessibility audit lane; not a suite contract.
  *

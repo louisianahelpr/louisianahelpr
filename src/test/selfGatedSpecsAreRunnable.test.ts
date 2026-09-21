@@ -59,17 +59,19 @@ function selfGated(): { spec: string; vars: string[] }[] {
       vars.add(m[1] ?? m[2]);
     }
     /*
-     * A file that declares itself SCRATCH is not a guard and must not be held
-     * to one's standard. `zz-senior-probe.spec.ts` says so in its own header —
-     * "SCRATCH probe … Untracked scaffolding for the accessibility audit lane;
-     * not a suite contract" — while being, in fact, tracked.
+     * A file that declares itself a scratch probe is not a guard and must not
+     * be held to one's standard. `zz-senior-probe.spec.ts` is 542 lines and 8
+     * tests with exactly ONE `expect()` — and that one only checks it visited
+     * every route; everything else writes measurements to disk.
      *
-     * Read from the file's own words rather than a hand-kept list, so the
-     * exemption evaporates the moment someone promotes it: delete the word and
-     * it must be gated properly, or admit it is scaffolding and delete the
-     * file. A named exemption would just rot.
+     * The marker is an explicit `@scratch-probe` directive, not the WORD
+     * "scratch" anywhere in the file. A first cut used the word and instantly
+     * excluded THIS file, whose only crime was explaining the exemption in a
+     * comment — a rule prose can satisfy, which is the defect this whole
+     * effort exists to kill. A marker has to be something you can only write
+     * on purpose, and it evaporates the moment someone deletes it.
      */
-    if (/\bSCRATCH\b/.test(readFileSync(resolve(REPO, spec), "utf8"))) continue;
+    if (/^\s*(?:\/\/|\*)\s*@scratch-probe\b/m.test(readFileSync(resolve(REPO, spec), "utf8"))) continue;
     if (vars.size) out.push({ spec, vars: [...vars].sort() });
   }
   return out;

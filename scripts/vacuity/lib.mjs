@@ -48,7 +48,46 @@ export function guardFiles() {
     .split("\n")
     .map((f) => f.trim())
     .filter(Boolean)
+    .filter((f) => !isScratchProbe(f))
     .sort();
+}
+
+/**
+ * A file that declares itself SCRATCH is measurement scaffolding, not a guard,
+ * and must not sit in the denominator.
+ *
+ * `e2e/happy-path/zz-senior-probe.spec.ts` is 542 lines and 8 tests with
+ * exactly ONE `expect()` in the whole file — and that one only checks it
+ * visited every route. Its own header says "SCRATCH probe … Untracked
+ * scaffolding for the accessibility audit lane; not a suite contract", while
+ * being, in fact, tracked. Everything else it does is write measurements to
+ * disk.
+ *
+ * Counting it made the burn-down's denominator one larger and its coverage
+ * claim one weaker — the same reason `example.test.ts` was DELETED rather than
+ * proved when its body turned out to be `expect(true).toBe(true)`. This one is
+ * kept, because a measurement harness is worth having; it is simply not a
+ * check.
+ *
+ * Read from the file's own words rather than a hand-kept list, so the
+ * exemption evaporates the moment someone promotes it: delete the word and it
+ * must be proven like anything else.
+ */
+export function isScratchProbe(rel) {
+  try {
+    /*
+     * An explicit DECLARATION, not the word "scratch" appearing anywhere.
+     *
+     * A first cut matched /\bSCRATCH\b/ and immediately excluded
+     * `src/test/selfGatedSpecsAreRunnable.test.ts` — a real guard whose only
+     * crime was explaining this very exemption in a comment. That is the same
+     * failure as every other one found today: a rule that PROSE can satisfy.
+     * A marker has to be something you can only write on purpose.
+     */
+    return /^\s*(?:\/\/|\*)\s*@scratch-probe\b/m.test(fs.readFileSync(path.join(REPO, rel), "utf8"));
+  } catch {
+    return false;
+  }
 }
 
 /**

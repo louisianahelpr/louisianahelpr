@@ -26,7 +26,7 @@
  * before scanning, offsets preserved so reported line numbers stay true.
  *
  * @mutate src/components/NotificationPanel.tsx | { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` } | { event: "INSERT", schema: "public", table: "notifications" }
- * @mutate src/components/DesktopSidebarNav.tsx | { name: `unread-sidebar-${user.id}`, onRecovered: () => void loadCounts() } | { name: `unread-sidebar`, onRecovered: () => void loadCounts() }
+ * @mutate src/lib/realtimeRecovery.ts | `${opts.name}#${channelNonce()}` | `${opts.name}`
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -154,21 +154,91 @@ describe("realtime bindings are scoped server-side", () => {
     expect(blankComments('const u = "https://x.dev/a"; // gone')).toContain('"https://x.dev/a"');
   });
 
-  it("no two channels share a literal name", () => {
-    const names = new Map<string, string[]>();
+  it("the helper this guard TRUSTS for uniqueness really does add a nonce", () => {
+    /*
+     * The constant-name rule below exempts anything going through
+     * `subscribeWithRecovery`, on the premise that it appends a fresh
+     * `channelNonce()` per attempt. An exemption whose premise nobody checks is
+     * how a rule quietly stops applying — so the premise is asserted here.
+     *
+     * This replaced a registered mutation that SURVIVED: it turned a call
+     * site's `unread-sidebar-${user.id}` into a constant, which the exemption
+     * correctly allows, so nothing failed. The mutation was wrong, not the
+     * assertion — but the survival was the signal that this premise was
+     * load-bearing and unguarded.
+     */
+    const helper = blankComments(readFileSync(resolve(ROOT, "src/lib/realtimeRecovery.ts"), "utf8"));
+    expect(
+      helper,
+      "subscribeWithRecovery no longer appends channelNonce() to the base name, so every constant " +
+        "name this guard waved through is now a shared socket topic",
+    ).toMatch(/channelNonce\s*\(\s*\)/);
+    expect(
+      /\$\{\s*opts\.name\s*\}#\$\{\s*channelNonce\(\)\s*\}/.test(helper),
+      "the per-subscription identity is no longer `name#nonce` — re-check what makes two mounts of " +
+        "one component distinct before trusting the constant-name exemption",
+    ).toBe(true);
+  });
+
+  it("every channel name is unique per subscriber, not a shared constant", () => {
+    /*
+     * CLAUDE.md asks for "a unique name via channelNonce()", and the reason is
+     * narrower than "no two files collide": two TABS of the SAME user, or two
+     * mounts of one component, take the same socket topic if the name is a
+     * constant. The second subscribe can be rejected or silently inherit the
+     * first's callbacks — so one tab stops updating with nothing in the console.
+     *
+     * This assertion started as "no two literals collide", and my own
+     * registered mutation SURVIVED it: making `unread-sidebar-${user.id}` into
+     * a bare `unread-sidebar` created no duplicate, so nothing failed. The
+     * mutation was right and the assertion was too weak — which is the hollow
+     * shape this whole burn-down exists to find, caught here only because
+     * vacuity reports SURVIVED rather than assuming killed.
+     */
+    const offenders: string[] = [];
     for (const f of sourceFiles()) {
       const code = blankComments(readFileSync(resolve(ROOT, f), "utf8"));
-      for (const m of code.matchAll(/\bname:\s*`([^`]*)`/g)) {
-        // Only fully-static names can collide; an interpolated id is unique per user.
-        if (m[1].includes("${")) continue;
-        (names.get(m[1]) ?? names.set(m[1], []).get(m[1])!).push(f);
+      for (const m of code.matchAll(/\bname:\s*(`[^`]*`|"[^"]*"|'[^']*')/g)) {
+        const lit = m[1];
+        const isTemplate = lit.startsWith("`");
+        const interpolated = isTemplate && lit.includes("${");
+        if (interpolated) continue; // per-user / per-job, which is the point
+        // A constant is only a problem on a realtime channel. Require the
+        // surrounding call to actually be one, so unrelated `name:` options
+        // (form fields, route entries) are not swept in.
+        /*
+         * 4000, not 1200: `subscribeWithRecovery(` can sit a long way above its
+         * `{ name: … }` option when the channel chains several `.on()` bindings
+         * between them — useActivityData's core subscription spans ~1.4k chars,
+         * so a 1200-char lookback missed its own helper and reported correct
+         * code as a violation.
+         */
+        const around = code.slice(Math.max(0, m.index - 4000), m.index + 200);
+        if (!/supabase\.channel\(|subscribeWithRecovery|postgres_changes/.test(around)) continue;
+        /*
+         * `subscribeWithRecovery` appends a fresh `channelNonce()` to the base
+         * name on EVERY attempt (realtimeRecovery.ts:145), so a constant passed
+         * to it is a stable BASE, not a shared topic — unless `stableName: true`
+         * opts out of that. My first version flagged three of those constants as
+         * violations; they are correct code, and a guard that reds on correct
+         * code is one people delete rather than fix.
+         *
+         * So the rule is: a constant name is a defect only where nothing makes
+         * it unique — a raw `supabase.channel("…")`, or `stableName: true`.
+         */
+        const recovered = /subscribeWithRecovery/.test(around);
+        const optedOutOfNonce = /stableName\s*:\s*true/.test(around);
+        if (recovered && !optedOutOfNonce) continue;
+        if (/channelNonce\s*\(/.test(around)) continue; // nonce applied by hand
+        offenders.push(`${f}:${code.slice(0, m.index).split("\n").length} name=${lit}`);
       }
     }
-    const dupes = [...names.entries()].filter(([, fs]) => new Set(fs).size > 1);
     expect(
-      dupes.map(([n, fs]) => `${n} in ${[...new Set(fs)].join(", ")}`),
-      "two channels share a static name — they share a socket topic, so the second subscribe can " +
-        "take the first's callbacks. Use channelNonce() or interpolate the user/job id.",
+      offenders,
+      "a realtime channel name that is a CONSTANT is shared by every subscriber — two tabs of the " +
+        "same user take one socket topic, and the second subscribe can inherit the first's " +
+        "callbacks, so one tab goes quiet with nothing in the console. Interpolate the user/job id " +
+        "or use channelNonce().",
     ).toEqual([]);
   });
 });

@@ -61,7 +61,29 @@ describe("HelperPhotoAsk", () => {
   });
 
   it("asks for nothing when the poster did not require photo proof", () => {
-    setup(<HelperPhotoAsk jobId="job-1" job={job({ require_photo_proof: false })} step="working" />);
-    expect(screen.queryByText(/Add an? (after|before) photo/)).toBeNull();
+    // Was `queryByText(/Add an? (after|before) photo/)` — copy that belonged to
+    // the DELETED PhotoProofStep panel and that this component has never
+    // rendered, so the assertion passed with `proofRequired` removed entirely.
+    // Assert against what the chip actually paints, and that nothing at all is
+    // mounted.
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <HelperPhotoAsk jobId="job-1" job={job({ require_photo_proof: false })} step="working" />
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByText("After Photo")).toBeNull();
+    expect(screen.queryByText("Before Photo")).toBeNull();
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("still asks when the column is missing entirely (old database, `?? true`)", () => {
+    setup(<HelperPhotoAsk jobId="job-1" job={{ id: "job-1", proof_before_urls: [], proof_after_urls: [] } as never} step="working" />);
+    expect(screen.getByText("After Photo")).toBeTruthy();
   });
 });
+
+// The whole point of this component's wiring: an upload re-reads the activity
+// cache itself instead of hoping the best-effort realtime `jobs` channel is up.
+// @mutate src/components/activity/appliedJobCard/steps/HelperPhotoAsk.tsx | void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all }); | void 0;
+// A poster who turned photo proof off must not be asked.
+// @mutate src/components/activity/appliedJobCard/steps/HelperPhotoAsk.tsx | if (!proofRequired) return null; | if (false) return null;

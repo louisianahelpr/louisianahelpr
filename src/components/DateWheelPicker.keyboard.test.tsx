@@ -59,3 +59,17 @@ describe("DateWheelPicker keyboard", () => {
       .toBe(screen.getByRole("option", { name: "30" }).id);
   });
 });
+
+// The keyboard model rests on ONE line: the options are not tab stops. Make
+// them tabbable again and Tab walks the column, the browser scrolls the focused
+// row into the centre band, and the settle adopts it as the value.
+// @mutate src/components/DateWheelPicker.tsx | tabIndex={-1} | tabIndex={0}
+// Only these keys may move the selection, and by exactly one step.
+// @mutate src/components/DateWheelPicker.tsx | case "ArrowDown": next = index + 1; break; | case "ArrowDown": next = index + 2; break;
+//
+// KNOWN BLIND SPOT (reported, not fixed here): the `fireEvent.scroll` half of
+// the first case cannot fail. `handleScroll` defers through a 90ms settle timer
+// that these tests never advance, and under jsdom every offsetTop/clientHeight
+// is 0, so running the settle would snap every column to index 0 and fail for a
+// measurement reason rather than a keyboard one. The tab-order and tabIndex
+// assertions are what actually carry this guard.

@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import {
   MAX_RECURRENCE_WEEKS,
@@ -61,6 +63,51 @@ describe("recurringVisitDates", () => {
     const [first] = recurringVisitDates(MON, [1], 1);
     expect(first).toBe(MON);
   });
+
+  // THE CASE ABOVE CANNOT SEE THE BUG IT DESCRIBES, AND NEITHER CAN A RE-ZONED
+  // ONE. Every machine this suite runs on sits at a NEGATIVE offset
+  // (America/Los_Angeles here, America/Chicago on the owner's Mac, UTC in CI),
+  // and local midnight at a negative offset still lands on the same UTC day —
+  // so `new Date(`${ymd}T00:00:00`)` round-trips through
+  // `toISOString().slice(0,10)` unchanged and the assertion above passes on the
+  // broken code. The zones only disagree east of UTC.
+  //
+  // Re-zoning the process mid-suite does NOT work either: probed 2026-09-21,
+  // `process.env.TZ = "Asia/Tokyo"` inside a vitest worker leaves
+  // `Intl.DateTimeFormat().resolvedOptions().timeZone` at America/Los_Angeles
+  // and `new Date("2026-09-07T00:00:00").toISOString()` at 07:00Z — Node has
+  // already cached the zone by the time a test body runs. A test that sets TZ
+  // and then asserts would be five copies of the same LA case.
+  //
+  // So assert the PROPERTY that makes the zone irrelevant: this module never
+  // mixes a local-time read or write with a UTC one. Both halves are checked —
+  // the client mirror the Post-a-Task preview quotes from, and the edge
+  // authority the charge cron bills from — because a drift in either is the
+  // same money bug.
+  it("never reads or writes a date in local time — in EITHER half of the pair", () => {
+    const sources = [
+      ["src/lib/recurringSchedule.ts", readFileSync(resolve(process.cwd(), "src/lib/recurringSchedule.ts"), "utf8")],
+      [
+        "supabase/functions/_shared/recurringSchedule.ts",
+        readFileSync(resolve(process.cwd(), "supabase/functions/_shared/recurringSchedule.ts"), "utf8"),
+      ],
+    ] as const;
+    expect(sources.length).toBeGreaterThan(1);
+
+    for (const [file, src] of sources) {
+      // A date-only string must be pinned to an explicit UTC instant. Without
+      // the `Z` the engine parses it as local midnight, and `toISOString()`
+      // then names the PREVIOUS day everywhere east of Greenwich.
+      expect(src, `${file}: date-only parsing is no longer pinned to UTC`).toMatch(
+        /new Date\(`\$\{\w+\}T\d\d:\d\d:\d\dZ`\)/,
+      );
+      // And no local-time accessor anywhere: getDay/getDate/setDate/getMonth/
+      // getFullYear read and write the machine's zone, so one of them beside a
+      // toISOString() is the mixed pair that moves the whole series.
+      const local = [...src.matchAll(/\.(get|set)(Day|Date|Month|FullYear|Hours)\b/g)].map((m) => m[0]);
+      expect(local, `${file} reads/writes local time: ${local.join(", ")}`).toEqual([]);
+    }
+  });
 });
 
 describe("upcomingVisitDates", () => {
@@ -81,3 +128,13 @@ describe("seriesTotalDollars", () => {
     expect(seriesTotalDollars(0, MON, [1], 3)).toBe(0);
   });
 });
+
+// A poster's series is a schedule of unattended card charges. The ceiling is
+// the only thing between a bad `weeks` and a year of them.
+// @mutate src/lib/recurringSchedule.ts | Math.min(Math.floor(weeks), MAX_RECURRENCE_WEEKS) | Math.floor(weeks)
+// Noon UTC, not local midnight: the whole series moves a day otherwise. Only
+// visible in a POSITIVE-offset zone — see the per-timezone cases above.
+// @mutate src/lib/recurringSchedule.ts | new Date(`${ymd}T12:00:00Z`) | new Date(`${ymd}T00:00:00`)
+// Week 1 is the week CONTAINING the start; dates before the job itself are not
+// backdated visits the poster gets billed for.
+// @mutate src/lib/recurringSchedule.ts | if (d < start) continue; | if (false) continue;

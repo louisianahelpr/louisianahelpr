@@ -81,3 +81,11 @@ describe("normalizeDeepLinkUrl — native return scheme", () => {
     expect(normalizeDeepLinkUrl(`${NATIVE_RETURN_SCHEME}:///auth/callback`)).toBeNull();
   });
 });
+
+// THREE slashes. `helpr://payment-success` makes the route the HOST and leaves
+// pathname empty, which normalizeDeepLinkUrl cannot route — the sheet then
+// never hands the payment return back to the app.
+// @mutate src/lib/nativeReturnBounce.ts | `${NATIVE_RETURN_SCHEME}://${url.pathname}${url.search}` | `${NATIVE_RETURN_SCHEME}:/${url.pathname}${url.search}`
+// The app must never bounce itself: without this the native WebView re-enters
+// its own scheme on every payment return.
+// @mutate src/lib/nativeReturnBounce.ts | if (isNativePlatform) return false; | if (false) return false;

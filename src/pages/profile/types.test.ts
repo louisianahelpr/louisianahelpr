@@ -61,3 +61,8 @@ describe("TAB_TITLES.wrapped", () => {
     expect(src, "HelprWrapped no longer reads the registry at all").toContain("TAB_TITLES.wrapped");
   });
 });
+
+// The one production line this file exists for: an unknown ?tab= must not be
+// cast straight through to a Tab. Drop the membership test and /profile paints
+// nav chrome over an empty panel again.
+// @mutate src/pages/profile/types.ts | raw && VALID_TABS.has(raw) ? | raw ?

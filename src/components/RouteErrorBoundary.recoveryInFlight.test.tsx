@@ -23,7 +23,12 @@ vi.mock("@/lib/errorLogger", () => ({
 }));
 
 import RouteErrorBoundary from "./RouteErrorBoundary";
-import { __resetChunkReloadForTests, recoverFromChunkError } from "@/lib/chunkReload";
+import {
+  __resetChunkReloadForTests,
+  CHUNK_RELOAD_MAX_ATTEMPTS,
+  isRecoveryReloadInFlight,
+  recoverFromChunkError,
+} from "@/lib/chunkReload";
 
 /** What React.lazy throws when a prevented preload resolved the import with `undefined` (WebKit wording). */
 const PreventedPreloadLazy = (): never => {
@@ -77,4 +82,40 @@ describe("RouteErrorBoundary while a recovery reload is in flight", () => {
     expect(screen.getByText(/This page hit a problem/)).toBeTruthy();
     expect(report).toHaveBeenCalledTimes(1);
   });
+
+  // IT MUST RELEASE, NOT JUST ENGAGE. The flag silences the card AND the
+  // report, so a path that arms it without a reload actually arriving would
+  // swallow every subsequent route crash in the session with no trace at all.
+  // The two ways recovery declines to start:
+  it("does not arm the flag when recovery declines to start — offline", () => {
+    const onLine = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    expect(recoverFromChunkError()).toBe(false);
+    expect(isRecoveryReloadInFlight()).toBe(false);
+    onLine.mockRestore();
+
+    renderRoute();
+    // Offline changes the wording, not the fact that this is a reported failure.
+    expect(screen.getByText(/This page hit a problem|You're offline/)).toBeTruthy();
+    expect(report).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not arm the flag when the automatic attempts are already spent", () => {
+    sessionStorage.setItem("helpr_chunk_reload_at", String(Date.now()));
+    sessionStorage.setItem("helpr_chunk_reload_count", String(CHUNK_RELOAD_MAX_ATTEMPTS));
+    expect(recoverFromChunkError()).toBe(false);
+    expect(isRecoveryReloadInFlight()).toBe(false);
+
+    renderRoute();
+    expect(screen.getByText(/This page hit a problem/)).toBeTruthy();
+    expect(report).toHaveBeenCalledTimes(1);
+  });
 });
+
+// Arming the flag is what turns the error card and the Sentry report off. If
+// hardReloadBypassCache stops setting it, the WebKit stale-deploy sequence is
+// back: card at +15ms, pagehide at +37ms, one bogus Sentry event per reload.
+// @mutate src/lib/chunkReload.ts | recoveryReloadInFlight = true; | recoveryReloadInFlight = false;
+// And the boundary must read it on the FIRST fallback render, not only in
+// componentDidCatch — otherwise the card commits for a frame before the quiet
+// state replaces it, which is the thing the owner saw.
+// @mutate src/components/RouteErrorBoundary.tsx | if (isRecoveryReloadInFlight()) { | if (false) {

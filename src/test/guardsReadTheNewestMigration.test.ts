@@ -13,8 +13,10 @@
  *
  *   - `src/lib/smartSort.test.ts` pins a `get_ranked_open_jobs` that
  *     20260915051752 replaced — it grades the ranking of the browse feed.
- *   - `disputeEvidenceChannel` pins FOURTEEN dispute functions, every one of
- *     them reapplied by 20260915071502.
+ *   - `disputeEvidenceChannel` pinned FOURTEEN dispute functions, every one of
+ *     them reapplied by 20260915071502. FIXED 2026-09-21: it now resolves both
+ *     `rpc_supersede_dispute_decision` and `rpc_add_dispute_evidence` through a
+ *     newest-first scanner and is off the list below.
  *   - `consequenceCopyParity` pins FOUR separate migrations, all superseded,
  *     including the arrival gates (`mark_helper_arrival`,
  *     `enforce_job_tracking_arrival_gate`) now living in 20260919155016.
@@ -105,7 +107,6 @@ function staleGuards(): Stale[] {
 
 /** Known, reported, NOT fixed here. MAY ONLY SHRINK. */
 const GRANDFATHERED: readonly string[] = [
-  "src/components/disputeEvidenceChannel.test.ts",
   "src/lib/cancellationFee.parity.test.ts",
   "src/pages/dashboard/applyErrorCopy.test.ts",
   "src/lib/smartSort.test.ts",

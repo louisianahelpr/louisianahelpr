@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 // The edge helper lives in the Deno functions tree but is plain TS (no Deno
 // imports at module scope), so vitest can import it directly. This is the guard
 // that keeps the server-side instant-payout fee (the authority that moves money
@@ -70,3 +72,66 @@ describe("computeInstantPayoutFeeCents (server authority)", () => {
     expect(computeInstantPayoutFeeCents(17)).toBe(1);
   });
 });
+
+/**
+ * PARITY OF THE CONSTANTS IS NOT PARITY OF THE MONEY.
+ *
+ * Everything above proves two modules hold the same number and that a pure
+ * function rounds correctly. Neither says the edge function that actually moves
+ * the money USES either of them. Hardcode `Math.round(availableCents * 0.05)`
+ * into instant-payout/index.ts and every case above stays green while the
+ * helper is shown "3% fee" and debited 5% — the exact shape F-MONEY-35 exists
+ * to prevent. So: read the authority's only caller and require the derivation.
+ */
+describe("instant-payout/index.ts derives the fee from the shared authority", () => {
+  const src = readFileSync(resolve(process.cwd(), "supabase/functions/instant-payout/index.ts"), "utf8");
+
+  it("imports the shared module rather than its own copy of the rate", () => {
+    expect(src).toMatch(/from\s+"\.\.\/_shared\/instantPayoutFee\.ts"/);
+    expect(src).toContain("computeInstantPayoutFeeCents");
+    expect(src).toContain("INSTANT_PAYOUT_MIN_CENTS");
+  });
+
+  it("computes feeCents ONLY by calling the authority", () => {
+    const assignments = [...src.matchAll(/\bfeeCents\s*=\s*([^;\n]+)/g)].map((m) => m[1].trim());
+    // FLOOR: an empty match set would make the loop below assert nothing.
+    expect(assignments.length, "instant-payout no longer assigns feeCents").toBeGreaterThan(0);
+    for (const rhs of assignments) {
+      expect(rhs, `feeCents is built by hand: ${rhs}`).toBe("computeInstantPayoutFeeCents(availableCents)");
+    }
+  });
+
+  it("never re-derives a percentage or a floor inline", () => {
+    // Any bare fee arithmetic on the balance is a second source of truth.
+    expect(src, "a percentage is applied to the balance outside the shared helper")
+      .not.toMatch(/availableCents\s*\*\s*[\d.]/);
+    // The floor comparison must read the shared constant, not a literal.
+    const floorChecks = [...src.matchAll(/availableCents\s*<\s*(?!=)([^)\s]+)/g)].map((m) => m[1]);
+    expect(floorChecks.length, "the minimum-balance gate is gone entirely").toBeGreaterThan(0);
+    expect(floorChecks).toEqual(["INSTANT_PAYOUT_MIN_CENTS"]);
+  });
+
+  it("the quote a helper is shown and the execute that debits them read the same feeCents", () => {
+    // One computation, above the `action === "quote"` early return, so the
+    // number in the dialog IS the number the transfer uses. Two computations —
+    // or a quote that rounds differently — is the drift this pins.
+    const compute = src.indexOf("computeInstantPayoutFeeCents(availableCents)");
+    const quoteBranch = src.indexOf('action === "quote"');
+    const executeBranch = src.indexOf('action !== "execute"');
+    expect(compute).toBeGreaterThan(-1);
+    expect(quoteBranch).toBeGreaterThan(compute);
+    expect(executeBranch).toBeGreaterThan(quoteBranch);
+    expect(src.slice(quoteBranch)).not.toContain("computeInstantPayoutFeeCents(");
+  });
+});
+
+// THE NUMBER THAT LEAVES THE HELPER'S BALANCE. A flat 3%: no fixed add-on, no
+// floor. The sub-17c rounding boundary is load-bearing too — index.ts skips the
+// Stripe transfer at exactly feeCents === 0.
+// @mutate supabase/functions/_shared/instantPayoutFee.ts | Math.round(grossCents * (INSTANT_PAYOUT_FEE_PERCENT / 100)) | Math.round(grossCents * 0.05)
+// The rate itself, which is also the rate every UI string is built from.
+// @mutate supabase/functions/_shared/instantPayoutFee.ts | export const INSTANT_PAYOUT_FEE_PERCENT = 3; | export const INSTANT_PAYOUT_FEE_PERCENT = 5;
+// The minimum-cashout floor keeps a 3% fee above Stripe's $0.50 per-payout cost.
+// @mutate supabase/functions/_shared/instantPayoutFee.ts | export const INSTANT_PAYOUT_MIN_CENTS = 2500; | export const INSTANT_PAYOUT_MIN_CENTS = 500;
+// And the wiring: the authority is only an authority if index.ts calls it.
+// @mutate supabase/functions/instant-payout/index.ts | const feeCents = computeInstantPayoutFeeCents(availableCents); | const feeCents = Math.round(availableCents * 0.05);

@@ -71,3 +71,10 @@ describe("career ladder — an unknown credential tier", () => {
     expect(ids({ credentialTier: 2 })).toEqual(["licensed_pro"]);
   });
 });
+
+// The review FLOOR is the line VN-14 bought: a rating rule without a sample
+// size let one 5.0 review wear "Trusted Helpr" on the seed account the owner
+// was looking at.
+// @mutate src/lib/careerLadder.ts | if (r.minReviews && stats.reviewCount < r.minReviews) return false; | if (false) return false;
+// The credential tier must treat UNKNOWN (null) as "withhold", not "grant".
+// @mutate src/lib/careerLadder.ts | (stats.credentialTier === null \|\| stats.credentialTier < r.credentialTier) | (false)

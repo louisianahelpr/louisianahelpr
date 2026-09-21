@@ -50,3 +50,10 @@ describe("pickRequestedProfile", () => {
     expect(pickRequestedProfile([{ user_id: null, profile_id: null }], undefined)).toBeNull();
   });
 });
+
+// user_id ONLY. Adding the profile_id fallback back is exactly the 2026-08-27
+// leak: Audit Helper is temp_banned, so his row is withheld and the fallback
+// hands the vetting screen Eli Thibodeaux's name, avatar, bio and trust record.
+// @mutate src/lib/safeProfiles.ts | (rows ?? []).find((r) => r?.user_id === requestedId) | (rows ?? []).find((r) => r?.user_id === requestedId \|\| r?.profile_id === requestedId)
+// A null/undefined requested id must never match rows whose keys are also null.
+// @mutate src/lib/safeProfiles.ts | if (!requestedId) return null; | if (false) return null;

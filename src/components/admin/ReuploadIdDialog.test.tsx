@@ -78,6 +78,22 @@ describe("ReuploadIdDialog", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  // THE BRANCH NOTHING TOUCHED. Every case above answered `{ data: {}, error:
+  // null }`, so `if (error) throw error` — the only thing standing between a
+  // failed admin action and a dialog that closes as though it worked — was
+  // never executed. Deleting that line left all four green.
+  it("a failed edge call is surfaced, and does NOT report success or close", async () => {
+    invokeMock.mockResolvedValue({ data: null, error: new Error("admin-user-actions: 403 forbidden") });
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
+    render(<ReuploadIdDialog profile={sampleProfile} onClose={onClose} onSuccess={onSuccess} />);
+    fireEvent.click(screen.getByRole("button", { name: /Send Re-Upload Request/ }));
+    await waitFor(() => expect(toastError).toHaveBeenCalled());
+    expect(toastError.mock.calls[0][0]).toMatch(/403 forbidden/);
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("works with empty note (note is optional)", async () => {
     invokeMock.mockResolvedValue({ data: {}, error: null });
     render(<ReuploadIdDialog profile={sampleProfile} onClose={vi.fn()} />);
@@ -94,3 +110,10 @@ describe("ReuploadIdDialog", () => {
     });
   });
 });
+
+// The one line that decides WHOSE identity verification is reset and who gets
+// the email. `profiles.id` is a different key space from `profiles.user_id`
+// (see safeProfiles.ts) and admin-user-actions takes an auth id.
+// @mutate src/components/admin/ReuploadIdDialog.tsx | userId: profile.user_id, | userId: profile.id,
+// A failed admin action must never read as a success.
+// @mutate src/components/admin/ReuploadIdDialog.tsx | if (error) throw error; | if (false) throw error;

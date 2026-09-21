@@ -3162,6 +3162,13 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [x] **Nightly WebKit + real-backend run.** e83876cc5 `nightly-webkit.yml` runs the whole happy-path suite in real WebKit (helper-apply 2/2 locally; first CI run dispatched). Real backend already nightly in e2e-real-backend.yml.
 
 
+### Guard burn-down — second front (2026-09-21)
+
+- [ ] **49 guards delete the code they inspect; migrate them to `blankNonCode`.** A comment-stripping regex chain deletes >60% of **293 of the 1,053 source files** (`src/lib/groupJobs.ts` 99%, `brand-asset/index.ts` 98%). Found because `src/test/edge/sharedImports.test.ts` stayed green while `arrival-confirm-reminder` — 87% deleted, including the very call it hunts — had its import removed. Contained by `src/test/guardsDoNotDeleteSource.test.ts` (ratcheted, may only shrink) + `src/test/helpers/blankNonCode.ts`. **Each of the 49 has unknown real coverage.** NOT mechanical: a codemod mangled receivers (`body.slice(…)` → `body.blankComments(slice(…))`) and was reverted. Per file, re-run after each, treat every new red as a candidate finding.
+- [ ] **The edge mock records chained filters but never matches on them** (`src/test/edge/mocks/supabase.ts`). A test can look like it pins a window while rows come back regardless — deleting `.lt("subscription_expires_at", now)` from `expire-subscriptions`' UPDATE left all 12 tests green. Every READ filter across the edge suite is therefore unproven (eligibility windows, `is_seed = false` scopes). Reported by two lanes; needs either a matching mock or a per-guard filter assertion.
+- [ ] **No guard asserts a Stripe outflow has a durable ledger row.** `cash-out-credits` calls `stripe.transfers.create` with no `transfer_group` and writes no ledger row, so `money-reconciliation` cannot see it. Verified live: no `credit_cashouts` table exists and `referral_credits where redeemed` = 0, so it has cost nothing yet.
+- [ ] **`verification-webhook` has 3 vendor branches; only Checkr is tested.** The `stripe_identity` branch (a second independent `constructEventAsync` with its own secret) and `certificial` have no test, nor does the `!secret || !provided` fail-closed precondition.
+
 ### Found while closing the audit gaps (2026-09-12)
 
 - [ ] **The sweep never rendered /complete-profile.** Seed profile is complete, so it redirected to /dashboard; both owner bugs lived there. New `complete-profile-incomplete` screen. Uncommitted, waiting on the full sweep.

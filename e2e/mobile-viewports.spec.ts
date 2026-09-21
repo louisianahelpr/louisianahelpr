@@ -109,10 +109,18 @@ for (const vp of VIEWPORTS) {
         // documentElement.scrollWidth <= clientWidth") has the same blind spot
         // wherever that CSS applies.
         //
-        // So measure the ELEMENTS, the way visual-audit/responsive.spec.ts
-        // does — a bounding rect is unaffected by an ancestor's clip. Scoped
-        // to text-bearing and interactive nodes, because those are the ones a
-        // user loses; +2px absorbs sub-pixel rounding.
+        // So measure the ELEMENTS — a bounding rect is unaffected by an
+        // ancestor's clip. This is NOT a new technique in this repo, and the
+        // commit that added it here overstated the scope: `measureLayout` in
+        // e2e/happy-path/auditRoutes.ts already reports `overflowOffenders`
+        // for exactly this reason (its comment names the same CSS), and both
+        // the empty-state and error-state sweeps assert on it. The blind spot
+        // was THIS spec and visual-audit/responsive.spec.ts's sibling metric,
+        // not the repo. Bringing this file up to the standard the sweeps
+        // already set.
+        //
+        // Scoped to text-bearing and interactive nodes, because those are the
+        // ones a user actually loses; +2px absorbs sub-pixel rounding.
         const offCanvas = await p.evaluate(() => {
           const viewportW = window.innerWidth;
           const out: string[] = [];

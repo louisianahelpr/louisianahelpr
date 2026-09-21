@@ -160,17 +160,31 @@ export function detectButtonGeometry(scopeSelector?: string): ButtonGeometryRepo
    * infinite animation at different phases, only one engine ever saw it, which
    * is what kept a11y-webkit-prod red (#1597).
    *
-   * getComputedStyle().height resolves to the used CONTENT-box height with
-   * sub-pixel precision and no transform applied, so padding and border are
-   * added back to compare against a Tailwind `h-*` (a border-box height under
-   * preflight). `auto` on an inline box gives NaN; fall back to the rect there.
+   * getComputedStyle().height gives sub-pixel precision with NO transform
+   * applied, which is what makes it the right instrument here. What it
+   * resolves to depends on `box-sizing`, and getting that wrong is how this
+   * helper reported a correct button as broken:
+   *
+   *   border-box  → height ALREADY INCLUDES padding and border. Use as-is.
+   *   content-box → height is the content box. Add padding + border back.
+   *
+   * Tailwind's preflight sets `box-sizing: border-box` globally, so the
+   * border-box branch is the common one and the naive "always add them back"
+   * DOUBLE-COUNTS. Measured on /dashboard at 375: MobileNav's "Post a new job"
+   * is `w-14 h-14` with an inline 1px border — `{rect: 56, computedHeight:
+   * "56px", boxSizing: "border-box", borderTop: "1px"}`. Correct at 56px, and
+   * reported as 58px, which made the pre-push changed-screen gate red for
+   * EVERY push while the button was fine.
+   *
+   * `auto` on an inline box gives NaN; fall back to the rect there.
    */
   const layoutHeight = (el: Element): number => {
     const cs = getComputedStyle(el);
-    const content = parseFloat(cs.height);
-    if (!Number.isFinite(content)) return el.getBoundingClientRect().height;
+    const h = parseFloat(cs.height);
+    if (!Number.isFinite(h)) return el.getBoundingClientRect().height;
+    if (cs.boxSizing === "border-box") return h;
     return (
-      content +
+      h +
       (parseFloat(cs.paddingTop) || 0) +
       (parseFloat(cs.paddingBottom) || 0) +
       (parseFloat(cs.borderTopWidth) || 0) +

@@ -134,6 +134,34 @@ test.describe("detectButtonGeometry — sibling mismatch", () => {
     expect((await page.evaluate(detectButtonGeometry, undefined)).requestedNotRendered).toEqual([]);
   });
 
+  test("a border under box-sizing:border-box is not extra height (MobileNav's FAB)", async ({ page }) => {
+    // THE REGRESSION THIS EXISTS FOR. `getComputedStyle().height` resolves
+    // differently per box-sizing, and adding padding+border back
+    // unconditionally double-counts under `border-box` — which Tailwind's
+    // preflight sets globally, so it is the common case, not the edge one.
+    //
+    // Measured on the real app at 375 before the fix: MobileNav's "Post a new
+    // job" is `w-14 h-14` with an inline 1px border and reported
+    // `{rect: 56, computedHeight: "56px", boxSizing: "border-box"}` — correct
+    // at 56px, reported as 58px. That turned the pre-push changed-screen gate
+    // red for EVERY push, on a button that was fine, and two separate lanes
+    // pushed with --no-verify because of it.
+    await page.setContent(BASE + `<div><button class="h-14"
+      style="box-sizing:border-box;height:56px;width:56px;padding:0;border:1px solid #000">+</button></div>`);
+    expect(await page.evaluate(() => {
+      const el = document.querySelector("button")!;
+      return { rect: el.getBoundingClientRect().height, box: getComputedStyle(el).boxSizing };
+    })).toEqual({ rect: 56, box: "border-box" });
+    expect((await page.evaluate(detectButtonGeometry, undefined)).requestedNotRendered).toEqual([]);
+
+    // And the other branch still works: under content-box the same declared
+    // height really does render 58px, and h-14 (56px) really is defeated.
+    await page.setContent(BASE + `<div><button class="h-14"
+      style="box-sizing:content-box;height:56px;width:56px;padding:0;border:1px solid #000">+</button></div>`);
+    expect((await page.evaluate(detectButtonGeometry, undefined)).requestedNotRendered)
+      .toEqual(['"+" asks h-14 (56px), renders 58.0px']);
+  });
+
   test("still catches a height class the cascade really did defeat", async ({ page }) => {
     // 60px, not 44px: at 44px this would be `heightHeldAtFloor` (the HIG floor
     // doing its job), which is deliberately not a requestedNotRendered finding.

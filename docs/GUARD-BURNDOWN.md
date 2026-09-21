@@ -30,9 +30,13 @@ there is not even listed as unproven.
 | VISUAL | 7 | **DONE** — 120 → 113. One real vacuity + one false-positive-prone guard fixed. |
 | AUTHZ | 11 | **DONE** — 113 → 102. Three more real vacuities, two of them the worst found. |
 | SCHEMA | 13 | **DONE** — 102 → 89. One hollow (comment-satisfiable), one unregisterable. |
-| OTHER | 89 | 7 running |
+| OTHER | 89 | 35 done, 21 running, 33 queued |
 
-Then the 53 edge, the 60 e2e, the 336 colocated.
+Then the 53 edge, the 60 e2e, the 336 colocated — all now IN the ratchet and
+baselined, so none can grow while the backlog shrinks.
+
+`example.test.ts` was DELETED, not proved: its body was `expect(true).toBe(true)`.
+A scaffold in the denominator makes the safety net look bigger than it is. 639 → 638.
 
 ## What the first bucket found — why this is worth doing
 
@@ -133,6 +137,22 @@ this snapshot.
 So at 639/639 what is known is: *every test in the repo has been shown capable of
 failing.* NOT: every behaviour is tested. Gap 3 is the larger number and needs its
 own plan.
+
+## Hollow guards found so far: 11 of 66 proven (1 in 6)
+
+Money, privacy, admin authorization, ban evasion, prod fixtures, the primary
+button, universal links, and the brand rule have each had one. Every live system
+behind them has checked out CORRECT when verified against prod — the exposure was
+to future changes sliding through, not to damage already done.
+
+**The worst three:**
+- an admin endpoint guard passed **16/16** with the entire authorization replaced
+  by `const isAdmin = true` — satisfied by a `// Use has_role RPC` comment;
+- a **privacy** guard passed **5/5** with the gate deleted, putting flagged contact
+  details back on a helper's screen — both its slices ran to end-of-file, one
+  because its end marker lived inside a comment its own stripper removed first;
+- a **money** guard passed **3/3** with a live `transfer_group` tag commented out,
+  which makes that transfer invisible to every duplicate-transfer check.
 
 ## The rule for each guard
 

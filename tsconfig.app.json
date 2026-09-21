@@ -35,6 +35,7 @@
     "src",
     "e2e/liveSession.ts",
     "e2e/readRpc.ts",
+    "e2e/browserLock.ts",
     "supabase/functions/_shared/businessSeatTiers.ts",
     "supabase/functions/_shared/proTiers.ts",
     "supabase/functions/_shared/tierNames.ts",

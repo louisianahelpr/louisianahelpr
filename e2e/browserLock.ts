@@ -13,7 +13,22 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const LOCK = join(homedir(), ".lh-browser.lock");
+/**
+ * `LH_BROWSER_LOCK_DIR` exists so this file can be TESTED without touching the
+ * real machine-wide lock. Until 2026-09-21 nothing in the repo referenced this
+ * module at all — the two behaviours below were load-bearing for every browser
+ * lane and entirely unproven:
+ *
+ *   - a lock whose owner pid is dead must be TAKEN OVER (a crashed run must not
+ *     block the machine for 90 minutes), and
+ *   - release must remove the lock ONLY if we own it.
+ *
+ * Both were exercised for real that night: a stale lock held by a dead pid
+ * blocked a lane, and another lane deleted the lock directory unconditionally
+ * at teardown — which `releaseBrowserLock` itself would never do, precisely
+ * because of the ownership check.
+ */
+const LOCK = join(process.env.LH_BROWSER_LOCK_DIR ?? homedir(), ".lh-browser.lock");
 const OWNER = join(LOCK, "owner.json");
 
 function alive(pid: number): boolean {

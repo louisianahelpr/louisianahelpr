@@ -522,6 +522,13 @@ async function main() {
       let restingUrl = "";
       /** Result of the most recent self-heal wait — set by load(). */
       let lastHeal = { healing: false, healed: true, waitedMs: 0 };
+      /**
+       * A route whose heal has already been shown NOT to resolve never gets a
+       * second full-length wait: load() runs again for every replayed opener
+       * chain, and paying SELF_HEAL_MS on each would turn one broken route into
+       * a run that never ends. The verdict is taken from the FIRST load anyway.
+       */
+      let healExhausted = false;
       const load = async () => {
         // After the first load the screen is re-entered at the URL it RESTED
         // on: a route that redirects on state (/jobs/:id → the list that owns
@@ -534,7 +541,8 @@ async function main() {
         // budget (~12.5s) is spent, i.e. AFTER settle() has already returned.
         // Give its auto-heal its bounded chance before anything classifies this
         // screen; `lastHeal` is what the boot verdict is judged against.
-        lastHeal = await awaitSelfHeal(page, { timeout: SELF_HEAL_MS });
+        lastHeal = healExhausted ? { healing: false, healed: true, waitedMs: 0 } : await awaitSelfHeal(page, { timeout: SELF_HEAL_MS });
+        if (lastHeal.healing && !lastHeal.healed) healExhausted = true;
       };
       const sameScreen = (u) => {
         const a = new URL(u), b = new URL(BASE + route.url);

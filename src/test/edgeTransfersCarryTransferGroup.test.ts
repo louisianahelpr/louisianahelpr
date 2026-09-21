@@ -16,7 +16,17 @@
  * `const/let <name> = {` declares) must carry `transfer_group:` whose value is
  * a `job_${…}` template or a local constant assigned one. Transfers that are
  * not job-scoped are listed in NOT_JOB_SCOPED with the reason.
+ *
+ * COMMENTS ARE BLANKED BEFORE ANY OF THAT. Until 2026-09-21 they were not, and
+ * this money guard was satisfiable by prose: commenting out the one live
+ * `transfer_group` line in create-payment's admin transfer — making that
+ * transfer invisible to every `transfers.list({ transfer_group })` duplicate
+ * check, which is exactly the fail-open described above — left this suite
+ * GREEN, 3 passed. Blanking preserves offsets and newlines so the line numbers
+ * this test reports stay true.
  */
+// @mutate supabase/functions/create-payment/index.ts | \n      transfer_group: `job_${jobId}`, |
+// @mutate supabase/functions/create-payment/index.ts | \n      transfer_group: `job_${jobId}`, | \n      // transfer_group: `job_${jobId}`,
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -25,6 +35,43 @@ const NOT_JOB_SCOPED: Record<string, string> = {
   "supabase/functions/cash-out-credits/index.ts": "referral-credit cash-out to the user's own account; no job",
   "supabase/functions/instant-payout/index.ts": "instant-payout fee moved from the Helpr's connected account to the platform; no job",
 };
+
+/**
+ * Blank `//` and block comments, preserving every byte offset and newline, so
+ * a commented-out `transfer_group:` cannot stand in for a live one. `//` that
+ * follows `:` or a quote is left alone — that is a URL, not a comment.
+ */
+export function blankComments(src: string): string {
+  // A scanner, not a regex. A regex that blanks `//` to end of line eats the
+  // rest of any line holding a URL ("https://x/a//b"), which would delete a
+  // live `transfer_group:` sitting after it on the same line — a guard that
+  // reads its own damage as a missing tag is a false RED, the other way this
+  // shape fails. String and template literals are skipped byte by byte.
+  const out = src.split("");
+  let i = 0;
+  while (i < src.length) {
+    const ch = src[i];
+    if (ch === '"' || ch === "'" || ch === "`") {
+      const quote = ch;
+      i++;
+      while (i < src.length && src[i] !== quote) i += src[i] === "\\" ? 2 : 1;
+      i++;
+      continue;
+    }
+    if (ch === "/" && src[i + 1] === "/") {
+      while (i < src.length && src[i] !== "\n") out[i++] = " ";
+      continue;
+    }
+    if (ch === "/" && src[i + 1] === "*") {
+      const end = src.indexOf("*/", i + 2);
+      const stop = end === -1 ? src.length : end + 2;
+      for (; i < stop; i++) if (src[i] !== "\n") out[i] = " ";
+      continue;
+    }
+    i++;
+  }
+  return out.join("");
+}
 
 /** Text of the balanced `{…}` starting at `open` (index of the `{`). */
 function balanced(src: string, open: number): string {
@@ -37,7 +84,8 @@ function balanced(src: string, open: number): string {
 }
 
 /** One entry per transfers.create call: { index, params } or { index, params: null } when unresolvable. */
-export function transferCreateParams(src: string): Array<{ line: number; params: string | null }> {
+export function transferCreateParams(raw: string): Array<{ line: number; params: string | null }> {
+  const src = blankComments(raw);
   const out: Array<{ line: number; params: string | null }> = [];
   const re = /stripe\.transfers\.create\(\s*/g;
   let m: RegExpExecArray | null;
@@ -62,8 +110,10 @@ export function transferCreateParams(src: string): Array<{ line: number; params:
   return out;
 }
 
-export function tagsJobGroup(src: string, params: string | null): boolean {
-  if (!params) return false;
+export function tagsJobGroup(rawSrc: string, rawParams: string | null): boolean {
+  if (!rawParams) return false;
+  const src = blankComments(rawSrc);
+  const params = blankComments(rawParams);
   const v = /transfer_group:\s*(`job_\$\{[^`]+\}`|[A-Za-z_]\w*)/.exec(params)?.[1];
   if (!v) return false;
   if (v.startsWith("`")) return true;
@@ -86,6 +136,17 @@ describe("every job-scoped Stripe transfer carries transfer_group job_<id>", () 
       const [c] = transferCreateParams(src);
       expect(tagsJobGroup(src, c.params)).toBe(true);
     }
+  });
+
+  it("a commented-out transfer_group does not count as one", () => {
+    // The 2026-09-21 finding, as a unit: prose is not a tag.
+    const dead = "const p = {\n  amount: 1,\n  // transfer_group: `job_${jobId}`,\n};\nawait stripe.transfers.create(p);";
+    const [call] = transferCreateParams(dead);
+    expect(tagsJobGroup(dead, call.params)).toBe(false);
+    // …and a `//` inside a string is not a comment, so a real tag beside a URL survives.
+    const live = 'const p = { url: "https://x.example/a//b", transfer_group: `job_${jobId}` };\nawait stripe.transfers.create(p);';
+    const [ok] = transferCreateParams(live);
+    expect(tagsJobGroup(live, ok.params)).toBe(true);
   });
 
   it("no job-scoped transfers.create in supabase/functions omits it", () => {

@@ -25,7 +25,15 @@
  * legal `jobs.payment_status` values is parsed out of the CHECK constraint in
  * `supabase/migrations/`, so a migration that adds an eleventh state fails this
  * suite until someone decides whether it is the helper's money.
+ *
+ * PROVEN ABLE TO FAIL 2026-09-21 (guard burn-down). Both registrations below
+ * were run by hand first: re-adding the `is_seed` filter that produced the QA
+ * screen reds "does not filter the helper's own jobs by is_seed"; deleting the
+ * cancelled-job filter and leaving it as a `//` comment reds "still excludes
+ * cancelled jobs" — it did NOT before the comment-blanking above was added.
  */
+// @mutate src/hooks/useProfileTabData.ts | .neq("status", "cancelled") | .eq("is_seed", false).neq("status", "cancelled")
+// @mutate src/hooks/useProfileTabData.ts | const jobsQuery = supabase.from("jobs").select(JOB_READABLE_COLUMNS).neq("status", "cancelled"); | const jobsQuery = supabase.from("jobs").select(JOB_READABLE_COLUMNS); // .neq("status", "cancelled")
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -135,11 +143,25 @@ describe("jobs.payment_status → is it the helper's money?", () => {
 
 describe("the earnings source query", () => {
   const source = readFileSync(join(process.cwd(), "src/hooks/useProfileTabData.ts"), "utf8");
+  // COMMENTS ARE BLANKED FIRST. Both assertions below are source-text pins,
+  // and a pin that reads raw source is satisfied by prose: on 2026-09-21 the
+  // `.neq("status", "cancelled")` filter was deleted and left behind as
+  // `; // .neq("status", "cancelled")` and this suite stayed GREEN (9 passed).
+  // That assertion exists precisely to prove the query was not deleted, so a
+  // commented-out copy satisfying it is the whole failure in miniature.
+  // Line structure is preserved so the bounding below still works.
+  const live = source
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
   // Bounded to this one function — the file also holds the schedule and
   // violations queries, and an assertion over the whole file would pass or
-  // fail on their contents instead.
-  const start = source.indexOf("export function useProfileEarnings");
-  const rest = source.slice(start + 1);
+  // fail on their contents instead. The marker must be FOUND: `indexOf`
+  // returning -1 would slice from the top of the file and quietly move the
+  // assertions onto some other function's body.
+  const start = live.indexOf("export function useProfileEarnings");
+  if (start === -1)
+    throw new Error("useProfileEarnings no longer exists in src/hooks/useProfileTabData.ts");
+  const rest = live.slice(start + 1);
   const end = rest.indexOf("\nexport function ");
   const earningsFn = end === -1 ? rest : rest.slice(0, end);
 

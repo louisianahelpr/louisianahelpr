@@ -193,3 +193,8 @@ describe("ppoTrackingProps", () => {
     });
   });
 });
+
+// First-write-wins. Without this gate every later launch overwrites the
+// original attribution, so a non-PPO (or a different-arm) open steals credit
+// and Apple's PPO loop closes on the wrong treatment.
+// @mutate src/lib/ppoAttribution.ts | if (!safeStorage.getItem(STORAGE_KEY)) { | if (true) {

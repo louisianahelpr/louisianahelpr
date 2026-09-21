@@ -146,3 +146,9 @@ describe("signOutWithPushCleanup", () => {
     expect(src).not.toMatch(/from\s+["'][^"']*(sentry|posthog)/i);
   });
 });
+
+// The floor under a failed sign-out. Without this call the `sb-*-auth-token`
+// key survives both of auth.signOut()'s silent failure modes, MarketingRedirect
+// fast-paths off it, and the post-sign-out navigate("/") feeds the user
+// straight back in still signed in — "i had to click log out twice".
+// @mutate src/lib/authSignOut.ts | clearPersistedAuthToken(); | void 0;

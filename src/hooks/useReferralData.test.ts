@@ -193,3 +193,67 @@ describe("fetchReferralData — code generation", () => {
     expect(insertedCode).not.toMatch(/[IO01]/); // ambiguous chars excluded
   });
 });
+
+// ── THE FAILURE HALF, WHICH NOTHING ABOVE TOUCHES ──────────────────────────
+// Every test above hands the mock a SUCCESSFUL row (or lets the default
+// `{ data: null, count: 0, error: null }` answer for it), so the four error
+// checks in `fetchReferralData` were never executed once. Deleting
+// `unwrap(codeRes)` — the line whose own comment says "a transient failure on
+// the code lookup must throw *here* — otherwise it falls through to inserting
+// a brand-new referral code even though the user already has one" — left all
+// six tests green. That is the money bug: a second code minted over a user's
+// existing one, so every invite already in the wild stops attributing.
+describe("fetchReferralData — a failed read is surfaced, never papered over", () => {
+  const CODE_KEY = "referral_codes|select,eq:user_id=u1,maybeSingle|data";
+  const boom = { data: null, error: { message: "transient", code: "57014" } };
+
+  it("a failed CODE lookup rejects instead of minting a duplicate code", async () => {
+    setResponse(CODE_KEY, boom);
+    await expect(fetchReferralData("u1")).rejects.toThrow(/transient/);
+    // The whole point: the insert path must never be reached on a failed read.
+    // `referral_codes` is touched once (the lookup) and not a second time.
+    const codeTouches = fromMock.mock.calls.filter((c) => c[0] === "referral_codes");
+    expect(codeTouches, "a failed code read fell through to INSERT — duplicate code").toHaveLength(1);
+  });
+
+  it("a failed REFERRALS count rejects rather than reporting 0 invites", async () => {
+    setResponse(CODE_KEY, { data: { code: "ABC123" }, error: null });
+    setResponse("referrals|select,eq:referrer_id=u1|count", {
+      data: null,
+      count: null,
+      error: { message: "count failed" },
+    });
+    // `referralCount || 0` would otherwise render "0 friends referred" to
+    // someone with seven, which reads as credits that were never paid.
+    await expect(fetchReferralData("u1")).rejects.toThrow(/count failed/);
+  });
+
+  it("a failed CREDITS read rejects rather than showing an empty ledger", async () => {
+    setResponse(CODE_KEY, { data: { code: "ABC123" }, error: null });
+    setResponse("referral_credits|select,eq:user_id=u1,order|data", {
+      data: null,
+      error: { message: "credits failed" },
+    });
+    await expect(fetchReferralData("u1")).rejects.toThrow(/credits failed/);
+  });
+
+  it("a failed PROFILE read rejects rather than claiming no Stripe account", async () => {
+    setResponse(CODE_KEY, { data: { code: "ABC123" }, error: null });
+    setResponse("profiles|select,eq:user_id=u1,single|data", {
+      data: null,
+      error: { message: "profile failed" },
+    });
+    // `!!profile?.stripe_account_id` on a dropped error says "not connected"
+    // to a user who is, and sends them back through Stripe onboarding.
+    await expect(fetchReferralData("u1")).rejects.toThrow(/profile failed/);
+  });
+});
+
+// The duplicate-code gate: without it a user with a perfectly good code has a
+// second one written over it on every load.
+// @mutate src/hooks/useReferralData.ts | if (!referralCode) { | if (true) {
+// The error half above. Both `unwrap(codeRes)` and the explicit
+// `referralsRes.error` throw are the difference between a surfaced failure and
+// a blank referral page that silently mints a new code.
+// @mutate src/hooks/useReferralData.ts | const codeRow = unwrap(codeRes); | const codeRow = codeRes.data;
+// @mutate src/hooks/useReferralData.ts | if (referralsRes.error) throw referralsRes.error; | if (false) throw referralsRes.error;

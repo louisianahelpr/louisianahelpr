@@ -129,3 +129,8 @@ describe("useAppShellViewport", () => {
     });
   });
 });
+
+// Exact-or-child matching. A bare startsWith makes /loginX, /adminate and
+// /profile-settings document-scroll routes, so they lose the 100dvh lock and
+// AppShell's internal scroll silently stops applying.
+// @mutate src/hooks/useAppShellViewport.ts | route === "/" ? pathname === "/" : pathname === route \|\| pathname.startsWith(`${route}/`), | route === "/" ? pathname === "/" : pathname.startsWith(route),

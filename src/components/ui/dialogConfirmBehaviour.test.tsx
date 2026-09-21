@@ -158,3 +158,9 @@ describe("confirm dialog behaviour", () => {
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });
 });
+
+// `MaybeClose` is the whole of behaviour 1: AlertDialogAction/AlertDialogCancel
+// were DialogPrimitive.Close, DialogPrimaryAction is a plain <Button>. Without
+// the wrap, ban-user, remove-review, delete-note and delete-account stay open
+// after you confirm — and a diff of the rename shows nothing wrong.
+// @mutate src/components/ui/dialog.tsx | return isConfirm ? <DialogPrimitive.Close asChild>{children}</DialogPrimitive.Close> : <>{children}</>; | void isConfirm; return <>{children}</>;

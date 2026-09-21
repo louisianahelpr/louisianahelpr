@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { blankComments } from "@/test/helpers/blankNonCode";
 
 /**
  * The fee we SHOW and the fee we PERSIST must come from the same place.
@@ -52,17 +53,24 @@ const RAW = readFileSync(
 );
 
 /**
- * CODE ONLY — comments stripped.
+ * CODE ONLY — comments blanked.
  *
  * The file documents the defect it used to have, quoting the offending
  * `new Date(... + "T00:00:00")` verbatim so the next reader understands why the
  * shared module is mandatory. Scanning the raw text would match that prose and
  * fail on its own explanation, which would push someone to delete the
- * explanation to get green. Strip comments, then assert.
+ * explanation to get green. Blank comments, then assert.
+ *
+ * `blankComments`, not the naive two-regex strip this used to do. That idiom
+ * has no idea whether it is inside a string, so the `//` in a URL literal — and
+ * CancellationDialog.tsx carries several — opens a "line comment" that eats the
+ * rest of the line, and a `/*` inside any string eats everything up to the next
+ * star-slash ANYWHERE later in the file. A guard scanning source it has itself
+ * deleted finds nothing and reports green. `blankComments` does one
+ * string-aware left-to-right pass and BLANKS rather than deletes, so offsets,
+ * line numbers and the string bodies these assertions read stay intact.
  */
-const SRC = RAW
-  .replace(/\/\*[\s\S]*?\*\//g, "")  // block comments, including JSDoc
-  .replace(/(^|[^:])\/\/.*$/gm, "$1");  // line comments, sparing `://` in URLs
+const SRC = blankComments(RAW);
 
 describe("CancellationDialog derives every fee from the shared module", () => {
   it("imports the shared helpers", () => {
@@ -134,3 +142,8 @@ describe("CancellationDialog derives every fee from the shared module", () => {
     expect(calls.length, "the displayed quote must use the shared ladder").toBe(1);
   });
 });
+
+// The zone half of the split, verbatim: `new Date(d + "T00:00:00")` resolves in
+// the RUNTIME's zone while the server charges from jobLocalStartMs in the
+// PLATFORM's zone, so a $200 job 24.5h out quoted 0% and was charged 25%.
+// @mutate src/components/CancellationDialog.tsx | jobLocalStartMs(jobDate, jobStartTime) | new Date(jobDate + "T00:00:00").getTime()

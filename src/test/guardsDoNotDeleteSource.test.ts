@@ -50,7 +50,6 @@ const REPO = resolve(__dirname, "..", "..");
 
 /** Guards still using the deleting idiom. MAY ONLY SHRINK. */
 const GRANDFATHERED: readonly string[] = [
-  "src/components/cancellationDialogParity.test.ts",
   "src/components/profile/ProfileTabFallback.test.tsx",
   "src/components/profile/profileTabShell.test.ts",
   "src/test/aasaRouteParity.test.ts",

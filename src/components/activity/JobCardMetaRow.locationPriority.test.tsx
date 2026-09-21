@@ -142,3 +142,8 @@ describe("JobCardMetaRow without a countdown", () => {
     expect(flexShrink(city)).toBe(1);
   });
 });
+
+// The whole rule: beside a countdown the city is shrink-0, so the countdown is
+// the item that gives. As `shrink` it is the row's shrinker again and "New
+// Iberia" renders "N…" at 375, which is the bug this file was written for.
+// @mutate src/components/activity/JobCardMetaRow.tsx | ? "shrink-0 max-w-[50%]" | ? "shrink max-w-[50%]"

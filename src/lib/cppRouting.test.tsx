@@ -172,3 +172,7 @@ describe("useCppVariantRouter — PPO recording", () => {
     expect(sessionStorage.getItem("helpr_cpp_variant")).toBe("poster");
   });
 });
+
+// Redirect ONLY from the bare landing route. Without the gate a ?cpp= on any
+// deep link (a shared job URL, a push landing) yanks the user to /post-job.
+// @mutate src/lib/cppRouting.ts | if (location.pathname === "/" \|\| location.pathname === "") { | if (true) {

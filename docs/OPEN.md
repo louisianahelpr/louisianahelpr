@@ -5114,3 +5114,26 @@ and hashed the empty string today); a list that is both input and oracle; an emp
 inventory passing vacuously (floor every scan); `.includes()` where exact was meant
 (`"space-y-4 px-3"` passes `.includes("space-y-4")`); pinning a defect's measurement
 so it asserts the bug still exists; interpolating a Tailwind class into an assertion.
+
+### LANE SIZING — owner rule, 2026-09-20 (said three times)
+"agents should not go this long. 10 min max." / "do not start on the 188 until the
+current agents are done." / "give them shorter tasks and do the stuff you can on
+your own."
+
+WHAT KEPT BREAKING IT: briefs bundled N items into one lane (19 admin forms; 21
+contrast sites; 11 prod-audit failures; a 3-part structural browse fix). Each was
+serial work inside one agent, so nothing landed for an hour and progress was
+invisible. Splitting AFTER the fact then caused four collisions, because the
+holding lane had already finished the work being split out.
+
+THE RULE:
+1. One brief = one coherent change ≈ ~10 minutes. If a list has N items, that is
+   N/4 lanes, not one lane with a list in it.
+2. Split by FILE TREE so lanes cannot collide; name each lane's files AND the
+   other live lanes' files as off-limits.
+3. Before splitting an existing lane, ASK IT WHAT IS ALREADY DONE. Four wasted
+   runs on 2026-09-20 were all re-briefs of finished work.
+4. Queue, do not fan out: 2-3 concurrent max on this 8 GB Mac.
+5. Do the small things in the lead session instead of spawning for them.
+6. If a job genuinely cannot be cut below 10 minutes (a prod-audit suite run is
+   ~1.1h of wall clock by itself), SAY SO and name the irreducible part.

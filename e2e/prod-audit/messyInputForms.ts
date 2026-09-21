@@ -265,4 +265,13 @@ export const GAPS: Record<string, string> = {
   // Admin queues that only real events fill (prod-seed.mjs 'Not produced, by design').
   "src/components/admin/AdminExceptionQueue.tsx": "verification_exceptions queue — no seed row (prod-seed: admin work queue, no honest seed value)",
   "src/components/admin/AdminPayoutBatches.tsx": "payout batches — real Stripe transfers only; no seed batch",
+  // Measured on prod as the admin test account, 2026-09-20 (screenshots in
+  // the lane report). These two are EMPTY QUEUES, not unreachable screens:
+  // the form is real, there is simply no row in prod for it to open against,
+  // and seeding one would mean manufacturing a ban or a paid-for failed
+  // Stripe Identity attempt. Re-check when prod has a row.
+  "src/components/admin/AdminBanReview.tsx": "empty queue on prod — /admin?view=banreview renders \"No accounts awaiting review\"; the ban-reason and dismissal-note boxes live on a pending-review row and there is none. Seeding one means putting a real consequence-ladder restriction on a shared test account",
+  "src/components/admin/AdminIDVReview.tsx": "empty queue on prod — /admin?view=idvreview renders \"Nobody is waiting on a human\"; a row lands here only after Stripe CHARGED for an identity attempt and failed it, which cannot be seeded without paying Stripe for a real verification",
+  // Read-only by decision, not by reachability.
+  "src/components/admin/EditEmailDialog.tsx": "reachable (user detail → Edit email) but deliberately NOT swept: it rewrites an account's login address, and every shared test account is a sign-in dependency for this whole suite. One stray submit slipping the write firewall would lock every lane out of that account",
 };

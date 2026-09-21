@@ -107,4 +107,39 @@ test.describe("detectButtonGeometry — sibling mismatch", () => {
     const r = await page.evaluate(detectButtonGeometry, undefined);
     expect(r.requestedNotRendered).toEqual([]);
   });
+
+  /**
+   * #1597: a11y-webkit-prod was red on `"3" asks h-7 (28px), renders 29.6px`.
+   * The JobTracking step dot is `w-7 h-7` plus `.step-current-pulse`, which
+   * index.css animates scale(1) -> scale(1.06) forever; getBoundingClientRect()
+   * is the VISUAL box, so 28px measured up to 29.68px mid-pulse. Because WebKit
+   * and Chromium sample an infinite animation at different phases, only one
+   * engine ever reported it. The geometry answer must come from layout.
+   */
+  test("a scale animation on the control is not a defeated height class", async ({ page }) => {
+    // `animation-delay: -0.8s` pins the pulse at its 50% keyframe from the very
+    // first frame, so the visual box is at its biggest with no timing race.
+    await page.setContent(BASE + `<style>
+      @keyframes pulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.06) } }
+      .pulsing { animation: pulse 1.6s linear -0.8s infinite; transform-origin: center; }
+    </style>
+    <div><button class="h-7 pulsing" style="height:28px;width:28px;padding:0">3</button></div>`);
+    expect(await page.evaluate(() => document.querySelector("button")!.getBoundingClientRect().height))
+      .toBeGreaterThan(29); // the visual box really is inflated — the check has to ignore it
+    expect((await page.evaluate(detectButtonGeometry, undefined)).requestedNotRendered).toEqual([]);
+
+    // A frozen scale is the same measurement trap without the animation.
+    await page.setContent(BASE + `<div><button class="h-7"
+      style="height:28px;width:28px;padding:0;transform:scale(1.06)">3</button></div>`);
+    expect((await page.evaluate(detectButtonGeometry, undefined)).requestedNotRendered).toEqual([]);
+  });
+
+  test("still catches a height class the cascade really did defeat", async ({ page }) => {
+    // 60px, not 44px: at 44px this would be `heightHeldAtFloor` (the HIG floor
+    // doing its job), which is deliberately not a requestedNotRendered finding.
+    await page.setContent(BASE + `<style>button{height:60px!important}</style>
+      <div><button class="h-7" style="width:28px;padding:0">3</button></div>`);
+    const r = await page.evaluate(detectButtonGeometry, undefined);
+    expect(r.requestedNotRendered).toEqual(['"3" asks h-7 (28px), renders 60.0px']);
+  });
 });

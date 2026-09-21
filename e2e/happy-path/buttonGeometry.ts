@@ -148,6 +148,35 @@ export function detectButtonGeometry(scopeSelector?: string): ButtonGeometryRepo
   // variant for the same utility makes the requested size conditional, so the
   // element is skipped for that utility rather than guessed at.
   const REM = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  /**
+   * The LAYOUT border-box height, free of any transform.
+   *
+   * getBoundingClientRect() is the VISUAL box, so a control part-way through an
+   * infinite scale animation measures larger than it declares. The step dot in
+   * JobTracking.tsx is `w-7 h-7` plus `.step-current-pulse`, which index.css
+   * animates scale(1) -> scale(1.06) forever: sampled mid-pulse, 28px declared
+   * renders as up to 29.68px. That is the animation doing exactly what it is
+   * for, not a defeated class — and because WebKit and Chromium sample an
+   * infinite animation at different phases, only one engine ever saw it, which
+   * is what kept a11y-webkit-prod red (#1597).
+   *
+   * getComputedStyle().height resolves to the used CONTENT-box height with
+   * sub-pixel precision and no transform applied, so padding and border are
+   * added back to compare against a Tailwind `h-*` (a border-box height under
+   * preflight). `auto` on an inline box gives NaN; fall back to the rect there.
+   */
+  const layoutHeight = (el: Element): number => {
+    const cs = getComputedStyle(el);
+    const content = parseFloat(cs.height);
+    if (!Number.isFinite(content)) return el.getBoundingClientRect().height;
+    return (
+      content +
+      (parseFloat(cs.paddingTop) || 0) +
+      (parseFloat(cs.paddingBottom) || 0) +
+      (parseFloat(cs.borderTopWidth) || 0) +
+      (parseFloat(cs.borderBottomWidth) || 0)
+    );
+  };
   const toPx = (v: string): number | null => {
     const arb = /^\[(\d+(?:\.\d+)?)(px|rem)\]$/.exec(v);
     if (arb) return parseFloat(arb[1]) * (arb[2] === "rem" ? REM : 1);
@@ -165,11 +194,10 @@ export function detectButtonGeometry(scopeSelector?: string): ButtonGeometryRepo
       const want = toPx(tok.replace(/^!?[a-z-]+?-(?=\[|\d)/, ""));
       if (want === null) continue;
       const cs = getComputedStyle(el);
-      const r = el.getBoundingClientRect();
       const got =
         util === "min-h" ? Math.max(parseFloat(cs.minHeight) || 0, 0) :
         util === "min-w" ? Math.max(parseFloat(cs.minWidth) || 0, 0) :
-        r.height;
+        layoutHeight(el);
       // For `h-*`, an explicit `h-auto` also on the element means the author
       // released the height; the class list would contain both only by mistake
       // but is not this check's question.

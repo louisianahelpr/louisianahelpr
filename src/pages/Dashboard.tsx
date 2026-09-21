@@ -765,7 +765,6 @@ const Dashboard = () => {
                     // otherwise flash two placeholder cards at the top of the feed
                     // every time the next page loads with zero recommendations.
                     recommendedLoading={refreshing}
-                    dismissedJobIds={dismissedJobIds}
                     savedOnly={savedOnly}
                     effectiveFee={effectiveFee}
                     handleApplyRequest={handleApplyRequest}

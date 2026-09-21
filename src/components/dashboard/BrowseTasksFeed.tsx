@@ -27,6 +27,7 @@ import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 import type { ViewerFeedExclusions } from "@/pages/dashboard/viewerFeedExclusions";
+import { partitionBrowseFeed } from "@/pages/dashboard/browseFeedSections";
 
 // Lazy-load BrowseMap so the map chunk (and the MapKit JS script it pulls
 // from Apple's CDN) only loads when an authenticated user toggles to map
@@ -223,7 +224,6 @@ interface BrowseTasksFeedProps {
    *  the recommended slot reserves space with skeletons instead of
    *  collapsing then popping in (CLS) once recommendations resolve. */
   recommendedLoading: boolean;
-  dismissedJobIds: Set<string>;
   /** Show ONLY saved jobs — see BrowseTasksActions' bookmark toggle. */
   savedOnly?: boolean;
   /** Platform commission percentage, forwarded to each job card. */
@@ -282,7 +282,6 @@ export function BrowseTasksFeed({
   refresh,
   recommendedJobs,
   recommendedLoading,
-  dismissedJobIds,
   savedOnly = false,
   effectiveFee,
   handleApplyRequest,
@@ -378,23 +377,21 @@ export function BrowseTasksFeed({
     // everywhere else. They live in useDashboardFilters now, one layer up,
     // where every surface reads them. Re-adding either here would not
     // reinforce anything; it would re-open the same divergence.
-    const visible = filters.filteredJobs
-      .filter(j => {
-        // Hide jobs already rendered by the Recommended section above.
-        //
-        // This used to ALSO drop anything in `filters.nearbyJobs`, dating from
-        // a time when the feed rendered a separate "Nearby" band. That band is
-        // gone — `nearbyJobs` is not rendered by this component or by
-        // Dashboard.tsx — so the exclusion was deleting open jobs from the
-        // feed with no section showing them instead. Proven at runtime: with 6
-        // jobs in the user's own city and 3 skill-matching jobs elsewhere,
-        // `nearbyJobs` claimed the first 5 local jobs while `recommendedJobs`
-        // (skill score 3 > location score 2) held the 3 out-of-town ones plus
-        // 2 local, leaving 3 local jobs excluded here and rendered nowhere.
-        // Only exclude what a section actually renders.
-        if (!filters.hasFilters && recommendedJobs.some(rj => rj.id === j.id)) return false;
-        return true;
-      })
+    // ONE partition of `filters.filteredJobs` — see
+    // src/pages/dashboard/browseFeedSections.ts. The band and the rest are
+    // both drawn from that one list, so no row can be subtracted here on the
+    // grounds that a section below renders it while that section is switched
+    // off. Two bugs came out of doing this as a subtraction plus a separately
+    // gated band (nearbyJobs 2026-09-16, savedOnly 2026-09-20); it is a
+    // partition now so the gate can only move rows, never delete them.
+    const showRecommendedBand = !filters.hasFilters && !savedOnly;
+    const { band, rest } = partitionBrowseFeed({
+      filteredJobs: filters.filteredJobs,
+      recommendedIds: recommendedJobs.map(j => j.id),
+      showRecommendedBand,
+    });
+
+    const visible = rest
       // Two-sided liquidity signal — float urgent jobs to the top of the
       // "Everything else" feed. Stable sort: equal-urgency rows keep the
       // feed's existing order, so this only lifts urgent jobs. Applied
@@ -418,14 +415,16 @@ export function BrowseTasksFeed({
     // feed looked like a no-op: this band holds up to 5 of the visible
     // jobs and never reordered when sortBy changed, since it was built
     // purely from the recommendation score. See compareJobsBySortMode.
-    const recommended = !filters.hasFilters && !savedOnly
-      ? recommendedJobs
-          .filter(j => !dismissedJobIds.has(j.id))
-          .slice()
-          .sort((a, b) => filters.sortBy === "smart" ? 0 : compareJobsBySortMode(a, b, filters.sortBy, effectiveFee))
-      : [];
+    // `band` is already gated by `showRecommendedBand` and already drawn from
+    // `filteredJobs`, so the dismissed-cull that used to run here is gone: it
+    // duplicated a rule that belongs to useDashboardFilters (the ONE registry,
+    // viewerFeedExclusions.ts) and applied it to a list the registry had
+    // already cleaned.
+    const recommended = band
+      .slice()
+      .sort((a, b) => filters.sortBy === "smart" ? 0 : compareJobsBySortMode(a, b, filters.sortBy, effectiveFee));
     return { visibleJobs: visible, recommendedVisible: recommended };
-  }, [filters.filteredJobs, filters.hasFilters, filters.sortBy, recommendedJobs, dismissedJobIds, savedOnly, effectiveFee]);
+  }, [filters.filteredJobs, filters.hasFilters, filters.sortBy, recommendedJobs, savedOnly, effectiveFee]);
 
   // ONE list — recommended picks first, then everything else — EXCEPT
   // boosted jobs, which pin above everything (including recommended) while

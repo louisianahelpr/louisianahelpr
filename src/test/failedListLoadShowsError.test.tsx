@@ -118,7 +118,6 @@ describe("Browse feed: a failed jobs query shows the error state", () => {
           refresh={noop}
           recommendedJobs={[]}
           recommendedLoading={false}
-          dismissedJobIds={new Set()}
           effectiveFee={10}
           handleApplyRequest={noop}
           handleDismissRequest={noop}

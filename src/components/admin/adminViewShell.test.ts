@@ -101,6 +101,23 @@ describe("Admin views share one shell", () => {
     "AdminSupport",
   ];
 
+  // mainWrapper() returns SHELL for ANY view rendering <AdminViewShell>, which
+  // is correct — but it means the component's own classes are the one place
+  // this file read nothing from. Every adopted view inherits its rhythm from
+  // that single `cn(...)`, so a change there silently re-spaces 17 screens at
+  // once while all four assertions above stay green.
+  it("AdminViewShell itself wears the canonical rhythm", () => {
+    const src = readFileSync(resolve(ROOT, "src/components/admin/AdminViewShell.tsx"), "utf8");
+    const m = src.match(/export function AdminViewShell[\s\S]*?cn\(\s*"([^"]*)"/);
+    expect(m, "AdminViewShell's wrapper class list").not.toBeNull();
+    const classes = m![1].split(/\s+/).filter(Boolean);
+    // Either unconditionally, or from `sm` up — the phone step may be tighter.
+    expect(
+      classes.some((cls) => cls === SHELL || cls === `sm:${SHELL}`),
+      `AdminViewShell renders "${m![1]}" — the shared rhythm is "${SHELL}"`,
+    ).toBe(true);
+  });
+
   it("views that adopted AdminViewShell keep it", () => {
     const regressed = ADOPTED.filter((v) => !usesShellComponent(v));
     expect(regressed, "views that dropped <AdminViewShell>").toEqual([]);
@@ -122,3 +139,7 @@ describe("Admin views share one shell", () => {
     expect(offenders, "adopted views still using .liquid-glass cards").toEqual([]);
   });
 });
+
+// The one class every adopted view inherits its rhythm from — and the one
+// this file read nothing from until the AdminViewShell test above.
+// @mutate src/components/admin/AdminViewShell.tsx | cn("space-y-5 sm:space-y-6", className) | cn("space-y-1", className)

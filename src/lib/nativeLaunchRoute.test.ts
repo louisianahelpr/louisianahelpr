@@ -123,11 +123,27 @@ describe("resolveNativeLaunchRoute", () => {
       expect(await resolveNativeLaunchRoute("/")).toBe("/dashboard");
     });
 
-    it("falls back to /dashboard when the memory is stale", async () => {
+    // The freshness window is 3 minutes (lastRoute.ts), not 30. It is the only
+    // thing separating "the WebView reloaded under me" from "I deliberately
+    // opened the app", and the owner reported the 30-minute version by name:
+    // opening the app fresh and landing on Gift Cards. This pair brackets the
+    // real boundary — a stale case at 31 MINUTES (what this test used to use)
+    // passes just as happily against a 30-minute window, so it proved nothing
+    // about the value that was actually wrong.
+    it("still restores inside the freshness window", async () => {
       getSessionMock.mockResolvedValue({ data: { session: { user: { id: "u1" } } } });
       localStorage.setItem(
         "lh_last_route",
-        JSON.stringify({ p: "/messages", t: Date.now() - 31 * 60 * 1000 }),
+        JSON.stringify({ p: "/messages", t: Date.now() - 2 * 60 * 1000 }),
+      );
+      expect(await resolveNativeLaunchRoute("/")).toBe("/messages");
+    });
+
+    it("falls back to /dashboard minutes later — the window is 3 min, not 30", async () => {
+      getSessionMock.mockResolvedValue({ data: { session: { user: { id: "u1" } } } });
+      localStorage.setItem(
+        "lh_last_route",
+        JSON.stringify({ p: "/messages", t: Date.now() - 4 * 60 * 1000 }),
       );
       expect(await resolveNativeLaunchRoute("/")).toBe("/dashboard");
     });
@@ -146,3 +162,9 @@ describe("resolveNativeLaunchRoute", () => {
     });
   });
 });
+
+// A signed-out device must never be greeted by the last user's screen.
+// @mutate src/lib/nativeLaunchRoute.ts | if (!session?.user) return "/browse"; | if (false) return "/browse";
+// The 3-minute freshness window: 30 minutes restored a deep screen on a
+// deliberate launch (owner: opened the app fresh, landed on Gift Cards).
+// @mutate src/lib/lastRoute.ts | const RESTORE_WINDOW_MS = 3 * 60 * 1000; // 3 minutes | const RESTORE_WINDOW_MS = 30 * 60 * 1000; // 3 minutes

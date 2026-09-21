@@ -163,3 +163,9 @@ describe("AdminRoute", () => {
     expect(ours).toHaveLength(1);
   });
 });
+
+// The privilege check itself. With the confirmed-non-admin redirect gone,
+// any signed-in account renders the admin console.
+// @mutate src/components/AdminRoute.tsx | if (adminStatus !== "admin") { | if (false) {
+// The tri-state half: `unknown` must deny WITH an explanation, not bounce.
+// @mutate src/components/AdminRoute.tsx | if (adminStatus === "unknown") { | if (false) {

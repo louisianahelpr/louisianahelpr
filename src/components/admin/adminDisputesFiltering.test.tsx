@@ -135,3 +135,6 @@ describe("AdminDisputes — Open count and the two empty states", () => {
     expect(screen.queryByText(/No disputes match your filters/)).toBeNull();
   });
 });
+
+// The Open tab count describing a list the admin can no longer see.
+// @mutate src/components/admin/AdminDisputes.tsx | ({openFiltered.length}) | ({disputes.length})

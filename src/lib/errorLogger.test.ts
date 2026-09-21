@@ -1,5 +1,16 @@
-import { describe, it, expect } from "vitest";
-import { _redact, _sanitizeUrl, _isDevEnvironment, _describeUnknownError } from "./errorLogger";
+import { describe, it, expect, vi } from "vitest";
+import { _redact, _sanitizeUrl, _isDevEnvironment, _describeUnknownError, report } from "./errorLogger";
+
+// The row `report()` would have INSERTed. Everything above tests the scrubbers
+// in isolation; this captures the payload so the scrubbers can be shown to be
+// WIRED IN — see the last describe block.
+type LoggedRow = { message: string; url: string | null; context: Record<string, unknown> };
+const insertSpy = vi.hoisted(() => vi.fn(async (_rows: unknown[]) => ({ error: null })));
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: { from: () => ({ insert: insertSpy }) },
+}));
+vi.mock("@/lib/sentry", () => ({ captureException: vi.fn() }));
+vi.mock("@/lib/posthog", () => ({ captureException: vi.fn() }));
 
 describe("errorLogger._redact", () => {
   it("redacts Bearer tokens", () => {
@@ -154,3 +165,63 @@ describe("errorLogger._describeUnknownError", () => {
     expect(_describeUnknownError(42)).toBe("42");
   });
 });
+
+/**
+ * The scrubbers are wired in — not merely present.
+ *
+ * Every test above calls `_redact` / `_sanitizeUrl` directly, so all of them
+ * stayed green with `redact()` deleted from `report()`'s message line: the
+ * regexes were perfect and nothing used them. That is the whole PII story of
+ * this module — `error_logs` is a plain table an admin reads, and a bearer
+ * token or a `?token=` recovery link landing in it is a credential at rest.
+ *
+ * So this block asserts on the ROW, through the public entry point, and names
+ * each secret it must not contain.
+ */
+describe("report() applies the scrubbing to the row it persists", () => {
+  const atProd = () =>
+    Object.defineProperty(window, "location", {
+      value: new URL("https://www.louisianahelpr.com/dashboard?token=abc123def456"),
+      writable: true,
+    });
+
+  it("redacts the message, the stack, the caller context and the URL", async () => {
+    atProd();
+    insertSpy.mockClear();
+
+    report(new Error("Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.SUPERSECRETSIG refused"), {
+      severity: "warning",
+      context: { callbackUrl: "https://app.example.com/auth?token=abc123def456" },
+    });
+
+    await vi.waitFor(() => expect(insertSpy).toHaveBeenCalled(), { timeout: 3000 });
+    const row = insertSpy.mock.calls[0][0][0] as LoggedRow;
+
+    expect(row.message).toContain("Bearer <redacted>");
+    expect(row.message).not.toContain("SUPERSECRETSIG");
+    // The caller's own context strings go through the same pass.
+    expect(row.context.callbackUrl).toBe("https://app.example.com/auth?token=<redacted>");
+    // window.location.href carried ?token= — the row keeps origin + path only.
+    expect(row.url).toBe("https://www.louisianahelpr.com/dashboard");
+    // Belt and braces: the secret appears nowhere in the serialised row.
+    expect(JSON.stringify(row)).not.toContain("abc123def456");
+  });
+
+  it("still drops dev-environment errors before they ever reach the queue", async () => {
+    Object.defineProperty(window, "location", {
+      value: new URL("http://localhost:8080/dashboard"),
+      writable: true,
+    });
+    insertSpy.mockClear();
+    report(new Error("dev noise"));
+    await new Promise((r) => setTimeout(r, 400));
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+});
+
+// The scrubbers were provably correct and provably UNWIRED: every assertion
+// above calls them directly, so `report()` persisted raw bearer tokens with
+// all 21 green. These mutations break the CALL SITES, not the regexes.
+// @mutate src/lib/errorLogger.ts | const message = (redact(rawMessage) ?? "").slice(0, MESSAGE_MAX_CHARS); | const message = (rawMessage ?? "").slice(0, MESSAGE_MAX_CHARS);
+// @mutate src/lib/errorLogger.ts | context[k] = typeof v === "string" ? redact(v) : (v as Json); | context[k] = v as Json;
+// @mutate src/lib/errorLogger.ts | const url = sanitizeUrl(typeof window !== "undefined" ? window.location.href : null); | const url = typeof window !== "undefined" ? window.location.href : null;

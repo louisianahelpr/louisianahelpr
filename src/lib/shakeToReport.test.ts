@@ -124,6 +124,40 @@ describe("initShakeToReport — iOS 13+ permission gate", () => {
     expect(onShake).not.toHaveBeenCalled();
   });
 
+  // The prompt the auth screens must never show.
+  //
+  // The tap listener used to fire on whatever the user touched first, which
+  // for a new arrival is the email field on /login: their very first
+  // interaction with Helpr was an unexplained iOS "Would Like to Access
+  // Motion and Orientation" prompt, for a shortcut they had not been told
+  // about and cannot use until they are signed in (iOS 26 simulator).
+  //
+  // Nothing exercised the AUTH_ROUTES guard before this test: every other
+  // case in this file runs at jsdom's default path "/", so the guard could be
+  // deleted outright with the whole file green.
+  it("does NOT ask for motion permission when the tap lands on an auth route", async () => {
+    const requestPermission = vi.fn().mockResolvedValue("granted");
+    Object.defineProperty(window, "DeviceMotionEvent", {
+      configurable: true,
+      writable: true,
+      value: Object.assign(class {}, { requestPermission }),
+    });
+    window.history.replaceState({}, "", "/login");
+
+    initShakeToReport(onShake);
+    window.dispatchEvent(new Event("touchend"));
+    await Promise.resolve();
+
+    expect(requestPermission).not.toHaveBeenCalled();
+
+    // And the guard does not permanently disarm: the same listener is still
+    // attached, so a tap once the user is inside the app still asks.
+    window.history.replaceState({}, "", "/dashboard");
+    window.dispatchEvent(new Event("touchend"));
+    await vi.waitFor(() => expect(requestPermission).toHaveBeenCalledTimes(1));
+    window.history.replaceState({}, "", "/");
+  });
+
   it("does NOT throw when iOS requestPermission rejects (user denied dialog)", async () => {
     const requestPermission = vi.fn().mockRejectedValue(new Error("denied"));
     Object.defineProperty(window, "DeviceMotionEvent", {
@@ -169,3 +203,9 @@ describe("initShakeToReport — idempotency + cleanup", () => {
     expect(onShake).toHaveBeenCalledTimes(1);
   });
 });
+
+// The guard that keeps iOS's motion prompt off the login screen. Nothing
+// reached it before the auth-route test above: every other case runs at
+// jsdom's default path "/".
+// @mutate src/lib/shakeToReport.ts | if (AUTH_ROUTES.some((r) => window.location.pathname.startsWith(r))) return; | if (false) return;
+// @mutate src/lib/shakeToReport.ts | const THRESHOLD = 22; | const THRESHOLD = 0;

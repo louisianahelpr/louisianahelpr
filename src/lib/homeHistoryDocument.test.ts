@@ -165,3 +165,9 @@ describe("the shared letterhead did not break the work record it was extracted f
     expect(file.base64.length).toBeGreaterThan(2000);
   });
 });
+
+// Dates on an exported record resolve in the platform zone, not the reader's;
+// in the device zone a UTC-midnight completion files under the wrong month.
+// @mutate src/lib/homeHistoryDocument.ts | const PLATFORM_TIME_ZONE = "America/Chicago"; | const PLATFORM_TIME_ZONE = "UTC";
+// What the poster PAID is every stamped line item, not the budget.
+// @mutate src/lib/posterJobCost.ts | num(job.urgent_fee) + | 

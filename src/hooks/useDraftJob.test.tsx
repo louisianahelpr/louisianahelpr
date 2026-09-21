@@ -265,3 +265,8 @@ describe("useDraftJob — unmount flush", () => {
     expect(setItemMock).not.toHaveBeenCalled();
   });
 });
+
+// Shown able to fail:
+// Merge against the EMPTY draft rather than the pending one, so two saves inside the
+// debounce window drop every field the second one did not name.
+// @mutate src/hooks/useDraftJob.ts | { ...pendingDraft.current, ...data, savedAt: Date.now() } | { ...emptyDraft, ...data, savedAt: Date.now() }

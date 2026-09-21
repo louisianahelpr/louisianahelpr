@@ -184,3 +184,9 @@ describe("a REFUSED password says why", () => {
     }
   });
 });
+
+// Shown able to fail:
+// Drop the early return, so a password the project policy refuses is sent to
+// /auth/v1/user anyway and comes back as a 422 this screen then has to translate —
+// the account-recovery lockout this guard exists to prevent.
+// @mutate src/pages/ResetPassword.tsx | if (problem) { fail(problem); return; } | if (problem) { fail(problem); }

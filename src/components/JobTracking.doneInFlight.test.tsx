@@ -171,3 +171,8 @@ describe("JobTracking Done — one request per decision", () => {
     expect(invokeMock).toHaveBeenCalledWith("create-payment", { body: { action: "release", jobId: "job-1" } });
   });
 });
+
+// Shown able to fail:
+// Remove the synchronous in-flight ref, so two same-frame taps on the confirm both
+// reach rpc_helper_mark_done — a second stamp moving the 24h auto-release clock.
+// @mutate src/components/JobTracking.tsx | if (updateInFlight.current) return; |

@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+import { queryKeys } from "@/lib/queryKeys";
 import { PublicReviewWall, truncateFeedback } from "./PublicReviewWall";
 
 /**
@@ -58,12 +59,33 @@ const publicReviewsRpcResult = {
     | null,
 };
 
+/**
+ * THE FILTERS THE FALLBACK QUERY APPLIED — recorded, because a chainable
+ * no-op mock cannot otherwise tell a filtered read from an unfiltered one.
+ *
+ * MEASURED 2026-09-21: with `.eq`/`.lte` returning the builder and ignoring
+ * their arguments, DELETING `.eq("status", "published")` — the operator-takedown
+ * filter — or `.lte("feedback_visible_at", …)` — the anti-retaliation reveal
+ * window — from PublicReviewWall.tsx left this whole suite GREEN. Every test
+ * that asserts on the fallback path reads `reviewQueryResult`, which the mock
+ * hands back whatever was asked for, so a hidden review leaking onto a public
+ * profile was invisible here by construction. The chain now records, and
+ * `describe("the fallback query's own filters")` grades what it recorded.
+ */
+const reviewFilters: Array<[string, string, unknown]> = [];
+
 vi.mock("@/integrations/supabase/client", () => {
   // Per-table chain so reviews vs jobs land on distinct resolvers.
   const reviewsBuilder: Record<string, unknown> = {};
   reviewsBuilder.select = vi.fn(() => reviewsBuilder);
-  reviewsBuilder.eq = vi.fn(() => reviewsBuilder);
-  reviewsBuilder.lte = vi.fn(() => reviewsBuilder);
+  reviewsBuilder.eq = vi.fn((col: string, val: unknown) => {
+    reviewFilters.push(["eq", col, val]);
+    return reviewsBuilder;
+  });
+  reviewsBuilder.lte = vi.fn((col: string, val: unknown) => {
+    reviewFilters.push(["lte", col, val]);
+    return reviewsBuilder;
+  });
   reviewsBuilder.order = vi.fn(() => reviewsBuilder);
   reviewsBuilder.limit = vi.fn(() => Promise.resolve(reviewQueryResult));
 
@@ -94,10 +116,36 @@ function makeWrapper() {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return { wrapper: wrapper };
+  return { wrapper: wrapper, client };
+}
+
+/**
+ * WAIT ON THE QUERY, NOT ON THE DOM (the `waitForEmptyIsVacuous` class).
+ *
+ * `await waitFor(() => expect(container).toBeEmptyDOMElement())` is satisfied by
+ * this component's FIRST paint for the condensed variant, and by every paint
+ * once the wall hides itself — so it returned on poll #1, before the mocked
+ * promise had resolved, and the branch each test is named after was never
+ * reached. Both of those tests now settle the React Query cache entry first and
+ * assert WHICH terminal state it reached; only then is "nothing rendered" a
+ * statement about the branch rather than about mount order.
+ */
+async function settleWall(
+  client: QueryClient,
+  helperId: string,
+  limit: number,
+  expected: "success" | "error",
+) {
+  const key = queryKeys.publicReviewWall.byHelper(helperId, limit);
+  await waitFor(() => {
+    const entry = client.getQueryCache().find({ queryKey: key });
+    expect(entry?.state.status, "the review-wall query never settled").toBe(expected);
+  });
+  return client.getQueryCache().find({ queryKey: key })!.state;
 }
 
 function resetMocks() {
+  reviewFilters.length = 0;
   reviewQueryResult.data = [];
   reviewQueryResult.error = null;
   profilesRpcResult.data = [];
@@ -172,18 +220,19 @@ describe("PublicReviewWall", () => {
 
   it("renders nothing in condensed mode when there are no reviews (no clutter on cards)", async () => {
     reviewQueryResult.data = [];
-    const { wrapper: Wrapper } = makeWrapper();
+    const { wrapper: Wrapper, client } = makeWrapper();
     const { container } = render(
       <Wrapper>
         <PublicReviewWall helperId="helper-1" variant="condensed" />
       </Wrapper>,
     );
-    await waitFor(() => {
-      // Loading skeleton should clear once the empty result settles.
-      expect(
-        container.querySelector("[data-testid='public-review-wall-loading']"),
-      ).toBeNull();
-    });
+    // The fetch really RAN and really came back with zero rows — not "we looked
+    // before it answered". CONDENSED_LIMIT is 2, and the key carries it.
+    const state = await settleWall(client, "helper-1", 2, "success");
+    expect(state.data).toEqual([]);
+    expect(
+      container.querySelector("[data-testid='public-review-wall-loading']"),
+    ).toBeNull();
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -326,16 +375,22 @@ describe("PublicReviewWall", () => {
       publicReviewsRpcResult.error = { code: "42501", message: "denied" };
       publicReviewsRpcResult.data = null;
 
-      const { wrapper: Wrapper } = makeWrapper();
+      const { wrapper: Wrapper, client } = makeWrapper();
       const { container } = render(
         <Wrapper>
           <PublicReviewWall helperId="helper-1" />
         </Wrapper>,
       );
 
-      await waitFor(() => {
-        expect(screen.queryByTestId("public-review-wall-loading")).toBeNull();
-      });
+      // THE BRANCH UNDER TEST, asserted directly: a non-PGRST202 error must
+      // REJECT the queryFn. If the `throw rpcErr` line goes, the fallback runs,
+      // the query settles `success` with [] — and the wall paints "No reviews
+      // yet" on a helper who has them. Settling on `error` is what proves the
+      // discrimination happened; the empty DOM is then its consequence.
+      const state = await settleWall(client, "helper-1", 5, "error");
+      expect((state.error as { code?: string } | null)?.code).toBe("42501");
+      expect(screen.queryByTestId("public-review-wall-loading")).toBeNull();
+      expect(screen.queryByTestId("public-review-wall-empty")).toBeNull();
       expect(container).toBeEmptyDOMElement();
     });
   });
@@ -447,6 +502,65 @@ describe("PublicReviewWall", () => {
     });
   });
 
+  /**
+   * WHAT THE FALLBACK READ ACTUALLY ASKS THE DATABASE FOR.
+   *
+   * Not a mirror of the source — the three clauses each carry a distinct
+   * promise to a person, and each was deletable with the rest of this file
+   * green until the chain above started recording:
+   *
+   *   reviewee_id           this helper's reviews and nobody else's;
+   *   status = 'published'  an operator takedown really is taken down;
+   *   feedback_visible_at   the double-blind window (hidden until both sides
+   *                         post or 14 days pass) — the anti-retaliation rule.
+   *
+   * The RPC path applies all three in SQL. This path is the deploy-lag
+   * fallback, and it is the one a visitor gets if the migration ever rolls
+   * back, so the clauses have to hold on both sides.
+   */
+  describe("the fallback query's own filters", () => {
+    it("scopes to the helper, to published rows, and to the revealed window", async () => {
+      reviewQueryResult.data = [makeReview({ id: "r1", reviewer_id: "u1", job_id: "j1" })];
+      profilesRpcResult.data = [{ user_id: "u1", full_name: "Sample User" }];
+
+      const before = Date.now();
+      const { wrapper: Wrapper, client } = makeWrapper();
+      render(
+        <Wrapper>
+          <PublicReviewWall helperId="helper-1" />
+        </Wrapper>,
+      );
+      await settleWall(client, "helper-1", 5, "success");
+
+      expect(reviewFilters).toContainEqual(["eq", "reviewee_id", "helper-1"]);
+      expect(reviewFilters).toContainEqual(["eq", "status", "published"]);
+
+      const reveal = reviewFilters.find(([op, col]) => op === "lte" && col === "feedback_visible_at");
+      expect(reveal, "the anti-retaliation reveal window was never applied").toBeDefined();
+      // …and it is bounded by NOW, not by a constant far in the future that
+      // would let every hidden row through while still naming the column.
+      const cutoff = Date.parse(String(reveal![2]));
+      expect(cutoff).toBeGreaterThanOrEqual(before);
+      expect(cutoff).toBeLessThanOrEqual(Date.now());
+    });
+
+    it("does not run that query at all on the RPC path", async () => {
+      // Belt and braces: the preferred path must not also hit the table, or the
+      // filters above would be graded on a read nobody makes in production.
+      publicReviewsRpcResult.error = null;
+      publicReviewsRpcResult.data = [];
+
+      const { wrapper: Wrapper, client } = makeWrapper();
+      render(
+        <Wrapper>
+          <PublicReviewWall helperId="helper-1" />
+        </Wrapper>,
+      );
+      await settleWall(client, "helper-1", 5, "success");
+      expect(reviewFilters).toEqual([]);
+    });
+  });
+
   it("does not query Supabase when helperId is empty", () => {
     const { wrapper: Wrapper } = makeWrapper();
     const { container } = render(
@@ -463,3 +577,25 @@ describe("PublicReviewWall", () => {
     ).toBeNull();
   });
 });
+
+// ── VACUITY ─────────────────────────────────────────────────────────────────
+// PROVEN RED 2026-09-21, twice.
+//
+// (1) Deleting the PGRST202 discrimination makes a REAL error (42501) fall
+//     through to the fallback, which settles `success` with [] — so a helper
+//     with reviews is painted "No reviews yet" on a public profile. Caught only
+//     after the `waitFor(… toBeNull())` in that test was replaced by a wait on
+//     the QUERY (see settleWall): the old wait returned on poll #1.
+// (2) Deleting `status = 'published'` (the operator-takedown filter) used to
+//     leave this whole file green, because the mocked `.eq`/`.lte` were
+//     chainable no-ops that ignored their arguments and `reviewQueryResult` was
+//     handed back whatever was asked for. The chain now records; "the fallback
+//     query's own filters" grades what it recorded, and the reveal-window
+//     `.lte` is pinned the same way.
+//
+// BLIND TO: the RPC's own SQL. `get_public_profile_reviews` applies the reveal
+// window, the published filter, the cancelled-job exclusion and name masking
+// server-side, and nothing here reads the database. Also: this component is
+// currently mounted by NOTHING but this suite (reported, not fixed).
+// @mutate src/components/profile/PublicReviewWall.tsx | if (rpcErr && (rpcErr as { code?: string }).code !== "PGRST202") throw rpcErr; |
+// @mutate src/components/profile/PublicReviewWall.tsx | .eq("status", "published")\n |

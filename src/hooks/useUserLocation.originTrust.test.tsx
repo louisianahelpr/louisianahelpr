@@ -340,3 +340,15 @@ describe("the stored row is CORRECT and is returned as-is (the read side)", () =
     expect(state.approximate).toBe(true);
   });
 });
+
+// ── VACUITY ─────────────────────────────────────────────────────────────────
+// PROVEN RED 2026-09-21. Persisting unconditionally — dropping the `precise`
+// guard in front of `persistUserLocation` — turns "keeps it OUT of the
+// precise-fix columns" red. Accuracy gates exactly one thing in this hook, and
+// that is it: `profiles.latitude/longitude` feeds `get_neighbor_hire_count`'s
+// sub-mile neighbour test, so a 45km-accurate point written there reports half
+// a city as one another's neighbours.
+// BLIND TO: `persistUserLocation` itself (mocked here), the Capacitor
+// Geolocation branch (only the navigator path is driven), and anything the
+// DATABASE does with the columns.
+// @mutate src/hooks/useUserLocation.ts | if (precise) void persistUserLocation(lat, lng); | void persistUserLocation(lat, lng);

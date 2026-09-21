@@ -415,3 +415,14 @@ describe("trackingProofCaption", () => {
     expect(trackingProofCaption("none", 1792.4, true).text).toBe("Location shared · 1792 mi from job");
   });
 });
+
+// ── VACUITY ─────────────────────────────────────────────────────────────────
+// PROVEN RED 2026-09-21. Restoring the exact prod bug — floor an `in_progress`
+// job at Confirmed on the STATUS alone — turns "never paints Confirmed off
+// jobs.status" red. That floor is the load-bearing line: it both mislabelled
+// the rail and SKIPPED the helper's-confirmation gate on the next-step CTA, so
+// the app offered "I'm On My Way" for a tap `helper_mark_on_the_way` refuses.
+// BLIND TO: everything rendered. This file only exercises the pure derivation;
+// the mount, the CTA wiring and the gate itself live in
+// JobTracking.onTheWayGate.test.tsx.
+// @mutate src/components/JobTracking.tsx | revision_requested") {\n    atLeast(STATUS_IDX.assigned); | revision_requested") {\n    atLeast(STATUS_IDX.job_confirmed);

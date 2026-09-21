@@ -345,3 +345,16 @@ describe("ApplyConfirmDialog contact filter", () => {
     expect(handleApplyConfirm).toHaveBeenCalled();
   });
 });
+
+// ── VACUITY ─────────────────────────────────────────────────────────────────
+// PROVEN RED 2026-09-21. Raising the contact-scan threshold out of reach —
+// i.e. letting a note with a phone number through to `handleApplyConfirm` —
+// turns "blocks before sending and quotes the offending text" red. That branch
+// is the whole point of the block: without it the server stores the
+// application `flagged_hidden`, the poster never reads the note, and the helpr
+// is told "Application sent!".
+// BLIND TO: the server-side scan (the other half of the defence in depth), and
+// to the two CLASS-NAME assertions in this file — "is centered" and "dismisses
+// from the TOP-RIGHT" grade `className`/`style`, not rendered geometry, which
+// jsdom cannot measure.
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | if (violations.length > 0) { | if (violations.length > 99) {

@@ -361,3 +361,13 @@ describe("Activity — whose move is it", () => {
     expect(postedActivityBucket({ status: "open" }, 0)).toBe("waiting");
   });
 });
+
+// ── VACUITY ─────────────────────────────────────────────────────────────────
+// PROVEN RED 2026-09-21. Making `jobIsOverdue` answer false unconditionally —
+// the state the owner reported on 2026-08-31, twelve prod jobs dated Aug 27
+// still filed under "Scheduled" — turns "never leaves a past-due job in
+// Scheduled" red. It is the predicate that decides whose move an abandoned job
+// is, on both the poster and the helper side.
+// BLIND TO: the chip row and the counts as RENDERED. These drive the pure
+// bucketers and the hook's memos, never the Activity page.
+// @mutate src/pages/activity/activityFilters.ts | return isPastDue(j.date_needed); | return false;

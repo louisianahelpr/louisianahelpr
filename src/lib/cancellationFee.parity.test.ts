@@ -344,3 +344,14 @@ describe("fee ladder anchors on start_time, not midnight", () => {
     }
   });
 });
+
+// ── VACUITY ─────────────────────────────────────────────────────────────────
+// PROVEN RED 2026-09-21. Letting `helperIsCommitted` answer on `helper_id`
+// alone — "the poster picked somebody" read as "somebody agreed" — turns
+// "returns 0 when the Helpr was offered the job but never accepted" and
+// "helperIsCommitted needs BOTH" red. It is the predicate that decides whether
+// real money leaves the poster's refund in void-cancelled-payments.
+// BLIND TO: the SQL twin. `poster_cancel_job`'s `v_committed` is a separate
+// implementation of this same rule and is not executed here; only the
+// late_cancellation migration's TEXT is read, never run.
+// @mutate supabase/functions/_shared/cancellationFee.ts | return !!job.helper_id && !!job.helper_confirmed_at; | return !!job.helper_id;

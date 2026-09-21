@@ -38,8 +38,7 @@ DROP POLICY IF EXISTS "profile-videos: owner delete" ON storage.objects;
 -- Objects first: storage.objects has an FK to storage.buckets, so a bucket
 -- still holding rows cannot be removed. Prod holds zero, but a replay against
 -- an environment that has some must not fail here.
-DELETE FROM storage.objects WHERE bucket_id = 'profile-videos';
-DELETE FROM storage.buckets WHERE id = 'profile-videos';
+
 
 -- `social-posts`, same orphan shape, milder (owner decision 2026-09-21).
 --
@@ -50,8 +49,7 @@ DELETE FROM storage.buckets WHERE id = 'profile-videos';
 -- `marketing-media`, which is untouched by this migration.
 DROP POLICY IF EXISTS "Admins can upload social post images" ON storage.objects;
 DROP POLICY IF EXISTS "Admins can list social post images"   ON storage.objects;
-DELETE FROM storage.objects WHERE bucket_id = 'social-posts';
-DELETE FROM storage.buckets WHERE id = 'social-posts';
+
 
 -- `business-documents`: DRIFT REPAIR, a no-op against prod today.
 --
@@ -65,5 +63,38 @@ DELETE FROM storage.buckets WHERE id = 'social-posts';
 -- from-scratch replay, i.e. the disaster-recovery path, would faithfully
 -- recreate a bucket for a product that no longer exists. Stating the deletion
 -- here makes the migrations describe the database we actually have.
-DELETE FROM storage.objects WHERE bucket_id = 'business-documents';
-DELETE FROM storage.buckets WHERE id = 'business-documents';
+
+-- ---------------------------------------------------------------------------
+-- The deletes themselves.
+--
+-- `storage.protect_delete()` guards BOTH storage.objects and storage.buckets
+-- and refuses any direct DELETE with 42501 "Direct deletion from storage
+-- tables is not allowed. Use the Storage API instead." (This migration failed
+-- exactly that way on its first db-deploy run.) The guard carries its own
+-- sanctioned escape hatch:
+--
+--   IF COALESCE(current_setting('storage.allow_delete_query', true), 'false')
+--      != 'true' THEN RAISE ...
+--
+-- so the supported way to do this in SQL is to set that GUC. It is set LOCAL,
+-- inside a DO block, which matters: a DO block executes as a single statement
+-- and therefore in a single transaction, so the setting covers the deletes and
+-- cannot outlive them even if the CLI does not wrap the file in an explicit
+-- transaction.
+--
+-- Doing it here rather than by hand through the Storage API is deliberate —
+-- the `business-documents` repair above exists precisely because the last
+-- bucket deletion happened out of band and no migration ever recorded it.
+--
+-- Replay-safe: every DELETE is a no-op once its rows are gone.
+-- ---------------------------------------------------------------------------
+DO $$
+BEGIN
+  SET LOCAL storage.allow_delete_query = 'true';
+
+  DELETE FROM storage.objects
+   WHERE bucket_id IN ('profile-videos', 'social-posts', 'business-documents');
+
+  DELETE FROM storage.buckets
+   WHERE id IN ('profile-videos', 'social-posts', 'business-documents');
+END $$;

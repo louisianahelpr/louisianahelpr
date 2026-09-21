@@ -125,3 +125,6 @@ describe("pushDeclineNeedsSettingsHint: Not Now is a choice, not an error", () =
     expect(pushDeclineNeedsSettingsHint("granted")).toBe(false);
   });
 });
+// press-every-control 34744828202: "Not Now" scolded the user with an error
+// toast pointing at a browser setting nobody had touched.
+// @mutate src/lib/pushPermissionNudge.ts | return state !== "prompt" && state !== "granted"; | return state !== "granted";

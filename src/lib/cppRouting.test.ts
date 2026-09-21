@@ -140,3 +140,8 @@ describe("useCppVariantRouter", () => {
     setItemSpy.mockRestore();
   });
 });
+// Deliberately NOT the pathname gate — the .tsx twin already registers that one,
+// so it would score a kill this file did not make. `{ replace: true }` is what
+// only THIS file asserts: without it the CPP landing stays in history, so Back
+// from /post-job returns to /?cpp=poster and the effect fires again.
+// @mutate src/lib/cppRouting.ts | navigate(VARIANT_ROUTES[variant], { replace: true }); | navigate(VARIANT_ROUTES[variant]);

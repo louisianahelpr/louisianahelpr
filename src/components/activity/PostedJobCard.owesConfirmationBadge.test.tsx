@@ -110,3 +110,8 @@ describe("the COLLAPSED Posts card signals an owed confirmation (item 6e)", () =
     expect(document.querySelector("[data-poster-owes-confirmation]")).toBeNull();
   });
 });
+// The point of this file is the WIRING, not the badge: posterConfirmationBadge
+// .test.tsx renders the badge directly and stayed green with the mount deleted.
+// Unmount the strip and the collapsed card goes silent about the one move only
+// the poster can make.
+// @mutate src/components/activity/PostedJobCard.tsx | {!isExpanded && ( | {false && (

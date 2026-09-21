@@ -113,3 +113,7 @@ describe("confirm window · timezone", () => {
     }
   });
 });
+// The naive reading this file was written against: subtract 24h from the job's
+// own midnight instead of taking the previous CALENDAR day. On spring-forward
+// the window opens at 23:00 two days early; on fall-back at 01:00.
+// @mutate supabase/functions/_shared/confirmDeadline.ts | return jobLocalMidnightMs(previousDay(dateNeeded)); | return jobLocalMidnightMs(dateNeeded) - CONFIRM_OPENS_HOURS_BEFORE * HOUR_MS;

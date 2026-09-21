@@ -140,3 +140,8 @@ describe("displayed take-home equals the payout for the helper's live tier", () 
     );
   });
 });
+// The exact line that produced the bug this file exists for: trust the
+// escrow-time stamp on an UNSETTLED row and a free-tier helper is shown $108
+// against a $105.60 payout — a displayed take-home HIGHER than what Stripe
+// transfers.
+// @mutate src/lib/helperEarnings.ts | if (!isSettledForDisplay(job)) return derived; | if (false) return derived;

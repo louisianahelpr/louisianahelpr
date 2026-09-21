@@ -2,11 +2,22 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
+import { sharedProfileOrNullSchema } from "@/lib/schemas";
 import { useProfile, fetchProfile, useInvalidateProfile } from "./useProfile";
+
+// validateResult dynamically imports @sentry/react to report drift. Mock it
+// here so the BOUNDARY CHECK ITSELF is observable: without this, deleting the
+// `validateResult(...)` line from useProfile.ts left every test in this file
+// green — the runtime guard at the highest-traffic read in the app was
+// unproven, exactly the "fix nothing can fail on" shape.
+const captureMessageMock = vi.fn();
+vi.mock("@sentry/react", () => ({
+  captureMessage: (...args: unknown[]) => captureMessageMock(...args),
+}));
 
 const maybeSingleMock = vi.fn();
 const eqMock = vi.fn(() => ({ maybeSingle: maybeSingleMock }));
-const selectMock = vi.fn(() => ({ eq: eqMock }));
+const selectMock = vi.fn((_fields?: string) => ({ eq: eqMock }));
 const fromMock = vi.fn((..._args: unknown[]) => ({ select: selectMock }));
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -72,6 +83,41 @@ describe("fetchProfile", () => {
   it("throws when supabase returns an error", async () => {
     maybeSingleMock.mockResolvedValue({ data: null, error: new Error("RLS denied") });
     await expect(fetchProfile("user-1")).rejects.toThrow("RLS denied");
+  });
+
+  it("selects EXACTLY the columns the shared-profile schema declares", async () => {
+    // The inventory is the PRODUCTION schema, not a list retyped here: every
+    // consumer of this hook reads those fields, and `.passthrough()` means a
+    // column dropped from the select is invisible to Zod. Two
+    // `stringContaining` probes covered 2 of 11 — dropping `ban_status` (the
+    // column the ban banner and every hiring gate read) stayed green.
+    const schemaKeys = Object.keys(sharedProfileOrNullSchema.unwrap().shape);
+    expect(schemaKeys.length).toBeGreaterThanOrEqual(11);
+    maybeSingleMock.mockResolvedValue({ data: sampleRow, error: null });
+    await fetchProfile("user-1");
+    const selected = String(selectMock.mock.calls[0][0])
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
+    expect([...selected].sort()).toEqual([...schemaKeys].sort());
+  });
+
+  it("reports schema drift from THIS call site — the boundary check is wired", async () => {
+    captureMessageMock.mockReset();
+    // `ban_status` arrives as a number: real drift shape (enum → int).
+    maybeSingleMock.mockResolvedValue({
+      data: { ...sampleRow, ban_status: 7 },
+      error: null,
+    });
+    await fetchProfile("user-1");
+    // captureDriftToSentry awaits a dynamic import; poll rather than race it.
+    for (let i = 0; i < 50 && captureMessageMock.mock.calls.length === 0; i++) {
+      await new Promise((r) => setTimeout(r, 1));
+    }
+    expect(captureMessageMock).toHaveBeenCalledWith(
+      "Schema drift at useProfile.fetchProfile",
+      expect.objectContaining({ level: "error" }),
+    );
   });
 });
 
@@ -144,3 +190,7 @@ describe("useInvalidateProfile", () => {
     expect(client.getQueryState(["profile", "user-1"])).toBeDefined();
   });
 });
+// @mutate src/hooks/useProfile.ts | if (error) throw error; | void error;
+// The boundary check was unproven until 2026-09-21: this whole file stayed
+// green with the validateResult() line deleted from fetchProfile.
+// @mutate src/hooks/useProfile.ts | validateResult(sharedProfileOrNullSchema, data ?? null, "useProfile.fetchProfile"); | void 0;

@@ -125,3 +125,6 @@ describe("validateResult", () => {
     expect(message).toBe("Schema drift at MyPage.useThing");
   });
 });
+// Hand the raw payload to Sentry instead of the shape summary: one schema drift
+// on a profile read then ships every user's email and location to a third party.
+// @mutate src/lib/validateResult.ts | summarizeShape(data), | data,

@@ -107,3 +107,9 @@ test(title, async ({ browser, request, journey }) => {
   expect(measured, "no AtAGlance tile rows were found on any profile").toBeGreaterThan(0);
   expect(failures, "stat tiles in one row differ in height").toEqual([]);
 });
+
+// Breaking the row-stretch is the whole defect this journey was written for:
+// without `auto-rows-fr` the two-up phone grid sizes each row to its own
+// content, so the forced long label makes row 1 taller than row 2 and the
+// whole-grid spread goes back past 0.5px — the original 58 vs 70.3px pair.
+// @mutate src/pages/userProfile/AtAGlanceCard.tsx | grid grid-cols-2 auto-rows-fr gap-2 sm:grid-cols-4 | grid grid-cols-2 gap-2 sm:grid-cols-4

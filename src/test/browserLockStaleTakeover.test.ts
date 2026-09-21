@@ -22,6 +22,7 @@
  * `~/.lh-browser.lock`.
  *
  * @mutate e2e/browserLock.ts |       if (owner.pid && !alive(owner.pid)) { |       if (false) {
+ * @mutate e2e/browserLock.ts |         if (ageMs > ORPHAN_GRACE_MS) { |         if (false) {
  * @mutate e2e/browserLock.ts |     if (owner.pid === process.pid) rmSync(LOCK, { recursive: true, force: true }); |     rmSync(LOCK, { recursive: true, force: true });
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -72,6 +73,56 @@ describe("the browser lock", () => {
       JSON.parse(readFileSync(ownerPath(), "utf8")).pid,
       "a crashed run must not hold the machine — the stale lock should have been taken over",
     ).toBe(process.pid);
+  }, 20_000);
+
+  /**
+   * THE ORPHANED LOCK — a third way to wedge the machine, found 2026-09-21 by
+   * being wedged by it.
+   *
+   * `~/.lh-browser.lock` existed with no `owner.json` inside. The takeover rule
+   * is `owner.pid && !alive(owner.pid)`, so with no readable owner there is no
+   * pid, takeover never fires, and the lock is immortal: the overlay sweep
+   * printed "waiting for pid undefined in undefined" and would have waited the
+   * full 90-minute LH_BROWSER_LOCK_WAIT_MIN before throwing. Every browser
+   * guard on the machine is blocked for that whole time, by debris.
+   *
+   * This is the worst failure shape a lock can have — it converts ONE crashed
+   * run into an outage of every browser lane — and it was the one case the two
+   * tests above did not cover.
+   */
+  it("reclaims a lock directory that has no owner.json", async () => {
+    mkdirSync(lockPath(), { recursive: true });
+    // No owner.json at all: exactly the state found on the machine.
+    process.env.LH_BROWSER_LOCK_ORPHAN_GRACE_MS = "0";
+    process.env.LH_BROWSER_LOCK_WAIT_MIN = "0.05";
+    const { acquireBrowserLock } = await freshLock();
+
+    await acquireBrowserLock();
+
+    expect(
+      JSON.parse(readFileSync(ownerPath(), "utf8")).pid,
+      "an ownerless lock directory is debris, not a live run — it must be reclaimed, " +
+        "or one crashed process blocks every browser lane on the machine for 90 minutes",
+    ).toBe(process.pid);
+    delete process.env.LH_BROWSER_LOCK_ORPHAN_GRACE_MS;
+  }, 20_000);
+
+  /**
+   * The other side of it: the grace window must be long enough that an acquirer
+   * caught between `mkdirSync` and `writeFileSync` is never robbed of the lock
+   * it just took.
+   */
+  it("does not reclaim a lock whose owner.json is only momentarily missing", async () => {
+    mkdirSync(lockPath(), { recursive: true });
+    process.env.LH_BROWSER_LOCK_ORPHAN_GRACE_MS = "600000";
+    process.env.LH_BROWSER_LOCK_WAIT_MIN = "0.005";
+    const { acquireBrowserLock } = await freshLock();
+
+    await expect(
+      acquireBrowserLock(),
+      "a lock taken microseconds ago must be respected, not stolen",
+    ).rejects.toThrow(/past the wait limit/);
+    delete process.env.LH_BROWSER_LOCK_ORPHAN_GRACE_MS;
   }, 20_000);
 
   it("does NOT release a lock owned by someone else", async () => {

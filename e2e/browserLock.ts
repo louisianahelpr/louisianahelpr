@@ -9,7 +9,7 @@
  * taken over. Waits up to LH_BROWSER_LOCK_WAIT_MIN (default 90) minutes.
  * Skipped in CI, where each job has its own machine. LH_BROWSER_LOCK=0 bypasses.
  */
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -31,6 +31,13 @@ import { join } from "node:path";
 const LOCK = join(process.env.LH_BROWSER_LOCK_DIR ?? homedir(), ".lh-browser.lock");
 const OWNER = join(LOCK, "owner.json");
 
+/**
+ * How long a lock directory may exist with no `owner.json` before it is treated
+ * as debris rather than as a live acquirer mid-handshake. Overridable so the
+ * test does not have to wait it out.
+ */
+const ORPHAN_GRACE_MS = Number(process.env.LH_BROWSER_LOCK_ORPHAN_GRACE_MS ?? 30_000);
+
 function alive(pid: number): boolean {
   try { process.kill(pid, 0); return true; } catch { /* ESRCH: that pid has exited, so its lock is stale */ return false; }
 }
@@ -50,10 +57,37 @@ export async function acquireBrowserLock(): Promise<void> {
       return;
     } catch {
       let owner: { pid?: number; cwd?: string } = {};
-      try { owner = JSON.parse(readFileSync(OWNER, "utf8")); } catch { /* owner file not written yet */ }
+      let ownerReadable = false;
+      try { owner = JSON.parse(readFileSync(OWNER, "utf8")); ownerReadable = true; } catch { /* owner file not written yet — see the orphan branch below */ }
       if (owner.pid && !alive(owner.pid)) {
         rmSync(LOCK, { recursive: true, force: true });
         continue;
+      }
+      // ORPHANED LOCK: the directory exists and owner.json does not.
+      //
+      // The takeover rule above is `owner.pid && !alive(owner.pid)`, so with no
+      // readable owner.json there is no pid, the branch never fires, and the
+      // lock is immortal: every browser lane on the machine waits the full
+      // LH_BROWSER_LOCK_WAIT_MIN (default NINETY MINUTES) and then throws.
+      // Reproduced for real 2026-09-21 — `~/.lh-browser.lock` sat empty from
+      // 11:54 and the overlay sweep printed "waiting for pid undefined in
+      // undefined" until it was cleared by hand. A lock that cannot be
+      // reclaimed is strictly worse than no lock: it converts one crashed run
+      // into a machine-wide outage of every browser guard.
+      //
+      // `writeFileSync(OWNER)` runs on the line after `mkdirSync(LOCK)`, so the
+      // window in which a LIVE acquirer legitimately has no owner.json is
+      // microseconds. The grace period below is orders of magnitude larger than
+      // that window, so a racing acquirer is never robbed, while debris from a
+      // process killed inside it is cleared on the next poll.
+      if (!ownerReadable) {
+        let ageMs = Infinity;
+        try { ageMs = Date.now() - statSync(LOCK).mtimeMs; } catch { /* vanished under us — retry the mkdir */ continue; }
+        if (ageMs > ORPHAN_GRACE_MS) {
+          console.log(`[browser-lock] ${LOCK} has no owner.json and is ${Math.round(ageMs / 1000)}s old — reclaiming an orphaned lock.`);
+          rmSync(LOCK, { recursive: true, force: true });
+          continue;
+        }
       }
       if (Date.now() > deadline) {
         throw new Error(`Browser lock ${LOCK} held by pid ${owner.pid} (${owner.cwd}) past the wait limit.`);

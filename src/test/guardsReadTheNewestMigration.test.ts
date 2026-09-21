@@ -156,4 +156,14 @@ describe("a guard reads the NEWEST definition of the SQL it grades", () => {
 // SOURCE-TEXT PIN: this compares migration FILES against each other. A prod
 // function hand-applied outside the migration tree is newer than anything here
 // and invisible to it — that needs `pg_get_functiondef`.
-// @mutate src/lib/reliabilityLadder.parity.test.ts | for (let i = files.length - 1; i >= 0; i--) { | for (let i = 0; i < files.length; i++) {
+// The mutation REINTRODUCES the pin this guard exists to forbid — the exact
+// `LADDER_SQL` line deleted from reliabilityLadder today, naming a migration
+// whose `apply_message_violation_consequence` 20260915020258 replaced.
+//
+// A first attempt registered "reverse newestBlock's scan direction" and
+// SURVIVED, correctly: that changes which definition reliabilityLadder reads,
+// which is reliabilityLadder's own property, not this file's. This guard
+// measures whether a guard PINS superseded SQL, so the mutation has to add a
+// pin. Registering the wrong mutation is how a guard ends up counted as proven
+// while nothing about it was tested.
+// @mutate src/lib/reliabilityLadder.parity.test.ts | const DENIAL = newestBlock("apply_job_denial_consequence").block; | const DENIAL = newestBlock("apply_job_denial_consequence").block;\nconst STALE_PIN = "supabase/migrations/20260829030000_consolidate_consequence_ladders.sql";

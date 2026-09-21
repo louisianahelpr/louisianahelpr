@@ -37,6 +37,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 import {
   AWAITING_TRANSFER_PAYMENT_STATUSES,
   EARNED_PAYMENT_STATUSES,
@@ -150,9 +151,11 @@ describe("the earnings source query", () => {
   // That assertion exists precisely to prove the query was not deleted, so a
   // commented-out copy satisfying it is the whole failure in miniature.
   // Line structure is preserved so the bounding below still works.
-  const live = source
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
-    .replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+  // Blanking was already right; the REGEX was not. A regex cannot tell it is
+  // inside a string, so a `/`+`*` in a URL or regex literal opens a comment that
+  // blanks real code up to the next `*`+`/`. blankComments scans left-to-right,
+  // string-aware, and blanks in place exactly as this did. (2026-09-21)
+  const live = blankComments(source);
   // Bounded to this one function — the file also holds the schedule and
   // violations queries, and an assertion over the whole file would pass or
   // fail on their contents instead. The marker must be FOUND: `indexOf`

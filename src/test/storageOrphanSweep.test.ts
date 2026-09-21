@@ -11,6 +11,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 import {
   checkCaps,
   emptyListingError,
@@ -200,9 +201,13 @@ describe("an empty listing is a broken read, never a clean sweep", () => {
     // MOUNT-WIRING: the rule above is worth nothing if nobody applies it, and
     // a guard on the pure function alone cannot see that. Comments blanked so
     // a `// emptyListingError(...)` cannot stand in for the call.
-    const src = readFileSync(resolve(__dirname, "..", "..", "scripts", "storage-orphan-sweep.mjs"), "utf8")
-      .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
-      .replace(/(^|\n)[ \t]*\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, " "));
+      // Blanking was already right; the REGEX was not. A regex cannot tell it is
+      // inside a string, so a `/`+`*` in a URL or regex literal opens a comment that
+      // blanks real code up to the next `*`+`/`. blankComments scans left-to-right,
+      // string-aware, and blanks in place exactly as this did. (2026-09-21)
+      const src = blankComments(
+      readFileSync(resolve(__dirname, "..", "..", "scripts", "storage-orphan-sweep.mjs"), "utf8"),
+    );
     const call = /const\s+(\w+)\s*=\s*emptyListingError\(\s*objects\s*,\s*buckets\s*\)/.exec(src);
     expect(call, "storage-orphan-sweep.mjs must call emptyListingError(objects, buckets)").not.toBeNull();
     expect(src, "and it must ABORT on it, not log it").toMatch(

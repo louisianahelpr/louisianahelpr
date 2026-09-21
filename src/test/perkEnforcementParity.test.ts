@@ -15,6 +15,7 @@ import { TIER_BADGE_STYLES } from "@/lib/tierBadgeStyle";
 import { tierConfig } from "@/components/profile/subscriptionTab/tierConfig";
 import { PRIORITY_SUPPORT_TIERS } from "@/components/admin/AdminSupport";
 import { posterPlacementBonus } from "@/lib/smartSort";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * THE STOREFRONT MAY NOT SELL A PERK THE SERVER DOES NOT GRANT — per perk, per
@@ -225,9 +226,13 @@ describe("Priority Placement — every SQL tier ladder ↔ the perk it enforces"
 describe("Free monthly boosts — create-boost-payment + claim_monthly_free_boost ↔ MONTHLY_FREE_BOOSTS", () => {
   // JS comments blanked for the same reason the SQL is: a `//` line naming the
   // RPC call must not stand in for the call itself.
-  const edge = readFileSync(resolve(REPO, "supabase/functions/create-boost-payment/index.ts"), "utf8")
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
-    .replace(/^([^\n"'`]*?)\/\/[^\n]*/gm, (m, keep: string) => keep + " ".repeat(m.length - keep.length));
+  // Blanking was already right; the REGEX was not. A regex cannot tell it is
+  // inside a string, so a `/`+`*` in a URL or regex literal opens a comment that
+  // blanks real code up to the next `*`+`/`. blankComments scans left-to-right,
+  // string-aware, and blanks in place exactly as this did. (2026-09-21)
+  const edge = blankComments(
+    readFileSync(resolve(REPO, "supabase/functions/create-boost-payment/index.ts"), "utf8"),
+  );
 
   it("the allowance table agrees with the monthlyFreeBoost bit on every tier", () => {
     for (const tier of TIER_ORDER) {

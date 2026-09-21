@@ -101,6 +101,15 @@ async function step(
   await journey.milestone(page, name);
 }
 
+// Shown able to fail on the exact thing nowInZone's comment promises: it reads
+// the clock through `Intl` with an explicit zone "so a helper in another zone
+// (or with a wrong device clock) still resolves against Louisiana's calendar".
+// Dropping the zone pins it to the device instead, which is what this spec's
+// Pacific cases exist to catch — at 3:00 PM in Los Angeles it is 5:00 PM in
+// Louisiana and today's hours HAVE ended, and at 11:30 PM in LA it is 1:30 AM
+// in Louisiana and they have not.
+// @mutate src/components/profile/AvailabilityTab.tsx | timeZone: ZONE, | timeZone: undefined,
+
 test.describe("time travel · deployed app, real backend, moved browser clock", () => {
   test.skip(!sessionsAvailable().ok, sessionsAvailable().why);
 

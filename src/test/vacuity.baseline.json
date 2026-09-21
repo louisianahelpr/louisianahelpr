@@ -21,7 +21,6 @@
     "e2e/journeys/abuse/contact-smuggling.spec.ts",
     "e2e/journeys/abuse/idor-and-authz.spec.ts",
     "e2e/journeys/notifications/notifications.spec.ts",
-    "e2e/journeys/time-travel.spec.ts",
     "e2e/payment-lifecycle.spec.ts",
     "e2e/prod-audit/activity-tabs-visible.spec.ts",
     "e2e/prod-audit/expanding-search-geometry.spec.ts",

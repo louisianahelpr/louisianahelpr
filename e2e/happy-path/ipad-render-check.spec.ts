@@ -90,3 +90,8 @@ test("iPad 11-inch — every main route renders with no overflow", async ({ help
   }
   expect(bad, `iPad problems:\n  ${bad.join("\n  ")}`).toEqual([]);
 });
+
+// Breaks the thing this spec exists to catch: App Review's 2.1(a) rejection
+// was "the content didn't load". Emptying the Dashboard render — the screen
+// four of these five tests load — is that rejection, reproduced.
+// @mutate src/pages/Dashboard.tsx |   return (\n    <>\n    <PageScaffold |   if (true) return null;\n  return (\n    <>\n    <PageScaffold

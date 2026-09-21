@@ -51,3 +51,9 @@ test("capture the membership screen for App Store review", async ({ helperPage: 
     fullPage: false,
   });
 });
+
+// The screenshot's whole value to App Review is that it shows WHERE the twelve
+// IAP products appear. `tierConfig.map` is the line that draws the tier cards;
+// trimming it to the Free card alone produces a picture of the right screen
+// with none of the products on it — the failure Apple would bounce.
+// @mutate src/components/profile/SubscriptionTab.tsx | {tierConfig.map((tier) => { | {tierConfig.slice(0, 1).map((tier) => {

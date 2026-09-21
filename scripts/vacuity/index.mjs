@@ -194,8 +194,38 @@ if (!NO_MUTATE && !REPORT_ONLY && scoped.length) {
         `a run that found nothing:\n` +
         inconclusive.map((r) => `    ${r.guard} ⟵ ${r.target}  (${r.why ?? "unknown"})`).join("\n"),
     );
-  else if (!newSurvivors.length && results.length)
-    ok(`mutation: ${results.filter((r) => r.verdict === "killed").length}/${results.length} killed, ${known.length} known-vacuous, ${results.filter((r) => /skip/.test(r.verdict)).length} not run`);
+  else if (!newSurvivors.length && results.length) {
+    const skipped = results.filter((r) => /skip/.test(r.verdict));
+    /*
+     * A RUN THAT MUTATED NOTHING IS NOT A PASS.
+     *
+     * A single skip is legitimate and deliberate: the target has uncommitted
+     * changes, so another lane may own it and mutating it would corrupt their
+     * work. But if EVERY registration in scope skipped, the phase observed
+     * nothing at all — and until now it printed "N/N killed, N not run" with a
+     * green tick, which is the same green-while-blind shape as the
+     * all-inconclusive case (see the `inconclusive` block above).
+     *
+     * This happens for real: two concurrent `npm run vacuity` runs in ONE tree
+     * downgrade each other's mutations to "not run", because each sees the
+     * other's in-flight edit as an uncommitted change. Reported 2026-09-21 by a
+     * lane whose money-path mutation was skipped that way and had to be
+     * reproduced by hand.
+     */
+    if (skipped.length === results.length)
+      fail(
+        `mutation: ALL ${results.length} registration(s) in scope were skipped — nothing was mutated, so ` +
+          `nothing was proven. A skip means a target had uncommitted changes (commonly another lane, or a ` +
+          `second vacuity run in the same tree). Re-run on a clean tree:\n` +
+          skipped.map((r) => `    ${r.guard} ⟵ ${r.target}  (${r.why ?? "unknown"})`).join("\n"),
+      );
+    else
+      ok(
+        `mutation: ${results.filter((r) => r.verdict === "killed").length}/${results.length} killed, ` +
+          `${known.length} known-vacuous, ${skipped.length} not run` +
+          (skipped.length ? c.yellow(`  — ${skipped.length} SKIPPED target(s) are unproven this run`) : ""),
+      );
+  }
 } else if (!scoped.length) {
   ok("mutation: nothing in scope (no guard or guarded file changed since origin/main)");
 }

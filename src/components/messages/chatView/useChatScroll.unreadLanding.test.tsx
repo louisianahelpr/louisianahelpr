@@ -140,3 +140,10 @@ describe("opening a thread lands on the first unread message", () => {
     expect(scrolled.length).toBe(afterLanding);
   });
 });
+
+// Both halves of the owner's report. First: the unread snapshot zeroed, so the
+// thread lands wherever openConvo's double-rAF leaves it — the bottom. Second:
+// the once-per-conversation key dropped, so every realtime inbound message
+// yanks the reader back to the anchor mid-read.
+// @mutate src/components/messages/chatView/useChatScroll.ts | initialUnreadCountRef.current = activeConvo.unread ?? 0; | initialUnreadCountRef.current = 0;
+// @mutate src/components/messages/chatView/useChatScroll.ts | if (unreadLandingKeyRef.current === convoKey) return; | 

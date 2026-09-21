@@ -117,3 +117,8 @@ describe("ProtectedRoute — recoverable profile error auto-heals", () => {
     expect(refresh).toHaveBeenCalledTimes(callsWhenHealed);
   });
 });
+
+// Polarity, not deletion: the effect still exists, still schedules, still
+// cleans up — it just arms on the wrong condition, so the error card never
+// heals and the user is back on a manual "Try again" dead end.
+// @mutate src/components/ProtectedRoute.tsx | if (!showingProfileError) return; | if (showingProfileError) return;

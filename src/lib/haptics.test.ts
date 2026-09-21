@@ -120,3 +120,8 @@ describe("haptics — native path (Capacitor.isNativePlatform=true)", () => {
     await expect(hapticLight()).resolves.toBeUndefined();
   });
 });
+
+// The whole web contract is this one line. Without it every haptic call reaches
+// the Capacitor plugin in a browser, which is the crash this wrapper exists to
+// prevent.
+// @mutate src/lib/haptics.ts | if (!isHapticsAvailable()) return; | 

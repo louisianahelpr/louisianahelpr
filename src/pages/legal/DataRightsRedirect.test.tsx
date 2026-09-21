@@ -101,3 +101,8 @@ describe("/data-rights lands on the export card in the reader's own surface", ()
     }
   });
 });
+
+// Deciding from a still-restoring `user: null` is the defect: a signed-in
+// reader is sent to the public policy page, which carries no app nav, and left
+// there. Drop the isReady hold and that is exactly what happens.
+// @mutate src/pages/legal/DataRightsRedirect.tsx | if (!isReady) return <div className="min-h-screen bg-premium-page" />; | 

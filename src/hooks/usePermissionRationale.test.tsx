@@ -132,3 +132,8 @@ describe("usePermissionRationale", () => {
     expect(runCam).toHaveBeenCalledOnce();
   });
 });
+
+// The decline branch is the safety-bearing one: "Not now" must not reach the
+// caller's native call, and must not be recorded as consent. Collapse the check
+// and a declined rationale fires the OS prompt anyway.
+// @mutate src/hooks/usePermissionRationale.ts | if (!confirmed) { | if (false) {

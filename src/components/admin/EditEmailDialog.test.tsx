@@ -112,3 +112,12 @@ describe("EditEmailDialog", () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+// The format check is what stands between a typo and admin-update-email being
+// invoked with an address nobody owns.
+//
+// BLIND SPOT, reported not fixed: nothing in this file proves `requireBiometric`
+// gates the submit. The real module is imported (not mocked) and returns true on
+// web, so the Face ID gate in front of an account-takeover primitive could be
+// deleted with all five tests green.
+// @mutate src/components/admin/EditEmailDialog.tsx | if (!emailRegex.test(email1)) { | if (false) {

@@ -98,3 +98,9 @@ describe("resolveApplyErrorCopy", () => {
     expect(resolveApplyErrorCopy(m![1])).toBe("You can't apply to your own post.");
   });
 });
+
+// The whole reason the prefix table exists: migration 20260907230038 made the
+// trigger interpolate the configured cap, so an exact-string key matches none
+// of the sentences prod can raise and the helper gets a generic Retry toast for
+// a refusal that re-fails identically.
+// @mutate src/pages/dashboard/applyErrorCopy.ts | if (message.startsWith(rule.prefix)) return rule.copy; | if (message === rule.prefix) return rule.copy;

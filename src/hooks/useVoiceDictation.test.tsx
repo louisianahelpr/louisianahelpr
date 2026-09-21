@@ -116,3 +116,7 @@ describe("useVoiceDictation error reporting", () => {
     expect(hook.result.current.isListening).toBe(false);
   });
 });
+
+// The reported symptom verbatim: `onerror` swallowing the code, so a denied
+// microphone and a denied speech service both read as a dead mic button.
+// @mutate src/hooks/useVoiceDictation.ts | if (message) onErrorRef.current?.(message); | 

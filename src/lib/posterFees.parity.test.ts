@@ -91,3 +91,16 @@ describe("poster-fee tier ladder + Stripe floor parity (UI ↔ edge)", () => {
     }
   });
 });
+
+// The Stripe floor itself, dropped on each runtime in turn — the case where a
+// tiny job's tier fee (8c on a $1 job) is less than what the charge costs to
+// process. Mutating either runtime also reds the UI<->edge parity, which is the
+// drift this file was written for.
+//
+// NOT registered, deliberately: the two lines that COMPUTE the floor (the
+// closed-form gross-up and the `while` that nudges it up) are mutually
+// redundant — they converge on the same fixed point, so breaking either one
+// alone is behaviour-preserving and any mutation of it SURVIVES. That is
+// defensive duplication in the source, not a hole in this guard.
+// @mutate src/lib/posterFees.ts | return Math.max(tierFeeCents, floorCents); | return tierFeeCents;
+// @mutate supabase/functions/_shared/posterFees.ts | return Math.max(tierFeeCents, floorCents); | return tierFeeCents;

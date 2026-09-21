@@ -74,4 +74,27 @@ describe("resolveApplyErrorCopy", () => {
       "You've hit today's application limit — check back tomorrow.",
     );
   });
+
+  it("maps the self-application refusal from BOTH engines to one sentence", () => {
+    // `apply_to_job` (the RPC) raises prose; enforce_application_job_state's C3
+    // guard raises a terse code, and the trigger is the only thing standing in
+    // front of the client's direct-INSERT fallback. A helper who hits the
+    // trigger path must not get the generic retry toast for a refusal that
+    // re-fails identically on every retry.
+    const same = "You can't apply to your own post.";
+    expect(resolveApplyErrorCopy("Cannot apply to your own job")).toBe(same);
+    expect(resolveApplyErrorCopy("cannot_apply_to_own_job")).toBe(same);
+  });
+
+  it("uses the code the self-application migration actually raises", () => {
+    // Derived, not restated: rename the guard in the migration and this fails
+    // here rather than un-mapping silently in prod.
+    const migration = fs.readFileSync(
+      path.resolve(__dirname, "../../../supabase/migrations/20260921190002_refuse_self_application.sql"),
+      "utf8",
+    );
+    const m = migration.match(/RAISE EXCEPTION '(cannot_apply_to_own_job)'/);
+    expect(m, "the C3 guard's RAISE was not found — did the code move?").toBeTruthy();
+    expect(resolveApplyErrorCopy(m![1])).toBe("You can't apply to your own post.");
+  });
 });

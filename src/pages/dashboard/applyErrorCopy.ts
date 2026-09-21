@@ -27,7 +27,14 @@
 
 const EXACT: Record<string, string> = {
   "Already applied to this job": "You've already applied to this job.",
+  // Two engines, one sentence. `apply_to_job` raises the prose version below;
+  // the BEFORE INSERT trigger raises the terse code (20260921190002, guard C3),
+  // and the trigger is what refuses the client's direct-INSERT fallback path
+  // (useApplyFlow's PGRST202 branch) and any raw PostgREST call. Which engine
+  // answered is not something the helper can act on, so both resolve to the
+  // same line — the same reasoning as the daily-limit prefix below.
   "Cannot apply to your own job": "You can't apply to your own post.",
+  cannot_apply_to_own_job: "You can't apply to your own post.",
   "Job is no longer accepting applications": "This job isn't accepting applications anymore.",
   "Job not found": "This job is no longer available.",
   // enforce_application_credential_tier (20260824251000). The trigger's HINT

@@ -21,6 +21,11 @@ const FIX = "20260913014328";
 // FOR SHARE) body to change only its NULL-uid trust test, so it restates the
 // fix. "Pre-fix" therefore means leaving both out.
 const RESTATES_FIX = "20260915101102";
+// Every LATER migration that redefines enforce_application_job_state from its
+// live body also restates the FOR SHARE fix, so each one has to be excluded as
+// well or "pre-fix" quietly stops meaning pre-fix and the first assertion below
+// goes hollow. 20260921190002 added the self-application guard C3.
+const RESTATES_APP_JOB_STATE_FIX = [RESTATES_FIX, "20260921190002"];
 const FIXTURES = resolve(__dirname, "fixtures/raceClass");
 const OFFER_HANDLERS = "src/pages/activity/activityActions/useOfferHandlers.ts";
 
@@ -29,7 +34,7 @@ type Hit = { key: string; file: string; line?: number };
 // @mutate src/components/JobTracking.tsx | .in("status", ["accepted", "in_progress", "revision_requested"]) |
 describe("race-class guard — red on the pre-fix code, green on the fix", () => {
   it("flags enforce_application_job_state when the FOR SHARE migration is absent", () => {
-    const keys = guard.sqlHits(guard.readMigrations({ exclude: [FIX, RESTATES_FIX] })).map((h: Hit) => h.key);
+    const keys = guard.sqlHits(guard.readMigrations({ exclude: [FIX, ...RESTATES_APP_JOB_STATE_FIX] })).map((h: Hit) => h.key);
     expect(keys).toContain("sql:public.enforce_application_job_state");
   });
 

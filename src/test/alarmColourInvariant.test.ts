@@ -6,6 +6,7 @@ import { Constants } from "@/integrations/supabase/types";
 import { JOB_STATUS_COLORS, FALLBACK_STATUS_COLOR } from "@/lib/statusColors";
 import { deriveCurrentStatusIdx, STATUS_IDX } from "@/components/JobTracking";
 import { railStepTone, type RailTone } from "@/components/activity/jobRailTone";
+import { blankComments } from "./helpers/blankNonCode";
 
 // PROVEN ABLE TO FAIL 2026-09-20. Flattening the cursor's amber into the
 // completed green — the owner's "shouldn't be 2 different green" defect,
@@ -36,8 +37,15 @@ import { railStepTone, type RailTone } from "@/components/activity/jobRailTone";
 const ROOT = resolve(__dirname, "../..");
 const repoFile = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
 
-const stripComments = (t: string) =>
-  t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+// Was a pair of deleting regexes. Measured 2026-09-21: that chain makes 208 of
+// the 1,054 source files lose real code (brand-asset/index.ts loses 98% of its
+// own), because a `/` + `*` inside a string or regex literal opens a comment
+// that runs to the next `*` + `/` anywhere later in the file. This guard walks
+// EVERY file under src/, so it was scanning emptied text and reporting green
+// for an unknown share of them. The `[^:]` above was a partial patch for the
+// same class — it spared `://` in URLs, which is the one symptom someone
+// noticed.
+const stripComments = (t: string) => blankComments(t);
 
 function sourceFiles(): string[] {
   return execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })

@@ -63,16 +63,18 @@ scanner, counting only non-whitespace code characters:
 
 | | |
 |---|---|
-| TS/TSX source files that lose REAL CODE | **208 of 1,054** |
+| TS/TSX source files that lose REAL CODE | **157 of 1,054** |
 | `supabase/functions/brand-asset/index.ts` | **98% of its code gone** (52,892 chars) |
 | `charge-recurring-visits/index.ts` | 74% of its code gone |
 | `src/test/edge/harness.ts` | 51% of its code gone |
 | `arrival-confirm-reminder` | lost the `postSlackOpsAlert(` call itself — the concrete proof |
 | guards still using the idiom | **49** |
 
-*(An earlier pass here recorded "293 of 1,053 files >60% deleted". That counted
-bytes removed, which conflates a long header comment with damage. 208 is the
-number of files where code actually disappears; corrected 2026-09-21.)*
+*(Two earlier figures here were wrong and are recorded as such. "293 of 1,053
+files >60% deleted" counted BYTES removed, which conflates a long header comment
+with damage. A second pass said 208, measured with a scanner that mistook the
+apostrophe in JSX prose — `they're` — for a string quote and so over-preserved.
+157 is the figure from the corrected scanner.)*
 
 **SQL turned out to be almost clean — measured, then retracted.** Two of the 49
 strip SQL comments, and a naive `--` regex has the same string-blindness in

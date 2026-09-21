@@ -18,7 +18,7 @@
  *   - `arrival-confirm-reminder` lost the `postSlackOpsAlert(` call itself,
  *     which is how this surfaced: deleting its import left the guard green.
  *   - Counting REAL CODE LOST (non-whitespace characters that a string-aware
- *     scanner keeps and the naive chain drops), 208 of 1,054 TS/TSX source
+ *     scanner keeps and the naive chain drops), 157 of 1,054 TS/TSX source
  *     files lose code. `brand-asset/index.ts` loses 98% of its own code,
  *     `charge-recurring-visits` 74%, `src/test/edge/harness.ts` 51%.
  *   - Bytes-removed is the WRONG metric and an earlier pass used it: this repo
@@ -61,7 +61,6 @@ const GRANDFATHERED: readonly string[] = [
   "src/test/aasaRouteParity.test.ts",
   "src/test/activityTabLabelsFitAPhone.test.ts",
   "src/test/adminEndpointAuthz.test.ts",
-  "src/test/alarmColourInvariant.test.ts",
   "src/test/appleIap.test.ts",
   "src/test/applicationContactLeakHidden.test.ts",
   "src/test/consequenceCopyParity.test.ts",
@@ -189,6 +188,29 @@ describe("no guard deletes the code it inspects", () => {
     }
     expect(damaged.length, damaged.slice(0, 5).join("; ")).toBe(0);
     expect(sample.length, "the sample must not be empty").toBeGreaterThan(50);
+  });
+
+  /*
+   * JSX TEXT IS NOT JAVASCRIPT — a scanner can be fooled by prose as easily as
+   * a regex is fooled by strings.
+   *
+   * `IdentityHeader.tsx` has `know who they're hiring` as element text, three
+   * lines above a `{/* … *` + `/}` comment mentioning "(#112)". Treating that
+   * apostrophe as a string quote made the scan skip to the next apostrophe and
+   * swallow the comment, which then read as live code — `alarmColourInvariant`
+   * duly reported the issue number as an un-tokenised hex colour. Found
+   * 2026-09-21 while migrating that guard off the deleting stripper.
+   */
+  it("an apostrophe inside a word is prose, not a string quote", () => {
+    const jsx = [
+      "<p>know who they're hiring</p>",
+      "{/" + "* the badge (#112) is a comment *" + "/}",
+      'const real = "kept";',
+    ].join("\n");
+    const out = blankNonCode(jsx);
+    expect(out, "the JSX comment must be blanked").not.toContain("#112");
+    expect(out, "the prose itself is code text and stays").toContain("they're hiring");
+    expect(out, "a real string body is still blanked").not.toContain("kept");
   });
 
   it("is able to fail: the old idiom really does destroy real source", () => {

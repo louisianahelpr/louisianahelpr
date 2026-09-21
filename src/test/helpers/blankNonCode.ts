@@ -21,7 +21,7 @@
  *
  * Measured across the repo on 2026-09-21, counting REAL CODE LOST rather than
  * bytes removed (this repo writes long header comments, so bytes-removed
- * flatters the naive version): **208 of 1,054 TS/TSX source files** lose code.
+ * flatters the naive version): **157 of 1,054 TS/TSX source files** lose code.
  * `supabase/functions/brand-asset/index.ts` loses 98% of its own code — 52,892
  * characters. A guard scanning a file it has silently emptied finds nothing and
  * reports green, which is indistinguishable from the code being correct.
@@ -91,6 +91,25 @@ function scan(src: string, blankStrings: boolean): string {
       continue;
     }
     if (c === '"' || c === "'" || c === "`") {
+      /*
+       * AN APOSTROPHE IN PROSE IS NOT A STRING QUOTE.
+       *
+       * .tsx files carry JSX TEXT, which is not JavaScript: `know who they're
+       * hiring` sits in the middle of an element. Treating that `'` as a quote
+       * made the scan skip forward to the next apostrophe anywhere in the file
+       * and swallow everything between — including, in IdentityHeader.tsx, a
+       * whole `{/* … *​/}` comment, which then read as live code. That is the
+       * same failure as the regex version, arrived at from the other side:
+       * the regex was fooled by strings, this was fooled by prose.
+       *
+       * A `'` with a letter on BOTH sides is inside a word. No valid JS opens a
+       * string immediately after an identifier character, so this cannot hide a
+       * real literal — `don't`, `they're`, `Helpr's` are text and nothing else.
+       */
+      if (c === "'" && /[A-Za-z]/.test(src[i - 1] ?? "") && /[A-Za-z]/.test(src[i + 1] ?? "")) {
+        i++;
+        continue;
+      }
       let j = i + 1;
       while (j < n && src[j] !== c) {
         if (src[j] === "\\") j++;

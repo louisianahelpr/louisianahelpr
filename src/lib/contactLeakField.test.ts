@@ -34,3 +34,9 @@ describe("contactLeakRejectionMessage — only the trigger's own 23514 text is s
     expect(contactLeakRejectionMessage(new Error("x"))).toBeNull();
   });
 });
+
+// Only the trigger's OWN text is safe to show verbatim. Without this filter
+// every other check_violation on the table is rendered to the user as-is —
+// starting with the budget constraint, whose message is raw Postgres internals
+// ('new row for relation "jobs" violates check constraint "jobs_budget_check"').
+// @mutate src/lib/contactLeakField.ts | .test(e.message) ? e.message : null; | .test(e.message) ? e.message : e.message;

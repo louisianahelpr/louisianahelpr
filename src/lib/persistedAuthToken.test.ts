@@ -69,3 +69,9 @@ describe("hasPersistedAuthToken", () => {
     }
   });
 });
+
+// The key SHAPE is the whole contract. Matching any key at all would make
+// every guest carrying a theme or dismissal key look signed-in, putting the
+// ~53 KiB Supabase chunk back on the landing page's LCP path — the exact
+// regression this file exists to prevent.
+// @mutate src/lib/persistedAuthToken.ts | if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) return true; | if (key) return true;

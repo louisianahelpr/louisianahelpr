@@ -146,3 +146,10 @@ describe("BanDialog", () => {
     expect(screen.getByRole("button", { name: /Permanently Ban/ })).toBeInTheDocument();
   });
 });
+
+// The self-action guard is the one line here that is pure authorization: the
+// WARNING tier writes no user_bans row, so `trg_reject_self_issued_ban` never
+// sees it and nothing on the server stops an admin putting their own account
+// one strike from a ban. Neutering the condition must turn the
+// "refuses a self-targeted action" case red.
+// @mutate src/components/admin/BanDialog.tsx | if (profile.user_id === user.id) { | if (false) {

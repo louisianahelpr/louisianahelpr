@@ -65,3 +65,8 @@ describe("unsettledReason", () => {
     );
   });
 });
+
+// 'decided' is not the end state — 'executed' is. Collapsing that comparison
+// makes every dispute look settled and empties the queue that exists to catch
+// escrow nobody has been paid out of.
+// @mutate src/components/admin/adminDisputes/unsettled.ts | return record.execution_status !== "executed"; | return false;

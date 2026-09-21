@@ -134,3 +134,8 @@ describe("the four keys are the four database columns", () => {
     ]);
   });
 });
+
+// Blank, 0 and a negative are ONE state — no limit — because that is what the
+// database does with them. Dropping the normalisation stores a 0 the UI then
+// reads back as an enforced cap of zero.
+// @mutate src/components/admin/abuseLimits.ts | if (n <= 0) return { ok: true, value: null }; |

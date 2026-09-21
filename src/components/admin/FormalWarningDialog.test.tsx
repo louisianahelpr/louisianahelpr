@@ -134,3 +134,8 @@ describe("FormalWarningDialog", () => {
     expect(onSuccess).not.toHaveBeenCalled();
   });
 });
+
+// A strike has to land on the account the admin is looking at. `profile.id`
+// and `profile.user_id` are different columns on this row, and sending the
+// wrong one strikes nobody — or somebody else.
+// @mutate src/components/admin/FormalWarningDialog.tsx | userId: profile.user_id, | userId: profile.id,

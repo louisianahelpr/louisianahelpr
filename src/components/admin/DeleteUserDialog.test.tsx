@@ -26,6 +26,15 @@ vi.mock("sonner", () => ({
   },
 }));
 
+// The Face ID / Touch ID gate on the single most irreversible action in the
+// admin console. It is a no-op that returns true on web, so WITHOUT this mock
+// the confirmation could be deleted outright and every test here would stay
+// green — the gate would be untested on the one surface it exists for.
+const requireBiometricMock = vi.fn();
+vi.mock("@/lib/biometricGate", () => ({
+  requireBiometric: (...args: unknown[]) => requireBiometricMock(...args),
+}));
+
 const sampleProfile = {
   id: "profile-id-1",
   user_id: "user-id-1",
@@ -38,6 +47,8 @@ describe("DeleteUserDialog", () => {
     invokeMock.mockReset();
     toastSuccess.mockReset();
     toastError.mockReset();
+    requireBiometricMock.mockReset();
+    requireBiometricMock.mockResolvedValue(true);
   });
 
   it("renders nothing when profile is null", () => {
@@ -84,6 +95,28 @@ describe("DeleteUserDialog", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("deletes nothing when the device confirmation is refused", async () => {
+    // Refusing Face ID / the passcode must abandon the delete entirely: no
+    // edge-function call, no onSuccess, and the dialog stays open so the
+    // admin can see it did not happen.
+    requireBiometricMock.mockResolvedValue(false);
+    invokeMock.mockResolvedValue({ data: { success: true }, error: null });
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
+    render(
+      <DeleteUserDialog
+        profile={sampleProfile}
+        onClose={onClose}
+        onSuccess={onSuccess}
+      />,
+    );
+    screen.getByRole("button", { name: /Delete Permanently/ }).click();
+    await waitFor(() => expect(requireBiometricMock).toHaveBeenCalled());
+    expect(invokeMock).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("toasts an error when the edge function fails", async () => {
     invokeMock.mockResolvedValue({ data: null, error: new Error("nope") });
     const onClose = vi.fn();
@@ -96,3 +129,7 @@ describe("DeleteUserDialog", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 });
+
+// The irreversible-action confirmation. Deleting the early return lets a
+// refused Face ID / passcode fall straight through into admin-delete-user.
+// @mutate src/components/admin/DeleteUserDialog.tsx | if (!ok) return; |

@@ -58,3 +58,7 @@ describe("admin dialogs — same-frame double click sends one request", () => {
     expect(invokeMock).toHaveBeenCalledTimes(1);
   });
 });
+
+// The synchronous in-flight ref IS the guard — `busy` state cannot see a
+// second click dispatched in the same frame.
+// @mutate src/components/admin/ManualVerifyDialog.tsx | if (inFlight.current) return; |

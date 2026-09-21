@@ -456,8 +456,7 @@
     "src/test/edge/verification-webhook.test.ts",
     "src/test/edge/verify-apple-iap.test.ts",
     "src/test/edge/void-cancelled-payments.test.ts",
-    "src/test/edge/weekly-helper-report.test.ts",
-    "src/test/zipRequiredAtSignup.test.ts"
+    "src/test/edge/weekly-helper-report.test.ts"
   ],
   "noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",

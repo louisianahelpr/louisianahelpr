@@ -1,5 +1,7 @@
 // ZIP is required at BOTH entry points, or it is required at neither.
 //
+// @mutate src/pages/Signup.tsx |       if (!zip) errors.zipCode = "Add your ZIP code"; |       if (false) { /* nothing */ } // if (!zip) errors.zipCode = "Add your ZIP code";
+//
 // Owner decision 2026-09-05. It was optional on the reasoning that a second
 // required field on the highest-traffic form is a friction cost worth weighing
 // deliberately — a fair argument, now overruled: ZIP is the ONLY input that
@@ -18,8 +20,51 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
-const codeOnly = (src: string) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
+
+/**
+ * Blank every comment, INCLUDING a trailing one, and blank rather than delete
+ * so offsets and line numbers survive.
+ *
+ * This was `.replace(/^[ \t]*\/\/.*$/gm, "")` — whole-LINE comments only —
+ * and that made the file hollow. Proven 2026-09-21: replacing the requirement
+ * with `if (false) { } // if (!zip) errors.zipCode = "Add your ZIP code";`
+ * removes ZIP from email signup entirely and this suite passed **10/10**,
+ * because the trailing comment still satisfied every regex.
+ *
+ * The consequence is the one this file's own header describes: ZIP is the only
+ * input that resolves a member's parish, and parish drives job-match
+ * notifications, the daily digest and Louisiana sales tax. The account signs
+ * up fine and then never hears about a nearby job, with nothing on any screen
+ * explaining why.
+ *
+ * String-aware, because a `//` inside a string literal is not a comment — a
+ * naive scanner elsewhere in this repo ate a live value sitting after a URL.
+ */
+const codeOnly = (src: string): string => {
+  const out = src.split("");
+  let i = 0;
+  while (i < src.length) {
+    const c = src[i];
+    if (c === '"' || c === "'" || c === "`") {
+      const q = c;
+      i++;
+      while (i < src.length && src[i] !== q) { if (src[i] === "\\") i++; i++; }
+      i++;
+      continue;
+    }
+    if (c === "/" && src[i + 1] === "/") {
+      while (i < src.length && src[i] !== "\n") out[i++] = " ";
+      continue;
+    }
+    if (c === "/" && src[i + 1] === "*") {
+      while (i < src.length && !(src[i] === "*" && src[i + 1] === "/")) { if (src[i] !== "\n") out[i] = " "; i++; }
+      if (i < src.length) { out[i] = " "; out[i + 1] = " "; i += 2; }
+      continue;
+    }
+    i++;
+  }
+  return out.join("");
+};
 
 const SIGNUP = codeOnly(read("src/pages/Signup.tsx"));
 const STEP2 = codeOnly(read("src/pages/signup/SignupStep2.tsx"));

@@ -356,6 +356,111 @@ guard over the predicate alone passes while the wiring that was supposed to call
 it is missing — which is precisely how the previous two channels survived being
 looked at.
 
+## A SURVIVED is a question, not a verdict
+
+The instinct on a `SURVIVED` is "the guard does not care". Sometimes the guard
+cares perfectly well and its INSTRUMENT cannot see the thing.
+
+Measured 2026-09-21. `e2e/mobile-viewports.spec.ts` asserts the headline mobile
+defect — "no horizontal scroll" — at five viewports, in a spec CI runs. Forcing
+a **1400px-wide element into the landing hero at a 320px viewport** left it
+GREEN on all five. The obvious reading is a hollow assertion. It was not:
+
+```css
+/* src/index.css */
+body { overflow-x: hidden; }   /* absorbs the .full-bleed -50vw spill */
+```
+
+That clip is deliberate and correct, and it also suppresses the SYMPTOM the
+spec measures. `documentElement.scrollWidth` stops growing, so content really
+off the side of the phone reports as fitting. The content was off-screen and
+unreachable; the metric said the page fit.
+
+The fix was to the instrument, not the assertion: measure per-element bounding
+rects as well, which an ancestor's clip does not affect. Same mutation, before
+and after: **SURVIVED → killed**. That before/after is the proof the fix was
+load-bearing, and it is worth more than the verdict on its own.
+
+Note what the codebase already knew: `measureLayout` in
+`e2e/happy-path/auditRoutes.ts` has reported `overflowOffenders` for exactly
+this reason all along, and its comment names the same CSS. CLAUDE.md's
+proof-of-fit rule likewise has **two** clauses — "assert
+`documentElement.scrollWidth <= clientWidth`, no element wider than the
+viewport". The second clause is the one that does the work in this codebase.
+The specs that were blind had implemented only the first. The rule was right;
+two implementations of it were half-done.
+
+**So: before concluding a guard is hollow, ask whether its measurement can see
+the defect at all.** A guard whose instrument is blind looks identical to a
+guard that does not assert, and the fix is completely different.
+
+## A check that SKIPS when its selector misses has deleted itself
+
+`test.skip(true, "…update selector")` reads as caution and behaves as deletion,
+because **the miss and the regression are the same event**. A selector stops
+matching precisely when the layout it points at changes — which is the thing the
+check exists to catch. So it goes quiet at exactly the moment it should fire,
+and the row stays in the file, so the coverage still looks real.
+
+Found 2026-09-21 in `e2e/mobile-viewports.spec.ts`, which
+`mobile-viewports.yml` runs in CI:
+
+```
+landing — phone cluster fits viewport      SKIPPED on all 5 viewports
+CI result                                  20 passed / 5 skipped  → green
+```
+
+It targeted `src/components/landing/PhoneCluster.tsx` — **deleted** — by
+looking for a "46 active now" pill, a string that appears nowhere in `src/` any
+more. Its own comment admitted the selector was "best-effort… doesn't have a
+stable test-id yet".
+
+Deleted rather than repaired: there is nothing left to select, and the concern
+it named (the landing page not fitting a narrow phone) is asserted directly and
+without a fragile selector by the sibling test at 320/375/414/768/1024.
+
+**No ratchet was added for the shape**, deliberately. Three instances exist
+repo-wide and the other two are defensible — a network-dependent AASA fetch, and
+a `journeys` fixture helper that announces a missing prod fixture. A guard over
+three cases, two of them correct, would be noise, and noise is what teaches
+people to skim. Reported instead.
+
+The generalisation: **a skip is a claim that the test could not run, not that it
+passed.** If a miss is indistinguishable from a regression, the miss must fail.
+
+## "It only fails on an exception" — the shape that looks thorough
+
+Worth naming separately from "no assertion at all", because this one reads as a
+careful, well-instrumented spec.
+
+`e2e/visual-audit/responsive.spec.ts`: 240 lines, six screens × four widths =
+24 tests, detectors for horizontal scrollbars and for elements overflowing the
+right edge. One `expect` in the file:
+
+```ts
+expect(result.status === "failed").toBe(false);
+// "We want the suite to keep running on issue — assertion only
+//  fails on hard exceptions."
+```
+
+`"failed"` is set **only by the catch block**. Every defect the spec actually
+detects sets `"issue"`, and nothing read it. The suite passed with horizontal
+scroll on every screen at every width.
+
+The comment's reasoning was *right* and is the trap: `mode: "serial"` means a
+failing test skips the rest of the describe, so asserting in place would stop at
+the first bad screen and hide the other 23. The answer is a trailing aggregate
+test — every screen still gets measured, and the run still fails if any of them
+had an issue. Same fix as `overlay-sweep`.
+
+It had been wired into CI the day before it was audited, so it was one run away
+from being believed. That is an argument FOR running unrun specs before trusting
+them, not against wiring them.
+
+**Look for:** a findings field (`status`, `issues`, `notes`, `findings`) that is
+written, serialized into a report, and compared to nothing. Grep
+`-c "expect("` against the file's test count; a ratio near zero is the tell.
+
 ## The hollow SHAPES, so they can be looked for rather than stumbled on
 
 Every hollow guard found has been one of these. Two are worth singling out

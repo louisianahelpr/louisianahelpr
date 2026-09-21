@@ -767,3 +767,18 @@ test.describe("device pass — measured", () => {
     });
   }
 });
+
+// Proof this spec can fail, aimed at the defect it was written to measure.
+//
+// The owner's build-4825 report was that titles rendered up under the status
+// bar because `pt-safe-top` resolved to 0 inside <PageTransition>. The fix was
+// to route that padding through a `--safe-area-*` custom property set at :root,
+// which `withDeviceInsets()` then drives to real iPhone values (47px) so the
+// "top safe-area inset @ 375" tests can measure it in Chrome.
+//
+// Collapsing the token back to a literal 0px reinstates exactly that bug: the
+// first painted text moves up into the simulated notch and `firstTextTop >=
+// INSET_TOP` fails. This target lives OUTSIDE src/, which the runner only
+// learned to rebuild for today — before that it would have scored SURVIVED for
+// a stale-bundle reason rather than a spec one.
+// @mutate tailwind.config.ts | "safe-top": "var(--safe-area-top, 0px)" | "safe-top": "0px"

@@ -233,3 +233,15 @@ for (const device of DEVICES) {
     }
   });
 }
+
+// Proof this spec can fail. The defect it exists to catch is a feed that
+// silently EMPTIES while the spec stays green — which is what happened for six
+// days when the FEED_JOBS `date_needed` literals expired and
+// `useDashboardFilters.ts` culled every one of them as past-dated.
+//
+// So the mutation is that exact cull, inverted: with `<` flipped to `>` the
+// filter drops every FUTURE-dated job instead of every past-dated one, and all
+// seven fixtures are DATE(1)..DATE(8). The dashboard renders its empty state,
+// the product-page screenshot becomes a picture of the app doing nothing, and
+// the `shown.length` assertion below is what notices.
+// @mutate src/hooks/useDashboardFilters.ts | job.date_needed.slice(0, 10) < todayLocalDate | job.date_needed.slice(0, 10) > todayLocalDate

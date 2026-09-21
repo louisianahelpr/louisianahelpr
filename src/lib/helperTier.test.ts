@@ -242,3 +242,8 @@ describe("describeTierProgress", () => {
     expect(oneShortJob.missing).toContain("1 more completed job");
   });
 });
+
+// Tier 1 is a publicly-rendered "Verified" claim, so it needs an explicit
+// `true` from Stripe. Treating null/undefined (never verified) as good enough
+// hands the rung to every approved helper with a Connect account.
+// @mutate src/lib/helperTier.ts | if (profile.stripe_identity_verified !== true) return false; | if (profile.stripe_identity_verified === false) return false;

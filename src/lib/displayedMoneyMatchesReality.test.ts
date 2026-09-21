@@ -146,3 +146,13 @@ describe("the three fixed sites do not drift back", () => {
     expect(src).not.toMatch(/formatPrice\(isPosted \?/);
   });
 });
+
+// Shown able to fail:
+// formatPriceExact dropping the cents — the exact shipped bug: "Review & Pay
+// $136" on a card that is then charged $136.40.
+// @mutate src/lib/format.ts | const hasFraction = cents % 100 !== 0; | const hasFraction = false;
+// ...and padding them the other way, which claims money that is not in escrow.
+// @mutate src/lib/format.ts | const cents = Math.round(amount * 100); | const cents = Math.ceil(amount * 100);
+// formatPriceFloor rounding instead of flooring — a take-home that reads 40c
+// ABOVE the transfer the helper actually receives.
+// @mutate src/lib/format.ts | return Math.floor(amount).toLocaleString("en-US"); | return Math.round(amount).toLocaleString("en-US");

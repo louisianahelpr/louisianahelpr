@@ -207,3 +207,7 @@ describe("AdminJobs — the notification insert cannot fail silently", () => {
     expect(notifyCalls).toHaveLength(2);
   });
 });
+
+// /my-jobs is the HELPER surface. Sending the poster there lands them on a
+// screen the job they posted can never appear on.
+// @mutate src/components/admin/AdminJobs.tsx | role === "poster" ? `/my-posts?job=${jobId}` : `/my-jobs?job=${jobId}`; | `/my-jobs?job=${jobId}`;

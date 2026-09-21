@@ -240,3 +240,8 @@ describe("subscribeWithRecovery", () => {
     expect(sub.current).toBeNull();
   });
 });
+
+// Supabase dedupes channels BY NAME: a rebuild under the old name is silently
+// dropped and the screen stays frozen while looking connected. The nonce is
+// what makes every attempt a distinct channel.
+// @mutate src/lib/realtimeRecovery.ts | const mine = build(opts.stableName ? opts.name : `${opts.name}-${channelNonce()}`); | const mine = build(opts.name);

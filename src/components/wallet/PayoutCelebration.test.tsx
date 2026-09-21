@@ -174,3 +174,10 @@ describe("PayoutCelebration", () => {
     }
   });
 });
+// SHOWN ABLE TO FAIL — the `status === "paid"` term, the only thing standing
+// between a helper and a confetti card for money that never moved. Drop it and
+// a `pending` transfer (or a `failed` / reversed one) celebrates "You earned
+// $50" AND advances helpr_last_seen_payout_at past it, so the real payout —
+// when and if it lands — is then suppressed as already-seen. Two wrongs from
+// one line, which is why this is the registered one.
+// @mutate src/components/wallet/PayoutCelebration.tsx | .filter((p) => p.status === "paid" && payoutTimestampMs(p) > lastSeen) | .filter((p) => payoutTimestampMs(p) > lastSeen)

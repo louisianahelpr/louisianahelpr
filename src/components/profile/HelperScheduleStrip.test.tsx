@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 
 import { HelperScheduleStrip } from "./HelperScheduleStrip";
+import { queryKeys } from "@/lib/queryKeys";
 
 /**
  * Mock the Supabase client. The strip awaits the tail of a fluent
@@ -52,7 +53,35 @@ function makeWrapper() {
       <MemoryRouter>{children}</MemoryRouter>
     </QueryClientProvider>
   );
-  return { wrapper };
+  return { wrapper, client };
+}
+
+/**
+ * Wait for the strip's own query to SETTLE to `status`, and return its entry.
+ *
+ * Every assertion below that claims "nothing rendered" has to run after this.
+ * The component's first paint is a skeleton and then nothing, so
+ * `waitFor(() => expect(container).toBeEmptyDOMElement())` would pass on poll
+ * #1 — before the mocked promise resolved — and prove only that React mounted.
+ * Waiting on the query is the real precondition. (Class documented in
+ * src/test/waitForEmptyIsVacuous.test.ts.)
+ */
+async function awaitStripQuery(
+  client: QueryClient,
+  status: "success" | "error",
+) {
+  await waitFor(() => {
+    const entry = client
+      .getQueryCache()
+      .find({
+        queryKey: queryKeys.helperSchedule.forWindow(
+          "helper-1",
+          isoDateOffset(0),
+          isoDateOffset(6),
+        ),
+      });
+    expect(entry?.state.status, "the schedule query never settled").toBe(status);
+  });
 }
 
 /** YYYY-MM-DD for a date offset from today (local TZ). */
@@ -80,12 +109,15 @@ describe("HelperScheduleStrip", () => {
 
   it("renders the empty-state nudge when there are no scheduled jobs in the window", async () => {
     mockQueryResult.data = [];
-    const { wrapper: Wrapper } = makeWrapper();
+    const { wrapper: Wrapper, client } = makeWrapper();
     render(
       <Wrapper>
         <HelperScheduleStrip helperId="helper-1" enabled={true} />
       </Wrapper>,
     );
+    // A real, SUCCESSFUL empty result landed — so the nudge below is the
+    // empty-week branch and not the pre-data paint or a swallowed failure.
+    await awaitStripQuery(client, "success");
     await waitFor(() => {
       expect(
         screen.getByText(/no jobs scheduled this week/i),
@@ -97,6 +129,43 @@ describe("HelperScheduleStrip", () => {
     expect(
       screen.queryByTestId("helper-schedule-strip"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * THE READ FAILED — and the strip must not answer with a fact it does not
+   * have.
+   *
+   * `useQuery` hands back `data = []` on an error exactly as it does on an
+   * empty week, so without the `isError` short-circuit in the component the
+   * empty-state nudge fires and tells a helper "No jobs scheduled this week"
+   * when the reason is a dropped request. They have accepted work that day;
+   * the app has just told them they have not. Hiding the strip is the honest
+   * answer (their jobs still show on the dashboard and Activity, and
+   * react-query retries).
+   *
+   * This branch was unreachable until now: the chain mock answers
+   * `{ data, error: null }` for every call, so no test ever put the query into
+   * its error state — the mock-default vacuity class.
+   */
+  it("says NOTHING rather than 'no jobs this week' when the read fails", async () => {
+    mockQueryResult.data = [];
+    mockQueryResult.error = { message: "connection terminated unexpectedly" };
+    const { wrapper: Wrapper, client } = makeWrapper();
+    const { container } = render(
+      <Wrapper>
+        <HelperScheduleStrip helperId="helper-1" enabled={true} />
+      </Wrapper>,
+    );
+
+    // The failure really reached the component before anything is claimed
+    // about what it drew.
+    await awaitStripQuery(client, "error");
+
+    expect(screen.queryByText(/no jobs scheduled this week/i)).toBeNull();
+    expect(screen.queryByText(/go browse/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: /browse jobs/i })).toBeNull();
+    expect(screen.queryByTestId("helper-schedule-strip")).toBeNull();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("renders the 7-day strip with today highlighted when scheduled jobs exist", async () => {
@@ -186,3 +255,18 @@ describe("HelperScheduleStrip", () => {
     expect(within(dialog).getByText(/anytime/i)).toBeInTheDocument();
   });
 });
+// SHOWN ABLE TO FAIL — the read-failure short-circuit. `useQuery` returns
+// `data = []` for a FAILED read exactly as it does for an empty week, so
+// without this line the strip answers a dropped request with "No jobs
+// scheduled this week · Go browse" — an assertion about the helper's schedule
+// that the app has no basis for, on the day they may have accepted work.
+// Proven red 2026-09-21 (`if (false) return null` → the nudge renders on the
+// error path).
+//
+// This branch was UNREACHABLE before today: the chain mock answers
+// `{ data, error: null }` for every call, so no test ever drove the query into
+// its error state — the mock-default class. The new test sets
+// `mockQueryResult.error` and, before claiming anything about the DOM, polls
+// the query cache to `status === "error"`; the pre-data paint is empty too, so
+// asserting absence without that wait would prove only that React mounted.
+// @mutate src/components/profile/HelperScheduleStrip.tsx | if (isError) return null; | if (false) return null;

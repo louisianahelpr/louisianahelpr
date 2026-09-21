@@ -133,3 +133,11 @@ describe("shouldShowUnfundedNotice", () => {
     ).toBe(false);
   });
 });
+// SHOWN ABLE TO FAIL — the `stripe_session_id` discriminator, the line that
+// decides whether a hand-posted unfunded job is a GHOST or a healthy job
+// mid-redirect. Making it unconditional puts "Payment not finished — no Helpr
+// can see it" on the normal insert→Stripe window, i.e. accuses the working
+// checkout of being broken, and the mid-redirect and never-reached-Stripe
+// tests both go red. Removing the branch instead loses every abandoned /
+// declined ghost, which the other three tests catch.
+// @mutate src/components/activity/postedJobCard/UnfundedJobNotice.tsx | if (job.stripe_session_id) return "abandoned-checkout"; | return "abandoned-checkout";

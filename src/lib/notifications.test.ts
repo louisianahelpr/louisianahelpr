@@ -190,3 +190,11 @@ describe("createNotifications (batch)", () => {
     expect(results.every((r) => r.status === "fulfilled")).toBe(true);
   });
 });
+// SHOWN ABLE TO FAIL — the ONE-INVOKE contract, which is the whole reason this
+// wrapper exists. send-notification-email is service-role-only (it sends
+// arbitrary HTML as Helpr), so a client invoke can only ever 401; the shipped
+// version of that bug made every client-driven lifecycle email fail silently
+// AND fanned an "Email delivery failed" notification to every admin. Re-adding
+// the direct call fails both "makes NO direct send-notification-email invoke"
+// and the `toHaveBeenCalledOnce` in the in-app-failure test.
+// @mutate src/lib/notifications.ts | return { error: null };\n} | await supabase.functions.invoke("send-notification-email", { body: { user_id, title, message } });\n  return { error: null };\n}

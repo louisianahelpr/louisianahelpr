@@ -130,3 +130,12 @@ describe("userFacingError", () => {
     expect(spy).toHaveBeenCalled();
   });
 });
+// SHOWN ABLE TO FAIL — the supabase-js transport-wrapper pattern. This one
+// literal suppresses ALL THREE of FunctionsFetchError / FunctionsRelayError /
+// FunctionsHttpError (they share the phrase "Edge Function" and nothing else
+// this filter matches), so breaking it hands a person "Edge Function returned
+// a non-2xx status code" out of a tip, a boost, a referral or a dispute —
+// observed live on /signup 2026-09-02, which is why the test BUILDS the three
+// error instances from the installed library instead of retyping their
+// strings.
+// @mutate src/lib/userFacingError.ts | /\bEdge Function\b/i, | /\bEdge Functions Are Fine\b/i,

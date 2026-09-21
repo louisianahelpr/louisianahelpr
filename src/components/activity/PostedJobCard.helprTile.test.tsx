@@ -124,3 +124,18 @@ describe("Posts card shows the Helpr as a profile tile, expanded only (VN-22)", 
     expect(toggle).not.toHaveBeenCalled();
   });
 });
+// SHOWN ABLE TO FAIL — the CARD'S OWN FALLBACK render of the person tile.
+// Every mount site below the card is stubbed here (PostedJobActions returns
+// null), so `stepCarriesTile` is false and line 468 is the only thing that can
+// put the Helpr's profile on the card. Invert it and the expanded card has no
+// /user/:id link at all — which is exactly the state the fallback exists to
+// prevent on `cancelled` / `pending_approval`, where PostedJobActions really
+// does return null in prod.
+//
+// NOT registered, deliberately: the `isExpanded &&` gate on `helperTile`
+// (PostedJobCard.tsx:173). PostedJobCard.tsx:145-172 says outright it is
+// defence-in-depth — BOTH render sites already sit behind `isExpanded`, so
+// deleting it leaves the "collapsed: no Helpr name" test GREEN. It is a
+// REDUNDANT gate here and load-bearing only on the helper card; that asymmetry
+// is registered in src/test/jobCardPersonTileAboveRow.test.tsx.
+// @mutate src/components/activity/PostedJobCard.tsx | {!stepCarriesTile && helperTile} | {stepCarriesTile && helperTile}

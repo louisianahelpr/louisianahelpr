@@ -149,3 +149,11 @@ describe("copy tells the truth about what is blocked", () => {
     }
   });
 });
+// SHOWN ABLE TO FAIL — the disclosure line. `feeDue` is the ONLY thing that
+// puts the setup fee into the copy before the member taps; force it false and
+// the prompt reads "A photo ID and a quick selfie, handled by Stripe. Your
+// setup fee already covers it." to somebody who has not paid it, so the first
+// they hear of a charge is `claim_idv_attempt` refusing with
+// `onboarding_fee_unpaid` and `stripe-idv-start` turning that into a 402. A
+// price arriving as an error is the exact defect this slot was built to end.
+// @mutate src/components/profile/profileLanding/verificationPrompt.ts | feeDue: profile.onboarding_fee_paid !== true, | feeDue: false,

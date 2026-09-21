@@ -124,3 +124,13 @@ describe("a password refusal is not a sign-in failure", () => {
     );
   });
 });
+// SHOWN ABLE TO FAIL — the WebKit arm of the rejected-fetch branch. "Load
+// failed" is WKWebView's ENTIRE message for a fetch that never left the
+// device, and it shares no word with the Chromium phrasings the branch above
+// catches ("fetch"/"network"/"timeout"), so without this arm
+// `recognizedAuthError` returns null, `friendlyAuthError` falls back to
+// "Couldn't sign you in — give it another try?" on an OFFLINE login, and the
+// raw browser string reaches the toast on every path that uses
+// `recognizedAuthError` directly. It is the one arm that Chromium-only checks
+// structurally cannot see — the app ships in WKWebView.
+// @mutate src/lib/authErrors.ts | msg.includes("load failed") \|\| msg.includes("networkerror") | msg.includes("networkerror")

@@ -116,6 +116,8 @@ interface TitleBox {
   indent: number | null;
   /** Horizontal overflow, because a title that fits by pushing the page does not fit. */
   overflow: number;
+  /** Elements past the right edge — the half `overflow` is blind to. See readTitle. */
+  pastRightEdge: string[];
 }
 
 function readTitle(): TitleBox {
@@ -135,6 +137,34 @@ function readTitle(): TitleBox {
     column,
     indent: left !== null && column !== null ? left - column : null,
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    /**
+     * `overflow` above cannot see most overflow, and the reason is our own CSS:
+     * `src/index.css` sets `body { overflow-x: hidden }` to absorb the 1-2px the
+     * .full-bleed -50vw trick spills, which also stops documentElement.scrollWidth
+     * growing. Measured 2026-09-21 in mobile-viewports: a deliberately 1400px-wide
+     * element left the identical metric reading zero at every width.
+     *
+     * A bounding rect does not care what an ancestor clips, so the real check is
+     * per element — the second clause of CLAUDE.md's proof-of-fit rule, and what
+     * `measureLayout` in auditRoutes.ts has always used as `overflowOffenders`.
+     */
+    pastRightEdge: (() => {
+      const vw = window.innerWidth;
+      const out: string[] = [];
+      for (const el of Array.from(
+        document.querySelectorAll<HTMLElement>("button, a, input, h1, h2, h3, p, li, label"),
+      )) {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        const st = getComputedStyle(el);
+        if (st.visibility === "hidden" || st.display === "none") continue;
+        if (r.right > vw + 2 && r.left < vw) {
+          out.push(`<${el.tagName.toLowerCase()}${el.className ? "." + String(el.className).split(" ")[0] : ""}> right=${Math.round(r.right)}`);
+          if (out.length >= 5) break;
+        }
+      }
+      return out;
+    })(),
   };
 }
 
@@ -186,6 +216,13 @@ async function measure(page: Page, url: string, tag: string): Promise<TitleBox> 
   return box;
 }
 
+// Shown able to fail on the owner's 2026-09-20 report itself: the landing's
+// title at x=145 while all 25 tabs sat at x=72. Indenting the shared
+// ProfileTabHeader moves every TAB off the landing's column, which is the same
+// disagreement seen from the other side — and the fix then was to put the
+// landing on this shell, not to nudge a number, so this is the contract.
+// @mutate src/components/profile/ProfileTabHeader.tsx | <div className="-mb-4"> | <div className="-mb-4 pl-8">
+
 for (const vw of WIDTHS) {
   test(`every Profile title starts on the same x @${vw}`, async ({ browser }, info) => {
     const { ctx, page } = await authedPage(browser, vw, info.project.use.baseURL);
@@ -201,6 +238,10 @@ for (const vw of WIDTHS) {
       if (SHOTS) await page.screenshot({ path: join(SHOTS, `landing-${vw}.png`) });
       say("landing", landing);
       expect(landing.overflow, `landing@${vw}: the page scrolls sideways`).toBeLessThanOrEqual(0);
+      expect(
+        landing.pastRightEdge,
+        `landing@${vw}: content past the right edge (body{overflow-x:hidden} hides this from scrollWidth)`,
+      ).toEqual([]);
 
       const disagree: string[] = [];
       for (const tab of TABS) {
@@ -219,6 +260,10 @@ for (const vw of WIDTHS) {
           );
         }
         expect(box.overflow, `?tab=${tab}@${vw}: the page scrolls sideways`).toBeLessThanOrEqual(0);
+        expect(
+          box.pastRightEdge,
+          `?tab=${tab}@${vw}: content past the right edge (body{overflow-x:hidden} hides this from scrollWidth)`,
+        ).toEqual([]);
       }
 
       expect(

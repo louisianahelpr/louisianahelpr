@@ -30,7 +30,6 @@
     "e2e/prod-audit/interruptions.spec.ts",
     "e2e/prod-audit/messy-input.spec.ts",
     "e2e/prod-audit/profile-tab-scroll-fill.spec.ts",
-    "e2e/prod-audit/profile-title-alignment.spec.ts",
     "e2e/prod-lifecycle.spec.ts",
     "e2e/two-role-lifecycle.spec.ts",
     "e2e/visual-audit/desktop-fill.spec.ts"

@@ -158,4 +158,10 @@ describe("every filter the list applies, the map applies too", () => {
 // CORRECT. mapFilter.test.ts holds the behaviour; this file holds the
 // completeness. Nor does it look at the list's own filter set — a rule the
 // list gains that never reaches MapJobFilterInput is invisible here.
-// @mutate src/components/browseMap/mapFilter.ts | if (f.boostedOnly && "boosted_at" in job && !job.boosted_at) return false; |
+// RE-ANCHORED 2026-09-21 after 57e368ae4 swapped `boosted_at` for
+// `boost_expires_at`. The directive went stale the moment its find-string
+// changed and the gate went RED on main — which is the ratchet working, and a
+// reminder that a registration is coupled to the exact text it names. A
+// mutation that no longer applies proves nothing, so the gate refuses it
+// rather than counting the guard as proven.
+// @mutate src/components/browseMap/mapFilter.ts | if (f.boostedOnly && "boost_expires_at" in job) { | if (false) {

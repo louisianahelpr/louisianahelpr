@@ -138,7 +138,13 @@ export function jobStatusColor(status: string | null | undefined): StatusColor {
  */
 const STATUS_COLOR_CLASSES: Record<JobStatus, string> = {
   open:               "bg-[hsl(var(--olivewood)/0.12)] text-[hsl(var(--olivewood))]",
-  accepted:           "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]",
+  // --sage-ink, not raw --bark. This mirror was left behind by the AA contrast
+  // sweep that fixed the style map above: `completed` on the next line already
+  // carries the -ink value, `accepted` did not, so every chip painted through
+  // jobStatusColorClasses("accepted") kept the pre-sweep label colour —
+  // measured 4.28:1 on dark, under the 4.5:1 AA floor for text this size.
+  // Found 2026-09-21 by the burn-down, by a guard comparing the two maps.
+  accepted:           "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--sage-ink))]",
   in_progress:        "bg-[hsl(var(--burnt-sienna)/0.12)] text-[hsl(var(--sienna-ink))]",
   completed:          "bg-[hsl(var(--bark)/0.18)] text-[hsl(var(--sage-ink))]",
   cancelled:          "bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.8)]",

@@ -102,15 +102,34 @@ describe("STATUS_COLOR_CLASSES (the className mirror)", () => {
     }
   });
 
-  it("paints the same BACKGROUND token as the style-prop map for every status", () => {
-    // KNOWN DRIFT, deliberately scoped to bg only: `accepted` disagrees on the
-    // TEXT token — the style map says --sage-ink (theme-adaptive, chosen in
-    // the AA sweep) and the className map still says --bark (the raw hue that
-    // sweep replaced). Asserting text parity here would be red on main, so it
-    // is reported, not asserted. See the report for 2026-09-21.
+  /*
+   * BOTH tokens now — the drift this was scoped around is fixed.
+   *
+   * It was correctly scoped to `bg` when written: `accepted` disagreed on the
+   * TEXT token, because the AA contrast sweep replaced the raw accent hues
+   * with `-ink` values in the style map and left this mirror behind.
+   * `completed` on the next line had been updated; `accepted` had not. Every
+   * chip painted through `jobStatusColorClasses("accepted")` kept the
+   * pre-sweep colour, measured 4.28:1 on dark — under the 4.5:1 AA floor for
+   * text that size.
+   *
+   * Scoping to bg was the right call at the time (asserting text would have
+   * reddened main over a defect the lane had not been asked to fix). Now the
+   * production line is fixed, so the assertion widens to cover what the sweep
+   * was actually about — the two maps painting the same LABEL colour.
+   */
+  it("paints the same background AND text tokens as the style-prop map", () => {
     for (const value of Constants.public.Enums.job_status) {
-      const token = JOB_STATUS_COLORS[value].bg.match(/--[a-z-]+/)![0];
-      expect(jobStatusColorClasses(value), `${value} bg token`).toContain(token);
+      const cls = jobStatusColorClasses(value);
+      for (const half of ["bg", "text"] as const) {
+        const token = JOB_STATUS_COLORS[value][half].match(/--[a-z-]+/)![0];
+        expect(
+          cls,
+          `${value}: the className map's ${half} disagrees with the style map. Two maps painting ` +
+            `one chip differently is how the AA sweep's fix got half-applied — the style prop was ` +
+            `corrected and this mirror kept the failing hue.`,
+        ).toContain(token);
+      }
     }
   });
 });

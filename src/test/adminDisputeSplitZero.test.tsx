@@ -74,3 +74,7 @@ describe("dispute split preview at the extremes", () => {
     expect(text()).toContain("−$10.80 commission (12%)");
   });
 });
+
+// Proof this guard can fail: drop the zero-rounds-to-no-sign rule from the
+// deduction formatter and the losing column prints "\u2212$0.00" again.
+// @mutate src/components/admin/adminDisputes/DisputeCard.tsx | Math.round((Number.isFinite(n) ? n : 0) * 100) === 0 ?  | false ? 

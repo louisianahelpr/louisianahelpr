@@ -90,3 +90,7 @@ describe("admin jobs payment-status tone map", () => {
     }
   });
 });
+
+// Proof this guard can fail: drop one payment_status the CHECK constraint
+// admits and its admin money badge renders with no colour at all.
+// @mutate src/components/admin/adminJobs/types.ts |   cancelling: "warning",\n | 

@@ -15,8 +15,9 @@ hand-edit the numbers.*
 when it carries a registered `@mutate` directive AND that mutation has been
 executed and KILLED it. Checked 2026-09-21 rather than assumed:
 
-- all 249 registered guards carry a real `@mutate` — **0** are `@mutate-exempt`,
-  so none is merely *claimed*;
+- every registered guard carries a real `@mutate`. **THREE** now carry
+  `@mutate-exempt` instead, and they are counted separately — see "The three
+  categories" below. They are not in the proven column;
 - `survivingMutations` in the baseline is **empty** — no guard is grandfathered
   as known-vacuous;
 - the per-push gate mutates only what a commit CHANGED. The thing that runs
@@ -34,20 +35,69 @@ them has been repaired rather than reclassified. The honest caveat is that a
 registration proves sensitivity to the ONE line it names — `release-payout` is
 1,096 lines and two of them are pinned.
 
-| scope | files | proven able to fail | remaining |
-|---|---|---|---|
-| **`src/test/*.test.ts*`** | 202 | **202 — COMPLETE** | **0** |
-| **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
-| **colocated beside components** | 343 | **343 — COMPLETE** | **0** |
-| Playwright `e2e/**` | 59 | 28 | 31 |
-| **total** | **657** | **626 (95%)** | **31** |
+| scope | files | proven able to fail | exempt, with a reason | still owed |
+|---|---|---|---|---|
+| **`src/test/*.test.ts*`** | 202 | **202 — COMPLETE** | 0 | **0** |
+| **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | 0 | **0** |
+| **colocated beside components** | 343 | **343 — COMPLETE** | 0 | **0** |
+| Playwright `e2e/**` | 60 | 41 | 3 | 16 |
+| **total** | **658** | **639 (97%)** | **3** | **16** |
 
-Three rows of four are closed. Every non-Playwright guard in this repo has now
-been shown able to fail. The remaining 31 are e2e specs, serialised behind one
-browser lock — of which **2 are blocked on credentials that exist only as
-GitHub secrets** (`auth.spec.ts`, `two-role-lifecycle.spec.ts`): registering
-against them locally returns SURVIVED for an environment reason, which is a
-false accusation against a good spec rather than a finding.
+`npm run vacuity` prints the same three numbers on every run, so this table and
+the tool cannot drift apart:
+
+```
+registration: 639/658 guards register a mutation (3 exempt with a reason, 16 grandfathered)
+```
+
+### The three categories, and why lumping them lies in both directions
+
+A single "remaining" number was doing two different kinds of damage.
+
+**PROVEN (639).** A registered `@mutate` that has been run and killed the guard.
+
+**EXEMPT WITH A REASON (3).** The gate mutates a file under `src/` and runs
+`npm run build`. It never runs `supabase db push` and never deploys an edge
+function. So for a spec whose SUBJECT is a database trigger, an RLS policy or an
+edge function, there is no `src/` line to break — any registration returns
+SURVIVED for an environment reason, which is a false accusation against a good
+guard wearing a green tick. Measured 2026-09-21, `grep -c "page\.\|browser"`
+returns **ZERO** on both abuse specs: they never open a browser at all.
+
+These are among the sharpest specs in the repo (`idor-and-authz` has 17
+assertions, every one of the form "SECURITY: helper read the poster's private
+job via IDOR"). **Unprovable-by-this-gate and hollow are opposite conditions
+with opposite fixes**, and counting them together hides that.
+
+The bar for an exemption is therefore NOT "the gate cannot reach it". The
+burn-down asks "is this able to fail?", and that question still has an answer
+for a trigger or an RLS spec — just not one obtained by mutating `src/`. So each
+reason must name HOW the guard is shown able to fail, in the right medium, or say
+plainly that nothing does:
+
+| spec | how it IS shown able to fail | gap |
+|---|---|---|
+| `abuse/contact-smuggling` | `scripts/probes/contact-leak-reject.probe.mjs` — PGlite replay, RED-BEFORE against the live function body (`pg_get_functiondef` 2026-09-12 misses `jane@my-domain.com`) | none |
+| `abuse/idor-and-authz` | `scripts/probes/direct-offer-policy-scope.pglite.mjs` — red-before: a non-party can SELECT and UPDATE an assigned, funded job | **yes** — no probe reproduces the generic "helper reads the poster's private job" |
+| `notifications/notifications` | `src/test/edge/create-notification.test.ts` — registered `@mutate` on the function source; covers the 403 stranger gate and the 400 length cap | **yes** — not the stored-link sanitisation, the preference round-trip, or `email_send_log` |
+
+An exemption is a **recorded gap in a loud, counted list**. That is strictly
+better than the same gap sitting silently in `unregistered`, where it reads as
+"nobody got round to it".
+
+**STILL OWED (16).** Of which **2 are blocked on credentials that exist only as
+GitHub secrets** — `auth.spec.ts` (reads `PLAYWRIGHT_TEST_USER_EMAIL` /
+`_PASSWORD` directly) and `two-role-lifecycle.spec.ts` (needs seeded lifecycle
+STATE: a poster session, a helper session and a job id). Registering against
+either locally returns SURVIVED for an environment reason.
+
+Worth correcting a related assumption, because it nearly cost two whole rows:
+**"needs credentials" blocks two SPECS, not two rows.** The `prod-audit` and
+`journeys` specs mint sessions through `e2e/journeys/fixtures.getSession` →
+`scripts/test-signin-link.mjs`, which needs `.env` to EXIST, not per-user
+passwords. Measured 2026-09-21: `reaction-chip-clearance` 2/2 and `deep-links`
+19 passed / 3 skipped, both against prod, with no `PLAYWRIGHT_TEST_USER_*` set
+anywhere.
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -458,8 +508,16 @@ from being believed. That is an argument FOR running unrun specs before trusting
 them, not against wiring them.
 
 **Look for:** a findings field (`status`, `issues`, `notes`, `findings`) that is
-written, serialized into a report, and compared to nothing. Grep
-`-c "expect("` against the file's test count; a ratio near zero is the tell.
+written, serialized into a report, and compared to nothing.
+
+`grep -c "expect("` against the file's test count is the cheap first pass, but
+**it gives false positives and I hit one the same day**:
+`e2e/a11y-prod/a11y-prod.spec.ts` has **0** `expect(` across 9 tests and is
+nonetheless properly gated — its assertions live in `assertSweepGate`
+(`sweepCore.ts`), which is shared with the mocked sweep and opens with its own
+anti-vacuity check, `expect(results.some(r => r.status === "ok"), "no screen
+rendered at all")`. So a zero ratio means *look at the file*, not *the file is
+hollow*: follow every helper it calls before concluding anything.
 
 ## The hollow SHAPES, so they can be looked for rather than stumbled on
 

@@ -152,32 +152,39 @@ function readBaseline(): Baseline {
 const baseline = readBaseline();
 
 /**
- * Routes whose REACHABLE OVERLAY SET is not stable run to run.
+ * WHAT THIS RATCHET CAN AND CANNOT ASSERT — measured, not assumed.
  *
- * Measured over four consecutive full sweeps, 2026-09-21. `/my-posts` opened:
+ * The prober clicks up to 40 visible buttons per route and audits whatever
+ * opens. Which overlays that reaches is NOT stable. Five consecutive full
+ * sweeps on an unchanging app, 2026-09-21:
  *
- *   runs 1-3  Escalate | More | SOS
- *   run 4     Timeline & Evidence | No-Show
+ *   overlay opens per run    84 / 86 / 82 / 79 / 84
+ *   /my-posts opened         Escalate|More|SOS (runs 1,2,3,5)
+ *                            Timeline & Evidence|No-Show (run 4)
+ *   /availability contrast   seen on runs 1-4, absent on run 5
  *
- * with nothing about the app changing in between. The seeded job fixtures carry
- * dates relative to now, and which action chips a job card renders depends on
- * whether its start has passed — so the wall clock decides which overlays even
- * exist to probe. (Whole-run overlay opens: 84 / 86 / 82 / 79.)
+ * Two real causes: the seeded job fixtures carry dates relative to NOW, so a
+ * card's action chips depend on whether its start has passed; and the 40-button
+ * cap plus click ordering changes what is reached even on an identical screen.
  *
- * The consequence for the ratchet is narrow and specific:
+ * That splits the ratchet, and only one half survives:
  *
- *   - the ADDED half still applies IN FULL. A rule class that has never fired
- *     on this route is still a failure, whichever chips happened to render.
- *   - the STALE half cannot. "This finding no longer reproduces, delete it" is
- *     meant to be a claim about the app; here it would usually be a claim about
- *     the time of day. Asserting it would red a weekly job for nothing, which
- *     is exactly how a gate teaches people to ignore it.
+ *   ADDED — strict, and sound. A finding is derived from the DOM the app
+ *   actually rendered, so nondeterminism can only ever HIDE a finding, never
+ *   invent one. A rule class absent from the baseline is a real defect on the
+ *   run that saw it, full stop.
  *
- * This list is a debt marker, not a design. The fix is a fixture with pinned
- * dates; that lives in e2e/happy-path/fixtures.ts and is not this file's to
- * make. Until then the volatility is written down rather than absorbed.
+ *   "NO LONGER REPRODUCES" — NOT assertable, and asserting it was a mistake
+ *   worth recording. It is meant to claim the app changed; here it mostly
+ *   reports which overlays a run happened to reach. Runs 4 and 5 each failed on
+ *   it for a DIFFERENT key with no code change between them. A gate that reds
+ *   for nothing is a gate people mute, and a real failure gets muted with it.
+ *
+ * So the shrink direction is enforced statically instead (see the `orphaned`
+ * check below). Restoring the full ratchet needs a deterministic prober —
+ * pinned fixture dates and a stable trigger enumeration — which lives in
+ * e2e/happy-path/fixtures.ts, not here. Recorded rather than absorbed.
  */
-const VOLATILE_ROUTES = new Set(["/my-posts"]);
 
 /**
  * ROUTE BOUNCE allowlist — the sweep's own fixture-dependent half. Measured
@@ -580,15 +587,13 @@ async function probeRoute(page: Page, route: string): Promise<void> {
  * `killed` — a green verdict manufactured out of a timeout, with the guard
  * having noticed nothing. The assertion path is identical at 2 routes and 66.
  *
- * A filtered run is PARTIAL and may not run the stale-baseline check: every key
- * belonging to a route it never visited would look fixed.
+ * Safe for both assertions: the added half only ever judges what it saw, and the
+ * orphaned half is computed from ROUTES (the full list), not from what ran.
  */
 const ROUTE_FILTER = process.env.OVERLAY_SWEEP_ROUTES;
 const SWEPT = ROUTE_FILTER
   ? ROUTES.filter((r) => ROUTE_FILTER.split(",").some((f) => r.includes(f.trim())))
   : ROUTES;
-const PARTIAL = SWEPT.length !== ROUTES.length;
-
 const sweepDescribe = process.env.RUN_OVERLAY_SWEEP ? test.describe : test.describe.skip;
 
 test.describe.configure({ mode: "serial" });
@@ -676,22 +681,22 @@ sweepDescribe("overlay sweep", () => {
         `Full detail: ${OUTPUT_DIR}/overlay-report.json`,
     ).toEqual([]);
 
-    // Ratchet. A baseline key that is no longer observed means the overlay was
-    // fixed (or the probe stopped reaching it) — either way the line is stale
-    // and must come out, so the file can only ever shrink.
-    // Only meaningful on a FULL sweep (under OVERLAY_SWEEP_ROUTES every key of
-    // an unvisited route reads as fixed), and never for a VOLATILE_ROUTES entry.
-    const stale = PARTIAL
-      ? []
-      : Object.keys(baseline.keys)
-          .filter((k) => !observed.has(k) && !VOLATILE_ROUTES.has(k.split(" :: ")[0]))
-          .sort();
+    // The shrink direction, enforced on the one thing here that IS
+    // deterministic: a baseline key naming a route this sweep no longer probes
+    // describes nothing and can never be re-checked, so it is dead weight. See
+    // the note beside the baseline for why "no longer reproduces" is NOT
+    // asserted — on a prober this nondeterministic it reports which overlays a
+    // run happened to reach, not whether anything was fixed.
+    const probedRoutes = new Set<string>(ROUTES);
+    const orphaned = Object.keys(baseline.keys)
+      .filter((k) => !probedRoutes.has(k.split(" :: ")[0]))
+      .sort();
     expect(
-      stale,
-      `STALE BASELINE ENTRIES: these overlay findings no longer reproduce. Delete\n` +
-        `them from ${BASELINE_PATH.split("/").pop()} — the baseline may only shrink, or it\n` +
-        `stops being a record of what is actually broken and starts being a\n` +
-        `permission slip.`,
+      orphaned,
+      `ORPHANED BASELINE ENTRIES: these name a route this sweep does not probe\n` +
+        `any more, so nothing can ever confirm or clear them. Delete them from\n` +
+        `${BASELINE_PATH.split("/").pop()} — the file is a record of what is actually\n` +
+        `broken, and an entry nothing can re-check is just a permission slip.`,
     ).toEqual([]);
   });
 });

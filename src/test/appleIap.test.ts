@@ -34,6 +34,7 @@ import {
 } from "../../supabase/functions/_shared/appleAppStore";
 import { PRO_PRICE_MAP, type ProTierKey, type ProBillingCycle } from "../lib/proTiers";
 import { productIdFor, IAP_TIERS, IAP_CADENCES } from "../lib/iap";
+import { blankComments } from "./helpers/blankNonCode";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 
@@ -47,10 +48,14 @@ const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
  * the bug — and, worse, would PASS if someone deleted the explanation while
  * leaving the bug in place. Strip the prose, test the program.
  */
-const codeOnly = (src: string) =>
-  src
-    .replace(/\/\*[\s\S]*?\*\//g, "")   // block comments
-    .replace(/^[ \t]*\/\/.*$/gm, "");     // whole-line // comments
+// Was a pair of deleting regexes. That chain makes 157 of 1,054 source files
+// lose REAL CODE (one edge function loses 98% of its own): a `/` + `*` inside a
+// string or regex literal opens a comment that runs to the next `*` + `/`
+// anywhere later in the file and takes everything between. `blankComments` is a
+// single left-to-right scan that knows whether it is inside a string before it
+// looks at a `/`, and BLANKS rather than deletes, so offsets survive.
+// Measured 2026-09-21.
+const codeOnly = (src: string) => blankComments(src);
 
 describe("Apple product registry", () => {
   // THE POINT OF THIS TEST. A hand-written product map can only be checked
@@ -344,8 +349,42 @@ describe("iap.ts — never finish an unverified transaction", () => {
   });
 
   it("fails closed when eligibility cannot be determined", () => {
-    const gate = SRC.slice(SRC.indexOf("export async function assertMayPurchase"), SRC.indexOf("export async function purchaseTier"));
-    expect(gate).toMatch(/if \(error\)[\s\S]{0,220}throw new IapBlockedError/);
+    /*
+     * BLOCK-SCOPED, not proximity-based.
+     *
+     * This asserted `throw new IapBlockedError` within 220 CHARACTERS of
+     * `if (error)`. That number was silently calibrated against a comment
+     * stripper that DELETED text; once the stripper was changed to BLANK in
+     * place (so offsets stay usable — see src/test/helpers/blankNonCode.ts),
+     * the same correct code measured wider than 220 and the guard went red on
+     * it. A distance in characters was never the property anyway: adding two
+     * explanatory lines inside the branch would have broken it just the same,
+     * and pushing the throw one line PAST the brace would not have.
+     *
+     * The real property is containment — the throw is inside the `if (error)`
+     * block — so walk the braces and check that. Strictly stronger: a throw
+     * that sits after the closing brace now fails, where the old window passed
+     * it.
+     */
+    const gate = SRC.slice(
+      SRC.indexOf("export async function assertMayPurchase"),
+      SRC.indexOf("export async function purchaseTier"),
+    );
+    const at = gate.indexOf("if (error)");
+    expect(at, "the eligibility error branch was not found — this guard has rotted").toBeGreaterThan(-1);
+    const open = gate.indexOf("{", at);
+    expect(open, "`if (error)` is not followed by a block").toBeGreaterThan(-1);
+    let depth = 0;
+    let end = open;
+    for (let i = open; i < gate.length; i++) {
+      if (gate[i] === "{") depth++;
+      else if (gate[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+    }
+    const branch = gate.slice(open, end + 1);
+    expect(
+      branch,
+      "an unreadable eligibility result must BLOCK the purchase, not fall through to it",
+    ).toContain("throw new IapBlockedError");
   });
 
   it("only marks itself initialized after initialize() resolves", () => {
@@ -470,3 +509,14 @@ describe("sandbox environment gate", () => {
     expect(expectsProduction()).toBe(true);
   });
 });
+
+// PROVEN RED 2026-09-21: moving the `throw new IapBlockedError` OUT of the
+// `if (error)` block (leaving it behind an `if (false)` a few lines down) fails
+// "fails closed when eligibility cannot be determined". That is a purchase
+// allowed to proceed when eligibility could not be read — the double-charge the
+// gate exists to stop. The PREVIOUS 220-character proximity window passed that
+// exact mutation, because the throw was still within 220 chars of `if (error)`.
+// SOURCE-TEXT PIN: this reads src/lib/iap.ts, not a running StoreKit. It proves
+// the branch throws; it cannot prove the RPC is called, that Apple honours the
+// refusal, or that the server-side twin in create-pro-checkout agrees.
+// @mutate src/lib/iap.ts | report(error, { tags: { source: "iap.eligibility" } });\n    throw new IapBlockedError( | report(error, { tags: { source: "iap.eligibility" } });\n  }\n  if (false) {\n    throw new IapBlockedError(

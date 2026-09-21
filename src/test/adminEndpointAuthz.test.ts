@@ -38,6 +38,7 @@
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 const FUNCTIONS_DIR = "supabase/functions";
 
@@ -93,11 +94,24 @@ const ADMIN_CHECK = /\.rpc\(\s*["'`](?:has_role|is_admin)["'`]|\bloadAdminIds\s*
 const AUDIT_WRITE = /\.from\(\s*["'`]admin_audit_log["'`]\s*\)/;
 
 /**
- * Drop `//` and block comments so a marker only counts where it is executed.
- * `[^:]` before `//` keeps `https://…` inside a string from eating its line.
+ * Drop `//` and block comments so a marker only counts where it is EXECUTED.
+ *
+ * Was two deleting regexes. The `[^:]` was a partial patch for exactly the
+ * right worry — `https://…` inside a string eating its line — applied to only
+ * one of the two ways it goes wrong. The block-comment half has the same
+ * blindness and no patch: a `/` + `*` inside a string or regex literal opens a
+ * comment that runs to the next `*` + `/` anywhere later in the file and takes
+ * everything between. Measured 2026-09-21, that chain makes 157 of 1,054
+ * source files lose REAL CODE; one edge function loses 98% of its own.
+ *
+ * For THIS guard the failure mode is the dangerous direction: it searches edge
+ * functions for an authorization marker, and a file whose authz check has been
+ * deleted by the stripper reads as "marker absent" — or, worse, a file emptied
+ * around the marker reads as whatever survives. A scanner that knows whether
+ * it is inside a string before it looks at a `/` cannot be fooled either way.
  */
 function codeOnly(src: string): string {
-  return src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+  return blankComments(src);
 }
 
 describe("admin endpoints authorize server-side", () => {

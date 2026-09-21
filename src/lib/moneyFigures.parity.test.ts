@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { TIER_PERKS } from "./subscriptionTiers";
 import { posterFeePercentForTier } from "./posterFees";
+import { blankComments } from "../test/helpers/blankNonCode";
 import {
   URGENT_FEE_FLOOR_DOLLARS,
   URGENT_FEE_PRESETS,
@@ -146,7 +147,13 @@ describe("Form 1099-K threshold — one number for the whole product", () => {
     );
     // Strip comments — the reasoning above is repeated in the file and would
     // otherwise match every pattern this test forbids.
-    const rendered = tab.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    // Was a deleting comment-stripper. That chain makes 157 of 1,054 source files
+    // lose REAL CODE (one edge function loses 98% of its own), because a `/` + `*`
+    // inside a string or regex literal opens a comment running to the next `*` + `/`
+    // anywhere later in the file. `blankComments` is a single left-to-right scan that
+    // knows whether it is inside a string first, and BLANKS rather than deletes, so
+    // every offset and line number still matches the input. Measured 2026-09-21.
+    const rendered = blankComments(tab);
     expect(rendered).not.toMatch(/form1099kGrossLabel\(\)/);
     expect(rendered).not.toMatch(/FORM_1099K_TRANSACTION_THRESHOLD/);
     expect(rendered).not.toMatch(/\$20,000/);

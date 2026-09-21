@@ -15,10 +15,11 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 const codeOnly = (s: string) =>
-  s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
+  blankComments(s);
 
 const PANEL = codeOnly(read("src/components/activity/postedJobs/ApplicantsPanel.tsx"));
 const OFFER = codeOnly(read("src/components/activity/appliedJobCard/OfferedActions.tsx"));

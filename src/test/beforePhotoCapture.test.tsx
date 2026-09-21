@@ -82,7 +82,7 @@ import type { ReactElement } from "react";
 // The third takes the BEFORE-photo half of the gate off Start Working — the
 // owner's 2026-09-19 rule, and the half that only became safe to enforce once
 // 20260919195158 put it in the database.
-// @mutate src/components/JobTracking.tsx | disabled={updating || isLocked || needsArrival || needsBeforePhoto || needsProof} | disabled={updating || isLocked || needsArrival || needsProof}
+// @mutate src/components/JobTracking.tsx | disabled={updating \|\| isLocked \|\| needsArrival \|\| needsBeforePhoto \|\| needsProof} | disabled={updating \|\| isLocked \|\| needsArrival \|\| needsProof}
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));

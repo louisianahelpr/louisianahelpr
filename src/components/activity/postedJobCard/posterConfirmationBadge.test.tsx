@@ -30,7 +30,7 @@ import type { Job } from "../activityConstants";
  * `steps/posterConfirmationLadder.test.ts` (`posterOwesConfirmation`), and the
  * whole sentence inventory in `src/test/collapsedStatusSentence.test.tsx`.
  *
- * @mutate src/components/activity/jobStatusLine.ts | owesConfirmation: id === "confirm_arrival" || id === "confirm_working", | owesConfirmation: true,
+ * @mutate src/components/activity/jobStatusLine.ts | owesConfirmation: id === "confirm_arrival" \|\| id === "confirm_working", | owesConfirmation: true,
  * @mutate src/components/activity/jobStatusLine.ts | if (rung?.enabled) return rung.action === "working" ? "confirm_working" : "confirm_arrival"; | if (rung) return rung.action === "working" ? "confirm_working" : "confirm_arrival";
  */
 

@@ -184,4 +184,4 @@ describe("checkUnrecordedTransfers destination pagination — LOW-1", () => {
 // Proof the zero-row claim branch is covered: delete the `.select("id")` emptiness
 // check and a claim nobody holds reads as held — the double-pay that "a null
 // error is not a write" exists to stop.
-// @mutate supabase/functions/_shared/payoutClaim.ts |   if (!inserted || inserted.length === 0) {\n    return { kind: "error", message: "payout claim insert returned no row" };\n  }\n |
+// @mutate supabase/functions/_shared/payoutClaim.ts | if (!inserted \|\| inserted.length === 0) {\n    return { kind: "error", message: "payout claim insert returned no row" };\n  }\n | 

@@ -290,4 +290,4 @@ describe("slack-ops-alert — a REJECTED post is recorded, never swallowed", () 
 // itself failing silently. Measured 2026-09-21: before the
 // "a REJECTED post is recorded, never swallowed" block above, this mutation
 // left the file GREEN.
-// @mutate supabase/functions/slack-ops-alert/index.ts | if (!res.ok || data?.ok === false) { | if (false) {
+// @mutate supabase/functions/slack-ops-alert/index.ts | if (!res.ok \|\| data?.ok === false) { | if (false) {

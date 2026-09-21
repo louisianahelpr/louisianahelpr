@@ -31,7 +31,7 @@
  * 10.555 charges $10.56 and records 10.555 in the ledger. Nothing pins the two
  * to agree; every test here uses a whole-dollar tip.
  */
-// @mutate supabase/functions/auto-tip-charge/index.ts | if (!released || released.length === 0) { | if (false) {
+// @mutate supabase/functions/auto-tip-charge/index.ts | if (!released \|\| released.length === 0) { | if (false) {
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

@@ -186,7 +186,13 @@ export function collectMutations(guards = guardFiles()) {
     exemptions.push(...es);
     for (const m of ms) {
       if (m.malformed) {
-        errors.push(`${g}:${m.line} malformed @mutate — need "<file> | <find> | <replace>": ${m.raw}`);
+        errors.push(
+          m.tooManyFields
+            ? `${g}:${m.line} @mutate has an UNESCAPED "|" inside a field — escape every literal pipe as \\| . ` +
+              `Left as-is the parser would keep only the text before the 2nd and 3rd pipes, splice unparseable ` +
+              `code into the target, and score the guard's failure to load as "killed" — a proof that never ran: ${m.raw}`
+            : `${g}:${m.line} malformed @mutate — need "<file> | <find> | <replace>": ${m.raw}`,
+        );
         continue;
       }
       const abs = path.join(REPO, m.target);

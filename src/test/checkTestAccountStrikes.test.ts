@@ -11,7 +11,7 @@
  * query that silently returned zero rows would run green here and green
  * nightly.
  *
- * @mutate scripts/check-test-account-strikes.mjs | if (s.length || v.length || status !== "active") { | if (false) {
+ * @mutate scripts/check-test-account-strikes.mjs | if (s.length \|\| v.length \|\| status !== "active") { | if (false) {
  * @mutate scripts/check-test-account-strikes.mjs |   "helpr-e2e-helper-0902@mailinator.com",\n |
  */
 import { describe, expect, it } from "vitest";

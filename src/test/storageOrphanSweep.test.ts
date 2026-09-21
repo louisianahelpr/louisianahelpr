@@ -222,6 +222,6 @@ describe("an empty listing is a broken read, never a clean sweep", () => {
 // object younger than 7 days"; ignoring the second read fails "an owner that
 // reappears on the second read is NOT deleted"; downgrading the empty-listing
 // abort to a log fails the mount-wiring test added the same day.
-// @mutate scripts/lib/storageOrphans.mjs | if (!Number.isFinite(created) || now - created < floorMs) { | if (!Number.isFinite(created)) {
-// @mutate scripts/lib/storageOrphans.mjs | if (!r2 || !identityDocumentDeletable(o.bucket, o.name, first) | if (false || !identityDocumentDeletable(o.bucket, o.name, first)
+// @mutate scripts/lib/storageOrphans.mjs | if (!Number.isFinite(created) \|\| now - created < floorMs) { | if (!Number.isFinite(created)) {
+// @mutate scripts/lib/storageOrphans.mjs | if (!r2 \|\| !identityDocumentDeletable(o.bucket, o.name, first) | if (false \|\| !identityDocumentDeletable(o.bucket, o.name, first)
 // @mutate scripts/storage-orphan-sweep.mjs | if (listingError) throw new Error(listingError); | if (listingError) log(listingError);

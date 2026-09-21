@@ -119,6 +119,25 @@ export function parseDirectives(rel) {
     const m = MUTATE_RE.exec(line);
     if (m) {
       const parts = m[1].split(/(?<!\\)\|/).map((p) => p.trim());
+      /*
+       * MORE THAN THREE FIELDS IS MALFORMED, NOT "extra fields to discard".
+       *
+       * This used to take parts[0..2] and throw the rest away. A directive
+       * whose find or replace contains an unescaped `||` — which most real
+       * guard conditions do — therefore silently became a DIFFERENT mutation:
+       *
+       *   ... | if (!released || released.length === 0) { | if (false) {
+       *   ->  find: "if (!released"   replace: "released.length === 0) {"
+       *
+       * That splices unparseable code into the target. The guard then fails to
+       * LOAD, and a guard that fails is scored `killed` — so the registration
+       * reported a proof it had not performed. Measured 2026-09-21: 17 of 485
+       * registrations were in this state, including four on money paths.
+       *
+       * A fake kill is worse than no registration at all: it removes the file
+       * from the burn-down and tells everyone it is proven. Escaping exists
+       * (`\|`); the parser must insist on it rather than guess.
+       */
       mutations.push({
         guard: rel,
         line: i + 1,
@@ -126,7 +145,8 @@ export function parseDirectives(rel) {
         find: unescape(parts[1] ?? ""),
         replace: unescape(parts[2] ?? ""),
         raw: m[1].trim(),
-        malformed: parts.length < 2 || !parts[0] || !parts[1],
+        malformed: parts.length < 2 || parts.length > 3 || !parts[0] || !parts[1],
+        tooManyFields: parts.length > 3,
       });
       return;
     }

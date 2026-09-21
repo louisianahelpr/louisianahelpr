@@ -264,4 +264,4 @@ describe("test traffic never lands on the deployed site", () => {
 // The shape that paused the Vercel project on 2026-09-14, in the file every
 // suite inherits its host from: the default baseURL falling back to the
 // deployed site instead of the local `vite preview` build.
-// @mutate playwright.config.ts | process.env.HAPPY_PATH_BASE_URL || `http://127.0.0.1:${HAPPY_PATH_PORT}`; | process.env.HAPPY_PATH_BASE_URL || "https://www.louisianahelpr.com";
+// @mutate playwright.config.ts | process.env.HAPPY_PATH_BASE_URL \|\| `http://127.0.0.1:${HAPPY_PATH_PORT}`; | process.env.HAPPY_PATH_BASE_URL \|\| "https://www.louisianahelpr.com";

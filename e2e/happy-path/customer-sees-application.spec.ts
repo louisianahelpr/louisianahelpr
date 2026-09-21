@@ -150,4 +150,4 @@ test.describe("customer sees helper application", () => {
 // `Applicants (1)` assertion notices. `pendingApplicantCounts` is deliberately
 // left intact: the two counts answer different questions, and the mutation must
 // break the one this spec is about.
-// @mutate src/hooks/useActivityData.ts | applicantCounts[a.job_id] = (applicantCounts[a.job_id] || 0) + 1; |
+// @mutate src/hooks/useActivityData.ts | applicantCounts[a.job_id] = (applicantCounts[a.job_id] \|\| 0) + 1; | 

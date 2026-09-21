@@ -27,7 +27,7 @@
  *     retires them" red. That second one used to SURVIVE — see the comment on
  *     that case.
  *
- * @mutate scripts/audit/seedDisputeFixture.mjs |   if (d.execution_transfer_id || d.execution_refund_id || d.executed_at) return false;\n |
+ * @mutate scripts/audit/seedDisputeFixture.mjs | if (d.execution_transfer_id \|\| d.execution_refund_id \|\| d.executed_at) return false;\n | 
  * @mutate scripts/audit/prod-seed.mjs |   await retireStuckSeedSplits();\n |
  */
 import { describe, it, expect } from "vitest";

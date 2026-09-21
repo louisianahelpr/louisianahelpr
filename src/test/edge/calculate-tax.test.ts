@@ -17,7 +17,7 @@
  * a real user" branch — the second half of the cost gate — answers 200 to
  * `Bearer nope`: 1 failed, 3 passed.
  */
-// @mutate supabase/functions/calculate-tax/index.ts | if (authError || !authData?.user) { | if (false) {
+// @mutate supabase/functions/calculate-tax/index.ts | if (authError \|\| !authData?.user) { | if (false) {
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

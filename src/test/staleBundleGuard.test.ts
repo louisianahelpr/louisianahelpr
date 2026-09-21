@@ -90,6 +90,6 @@ describe("the decision is actually wired into the happy-path run", () => {
 // SOURCE-TEXT / PURE-FUNCTION PIN: nothing here fetches a server, so it cannot
 // see a real deployed bundle. It sees the DECISION and its WIRING; the live
 // comparison happens only inside an actual happy-path run.
-// @mutate src/test/staleBundle.ts | if (!served || served === want) return null; | if (!served || served !== want) return null;
+// @mutate src/test/staleBundle.ts | if (!served \|\| served === want) return null; | if (!served \|\| served !== want) return null;
 // @mutate e2e/happy-path/assertFreshBundle.ts | if (message) throw new Error(message); | if (message) console.warn(message);
 // @mutate e2e/happy-path/fixtures.ts | await assertFreshBundle( | await Promise.resolve(

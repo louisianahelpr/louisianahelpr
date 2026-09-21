@@ -380,3 +380,21 @@ for (const width of [320, 375, 1440]) {
     await page.screenshot({ path: `${SHOT_DIR}/guest-chrome-${width}.png`, fullPage: false });
   });
 }
+
+// PROOF THIS SPEC CAN FAIL — blind the View choice to its own state.
+//
+// The List ⇄ Map pair moved INTO the filter sheet, and this spec is what
+// proves the move did not lose it: both chips reachable, Map a real
+// destination (picking it closes the sheet and swaps the feed), and
+// `aria-pressed` reporting which view you are actually in when you come back.
+//
+// `active` is that last fact. Pinning it false leaves both chips present,
+// labelled, tappable and still switching the feed — so "the control is there"
+// and "the map renders" both stay true — while the sheet silently stops
+// telling anyone, sighted or not, which view is selected. Only the
+// round-trip assertion (`aria-pressed` === "true" after picking Map) sees it.
+//
+// NOT the desktop toolbar's map button (Dashboard.tsx `aria-pressed={mapVisible}`):
+// that is a different control on a surface this spec never opens, and mutating
+// it came back SURVIVED — correctly, since nothing here measures it.
+// @mutate src/components/dashboard/browseTasksToolbar/BrowseViewToggle.tsx | const active = view === value; | const active = false;

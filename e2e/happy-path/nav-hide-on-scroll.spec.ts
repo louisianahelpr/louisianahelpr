@@ -453,3 +453,14 @@ test("switching Home to map view cannot strand the dock off-screen", async ({
 
   await expectDock(page, "docked", "dock must return when the scroll surface goes away");
 });
+
+// PROOF THIS SPEC CAN FAIL — remove the reveal invariant.
+//
+// Everything else in MobileNav is driven by `scroll` events, so a surface that
+// stops being scrollable (Home's list → map toggle sets display:none on the
+// list container) fires no further scroll and the dock stays parked ~130px off
+// the bottom — tabs AND the Post FAB unreachable until the user navigates away.
+// The ResizeObserver line is the ONLY thing that reveals it. Deleting it leaves
+// hide-on-scroll-down and reveal-on-scroll-up working perfectly, which is why a
+// spec that only scrolled up and down would stay green.
+// @mutate src/components/MobileNav.tsx | if (!scrollable) setNavHidden(false); |

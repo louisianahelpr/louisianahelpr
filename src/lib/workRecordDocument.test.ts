@@ -293,3 +293,7 @@ describe("the record does not contradict the app about the same person", () => {
     expect(usesExact(src("./workRecordDocument.ts"))).toBe(usesExact(src("../pages/WorkRecord.tsx")));
   });
 });
+
+// A dated document that moves under the reader is the whole defect: pin the
+// zone away and every "Member since" / "Active Period" month slips.
+// @mutate src/lib/workRecordDocument.ts | const PLATFORM_TIME_ZONE = "America/Chicago"; | const PLATFORM_TIME_ZONE = "UTC";

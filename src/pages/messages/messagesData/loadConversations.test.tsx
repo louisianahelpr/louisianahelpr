@@ -330,3 +330,10 @@ describe("fetchConversations — viewerIsAssignedHelper mirrors can_message_in_j
     expect(convo.viewerIsAssignedHelper).toBe(false);
   });
 });
+
+// Who am I talking to: the profile-id fallback key is what stops a thread
+// keyed by `profiles.id` falling through to the unresolved-person label.
+// @mutate src/pages/messages/messagesData/loadConversations.ts | if (!p.profile_id \|\| byId.has(p.profile_id)) continue; | continue;
+// The composer lock must release for a helper the job is merely OFFERED to,
+// exactly as can_message_in_job does.
+// @mutate src/pages/messages/messagesData/loadConversations.ts | jobMap.get(v.jobId)?.offered_to_helper_id === uid), | false),

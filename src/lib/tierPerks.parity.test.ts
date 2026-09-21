@@ -313,3 +313,10 @@ describe("no gate re-lists the tiers", () => {
     ).toEqual([]);
   });
 });
+
+// THE paid-perk gate. Without this line a lapsed or never-active subscription
+// keeps every perk its old tier bought — Instant Payout, free boosts, the lot.
+// @mutate supabase/functions/_shared/tierPerks.ts | if (!active) return false; |
+// And the fallback that stops an unrecognised `subscription_tier` string
+// indexing a row it never paid for.
+// @mutate supabase/functions/_shared/tierPerks.ts | return Object.prototype.hasOwnProperty.call(TIER_PERK_MATRIX, t) ? (t as TierId) : "free"; | return (t \|\| "free") as TierId;

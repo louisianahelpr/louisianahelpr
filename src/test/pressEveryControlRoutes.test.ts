@@ -33,6 +33,7 @@ const derived = deriveRouteSet({
   adminViews: ["analytics"],
 });
 
+// @mutate scripts/audit/press-every-control.mjs | for (const v of adminViews) push(`${url}?view=${v}`, r, ["admin"]); |
 describe("press-every-control route derivation", () => {
   it("maps every <Route path> in App.tsx to at least one derived row", () => {
     const bases = new Set(derived.map((r) => r.base));

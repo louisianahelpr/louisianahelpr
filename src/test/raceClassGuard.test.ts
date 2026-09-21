@@ -26,6 +26,7 @@ const OFFER_HANDLERS = "src/pages/activity/activityActions/useOfferHandlers.ts";
 
 type Hit = { key: string; file: string; line?: number };
 
+// @mutate src/components/JobTracking.tsx | .in("status", ["accepted", "in_progress", "revision_requested"]) |
 describe("race-class guard — red on the pre-fix code, green on the fix", () => {
   it("flags enforce_application_job_state when the FOR SHARE migration is absent", () => {
     const keys = guard.sqlHits(guard.readMigrations({ exclude: [FIX, RESTATES_FIX] })).map((h: Hit) => h.key);

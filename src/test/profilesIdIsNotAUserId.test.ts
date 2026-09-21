@@ -99,6 +99,7 @@ function findBadJoins(sql: string): string[] {
   return hits;
 }
 
+// @mutate supabase/migrations/20260908024646_unsettled_dispute_blocks_payout.sql | JOIN public.profiles p ON p.user_id = j.helper_id | JOIN public.profiles p ON p.id = j.helper_id
 describe("profiles.id is never joined to an account id", () => {
   const files = readdirSync(migrationsDir).filter((f) => f.endsWith(".sql"));
 

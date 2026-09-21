@@ -286,6 +286,7 @@ function loadWorkflows(): Wf[] {
     });
 }
 
+// @mutate .github/workflows/prod-audit.yml | group: prod-load | group: prod-audit-nightly
 describe("prod-hitting workflow schedules", () => {
   const wfs = loadWorkflows();
 

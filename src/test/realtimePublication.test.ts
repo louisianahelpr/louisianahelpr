@@ -117,6 +117,7 @@ function boundTables(): Map<string, string[]> {
  */
 const KNOWN_UNPUBLISHED_BINDINGS = new Set<string>([]);
 
+// @mutate src/hooks/useActivityData.ts | table: "applications", filter | table: "profiles", filter
 describe("realtime publication coverage", () => {
   it("every postgres_changes binding targets a published table", () => {
     const published = publishedTables();
@@ -125,8 +126,18 @@ describe("realtime publication coverage", () => {
     expect(published.has("jobs")).toBe(true);
     expect(published.has("job_tracking")).toBe(true);
 
+    const bound = boundTables();
+    // INVENTORY FLOOR. Without it a `boundTables()` that found nothing — a
+    // broken walk, a renamed src/, a regex that stopped matching — reports an
+    // empty offender list and this guard goes GREEN while checking nothing.
+    // Measured 2026-09-21: 9 distinct tables across the client's bindings.
+    expect(
+      bound.size,
+      "boundTables() found no postgres_changes binding at all — the scan is broken, not the app",
+    ).toBeGreaterThanOrEqual(6);
+
     const offenders: string[] = [];
-    for (const [table, files] of boundTables()) {
+    for (const [table, files] of bound) {
       if (!published.has(table) && !KNOWN_UNPUBLISHED_BINDINGS.has(table)) {
         offenders.push(`${table} (bound in ${[...new Set(files)].join(", ")})`);
       }

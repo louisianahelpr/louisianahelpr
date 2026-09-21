@@ -3229,6 +3229,33 @@ account-takeover primitive.
   pins the gate to `true`, so that suite alone would stay green if the gates
   vanished — called out in the guard's header.
 
+### `useApplyFlow`'s PGRST202 fallback bypasses the rate-limit ladder (2026-09-21)
+
+Verified READ-ONLY against prod `fncmgoasalhdgfwzhsqa` (`pg_get_functiondef`
+plus every non-internal trigger on `public.applications`).
+
+`apply_to_job(uuid, text)` **is deployed today** with exactly the signature the
+client calls, so the direct-INSERT fallback is **unreachable** and this is not
+a live hole. It is a trapdoor: the fallback exists for the merge→deploy window,
+and if the RPC were ever renamed or dropped, applies would silently fall
+through to a path with materially weaker rules. The triggers do NOT cover:
+
+- **the per-MINUTE and per-HOUR cap rungs** — `apply_to_job` reads
+  `application_cap('minute'|'hour'|'day')`, but `enforce_application_limit`
+  reads only `application_cap('day')`;
+- **the funding gate** `job_payment_is_funded(jobs.payment_status)` — absent
+  from `enforce_application_job_state` (which DOES cover own-job, not-open,
+  direct-offer reservation, Early Access, seed rows, past date and expiry);
+- **`pg_advisory_xact_lock('apply_rate:' || auth.uid())`**, the serialization
+  that makes those counts see each other at all.
+
+Deliberately NOT closed with a test: a test around the fallback would lock the
+bypass in as intended behaviour. The options are to delete the branch (a
+production change) or to bring the triggers up to parity with the RPC. What
+WAS done: the happy-path guard now asserts the call is `apply_to_job` **by name
+and arguments**, because a rename is exactly what produces the PGRST202 that
+opens the door.
+
 ### Route catalog overstates coverage (2026-09-21)### Route catalog overstates coverage (2026-09-21) — found by the burn-down
 
 - [ ] **7 route names render ONE screen, and every sweep counts them as 7.** Measured over 92 screens: **15 routes (16%) land somewhere other than where they were asked for**, and seven of them land on the same page — `/availability`, `/earnings`, `/gift-card`, `/saved-helpers`, `/saved-helprs`, `/schedule`, `/settings` all render `/profile`. So `empty-state-sweep` audited `/profile` seven times and reported seven routes audited. A catalog defect (`e2e/happy-path/auditRoutes.ts`), not a sweep defect.

@@ -1,6 +1,6 @@
-import type { Page } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
 
-import { test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable } from "./fixtures";
+import { ANON, SUPABASE_URL, announceUncovered, test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 
 /**
@@ -14,6 +14,40 @@ import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
  */
 
 const rotation = rotationFor(0);
+
+/**
+ * THE FUNDED FLOOR — read from the view BEFORE the UI is blamed for an empty feed.
+ *
+ * This journey used to fail "guest Browse listed no jobs" and leave the reader
+ * to work out why. It cost a full investigation to learn the answer was not the
+ * app at all: prod had 115 `open` jobs and every one of them sat at
+ * payment_status='abandoned', while `open_jobs_browse` admits a row only at
+ * payment_status IN ('escrow','payout_pending','released') (read live with
+ * pg_get_viewdef). The view was right, the app was right, and a logged-out
+ * visitor really did see an empty marketplace.
+ *
+ * So the count is taken from the same view the feed reads, as anon, first:
+ *   floor = 0  → prod itself is dark. Failed here, in one line, naming the
+ *                cause, instead of 45s later as a mystery UI red. The uptime
+ *                probe calls this DOWN too (scripts/uptime-check.mjs).
+ *   floor > 0  → any empty feed after this is the CLIENT dropping rows the
+ *                database served, which is a completely different bug.
+ *
+ * This journey still does not OWN a fixture of its own, because a poster token
+ * cannot create one: `enforce_poster_jobs_money_lock` (verified live) refuses
+ * any payment_status write where auth.uid() = jobs.customer_id, so reaching
+ * 'escrow' needs the Stripe-sandbox checkout leg. See the report in
+ * docs/OPEN.md — until that lands, this is the honest diagnosis, not a guarantee.
+ */
+async function fundedFloor(api: APIRequestContext): Promise<number> {
+  const res = await api.get(`${SUPABASE_URL}/rest/v1/open_jobs_browse?select=id`, {
+    headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, Prefer: "count=exact", Range: "0-0" },
+  });
+  expect(res.ok(), `open_jobs_browse is not readable as a guest (HTTP ${res.status()}) — the marketplace cannot render for anyone logged out`).toBeTruthy();
+  const total = Number((res.headers()["content-range"] ?? "").split("/")[1]);
+  expect(Number.isFinite(total), "open_jobs_browse returned no exact count").toBeTruthy();
+  return total;
+}
 
 const guestTitle = scenarioTitle({ journey: "browse", persona: "new", state: "approved", rotation, outcome: "smooth" });
 /**
@@ -40,17 +74,31 @@ async function closeFilterSheet(page: Page) {
   await expect(sheet, "the filter sheet would not close").toBeHidden({ timeout: 10_000 });
 }
 
-test(guestTitle, async ({ browser, journey }) => {
+test(guestTitle, async ({ browser, request, journey }) => {
   test.skip(filteredOut(guestTitle), "SCENARIO pins another scenario");
   const ctx = await newUserContext(browser, null, { rotation });
   const page = journey.track("guest", await ctx.newPage());
+
+  let floor = 0;
+  await test.step("prod is serving a funded marketplace at all", async () => {
+    floor = await fundedFloor(request);
+    if (floor === 0) {
+      announceUncovered(
+        "Guest marketplace is DARK",
+        "open_jobs_browse returned 0 rows: every open job is unfunded (payment_status not in escrow/payout_pending/released), " +
+          "so a logged-out visitor sees an empty marketplace. This is a PROD DATA condition, not a UI regression — do not go " +
+          "looking in the browse components. Fund a job (Stripe test mode) or restore the seeded funded rows.",
+      );
+    }
+    expect(floor, "open_jobs_browse served 0 rows — prod's guest marketplace is empty; see the note above, this journey owns no fixture of its own").toBeGreaterThan(0);
+  });
 
   await test.step("guest opens Browse and sees real jobs", async () => {
     await page.goto("/browse");
     await expect(page.getByRole("heading", { name: "Browse Jobs", level: 1 })).toBeVisible({ timeout: 45_000 });
     const cards = page.getByRole("heading", { level: 2 });
     await expect(cards.first()).toBeVisible({ timeout: 45_000 });
-    expect(await cards.count(), "guest Browse listed no jobs").toBeGreaterThan(0);
+    expect(await cards.count(), `open_jobs_browse served ${floor} row(s) but guest Browse rendered none — the CLIENT dropped rows the database returned`).toBeGreaterThan(0);
     await assertHealthy(page, "guest /browse");
     expect(await page.getByRole("button", { name: "Filters" }).count(), "guest web Browse is designed without a filter button").toBe(0);
     await journey.milestone(page, "guest-browse");

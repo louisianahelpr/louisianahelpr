@@ -95,3 +95,11 @@ describe("fetchJobForPin", () => {
     expect(selectSpy).not.toHaveBeenCalled();
   });
 });
+
+// Swallowing the query error turns a refused row into "job not found", which
+// is the dead tap VN-10 closed.
+// @mutate src/components/browseMap/fetchJobForPin.ts | if (error) throw error; |
+// The dialog reads far more of the row than the card does; a card-shaped
+// select renders a detail sheet that silently disagrees with the one the list
+// opens for the very same job.
+// @mutate src/components/browseMap/fetchJobForPin.ts | applicant_count, credential_tier, parish | applicant_count, parish

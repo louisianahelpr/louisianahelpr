@@ -154,3 +154,9 @@ describe("CurrencyInput", () => {
     expect(input).toBeDisabled();
   });
 });
+
+// The floor clamp is the money guarantee: without it a budget below the
+// platform minimum leaves the field and reaches the mutation.
+// @mutate src/components/ui/currency-input.tsx | if (typeof min === "number" && parsed < min) parsed = min; |
+// The ceiling clamp, same argument from the other end.
+// @mutate src/components/ui/currency-input.tsx | if (typeof max === "number" && parsed > max) parsed = max; |

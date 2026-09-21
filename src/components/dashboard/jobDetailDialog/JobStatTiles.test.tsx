@@ -149,3 +149,7 @@ describe("JobStatTiles is mounted with a job that carries the flexible flag", ()
     ).toEqual([]);
   });
 });
+
+// The exact line the owner photographed on 2026-09-19: two tiles laid into
+// three columns leaves the third one empty.
+// @mutate src/components/dashboard/jobDetailDialog/JobStatTiles.tsx | rowItems.length >= 4 ? "grid-cols-4" : rowItems.length === 3 ? "grid-cols-3" : "grid-cols-2" | rowItems.length === 4 ? "grid-cols-4" : "grid-cols-3"

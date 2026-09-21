@@ -151,3 +151,7 @@ describe("why it had never shown before", () => {
     expect(distanceChip()).toBeNull();
   });
 });
+
+// Remove the commute test and the card prints "27h 6m · 1634 mi" again — the
+// owner's 2026-09-19 screenshot, verbatim.
+// @mutate src/components/dashboard/JobCard.tsx | const distanceMiles = isCommutableDistance(rawTripMiles) ? rawTripMiles : null; | const distanceMiles = rawTripMiles;

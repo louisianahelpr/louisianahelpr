@@ -74,6 +74,12 @@ async function closeFilterSheet(page: Page) {
   await expect(sheet, "the filter sheet would not close").toBeHidden({ timeout: 10_000 });
 }
 
+// Shown able to fail on the guest marketplace's own identity: the spec asserts
+// an <h1> reading "Browse Jobs" is visible, because a guest who cannot see the
+// page heading cannot tell the marketplace rendered at all. Retitling the
+// PublicHeaderPage reds it.
+// @mutate src/pages/DashboardGuest.tsx | title="Browse Jobs"\n      width="public" | title="Find Work"\n      width="public"
+
 test(guestTitle, async ({ browser, request, journey }) => {
   test.skip(filteredOut(guestTitle), "SCENARIO pins another scenario");
   const ctx = await newUserContext(browser, null, { rotation });

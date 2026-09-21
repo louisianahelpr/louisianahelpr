@@ -36,6 +36,13 @@ const focusDescription = (page: Page) =>
   });
 
 const guestTitle = scenarioTitle({ journey: "keyboard", persona: "new", state: "approved", rotation, outcome: "smooth" });
+// Shown able to fail on the defect DateWheelPicker's own comment records: an
+// audit on 2026-09-12 found `focus-visible:outline-none` with NOTHING in its
+// place, so a keyboard user landed on a wheel option with no paint at all.
+// Stripping the replacement ring restores that exact state, and this spec's
+// "focused with nothing painted" is what catches it.
+// @mutate src/components/DateWheelPicker.tsx | "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--olivewood))]" | "focus-visible:outline-none"
+
 test(guestTitle, async ({ browser, journey }) => {
   test.skip(filteredOut(guestTitle), "SCENARIO pins another scenario");
   const ctx = await newUserContext(browser, null, { rotation });

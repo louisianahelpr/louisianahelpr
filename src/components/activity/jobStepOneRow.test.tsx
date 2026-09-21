@@ -917,3 +917,8 @@ describe("VN-21 — a nested CTA replaces the step's own primary", () => {
     expect(container.textContent).toBe("Standalone");
   });
 });
+
+// Shown able to fail: a nested CTA (the tracker`s next-step button) claiming the
+// row`s primary slot must stand the step`s OWN primary down. Drop the claim
+// check and the working card draws two glossy CTAs in one row.
+// @mutate src/components/activity/JobStepCard.tsx | const ownPrimary = claims === 0 && hasRenderable(primary) ? primary : null; | const ownPrimary = hasRenderable(primary) ? primary : null;

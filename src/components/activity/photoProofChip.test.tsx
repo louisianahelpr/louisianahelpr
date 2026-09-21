@@ -389,3 +389,8 @@ describe("the disputed card still says when the proof is short (item 10 regressi
     ).toBeNull();
   });
 });
+
+// Shown able to fail: the "something to look at" half of the Photos chip gate.
+// Drop `hasProof` and a job with no proof offers a chip that opens an empty
+// gallery — the dead-end tap this file forbids at every call site.
+// @mutate src/components/activity/postedJobCard/steps/InProgressStep.tsx | showApprove && hasProof ? ( | showApprove ? (

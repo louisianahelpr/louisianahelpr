@@ -234,3 +234,8 @@ describe("Resolve & Pay ↔ rpc_withdraw_dispute's opener check", () => {
     }
   });
 });
+
+// Shown able to fail: the opener-only term of Resolve & Pay. Without
+// `isDisputer` the chip is offered to a poster `rpc_withdraw_dispute` will
+// refuse, and the caption promises it — the QA finding, one layer down.
+// @mutate src/components/activity/postedJobCard/posterDisputeControls.ts | const canResolve = isDisputer && disputeLive; | const canResolve = disputeLive;

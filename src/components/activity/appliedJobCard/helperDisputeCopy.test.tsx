@@ -346,3 +346,8 @@ describe("the poster's collapsed card announces the dispute", () => {
     expect(container.textContent).toMatch(/Payment on hold/i);
   });
 });
+
+// Shown able to fail: the ownership half of the response gate. Without
+// `!iOpenedIt` the helper who FILED is offered the box that answers their own
+// complaint — the exact 2026-09-06 defect this file exists for.
+// @mutate src/components/activity/appliedJobCard/helperDisputeCopy.ts | canRespond: respondableStatus && !iOpenedIt, | canRespond: respondableStatus,

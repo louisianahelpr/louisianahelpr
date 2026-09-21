@@ -385,3 +385,9 @@ describe("item 7 — the job nobody marked done", () => {
     expect(posterOwesConfirmation(stalledJob())).toBe(false);
   });
 });
+
+// Shown able to fail: the arrival-evidence term of the vouch gate. Dropping
+// `arrivalClaimed` lets a poster confirm an arrival nobody claimed — a
+// widening of a money/trust gate, which is what this file measures against the
+// legacy formulas.
+// @mutate src/components/activity/postedJobCard/steps/posterStepContract.ts | const enabled = arrivalClaimed && (step === "in_progress" | const enabled = (step === "in_progress"

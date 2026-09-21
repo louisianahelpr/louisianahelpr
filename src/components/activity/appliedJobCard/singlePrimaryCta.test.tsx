@@ -375,3 +375,8 @@ describe("helper active card — at most one primary CTA per state", () => {
     ).toBe(false);
   });
 });
+
+// Shown able to fail: the upper bound on the sanctioned exit (owner VN-18 —
+// Cancel Job exists only BEFORE "I`m On My Way"). Drop `!onTheWay` and a helper
+// who is on the way, arrived or working is offered the back-out again.
+// @mutate src/components/activity/appliedJobCard/ActiveJobSection.tsx | const showExit = !aborted && hasConfirmed && !onTheWay; | const showExit = !aborted && hasConfirmed;

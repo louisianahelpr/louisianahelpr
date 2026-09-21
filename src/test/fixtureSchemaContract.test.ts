@@ -44,6 +44,9 @@
 // That test does this for ONE column and keeps a heuristic this one does not:
 // it flags a `payment_status` sitting next to a jobs-only `status` even when
 // the literal carries no column unique to `jobs`. Both are cheap; both stay.
+// Proven able to fail 2026-09-20: putting the historic impossible value back
+// into JOB_BASE turns it red (jobs_pricing_mode_check admits only set_price).
+// @mutate e2e/happy-path/seedData.ts | pricing_mode: "set_price", | pricing_mode: "fixed",
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";

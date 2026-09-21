@@ -1,3 +1,6 @@
+// Proven able to fail 2026-09-20: rewriting a live REVOKE ALL as REVOKE
+// MAINTAIN — the exact 2026-09-15 shape — turns it red.
+// @mutate supabase/migrations/20260915030812_contact_leak_reason_exempts_location_shares.sql | REVOKE ALL ON FUNCTION public.contact_leak_reason(text) | REVOKE MAINTAIN ON FUNCTION public.contact_leak_reason(text)
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";

@@ -25,6 +25,9 @@
  * RED on 51305c81c's create-payment/index.ts: lists
  * `create-payment/index.ts:2250 .in("status") on payment_refunds`.
  */
+// Proven able to fail 2026-09-20: filtering a real edge read by a column
+// prod does not have (applications.worker_id) turns it red.
+// @mutate supabase/functions/cleanup-abandoned-accounts/index.ts | supabase.from("applications").select("id", { count: "exact", head: true }).eq("helper_id", u.id) | supabase.from("applications").select("id", { count: "exact", head: true }).eq("worker_id", u.id)
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";

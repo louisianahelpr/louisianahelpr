@@ -6,6 +6,9 @@
  * report_helper_no_show was an OLDER migration's body (20260914215112, applied
  * after 20260915044137), while every repo guard read the newest file.
  */
+// Proven able to fail 2026-09-20: blinding the parser to `--` comments makes
+// it read a commented-out CREATE FUNCTION as a definition, and the guard reds.
+// @mutate scripts/audit/function-body-drift.mjs | return text.slice(lineStart, index).includes("--"); | return false;
 import { describe, expect, it } from "vitest";
 import {
   diffFunctions,

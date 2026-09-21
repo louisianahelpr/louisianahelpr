@@ -1,6 +1,10 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
+// Proven able to fail 2026-09-20: putting statusLabels.test.ts back on a
+// hand-typed copy of all eight job_status values — the very drift this guard
+// was written for — turns it red.
+// @mutate src/lib/statusLabels.test.ts | const required = Constants.public.Enums.job_status; | const required = ["open", "accepted", "in_progress", "completed", "cancelled", "revision_requested", "disputed", "pending_approval"];
 import { describe, expect, it } from "vitest";
 
 /**

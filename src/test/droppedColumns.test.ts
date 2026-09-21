@@ -21,6 +21,9 @@
 // is invisible at compile time (PostgREST column names are strings) and only
 // shows up in production.
 
+// Proven able to fail 2026-09-20: re-adding the dropped column to a real
+// profiles select (AdminDisputes) turns it red.
+// @mutate src/components/admin/AdminDisputes.tsx | user_id, full_name, subscription_tier | user_id, full_name, role
 import { describe, it, expect } from "vitest";
 import { walkSource, readSource } from "./helpers/walkSource";
 

@@ -311,3 +311,8 @@ describe("useMessagesData — deep links against the cache", () => {
     });
   });
 });
+
+// Proof this guard can fail: open the deep-linked thread by hand instead of
+// through the ONE loader. The thread opens with zero messages — owner,
+// 2026-09-14, "Say hello" painted over 38 messages.
+// @mutate src/pages/messages/useMessagesData.ts |       void openConvo(match); |       setActiveConvo(match);\n      openThreadUrl();

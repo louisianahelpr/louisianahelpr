@@ -288,3 +288,7 @@ describe("Profile and AppPage share one tab-scroll wrapper", () => {
     ).toBe(wrapperOf(APPPAGE));
   });
 });
+
+// Proof this guard can fail: drop the width that pays the wrapper's padding
+// back (VN-37). The box then only SHIFTS sideways and the two shells diverge.
+// @mutate src/pages/Profile.tsx | page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 | page-measure h-full overflow-y-auto px-3 -mx-3

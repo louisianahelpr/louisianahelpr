@@ -363,3 +363,8 @@ describe("getBiometryLabel", () => {
     expect(await getBiometryLabel()).toBeNull();
   });
 });
+
+// Proof this guard can fail: collapse the two-signal branch back to the single
+// `isAvailable` read (NB-008 / OA-012). A locked-out phone is then waved
+// through with no prompt at all.
+// @mutate src/lib/biometricGate.ts | if (!info.isAvailable && !info.deviceIsSecure) return unsecurable; | if (!info.isAvailable) return unsecurable;

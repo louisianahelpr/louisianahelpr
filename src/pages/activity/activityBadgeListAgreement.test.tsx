@@ -310,3 +310,7 @@ describe("Activity (helper) — every counted row actually renders a card", () =
     15_000,
   );
 });
+
+// Proof this guard can fail: restore the bare `return null` that made the Done
+// badge read 3 over a list of 2. The counted-but-blank row stops rendering.
+// @mutate src/components/activity/AppliedJobCard.tsx |   if (!job) { |   if (!job) return null;\n  if (!job) {

@@ -50,8 +50,32 @@ describe("R18 — money duplications that had no guard", () => {
 
     // The edge copy must still floor rather than round — assert on its source,
     // since the client can't import Deno TS.
-    expect(edgeSrc).toContain("Math.floor");
-    expect(edgeSrc).not.toMatch(/formatPayoutDollars[\s\S]{0,400}Math\.round/);
+    //
+    // WAS A PROXIMITY ASSERTION, and that is why it is now a body extraction.
+    // `toContain("Math.floor")` passed on a `Math.floor` ANYWHERE in the file,
+    // and `/formatPayoutDollars[\s\S]{0,400}Math\.round/` only refused a round
+    // within 400 characters of the NAME — so moving the function down the file,
+    // or adding a second helper between them, would have silently disarmed
+    // both. Read the function's own brace-balanced body and assert inside it.
+    const body = (() => {
+      const at = edgeSrc.indexOf("export function formatPayoutDollars");
+      expect(at, "formatPayoutDollars is gone from _shared/money.ts").toBeGreaterThanOrEqual(0);
+      const open = edgeSrc.indexOf("{", at);
+      let depth = 0;
+      let i = open;
+      for (; i < edgeSrc.length; i++) {
+        if (edgeSrc[i] === "{") depth++;
+        else if (edgeSrc[i] === "}") {
+          depth--;
+          if (depth === 0) break;
+        }
+      }
+      return edgeSrc.slice(open, i + 1);
+    })();
+    expect(body, "the edge payout formatter must FLOOR").toContain("Math.floor");
+    expect(body, "the edge payout formatter must never round UP a payout").not.toMatch(
+      /Math\.(round|ceil)|toFixed/,
+    );
 
     // And the client's behaviour is pinned on the cases that distinguish
     // flooring from rounding: anything with cents must truncate, never lift.
@@ -228,3 +252,8 @@ describe("R18 — money duplications that had no guard", () => {
     expect(boostFn).not.toMatch(/const\s+BOOST_DISCOUNT_PCT\s*=/);
   });
 });
+
+// Proof this guard can fail: make the edge copy treat every row as settled —
+// the shape weekly-helper-report shipped with, which emailed an Elite helper
+// the escrow-time 10% stamp instead of their 8% tier rate.
+// @mutate supabase/functions/_shared/helperEarnings.ts | return job.payment_status === "released"; | return true;

@@ -334,3 +334,7 @@ describe("the rendered tracker hands MapKit one pin once the arrival is settled"
     );
   });
 });
+
+// Proof this guard can fail: rebuild the helper annotation unconditionally —
+// the exact pre-2026-09-19 behaviour — and the settled cases see two pins.
+// @mutate src/components/TrackingMap.tsx | const helper = labelled | const helper = false

@@ -13,11 +13,11 @@ hand-edit the numbers.*
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| **`src/test/*.test.ts*`** | 192 | **192 — COMPLETE** | **0** |
-| `src/test/edge/` (money) | 53 | 21 | 32 |
+| **`src/test/*.test.ts*`** | 193 | **193 — COMPLETE** | **0** |
+| `src/test/edge/` (money) | 53 | 35 | 18 |
 | Playwright `e2e/**` | 60 | 0 | 60 |
 | colocated beside components | 336 | 3 | 333 |
-| **total** | **641** | **216** | **425** |
+| **total** | **642** | **231** | **411** |
 
 **Row 1 is done: 191 of 191, and 25 of them were hollow — one in seven.**
 
@@ -25,6 +25,46 @@ Only the first row is enforced today (`.github/workflows/vacuity.yml`, on every 
 and PR, plus a full mutation sweep nightly at 06:10 UTC). The ratchet's baseline may
 only shrink, so row 1 cannot regress. **Rows 2–4 are invisible to it**: a hollow test
 there is not even listed as unproven.
+
+## Second front, found 2026-09-21: 49 guards delete the code they inspect
+
+`src/test/edge/sharedImports.test.ts` exists to catch an edge function calling a
+`_shared` helper it never imported — the `release-payout`/`postSlackOpsAlert`
+ReferenceError that reached main in a money path. Deleting that import from
+`release-payout` failed it; deleting the SAME import from
+`arrival-confirm-reminder`, which also calls the helper, left it green.
+
+Its comment stripper was the obvious one-liner — a non-greedy block-comment
+regex, then a line-comment regex. A regex does not know it is inside a string,
+so the `/` + `*` in a URL or regex literal opens a comment that runs to the next
+`*` + `/` anywhere later in the file and deletes everything between.
+
+Measured, not estimated:
+
+| | |
+|---|---|
+| source files whose text is >60% deleted by that chain | **293 of 1,053 (28%)** |
+| edge source files >60% deleted | **53 of 96** |
+| `src/lib/groupJobs.ts` | 99% deleted |
+| `supabase/functions/brand-asset/index.ts` | 98% deleted |
+| `arrival-confirm-reminder` | 87% deleted, *including the call in question* |
+| guards still using the idiom | **49** |
+
+A guard scanning a file it has silently emptied finds nothing and reports green,
+which is indistinguishable from the code being correct.
+
+**Contained**: `src/test/helpers/blankNonCode.ts` is the one correct
+implementation (a left-to-right scan that knows whether it is inside a string,
+and BLANKS rather than deletes so every offset survives).
+`src/test/guardsDoNotDeleteSource.test.ts` grandfathers the 49 and the list **may
+only shrink** — no new guard can join it.
+
+**Still open**: migrating the 49. Each is a guard whose real coverage is
+*unknown*, because whatever it scanned may have been destroyed before it looked.
+Not mechanical — a codemod attempt on 2026-09-21 silently mangled receivers
+(`body.slice(…)` → `body.blankComments(slice(…))`), which is the same class of
+damage one level up, so it was reverted. Do these per file, re-run each guard
+after, and treat every NEW red as a candidate finding rather than a nuisance.
 
 ## Order of work (owner: least to greatest)
 

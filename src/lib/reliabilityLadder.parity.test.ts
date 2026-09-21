@@ -37,16 +37,16 @@ import {
 // is how the money parity tests reach their sibling edge sources too.
 const repoFile = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
-/**
- * The migration that holds the LIVE definitions. When a later migration
- * redefines any of these functions, point this at it — otherwise this whole
- * file goes quietly blind, asserting against a superseded file.
+/*
+ * `LADDER_SQL` lived here — one migration, read by name, with a comment asking
+ * whoever redefined a ladder to remember to repoint it. That instruction had
+ * already been missed: 20260915020258 redefined
+ * `apply_message_violation_consequence` inside that very file, and nothing
+ * noticed. It is dead now that every block resolves through `newestBlock`, and
+ * it is DELETED rather than left unused, because an unused pin still reads as
+ * "this file grades that migration" to the next person and to
+ * `src/test/guardsReadTheNewestMigration.test.ts`.
  */
-const LADDER_SQL = repoFile(
-  "supabase/migrations/20260829030000_consolidate_consequence_ladders.sql",
-);
-
-/** The `CREATE OR REPLACE FUNCTION public.<name>( … $function$;` block. */
 /**
  * DELETED 2026-09-21 — `wrapperBlock` read one migration BY NAME
  * (20260829030000) and returned that file's definition of a function.

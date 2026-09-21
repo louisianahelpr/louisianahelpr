@@ -152,6 +152,34 @@ function readBaseline(): Baseline {
 const baseline = readBaseline();
 
 /**
+ * Routes whose REACHABLE OVERLAY SET is not stable run to run.
+ *
+ * Measured over four consecutive full sweeps, 2026-09-21. `/my-posts` opened:
+ *
+ *   runs 1-3  Escalate | More | SOS
+ *   run 4     Timeline & Evidence | No-Show
+ *
+ * with nothing about the app changing in between. The seeded job fixtures carry
+ * dates relative to now, and which action chips a job card renders depends on
+ * whether its start has passed — so the wall clock decides which overlays even
+ * exist to probe. (Whole-run overlay opens: 84 / 86 / 82 / 79.)
+ *
+ * The consequence for the ratchet is narrow and specific:
+ *
+ *   - the ADDED half still applies IN FULL. A rule class that has never fired
+ *     on this route is still a failure, whichever chips happened to render.
+ *   - the STALE half cannot. "This finding no longer reproduces, delete it" is
+ *     meant to be a claim about the app; here it would usually be a claim about
+ *     the time of day. Asserting it would red a weekly job for nothing, which
+ *     is exactly how a gate teaches people to ignore it.
+ *
+ * This list is a debt marker, not a design. The fix is a fixture with pinned
+ * dates; that lives in e2e/happy-path/fixtures.ts and is not this file's to
+ * make. Until then the volatility is written down rather than absorbed.
+ */
+const VOLATILE_ROUTES = new Set(["/my-posts"]);
+
+/**
  * ROUTE BOUNCE allowlist — the sweep's own fixture-dependent half. Measured
  * 2026-09-21 by running the sweep and diffing each requested route against
  * `landings`: EIGHT of 66 routes landed somewhere else.
@@ -543,6 +571,24 @@ async function probeRoute(page: Page, route: string): Promise<void> {
   }
 }
 
+/**
+ * Scope the sweep to a few routes. Comma-separated substrings.
+ *
+ * Exists for the vacuity gate. `scripts/vacuity/run.mjs` spawns a mutated spec
+ * with a 900s timeout and a full sweep is ~22 minutes, so spawnSync would kill
+ * it, the run would exit non-zero, and a non-zero run under mutation is scored
+ * `killed` — a green verdict manufactured out of a timeout, with the guard
+ * having noticed nothing. The assertion path is identical at 2 routes and 66.
+ *
+ * A filtered run is PARTIAL and may not run the stale-baseline check: every key
+ * belonging to a route it never visited would look fixed.
+ */
+const ROUTE_FILTER = process.env.OVERLAY_SWEEP_ROUTES;
+const SWEPT = ROUTE_FILTER
+  ? ROUTES.filter((r) => ROUTE_FILTER.split(",").some((f) => r.includes(f.trim())))
+  : ROUTES;
+const PARTIAL = SWEPT.length !== ROUTES.length;
+
 const sweepDescribe = process.env.RUN_OVERLAY_SWEEP ? test.describe : test.describe.skip;
 
 test.describe.configure({ mode: "serial" });
@@ -565,7 +611,7 @@ sweepDescribe("overlay sweep", () => {
     );
   });
 
-  for (const route of ROUTES) {
+  for (const route of SWEPT) {
     test(`probe ${route}`, async ({ context, page, baseURL }) => {
       test.setTimeout(180_000);
       await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
@@ -633,7 +679,13 @@ sweepDescribe("overlay sweep", () => {
     // Ratchet. A baseline key that is no longer observed means the overlay was
     // fixed (or the probe stopped reaching it) — either way the line is stale
     // and must come out, so the file can only ever shrink.
-    const stale = Object.keys(baseline.keys).filter((k) => !observed.has(k)).sort();
+    // Only meaningful on a FULL sweep (under OVERLAY_SWEEP_ROUTES every key of
+    // an unvisited route reads as fixed), and never for a VOLATILE_ROUTES entry.
+    const stale = PARTIAL
+      ? []
+      : Object.keys(baseline.keys)
+          .filter((k) => !observed.has(k) && !VOLATILE_ROUTES.has(k.split(" :: ")[0]))
+          .sort();
     expect(
       stale,
       `STALE BASELINE ENTRIES: these overlay findings no longer reproduce. Delete\n` +

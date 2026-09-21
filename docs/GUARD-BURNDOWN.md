@@ -138,12 +138,18 @@ So at 639/639 what is known is: *every test in the repo has been shown capable o
 failing.* NOT: every behaviour is tested. Gap 3 is the larger number and needs its
 own plan.
 
-## Hollow guards found so far: 11 of 66 proven (1 in 6)
+## Hollow guards found so far: 20 of 100 proven (1 in 5)
 
 Money, privacy, admin authorization, ban evasion, prod fixtures, the primary
 button, universal links, and the brand rule have each had one. Every live system
 behind them has checked out CORRECT when verified against prod — the exposure was
 to future changes sliding through, not to damage already done.
+
+**Two more live-leak guards, batch H:** `openJobsLocationMasking` passed **4/4**
+with the street address published raw to every logged-out visitor, and
+`offeredHelperPrivacy` passed **13/13** with `offered_to_helper_id` projected raw
+into the browse feed — the owner-decided privacy fix, undone, green. Both were the
+comment shape: the deleted call survived as `-- <original>` and the regex matched it.
 
 **The worst three:**
 - an admin endpoint guard passed **16/16** with the entire authorization replaced

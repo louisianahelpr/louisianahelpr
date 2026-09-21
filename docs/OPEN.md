@@ -3256,6 +3256,34 @@ WAS done: the happy-path guard now asserts the call is `apply_to_job` **by name
 and arguments**, because a rename is exactly what produces the PGRST202 that
 opens the door.
 
+### press-every-control dispatched 2026-09-21 — #1582's symptom is GONE, three new things
+
+Dispatched run `35660182220` on main to confirm the `aa81799a2` self-heal fix.
+Still red overall, but NOT for the tracked reason.
+
+- [x] **#1582's original symptom is resolved.** The issue was "error boundary
+  **on load**" for `/user/:id` and `/jobs/:id` across all three roles. No route
+  reports a load-time error boundary in this run; every remaining failure comes
+  from PRESSING a control, which is a different thing. The issue should close
+  itself once the workflow is green for other reasons.
+- [ ] **HARNESS DEFECT, and it is most of the noise.** "Notifications › Turn on
+  push notifications › Not Now" and "› Turn On Notifications" are counted as
+  failures because they raise `error toast: "Notifications are off. Turn them on
+  in your browser settings."` That toast is CORRECT: a headless CI browser
+  denies notification permission, so the app is telling the truth. The presser
+  is scoring a correct refusal as a defect, on many routes and all roles. Fix
+  the harness (grant or stub the permission, or allow-list this toast) before
+  reading anything else in this workflow — it currently drowns the real signal.
+- [ ] **Real candidate: the Notifications panel renders an error boundary for
+  the customer role.** Seen on `/dashboard customer` and on one `/jobs/:id`
+  customer. `"Notifications" — error boundary / error copy rendered`. Needs the
+  browser to chase; not the same as the load-time boundary above.
+- [ ] Minor: `"Posts"` in the bottom nav timed out at 8000 ms while resolving a
+  long `nth-of-type` chain, and two notification rows were "control not found
+  on a freshly loaded page (transient or non-deterministic DOM)" — the same
+  nondeterminism the overlay sweep hit, where fixture dates relative to `now`
+  change which chips a card renders.
+
 ### Two AA contrast failures from the overlay sweep — REAL, causes UNCONFIRMED (2026-09-21)
 
 Both come from the overlay sweep's axe pass (impact "serious") and both ratios

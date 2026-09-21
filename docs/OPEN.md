@@ -8,7 +8,7 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
-## OPEN — the review log lives in the directory Playwright wipes (2026-09-20)
+## CLOSED — the review log lived in the directory Playwright wipes (fixed 2026-09-20)
 
 `e2e/reviewLog.ts` writes `REVIEW_LOG = <cwd>/test-results/review-log.jsonl`,
 and `test-results` is Playwright's default `outputDir`, which it CLEARS at the
@@ -23,9 +23,10 @@ the next one.
   is easiest to lose.
 - It also means the report can never accumulate across a session: it only ever
   reflects reviews made since the last run started.
-- Fix: put the log somewhere Playwright does not own — e.g.
-  `docs/audit/review-log.jsonl`, or `test-results/../.review-log.jsonl` — and
-  append rather than assume the directory persists.
+- **FIXED**: the log is `.review-log.jsonl` beside `test-results` now
+  (gitignored), so it accumulates across runs.
+  `scripts/review-report.mjs` reads the new location AND the old one, so a log
+  written before the move is not silently dropped.
 
 ## CLOSED — vacuity's mutation phase could not run in an agent worktree (fixed 2026-09-20)
 

@@ -36,17 +36,11 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| **`src/test/*.test.ts*`** | 197 | **197 — COMPLETE** | **0** |
+| **`src/test/*.test.ts*`** | 196 | **196 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
 | Playwright `e2e/**` | 59 | 22 | 37 |
-| colocated beside components | 336 | 141 | 195 |
-| **total** | **645** | **413** | **232** |
-
-*Denominator dropped 646 → 645 on 2026-09-21: `zz-senior-probe.spec.ts` is 542
-lines and 8 tests with exactly ONE `expect()` — and that one only checks it
-visited every route. It declares itself scaffolding, and a scaffold in the
-denominator makes the safety net look bigger than it is. Kept as a measurement
-harness, excluded from the count by an explicit `@scratch-probe` marker.*
+| colocated beside components | 336 | 157 | 179 |
+| **total** | **644** | **429** | **216** |
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -188,6 +182,26 @@ a rule gets lost.
   was guarded; this one was not.
 
 ## The hollow SHAPES, so they can be looked for rather than stumbled on
+
+Every hollow guard found has been one of these. Two are worth singling out
+because they are the ones that read as *thorough*:
+
+**PROXIMITY proves a mention, not a polarity.** `groupJobsGate` asserted
+`/GROUP_JOBS_ENABLED\s*\?[\s\S]{0,120}?"group"/` — "the flag is mentioned near
+the word group". INVERTING the ternary, so the withdrawn Group segment ships
+to every poster *because* the flag is off, left all four tests green. Same
+family as `appleIap`, where moving a `throw` OUT of its `if (error)` block
+stayed inside the 220-character window and passed.
+
+**A WRONG SLICE asserts against the wrong branch.** `payoutDisclosure`
+(MONEY) anchored on a `const` declaration two lines into the component and
+sliced to END OF FILE, so it was reading the not-yet-approved arm. Deleting
+the approved-state payout sentence outright left 6/6 green — "says something
+about money in the completed state" was satisfied by the same constant
+appearing four more times in the *other* branch. Its own history says the
+slice had been fixed once already and was re-broken by a re-anchor.
+
+
 
 Every hollow guard found today was one of these. They are worth naming because
 each is invisible on a green run and obvious once you know to break the line:

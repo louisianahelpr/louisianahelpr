@@ -110,4 +110,60 @@ describe("usePageMeta", () => {
     unmount();
     expect(document.title).toBe("Helpr");
   });
+
+  // ── og:url ────────────────────────────────────────────────────────────────
+  it("falls og:url back to the canonical when only `canonical` is given", () => {
+    // Untested until 2026-09-21: deleting the `?? meta.canonical` fallback left
+    // every social unfurl without an og:url with the whole file green.
+    renderHook(() =>
+      usePageMeta({ title: "T", description: "D", canonical: "https://www.louisianahelpr.com/browse" }),
+    );
+    expect(
+      document.querySelector('meta[property="og:url"]')?.getAttribute("content"),
+    ).toBe("https://www.louisianahelpr.com/browse");
+  });
+
+  it("prefers an explicit ogUrl over the canonical", () => {
+    renderHook(() =>
+      usePageMeta({
+        title: "T",
+        description: "D",
+        canonical: "https://www.louisianahelpr.com/browse",
+        ogUrl: "https://www.louisianahelpr.com/share/browse",
+      }),
+    );
+    expect(
+      document.querySelector('meta[property="og:url"]')?.getAttribute("content"),
+    ).toBe("https://www.louisianahelpr.com/share/browse");
+  });
+
+  // ── robots ────────────────────────────────────────────────────────────────
+  // This block covers the "engages but never releases" shape. The noindex tag
+  // is appended to a document that OUTLIVES the route, so the release half —
+  // removing it on unmount — is the half that matters: a stale noindex
+  // inherited by the next route de-indexes an indexable page, and nothing else
+  // in the app would ever notice. Neither half was tested until 2026-09-21.
+  it("emits no robots tag by default", () => {
+    renderHook(() => usePageMeta({ title: "T", description: "D" }));
+    expect(document.querySelector('meta[name="robots"]')).toBeNull();
+  });
+
+  it("emits <meta name=robots content=noindex> when a page opts out", () => {
+    renderHook(() => usePageMeta({ title: "T", description: "D", robots: "noindex" }));
+    expect(
+      document.querySelector('meta[name="robots"]')?.getAttribute("content"),
+    ).toBe("noindex");
+  });
+
+  it("REMOVES the robots tag on unmount so the next route is not de-indexed", () => {
+    const { unmount } = renderHook(() =>
+      usePageMeta({ title: "T", description: "D", robots: "noindex" }),
+    );
+    expect(document.querySelector('meta[name="robots"]')).not.toBeNull();
+    unmount();
+    expect(document.querySelector('meta[name="robots"]')).toBeNull();
+  });
 });
+
+// @mutate src/hooks/usePageMeta.ts | if (robotsEl && robotsEl.parentNode) robotsEl.parentNode.removeChild(robotsEl); | void robotsEl;
+// @mutate src/hooks/usePageMeta.ts | const ogUrl = meta.ogUrl ?? meta.canonical; | const ogUrl = meta.ogUrl;

@@ -98,3 +98,5 @@ describe("job-boost price by tier (UI mirror of create-boost-payment)", () => {
     }
   });
 });
+
+// @mutate src/lib/productPrices.ts | export const BOOST_FEE_CENTS = 300; | export const BOOST_FEE_CENTS = 301;

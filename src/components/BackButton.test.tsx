@@ -17,7 +17,7 @@ vi.mock("react-router-dom", () => ({
   useLocation: () => mocks.location.current,
 }));
 
-import BackButton from "./BackButton";
+import BackButton, { BACK_BUTTON_BOX_CLASS } from "./BackButton";
 
 /** Set the react-router history state jsdom reports, as the real router does. */
 const setRouterIndex = (idx: number | null) => {
@@ -116,4 +116,34 @@ describe("BackButton", () => {
       expect(mocks.navigate).toHaveBeenCalledWith(-1);
     });
   });
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // THE HOVER IS NOT TESTED HERE, AND CANNOT BE. jsdom parses no stylesheet and
+  // computes no style, so `getComputedStyle` on this button returns the initial
+  // value for every property src/index.css sets on `.ctl-exit` — the wash, the
+  // disc shape and the tint are all invisible to this runner. The owner has
+  // reported inconsistent back-button hover twice; neither report is caught by
+  // anything below.
+  //
+  // What these two DO catch is the mechanism by which that regression actually
+  // arrives: someone drops `ctl-exit` (or forks the box) off this element, and
+  // the button silently stops wearing the shared exit shape while still
+  // rendering and still navigating. That is a CLASS-NAME PROXY and nothing
+  // more — it proves the hook-up, never the paint. The paint needs a real
+  // browser (npm run audit:press / the WebKit nightly).
+  describe("shared exit-control shape (class proxy — see note)", () => {
+    it("wears .ctl-exit, the one place the hover wash/disc is declared", () => {
+      render(<BackButton to="/" />);
+      expect(screen.getByRole("button", { name: "Go back" }).className).toContain("ctl-exit");
+    });
+
+    it("wears the exported box class, so PageHeader's reserved box cannot drift", () => {
+      render(<BackButton to="/" />);
+      const cls = screen.getByRole("button", { name: "Go back" }).className;
+      for (const token of BACK_BUTTON_BOX_CLASS.split(" ")) expect(cls).toContain(token);
+    });
+  });
 });
+
+// @mutate src/lib/inAppHistory.ts | if (typeof idx === "number") return idx > 0; | if (typeof idx === "number") return true;
+// @mutate src/components/BackButton.tsx | ctl-exit flex items-center justify-center | flex items-center justify-center

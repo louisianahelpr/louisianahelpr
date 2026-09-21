@@ -135,3 +135,5 @@ describe("setAppIconBadge — cold-start permission-prompt guard", () => {
     expect(badgeMock.set).not.toHaveBeenCalled();
   });
 });
+
+// @mutate src/lib/appBadge.ts | if (display !== "granted") return; | if (display === "__never__") return;

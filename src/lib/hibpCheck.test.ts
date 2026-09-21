@@ -113,3 +113,51 @@ describe("checkPasswordPwned", () => {
     expect(count).toBe(1234);
   });
 });
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WIRING. Everything above proves the HELPER is correct in isolation. None of
+// it proves signup ever ASKS, or that it refuses the answer. Deleting the call
+// from Signup.tsx, or flipping `> 0` to `< 0`, left every test in this file
+// green — the breached-password gate could be taken out with nothing red. This
+// is a SOURCE-TEXT guard, deliberately: rendering Signup pulls in Supabase
+// auth, Stripe, haptics and four providers, and none of that makes the
+// assertion stronger than "the call site still says what it must say". It
+// cannot see a runtime short-circuit placed ABOVE the call, and it is not a
+// substitute for an end-to-end signup test — it exists so the gate cannot be
+// removed silently.
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+describe("the breached-password gate is actually wired into signup", () => {
+  const signup = readFileSync(resolve(process.cwd(), "src/pages/Signup.tsx"), "utf8");
+
+  it("Signup.tsx calls checkPasswordPwned on the submitted password", () => {
+    expect(signup).toContain('import { checkPasswordPwned } from "@/lib/hibpCheck"');
+    expect(signup).toContain("await checkPasswordPwned(password)");
+  });
+
+  it("Signup.tsx BLOCKS on a positive count and fails open on null", () => {
+    // The exact predicate matters in both directions: `!== null` is the
+    // fail-open half (an outage must not block a real signup) and `> 0` is the
+    // enforcement half (a known-breached password must not be accepted).
+    expect(signup).toContain("if (pwnedCount !== null && pwnedCount > 0) {");
+    // …and the branch must actually stop the submit, not merely toast. Slice
+    // by BRACE DEPTH, not by the first `}`: the toast body interpolates
+    // `${pwnedCount.toLocaleString()}`, whose closing brace would end the
+    // slice three lines early and assert against the wrong branch.
+    const start = signup.indexOf("if (pwnedCount !== null && pwnedCount > 0) {");
+    const open = signup.indexOf("{", start);
+    let depth = 0;
+    let end = open;
+    for (let i = open; i < signup.length; i++) {
+      if (signup[i] === "{") depth++;
+      else if (signup[i] === "}" && --depth === 0) { end = i; break; }
+    }
+    expect(end).toBeGreaterThan(open);
+    expect(signup.slice(open, end)).toContain("return;");
+  });
+});
+
+// @mutate src/lib/hibpCheck.ts | if (s === suffix) return parseInt(count, 10) \|\| 0; | if (s === suffix) return 0;
+// @mutate src/pages/Signup.tsx | if (pwnedCount !== null && pwnedCount > 0) { | if (pwnedCount !== null && pwnedCount < 0) {

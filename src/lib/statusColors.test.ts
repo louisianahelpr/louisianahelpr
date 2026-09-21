@@ -86,3 +86,34 @@ describe("jobStatusColorClasses()", () => {
     expect(jobStatusColorClasses(undefined)).toBeTruthy();
   });
 });
+
+describe("STATUS_COLOR_CLASSES (the className mirror)", () => {
+  it("covers every job_status enum value — no status falls to the fallback", () => {
+    // The style-prop map above is checked against the enum; the className map
+    // was checked against THREE hand-picked statuses, so a missing key was
+    // indistinguishable from a present one (both return a truthy string). An
+    // enum value with no entry silently paints the neutral fallback on every
+    // Tailwind-driven chip while the style-driven chips paint correctly.
+    for (const value of Constants.public.Enums.job_status) {
+      expect(
+        jobStatusColorClasses(value),
+        `${value} falls through to FALLBACK in the className map`,
+      ).not.toBe(jobStatusColorClasses("definitely-not-a-status"));
+    }
+  });
+
+  it("paints the same BACKGROUND token as the style-prop map for every status", () => {
+    // KNOWN DRIFT, deliberately scoped to bg only: `accepted` disagrees on the
+    // TEXT token — the style map says --sage-ink (theme-adaptive, chosen in
+    // the AA sweep) and the className map still says --bark (the raw hue that
+    // sweep replaced). Asserting text parity here would be red on main, so it
+    // is reported, not asserted. See the report for 2026-09-21.
+    for (const value of Constants.public.Enums.job_status) {
+      const token = JOB_STATUS_COLORS[value].bg.match(/--[a-z-]+/)![0];
+      expect(jobStatusColorClasses(value), `${value} bg token`).toContain(token);
+    }
+  });
+});
+
+// @mutate src/lib/statusColors.ts | in_progress:        { bg: "hsl(var(--burnt-sienna) / 0.12)", text: "hsl(var(--sienna-ink))" }, | in_progress:        { bg: "hsl(var(--burnt-sienna) / 0.12)", text: "hsl(var(--burnt-sienna))" },
+// @mutate src/lib/statusColors.ts | pending_approval:   "bg-[hsl(var(--amber-tint)/0.14)] text-[hsl(var(--amber-ink))]", | pending_approvalX:  "bg-[hsl(var(--amber-tint)/0.14)] text-[hsl(var(--amber-ink))]",

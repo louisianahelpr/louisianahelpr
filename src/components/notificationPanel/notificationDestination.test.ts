@@ -98,3 +98,5 @@ describe("notificationDestination", () => {
     expect(notificationDestination({ link: "/my-posts" })).toBe("/my-posts");
   });
 });
+
+// @mutate src/components/notificationPanel/notificationDestination.ts | params.delete("filter"); | void 0;

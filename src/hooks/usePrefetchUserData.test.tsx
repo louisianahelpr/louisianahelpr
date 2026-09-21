@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 const fetchReferralMock = vi.fn();
 const prefetchActivityCoresMock = vi.fn();
 const prefetchRouteMock = vi.fn();
+const prefetchPayoutSetupMock = vi.fn();
 
 vi.mock("@/hooks/useReferralData", () => ({
   fetchReferralData: (...args: unknown[]) => fetchReferralMock(...args),
@@ -21,6 +22,13 @@ vi.mock("@/hooks/useActivityData", () => ({
 vi.mock("@/lib/routePrefetch", () => ({
   prefetchRoute: (...args: unknown[]) => prefetchRouteMock(...args),
 }));
+// payoutSetupQueries was NOT mocked until 2026-09-21, so this spec imported the
+// real module and every render fired a live edge-fn/Stripe prefetch against
+// prod — and the "SLOW class" warm-up the hook exists to add was asserted by
+// nothing at all: deleting the call left the file green.
+vi.mock("@/lib/payoutSetupQueries", () => ({
+  prefetchPayoutSetup: (...args: unknown[]) => prefetchPayoutSetupMock(...args),
+}));
 
 import { usePrefetchUserData } from "./usePrefetchUserData";
 
@@ -30,6 +38,7 @@ beforeEach(() => {
   fetchReferralMock.mockReset().mockResolvedValue({});
   prefetchActivityCoresMock.mockReset();
   prefetchRouteMock.mockReset();
+  prefetchPayoutSetupMock.mockReset();
   // Default: requestIdleCallback present and runs synchronously
   originalRIC = window.requestIdleCallback;
   Object.defineProperty(window, "requestIdleCallback", {
@@ -71,6 +80,7 @@ describe("usePrefetchUserData", () => {
     expect(fetchReferralMock).not.toHaveBeenCalled();
     expect(prefetchActivityCoresMock).not.toHaveBeenCalled();
     expect(prefetchRouteMock).not.toHaveBeenCalled();
+    expect(prefetchPayoutSetupMock).not.toHaveBeenCalled();
   });
 
   it("prefetches referral + activity data with the userId when provided", () => {
@@ -81,14 +91,22 @@ describe("usePrefetchUserData", () => {
     expect(prefetchActivityCoresMock).toHaveBeenCalledWith(expect.anything(), "user-1");
   });
 
-  it("prefetches all 4 likely-next-nav routes (my-posts, my-jobs, jobs, profile)", () => {
+  it("prefetches the 3 likely-next-nav route chunks, and only those", () => {
+    // The title said "all 4 … (my-posts, my-jobs, jobs, profile)" until
+    // 2026-09-21. The hook has always warmed three; there is no /jobs
+    // prefetch. Asserting the exact SET, not three `toContain`s, so a
+    // silently-dropped or silently-added route is visible either way.
     const { wrapper } = makeWrapper();
     renderHook(() => usePrefetchUserData("user-1"), { wrapper });
 
     const routes = prefetchRouteMock.mock.calls.map((c) => c[0]);
-    expect(routes).toContain("/my-posts");
-    expect(routes).toContain("/my-jobs");
-    expect(routes).toContain("/profile");
+    expect(routes.slice().sort()).toEqual(["/my-jobs", "/my-posts", "/profile"]);
+  });
+
+  it("warms the SLOW Stripe-class payout query — the whole point of the hook", () => {
+    const { wrapper, client } = makeWrapper();
+    renderHook(() => usePrefetchUserData("user-1"), { wrapper });
+    expect(prefetchPayoutSetupMock).toHaveBeenCalledWith(client, "user-1");
   });
 
   it("falls back to setTimeout when requestIdleCallback unavailable", () => {
@@ -121,3 +139,6 @@ describe("usePrefetchUserData", () => {
     expect(fetchReferralMock).toHaveBeenCalledTimes(2);
   });
 });
+
+// @mutate src/hooks/usePrefetchUserData.ts | setTimeout(cb, 400); | setTimeout(cb, 4000);
+// @mutate src/hooks/usePrefetchUserData.ts | prefetchPayoutSetup(queryClient, userId); | void 0;

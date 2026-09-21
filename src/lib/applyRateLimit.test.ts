@@ -127,3 +127,5 @@ describe("formatRateLimitMessage", () => {
     expect(formatRateLimitMessage("not_authenticated", 0)).toMatch(/sign in/i);
   });
 });
+
+// @mutate src/lib/applyRateLimit.ts | const allowed = row.allowed === true; | const allowed = true;

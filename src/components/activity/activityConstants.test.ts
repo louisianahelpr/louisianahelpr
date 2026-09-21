@@ -98,3 +98,5 @@ describe("statusBadge", () => {
     }
   });
 });
+
+// @mutate src/lib/categoryHues.ts | errands: "73 32% 40%", | errands: "73 32% 41%",

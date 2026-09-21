@@ -397,3 +397,12 @@ describe("engagement-automations edge function", () => {
     expect(queued()).toHaveLength(0);
   });
 });
+
+// ─── proven able to fail, 2026-09-21 ───────────────────────────────────────
+// Drop `email_enabled` from the opt-out predicate and the Email MASTER stops
+// muting marketing — the exact 2026-09-07 defect. Red:
+//   × honours the Email MASTER even when Promotions is still on
+//   AssertionError: expected 1 to be +0
+// This is the SEND site, executed: b.drip and the enqueue_email calls, not a
+// write payload.
+// @mutate supabase/functions/engagement-automations/index.ts | p.email_promotions === false \|\| p.email_enabled === false | p.email_promotions === false

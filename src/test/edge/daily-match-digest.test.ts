@@ -166,3 +166,11 @@ describe("daily-match-digest edge function", () => {
     expect(drainWrite()?.selectCols).toBe("id");
   });
 });
+
+// ─── proven able to fail, 2026-09-21 ───────────────────────────────────────
+// Drop the ROW COUNT check and a DELETE that matched nothing reports 200 with
+// defects: 0 — the same digest re-sent to the same person every day. Red:
+//   × records a DEFECT and answers 500 when the drain removes nothing
+//   × records a DEFECT on a PARTIAL drain, not just a total no-op
+//   AssertionError: expected 200 to be 500
+// @mutate supabase/functions/daily-match-digest/index.ts | if (removed < batch.length) { | if (false) {

@@ -2751,3 +2751,11 @@ describe("create-payment edge function", () => {
     });
   });
 });
+
+// ─── proven able to fail, 2026-09-21 ───────────────────────────────────────
+// Deleting the transfer_group tag from the Quick Release transfer makes that
+// live transfer invisible to every `transfers.list({ transfer_group })`
+// duplicate check — the sibling guard that was hollow for exactly this. Red:
+//   × tags the Quick Release transfer with the job's transfer_group …
+//   AssertionError: expected { amount: 8800, … } to match object { transfer_group: 'job_job-1' }
+// @mutate supabase/functions/create-payment/index.ts | answered (round 3, H2).\n      transfer_group: `job_${jobId}`, | answered (round 3, H2).

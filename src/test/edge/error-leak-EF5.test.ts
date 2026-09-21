@@ -322,3 +322,12 @@ describe("EF-5 · handlers do not echo raw internal error text", () => {
     });
   });
 });
+
+// ─── proven able to fail, 2026-09-21 ───────────────────────────────────────
+// The inventory IS derived (every .ts under supabase/functions, floored at
+// >100 files), so a NEW leaking handler is caught: re-leaking the caught error
+// from instant-job-match — a function that is NOT in KNOWN_LEAK_FILES — goes
+// red. Red:
+//   × no edge function echoes a caught error into its Response body, beyond the known eight
+//   AssertionError: EF-5 is a CLASS, not six handlers. …
+// @mutate supabase/functions/instant-job-match/index.ts | JSON.stringify({ error: "Could not run the job match right now." }) | JSON.stringify({ error: (error as Error).message })

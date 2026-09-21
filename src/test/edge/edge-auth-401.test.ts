@@ -59,3 +59,11 @@ describe("EF-03 — auth rejection returns 401, not 500", () => {
     });
   }
 });
+
+// ─── proven able to fail, 2026-09-21 ───────────────────────────────────────
+// Remove the early 401 and the missing header falls through to the generic
+// catch, which is the pre-fix 500 on a money path. Red:
+//   × cash-out-credits: no Authorization header → 401
+//   AssertionError: expected 500 to be 401
+// The guard asserts a real executed status code, not a source string.
+// @mutate supabase/functions/cash-out-credits/index.ts | if (!authHeader) { | if (false) {

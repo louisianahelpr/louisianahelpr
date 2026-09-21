@@ -357,6 +357,73 @@ function evalCmp(p: Extract<Pred, { kind: "cmp" }>, shape: Shape): Verdict {
 // 4 — the job shape under test
 // ───────────────────────────────────────────────────────────────────────────
 
+/**
+ * Source with every comment BLANKED, by a string-aware SCANNER.
+ *
+ * HOLLOW UNTIL 2026-09-21, and this is hollow shape #1 from the burn-down.
+ * This was a line filter — it dropped a line only when the WHOLE line was a
+ * comment. So `code; // <the original call>` was returned as "code", and the
+ * positive `.toMatch()` assertions below read the comment as the live filter.
+ * Proved: replacing arrival-confirm-reminder's real
+ *
+ *     .eq("is_seed", false)
+ * with
+ *     .eq("payment_status", "escrow") // .eq("is_seed", false)
+ *
+ * DELETES that sweep's seed scope — every fixture job starts getting the
+ * arrival nudge the owner deliberately kept them out of — and this file passed
+ * 9/9. Registered as a @mutate so the comment shape itself is pinned.
+ *
+ * Blanks rather than deletes, so line numbers survive; leaves `//` inside a
+ * string literal alone, which is the other half of the rule.
+ */
+export function blankComments(s: string): string {
+  let out = "";
+  let i = 0;
+  let quote: string | null = null;
+  while (i < s.length) {
+    const c = s[i];
+    if (quote) {
+      out += c;
+      if (c === "\\") {
+        out += s[i + 1] ?? "";
+        i += 2;
+        continue;
+      }
+      if (c === quote) quote = null;
+      i++;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") {
+      quote = c;
+      out += c;
+      i++;
+      continue;
+    }
+    if (c === "/" && s[i + 1] === "/") {
+      while (i < s.length && s[i] !== "\n") {
+        out += " ";
+        i++;
+      }
+      continue;
+    }
+    if (c === "/" && s[i + 1] === "*") {
+      out += "  ";
+      i += 2;
+      while (i < s.length && !(s[i] === "*" && s[i + 1] === "/")) {
+        out += s[i] === "\n" ? "\n" : " ";
+        i++;
+      }
+      out += "  ";
+      i += 2;
+      continue;
+    }
+    out += c;
+    i++;
+  }
+  return out;
+}
+
 const PAST_DATE = "2020-01-01";
 const PAST_TS = "2020-01-01T12:00:00.000Z";
 const UUID = "00000000-0000-0000-0000-000000000001";
@@ -578,17 +645,28 @@ describe("escrow sweep coverage — no job state may hold escrow with no schedul
     );
   });
 
+  it("the comment stripper blanks a TRAILING comment, and leaves `//` inside a string alone", () => {
+    // The shape that made the assertion below hollow: real call replaced,
+    // original kept as a trailing comment on a line that still carries code.
+    expect(blankComments('.eq("payment_status", "escrow") // .eq("is_seed", false)')).not.toMatch(
+      /\.eq\(\s*["']is_seed["']\s*,\s*false\s*\)/,
+    );
+    expect(blankComments('.eq("is_seed", false) // keep')).toMatch(
+      /\.eq\(\s*["']is_seed["']\s*,\s*false\s*\)/,
+    );
+    // Block comments too, and line numbers are preserved either way.
+    expect(blankComments('a(); /* .eq("is_seed", false) */ b();')).not.toMatch(/is_seed/);
+    expect(blankComments("a();\n// x\nb();").split("\n")).toHaveLength(3);
+    // …and a `//` inside a string literal is NOT a comment.
+    expect(blankComments('const u = "https://x.co/is_seed";')).toContain("https://x.co/is_seed");
+  });
+
   it("the other sweeps keep their is_seed scope — the decision was about this sweep only", () => {
     // CODE only. Each of these files EXPLAINS its seed scope (or its lack of
     // one) in a header comment that quotes the very call being asserted, so a
     // raw text match would read a comment as a filter.
-    const codeOnly = (s: string) =>
-      s
-        .split("\n")
-        .filter((l) => !l.trim().startsWith("//") && !l.trim().startsWith("*"))
-        .join("\n");
     const src = (name: string) =>
-      codeOnly(fs.readFileSync(path.join(FUNCTIONS_DIR, name, "index.ts"), "utf8"));
+      blankComments(fs.readFileSync(path.join(FUNCTIONS_DIR, name, "index.ts"), "utf8"));
     // Untouched: escalating a fixture is acceptable in the stalled-completion
     // queue because a human triages it; silently RECONCILING or nudging one is
     // a different bargain, and the owner did not change it.
@@ -600,7 +678,7 @@ describe("escrow sweep coverage — no job state may hold escrow with no schedul
     // what the app's card reads, and a seed notion there would put the card and
     // the cron back in disagreement.
     expect(
-      codeOnly(fs.readFileSync(path.join(FUNCTIONS_DIR, "_shared", "stalledCompletion.ts"), "utf8")),
+      blankComments(fs.readFileSync(path.join(FUNCTIONS_DIR, "_shared", "stalledCompletion.ts"), "utf8")),
     ).not.toMatch(/is_seed/);
   });
 
@@ -622,3 +700,18 @@ describe("escrow sweep coverage — no job state may hold escrow with no schedul
     expect(sweepsCovering(future)).toEqual([]);
   });
 });
+
+// ─── proven able to fail, 2026-09-21 ───────────────────────────────────────
+// (1) Take in_progress off this lane's own sweep and the owner's 2026-09-19
+//     trap re-opens — escrow held with no scheduled path out. Red:
+//       x in_progress with neither completion stamp is covered …
+//       x a SEED job in the same trap is swept too …
+//       AssertionError: expected 0 to be greater than 0
+// (2) THE HOLLOW ONE. The seed-scope assertion's comment stripper dropped only
+//     WHOLE-LINE comments, so deleting arrival-confirm-reminder's real
+//     `.eq("is_seed", false)` and leaving it as a TRAILING comment passed 9/9 —
+//     every fixture job back in a nudge the owner deliberately kept them out
+//     of. `blankComments` is now a string-aware scanner, and the comment SHAPE
+//     itself is the second registered mutation, so both shapes are pinned.
+// @mutate supabase/functions/stalled-completion-reminder/index.ts | .eq("status", "in_progress") | .eq("status", "accepted")
+// @mutate supabase/functions/arrival-confirm-reminder/index.ts | .eq("is_seed", false) | .eq("payment_status", "escrow") // .eq("is_seed", false)

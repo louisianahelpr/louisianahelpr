@@ -165,3 +165,10 @@ describe("automatic_tax needs an address, and this is where every helper failed"
     expect(params.customer_update).toEqual({ address: "auto" });
   });
 });
+
+// ─── proven able to fail, 2026-09-21 ───────────────────────────────────────
+// The 2026-09-05 outage itself: the eligibility RPC back on a headerless anon
+// client, where it raises 42501 and 503s every membership purchase. Red:
+//   × executes on a client carrying the caller's Authorization header
+//   AssertionError: RPC ran on a client with no caller JWT — it would execute as anon
+// @mutate supabase/functions/create-pro-checkout/index.ts | { global: { headers: { Authorization: authHeader } } }, | {},

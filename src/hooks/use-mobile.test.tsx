@@ -79,4 +79,23 @@ describe("useIsMobile", () => {
     });
     expect(result.current).toBe(true);
   });
+
+  it("removes its media-query listener on unmount", () => {
+    // Without the cleanup every mount leaks a listener onto the MediaQueryList
+    // and a setState fires on an unmounted component on the next resize. This
+    // hook is mounted by the bottom nav, the FAB and a dozen layouts, so the
+    // leak compounds across every route change.
+    setViewport(1024);
+    const { unmount } = renderHook(() => useIsMobile());
+    expect(listeners).toHaveLength(1);
+    unmount();
+    expect(listeners, "listener still attached after unmount").toHaveLength(0);
+  });
 });
+
+// The breakpoint itself. Move it and phones get the desktop layout, or
+// tablets get the phone one — the two defects named at the top of this file.
+// @mutate src/hooks/use-mobile.tsx | const MOBILE_BREAKPOINT = 768; | const MOBILE_BREAKPOINT = 1024;
+// The listener cleanup: one leaked subscription per mount, on a hook mounted
+// by the bottom nav, the FAB and a dozen layouts.
+// @mutate src/hooks/use-mobile.tsx | return () => mql.removeEventListener("change", onChange); | return;

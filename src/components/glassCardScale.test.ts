@@ -36,9 +36,28 @@ describe("glass card padding scale", () => {
       `grep -rhoE '(rounded-2xl liquid-glass|liquid-glass rounded-2xl) p-[0-9.]+' src --include='*.tsx' || true`,
       { cwd: process.cwd(), encoding: "utf8" },
     );
-    const found = [...new Set(
-      out.split("\n").map((l) => l.match(/p-[0-9.]+$/)?.[0]).filter(Boolean) as string[],
-    )];
+    const matches = out.split("\n").map((l) => l.match(/p-[0-9.]+$/)?.[0]).filter(Boolean) as string[];
+
+    /*
+     * INVENTORY FLOOR — the difference between this guard checking 73 cards
+     * and checking nothing.
+     *
+     * Everything below is per-member: with an empty `matches` there is no
+     * unknown padding, `unknown` is `[]`, and the test passes while covering
+     * zero call sites. That is not hypothetical here — the inventory is a
+     * grep for two literal class ORDERINGS of `rounded-2xl liquid-glass`.
+     * Rename the material, reorder the pair, or move the padding ahead of
+     * them, and the whole survey silently returns nothing.
+     *
+     * 73 cards on 2026-09-21. The floor is set below that so ordinary churn
+     * does not trip it, but far enough above zero that a rename cannot.
+     */
+    expect(
+      matches.length,
+      "the glass-card survey found (almost) nothing — the grep no longer matches the class string it is looking for, so this guard is covering zero call sites",
+    ).toBeGreaterThanOrEqual(50);
+
+    const found = [...new Set(matches)];
     const unknown = found.filter((p) => !ALLOWED.has(p));
     expect(
       unknown,
@@ -54,3 +73,7 @@ describe("glass card padding scale", () => {
     expect(ALLOWED.size, "glass-card padding tiers").toBe(6);
   });
 });
+
+// A SEVENTH padding tier appearing because nobody knew the other six were
+// deliberate — the exact drift this guard was written for.
+// @mutate src/components/ReferralSection.tsx | <div className="rounded-2xl liquid-glass p-5"> | <div className="rounded-2xl liquid-glass p-7">

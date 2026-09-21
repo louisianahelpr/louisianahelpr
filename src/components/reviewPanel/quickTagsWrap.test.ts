@@ -26,4 +26,27 @@ describe("ReviewForm quick review tags (VN-30)", () => {
     expect(cls, "tag row still hides its scrollbar").not.toMatch(/scrollbar-none/);
     expect(cls, "tag row still has the right-edge fade mask").not.toMatch(/mask-image/);
   });
+
+  it("no wrapper reintroduces the scroll strip around the group", () => {
+    // The assertion above pins ONE element's className, so the identical
+    // defect written one level out — `<div className="overflow-x-auto
+    // scrollbar-none [mask-image:…]">` wrapping the wrapped chip group —
+    // would clip the same chips with this guard still green. jsdom has no
+    // layout and rendering ReviewForm needs the whole review panel's data
+    // layer, so the check is source-level: the JSX immediately enclosing the
+    // group must not carry a horizontal scroller either.
+    const at = src.indexOf('aria-label="Quick review tags"');
+    expect(at, "could not find the Quick review tags group").toBeGreaterThan(-1);
+    const enclosing = src.slice(Math.max(0, at - 600), at);
+    expect(enclosing, "a wrapper scrolls the tag row horizontally").not.toMatch(
+      /overflow-x-(auto|scroll)/,
+    );
+    expect(enclosing, "a wrapper still fades the tag row's right edge").not.toMatch(
+      /mask-image/,
+    );
+  });
 });
+
+// VN-30 reverting: the chips back on one clipped line, where a desktop mouse
+// wheel scrolls vertically and "Highly recommend" cannot be reached at all.
+// @mutate src/components/reviewPanel/ReviewForm.tsx | className="flex flex-wrap gap-2 pt-1 pb-1" | className="flex gap-2 pt-1 pb-1 overflow-x-auto scrollbar-none"

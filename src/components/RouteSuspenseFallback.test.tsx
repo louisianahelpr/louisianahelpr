@@ -34,12 +34,48 @@ describe("RouteSuspenseFallback", () => {
     // slot with a parchment-colored card and centered logo. The new
     // placeholder is intentionally transparent so the shell shows
     // through during route swaps.
+    //
+    // Pinned as "NO fill of ANY kind" rather than "not this one token": the
+    // original assertion named a single spelling of one colour, so the same
+    // regression written `bg-parchment`, `bg-white`, or an inline
+    // `style={{ background }}` would have walked straight past it. jsdom
+    // resolves no Tailwind, so this reads the class STRING and the inline
+    // style object — neither is a painted pixel, but between them they are
+    // every way this element can acquire a surface.
     render(<RouteSuspenseFallback />);
     const region = screen.getByTestId("route-suspense-fallback");
-    expect(region.className).not.toMatch(/bg-\[hsl\(var\(--parchment\)\)\]/);
+
+    const fills = region.className.split(/\s+/).filter((c) => /^(bg-|backdrop-)/.test(c));
+    expect(fills, "the route fallback must not paint its own surface").toEqual([]);
+    expect(region.getAttribute("style"), "no inline fill either").toBeNull();
+
+    // Nor centre its content like a brand card: the bones align to the
+    // route's normal body column, top-aligned, so the shell keeps its shape.
     expect(region.className).not.toContain("items-center");
     expect(region.className).not.toContain("justify-center");
     // No <img> (brand mark) inside the placeholder.
     expect(region.querySelector("img")).toBeNull();
+    // No <svg> either — a centred logo is just as often inline SVG.
+    expect(region.querySelector("svg")).toBeNull();
+  });
+
+  it("draws content-shaped bones, not an empty div", () => {
+    // The Cowork 2026-07-08 finding: an intentionally-empty div meant 3-4s
+    // of blank body inside a valid shell on a slow network, because each
+    // page's OWN skeleton cannot fire until the chunk has downloaded.
+    render(<RouteSuspenseFallback />);
+    const region = screen.getByTestId("route-suspense-fallback");
+    const bones = region.querySelectorAll("[aria-hidden='true'] > div");
+    expect(bones.length, "placeholder is empty again").toBeGreaterThanOrEqual(3);
+    // Decorative, and animated only when the user allows motion.
+    const group = region.querySelector("[aria-hidden='true']")!;
+    expect(group.className).toContain("motion-safe:animate-pulse");
   });
 });
+
+// The PR #276 regression, in its most likely modern form: the route slot
+// filled and centred again, so every route swap reads as "the whole app is
+// loading" and the persistent shell disappears under it.
+// @mutate src/components/RouteSuspenseFallback.tsx | className="w-full min-h-[60vh] px-4 py-6" | className="w-full min-h-[60vh] px-4 py-6 flex items-center justify-center bg-parchment"
+// The live region: without it a route change is silent for a screen reader.
+// @mutate src/components/RouteSuspenseFallback.tsx | aria-live="polite"\n    aria-busy="true" | data-was-aria-live="polite"\n    aria-busy="true"

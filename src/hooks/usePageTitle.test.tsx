@@ -32,3 +32,8 @@ describe("usePageTitle", () => {
     expect(document.title).toBe("Second Page");
   });
 });
+
+// The dependency array is the whole route-change contract: with `[]` the
+// effect runs once and every subsequent page keeps the first page's title in
+// the tab, in the history entry and in what a screen reader announces.
+// @mutate src/hooks/usePageTitle.ts | }, [title]); | }, []);

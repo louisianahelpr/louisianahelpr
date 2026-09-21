@@ -18,7 +18,14 @@
  *
  * Red on the original: run against the live site before the fix
  * (PLAYWRIGHT_BASE_URL=https://www.louisianahelpr.com).
+ *
+ * Shown able to fail 2026-09-21 by re-creating the original defect. `-mt-2`
+ * tucks the chip 8px into the bubble's 10px bottom padding; `-mt-10` lifts it
+ * back up over the glyphs, which is the shape the owner reported.
+ * MessageBubble.tsx already names this spec as its guard in the comment beside
+ * that very class.
  */
+// @mutate src/components/messages/MessageBubble.tsx | -mt-2 flex items-center gap-0.5 | -mt-10 flex items-center gap-0.5
 import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";

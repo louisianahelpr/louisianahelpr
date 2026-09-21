@@ -5,6 +5,13 @@
  * screen (or the sign-in that returns them there), never an error screen or a
  * 404. Drives the deployed app as the shared test accounts (no mocks).
  */
+// Shown able to fail on the contract it exists for: a short link must land on
+// the canonical route. Point /u/:id at /profile instead and
+// "/u/:id opens the other person's profile" stops seeing the poster's page —
+// it waits out `waitForURL(/user/<posterId>/)` and fails. Chosen because the
+// redirect is the WHOLE claim of a deep-link spec: a share link that lands on
+// the right-looking screen for the wrong person is the defect this guards.
+// @mutate src/lib/deepLinkRoute.ts | if (uMatch) return `/user/${uMatch[1]}${search}${hash}`; | if (uMatch) return `/profile${search}${hash}`;
 import { test as base, expect } from "@playwright/test";
 import {
   assertHealthy,

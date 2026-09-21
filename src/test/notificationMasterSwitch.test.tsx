@@ -272,3 +272,8 @@ describe("the notification-preferences promise is true", () => {
     expect(copy).not.toMatch(/can'?t be turned off|cannot be turned off|always fire/);
   });
 });
+
+// The 2026-09-06 QA bug itself: force the pre-migration DERIVED email master
+// back on, which blanket-writes all eleven email_* columns. An off → on cycle
+// then re-subscribes an account that had opted out of marketing email.
+// @mutate src/components/NotificationPreferences.tsx | if (emailMasterColumn) { | if (false) {

@@ -74,3 +74,9 @@ describe("prefs screen renders a control for every row", () => {
     expect((screen.getByLabelText("Daily match digest") as HTMLButtonElement).disabled).toBe(true);
   });
 });
+
+// The Daily Match Digest is a sub-option OF Job Matches. Drop the dependency
+// and it stays live with matches off — a second, contradictory switch that
+// promises to batch notifications the user has already muted.
+// (the `|` of each `||` is escaped: the directive is pipe-delimited)
+// @mutate src/components/NotificationPreferences.tsx | disabled={!loaded \|\| !prefs.push_enabled \|\| !prefs.job_matches} | disabled={!loaded \|\| !prefs.push_enabled}

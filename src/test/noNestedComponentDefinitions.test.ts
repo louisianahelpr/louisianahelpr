@@ -89,13 +89,26 @@ describe("components are declared at module level", () => {
 
   it("no component is declared inside another anywhere in src/", () => {
     const hits: string[] = [];
+    let scanned = 0;
     (function walk(d: string) {
       for (const n of readdirSync(d)) {
         const p = join(d, n);
         if (statSync(p).isDirectory()) walk(p);
-        else if (/\.tsx$/.test(n) && !/\.test\./.test(n)) hits.push(...offenders(p, readFileSync(p, "utf8")));
+        else if (/\.tsx$/.test(n) && !/\.test\./.test(n)) {
+          scanned++;
+          hits.push(...offenders(p, readFileSync(p, "utf8")));
+        }
       }
     })("src");
+    // Floor the inventory: an empty walk passes vacuously.
+    expect(scanned, "walked src/ and found no .tsx at all").toBeGreaterThan(300);
     expect(hits, "hoist it to module level and pass what it closed over as props").toEqual([]);
   });
 });
+
+// The original defect, restored in the file it shipped in: a component declared
+// inside NotificationPreferences' render body. Every render makes a new type,
+// so React unmounts and remounts it and the switch under the user's finger
+// loses focus mid-toggle.
+// @mutate src/components/NotificationPreferences.tsx | const NotificationPreferences = () => { | const NotificationPreferences = () => { const SwitchSlotLocal = ({ checked }: { checked: boolean }) => <div>{String(checked)}</div>; void SwitchSlotLocal;
+

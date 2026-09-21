@@ -36,6 +36,15 @@ describe("tier gates are derived from the perk matrix", () => {
 
   it("no source file filters subscription_tier by a hand-typed tier list", () => {
     const files = ROOTS.flatMap((r) => walk(r)).map((path) => ({ path, text: readFileSync(path, "utf8") }));
+    // Floor the inventory: an empty walk makes `findLiteralTierLists` return
+    // [] and the assertion below pass while describing nothing.
+    expect(files.length, "walked src/ and supabase/functions and found no source").toBeGreaterThan(900);
     expect(findLiteralTierLists(files)).toEqual([]);
   });
 });
+
+// The original 2026-09-14 defect, restored: the weekly Pro+ report filtering by
+// a hand-typed tier array instead of the perk matrix, which is what dropped
+// Plus members from the report their perk promises.
+// @mutate supabase/functions/weekly-helper-report/index.ts | .in("subscription_tier", [...REPORT_TIERS]) | .in("subscription_tier", ["pro", "elite"])
+

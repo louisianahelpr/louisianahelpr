@@ -159,32 +159,99 @@ function isChromeFree(el: ts.JsxOpeningLikeElement): boolean {
 
 export type NestedCardViolation = { file: string; line: number; panel: string; wrapper: string };
 
+/**
+ * Every identifier reference to `name` in this file that is not the
+ * declaration's own name and not a property/attribute label.
+ */
+function referencesTo(sf: ts.SourceFile, name: string, decl: ts.VariableDeclaration): ts.Identifier[] {
+  const out: ts.Identifier[] = [];
+  const visit = (n: ts.Node) => {
+    if (ts.isIdentifier(n) && n.text === name && n !== decl.name) {
+      const p = n.parent;
+      const isLabel =
+        (ts.isPropertyAccessExpression(p) && p.name === n) ||
+        (ts.isPropertyAssignment(p) && p.name === n) ||
+        (ts.isJsxAttribute(p) && p.name === n);
+      if (!isLabel) out.push(n);
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  return out;
+}
+
+/**
+ * Walk JSX ancestors looking for a card above, FOLLOWING LOCAL CONSTS.
+ *
+ * The plain ancestor walk was defeated the moment a card hoisted its panel
+ * into a local `const` and placed `{it}` further down — which is exactly what
+ * PostedJobCard did on 2026-09-16 (`const trackerBlock = <div …><JobTracking
+ * embedded …/></div>`, rendered inside `<JobCardShell>` 380 lines later).
+ * Measured 2026-09-21: deleting `embedded` from that use — the poster-side
+ * doubled card this guard was written for — left the whole file GREEN (8
+ * passed), because the walk reached the VariableDeclaration, hit the component
+ * function, and stopped without ever seeing the shell. Same lesson as
+ * `stringConsts` one level up: a detector that reads only the literal shape
+ * goes blind the first time anyone factors the code out.
+ *
+ * So: on reaching a `const NAME = …` the walk continues from every reference
+ * to NAME in the same file.
+ */
+function wrapperAbove(
+  sf: ts.SourceFile,
+  start: ts.Node | undefined,
+  cardComponents: Set<string>,
+  consts: Map<string, string>,
+  seen: Set<ts.Node> = new Set(),
+): string | null {
+  let p: ts.Node | undefined = start;
+  while (p && !ts.isFunctionLike(p)) {
+    if (seen.has(p)) return null;
+    seen.add(p);
+    if (ts.isJsxElement(p)) {
+      const tag = p.openingElement.tagName.getText();
+      const cls = classText(attrs(p.openingElement).get("className")?.initializer, consts);
+      const wrapper = /^[a-z]/.test(tag)
+        ? GLASS.test(cls) ? `<${tag} className="${cls.trim()}">` : null
+        : cardComponents.has(tag) ? `<${tag}> (card component)` : null;
+      if (wrapper) return wrapper;
+    }
+    if (ts.isVariableDeclaration(p) && ts.isIdentifier(p.name)) {
+      for (const ref of referencesTo(sf, p.name.text, p)) {
+        const w = wrapperAbove(sf, ref.parent, cardComponents, consts, seen);
+        if (w) return w;
+      }
+      return null;
+    }
+    p = p.parent;
+  }
+  return null;
+}
+
+/** Nearest capitalised function/const above a node — the component it renders in. */
+function enclosingComponent(n: ts.Node): string | null {
+  for (let p: ts.Node | undefined = n.parent; p; p = p.parent) {
+    if (ts.isFunctionDeclaration(p) && p.name && /^[A-Z]/.test(p.name.text)) return p.name.text;
+    if (ts.isVariableDeclaration(p) && ts.isIdentifier(p.name) && /^[A-Z]/.test(p.name.text)) return p.name.text;
+  }
+  return null;
+}
+
 export function findNestedPanelCards(file: string, source: string, cardComponents: Set<string>) {
   const sf = parse(file, source);
   const consts = stringConsts(sf);
-  const uses: Array<{ line: number; panel: string }> = [];
+  const uses: Array<{ line: number; panel: string; chromeFree: boolean; owner: string | null }> = [];
   const violations: NestedCardViolation[] = [];
   const visit = (n: ts.Node) => {
     if ((ts.isJsxSelfClosingElement(n) || ts.isJsxOpeningElement(n)) && PANELS.has(n.tagName.getText())) {
       const line = sf.getLineAndCharacterOfPosition(n.getStart()).line + 1;
       const panel = n.tagName.getText();
-      uses.push({ line, panel });
-      if (!isChromeFree(n)) {
-        let p: ts.Node | undefined = ts.isJsxOpeningElement(n) ? n.parent.parent : n.parent;
-        while (p && !ts.isFunctionLike(p)) {
-          if (ts.isJsxElement(p)) {
-            const tag = p.openingElement.tagName.getText();
-            const cls = classText(attrs(p.openingElement).get("className")?.initializer, consts);
-            const wrapper = /^[a-z]/.test(tag)
-              ? GLASS.test(cls) ? `<${tag} className="${cls.trim()}">` : null
-              : cardComponents.has(tag) ? `<${tag}> (card component)` : null;
-            if (wrapper) {
-              violations.push({ file: path.relative(SRC, file), line, panel, wrapper });
-              break;
-            }
-          }
-          p = p.parent;
-        }
+      const chromeFree = isChromeFree(n);
+      uses.push({ line, panel, chromeFree, owner: enclosingComponent(n) });
+      if (!chromeFree) {
+        const start = ts.isJsxOpeningElement(n) ? n.parent.parent : n.parent;
+        const wrapper = wrapperAbove(sf, start, cardComponents, consts);
+        if (wrapper) violations.push({ file: path.relative(SRC, file), line, panel, wrapper });
       }
     }
     ts.forEachChild(n, visit);
@@ -293,6 +360,24 @@ describe("no card component anywhere inside a job card (cross-file)", () => {
     expect(nested).toEqual([]);
   });
 
+  /**
+   * The Helpr side of the same regression, which the SAME-FILE walk cannot
+   * see. `HelperTrackerPanel` is flat (`<div className="space-y-2">`) and its
+   * glass ancestor — JobCardShell — is three files away, so deleting
+   * `embedded` from its `<JobTracking>` produced no same-file wrapper and no
+   * card component in `nested` (panels are exempt there by design: their glass
+   * is prop-gated). Everything reachable from `<JobCardShell>` is inside the
+   * card by construction, so a panel rendered there must be chrome-free.
+   */
+  it("every panel rendered by a component a job card reaches is chrome-free", () => {
+    const bad = files.flatMap(({ file, source }) =>
+      findNestedPanelCards(file, source, cards)
+        .uses.filter((u) => !u.chromeFree && u.owner && reached.has(u.owner))
+        .map((u) => `${path.relative(SRC, file)}:${u.line} <${u.panel}> in ${u.owner}, which a job card renders`),
+    );
+    expect(bad).toEqual([]);
+  });
+
   it("flags the pre-fix Helpr shape across three files", () => {
     const shell = `export function Card() { return (<JobCardShell><Section /></JobCardShell>); }`;
     const section = `export function Section() { const shared = { tracker: <Panel /> }; return (<div className="px-4">{shared.tracker}</div>); }`;
@@ -362,6 +447,29 @@ describe("no bordered card nested inside another (JobTracking / JobConfirmation)
     expect(findNestedPanelCards("p.tsx", poster, cards).violations.map((x) => x.panel)).toEqual(["JobTracking", "JobConfirmation"]);
     const fixed = poster.replace("<JobTracking ", "<JobTracking embedded ").replace("<JobConfirmation ", "<JobConfirmation embedded ");
     expect(findNestedPanelCards("p.tsx", fixed, cards).violations).toEqual([]);
+    // THE HOISTED-CONST SHAPE (PostedJobCard, 2026-09-16). The panel is built
+    // into a local const and placed inside the shell further down. The walk
+    // must follow the const to its use site; before 2026-09-21 it stopped at
+    // the declaration and this returned [] — the guard's own poster case,
+    // silently unprotected.
+    const hoisted = `export function C() {
+      const trackerBlock = (<div onClick={() => {}}><JobTracking includePostingSteps jobId="j" /></div>);
+      return (
+        <JobCardShell rail="x">
+          <div className="pt-3">{trackerBlock}</div>
+        </JobCardShell>
+      );
+    }`;
+    expect(findNestedPanelCards("hoist.tsx", hoisted, cards).violations.map((x) => x.wrapper)).toEqual([
+      "<JobCardShell> (card component)",
+    ]);
+    expect(
+      findNestedPanelCards("hoist.tsx", hoisted.replace("<JobTracking ", "<JobTracking embedded "), cards).violations,
+    ).toEqual([]);
+    // A hoisted const that is never placed inside a card is still fine.
+    const hoistedFlat = hoisted.replace("<JobCardShell rail=\"x\">", "<div className=\"space-y-2\">").replace("</JobCardShell>", "</div>");
+    expect(findNestedPanelCards("hoist.tsx", hoistedFlat, cards).violations).toEqual([]);
+
     // A non-card component in between does not hide the card above it.
     const wrapped = poster.replace('<div onClick={() => {}}>', "<Collapsible>").replace("</JobTracking></div>", "");
     expect(findNestedPanelCards("p.tsx", wrapped.replace('jobId="j" /></div>', 'jobId="j" /></Collapsible>'), cards).violations.length).toBeGreaterThan(0);
@@ -395,3 +503,14 @@ describe("no bordered card nested inside another (JobTracking / JobConfirmation)
     }
   });
 });
+
+// ── Registered mutations (npm run vacuity) ───────────────────────────────────
+// Poster side, THE HOISTED-CONST SHAPE. Before 2026-09-21 this one SURVIVED:
+// the panel lives in `const trackerBlock` and the same-file ancestor walk
+// stopped at the declaration, never reaching <JobCardShell> 380 lines below.
+// @mutate src/components/activity/PostedJobCard.tsx | <JobTracking embedded includePostingSteps | <JobTracking includePostingSteps
+// Poster side, literally inside <JobCardShell> — the plain ancestor walk.
+// @mutate src/components/activity/PostedJobCard.tsx | <JobConfirmation embedded jobId={job.id} isOwner={true} | <JobConfirmation jobId={job.id} isOwner={true}
+// Helpr side, CROSS-FILE: HelperTrackerPanel is flat and its glass ancestor is
+// three files away, so only the render-graph reachability check sees this.
+// @mutate src/components/activity/appliedJobCard/HelperTrackerPanel.tsx | <JobTracking\n        embedded\n | <JobTracking\n

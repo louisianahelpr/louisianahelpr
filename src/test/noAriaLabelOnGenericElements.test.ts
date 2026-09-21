@@ -34,13 +34,26 @@ describe("no aria-label on role-less elements", () => {
 
   it("src/ has none", () => {
     const hits: string[] = [];
+    let scanned = 0;
     (function walk(d: string) {
       for (const n of readdirSync(d)) {
         const p = join(d, n);
         if (statSync(p).isDirectory()) walk(p);
-        else if (/\.tsx$/.test(n) && !/\.test\./.test(n)) for (const o of offenders(readFileSync(p, "utf8"))) hits.push(`${p}: ${o}`);
+        else if (/\.tsx$/.test(n) && !/\.test\./.test(n)) {
+          scanned++;
+          for (const o of offenders(readFileSync(p, "utf8"))) hits.push(`${p}: ${o}`);
+        }
       }
     })("src");
+    // Floor the inventory: a walk that finds nothing passes every per-file
+    // assertion vacuously, so a broken path or filter would read as "clean".
+    expect(scanned, "walked src/ and found no .tsx at all").toBeGreaterThan(300);
     expect(hits).toEqual([]);
   });
 });
+
+// The star-rating row is a <div role="img" aria-label="N out of 5 stars">.
+// Drop the role and the name is aria-prohibited: VoiceOver announces the five
+// decorative <Star> glyphs as nothing at all and the rating is unreadable.
+// @mutate src/components/reviewPanel/ReviewList.tsx | <div role="img" aria-label={`${r.rating} out of 5 stars`} className="flex"> | <div aria-label={`${r.rating} out of 5 stars`} className="flex">
+

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { type SubscriptionTier, TIER_PERKS } from "@/lib/subscriptionTiers";
 import {
   Dialog,
   DialogContent,
@@ -24,9 +24,22 @@ interface ProUpgradeSheetProps {
   body: string;
   /** Bullet list of perks the user gets at this tier and up. */
   perks: string[];
-  /** Cheapest tier that unlocks the feature — "basic", "pro" or "elite".
-      Determines copy + CTA destination. */
-  requiredTier?: "basic" | "pro" | "elite";
+  /**
+   * Cheapest tier that unlocks the feature. Determines copy + CTA destination.
+   *
+   * Typed from the tier ladder itself, not spelled out. This read
+   * `"basic" | "pro" | "elite"` and so could not express PLUS — while
+   * `featuredBadge` and `dedicatedSupport` both have plus as their cheapest
+   * entitled tier (TIER_PERK_MATRIX, verified 2026-09-21). Nothing gates those
+   * behind this sheet today, so it was a trap rather than a bug: the next
+   * person to try would have been forced to name a tier that does not unlock
+   * the thing, and upsell the user to a plan that leaves them still locked
+   * out.
+   *
+   * `free` is excluded because a sheet that tells you to upgrade to free is
+   * nonsense; everything else comes from the ladder and grows with it.
+   */
+  requiredTier?: Exclude<SubscriptionTier, "free">;
 }
 
 /**
@@ -51,12 +64,15 @@ export function ProUpgradeSheet({
   // Branded name, from TIER_PERKS — this string reaches the user in the sheet
   // body and on the CTA ("See Helpr Pro Plans"), and must read the same as
   // the plan card it sends them to.
-  const tierLabel =
-    requiredTier === "elite" ? TIER_PERKS.elite.name
-    : requiredTier === "basic" ? TIER_PERKS.basic.name
-    : TIER_PERKS.pro.name;
+  // DERIVED, not a ternary chain. The chain here named elite and basic and let
+  // everything else fall through to Pro — so a `plus` requirement would have
+  // been LABELLED "Pro" and sent the user to buy the wrong plan.
+  const tierLabel = TIER_PERKS[requiredTier].name;
   const TierIcon =
-    requiredTier === "elite" ? Crown : requiredTier === "basic" ? Star : Sparkles;
+    requiredTier === "elite" ? Crown
+    : requiredTier === "basic" ? Star
+    : requiredTier === "plus" ? Crown
+    : Sparkles;
   // `accent` / `accentSoft` are gone with the header icon tile they painted.
   // Nothing else in this sheet was tinted per tier — the tier reads from the
   // title and the CTA label.

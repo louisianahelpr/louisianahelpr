@@ -228,7 +228,41 @@ function runPlaywright(guard, { rebuild = false } = {}) {
       },
     },
   );
-  return { green: r.status === 0, out: (r.stdout || "") + (r.stderr || "") };
+  const out = (r.stdout || "") + (r.stderr || "");
+
+  /*
+   * A RUN WHERE EVERYTHING SKIPPED IS NOT A PASS — and scored as one it
+   * produces a FALSE SURVIVED, which convicts a good spec of being hollow.
+   *
+   * Playwright exits 0 when every test skips. Two ways that happens here, both
+   * measured today:
+   *   - a spec self-gates on an env var (handled by specGateEnv above);
+   *   - a spec calls `test.skip()` because its fixture could not authenticate.
+   *     `sessionsAvailable()` reads `.env`, which is gitignored, so a fresh
+   *     `git worktree add` has none — and every session-gated spec skips. A
+   *     lane hit exactly this: the registration came back SURVIVED in about a
+   *     minute, and one `ln -s` of `.env` turned the identical directive into
+   *     `killed`.
+   *
+   * The runner cannot otherwise tell "the guard did not notice" from "the
+   * guard did not run". Reporting it as not-green makes the mutation phase
+   * call it `inconclusive`, which is already a hard failure — the honest
+   * answer when nothing was observed.
+   */
+  const m = /(\d+)\s+skipped/.exec(out);
+  const ranSomething = /\b(\d+)\s+(passed|failed)\b/.test(out);
+  if (r.status === 0 && m && !ranSomething) {
+    return {
+      green: false,
+      allSkipped: true,
+      out:
+        `EVERY test in ${guard} SKIPPED (${m[1]}), and Playwright exits 0 when that happens — so this ` +
+        `run observed nothing. Commonest cause in a fresh worktree: no .env, so the session fixture ` +
+        `cannot authenticate and every session-gated test skips. Symlink .env from the main checkout ` +
+        `and re-run.\n` + out.slice(-2000),
+    };
+  }
+  return { green: r.status === 0, out };
 }
 
 /** Dispatch one guard to the engine that can actually execute it. */

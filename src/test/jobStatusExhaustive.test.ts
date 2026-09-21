@@ -299,3 +299,17 @@ describe("the assertNever rollout list stays honest", () => {
     expect(offenders, "unguarded status switches:\n  " + offenders.join("\n  ")).toEqual([]);
   });
 });
+
+// Take the exhaustiveness guard off `derivePosterWait`'s status switch: a
+// `job_status` added to the DB enum stops being a build error and starts
+// rendering the blank strip this file exists to prevent.
+//
+// This also re-proves the BRACE-MATCHING repair (see switchBody above). The
+// mutated switch opens at jobStatusLine.ts:206 and its own `default` is ~55
+// lines down, while a SECOND, still-guarded switch in the same file carries
+// `return assertNever(job.status);` at line 387. Under the old fixed
+// 900-character window the guard reported false offenders against correct
+// code; a window that reached further would have been satisfied by the
+// neighbouring switch's assertNever and waved this mutation through. It is
+// killed by the brace-matched body, and by nothing else.
+// @mutate src/components/activity/jobStatusLine.ts | // A new `job_status` enum member is a BUILD error here, not a blank strip.\n      return assertNever(job.status); | return "confirmed";

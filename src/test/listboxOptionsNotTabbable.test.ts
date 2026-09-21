@@ -12,6 +12,9 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { createElement } from "react";
+import { render, screen, cleanup } from "@testing-library/react";
+import { DateWheelPicker } from "@/components/DateWheelPicker";
 
 function offenders(raw: string): string[] {
   // Prose that merely names the pattern (e.g. a history comment) is not code.
@@ -115,3 +118,74 @@ describe("listbox options are not tab stops", () => {
     expect(contractGaps, `use ${COMBOBOX_HOOK} — a listbox popup needs an arrow-key model`).toEqual([]);
   });
 });
+
+/**
+ * THE ORIGINAL DEFECT, IN THE RENDERED DOM.
+ *
+ * The sweep above reads source text, so it can only catch the shapes a regex
+ * knows how to spell: it would miss an option rendered through a wrapper
+ * component, or a `tabIndex` computed at runtime. The widget the defect
+ * actually happened on is cheap to mount, so mount it and ask the browser's
+ * own answer — `el.tabIndex`, which resolves whatever the JSX did.
+ *
+ * Two Tab presses on this control moved a user's date of birth from 2008 to
+ * 1906 (keyboard audit, 2026-09-12): each option was a natively-focusable
+ * <button>, Tab focused one, the column scroll-snapped to it, and the scroll
+ * handler adopted it as the value. Per WAI-ARIA the listbox is the single tab
+ * stop and every option carries tabIndex=-1.
+ */
+describe("the DOB wheel, rendered", () => {
+  it("makes the listbox the only tab stop and every option unreachable by Tab", () => {
+    cleanup();
+    render(
+      createElement(DateWheelPicker, {
+        value: "2000-06-15",
+        onChange: () => {},
+        minDate: new Date(1920, 0, 1),
+        maxDate: new Date(2008, 11, 31),
+      }),
+    );
+
+    const listboxes = screen.getAllByRole("listbox");
+    expect(
+      listboxes.length,
+      "the DOB wheel rendered no listbox at all — this assertion is looking at nothing",
+    ).toBe(3); // month / day / year
+
+    for (const lb of listboxes) {
+      expect(
+        (lb as HTMLElement).tabIndex,
+        `the ${lb.getAttribute("aria-label")} column is not a tab stop, so the wheel is ` +
+          `unreachable by keyboard`,
+      ).toBe(0);
+      expect(
+        lb.getAttribute("aria-activedescendant"),
+        `the ${lb.getAttribute("aria-label")} column publishes no active option, so there ` +
+          `is no arrow-key model for a screen reader to follow`,
+      ).toBeTruthy();
+    }
+
+    const options = screen.getAllByRole("option");
+    expect(
+      options.length,
+      "no options rendered — an empty sweep would pass this vacuously",
+    ).toBeGreaterThan(30);
+
+    const tabbable = options
+      .filter((o) => (o as HTMLElement).tabIndex !== -1)
+      .map((o) => `${o.tagName.toLowerCase()} "${o.textContent}" tabIndex=${(o as HTMLElement).tabIndex}`);
+    expect(
+      tabbable,
+      "options inside a listbox are tab stops. Tab moves focus to one, the column " +
+        "scroll-snaps to it, and the scroll handler adopts it as the value — this is how " +
+        "two Tab presses moved a date of birth from 2008 to 1906. Give every option " +
+        "tabIndex={-1} and leave the keys to the listbox.",
+    ).toEqual([]);
+  });
+});
+
+// The original defect, restored: the option <button> is natively focusable
+// again, so Tab walks into the wheel and silently rewrites the user's date of
+// birth. Killed by BOTH the rendered-DOM assertion above (el.tabIndex) and the
+// source sweep.
+// @mutate src/components/DateWheelPicker.tsx | role="option"\n          tabIndex={-1} | role="option"

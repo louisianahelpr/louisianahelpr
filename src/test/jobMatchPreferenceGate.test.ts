@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+// @ts-expect-error — plain .mjs script, no type declarations
+import { stripSqlComments } from "../../scripts/check-migration-raise-codes.mjs";
 
 /**
  * THE JOB-MATCH OFF SWITCH, PROVEN AT THE SEND SITE.
@@ -28,11 +30,36 @@ import { resolve } from "node:path";
 const repoRoot = resolve(__dirname, "../..");
 const migrationsDir = resolve(repoRoot, "supabase/migrations");
 
-/** Every migration, in replay (lexical) order. */
+/**
+ * Every migration, in replay (lexical) order, WITH EVERY SQL COMMENT BLANKED.
+ *
+ * Without the blanking this whole file was satisfiable by prose. Measured
+ * 2026-09-21 on 20260911201653: commenting out the live
+ * `AND COALESCE(np.job_matches, true) IS TRUE` inside
+ * `notify_saved_searches_on_new_job` — so every saved-search `job_match` row
+ * and its push fire again for people who turned Job Matches OFF, the exact
+ * decorative-toggle defect this file exists to prevent — left all six
+ * assertions GREEN, because the dead comment still matched the COALESCE regex.
+ *
+ * `stripSqlComments` is a scanner, not a regex: `--` inside a single-quoted
+ * literal is untouched, and comments are blanked rather than deleted so every
+ * offset (the push-map seed scan below included) still lines up.
+ */
 const migrationSql = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql"))
   .sort()
-  .map((f) => ({ file: f, sql: readFileSync(resolve(migrationsDir, f), "utf8") }));
+  .map((f) => ({
+    file: f,
+    sql: stripSqlComments(readFileSync(resolve(migrationsDir, f), "utf8")) as string,
+  }));
+
+// An empty migrations directory would make every per-producer assertion below
+// pass by describing nothing.
+if (migrationSql.length < 50) {
+  throw new Error(
+    `only ${migrationSql.length} migrations found in ${migrationsDir} — this guard is reading nothing`,
+  );
+}
 
 /**
  * The LAST definition of a function in replay order — the one that is live.
@@ -126,3 +153,10 @@ describe("job_match respects the user's Job Matches preference", () => {
     expect(email).toMatch(/job_match:\s*\{\s*prefCol:\s*'email_job_matches'/);
   });
 });
+
+// Comment out the live Job Matches clause in the saved-search fan-out: every
+// saved-search `job_match` row (and its push) fires again for accounts that
+// turned the category OFF — the decorative-toggle defect at the top of this
+// file. Registered in its COMMENT form deliberately: that is the shape that
+// used to survive here.
+// @mutate supabase/migrations/20260911201653_job_match_notification_preference.sql | is the master over every saved search. Unset means on.\n      AND COALESCE(np.job_matches, true) IS TRUE | is the master over every saved search. Unset means on.\n      -- AND COALESCE(np.job_matches, true) IS TRUE

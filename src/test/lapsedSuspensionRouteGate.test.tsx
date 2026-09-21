@@ -90,3 +90,10 @@ describe("ProtectedRoute ban gate", () => {
     expect(screen.getByText("BANNED SCREEN")).toBeTruthy();
   });
 });
+
+// Put DH-017 back: `temp_banned` locks the account out regardless of when the
+// suspension actually ended, so for up to a full sweep interval after their
+// penalty expired the user is still bounced to /account-banned and shown an
+// expiry date in the past. Behavioural — this is killed by the route rendering
+// BANNED SCREEN where DASHBOARD belongs, not by any source text.
+// @mutate src/lib/banStatus.ts | return until > now; | return true;

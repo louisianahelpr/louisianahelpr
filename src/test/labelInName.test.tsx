@@ -228,3 +228,12 @@ describe("no element's aria-label overwrites its own visible text", () => {
     ).toMatch(/starts \? ariaLabel : `\$\{label\}/);
   });
 });
+
+// Substitute at the CALL SITE, leaving `composeAccessibleName` defined and
+// every source-text pin in this file satisfied — the "satisfied by a DEFINITION
+// rather than a call" shape. `JobActionChip` then renders
+// `aria-label={ariaLabel}`, so the chip that READS "Hire Again" ANSWERS only to
+// "Hire this Helpr again": a voice-control user can say none of the words they
+// can see (WCAG 2.5.3). Killed by the RUNTIME accessible-name assertion at the
+// top of this file, not by any class-name or source pin.
+// @mutate src/components/activity/JobActionRow.tsx | data-job-action-chip=""\n      aria-label={composeAccessibleName(label, ariaLabel)} | data-job-action-chip=""\n      aria-label={ariaLabel}

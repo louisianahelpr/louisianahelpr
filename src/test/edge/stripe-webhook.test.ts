@@ -1703,3 +1703,9 @@ describe("stripe-webhook edge function", () => {
     });
   });
 });
+
+// Proof this guard can fail (scripts/vacuity). Deleting the signature check —
+// parsing the attacker-supplied body as a verified Stripe event — must turn the
+// "bad signature" case red. A webhook whose signature verification can be
+// removed with every test still green is the worst possible hollow guard.
+// @mutate supabase/functions/stripe-webhook/index.ts | return await stripe.webhooks.constructEventAsync(body, sig, secret); | return JSON.parse(body) as Stripe.Event;

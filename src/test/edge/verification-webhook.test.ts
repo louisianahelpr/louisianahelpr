@@ -174,3 +174,7 @@ describe("verification-webhook edge function", () => {
     });
   });
 });
+
+// Proof this guard can fail (scripts/vacuity). Accepting any HMAC lets a forged
+// Checkr callback mark a background check "clear".
+// @mutate supabase/functions/verification-webhook/index.ts | !timingSafeEqual(provided, expected) | false

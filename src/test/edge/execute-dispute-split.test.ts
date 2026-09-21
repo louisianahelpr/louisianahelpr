@@ -1493,3 +1493,7 @@ describe("execute-dispute-split edge function", () => {
     });
   });
 });
+
+// Proof this guard can fail (scripts/vacuity). Without the admin-role check any
+// signed-in user could split a disputed job's escrow.
+// @mutate supabase/functions/execute-dispute-split/index.ts | if (!hasAdmin) throw new Error("admin role required"); |

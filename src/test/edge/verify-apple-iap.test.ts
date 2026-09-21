@@ -192,3 +192,7 @@ describe("EF-4 · the purchase is bound to the caller by appAccountToken", () =>
     expect(res.status).toBe(200);
   });
 });
+
+// Proof this guard can fail (scripts/vacuity). Dropping the environment gate
+// lets a FREE Sandbox transaction grant a real paid tier.
+// @mutate supabase/functions/verify-apple-iap/index.ts | if (expectsProduction() && isSandboxTransaction(tx)) { | if (false) {

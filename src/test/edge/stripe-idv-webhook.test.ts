@@ -70,6 +70,67 @@ describe("stripe-idv-webhook edge function", () => {
     resetSharedMocks();
   });
 
+  /**
+   * SIGNATURE ENFORCEMENT.
+   *
+   * Added 2026-09-21 after this file was shown HOLLOW here: with the whole
+   * rejection path replaced by "parse the body anyway"
+   *   try { event = await stripe.webhooks.constructEventAsync(...) }
+   *   catch { event = JSON.parse(body) as Stripe.Event }
+   * all four existing tests still passed 4/4. Every one of them mocks
+   * `constructEventAsync` to RESOLVE, so none of them ever reached the catch.
+   * A forged POST could have driven `profiles.idv_status` to `verified` for any
+   * user id it named, with no test noise at all.
+   *
+   * The two cases below are the ones that were missing: an unsigned request and
+   * a request whose signature does not verify must both be refused BEFORE
+   * anything is written — including the dedupe row, which is the first write the
+   * function makes.
+   */
+  describe("signature enforcement", () => {
+    /** A forged "this person is verified" payload, well-formed but unsigned. */
+    const FORGED = JSON.stringify({
+      id: "evt_forged",
+      type: "identity.verification_session.verified",
+      data: { object: { id: "vs_forged", metadata: { user_id: "victim-1" } } },
+    });
+
+    it("refuses an unsigned POST and writes nothing", async () => {
+      const fn = await loadConfigured();
+      const res = await fn.fetch(
+        fn.request({ rawBody: FORGED, headers: { "content-type": "application/json" } }),
+      );
+      // 200, not 401, is deliberate: a non-2xx makes Stripe retry 14+ times.
+      expect(res.status).toBe(200);
+      expect(JSON.parse(await res.text()).error).toBe("missing_signature_header");
+      expect(stripeMock.webhooks.constructEventAsync).not.toHaveBeenCalled();
+      expect(scenario.writes).toHaveLength(0);
+    });
+
+    it("refuses a payload whose signature does not verify, and writes nothing", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockRejectedValue(
+        new Error("No signatures found matching the expected signature"),
+      );
+      const res = await fn.fetch(
+        fn.request({
+          rawBody: FORGED,
+          headers: { "stripe-signature": "t=1,v1=forged", "content-type": "application/json" },
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect(JSON.parse(await res.text()).error).toBe("signature_verification_failed");
+      // The whole point: the forged body must NOT be parsed and processed. The
+      // dedupe insert is the first write, so zero writes proves the function
+      // stopped at the signature and never reached the handler.
+      expect(scenario.writes).toHaveLength(0);
+      const alert = slackAlerts.find((a) =>
+        /signature failed/i.test(String((a as { title?: string }).title ?? "")),
+      ) as { severity?: string } | undefined;
+      expect(alert?.severity).toBe("critical");
+    });
+  });
+
   describe("idempotency rollback", () => {
     it("records the dedupe row, then rolls it back when processing throws", async () => {
       const res = await runHandlerFailure();
@@ -133,3 +194,10 @@ describe("stripe-idv-webhook edge function", () => {
     });
   });
 });
+
+// Proof this guard can fail (scripts/vacuity). This mutation keeps the happy
+// path byte-identical (the mock resolves) and removes ONLY the refusal, so it
+// isolates signature ENFORCEMENT rather than event shape. Before the
+// "signature enforcement" block above it SURVIVED — 4/4 green with a forged
+// payload processed as if Stripe had signed it.
+// @mutate supabase/functions/stripe-idv-webhook/index.ts | event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret); | try { event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret); } catch { event = JSON.parse(body) as Stripe.Event; }

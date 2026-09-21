@@ -162,3 +162,7 @@ describe("stripe-idv-start cost guard", () => {
     expect(stripeMock.identity.verificationSessions.create).not.toHaveBeenCalled();
   });
 });
+
+// Proof this guard can fail (scripts/vacuity). Ignoring the claim's refusal is
+// exactly the unbounded-billing hole this file exists for.
+// @mutate supabase/functions/stripe-idv-start/index.ts | if (!claim.claimed) { | if (false) {

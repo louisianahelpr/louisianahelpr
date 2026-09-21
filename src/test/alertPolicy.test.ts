@@ -6,6 +6,21 @@
  * replacement rule is "critical posts, the rest is the daily digest" — which is
  * only safe if nothing that puts money or security at risk can land in the
  * digest. These tests pin that, from the edge functions' own source.
+ *
+ * PRESENT vs CORRECT. This does not merely assert a policy module exists: it
+ * runs the policy (postsImmediately / normalizeSeverity / effectiveSeverity's
+ * kind floor), then re-derives the money and security alert titles from every
+ * `postSlackOpsAlert({...})` call site in the tree and requires each to resolve
+ * critical, and then compares all THREE copies of the critical-source list (the
+ * TS policy, the notify trigger, the BEFORE-INSERT stamp) against each other.
+ * A policy that is present but wrong fails on the second and third of those.
+ *
+ * COVERAGE LIMIT, on the record: the SQL halves read migration TEXT. A trigger
+ * function replaced directly in the live database — or dropped there — is
+ * invisible; only `pg_get_functiondef` against prod would see it.
+ *
+ * @mutate supabase/functions/_shared/alertPolicy.ts | return severity === 'critical' || (!!kind && | return severity !== 'never' || (!!kind &&
+ * @mutate supabase/functions/_shared/alertPolicy.ts | 'rls-escalation-refused', | 'rls-escalation-tolerated',
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -51,6 +66,22 @@ export function slackAlertCallSites(read: (file: string) => string, files: strin
     }
   }
   return out;
+}
+
+/**
+ * ONE function's text out of a migration, bounded at the next
+ * `CREATE OR REPLACE FUNCTION` — never `slice(indexOf(...))` to the end of the
+ * file. That unbounded shape is how the money lane's `job_tracking` policy test
+ * ended up satisfied by a different policy further down, and how this repo's
+ * ban-evasion guard ended up satisfied by a repair block (both 2026-09-20).
+ * Both functions below live in ONE migration, so it applies directly here.
+ */
+function functionText(sql: string, marker: string): string {
+  const start = sql.indexOf(marker);
+  expect(start, `${marker} is not in the migration that was selected for it`).toBeGreaterThan(-1);
+  const rest = sql.slice(start);
+  const next = rest.indexOf("CREATE OR REPLACE FUNCTION", marker.length);
+  return next === -1 ? rest : rest.slice(0, next);
 }
 
 function tsFiles(dir: string, acc: string[] = []): string[] {
@@ -136,7 +167,7 @@ describe("alertPolicy", () => {
       .sort()
       .pop()!;
     const sql = readFileSync(join(dir, latest), "utf8");
-    const fn = sql.slice(sql.indexOf("FUNCTION public.notify_slack_on_error_log()"));
+    const fn = functionText(sql, "FUNCTION public.notify_slack_on_error_log()");
     const arr = fn.slice(fn.indexOf("ARRAY["), fn.indexOf("];"));
     const sqlSources = [...arr.matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
     expect(sqlSources).toEqual([...CRITICAL_ERROR_LOG_SOURCES].sort());
@@ -152,7 +183,7 @@ describe("alertPolicy", () => {
       .sort()
       .pop()!;
     const sql = readFileSync(join(dir, latest), "utf8");
-    const fn = sql.slice(sql.indexOf("FUNCTION public.stamp_error_log_origin()"));
+    const fn = functionText(sql, "FUNCTION public.stamp_error_log_origin()");
     const arr = fn.slice(fn.indexOf("ARRAY["), fn.indexOf("];"));
     const stampSources = [...arr.matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
     expect(stampSources).toEqual([...CRITICAL_ERROR_LOG_SOURCES].sort());

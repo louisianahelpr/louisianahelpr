@@ -1,3 +1,19 @@
+/**
+ * NOT "the world is currently clean". Prod today is six accounts, no strikes,
+ * all active — a check that only read prod would be green for that reason and
+ * for no other. Every case here is a FIXTURE fed to the script's own pure
+ * `findStrikes`, so the dirty cases fail on demand without anyone striking,
+ * banning or restricting a real account.
+ *
+ * COVERAGE LIMIT, on the record: this proves the DECISION, not the fetch. The
+ * three service-role reads in `main()` — their table names, their `in.(…)`
+ * email filter, the `is_active` predicate — are not exercised by any test, so a
+ * query that silently returned zero rows would run green here and green
+ * nightly.
+ *
+ * @mutate scripts/check-test-account-strikes.mjs | if (s.length || v.length || status !== "active") { | if (false) {
+ * @mutate scripts/check-test-account-strikes.mjs |   "helpr-e2e-helper-0902@mailinator.com",\n |
+ */
 import { describe, expect, it } from "vitest";
 // @ts-expect-error - plain .mjs tool script, no types
 import { findStrikes, SHARED_TEST_ACCOUNTS } from "../../scripts/check-test-account-strikes.mjs";

@@ -13,6 +13,13 @@ import { resolveCapturedEscrow } from "../../supabase/functions/_shared/captured
  * So the contract under test is two-sided, and both sides matter:
  *   - never report a figure that was not established (no silent zero), and
  *   - never refuse a payout that a present, usable figure would allow.
+ *
+ * Shown able to fail (CLAUDE.md, "every check must be shown able to fail"):
+ * the first mutation restores the ORIGINAL bug — a non-numeric amount_received
+ * sailing through as a figure — and the second lets an uncaptured intent be
+ * read for an amount that was never collected.
+ * @mutate supabase/functions/_shared/capturedEscrow.ts | typeof v === "number" && Number.isFinite(v) && v >= 0 | typeof v !== "object"
+ * @mutate supabase/functions/_shared/capturedEscrow.ts | if (pi.status !== "succeeded") { | if (false) {
  */
 describe("resolveCapturedEscrow", () => {
   it("prefers amount_received — what Stripe actually took", () => {

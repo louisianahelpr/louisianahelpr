@@ -21,6 +21,15 @@ import { resolve } from "node:path";
  *
  * The LIVE definition of an object is the one in the newest migration that
  * mentions it (filename sort), the same rule the sibling parity tests use.
+ *
+ * Shown able to fail: the first mutation re-opens H-001 by writing the floor
+ * the VACUOUS way (true on a NULL fee); the second strips the job-membership
+ * EXISTS back to the old self-identity-only WITH CHECK (AUTHZ-01); the third
+ * un-floors the fee create-payment actually charges.
+ * @mutate supabase/migrations/20260915055413_fix_urgent_placement_requires_paid_fee.sql | OR (urgent_fee IS NOT NULL AND urgent_fee >= 5) | OR (urgent_fee >= 5)
+ * @mutate supabase/migrations/20260915055415_job_tracking_checkins_require_job_membership.sql | FOR INSERT\n      WITH CHECK (\n        auth.uid() = helper_id\n        AND EXISTS (\n          SELECT 1 FROM public.jobs j\n          WHERE j.id = job_tracking.job_id\n            AND j.helper_id = auth.uid()\n        )\n      ); | FOR INSERT\n      WITH CHECK (auth.uid() = helper_id);
+ * @mutate supabase/migrations/20260915055415_job_tracking_checkins_require_job_membership.sql |         auth.uid() = user_id\n        AND EXISTS (\n          SELECT 1 FROM public.jobs j\n          WHERE j.id = job_checkins.job_id\n            AND (j.customer_id = auth.uid() OR j.helper_id = auth.uid())\n        )\n |         auth.uid() = user_id\n
+ * @mutate supabase/functions/create-payment/index.ts | const URGENT_FEE_FLOOR_CENTS = 500; | const URGENT_FEE_FLOOR_CENTS = 0;
  */
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
@@ -36,11 +45,50 @@ function newestMigrationContaining(needle: string): string {
     hits.length,
     `No migration contains "${needle}". If it was renamed, point this test at the new text — do not delete the check.`,
   ).toBeGreaterThan(0);
-  return readFileSync(resolve(MIGRATIONS, hits[hits.length - 1]), "utf8");
+  return stripSqlComments(readFileSync(resolve(MIGRATIONS, hits[hits.length - 1]), "utf8"));
+}
+
+/**
+ * Drop `-- ...` line comments before any assertion.
+ *
+ * Every check below is a text pin, and a text pin a COMMENT can satisfy is
+ * not a pin. Proved 2026-09-20: rewriting the H-001 predicate as
+ * `OR (true) -- urgent_fee IS NOT NULL AND urgent_fee >= 5` restores free
+ * urgent placement and left this file GREEN. A `--` inside a single-quoted
+ * literal is left alone (odd quote count before it on the line).
+ */
+function stripSqlComments(sql: string): string {
+  return sql
+    .split("\n")
+    .map((line) => {
+      let quoted = false;
+      for (let i = 0; i < line.length; i++) {
+        if (line[i] === "'") quoted = !quoted;
+        else if (!quoted && line[i] === "-" && line[i + 1] === "-") return line.slice(0, i);
+      }
+      return line;
+    })
+    .join("\n");
 }
 
 /** Collapse whitespace so predicate assertions ignore formatting. */
 const flat = (s: string) => s.replace(/\s+/g, " ");
+
+/**
+ * ONE policy's text, bounded at the next CREATE POLICY.
+ *
+ * This used to slice from the policy name to the END of the file, so the
+ * INSERT assertion was satisfied by the UPDATE policy's identical membership
+ * clause further down: deleting the EXISTS from the INSERT policy — AUTHZ-01,
+ * exactly what this guard exists to catch — left it GREEN (proved 2026-09-20
+ * by the second @mutate registration above, which now kills it).
+ */
+function policyBody(sql: string, name: string): string {
+  const start = sql.indexOf(name);
+  expect(start, `policy not found: ${name}`).toBeGreaterThanOrEqual(0);
+  const next = sql.indexOf("CREATE POLICY", start + name.length);
+  return next === -1 ? sql.slice(start) : sql.slice(start, next);
+}
 
 describe("urgent placement requires a paid fee (H-001)", () => {
   const sql = flat(newestMigrationContaining("jobs_urgent_fee_required"));
@@ -69,20 +117,20 @@ describe("job-scoped writes require job membership (AUTHZ-01 / AUTHZ-03)", () =>
 
   it("job_tracking INSERT binds the caller to the job's ASSIGNED helper, not just self-identity", () => {
     // The old policy was WITH CHECK (auth.uid() = helper_id) alone.
-    const insert = sql.slice(sql.indexOf('CREATE POLICY "Helpers can insert tracking"'));
+    const insert = policyBody(sql, 'CREATE POLICY "Helpers can insert tracking"');
     expect(insert).toContain("auth.uid() = helper_id");
     expect(insert).toMatch(/EXISTS \( SELECT 1 FROM public\.jobs j WHERE j\.id = job_tracking\.job_id AND j\.helper_id = auth\.uid\(\)/i);
   });
 
   it("job_tracking UPDATE carries the same membership guard on both USING and WITH CHECK", () => {
-    const upd = sql.slice(sql.indexOf('CREATE POLICY "Helpers can update their tracking"'));
+    const upd = policyBody(sql, 'CREATE POLICY "Helpers can update their tracking"');
     // Two membership EXISTS blocks (USING + WITH CHECK) reference jobs.helper_id.
     const matches = upd.match(/j\.id = job_tracking\.job_id AND j\.helper_id = auth\.uid\(\)/gi) || [];
     expect(matches.length).toBeGreaterThanOrEqual(2);
   });
 
   it("job_checkins INSERT requires the caller be a PARTY to the job (poster or assigned helper)", () => {
-    const chk = sql.slice(sql.indexOf('CREATE POLICY "Users can create their own checkins"'));
+    const chk = policyBody(sql, 'CREATE POLICY "Users can create their own checkins"');
     expect(chk).toContain("auth.uid() = user_id");
     expect(chk).toMatch(/j\.id = job_checkins\.job_id AND \(j\.customer_id = auth\.uid\(\) OR j\.helper_id = auth\.uid\(\)\)/i);
   });
@@ -95,8 +143,11 @@ describe("create-payment recomputes the urgent fee, never trusts the stored colu
   );
 
   it("charges the urgent tip only when is_urgent, floored at $5 and ceilinged at $5,000", () => {
-    expect(src).toContain("URGENT_FEE_FLOOR_CENTS = 500");
-    expect(src).toContain("URGENT_FEE_CEILING_CENTS = 500000");
+    // Anchored at the start of a line so a trailing `// ... = 500` comment
+    // cannot satisfy the pin while the real constant is lowered (proved
+    // 2026-09-20: `= 1; // was URGENT_FEE_FLOOR_CENTS = 500;` kept this green).
+    expect(src).toMatch(/^\s*const URGENT_FEE_FLOOR_CENTS = 500;/m);
+    expect(src).toMatch(/^\s*const URGENT_FEE_CEILING_CENTS = 500000;/m);
     // The charge branches on is_urgent and floors via Math.max, never reads the
     // raw column back into the line item.
     expect(flat(src)).toMatch(/urgentFeeCents = job\.is_urgent \? Math\.min\( Math\.max\(storedUrgentFeeCents, URGENT_FEE_FLOOR_CENTS\)/);

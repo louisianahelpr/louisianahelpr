@@ -7,6 +7,13 @@ import { stripeIdentityVerified } from "../../supabase/functions/_shared/stripeI
  * The cases below are not invented — they are shapes observed on the LIVE
  * platform account, which is exactly why `payouts_enabled` was rejected as the
  * signal. See the header of `_shared/stripeIdentity.ts`.
+ *
+ * Shown able to fail: the first mutation drops `eventually_due` from the
+ * ledger — the exact bucket both live counter-examples sat in — and the
+ * second stops the identity-key test from recognising `individual.*`, which
+ * is what would re-light the badge for an unverified account.
+ * @mutate supabase/functions/_shared/stripeIdentity.ts | ...(r.eventually_due ?? []),\n |
+ * @mutate supabase/functions/_shared/stripeIdentity.ts | key.startsWith("individual.") | key.startsWith("nobody.")
  */
 
 type Acct = Parameters<typeof stripeIdentityVerified>[0];

@@ -70,27 +70,28 @@ function testsThatRefuse(): { file: string; body: string }[] {
     .filter((t) => /mockResolvedValue(Once)?\(\s*false\s*\)|=>\s*false\b|:\s*false\b/.test(t.body));
 }
 
-/**
- * Known, reported, NOT covered. MAY ONLY SHRINK.
+/*
+ * THE RATCHET IS SPENT — and so the list is gone.
  *
- * 2026-09-21, ten → four. The six highest-stakes gates now each have a test
- * that mocks `@/lib/biometricGate`, drives `requireBiometric` to `false`, and
- * asserts the ACTION DID NOT HAPPEN — the RPC or edge invoke called zero
- * times, no success toast, the dialog still open — with a mutation registered
- * on that component's own `if (!ok)` so the assertion is shown able to fail:
+ * 2026-09-21 it read ten, then four, then zero. Every component that calls
+ * `requireBiometric` now has a test that mocks `@/lib/biometricGate`, drives
+ * the gate to `false`, and asserts the ACTION DID NOT HAPPEN — the RPC or edge
+ * invoke called zero times, no audit row, no success toast, the dialog still
+ * open and not stuck on a processing label — with a mutation registered on
+ * that component's own guard so the assertion is shown able to fail:
  *
- *   EditEmailDialog (login email), AdminPayoutBatches (single AND bulk payout,
- *   two gates), InstantPayoutDialog (instant cash-out), AdminJobs (refund),
- *   AdminSettings (grant AND remove admin, two gates), BanDialog (ban).
+ *   EditEmailDialog (login email), AdminPayoutBatches (single AND bulk payout),
+ *   InstantPayoutDialog (instant cash-out), AdminJobs (refund), AdminSettings
+ *   (grant AND remove admin), BanDialog (ban), AppLockGate (app unlock),
+ *   PayoutSetupForm (onboard, dashboard, remove method, reset — four),
+ *   ReferralSection (referral cash-out), AdminDisputes (quick release/refund,
+ *   decide-and-settle, retry settlement — three), SecurityTab (arming the lock).
  *
- * The four left are a second lane's work and are named, not hidden.
+ * There is deliberately NO exemption list left to add to. A new gated
+ * component with no refusal test fails the per-component case below on the
+ * commit that adds it, which is the whole point: the debt was paid, and the
+ * door it came through is closed.
  */
-const UNPROVEN: readonly string[] = [
-  "src/components/PayoutSetupForm.tsx",
-  "src/components/ReferralSection.tsx",
-  "src/components/admin/AdminDisputes.tsx",
-  "src/components/profile/SecurityTab.tsx",
-];
 
 describe("every biometric gate has a test that refuses", () => {
   const gated = gatedComponents();
@@ -109,26 +110,14 @@ describe("every biometric gate has a test that refuses", () => {
   };
 
   /*
-   * ONLY the components that are supposed to be covered. A first cut looped
-   * ALL of them and `return`ed early for the ratcheted ten — so the runner
-   * printed "src/components/admin/EditEmailDialog.tsx — its gate is driven to
-   * a refusal ✓" for a component whose gate is driven to nothing at all.
-   *
-   * A green line that states a falsehood is worse than no line: it is exactly
-   * the thing this whole effort exists to remove, and it was in the guard
-   * written to remove it. The ratcheted ten are asserted below, by name, as
-   * DEBT.
+   * EVERY gated component, with no filter. A first cut looped all of them and
+   * `return`ed early for the ratcheted ten — so the runner printed
+   * "src/components/admin/EditEmailDialog.tsx — its gate is driven to a
+   * refusal ✓" for a component whose gate was driven to nothing at all. A
+   * green line that states a falsehood is worse than no line. The ratchet that
+   * replaced it is now empty, so the filter is gone with it.
    */
-  const shouldBeCovered = gated.filter((c) => !UNPROVEN.includes(c));
-
-  it("the ratcheted debt is real, and named", () => {
-    // Not decoration: if this ever reaches zero the list should be deleted and
-    // every component held to the rule above.
-    expect(UNPROVEN.length, "the unproven list is empty — delete it and drop the filter").toBeGreaterThan(0);
-    expect(shouldBeCovered.length, "every gated component is ratcheted — nothing is being checked").toBeGreaterThan(0);
-  });
-
-  it.each(shouldBeCovered.map((c) => [c] as const))("%s — its gate is driven to a refusal", (component) => {
+  it.each(gated.map((c) => [c] as const))("%s — its gate is driven to a refusal", (component) => {
     expect(
       coveredBy(component),
       `${component} calls requireBiometric, and no test mocks the gate and drives it FALSE. ` +
@@ -138,12 +127,34 @@ describe("every biometric gate has a test that refuses", () => {
     ).not.toEqual([]);
   });
 
-  it("the unproven list only shrinks", () => {
-    const stale = UNPROVEN.filter((c) => !gated.includes(c) || coveredBy(c).length > 0);
+  /*
+   * THE OTHER WAY A GATE DIES: it is called, and its answer is thrown away.
+   *
+   * A refusal test can only see a guard that exists. `await
+   * requireBiometric(...)` with nothing branching on the result raises the OS
+   * sheet, lets the user cancel it, and proceeds anyway — and it LOOKS gated
+   * in review, in a grep, and in the component's own comments.
+   *
+   * Both shapes are legitimate and both are counted: `if (!ok) return;` (abort
+   * on refusal — every money action) and `if (ok) { ... }` (act on success —
+   * AppLockGate's unlock). What is not legitimate is neither.
+   */
+  it("every gate BRANCHES on its answer — no call site drops the result", () => {
+    const offenders = gated
+      .map((f) => {
+        const src = blankComments(readFileSync(resolve(REPO, f), "utf8"));
+        return {
+          file: f,
+          calls: (src.match(/\brequireBiometric\s*\(/g) ?? []).length,
+          branches: (src.match(/if\s*\(\s*!?\s*ok\b/g) ?? []).length,
+        };
+      })
+      .filter((r) => r.branches < r.calls);
     expect(
-      stale,
-      "these either no longer call requireBiometric, or now have a refusal test — remove them from " +
-        "UNPROVEN so the ratchet records the progress",
+      offenders,
+      "these call requireBiometric more times than they branch on its result — at least one prompt " +
+        "is raised, answered, and ignored. That is worse than no gate: it looks confirmed in review " +
+        "and in the component's own comments, and the user's refusal changes nothing.",
     ).toEqual([]);
   });
 
@@ -163,11 +174,16 @@ describe("every biometric gate has a test that refuses", () => {
 
 // PROVEN RED 2026-09-21: removing DeleteUserDialog's `mockResolvedValue(false)`
 // (its refusal case) fails "src/components/admin/DeleteUserDialog.tsx — its
-// gate is driven to a refusal". Removing an entry from UNPROVEN while that
-// component still has no refusal test fails the same case.
+// gate is driven to a refusal". Adding a new gated component with no refusal
+// test fails the same case, now that the exemption list is gone.
 // SOURCE-TEXT PIN: this proves a refusal is DRIVEN, not that the component
 // then does nothing — a test could drive false and assert nothing. That half
 // is each guard's own registered mutation. It also matches a test to a
 // component by file stem, so a test covering a component it never names is
-// invisible to it.
+// invisible to it, and it reads the git INDEX (`git ls-files`), so a brand-new
+// test file is invisible until it is staged.
 // @mutate src/components/admin/DeleteUserDialog.test.tsx | mockResolvedValue(false) | mockResolvedValue(true)
+// Second half: a gate whose answer is dropped. Deleting ReferralSection's
+// guard leaves one `requireBiometric` call and zero branches on `ok`, which is
+// the shape "every gate BRANCHES on its answer" exists to find.
+// @mutate src/components/ReferralSection.tsx | if (!ok) return; | void ok;

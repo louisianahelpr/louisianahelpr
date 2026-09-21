@@ -20,6 +20,12 @@ function extract(source: string, pattern: RegExp): string {
   return match[1];
 }
 
+const edgeSrcForKeys = readFileSync(EDGE_PATH, "utf8");
+const lastUpdatedBlockForKeys = extract(
+  readFileSync(FRONTEND_PATH, "utf8"),
+  /LAST_UPDATED:\s*Record<TabKey,\s*string>\s*=\s*\{([\s\S]*?)\}/,
+);
+
 describe("legal versions — frontend + edge parity", () => {
   const frontendSrc = readFileSync(FRONTEND_PATH, "utf8");
   const edgeSrc = readFileSync(EDGE_PATH, "utf8");
@@ -51,3 +57,45 @@ describe("legal versions — frontend + edge parity", () => {
     expect(edgeCommunity).toBe(frontendCommunity);
   });
 });
+
+/*
+ * THE KEY SET, not three hand-picked keys.
+ *
+ * The three cases above name `terms`, `privacy` and `community` literally, so
+ * a FOURTH legal document — the shape of this file's own risk — would be added
+ * to LAST_UPDATED, rendered with a version in its PolicyFooter, and have no
+ * edge constant at all, with this file green. The edge side is what drives
+ * re-consent: a document whose version the edge runtime cannot see can never
+ * prompt anyone to re-accept it.
+ *
+ * So derive the keys from LAST_UPDATED and require each to have a matching
+ * LEGAL_<KEY>_VERSION.
+ */
+describe("every legal document in LAST_UPDATED has an edge counterpart", () => {
+  const keys = [...lastUpdatedBlockForKeys.matchAll(/(\w+):\s*"([^"]+)"/g)].map((m) => ({
+    key: m[1],
+    version: m[2],
+  }));
+
+  it("found the map (an empty key set would pass every case below vacuously)", () => {
+    expect(keys.length).toBeGreaterThanOrEqual(3);
+    expect(keys.map((k) => k.key)).toContain("terms");
+  });
+
+  it.each(keys)("'$key' is mirrored in the edge constants at the same version", ({ key, version }) => {
+    const constant = `LEGAL_${key.toUpperCase()}_VERSION`;
+    const found = new RegExp(`${constant}\\s*=\\s*"([^"]+)"`).exec(edgeSrcForKeys);
+    expect(
+      found,
+      `${constant} does not exist in supabase/functions/_shared/legalVersions.ts. ` +
+        `The edge side drives re-consent — a document the edge runtime cannot see a ` +
+        `version for can never prompt anyone to re-accept it.`,
+    ).not.toBeNull();
+    expect(found?.[1], `${constant} has drifted from LAST_UPDATED.${key}`).toBe(version);
+  });
+});
+
+// Drift between the two copies is the entire point of the file: the front end
+// would render one date while the edge re-consent gate compared against
+// another, so a bumped policy would silently stop prompting anyone.
+// @mutate supabase/functions/_shared/legalVersions.ts | export const LEGAL_TERMS_VERSION = "Jun 2026"; | export const LEGAL_TERMS_VERSION = "Jul 2026";

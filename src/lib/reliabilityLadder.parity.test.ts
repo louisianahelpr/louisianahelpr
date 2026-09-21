@@ -47,16 +47,24 @@ const LADDER_SQL = repoFile(
 );
 
 /** The `CREATE OR REPLACE FUNCTION public.<name>( … $function$;` block. */
-function wrapperBlock(name: string): string {
-  const start = LADDER_SQL.indexOf(`FUNCTION public.${name}(`);
-  expect(
-    start,
-    `${name} is no longer defined in the ladder migration — it moved and this guard is now blind`,
-  ).toBeGreaterThan(-1);
-  const end = LADDER_SQL.indexOf("$function$;", start);
-  expect(end, `${name}'s body is unterminated`).toBeGreaterThan(start);
-  return LADDER_SQL.slice(start, end);
-}
+/**
+ * DELETED 2026-09-21 — `wrapperBlock` read one migration BY NAME
+ * (20260829030000) and returned that file's definition of a function.
+ *
+ * That is one `CREATE OR REPLACE` away from blindness: a later migration
+ * redefines the ladder, this file keeps asserting against the superseded body,
+ * and it stays GREEN while the copy and the live rule disagree. The
+ * `message_violation_ladder` half already used `newestBlock` for exactly this
+ * reason; the reliability and cancellation halves did not, which is a guard
+ * half-fixed and therefore trusted more than it deserved.
+ *
+ * Verified before the change: no migration later than 20260829030000
+ * redefines `apply_job_denial_consequence`,
+ * `apply_cancellation_violation_consequence` or `apply_consequence_ladder`, so
+ * this conversion asserts against the SAME text it did before — it removes a
+ * future failure mode rather than changing today's verdict.
+ */
+
 
 /** `p_name => ARRAY['a', 'b']` → ["a", "b"]. */
 function arrayArg(block: string, arg: string): string[] {
@@ -107,18 +115,18 @@ function newestBlock(name: string): { file: string; block: string } {
   throw new Error(`no migration defines public.${name} — this guard is blind`);
 }
 
-const DENIAL = wrapperBlock("apply_job_denial_consequence");
+const DENIAL = newestBlock("apply_job_denial_consequence").block;
 // Since 20260915020258 the off-platform ladder lives in
 // message_violation_ladder(p_description, p_content, p_message_saved); the
 // client RPC and the scan trigger are one-line delegates to it.
 const MESSAGE_LADDER = newestBlock("message_violation_ladder");
 const MESSAGE = MESSAGE_LADDER.block;
-const CANCEL = wrapperBlock("apply_cancellation_violation_consequence");
+const CANCEL = newestBlock("apply_cancellation_violation_consequence").block;
 
 // ---------------------------------------------------------------------------
 
 describe("the shared core still implements the machinery the wrappers assume", () => {
-  const core = wrapperBlock("apply_consequence_ladder");
+  const core = newestBlock("apply_consequence_ladder").block;
 
   it("records every offence and returns the {action, prior_count} shape callers read", () => {
     expect(core, "the core no longer writes the user_violations row").toContain(
@@ -533,4 +541,44 @@ describe("cancellation ladder — apply_cancellation_violation_consequence (SQL)
 // state a consequence the RPC does not apply. The suspension length is read
 // out of the SQL (`p_suspension_days`), so a copy that quotes a different one
 // must fail.
+/*
+ * THE HELPER'S OWN PROPERTY, asserted rather than assumed.
+ *
+ * Until 2026-09-21 two thirds of this file read ONE migration by name
+ * (20260829030000) via a `wrapperBlock` helper. That is one `CREATE OR
+ * REPLACE` away from blindness: a later migration redefines the ladder, this
+ * file keeps grading the superseded body, and it stays green while the copy
+ * and the live rule disagree.
+ *
+ * `newestBlock` scans migrations newest-first, so it cannot. But "scans
+ * newest-first" is an implementation detail that a refactor could quietly
+ * reverse, and `apply_job_denial_consequence` is defined in FOUR migrations —
+ * so the difference is observable and worth pinning.
+ *
+ * Honest limitation: reversing the scan direction makes this file die at
+ * COLLECTION, not at this assertion — `newestBlock` is called at module level
+ * for DENIAL/CANCEL/the core, and an older migration's body fails the
+ * dollar-quote parse first. The file is red either way, but the message you get
+ * is an import error rather than this case's name. Keeping the case anyway: it
+ * states the property in one readable place, and it is what fails if the
+ * module-level calls ever move inside tests.
+ */
+describe("newestBlock reads the LAST definition, not the first", () => {
+  it("picks the newest migration for a function defined in several", () => {
+    const dir = resolve(process.cwd(), "supabase/migrations");
+    const head = /^\s*create\s+(or\s+replace\s+)?function\s+(public\.)?"?apply_job_denial_consequence"?\s*\(/im;
+    const defining = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .filter((f) => head.test(readFileSync(resolve(dir, f), "utf8")))
+      .sort();
+    // The floor: if this collapses to one file the assertion below is vacuous.
+    expect(
+      defining.length,
+      "apply_job_denial_consequence must be defined in more than one migration " +
+        "for this to prove anything — if it is not, pick another multiply-defined function",
+    ).toBeGreaterThan(1);
+    expect(newestBlock("apply_job_denial_consequence").file).toBe(defining[defining.length - 1]);
+  });
+});
+
 // @mutate src/lib/reliabilityLadder.ts | 3rd — 7-day suspension | 3rd — 3-day suspension

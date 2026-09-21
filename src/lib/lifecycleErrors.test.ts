@@ -22,3 +22,10 @@ describe("rpcErrorMessage", () => {
     expect(rpcErrorMessage("apply_to_job", "rate_limit_day")).toBe("You've hit today's application limit — check back tomorrow.");
   });
 });
+
+// Proof this guard can fail (scripts/vacuity). The defect this file exists to
+// stop is a lifecycle refusal shown as the WRONG sentence: the whole-token
+// match is the only thing keeping `not_authorized` from firing on a longer
+// code that merely contains it, which is how "Only the person who posted this
+// job can cancel it" ends up on a refusal that meant something else.
+// @mutate src/lib/lifecycleErrors.ts | if (new RegExp(`(^\|[^a-z0-9_])${code}($\|[^a-z0-9_])`).test(raw)) return code as RpcErrorCode<R>; | if (raw.includes(code)) return code as RpcErrorCode<R>;

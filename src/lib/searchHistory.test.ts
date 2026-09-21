@@ -67,3 +67,9 @@ describe("searchHistory", () => {
     expect(getRecentSearches()).toEqual([]);
   });
 });
+
+// Proof this guard can fail (scripts/vacuity). The two behaviours that make
+// this list useful rather than a growing log: case-insensitive dedupe, and the
+// FIFO cap that stops it growing without bound in localStorage.
+// @mutate src/lib/searchHistory.ts | const deduped = current.filter((q) => q.toLowerCase() !== lower); | const deduped = current;
+// @mutate src/lib/searchHistory.ts | .slice(0, SEARCH_HISTORY_MAX) | .slice(0, 99)

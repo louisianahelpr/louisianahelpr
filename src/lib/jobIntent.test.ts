@@ -71,3 +71,9 @@ describe("jobIntent — signup redirect", () => {
     expect(postAuthDestination()).toBe("/dashboard?quickApply=job-9");
   });
 });
+
+// Proof this guard can fail (scripts/vacuity). This is an OPEN REDIRECT guard:
+// the value arrives from the query string, so both validations have to hold —
+// the one before it is written, and the one before anything navigates to it.
+// @mutate src/lib/jobIntent.ts | const safe = safeInternalRedirect(raw); | const safe = raw ?? null;
+// @mutate src/lib/jobIntent.ts | return safeInternalRedirect(raw); | return raw;

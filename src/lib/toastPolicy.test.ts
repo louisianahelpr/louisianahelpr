@@ -67,3 +67,9 @@ describe("applyToastPolicy", () => {
     expect(real.warning).toHaveBeenCalledWith("Payout failed — retry manually.");
   });
 });
+
+// Proof this guard can fail (scripts/vacuity). The one exception the policy
+// documents is a toast carrying an `action` — "Attachment removed · Undo" is
+// the only route back from a destructive-but-reversible write, so suppressing
+// it retires a feature silently while its code stays behind looking live.
+// @mutate src/lib/toastPolicy.ts | carriesAction(data) | false

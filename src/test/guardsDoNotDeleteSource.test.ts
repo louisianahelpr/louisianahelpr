@@ -92,7 +92,6 @@ const GRANDFATHERED: readonly string[] = [
   "src/test/segmentedControlInvariant.test.tsx",
   "src/test/shellConsistency.test.ts",
   "src/test/staleBundleGuard.test.ts",
-  "src/test/statGridFullTrackClassCheck.test.ts",
   "src/test/storageDeletionPaths.test.ts",
   "src/test/storageOrphanSweep.test.ts",
   "src/test/tripDistanceTrustAndBound.test.tsx",

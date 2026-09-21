@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * CLASS CHECK — a fixed-track grid may not be fed a conditionally-built array.
@@ -49,31 +50,63 @@ function tsxFiles(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-/** Block and line comments out, string contents preserved. */
-function stripComments(src: string): string {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
-}
+/**
+ * Block and line comments out, string contents preserved.
+ *
+ * Was a pair of deleting regexes. That chain makes 157 of 1,054 source files
+ * lose REAL CODE (one loses 98% of its own), because a `/` + `*` inside a
+ * string or regex literal opens a comment that runs to the next `*` + `/`
+ * anywhere later in the file. This guard walks every `.tsx` under `src/`, so
+ * it was scanning emptied text for an unknown share of them — and "found
+ * nothing" is what it reports either way. The `[^:]` was a partial patch for
+ * the same class, sparing `://` in URLs, which is the one symptom someone
+ * happened to notice.
+ */
+const stripComments = (src: string): string => blankComments(src);
 
 type Site = { file: string; ident: string; track: string; conditional: boolean };
 
 /**
- * A push is an OFFENDER only when it is CONDITIONAL. An unconditional push in
- * a loop fills the track by construction — ScheduleTab's month grid pushes
- * `firstDay` blanks and then every day of the month into a `grid-cols-7`, and
- * that is a calendar, not a self-hiding stat. The defect is membership that
- * depends on a VALUE, which is what leaves a hole.
+ * A push is an OFFENDER when the track is not filled BY CONSTRUCTION.
  *
- * Decided by which keyword opens the statement the push sits in: the nearest
- * preceding `if (` wins over the nearest preceding `for (` / `while (`.
+ * Two ways that happens:
+ *
+ *  1. CONDITIONAL — the push sits behind an `if (`, so membership depends on a
+ *     VALUE and a zero leaves a hole. This is the original defect.
+ *
+ *  2. DEFERRED — the push sits inside a JSX EVENT HANDLER (`onClick={() =>
+ *     …}`), so it does not run at construction at all: the grid renders with
+ *     one membership and changes to another when the user does something. That
+ *     is strictly worse than (1) — the track is not merely under-filled, it
+ *     moves under the reader.
+ *
+ * (2) was added 2026-09-21 because the nightly full mutation sweep caught this
+ * guard SURVIVING its own registered mutation. `onCopy={() => cells.push(
+ * cells[0])}` on the grid element has no preceding `if (` within the lookback,
+ * so the old rule classified it "unconditional" and waved it through. The
+ * guard's own header claimed it checked for `.push(` "anywhere in the file";
+ * the code only ever asked what keyword preceded it. Trust the declaration,
+ * not the comment beside it.
+ *
+ * A push inside an ARRAY-ITERATION callback is still fine and must stay fine —
+ * `days.forEach((d) => cells.push(…))` fills the track by construction, which
+ * is what ScheduleTab's month grid does. So the test is specifically a JSX
+ * event-handler attribute, not "any arrow function".
  */
+const JSX_HANDLER = /on[A-Z]\w*\s*=\s*\{/g;
+
 function conditionalPush(src: string, ident: string): boolean {
   for (const m of src.matchAll(new RegExp(`\\b${ident}\\.(?:push|unshift)\\s*\\(`, "g"))) {
-    const before = src.slice(Math.max(0, (m.index ?? 0) - 200), m.index);
+    const at = m.index ?? 0;
+    const before = src.slice(Math.max(0, at - 200), at);
     const lastIf = before.lastIndexOf("if (");
     const lastLoop = Math.max(before.lastIndexOf("for ("), before.lastIndexOf("while ("));
     if (lastIf >= 0 && lastIf > lastLoop) return true;
+
+    // Deferred: the nearest enclosing opener is a JSX event handler.
+    let lastHandler = -1;
+    for (const h of before.matchAll(JSX_HANDLER)) lastHandler = h.index ?? lastHandler;
+    if (lastHandler >= 0 && lastHandler > lastLoop) return true;
   }
   return false;
 }

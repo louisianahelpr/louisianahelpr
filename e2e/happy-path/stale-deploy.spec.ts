@@ -291,3 +291,15 @@ for (const rc of [ROUTES[3], ROUTES[6]]) {
     });
   });
 }
+
+// Proof this guard can fail.
+//
+// `armGuard` (above) writes ONLY the `helpr_chunk_reload_at` timestamp — the
+// shape a tab from the previous build leaves behind. `readState` turns that
+// timestamp-without-a-counter into "one attempt already spent", which is the
+// whole reason the six "guard armed" tests can assert `docs.n === 0` (no
+// automatic reload, honest card straight away). Drop that bridge and an armed
+// guard reads as a fresh episode, so every armed case reloads once instead of
+// zero times. The unarmed and cold cases are untouched, so the cap still
+// holds and nothing can loop.
+// @mutate src/lib/chunkReload.ts | if (last > 0 && rawCount === null) count = Math.max(count, 1); | if (last > 0 && rawCount === null) count = Math.max(count, 0);

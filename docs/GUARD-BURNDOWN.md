@@ -13,11 +13,11 @@ hand-edit the numbers.*
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| **`src/test/*.test.ts*`** | 191 | **191 — COMPLETE** | **0** |
-| `src/test/edge/` (money) | 53 | 7 | 46 |
+| **`src/test/*.test.ts*`** | 192 | **192 — COMPLETE** | **0** |
+| `src/test/edge/` (money) | 53 | 21 | 32 |
 | Playwright `e2e/**` | 60 | 0 | 60 |
-| colocated beside components | 333 | 3 | 333 |
-| **total** | **640** | **201** | **439** |
+| colocated beside components | 336 | 3 | 333 |
+| **total** | **641** | **216** | **425** |
 
 **Row 1 is done: 191 of 191, and 25 of them were hollow — one in seven.**
 

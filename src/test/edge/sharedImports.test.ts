@@ -84,14 +84,70 @@ function importedBindings(src: string): Set<string> {
   return bound;
 }
 
-/** Strip comments and string literals so a helper named in prose isn't a "use". */
+/**
+ * Blank comments and string BODIES, preserving every offset and the line count,
+ * so a helper named in prose isn't counted as a "use".
+ *
+ * WAS a chain of deleting regexes. It was measured on 2026-09-21 to destroy
+ * **53 of the 96 edge files** — not distort them, destroy them: `brand-asset/
+ * index.ts` came out 100% empty, every `stripe-webhook` handler lost 92%+, and
+ * `arrival-confirm-reminder` lost 87% INCLUDING its `postSlackOpsAlert(` call.
+ * Deleting the import from that file left this guard fully green, while the
+ * identical mutation on `release-payout` failed it. The guard was covering
+ * whichever files happened to survive its own stripper.
+ *
+ * Cause is the documented one, one line up from where it was documented: a
+ * non-greedy `/\*[\s\S]*?\*\//` has no idea it is inside a string, so the
+ * `/*` in a URL, a regex literal, or a `"https://…"` opens a comment that runs
+ * to the next `*` + `/` anywhere in the file and takes everything between.
+ * The guard already knew — its `definedLocally` check reads RAW precisely
+ * because "the comment stripper above is regex-based and can over-match". That
+ * mitigation only ever protected against a FALSE POSITIVE. The same defect in
+ * the other direction — a swallowed span hiding a REAL call — went unnoticed,
+ * which is the direction that matters for a guard.
+ *
+ * A single left-to-right scan cannot be fooled this way: it knows whether it is
+ * inside a string before it looks at a `/`. Blanking rather than deleting keeps
+ * offsets and line numbers usable, so a violation still points at the right
+ * place.
+ */
 function stripNoise(src: string): string {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/\/\/[^\n]*/g, " ")
-    .replace(/`(?:\\[\s\S]|[^\\`])*`/g, "``")
-    .replace(/"(?:\\[\s\S]|[^\\"])*"/g, '""')
-    .replace(/'(?:\\[\s\S]|[^\\'])*'/g, "''");
+  const out = src.split("");
+  let i = 0;
+  const n = src.length;
+  const blank = (from: number, to: number) => {
+    for (let k = from; k < to && k < n; k++) if (out[k] !== "\n") out[k] = " ";
+  };
+  while (i < n) {
+    const c = src[i];
+    const d = src[i + 1];
+    if (c === "/" && d === "/") {
+      let j = i;
+      while (j < n && src[j] !== "\n") j++;
+      blank(i, j);
+      i = j;
+      continue;
+    }
+    if (c === "/" && d === "*") {
+      let j = i + 2;
+      while (j < n && !(src[j] === "*" && src[j + 1] === "/")) j++;
+      blank(i, Math.min(j + 2, n));
+      i = j + 2;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") {
+      let j = i + 1;
+      while (j < n && src[j] !== c) {
+        if (src[j] === "\\") j++;
+        j++;
+      }
+      blank(i + 1, j); // quotes kept, body blanked
+      i = j + 1;
+      continue;
+    }
+    i++;
+  }
+  return out.join("");
 }
 
 describe("edge functions — _shared helpers are imported before use", () => {
@@ -102,6 +158,46 @@ describe("edge functions — _shared helpers are imported before use", () => {
     // vacuously and quietly stop guarding anything.
     expect(exported.size).toBeGreaterThan(10);
     expect(exported.has("postSlackOpsAlert")).toBe(true);
+  });
+
+  /*
+   * THE PROPERTY THAT WAS MISSING, and the reason this guard silently covered
+   * only 43 of 96 files for months: nothing asserted that the noise-stripper
+   * preserves the code. Blanking does; deleting does not. Checking the length
+   * is exact, cheap, and would have gone red the day the regex version shipped
+   * — `brand-asset/index.ts` came out of it 100% empty.
+   *
+   * This is a property of the stripper, not a sample of files, so it cannot rot
+   * as functions are added or rewritten.
+   */
+  it("the noise-stripper preserves every byte position (it blanks, never deletes)", () => {
+    const damaged: string[] = [];
+    for (const file of functionFiles()) {
+      const raw = readFileSync(file, "utf8");
+      const stripped = stripNoise(raw);
+      if (stripped.length !== raw.length || stripped.split("\n").length !== raw.split("\n").length) {
+        damaged.push(
+          `${file.replace(process.cwd() + "/", "")}: ${raw.length} bytes -> ${stripped.length}`,
+        );
+      }
+    }
+    expect(
+      damaged,
+      "a stripper that deletes shifts every later offset and can swallow whole spans of real code, " +
+        "hiding the very calls this guard exists to find. It must blank in place.",
+    ).toEqual([]);
+  });
+
+  it("actually sees a call in a file the old regex stripper destroyed", () => {
+    // arrival-confirm-reminder lost 87% of itself to the previous stripper,
+    // INCLUDING this call — deleting its import left the guard green. Pinning
+    // one known-destroyed file keeps the regression concrete as well as
+    // property-checked.
+    const raw = readFileSync(
+      join(FUNCTIONS_DIR, "arrival-confirm-reminder", "index.ts"),
+      "utf8",
+    );
+    expect(/(?<![.\w$])postSlackOpsAlert\s*\(/.test(stripNoise(raw))).toBe(true);
   });
 
   it("has no edge function calling a _shared helper it did not import", () => {
@@ -140,3 +236,13 @@ describe("edge functions — _shared helpers are imported before use", () => {
     expect(violations).toEqual([]);
   });
 });
+
+// PROVEN RED 2026-09-21: removing `import { postSlackOpsAlert }` from
+// arrival-confirm-reminder/index.ts — a file the OLD regex stripper destroyed
+// 87% of, so the identical mutation was invisible before this session — now
+// fails with "calls postSlackOpsAlert() without importing it".
+// SOURCE-TEXT PIN: this reads repo source. It cannot see a runtime
+// ReferenceError in a function deployed out of step with main, and it only
+// knows helpers that `_shared/*.ts` exports by a top-level `export function|
+// const|let|class` — a re-export or a default export is outside its inventory.
+// @mutate supabase/functions/arrival-confirm-reminder/index.ts | import { postSlackOpsAlert } from "../_shared/slack-alerts.ts"; |

@@ -281,3 +281,12 @@ describe("avatarObjectNameFromUrl", () => {
     );
   });
 });
+
+// PROVEN RED 2026-09-21: deleting the closed-set check in `safeDocumentExt`
+// (so the caller's own string is returned) fails 2 of 21 — which is exactly
+// the original defect, a client-supplied extension reaching a storage key
+// under the service role with no RLS evaluated.
+// SOURCE-TEXT PIN: this exercises the repo's `_shared/storageKeys.ts` directly.
+// It cannot see an edge function that builds a key WITHOUT calling this module
+// — `sharedImports.test.ts` is what covers that shape.
+// @mutate supabase/functions/_shared/storageKeys.ts | if (DOCUMENT_EXT_ALLOWED.has(e)) return e; | return e;

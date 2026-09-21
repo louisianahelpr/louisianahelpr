@@ -106,3 +106,18 @@ describe("dispute release — same-frame double click sends one request", () => 
     expect(invokeMock.mock.calls[0][1]).toEqual({ body: { action: "admin_release_dispute", jobId: "job-2" } });
   });
 });
+
+/* BLIND SPOTS. This proves the CLIENT sends one request per double tap. It
+ * proves nothing about the server: `create-payment`'s release path is mocked to
+ * a promise that never settles, so idempotency at the edge function and in
+ * Stripe is untested here, and the comment above is explicit that the server
+ * does not refuse a concurrent duplicate. Two taps in two different FRAMES, or
+ * from two devices, are also outside this file — the ref only closes the
+ * same-frame window. */
+
+// THE POSTER'S GUARD. React state alone loses this race: both taps in one frame
+// read `disputeActing === false` and both release the full escrow.
+// @mutate src/components/activity/postedJobCard/PostedJobActions.tsx | if (disputeInFlight.current) return; | if (false) return;
+// THE ADMIN'S GUARD, which additionally has to hold across the awaited
+// biometric prompt — `setResolving` only runs after it.
+// @mutate src/components/admin/AdminDisputes.tsx | if (resolveInFlight.current) return; | if (false) return;

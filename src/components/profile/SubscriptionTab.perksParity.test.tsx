@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SubscriptionTab } from "./SubscriptionTab";
 import { tierConfig } from "./subscriptionTab/tierConfig";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 /**
  * VN-44 (owner, 2026-09-14): "the SAME perks list must show when Once or Annual
@@ -69,6 +70,24 @@ function select(cycle: Cycle) {
 describe("Membership cards show the same perks on every billing cycle (VN-44)", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("the storefront offers a card for EVERY tier that exists, not just every tier it lists", () => {
+    // THE HOLE THIS CLOSES. Every other assertion in this file iterates
+    // `tierConfig` — which is a hand-written array of five object literals, not
+    // a projection of `TIER_PERKS`. A tier added to TIER_PERKS (with a fee, a
+    // perk-matrix row, an edge-side rung and live Stripe Prices) but never
+    // added to tierConfig has no card at all, and this file would have gone on
+    // reporting a confident green for the tiers it did know about: the loops
+    // would simply never visit the missing rung. That is the exact shape that
+    // let `plus` be omitted from five separate hand-written tier lists, one of
+    // which put Plus's platform fee below Elite's guarded 8% floor with 21
+    // tests green.
+    //
+    // Both directions matter. A tier in tierConfig that TIER_PERKS no longer
+    // has is a card advertising a plan nothing can sell or store — which is
+    // what the retired `business` rung was on the client side.
+    expect(tierConfig.map((t) => t.id)).toEqual(Object.keys(TIER_PERKS));
+  });
+
   it("renders a card for every tier in tierConfig", () => {
     renderTab();
     expect(Object.keys(readCards())).toEqual(tierConfig.map((t) => t.name));
@@ -116,3 +135,15 @@ describe("Membership cards show the same perks on every billing cycle (VN-44)", 
     expect(priceOn("Once")).toBe(plus.oneTime);
   });
 });
+
+/* BLIND SPOTS. This renders the cards and reads their text, so it proves what a
+ * member SEES; it does not prove what they are charged. The Stripe Price ids
+ * behind each button are proTiers.parity's job, and the entitlement each tier
+ * actually grants at runtime is perkEnforcementParity's. Nothing here presses
+ * Upgrade, so the checkout call itself is unexercised. */
+
+// The defect VN-44 named: a cycle-specific rewrite of the perks list. Any branch
+// on `billingInterval` inside the bullets makes Once show a different card.
+// @mutate src/components/profile/SubscriptionTab.tsx | .filter((f) => !/^Everything in/i.test(f)) | .filter((f) => !/^Everything in/i.test(f) && billingInterval !== "one_time")
+// The hand-listed-storefront hole: a tierConfig id that TIER_PERKS does not have.
+// @mutate src/components/profile/subscriptionTab/tierConfig.tsx | id: "plus", | id: "plusX",

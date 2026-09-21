@@ -13,7 +13,7 @@
  * failing shade from its neighbour.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 const ROOT = resolve(__dirname, "../../..");
@@ -60,13 +60,29 @@ function ratioOver(fg: [number, number, number], alpha: number, bg: [number, num
 /** The panels sit on `--ivory-sand`, which the stylesheet defines as pure white. */
 const WHITE: [number, number, number] = [255, 255, 255];
 
-const PANEL_FILES = [
-  "src/components/analytics/AnalyticsPanel.tsx",
-  "src/components/analytics/NotEnoughYet.tsx",
-  "src/components/analytics/CategoryPanel.tsx",
-  "src/components/analytics/ApplicationsPanel.tsx",
-  "src/components/analytics/DemandPanel.tsx",
-];
+/**
+ * DERIVED FROM THE DIRECTORY, not hand-listed.
+ *
+ * This was a five-name literal covering AnalyticsPanel, NotEnoughYet,
+ * CategoryPanel, ApplicationsPanel and DemandPanel — which was the complete
+ * set the day axe reported the failures, and is exactly the shape that stops
+ * being complete without anyone noticing. `src/components/analytics/` already
+ * holds three files the literal never named (AnalyticsCharts,
+ * AnalyticsUpgradePanel, EarningsFeePanel); none of them happens to carry a
+ * quiet 11px olivewood line today, so the guard was green for the right
+ * reason and blind for the wrong one. A sixth panel copying a 0.55 shade from
+ * its neighbour — the precise regression this file exists to prevent — would
+ * have been invisible to it.
+ *
+ * Reading the folder means the inventory grows with the app. The `checked`
+ * floor below is what stops the opposite failure (a listing that matches
+ * nothing and passes by measuring nothing).
+ */
+const PANEL_DIR = "src/components/analytics";
+const PANEL_FILES = readdirSync(resolve(ROOT, PANEL_DIR))
+  .filter((f) => f.endsWith(".tsx"))
+  .sort()
+  .map((f) => `${PANEL_DIR}/${f}`);
 
 /** Every `color: hsl(var(--olivewood) / N)` on an element that also carries
  *  `text-ds-11`, paired with its alpha. */
@@ -117,3 +133,17 @@ describe("/analytics quiet 11px text meets WCAG AA on the white panel", () => {
     expect(ratioOver(fg, 0.7, WHITE)).toBeGreaterThan(5);
   });
 });
+
+/* BLIND SPOTS. This is a SOURCE-TEXT measurement, not a rendered one: it
+ * pairs a `text-ds-11` class with an olivewood alpha inside the same 400
+ * characters of JSX, and computes the composite arithmetically. It therefore
+ * cannot see a quiet line whose colour arrives from a CSS class rather than an
+ * inline style, a panel rendered on a surface that is not `--ivory-sand`, or a
+ * dark-mode composite (the `--olivewood` read here is the `:root` light-mode
+ * declaration only). axe against the rendered route remains the authority; this
+ * file's job is to stop the specific numbers regressing between axe runs. */
+
+// The token itself: darkening/lightening --olivewood moves every composite.
+// @mutate src/index.css | --olivewood:    64 16% 16% | --olivewood:    64 16% 46%
+// A single panel re-lightened to the exact alpha axe failed on in 2026-09.
+// @mutate src/components/analytics/NotEnoughYet.tsx | hsl(var(--olivewood) / 0.7) | hsl(var(--olivewood) / 0.55)

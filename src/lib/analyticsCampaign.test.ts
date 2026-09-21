@@ -126,3 +126,17 @@ describe("track() campaign capture", () => {
     expect(String(row.url)).not.toContain("token");
   });
 });
+
+/* BLIND SPOTS. The Supabase insert is mocked, so this proves what track()
+ * SENDS, never what the `analytics_events` row ends up holding — column
+ * truncation, RLS on insert and the server's own handling of `properties` are
+ * outside it. It also only ever sees `window.location.search`: a campaign tag
+ * that arrived in the hash, or one the router rewrote before track() ran, is
+ * not exercised. */
+
+// THE SECURITY-RELEVANT LINE. An allowlist is the only reason a future
+// `?token=` is dropped by default; reading whatever the URL happens to carry
+// is how a secret reaches an analytics table.
+// @mutate src/lib/analytics.ts | for (const key of CAMPAIGN_PARAMS) { | for (const key of q.keys()) {
+// The bound on a hostile link's value.
+// @mutate src/lib/analytics.ts | if (v) out[key] = v.slice(0, 200); | if (v) out[key] = v;

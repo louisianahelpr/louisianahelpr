@@ -138,3 +138,18 @@ describe.each([
     expect(ancestorsWithinPane(text).some(capped)).toBe(true);
   });
 });
+
+/* BLIND SPOTS, stated rather than implied. jsdom computes NO style, so every
+ * assertion here is a CLASS-NAME proxy: it proves which element carries
+ * `max-w-[780px] mx-auto`, never that the composer is actually wider than the
+ * bubbles on a 1570px pane. Tailwind could stop emitting the arbitrary value,
+ * a parent could set its own width, or `--chat-gutter` could change, and this
+ * file would not notice. The measured version of this claim is a rendered
+ * screenshot at 1440 and 375 (VN-25); this file's job is to stop the cap being
+ * moved back onto the composer's ancestors by a later edit. */
+
+// THE SPLIT ITSELF: the cap lives on the scroller, not the column.
+// @mutate src/components/messages/ChatView.tsx | const CHAT_READING_COLUMN = "w-full max-w-[780px] mx-auto"; | const CHAT_READING_COLUMN = "w-full";
+// …and the other direction — re-capping the column the composer dock sits in,
+// which is the regression the owner reported.
+// @mutate src/components/messages/ChatView.tsx | className="flex flex-col flex-1 min-h-0 w-full transition-[padding] duration-150" | className="flex flex-col flex-1 min-h-0 w-full max-w-[780px] mx-auto transition-[padding] duration-150"

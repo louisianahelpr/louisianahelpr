@@ -141,4 +141,76 @@ describe("useScrollFadeUp", () => {
     unmount();
     expect(fakeIO.disconnectCount).toBe(1);
   });
+
+  /* ── THE FAILURE MODE THIS HOOK CAN ACTUALLY CAUSE ────────────────────────
+   * Everything above is about the fade ARRIVING. The defect worth guarding is
+   * the fade never arriving: `js-fade-hidden` is what makes an element
+   * invisible, and if it is applied to something that is then never revealed,
+   * a section of the page is simply blank. Until now nothing in this file
+   * asserted that class at all — the hook could have hidden every element
+   * unconditionally and all eight tests above stayed green, because they only
+   * ever asked about `is-visible`. The hook's own 2s reveal-all failsafe, the
+   * thing standing between a lost observer callback and a blank page, was
+   * likewise never executed.
+   */
+  it("hides ONLY what it is going to animate in", () => {
+    const el = addFadeUpElement("a");
+    renderHook(() => useScrollFadeUp());
+    // jsdom gives every element a zero rect, so `isInViewport` is false and
+    // this element takes the animate branch — the one that hides first.
+    expect(el.classList.contains("js-fade-hidden")).toBe(true);
+    expect(el.classList.contains("is-visible")).toBe(false);
+  });
+
+  it("never hides an element it is revealing immediately (reduced motion)", () => {
+    // The inverse, and the one that would ship a blank page to the users least
+    // able to tolerate it: a reduced-motion visitor gets no observer at all, so
+    // `js-fade-hidden` on them would be permanent.
+    mqMatches = true;
+    const el = addFadeUpElement("a");
+    renderHook(() => useScrollFadeUp());
+    expect(el.classList.contains("js-fade-hidden")).toBe(false);
+    expect(el.classList.contains("is-visible")).toBe(true);
+  });
+
+  it("reveals everything after 2s even if the observer never fires at all", () => {
+    vi.useFakeTimers();
+    try {
+      const el = addFadeUpElement("a");
+      renderHook(() => useScrollFadeUp());
+      // No triggerVisible() call anywhere: this is the headless-renderer /
+      // lost-callback case the failsafe exists for.
+      expect(el.classList.contains("is-visible")).toBe(false);
+      vi.advanceTimersByTime(2000);
+      expect(el.classList.contains("is-visible")).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not fire the failsafe against a torn-down page", () => {
+    vi.useFakeTimers();
+    try {
+      const el = addFadeUpElement("a");
+      const { unmount } = renderHook(() => useScrollFadeUp());
+      unmount();
+      vi.advanceTimersByTime(5000);
+      // The element is still in the document (the hook does not own it); a
+      // leaked timer would have reached in and revealed it after unmount.
+      expect(el.classList.contains("is-visible")).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
+
+/* BLIND SPOTS, stated rather than implied. jsdom computes no layout, so
+ * `isInViewport` can only ever be exercised on its false branch here — the
+ * "already above the fold, skip the fade" path is unproven by this file. And
+ * `is-visible` / `js-fade-hidden` are asserted as CLASS NAMES: whether those
+ * classes actually change opacity is a question for src/index.css and a
+ * rendered browser, not for jsdom. */
+
+// @mutate src/hooks/useScrollFadeUp.ts | if (reduceMotion \|\| isInViewport(el)) { | if (false) {
+// @mutate src/hooks/useScrollFadeUp.ts | ".observe-fade-up:not(.is-visible)" | ".observe-fade-up.never-matches"
+// @mutate src/hooks/useScrollFadeUp.ts | window.clearTimeout(revealAllTimer); | void revealAllTimer;

@@ -114,3 +114,17 @@ describe("MarketingRedirect", () => {
     expect(screen.queryByText("DASHBOARD")).not.toBeInTheDocument();
   });
 });
+
+/* BLIND SPOTS. `isNativePlatform` is mocked, so "native is a no-op" is proven
+ * against the constant rather than against a real WKWebView — the native
+ * cold-launch interaction with NativeRedirect in Index.tsx is not exercised
+ * here. And the LCP claim ("no Supabase chunk fetched") is asserted as "the
+ * auth hook was never called", which is a proxy for the bundle behaviour, not
+ * a measurement of it; the byte-level claim belongs to the bundle-size check. */
+
+// THE LINE THAT MAKES THIS WEB-ONLY. Dropping the native guard mounts a second
+// redirect on top of NativeRedirect on the cold-launch path.
+// @mutate src/components/MarketingRedirect.tsx | !isNativePlatform && hasPersistedAuthToken() | hasPersistedAuthToken()
+// THE GUEST LCP CONTRACT. Rendering the lazy auth check for everyone pulls the
+// Supabase chunk onto the landing page's critical path.
+// @mutate src/components/MarketingRedirect.tsx | if (!maybeSignedIn) return <>{children}</>; | if (false) return <>{children}</>;

@@ -123,3 +123,20 @@ describe("the HELPER's branch is unchanged", () => {
     expect([...container.querySelectorAll("button")].map((b) => b.textContent?.trim())).toEqual([]);
   });
 });
+
+/* BLIND SPOTS. The "no glossy primary" assertion reads a CLASS NAME
+ * (`btn-grad-primary`), which jsdom cannot resolve to a computed
+ * `background-image` — per CLAUDE.md that is a proxy, and the real gloss check
+ * is the rendered one. The confirmation WINDOW (24h before → noon on the job
+ * day for the poster, -24h for the helper) is deliberately unexercised: the
+ * fixture sits inside it on purpose and widening it is an owner policy call.
+ * Nothing here presses the button, so the write to `poster_confirmed_at` and
+ * the notification fan-out are not covered by this file. */
+
+// THE LINE THE OWNER REPORTED. `&& !isOwner` is the whole fix: without it the
+// Helpr tapping "I'm On My Way" deletes the poster's confirm-offer control and
+// its read-back, confirmed or not.
+// @mutate src/components/JobConfirmation.tsx | if (helperOnTheWayAt && !isOwner) return null; | if (helperOnTheWayAt) return null;
+// …and the TONE half of the same rule: the done box must not wear the live
+// CTA's gloss, or "you already did this" reads as a broken button.
+// @mutate src/components/JobConfirmation.tsx | variant="outline" | variant="primary"

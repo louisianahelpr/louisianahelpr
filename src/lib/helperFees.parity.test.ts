@@ -99,3 +99,21 @@ describe("tierFeePercent (client dashboard resolver) mirrors the edge payout res
     expect(tierFeePercent("nonsense")).toBe(12);
   });
 });
+
+/* BLIND SPOTS. This compares two TABLES and two resolvers. It does not prove
+ * that any payout path CALLS them: `getHelperFeePercent` and the
+ * `release-payout` / `process-scheduled-payouts` call sites are graded
+ * elsewhere, and a fee resolver that is correct and unwired would still be
+ * green here. It also says nothing about Stripe — the percent that actually
+ * left the account is a money-journey question, not a parity one. */
+
+// The ladder itself. Plus is the rung that has gone missing from five separate
+// hand-written tier lists; putting it BELOW Elite's guarded 8% floor is the
+// concrete harm that got through.
+// @mutate supabase/functions/_shared/helperFees.ts | plus: 9, | plus: 7,
+// The unknown-tier fallback: a stray legacy tier must over-charge, never
+// under-charge. A retired rung's 6% resolving again is the money bug.
+// @mutate supabase/functions/_shared/helperFees.ts | return TIER_FEE_PERCENT[tier] ?? DEFAULT_TIER_FEE_PERCENT; | return TIER_FEE_PERCENT[tier] ?? 6;
+// The lapsed-subscription revert, on the client resolver this file pins to the
+// edge one.
+// @mutate src/lib/subscriptionTiers.ts | const expired = expiresAt ? new Date(expiresAt).getTime() < Date.now() : false; | const expired = false;

@@ -238,3 +238,39 @@ for (const screen of SCREENS) {
     });
   }
 }
+
+// Shown able to fail on the defect it exists for. Forcing the hero's own
+// wrapper wider than a 320px phone puts the landing page into horizontal
+// scroll, which every version of this file could MEASURE and none could
+// REPORT. The old `status === "failed"` assertion survives this mutation
+// untouched — no exception is thrown, the page simply does not fit.
+// @mutate src/components/landing/HeroSection.tsx | <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16"> | <div style={{ minWidth: 900 }} className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16">
+// ─────────────────────────────────────────────────────────────────────────────
+// THE ASSERTION THIS FILE SPENT ITS LIFE WITHOUT.
+//
+// 240 lines, 24 tests, and one `expect`: `result.status === "failed"` is false.
+// `"failed"` is set ONLY by the catch block, i.e. by a thrown exception. Every
+// defect this spec actually detects — a horizontal scrollbar, elements
+// overflowing right of the viewport, the other layout checks above — sets
+// `"issue"`, and NOTHING read that. The suite passed with horizontal scroll on
+// every screen at every width, which is the one defect CLAUDE.md singles out
+// ("Every page fits the screen at every breakpoint: zero horizontal overflow")
+// and the reason the file measures 320/375/414/768 at all.
+//
+// The per-test assertion stays as it was, and the comment beside it was right:
+// `mode: "serial"` means a failing test SKIPS the rest of the describe, so
+// asserting `"issue"` in place would stop the sweep at the first bad screen and
+// hide the other 23. Hence a trailing aggregate: every screen is measured, and
+// the run still fails if any of them had an issue.
+//
+// Measured 2026-09-21 before switching it on: 24 of 24 OK, so this reds nothing
+// today. It is a guard that could not fire, not a backlog being deferred.
+test("zz every viewport was free of layout issues", () => {
+  const bad = allResults.filter((r) => r.status === "issue");
+  expect(
+    bad.map((r) => `${r.screen} @ ${r.viewport}: ${(r.notes ?? []).join(" || ")}`),
+    `LAYOUT ISSUES. Each line is a screen/width whose measurements came back\n` +
+      `wrong — horizontal scroll, or an element past the right edge. Screenshots\n` +
+      `and the full report are in ${OUTPUT_DIR}.`,
+  ).toEqual([]);
+});

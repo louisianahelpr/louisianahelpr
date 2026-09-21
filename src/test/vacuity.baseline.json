@@ -6,7 +6,7 @@
     "permanent excuse. New guards may NOT be added - register a mutation instead:",
     "  // @mutate <file the guard protects> | <text to break> | <replacement>",
     "WIDENED 2026-09-20 from src/test/ (190 files) to every test in the repo (639).",
-    "The other 449 were not unproven \u2014 they were not even LISTED. This baseline may",
+    "The other 449 were not unproven — they were not even LISTED. This baseline may",
     "only SHRINK, so no new hollow test can land anywhere while the backlog burns down."
   ],
   "generated": "2026-09-19",

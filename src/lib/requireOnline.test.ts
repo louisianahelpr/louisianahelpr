@@ -84,3 +84,8 @@ describe("requireOnline", () => {
     });
   });
 });
+
+// Reverts the gate to navigator.onLine only — the pre-2026-08-31 behaviour
+// that waved a WKWebView user with a routeless wifi association straight
+// through, which is the one case this gate exists for.
+// @mutate src/lib/requireOnline.ts | const nativeOnline = !isNativePlatform \|\| onlineManager.isOnline(); | const nativeOnline = true;

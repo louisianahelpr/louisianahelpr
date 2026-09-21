@@ -75,7 +75,13 @@
     // with it because appleAppStore mints the App Store Server API bearer
     // through it (dynamically, but TS still resolves the module).
     "supabase/functions/_shared/appleAppStore.ts",
-    "supabase/functions/_shared/jwt.ts"
+    "supabase/functions/_shared/jwt.ts",
+    // The design-system scales live here, and `src/lib/utils.test.ts` reads
+    // them to prove every `ds-*` token was taught to tailwind-merge. Deriving
+    // the inventory from the config is the whole point — a hand-typed mirror
+    // in the test is what let `text-ds-10` silently eat `text-primary-foreground`
+    // on <Badge>. This project is `composite`, so every compiled file is listed.
+    "tailwind.config.ts"
   ],
   "exclude": [
     "src/test/edge/**/*.gen.ts",

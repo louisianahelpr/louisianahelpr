@@ -75,3 +75,8 @@ describe("splitFeedPage — pagination survives client-side filtering", () => {
     expect(rows[PAGE_SIZE - 1].id).toBe(`r${PAGE_SIZE - 1}`);
   });
 });
+
+// Reinstates V-006 exactly: hasMore computed from the POST-filter count, so a
+// single blocked poster on a full page reports "no more pages" and the feed
+// silently ends. The first test is the one that dies.
+// @mutate src/hooks/useDashboardData.ts | const hasMore = serverRows.length > PAGE_SIZE; | const hasMore = serverRows.filter((row) => !isBlocked(row)).length > PAGE_SIZE;

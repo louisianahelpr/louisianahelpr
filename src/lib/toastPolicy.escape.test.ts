@@ -71,3 +71,8 @@ describe("the bare toast() callable survives applyToastPolicy", () => {
     expect(activeIds().length).toBe(before + 1);
   });
 });
+
+// Stops suppressing toast.success. The "same message, same absent action,
+// opposite outcome" pin is what dies — without it nothing in the suite can
+// tell the escape hatch from the suppressed channel.
+// @mutate src/lib/toastPolicy.ts | toast.success = suppressUnlessActionable(toast.success); | void suppressUnlessActionable(toast.success);

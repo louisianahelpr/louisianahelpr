@@ -79,3 +79,8 @@ describe("ShortLinkRedirect", () => {
     expect(renderAt("/legal/terms#cancellations")).toBe("/legal?tab=terms#cancellations");
   });
 });
+
+// Normalizes the pathname only, dropping the query string and fragment on the
+// way through — a shared `/j/<id>?ref=share` loses its attribution and
+// `/legal/terms#cancellations` loses its anchor, with no error anywhere.
+// @mutate src/pages/ShortLinkRedirect.tsx | normalizeDeepLinkUrl(`${CANONICAL_ORIGIN}${here}`) | normalizeDeepLinkUrl(`${CANONICAL_ORIGIN}${pathname}`)

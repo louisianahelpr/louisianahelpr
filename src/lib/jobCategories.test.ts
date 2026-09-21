@@ -72,3 +72,7 @@ describe("job categories — single source of truth", () => {
     expect(jobCategoryLabel("not_a_category")).toBe("Not a category");
   });
 });
+
+// Reinstates the "Storm Prep" vs "Storm" drift the four hand-maintained copies
+// had before this table existed.
+// @mutate src/lib/jobCategories.ts | storm_prep: "Storm Prep", | storm_prep: "Storm",

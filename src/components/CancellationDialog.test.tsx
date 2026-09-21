@@ -86,3 +86,8 @@ describe("CancellationDialog fee breakdown", () => {
     expect(screen.getByText(/Free cancellation/)).toBeInTheDocument();
   });
 });
+
+// Quotes a commission rate that is NOT the ladder's highest, so the helper's
+// share stops being a floor — the exact shape that told a poster $54.00 on a
+// job where void-cancelled-payments transferred $55.20.
+// @mutate src/components/CancellationDialog.tsx | const commissionPercent = MAX_HELPER_FEE_PERCENT; | const commissionPercent = 8;

@@ -90,3 +90,8 @@ describe("requestPushPermission — signed-out gate", () => {
     expect(registerMock).not.toHaveBeenCalled();
   });
 });
+
+// Opens the hard gate: a signed-out device falls through to
+// PushNotifications.requestPermissions(), spending iOS's one-shot prompt on a
+// guest whose token savePushToken would discard anyway.
+// @mutate src/lib/nativePush.ts | if (!session?.user) { | if (!session?.user && false) {

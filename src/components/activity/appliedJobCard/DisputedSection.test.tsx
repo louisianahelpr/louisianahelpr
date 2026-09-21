@@ -78,3 +78,7 @@ describe("Helpr's disputed card keeps the tracker (VN-23)", () => {
     expect(tracker.nextElementSibling?.contains(banner)).toBe(true);
   });
 });
+
+// Un-freezes the tracker the disputed card mounts read-only, so the rail
+// becomes interactive on a job whose outcome is already with admin.
+// @mutate src/components/activity/appliedJobCard/DisputedSection.tsx | initialTracking={initialTracking} readOnly /> | initialTracking={initialTracking} />

@@ -174,6 +174,68 @@ const VARIANTS: Variant[] = (() => {
  */
 const MIN_MAIN_TEXT = 20;
 
+/**
+ * ROUTE BOUNCES — the hole that made every other assertion in this file
+ * conditional on something it never checked.
+ *
+ * `result.landedOn` has been recorded since this sweep was written and read by
+ * NOTHING except the failure message. So if a route silently redirected, the
+ * sweep audited the DESTINATION and scored it against the SOURCE's name: one
+ * h1, a real title, plenty of <main> text, no overflow, axe clean — every
+ * invariant passes, because the destination is a perfectly good screen. The
+ * report then claims coverage of a route that was never rendered.
+ *
+ * This is not hypothetical here. The file header already names the exact
+ * mechanism: the authed user's `profiles` row is returned on purpose because
+ * "without it ProtectedRoute's Big 7 gate bounces every route to
+ * /complete-profile and the sweep would audit one screen 160 times". The
+ * fixture avoids that hazard; nothing DETECTS it if it comes back. A regression
+ * in ProtectedRoute, AdminRoute or a router redirect would collapse all 138
+ * screens onto one destination and this sweep would stay green.
+ *
+ * Measured 2026-09-21, these are the routes that legitimately land elsewhere.
+ * Each is a real redirect with a real reason, not a workaround:
+ */
+const EXPECTED_LANDING: Record<string, string> = {
+  // ── Visited in the ANON pass, so ProtectedRoute sends them to the gate ──
+  "/account-banned": "/login",
+  "/account-denied": "/login",
+  "/account-pending": "/login",
+
+  // ── Aliases that forward into a /profile tab ───────────────────────────
+  // Seven catalog entries, ONE rendered screen. The sweep has been auditing
+  // /profile seven times over and reporting it as seven routes; that is the
+  // "audit one screen N times" collapse the file header warns about, already
+  // happening. Left as-is here because the redirects themselves are correct —
+  // but the catalog claims coverage it does not have, which is a finding for
+  // auditRoutes.ts, not something this file should paper over silently.
+  "/availability": "/profile",
+  "/earnings": "/profile",
+  "/gift-card": "/profile",
+  "/saved-helpers": "/profile",
+  "/saved-helprs": "/profile",
+  "/schedule": "/profile",
+  "/settings": "/profile",
+
+  // ── Other permanent forwards ───────────────────────────────────────────
+  "/activity": "/my-posts",
+  // The fixture profile is COMPLETE, so the Big 7 gate is satisfied and this
+  // forwards on. That is what makes the ProtectedRoute mutation registered at
+  // the bottom of this file provable: invert the gate and every OTHER route
+  // starts bouncing to /complete-profile instead.
+  "/complete-profile": "/dashboard",
+  "/data-rights": "/privacy",
+};
+
+/**
+ * Job-detail routes are the one case that cannot be a literal: with every
+ * table answering [] the job does not exist, so the detail route forwards to
+ * the dashboard. That is correct behaviour for a missing job — but it does
+ * mean these rows audit /dashboard, not a job page.
+ */
+const expectedLandingFor = (path: string): string | undefined =>
+  path.startsWith("/jobs/") ? "/dashboard" : EXPECTED_LANDING[path];
+
 // Noise the HARNESS causes, not the app. Left unfiltered these appear on every
 // screen and drown the real findings.
 const HARNESS_NOISE = [
@@ -337,6 +399,22 @@ async function auditEmptyScreen(
     if (layout.consoleIssues.length) {
       f.push(`CONSOLE: ${layout.consoleIssues.join(" || ")}`);
     }
+    // Did we audit the screen we asked for? Everything below this line is a
+    // statement about `landedOn`, not about `meta.url`, so a silent redirect
+    // turns every other finding into a finding about the wrong page.
+    const requestedPath = meta.url.split("?")[0];
+    const landedPath = (result.landedOn ?? "").split("?")[0];
+    const allowedLanding = expectedLandingFor(requestedPath);
+    if (landedPath && landedPath !== requestedPath && landedPath !== allowedLanding) {
+      f.push(
+        `ROUTE_BOUNCE: requested ${requestedPath} but audited ${landedPath}. ` +
+          `Every other check on this screen describes ${landedPath}, so this row ` +
+          `claims coverage of a route that never rendered. If the redirect is ` +
+          `correct, add "${requestedPath}": "${landedPath}" to EXPECTED_LANDING ` +
+          `with the reason; if it is not, the redirect is the bug.`,
+      );
+    }
+
     if (layout.mainTextLength < MIN_MAIN_TEXT) {
       f.push(
         `BLANK_SCREEN: <main> renders ${layout.mainTextLength} visible chars ` +
@@ -466,3 +544,22 @@ sweepDescribe("empty-state sweep (every collection returns [])", () => {
     }
   }
 });
+
+// Proof this sweep can fail — aimed at the hollow shape ROUTE_BOUNCE closes.
+//
+// A global redirect regression is invisible to every OTHER invariant in this
+// file, because the destination is a perfectly good screen: /dashboard has one
+// <h1>, a document title, plenty of <main> text and no axe violations. So the
+// sweep would score 25 admin rows green while rendering /dashboard 25 times.
+// Only ROUTE_BOUNCE notices.
+//
+// AdminRoute is the right lever because it is LIVE in this harness — the admin
+// screens mock `user_roles` to role=admin, so `adminStatus === "admin"` and the
+// children render. Flipping the comparison bounces a CONFIRMED admin instead.
+//
+// NOT ProtectedRoute's Big 7 gate, which was the obvious choice and is DEAD
+// CODE here: `buildFakeProfile` sets `is_legacy_user: true`, and the gate is
+// guarded by `!isLegacy &&` before it ever reads the profile's completeness.
+// Mutating it scores SURVIVED for a reachability reason, not a spec one — and
+// it means this sweep structurally cannot exercise that gate at all.
+// @mutate src/components/AdminRoute.tsx | adminStatus !== "admin" | adminStatus === "admin"

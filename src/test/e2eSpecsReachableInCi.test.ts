@@ -83,11 +83,36 @@ function skippableConditions(yaml: string): string[] {
  * one. Removing a spec's coverage without adding a line reds this test.
  */
 const NOT_RUN_IN_CI: Record<string, string> = {
-  "post-and-apply.spec.ts": "Needs real credentials and writes a job to the live database.",
-  "smoke.spec.ts": "Points at the deployed site; superseded in CI by the mocked happy-path suite.",
-  "a11y.spec.ts": "Deployed-site axe run; a11y-webkit-prod.yml (a11y-prod.spec.ts) covers the same routes against prod with the real accounts.",
-  "visual-audit/desktop-fill.spec.ts": "Deployed-site visual audit; ui-sweep.yml covers the same ground locally.",
-  "visual-audit/responsive.spec.ts": "Deployed-site visual audit; ui-sweep.yml covers the same ground locally.",
+  /*
+   * THIS LIST WAS THE HOLE, 2026-09-21.
+   *
+   * This guard was green at 72/72 while FIVE chromium specs had never executed
+   * in CI — because all five were sitting right here. The guard worked
+   * perfectly; its exemptions did not. That is the second time the same lesson
+   * has been paid for in this repo (see "A guard is only as good as its
+   * weakest exemption" in docs/GUARD-BURNDOWN.md, where three files exempted
+   * as "Parity test; iterates the tier ladder" shipped the Plus-tier bug).
+   *
+   * Two of the five reasons were not merely stale, they were IMPOSSIBLE:
+   * "ui-sweep.yml covers the same ground locally" cannot be true of a chromium
+   * spec, because ui-sweep runs `--project=happy-path` and that project cannot
+   * collect these files at all. Nobody checked, because an exemption's reason
+   * was free text that nothing read.
+   *
+   * It is not free text any more — see the assertion below that an exemption
+   * naming a workflow must name one whose project could actually collect the
+   * spec. That check fails on the exact wording that was here.
+   *
+   * What the five were actually worth: 2.6 minutes of runner time, four
+   * findings nobody had ever seen, one of them a spec that had been red for a
+   * long time on a stale locator and one a real layout defect.
+   */
+  "visual-audit/desktop-fill.spec.ts":
+    "HELD BACK ON A REAL DEFECT, not a constraint. It fails today because /browse fills 39% " +
+    "of a 1440px viewport (contentW=568px) against this spec's own 65% floor. Wiring it now " +
+    "would either ship a permanently red workflow or invite someone to set `exempt: true` on " +
+    "the route, which would mask the finding the spec exists to make. Fix the browse layout, " +
+    "then wire it and delete this entry in the same change.",
 };
 
 /**
@@ -352,6 +377,51 @@ describe("every Playwright spec is either run by CI or explicitly exempted", () 
   it("every exemption names a spec that still exists", () => {
     const stale = Object.keys(NOT_RUN_IN_CI).filter((f) => !existsSync(join(E2E, f)));
     expect(stale, `NOT_RUN_IN_CI names spec files that no longer exist: ${stale.join(", ")}`).toEqual([]);
+  });
+
+  /*
+   * AN EXEMPTION'S REASON IS A CLAIM, AND CLAIMS GET CHECKED.
+   *
+   * Added 2026-09-21, after this file sat green at 72/72 while five chromium
+   * specs had never executed — all five exempted here, two of them on the
+   * reason "ui-sweep.yml covers the same ground locally". That is not merely
+   * stale, it is impossible: ui-sweep runs `--project=happy-path`, and that
+   * project's testDir/testIgnore cannot collect a spec in the chromium set at
+   * all. Nobody noticed because the reason was free text nothing read.
+   *
+   * So: if a reason names a workflow as the thing providing cover, that
+   * workflow must exist AND must run at least one project that could actually
+   * collect this spec. Anything else is a promise with no one behind it.
+   */
+  it("an exemption that names a workflow as cover names one that could actually run the spec", () => {
+    const failures: string[] = [];
+    for (const [spec, reason] of Object.entries(NOT_RUN_IN_CI)) {
+      for (const wf of reason.match(/[a-z0-9-]+\.yml/gi) ?? []) {
+        const wfPath = join(WORKFLOWS, wf);
+        if (!existsSync(wfPath)) {
+          failures.push(`${spec}: reason cites ${wf}, which does not exist`);
+          continue;
+        }
+        const yaml = readFileSync(wfPath, "utf8");
+        const named = [...yaml.matchAll(/--project=([a-z0-9-]+)/gi)].map((m) => m[1]);
+        const canCollect = named.some((projName) => {
+          const proj = projects.find((x) => x.name === projName);
+          return proj ? specsInProject(proj, specs).includes(spec) : false;
+        });
+        if (!canCollect) {
+          failures.push(
+            `${spec}: reason claims ${wf} covers it, but ${wf} runs ${
+              named.length ? named.map((n) => `--project=${n}`).join(", ") : "no project"
+            } and none of those projects can collect ${spec}`,
+          );
+        }
+      }
+    }
+    expect(
+      failures,
+      "an exemption is only as good as its reason. If the reason names a workflow as cover, that " +
+        "workflow has to be able to run the spec:\n  " + failures.join("\n  "),
+    ).toEqual([]);
   });
 
   it("every GATED_IN_CI entry names a real spec and a workflow that really names it", () => {

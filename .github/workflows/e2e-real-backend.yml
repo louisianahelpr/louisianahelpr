@@ -237,6 +237,32 @@ jobs:
         # would then report these two as unreachable, which is the exact wrong
         # answer in the exact place it matters.
         run: npx playwright test --project=chromium e2e/auth.spec.ts e2e/payment-lifecycle.spec.ts --reporter=list
+      - name: Four chromium specs that ran nowhere until 2026-09-21
+        # post-and-apply, smoke, a11y and visual-audit/responsive were in
+        # e2eSpecsReachableInCi's NOT_RUN_IN_CI list, so the reachability guard
+        # was green while none of them had ever executed. Two of the stated
+        # reasons were false: "ui-sweep.yml covers the same ground" cannot be
+        # true of a chromium spec, because ui-sweep runs --project=happy-path
+        # and that project cannot collect these files at all.
+        #
+        # Running all five locally costs 2.6 minutes and produced four findings,
+        # including a spec that had been red for a long time on a stale locator
+        # ("Browse Local Jobs"; the button says "Browse Jobs") and a real layout
+        # defect. They point at PLAYWRIGHT_BASE_URL, which this job has already
+        # set to the local preview built from this commit.
+        #
+        # desktop-fill is deliberately NOT here — it fails on a genuine defect
+        # (/browse fills 39% of 1440px against its own 65% floor) and wiring it
+        # would either ship a permanently red workflow or invite someone to
+        # mask the finding. See its NOT_RUN_IN_CI entry for the way out.
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+          PLAYWRIGHT_TEST_USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
+          PLAYWRIGHT_TEST_USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD }}
+        # ONE line, for the same reason as the step above: the reachability
+        # guard reads workflow files line by line, and a `\` continuation would
+        # hide these spec names from it.
+        run: npx playwright test --project=chromium e2e/post-and-apply.spec.ts e2e/smoke.spec.ts e2e/a11y.spec.ts e2e/visual-audit/responsive.spec.ts --reporter=list
       - name: Upload report on failure
         if: failure()
         uses: actions/upload-artifact@v7

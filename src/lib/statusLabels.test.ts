@@ -91,3 +91,8 @@ describe("applicationStatusLabel()", () => {
     expect(applicationStatusLabel("auto_declined")).toBe("Auto declined");
   });
 });
+
+// The coverage claim is derived from the generated enum, so the mutation that
+// matters is the one the hand-written list already suffered once:
+// `pending_approval` present in the enum and absent from the label table.
+// @mutate src/lib/statusLabels.ts | pending_approval: "Awaiting approval", | pending_approval: "",

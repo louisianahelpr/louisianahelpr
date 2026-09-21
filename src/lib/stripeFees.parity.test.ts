@@ -100,3 +100,7 @@ describe("netUrgentFeeDollars (helper's urgent take-home after bundled Stripe co
     }
   });
 });
+
+// MONEY. Drift the CLIENT mirror only — that is the failure mode the file is
+// named for, and it is invisible to any test that checks one side alone.
+// @mutate src/lib/stripeFees.ts | export const STRIPE_PCT = 0.029; | export const STRIPE_PCT = 0.03;

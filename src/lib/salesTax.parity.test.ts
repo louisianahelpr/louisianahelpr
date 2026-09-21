@@ -87,3 +87,9 @@ describe("LA taxability rules", () => {
     expect(estimatedSalesTax(200, "assembly", null)).toBeNull();
   });
 });
+
+// MONEY. The edge module is the authority create-payment imports to set each
+// line's Stripe `tax_code`, so dropping a category here changes what real
+// posters in real parishes are charged. The mutation is the exact shape that
+// hid for 16 days elsewhere: a member quietly missing from a pinned list.
+// @mutate supabase/functions/_shared/salesTax.ts | new Set(["assembly", "handyman"]) | new Set(["assembly"])

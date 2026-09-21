@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { jobDateMs, todayMs, isPastDue } from "./jobDate";
 
 /**
@@ -43,6 +43,46 @@ describe("job dates resolve in the platform's zone", () => {
     expect(isPastDue(fmt(new Date(Date.now() + day)))).toBe(false);
   });
 
+  it("resolves TODAY in CENTRAL, whatever zone the runner is in", () => {
+    // The two tests above CANNOT see the zone revert, which is the whole bug.
+    // They build `todayStr` in Central and compare it against `todayMs()`, so
+    // if `todayMs()` silently started reading the RUNTIME's zone the two would
+    // still name the same calendar day for every hour the two zones agree on
+    // the date — 22 hours out of 24 on this runner (America/Los_Angeles), all
+    // 24 on a Central one. Verified by mutation 2026-09-21: swapping
+    // `America/Chicago` for `America/Los_Angeles` in `todayMs()` left the
+    // whole file green.
+    //
+    // The only honest way to ask is to FREEZE the clock at an instant where
+    // the zones disagree about what day it is.
+    vi.useFakeTimers();
+    try {
+      // 01:30 Central on 15 June. Pacific is still on the 14th; UTC is on the
+      // 15th. A `todayMs()` reading the runner's zone answers the 14th here
+      // and calls a job dated TODAY overdue — the admin-queue bug, exactly.
+      vi.setSystemTime(new Date("2026-06-15T06:30:00Z"));
+      expect(todayMs()).toBe(jobDateMs("2026-06-15"));
+      expect(isPastDue("2026-06-15")).toBe(false);
+      expect(isPastDue("2026-06-14")).toBe(true);
+
+      // 19:30 Central on 15 June — the `.toISOString().slice(0,10)` trap: the
+      // UTC day is ALREADY the 16th, so any reading anchored on UTC calls a
+      // job dated the 16th "today" and a job dated the 15th past due.
+      vi.setSystemTime(new Date("2026-06-16T00:30:00Z"));
+      expect(new Date().toISOString().slice(0, 10)).toBe("2026-06-16");
+      expect(todayMs()).toBe(jobDateMs("2026-06-15"));
+      expect(isPastDue("2026-06-15")).toBe(false);
+      expect(isPastDue("2026-06-16")).toBe(false);
+
+      // And in WINTER, where Central is UTC-6 rather than UTC-5.
+      vi.setSystemTime(new Date("2026-01-15T07:30:00Z")); // 01:30 CST
+      expect(todayMs()).toBe(jobDateMs("2026-01-15"));
+      expect(isPastDue("2026-01-14")).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("is NOT plain UTC-midnight parsing", () => {
     // `new Date("2026-06-15")` is 00:00Z. The platform's midnight is 05:00Z in
     // summer, so the two must differ — if they ever match, the helper has
@@ -81,3 +121,6 @@ describe("job dates resolve in the platform's zone", () => {
     expect(jobDateMs("2026-06-15")).not.toBeNull();
   });
 });
+
+// @mutate src/lib/jobDate.ts | const BARE_DATE = /^\d{4}-\d{2}-\d{2}$/; | const BARE_DATE = /^\d{4}-\d{2}-\d{2}/;
+// @mutate src/lib/jobDate.ts | timeZone: "America/Chicago", | timeZone: "America/Los_Angeles",

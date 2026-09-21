@@ -105,3 +105,10 @@ describe("getAttachmentSignedUrl", () => {
     expect(await getAttachmentSignedUrl("uid/job/file.pdf")).toBeNull();
   });
 });
+
+// The one security promise this module makes is that the URL it hands out is
+// SHORT-LIVED; a signed URL to someone else's resume that never expires is the
+// whole failure. NOTE the gap this cannot see: `if (error || !data)` is a
+// REDUNDANT gate as mocked — storage answers `{data: null, error}`, so `!data`
+// alone already returns null and the `error` half is unobservable.
+// @mutate src/lib/applicationAttachments.ts | expiresInSeconds = 60 * 10 | expiresInSeconds = 60 * 60 * 24 * 365

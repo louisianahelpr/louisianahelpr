@@ -89,3 +89,8 @@ describe("buildHelperBadgeStats", () => {
     expect(buildHelperBadgeStats(null, null)).toEqual({ completedJobs: 0, avgRating: 0, reviewCount: 0 });
   });
 });
+
+// The contract is a LOWER bound: a badge may be under-awarded, never
+// over-awarded. Taking the high end of the total and the low end of the poster
+// sum inverts exactly that, and nothing else about the module changes.
+// @mutate src/lib/helperBadgeStats.ts | Math.max(helper * MIN_RATING, totalLo - posterHi) | Math.max(helper * MIN_RATING, totalHi - posterLo)

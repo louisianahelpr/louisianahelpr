@@ -104,3 +104,9 @@ describe("the promise this screen makes", () => {
     expect(STALLED_NO_MONEY_NOTE).toMatch(/records that a person looked/i);
   });
 });
+
+// CLAUDE.md: a job can outlive its poster, and deletion nulls `date_needed`.
+// A `hours === null` guard reads as equivalent and is not — `hoursStuck`
+// returns NaN, never null, so the screen prints "NaNh past the scheduled end"
+// on a card about held escrow.
+// @mutate src/components/admin/adminStalledJobs/stalledQueue.ts | if (!Number.isFinite(hours)) return "No scheduled end on record"; | if (hours === null) return "No scheduled end on record";

@@ -82,3 +82,8 @@ describe("ViolationDialog", () => {
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 });
+
+// The dialog's entire reason to exist is printing the offending SUBSTRING —
+// the one thing a label alone can never carry. Replace it with the rule key
+// and the sender is back to guess-and-retry.
+// @mutate src/components/richMessageInput/ViolationDialog.tsx | {excerpt(v.match)} | {v.type}

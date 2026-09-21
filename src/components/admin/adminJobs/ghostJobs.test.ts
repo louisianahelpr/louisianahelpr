@@ -94,3 +94,8 @@ describe("detectFlags", () => {
     expect(detectFlags(job({ payment_status: "escrow" }))).not.toContain(GHOST_JOB_FLAG);
   });
 });
+
+// A ghost is defined by the ABSENCE of a funded state, so the only mutation
+// that matters is one that quietly admits a new state to the funded set —
+// `abandoned` is the one live on prod.
+// @mutate src/components/admin/adminJobs/adminJobsHelpers.ts | new Set(["escrow", "payout_pending", "released"]) | new Set(["escrow", "payout_pending", "released", "abandoned"])

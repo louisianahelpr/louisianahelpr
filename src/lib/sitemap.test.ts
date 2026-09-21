@@ -85,3 +85,8 @@ describe("sitemap.xml", () => {
     expect(run.status).toBe(0);
   });
 });
+
+// The historical defect, replayed: a live 200 page swapped for a path the app
+// no longer registers. It must trip the registered-routes guard, the core-page
+// guard AND the generator agreement check.
+// @mutate public/sitemap.xml | <loc>https://www.louisianahelpr.com/browse</loc> | <loc>https://www.louisianahelpr.com/subscription</loc>

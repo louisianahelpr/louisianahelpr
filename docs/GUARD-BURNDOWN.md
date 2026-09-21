@@ -36,11 +36,11 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| **`src/test/*.test.ts*`** | 195 | **195 — COMPLETE** | **0** |
+| **`src/test/*.test.ts*`** | 196 | **196 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
-| Playwright `e2e/**` | 60 | 17 | 43 |
-| colocated beside components | 336 | 63 | 273 |
-| **total** | **644** | **328** | **316** |
+| Playwright `e2e/**` | 60 | 19 | 41 |
+| colocated beside components | 336 | 93 | 243 |
+| **total** | **645** | **361** | **284** |
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -128,7 +128,26 @@ which is that file's property, not this one's. Registering the WRONG mutation
 is its own quiet failure mode: the guard leaves the burn-down counted as proven
 while nothing about it was tested.
 
-## The four hollow SHAPES, so they can be looked for rather than stumbled on
+## Two more product defects the burn-down surfaced
+
+- **Sentry Session Replay was recording every keystroke in prod, unguarded.**
+  `maskAllText: true` — the line that redacts every text node, Stripe card and
+  CVC fields and magic-link tokens included — sits inside
+  `if (import.meta.env.PROD)`. Vitest runs DEV, so the entire deferred Replay
+  block was UNREACHABLE from its guard: the flag could be flipped to `false`,
+  deleted or renamed with all 21 tests green. Now driven under a PROD stub.
+- **The id-document storage key was built from the browser-supplied file name**
+  with nothing testing the only defence. `uploadProfileFiles` builds
+  `${userId}/id-document-${Date.now()}.${sanitizeExt(idFile.name)}`; removing
+  that sanitizer's character scrub left all 8 tests GREEN and produced
+  `u1/id-document-1790011062213.p/n g` — a slash in the key, a third path
+  segment, an object written somewhere nobody intended in the PRIVATE
+  id-documents bucket. This is the client half of the family behind the
+  2026-09-01 incident, where the SERVICE-ROLE half let
+  `png/../../<victim>/avatar.png` overwrite another member's photo. That half
+  was guarded; this one was not.
+
+## The hollow SHAPES, so they can be looked for rather than stumbled on
 
 Every hollow guard found today was one of these. They are worth naming because
 each is invisible on a green run and obvious once you know to break the line:

@@ -11,7 +11,15 @@
  *
  * The shell is the app's real index.html (the build snapshots dist/index.html,
  * whose head Vite leaves as-is for these tags).
+ *
+ * Proven able to fail 2026-09-21, on both of the handler's exits: the happy
+ * path (`absolutiseIconLinks(SHELL_HTML)`) and the fail-open catch. The catch
+ * was the door VN-4 could walk back through — it returned the raw shell, and
+ * the four resolving cases below all miss it. Registered as two mutations so
+ * neither exit can regress alone.
  */
+// @mutate api/share.ts | const shell = absolutiseIconLinks(SHELL_HTML); | const shell = SHELL_HTML;
+// @mutate api/share.ts | return respond(absolutiseIconLinks(SHELL_HTML)); | return respond(SHELL_HTML);
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -71,6 +79,14 @@ describe("share HTML carries absolute icon links (VN-4)", () => {
     ["/api/share?_og=job&_id=00000000-0000-4000-8000-000000000000", "fallback shell"],
     ["/api/share?_og=signup&ref=abc123", "signup card"],
     ["/api/share?_og=user&_id=00000000-0000-4000-8000-000000000000", "profile card"],
+    // THE HANDLER'S OWN CATCH. `resolveRoute` runs the path segment through
+    // decodeURIComponent, which THROWS on a malformed escape, and the outer
+    // try/catch degrades to the shell. That fail-open branch returned the
+    // shell RAW until 2026-09-21 — 200, icons root-relative, the compass
+    // back — and the four cases above all miss it, because every one of them
+    // resolves cleanly. Any future throw in resolveMeta lands here too, so
+    // this is the branch that decides whether VN-4 can come back by accident.
+    ["/jobs/%ZZ", "handler catch (malformed escape)"],
   ])("%s (%s)", async (path) => {
     const html = await served(path);
     const hrefs = iconHrefs(html);

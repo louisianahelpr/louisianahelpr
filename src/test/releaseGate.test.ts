@@ -18,7 +18,18 @@ import { REQUIRED_CHECKS, evaluate } from "../../scripts/release-gate.mjs";
  * 3. The verdict logic itself, shown able to fail in each direction: a red run,
  *    a HOLLOW green (run succeeded, audit job skipped), a run in flight, no
  *    run, a superseding re-run.
+ *
+ * WHAT IT CANNOT SEE: live Actions state. `evaluate()` is exercised against
+ * hand-built run/job records, and the wiring assertions read repo text. A
+ * workflow disabled on github.com, or a required check that stops running for
+ * a reason the files do not express, is invisible here — that is
+ * prod-freshness.yml's and the nightly-red issues' job, not this file's.
+ *
+ * Proven able to fail 2026-09-21: neutering the audit-job clause (`const ran =
+ * true`) — which is what makes a green run with every real job SKIPPED count
+ * as green, the exact e2e-real-backend push shape — turns this red.
  */
+// @mutate scripts/release-gate.mjs | const ran = auditJobs.some((j) => j.conclusion === "success"); | const ran = true;
 
 const REPO = resolve(__dirname, "../..");
 const WORKFLOWS = join(REPO, ".github/workflows");

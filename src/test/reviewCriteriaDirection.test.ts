@@ -25,7 +25,14 @@
  * written against the WORLD (the vocabulary of a helper's job: showing up,
  * doing work) rather than against the arrays under test, so they cannot pass
  * vacuously by being kept in sync with whatever the arrays happen to say.
+ *
+ * Proven able to fail 2026-09-21 with the SILENT INVERSION — swapping the two
+ * branches of `quickTagsFor`, so every tag set is offered to the wrong side
+ * with both arrays still perfectly correct. That is the failure mode with no
+ * symptom: nothing is missing, nothing is misspelt, and a helper is simply
+ * asked whether their client showed up on time.
  */
+// @mutate src/components/reviewPanel/types.ts | role === "poster" ? POSTER_QUICK_TAGS : HELPER_QUICK_TAGS | role === "poster" ? HELPER_QUICK_TAGS : POSTER_QUICK_TAGS
 import { describe, expect, it } from "vitest";
 import {
   HELPER_QUICK_TAGS,

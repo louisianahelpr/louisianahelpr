@@ -13,7 +13,20 @@
  * vite.config.ts stopped deriving the commit from VERCEL_GIT_COMMIT_SHA, or if
  * the iOS build script stopped going through `vite build` (which is where the
  * define lives, and the only reason the .ipa gets a release at all).
+ *
+ * WHAT IT CANNOT SEE: Sentry. The four wiring tests are SOURCE-TEXT PINS on
+ * sentry.ts, vite.config.ts, package.json and sentry-release.yml; nothing here
+ * asks Sentry what release the last production event actually reported, or
+ * whether source maps for that release exist. A release name that is correct
+ * in the repo and wrong in the wild — an upload that 401s, a DSN pointed at a
+ * different project — is invisible to this file. Live release/artifact state
+ * is an uncovered class, not a gap in these assertions.
+ *
+ * Proven able to fail 2026-09-21 by re-creating OBS-005 itself: making the
+ * unidentified-build sentinel version-shaped ("1.0.0"), so an unidentifiable
+ * build once again looks like a legitimate release in the Sentry UI.
  */
+// @mutate src/lib/sentryRelease.ts | export const UNIDENTIFIED_RELEASE = "unidentified-build"; | export const UNIDENTIFIED_RELEASE = "1.0.0";
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

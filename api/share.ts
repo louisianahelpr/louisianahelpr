@@ -547,7 +547,16 @@ export default {
       // degrade to the plain shell, never to a broken share page. The
       // shell has the default tags, so the reader loses nothing but a
       // job-specific preview.
-      return respond(SHELL_HTML);
+      //
+      // Through absolutiseIconLinks, though, not the raw shell: this branch
+      // was the one door left open on VN-4. Measured 2026-09-21 —
+      // `/jobs/%ZZ` (decodeURIComponent throws on a malformed escape, which
+      // resolveRoute does not catch) answered 200 with the icons
+      // root-relative, i.e. the OS share sheet's compass again, and
+      // src/test/shareIconLinks.test.ts never looked at this path. The
+      // rewrite is pure and idempotent, so degrading still costs a reader
+      // nothing but the job-specific preview.
+      return respond(absolutiseIconLinks(SHELL_HTML));
     }
   },
 };

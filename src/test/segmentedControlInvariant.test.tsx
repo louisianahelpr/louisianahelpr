@@ -44,7 +44,21 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
  * The final proof — computed `background-image` on a real selected segment in
  * a built bundle — is not available to jsdom, which loads no CSS. It belongs
  * to the Playwright pass over `vite preview`.
+ *
+ *  3. AND THE THIRD WAY, FOUND 2026-09-21 WHILE PROVING THIS FILE RED: the
+ *     reset does not have to be inline. `.segmented-option-selected` and
+ *     `.segmented-option` go on the same button as `.btn-grad-primary`, are
+ *     single-class selectors like it, and are declared BELOW it in index.css
+ *     — so one `background:` SHORTHAND there wins the cascade and the
+ *     selected segment renders flat. Adding
+ *     `background: hsl(var(--parchment))` to `.segmented-option-selected`
+ *     repainted the selected segment the colour of the page canvas (the
+ *     literal Earnings-view-switcher defect above) and left all thirteen
+ *     tests in this file GREEN. The check below now reads the cascade, and
+ *     that mutation is the second registration.
  */
+// @mutate src/components/ui/SegmentedControl.tsx | active && "btn-grad-primary segmented-option-selected" | active && "bg-primary segmented-option-selected"
+// @mutate src/index.css | .segmented-option-selected {\n  color: hsl(var(--parchment)); | .segmented-option-selected {\n  background: hsl(var(--parchment));
 
 const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
@@ -121,6 +135,14 @@ function findHandRolledControls(): HandRolled[] {
 
 describe("one segmented control, and it is glossy", () => {
   it("no file outside SegmentedControl.tsx hand-paints a selected segment", () => {
+    // FLOOR THE INVENTORY FIRST. Everything below is "nothing in the tree
+    // does X" — which an empty tree satisfies perfectly. `git ls-files src`
+    // returning nothing (wrong cwd, a detached harness, a rename of src/)
+    // would make this whole describe pass while describing no file at all.
+    // 501 .tsx files on 2026-09-21; the floor is well under that so ordinary
+    // deletions do not trip it.
+    expect(tsxFiles().length).toBeGreaterThan(400);
+
     const offenders = findHandRolledControls().filter(
       // Read from the FILE, not from a list here: an exemption has to be
       // written where the control is.
@@ -182,6 +204,29 @@ describe("one segmented control, and it is glossy", () => {
     // an unstyled button wearing a name.
     for (const cls of [".segmented-track {", ".segmented-option {", ".segmented-option-selected {"]) {
       expect(css, `${cls} missing from index.css`).toContain(cls);
+    }
+
+    // …AND NOTHING THAT LANDS ON THE SAME ELEMENT MAY RESET IT.
+    // `.segmented-option` and `.segmented-option-selected` go on the selected
+    // button together with `.btn-grad-primary`, are single-class selectors
+    // like it, and are declared BELOW it — so a `background` SHORTHAND in
+    // either one wins the cascade and the selected segment renders flat. That
+    // is the Earnings-view-switcher defect this whole file was written for,
+    // and the component-source check below cannot see it because it lives in
+    // the stylesheet, not the markup. Measured 2026-09-21: adding
+    // `background: hsl(var(--parchment))` to `.segmented-option-selected` —
+    // the selected quarter of the Earnings tab painted the colour of the page
+    // canvas behind it — left all thirteen tests in this file GREEN.
+    const glossAt = css.indexOf(".btn-grad-primary {");
+    for (const cls of [".segmented-option {", ".segmented-option-selected {"]) {
+      const at = css.indexOf(cls);
+      const declarations = css.slice(at, css.indexOf("}", at));
+      const paint = /(?:^|[\s;{])background(?:-image|-color)?\s*:/.exec(declarations);
+      expect(
+        Boolean(paint) && at > glossAt,
+        `${cls} paints "${paint?.[0].trim()}" and is declared after .btn-grad-primary — ` +
+          "equal specificity, so it overrides the gloss and the selected segment renders flat",
+      ).toBe(false);
     }
   });
 

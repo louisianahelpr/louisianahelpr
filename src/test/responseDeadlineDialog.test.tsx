@@ -7,7 +7,18 @@
  * "Send Offer" four times with no visible response. The contract now is:
  * onConfirm THROWS a human-readable Error on failure, and the dialog renders
  * it inline, stays open, and re-enables Send.
+ *
+ * Proven able to fail 2026-09-21: commenting out the one `setErrorMessage`
+ * in the catch — i.e. going back to toast-only, the original defect — turns
+ * both tests red. The mutation is registered in its COMMENT form because a
+ * deleted line surviving as `// <original>` is this repo's commonest hollow
+ * shape, and these assertions are on RENDERED output, so they see through it.
+ *
+ * NOT covered here: the mount. This renders the dialog directly, so deleting
+ * <ResponseDeadlineDialog /> from ActivityDialogs.tsx leaves it green — the
+ * onConfirm-throws contract on the other side lives in useOfferHandlers.
  */
+// @mutate src/components/ResponseDeadlineDialog.tsx | setErrorMessage(msg ?? "Couldn't | // setErrorMessage(msg ?? "Couldn't
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";

@@ -23,15 +23,32 @@
 --
 -- Nothing else about the function changes. Every WHERE clause below is byte
 -- for byte what is deployed today (read from pg_get_functiondef on
--- fncmgoasalhdgfwzhsqa, 2026-09-21) — re-stated rather than ALTERed because
--- Postgres cannot add a column to a RETURNS TABLE in place.
+-- fncmgoasalhdgfwzhsqa, 2026-09-21).
+--
+-- WHY A DROP AND NOT `CREATE OR REPLACE`. Postgres refuses to replace a
+-- function whose RETURNS TABLE changes — "cannot change return type of
+-- existing function" — and adding two output columns is exactly that. The
+-- first cut of this migration used CREATE OR REPLACE and db-deploy's
+-- replay-every-migration gate caught it before it reached prod, which is what
+-- that gate is for.
+--
+-- The DROP is guarded so this file is replay-safe, and it names the exact
+-- signature so it cannot take an overload that does not exist today.
+--
+-- DROPPING A FUNCTION DISCARDS ITS GRANTS. The REVOKE/GRANT pair at the
+-- bottom is therefore load-bearing, not ceremony: without it the anon role
+-- loses EXECUTE and the guest map stops loading entirely. (Same family as the
+-- DROP+CREATE VIEW trap, which fails the other way and silently RE-OPENS
+-- access.)
 --
 -- SECURITY: still SECURITY DEFINER with a pinned search_path, and both new
 -- columns are already public on the surfaces that show them (the list renders
 -- the boost badge and the "ending soon" chip from the same two values).
 -- Coordinates stay masked to 2dp.
 
-CREATE OR REPLACE FUNCTION public.get_open_jobs_for_map()
+DROP FUNCTION IF EXISTS public.get_open_jobs_for_map();
+
+CREATE FUNCTION public.get_open_jobs_for_map()
  RETURNS TABLE(id uuid, title text, category text, budget numeric, is_urgent boolean, latitude numeric, longitude numeric, parish text, created_at timestamp with time zone, location text, date_needed date, start_time time without time zone, urgent_fee numeric, is_group_job boolean, helpers_needed integer, boosted_at timestamp with time zone, expires_at timestamp with time zone)
  LANGUAGE sql
  STABLE SECURITY DEFINER

@@ -37,7 +37,10 @@ interface Route {
 const ROUTES: Route[] = [
   // Public marketing
   { path: "/", auth: "anon" },
-  { path: "/subscription", auth: "anon" },
+  // REMOVED 2026-09-21: /subscription. It is not a registered route — it
+  // rendered the NotFound page, whose centred card fills 25% of 1440px, so
+  // this row had been failing the desktop-fill standard on behalf of the 404
+  // screen. Nobody saw it because nothing ran this spec (see the note below).
   { path: "/help", auth: "anon" },
   { path: "/legal", auth: "anon" },
   { path: "/browse", auth: "anon" },
@@ -75,7 +78,11 @@ const ROUTES: Route[] = [
 
   // Standalone features
   { path: "/profile?tab=pets", auth: "authed" },
-  { path: "/family", auth: "authed" },
+  // REMOVED 2026-09-21: /family. Behind FAMILY_ENABLED, which is off, so the
+  // route is unregistered and this measured the 404 screen at 25% too. The
+  // same removal auditRoutes.ts made on 2026-08-23 and overlay-sweep's own
+  // list needed on 2026-09-21 — a fourth copy of one catalog, rotting apart.
+  // Restore with the flag.
   { path: "/profile?tab=analytics", auth: "authed" },
   { path: "/profile?tab=home_history", auth: "authed" },
   { path: "/profile?tab=work_record", auth: "authed" },

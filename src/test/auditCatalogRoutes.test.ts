@@ -186,6 +186,8 @@ function isUnconditionalRedirect(element: string): boolean {
 // Proves the second catalog is covered too: a dead route put back into
 // overlay-sweep's own ROUTES list must fail here, not be probed silently.
 // @mutate e2e/happy-path/overlay-sweep.spec.ts |   "/profile?tab=pets", |   "/profile?tab=pets",\n  "/job-history",
+// Third catalog, same proof: a dead route back in desktop-fill's list must fail.
+// @mutate e2e/visual-audit/desktop-fill.spec.ts |   { path: "/help", auth: "anon" }, |   { path: "/help", auth: "anon" },\n  { path: "/subscription", auth: "anon" },
 describe("audit catalog matches the real route table", () => {
   it("every ANON screen resolves to a registered, publicly reachable route", () => {
     const broken = screensIn("ANON_SCREENS")
@@ -344,6 +346,32 @@ describe("audit catalog matches the real route table", () => {
    * and was counted as another route probed — the exact over-count this file
    * was written to stop, in the one catalog it was not looking at.
    */
+  /**
+   * ONE MORE COPY. e2e/visual-audit/desktop-fill.spec.ts keeps a THIRD route
+   * list, and it had rotted the same way: `/subscription` and `/family` are not
+   * registered routes, so both measured the NotFound screen — whose centred
+   * card fills 25% of a 1440px viewport — and failed the desktop-fill standard
+   * on the 404 page's behalf. Nobody saw it because no workflow runs that spec.
+   */
+  it("every route desktop-fill measures is a registered route", () => {
+    const src = blankComments(
+      readFileSync(resolve(repoRoot, "e2e/visual-audit/desktop-fill.spec.ts"), "utf8"),
+    );
+    const block = /const ROUTES: Route\[\] = \[([\s\S]*?)\n\];/.exec(src);
+    expect(block, "ROUTES not found in desktop-fill.spec.ts").toBeTruthy();
+    const routes = [...block![1].matchAll(/path:\s*"([^"]+)"/g)].map((m) => m[1]);
+    expect(routes.length).toBeGreaterThan(10);
+
+    const dead = routes
+      .filter((r) => resolveRoute(r) === null)
+      .map((r) => `${r} → no route: this measures the NotFound page and grades it as that route`);
+
+    expect(
+      dead,
+      `desktop-fill ROUTES entries that render nothing:\n  - ${dead.join("\n  - ")}`,
+    ).toEqual([]);
+  });
+
   it("every route overlay-sweep probes is a registered route", () => {
     // blankComments, not a regex chain: the removal note inside ROUTES names
     // the three dead paths IN QUOTES, and a comment-blind scan read them back

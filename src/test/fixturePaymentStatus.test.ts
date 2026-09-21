@@ -128,3 +128,10 @@ describe("no fixture describes a job the database would reject", () => {
       .toEqual([]);
   });
 });
+
+// Shown able to fail 2026-09-21. The first is the ORIGINAL bug re-planted: an
+// `open` job fixture carrying `payment_status: "paid"`, a value
+// `jobs_payment_status_check` has never admitted. The second breaks the legal
+// set itself, so the guard cannot pass by reading an empty or wrong list.
+// @mutate e2e/happy-path/helper-apply.spec.ts | payment_status: "escrow", | payment_status: "paid",
+// @mutate supabase/migrations/20260824210000_r19_r20_latent_leaks_and_cancelling_status.sql | 'escrow'::text | 'in_escrow'::text

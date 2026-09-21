@@ -13,3 +13,11 @@ describe("gate lock applies only to whole-repo vitest runs", () => {
     expect(isWholeRepoRun([...node])).toBe(false);
   });
 });
+
+// Shown able to fail 2026-09-21: treating a positional file filter as a
+// whole-repo run makes every scoped `vitest run <file>` take the machine-wide
+// gate lock, so lanes serialise behind one another for no reason.
+// @mutate src/test/gateLockGlobalSetup.ts | return false; // a positional file filter | return true; // a positional file filter
+// And the other direction: a whole-repo run that skips the lock is the 2026-09-13
+// three-at-once load-58 stall.
+// @mutate src/test/gateLockGlobalSetup.ts | if (i === -1) return false; | if (i === -1) return false;\n  if (true) return false;

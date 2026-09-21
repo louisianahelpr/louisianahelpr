@@ -33,12 +33,33 @@
     "",
     "  3 x axe:color-contrast \u2014 REAL, and none of them ours to fix: both colours",
     "    resolve out of src/index.css, which is orchestrator-owned. Filed for the",
-    "    design/a11y lane. Details on each key below."
+    "    design/a11y lane. Details on each key below.",
+    "",
+    "CORRECTION, 2026-09-21. The first version of this file said #83837c came from",
+    "--muted-foreground via --stormy-sky and concluded that every text-muted-foreground",
+    "on white fails AA. THAT WAS WRONG, and wrong in a way worth naming: the ratio came",
+    "from axe and the token was then inferred BY EYE from a grep of index.css. It is not",
+    "a token at all \u2014 --stormy-sky is #516067, 6.52:1 on white, which passes.",
+    "",
+    "Read off the computed style at the failing node instead (the method that should",
+    "have been used first), it is a COMPOSITE, and component-level:",
+    "",
+    "  span.ml-1.5.text-ds-11.font-normal.tabular-nums.opacity-70   text '5:00 PM'",
+    "    color    rgba(46, 47, 34, 0.85)     ink at 85% alpha",
+    "    opacity  0.7                        stacked on top of that alpha",
+    "    behind   .segmented-track rgba(255,255,255,0.5) over .bg-popover #ffffff",
+    "",
+    "  46,47,34 at 0.85 over white = rgb(77,78,67); that at opacity 0.7 over white",
+    "  = rgb(130,131,123) = #82837b. axe says #83837c \u2014 one unit, rounding. Confirmed.",
+    "",
+    "So the defect is an opacity-70 stacked on an already-85%-alpha ink colour at 11px",
+    "inside TimeRangeField's segmented control. Do NOT repaint --muted-foreground on",
+    "the strength of this finding."
   ],
   "generatedAt": "2026-09-21",
   "keys": {
-    "/availability :: dialog :: axe:color-contrast": "TimeRangeField popover, trigger \"9 AM \u2013 5 PM\": #83837c on #ffffff = 3.81:1, needs 4.5:1 (WCAG 2 AA 1.4.3, axe impact serious). NOT a component bug \u2014 #83837c is --muted-foreground resolving through --stormy-sky in src/index.css, so EVERY text-muted-foreground on a white or card surface fails AA and this popover is just where the sweep can see it. src/index.css is orchestrator-owned; filed for the design/a11y lane rather than patched here.",
-    "/my-posts :: dialog :: axe:color-contrast": "The SOS / emergency dialog: #fdfdfd on #b95e35 = 4.37:1 against a 4.5:1 floor (WCAG 2 AA 1.4.3, axe impact serious). Marginal but real, and on the one control where a user is least able to cope with hard-to-read text. #b95e35 is a brand surface colour in src/index.css, which is orchestrator-owned \u2014 filed for the design/a11y lane rather than patched here.",
-    "/profile?tab=availability :: dialog :: axe:color-contrast": "The same TimeRangeField popover on the canonical Profile tab. /availability is a redirecting alias of this route (see redirectsTo in auditRoutes.ts), so these two keys are ONE defect seen twice \u2014 they are both listed because the ratchet is keyed by route and must stay mechanical."
+    "/availability :: dialog :: axe:color-contrast": "TimeRangeField popover, trigger \"9 AM - 5 PM\": #83837c on #ffffff = 3.81:1, needs 4.5:1 (WCAG 2 AA 1.4.3, axe impact serious). COMPOSITE, not a token \u2014 see the correction above. The failing node is the 11px time span: rgba(46,47,34,0.85) under a further opacity-70, over the popover's white. Fixing it is a component change in src/components/TimeRangeField.tsx, and it is a VISUAL change, so it needs the owner's screenshot-before-and-after rule rather than a blind edit from this lane.",
+    "/my-posts :: dialog :: axe:color-contrast": "The SOS / emergency dialog: #fdfdfd on #b95e35 = 4.37:1 against a 4.5:1 floor (WCAG 2 AA 1.4.3, axe impact serious). Marginal but real, and on the control where a user is least able to cope with hard-to-read text. CAUSE NOT YET ESTABLISHED: #b95e35 is not --destructive (#b14a1b light / #c3521d dark), so it is most likely a composite too \u2014 but the trigger could not be reached on demand to read the computed style (/my-posts is the volatile route; see the spec header). Take the computed value at the node before attributing it to any token.",
+    "/profile?tab=availability :: dialog :: axe:color-contrast": "The same TimeRangeField node on the canonical Profile tab. /availability is a redirecting alias of this route (see redirectsTo in auditRoutes.ts), so these two keys are ONE defect seen twice; both are listed because the ratchet is keyed by route and must stay mechanical."
   }
 }

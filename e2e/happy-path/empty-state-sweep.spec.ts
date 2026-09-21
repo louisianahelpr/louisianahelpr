@@ -545,16 +545,21 @@ sweepDescribe("empty-state sweep (every collection returns [])", () => {
   }
 });
 
-// Proof this sweep can fail — aimed at the hazard its own header names.
+// Proof this sweep can fail — aimed at the hollow shape ROUTE_BOUNCE closes.
 //
-// The header explains that the authed user's `profiles` row is returned on
-// purpose, "because without it ProtectedRoute's Big 7 gate bounces every route
-// to /complete-profile and the sweep would audit one screen 160 times". That
-// sentence describes a defect this file was, until today, structurally unable
-// to notice: /complete-profile has one <h1>, a document title and plenty of
-// text, so it satisfies every per-screen invariant. All 138 rows would go
-// green while auditing a single screen.
+// A global redirect regression is invisible to every OTHER invariant in this
+// file, because the destination is a perfectly good screen: /dashboard has one
+// <h1>, a document title, plenty of <main> text and no axe violations. So the
+// sweep would score 25 admin rows green while rendering /dashboard 25 times.
+// Only ROUTE_BOUNCE notices.
 //
-// Inverting the gate's completeness test makes a COMPLETE profile trigger the
-// redirect, which is exactly that collapse. Only ROUTE_BOUNCE catches it.
-// @mutate src/components/ProtectedRoute.tsx | !isProfileComplete(profile) && | isProfileComplete(profile) &&
+// AdminRoute is the right lever because it is LIVE in this harness — the admin
+// screens mock `user_roles` to role=admin, so `adminStatus === "admin"` and the
+// children render. Flipping the comparison bounces a CONFIRMED admin instead.
+//
+// NOT ProtectedRoute's Big 7 gate, which was the obvious choice and is DEAD
+// CODE here: `buildFakeProfile` sets `is_legacy_user: true`, and the gate is
+// guarded by `!isLegacy &&` before it ever reads the profile's completeness.
+// Mutating it scores SURVIVED for a reachability reason, not a spec one — and
+// it means this sweep structurally cannot exercise that gate at all.
+// @mutate src/components/AdminRoute.tsx | adminStatus !== "admin" | adminStatus === "admin"

@@ -13,7 +13,6 @@
   "unregistered": [
     "e2e/a11y-prod/a11y-prod.spec.ts",
     "e2e/auth.spec.ts",
-    "e2e/happy-path/empty-state-sweep.spec.ts",
     "e2e/happy-path/error-state-sweep.spec.ts",
     "e2e/happy-path/overlay-sweep.spec.ts",
     "e2e/happy-path/replaceState-churn.spec.ts",

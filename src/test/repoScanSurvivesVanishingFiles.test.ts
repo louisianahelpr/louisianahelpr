@@ -35,13 +35,28 @@
  * @mutate scripts/check-discarded-query-filters.mjs |       let st;\n      try {\n        st = statSync(full);\n      } catch (e) {\n        if (e.code === "ENOENT") continue;\n        throw e;\n      } |       const st = statSync(full);
  */
 import { describe, it, expect, afterEach } from "vitest";
-import { mkdirSync, rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 // @ts-expect-error — plain .mjs script, no type declarations. Same convention as
 // src/test/discardedQueryFilters.test.ts, which imports the same module.
 import * as guard from "../../scripts/check-discarded-query-filters.mjs";
 
-const DIR = join(process.cwd(), "src", "test", "fixtures", "vanishProbe");
+/**
+ * OUTSIDE the repo, and the first version of this file got that wrong.
+ *
+ * It planted the dangling symlink under `src/test/fixtures/` — inside a root
+ * that every repo scanner walks — so while this spec ran, OTHER suites hit the
+ * unstattable entry. `loadingStateShape.test.ts` duly died on it with ENOENT.
+ * A test for "scanners must tolerate vanishing files" that hands every other
+ * scanner a vanishing file is not a test, it is the bug with a bow on it.
+ *
+ * `listFiles`/`scan` both take (roots, repo), so the probe can live in a real
+ * temp directory and be scanned explicitly. Nothing else can see it.
+ */
+const BASE = mkdtempSync(join(tmpdir(), "vanish-probe-"));
+const ROOT_NAME = "probe";
+const DIR = join(BASE, ROOT_NAME);
 
 afterEach(() => rmSync(DIR, { recursive: true, force: true }));
 
@@ -51,7 +66,7 @@ describe("the repo scanner tolerates entries it cannot stat", () => {
     mkdirSync(DIR, { recursive: true });
     symlinkSync(join(DIR, "never-existed.ts"), join(DIR, "vanished.ts"));
     expect(
-      () => guard.scan(),
+      () => guard.scan([ROOT_NAME], BASE),
       "a file that disappeared between readdir and stat crashed the whole scan",
     ).not.toThrow();
   });
@@ -59,15 +74,16 @@ describe("the repo scanner tolerates entries it cannot stat", () => {
   it("still finds real files around the unreadable one — it skips, not aborts", () => {
     // The lazy fix is to swallow the error and return early, which would make
     // the scanner silently stop at the first odd entry and report a clean repo.
+    // The dangler sorts FIRST, so an aborting walk loses everything after it.
     rmSync(DIR, { recursive: true, force: true });
     mkdirSync(DIR, { recursive: true });
     symlinkSync(join(DIR, "never-existed.ts"), join(DIR, "aaa-vanished.ts"));
-    const files: string[] = guard.listFiles();
-    expect(files.length, "the walk returned almost nothing — it aborted rather than skipped")
-      .toBeGreaterThan(100);
+    writeFileSync(join(DIR, "bbb-real.ts"), "export const a = 1;\n");
+    writeFileSync(join(DIR, "ccc-real.ts"), "export const b = 2;\n");
+    const files: string[] = guard.listFiles([ROOT_NAME], BASE);
     expect(
-      files.some((f: string) => f.endsWith("src/components/JobTracking.tsx")),
-      "a known real file is missing from the walk",
-    ).toBe(true);
+      files.filter((f: string) => f.endsWith("-real.ts")).length,
+      "the walk aborted at the unreadable entry instead of skipping past it",
+    ).toBe(2);
   });
 });

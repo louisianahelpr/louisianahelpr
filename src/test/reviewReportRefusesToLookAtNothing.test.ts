@@ -71,11 +71,24 @@ const png = (p: string) => {
   return p;
 };
 
-const record = (cwd: string, screenshot: string, verdict = "ok") =>
+/**
+ * Writes where the RECORDER writes — `.review/`, not `test-results/`.
+ *
+ * The log moved on 2026-09-20 (`d16f1e80e`): `test-results/` is Playwright's
+ * default outputDir and Playwright clears it at the start of every run, so the
+ * proof that anyone looked at anything survived only until the next spec ran.
+ * This fixture planted its log at the old path, so after the move the reporter
+ * was reading an empty `.review/` and this suite failed against a correct
+ * report. `src/test/reviewLogSurvivesTestRuns.test.ts` pins that the two stay
+ * in step.
+ */
+const record = (cwd: string, screenshot: string, verdict = "ok") => {
+  mkdirSync(join(cwd, ".review"), { recursive: true });
   appendFileSync(
-    join(cwd, "test-results", "review-log.jsonl"),
+    join(cwd, ".review", "review-log.jsonl"),
     JSON.stringify({ screenshot: resolve(screenshot), screen: "s", checked: "c", verdict }) + "\n",
   );
+};
 
 describe("review:report refuses to pass having looked at nothing", () => {
   it("FAILS on an empty world — the exact hole: nothing found, exit 0", () => {

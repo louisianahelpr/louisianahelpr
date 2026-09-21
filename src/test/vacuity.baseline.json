@@ -6,7 +6,7 @@
     "permanent excuse. New guards may NOT be added - register a mutation instead:",
     "  // @mutate <file the guard protects> | <text to break> | <replacement>",
     "WIDENED 2026-09-20 from src/test/ (190 files) to every test in the repo (639).",
-    "The other 449 were not unproven — they were not even LISTED. This baseline may",
+    "The other 449 were not unproven \u2014 they were not even LISTED. This baseline may",
     "only SHRINK, so no new hollow test can land anywhere while the backlog burns down."
   ],
   "generated": "2026-09-19",
@@ -416,11 +416,9 @@
     "src/test/edge/release-payout.test.ts",
     "src/test/edge/review-nag-cron.test.ts",
     "src/test/edge/saved-helper-availability-push.test.ts",
-    "src/test/edge/sharedImports.test.ts",
     "src/test/edge/slack-ops-alert.test.ts",
     "src/test/edge/stalled-completion-reminder.test.ts",
     "src/test/edge/stalledCompletionStage.test.ts",
-    "src/test/edge/storageKeys.test.ts",
     "src/test/edge/str-ical-safeFetch.test.ts",
     "src/test/edge/void-cancelled-payments.test.ts",
     "src/test/edge/weekly-helper-report.test.ts"
